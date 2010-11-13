@@ -24,19 +24,14 @@
 #if !defined(RIL_CHANNEL_SIM_H)
 #define RIL_CHANNEL_SIM_H
 
-#ifdef __linux__
 #include "channel_nd.h"
-#endif
 
 class CChannel_SIM : public CChannel
 {
 public:
-    CChannel_SIM(EnumRilChannel eChannel);
+    CChannel_SIM(UINT32 uiChannel);
     virtual ~CChannel_SIM();
 
-#ifndef __linux__
-    BOOL    OpenDownstreamPort();
-#endif
 
 protected:
     BOOL    FinishInit();

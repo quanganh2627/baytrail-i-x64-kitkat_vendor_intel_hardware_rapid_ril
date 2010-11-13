@@ -1,9 +1,7 @@
-#ifdef __linux__
+
 #include <pthread.h>
 typedef void* (*THREAD_PROC_PTR)(void*);
-#else
-typedef UINT32 (*THREAD_PROC_PTR)(void*);
-#endif
+
 
 #define THREAD_PRIORITY_LEVEL_UNKNOWN     -1
 #define THREAD_PRIORITY_LEVEL_LOWEST      0
@@ -56,11 +54,7 @@ private:
     BOOL        m_fRunning;
     BOOL        m_fInitialized;
 
-#ifdef __linux__
     pthread_t   m_thread;
-#else
-    HANDLE      m_hThread;
-    UINT32       dwThreadID;
-#endif
+
 
 };

@@ -48,11 +48,8 @@ public:
 
     static BOOL WaitForEvent(CFile * pFile, UINT32 &rdwFlags, UINT32 dwTimeoutInMS = WAIT_FOREVER);
 
-#ifndef __linux__
-    static HANDLE GetHandle(CFile * pFile);
-#else  // __linux__
     static int GetFD(CFile * pFile);
-#endif // __linux__
+
 
 private:
 
@@ -66,15 +63,9 @@ private:
 
     UINT32 GetFileAttributes(const char * pszFileName);
 
-#ifdef __linux__
     BOOL    OpenSocket(const char * pszSocketName);
-#endif // __linux__
 
-#ifdef __linux__
     int    m_file;
-#else  // __linux__
-    HANDLE m_hFile;
-#endif // __linux__
 
     BOOL   m_fInitialized;
 

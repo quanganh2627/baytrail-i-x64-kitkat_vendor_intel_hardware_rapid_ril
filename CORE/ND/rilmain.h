@@ -45,11 +45,6 @@ extern BOOL      g_eonschange;
 extern CEvent * g_pCriticalErrorEvent;
 
 // Functions
-#if !defined(__linux__)
-HRESULT RRILND_GetNextNotification(UINT32 dwParam, RILDRVNOTIFICATION* lpRilDrvNotification);
-CRilInstanceHandle* const ExtractHandle(const UINT32 dwParam, BOOL bOverrideEmergency = FALSE);
-#endif // !defined(__linux__)
-
 BOOL ClearCmdHandle(void* pItem, UINT32 dwDummy);
 
 void SignalCriticalError(UINT32 dwEventId, UINT32 dwLineNum, const BYTE* lpszFileName);

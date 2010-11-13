@@ -36,7 +36,7 @@ typedef struct s_request_data
                                 // the parsing process that otherwise is not available.
                                 // Can be left NULL if not required
 
-    unsigned int cbConextData;  // Size in bytes of the context data object 
+    unsigned int cbContextData;  // Size in bytes of the context data object 
 } REQUEST_DATA;
 
 typedef struct s_response_data
@@ -47,10 +47,13 @@ typedef struct s_response_data
                                 
     unsigned long uiDataSize;   // Size of response blob
 
+    unsigned long uiChannel;    // Channel the response was received on
+
     void * pContextData;        // Points to object given in request phase or NULL
                                 // if not supplied
 
     unsigned int cbContextData; // Size in bytes of the context data object
+
 } RESPONSE_DATA;
 
 #endif

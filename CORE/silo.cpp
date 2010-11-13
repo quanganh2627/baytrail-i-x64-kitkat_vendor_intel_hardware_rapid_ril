@@ -33,7 +33,6 @@
 
 //
 //
-#if defined(__linux__)
 CSilo::CSilo(CChannel *pChannel)
 : m_pChannel(pChannel),
   m_pATRspTable(NULL),
@@ -41,15 +40,6 @@ CSilo::CSilo(CChannel *pChannel)
 
 {
 }
-#else
-CSilo::CSilo(CChannel *pChannel, CRilHandle *pRilHandle)
-: m_pChannel(pChannel),
-  m_pRilHandle(pRilHandle),
-  m_pATRspTable(NULL),
-  m_pATRspTableExt(NULL)
-{
-}
-#endif
 
 //
 //

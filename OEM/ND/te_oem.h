@@ -160,7 +160,7 @@ public:
     long OEMParseSendSmsExpectMore(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SETUP_DATA_CALL 27
-    long OEMSetupDataCall(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
+    long OEMSetupDataCall(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize, unsigned int uiCID);
     long OEMParseSetupDataCall(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SIM_IO 28

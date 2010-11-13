@@ -40,7 +40,8 @@ CSilo_Phonebook::CSilo_Phonebook(CChannel *pChannel)
     // AT Response Table
     static ATRSPTABLE pATRspTable[] =
     {
-        { ""  , (PFN_ATRSP_PARSE)&CSilo_Phonebook::ParseNULL }
+        { "+PBREADY", (PFN_ATRSP_PARSE)&CSilo_Phonebook::ParseUnrecognized },
+        { ""        , (PFN_ATRSP_PARSE)&CSilo_Phonebook::ParseNULL }
     };
 
     m_pATRspTable = pATRspTable;

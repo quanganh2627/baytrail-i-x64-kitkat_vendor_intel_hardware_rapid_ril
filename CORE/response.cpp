@@ -483,6 +483,11 @@ BOOL CResponse::ParseResponse(CCommand*& rpCmd)
         memset(&rspData, 0, sizeof(RESPONSE_DATA));
         //GetData(rspData);
         rspData.szResponse = m_szBuffer;
+        rspData.uiChannel = m_pChannel->GetRilChannel();
+        
+        rspData.pContextData = rpCmd->GetContextData();
+        rspData.cbContextData = rpCmd->GetContextDataSize();
+        
 
         RIL_LOG_VERBOSE("CResponse::ParseResponse : chnl=[%d] Calling Parsing Function\r\n", m_pChannel->GetRilChannel() );
         resCode = (CTE::GetTE().*parser)(rspData);

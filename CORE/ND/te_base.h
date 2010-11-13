@@ -141,7 +141,7 @@ public:
     virtual RIL_RESULT_CODE ParseSendSmsExpectMore(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SETUP_DATA_CALL 27
-    virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 uiCID);
     virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SIM_IO 28

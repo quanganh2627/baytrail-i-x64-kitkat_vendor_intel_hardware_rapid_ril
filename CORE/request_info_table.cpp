@@ -80,15 +80,9 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO &rReqInfo)
 
         // Set up non-pre-defined strings
 
-#if defined(__linux__)
         // Group Strings are constant, while Item Strings are Request-Dependent.
         strncpy(g_szItemRequestTimeouts,   g_szRequestNames[requestID], MAX_REQUEST_ITEM_LENGTH);
         strncpy(g_szItemRequestNumRetries, g_szRequestNames[requestID], MAX_REQUEST_ITEM_LENGTH);
-#else  // __linux__
-        // Group Strings are Request-Dependent, while Item Strings are constant.
-        PrintStringNullTerminate(g_szGroupRequestTimeouts,   MAX_REQUEST_GROUP_LENGTH, "%s%d", g_szRegKeyAPIInfo, (int)requestID);
-        PrintStringNullTerminate(g_szGroupRequestNumRetries, MAX_REQUEST_GROUP_LENGTH, "%s%d", g_szRegKeyAPIInfo, (int)requestID);
-#endif // __linux__
 
         if (repository.Read(g_szGroupRequestTimeouts, g_szItemRequestTimeouts, iTemp))
         {

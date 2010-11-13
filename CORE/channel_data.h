@@ -24,37 +24,21 @@
 #if !defined(RIL_CHANNEL_DATA_H)
 #define RIL_CHANNEL_DATA_H
 
-#ifdef __linux__
 #include "channel_nd.h"
-#else
-#include "rilndis.h"
-#endif
 
 class CChannel_Data : public CChannel
 {
 public:
-    CChannel_Data(EnumRilChannel eChannel);
+    CChannel_Data(UINT32 uiChannel);
     virtual ~CChannel_Data();
 
-#ifndef __linux__
-    BOOL    OpenDownstreamPort();
-#endif
 
     //  public port interface
     BOOL    OpenPort();
 
     // get / set functions
 
-#ifndef __linux__
-    const RILNDISGPRSCONTEXT* GetNdisContext() const { return &m_NdisContext; }
-    BOOL SetNdisContext( const RILNDISGPRSCONTEXT* pContext );
-#endif // __linux__
-
-#ifdef __linux__
     UINT32 GetContextID() const { return m_uiContextID; }
-#else  // __linux__
-    UINT32 GetContextID() const { return m_NdisContext.dwContextID; }
-#endif // __linux__
 
     BOOL SetContextID( UINT32 dwContextID );
 
@@ -65,40 +49,22 @@ public:
 
     //virtual BOOL HandleRxData(char *szData, UINT32 dwRead, void* pRxData);
 
-    UINT32 ActivateContext();
-
-#ifndef __linux__
-    HRESULT ReturnRxNdisPacket(
-        RILNDISPACKET* pPacket  // @parm 
-    );
-
-    //RILNDISGPRSCONTEXTRESPONSE::pfnNdisReceivePacketDone
-    static void NdisReceivePacketDone(
-        const LPRILNDISPACKET pPacket  // @parm
-    );
-
-    //RILNDISGPRSCONTEXTRESPONSE::pfnNdisSendPacket
-    static void NdisSendPacket(
-        const LPRILNDISPACKET pPacket  // @parm 
-    );
-#endif // __linux__
+    //UINT32 ActivateContext();
 
     //
     // helper functions to convert ContextID, Dlci and Channel
     //
     static CChannel_Data* GetChnlFromContextID(UINT32 dwContextID);
-    static CChannel_Data* GetChnlFromEnumRilChannel(EnumRilChannel index);
+    static CChannel_Data* GetChnlFromRilChannelNumber(UINT32 index);
     static CChannel_Data* GetFreeChnl();
+    static UINT32 GetNextContextID();
 
-    CEvent *              m_pContextPhaseDoneEvent;
+    CEvent *            m_pSetupDoneEvent;
+    BYTE*               m_szIpAddr;
 
 private:
-#ifndef __linux__
-    CRilNDIS            m_RilNdis;
-    RILNDISGPRSCONTEXT  m_NdisContext;
-#else  // __linux__
-    UINT32               m_uiContextID;
-#endif // __linux__
+
+    UINT32              m_uiContextID;
     BOOL                m_bDataMode;
 
 protected:

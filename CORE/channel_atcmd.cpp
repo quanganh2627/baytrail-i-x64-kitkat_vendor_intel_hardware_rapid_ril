@@ -30,12 +30,12 @@
 //  Com init strings for this channel.
 
 INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|S0=0|+CMEE=1",  0};
-INITSTRING_DATA ATCmdUnlockInitString   = { "+CRC=1|+CR=1|+CSSN=1,1", 0 };
+INITSTRING_DATA ATCmdUnlockInitString   = { "+XRAT=1,2|+CRC=1|+CR=1", 0 };
 INITSTRING_DATA ATCmdPowerOnInitString  = { "", 0 };
-INITSTRING_DATA ATCmdReadyInitString    = { "+CMGF=0|+CCWA=1|+CSCS=\"UCS2\"|+CTZU=1|+CTZR=1|+CREG=2|+CGREG=2", 0 };
+INITSTRING_DATA ATCmdReadyInitString    = { "+CSSN=1,1|+CMGF=0|+CCWA=1|+CUSD=1|+CTZU=1|+CTZR=1|+CREG=2|+CGREG=2", 0 };
 
-CChannel_ATCmd::CChannel_ATCmd(EnumRilChannel eChannel)
-: CChannel(eChannel)
+CChannel_ATCmd::CChannel_ATCmd(UINT32 uiChannel)
+: CChannel(uiChannel)
 {
     RIL_LOG_VERBOSE("CChannel_ATCmd::CChannel_ATCmd() - Enter\r\n");
     RIL_LOG_VERBOSE("CChannel_ATCmd::CChannel_ATCmd() - Exit\r\n");
@@ -59,7 +59,7 @@ BOOL CChannel_ATCmd::FinishInit()
     m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
     if (!m_prisdModuleInit)
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::Init : chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::Init : chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -93,79 +93,48 @@ BOOL CChannel_ATCmd::AddSilos()
     //     Data Silo
     CSilo *pSilo = NULL;
 
-#if !defined(__linux__)
-    if (NULL == m_pRilHandle)
-    {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : ERROR: m_pRilHandle was NULL\r\n");
-        goto Error;
-    }
-#endif
 
-#if defined(__linux__)
     pSilo = CSilo_Factory::GetSiloVoice(this);
-#else
-    pSilo = new CSilo_Voice(this, m_pRilHandle);
-#endif
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Voice\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Voice\r\n", m_uiRilChannel);
         goto Error;
     }
 
-#if defined(__linux__)
     pSilo = CSilo_Factory::GetSiloNetwork(this);
-#else
-    pSilo = new CSilo_Network(this, m_pRilHandle);
-#endif
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Network\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Network\r\n", m_uiRilChannel);
         goto Error;
     }
 
-#if defined(__linux__)
     pSilo = CSilo_Factory::GetSiloSMS(this);
-#else
-    pSilo = new CSilo_SMS(this, m_pRilHandle);
-#endif
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_SMS\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_SMS\r\n", m_uiRilChannel);
         goto Error;
     }
 
 #ifndef RIL_ENABLE_CHANNEL_SIM
-#if defined(__linux__)
     pSilo = CSilo_Factory::GetSiloSIM(this);
-#else
-    pSilo = new CSilo_SIM(this, m_pRilHandle);
-#endif
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_SIM\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_SIM\r\n", m_uiRilChannel);
         goto Error;
     }
 
-#if defined(__linux__)
     pSilo = CSilo_Factory::GetSiloPhonebook(this);
-#else
-    pSilo = new CSilo_Phonebook(this, m_pRilHandle);
-#endif
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
         goto Error;
     }
 #endif // RIL_ENABLE_CHANNEL_SIM
 
-#if defined(__linux__)
     pSilo = CSilo_Factory::GetSiloData(this);
-#else
-    pSilo = new CSilo_Data(this, m_pRilHandle);
-#endif
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Data\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Data\r\n", m_uiRilChannel);
         goto Error;
     }
 

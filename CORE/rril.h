@@ -22,66 +22,23 @@
 #ifndef RRIL_RRIL_H
 #define RRIL_RRIL_H
 
-#ifndef __linux__
-#    include <ril.h>
-#else
-#    include <telephony/ril.h>
-#endif
+#include <telephony/ril.h>
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Typedefs
 //
-#ifndef __linux__
-    typedef HRESULT             RIL_RESULT_CODE;
-    typedef HRESULT             RIL_CMD_ID;
-#else
-    typedef long                RIL_CMD_ID;
-    typedef long                RIL_RESULT_CODE;
-#endif  /// __linux__
+typedef long                RIL_CMD_ID;
+typedef long                RIL_RESULT_CODE;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Android / WM structs conversion
 //
-#if !defined(__linux__)
-//-------------------------------------------------------
-// WM types
-//-------------------------------------------------------
 
-typedef RILCALLINFO                 RRilCallDescriptor;
-
-typedef RILADDRESS                  RRilAddress;
-typedef RRilAddress*                RRilAddressPtr;
-
-typedef RILSUBADDRESS               RRilSubaddress;
-typedef RRilSubaddress*             RRilSubaddressPtr;
-
-typedef RILOPERATORNAMES            RRilOperatorNames;
-
-typedef RILCONNECTINFO              RRilConnectParams;
-
-typedef UINT32                       RIL_RadioState;
-
-#else
-
-//typedef bool            BOOL;
-//typedef unsigned long   DWORD;
-//typedef unsigned int    UINT;
-//typedef const char *    const BYTE*;
-//typedef const char *    LPCSTR;
-//typedef char *          LPSTR;
-//typedef wchar_t         WCHAR;
-//typedef unsigned char   BYTE;
-//typedef const wchar_t * LPCWSTR;
-//typedef wchar_t *       LPWSTR;
-//typedef void *          PVOID;
-//typedef long            LONG;
-//typedef void *          LPVOID;
-
-//#define FALSE   0
-//#define TRUE    1
 #define WAIT_FOREVER            (0xFFFFFFFF)
 
-#endif
+
 
 
 
@@ -134,18 +91,7 @@ enum
 ///////////////////////////////////////////////////////////////////////////////
 // Notify / Result Codes (m_dwCode)
 //
-#if !defined (__linux__)
-#define RRIL_RESULT_OK            RIL_RESULT_OK
-#define RRIL_RESULT_NOCARRIER     RIL_RESULT_NOCARRIER
-#define RRIL_RESULT_ERROR         RIL_RESULT_ERROR
-#define RRIL_RESULT_NODIALTONE    RIL_RESULT_NODIALTONE
-#define RRIL_RESULT_BUSY          RIL_RESULT_BUSY
-#define RRIL_RESULT_NOANSWER      RIL_RESULT_NOANSWER
-#define RRIL_RESULT_CALLABORTED   RIL_RESULT_CALLABORTED
-#define RRIL_RESULT_RADIOOFF      RIL_RESULT_RADIOOFF
-#define RRIL_NOTIFY_CONNECT       RIL_NOTIFY_CONNECT
 
-#else
 #define RRIL_RESULT_OK                  RIL_E_SUCCESS                // 0x00000000
 #define RRIL_RESULT_RADIOOFF            RIL_E_RADIO_NOT_AVAILABLE    // 0x00000001
 #define RRIL_RESULT_ERROR               RIL_E_GENERIC_FAILURE        // 0x00000002
@@ -162,23 +108,10 @@ enum
 #define RRIL_RESULT_NOANSWER       RIL_E_GENERIC_FAILURE
 #define RRIL_NOTIFY_CONNECT        (0x00010000)
 
-#endif // __linux__ or ANDROID
 
 ///////////////////////////////////////////////////////////////////////////////
 // Error codes (in pBlobs) - used to trigger actions during response handling
 //
-#if !defined(__linux__)
-
-#define RRIL_E_NO_ERROR                             S_OK
-#define RRIL_E_UNKNOWN_ERROR                        E_FAIL
-#define RRIL_E_ABORT                                E_ABORT
-#define RRIL_E_DIALSTRING_TOO_LONG                  RIL_E_DIALSTRINGTOOLONG
-#define RRIL_E_MODEM_NOT_READY                      RIL_E_NOTREADY
-#define RRIL_E_TIMED_OUT                            RIL_E_TIMEDOUT
-#define RRIL_E_CANCELLED                            RIL_E_CANCELLED
-#define RRIL_E_RADIOOFF                             RIL_E_RADIOOFF
-
-#else //__linux__
 
 #define RRIL_E_NO_ERROR                             (0x00000000)
 #define RRIL_E_UNKNOWN_ERROR                        (0x00001000)
@@ -189,7 +122,6 @@ enum
 #define RRIL_E_CANCELLED                            (0x00001006)
 #define RRIL_E_RADIOOFF                             (0x00001007)
 
-#endif //__linux__
 
 ///////////////////////////////////////////////////////////////////////////////
 // Information Classes

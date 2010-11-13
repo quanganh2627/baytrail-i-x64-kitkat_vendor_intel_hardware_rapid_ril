@@ -34,8 +34,8 @@ INITSTRING_DATA SIMUnlockInitString  = { "", 0 };
 INITSTRING_DATA SIMPowerOnInitString = { "+CSCS=\"UCS2\"", 0 };
 INITSTRING_DATA SIMReadyInitString   = { "", 0 };
 
-CChannel_SIM::CChannel_SIM(EnumRilChannel eChannel)
-: CChannel(eChannel)
+CChannel_SIM::CChannel_SIM(UINT32 uiChannel)
+: CChannel(uiChannel)
 {
     RIL_LOG_VERBOSE("CChannel_SIM::CChannel_SIM() - Enter\r\n");
     RIL_LOG_VERBOSE("CChannel_SIM::CChannel_SIM() - Exit\r\n");
@@ -58,7 +58,7 @@ BOOL CChannel_SIM::FinishInit()
     m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
     if (!m_prisdModuleInit)
     {
-        RIL_LOG_CRITICAL("CChannel_SIM::FinishInit() - ERROR: chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_SIM::FinishInit() - ERROR: chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -87,33 +87,17 @@ BOOL CChannel_SIM::AddSilos()
     CSilo *pSilo = NULL;
     BOOL bRet = FALSE;
 
-#if !defined(__linux__)
-    if (NULL == m_pRilHandle)
-    {
-        RIL_LOG_CRITICAL("CChannel_SIM::AddSilos() : ERROR : m_pRilHandle was NULL\r\n");
-        goto Error;
-    }
-#endif
-
-#if defined(__linux__)
     pSilo = CSilo_Factory::GetSiloSIM(this);
-#else
-    pSilo = new CSilo_SIM(this, m_pRilHandle);
-#endif
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_SIM::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_SIM\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_SIM::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_SIM\r\n", m_uiRilChannel);
         goto Error;
     }
 
-#if defined(__linux__)
     pSilo = CSilo_Factory::GetSiloPhonebook(this);
-#else
-    pSilo = new CSilo_Phonebook(this, m_pRilHandle);
-#endif
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_SIM::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_SIM::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
         goto Error;
     }
 

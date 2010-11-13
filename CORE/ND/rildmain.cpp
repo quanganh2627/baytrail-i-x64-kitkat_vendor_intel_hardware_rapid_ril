@@ -157,9 +157,9 @@ void CheckTimebomb()
 void RIL_onRequestComplete(RIL_Token tRIL, RIL_Errno eErrNo, void *pResponse, size_t responseLen)
 {
 #ifdef RIL_SHLIB
-    RIL_LOG_INFO("Calling gs_pRilEnv->OnRequestComplete(): token=0x%08x, eErrNo=%d\r\n", tRIL, eErrNo);
+    //RIL_LOG_INFO("Calling gs_pRilEnv->OnRequestComplete(): token=0x%08x, eErrNo=%d, pResponse=[0x%08x], len=[%d]\r\n", tRIL, eErrNo, pResponse, responseLen);
     gs_pRilEnv->OnRequestComplete(tRIL, eErrNo, pResponse, responseLen);
-    RIL_LOG_INFO("Completed call to gs_pRilEnv->OnRequestComplete(): token=0x%08x, eErrNo=%d\r\n", tRIL, eErrNo);
+    RIL_LOG_INFO("After OnRequestComplete(): token=0x%08x, eErrNo=%d, pResponse=[0x%08x], len=[%d]\r\n", tRIL, eErrNo, pResponse, responseLen);
 #endif // RIL_SHLIB
 }
 
@@ -1213,7 +1213,6 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestReportStkServiceRunning(hRilToken, pData, datalen);
-            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
         }
         break;
         
@@ -1257,6 +1256,7 @@ static int onSupports(int requestCode)
     int nSupport = 0;
     RIL_LOG_INFO("onSupports() - Request [%d]\r\n", requestCode);
 
+#if 0
     switch (requestCode)
     {
         case RIL_REQUEST_GET_SIM_STATUS:  // 1
@@ -1388,7 +1388,8 @@ static int onSupports(int requestCode)
             nSupport = 0;
             break;
     }
-
+#endif // 0
+    nSupport = 1;
     return nSupport;
 }
 

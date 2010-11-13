@@ -59,7 +59,7 @@ char g_szNewLine[3] = "\r\n";
 BOOL g_fReadyForSTKNotifications(0);
 
 ///////////////////////////////////////////////////////////////////////////////
-ACCESS_TECHNOLOGY g_uiAccessTechnology = ACT_UNKNOWN;
+ACCESS_TECHNOLOGY g_uiAccessTechnology = ACT_UMTS;
 
 ///////////////////////////////////////////////////////////////////////////////
 // This global class instance tracks the radio state and handles notifications

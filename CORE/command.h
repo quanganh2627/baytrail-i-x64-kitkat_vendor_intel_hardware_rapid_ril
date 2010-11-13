@@ -39,20 +39,20 @@ typedef RIL_RESULT_CODE (CTE::*PFN_TE_PARSE) (RESPONSE_DATA & rRspData);
 class CCommand
 {
 public:
-    CCommand(   EnumRilChannel eChannel,
+    CCommand(   UINT32 uiChannel,
                 RIL_Token token,
                 UINT32 uiReqId,
                 const BYTE* pszATCmd,
                 PFN_TE_PARSE pParseFcn = NULL);
 
-    CCommand(   EnumRilChannel eChannel,
+    CCommand(   UINT32 uiChannel,
                 RIL_Token token,
                 UINT32 uiReqId,
                 const BYTE* pszATCmd1,
                 const BYTE* pszATCmd2,
                 PFN_TE_PARSE pParseFcn = NULL);
 
-    CCommand(   EnumRilChannel eChannel,
+    CCommand(   UINT32 uiChannel,
                 RIL_Token token,
                 UINT32 uiReqId,
                 REQUEST_DATA reqData,
@@ -60,7 +60,7 @@ public:
 
     ~CCommand();
 
-    EnumRilChannel      GetChannel()        { return m_eChannel;    };
+    UINT32              GetChannel()        { return m_uiChannel;   };
     RIL_Token           GetToken()          { return m_token;       };
     UINT32              GetRequestID()      { return m_uiReqId;     };
     BYTE*               GetATCmd1()         { return m_pszATCmd1;   };
@@ -68,6 +68,8 @@ public:
     PFN_TE_PARSE        GetParseFcn()       { return m_pParseFcn;   };
     UINT32              GetTimeout()        { return m_uiTimeout;   };
     CContext *          GetContext()        { return m_pContext;    };
+    void*               GetContextData()    { return m_pContextData;};
+    unsigned int        GetContextDataSize(){ return m_cbContextData;}; 
 
     BOOL                IsAlwaysParse()     { return m_fAlwaysParse; };
     BOOL                IsHighPriority()    { return m_fHighPriority; };
@@ -81,7 +83,7 @@ public:
 
 private:
 
-    EnumRilChannel      m_eChannel;
+    UINT32              m_uiChannel;
     RIL_Token           m_token;
     UINT32              m_uiReqId;
     BYTE*               m_pszATCmd1;
@@ -91,6 +93,8 @@ private:
     BOOL                m_fAlwaysParse;
     BOOL                m_fHighPriority;
     CContext *          m_pContext;
+    void*               m_pContextData;
+    unsigned int        m_cbContextData;
 };
 
 #endif

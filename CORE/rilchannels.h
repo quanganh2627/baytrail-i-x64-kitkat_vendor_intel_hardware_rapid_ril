@@ -20,6 +20,7 @@
 //  Date       Who      Ver   Description
 //  ---------  -------  ----  -----------------------------------------------
 //  June 3/08  DP       1.00  Established v1.00 based on current code base.
+//  Oct 27/10  GR       1.01  Re-worked to support variable number of data channels. 
 //
 /////////////////////////////////////////////////////////////////////////////
 
@@ -27,37 +28,22 @@
 
 //  List channels here (one per COM port)
 
-typedef enum
-{
-    RIL_CHANNEL_ATCMD = 0,
+// TODO - this should be read from repository? Set to 1 in the case
+// where there is only a single ATCMD channel and no data channels.
+#define RIL_CHANNEL_MAX 2   // Just use 2 channels for initial test
+
+#define RIL_CHANNEL_ATCMD 0
 
 #ifdef RIL_ENABLE_CHANNEL_SIM
-    RIL_CHANNEL_SIM,
+#define RIL_CHANNEL_SIM    (RIL_CHANNEL_ATCMD + 1)
+#else
+#define RIL_CHANNEL_SIM    RIL_CHANNEL_ATCMD
 #endif // RIL_ENABLE_CHANNEL_SIM
 
-#ifdef RIL_ENABLE_CHANNEL_DATA1
-    RIL_CHANNEL_DATA1,
-#endif // RIL_ENABLE_CHANNEL_DATA1
+#define RIL_CHANNEL_DATA1    (RIL_CHANNEL_SIM + 1)
 
-#ifdef RIL_ENABLE_CHANNEL_DATA2
-    RIL_CHANNEL_DATA2,
-#endif // RIL_ENABLE_CHANNEL_DATA2
+// TODO - currently allow up to one reserved channel (e.g., for direct audio use).
+// Set this to -1 or a number greater than RIL_CHANNEL_MAX if there is no reserved channel
+#define RIL_CHANNEL_RESERVED 3
 
-#ifdef RIL_ENABLE_CHANNEL_DATA3
-    RIL_CHANNEL_DATA3,
-#endif // RIL_ENABLE_CHANNEL_DATA3
 
-    RIL_CHANNEL_MAX,
-
-} EnumRilChannel;
-
-#ifndef RIL_ENABLE_CHANNEL_SIM
-#define RIL_CHANNEL_SIM     RIL_CHANNEL_ATCMD
-#endif
-
-#ifndef RIL_ENABLE_CHANNEL_DATA1
-#define RIL_CHANNEL_DATA1   RIL_CHANNEL_ATCMD
-#endif
-
-//  In atcmd.cpp.
-BOOL IsChannelIndexValid(EnumRilChannel eChannel);

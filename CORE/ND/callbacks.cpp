@@ -80,3 +80,13 @@ void triggerSMSAck(void *param)
     }
 }
 
+void triggerUSSDNotification(void *param)
+{
+    P_ND_USSD_STATUS pUssdStatus = (P_ND_USSD_STATUS)param;
+    
+    RIL_onUnsolicitedResponse (RIL_UNSOL_ON_USSD, pUssdStatus, sizeof(S_ND_USSD_POINTERS));
+    
+    free(pUssdStatus);
+}
+
+

@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// te_nd.cpp
+// te.cpp
 //
 // Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
@@ -31,6 +31,7 @@
 #include "repository.h"
 #include "oemhookids.h"
 #include "repository.h"
+#include "channel_data.h"
 
 CTE * CTE::m_pTEInstance = NULL;
 
@@ -1568,6 +1569,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
     {
         RIL_LOG_INFO("RequestRadioPower() - No change in state, spoofing command.\r\n");
         res = RIL_E_SUCCESS;
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
     }
     else
     {
@@ -1855,25 +1857,40 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     RIL_RESULT_CODE res;
-    
-    res = m_pTEOemInstance->OEMSetupDataCall(reqData, pData, datalen);
+    UINT32 uiRilChannel = RIL_CHANNEL_ATCMD;
+    UINT32 uiCID = CChannel_Data::GetNextContextID();
+
+    CChannel_Data* pDataChannel = CChannel_Data::GetFreeChnl();
+    if (pDataChannel)
+    {
+        uiRilChannel = pDataChannel->GetRilChannel();
+    }
+    else
+    {
+#ifdef RIL_ENABLE_CHANNEL_DATA1
+        RIL_LOG_CRITICAL("RequestSetupDataCall() - ERROR: No free data channels available\r\n");
+        res = RIL_E_GENERIC_FAILURE;
+        goto Error;
+#endif
+    }
+
+    res = m_pTEOemInstance->OEMSetupDataCall(reqData, pData, datalen, uiCID);
     
     if (RRIL_RESULT_NOTSUPPORTED == res)
     {
-        res = m_pTEBaseInstance->CoreSetupDataCall(reqData, pData, datalen);
+        res = m_pTEBaseInstance->CoreSetupDataCall(reqData, pData, datalen, uiCID);
     }
 
     if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("RequestSetupDataCall() - ERROR: Unable to create AT command data\r\n");
+        goto Error;
     }
+
     else
     {
-#ifdef RIL_ENABLE_CHANNEL_DATA1
-        CCommand * pCmd = new CCommand(RIL_CHANNEL_DATA1, rilToken, ND_REQ_ID_SETUPDEFAULTPDP, reqData, &CTE::ParseSetupDataCall);
-#else
-        CCommand * pCmd = new CCommand(RIL_CHANNEL_ATCMD, rilToken, ND_REQ_ID_SETUPDEFAULTPDP, reqData, &CTE::ParseSetupDataCall);
-#endif
+        CCommand * pCmd = new CCommand(uiRilChannel, rilToken, ND_REQ_ID_SETUPDEFAULTPDP, reqData, &CTE::ParseSetupDataCall);
+
         if (pCmd)
         {
             if (!CCommand::AddCmdToQueue(pCmd))
@@ -1891,6 +1908,10 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
         }
     }
 
+    if (pDataChannel && RRIL_RESULT_OK == res)
+        pDataChannel->SetContextID(uiCID);
+
+Error:
     RIL_LOG_VERBOSE("RequestSetupDataCall() - Exit\r\n");
     return res;
 }
@@ -2771,6 +2792,17 @@ RIL_RESULT_CODE CTE::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
         res = m_pTEBaseInstance->ParseDeactivateDataCall(rRspData);
     }
 
+    CChannel_Data* pDataChannel = CChannel_Data::GetChnlFromRilChannelNumber(rRspData.uiChannel);
+    if (!pDataChannel && RRIL_RESULT_OK == res)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSetupDataCall() - ERROR: Could not get Data Channel for RIL channel number %d.\r\n", rRspData.uiChannel);
+        goto Error;
+    }
+
+    // Reset ContextID to 0, to free up the channel for future use
+    pDataChannel->SetContextID(0);
+
+Error:
     RIL_LOG_VERBOSE("ParseDeactivateDataCall() - Exit\r\n");
     return res;
 }
@@ -6062,9 +6094,44 @@ RIL_RESULT_CODE CTE::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTE::RequestReportStkServiceRunning(RIL_Token rilToken, void * pData, size_t datalen)
 {
     RIL_LOG_VERBOSE("RequestReportStkServiceRunning() - Enter\r\n");
-    g_fReadyForSTKNotifications = TRUE;
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEOemInstance->OEMReportStkServiceRunning(reqData, pData, datalen);
+    
+    if (RRIL_RESULT_NOTSUPPORTED == res)
+    {
+        res = m_pTEBaseInstance->CoreReportStkServiceRunning(reqData, pData, datalen);
+    }
+
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("RequestReportStkServiceRunning() - ERROR: Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand * pCmd = new CCommand(RIL_CHANNEL_ATCMD, rilToken, ND_REQ_ID_REPORTSTKSERVICEISRUNNING, reqData, &CTE::ParseReportStkServiceRunning);
+        
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("RequestReportStkServiceRunning() - ERROR: Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("RequestReportStkServiceRunning() - ERROR: Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
     RIL_LOG_VERBOSE("RequestReportStkServiceRunning() - Exit\r\n");
-    return RRIL_RESULT_OK;
+    return res;
 }
 
 RIL_RESULT_CODE CTE::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)

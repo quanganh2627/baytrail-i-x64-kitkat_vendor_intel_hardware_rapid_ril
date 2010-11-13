@@ -108,15 +108,15 @@ public:
 class CContextInitString : public CContext
 {
 public:
-    CContextInitString(eComInitIndex eInitIndex, EnumRilChannel eChannel, BOOL bFinalCmd)
-        : m_eInitIndex(eInitIndex), m_eChannel(eChannel), m_bFinalCmd(bFinalCmd) {}
+    CContextInitString(eComInitIndex eInitIndex, UINT32 uiChannel, BOOL bFinalCmd)
+        : m_eInitIndex(eInitIndex), m_uiChannel(uiChannel), m_bFinalCmd(bFinalCmd) {}
     virtual ~CContextInitString() {}
 
     virtual void Execute(BOOL, UINT32);
     
 private:
     eComInitIndex m_eInitIndex;
-    EnumRilChannel m_eChannel;
+    UINT32 m_uiChannel;
     BOOL m_bFinalCmd;
 };
 

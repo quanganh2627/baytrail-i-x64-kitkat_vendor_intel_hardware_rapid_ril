@@ -36,12 +36,6 @@ class CThread;
 class CSilo;
 class CThread;
 
-#ifdef RIL_ENABLE_SIMTK
-// theoretically, on boot we should see a max of two toolkit notifications.
-// 1 for a setup menu and 1 for a pro-active cmd.
-#define MAX_TOOLKITNOTIFS 3
-extern CResponse* g_CachedToolKitNotifs[MAX_TOOLKITNOTIFS];
-#endif // RIL_ENABLE_SIMTK
 
 const UINT32 MAX_SILOS = 6;
 
@@ -65,15 +59,11 @@ struct SILO_CONTAINER
 class CChannelBase
 {
 public:
-    CChannelBase(EnumRilChannel eChannel);
+    CChannelBase(UINT32 uiChannel);
     virtual ~CChannelBase();
 
     //  Init functions
-#if defined(__linux__)
     BOOL            InitChannel();
-#else
-    BOOL            InitChannel(CRilHandle *pRilHandle);
-#endif
     BOOL            StartChannelThreads();
     BOOL            StopChannelThreads();
     virtual UINT32  CommandThread();
@@ -86,7 +76,7 @@ public:
     BOOL            InitPort();
     BOOL            ClosePort();
 
-    EnumRilChannel  GetRilChannel() const { return m_eRilChannel; };
+    UINT32          GetRilChannel() const { return m_uiRilChannel; };
 
     //  Public framework functions
     void            ClearCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = FALSE; };
@@ -134,14 +124,11 @@ protected:
     void            SetCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = TRUE; }
     BOOL            WaitForCommand();
 
-#ifndef __linux__
-    void            LogATCommand(const BYTE* szChars, UINT32 cbToWrite, BOOL fResponse);
-#endif
     void            HandleTimedOutError(BOOL fCmdTimedOut);
 
 protected:
     //  Member variables
-    EnumRilChannel                  m_eRilChannel;
+    UINT32                          m_uiRilChannel;
     CSystemManager*                 m_pSystemManager;
 
     UINT32                          m_bCmdThreadBlockedOnRxQueue : 1;

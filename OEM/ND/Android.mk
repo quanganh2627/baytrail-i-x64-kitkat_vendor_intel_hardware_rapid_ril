@@ -2,9 +2,8 @@
 # Copyright 2010 Intrinsyc Software International, Inc.  All rights reserved.
 #
 
-# XXX using libutils for simulator build only...
-#
 ifeq ($(CUSTOM_BOARD),mrst_edv)
+
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 

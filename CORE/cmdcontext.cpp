@@ -125,7 +125,7 @@ void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
     {
         RIL_LOG_INFO("CContextInitString::Execute() - Last command for init index [%d] on channel [%d] had result [%s]\r\n", 
             m_eInitIndex, 
-            m_eChannel,
+            m_uiChannel,
             bRes ? "OK" : "FAIL");
 
         if (!bRes)
@@ -136,7 +136,7 @@ void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
         }
         else
         {
-            CSystemManager::GetInstance().TriggerInitStringCompleteEvent(m_eChannel, m_eInitIndex);
+            CSystemManager::GetInstance().TriggerInitStringCompleteEvent(m_uiChannel, m_eInitIndex);
         }
     }
 }

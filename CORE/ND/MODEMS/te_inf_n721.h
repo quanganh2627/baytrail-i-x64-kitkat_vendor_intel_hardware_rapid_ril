@@ -42,12 +42,22 @@ public:
     //virtual RIL_RESULT_CODE ParseSignalStrength(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SETUP_DATA_CALL 27
-    virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 uiCID);
     virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA & rRspData);
+    
+    // RIL_REQUEST_SIM_IO 28
+    virtual RIL_RESULT_CODE ParseSimIo(RESPONSE_DATA & rRspData);
+    
+    // RIL_REQUEST_SEND_USSD 29
+    virtual RIL_RESULT_CODE ParseSendUssd(RESPONSE_DATA & rRspData);    
 
     // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
     virtual RIL_RESULT_CODE CoreDeactivateDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDeactivateDataCall(RESPONSE_DATA & rRspData);
+    
+    // RIL_REQUEST_SET_MUTE 53
+    virtual RIL_RESULT_CODE CoreSetMute(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSetMute(RESPONSE_DATA & rRspData);    
     
     // RIL_REQUEST_SET_BAND_MODE 65
     virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
@@ -55,6 +65,26 @@ public:
     // RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE 66
     virtual RIL_RESULT_CODE CoreQueryAvailableBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseQueryAvailableBandMode(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_STK_GET_PROFILE 67
+    virtual RIL_RESULT_CODE CoreStkGetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkGetProfile(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_STK_SET_PROFILE 68
+    virtual RIL_RESULT_CODE CoreStkSetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkSetProfile(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
+    virtual RIL_RESULT_CODE CoreStkSendEnvelopeCommand(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
+    virtual RIL_RESULT_CODE CoreStkSendTerminalResponse(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkSendTerminalResponse(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM 71
+    virtual RIL_RESULT_CODE CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
     virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
@@ -71,10 +101,6 @@ public:
     // internal response handlers
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
-
-private:
-    BYTE* m_szIpAddr;
-    CEvent* m_pSetupDataEvent;
 
 };
 

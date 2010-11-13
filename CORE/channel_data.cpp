@@ -29,7 +29,7 @@
 #include "silo_factory.h"
 #include "channel_data.h"
 
-extern BYTE* g_szDataPort1;
+extern BYTE* g_szDataPort1; // TODO replace this with base port name e.g., /dev/ttyGSM
 extern BOOL  g_bIsSocket;
 
 //  Init commands for this channel.
@@ -38,19 +38,16 @@ INITSTRING_DATA DataUnlockInitString = { "", 0 };
 INITSTRING_DATA DataPowerOnInitString = { "", 0 };
 INITSTRING_DATA DataReadyInitString = { "", 0 };
 
-CChannel_Data::CChannel_Data(EnumRilChannel eChannel)
-:   CChannel(eChannel)
+CChannel_Data::CChannel_Data(UINT32 uiChannel)
+:   CChannel(uiChannel),
+    m_szIpAddr(NULL)
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
 
-#ifndef __linux__
-    memset(&m_NdisContext, 0, sizeof(m_NdisContext));
-#else  // __linux__
     m_uiContextID = 0;
-#endif // __linux__
 
     m_bDataMode = FALSE;
-    m_pContextPhaseDoneEvent = new CEvent();
+    m_pSetupDoneEvent = new CEvent();
 
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Exit\r\n");
 }
@@ -62,8 +59,14 @@ CChannel_Data::~CChannel_Data()
     delete []m_prisdModuleInit;
     m_prisdModuleInit = NULL;
 
-    delete m_pContextPhaseDoneEvent;
-    m_pContextPhaseDoneEvent = NULL;
+    delete m_pSetupDoneEvent;
+    m_pSetupDoneEvent = NULL;
+
+    if (m_szIpAddr)
+    {
+        delete[] m_szIpAddr;
+        m_szIpAddr = NULL;
+    }
 
     RIL_LOG_VERBOSE("CChannel_Data::~CChannel_Data() - Exit\r\n");
 }
@@ -76,7 +79,8 @@ BOOL CChannel_Data::OpenPort()
     RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s...\r\n", g_szDataPort1);
     RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
 
-    // TODO: Grab this from repository
+    // TODO: Instead of using g_szDatatPort1, use channel number to create port name from 
+    // the base port name + channel# + 1. E.g, data channel 1 uses port /dev/ttyGSM2
     bRetVal = m_Port.Open(g_szDataPort1, g_bIsSocket);
 
     RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
@@ -93,7 +97,7 @@ BOOL CChannel_Data::FinishInit()
     m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
     if (!m_prisdModuleInit)
     {
-        RIL_LOG_CRITICAL("CChannel_Data::Init : ERROR : chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_Data::Init : ERROR : chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -101,14 +105,6 @@ BOOL CChannel_Data::FinishInit()
     m_prisdModuleInit[COM_UNLOCK_INIT_INDEX]    = DataUnlockInitString;
     m_prisdModuleInit[COM_POWER_ON_INIT_INDEX]  = DataPowerOnInitString;
     m_prisdModuleInit[COM_READY_INIT_INDEX]     = DataReadyInitString;
-
-#ifndef __linux__
-    if (!m_RilNdis.Init(this, m_pComPortCancelEvent))
-    {
-        RIL_LOG_CRITICAL("CChannel_Data::Init : chnl=[%d] FAILED!\r\n", m_eRilChannel);
-        goto Error;
-    }
-#endif // __linux__
 
     bRet = TRUE;
 Error:
@@ -130,24 +126,19 @@ BOOL CChannel_Data::AddSilos()
     CSilo *pSilo = NULL;
     BOOL bRet = FALSE;
 
-#if !defined(__linux__)
-    if (NULL == m_pRilHandle)
-    {
-        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : ERROR : m_pRilHandle was NULL\r\n");
-        goto Error;
-    }
-#endif
-
-#if defined(__linux__)
     pSilo = CSilo_Factory::GetSiloData(this);
-#else
-    pSilo = new CSilo_Data(this, m_pRilHandle);
-#endif
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_Data\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_Data\r\n", m_uiRilChannel);
         goto Error;
     }
+    
+    pSilo = CSilo_Factory::GetSiloPhonebook(this);
+    if (!pSilo || !AddSilo(pSilo))
+    {
+        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
+        goto Error;
+    }    
 
     bRet = TRUE;
 Error:
@@ -158,24 +149,20 @@ Error:
 //
 //  Returns a pointer to the channel linked to the given context ID
 //
-CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 dwContextID)
+CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 uiContextID)
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromContextID() - Enter\r\n");
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
-#ifdef RIL_ENABLE_CHANNEL_DATA1
     for (int i = RIL_CHANNEL_DATA1; i < RIL_CHANNEL_MAX; i++)
     {
-        if (NULL == g_pRilChannel[i])
-        {
-            RIL_LOG_CRITICAL("CChannel_Data::GetChnlFromContextID() : ERROR : g_pRilChannel[%d] was NULL\r\n", i);
-            goto Error;
-        }
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
 
         CChannel_Data* pTemp = static_cast<CChannel_Data*>(g_pRilChannel[i]);
-        if (pTemp && pTemp->GetContextID() == dwContextID)
+        if (pTemp && pTemp->GetContextID() == uiContextID)
         {
             pChannelData = pTemp;
             break;
@@ -183,9 +170,7 @@ CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 dwContextID)
     }
 
 Error:
-#endif // RIL_ENABLE_CHANNEL_DATA1
-
-	RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromContextID() - Exit\r\n");
+    RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromContextID() - Exit\r\n");
     return pChannelData;
 }
 
@@ -199,14 +184,10 @@ CChannel_Data* CChannel_Data::GetFreeChnl()
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
-#ifdef RIL_ENABLE_CHANNEL_DATA1
     for (int i = RIL_CHANNEL_DATA1; i < RIL_CHANNEL_MAX; i++)
     {
-        if (NULL == g_pRilChannel[i])
-        {
-            RIL_LOG_CRITICAL("CChannel_Data::GetFreeChnl() : ERROR : g_pRilChannel[%d] was NULL\r\n", i);
-            goto Error;
-        }
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
 
         CChannel_Data* pTemp = static_cast<CChannel_Data*>(g_pRilChannel[i]);
         if (pTemp && pTemp->GetContextID() == 0)
@@ -217,10 +198,77 @@ CChannel_Data* CChannel_Data::GetFreeChnl()
     }
 
 Error:
-#endif // RIL_ENABLE_CHANNEL_DATA1
-
-	RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnl() - Exit\r\n");
+    RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnl() - Exit\r\n");
     return pChannelData;
+}
+
+//
+//  Returns the Data Channel for the specified RIL channel number
+//
+CChannel_Data* CChannel_Data::GetChnlFromRilChannelNumber(UINT32 index)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromRilChannelNumber() - Enter\r\n");
+
+    extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
+    CChannel_Data* pChannelData = NULL;
+
+    for (int i = RIL_CHANNEL_DATA1; i < RIL_CHANNEL_MAX; i++)
+    {
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
+
+        CChannel_Data* pTemp = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+        if (pTemp && pTemp->GetRilChannel() == index)
+        {
+            pChannelData = pTemp;
+            break;
+        }
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromRilChannelNumber() - Exit\r\n");
+    return pChannelData;
+}
+
+//
+//  Returns the next available Context ID
+//
+UINT32 CChannel_Data::GetNextContextID()
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetNextContextID - Enter\r\n");
+
+    extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
+    UINT32 uiCID = 1;
+    BOOL fAvailable = FALSE;
+    BOOL fFound = FALSE;
+
+    while (!fAvailable)
+    {
+        fFound = FALSE;
+        for (int i = RIL_CHANNEL_DATA1; i < RIL_CHANNEL_MAX; i++)
+        {
+            if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+                continue;
+
+            CChannel_Data* pTemp = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+            if (pTemp && pTemp->GetContextID() == uiCID)
+            {
+                fFound = TRUE;
+                break;
+            }
+        }
+        if (!fFound)
+        {
+            fAvailable = TRUE;
+            break;
+        }
+        else
+            uiCID++;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CChannel_Data::GetNextContextID() - Exit\r\n");
+    return uiCID;
 }
 
 //
@@ -235,20 +283,9 @@ BOOL CChannel_Data::SetContextID(UINT32 dwContextID)
     // If we are setting a value other than 0, make sure it isn't already in use!
     if (dwContextID)
     {
-#ifndef __linux__
-        if (m_NdisContext.dwContextID)
-        {
-            RIL_LOG_CRITICAL("CChannel_Data::SetContextID() : ERROR : m_NdisContext.dwContextID was NULL\r\n");
-            goto Error;
-        }
-#endif // __linux__
     }
 
-#ifdef __linux__
     m_uiContextID = dwContextID;
-#else  // __linux__
-    m_NdisContext.dwContextID = dwContextID;
-#endif // __linux__
 
     fRet = TRUE;
 
@@ -271,9 +308,7 @@ BOOL CChannel_Data::SetDataMode(
 
     if(!bDataMode)
     {
-#ifndef __linux__
-        m_RilNdis.ExitDataMode();  // break sendQ
-#endif // __linux__
+
     }
 
     RIL_LOG_VERBOSE("CChannel_Data::SetDataMode() - Exit\r\n");
@@ -281,100 +316,6 @@ BOOL CChannel_Data::SetDataMode(
 }
 
 
-#ifndef __linux__
-BOOL CChannel_Data::SetNdisContext(const RILNDISGPRSCONTEXT* pContext)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::SetNdisContext() - Enter\r\n");
-
-    if(pContext)
-    {
-        if(GetContextID() != pContext->dwContextID)
-        {
-            RIL_LOG_CRITICAL("CChannel_Data::SetContextID() : ERROR : Context ids don't match\r\n");
-            return FALSE;
-        }
-        m_NdisContext = *pContext;
-    }
-    else // delete Ndis context
-    {
-        memset(&m_NdisContext, 0, sizeof(m_NdisContext));
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::SetNdisContext() - Exit\r\n");
-    return TRUE;
-}
-
-HRESULT CChannel_Data::ReturnRxNdisPacket(
-    RILNDISPACKET* pPacket // @parm
-)
-{
-    m_RilNdis.ReleaseNdisPacket(pPacket, TRUE);
-    return S_OK;
-}
-
-// static function
-void CChannel_Data::NdisReceivePacketDone(
-    const LPRILNDISPACKET pPacket // @parm
-)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::NdisReceivePacketDone() - Enter\r\n");
-
-    if(!pPacket || !pPacket->dwContextId)
-    {
-        RIL_LOG_CRITICAL("CChannel_Data::NdisReceivePacketDone() : ERROR : pPacket or pPacket->dwContextId were NULL\r\n");
-        return;
-    }
-
-    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(pPacket->dwContextId);
-
-    if(pChannelData)
-    {
-        HRESULT hr = pChannelData->ReturnRxNdisPacket(pPacket);
-        if (!SUCCEEDED(hr))
-        {
-            RIL_LOG_CRITICAL("CChannel_Data::NdisReceivePacketDone() : ERROR : pChannelData->ReturnRxNdisPacket failed\r\n");
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CChannel_Data::NdisReceivePacketDone() : ERROR : pChannelData was NULL\r\n");
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::NdisReceivePacketDone() - Exit\r\n");
-}
-
-
-// static function
-void CChannel_Data::NdisSendPacket(
-    const LPRILNDISPACKET pPacket // @parm
-)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::NdisSendPacket() - Enter\r\n");
-
-    if(!pPacket || !pPacket->dwContextId)
-    {
-        RIL_LOG_CRITICAL("CChannel_Data::NdisSendPacket() : ERROR : pPacket or pPacket->dwContextId was NULL\r\n");
-        return;
-    }
-
-    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(pPacket->dwContextId);
-
-    if(pChannelData)
-    {
-        HRESULT hr = pChannelData->m_RilNdis.QTxNdisPacket(pPacket);
-        if (!SUCCEEDED(hr))
-        {
-            RIL_LOG_CRITICAL("CChannel_Data::NdisSendPacket() : ERROR : pChannelData->m_RilNdis.QTxNdisPacket failed\r\n");
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CChannel_Data::NdisSendPacket() : ERROR : pChannelData was NULL\r\n");
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::NdisSendPacket() - Exit\r\n");
-}
-#endif // __linux__
 
 // Triggers the RNDIS on the channel to send the next packet
 BOOL CChannel_Data::SendDataInDataMode()
@@ -383,71 +324,10 @@ BOOL CChannel_Data::SendDataInDataMode()
 
     while (IsInDataMode())
     {
-#ifndef __linux__
-        if (FAILED(m_RilNdis.SendNdisPacket()))
-        {
-            RIL_LOG_CRITICAL("CChannel_Data::SendDataInDataMode() : ERROR : m_RilNdis.SendNdisPacket() failed\r\n");
-            return FALSE;
-        }
-#endif // __linux__
     }
 
     RIL_LOG_VERBOSE("CChannel_Data::SendDataInDataMode() - Exit\r\n");
     return TRUE;
 }
-/*
-BOOL CChannel_Data::HandleRxData(char *szData, UINT32 dwRead, void* pRxData)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::HandleRxData() - Enter\r\n");
-    BOOL bRet = FALSE;
 
-    if(IsInDataMode())
-    {
-#ifndef __linux__
-        if(SUCCEEDED(m_RilNdis.ProcessBPData(pRxData, (BYTE*)szData, dwRead)))
-        {
-            bRet = TRUE;
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CChannel_Data::HandleRxData() : ERROR : m_RilNdis.ProcessBPData() failed\r\n");
-        }
-#endif // __linux__
-    }
-    else
-    {
-        bRet = CChannel::HandleRxData(szData, dwRead, pRxData);
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::HandleRxData() - Exit\r\n");
-
-    return bRet;
-}
-*/
-/*
-BYTE* CChannel_Data::ProvideRxBuf(UINT32& cbSize, void*& pRxData)
-{
-    if (FDataMode())
-    {
-#ifdef __linux__
-        return NULL;
-#else  // __linux__
-        return m_RilNdis.GetRxBuf(cbSize, pRxData);
-#endif // __linux__
-    }
-    else
-    {
-        return NULL;
-    }
-}
-*/
-
-/*
-void CChannel_Data::ReturnRxBuf(BYTE* pBuf)
-{
-#ifndef __linux__
-    m_RilNdis.ReturnRxBuf(pBuf);
-#endif // __linux__
-}
-*/
 

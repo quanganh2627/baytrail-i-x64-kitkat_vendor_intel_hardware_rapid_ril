@@ -68,6 +68,13 @@ public:
 
 protected:
     //  Parse notification functions here.
+#ifndef USE_STK_RAW_MODE    
+    virtual BOOL    ParseSTKProCmd(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseProSessionStatus(CResponse* const pResponse, const BYTE*& rszPointer);
+#else    
+    virtual BOOL    ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rszPointer);        
+#endif
 
 private:
     // helper functions

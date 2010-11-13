@@ -32,7 +32,7 @@ class CResponse;
 class CChannel : public CChannelBase
 {
 public:
-    CChannel(EnumRilChannel eChannel);
+    CChannel(UINT32 uiChannel);
     virtual ~CChannel();
 
     //  Init functions

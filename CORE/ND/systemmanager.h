@@ -75,7 +75,7 @@ public:
 
     void            TriggerSimUnlockedEvent() const         { CEvent::Signal(m_pSimUnlockedEvent);      };
     void            TriggerModemPowerOnEvent() const        { CEvent::Signal(m_pModemPowerOnEvent);     };
-    void            TriggerInitStringCompleteEvent(EnumRilChannel eChannel, eComInitIndex eInitIndex);
+    void            TriggerInitStringCompleteEvent(UINT32 eChannel, eComInitIndex eInitIndex);
 
     BOOL            BlockNonHighPriorityCmds();
 
@@ -92,11 +92,11 @@ private:
     void            DeleteQueues();
     BOOL            OpenChannelPorts();
     void            CloseChannelPorts();
-    CChannel*       CreateChannel(EnumRilChannel eIndex);
+    CChannel*       CreateChannel(UINT32 uiIndex);
     
     // Internal Init helper functions
-    void            SetChannelCompletedInit(EnumRilChannel eChannel, eComInitIndex eInitIndex);
-    BOOL            IsChannelCompletedInit(EnumRilChannel eChannel, eComInitIndex eInitIndex);
+    void            SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
+    BOOL            IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
     BOOL            VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex);
     void            ResetChannelCompletedInit();
     void            ResetSystemState();

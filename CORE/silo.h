@@ -48,11 +48,7 @@ typedef struct atrsptable_tag
 class CSilo
 {
 public:
-#if defined(__linux__)
     CSilo(CChannel *pChannel);
-#else
-    CSilo(CChannel *pChannel, CRilHandle *pRilHandle);
-#endif
     virtual ~CSilo();
 
     //  Called at beginning of CResponse::ParseUnsolicitedResponse().
@@ -81,9 +77,6 @@ public:
 
 protected:
     CChannel *m_pChannel;
-#if !defined(__linux__)
-    CRilHandle *m_pRilHandle;
-#endif
 
     ATRSPTABLE* m_pATRspTable;
     ATRSPTABLE* m_pATRspTableExt;

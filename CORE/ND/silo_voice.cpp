@@ -38,19 +38,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-typedef struct
-{
-    BYTE* pszType;
-    BYTE* pszMessage;
-} S_ND_USSD_POINTERS, *P_ND_USSD_POINTERS;
-
-typedef struct
-{
-    S_ND_USSD_POINTERS sStatusPointers;
-    BYTE szType[MAX_BUFFER_SIZE];
-    BYTE szMessage[MAX_BUFFER_SIZE];
-} S_ND_USSD_STATUS, *P_ND_USSD_STATUS;
-
 //
 //
 CSilo_Voice::CSilo_Voice(CChannel *pChannel)
@@ -62,17 +49,16 @@ CSilo_Voice::CSilo_Voice(CChannel *pChannel)
     static ATRSPTABLE pATRspTable[] =
     {
         { "+CRING: "      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseExtRing },
-        { "\nDISCONNECT"  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseDISCONNECT },
+        { "DISCONNECT"  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseDISCONNECT },
         { "+CCWA: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallWaitingInfo },
         { "+CSSU: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseUnsolicitedSSInfo },
         { "+CSSI: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseIntermediateSSInfo },
         { "+CCCM: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallMeter },
         { "+CUSD: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseUSSDInfo },
-        { "+XCIEV: "      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseIndicatorEvent },
-        { "+XCALLINFO: "  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallProgressInformation },
+        { "+XCIEV: "      , (PFN_ATRSP_PARSE)/*&CSilo_Voice::ParseIndicatorEvent*/ &CSilo_Voice::ParseUnrecognized },
+        { "+XCALLINFO: "  , (PFN_ATRSP_PARSE)/*&CSilo_Voice::ParseCallProgressInformation*/ &CSilo_Voice::ParseUnrecognized },
         { "NO CARRIER"    , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCarrier },
         { "CONNECT"       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseConnect },
-        { "\nCONNECT"     , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseConnect }, 
         { ""              , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNULL }
     };
 

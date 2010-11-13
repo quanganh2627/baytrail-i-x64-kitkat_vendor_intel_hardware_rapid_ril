@@ -227,8 +227,8 @@ Error:
 
 //
 // RIL_REQUEST_SETUP_DATA_CALL 27
-//
-RIL_RESULT_CODE CTE_SW_8790::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+// TODO - this needs to be updated to use the Context ID passed in, instead of hardcoding it to 1
+RIL_RESULT_CODE CTE_SW_8790::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 uiCID)
 {
     RIL_LOG_VERBOSE("CTE_SW_8790::CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;

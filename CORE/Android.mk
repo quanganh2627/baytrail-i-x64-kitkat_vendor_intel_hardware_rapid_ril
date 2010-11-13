@@ -2,9 +2,8 @@
 # Copyright 2010 Intrinsyc Software International, Inc.  All rights reserved.
 #
 
-# XXX using libutils for simulator build only...
-#
 ifeq ($(CUSTOM_BOARD),mrst_edv)
+
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -16,6 +15,10 @@ LOCAL_SRC_FILES:= \
     silo.cpp \
     ND/silo_voice.cpp \
     ND/silo_network.cpp \
+    ND/atchannel.c \
+    ND/at_tok.c \
+    ND/stk.c \
+    ND/misc.c \
     ND/silo_sim.cpp \
     ND/silo_data.cpp \
     ND/silo_phonebook.cpp \
@@ -60,6 +63,7 @@ LOCAL_SHARED_LIBRARIES := libcutils libutils
 LOCAL_CFLAGS = -DRIL_RADIO_RESILIENCE
 LOCAL_CFLAGS += -DDEBUG
 LOCAL_CFLAGS += -DRIL_ENABLE_CHANNEL_DATA1
+LOCAL_CFLAGS += -DRIL_ENABLE_SIMTK
 
 #include this if you want a TIMEBOMB.
 #LOCAL_CFLAGS += -DTIMEBOMB

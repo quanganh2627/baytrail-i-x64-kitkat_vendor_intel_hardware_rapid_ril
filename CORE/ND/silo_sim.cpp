@@ -24,6 +24,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
+#include <stdio.h>
 #include "types.h"
 #include "rillog.h"
 #include "rril.h"
@@ -34,10 +35,11 @@
 #include "callbacks.h"
 #include "rildmain.h"
 #include "silo_sim.h"
+#include "atchannel.h"
+#include "stk.h"
 
-#ifdef RIL_ENABLE_SIMTK
-CResponse* g_CachedToolKitNotifs[MAX_TOOLKITNOTIFS];
-#endif // RIL_ENABLE_SIMTK
+extern "C" char *stk_at_to_hex(ATResponse *p_response);
+
 
 //
 //
@@ -49,7 +51,14 @@ CSilo_SIM::CSilo_SIM(CChannel *pChannel)
     // AT Response Table
     static ATRSPTABLE pATRspTable[] =
     {
-        { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL     }
+        { "+STKCC: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "+STKPRO: "  , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseSTKProCmd },
+        { "+STKCNF: "  , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseProSessionStatus },
+#ifdef USE_STK_RAW_MODE		
+        { "+SATI: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATI },
+        { "+SATN: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATN },        
+#endif		
+        { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
     };
 
     m_pATRspTable = pATRspTable;
@@ -302,6 +311,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 pCardStatus->num_applications = 1;
     
                 pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
+                //pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
                 pCardStatus->applications[0].app_state = RIL_APPSTATE_DETECTED;
                 pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
                 pCardStatus->applications[0].aid_ptr = NULL;
@@ -332,3 +342,275 @@ Error:
     return bRetVal;
 }
 
+BOOL CSilo_SIM::ParseSTKProCmd(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() - Enter\r\n");
+    BOOL fRet = FALSE;
+	char* line = NULL;
+    ATResponse* pAtResp = new ATResponse;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() : ERROR : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+	if (NULL == pAtResp)
+	{
+		RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() : Unable to allocate memory for ATResponse\r\n");
+		goto Error;
+	}
+
+	memset(pAtResp, 0, sizeof(ATResponse));
+	pAtResp->p_intermediates = new ATLine;
+	asprintf(&pAtResp->p_intermediates->line, "%s", rszPointer);
+
+    // Look for a "<postfix>" to be sure we got a whole message
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+		
+    // Create STK proactive hex string
+    line = stk_at_to_hex(pAtResp);
+	
+	RIL_LOG_INFO(" line= %s\r\n", line);
+
+    //  Back up over the "\r\n".
+    rszPointer -= 2;
+
+	delete pAtResp->p_intermediates;
+	delete pAtResp;
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_STK_PROACTIVE_COMMAND);
+
+    if (!pResponse->SetData((void*) line, sizeof(char *), FALSE))
+    {
+		RIL_LOG_INFO(" SetData failed\r\n");
+        goto Error;
+    }
+
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() - Exit\r\n");
+    return fRet;
+}
+
+BOOL CSilo_SIM::ParseProSessionStatus(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - Enter\r\n");
+    BOOL fRet = FALSE;
+    const char* pszEnd = NULL;	
+	UINT32 uiCmd;
+	UINT32 uiResult;
+	UINT32 uiAddResult;
+	UINT32 uiStatus;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() : ERROR : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    // Look for a "<postfix>" to be sure we got a whole message
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Extract "<proactive_cmd>"
+    if (!ExtractUInt(rszPointer, uiCmd, rszPointer))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse proactive cmd.\r\n");
+        goto Error;
+    }
+
+	RIL_LOG_INFO(" Proactive Cmd: %u.\r\n", uiCmd);
+
+	// Extract "<result>"
+	if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
+		 (!ExtractUInt(rszPointer, uiResult, rszPointer)))
+	{
+		RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse result.\r\n");
+		goto Error;
+	}
+
+	RIL_LOG_INFO(" Result: %u.\r\n", uiResult);
+
+	// Extract "<add_result>"
+	if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
+		 (!ExtractUInt(rszPointer, uiAddResult, rszPointer)))
+	{
+		RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse additional result.\r\n");
+		goto Error;
+	} 
+
+	RIL_LOG_INFO(" Additional result: %u.\r\n", uiAddResult);
+
+	// Extract "<sw1>"
+	if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
+		 (!ExtractUInt(rszPointer, uiStatus, rszPointer)))
+	{
+		RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse status.\r\n");
+		goto Error;
+	} 
+
+	RIL_LOG_INFO(" Status: %u.\r\n", uiStatus);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_STK_SESSION_END);
+
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - Exit\r\n");
+    return fRet;
+}
+
+#ifdef USE_STK_RAW_MODE
+BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Enter\r\n");
+    char* pszProactiveCmd = NULL;
+    UINT32 uiLength = 0;
+    const char* pszEnd = NULL;
+    BOOL fRet = FALSE;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() : ERROR : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    // Look for a "<postfix>" to be sure we got a whole message
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    {
+        // incomplete message notification
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+    else
+    {
+        // PDU is followed by g_szNewline, so look for g_szNewline and use its
+        // position to determine length of PDU string.  
+        
+        // Calculate PDU length + NULL byte  
+        uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(g_szNewLine) + 1;
+        RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATI() - Calculated PDU String length: %u chars.\r\n", uiLength);
+    }
+
+    pszProactiveCmd = (char*)malloc(sizeof(char) * uiLength);
+    if (NULL == pszProactiveCmd)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() - ERROR: Could not alloc mem for command.\r\n");
+        goto Error;
+    }
+    
+    // Parse <"hex_string">
+    if (!ExtractQuotedString(rszPointer, pszProactiveCmd, uiLength, rszPointer))
+    {
+        RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATI() - ERROR: Could not parse hex String.\r\n");
+        goto Error;
+    }
+
+    // Ensure NULL termination
+    pszProactiveCmd[uiLength] = '\0';
+
+    RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATI() - Hex String: \"%s\".\r\n", pszProactiveCmd);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_STK_PROACTIVE_COMMAND);
+
+    if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char *), FALSE))
+    {
+        goto Error;
+    }
+
+    fRet = TRUE;
+
+Error:
+    if (!fRet)
+    {
+        free(pszProactiveCmd);
+        pszProactiveCmd = NULL;
+    }
+
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Exit\r\n");
+    return fRet;
+}
+
+BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Enter\r\n");
+    char* pszProactiveCmd = NULL;
+    UINT32 uiLength = 0;
+    const char* pszEnd = NULL;
+    BOOL fRet = FALSE;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() : ERROR : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    // Look for a "<postfix>" to be sure we got the whole message
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    {
+		// incomplete message notification
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+    else
+    {
+        // PDU is followed by g_szNewline, so look for g_szNewline and use its
+        // position to determine length of PDU string.  
+        
+        // Calculate PDU length + NULL byte  
+        uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(g_szNewLine) + 1;
+        RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATN() - Calculated PDU String length: %u chars.\r\n", uiLength);
+    }
+
+    pszProactiveCmd = (char*)malloc(sizeof(char) * uiLength);
+    if (NULL == pszProactiveCmd)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() - ERROR: Could not alloc mem for command.\r\n");
+        goto Error;
+    }
+
+    // Parse <"hex_string">
+    if (!ExtractQuotedString(rszPointer, pszProactiveCmd, uiLength, rszPointer))
+    {
+        RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATN() - ERROR: Could not parse hex String.\r\n");
+        goto Error;
+    }
+
+    // Ensure NULL termination
+    pszProactiveCmd[uiLength] = '\0';
+
+    RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATN() - Hex String: \"%s\".\r\n", pszProactiveCmd);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);
+
+    if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char *), FALSE))
+    {
+        goto Error;
+    }
+
+    fRet = TRUE;
+
+Error:
+    if (!fRet)
+    {
+        free(pszProactiveCmd);
+        pszProactiveCmd = NULL;
+    }
+    
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Exit\r\n");
+    return fRet;
+}
+#endif //USE_STK_RAW_MODE

@@ -24,14 +24,13 @@
 #if !defined(RIL_CHANNEL_ATCMD_H)
 #define RIL_CHANNEL_ATCMD_H
 
-#ifdef __linux__
 #include "channel_nd.h"
-#endif
+
 
 class CChannel_ATCmd : public CChannel
 {
 public:
-    CChannel_ATCmd(EnumRilChannel eChannel);
+    CChannel_ATCmd(UINT32 uiChannel);
     virtual ~CChannel_ATCmd();
 
 protected:

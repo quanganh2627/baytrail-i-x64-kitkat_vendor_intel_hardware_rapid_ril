@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// te_inf_n721.h
+// te_inf_n721.cpp
 //
 // Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
@@ -33,6 +33,11 @@
 #include "sync_ops.h"
 #include "command.h"
 #include "te_inf_n721.h"
+#include "channel_data.h"
+#include "atchannel.h"
+#include "stk.h"
+#include "rildmain.h"
+#include "callbacks.h"
 
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
@@ -46,29 +51,14 @@
 #include <arpa/inet.h>
 #include <linux/route.h>
 
+extern "C" char *hex_to_stk_at(const char *at);
+
 CTE_INF_N721::CTE_INF_N721()
- : m_szIpAddr(NULL)
 {
-    // TODO: Should really use an array of events - one for each data channel/CID
-    // and corresponding array of IP addresses
-    m_pSetupDataEvent = new CEvent(NULL, TRUE);
 }
 
 CTE_INF_N721::~CTE_INF_N721()
 {
-    // destroy event
-    if (m_pSetupDataEvent)
-    {
-        delete m_pSetupDataEvent;
-        m_pSetupDataEvent = NULL;
-    }
-
-    // delete IP Address
-    if (m_szIpAddr)
-    {
-        delete[] m_szIpAddr;
-        m_szIpAddr = NULL;
-    }
 }
 
 //  It appears signal strength is from 0-31 again.
@@ -158,7 +148,7 @@ Error:
 #endif // 0
 
 // RIL_REQUEST_SETUP_DATA_CALL 27
-RIL_RESULT_CODE CTE_INF_N721::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_INF_N721::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 uiCID)
 {
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -185,20 +175,16 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     stPdpData.szPAPCHAP         = ((char **)pData)[5];  // not used
 
     // For setting up data call we need to send 2 sets of chained commands: AT+CGDCONT to define PDP Context, 
-    // with +CGQREQ to specify requested QoS and +CGACT to activate PDP Context on command channel; then
+    // with +CGQREQ to specify requested QoS and +CGACT to activate PDP Context; then
     // if RAW IP is used send AT+CGDATA to enable Raw IP on data channel (which will then switch the channel to data mode).
-    //
-    // TODO: CID is currently hardcoded to 1
-    //
-    // TBD: Do we also need to send AT+XDNS-<CID>,1 before AT+CGDCONT to enable dynamic DNS?
     //
     (void)PrintStringNullTerminate(rReqData.szCmd1,
         sizeof(rReqData.szCmd1),
-        "AT+CGDCONT=1,\"IP\",\"%s\",,0,0;+CGQREQ=1;+CGQMIN=1;+CGACT=0,1\r",
-        stPdpData.szApn);
+        "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+CGQREQ=%d;+CGQMIN=%d;+CGACT=0,%d\r", uiCID,
+        stPdpData.szApn, uiCID, uiCID, uiCID);
 
 #ifndef RIL_USE_PPP       
-   (void)CopyStringNullTerminate(rReqData.szCmd2, "AT+CGDATA=\"M-RAW_IP\",1\r", sizeof(rReqData.szCmd2));
+   (void)PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGDATA=\"M-RAW_IP\",%d\r", uiCID);
 #endif //!RIL_USE_PPP
    
     res = RRIL_RESULT_OK;
@@ -263,6 +249,8 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     CCommand * pCmd1 = NULL;
     CCommand * pCmd2 = NULL;
     UINT32 uiWaitRes;
+    BYTE szCmd[MAX_BUFFER_SIZE];
+    CChannel_Data* pDataChannel = NULL;
 
     // 1st confirm we got "CONNECT"
     const BYTE* szRsp = rRspData.szResponse;
@@ -273,13 +261,20 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
+    pDataChannel = CChannel_Data::GetChnlFromRilChannelNumber(rRspData.uiChannel);
+    if (!pDataChannel)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSetupDataCall() - ERROR: Could not get Data Channel for RIL channel number %d.\r\n", rRspData.uiChannel);
+        goto Error;
+    }
+
     // Send AT+CGPADDR and AT+XDNS? commands to query for assigned IP Address and DNS and wait for responses
 
-    CEvent::Reset(m_pSetupDataEvent);
+    CEvent::Reset(pDataChannel->m_pSetupDoneEvent);
 
+    (void)PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CGPADDR=%d\r", pDataChannel->GetContextID());
 
-    // TODO: CID is currently hardcoded to 1
-    pCmd1 = new CCommand(RIL_CHANNEL_ATCMD, NULL, ND_REQ_ID_GETIPADDRESS, "AT+CGPADDR=1\r", &CTE::ParseIpAddress);
+    pCmd1 = new CCommand(RIL_CHANNEL_ATCMD, NULL, ND_REQ_ID_GETIPADDRESS, szCmd, &CTE::ParseIpAddress);
     if (pCmd1)
     {
         if (!CCommand::AddCmdToQueue(pCmd1))
@@ -313,17 +308,17 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    uiWaitRes = CEvent::Wait(m_pSetupDataEvent, 30000); // TODO: put timeout in repository to allow tweaking?
+    uiWaitRes = CEvent::Wait(pDataChannel->m_pSetupDoneEvent, 30000); // TODO: put timeout in repository to allow tweaking?
     switch (uiWaitRes) 
     {
         case WAIT_EVENT_0_SIGNALED:
             RIL_LOG_INFO("CTE_INF_N721::ParseSetupDataCall() : SetupData event signalled\r\n");
-            if (NULL == m_szIpAddr)
+            if (NULL == pDataChannel->m_szIpAddr)
             {
                  RIL_LOG_CRITICAL("CTE_INF_N721::ParseSetupDataCall() - ERROR: IP address is null\r\n");
                  goto Error;
             }
-            strcpy(szIP, m_szIpAddr);
+            strcpy(szIP, pDataChannel->m_szIpAddr);
             break;
 
         case WAIT_TIMEDOUT:
@@ -338,8 +333,8 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 #endif //RIL_USE_PPP
 
     pDataCallRsp = (P_ND_SETUP_DATA_CALL)malloc(sizeof(S_ND_SETUP_DATA_CALL));
-    strcpy(pDataCallRsp->szCID, "1");     // TODO: CID is currently hardcoded to 1
-    strcpy(pDataCallRsp->szNetworkInterfaceName, "gprs");
+    sprintf(pDataCallRsp->szCID, "%d", pDataChannel->GetContextID());
+    strcpy(pDataCallRsp->szNetworkInterfaceName, "ifx02");
     strcpy(pDataCallRsp->szIPAddress, szIP);
     pDataCallRsp->sSetupDataCallPointers.pszCID = pDataCallRsp->szCID;
     pDataCallRsp->sSetupDataCallPointers.pszNetworkInterfaceName = pDataCallRsp->szNetworkInterfaceName;
@@ -441,7 +436,7 @@ BOOL CallDataConfigCmds(char *szInterfaceName, char *szIpAddr)
 
 
     
-    //  route add devault dev ifx02
+    //  route add default dev ifx02
     {
         struct rtentry rt;
         memset(&rt, 0, sizeof(struct rtentry));
@@ -494,12 +489,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseIpAddress(RESPONSE_DATA & rRspData)
     UINT32 nChannel;
     UINT32  cbIpAddr = 0;
     char szInterfaceName[MAX_BUFFER_SIZE];
-
-    if (m_szIpAddr)
-    {
-        delete[] m_szIpAddr;
-        m_szIpAddr = NULL;
-    }
+    CChannel_Data* pDataChannel = NULL;
 
     // Parse prefix
     if (!FindAndSkipString(szRsp, "+CGPADDR: ", szRsp))
@@ -509,32 +499,51 @@ RIL_RESULT_CODE CTE_INF_N721::ParseIpAddress(RESPONSE_DATA & rRspData)
     }
 
     // Parse <cid>
-    // TODO: Check for CID match
     if (!ExtractUInt(szRsp, nCid, szRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseIpAddress() - ERROR: Unable to parse <cid>!\r\n");
         goto Error;
     }
-        
+    
+    pDataChannel = CChannel_Data::GetChnlFromContextID(nCid);
+    if (!pDataChannel)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSetupDataCall() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
+        goto Error;
+    }
+
+    if (pDataChannel->m_szIpAddr)
+    {
+        delete[] pDataChannel->m_szIpAddr;
+        pDataChannel->m_szIpAddr = NULL;
+    }
+
     // Parse <PDP_addr>
     if (!SkipString(szRsp, ",", szRsp) ||
-        !ExtractQuotedStringWithAllocatedMemory(szRsp, m_szIpAddr, cbIpAddr, szRsp))
+        !ExtractQuotedStringWithAllocatedMemory(szRsp, pDataChannel->m_szIpAddr, cbIpAddr, szRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseIpAddress() - ERROR: Unable to parse <PDP_addr>!\r\n");
         goto Error;
     }
 
-    RIL_LOG_INFO("CTE_INF_N721::ParseIpAddress() - IP address: %s\r\n", m_szIpAddr);
+    RIL_LOG_INFO("CTE_INF_N721::ParseIpAddress() - IP address: %s\r\n", pDataChannel->m_szIpAddr);
+
     // set net. properties
+    // TODO For multiple PDP context support this will have to be updated to be consistent with whatever changes to
+    // the Android framework's use of these properties is made. (Currently there is only one property for the
+    // IP address and there needs to be one for each context.  
     property_set("net.interfaces.defaultroute", "gprs");
-    property_set("net.gprs.local-ip", m_szIpAddr);
+    property_set("net.gprs.local-ip", pDataChannel->m_szIpAddr);
     property_set("net.gprs.operstate", "up");
 
     // invoke netcfg commands
-    nChannel = 2; // TODO, ifx data channel is currently hardcoded to 2
+
+    // TODO - Note it is currently assumed here that the interface channel number is the context ID + 1
+    nChannel = nCid + 1; 
+
     snprintf(szInterfaceName, sizeof(szInterfaceName), "ifx%02d", nChannel);
     
-    if (!CallDataConfigCmds(szInterfaceName, m_szIpAddr))
+    if (!CallDataConfigCmds(szInterfaceName, pDataChannel->m_szIpAddr))
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseIpAddress() - ERROR: Unable to set ifconfig\r\n");
         goto Error;
@@ -562,6 +571,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDns(RESPONSE_DATA & rRspData)
     BYTE* szDns2 = NULL;
     UINT32  cbDns1 = 0;
     UINT32  cbDns2 = 0;
+    CChannel_Data* pDataChannel = NULL;
 
     // Parse prefix
     if (!FindAndSkipString(szRsp, "+XDNS: ", szRsp))
@@ -571,12 +581,20 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDns(RESPONSE_DATA & rRspData)
     }
 
     // Parse <cid>
-    // TODO: Check for CID match
     if (!ExtractUInt(szRsp, nCid, szRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseDns() - ERROR: Unable to parse <cid>!\r\n");
         goto Error;
     }
+
+    pDataChannel = CChannel_Data::GetChnlFromContextID(nCid);
+    if (!pDataChannel)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSetupDataCall() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
+        goto Error;
+    }
+
+    // TBD for multiple PDP Contexts whether we always use the same DNS values
 
     // Parse <primary DNS>
     if (!SkipString(szRsp, ",", szRsp) ||
@@ -603,7 +621,8 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDns(RESPONSE_DATA & rRspData)
 Error:
 
     // Signal completion of setting up data
-    CEvent::Signal(m_pSetupDataEvent);
+    if (pDataChannel)
+        CEvent::Signal(pDataChannel->m_pSetupDoneEvent);
 
     if (szDns1) delete[] szDns1;
     if (szDns2) delete[] szDns2;
@@ -612,6 +631,818 @@ Error:
     return res;
 }
 
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+class BerTlv
+{
+public:
+    BerTlv() : m_bTag(0), m_uLen(0), m_pbValue(NULL), m_uTotalSize(0) {};
+    ~BerTlv() {};
+
+    UINT8 GetTag() {return m_bTag;};
+    UINT32 GetLength() {return m_uLen;};
+    const UINT8* GetValue() {return m_pbValue;};
+    UINT32 GetTotalSize() {return m_uTotalSize;};
+
+    BOOL Parse(const UINT8* pRawData, UINT32 cbSize);
+
+
+private:
+    UINT8 m_bTag;
+    UINT32 m_uLen;
+    const UINT8* m_pbValue;
+    UINT32 m_uTotalSize;
+};
+
+
+
+BOOL BerTlv::Parse(const UINT8* pRawData, UINT32 cbSize)
+{
+    if (2 > cbSize) {
+        // Not enough data for a TLV.
+        return FALSE;
+    }
+
+    // Tag at index 0.
+    UINT8 bTag = pRawData[0];
+    if (0x00 == bTag ||
+        0xFF == bTag)
+    {
+        // Invalid Tag
+        return FALSE;
+    }
+
+    // Encoded length starts at index 1
+    UINT8 bValuePos = 0;
+    UINT32 uLen = 0;
+
+    if (0x80 == (0x80 & pRawData[1])) {
+        UINT8 bLenBytes = 0x7F & pRawData[1];
+
+        if (1 < bLenBytes ||
+            3 > cbSize) {
+            // Currently only support 1 extra length byte
+            return FALSE;
+        }
+
+        uLen = pRawData[2];
+        bValuePos = 3;
+    }
+     else {
+        uLen = pRawData[1];
+        bValuePos = 2;
+    }
+
+    // Verify there is enough data available for the value
+    if (uLen + bValuePos > cbSize) {
+        return FALSE;
+    }
+
+    // Verify length and value size are consistent.
+    if (cbSize - bValuePos < uLen) {
+        // Try and recover using the minimum value.
+        uLen = cbSize - bValuePos;
+    }
+
+    m_bTag = bTag;
+    m_uLen = uLen;
+    m_pbValue = pRawData + bValuePos;
+    m_uTotalSize = uLen + bValuePos;
+
+    return TRUE;
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+//  Extract USIM GET_RESPONSE info.
+struct sUSIMGetResponse
+{
+    UINT32 dwRecordType;
+    //UINT32 dwItemCount;
+    UINT32 dwTotalSize;
+    UINT32 dwRecordSize;
+};
+
+#define RIL_SIMRECORDTYPE_UNKNOWN       (0x00000000)
+#define RIL_SIMRECORDTYPE_TRANSPARENT   (0x00000001)
+#define RIL_SIMRECORDTYPE_CYCLIC        (0x00000002)
+#define RIL_SIMRECORDTYPE_LINEAR        (0x00000003)
+#define RIL_SIMRECORDTYPE_MASTER        (0x00000004)
+#define RIL_SIMRECORDTYPE_DEDICATED     (0x00000005)
+
+            
+//
+//  This function converts a USIM GET_RESPONSE response into a SIM GET_RESPONSE that Android
+//  can understand.  We extract the record type, total size, and record size.
+//
+//  sResponse = [in] binary buffer of CRSM response
+//  cbResponse = [in] length of binary buffer
+//  sUSIM = [in,out] where the extracted data is stored
+BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetResponse *sUSIM)
+{
+    RIL_LOG_VERBOSE("ParseUSIMRecordStatus - ENTER\r\n");
+    
+    BOOL bRet = FALSE;
+
+    const UINT8 FCP_TAG = 0x62;
+    const UINT8 FILE_SIZE_TAG = 0x80;
+    const UINT8 FILE_DESCRIPTOR_TAG = 0x82;
+    const UINT8 FILE_ID_TAG = 0x83;
+    const UINT32 MASTER_FILE_ID = 0x3F00;
+    UINT32 dwRecordType = 0;
+    UINT32 dwItemCount = 0;
+    UINT32 dwRecordSize = 0;
+    UINT32 dwTotalSize = 0;
+    BerTlv tlvFileDescriptor;
+    BerTlv tlvFcp;
+    
+    const UINT8* pbFcpData = NULL;
+    UINT32 cbFcpDataSize = 0;
+    UINT32 cbDataUsed = 0;
+    const UINT8* pbFileDescData = NULL;
+    UINT32 cbFileDescDataSize = 0;
+    
+    BOOL fIsDf = FALSE;
+    UINT8 bEfStructure = 0;
+    
+    if (NULL == sResponse ||
+        0 == cbResponse ||
+        NULL == sUSIM)
+    {
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: Input parameters\r\n");
+        goto Error;
+    }
+
+    // Need at least 2 bytes for response data FCP (file control parameters)
+    if (2 > cbResponse)
+    {
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: Need at least 2 bytes for response data\r\n");
+        goto Error;
+    }
+
+    // Validate this response is a 3GPP 102 221 SELECT response.
+    tlvFcp.Parse(sResponse, cbResponse);
+    if (FCP_TAG != tlvFcp.GetTag())
+    {
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: First tag is not FCP.  Tag=[0x%02X]\r\n", tlvFcp.GetTag());
+        goto Error;
+    }
+
+    if (cbResponse != tlvFcp.GetTotalSize())
+    {
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: cbResponse=[%d] not equal to total size=[%d]\r\n", cbResponse, tlvFcp.GetTotalSize());
+        goto Error;
+    }
+    pbFcpData = tlvFcp.GetValue();
+    cbFcpDataSize = tlvFcp.GetLength();
+
+    // Retrieve the File Descriptor data object
+    tlvFileDescriptor.Parse(pbFcpData, cbFcpDataSize);
+    if (FILE_DESCRIPTOR_TAG != tlvFileDescriptor.GetTag())
+    {
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: File descriptor tag is not FCP.  Tag=[0x%02X]\r\n", tlvFileDescriptor.GetTag());
+        goto Error;
+    }
+
+    cbDataUsed = tlvFileDescriptor.GetTotalSize();
+    if (cbDataUsed > cbFcpDataSize)
+    {
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: cbDataUsed=[%d] is greater than cbFcpDataSize=[%d]\r\n", cbDataUsed, cbFcpDataSize);
+        goto Error;
+    }
+
+    pbFileDescData = tlvFileDescriptor.GetValue();
+    cbFileDescDataSize = tlvFileDescriptor.GetLength();
+    // File descriptors should only be 2 or 5 bytes long.
+    if((2 != cbFileDescDataSize) && (5 != cbFileDescDataSize))
+    {
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: File descriptor can only be 2 or 5 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
+        goto Error;
+  
+    }
+    if (2 > cbFileDescDataSize)
+    {
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: File descriptor less than 2 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
+        goto Error;
+    }
+
+    fIsDf = (0x38 == (0x38 & pbFileDescData[0]));
+    bEfStructure = (0x07 & pbFileDescData[0]);
+
+    if (fIsDf)
+    {
+        dwRecordType = RIL_SIMRECORDTYPE_DEDICATED;
+    }
+    // or it is an EF or MF.
+    else
+    {
+        switch (bEfStructure)
+        {
+            // Transparent
+            case 0x01:
+                dwRecordType = RIL_SIMRECORDTYPE_TRANSPARENT;
+                break;
+
+            // Linear Fixed
+            case 0x02:
+                dwRecordType = RIL_SIMRECORDTYPE_LINEAR;
+                break;
+
+            // Cyclic
+            case 0x06:
+                dwRecordType = RIL_SIMRECORDTYPE_CYCLIC;
+                break;
+
+           default:
+                break;
+        }
+
+        if (RIL_SIMRECORDTYPE_LINEAR == dwRecordType ||
+            RIL_SIMRECORDTYPE_CYCLIC == dwRecordType)
+        {
+            // Need at least 5 bytes
+            if (5 > cbFileDescDataSize)
+            {
+                RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: File descriptor less than 5 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
+                goto Error;
+            }
+
+            dwItemCount = pbFileDescData[4];
+            dwRecordSize = (pbFileDescData[2] << 4) + (pbFileDescData[3]);
+
+            // Skip checking of consistency with the File Size data object to
+            // save time.
+            dwTotalSize = dwItemCount * dwRecordSize;
+        }
+        else if(RIL_SIMRECORDTYPE_TRANSPARENT == dwRecordType)
+        {
+            // Retrieve the file size.
+            BerTlv tlvCurrent;
+
+            while (cbFcpDataSize > cbDataUsed) 
+            {
+                if (!tlvCurrent.Parse(
+                    pbFcpData + cbDataUsed,
+                    cbFcpDataSize - cbDataUsed))
+                {
+                    RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: Couldn't parse TRANSPARENT\r\n");
+                    goto Error;
+                }
+
+                cbDataUsed += tlvCurrent.GetTotalSize();
+
+                if (FILE_SIZE_TAG == tlvCurrent.GetTag())
+                {
+                    const UINT8* pbFileSize = NULL;
+                    
+                    if (2 > tlvCurrent.GetLength())
+                    {
+                        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: TRANSPARENT length must be at least 2\r\n");
+                        goto Error;
+                    }
+
+                    pbFileSize = tlvCurrent.GetValue();
+
+                    dwTotalSize = (pbFileSize[0] << 4) + pbFileSize[1];
+
+                    // Size found. Leave loop
+                    break;
+                }
+            }
+        }
+    }
+
+    // if record type has not been resolved, check for Master file.
+    if (RIL_SIMRECORDTYPE_UNKNOWN == dwRecordType)
+    {
+        const UINT8* pbFileId = NULL;
+        UINT32 uFileId = 0;
+        
+        // Next data object should be File ID.
+        BerTlv tlvFileId;
+        tlvFileId.Parse(
+            pbFcpData + cbFcpDataSize,
+            cbFcpDataSize - cbDataUsed);
+
+        if (FILE_ID_TAG != tlvFileId.GetTag())
+        {
+            RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: UNKNOWN tag not equal to FILE_ID_TAG\r\n");
+            goto Error;
+        }
+
+        if (2 != tlvFileId.GetLength())
+        {
+            RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: UNKNOWN length not equal to 2\r\n");
+            goto Error;
+        }
+
+        pbFileId = tlvFileId.GetValue();
+        uFileId = (pbFileId[0] << 4) + pbFileId[1];
+
+        if (MASTER_FILE_ID != uFileId)
+        {
+            RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: UNKNOWN file ID not equal to MASTER_FILE_ID\r\n");
+            goto Error;
+        }
+
+        dwRecordType = RIL_SIMRECORDTYPE_MASTER;
+    }
+
+    sUSIM->dwRecordType = dwRecordType;
+    sUSIM->dwTotalSize = dwTotalSize;
+    sUSIM->dwRecordSize = dwRecordSize;
+    
+    bRet = TRUE;
+Error:
+
+    RIL_LOG_VERBOSE("ParseUSIMRecordStatus - EXIT = [%d]\r\n", bRet);
+    return bRet;
+}
+
+
+//
+// RIL_REQUEST_SIM_IO 28
+//
+RIL_RESULT_CODE CTE_INF_N721::ParseSimIo(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseSimIo() - Enter\r\n");
+    
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+    
+    uint  uiSW1 = 0;
+    uint  uiSW2 = 0;
+    BYTE* szResponseString = NULL;
+    UINT32  cbResponseString = 0;
+
+    RIL_SIM_IO_Response* pResponse = NULL;
+    
+
+    if (NULL == rRspData.szResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: Response String pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    // Parse "<prefix>+CRSM: <sw1>,<sw2>"
+    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: Could not skip over response prefix.\r\n");
+        goto Error;
+    }
+
+    if (!SkipString(pszRsp, "+CRSM: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: Could not skip over \"+CRSM: \".\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt(pszRsp, uiSW1, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: Could not extract SW1 value.\r\n");
+        goto Error;
+    }
+
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt(pszRsp, uiSW2, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: Could not extract SW2 value.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_INF_N721::ParseSimIo() - Extracted SW1 = %u and SW2 = %u\r\n", uiSW1, uiSW2);
+
+    // Parse ","
+    if (SkipString(pszRsp, ",", pszRsp))
+    {
+        // Parse <response>
+        // NOTE: we take ownership of allocated szResponseString
+        if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString, cbResponseString, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: Could not extract data string.\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CTE_INF_N721::ParseSimIo() - Extracted data string: \"%s\" (%u chars including NULL)\r\n", szResponseString, cbResponseString);
+        }
+
+        if (0 != (cbResponseString - 1) % 2)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() : ERROR : String was not a multiple of 2.\r\n");
+            goto Error;
+        }
+        
+        // Check for USIM GET_RESPONSE response
+        int nCRSMCommand = (int)rRspData.pContextData;
+        if ((192 == nCRSMCommand) && ('6' == szResponseString[0]) && ('2' == szResponseString[1]))
+        {
+            //  USIM GET_RESPONSE response
+            RIL_LOG_INFO("CTE_INF_N721::ParseSimIo() - USIM GET_RESPONSE\r\n");
+            
+            char szTemp[5] = {0};
+
+            struct sUSIMGetResponse sUSIM;
+            memset(&sUSIM, 0, sizeof(struct sUSIMGetResponse));
+            
+            //  Need to convert the response string from ascii to binary.
+            BYTE *sNewString = NULL;
+            UINT32 cbNewString = (cbResponseString-1)/2;
+            sNewString = new BYTE[cbNewString];
+            if (NULL == sNewString)
+            {
+                RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: Cannot create new string!\r\n");
+                goto Error;
+            }
+            memset(sNewString, 0, cbNewString);
+            
+            UINT32 cbUsed = 0;
+            if (!GSMHexToGSM(szResponseString, cbResponseString, sNewString, cbNewString, cbUsed))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: Cannot cconvert szResponseString to GSMHex.\r\n");
+                delete[] sNewString;
+                sNewString = NULL;
+                cbNewString = 0;
+                goto Error;
+            }
+            
+            //  OK, now parse!
+            if (!ParseUSIMRecordStatus((UINT8*)sNewString, cbNewString, &sUSIM))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: Cannot parse USIM record status\r\n");
+                delete[] sNewString;
+                sNewString = NULL;
+                cbNewString = 0;
+                goto Error;
+            }
+            
+                        
+            delete[] sNewString;
+            sNewString = NULL;
+            cbNewString = 0;
+            
+            RIL_LOG_VERBOSE("CTE_INF_N721::ParseSimIo() - sUSIM.dwRecordType=[0x%04X]\r\n", sUSIM.dwRecordType);
+            RIL_LOG_VERBOSE("CTE_INF_N721::ParseSimIo() - sUSIM.dwTotalSize=[0x%04X]\r\n", sUSIM.dwTotalSize);
+            RIL_LOG_VERBOSE("CTE_INF_N721::ParseSimIo() - sUSIM.dwRecordSize=[0x%04X]\r\n", sUSIM.dwRecordSize);
+            
+
+            //  Delete old original response.  Create new "fake" response.
+            delete []szResponseString;
+            szResponseString = NULL;
+            cbResponseString = 0;
+            
+            //  Java layers as of Froyo (Nov 1/2010) only use:
+            //  Total size (0-based bytes 2 and 3), File type (0-based byte 6),
+            //  Data structure (0-based byte 13), Data record length (0-based byte 14)
+            cbResponseString = 31;  //  15 bytes + NULL
+            szResponseString = new BYTE[cbResponseString];
+            if (NULL == szResponseString)
+            {
+                RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: Cannot create new szResponsestring!\r\n");
+                delete[] sNewString;
+                sNewString = NULL;
+                goto Error;
+            }
+            CopyStringNullTerminate(szResponseString, "000000000000000000000000000000", cbResponseString);
+
+            //  Extract info, put into new response string
+            (void)PrintStringNullTerminate(szTemp, 5, "%04X", sUSIM.dwTotalSize);
+            memcpy(&szResponseString[4], szTemp, 4);
+            
+            (void)PrintStringNullTerminate(szTemp, 3, "%02X", sUSIM.dwRecordSize);
+            memcpy(&szResponseString[28], szTemp, 2);
+            
+            if (RIL_SIMRECORDTYPE_UNKNOWN == sUSIM.dwRecordType)
+            {
+                //  bad parse.
+                RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: sUSIM.dwRecordType is unknown!\r\n");
+                delete[] sNewString;
+                sNewString = NULL;
+                goto Error;
+            }
+            
+            
+            if (RIL_SIMRECORDTYPE_MASTER == sUSIM.dwRecordType)
+            {
+                szResponseString[13] = '1';
+            }
+            else if (RIL_SIMRECORDTYPE_DEDICATED == sUSIM.dwRecordType)
+            {
+                szResponseString[13] = '2';
+            }
+            else
+            {
+                //  elementary file
+                szResponseString[13] = '4';
+                
+                if (RIL_SIMRECORDTYPE_TRANSPARENT == sUSIM.dwRecordType)
+                {
+                    szResponseString[27] = '0';
+                }
+                else if (RIL_SIMRECORDTYPE_LINEAR == sUSIM.dwRecordType)
+                {
+                    szResponseString[27] = '1';
+                }
+                else if (RIL_SIMRECORDTYPE_CYCLIC == sUSIM.dwRecordType)
+                {
+                    szResponseString[27] = '3';
+                }
+            }
+            
+            //  ok we're done.  print.
+            RIL_LOG_INFO("CTE_INF_N721::ParseSimIo() - new USIM response=[%s]\r\n", szResponseString);
+
+        }
+
+    }
+
+    // Allocate memory for the response struct PLUS a buffer for the response string
+    // The char* in the RIL_SIM_IO_Response will point to the buffer allocated directly after the RIL_SIM_IO_Response
+    // When the RIL_SIM_IO_Response is deleted, the corresponding response string will be freed as well.
+    // Note: cbResponseString is the number of chars in the string, and does not include the NULL terminator.
+    pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+        goto Error;
+    }
+
+    pResponse->sw1 = uiSW1;
+    pResponse->sw2 = uiSW2;
+
+    if (NULL == szResponseString)
+    {
+        pResponse->simResponse = NULL;
+    }
+    else
+    {
+        pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
+        (void)CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString);
+
+        // Ensure NULL termination!
+        pResponse->simResponse[cbResponseString] = '\0';
+    }
+
+    // Parse "<postfix>"
+    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    {
+        goto Error;
+    }
+
+    rRspData.pData   = (void*)pResponse;
+    rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
+    
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    delete[] szResponseString; 
+    szResponseString = NULL;       
+
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseSimIo() - Exit\r\n");
+    return res;
+}
+
+
+
+//
+// RIL_REQUEST_SEND_USSD 29
+//
+RIL_RESULT_CODE CTE_INF_N721::ParseSendUssd(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseSendUssd() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const BYTE* szRsp = rRspData.szResponse;
+    P_ND_USSD_STATUS pUssdStatus = NULL;
+    
+    UINT32 uiStatus = 0;
+    BYTE* szDataString = NULL;
+    UINT32 uiDataString = 0;
+    UINT32 nDCS = 0;
+    //BOOL bSupported = FALSE;
+    WCHAR* szUcs2 = NULL;
+    UINT32 cbUsed = 0;
+    
+    //  NOTE: This modem currently does USSD synchronously.  Android expects asynchronous operation.
+    if (!FindAndSkipString(szRsp, "+CUSD: ", szRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: Couldn't find CUSD\r\n");
+        goto Error;
+    }
+    
+    // Extract "<status>"
+    if (!ExtractUInt(szRsp, uiStatus, szRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: Couldn't extract status\r\n");
+        goto Error;
+    }
+    
+    // Skip ","
+    if (!SkipString(szRsp, ",", szRsp))
+    {
+        // No data parameter present
+        pUssdStatus = (P_ND_USSD_STATUS) malloc(sizeof(S_ND_USSD_STATUS));
+        if (!pUssdStatus)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: Couldn't malloc S_ND_USSD_STATUS\r\n");
+            goto Error;
+        }
+        snprintf(pUssdStatus->szType, 2, "%d", (int) uiStatus);
+        pUssdStatus->sStatusPointers.pszType    = pUssdStatus->szType;
+        pUssdStatus->sStatusPointers.pszMessage = NULL;
+    }
+    else
+    {
+        // Extract "<data>,<dcs>"
+        // NOTE: we take ownership of allocated szDataString
+        if (!ExtractQuotedStringWithAllocatedMemory(szRsp, szDataString, uiDataString, szRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: Couldn't ExtractQuotedStringWithAllocatedMemory\r\n");
+            goto Error;
+        }
+        if (!SkipString(szRsp, ",", szRsp) ||
+            !ExtractUInt(szRsp, nDCS, szRsp))
+        {
+            // default nDCS.  this parameter is supposed to be mandatory but we've
+            // seen it missing from otherwise normal USSD responses.
+            nDCS = 0;
+        }
+        
+
+#if 0
+        // See GSM 03.38 for Cell Broadcast DCS details
+        // Currently support only default alphabet in all languages (i.e., the DCS range 0x00..0x0f)
+        // check if we support this DCS
+        if (nDCS <= 0x0f)
+        {
+            bSupported = TRUE;
+        }
+        else if ((0x040 <= nDCS) && (nDCS <= 0x05f))
+        {
+            /* handle coding groups of 010* (binary)  */
+            /* only character set is of interest here */
+        
+            /* refer to 3GPP TS 23.038 5 and 3GPP TS 27.007 7.15 for detail */
+            UINT32 uDCSCharset = ( ( nDCS >> 2 ) & 0x03 );
+            if ( 0x00 == uDCSCharset )
+            {
+                // GSM 7 bit default alphabet
+                if ( ENCODING_TECHARSET == ENCODING_GSMDEFAULT_HEX )
+                {
+                    // not supported
+                    bSupported = FALSE;
+                }
+            }
+            else if ( 0x01 == uDCSCharset )
+            {
+                // 8 bit data
+                // not supported
+                bSupported = FALSE;
+            }
+            else if ( 0x02 == uDCSCharset )
+            {
+                // UCS2 (16 bit)
+                // supported
+                bSupported = TRUE;
+            }
+            else if ( 0x03 == uDCSCharset )
+            {
+                // reserved
+                RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: Unsupported value 0x03\r\n");
+                // not supported
+                 bSupported = FALSE;
+            }
+            else
+            {
+                /* should not reach here. just in case */
+                RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: Unsupported value [%d]\r\n", uDCSCharset);
+
+                // not supported
+                bSupported = FALSE;
+            }
+        }
+
+        if (!bSupported)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: Unsupported nDCS=[%d] bSupported=[%d]\r\n", nDCS, bSupported);
+            goto Error;
+        }
+        /*--- currently we only handle the default alphabet encoding ---*/
+
+        // Default alphabet encoding (which has been requested in our init string to allow direct copying of bytes)
+        // At this point, uiDataString has the size of the szDataString which ExtractQuotedStringWithAllocatedMemory allocated for us and
+        // which holds the TE-encoded characters.
+        // However, this byte count also includes an extra byte for the NULL character at the end, which we're not going to translate.
+        // Therefore, decrement uiDataString by 1
+        uiDataString--;
+
+        // Now figure out the number of Unicode characters needed to hold the string after it's converted
+        size_t cbUnicode;
+        if (!ConvertSizeToUnicodeSize(ENCODING_TECHARSET, uiDataString, cbUnicode))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: ConvertSizeToUnicodeSize failed\r\n");
+            goto Error;
+        }
+        
+        RIL_LOG_INFO("CTE_INF_N721::ParseSendUssd() - uiDataString=[%d] cbUnicode=[%d]\r\n", uiDataString, cbUnicode);
+
+        // cbUnicode now has the number of bytes we need to hold the Unicode string generated when we
+        // convert from the TE-encoded string.
+        // However, it doesn't include space for the terminating NULL, so we need to allow for that also.
+        // (Note that ParseEncodedString will append the terminating NULL for us automatically.)
+        cbUnicode += sizeof(WCHAR);
+
+        // Allocate buffer for conversion
+        szUcs2 = new WCHAR[cbUnicode];
+        if (!szUcs2)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: new WCHAR failed  cbUnicode=[%d]\r\n", cbUnicode);
+            goto Error;
+        }
+
+        if (!ConvertGSMStringToUnicodeString(szDataString, uiDataString, szUcs2, cbUnicode, cbUsed))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: ConvertGSMStringToUnicodeString failed\r\n");
+            goto Error;
+        }
+
+        // Now convert the TE-encoded string into Unicode in the buffer we just allocated
+        if (!ExtractUnquotedUnicodeHexStringToUnicode(szDataString,
+                                                      uiDataString,
+                                                      szUcs2,
+                                                      cbUnicode))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: ExtractUnquotedUnicodeHexStringToUnicode failed\r\n");
+            goto Error;
+        }
+
+        // allocate blob and convert from UCS2 to UTF8
+        pUssdStatus = (P_ND_USSD_STATUS) malloc(sizeof(S_ND_USSD_STATUS));
+        if (!pUssdStatus)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: malloc failed\r\n");
+            goto Error;
+        }
+        snprintf(pUssdStatus->szType, 2, "%d", (int) uiStatus);
+        if (!ConvertUnicodeToUtf8(szUcs2, pUssdStatus->szMessage, MAX_BUFFER_SIZE))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: ConvertUnicodeToUtf8 failed\r\n");
+            goto Error;
+        }
+#endif // 0
+
+
+        //  Allocate blob.
+        pUssdStatus = (P_ND_USSD_STATUS) malloc(sizeof(S_ND_USSD_STATUS));
+        if (!pUssdStatus)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseSendUssd() - ERROR: malloc failed\r\n");
+            goto Error;
+        }
+        snprintf(pUssdStatus->szType, 2, "%d", (int) uiStatus);
+        (void)CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE*2);
+
+
+
+        RIL_LOG_INFO("TE_INF_N721::ParseSendUssd() - %s\r\n", pUssdStatus->szMessage);
+        
+        pUssdStatus->sStatusPointers.pszType    = pUssdStatus->szType;
+        pUssdStatus->sStatusPointers.pszMessage = pUssdStatus->szMessage;
+    }
+    
+    
+    //  Request notification 0.5 seconds later.
+    RIL_requestTimedCallback(triggerUSSDNotification, (void*)pUssdStatus, 0, 500000);
+    
+    //  Send notification since modem does this synchronously.
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pUssdStatus);
+        pUssdStatus = NULL;
+    }
+
+    delete[] szDataString;
+    szDataString = NULL;
+    delete[] szUcs2;
+    szUcs2 = NULL;
+    
+    
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseSendUssd() - Exit\r\n");
+    return res;
+}
+    
+    
+    
 //
 // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
 //
@@ -697,6 +1528,8 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
 #else
 
     // unset net. properties
+    // TODO For multiple PDP context support this will have to be updated to be consistent with whatever changes to
+    // the Android framework's use of these properties is made.
     property_set("net.interfaces.defaultroute", "");
     property_set("net.gprs.dns1", "");
     property_set("net.gprs.dns2", "");
@@ -708,10 +1541,36 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
 
 #endif //RIL_USE_PPP
 
+Error:
     RIL_LOG_INFO("CTE_INF_N721::ParseDeactivateDataCall() - Exit\r\n");
     return res;
 }
 
+//
+// RIL_REQUEST_SET_MUTE 53
+//
+RIL_RESULT_CODE CTE_INF_N721::CoreSetMute(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_N721::CoreSetMute() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    //  [DP] Let's NO-OP this command.
+    rReqData.szCmd1[0] = NULL;
+
+    RIL_LOG_VERBOSE("CTE_INF_N721::CoreSetMute() - Exit\r\n");
+    return res;    
+}
+
+
+RIL_RESULT_CODE CTE_INF_N721::ParseSetMute(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseSetMute() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseSetMute() - Exit\r\n");
+    return RRIL_RESULT_OK;
+}
+    
+    
+    
 //
 // RIL_REQUEST_SET_BAND_MODE 65
 //
@@ -1013,6 +1872,308 @@ Error:
 }
 
 //
+// RIL_REQUEST_STK_GET_PROFILE 67
+//
+RIL_RESULT_CODE CTE_INF_N721::CoreStkGetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_INFO("CTE_INF_N721::CoreStkGetProfile() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+STKPROF?\r", sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+    
+    RIL_LOG_INFO("CTE_INF_N721::CoreStkGetProfile() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_N721::ParseStkGetProfile(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_INFO("CTE_INF_N721::ParseStkGetProfile() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+    char* pszTermProfile = NULL;
+    UINT32 uiLength = 0;
+     
+    if (NULL == pszRsp)
+    {
+        RIL_LOG_INFO("CTE_INF_N721::ParseStkGetProfile() - ERROR: Response string is NULL!\r\n");
+        goto Error;
+    }    
+    
+    pszTermProfile = (char*)malloc(MAX_BUFFER_SIZE);
+    if (NULL == pszTermProfile)
+    {
+        RIL_LOG_INFO("CTE_INF_N721::ParseStkGetProfile() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
+        goto Error;
+    }    
+
+    memset(pszTermProfile, 0x00, MAX_BUFFER_SIZE);
+
+    // Parse "<prefix>+STKPROF: <length>,<data><postfix>"
+    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    {
+        RIL_LOG_INFO("CTE_INF_N721::ParseStkGetProfile() - ERROR: Could not skip response prefix.\r\n");
+        goto Error;
+    }
+
+    if (!SkipString(pszRsp, "+STKPROF: ", pszRsp))
+    {
+        RIL_LOG_INFO("CTE_INF_N721::ParseStkGetProfile() - ERROR: Could not skip \"+STKPROF: \".\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt(pszRsp, uiLength, pszRsp))
+    {
+        RIL_LOG_INFO("CTE_INF_N721::ParseStkGetProfile() - ERROR: Could not extract length value.\r\n");
+        goto Error;
+    }
+
+    if (SkipString(pszRsp, ",", pszRsp))
+    {
+        if (!ExtractQuotedString(pszRsp, pszTermProfile, MAX_BUFFER_SIZE, pszRsp))
+        {
+            RIL_LOG_INFO("CTE_INF_N721::ParseStkGetProfile() - ERROR: Could not extract the terminal profile.\r\n");
+            goto Error;
+        }
+    }
+
+    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    {
+        RIL_LOG_INFO("CTE_INF_N721::ParseStkGetProfile() - ERROR: Could not extract the response end.\r\n");
+        goto Error;
+    }
+
+    rRspData.pData   = (void*)pszTermProfile;
+    rRspData.uiDataSize  = uiLength;
+
+    res = RRIL_RESULT_OK;  
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pszTermProfile);
+        pszTermProfile = NULL;
+    }
+
+    RIL_LOG_INFO("CTE_INF_N721::ParseStkGetProfile() - Exit\r\n");
+    return res;
+}
+
+//
+// RIL_REQUEST_STK_SET_PROFILE 68
+//
+RIL_RESULT_CODE CTE_INF_N721::CoreStkSetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_INFO("CTE_INF_N721::CoreStkSetProfile() - Enter\r\n");
+    char* pszTermProfile = NULL;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (0 == uiDataSize)
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkSetProfile() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+    
+    if (NULL == pData)
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkSetProfile() - ERROR: Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+    
+    // extract data
+    pszTermProfile = (char*)pData;
+    
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+STKPROF=%u,\"%s\"\r", uiDataSize, pszTermProfile))
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkSetProfile() - ERROR: Could not form string.\r\n");
+        goto Error;        
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_INFO("CTE_INF_N721::CoreStkSetProfile() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_N721::ParseStkSetProfile(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_INFO("CTE_INF_N721::ParseStkSetProfile() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    RIL_LOG_INFO("CTE_INF_N721::ParseStkSetProfile() - Exit\r\n");
+    return res;
+}
+
+//
+// RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
+//
+RIL_RESULT_CODE CTE_INF_N721::CoreStkSendEnvelopeCommand(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_INFO("CTE_INF_N721::CoreStkSendEnvelopeCommand() - Enter\r\n");
+    char* pszEnvCommand = NULL;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (sizeof(char*) != uiDataSize)
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkSendEnvelopeCommand() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+    
+    if (NULL == pData)
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkSendEnvelopeCommand() - ERROR: Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+    
+    // extract data
+    pszEnvCommand = (char*)pData;
+    
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATE=\"%s\"\r", pszEnvCommand))
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkSendEnvelopeCommand() - ERROR: Could not form string.\r\n");
+        goto Error;        
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_INFO("CTE_INF_N721::CoreStkSendEnvelopeCommand() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_N721::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_INFO("CTE_INF_N721::ParseStkSendEnvelopeCommand() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    RIL_LOG_INFO("CTE_INF_N721::ParseStkSendEnvelopeCommand() - Exit\r\n");
+    return res;
+}
+
+//
+// RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
+//
+RIL_RESULT_CODE CTE_INF_N721::CoreStkSendTerminalResponse(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_INFO("CTE_INF_N721::CoreStkSendTerminalResponse() - Enter\r\n");
+    char* pszTermResponse = NULL;
+#ifndef USE_STK_RAW_MODE      
+    char* cmd = NULL; 
+#endif
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    
+    if (NULL == pData)
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkSendTerminalResponse() - ERROR: Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (uiDataSize != sizeof(char *))
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkSendTerminalResponse() - ERROR: Invalid data size.\r\n");
+        goto Error;
+    }
+    
+    RIL_LOG_INFO(" uiDataSize= %d\r\n", uiDataSize);
+    
+    pszTermResponse = (char *)pData;
+
+#if USE_STK_RAW_MODE    
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATR=\"%s\"\r", pszTermResponse))
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkSendTerminalResponse() - ERROR: Could not form string.\r\n");
+        goto Error;
+    }
+#else    
+    cmd = hex_to_stk_at(pszTermResponse);
+    
+    if (!CopyStringNullTerminate(rReqData.szCmd1, cmd, sizeof(rReqData.szCmd1)))
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkSendTerminalResponse() - ERROR: Could not form string.\r\n");
+        goto Error;        
+    }     
+#endif
+    
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_INFO("CTE_INF_N721::CoreStkSendTerminalResponse() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_N721::ParseStkSendTerminalResponse(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_INFO("CTE_INF_N721::ParseStkSendTerminalResponse() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    RIL_LOG_INFO("CTE_INF_N721::ParseStkSendTerminalResponse() - Exit\r\n");
+    return res;
+}
+
+//
+// RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM 71
+//
+RIL_RESULT_CODE CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_INFO("CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim() - Enter\r\n");
+    int nConfirmation = 0;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    
+    if (NULL == pData)
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (uiDataSize != 1)
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Invalid data size.\r\n");
+        goto Error;
+    }
+    
+    nConfirmation = ((int *)pData)[0];
+    if (0 == nConfirmation)
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATD=0\r"))
+        {
+            RIL_LOG_INFO("CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Could not form string.\r\n");
+            goto Error;
+        }        
+    }
+    else
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATD=1\r"))
+        {
+            RIL_LOG_INFO("CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Could not form string.\r\n");
+            goto Error;
+        }        
+    }
+        
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_INFO("CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_N721::ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_INFO("CTE_INF_N721::ParseStkHandleCallSetupRequestedFromSim() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    RIL_LOG_INFO("CTE_INF_N721::ParseStkHandleCallSetupRequestedFromSim() - Exit\r\n");
+    return res;
+}
+
+//
 // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
 //
 RIL_RESULT_CODE CTE_INF_N721::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
@@ -1099,7 +2260,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreGetPreferredNetworkType(REQUEST_DATA & rReqDat
 {
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreGetPreferredNetworkType() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    
+
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT?\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;

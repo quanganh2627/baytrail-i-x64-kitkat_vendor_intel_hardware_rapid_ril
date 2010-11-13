@@ -128,6 +128,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
         pCardStatus->gsm_umts_subscription_app_index = 0;
         
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
+        //pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
         pCardStatus->applications[0].app_state = RIL_APPSTATE_READY;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_READY;
         pCardStatus->applications[0].aid_ptr = NULL;
@@ -145,6 +146,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
         pCardStatus->gsm_umts_subscription_app_index = 0;
 
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
+        //pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
         pCardStatus->applications[0].app_state = RIL_APPSTATE_PIN;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
         pCardStatus->applications[0].aid_ptr = NULL;
@@ -162,6 +164,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
         pCardStatus->gsm_umts_subscription_app_index = 0;
 
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
+        //pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
         pCardStatus->applications[0].app_state = RIL_APPSTATE_PUK;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
         pCardStatus->applications[0].aid_ptr = NULL;
@@ -179,6 +182,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
         pCardStatus->gsm_umts_subscription_app_index = 0;
 
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
+        //pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
         pCardStatus->applications[0].app_state = RIL_APPSTATE_SUBSCRIPTION_PERSO;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_SIM_NETWORK;
         pCardStatus->applications[0].aid_ptr = NULL;
@@ -756,8 +760,10 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
             if (SkipString(szRsp, ",", szRsp))
             {
                 // Parse "<description>"
-                WCHAR description[MAX_BUFFER_SIZE];
-                if (!ExtractQuotedUnicodeHexStringToUnicode(szRsp, description, sizeof(description), szRsp))
+                //WCHAR description[MAX_BUFFER_SIZE];
+                //if (!ExtractQuotedUnicodeHexStringToUnicode(szRsp, description, MAX_BUFFER_SIZE, szRsp))
+                BYTE description[MAX_BUFFER_SIZE];
+                if (!ExtractQuotedString(szRsp, description, MAX_BUFFER_SIZE, szRsp))
                 {
                     RIL_LOG_WARNING("ParseGetCallList() - WARNING: Failed to extract call name\r\n");
                     goto Continue;
@@ -1223,6 +1229,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
 
     // Get failure cause
     if (!SkipString(pszRsp, ",", pszRsp) ||
+        !SkipSpaces(pszRsp, pszRsp) ||
         !ExtractUInt(pszRsp, uiCause, pszRsp))
     {
         RIL_LOG_CRITICAL("ParseGetLastCallFailCause() - ERROR: Could not extract failure cause.\r\n");
@@ -1230,6 +1237,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
     }
 
     if (!SkipString(pszRsp, ",", pszRsp) ||
+        !SkipSpaces(pszRsp, pszRsp) ||
         !ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
     {
         RIL_LOG_WARNING("ParseGetLastCallFailCause() - WARNING: Could not extract verbose cause.\r\n");
@@ -1474,14 +1482,36 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     }
 
     snprintf(pRegStatus->szStat,        REG_STATUS_LENGTH, "%d", (int)uiStat);
-    snprintf(pRegStatus->szLAC,         REG_STATUS_LENGTH, "%d", (int)uiLAC);
-    snprintf(pRegStatus->szCID,         REG_STATUS_LENGTH, "%d", (int)uiCID);
-    snprintf(pRegStatus->szNetworkType, REG_STATUS_LENGTH, "%d", (int)(g_uiAccessTechnology));
+    snprintf(pRegStatus->szLAC,         REG_STATUS_LENGTH, "%x", (int)uiLAC);
+    snprintf(pRegStatus->szCID,         REG_STATUS_LENGTH, "%x", (int)uiCID);
+    //if (0 == uiStat)
+    //{
+    //    snprintf(pRegStatus->szNetworkType, REG_STATUS_LENGTH, "%d", 0);
+    //}
+    //else
+    //{
+        snprintf(pRegStatus->szNetworkType, REG_STATUS_LENGTH, "%d", (int)(g_uiAccessTechnology));
+    //}
+
 
     pRegStatus->sStatusPointers.pszStat = pRegStatus->szStat;
-    pRegStatus->sStatusPointers.pszLAC  = pRegStatus->szLAC;
-    pRegStatus->sStatusPointers.pszCID  = pRegStatus->szCID;
-    pRegStatus->sStatusPointers.pszNetworkType = NULL;
+    if (0 == uiLAC)
+    {
+        pRegStatus->sStatusPointers.pszLAC  = NULL;
+    }
+    else
+    {
+        pRegStatus->sStatusPointers.pszLAC  = pRegStatus->szLAC;
+    }
+    if (0 == uiCID)
+    {
+        pRegStatus->sStatusPointers.pszCID  = NULL;
+    }
+    else
+    {
+        pRegStatus->sStatusPointers.pszCID  = pRegStatus->szCID;
+    }
+    pRegStatus->sStatusPointers.pszNetworkType = pRegStatus->szNetworkType;
     pRegStatus->sStatusPointers.pszBaseStationID = NULL;
     pRegStatus->sStatusPointers.pszBaseStationLat = NULL;
     pRegStatus->sStatusPointers.pszBaseStationLon = NULL;
@@ -1635,13 +1665,34 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     }
 
     snprintf(pGPRSRegStatus->szStat,        REG_STATUS_LENGTH, "%d", (int)uiStat);
-    snprintf(pGPRSRegStatus->szLAC,         REG_STATUS_LENGTH, "%d", (int)uiLAC);
-    snprintf(pGPRSRegStatus->szCID,         REG_STATUS_LENGTH, "%d", (int)uiCID);
-    snprintf(pGPRSRegStatus->szNetworkType, REG_STATUS_LENGTH, "%d", (int)(g_uiAccessTechnology));
+    snprintf(pGPRSRegStatus->szLAC,         REG_STATUS_LENGTH, "%x", (int)uiLAC);
+    snprintf(pGPRSRegStatus->szCID,         REG_STATUS_LENGTH, "%x", (int)uiCID);
+    //if (0 == uiStat)
+    //{
+    //    snprintf(pGPRSRegStatus->szNetworkType, REG_STATUS_LENGTH, "%d", 0);
+    //}
+    //else
+    //{
+        snprintf(pGPRSRegStatus->szNetworkType, REG_STATUS_LENGTH, "%d", (int)(g_uiAccessTechnology));
+    //}
 
     pGPRSRegStatus->sStatusPointers.pszStat         = pGPRSRegStatus->szStat;
-    pGPRSRegStatus->sStatusPointers.pszLAC          = pGPRSRegStatus->szLAC;
-    pGPRSRegStatus->sStatusPointers.pszCID          = pGPRSRegStatus->szCID;
+    if (0 == uiLAC)
+    {
+        pGPRSRegStatus->sStatusPointers.pszLAC          = NULL;
+    }
+    else
+    {
+        pGPRSRegStatus->sStatusPointers.pszLAC          = pGPRSRegStatus->szLAC;
+    }
+    if (0 == uiCID)
+    {
+        pGPRSRegStatus->sStatusPointers.pszCID          = NULL;
+    }
+    else
+    {
+        pGPRSRegStatus->sStatusPointers.pszCID          = pGPRSRegStatus->szCID;
+    }
     pGPRSRegStatus->sStatusPointers.pszNetworkType  = pGPRSRegStatus->szNetworkType;
 
     // We cheat with the size here.
@@ -1748,8 +1799,10 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
             {
                 case 0:
                 {
-                    WCHAR tmp[MAX_BUFFER_SIZE];
-                    if (!ExtractQuotedUnicodeHexStringToUnicode(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    //WCHAR tmp[MAX_BUFFER_SIZE];
+                    //if (!ExtractQuotedUnicodeHexStringToUnicode(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    BYTE tmp[MAX_BUFFER_SIZE];
+                    if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
                         RIL_LOG_CRITICAL("ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
@@ -1763,8 +1816,10 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
                 case 1:
                 {
-                    WCHAR tmp[MAX_BUFFER_SIZE];
-                    if (!ExtractQuotedUnicodeHexStringToUnicode(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    //WCHAR tmp[MAX_BUFFER_SIZE];
+                    //if (!ExtractQuotedUnicodeHexStringToUnicode(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    BYTE tmp[MAX_BUFFER_SIZE];
+                    if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
                         RIL_LOG_CRITICAL("ParseOperator() - ERROR: Could not extract the Short Format Operator Name.\r\n");
                         goto Error;
@@ -1779,8 +1834,10 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
                 case 2:
                 {
-                    WCHAR tmp[MAX_BUFFER_SIZE];
-                    if (!ExtractQuotedUnicodeHexStringToUnicode(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    //WCHAR tmp[MAX_BUFFER_SIZE];
+                    //if (!ExtractQuotedUnicodeHexStringToUnicode(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    BYTE tmp[MAX_BUFFER_SIZE];
+                    if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
                         RIL_LOG_CRITICAL("ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
@@ -1804,6 +1861,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
             {
                 uint act;
                 ExtractUInt(pszRsp, act, pszRsp);
+                #if 0
                 switch (act)
                 {
                     case 0:
@@ -1818,10 +1876,11 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                     default:
                         g_uiAccessTechnology = ACT_UNKNOWN;
                 }
+                #endif // 0
             }
             else
             {
-                g_uiAccessTechnology = ACT_UNKNOWN;
+                //g_uiAccessTechnology = ACT_UNKNOWN;
             }
 
             pOpNames->sOpNamePtrs.pszOpNameLong    = pOpNames->szOpNameLong;
@@ -1838,7 +1897,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
             pOpNames->sOpNamePtrs.pszOpNameLong    = NULL;
             pOpNames->sOpNamePtrs.pszOpNameShort   = NULL;
             pOpNames->sOpNamePtrs.pszOpNameNumeric = NULL;
-            g_uiAccessTechnology = ACT_UNKNOWN;
+            //g_uiAccessTechnology = ACT_UNKNOWN;
         }
 
         // Extract "<CR><LF>"
@@ -2256,7 +2315,7 @@ Error:
 //
 // RIL_REQUEST_SETUP_DATA_CALL 27
 //
-RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 uiCID)
 {
     RIL_LOG_VERBOSE("CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -2284,8 +2343,8 @@ RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData
 
     (void)PrintStringNullTerminate(rReqData.szCmd1,
           sizeof(rReqData.szCmd1),
-          "AT+CGDCONT=1,\"IP\",\"%s\",,0,0;+CGQREQ=1;+CGQMIN=1;+CGACT=0,1\r",
-          stPdpData.szApn);
+          "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+CGQREQ=%d;+CGQMIN=%d;+CGACT=0,%d\r", uiCID,
+          stPdpData.szApn, uiCID, uiCID, uiCID);
         
     (void)CopyStringNullTerminate(rReqData.szCmd2, "ATD*99***1#\r", sizeof(rReqData.szCmd2));
     
@@ -2329,6 +2388,16 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
     
     // extract data
     pSimIOArgs = (RIL_SIM_IO *)pData;
+    
+    RIL_LOG_VERBOSE("CoreSimIo() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
+    RIL_LOG_VERBOSE("CoreSimIo() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
+    RIL_LOG_VERBOSE("CoreSimIo() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
+    RIL_LOG_VERBOSE("CoreSimIo() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
+    RIL_LOG_VERBOSE("CoreSimIo() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
+    RIL_LOG_VERBOSE("CoreSimIo() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
+    RIL_LOG_VERBOSE("CoreSimIo() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
+    RIL_LOG_VERBOSE("CoreSimIo() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
+    
 
     if (NULL == pSimIOArgs->data)
     {
@@ -2345,7 +2414,7 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
     {
         (void)PrintStringNullTerminate(rReqData.szCmd1,
                      sizeof(rReqData.szCmd1),
-                     "AT+CRSM=%d,%d,%d,%d,%d,%s\r",
+                     "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
                      pSimIOArgs->command,
                      pSimIOArgs->fileid,
                      pSimIOArgs->p1,
@@ -2353,6 +2422,10 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
                      pSimIOArgs->p3,
                      pSimIOArgs->data);
     }
+    
+    //  Set the context of this command to the SIM_IO command-type.
+    rReqData.pContextData = (void*)pSimIOArgs->command;
+
 
     res = RRIL_RESULT_OK;
 
@@ -3789,6 +3862,12 @@ RIL_RESULT_CODE CTEBase::ParseQueryNetworkSelectionMode(RESPONSE_DATA & rRspData
         RIL_LOG_CRITICAL("ParseQueryNetworkSelectionMode() - ERROR: Could not extract the mode.\r\n");
         goto Error;
     }
+    
+    //  If we have a +COPS: 2, then just default to automatic.
+    if (*pnMode >= 2)
+    {
+        *pnMode = 0; // automatic
+    }
 
     res = RRIL_RESULT_OK;
 
@@ -3905,7 +3984,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
     UINT32 nValue;
     UINT32 nEntries = 0;
     UINT32 nCurrent = 0;
-    WCHAR tmp[MAX_BUFFER_SIZE];
+    //WCHAR tmp[MAX_BUFFER_SIZE];
+    BYTE tmp[MAX_BUFFER_SIZE];
 
     P_ND_OPINFO_PTRS pOpInfoPtr = NULL;
     P_ND_OPINFO_DATA pOpInfoData = NULL;
@@ -3997,14 +4077,16 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
         // Extract ",<long_name>"
         if (!SkipString(szRsp, ",", szRsp) ||
-           (!ExtractQuotedUnicodeHexStringToUnicode(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
+           //(!ExtractQuotedUnicodeHexStringToUnicode(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
+           (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
         {
             RIL_LOG_CRITICAL("ParseGetOperatorList() - ERROR: Could not extract the Long Format Operator Name.\r\n");
             goto Error;
         }
         else
         {
-            int len = wcslen(tmp);
+            //int len = wcslen(tmp);
+            int len = strlen(tmp);
             if (0 == len)
             {
                 strcpy(pOpInfoData[nCurrent].szOpInfoLong, "<UNKNOWN>");
@@ -4022,14 +4104,16 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
         // Extract ",<short_name>"
         if (!SkipString(szRsp, ",", szRsp) ||
-           (!ExtractQuotedUnicodeHexStringToUnicode(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
+           //(!ExtractQuotedUnicodeHexStringToUnicode(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
+           (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
         {
             RIL_LOG_CRITICAL("ParseGetOperatorList() - ERROR: Could not extract the Short Format Operator Name.\r\n");
             goto Error;
         }
         else
         {
-            int len = wcslen(tmp);
+            //int len = wcslen(tmp);
+            int len = strlen(tmp);
             if (0 == len)
             {
                 strcpy(pOpInfoData[nCurrent].szOpInfoShort, "<UNKNOWN>");
@@ -4047,14 +4131,16 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
         // Extract ",<num_name>"
         if (!SkipString(szRsp, ",", szRsp) ||
-           (!ExtractQuotedUnicodeHexStringToUnicode(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
+           //(!ExtractQuotedUnicodeHexStringToUnicode(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
+           (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
         {
             RIL_LOG_CRITICAL("ParseGetOperatorList() - ERROR: Could not extract the Numeric Format Operator Name.\r\n");
             goto Error;
         }
         else
         {
-            int len = wcslen(tmp);
+            //int len = wcslen(tmp);
+            int len = strlen(tmp);
             if (0 == len)
             {
                 strcpy(pOpInfoData[nCurrent].szOpInfoNumeric, "<UNKNOWN>");
@@ -4982,8 +5068,39 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     //        when screen is off. Resume updates when screen turns back on.
     //        will probably need to trigger immediate updates on resume to have correct
     //        info on screen. For now, just return OK and keep throwing updates.
-    RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int nEnable = 0;
+    
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CoreScreenState() - ERROR: Data pointer is NULL.\r\n");
+        goto Error;
+    }
 
+    nEnable = ((int *)pData)[0];
+    
+    //  0 is off
+    //  1 is on
+    switch(nEnable)
+    {
+        case 0:
+            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=0;+CGREG=0\r", sizeof(rReqData.szCmd1)))
+            {
+                res = RRIL_RESULT_OK;
+            }
+            break;
+        case 1:
+            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=2;+CGREG=2\r", sizeof(rReqData.szCmd1)))
+            {
+                res = RRIL_RESULT_OK;
+            }
+            break;
+        default:
+            RIL_LOG_CRITICAL("CoreScreenState() - ERROR: unknown nEnable=[%d]\r\n", nEnable);
+            break;
+    }
+
+Error:
     RIL_LOG_VERBOSE("CoreScreenState() - Exit\r\n");
     return res;
 }
@@ -5536,6 +5653,8 @@ RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA & rReqData, void * 
         res = RIL_E_GENERIC_FAILURE;
         goto Error;
     }
+    
+    res = RRIL_RESULT_OK;
     
 Error:
     RIL_LOG_VERBOSE("CoreSetLocationUpdates() - Exit\r\n");
@@ -6439,9 +6558,16 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreReportStkServiceRunning() - Enter\r\n");
-    RIL_LOG_VERBOSE("CoreReportStkServiceRunning() - Exit\r\n");
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreReportStkServiceRunning() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    //  [DP] Let's NO-OP this command.
+    rReqData.szCmd1[0] = NULL;
+    
+    g_fReadyForSTKNotifications = TRUE;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreReportStkServiceRunning() - Exit\r\n");
+    return res; 
 }
 
 RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
@@ -6503,6 +6629,7 @@ RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData
         goto Error;
     }
 
+#if 0
     if (ACT_UMTS == g_uiAccessTechnology)
     {
         RIL_LOG_INFO("ParseUnsolicitedSignalStrength() - Compressing values in UMTS\r\n");
@@ -6517,6 +6644,7 @@ RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData
         if (99 != uiBER)
             uiBER /= 7;
     }
+#endif
     pSigStrData->GW_SignalStrength.signalStrength = (int) uiRSSI;
     pSigStrData->GW_SignalStrength.bitErrorRate   = (int) uiBER;
 

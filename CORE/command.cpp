@@ -26,12 +26,12 @@
 #include "cmdcontext.h"
 #include "command.h"
 
-CCommand::CCommand( EnumRilChannel eChannel,
+CCommand::CCommand( UINT32 uiChannel,
                     RIL_Token token,
                     UINT32 uiReqId,
                     const BYTE* pszATCmd,
                     PFN_TE_PARSE pParseFcn) :
-    m_eChannel(RIL_CHANNEL_ATCMD),
+    m_uiChannel(RIL_CHANNEL_ATCMD),
     m_token(token),
     m_uiReqId(uiReqId),
     m_pszATCmd1(NULL),
@@ -40,16 +40,17 @@ CCommand::CCommand( EnumRilChannel eChannel,
     m_uiTimeout(0),
     m_fAlwaysParse(FALSE),
     m_fHighPriority(FALSE),
-    m_pContext(NULL)
-
+    m_pContext(NULL),
+    m_pContextData(NULL),
+    m_cbContextData(0)
 {
-    if ((RIL_CHANNEL_ATCMD <= eChannel) && (eChannel < RIL_CHANNEL_MAX))
+    if ((RIL_CHANNEL_ATCMD <= uiChannel) && (uiChannel < RIL_CHANNEL_MAX))
     {
-        m_eChannel = eChannel;
+        m_uiChannel = uiChannel;
     }
     else
     {
-        RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", eChannel);
+        RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", uiChannel);
     }
     
     if ((NULL == pszATCmd) || ('\0' == pszATCmd[0]))
@@ -65,13 +66,13 @@ CCommand::CCommand( EnumRilChannel eChannel,
     }
 }
 
-CCommand::CCommand( EnumRilChannel eChannel,
+CCommand::CCommand( UINT32 uiChannel,
                     RIL_Token token,
                     UINT32 uiReqId,
                     const BYTE* pszATCmd1,
                     const BYTE* pszATCmd2,
                     PFN_TE_PARSE pParseFcn) : 
-    m_eChannel(RIL_CHANNEL_ATCMD),
+    m_uiChannel(RIL_CHANNEL_ATCMD),
     m_token(token),
     m_uiReqId(uiReqId),
     m_pszATCmd1(NULL),
@@ -80,15 +81,17 @@ CCommand::CCommand( EnumRilChannel eChannel,
     m_uiTimeout(0),
     m_fAlwaysParse(FALSE),
     m_fHighPriority(FALSE),
-    m_pContext(NULL)
+    m_pContext(NULL),
+    m_pContextData(NULL),
+    m_cbContextData(0)
 {
-    if ((RIL_CHANNEL_ATCMD <= eChannel) && (eChannel < RIL_CHANNEL_MAX))
+    if ((RIL_CHANNEL_ATCMD <= uiChannel) && (uiChannel < RIL_CHANNEL_MAX))
     {
-        m_eChannel = eChannel;
+        m_uiChannel = uiChannel;
     }
     else
     {
-        RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", eChannel);
+        RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", uiChannel);
     }
     
     if ((NULL == pszATCmd1) || ('\0' == pszATCmd1[0]))
@@ -116,12 +119,12 @@ CCommand::CCommand( EnumRilChannel eChannel,
     }
 }
 
-CCommand::CCommand( EnumRilChannel eChannel,
+CCommand::CCommand( UINT32 uiChannel,
                     RIL_Token token,
                     UINT32 uiReqId,
                     REQUEST_DATA reqData,
                     PFN_TE_PARSE pParseFcn) : 
-    m_eChannel(RIL_CHANNEL_ATCMD),
+    m_uiChannel(RIL_CHANNEL_ATCMD),
     m_token(token),
     m_uiReqId(uiReqId),
     m_pszATCmd1(NULL),
@@ -130,15 +133,17 @@ CCommand::CCommand( EnumRilChannel eChannel,
     m_uiTimeout(reqData.uiTimeout),
     m_fAlwaysParse(reqData.fForceParse),
     m_fHighPriority(FALSE),
-    m_pContext(NULL)
+    m_pContext(NULL),
+    m_pContextData(reqData.pContextData),
+    m_cbContextData(reqData.cbContextData)
 {
-    if ((RIL_CHANNEL_ATCMD <= eChannel) && (eChannel < RIL_CHANNEL_MAX))
+    if ((RIL_CHANNEL_ATCMD <= uiChannel) && (uiChannel < RIL_CHANNEL_MAX))
     {
-        m_eChannel = eChannel;
+        m_uiChannel = uiChannel;
     }
     else
     {
-        RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", eChannel);
+        RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", uiChannel);
     }
     
     if ('\0' == reqData.szCmd1[0])
@@ -215,7 +220,7 @@ BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd)
         }
         else
         {
-            RIL_LOG_CRITICAL("CCommand::AddCmdToQueue() - ERROR: Unable to queue command on channel [%d]\r\n", rpCmd->m_eChannel);
+            RIL_LOG_CRITICAL("CCommand::AddCmdToQueue() - ERROR: Unable to queue command on channel [%d]\r\n", rpCmd->m_uiChannel);
         }
     }
     else

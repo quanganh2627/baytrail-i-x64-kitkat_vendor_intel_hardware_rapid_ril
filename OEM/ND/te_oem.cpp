@@ -374,7 +374,7 @@ long CTEOem::OEMParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
 //
 // RIL_REQUEST_SETUP_DATA_CALL 27
 //
-long CTEOem::OEMSetupDataCall(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize)
+long CTEOem::OEMSetupDataCall(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize, unsigned int uiCID)
 {
     return RIL_E_REQUEST_NOT_SUPPORTED;
 }

@@ -440,7 +440,7 @@ BOOL CRepository::Read(const char *szGroup, const char* szKey, char* szRes, int 
     iRes = LocateKey(szKey, pBuf);
     if (E_OK != iRes)
     {
-        RIL_LOG_INFO("CRepository::Read() - Could not locate the \"%s\" key.\r\n", szKey);
+        RIL_LOG_VERBOSE("CRepository::Read() - Could not locate the \"%s\" key.\r\n", szKey);
         goto Error;
     }
 

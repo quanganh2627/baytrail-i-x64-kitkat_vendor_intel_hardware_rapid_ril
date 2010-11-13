@@ -39,8 +39,8 @@ const bool ATCMD_LOG_RESPONSE (true);
 }
 
 
-CChannel::CChannel(EnumRilChannel eChannel)
-: CChannelBase(eChannel)
+CChannel::CChannel(UINT32 uiChannel)
+: CChannelBase(uiChannel)
 {
     RIL_LOG_VERBOSE("CChannel::CChannel() - Enter\r\n");
 
@@ -84,16 +84,16 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
 
     if (NULL == rpCmd)
     {
-        RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] NULL params [0x%08x] [0x%08x]\r\n", m_eRilChannel, m_pSystemManager, rpCmd);
+        RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] NULL params [0x%08x] [0x%08x]\r\n", m_uiRilChannel, m_pSystemManager, rpCmd);
         goto Error;
     }
 
-    RIL_LOG_VERBOSE("CChannel::SendCommand() - DEBUG: chnl=[%d] Executing command with ID=[0x%08X,%d]\r\n", m_eRilChannel, rpCmd->GetRequestID(), (int)rpCmd->GetRequestID());
+    RIL_LOG_VERBOSE("CChannel::SendCommand() - DEBUG: chnl=[%d] Executing command with ID=[0x%08X,%d]\r\n", m_uiRilChannel, rpCmd->GetRequestID(), (int)rpCmd->GetRequestID());
 
     // call Silo hook - PreSendCommandHook
     if (!PreSendCommandHook(rpCmd, pResponse))
     {
-        RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] PreSendCommandHook returned FALSE\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] PreSendCommandHook returned FALSE\r\n", m_uiRilChannel);
         goto Error;
     }
     
@@ -121,7 +121,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
         SetCmdThreadBlockedOnRxQueue();
 
         // empty the queue before sending the command
-        g_pRxQueue[m_eRilChannel]->MakeEmpty();
+        g_pRxQueue[m_uiRilChannel]->MakeEmpty();
         if (NULL != m_pResponse)
             m_pResponse->FreeData();
         
@@ -131,14 +131,14 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             // ignore the error and soldier on, something may have been written
             // to the modem so wait for a potential response
             RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Error writing command: %s\r\n",
-                            m_eRilChannel,
+                            m_uiRilChannel,
                             CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
         }
         
         if (strlen(pATCommand) != uiBytesWritten)
         {
             RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Only wrote [%d] chars of command to port: %s\r\n",
-                            m_eRilChannel,
+                            m_uiRilChannel,
                             uiBytesWritten,
                             CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
         }
@@ -157,14 +157,14 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
 
         if (!pResponse)
         {
-            RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] No response received!\r\n", m_eRilChannel);
+            RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] No response received!\r\n", m_uiRilChannel);
             goto Error;
         }
 
         // call Silo hook - PostSendCommandHook
         if (!PostSendCommandHook(rpCmd, pResponse))
         {
-            RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] SendRILCmdParseResponsePostSend returned FALSE\r\n", m_eRilChannel);
+            RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] SendRILCmdParseResponsePostSend returned FALSE\r\n", m_uiRilChannel);
             goto Error;
         }
 
@@ -261,7 +261,7 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         if (!WriteToPort(pATCommand, strlen(pATCommand), uiBytesWritten))
         {
             RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Error sending 2nd command: %s\r\n",
-                          m_eRilChannel,
+                          m_uiRilChannel,
                           CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
             // ignore error and wait for a modem response, or time out
         }
@@ -269,7 +269,7 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         if (strlen(pATCommand) != uiBytesWritten)
         {
             RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Could only write [%d] chars of 2nd command: %s\r\n",
-                m_eRilChannel,
+                m_uiRilChannel,
                 uiBytesWritten,
                 CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
         }
@@ -364,7 +364,7 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHung
     //  Call our hook
     if (!PreParseResponseHook(rpCmd, rpRsp))
     {
-        RIL_LOG_CRITICAL("CChannel::ParseResponse() - ERROR: chnl=[%d] PreParseResponseHook FAILED!\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel::ParseResponse() - ERROR: chnl=[%d] PreParseResponseHook FAILED!\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -400,9 +400,9 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHung
 
         if (repository.Read(g_szGroupNetworkSettings, g_szConnectRspDelay, iTemp))
         {
-            RIL_LOG_INFO("CChannel::HandleRsp() : chnl=[%d] BEGIN ConnectResponseDelay Sleep(%d)\r\n", m_eRilChannel, iTemp);
+            RIL_LOG_INFO("CChannel::HandleRsp() : chnl=[%d] BEGIN ConnectResponseDelay Sleep(%d)\r\n", m_uiRilChannel, iTemp);
             Sleep(iTemp);
-            RIL_LOG_INFO("CChannel::HandleRsp() : chnl=[%d] END ConnectResponseDelay Sleep(%d)\r\n", m_eRilChannel, iTemp);
+            RIL_LOG_INFO("CChannel::HandleRsp() : chnl=[%d] END ConnectResponseDelay Sleep(%d)\r\n", m_uiRilChannel, iTemp);
         }
     }
     else
@@ -414,7 +414,7 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHung
             if (RRIL_RESULT_OK == rpRsp->GetNotifyCode() &&
                (!pnd->FDelayedInitFromRsp() || pnd->FinishInitFromRspBlob(*rpRsp)))
             {
-                RIL_LOG_INFO("CChannel::HandleRsp() : chnl=[%d] Broadcasting Notification: 0x%08X\r\n", m_eRilChannel, pnd->GetCode());
+                RIL_LOG_INFO("CChannel::HandleRsp() : chnl=[%d] Broadcasting Notification: 0x%08X\r\n", m_uiRilChannel, pnd->GetCode());
                 RIL_onUnsolicitedResponse(pnd->GetCode(), pnd->GetBlob(), pnd->GetSize());
             }
             delete pnd;
@@ -425,7 +425,7 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHung
 
     // Forward the response we got to the handle that sent the command
     //  Call our hook
-    RIL_LOG_VERBOSE("CChannel::ParseResponse() - chnl=[%d] calling PostParseResponseHook\r\n", m_eRilChannel);
+    RIL_LOG_VERBOSE("CChannel::ParseResponse() - chnl=[%d] calling PostParseResponseHook\r\n", m_uiRilChannel);
     bResult = PostParseResponseHook(rpCmd, rpRsp);
     if (!bResult)
         goto Error;
@@ -484,7 +484,7 @@ BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID, RIL_Errno e
     int nNumOfCommands = 0;
     
     //  The following function returns us an array of CCommands, and the size of the returned array.
-    g_pTxQueue[m_eRilChannel]->GetAllQueuedObjects(pCmdArray, nNumOfCommands);
+    g_pTxQueue[m_uiRilChannel]->GetAllQueuedObjects(pCmdArray, nNumOfCommands);
     
     for (int i=0; i<nNumOfCommands; i++)
     {
@@ -492,7 +492,7 @@ BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID, RIL_Errno e
         if (pCmdArray[i]->GetRequestID() == uiReqID)
         {
             //  Dequeue the object, send the response.  Then free the CCommand.
-            g_pTxQueue[m_eRilChannel]->DequeueByObj(pCmdArray[i]);
+            g_pTxQueue[m_uiRilChannel]->DequeueByObj(pCmdArray[i]);
             
             RIL_LOG_INFO("CChannel::FindIdenticalRequestsAndSendResponses() - Found match for ReqID=[%d] at index=[%d]\r\n", uiReqID, i);
             RIL_LOG_INFO("CChannel::FindIdenticalRequestsAndSendResponses() - Complete for token 0x%08x, error: %d,  reqID=[%d]\r\n", pCmdArray[i]->GetToken(), eErrNo, uiReqID);
@@ -522,7 +522,7 @@ BOOL CChannel::ProcessModemData(BYTE *szRxBytes, UINT32 uiRxBytesSize)
         goto Error;
     }
 
-    RIL_LOG_INFO("CChannelBase::ProcessModemData() - INFO: chnl=[%d] RX [%s]\r\n", m_eRilChannel, CRLFExpandedString(szRxBytes,uiRxBytesSize).GetString());
+    RIL_LOG_INFO("CChannelBase::ProcessModemData() - INFO: chnl=[%d] RX [%s]\r\n", m_uiRilChannel, CRLFExpandedString(szRxBytes,uiRxBytesSize).GetString());
 
     if (!m_pResponse)
     {
@@ -538,7 +538,7 @@ BOOL CChannel::ProcessModemData(BYTE *szRxBytes, UINT32 uiRxBytesSize)
     // append data to our response buffer
     if (!m_pResponse->Append(szRxBytes, uiRxBytesSize))
     {
-        RIL_LOG_CRITICAL("CChannel::ProcessModemData() - ERROR: chnl=[%d] Append failed\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel::ProcessModemData() - ERROR: chnl=[%d] Append failed\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -556,14 +556,14 @@ BOOL CChannel::ProcessModemData(BYTE *szRxBytes, UINT32 uiRxBytesSize)
         CResponse* pResponse = NULL;
         if (!CResponse::TransferData(m_pResponse, pResponse))
         {
-            RIL_LOG_CRITICAL("CChannel::ProcessModemData() - ERROR: chnl=[%d] TransferData failed\r\n", m_eRilChannel);
+            RIL_LOG_CRITICAL("CChannel::ProcessModemData() - ERROR: chnl=[%d] TransferData failed\r\n", m_uiRilChannel);
             goto Error;
         }
 
         // process the response
         if (!ProcessResponse(pResponse))
         {
-            RIL_LOG_CRITICAL("CChannel::ProcessModemData() - ERROR: chnl=[%d] ProcessResponse failed\r\n", m_eRilChannel);
+            RIL_LOG_CRITICAL("CChannel::ProcessModemData() - ERROR: chnl=[%d] ProcessResponse failed\r\n", m_uiRilChannel);
             goto Error;
         }
     }
@@ -579,12 +579,12 @@ BOOL CChannel::ProcessResponse(CResponse*& rpResponse)
 {
     BOOL bResult = FALSE;
 
-    RIL_LOG_VERBOSE("CChannel::ProcessResponse : chnl=[%d] Enter\r\n", m_eRilChannel);
+    RIL_LOG_VERBOSE("CChannel::ProcessResponse : chnl=[%d] Enter\r\n", m_uiRilChannel);
     if (rpResponse->IsUnrecognizedFlag())
     {
         // garbage in buffer, discard
-        RIL_LOG_INFO("CChannel::ProcessResponse : chnl=[%d] Unidentified response: [%d]  %s\r\n",
-                       m_eRilChannel,
+        RIL_LOG_INFO("CChannel::ProcessResponse : chnl=[%d] Unidentified response size [%d]  %s\r\n",
+                       m_uiRilChannel,
                        rpResponse->Size(),
                        CRLFExpandedString(rpResponse->Data(), rpResponse->Size()).GetString());
     }
@@ -597,7 +597,9 @@ BOOL CChannel::ProcessResponse(CResponse*& rpResponse)
             UINT32  uiDataSize;
                 
             rpResponse->GetData(pData, uiDataSize);
-            RIL_LOG_INFO("CChannel::ProcessResponse : chnl=[%d] unsolicited notification resultcode=[%d]\r\n", rpResponse->GetResultCode());
+            RIL_LOG_INFO("CChannel::ProcessResponse : chnl=[%d] unsolicited notification resultcode=[%d]\r\n",
+                m_uiRilChannel,
+                rpResponse->GetResultCode());
             RIL_onUnsolicitedResponse(rpResponse->GetResultCode(), pData, uiDataSize);
             rpResponse->FreeData();
         }
@@ -613,7 +615,7 @@ BOOL CChannel::ProcessResponse(CResponse*& rpResponse)
             //  Make sure the command thread is listening for a response in proper state.
             //  Sometimes, the Rx Queue IsEmpty() is TRUE, but we enqueue and signal just before
             //  the RxQueueEvent Reset gets called in CChannel::ReadQueue().
-            const unsigned int dwSleep = 50;
+            const unsigned int dwSleep = 75;
             //RIL_LOG_INFO("CChannel::ProcessResponse() - BEGIN SLEEP %u\r\n", dwSleep);
             Sleep(dwSleep);
             //RIL_LOG_INFO("CChannel::ProcessResponse() - END SLEEP %u\r\n", dwSleep);
@@ -621,7 +623,7 @@ BOOL CChannel::ProcessResponse(CResponse*& rpResponse)
             //RIL_LOG_INFO("CChannel::ProcessResponse() - Enqueue response  resultcode=[%d]\r\n", rpResponse->GetResultCode() );
 
             // Queue the command response
-            if (!g_pRxQueue[m_eRilChannel]->Enqueue(rpResponse))
+            if (!g_pRxQueue[m_uiRilChannel]->Enqueue(rpResponse))
             {
                 RIL_LOG_CRITICAL("CChannel::ProcessResponse() - ERROR: Unable to Enqueue response\r\n");
                 goto Error;
@@ -632,15 +634,15 @@ BOOL CChannel::ProcessResponse(CResponse*& rpResponse)
 
             // signal Tx thread
             //RIL_LOG_INFO("CChannel::ProcessResponse : Signal g_RxQueueEvent BEGIN\r\n");
-            (void) CEvent::Signal(g_RxQueueEvent[m_eRilChannel]);
-            //(void) CEvent::Reset(g_RxQueueEvent[m_eRilChannel]);
+            (void) CEvent::Signal(g_RxQueueEvent[m_uiRilChannel]);
+            //(void) CEvent::Reset(g_RxQueueEvent[m_uiRilChannel]);
             //RIL_LOG_INFO("CChannel::ProcessResponse : Signal g_RxQueueEvent END\r\n");
 
         }
         else
         {
             RIL_LOG_INFO("CChannel::ProcessResponse : chnl=[%d] Non recognized response: [%d] %s\r\n",
-                           m_eRilChannel,
+                           m_uiRilChannel,
                            rpResponse->Size(),
                            CRLFExpandedString(rpResponse->Data(), rpResponse->Size()).GetString());
         }
@@ -653,7 +655,7 @@ Error:
     delete rpResponse;
     rpResponse = NULL;
 
-    RIL_LOG_VERBOSE("CChannel::ProcessResponse : chnl=[%d] Exit\r\n", m_eRilChannel);
+    RIL_LOG_VERBOSE("CChannel::ProcessResponse : chnl=[%d] Exit\r\n", m_uiRilChannel);
     return bResult;
 }
 
@@ -662,34 +664,34 @@ RIL_RESULT_CODE CChannel::ReadQueue(CResponse*& rpResponse, UINT32 uiTimeout)
 {
     RIL_RESULT_CODE resCode = RIL_E_GENERIC_FAILURE;
 
-    if (g_pRxQueue[m_eRilChannel]->IsEmpty())
+    if (g_pRxQueue[m_uiRilChannel]->IsEmpty())
     {
         // wait for response
         //RIL_LOG_INFO("CChannel::ReadQueue() - QUEUE EMPTY, WAITING FOR RxQueueEvent...\r\n");
-        CEvent::Reset(g_RxQueueEvent[m_eRilChannel]);
-        CEvent *rgpEvents[] = {g_RxQueueEvent[m_eRilChannel], m_pSystemManager->GetCancelEvent()};
+        CEvent::Reset(g_RxQueueEvent[m_uiRilChannel]);
+        CEvent *rgpEvents[] = {g_RxQueueEvent[m_uiRilChannel], m_pSystemManager->GetCancelEvent()};
         UINT32 uiRet = CEvent::WaitForAnyEvent(2, rgpEvents, uiTimeout);
-        //CEvent::Reset(g_RxQueueEvent[m_eRilChannel]);
+        //CEvent::Reset(g_RxQueueEvent[m_uiRilChannel]);
         switch(uiRet)
         {
             case WAIT_EVENT_0_SIGNALED:
-                //RIL_LOG_INFO("CChannel::ReadQueue() - chnl=[%d] RxQueueEvent WAIT_EVENT_0_SIGNALED\r\n", m_eRilChannel);
+                //RIL_LOG_INFO("CChannel::ReadQueue() - chnl=[%d] RxQueueEvent WAIT_EVENT_0_SIGNALED\r\n", m_uiRilChannel);
                 // object pushed to queue
                 break;
 
             case WAIT_EVENT_0_SIGNALED + 1:
                 // cancel event signalled
-                RIL_LOG_VERBOSE("CChannel::ReadQueue() : chnl=[%d] Cancel signalled\r\n", m_eRilChannel);
+                RIL_LOG_VERBOSE("CChannel::ReadQueue() : chnl=[%d] Cancel signalled\r\n", m_uiRilChannel);
                 goto Error;
                 break;  // unreachable
 
             case WAIT_TIMEDOUT:
                 // command timed-out
-                RIL_LOG_VERBOSE("CChannel::ReadQueue() : chnl=[%d] Setting timed out flag!\r\n", m_eRilChannel);
+                RIL_LOG_VERBOSE("CChannel::ReadQueue() : chnl=[%d] Setting timed out flag!\r\n", m_uiRilChannel);
                 rpResponse = new CResponse(this);
                 if (!rpResponse)
                 {
-                    RIL_LOG_CRITICAL("CChannel::ReadQueue() - chnl=[%d] ERROR: Failed to allocate memory for response!\r\n", m_eRilChannel);
+                    RIL_LOG_CRITICAL("CChannel::ReadQueue() - chnl=[%d] ERROR: Failed to allocate memory for response!\r\n", m_uiRilChannel);
                     goto Error;
                 }
                 
@@ -701,21 +703,21 @@ RIL_RESULT_CODE CChannel::ReadQueue(CResponse*& rpResponse, UINT32 uiTimeout)
                 break;  // unreachable
 
             default:
-                RIL_LOG_INFO("CChannel::ReadQueue() : chnl=[%d] unknown error\r\n", m_eRilChannel);
+                RIL_LOG_INFO("CChannel::ReadQueue() : chnl=[%d] unknown error\r\n", m_uiRilChannel);
                 goto Error;
                 break;  // unreachable
         }
     }
 
-    //RIL_LOG_INFO("CChannel::ReadQueue() : chnl=[%d] g_RxQueue Dequeue BEGIN\r\n", m_eRilChannel);
+    //RIL_LOG_INFO("CChannel::ReadQueue() : chnl=[%d] g_RxQueue Dequeue BEGIN\r\n", m_uiRilChannel);
     // if we get here, there is something in the queue; get it
-    //CEvent::Reset(g_RxQueueEvent[m_eRilChannel]);
-    if (!g_pRxQueue[m_eRilChannel]->Dequeue(rpResponse))
+    //CEvent::Reset(g_RxQueueEvent[m_uiRilChannel]);
+    if (!g_pRxQueue[m_uiRilChannel]->Dequeue(rpResponse))
     {
-        RIL_LOG_CRITICAL("CChannel::ReadQueue() : ERROR : Dequeue failed\r\n", m_eRilChannel);
+        RIL_LOG_CRITICAL("CChannel::ReadQueue() : ERROR : Dequeue failed\r\n", m_uiRilChannel);
         goto Error;
     }
-    //RIL_LOG_INFO("CChannel::ReadQueue() : chnl=[%d] g_RxQueue Dequeue END\r\n", m_eRilChannel);
+    //RIL_LOG_INFO("CChannel::ReadQueue() : chnl=[%d] g_RxQueue Dequeue END\r\n", m_uiRilChannel);
 
     resCode = RIL_E_SUCCESS;
 

@@ -284,18 +284,12 @@ enum ND_REQ_ID_ID {
     ND_REQ_ID_TOTAL                                // 105
 };
 
-#if !defined(__linux__)
 
-#define REQ_ID_NONE        WM_REQ_ID_NONE
-#define REQ_ID_TOTAL       WM_REQ_ID_TOTAL
-typedef WM_REQ_ID_ID       REQ_ID;
-
-#else
 
 #define REQ_ID_NONE        ND_REQ_ID_NONE
 #define REQ_ID_TOTAL       ND_REQ_ID_TOTAL
 typedef ND_REQ_ID_ID       REQ_ID;
 
-#endif
+
 
 #endif // RRIL_REQUEST_ID_H

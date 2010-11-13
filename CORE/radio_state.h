@@ -49,9 +49,7 @@ public:
     CRadioState();
     ~CRadioState();
 
-#if defined __linux__
     RIL_RadioState   GetRadioState();
-#endif // __linux__
 
     // Updates the internal state to off and resets all flags
     void    SetRadioOff();
@@ -63,11 +61,7 @@ public:
     void SetRadioAvailable();
     
     // Sets the radio to report unavailable. Used when we are turning the radio on or rebooting/re-initializing.
-#if defined __linux__
     void    SetRadioUnavailable(BOOL fResetState);
-#else
-    void    SetRadioUnavailable();
-#endif // __linux__
 
     // Set when the SIM Ready thread has initialized the SMS functionality
     void    SetRadioSMSReady();
@@ -76,16 +70,10 @@ public:
     void    SetRadioSIMPBReady();
 
     // Set if the SIM is PIN locked
-#if defined __linux__
     void    SetRadioSIMLocked();
-#else  // __linux__
-    void    SetRadioSIMLocked(UINT32 dwSimState);
-#endif // __linux__
 
     // Set when the SIM is not present
-#if defined __linux__
     void    SetRadioSIMAbsent();
-#endif // __linux__
 
     // Set if the SIM has been unlocked
     void    SetRadioSIMUnlocked();

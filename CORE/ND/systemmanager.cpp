@@ -459,7 +459,7 @@ BOOL CSystemManager::VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex)
 
     for (int i=0; i < RIL_CHANNEL_MAX; i++)
     {
-        if (!IsChannelCompletedInit((EnumRilChannel)i, eInitIndex))
+        if (!IsChannelCompletedInit(i, eInitIndex))
         {
             bRetVal = FALSE;
             break;
@@ -470,28 +470,28 @@ BOOL CSystemManager::VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void CSystemManager::SetChannelCompletedInit(EnumRilChannel eChannel, eComInitIndex eInitIndex)
+void CSystemManager::SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex)
 {
-    if ((eChannel < RIL_CHANNEL_MAX) && (eInitIndex < COM_MAX_INDEX))
+    if ((uiChannel < RIL_CHANNEL_MAX) && (eInitIndex < COM_MAX_INDEX))
     {
-        m_rgfChannelCompletedInit[eChannel][eInitIndex] = TRUE;
+        m_rgfChannelCompletedInit[uiChannel][eInitIndex] = TRUE;
     }
     else
     {
-        RIL_LOG_CRITICAL("CSystemManager::SetChannelCompletedInit() - ERROR: Invalid channel [%d] or init index [%d]\r\n", eChannel, eInitIndex);
+        RIL_LOG_CRITICAL("CSystemManager::SetChannelCompletedInit() - ERROR: Invalid channel [%d] or init index [%d]\r\n", uiChannel, eInitIndex);
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-BOOL CSystemManager::IsChannelCompletedInit(EnumRilChannel eChannel, eComInitIndex eInitIndex)
+BOOL CSystemManager::IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex)
 {
-    if ((eChannel < RIL_CHANNEL_MAX) && (eInitIndex < COM_MAX_INDEX))
+    if ((uiChannel < RIL_CHANNEL_MAX) && (eInitIndex < COM_MAX_INDEX))
     {
-        return m_rgfChannelCompletedInit[eChannel][eInitIndex];
+        return m_rgfChannelCompletedInit[uiChannel][eInitIndex];
     }
     else
     {
-        RIL_LOG_CRITICAL("CSystemManager::IsChannelCompletedInit() - ERROR: Invalid channel [%d] or init index [%d]\r\n", eChannel, eInitIndex);
+        RIL_LOG_CRITICAL("CSystemManager::IsChannelCompletedInit() - ERROR: Invalid channel [%d] or init index [%d]\r\n", uiChannel, eInitIndex);
         return FALSE;
     }
 }
@@ -570,41 +570,26 @@ void CSystemManager::DeleteQueues()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-CChannel* CSystemManager::CreateChannel(EnumRilChannel eIndex)
+CChannel* CSystemManager::CreateChannel(UINT32 eIndex)
 {
     CChannel* pChannel = NULL;
 
     switch(eIndex)
     {
         case RIL_CHANNEL_ATCMD:
-            pChannel = new CChannel_ATCmd(RIL_CHANNEL_ATCMD); 
+            pChannel = new CChannel_ATCmd(eIndex); 
             break;
 
 #ifdef RIL_ENABLE_CHANNEL_SIM
         case RIL_CHANNEL_SIM:
-            pChannel = new CChannel_SIM(RIL_CHANNEL_SIM);
+            pChannel = new CChannel_SIM(eIndex);
             break;
 #endif // RIL_ENABLE_CHANNEL_SIM
 
-#ifdef RIL_ENABLE_CHANNEL_DATA1
-        case RIL_CHANNEL_DATA1:
-            pChannel = new CChannel_Data(RIL_CHANNEL_DATA1);
-            break;
-#endif // RIL_ENABLE_CHANNEL_DATA1
-
-#ifdef RIL_ENABLE_CHANNEL_DATA2
-        case RIL_CHANNEL_DATA2:
-            pChannel = new CChannel_Data(RIL_CHANNEL_DATA2);        
-            break;
-#endif // RIL_ENABLE_CHANNEL_DATA2
-
-#ifdef RIL_ENABLE_CHANNEL_DATA3
-        case RIL_CHANNEL_DATA3:
-            pChannel = new CChannel_Data(RIL_CHANNEL_DATA3);        
-            break;
-#endif // RIL_ENABLE_CHANNEL_DATA3
-
         default:
+            if (eIndex >= RIL_CHANNEL_DATA1) {
+                pChannel = new CChannel_Data(eIndex);
+            }       
             break;
     }
 
@@ -621,7 +606,10 @@ BOOL CSystemManager::OpenChannelPorts()
     //  Init our array of global CChannel pointers.
     for (int i = 0; i < RIL_CHANNEL_MAX; i++)
     {
-        g_pRilChannel[i] = CreateChannel((EnumRilChannel)i);
+        if (i == RIL_CHANNEL_RESERVED)
+            continue;
+
+        g_pRilChannel[i] = CreateChannel(i);
         if (!g_pRilChannel[i] || !g_pRilChannel[i]->InitChannel())
         {
             RIL_LOG_CRITICAL("CSystemManager::OpenChannelPorts : Channel[%d] (0x%X) Init failed\r\n", i, (UINT32)g_pRilChannel[i]);
@@ -1315,7 +1303,6 @@ BOOL CSystemManager::InitializeSimSTK()
                                   "AT+CFUN=6\r");
     if (pCmd)
     {
-        pCmd->SetInitPhase(INIT_PHASE_2);
         if (!CCommand::AddCmdToQueue(pCmd))
         {
             RIL_LOG_CRITICAL("InitializeSimSTK() - ERROR: Unable to add command to queue\r\n");
@@ -1431,9 +1418,9 @@ Done:
     return fRet;
 }
 
-void CSystemManager::TriggerInitStringCompleteEvent(EnumRilChannel eChannel, eComInitIndex eInitIndex)
+void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIndex eInitIndex)
 {
-    SetChannelCompletedInit(eChannel, eInitIndex);
+    SetChannelCompletedInit(uiChannel, eInitIndex);
     
     if (VerifyAllChannelsCompletedInit(COM_READY_INIT_INDEX))
     {
@@ -1455,7 +1442,7 @@ void CSystemManager::TriggerInitStringCompleteEvent(EnumRilChannel eChannel, eCo
     }
     else
     {
-        RIL_LOG_VERBOSE("TriggerInitStringCompleteEvent() - DEBUG: Channel [%d] complete! Still waiting for other channels to complete index [%d]!\r\n", eChannel, eInitIndex);
+        RIL_LOG_VERBOSE("TriggerInitStringCompleteEvent() - DEBUG: Channel [%d] complete! Still waiting for other channels to complete index [%d]!\r\n", uiChannel, eInitIndex);
     }
 }
 

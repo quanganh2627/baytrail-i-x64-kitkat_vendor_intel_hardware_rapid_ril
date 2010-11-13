@@ -250,4 +250,18 @@ enum ACCESS_TECHNOLOGY
 	ACT_UMTS
 };
 
+typedef struct
+{
+    BYTE* pszType;
+    BYTE* pszMessage;
+} S_ND_USSD_POINTERS, *P_ND_USSD_POINTERS;
+
+typedef struct
+{
+    S_ND_USSD_POINTERS sStatusPointers;
+    BYTE szType[MAX_BUFFER_SIZE];
+    BYTE szMessage[MAX_BUFFER_SIZE * 2];
+} S_ND_USSD_STATUS, *P_ND_USSD_STATUS;
+
+
 #endif

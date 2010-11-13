@@ -71,13 +71,6 @@ CSilo_Network::~CSilo_Network()
 //  a response has been received (or timed out).
 BOOL CSilo_Network::PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp /*, BOOL& rfHungUp, BOOL& rfTimedOut*/)
 {
-    if ((ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC == rpCmd->GetRequestID() ||
-         ND_REQ_ID_SETNETWORKSELECTIONMANUAL == rpCmd->GetRequestID()) &&
-        (RRIL_RESULT_OK == rpRsp->GetResultCode()))
-    {
-        RIL_LOG_INFO("PostSendCommandHook() - INFO: Manually trigger signal strength update following successful registration\r\n");
-        RIL_requestTimedCallback(triggerSignalStrength, NULL, 0);
-    }
 
     return TRUE;
 }

@@ -1,8 +1,9 @@
-# Copyright 2006 The Android Open Source Project
-
-# XXX using libutils for simulator build only...
 #
+# Copyright 2010 Intrinsyc Software International, Inc.  All rights reserved.
+#
+
 ifeq ($(CUSTOM_BOARD),mrst_edv)
+
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -13,7 +14,8 @@ LOCAL_SRC_FILES:= \
     util.cpp \
     repository.cpp
 
-LOCAL_SHARED_LIBRARIES := libutils
+LOCAL_SHARED_LIBRARIES := \
+	libutils
 
 LOCAL_CFLAGS = -DRIL_RADIO_RESILIENCE
 LOCAL_CFLAGS += -DRIL_ENABLE_CHANNEL_DATA1

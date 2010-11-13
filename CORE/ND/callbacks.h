@@ -27,7 +27,7 @@
 // Used to determine frequency of callstate polling
 //
 static const struct timeval CallStateSlowPoll = {0, 5000000};
-static const struct timeval CallStateHyperPoll = {0, 300000};
+static const struct timeval CallStateHyperPoll = {0, 500000};
 
 //
 // Callback to trigger radio state changed
@@ -53,5 +53,10 @@ void triggerSignalStrength(void *param);
 // Callback to send incoming SMS acknowledgement
 //
 void triggerSMSAck(void *param);
+
+//
+// Callback to send USSD notification
+//
+void triggerUSSDNotification(void *param);
 
 #endif
