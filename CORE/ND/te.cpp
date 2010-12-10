@@ -67,7 +67,6 @@ CTE::~CTE()
 
 CTEBase* CTE::CreateModemTE()
 {
-    const BYTE* szSierraWireless8790 = "SierraWireless8790";
     const BYTE* szInfineonN721       = "InfineonN721";
 
     CRepository repository;
@@ -75,16 +74,6 @@ CTEBase* CTE::CreateModemTE()
     
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, m_uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szSierraWireless8790))
-        {
-            RIL_LOG_INFO("GetTE() - Using Sierra Wireless 8790\r\n");
-            
-            //  Set g_cTerminator and g_szNewLine
-            g_cTerminator = '\r';
-            (void)CopyStringNullTerminate(g_szNewLine, "\r\n", sizeof(g_szNewLine));
-            
-            return new CTE_SW_8790();
-        }
         if (0 == strcmp(szModem, szInfineonN721))
         {
             RIL_LOG_INFO("GetTE() - Using Infineon N721\r\n");
@@ -150,7 +139,8 @@ RIL_RESULT_CODE CTE::RequestGetSimStatus(RIL_Token rilToken, void * pData, size_
         
         if (pCmd)
         {
-            //pCmd->SetHighPriority();
+            //  Call when radio is off.
+            pCmd->SetHighPriority();
             
             if (!CCommand::AddCmdToQueue(pCmd))
             {
@@ -217,7 +207,8 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin(RIL_Token rilToken, void * pData, size_t
             if (pContext)
             {
                 pCmd->SetContext(pContext);
-                //pCmd->SetHighPriority();
+                //  Call when radio is off.
+                pCmd->SetHighPriority();
                 
                 if (!CCommand::AddCmdToQueue(pCmd))
                 {
@@ -292,6 +283,8 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk(RIL_Token rilToken, void * pData, size_t
             if (pContext)
             {
                 pCmd->SetContext(pContext);
+                //  Call when radio is off.
+                pCmd->SetHighPriority();
                 
                 if (!CCommand::AddCmdToQueue(pCmd))
                 {
@@ -366,6 +359,8 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin2(RIL_Token rilToken, void * pData, size_
             if (pContext)
             {
                 pCmd->SetContext(pContext);
+                //  Call when radio is off.
+                pCmd->SetHighPriority();
                 
                 if (!CCommand::AddCmdToQueue(pCmd))
                 {
@@ -440,6 +435,8 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk2(RIL_Token rilToken, void * pData, size_
             if (pContext)
             {
                 pCmd->SetContext(pContext);
+                //  Call when radio is off.
+                pCmd->SetHighPriority();
                 
                 if (!CCommand::AddCmdToQueue(pCmd))
                 {
@@ -510,6 +507,9 @@ RIL_RESULT_CODE CTE::RequestChangeSimPin(RIL_Token rilToken, void * pData, size_
         
         if (pCmd)
         {
+            //  Call when radio is off.
+            pCmd->SetHighPriority();
+            
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("RequestChangeSimPin() - ERROR: Unable to add command to queue\r\n");
@@ -571,6 +571,9 @@ RIL_RESULT_CODE CTE::RequestChangeSimPin2(RIL_Token rilToken, void * pData, size
         
         if (pCmd)
         {
+            //  Call when radio is off.
+            pCmd->SetHighPriority();
+            
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("RequestChangeSimPin2() - ERROR: Unable to add command to queue\r\n");
@@ -632,6 +635,9 @@ RIL_RESULT_CODE CTE::RequestEnterNetworkDepersonalization(RIL_Token rilToken, vo
         
         if (pCmd)
         {
+            //  Call when radio is off.
+            pCmd->SetHighPriority();
+            
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("RequestEnterNetworkDepersonalization() - ERROR: Unable to add command to queue\r\n");
@@ -1958,6 +1964,9 @@ RIL_RESULT_CODE CTE::RequestSimIo(RIL_Token rilToken, void * pData, size_t datal
         
         if (pCmd)
         {
+            //  Call when radio is off.
+            pCmd->SetHighPriority();
+            
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("RequestSimIo() - ERROR: Unable to add command to queue\r\n");
@@ -2791,11 +2800,15 @@ RIL_RESULT_CODE CTE::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
     {
         res = m_pTEBaseInstance->ParseDeactivateDataCall(rRspData);
     }
+    
+    //  CID should have been set in Core function.
+    int nCID = 0;
+    nCID = (int)rRspData.pContextData;
 
-    CChannel_Data* pDataChannel = CChannel_Data::GetChnlFromRilChannelNumber(rRspData.uiChannel);
+    CChannel_Data* pDataChannel = CChannel_Data::GetChnlFromContextID(nCID);
     if (!pDataChannel && RRIL_RESULT_OK == res)
     {
-        RIL_LOG_CRITICAL("CTE_INF_N721::ParseSetupDataCall() - ERROR: Could not get Data Channel for RIL channel number %d.\r\n", rRspData.uiChannel);
+        RIL_LOG_CRITICAL("ParseDeactivateDataCall() - ERROR: Could not get Data Channel for RIL channel number %d.\r\n", rRspData.uiChannel);
         goto Error;
     }
 
@@ -2834,6 +2847,9 @@ RIL_RESULT_CODE CTE::RequestQueryFacilityLock(RIL_Token rilToken, void * pData, 
         
         if (pCmd)
         {
+            //  Call when radio is off.
+            pCmd->SetHighPriority();
+            
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("RequestQueryFacilityLock() - ERROR: Unable to add command to queue\r\n");
@@ -2895,6 +2911,9 @@ RIL_RESULT_CODE CTE::RequestSetFacilityLock(RIL_Token rilToken, void * pData, si
         
         if (pCmd)
         {
+            //  Call when radio is off.
+            pCmd->SetHighPriority();
+            
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("RequestSetFacilityLock() - ERROR: Unable to add command to queue\r\n");

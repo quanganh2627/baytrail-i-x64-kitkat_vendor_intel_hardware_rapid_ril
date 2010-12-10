@@ -245,9 +245,17 @@ typedef struct
 enum ACCESS_TECHNOLOGY
 {
 	ACT_UNKNOWN = 0,
-    ACT_GSM,
-	ACT_GSM_COMPACT,
-	ACT_UMTS
+    ACT_GPRS = 1,
+	ACT_EDGE = 2,
+	ACT_UMTS = 3,
+    ACT_IS95A = 4,
+    ACT_IS95B = 5,
+    ACT_1xRTT = 6,
+    ACT_EVDO_0 = 7,
+    ACT_EVDO_1 = 8,
+    ACT_HSDPA = 9,
+    ACT_HSUPA = 10,
+    ACT_HSPA = 11
 };
 
 typedef struct

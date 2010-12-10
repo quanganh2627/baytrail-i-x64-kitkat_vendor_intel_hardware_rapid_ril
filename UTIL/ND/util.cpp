@@ -2376,6 +2376,7 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
 {
     UINT32 nCRLFs = 0;
     UINT32 nNewLen = 0;
+    UINT32 nOther = 0;
     char * pszNewString = NULL;
 
     if (NULL == pszIn)
@@ -2390,13 +2391,17 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
         {
             nCRLFs++;
         }
+        else if ( (pszIn[nWalk] < 0x20) || (pszIn[nWalk] > 0x7E) )
+        {
+            nOther++;
+        }
     }
 
     //RIL_LOG_INFO("CRLFExpandedString::CRLFExpandedString() : Found %d instances of CR and LF combined\r\n", nCRLFs);
 
     // Size increase for each instance is from 1 char to 4 chars
-    m_pszString = new char[nInLen + nCRLFs * 3 + 1];
-    m_pszString[0] = NULL;
+    m_pszString = new char[nInLen + (nCRLFs * 3) + (nOther * 3) + 1];
+    memset(m_pszString, 0, nInLen + (nCRLFs * 3) + (nOther * 3) + 1);
 
     for (int nWalk = 0; nWalk < nInLen; nWalk++)
     {
@@ -2411,6 +2416,12 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
         else if ((pszIn[nWalk] >= 0x20) && (pszIn[nWalk] <= 0x7E))
         {
             strncat(m_pszString, &pszIn[nWalk], 1);
+        }
+        else
+        {
+            char szTmp[5] = {0};
+            snprintf(szTmp, 5, "[%02X]", pszIn[nWalk]);
+            strcat(m_pszString, szTmp); 
         }
     }
 }

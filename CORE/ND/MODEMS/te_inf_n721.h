@@ -59,6 +59,9 @@ public:
     virtual RIL_RESULT_CODE CoreSetMute(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetMute(RESPONSE_DATA & rRspData);    
     
+    // RIL_REQUEST_SCREEN_STATE 61
+    virtual RIL_RESULT_CODE CoreScreenState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    
     // RIL_REQUEST_SET_BAND_MODE 65
     virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
 
@@ -97,6 +100,14 @@ public:
     // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
     virtual RIL_RESULT_CODE CoreGetNeighboringCellIDs(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_SET_TTY_MODE 80
+    virtual RIL_RESULT_CODE CoreSetTtyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSetTtyMode(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_QUERY_TTY_MODE 81
+    virtual RIL_RESULT_CODE CoreQueryTtyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseQueryTtyMode(RESPONSE_DATA & rRspData);
 
     // internal response handlers
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);

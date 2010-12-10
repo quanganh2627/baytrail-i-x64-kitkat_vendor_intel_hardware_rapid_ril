@@ -48,6 +48,10 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
 
     m_bDataMode = FALSE;
     m_pSetupDoneEvent = new CEvent();
+    if (!m_pSetupDoneEvent)
+    {
+        RIL_LOG_CRITICAL("CChannel_Data::CChannel_Data() - Could not create m_pSetupDoneEvent\r\n");
+    }
 
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Exit\r\n");
 }

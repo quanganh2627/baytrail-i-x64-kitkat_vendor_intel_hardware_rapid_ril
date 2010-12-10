@@ -128,7 +128,6 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
         pCardStatus->gsm_umts_subscription_app_index = 0;
         
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        //pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
         pCardStatus->applications[0].app_state = RIL_APPSTATE_READY;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_READY;
         pCardStatus->applications[0].aid_ptr = NULL;
@@ -146,7 +145,6 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
         pCardStatus->gsm_umts_subscription_app_index = 0;
 
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        //pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
         pCardStatus->applications[0].app_state = RIL_APPSTATE_PIN;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
         pCardStatus->applications[0].aid_ptr = NULL;
@@ -164,7 +162,6 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
         pCardStatus->gsm_umts_subscription_app_index = 0;
 
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        //pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
         pCardStatus->applications[0].app_state = RIL_APPSTATE_PUK;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
         pCardStatus->applications[0].aid_ptr = NULL;
@@ -182,7 +179,6 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
         pCardStatus->gsm_umts_subscription_app_index = 0;
 
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        //pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
         pCardStatus->applications[0].app_state = RIL_APPSTATE_SUBSCRIPTION_PERSO;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_SIM_NETWORK;
         pCardStatus->applications[0].aid_ptr = NULL;
@@ -190,6 +186,40 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
         pCardStatus->applications[0].pin1_replaced = 0;
         pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
         pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+    }
+    else if (0 == strcmp(szSimState, "SIM PIN2"))
+    {
+        RIL_LOG_INFO("ParseGetSimStatus() - SIM Status: RIL_SIM_PIN2\r\n");
+        //g_RadioState.SetRadioSIMLocked();
+        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
+        pCardStatus->num_applications = 1;
+        pCardStatus->gsm_umts_subscription_app_index = 0;
+
+        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
+        pCardStatus->applications[0].app_state = RIL_APPSTATE_UNKNOWN;
+        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+        pCardStatus->applications[0].aid_ptr = NULL;
+        pCardStatus->applications[0].app_label_ptr = NULL;
+        pCardStatus->applications[0].pin1_replaced = 0;
+        pCardStatus->applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
+        pCardStatus->applications[0].pin2 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;        
+    }
+    else if (0 == strcmp(szSimState, "SIM PUK2"))
+    {
+        RIL_LOG_INFO("ParseGetSimStatus() - SIM Status: RIL_SIM_PUK2\r\n");
+        //g_RadioState.SetRadioSIMLocked();
+        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
+        pCardStatus->num_applications = 1;
+        pCardStatus->gsm_umts_subscription_app_index = 0;
+
+        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
+        pCardStatus->applications[0].app_state = RIL_APPSTATE_UNKNOWN;
+        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+        pCardStatus->applications[0].aid_ptr = NULL;
+        pCardStatus->applications[0].app_label_ptr = NULL;
+        pCardStatus->applications[0].pin1_replaced = 0;
+        pCardStatus->applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
+        pCardStatus->applications[0].pin2 = RIL_PINSTATE_ENABLED_BLOCKED; 
     }
     else
     {
@@ -264,8 +294,31 @@ Error:
 RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("ParseEnterSimPin() - Enter\r\n");
+    
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int *pnRetries = NULL;
+    
+    pnRetries = (int*)malloc(sizeof(int));
+    if (NULL == pnRetries)
+    {
+        RIL_LOG_CRITICAL("ParseEnterSimPin() - ERROR: Could not alloc int\r\n");
+        goto Error;
+    }
+    
+    //  Unknown number of retries remaining
+    *pnRetries = (int)-1;
+    
+    rRspData.pData    = (void*) pnRetries;
+    rRspData.uiDataSize   = sizeof(int*);
+    
+    res = RRIL_RESULT_OK;        
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pnRetries);
+        pnRetries = NULL;
+    }        
 
     RIL_LOG_VERBOSE("ParseEnterSimPin() - Exit\r\n");
     return res;
@@ -319,8 +372,31 @@ Error:
 RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("ParseEnterSimPuk() - Enter\r\n");
+    
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int *pnRetries = NULL;
+    
+    pnRetries = (int*)malloc(sizeof(int));
+    if (NULL == pnRetries)
+    {
+        RIL_LOG_CRITICAL("ParseEnterSimPuk() - ERROR: Could not alloc int\r\n");
+        goto Error;
+    }
+    
+    //  Unknown number of retries remaining
+    *pnRetries = (int)-1;
+    
+    rRspData.pData    = (void*) pnRetries;
+    rRspData.uiDataSize   = sizeof(int*);
+    
+    res = RRIL_RESULT_OK;        
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pnRetries);
+        pnRetries = NULL;
+    }        
 
     RIL_LOG_VERBOSE("ParseEnterSimPuk() - Exit\r\n");
     return res;
@@ -358,7 +434,7 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin2(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\"\r", pszPassword))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN2=\"%s\"\r", pszPassword))
     {
         RIL_LOG_CRITICAL("CoreEnterSimPin2() - ERROR: Failed to write command to buffer!\r\n");
         goto Error;
@@ -374,8 +450,31 @@ Error:
 RIL_RESULT_CODE CTEBase::ParseEnterSimPin2(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("ParseEnterSimPin2() - Enter\r\n");
+    
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int *pnRetries = NULL;
+    
+    pnRetries = (int*)malloc(sizeof(int));
+    if (NULL == pnRetries)
+    {
+        RIL_LOG_CRITICAL("ParseEnterSimPin2() - ERROR: Could not alloc int\r\n");
+        goto Error;
+    }
+    
+    //  Unknown number of retries remaining
+    *pnRetries = (int)-1;
+    
+    rRspData.pData    = (void*) pnRetries;
+    rRspData.uiDataSize   = sizeof(int*);
+    
+    res = RRIL_RESULT_OK;        
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pnRetries);
+        pnRetries = NULL;
+    }        
 
     RIL_LOG_VERBOSE("ParseEnterSimPin2() - Exit\r\n");
     return res;
@@ -413,7 +512,7 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk2(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\",\"%s\"\r", pszPUK2, pszNewPIN2))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN2=\"%s\",\"%s\"\r", pszPUK2, pszNewPIN2))
     {
         RIL_LOG_CRITICAL("CoreEnterSimPuk2() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
@@ -429,8 +528,31 @@ Error:
 RIL_RESULT_CODE CTEBase::ParseEnterSimPuk2(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("ParseEnterSimPuk2() - Enter\r\n");
+    
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int *pnRetries = NULL;
+    
+    pnRetries = (int*)malloc(sizeof(int));
+    if (NULL == pnRetries)
+    {
+        RIL_LOG_CRITICAL("ParseEnterSimPuk2() - ERROR: Could not alloc int\r\n");
+        goto Error;
+    }
+    
+    //  Unknown number of retries remaining
+    *pnRetries = (int)-1;
+    
+    rRspData.pData    = (void*) pnRetries;
+    rRspData.uiDataSize   = sizeof(int*);
+    
+    res = RRIL_RESULT_OK;        
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pnRetries);
+        pnRetries = NULL;
+    }        
 
     RIL_LOG_VERBOSE("ParseEnterSimPuk2() - Exit\r\n");
     return res;
@@ -484,8 +606,31 @@ Error:
 RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("ParseChangeSimPin() - Enter\r\n");
+    
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int *pnRetries = NULL;
+    
+    pnRetries = (int*)malloc(sizeof(int));
+    if (NULL == pnRetries)
+    {
+        RIL_LOG_CRITICAL("ParseChangeSimPin() - ERROR: Could not alloc int\r\n");
+        goto Error;
+    }
+    
+    //  Unknown number of retries remaining
+    *pnRetries = (int)-1;
+    
+    rRspData.pData    = (void*) pnRetries;
+    rRspData.uiDataSize   = sizeof(int*);
+    
+    res = RRIL_RESULT_OK;        
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pnRetries);
+        pnRetries = NULL;
+    }        
 
     RIL_LOG_VERBOSE("ParseChangeSimPin() - Exit\r\n");
     return res;
@@ -539,8 +684,31 @@ Error:
 RIL_RESULT_CODE CTEBase::ParseChangeSimPin2(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("ParseChangeSimPin2() - Enter\r\n");
+    
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int *pnRetries = NULL;
+    
+    pnRetries = (int*)malloc(sizeof(int));
+    if (NULL == pnRetries)
+    {
+        RIL_LOG_CRITICAL("ParseChangeSimPin2() - ERROR: Could not alloc int\r\n");
+        goto Error;
+    }
+    
+    //  Unknown number of retries remaining
+    *pnRetries = (int)-1;
+    
+    rRspData.pData    = (void*) pnRetries;
+    rRspData.uiDataSize   = sizeof(int*);
+    
+    res = RRIL_RESULT_OK;        
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pnRetries);
+        pnRetries = NULL;
+    }        
 
     RIL_LOG_VERBOSE("ParseChangeSimPin2() - Exit\r\n");
     return res;
@@ -576,7 +744,7 @@ RIL_RESULT_CODE CTEBase::CoreEnterNetworkDepersonalization(REQUEST_DATA & rReqDa
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CLCK=0,\"PN\",\"%s\"\r", pszPassword))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CLCK=\"PN\",0,\"%s\"\r", pszPassword))
     {
         RIL_LOG_CRITICAL("CoreEnterNetworkDepersonalization() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
@@ -592,8 +760,31 @@ Error:
 RIL_RESULT_CODE CTEBase::ParseEnterNetworkDepersonalization(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("ParseEnterNetworkDepersonalization() - Enter\r\n");
+    
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int *pnRetries = NULL;
+    
+    pnRetries = (int*)malloc(sizeof(int));
+    if (NULL == pnRetries)
+    {
+        RIL_LOG_CRITICAL("ParseEnterNetworkDepersonalization() - ERROR: Could not alloc int\r\n");
+        goto Error;
+    }
+    
+    //  Unknown number of retries remaining
+    *pnRetries = (int)-1;
+    
+    rRspData.pData    = (void*) pnRetries;
+    rRspData.uiDataSize   = sizeof(int*);
+    
+    res = RRIL_RESULT_OK;        
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pnRetries);
+        pnRetries = NULL;
+    }        
 
     RIL_LOG_VERBOSE("ParseEnterNetworkDepersonalization() - Exit\r\n");
     return res;
@@ -670,6 +861,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("ParseGetCallList() - ERROR: Could not allocate memory for a S_ND_CALL_LIST_DATA struct.\r\n");
         goto Error;
     }
+    memset(pCallListData, 0, sizeof(S_ND_CALL_LIST_DATA));
 
     // Parse "+CLCC: "
     while (FindAndSkipString(szRsp, "+CLCC: ", szRsp))
@@ -734,7 +926,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
             if (ExtractQuotedString(szRsp, szAddress, MAX_BUFFER_SIZE, szRsp))
             {
                 pCallListData->pCallData[nUsed].number = pCallListData->pCallNumberBuffers[nUsed];
-                strncpy(pCallListData->pCallData[nUsed].number, szAddress, MAX_BUFFER_SIZE);
+                strncpy(pCallListData->pCallNumberBuffers[nUsed], szAddress, MAX_BUFFER_SIZE);
 
                 if (!SkipString(szRsp, ",", szRsp) ||
                     !ExtractUpperBoundedUInt(szRsp, 0x100, nValue, szRsp))
@@ -814,6 +1006,7 @@ Continue:
     rRspData.pData  = (void*)pCallListData;
     rRspData.uiDataSize = nUsed * sizeof(RIL_Call*);
 
+#if 0
     if (nUsed > 0)
     {
         if (fHyperPoll)
@@ -825,6 +1018,7 @@ Continue:
             RIL_requestTimedCallback(notifyChangedCallState, NULL, &CallStateSlowPoll);
         }
     }
+#endif // 0
 
     res = RRIL_RESULT_OK;
 
@@ -1020,11 +1214,28 @@ RIL_RESULT_CODE CTEBase::CoreHangup(REQUEST_DATA & rReqData, void * pData, UINT3
 {
     RIL_LOG_VERBOSE("CoreHangup() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    if (CopyStringNullTerminate(rReqData.szCmd1, "ATH\r", sizeof(rReqData.szCmd1)))
+    int * pnLine = NULL;
+    
+    if (sizeof(int*) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CoreHangup() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+    
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CoreHangup() - ERROR: Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+    
+    pnLine = (int*)pData;
+    
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CHLD=1%u\r", pnLine[0]))
     {
         res = RRIL_RESULT_OK;
     }
+    
+Error:
 
     RIL_LOG_VERBOSE("CoreHangup() - Exit\r\n");
     return res;
@@ -1865,10 +2076,10 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 switch (act)
                 {
                     case 0:
-                        g_uiAccessTechnology = ACT_GSM;
+                        g_uiAccessTechnology = ACT_GPRS;
                         break;
                     case 1:
-                        g_uiAccessTechnology = ACT_GSM_COMPACT;
+                        g_uiAccessTechnology = ACT_EDGE;
                         break;
                     case 2:
                         g_uiAccessTechnology = ACT_UMTS;
@@ -2157,6 +2368,9 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
     {
         pSendMsg->smsRsp.ackPDU = NULL;
     }
+    
+    //  Error code is n/a.
+    pSendMsg->smsRsp.errorCode = -1;
 
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
@@ -2289,6 +2503,9 @@ RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
     {
         pSendMsg->smsRsp.ackPDU = NULL;
     }
+    
+    //  Error code is n/a.
+    pSendMsg->smsRsp.errorCode = -1;
 
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
@@ -2398,29 +2615,72 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
     RIL_LOG_VERBOSE("CoreSimIo() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
     RIL_LOG_VERBOSE("CoreSimIo() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
     
-
-    if (NULL == pSimIOArgs->data)
+    //  If PIN2 is required, send out AT+CPIN2 request
+    if (pSimIOArgs->pin2)
     {
+        RIL_LOG_INFO("CoreSimIo() - PIN2 required\r\n");
+        
         (void)PrintStringNullTerminate(rReqData.szCmd1,
                      sizeof(rReqData.szCmd1),
-                     "AT+CRSM=%d,%d,%d,%d,%d\r",
-                     pSimIOArgs->command,
-                     pSimIOArgs->fileid,
-                     pSimIOArgs->p1,
-                     pSimIOArgs->p2,
-                     pSimIOArgs->p3);
+                     "AT+CPIN2=\"%s\"\r",
+                     pSimIOArgs->pin2);
+                     
+        
+        if (NULL == pSimIOArgs->data)
+        {
+            (void)PrintStringNullTerminate(rReqData.szCmd2,
+                         sizeof(rReqData.szCmd2),
+                         "AT+CRSM=%d,%d,%d,%d,%d\r",
+                         pSimIOArgs->command,
+                         pSimIOArgs->fileid,
+                         pSimIOArgs->p1,
+                         pSimIOArgs->p2,
+                         pSimIOArgs->p3);
+        }
+        else
+        {
+            (void)PrintStringNullTerminate(rReqData.szCmd2,
+                         sizeof(rReqData.szCmd2),
+                         "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
+                         pSimIOArgs->command,
+                         pSimIOArgs->fileid,
+                         pSimIOArgs->p1,
+                         pSimIOArgs->p2,
+                         pSimIOArgs->p3,
+                         pSimIOArgs->data);
+        }
+
+        
+        
     }
     else
     {
-        (void)PrintStringNullTerminate(rReqData.szCmd1,
-                     sizeof(rReqData.szCmd1),
-                     "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
-                     pSimIOArgs->command,
-                     pSimIOArgs->fileid,
-                     pSimIOArgs->p1,
-                     pSimIOArgs->p2,
-                     pSimIOArgs->p3,
-                     pSimIOArgs->data);
+        //  No PIN2
+            
+
+        if (NULL == pSimIOArgs->data)
+        {
+            (void)PrintStringNullTerminate(rReqData.szCmd1,
+                         sizeof(rReqData.szCmd1),
+                         "AT+CRSM=%d,%d,%d,%d,%d\r",
+                         pSimIOArgs->command,
+                         pSimIOArgs->fileid,
+                         pSimIOArgs->p1,
+                         pSimIOArgs->p2,
+                         pSimIOArgs->p3);
+        }
+        else
+        {
+            (void)PrintStringNullTerminate(rReqData.szCmd1,
+                         sizeof(rReqData.szCmd1),
+                         "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
+                         pSimIOArgs->command,
+                         pSimIOArgs->fileid,
+                         pSimIOArgs->p1,
+                         pSimIOArgs->p2,
+                         pSimIOArgs->p3,
+                         pSimIOArgs->data);
+        }
     }
     
     //  Set the context of this command to the SIM_IO command-type.
@@ -3306,7 +3566,7 @@ RIL_RESULT_CODE CTEBase::CoreSmsAcknowledge(REQUEST_DATA & rReqData, void * pDat
     //  Unless the want to send an unsuccessful ACK, then do so.
     if (fSuccess)
     {
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT\r", sizeof(rReqData.szCmd1)))
+        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CNMA=1\r", sizeof(rReqData.szCmd1)))
         {
             res = RRIL_RESULT_OK;
         }
@@ -3524,6 +3784,10 @@ RIL_RESULT_CODE CTEBase::CoreDeactivateDataCall(REQUEST_DATA & rReqData, void * 
     {
         res = RRIL_RESULT_OK;
     }
+    
+    //  Set the context of this command to the CID (for multiple context support).
+    rReqData.pContextData = (void*)((int)(chCid - '0'));  // Store this as an int.
+
 
 Error:
     RIL_LOG_VERBOSE("CoreDeactivateDataCall() - Exit\r\n");
@@ -3758,8 +4022,31 @@ Error:
 RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("ParseSetFacilityLock() - Enter\r\n");
+    
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int *pnRetries = NULL;
+    
+    pnRetries = (int*)malloc(sizeof(int));
+    if (NULL == pnRetries)
+    {
+        RIL_LOG_CRITICAL("ParseSetFacilityLock() - ERROR: Could not alloc int\r\n");
+        goto Error;
+    }
+    
+    //  Unknown number of retries remaining
+    *pnRetries = (int)-1;
+    
+    rRspData.pData    = (void*) pnRetries;
+    rRspData.uiDataSize   = sizeof(int*);
+    
+    res = RRIL_RESULT_OK;        
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pnRetries);
+        pnRetries = NULL;
+    }        
 
     RIL_LOG_VERBOSE("ParseSetFacilityLock() - Exit\r\n");
     return res;
@@ -4500,7 +4787,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
     memset(pClipVal, 0, sizeof(int));
 
 
-    // Parse "<prefix>+CLIP: <value><postfix>"
+    // Parse "<prefix>+CLIP: <n>,<value><postfix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp)                         ||
         !SkipString(pszRsp, "+CLIP: ", pszRsp))
     {
@@ -4510,8 +4797,17 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
     
     if (!ExtractUInt(pszRsp, nValue, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseQueryClip() - ERROR : Can't parse nValue.\r\n");
+        RIL_LOG_CRITICAL("ParseQueryClip() - ERROR : Can't parse nValue1.\r\n");
         goto Error;
+    }
+    
+    if (SkipString(pszRsp, ",", pszRsp))
+    {
+        if (!ExtractUInt(pszRsp, nValue, pszRsp))
+        {
+            RIL_LOG_CRITICAL("ParseQueryClip() - ERROR : Can't parse nValue2.\r\n");
+            goto Error;
+        }
     }
     *pClipVal = nValue;
     

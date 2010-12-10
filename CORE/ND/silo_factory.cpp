@@ -22,23 +22,16 @@
 
 #include "types.h"
 #include "silo_voice_inf.h"
-#include "silo_voice_swi.h"
 #include "silo_sim_inf.h"
-#include "silo_sim_swi.h"
 #include "silo_sms_inf.h"
-#include "silo_sms_swi.h"
 #include "silo_data_inf.h"
-#include "silo_data_swi.h"
 #include "silo_network_inf.h"
-#include "silo_network_swi.h"
 #include "silo_phonebook_inf.h"
-#include "silo_phonebook_swi.h"
 #include "rillog.h"
 #include "repository.h"
 #include "silo_factory.h"
 
 // constants
-static const BYTE* const    szSierraWireless8790 = "SierraWireless8790";
 static const BYTE* const    szInfineonN721       = "InfineonN721";
 static const UINT32         uiMaxModemNameLen    = 64;
 
@@ -53,9 +46,7 @@ CSilo* CSilo_Factory::GetSiloVoice(CChannel *pChannel)
     
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szSierraWireless8790))
-            pSilo = new CSilo_Voice_SW(pChannel);
-        else if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineonN721))
             pSilo = new CSilo_Voice_INF(pChannel);
     }
 
@@ -79,9 +70,7 @@ CSilo* CSilo_Factory::GetSiloSIM(CChannel *pChannel)
     
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szSierraWireless8790))
-            pSilo = new CSilo_SIM_SW(pChannel);
-        else if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineonN721))
             pSilo = new CSilo_SIM_INF(pChannel);
     }
 
@@ -105,9 +94,7 @@ CSilo* CSilo_Factory::GetSiloSMS(CChannel *pChannel)
     
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szSierraWireless8790))
-            pSilo = new CSilo_SMS_SW(pChannel);
-        else if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineonN721))
             pSilo = new CSilo_SMS_INF(pChannel);
     }
 
@@ -131,9 +118,7 @@ CSilo* CSilo_Factory::GetSiloData(CChannel *pChannel)
     
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szSierraWireless8790))
-            pSilo = new CSilo_Data_SW(pChannel);
-        else if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineonN721))
             pSilo = new CSilo_Data_INF(pChannel);
     }
 
@@ -157,9 +142,7 @@ CSilo* CSilo_Factory::GetSiloNetwork(CChannel *pChannel)
     
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szSierraWireless8790))
-            pSilo = new CSilo_Network_SW(pChannel);
-        else if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineonN721))
             pSilo = new CSilo_Network_INF(pChannel);
     }
 
@@ -183,9 +166,7 @@ CSilo* CSilo_Factory::GetSiloPhonebook(CChannel *pChannel)
     
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szSierraWireless8790))
-            pSilo = new CSilo_Phonebook_SW(pChannel);
-        else if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineonN721))
             pSilo = new CSilo_Phonebook_INF(pChannel);
     }
 

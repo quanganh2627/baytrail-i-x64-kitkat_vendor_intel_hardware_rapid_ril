@@ -42,19 +42,12 @@ LOCAL_SRC_FILES:= \
     request_info_table.cpp \
     thread_manager.cpp \
     ND/silo_factory.cpp \
-    ND/MODEMS/te_sw_8790.cpp \
     ND/MODEMS/te_inf_n721.cpp \
-    ND/MODEMS/silo_voice_swi.cpp \
     ND/MODEMS/silo_voice_inf.cpp \
-    ND/MODEMS/silo_sim_swi.cpp \
     ND/MODEMS/silo_sim_inf.cpp \
-    ND/MODEMS/silo_sms_swi.cpp \
     ND/MODEMS/silo_sms_inf.cpp \
-    ND/MODEMS/silo_data_swi.cpp \
     ND/MODEMS/silo_data_inf.cpp \
-    ND/MODEMS/silo_network_swi.cpp \
     ND/MODEMS/silo_network_inf.cpp \
-    ND/MODEMS/silo_phonebook_swi.cpp \
     ND/MODEMS/silo_phonebook_inf.cpp
 
 

@@ -45,6 +45,8 @@ CSilo_Data::CSilo_Data(CChannel *pChannel)
 //        { "CONNECT"  , (PFN_ATRSP_PARSE)&CSilo_Data::ParseConnect      },
 //        { "NO CARRIER"  , (PFN_ATRSP_PARSE)&CSilo_Data::ParseNoCarrier },
         { "+XCIEV: "      , (PFN_ATRSP_PARSE)&CSilo_Data::ParseUnrecognized },
+        { "+XCIEV:"      , (PFN_ATRSP_PARSE)&CSilo_Data::ParseUnrecognized },
+        { "RING"         , (PFN_ATRSP_PARSE)&CSilo_Data::ParseUnrecognized },
         { ""         , (PFN_ATRSP_PARSE)&CSilo_Data::ParseNULL         }
     };
 

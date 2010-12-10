@@ -88,6 +88,7 @@ BOOL CSilo_SIM::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
     {
         case ND_REQ_ID_ENTERSIMPIN:
         case ND_REQ_ID_ENTERSIMPUK:
+        case ND_REQ_ID_ENTERSIMPIN2:
         case ND_REQ_ID_ENTERSIMPUK2:
         case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION:
         case ND_REQ_ID_CHANGESIMPIN:
@@ -165,7 +166,7 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
                 
             case CME_ERROR_SIM_PUK2_REQUIRED:
                 RIL_LOG_INFO("CSilo_SIM::ParsePin() - SIM PUK2 required");
-                rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
+                rpRsp->SetResultCode(RIL_E_SIM_PUK2);
                 
                 //  Set radio state to sim locked or absent.
                 //  Note that when the radio state *changes*, the upper layers will query
@@ -223,6 +224,7 @@ BOOL CSilo_SIM::ParseSimIO(CCommand*& rpCmd, CResponse*& rpRsp)
         switch(rpRsp->GetErrorCode())
         {
             case CME_ERROR_SIM_PIN2_REQUIRED:
+            case CME_ERROR_INCORRECT_PASSWORD:
                 RIL_LOG_INFO("CSilo_SIM::ParseSimIO() - SIM PIN2 required");
                 rpRsp->SetResultCode(RIL_E_SIM_PIN2);
                 break;
@@ -311,7 +313,6 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 pCardStatus->num_applications = 1;
     
                 pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-                //pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
                 pCardStatus->applications[0].app_state = RIL_APPSTATE_DETECTED;
                 pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
                 pCardStatus->applications[0].aid_ptr = NULL;

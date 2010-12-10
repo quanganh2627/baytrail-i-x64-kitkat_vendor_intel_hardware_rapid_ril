@@ -1400,7 +1400,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL 1.8 for Android";
+    return "Intrinsyc Rapid-RIL 1.9 for Android 2.2 (#36262)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};

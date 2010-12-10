@@ -56,22 +56,18 @@ public:
 
     //  Called at the beginning of CChannel::SendRILCmdHandleRsp() before AT command is
     //  physically sent and before any CCommand checking.
-    BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp /*, BOOL& rfHungUp, BOOL& rfTimedOut*/) { return TRUE; };
-
-    //  Called in the middle of CChannel::SendRILCmdHandleRsp() before the second AT command is
-    //  physically sent for an intermediate response command and before any CCommand checking.
-    virtual BOOL SendRILCmdHandleRspPreSendCmd2(CCommand*& rpCmd, BOOL& rfHungUp, BOOL& rfTimedOut) { return TRUE; };
+    virtual BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
 
     //  Called in CChannel::SendRILCmdHandleRsp() after AT command is physically sent and
     //  a response has been received (or timed out).
-    BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHungUp, BOOL& rfTimedOut*/) { return TRUE; };
+    virtual BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
 
     //  Called in CChannel::HandleRsp() before CResponse::ParseOKData() is called.
-    BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHungUp, BOOL& rfRadioOff*/);
+    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp);
 
     //  Called in CChannel::HandleRsp() after CResponse::ParseOKData() is called, and before
     //  CCommand::SendResponse() is called.
-    BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHungUp, BOOL& rfRadioOff*/) { return TRUE; };
+    virtual BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
 
 protected:
     //  Parse notification functions here.
@@ -87,6 +83,7 @@ protected:
     virtual BOOL    ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseDISCONNECT(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseIndicatorEvent(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseXCALLSTAT(CResponse* const pResponse, const BYTE*& rszPointer);
 };
 
 #endif // RRIL_SILO_VOICE_H

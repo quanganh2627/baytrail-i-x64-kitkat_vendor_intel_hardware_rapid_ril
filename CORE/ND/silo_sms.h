@@ -49,23 +49,19 @@ public:
 
     //  Called at the beginning of CChannel::SendCommand() before AT command is
     //  physically sent and before any CCommand checking.
-    BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
-
-    //  Called in the middle of CChannel::SendRILCmdHandleRsp() before the second AT command is
-    //  physically sent for an intermediate response command and before any CCommand checking.
-    virtual BOOL SendRILCmdHandleRspPreSendCmd2(CCommand*& rpCmd, BOOL& rfHungUp, BOOL& rfTimedOut) { return TRUE; };
+    virtual BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
 
     //  Called in CChannel::SendCommand() after AT command is physically sent and
     //  a response has been received (or timed out).
-    BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
+    virtual BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
 
     //  Called in CChannel::ParseResponse() before CResponse::ParseResponse() is called.
-    BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
+    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
 
 
     //  Called in CChannel::ParseResponse() after CResponse::ParseResponse() is called, and before
     //  CCommand::SendResponse() is called.
-    BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
+    virtual BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
 
 protected:
     enum SILO_SMS_MSG_TYPES

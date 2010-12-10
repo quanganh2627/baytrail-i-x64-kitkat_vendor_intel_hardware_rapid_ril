@@ -32,7 +32,7 @@
 INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|S0=0|+CMEE=1",  0};
 INITSTRING_DATA ATCmdUnlockInitString   = { "+XRAT=1,2|+CRC=1|+CR=1", 0 };
 INITSTRING_DATA ATCmdPowerOnInitString  = { "", 0 };
-INITSTRING_DATA ATCmdReadyInitString    = { "+CSSN=1,1|+CMGF=0|+CCWA=1|+CUSD=1|+CTZU=1|+CTZR=1|+CREG=2|+CGREG=2", 0 };
+INITSTRING_DATA ATCmdReadyInitString    = { "+CSSN=1,1|+CMGF=0|+CCWA=1|+CUSD=1|+CTZU=1|+CTZR=1|+XCALLSTAT=1|+XREG=1|+CREG=2|+CGREG=2", 0 };
 
 CChannel_ATCmd::CChannel_ATCmd(UINT32 uiChannel)
 : CChannel(uiChannel)

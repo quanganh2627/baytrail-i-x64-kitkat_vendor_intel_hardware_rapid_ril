@@ -1473,6 +1473,10 @@ RIL_RESULT_CODE CTE_INF_N721::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
     {
         res = RRIL_RESULT_OK;
     }
+    
+    //  Set the context of this command to the CID (for multiple context support).
+    rReqData.pContextData = (void*)((int)(chCid - '0'));  // Store this as an int.
+    
 
 Error:
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreDeactivateDataCall() - Exit\r\n");
@@ -1568,8 +1572,60 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetMute(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTE_INF_N721::ParseSetMute() - Exit\r\n");
     return RRIL_RESULT_OK;
 }
+
+
+
+//
+// RIL_REQUEST_SCREEN_STATE 61
+//
+RIL_RESULT_CODE CTE_INF_N721::CoreScreenState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_N721::CoreScreenState() - Enter\r\n");
     
+    // TODO : Mark flags for unsol updates for LAC, CID, CSQ to not send updates
+    //        when screen is off. Resume updates when screen turns back on.
+    //        will probably need to trigger immediate updates on resume to have correct
+    //        info on screen. For now, just return OK and keep throwing updates.
+    //
+    //  Note that we added +XREG=1 during init.
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int nEnable = 0;
     
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::CoreScreenState() - ERROR: Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    nEnable = ((int *)pData)[0];
+    
+    //  0 is off
+    //  1 is on
+    switch(nEnable)
+    {
+        case 0:
+            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=0;+CGREG=0;+XREG=0\r", sizeof(rReqData.szCmd1)))
+            {
+                res = RRIL_RESULT_OK;
+            }
+            break;
+        case 1:
+            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=2;+CGREG=2;+XREG=1\r", sizeof(rReqData.szCmd1)))
+            {
+                res = RRIL_RESULT_OK;
+            }
+            break;
+        default:
+            RIL_LOG_CRITICAL("CTE_INF_N721::CoreScreenState() - ERROR: unknown nEnable=[%d]\r\n", nEnable);
+            break;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_N721::CoreScreenState() - Exit\r\n");
+    return res;
+}
+    
+
     
 //
 // RIL_REQUEST_SET_BAND_MODE 65
@@ -2503,3 +2559,116 @@ Error:
 
 }
 
+//
+// RIL_REQUEST_SET_TTY_MODE 80
+//
+RIL_RESULT_CODE CTE_INF_N721::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{    
+    RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int nTtyMode = 0;
+
+    if (sizeof(int*) != uiDataSize)
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+    
+    if (NULL == pData)
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - ERROR: Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+    
+    // extract the data
+    nTtyMode = ((int*)pData)[0];
+
+    // check for invalid value
+    if ((nTtyMode < 0) || (nTtyMode > 3))
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - ERROR: Undefined CTM/TTY mode: %d\r\n", nTtyMode);
+        res = RIL_E_GENERIC_FAILURE;  
+        goto Error;      
+    }
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XCTMS=%d\r", nTtyMode))
+    {
+        RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - ERROR: Could not form string.\r\n");
+        goto Error;        
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - Exit\r\n");
+    return res;          
+}
+
+RIL_RESULT_CODE CTE_INF_N721::ParseSetTtyMode(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseSetTtyMode() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseSetTtyMode() - Exit\r\n");
+    
+    return RRIL_RESULT_OK;    
+}
+
+//
+// RIL_REQUEST_QUERY_TTY_MODE 81
+//
+RIL_RESULT_CODE CTE_INF_N721::CoreQueryTtyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_INFO("CTE_INF_N721::CoreQueryTtyMode() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XCTMS?\r"))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_INFO("CTE_INF_N721::CoreQueryTtyMode() - Exit\r\n");
+    return res;    
+}
+
+RIL_RESULT_CODE CTE_INF_N721::ParseQueryTtyMode(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_INFO("CTE_INF_N721::ParseQueryTtyMode() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const BYTE* szRsp = rRspData.szResponse;
+    UINT32 uiTtyMode = 0;
+
+    int* pnMode = (int*)malloc(sizeof(int));
+    if (NULL == pnMode)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseQueryTtyMode() - ERROR: Could not allocate memory for response.\r\n");
+        goto Error;
+    }
+
+    // Parse prefix
+    if (!FindAndSkipString(szRsp, "+XCTMS: ", szRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseQueryTtyMode() - ERROR: Unable to parse \"+XCTMS\" prefix.!\r\n");
+        goto Error;
+    }
+
+    // Parse <mode>
+    if (!ExtractUInt(szRsp, uiTtyMode, szRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseQueryTtyMode() - ERROR: Unable to parse <mode>!\r\n");
+        goto Error;
+    }
+
+    pnMode[0] = (int)uiTtyMode;
+    
+    rRspData.pData  = (void*)pnMode;
+    rRspData.uiDataSize = sizeof(int*);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pnMode);
+        pnMode = NULL;
+    }
+    RIL_LOG_INFO("CTE_INF_N721::ParseQueryTtyMode() - Exit\r\n");
+    return res;    
+}

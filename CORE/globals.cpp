@@ -33,7 +33,7 @@ const UINT32 TIMEOUT_CMD_ONLINE             (10000);
 const UINT32 TIMEOUT_API_DEFAULT            (10000);
 const UINT32 TIMEOUT_DTRDROP                ( 5000);
 const UINT32 TIMEOUT_WAITFORINIT            (20000);
-const UINT32 DEFAULT_CMD_RETRIES            (    0);
+const UINT32 DEFAULT_CMD_RETRIES            (    3);
 const UINT32 TIMEOUT_CHNL_INIT              (10000);
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -59,7 +59,7 @@ char g_szNewLine[3] = "\r\n";
 BOOL g_fReadyForSTKNotifications(0);
 
 ///////////////////////////////////////////////////////////////////////////////
-ACCESS_TECHNOLOGY g_uiAccessTechnology = ACT_UMTS;
+ACCESS_TECHNOLOGY g_uiAccessTechnology = ACT_UNKNOWN;
 
 ///////////////////////////////////////////////////////////////////////////////
 // This global class instance tracks the radio state and handles notifications

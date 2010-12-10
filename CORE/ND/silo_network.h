@@ -47,22 +47,18 @@ public:
 
     //  Called at the beginning of CChannel::SendRILCmdHandleRsp() before AT command is
     //  physically sent and before any CCommand checking.
-    BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
-
-    //  Called in the middle of CChannel::SendRILCmdHandleRsp() before the second AT command is
-    //  physically sent for an intermediate response command and before any CCommand checking.
-    virtual BOOL SendRILCmdHandleRspPreSendCmd2(CCommand*& rpCmd, BOOL& rfHungUp, BOOL& rfTimedOut) { return TRUE; };
+    virtual BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
 
     //  Called in CChannel::SendCommand() after AT command is physically sent and
     //  a response has been received (or timed out).
-    BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp);
+    virtual BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp);
 
     //  Called in CChannel::ParseResponse() before CResponse::ParseResponse() is called.
-    BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
+    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
 
     //  Called in CChannel::ParseResponse() after CResponse::ParseResponse() is called, and before
     //  CCommand::SendResponse() is called.
-    BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp);
+    virtual BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp);
 
 protected:
     //  Parse notification functions here.
@@ -71,6 +67,7 @@ protected:
     //virtual BOOL    ParseCTZDST(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseCREG(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseCGREG(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseXREG(CResponse* const pResponse, const BYTE*& rszPointer);
 };
 
 #endif // RRIL_SILO_NETWORK_H
