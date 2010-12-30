@@ -1259,7 +1259,7 @@ RIL_RESULT_CODE CTEBase::CoreHangupWaitingOrBackground(REQUEST_DATA & rReqData, 
     RIL_LOG_VERBOSE("CoreHangupWaitingOrBackground() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "ATH\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=0\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
