@@ -33,6 +33,7 @@ LOCAL_PRELINK_MODULE := false
 LOCAL_STRIP_MODULE := true
 LOCAL_CFLAGS += -DRIL_SHLIB -Os
 LOCAL_MODULE:= librapid-ril-util
+LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
 
 endif

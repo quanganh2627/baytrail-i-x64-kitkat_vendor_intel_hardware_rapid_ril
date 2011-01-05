@@ -78,6 +78,7 @@ LOCAL_SHARED_LIBRARIES += librapid-ril-util librapid-ril-oem
 LOCAL_LDLIBS += -lpthread
 LOCAL_CFLAGS += -DRIL_SHLIB -Os
 LOCAL_MODULE:= librapid-ril-core
+LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
 
 endif
