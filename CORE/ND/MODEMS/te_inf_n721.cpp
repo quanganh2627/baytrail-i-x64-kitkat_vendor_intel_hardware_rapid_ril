@@ -597,7 +597,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDns(RESPONSE_DATA & rRspData)
     // TBD for multiple PDP Contexts whether we always use the same DNS values
 
     // Parse <primary DNS>
-    if (!SkipString(szRsp, ",", szRsp) ||
+    if (!SkipString(szRsp, ", ", szRsp) ||
         !ExtractQuotedStringWithAllocatedMemory(szRsp, szDns1, cbDns1, szRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseDns() - ERROR: Unable to parse <primary DNS>!\r\n");
@@ -607,7 +607,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDns(RESPONSE_DATA & rRspData)
     property_set("net.gprs.dns1", szDns1);
 
     // Parse <secondary DNS>
-    if (!SkipString(szRsp, ",", szRsp) ||
+    if (!SkipString(szRsp, ", ", szRsp) ||
         !ExtractQuotedStringWithAllocatedMemory(szRsp, szDns2, cbDns2, szRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseDns() - ERROR: Unable to parse <secondary DNS>!\r\n");
