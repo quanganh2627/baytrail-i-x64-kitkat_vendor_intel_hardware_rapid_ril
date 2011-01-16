@@ -2,7 +2,7 @@
 # Copyright 2010 Intrinsyc Software International, Inc.  All rights reserved.
 #
 
-ifneq (,$(findstring $(CUSTOM_BOARD),mrst_edv mfld_cdk))
+ifneq (,$(findstring $(CUSTOM_BOARD),mrst_edv mfld_cdk mfld_pr1))
 
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
