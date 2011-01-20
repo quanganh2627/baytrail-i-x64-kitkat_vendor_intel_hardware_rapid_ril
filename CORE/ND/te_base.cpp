@@ -1051,6 +1051,7 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
     const int nMaxDialStringLength = 43;
 
     const char* pcszCmdEnd = NULL;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (NULL == pData)
     {
@@ -1068,6 +1069,15 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
     pRilDial = (RIL_Dial *)pData;
     szAddrWalk = (BYTE*)(pRilDial->address);
     clirVal = pRilDial->clir;
+
+	if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=40,4,4,0,0,0,0,0,0,0,0,0,0\r"))
+    {
+        res = RRIL_RESULT_OK;
+    }
+	if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=40,5,3,0,0,0,0,0,0,0,0,0,0\r"))
+    {
+        res = RRIL_RESULT_OK;
+    }
 
 
     if (!CopyStringNullTerminate(szCmdWalk, "ATD", cchCmd - (szCmdWalk - rReqData.szCmd1)))
@@ -3780,7 +3790,16 @@ RIL_RESULT_CODE CTEBase::CoreAnswer(REQUEST_DATA & rReqData, void * pData, UINT3
 {
     RIL_LOG_VERBOSE("CoreAnswer() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
+	
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=40,4,4,0,0,0,0,0,0,0,0,0,0\r"))
+    {
+        res = RRIL_RESULT_OK;
+    }
+	if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=40,5,3,0,0,0,0,0,0,0,0,0,0\r"))
+    {
+        res = RRIL_RESULT_OK;
+    }
+ 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "ATA\r"))
     {
         res = RRIL_RESULT_OK;
