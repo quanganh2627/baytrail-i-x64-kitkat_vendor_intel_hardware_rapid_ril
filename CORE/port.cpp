@@ -55,6 +55,16 @@ CPort::~CPort()
     m_pFile = NULL;
 }
 
+int CPort::GetFD()
+{
+    int fd = -1;
+    if (m_fIsPortOpen)
+    {
+        fd = CFile::GetFD(m_pFile);
+    }
+    return fd;
+}
+
 BOOL CPort::Open(const BYTE * pszFileName, BOOL fIsSocket)
 {
     RIL_LOG_VERBOSE("CPort::Open() - Enter  fIsSocket=[%d]\r\n", fIsSocket);
@@ -154,7 +164,7 @@ BOOL CPort::Init()
 
 BOOL CPort::Close()
 {
-    RIL_LOG_VERBOSE("CPort::Close() - Enter\r\n");
+    RIL_LOG_CRITICAL("CPort::Close() - Enter\r\n");
     BOOL fRet = FALSE;
 
     if (!m_fIsPortOpen)
@@ -172,7 +182,7 @@ BOOL CPort::Close()
         }
     }
 
-    RIL_LOG_VERBOSE("CPort::Close() - Exit\r\n");
+    RIL_LOG_CRITICAL("CPort::Close() - Exit\r\n");
     return fRet;
 }
 

@@ -410,7 +410,7 @@ BOOL CResponse::SetData(void* pData, const UINT32 nSize, const BOOL fCpyMem)
             if (!m_pData)
             {
                 // Critically low on memory
-                TriggerRadioError(eRadioError_LowMemory, __LINE__, __FILE__);
+                TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
                 goto Error;
             }
             memcpy(m_pData, pData, nSize);

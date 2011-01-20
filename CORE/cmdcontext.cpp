@@ -132,7 +132,7 @@ void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
         {
             RIL_LOG_CRITICAL("CContextInitString::Execute() - ERROR: Shutting Down!\r\n");
             CSystemManager::GetInstance().SetInitializationUnsuccessful();
-            TriggerRadioError(eRadioError_InitFailure, __LINE__, __FILE__);
+            TriggerRadioErrorAsync(eRadioError_InitFailure, __LINE__, __FILE__);
         }
         else
         {

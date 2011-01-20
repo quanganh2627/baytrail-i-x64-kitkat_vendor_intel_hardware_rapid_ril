@@ -25,7 +25,7 @@
 #ifndef RRIL_LOG_H
 #define RRIL_LOG_H
 
-#define LOG_TAG "RRIL"
+#define LOG_TAG "RILR"
 
 #include "types.h"
 

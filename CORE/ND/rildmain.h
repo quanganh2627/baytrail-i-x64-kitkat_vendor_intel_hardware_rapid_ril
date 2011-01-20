@@ -53,5 +53,6 @@ void RIL_requestTimedCallback(RIL_TimedCallback callback, void * pParam, const s
 void RIL_requestTimedCallback(RIL_TimedCallback callback, void * pParam, const unsigned long seconds, const unsigned long microSeconds);
 
 void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE* lpszFileName);
+void TriggerRadioErrorAsync(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE* lpszFileName);
 
 #endif // RRIL_RILDMAIN_H

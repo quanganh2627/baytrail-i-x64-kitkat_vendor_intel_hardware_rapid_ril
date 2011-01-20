@@ -261,13 +261,14 @@ Error:
 //
 BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BYTE*& rszPointer, BOOL const bGPRS)
 {
-    RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Enter\r\n");
+    RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - Enter\r\n");
 
     const BYTE* szDummy;
-    BOOL   fRet = FALSE;
+    BOOL   fRet = FALSE, fUnSolicited = FALSE;
     UINT32   uiParamCount = 0;
-    const UINT32   uiParamCountMax = 4;
-    UINT32   uiParams[uiParamCountMax] = {0, 0, 0, 0};
+    const UINT32   uiParamCountMax = 6;
+    UINT32   uiParamCountMaxGPRS = 0;
+    UINT32   uiParams[uiParamCountMax] = {0, 0, 0, 0, 0, 0};
 
     if (NULL == pResponse)
     {
@@ -281,28 +282,40 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
         goto Error;
     }
 
-    // Valid CREG/CGREG notifications can have from one to four parameters, as follows:
+    // Valid CREG/CGREG notifications can have from one to five parameters, as follows:
     //       <status>               for an unsolicited notification without location data
     //  <n>, <status>               for a command response without location data
     //       <status>, <lac>, <ci>  for an unsolicited notification with location data
     //  <n>, <status>, <lac>, <ci>  for a command response with location data
 
-    //  3GPP TS 27.007 version 5.4.0 release 5 section 7.2
+    //  3GPP TS 27.007 version 7.6.0 release 7 section 7.2
     //  <n>      valid values: 0, 1, 2
     //  <status> valid values: 0, 1, 2, 3, 4, 5
     //  <lac>    string type, in hex
     //  <ci>     string type, in hex
+    //  <AcT>    valid values: 0, 1, 2 
+    //  <rac>    string type, in hex, for GPRS only
 
     // Parse and store parameters
-    while (uiParamCount < uiParamCountMax)
+    if(bGPRS)
+    {
+        uiParamCountMaxGPRS = uiParamCountMax;
+    }
+    else
+    {
+        uiParamCountMaxGPRS = uiParamCountMax - 1;
+    }
+
+
+    while (uiParamCount < uiParamCountMaxGPRS)
     {
         SkipSpaces(rszPointer, rszPointer);
 
         BOOL fQuote = SkipString(rszPointer, "\"", rszPointer);
-
         // ok to use ExtractHexUInt() here as
         // valid range of <n> is 0-2 and
         // valid range of <status> is 0-5
+        // valid range of <AcT> is 0-2
 
         if (!ExtractHexUInt(rszPointer, uiParams[uiParamCount], rszPointer))
         {
@@ -315,6 +328,12 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
             if (!SkipString(rszPointer, "\"", rszPointer))
             {
                 goto Error;
+            }
+
+            if(1 == uiParamCount)
+            {
+                // If we hit a " char after parsing 1 arguments, It is a UnSolicted response
+                fUnSolicited = TRUE;
             }
         }
 
@@ -342,11 +361,11 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
         goto Error;
     }
 
-    RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - uiParamCount=[%d]\r\n", uiParamCount);
-    
-    // If there are 2 or 4 parameters, this is not a notification - let the
+    RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - uiParamCount=[%d]\r\n", uiParamCount);
+ 
+    // If there are 2 or 5 parameters, this is not a notification - let the
     // response handler take care of it.
-    if ((uiParamCount == 2) || (uiParamCount == uiParamCountMax))
+    if ((uiParamCount == 2) || (fUnSolicited == FALSE))
     {
         goto Error;
     }
@@ -358,7 +377,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
     fRet = TRUE;
 
 Error:
-    RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Exit\r\n");
+    RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - Exit\r\n");
     return fRet;
 }
 

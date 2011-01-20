@@ -38,6 +38,7 @@
 #include "stk.h"
 #include "rildmain.h"
 #include "callbacks.h"
+#include "oemhookids.h"
 
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
@@ -180,8 +181,8 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     //
     (void)PrintStringNullTerminate(rReqData.szCmd1,
         sizeof(rReqData.szCmd1),
-        "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+CGQREQ=%d;+CGQMIN=%d;+CGACT=0,%d\r", uiCID,
-        stPdpData.szApn, uiCID, uiCID, uiCID);
+        "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+CGQREQ=%d;+CGQMIN=%d;+XDNS=%d,1;+CGACT=0,%d\r", uiCID,
+        stPdpData.szApn, uiCID, uiCID, uiCID, uiCID);
 
 #ifndef RIL_USE_PPP       
    (void)PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGDATA=\"M-RAW_IP\",%d\r", uiCID);
@@ -597,24 +598,34 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDns(RESPONSE_DATA & rRspData)
     // TBD for multiple PDP Contexts whether we always use the same DNS values
 
     // Parse <primary DNS>
-    if (!SkipString(szRsp, ", ", szRsp) ||
-        !ExtractQuotedStringWithAllocatedMemory(szRsp, szDns1, cbDns1, szRsp))
+    if (!SkipString(szRsp, ",", szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_N721::ParseDns() - ERROR: Unable to parse <primary DNS>!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseDns() - ERROR: Unable to parse <primary DNS>! ,\r\n");
+        goto Error;
+    }
+    SkipSpaces(szRsp, szRsp);
+    if (!ExtractQuotedStringWithAllocatedMemory(szRsp, szDns1, cbDns1, szRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseDns() - ERROR: Unable to parse <primary DNS>! szDns1\r\n");
         goto Error;
     }
     RIL_LOG_INFO("CTE_INF_N721::ParseDns() - setting 'net.gprs.dns1' to: %s\r\n", szDns1);
-    property_set("net.gprs.dns1", szDns1);
+    property_set("net.dns1", szDns1);
 
     // Parse <secondary DNS>
-    if (!SkipString(szRsp, ", ", szRsp) ||
-        !ExtractQuotedStringWithAllocatedMemory(szRsp, szDns2, cbDns2, szRsp))
+    if (!SkipString(szRsp, ",", szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_N721::ParseDns() - ERROR: Unable to parse <secondary DNS>!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseDns() - ERROR: Unable to parse <secondary DNS>! ,\r\n");
+        goto Error;
+    }
+    SkipSpaces(szRsp, szRsp);
+    if (!ExtractQuotedStringWithAllocatedMemory(szRsp, szDns2, cbDns2, szRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseDns() - ERROR: Unable to parse <secondary DNS>! szDns2\r\n");
         goto Error;
     }
     RIL_LOG_INFO("CTE_INF_N721::ParseDns() - setting 'net.gprs.dns2' to: %s\r\n", szDns2);
-    property_set("net.gprs.dns2", szDns2);
+    property_set("net.dns2", szDns2);
 
     res = RRIL_RESULT_OK;
 
@@ -1535,8 +1546,8 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
     // TODO For multiple PDP context support this will have to be updated to be consistent with whatever changes to
     // the Android framework's use of these properties is made.
     property_set("net.interfaces.defaultroute", "");
-    property_set("net.gprs.dns1", "");
-    property_set("net.gprs.dns2", "");
+    property_set("net.dns1", "");
+    property_set("net.dns2", "");
     property_set("net.gprs.local-ip", "");
     property_set("net.gprs.operstate", "down");
     property_set("gsm.net.interface","");
@@ -1559,7 +1570,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetMute(REQUEST_DATA & rReqData, void * pData,
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
     //  [DP] Let's NO-OP this command.
-    rReqData.szCmd1[0] = NULL;
+    rReqData.szCmd1[0] = '\0';
 
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSetMute() - Exit\r\n");
     return res;    
@@ -1573,6 +1584,126 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetMute(RESPONSE_DATA & rRspData)
     return RRIL_RESULT_OK;
 }
 
+
+//
+// RIL_REQUEST_OEM_HOOK_RAW 59
+//
+RIL_RESULT_CODE CTE_INF_N721::CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_INFO("CTE_INF_N721::CoreHookRaw() - Enter  uiDataSize=[%d]\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    
+    BYTE bCommand = 0;
+    BYTE *pDataBytes = (BYTE*)pData;
+    
+    BYTE *pBytesResp = NULL;
+    UINT32 uiBytesRespSize = 0;
+
+    if (0 == uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::CoreHookRaw() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+    
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::CoreHookRaw() - ERROR: Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+    
+    //  [DP] Dec 14/2010: All this command does right now is echo the data bytes after the command byte.
+    //  i.e. Copy the data bytes into the response and send it.
+    
+    bCommand = (BYTE)pDataBytes[0];  //  This is the command.
+    switch(bCommand)
+    {
+        case RIL_OEM_HOOK_RAW_API1:
+            if (1 != uiDataSize)
+            {
+                RIL_LOG_CRITICAL("TE_INF_N721::CoreHookRaw() - ERROR: Received unknown data size for command=[0x%02X]\r\n", bCommand);
+                goto Error;
+            }
+            
+            RIL_LOG_INFO("TE_INF_N721::CoreHookRaw() - API1 Command=[0x%02X] received OK\r\n", bCommand);
+            
+            //  Shouldn't be any data following command
+            
+            //  [DP] Let's NO-OP this command.
+            rReqData.szCmd1[0] = '\0';
+            break;
+        
+        case RIL_OEM_HOOK_RAW_API2:
+            if (2 != uiDataSize)
+            {
+                RIL_LOG_CRITICAL("TE_INF_N721::CoreHookRaw() - ERROR: Received unknown data size for command=[0x%02X]\r\n", bCommand);
+                goto Error;
+            }
+            
+            RIL_LOG_INFO("TE_INF_N721::CoreHookRaw() - API2 Command=[0x%02X] received OK\r\n", bCommand);
+            
+            pBytesResp = new BYTE[1];
+            memcpy(pBytesResp, &(pDataBytes[1]), 1);  // First byte is the command, copy the rest.
+            uiBytesRespSize = 1;
+            
+            //  [DP] Let's NO-OP this command.
+            rReqData.szCmd1[0] = '\0';
+            break;
+        
+        case RIL_OEM_HOOK_RAW_API3:
+            if (7 != uiDataSize)
+            {
+                RIL_LOG_CRITICAL("TE_INF_N721::CoreHookRaw() - ERROR: Received unknown data size for command=[0x%02X]\r\n", bCommand);
+                goto Error;
+            }
+            
+            RIL_LOG_INFO("TE_INF_N721::CoreHookRaw() - API2 Command=[0x%02X] received OK\r\n", bCommand);
+            
+            pBytesResp = new BYTE[6];
+            memcpy(pBytesResp, &(pDataBytes[1]), 6);  // First byte is the command, copy the rest.
+            uiBytesRespSize = 6;
+            
+            //  [DP] Let's NO-OP this command.
+            rReqData.szCmd1[0] = '\0';
+            break;
+            
+        default:
+            RIL_LOG_CRITICAL("TE_INF_N721::CoreHookRaw() - ERROR: Received unknown command=[0x%02X]\r\n", bCommand);
+            goto Error;
+            break;
+    }
+    
+
+    rReqData.pContextData = (void*)pBytesResp;
+    rReqData.cbContextData = uiBytesRespSize;
+    
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_INFO("CTE_INF_N721::CoreHookRaw() - Exit\r\n");
+    return res;
+}
+
+
+RIL_RESULT_CODE CTE_INF_N721::ParseHookRaw(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_INFO("CTE_INF_N721::ParseHookRaw() - Enter\r\n");
+    
+    if (rRspData.pContextData)
+    {
+        BYTE *pBytes = (BYTE*)malloc(rRspData.cbContextData);
+        memcpy(pBytes, rRspData.pContextData, rRspData.cbContextData);
+        
+        rRspData.pData = (void*)pBytes;
+        rRspData.uiDataSize = rRspData.cbContextData;
+    }
+    
+    BYTE* pIn = (BYTE*)rRspData.pContextData;
+    delete[] pIn;
+    rRspData.pContextData = NULL;
+    rRspData.cbContextData = 0;
+    
+    RIL_LOG_INFO("CTE_INF_N721::ParseHookRaw() - Exit\r\n");
+    return RRIL_RESULT_OK;
+}
 
 
 //

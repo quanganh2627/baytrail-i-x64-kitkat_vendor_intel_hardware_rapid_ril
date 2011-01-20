@@ -43,6 +43,8 @@ public:
     BOOL WaitForAvailableData(UINT32 uiTimeout);
 
     BOOL IsOpen()   {   return m_fIsPortOpen;   };
+    
+    int  GetFD();
 
 private:
     BOOL OpenPort(const BYTE * pszFileName);

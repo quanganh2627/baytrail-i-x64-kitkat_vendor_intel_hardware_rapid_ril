@@ -452,7 +452,7 @@ BOOL ExtractUnquotedGSMHexStringToUnicode(const BYTE* szIn, UINT32 cbInLen,  WCH
 
     switch(bEnc)
     {
-        case 0x80:
+        case (BYTE)0x80:
         {
             // Unicode
             if(RRIL_E_NO_ERROR == UnicodeHexToUnicode(szInWalk, (cbInLen - sizeof(BYTE)), wszOut, cbOutLen / sizeof(WCHAR)))
@@ -463,8 +463,8 @@ BOOL ExtractUnquotedGSMHexStringToUnicode(const BYTE* szIn, UINT32 cbInLen,  WCH
             break;
         }
 
-        case 0x81:
-        case 0x82:
+        case (BYTE)0x81:
+        case (BYTE)0x82:
         {
             // MW - I have never encountered this pattern. I suggest removing this with a note that it is not implemented.
             // Without an example, I can't work out how to decode it.

@@ -1496,11 +1496,11 @@ BOOL ConvertFromUnicode(const ENCODING_TYPE enc, const WCHAR* wsIn, const UINT32
                 {
                     *pchOut = '?';
                 }
-                if (*pchOut >= 0x80)
-                {
-                    RIL_LOG_CRITICAL("ConvertFromUnicode() : ERROR : UnicodeCharToGSM returned invalid char: *pchOut = 0x%X", *pchOut);
-                    goto Error;
-                }
+                //if (*pchOut >= 0x80)
+                //{
+                //    RIL_LOG_CRITICAL("ConvertFromUnicode() : ERROR : UnicodeCharToGSM returned invalid char: *pchOut = 0x%X", *pchOut);
+                //    goto Error;
+                //}
             }
             else
             {
@@ -1509,11 +1509,11 @@ BOOL ConvertFromUnicode(const ENCODING_TYPE enc, const WCHAR* wsIn, const UINT32
                     ch7Bit = '?';
                 }
 
-                if (ch7Bit >= 0x80)
-                {
-                    RIL_LOG_CRITICAL("ConvertFromUnicode() : ERROR : UnicodeCharToGSM returned invalid char: ch7Bit = 0x%X", ch7Bit);
-                    goto Error;
-                }
+                //if (ch7Bit >= 0x80)
+                //{
+                //    RIL_LOG_CRITICAL("ConvertFromUnicode() : ERROR : UnicodeCharToGSM returned invalid char: ch7Bit = 0x%X", ch7Bit);
+                //    goto Error;
+                //}
 
                 *pchOut++ += ch7Bit << (8 - nBits);
                 *pchOut    = ch7Bit >> nBits;
@@ -1695,10 +1695,10 @@ BOOL ConvertToUnicode(const ENCODING_TYPE enc, const BYTE* sIn, const UINT32 cbI
 
             ch7Bit += (bValue << nBits) & 0x7f;
 
-            if (ch7Bit >= 0x80)
-            {
-                goto Error;
-            }
+            //if (ch7Bit >= 0x80)
+            //{
+            //    goto Error;
+            //}
 
             *pwchOut++ = g_rgwchGSMToUnicode[(int)ch7Bit];
 
@@ -2308,7 +2308,7 @@ BOOL CopyStringNullTerminate(char * const pszOut, const char * pszIn, const UINT
         if (cbOut <= cbIn)
         {
             fRet = FALSE;
-            pszOut[cbOut - 1] = NULL;
+            pszOut[cbOut - 1] = '\0';
         }
     }
 
@@ -2332,12 +2332,12 @@ BOOL PrintStringNullTerminate(char * const pszOut, const UINT32 cbOut, const cha
     if (0 > iWritten)
     {
         fRet = FALSE;
-        pszOut[0] = NULL;
+        pszOut[0] = '\0';
     }
     else if ((UINT32)iWritten >= cbOut)
     {
         fRet = FALSE;
-        pszOut[cbOut - 1] = NULL;
+        pszOut[cbOut - 1] = '\0';
     }
 
     va_end(args);
@@ -2364,7 +2364,7 @@ BOOL ConcatenateStringNullTerminate(char * const pszOut, const UINT32 cbOut, con
     else
     {
         // Not enough room! Null terminate the string for safety.
-        pszOut[cbOut - 1] = NULL;
+        pszOut[cbOut - 1] = '\0';
     }
 
     //RIL_LOG_VERBOSE("ConcatenateStringNullTerminate() - Exit\r\n");

@@ -30,6 +30,7 @@
 #include "response.h"
 #include "extract.h"
 #include "silo_data.h"
+#include "channel_data.h"
 
 //
 //
@@ -74,6 +75,17 @@ BOOL CSilo_Data::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, B
     if ((ND_REQ_ID_SETUPDEFAULTPDP == rpCmd->GetRequestID()) && (RRIL_RESULT_OK == rpRsp->GetResultCode()))
     {
         rpRsp->SetUnsolicitedFlag(FALSE);
+    }
+    else if ((ND_REQ_ID_SETUPDEFAULTPDP == rpCmd->GetRequestID()) && (RRIL_RESULT_OK != rpRsp->GetResultCode()))
+    {
+        //  Some error with PDP activation.  We got a CME ERROR to the PDP activate command.
+        UINT32 uiChannel = rpCmd->GetChannel();
+        CChannel_Data* pDataChannel = static_cast<CChannel_Data*>(g_pRilChannel[uiChannel]);
+        if (pDataChannel)
+        {
+            //  Reset the CID on this data channel to 0.  Free up channel for future use.
+            pDataChannel->SetContextID(0);
+        }
     }
 
     return fRet;

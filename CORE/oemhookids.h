@@ -24,16 +24,17 @@
 
 #pragma once
 
+#include "types.h"
+
 /**
  * This enum details the additional requests (OEM) to pass to the RIL
- * via the RIL_REQUEST_OEM_HOOK_STRINGS API
+ * via the RIL_REQUEST_OEM_HOOK_RAW API
  */
 
-typedef enum {
-    RIL_OEM_STRING_GET_VERSION = 0,	/* Returns 4 strings: RIL version, modem vendor address, hardware support, released to */
-    RIL_OEM_STRING_GET_RXGAIN,      /* Returns 1 string: Current gain value in range (0-100) */
-    RIL_OEM_STRING_SET_RXGAIN       /* Takes 1 string: Gain value in range (0-100) */
-} RIL_OEM_STRING_REQUESTS;
+//  The first byte of the byte[] is the command.  The data follows.
+const BYTE RIL_OEM_HOOK_RAW_API1 = 0xAA;
+const BYTE RIL_OEM_HOOK_RAW_API2 = 0xBB;
+const BYTE RIL_OEM_HOOK_RAW_API3 = 0xCC;
 
 
 

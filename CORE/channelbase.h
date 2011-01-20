@@ -75,6 +75,7 @@ public:
     virtual BOOL    OpenPort();
     BOOL            InitPort();
     BOOL            ClosePort();
+    int             GetFD() { return m_Port.GetFD(); };
 
     UINT32          GetRilChannel() const { return m_uiRilChannel; };
 

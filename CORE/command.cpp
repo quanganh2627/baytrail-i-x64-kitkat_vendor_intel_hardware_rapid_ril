@@ -44,7 +44,7 @@ CCommand::CCommand( UINT32 uiChannel,
     m_pContextData(NULL),
     m_cbContextData(0)
 {
-    if ((RIL_CHANNEL_ATCMD <= uiChannel) && (uiChannel < RIL_CHANNEL_MAX))
+    if (uiChannel < RIL_CHANNEL_MAX)
     {
         m_uiChannel = uiChannel;
     }
@@ -85,7 +85,7 @@ CCommand::CCommand( UINT32 uiChannel,
     m_pContextData(NULL),
     m_cbContextData(0)
 {
-    if ((RIL_CHANNEL_ATCMD <= uiChannel) && (uiChannel < RIL_CHANNEL_MAX))
+    if (uiChannel < RIL_CHANNEL_MAX)
     {
         m_uiChannel = uiChannel;
     }
@@ -137,7 +137,7 @@ CCommand::CCommand( UINT32 uiChannel,
     m_pContextData(reqData.pContextData),
     m_cbContextData(reqData.cbContextData)
 {
-    if ((RIL_CHANNEL_ATCMD <= uiChannel) && (uiChannel < RIL_CHANNEL_MAX))
+    if (uiChannel < RIL_CHANNEL_MAX)
     {
         m_uiChannel = uiChannel;
     }

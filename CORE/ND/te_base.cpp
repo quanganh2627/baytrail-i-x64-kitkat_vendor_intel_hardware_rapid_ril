@@ -1438,26 +1438,31 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    // Get failure cause
-    if (!SkipString(pszRsp, ",", pszRsp) ||
-        !SkipSpaces(pszRsp, pszRsp) ||
-        !ExtractUInt(pszRsp, uiCause, pszRsp))
+    // Get failure cause (if it exists)
+    if (SkipString(pszRsp, ",", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetLastCallFailCause() - ERROR: Could not extract failure cause.\r\n");
-        goto Error;
+        SkipSpaces(pszRsp, pszRsp);
+        if (!ExtractUInt(pszRsp, uiCause, pszRsp))
+        {
+            RIL_LOG_CRITICAL("ParseGetLastCallFailCause() - ERROR: Could not extract failure cause.\r\n");
+            goto Error;
+        }
     }
-
-    if (!SkipString(pszRsp, ",", pszRsp) ||
-        !SkipSpaces(pszRsp, pszRsp) ||
-        !ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
+    
+    //  Get verbose description (if it exists)
+    if (SkipString(pszRsp, ",", pszRsp))
     {
-        RIL_LOG_WARNING("ParseGetLastCallFailCause() - WARNING: Could not extract verbose cause.\r\n");
+        SkipSpaces(pszRsp, pszRsp);
+        if (!ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
+        {
+            RIL_LOG_WARNING("ParseGetLastCallFailCause() - WARNING: Could not extract verbose cause.\r\n");
+        }
+        else if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+        {
+            RIL_LOG_WARNING("ParseGetLastCallFailCause() - WARNING: Could not extract RspEnd.\r\n");
+        }
     }
-    else if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
-    {
-        RIL_LOG_WARNING("ParseGetLastCallFailCause() - WARNING: Could not extract RspEnd.\r\n");
-    }
-
+    
     switch(uiCause)
     {
         case CALL_FAIL_NORMAL:
@@ -1606,6 +1611,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     uint      uiStat   = 0;
     uint      uiLAC    = 0;
     uint      uiCID    = 0;
+    uint      uiAct    = 0;
     
     extern ACCESS_TECHNOLOGY g_uiAccessTechnology;    
 
@@ -1673,7 +1679,19 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
          }
         SkipString(pszRsp, "\"", pszRsp);
     }
-    
+
+
+    // Do we have more to parse? (Rel7 add-on)
+    if (SkipString(pszRsp, ",", pszRsp))
+    {
+       // Skip ",<AcT>"
+       if (!ExtractUInt(pszRsp, uiAct, pszRsp))
+       {
+           RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not extract <AcT>.\r\n");
+           goto Error;
+       }
+    }
+ 
     // Do we have more to parse?
     if (SkipString(pszRsp, ",", pszRsp))
     {
@@ -1789,6 +1807,8 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     uint uiStat = 0;
     uint uiLAC = 0;
     uint uiCID = 0;
+    uint uiAct = 0;
+    uint uiRac = 0;
 
     P_ND_GPRS_REG_STATUS pGPRSRegStatus = NULL;
 
@@ -1855,8 +1875,34 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
             goto Error;
         }
         SkipString(pszRsp, "\"", pszRsp);
+
+  }
+   
+
+    // Do we have more to parse? Rel7 specific
+    if (SkipString(pszRsp, ",", pszRsp))
+    {
+        // Parse ",<AcT>" and throw away
+        if (!ExtractUInt(pszRsp, uiAct, pszRsp))
+        {
+            RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not extract <AcT>.\r\n");
+            goto Error;
+        }
+        // Parse ",<rac>"
+        if (!SkipString(pszRsp, ",", pszRsp))
+         {
+             RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not extract <rac>.\r\n");
+             goto Error;
+         }
+         SkipString(pszRsp, "\"", pszRsp);
+         if (!ExtractHexUInt(pszRsp, uiRac, pszRsp))
+        {
+            RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not extract <rac>.\r\n");
+            goto Error;
+        }
+        SkipString(pszRsp, "\"", pszRsp);
     }
-    
+ 
     // Do we have more to parse?
     if (SkipString(pszRsp, ",", pszRsp))
     {
@@ -4893,15 +4939,19 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
 
     if (SkipString(pszRsp, ",", pszRsp))
     {
-        // Get failure cause
+        SkipSpaces(pszRsp, pszRsp);
         if (!ExtractUInt(pszRsp, uiCause, pszRsp))
         {
             RIL_LOG_CRITICAL("ParseLastDataCallFailCause() - ERROR: Could not extract failure cause.\r\n");
             goto Error;
         }
-
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
+    }
+    
+    //  Get verbose description (if it exists)
+    if (SkipString(pszRsp, ",", pszRsp))
+    {
+        SkipSpaces(pszRsp, pszRsp);
+        if (!ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
         {
             RIL_LOG_WARNING("ParseLastDataCallFailCause() - WARNING: Could not extract verbose cause.\r\n");
         }
@@ -5094,7 +5144,7 @@ Continue:
     if (count > 0)
     {
         rRspData.pData  = (void*) pPDPListData;
-        rRspData.uiDataSize = count * sizeof(RIL_Data_Call_Response);
+        rRspData.uiDataSize = count * sizeof(RIL_Data_Call_Response*);
     }
     else
     {
@@ -5176,164 +5226,6 @@ RIL_RESULT_CODE CTEBase::ParseHookRaw(RESPONSE_DATA & rRspData)
 //
 // RIL_REQUEST_OEM_HOOK_STRINGS 60
 //
-RIL_RESULT_CODE CTEBase::CoreGetVersion(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("CoreGetVersion() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
-
-    rReqData.fForceParse = TRUE;
-
-    RIL_LOG_VERBOSE("CoreGetVersion() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTEBase::ParseGetVersion(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("ParseGetVersion() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    P_ND_OEM_HOOK_GET_VERSION_STATUS pStatus = NULL;
-
-    pStatus = (P_ND_OEM_HOOK_GET_VERSION_STATUS)malloc(sizeof(S_ND_OEM_HOOK_GET_VERSION_STATUS));
-    if (NULL == pStatus)
-    {
-        RIL_LOG_CRITICAL("ParseGetVersion() - ERROR: Could not allocate memory for response.\r\n");
-        goto Error;
-    }
-
-    // fill data
-    // TODO: get the right data here
-    strcpy(pStatus->szRilVersion, "android rapid-ril 1.0");
-    strcpy(pStatus->szModemAddr, "Modem address TBD");
-    strcpy(pStatus->szHwSupport, "Hardware Support TBD");
-    strcpy(pStatus->szReleasedTo, "Released to TBD");
-
-    // set pointers
-    pStatus->sStatusPointers.pszRilVersion = pStatus->szRilVersion;
-    pStatus->sStatusPointers.pszModemAddr = pStatus->szModemAddr;
-    pStatus->sStatusPointers.pszHwSupport= pStatus->szHwSupport;
-    pStatus->sStatusPointers.pszReleasedTo= pStatus->szReleasedTo;
-
-    res = RRIL_RESULT_OK;
-
-    rRspData.pData   = (void*)pStatus;
-    rRspData.uiDataSize  = sizeof(char*) * 4;
-
-Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pStatus);
-        pStatus = NULL;
-    }
-
-    RIL_LOG_VERBOSE("ParseGetVersion() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTEBase::CoreGetRxGain(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("Core() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-   
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CLVL?\r"))
-    {
-        res = RRIL_RESULT_OK;
-    }
-
-Error:
-    RIL_LOG_VERBOSE("Core() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTEBase::ParseGetRxGain(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("ParseGetRxGain() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const BYTE* szRsp = rRspData.szResponse;
-    const BYTE* szEnd = NULL;
-    UINT32 uiValue = 0;
-
-    P_ND_OEM_HOOK_GET_RXGAIN_DATA pRxGainData = (P_ND_OEM_HOOK_GET_RXGAIN_DATA)malloc(sizeof(S_ND_OEM_HOOK_GET_RXGAIN_DATA));
-    if (NULL == pRxGainData)
-    {
-        RIL_LOG_CRITICAL("ParseGetRxGain() - ERROR: Could not allocate memory for response.\r\n");
-        goto Error;
-    }
-
-    // Align the pointer with the actual array
-    pRxGainData->sRxGainPointers.pszRxGain = pRxGainData->szRxGain;
-
-    // Parse "<prefix>+CLVL: <value>"
-    if (!FindAndSkipString(szRsp, "+CLVL: ", szRsp))
-    {
-        RIL_LOG_CRITICAL("ParseGetRxGain() - ERROR: Could not find +CLVL.\r\n");
-        goto Error;
-    }
-
-    if (!ExtractUInt(szRsp, uiValue, szEnd))
-    {
-        RIL_LOG_CRITICAL("ParseGetRxGain() - ERROR: Could not find value.\r\n");
-        goto Error;    
-    }
-
-    strncat(pRxGainData->szRxGain, szRsp, (UINT32)szEnd - (UINT32)szRsp);
-
-    res = RRIL_RESULT_OK;
-
-    rRspData.pData   = (void*)pRxGainData;
-    rRspData.uiDataSize  = sizeof(S_ND_OEM_HOOK_GET_RXGAIN_POINTER);
-
-Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pRxGainData);
-        pRxGainData = NULL;
-    }
-
-
-    RIL_LOG_VERBOSE("ParseGetRxGain() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTEBase::CoreSetRxGain(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("CoreSetRxGain() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    if (2 * sizeof(char*) != uiDataSize)
-    {
-        RIL_LOG_CRITICAL("CoreSetRxGain() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
-        goto Error;
-    }
-    
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CoreSetRxGain() - ERROR: Passed data pointer was NULL\r\n");
-        goto Error;
-    }
-    
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CLVL=%s\r", ((char*)pData)[1]))
-    {
-        res = RRIL_RESULT_OK;
-    }
-
-Error:
-    RIL_LOG_VERBOSE("CoreSetRxGain() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTEBase::ParseSetRxGain(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("ParseSetRxGain() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
-
-    RIL_LOG_VERBOSE("ParseSetRxGain() - Exit\r\n");
-    return res;
-}
-
 RIL_RESULT_CODE CTEBase::CoreHookStrings(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CoreHookStrings() - Enter\r\n");
@@ -6858,7 +6750,7 @@ RIL_RESULT_CODE CTEBase::CoreReportStkServiceRunning(REQUEST_DATA & rReqData, vo
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
     //  [DP] Let's NO-OP this command.
-    rReqData.szCmd1[0] = NULL;
+    rReqData.szCmd1[0] = '\0';
     
     g_fReadyForSTKNotifications = TRUE;
 

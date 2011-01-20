@@ -117,7 +117,7 @@ BOOL CChannelBase::InitChannel()
         goto Done;
 	}
 
-    if ((m_uiRilChannel < 0) || (RIL_CHANNEL_MAX <= m_uiRilChannel))
+    if (RIL_CHANNEL_MAX <= m_uiRilChannel)
     {
         RIL_LOG_CRITICAL("CChannelBase::InitChannel() - ERROR: chnl=[%d] Channel is invalid!\r\n", m_uiRilChannel);
         goto Done;
@@ -344,7 +344,7 @@ UINT32 CChannelBase::CommandThread()
     RIL_RESULT_CODE resCode;
 
     //  Double-check our channel is valid.
-    if ((RIL_CHANNEL_ATCMD <= m_uiRilChannel) && (m_uiRilChannel >= RIL_CHANNEL_MAX))
+    if (m_uiRilChannel >= RIL_CHANNEL_MAX)
     {
         RIL_LOG_CRITICAL("CChannelBase::CommandThread() - ERROR: Invalid channel value: %d\r\n", m_uiRilChannel);
         return NULL;
@@ -629,7 +629,7 @@ Done:
     if (!bRetVal)
     {
         // Couldn't send an init string -- trigger radio error
-        TriggerRadioError(eRadioError_InitFailure, __LINE__, __FILE__);
+        TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
     }
 
     delete[] szInit;
@@ -662,7 +662,7 @@ UINT32 CChannelBase::ResponseThread()
         if (uiReadError >= 3)
         {
             RIL_LOG_CRITICAL("CChannel::ResponseThread() - ERROR: chnl=[%d] uiReadError > = 3! Trigger radio error!\r\n", m_uiRilChannel);
-            TriggerRadioError(eRadioError_ForceShutdown, __LINE__, __FILE__);
+            TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
 
             // the modem is down and we're switching off, so no need to hang around
             // listening on the COM port, bail out now
@@ -692,7 +692,7 @@ UINT32 CChannelBase::ResponseThread()
             if (!IsPortOpen())
             {
                 RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Port closed, rebooting\r\n", m_uiRilChannel);
-                TriggerRadioError(eRadioError_ForceShutdown, __LINE__, __FILE__);
+                TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
                 break;
             }
             continue;
@@ -752,7 +752,7 @@ void CChannelBase::HandleTimedOutError(BOOL fCmdTimedOut)
         if (m_uiNumTimeouts >= m_uiMaxTimeouts)
         {
             RIL_LOG_CRITICAL("CChannelBase::HandleTimedOutError() - ERROR: chnl=[%d] Modem has not responded to multiple commands, restart RIL\r\n", m_uiRilChannel);
-            TriggerRadioError(eRadioError_ChannelDead, __LINE__, __FILE__);
+            TriggerRadioErrorAsync(eRadioError_ChannelDead, __LINE__, __FILE__);
         }
     }
     else

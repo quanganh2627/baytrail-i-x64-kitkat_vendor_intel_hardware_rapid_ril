@@ -142,77 +142,104 @@ CSystemManager::~CSystemManager()
         }
         else
         {
-            RIL_LOG_VERBOSE("CSystemManager::~CSystemManager() - DEBUG: Mutex Locked!\r\n");
+            RIL_LOG_INFO("CSystemManager::~CSystemManager() - DEBUG: Mutex Locked!\r\n");
             fLocked = TRUE;
             break;
         }
     }
     
-    RIL_LOG_VERBOSE("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] after Lock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
+    RIL_LOG_INFO("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] after Lock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
  
 
+    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before signal m_pExitRilEvent\r\n");
     // signal the cancel event to kill the thread
     CEvent::Signal(m_pExitRilEvent);
 
+    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before StopSimInitialization\r\n");
     //  Cancel SIM initialization if running
     StopSimInitialization();
-
+    
+    Sleep(300);
+    
+    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CloseChannelPorts\r\n");
+    //  Close the COM ports
+    CloseChannelPorts();
+    
+    Sleep(300);
+    
+    //  Delete channels
+    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteChannels\r\n");
+    // free queues
+    DeleteChannels();
+    
+    Sleep(300);
+    
+    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CThreadManager::Stop\r\n");
     CThreadManager::Stop();
+
+    Sleep(300);
 
     // destroy events
     if (m_pExitRilEvent)
     {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pExitRilEvent\r\n");
         delete m_pExitRilEvent;
         m_pExitRilEvent = NULL;
     }
 
+    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteQueues\r\n");
     // free queues
     DeleteQueues();
 
-    //  Close the COM ports and delete CChannel array.
-    CloseChannelPorts();
+    Sleep(300);
 
     if (m_pSystemInitCompleteEvent)
     {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pSystemInitCompleteEvent\r\n");
         delete m_pSystemInitCompleteEvent;
         m_pSystemInitCompleteEvent = NULL;
     }
 
     if (m_pSimUnlockedEvent)
     {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pSimUnlockedEvent\r\n");
         delete m_pSimUnlockedEvent;
         m_pSimUnlockedEvent = NULL;
     }
 
     if (m_pModemPowerOnEvent)
     {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pModemPowerOnEvent\r\n");
         delete m_pModemPowerOnEvent;
         m_pModemPowerOnEvent = NULL;
     }
     
     if (m_pInitStringCompleteEvent)
     {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pInitStringCompleteEvent\r\n");
         delete m_pInitStringCompleteEvent;
         m_pInitStringCompleteEvent = NULL;
     }
     
     if (m_pAccessorMutex)
     {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pAccessorMutex\r\n");
         delete m_pAccessorMutex;
         m_pAccessorMutex = NULL;
     }
 
     if (fLocked)
     {
-        RIL_LOG_VERBOSE("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] before Unlock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] before Unlock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
         
         CMutex::Unlock(m_pSystemManagerMutex);
 
-        RIL_LOG_VERBOSE("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] after Unlock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] after Unlock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
     }
 
     if (m_pSystemManagerMutex)
     {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pSystemManagerMutex\r\n");
         delete m_pSystemManagerMutex;
         m_pSystemManagerMutex = NULL;
     }
@@ -656,6 +683,15 @@ void CSystemManager::CloseChannelPorts()
         }
     }
 
+
+    RIL_LOG_VERBOSE("CSystemManager::CloseChannelPorts() - Exit\r\n");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void CSystemManager::DeleteChannels()
+{
+    RIL_LOG_VERBOSE("CSystemManager::DeleteChannels() - Enter\r\n");
+
     for (int i=0; i<RIL_CHANNEL_MAX; i++)
     {
         if (g_pRilChannel[i])
@@ -664,8 +700,7 @@ void CSystemManager::CloseChannelPorts()
             g_pRilChannel[i] = NULL;
         }
     }
-
-    RIL_LOG_VERBOSE("CSystemManager::CloseChannelPorts() - Exit\r\n");
+    RIL_LOG_VERBOSE("CSystemManager::DeleteChannels() - Exit\r\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1468,4 +1503,31 @@ BOOL CSystemManager::BlockNonHighPriorityCmds()
 BOOL CSystemManager::ResumeSystemFromFlightMode()
 {
     return InitializeSim();
+}
+
+BOOL CSystemManager::ResumeSystemFromModemReset()
+{
+    RIL_LOG_INFO("CSystemManager::ResumeSystemFromModemReset - ENTER\r\n");
+    
+    BOOL bRet = FALSE;
+    
+    ResetSystemState();
+    
+    if (!InitializeModem())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::ResumeSystemFromModemReset() - ERROR: InitializeModem\r\n");
+        goto Error;
+    }
+    
+    if (!InitializeSim())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::ResumeSystemFromModemReset() - ERROR: initializeSim\r\n");
+        goto Error;
+    }
+    
+    bRet = TRUE;
+Error:
+    RIL_LOG_INFO("CSystemManager::ResumeSystemFromModemReset - EXIT  bRet=[%d]\r\n", bRet);
+
+    return bRet;
 }

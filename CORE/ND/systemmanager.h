@@ -66,6 +66,7 @@ public:
     // Start system initialization process
     BOOL            InitializeSystem();
     BOOL            ResumeSystemFromFlightMode();
+    BOOL            ResumeSystemFromModemReset();
 
     BOOL            IsExitRequestSignalled() const;
         
@@ -92,6 +93,7 @@ private:
     void            DeleteQueues();
     BOOL            OpenChannelPorts();
     void            CloseChannelPorts();
+    void            DeleteChannels();
     CChannel*       CreateChannel(UINT32 uiIndex);
     
     // Internal Init helper functions

@@ -3872,7 +3872,7 @@ RIL_RESULT_CODE CTE::ParseResetRadio(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTE::RequestHookRaw(RIL_Token rilToken, void * pData, size_t datalen)
 {
-   RIL_LOG_VERBOSE("RequestHookRaw() - Enter\r\n");
+    RIL_LOG_VERBOSE("RequestHookRaw() - Enter\r\n");
 
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
@@ -3935,61 +3935,14 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void * pData, size_t
 {
     RIL_LOG_VERBOSE("RequestHookStrings() - Enter\r\n");
 
-    PFN_TE_PARSE pfnParse = NULL;
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    UINT32 nReqNum = 0;
+    RIL_RESULT_CODE res = m_pTEOemInstance->OEMHookStrings(reqData, pData, datalen);
     
-    if (NULL == pData || sizeof(char *) > datalen)
+    if (RRIL_RESULT_NOTSUPPORTED == res)
     {
-        RIL_LOG_CRITICAL("RequestHookStrings() - ERROR: Passed data size mismatch. Found %d bytes\r\n", datalen);
-        goto Error;
-    }
-
-    nReqNum = atoi((char *) pData);
-    switch(nReqNum)
-    {
-        case RIL_OEM_STRING_GET_VERSION:
-            pfnParse = &CTE::ParseGetVersion;
-            res = m_pTEOemInstance->OEMGetVersion(reqData, pData, datalen);
-            
-            if (RRIL_RESULT_NOTSUPPORTED == res)
-            {
-                res =  m_pTEBaseInstance->CoreGetVersion(reqData, pData, datalen);
-            }
-            break;
-
-        case RIL_OEM_STRING_GET_RXGAIN:
-            pfnParse = &CTE::ParseGetRxGain;
-            res = m_pTEOemInstance->OEMGetRxGain(reqData, pData, datalen);
-            
-            if (RRIL_RESULT_NOTSUPPORTED == res)
-            {
-                res =  m_pTEBaseInstance->CoreGetRxGain(reqData, pData, datalen);
-            }
-            break;
-
-        case RIL_OEM_STRING_SET_RXGAIN:
-            pfnParse = &CTE::ParseSetRxGain;
-            res = m_pTEOemInstance->OEMSetRxGain(reqData, pData, datalen);
-            
-            if (RRIL_RESULT_NOTSUPPORTED == res)
-            {
-                res =  m_pTEBaseInstance->CoreSetRxGain(reqData, pData, datalen);
-            }
-            break;
-
-        default:
-            pfnParse = &CTE::ParseHookStrings;
-            res = m_pTEOemInstance->OEMHookStrings(reqData, pData, datalen);
-            
-            if (RRIL_RESULT_NOTSUPPORTED == res)
-            {
-                res =  m_pTEBaseInstance->CoreHookStrings(reqData, pData, datalen);
-            }
-            break;
+        res = m_pTEBaseInstance->CoreHookStrings(reqData, pData, datalen);
     }
 
     if (RRIL_RESULT_OK != res)
@@ -3998,7 +3951,7 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void * pData, size_t
     }
     else
     {
-        CCommand * pCmd = new CCommand(RIL_CHANNEL_ATCMD, rilToken, ND_REQ_ID_OEMHOOKSTRINGS, reqData, pfnParse);
+        CCommand * pCmd = new CCommand(RIL_CHANNEL_ATCMD, rilToken, ND_REQ_ID_OEMHOOKSTRINGS, reqData, &CTE::ParseHookStrings);
         
         if (pCmd)
         {
@@ -4017,7 +3970,6 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void * pData, size_t
         }
     }
 
-Error:
     RIL_LOG_VERBOSE("RequestHookStrings() - Exit\r\n");
     return res;
 }
@@ -4034,51 +3986,6 @@ RIL_RESULT_CODE CTE::ParseHookStrings(RESPONSE_DATA & rRspData)
     }
 
     RIL_LOG_VERBOSE("ParseHookStrings() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE::ParseGetVersion(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("ParseGetVersion() - Enter\r\n");
-    
-    RIL_RESULT_CODE res = m_pTEOemInstance->OEMParseGetVersion(rRspData);
-    
-    if (RRIL_RESULT_NOTSUPPORTED == res)
-    {
-        res = m_pTEBaseInstance->ParseGetVersion(rRspData);
-    }
-
-    RIL_LOG_VERBOSE("ParseGetVersion() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE::ParseGetRxGain(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("ParseGetRxGain() - Enter\r\n");
-    
-    RIL_RESULT_CODE res = m_pTEOemInstance->OEMParseGetRxGain(rRspData);
-    
-    if (RRIL_RESULT_NOTSUPPORTED == res)
-    {
-        res = m_pTEBaseInstance->ParseGetRxGain(rRspData);
-    }
-
-    RIL_LOG_VERBOSE("ParseGetRxGain() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE::ParseSetRxGain(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("ParseSetRxGain() - Enter\r\n");
-    
-    RIL_RESULT_CODE res = m_pTEOemInstance->OEMParseSetRxGain(rRspData);
-    
-    if (RRIL_RESULT_NOTSUPPORTED == res)
-    {
-        res = m_pTEBaseInstance->ParseSetRxGain(rRspData);
-    }
-
-    RIL_LOG_VERBOSE("ParseSetRxGain() - Exit\r\n");
     return res;
 }
 

@@ -69,14 +69,16 @@ static void*    TimebombThreadProc(void *pArg);
 
 #endif
 
-BOOL        g_cphschange = FALSE;
-const char *g_pcszCPHS   = NULL;
 
 BYTE* g_szCmdPort  = NULL;
 BOOL  g_bIsSocket = FALSE;
 BYTE* g_szDataPort1 = NULL;
 BYTE* g_szDataPort2 = NULL;
 BYTE* g_szDataPort3 = NULL;
+
+//  Global variable to see if modem is dead.  (TEMPORARY)
+BOOL g_bIsModemDead = FALSE;
+
 
 static const RIL_RadioFunctions gs_callbacks =
 {
@@ -478,6 +480,18 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
 #ifdef TIMEBOMB
     CheckTimebomb();
 #endif
+
+    //  TEMP Jan 6/2011- If modem dead flag is set, then simply return error without going through rest of RRIL.
+    if (g_bIsModemDead)
+    {
+        RIL_LOG_CRITICAL("*********************************************************************\r\n");
+        RIL_LOG_CRITICAL("onRequest() - MODEM DEAD return error to request id=0x%08X, %d   token=0x%08x\r\n", requestID, requestID, (int) hRilToken);
+        RIL_LOG_CRITICAL("*********************************************************************\r\n");
+        RIL_onRequestComplete(hRilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+        return;
+    }
+    //  TEMP - end Jan 6/2011
+        
 
     switch (requestID)
     {
@@ -897,7 +911,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_OEM_HOOK_RAW:  // 59 - not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_OEM_HOOK_RAW\r\n");
-            eRetVal = (RIL_Errno)CTE::GetTE().RequestResetRadio(hRilToken, pData, datalen);
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestHookRaw(hRilToken, pData, datalen);
         }
         break;
 
@@ -1400,7 +1414,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL 1.9 for Android 2.2 (#36262)";
+    return "Intrinsyc Rapid-RIL M2.3 for Android 2.2 (Private Build Jan 7/2011)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};
@@ -1468,13 +1482,155 @@ Error:
 }
 
 void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE* lpszFileName)
-{
-    static BOOL bForceShutdown;
-    
+{    
+    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
     RIL_LOG_CRITICAL("TriggerRadioError() - ERROR: eRadioError=%d, uiLineNum=%d, lpszFileName=%hs\r\n", (int)eRadioErrorVal, uiLineNum, lpszFileName);
-    RIL_LOG_CRITICAL("TriggerRadioError() - ERROR: Exiting RIL!\r\n");
-    exit(0);
+    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
+
+    BOOL bShutdownRRIL = FALSE;
+    
+    //  Is this error severe enough to shutdown RRIL completely?
+    switch(eRadioErrorVal)
+    {
+        //  Just power off radio, power back on.  Keep RRIL alive!
+        case eRadioError_ChannelDead:
+        case eRadioError_InitFailure:
+            bShutdownRRIL = FALSE;
+            break;
+            
+        default:
+            bShutdownRRIL = TRUE;
+    }
+    
+    
+    if (!bShutdownRRIL)
+    {
+        //  TEMP - Flag our global variable to return ERROR for incoming requests.
+        g_bIsModemDead = TRUE;
+        return;
+        
+        // TODO: Here we should be powering off the modem, wait, then power back on.
+        
+        //  1. Power off modem
+        
+        g_RadioState.DisablePowerStateChange();
+        // We need to set the radio off first so the SIM status flags are reset
+        g_RadioState.SetRadioOff();
+        
+        //  TODO: Phyiscally power off modem here.
+
+
+        //  2. Wait
+        UINT32 dwSleep = 5000;
+        RIL_LOG_CRITICAL("TriggerRadioError() - BEGIN Wait=[%d]\r\n", dwSleep);
+        Sleep(dwSleep);
+        RIL_LOG_CRITICAL("TriggerRadioError() - END Wait=[%d]\r\n", dwSleep);
+
+        
+        //  3. Power on modem
+        
+        //  TODO:  Physically power on the modem here.
+        
+        
+        g_RadioState.EnablePowerStateChange();
+        g_RadioState.SetRadioOn();
+        
+        
+        //  4. Send init string
+        CSystemManager::GetInstance().ResumeSystemFromModemReset();
+    }
+    else
+    {
+        //  Bring down RRIL as clean as possible!
+
+        RIL_LOG_CRITICAL("TriggerRadioError() - ERROR: Exiting RIL!\r\n");
+    
+        CSystemManager::Destroy();
+    
+        RIL_LOG_CRITICAL("TriggerRadioError() - ERROR: Calling exit(0)!\r\n");
+        exit(0);
+    }
 }
+
+typedef struct
+{
+    eRadioError m_eRadioErrorVal;
+    UINT32 m_uiLineNum;
+    BYTE m_lpszFileName[255];
+} TRIGGER_RADIO_ERROR_STRUCT;
+
+static void*    TriggerRadioErrorThreadProc(void *pArg)
+{
+    RIL_LOG_CRITICAL("TriggerRadioErrorThreadProc - ENTER\r\n");
+    
+    TRIGGER_RADIO_ERROR_STRUCT *pTrigger = (TRIGGER_RADIO_ERROR_STRUCT*)pArg;
+    
+    eRadioError eRadioErrorVal;
+    UINT32 uiLineNum;
+    BYTE* lpszFileName;
+    
+    if (pTrigger)
+    {
+        eRadioErrorVal = pTrigger->m_eRadioErrorVal;
+        uiLineNum = pTrigger->m_uiLineNum;
+        lpszFileName = pTrigger->m_lpszFileName;
+        
+        RIL_LOG_CRITICAL("TriggerRadioErrorThreadProc - BEFORE TriggerRadioError\r\n");
+        TriggerRadioError(eRadioErrorVal, uiLineNum, lpszFileName);
+        RIL_LOG_CRITICAL("TriggerRadioErrorThreadProc - AFTER TriggerRadioError\r\n");
+    }
+    
+        
+    RIL_LOG_CRITICAL("TriggerRadioErrorThreadProc - EXIT\r\n");
+    
+    delete pTrigger;
+    pTrigger = NULL;
+
+    return NULL;
+}
+
+
+void TriggerRadioErrorAsync(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE* lpszFileName)
+{
+    //static BOOL bForceShutdown;
+    RIL_LOG_CRITICAL("TriggerRadioErrorAsync() - ENTER\r\n");
+    
+    TRIGGER_RADIO_ERROR_STRUCT *pTrigger = NULL;
+    pTrigger = new TRIGGER_RADIO_ERROR_STRUCT;
+    if (!pTrigger)
+    {
+        RIL_LOG_CRITICAL("TriggerRadioErrorAsync() - ERROR: pTrigger is NULL\r\n");
+        //  Just call normal TriggerRadioError
+        TriggerRadioError(eRadioErrorVal, uiLineNum, lpszFileName);
+        return;
+    }
+    
+    //  populate struct
+    pTrigger->m_eRadioErrorVal = eRadioErrorVal;
+    pTrigger->m_uiLineNum = uiLineNum;
+    strncpy(pTrigger->m_lpszFileName, lpszFileName, 255);
+    
+    //  spawn thread
+    CThread* pTriggerRadioErrorThread = new CThread(TriggerRadioErrorThreadProc, (void*)pTrigger, THREAD_FLAGS_NONE, 0);
+    if (!pTriggerRadioErrorThread || !CThread::IsRunning(pTriggerRadioErrorThread))
+    {
+        RIL_LOG_CRITICAL("TriggerRadioErrorAsync() - ERROR: Unable to launch TriggerRadioError thread\r\n");
+        //  Just call normal TriggerRadioError.
+        TriggerRadioError(eRadioErrorVal, uiLineNum, lpszFileName);
+        delete pTrigger;
+        pTrigger = NULL;
+        return;
+    }
+    
+    delete pTriggerRadioErrorThread;
+    pTriggerRadioErrorThread = NULL;
+    
+    RIL_LOG_CRITICAL("TriggerRadioErrorAsync() - EXIT\r\n");
+    return;
+}
+
+
+    
 
 static void usage(char *szProgName)
 {

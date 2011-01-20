@@ -19,14 +19,14 @@ public:
     BOOL                DelayInitFromRspBlob(const UINT32 dwCode);
 
     BOOL                FDelayedInitFromRsp() const { return !!m_fDelayedInitFromRsp; };
-    UINT32               GetCode() const             { if (FALSE != !!m_fInited) {return m_dwCode;} else return NULL; };
-    const void* const   GetBlob() const             { if (FALSE != !!m_fInited) {return m_pBlob;} else return NULL; };
-    UINT32                GetSize() const             { if (FALSE != !!m_fInited) {return m_cbBlob;} else return NULL; };
+    UINT32              GetCode() const             { if (FALSE != !!m_fInited) {return m_dwCode;} else return NULL; };
+    void*               GetBlob() const             { if (FALSE != !!m_fInited) {return m_pBlob;} else return NULL; };
+    UINT32              GetSize() const             { if (FALSE != !!m_fInited) {return m_cbBlob;} else return NULL; };
 
 private:
     UINT32       m_dwCode;
-    void*       m_pBlob;
-    UINT32        m_cbBlob;
+    void*        m_pBlob;
+    UINT32       m_cbBlob;
     UINT32       m_fInited : 1;
     UINT32       m_fDelayedInitFromRsp : 1;
     UINT32       m_fCpyMem : 1;

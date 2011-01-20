@@ -813,39 +813,6 @@ long CTEOem::OEMParseHookStrings(RESPONSE_DATA & rRspData)
     return RIL_E_REQUEST_NOT_SUPPORTED;
 }
 
-// RIL_OEM_STRING_GET_VERSION 0
-long CTEOem::OEMGetVersion(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize)
-{
-    return RIL_E_REQUEST_NOT_SUPPORTED;
-}
-
-long CTEOem::OEMParseGetVersion(RESPONSE_DATA & rRspData)
-{
-    return RIL_E_REQUEST_NOT_SUPPORTED;
-}
-
-// RIL_OEM_STRING_GET_RXGAIN 1
-long CTEOem::OEMGetRxGain(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize)
-{
-    return RIL_E_REQUEST_NOT_SUPPORTED;
-}
-
-long CTEOem::OEMParseGetRxGain(RESPONSE_DATA & rRspData)
-{
-    return RIL_E_REQUEST_NOT_SUPPORTED;
-}
-
-// RIL_OEM_STRING_SET_RXGAIN 2
-long CTEOem::OEMSetRxGain(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize)
-{
-    return RIL_E_REQUEST_NOT_SUPPORTED;
-}
-
-long CTEOem::OEMParseSetRxGain(RESPONSE_DATA & rRspData)
-{
-    return RIL_E_REQUEST_NOT_SUPPORTED;
-}
-
 //
 // RIL_REQUEST_SCREEN_STATE 61
 //

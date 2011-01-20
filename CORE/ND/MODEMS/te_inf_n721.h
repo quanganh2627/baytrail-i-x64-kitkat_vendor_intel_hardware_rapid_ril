@@ -57,8 +57,12 @@ public:
     
     // RIL_REQUEST_SET_MUTE 53
     virtual RIL_RESULT_CODE CoreSetMute(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSetMute(RESPONSE_DATA & rRspData);    
+    virtual RIL_RESULT_CODE ParseSetMute(RESPONSE_DATA & rRspData);
     
+    // RIL_REQUEST_OEM_HOOK_RAW 59
+    virtual RIL_RESULT_CODE CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseHookRaw(RESPONSE_DATA & rRspData);
+
     // RIL_REQUEST_SCREEN_STATE 61
     virtual RIL_RESULT_CODE CoreScreenState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     

@@ -294,18 +294,6 @@ public:
     // RIL_REQUEST_OEM_HOOK_STRINGS 60
     long OEMHookStrings(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
     long OEMParseHookStrings(RESPONSE_DATA & rRspData);
-    
-        // RIL_OEM_STRING_GET_VERSION 0
-        long OEMGetVersion(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
-        long OEMParseGetVersion(RESPONSE_DATA & rRspData);
-
-        // RIL_OEM_STRING_GET_RXGAIN 1
-        long OEMGetRxGain(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
-        long OEMParseGetRxGain(RESPONSE_DATA & rRspData);
-
-        // RIL_OEM_STRING_SET_RXGAIN 2
-        long OEMSetRxGain(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
-        long OEMParseSetRxGain(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SCREEN_STATE 61
     long OEMScreenState(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);

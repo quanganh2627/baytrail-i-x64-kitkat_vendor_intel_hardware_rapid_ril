@@ -275,12 +275,6 @@ public:
     // RIL_REQUEST_OEM_HOOK_STRINGS 60
     virtual RIL_RESULT_CODE CoreHookStrings(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseHookStrings(RESPONSE_DATA & rRspData);
-    virtual RIL_RESULT_CODE CoreGetVersion(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseGetVersion(RESPONSE_DATA & rRspData);
-    virtual RIL_RESULT_CODE CoreGetRxGain(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseGetRxGain(RESPONSE_DATA & rRspData);
-    virtual RIL_RESULT_CODE CoreSetRxGain(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSetRxGain(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SCREEN_STATE 61
     virtual RIL_RESULT_CODE CoreScreenState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);

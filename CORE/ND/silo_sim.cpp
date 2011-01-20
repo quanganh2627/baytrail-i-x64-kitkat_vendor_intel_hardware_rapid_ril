@@ -51,10 +51,18 @@ CSilo_SIM::CSilo_SIM(CChannel *pChannel)
     // AT Response Table
     static ATRSPTABLE pATRspTable[] =
     {
+        { "+STKCTRLIND: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
         { "+STKCC: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        //  This is TEMP until we solve SimTk. (Jan 7/2011)
+        //  Ignore simtoolkit notifications (which seem to randomly appear)
+        { "+SATI: " , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "+SATN: " , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "+SATF: " , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        //  end TEMP
+#ifndef USE_STK_RAW_MODE	        
         { "+STKPRO: "  , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseSTKProCmd },
         { "+STKCNF: "  , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseProSessionStatus },
-#ifdef USE_STK_RAW_MODE		
+#else
         { "+SATI: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATI },
         { "+SATN: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATN },        
 #endif		
@@ -343,6 +351,7 @@ Error:
     return bRetVal;
 }
 
+#ifndef USE_STK_RAW_MODE
 BOOL CSilo_SIM::ParseSTKProCmd(CResponse* const pResponse, const BYTE*& rszPointer)
 {
     RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() - Enter\r\n");
@@ -472,7 +481,7 @@ Error:
     return fRet;
 }
 
-#ifdef USE_STK_RAW_MODE
+#else //USE_STK_RAW_MODE
 BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rszPointer)
 {
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Enter\r\n");

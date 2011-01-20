@@ -231,6 +231,20 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
     // Get the response out of the Response Queue
     resCode = ReadQueue(rpResponse, rpCmd->GetTimeout());
 
+#if 0    //  This is for testing purposes only. (radio reboot)
+    static int nCount = 0;
+    if (ND_REQ_ID_SIGNALSTRENGTH == rpCmd->GetRequestID())
+    {
+        nCount++;
+        RIL_LOG_INFO("COUNT = %d\r\n", nCount);
+        if (nCount == 3 || nCount == 6)
+        {
+            TriggerRadioErrorAsync(eRadioError_ChannelDead, __LINE__, __FILE__);
+            goto Error;
+        }
+    }
+#endif // 0
+
     if (rpResponse && rpResponse->IsTimedOutFlag())
     {
         RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: Command timed out!\r\n");
@@ -309,7 +323,7 @@ BOOL CChannel::ProcessNoop(CResponse*& rpResponse)
     if (NULL == rpResponse)
     {
         // signal critical error for low memory
-        TriggerRadioError(eRadioError_LowMemory, __LINE__, __FILE__);
+        TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
         return FALSE;
     }
     
@@ -330,7 +344,7 @@ BOOL CChannel::RejectRadioOff(CResponse*& rpResponse)
     if (NULL == rpResponse)
     {
         // signal critical error for low memory
-        TriggerRadioError(eRadioError_LowMemory, __LINE__, __FILE__);
+        TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
         return FALSE;
     }
 
@@ -530,7 +544,7 @@ BOOL CChannel::ProcessModemData(BYTE *szRxBytes, UINT32 uiRxBytesSize)
         if (!m_pResponse)
         {
             // critically low on memory
-            TriggerRadioError(eRadioError_LowMemory, __LINE__, __FILE__);
+            TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
             goto Error;
         }
     }
@@ -681,7 +695,7 @@ RIL_RESULT_CODE CChannel::ReadQueue(CResponse*& rpResponse, UINT32 uiTimeout)
 
             case WAIT_EVENT_0_SIGNALED + 1:
                 // cancel event signalled
-                RIL_LOG_VERBOSE("CChannel::ReadQueue() : chnl=[%d] Cancel signalled\r\n", m_uiRilChannel);
+                RIL_LOG_CRITICAL("CChannel::ReadQueue() : chnl=[%d] Cancel signalled\r\n", m_uiRilChannel);
                 goto Error;
                 break;  // unreachable
 
