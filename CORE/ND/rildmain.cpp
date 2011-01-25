@@ -1430,6 +1430,7 @@ static void initializeCallback(void *param)
     RIL_LOG_VERBOSE("initializeCallback() - Exit\r\n");
 }
 
+static int init_finish = 0;
 static void* mainLoop(void *param)
 {
     UINT32 dwRet = 1;
@@ -1478,6 +1479,7 @@ Error:
 
     RIL_LOG_VERBOSE("mainLoop() - Exit\r\n");
 
+    init_finish = 1;
     return (void*)dwRet;
 }
 
@@ -1708,6 +1710,14 @@ const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, cha
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
         ret = pthread_create(&gs_tid_mainloop, &attr, mainLoop, NULL);
+
+	while(!init_finish)
+	{
+		RIL_LOG_INFO("RIL_Init,init not finish:%d \r\n",init_finish);
+		sleep(1);
+	}
+
+	RIL_LOG_INFO("RIL_Init,init finish:%d \r\n",init_finish);
 
         return &gs_callbacks;
     }
