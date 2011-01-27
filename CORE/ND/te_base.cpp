@@ -1037,7 +1037,7 @@ Error:
 //
 // RIL_REQUEST_DIAL 10
 //
-RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData_pre1, REQUEST_DATA & rReqData_pre2,REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CoreDial() - Enter\r\n");
 
@@ -1070,11 +1070,11 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
     szAddrWalk = (BYTE*)(pRilDial->address);
     clirVal = pRilDial->clir;
 
-	if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=40,4,4,0,0,0,0,0,0,0,0,0,0\r"))
+	  if (PrintStringNullTerminate(rReqData_pre1.szCmd1, sizeof(rReqData_pre1.szCmd1), "AT+XDRV=40,4,4,0,0,0,0,0,0,0,0,0,0\r"))
     {
         res = RRIL_RESULT_OK;
     }
-	if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=40,5,3,0,0,0,0,0,0,0,0,0,0\r"))
+  	if (PrintStringNullTerminate(rReqData_pre2.szCmd1, sizeof(rReqData_pre2.szCmd1), "AT+XDRV=40,5,3,0,0,0,0,0,0,0,0,0,0\r"))
     {
         res = RRIL_RESULT_OK;
     }
@@ -3786,16 +3786,16 @@ Error:
 //
 // RIL_REQUEST_ANSWER 40
 //
-RIL_RESULT_CODE CTEBase::CoreAnswer(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTEBase::CoreAnswer(REQUEST_DATA & rReqData_pre1, REQUEST_DATA & rReqData_pre2, REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CoreAnswer() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 	
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=40,4,4,0,0,0,0,0,0,0,0,0,0\r"))
+	  if (PrintStringNullTerminate(rReqData_pre1.szCmd1, sizeof(rReqData_pre1.szCmd1), "AT+XDRV=40,4,4,0,0,0,0,0,0,0,0,0,0\r"))
     {
         res = RRIL_RESULT_OK;
     }
-	if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=40,5,3,0,0,0,0,0,0,0,0,0,0\r"))
+  	if (PrintStringNullTerminate(rReqData_pre2.szCmd1, sizeof(rReqData_pre2.szCmd1), "AT+XDRV=40,5,3,0,0,0,0,0,0,0,0,0,0\r"))
     {
         res = RRIL_RESULT_OK;
     }

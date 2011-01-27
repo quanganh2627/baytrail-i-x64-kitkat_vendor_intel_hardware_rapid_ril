@@ -741,13 +741,19 @@ RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void * pData, size_t datale
     RIL_LOG_VERBOSE("RequestDial() - Enter\r\n");
 
     REQUEST_DATA reqData;
+    REQUEST_DATA reqData_pre1; // Arch 1 specific
+    REQUEST_DATA reqData_pre2; // Arch 1 specific
+
     memset(&reqData, 0, sizeof(REQUEST_DATA));
+	memset(&reqData_pre1, 0, sizeof(REQUEST_DATA));// Arch 1 specific
+    memset(&reqData_pre2, 0, sizeof(REQUEST_DATA));// Arch 1 specific
 
     RIL_RESULT_CODE res = m_pTEOemInstance->OEMDial(reqData, pData, datalen);
     
     if (RRIL_RESULT_NOTSUPPORTED == res)
     {
-        res = m_pTEBaseInstance->CoreDial(reqData, pData, datalen);
+			res = m_pTEBaseInstance->CoreDial(reqData_pre1, reqData_pre2, reqData, pData, datalen);// Arch 1 specific
+				//			res = m_pTEBaseInstance->CoreDial(reqData, pData, datalen);
     }
 
     if (RRIL_RESULT_OK != res)
@@ -756,7 +762,42 @@ RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void * pData, size_t datale
     }
     else
     {
+        CCommand * pCmd_pre1 = new CCommand(RIL_CHANNEL_ATCMD, rilToken, ND_REQ_ID_DIAL, reqData_pre1, &CTE::ParseDial);// Arch 1 specific
+        CCommand * pCmd_pre2 = new CCommand(RIL_CHANNEL_ATCMD, rilToken, ND_REQ_ID_DIAL, reqData_pre2, &CTE::ParseDial);// Arch 1 specific
         CCommand * pCmd = new CCommand(RIL_CHANNEL_ATCMD, rilToken, ND_REQ_ID_DIAL, reqData, &CTE::ParseDial);
+
+				// Arch1 specific begin
+        if (pCmd_pre1)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd_pre1))
+            {
+                RIL_LOG_CRITICAL("RequestAnswer() - ERROR: Unable to add pre1 command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd_pre1;
+                pCmd_pre1 = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("RequestAnswer() - ERROR: Unable to allocate memory for pre1 command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+        if (pCmd_pre2)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd_pre2))
+            {
+                RIL_LOG_CRITICAL("RequestAnswer() - ERROR: Unable to add pre2 command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd_pre2;
+                pCmd_pre2 = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("RequestAnswer() - ERROR: Unable to allocate memory for pre2 command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+					// Arch1 specific ends
         
         if (pCmd)
         {
