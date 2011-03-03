@@ -51,6 +51,8 @@ CSilo_Voice::CSilo_Voice(CChannel *pChannel)
         { "+CRING: "      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseExtRing },
         { "DISCONNECT"  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseDISCONNECT },
         { "+XCALLSTAT: "  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseXCALLSTAT },
+        //{ "NO CARRIER"    , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCarrier },
+        { "CONNECT"       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseConnect },
         { "+CCWA: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallWaitingInfo },
         { "+CSSU: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseUnsolicitedSSInfo },
         { "+CSSI: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseIntermediateSSInfo },
@@ -59,8 +61,12 @@ CSilo_Voice::CSilo_Voice(CChannel *pChannel)
         { "+XCIEV: "      , (PFN_ATRSP_PARSE)/*&CSilo_Voice::ParseIndicatorEvent*/ &CSilo_Voice::ParseUnrecognized },
         { "+XCIEV:"      , (PFN_ATRSP_PARSE)/*&CSilo_Voice::ParseIndicatorEvent*/ &CSilo_Voice::ParseUnrecognized },
         { "+XCALLINFO: "  , (PFN_ATRSP_PARSE)/*&CSilo_Voice::ParseCallProgressInformation*/ &CSilo_Voice::ParseUnrecognized },
-        { "NO CARRIER"    , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCarrier },
-        { "CONNECT"       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseConnect },
+        { "RING CTM"      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseUnrecognized },
+        { "RING"          , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseUnrecognized },
+        { "BUSY"          , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseBusy },
+        { "NO ANSWER"     , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoAnswer },
+        { "CTM CALL"      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCTMCall },
+        { "NO CTM CALL"   , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCTMCall },
         { ""              , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNULL }
     };
 
@@ -91,14 +97,16 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const BYTE*& rszPoint
     // Skip to the next <postfix>
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : ERROR : Could not find response end\r\n");
         goto Error;
     }
 
     // Walk back over the <CR>
-    rszPointer -= 2;
+    rszPointer -= strlen(g_szNewLine);
 
     pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+    //pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+    pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
     fRet = TRUE;
 
 Error:
@@ -130,7 +138,7 @@ BOOL CSilo_Voice::ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPoi
     }
 
     // Walk back over the <CR>
-    rszPointer -= 2;
+    rszPointer -= strlen(g_szNewLine);
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
@@ -164,7 +172,7 @@ BOOL CSilo_Voice::ParseConnect(CResponse* const pResponse, const BYTE*& rszPoint
     }
 
     // Walk back over the <CR>
-    rszPointer -= 2;
+    rszPointer -= strlen(g_szNewLine);
  
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
@@ -195,11 +203,12 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const BYTE*& rszPoi
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : ERROR : Could not find response end\r\n");
         goto Error;
     }
 
     // Walk back over the <CR>
-    rszPointer -= 2;
+    rszPointer -= strlen(g_szNewLine);
     
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
@@ -227,6 +236,13 @@ BOOL CSilo_Voice::ParseCallWaitingInfo(CResponse* const pResponse, const BYTE*& 
         RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : pResponse was NULL\r\n");
         goto Error;
     }
+    
+    // Look for a "<postfix>"
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
 
     // Parse "<address>
     if (!ExtractQuotedString(rszPointer, szAddress, MAX_BUFFER_SIZE, rszPointer))
@@ -235,14 +251,10 @@ BOOL CSilo_Voice::ParseCallWaitingInfo(CResponse* const pResponse, const BYTE*& 
         goto Error;
     }
 
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
-    {
-        goto Error;
-    }
+
 
     // Walk back over the <CR>
-    rszPointer -= 2;
+    rszPointer -= strlen(g_szNewLine);
     
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
@@ -416,6 +428,7 @@ BOOL CSilo_Voice::ParseIntermediateSSInfo(CResponse* const pResponse, const BYTE
     if (!FindAndSkipRspEnd(szPointer, g_szNewLine, szPostfix))
     {
         // This isn't a complete Supplementary services notification -- no need to parse it
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseIntermediateSSInfo() : ERROR : Could not find response end\r\n");
         goto Error;
     }
 
@@ -488,15 +501,16 @@ BOOL CSilo_Voice::ParseCallMeter(CResponse* const pResponse, const BYTE*& rszPoi
 BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseUSSDInfo() - Enter\r\n");
-    UINT32 nDCS;
-    BYTE* szDataString = NULL;
-    UINT32 uiDataString;
-    UINT32 uiStatus;
-    const BYTE* szDummy;
-    WCHAR* szUcs2 = NULL;
     P_ND_USSD_STATUS pUssdStatus = NULL;
-    BOOL bSupported = FALSE;
-    UINT32 uiAllocSize;
+    UINT32 uiStatus = 0;
+    BYTE* szDataString = NULL;
+    UINT32 uiDataString = 0;
+    UINT32 nDCS = 0;
+    //BOOL bSupported = FALSE;
+    WCHAR* szUcs2 = NULL;
+    UINT32 cbUsed = 0;
+    UINT32 uiAllocSize = 0;
+    const BYTE* szDummy;
     BOOL fRet = FALSE;
 
     if (pResponse == NULL)
@@ -515,6 +529,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
     // Extract "<status>"
     if (!ExtractUInt(rszPointer, uiStatus, rszPointer))
     {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : ERROR : Couldn't extract status\r\n");
         goto Error;
     }
 
@@ -527,9 +542,10 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
         {
             goto Error;
         }
+        memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
         snprintf(pUssdStatus->szType, 2, "%d", (int) uiStatus);
         pUssdStatus->sStatusPointers.pszType    = pUssdStatus->szType;
-        pUssdStatus->sStatusPointers.pszMessage = pUssdStatus->szMessage;
+        pUssdStatus->sStatusPointers.pszMessage = NULL;
         uiAllocSize = sizeof(BYTE *);
     }
     else
@@ -538,6 +554,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
         // NOTE: we take ownership of allocated szDataString
         if (!ExtractQuotedStringWithAllocatedMemory(rszPointer, szDataString, uiDataString, rszPointer))
         {
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : ERROR : Couldn't extract ExtractQuotedStringWithAllocatedMemory\r\n");
             goto Error;
         }
         if (!SkipString(rszPointer, ",", rszPointer) ||
@@ -547,7 +564,10 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
             // seen it missing from otherwise normal USSD responses.
             nDCS = 0;
         }
-
+        
+        //  NOTE: Jan 12/2011 - There could still be problems with USSD and other languages.
+        //  For now we'll keep GSM Default alphabet, but in the future this may change to UTF8 or UCS2.
+#if 0
         // See GSM 03.38 for Cell Broadcast DCS details
         // Currently support only default alphabet in all languages (i.e., the DCS range 0x00..0x0f)
         // check if we support this DCS
@@ -562,6 +582,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
         
             /* refer to 3GPP TS 23.038 5 and 3GPP TS 27.007 7.15 for detail */
             UINT32 uDCSCharset = ( ( nDCS >> 2 ) & 0x03 );
+            RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() : uDCSCharset=[0x%08x]\r\n", uDCSCharset);
             if ( 0x00 == uDCSCharset )
             {
                 // GSM 7 bit default alphabet
@@ -586,14 +607,14 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
             else if ( 0x03 == uDCSCharset )
             {
                 // reserved
-                RIL_LOG_CRITICAL("Unsupported value 0x03\r\n");
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : Unsupported value 0x03\r\n");
                 // not supported
                  bSupported = FALSE;
             }
             else
             {
                 /* should not reach here. just in case */
-                RIL_LOG_CRITICAL("Unsupported value [%d]\r\n", uDCSCharset);
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : Unsupported value [%d]\r\n", uDCSCharset);
 
                 // not supported
                  bSupported = FALSE;
@@ -602,6 +623,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
 
         if (!bSupported)
         {
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : unsupported\r\n");
             goto Error;
         }
         /*--- currently we only handle the default alphabet encoding ---*/
@@ -648,11 +670,28 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
         {
             goto Error;
         }
+        memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
         snprintf(pUssdStatus->szType, 2, "%d", (int) uiStatus);
         if (!ConvertUnicodeToUtf8(szUcs2, pUssdStatus->szMessage, MAX_BUFFER_SIZE))
         {
             goto Error;
         }
+#endif // 0
+
+
+        //  Allocate blob.
+        pUssdStatus = (P_ND_USSD_STATUS) malloc(sizeof(S_ND_USSD_STATUS));
+        if (!pUssdStatus)
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: malloc failed\r\n");
+            goto Error;
+        }
+        memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
+        snprintf(pUssdStatus->szType, 2, "%d", (int) uiStatus);
+        (void)CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE*2);
+
+        RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - %s\r\n", pUssdStatus->szMessage);
+    
         pUssdStatus->sStatusPointers.pszType    = pUssdStatus->szType;
         pUssdStatus->sStatusPointers.pszMessage = pUssdStatus->szMessage;
         uiAllocSize = 2 * sizeof(BYTE *);
@@ -662,7 +701,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_ON_USSD);
 
-    if (!pResponse->SetData((void*)pUssdStatus, sizeof(BYTE **), FALSE))
+    if (!pResponse->SetData((void*)pUssdStatus, uiAllocSize, FALSE))
     {
         goto Error;
     }
@@ -724,11 +763,12 @@ BOOL CSilo_Voice::ParseDISCONNECT(CResponse *const pResponse, const BYTE* &rszPo
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseDISCONNECT() : ERROR : Could not find response end\r\n");
         goto Error;
     }
 
     // Walk back over the <CR>
-    rszPointer -= 2;
+    rszPointer -= strlen(g_szNewLine);
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
@@ -739,6 +779,107 @@ Error:
     RIL_LOG_VERBOSE("CSilo_Voice::ParseDISCONNECT() - Exit\r\n");
     return fRet;
     
+}
+
+BOOL CSilo_Voice::ParseBusy(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseBusy() - Enter\r\n");
+
+    BOOL fRet = FALSE;
+
+    // Skip to the next <postfix>
+    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseBusy() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Walk back over the <CR>
+    rszPointer -= strlen(g_szNewLine);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseBusy() - Exit\r\n");
+    return fRet;
+}
+
+BOOL CSilo_Voice::ParseNoAnswer(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseNoAnswer() - Enter\r\n");
+
+    BOOL fRet = FALSE;
+
+    // Skip to the next <postfix>
+    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoAnswer() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Walk back over the <CR>
+    rszPointer -= strlen(g_szNewLine);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseNoAnswer() - Exit\r\n");
+    return fRet;
+}
+
+
+BOOL CSilo_Voice::ParseCTMCall(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCTMCall() - Enter\r\n");
+
+    BOOL fRet = FALSE;
+
+    // Skip to the next <postfix>
+    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCTMCall() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Walk back over the <CR>
+    rszPointer -= strlen(g_szNewLine);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCTMCall() - Exit\r\n");
+    return fRet;
+}
+
+BOOL CSilo_Voice::ParseNoCTMCall(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseNoCTMCall() - Enter\r\n");
+
+    BOOL fRet = FALSE;
+
+    // Skip to the next <postfix>
+    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoCTMCall() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Walk back over the <CR>
+    rszPointer -= strlen(g_szNewLine);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseNoCTMCall() - Exit\r\n");
+    return fRet;
 }
 
 BOOL CSilo_Voice::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)

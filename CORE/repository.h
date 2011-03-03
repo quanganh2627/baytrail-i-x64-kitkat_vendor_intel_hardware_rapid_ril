@@ -81,6 +81,8 @@ extern const char   g_szMaxInitRetries[];
 extern const char   g_szDataModeCmdDelay[];
 extern const char   g_szDataModeMaxTimeWithoutCmd[];
 extern const char   g_szDefaultCmdRetries[];
+extern const char   g_szRadioOnDelay[];
+extern const char   g_szRadioOffDelay[];
 
 /////////////////////////////////////////////////
 
@@ -141,6 +143,7 @@ extern const char   g_szInitializeSimPhonebookTimeout[];
 extern const char   g_szGroupModem[];
 
 extern const char   g_szSupportedModem[];
+extern const char   g_szNetworkInterfaceName[];
 
 //////////////////////////////////////////////////////////////////////////
 

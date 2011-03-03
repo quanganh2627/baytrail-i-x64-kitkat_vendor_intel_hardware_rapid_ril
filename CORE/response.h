@@ -92,6 +92,8 @@ private:
     BOOL    IsErrorResponse();
     BOOL    RetrieveErrorCode(const BYTE*& rszPointer,  UINT32 &nCode);
     BOOL    IsConnectResponse();
+    BOOL    IsNoCarrierResponse();
+    BOOL    IsAbortedResponse();
 
     UINT32    m_uiResultCode;
     UINT32    m_uiErrorCode;

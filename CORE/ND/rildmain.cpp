@@ -75,6 +75,9 @@ BOOL  g_bIsSocket = FALSE;
 BYTE* g_szDataPort1 = NULL;
 BYTE* g_szDataPort2 = NULL;
 BYTE* g_szDataPort3 = NULL;
+BYTE* g_szDLC2Port = NULL;
+BYTE* g_szDLC6Port = NULL;
+BYTE* g_szDLC8Port = NULL;
 
 //  Global variable to see if modem is dead.  (TEMPORARY)
 BOOL g_bIsModemDead = FALSE;
@@ -247,14 +250,14 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             if (pData && dataSize)
             {
                 int nDataCallResponseNum = dataSize / sizeof(RIL_Data_Call_Response);
+                RIL_Data_Call_Response *pDCR = (RIL_Data_Call_Response *)pData;
                 for (int i=0; i<nDataCallResponseNum; i++)
                 {
-                    RIL_Data_Call_Response *pDCR = &((RIL_Data_Call_Response *)pData)[i];
-                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] cid=%d\r\n", i, pDCR->cid);
-                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] active=%d\r\n", i, pDCR->active);
+                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] cid=%d\r\n", i, pDCR[i].cid);
+                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] active=%d\r\n", i, pDCR[i].active);
                     if (pDCR->type)
                     {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] type=\"%s\"\r\n", i, pDCR->type);
+                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] type=\"%s\"\r\n", i, pDCR[i].type);
                     }
                     else
                     {
@@ -262,7 +265,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
                     }
                     if (pDCR->apn)
                     {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] apn=\"%s\"\r\n", i, pDCR->apn);
+                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] apn=\"%s\"\r\n", i, pDCR[i].apn);
                     }
                     else
                     {
@@ -270,7 +273,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
                     }
                     if (pDCR->address)
                     {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] address=\"%s\"\r\n", i, pDCR->address);
+                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] address=\"%s\"\r\n", i, pDCR[i].address);
                     }
                     else
                     {
@@ -908,7 +911,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_OEM_HOOK_RAW:  // 59 - not supported
+        case RIL_REQUEST_OEM_HOOK_RAW:  // 59
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_OEM_HOOK_RAW\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestHookRaw(hRilToken, pData, datalen);
@@ -1062,17 +1065,17 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
         
-        case RIL_REQUEST_SET_TTY_MODE:  // 80 - not supported
+        case RIL_REQUEST_SET_TTY_MODE:  // 80
         {
-            RIL_LOG_INFO("onRequest() - RIL_REQUEST_SET_TTY_MODE\r\n");
-            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_SET_TTY_MODE\r\n");            
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestSetTtyMode(hRilToken, pData, datalen);            
         }
         break;
         
-        case RIL_REQUEST_QUERY_TTY_MODE:  // 81 - not supported
+        case RIL_REQUEST_QUERY_TTY_MODE:  // 81
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_QUERY_TTY_MODE\r\n");
-            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestQueryTtyMode(hRilToken, pData, datalen); 
         }
         break;
         
@@ -1409,12 +1412,14 @@ static int onSupports(int requestCode)
 
 static void onCancel(RIL_Token t)
 {
-    RIL_LOG_VERBOSE("onCancel() - Enter - Exit  token=0x%08X\r\n", (int)t);
+    RIL_LOG_INFO("onCancel() - *******************************************************\r\n");
+    RIL_LOG_INFO("onCancel() - Enter - Exit  token=0x%08X\r\n", (int)t);
+    RIL_LOG_INFO("onCancel() - *******************************************************\r\n");
 }
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M2.3 for Android 2.2 (Private Build Jan 7/2011)";
+    return "Intrinsyc Rapid-RIL M3.5 for Android 2.2 (Build Feb 18/2011)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};
@@ -1648,7 +1653,7 @@ static bool RIL_SetGlobals(int argc, char **argv)
 {
     int opt;
 
-    while (-1 != (opt = getopt(argc, argv, "d:s:a:")))
+    while (-1 != (opt = getopt(argc, argv, "d:s:a:n:m:c:")))
     {
         switch (opt)
         {
@@ -1662,13 +1667,31 @@ static bool RIL_SetGlobals(int argc, char **argv)
             // This should be the non-emulator case.
             case 'a':
                 g_szCmdPort = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for AT channel\r\n", g_szCmdPort);
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for AT channel (DLC1)\r\n", g_szCmdPort);
             break;
 
             // This should be the non-emulator case.
             case 'd':
                 g_szDataPort1 = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for data channel\r\n", g_szDataPort1);
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel (DLC3)\r\n", g_szDataPort1);
+            break;
+            
+            // This should be the non-emulator case.
+            case 'n':
+                g_szDLC2Port = optarg;
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Network channel (DLC2)\r\n", g_szDLC2Port);
+            break;
+            
+            // This should be the non-emulator case.
+            case 'm':
+                g_szDLC6Port = optarg;
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Messaging channel (DLC6)\r\n", g_szDLC6Port);
+            break;
+            
+            // This should be the non-emulator case.
+            case 'c':
+                g_szDLC8Port = optarg;
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for SIM/USIM Card channel (DLC8)\r\n", g_szDLC8Port);
             break;
 
             default:
@@ -1710,16 +1733,21 @@ const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, cha
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
         ret = pthread_create(&gs_tid_mainloop, &attr, mainLoop, NULL);
-
 	while(!init_finish)
-	{
-		RIL_LOG_INFO("RIL_Init,init not finish:%d \r\n",init_finish);
-		sleep(1);
-	}
 
-	RIL_LOG_INFO("RIL_Init,init finish:%d \r\n",init_finish);
+        {
 
-        return &gs_callbacks;
+            RIL_LOG_INFO("RIL_Init,init not finish:%d \r\n",init_finish);
+
+            sleep(1);
+
+        }
+
+
+
+        RIL_LOG_INFO("RIL_Init,init finish:%d \r\n",init_finish);
+        
+	return &gs_callbacks;
     }
     else
     {

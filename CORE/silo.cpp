@@ -163,7 +163,7 @@ BOOL CSilo::ParseUnrecognized(CResponse *const pResponse, const BYTE* &rszPointe
     }
 
     //  Back up over the "\r\n".
-    rszPointer -= 2;
+    rszPointer -= strlen(g_szNewLine);
 
     //  Flag as unrecognized.
     pResponse->SetUnrecognizedFlag(TRUE);

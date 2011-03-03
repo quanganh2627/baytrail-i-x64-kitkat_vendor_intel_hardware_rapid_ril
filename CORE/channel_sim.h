@@ -32,6 +32,7 @@ public:
     CChannel_SIM(UINT32 uiChannel);
     virtual ~CChannel_SIM();
 
+    BOOL    OpenPort();
 
 protected:
     BOOL    FinishInit();

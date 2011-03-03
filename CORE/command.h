@@ -67,6 +67,7 @@ public:
     BYTE*               GetATCmd2()         { return m_pszATCmd2;   };
     PFN_TE_PARSE        GetParseFcn()       { return m_pParseFcn;   };
     UINT32              GetTimeout()        { return m_uiTimeout;   };
+    UINT32              GetRetries()        { return m_uiRetries;   };
     CContext *          GetContext()        { return m_pContext;    };
     void*               GetContextData()    { return m_pContextData;};
     unsigned int        GetContextDataSize(){ return m_cbContextData;}; 
@@ -75,6 +76,7 @@ public:
     BOOL                IsHighPriority()    { return m_fHighPriority; };
 
     void SetTimeout(UINT32 uiTimeout)       { m_uiTimeout = uiTimeout;  };
+    void SetRetries(UINT32 uiRetries)       { m_uiRetries = uiRetries;  };
     void SetAlwaysParse()                   { m_fAlwaysParse = TRUE;    };
     void SetHighPriority()                  { m_fHighPriority = TRUE; };
     void SetContext(CContext*& pContext)    { m_pContext = pContext; pContext = NULL; };
@@ -90,6 +92,7 @@ private:
     BYTE*               m_pszATCmd2;
     PFN_TE_PARSE        m_pParseFcn;
     UINT32              m_uiTimeout;
+    UINT32              m_uiRetries;
     BOOL                m_fAlwaysParse;
     BOOL                m_fHighPriority;
     CContext *          m_pContext;

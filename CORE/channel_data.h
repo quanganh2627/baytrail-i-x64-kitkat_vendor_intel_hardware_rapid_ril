@@ -60,7 +60,11 @@ public:
     static UINT32 GetNextContextID();
 
     CEvent *            m_pSetupDoneEvent;
+    
+    //  Local storage of IP adress, DNS1, DNS2
     BYTE*               m_szIpAddr;
+    BYTE*               m_szDNS1;
+    BYTE*               m_szDNS2;
 
 private:
 

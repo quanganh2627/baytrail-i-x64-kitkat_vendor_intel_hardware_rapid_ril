@@ -71,6 +71,7 @@ protected:
     //virtual BOOL    ParseTriplePlus(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseConnect(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseXCGEDPAGE(CResponse* const pResponse, const BYTE*& rszPointer);
 };
 
 #endif // RRIL_SILO_DATA_H

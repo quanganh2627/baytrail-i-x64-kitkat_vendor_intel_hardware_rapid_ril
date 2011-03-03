@@ -27,9 +27,12 @@
 #include "silo_factory.h"
 #include "channel_sim.h"
 
+// Borqs - Enable SIM AT channel
+extern BYTE* g_szSIMPort; // TODO replace this with base port name e.g., /dev/ttyGSM
+extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
-INITSTRING_DATA SIMBasicInitString   = { "E0V0Q0X4|+CMEE=1", 0 };
+INITSTRING_DATA SIMBasicInitString   = { "E0V1Q0X4|+CMEE=1", 0 };
 INITSTRING_DATA SIMUnlockInitString  = { "", 0 };
 INITSTRING_DATA SIMPowerOnInitString = { "+CSCS=\"UCS2\"", 0 };
 INITSTRING_DATA SIMReadyInitString   = { "", 0 };
@@ -47,6 +50,23 @@ CChannel_SIM::~CChannel_SIM()
     delete []m_prisdModuleInit;
     m_prisdModuleInit = NULL;
     RIL_LOG_VERBOSE("CChannel_SIM::~CChannel_SIM() - Exit\r\n");
+}
+
+//  Borqs - Override from base class
+BOOL CChannel_SIM::OpenPort()
+{
+    BOOL bRetVal = FALSE;
+
+    RIL_LOG_INFO("CChannel_SIM::OpenPort() - Opening COM Port: %s...\r\n", g_szSIMPort);
+    RIL_LOG_INFO("CChannel_SIM::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
+
+    // TODO: Instead of using g_szSIMPort, use channel number to create port name from 
+    // the base port name + channel# + 1. E.g, data channel 1 uses port /dev/ttyGSM2
+    bRetVal = m_Port.Open(g_szSIMPort, g_bIsSocket);
+
+    RIL_LOG_INFO("CChannel_SIM::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
+    
+    return bRetVal;
 }
 
 BOOL CChannel_SIM::FinishInit()

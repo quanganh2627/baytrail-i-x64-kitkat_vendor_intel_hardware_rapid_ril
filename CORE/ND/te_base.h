@@ -30,6 +30,9 @@
 
 class CTEBase
 {
+protected:
+    int m_nNetworkRegistrationType;  //  0 = automatic, 1 = manual
+    char m_szManualMCCMNC[MAX_BUFFER_SIZE];  //  If manual, this holds the MCCMNC string.
 public:
 
     CTEBase();
@@ -72,8 +75,7 @@ public:
     virtual RIL_RESULT_CODE ParseGetCurrentCalls(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_DIAL 10
-		virtual RIL_RESULT_CODE CoreDial(REQUEST_DATA & rReqData_pre1, REQUEST_DATA & rReqData_pre2,REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-			//    virtual RIL_RESULT_CODE CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CoreDial(REQUEST_DATA & rReqData_pre1, REQUEST_DATA & rReqData_pre2,REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDial(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_GET_IMSI 11
@@ -194,7 +196,7 @@ public:
     virtual RIL_RESULT_CODE ParseGetImeisv(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_ANSWER 40
-    virtual RIL_RESULT_CODE CoreAnswer(REQUEST_DATA & rReqData_pre1,REQUEST_DATA & rReqData_pre2,REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CoreAnswer(REQUEST_DATA & rReqData_pre1,REQUEST_DATA & rReqData_pre2,REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize); 
     virtual RIL_RESULT_CODE ParseAnswer(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
@@ -452,11 +454,20 @@ public:
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     virtual RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData);
 
+    // RIL_UNSOL_DATA_CALL_LIST_CHANGED  1010
+    virtual RIL_RESULT_CODE ParseDataCallListChanged(RESPONSE_DATA & rRspData);
+    
     // GET IP ADDRESS
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);
 
     // GET DNS
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
+    
+    // QUERY PIN2
+    virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
+    
+protected:
+    RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus *& pCardStatus);
 };
 
 #endif

@@ -388,7 +388,7 @@ BOOL CSilo_SIM::ParseSTKProCmd(CResponse* const pResponse, const BYTE*& rszPoint
 	RIL_LOG_INFO(" line= %s\r\n", line);
 
     //  Back up over the "\r\n".
-    rszPointer -= 2;
+    rszPointer -= strlen(g_szNewLine);
 
 	delete pAtResp->p_intermediates;
 	delete pAtResp;

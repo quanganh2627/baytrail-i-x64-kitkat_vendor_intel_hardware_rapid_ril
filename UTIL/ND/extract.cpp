@@ -32,6 +32,9 @@
 BOOL FindAndSkipString(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
 {
     BOOL fRet = FALSE;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
 
     rszEnd = strstr(szStart, szSkip);
 
@@ -70,6 +73,9 @@ BOOL SkipString(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
 {
     BOOL fRet = FALSE;
     UINT32 dwResult;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
 
     dwResult = strncmp(szStart, szSkip, strlen(szSkip));
 
@@ -91,6 +97,9 @@ BOOL SkipString(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
 BOOL SkipRspStart(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
 {
     BOOL fRet = FALSE;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
 
     if (SkipString(szStart, szSkip, rszEnd))
     {
@@ -106,6 +115,9 @@ BOOL SkipRspStart(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
 BOOL SkipRspEnd(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
 {
     BOOL fRet = FALSE;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
 
     if (SkipString(szStart, szSkip, rszEnd))
     {
@@ -120,6 +132,9 @@ BOOL SkipRspEnd(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
 BOOL FindAndSkipRspEnd(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
 {
     BOOL fRet = FALSE;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
 
     if (FindAndSkipString(szStart, szSkip, rszEnd))
     {
@@ -134,6 +149,9 @@ BOOL FindAndSkipRspEnd(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rsz
 BOOL ExtractUInt(const BYTE* szStart, UINT32 &rnValue, const BYTE* &rszEnd)
 {
     BOOL fRet = FALSE;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
 
     UINT32 nTemp = 0;
     const BYTE* szWalk = szStart;
@@ -167,6 +185,9 @@ BOOL ExtractUInt(const BYTE* szStart, UINT32 &rnValue, const BYTE* &rszEnd)
 // Extracts a UINT32 from a given string.
 BOOL ExtractUInt32(const BYTE* szStart, UINT32 &rdwValue, const BYTE* &rszEnd)
 {
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
+    
     return ExtractUInt(szStart, (UINT32&)rdwValue, rszEnd);
 }
 
@@ -177,6 +198,9 @@ BOOL ExtractQuotedString(const BYTE* szStart, BYTE* szOutput, const UINT32 cbOut
     BOOL fRet = FALSE;
     const BYTE* szWalk = NULL;
     UINT32 nLen = 0;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
 
     memset(szOutput, 0, cbOutput);
     rszEnd = szStart;
@@ -203,6 +227,10 @@ BOOL ExtractQuotedString(const BYTE* szStart, BYTE* szOutput, const UINT32 cbOut
 BOOL ExtractUnquotedString(const BYTE* szStart, const char cDelimiter, BYTE* szOutput, const UINT32 cbOutput, const BYTE* &rszEnd)
 {
     char tmp[2] = {cDelimiter, '\0'};
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
+    
     return ExtractUnquotedString(szStart, tmp, szOutput, cbOutput, rszEnd);
 }
 
@@ -212,6 +240,9 @@ BOOL ExtractUnquotedString(const BYTE* szStart, const BYTE* szDelimiter, BYTE* s
 {
     BOOL fRet = FALSE;
     UINT32 nLen = 0;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
 
     memset(szOutput, 0, cbOutput);
     rszEnd = szStart;
@@ -237,6 +268,10 @@ BOOL ExtractHexUInt32(const BYTE* szStart, UINT32 &rdwValue, const BYTE* &rszEnd
     BOOL fRet = FALSE;
     UINT32 dwTemp  = 0;
     UINT32 dwTotal = 0;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
+    
     const BYTE* szWalk = szStart;
 
     while ((('A' <= *szWalk) && (*szWalk <= 'F')) ||
@@ -282,6 +317,9 @@ BOOL ExtractHexUInt32(const BYTE* szStart, UINT32 &rdwValue, const BYTE* &rszEnd
 // Extracts a UINT32 out from a hex string
 BOOL ExtractHexUInt(const BYTE* szStart, UINT32& rnValue, const BYTE* &rszEnd)
 {
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
+    
     return ExtractHexUInt32(szStart, (UINT32&)rnValue, rszEnd);
 }
 
@@ -292,6 +330,9 @@ BOOL ExtractQuotedStringWithAllocatedMemory(const BYTE* szStart, BYTE* &rszStrin
     BOOL fRet = FALSE;
     const BYTE* szWalk = NULL;
     UINT32 nLen = 0;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
 
     rszEnd = szStart;
 
@@ -331,6 +372,9 @@ Error:
 BOOL ExtractUnquotedStringWithAllocatedMemory(const BYTE* szStart, const char chDelimiter, BYTE* &rszString, UINT32 &rcbString, const BYTE* &rszEnd)
 {
     BOOL fRet = FALSE;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
 
     char szTemp[2] = {0};
     szTemp[0] = chDelimiter;
@@ -368,6 +412,10 @@ BOOL ExtractFixedPointValue(const BYTE* szStart, UINT32 &rdwFPValue, const BYTE*
     UINT32 dwWhole = 0;
     UINT32 dwFraction = 0;
     UINT32 dwBase = 1;
+
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
+    
     const BYTE* szWalk = szStart;
     const BYTE* szTemp;
 
@@ -407,6 +455,10 @@ BOOL ExtractDouble(const BYTE* szStart, double &rdbValue, const BYTE* &rszEnd)
     UINT32 dwWhole = 0;
     UINT32 dwFraction = 0;
     UINT32 dwBase = 1;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
+    
     const BYTE* szWalk = szStart;
     const BYTE* szTemp;
 
@@ -439,6 +491,10 @@ BOOL ExtractUnquotedGSMHexStringToUnicode(const BYTE* szIn, UINT32 cbInLen,  WCH
 {
     BOOL fRet = FALSE;
     BYTE bEnc;
+    
+    //  Skip over any spaces
+    SkipSpaces(szIn, szIn);
+    
     const BYTE* szInWalk = szIn;
 
     if ((!szIn) || (0 == cbInLen))
@@ -492,6 +548,10 @@ Error:
 BOOL ExtractQuotedGSMHexStringToUnicode(const BYTE* szStart,  WCHAR* wszOut, UINT32 cbOutLen, const BYTE* &rszEnd)
 {
     BOOL fRet = FALSE;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
+    
     const BYTE* szWalk = szStart;
     const BYTE* szTemp = NULL;
 
@@ -520,6 +580,9 @@ BOOL ExtractQuotedGSMHexStringToUnicode(const BYTE* szStart,  WCHAR* wszOut, UIN
 BOOL ExtractUnquotedUnicodeHexStringToUnicode(const BYTE* szIn, UINT32 cbInLen,  WCHAR* wszOut, UINT32 cbOutLen)
 {
     BOOL fRet = FALSE;
+    
+    //  Skip over any spaces
+    SkipSpaces(szIn, szIn);
 
     if (RRIL_E_NO_ERROR == UnicodeHexToUnicode(szIn, cbInLen, wszOut, cbOutLen / sizeof(WCHAR)))
     {
@@ -533,6 +596,10 @@ BOOL ExtractUnquotedUnicodeHexStringToUnicode(const BYTE* szIn, UINT32 cbInLen, 
 BOOL ExtractQuotedUnicodeHexStringToUnicode(const BYTE* szStart,  WCHAR* wszOut, UINT32 cbOutLen, const BYTE* &rszEnd)
 {
     BOOL fRet = FALSE;
+    
+    //  Skip over any spaces
+    SkipSpaces(szStart, szStart);
+    
     const BYTE* szWalk = szStart;
     const BYTE* szTemp = NULL;
 
@@ -562,6 +629,9 @@ BOOL ExtractUpperBoundedUInt(const char* szData,
                              UINT32& rnVal,
                              const char*& rszRemainder)
 {
+    //  Skip over any spaces
+    SkipSpaces(szData, szData);
+    
     // Extract the number
     BOOL fRet = ExtractUInt(szData, rnVal, rszRemainder);
 
@@ -585,6 +655,9 @@ BOOL ExtractLowerBoundedUInt(const char* szData,
                              UINT32& rnVal,
                              const char*& rszRemainder)
 {
+    //  Skip over any spaces
+    SkipSpaces(szData, szData);
+    
     // Extract the number
     BOOL fRet = ExtractUInt(szData, rnVal, rszRemainder);
 
@@ -633,6 +706,9 @@ BOOL ExtractIntAndConvertToUInt(const char* szData, UINT32& rnVal, const char*& 
 {
     BOOL fNegative = FALSE;
     BOOL fRet = FALSE;
+    
+    //  Skip over any spaces
+    SkipSpaces(szData, szData);
 
     if ('-' == *szData)
     {

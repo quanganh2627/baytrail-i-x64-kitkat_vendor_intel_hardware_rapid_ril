@@ -34,6 +34,8 @@
 #include "callbacks.h"
 #include "rildmain.h"
 #include "silo_network.h"
+#include "channel_data.h"
+#include "te_inf_n721.h"
 
 
 //
@@ -49,10 +51,12 @@ CSilo_Network::CSilo_Network(CChannel *pChannel)
         { "+CREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCREG         },
         { "+CGREG: "    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGREG        },
         { "+XREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXREG         },
+        { "+CGEV: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGEV         },
         { "+CTZV: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCTZV         },
         { "+CTZDST: "   , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
         { "+XNITZINFO"  , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
         { "+PACSP1"     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
+        { "+XCGEDPAGE:" , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCGEDPAGE    },
         { ""            , (PFN_ATRSP_PARSE)&CSilo_Network::ParseNULL         }
     };
 
@@ -113,6 +117,8 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     BOOL bTwoParts = FALSE;
     const int TIME_ZONE_SIZE = 5;
     BYTE szTimeZone[TIME_ZONE_SIZE] = {0};
+    int nTimeZone = 0;
+    int nTimeDiff = 0;
     BYTE * pszTimeData = (BYTE*)malloc(sizeof(BYTE) * MAX_BUFFER_SIZE);
     if (NULL == pszTimeData)
     {
@@ -218,10 +224,26 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to convert local to calendar time!\r\n");
         goto Error;
     }
+    
+    //RIL_LOG_INFO("ctime_secs = [%u]\r\n", (UINT32)ctime_secs);
 
     // Convert local time (in calendar, secs) to GMT
-    pGMT = gmtime(&ctime_secs);    
-        
+    //pGMT = gmtime(&ctime_secs);
+    
+    //  The problem here is that Android expects GMT, but modem gives us local time.
+    //  We need to calculate how many seconds to add/subtract from the mktime() call.
+    //  Also, the szTimeZone from the modem includes DST offset (from my observations).
+    //  BUG fix: On very first boot after flash, Android does not know timezone so
+    //           gmtime() call doesn't convert to from local to GMT.  Fix is add
+    //           offset number of seconds to ctime_secs.
+    nTimeZone = atoi(szTimeZone);
+    //RIL_LOG_INFO("nTimeZone=[%d]\r\n", nTimeZone);
+    nTimeDiff = (60 * 15) * nTimeZone * -1;
+    //RIL_LOG_INFO("nTimeDiff=[%d]\r\n", nTimeDiff);
+    ctime_secs += (time_t)nTimeDiff;
+    //RIL_LOG_INFO("ctime_secs = [%u]\r\n", (UINT32)ctime_secs);
+    pGMT = localtime(&ctime_secs);
+    
     // Format date time as "yy/mm/dd,hh:mm:ss"
     memset(pszTimeData, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);    
     strftime(pszTimeData, sizeof(BYTE) * MAX_BUFFER_SIZE, "%y/%m/%d,%T", pGMT);
@@ -232,6 +254,7 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     strncat(pszTimeData, szDummy, rszPointer - szDummy);
 
     RIL_LOG_INFO("CSilo_Network::ParseCTZV() - INFO: pszTimeData: %s\r\n", pszTimeData);
+
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_NITZ_TIME_RECEIVED);
@@ -261,7 +284,7 @@ Error:
 //
 BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BYTE*& rszPointer, BOOL const bGPRS)
 {
-    RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - Enter\r\n");
+	RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - Enter\r\n");
 
     const BYTE* szDummy;
     BOOL   fRet = FALSE, fUnSolicited = FALSE;
@@ -282,19 +305,17 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
         goto Error;
     }
 
-    // Valid CREG/CGREG notifications can have from one to five parameters, as follows:
+    // Valid CREG/CGREG notifications can have from one to four parameters, as follows:
     //       <status>               for an unsolicited notification without location data
     //  <n>, <status>               for a command response without location data
     //       <status>, <lac>, <ci>  for an unsolicited notification with location data
     //  <n>, <status>, <lac>, <ci>  for a command response with location data
 
-    //  3GPP TS 27.007 version 7.6.0 release 7 section 7.2
+    //  3GPP TS 27.007 version 5.4.0 release 5 section 7.2
     //  <n>      valid values: 0, 1, 2
     //  <status> valid values: 0, 1, 2, 3, 4, 5
     //  <lac>    string type, in hex
     //  <ci>     string type, in hex
-    //  <AcT>    valid values: 0, 1, 2 
-    //  <rac>    string type, in hex, for GPRS only
 
     // Parse and store parameters
     if(bGPRS)
@@ -305,17 +326,16 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
     {
         uiParamCountMaxGPRS = uiParamCountMax - 1;
     }
-
-
-    while (uiParamCount < uiParamCountMaxGPRS)
+ 
+   while (uiParamCount < uiParamCountMaxGPRS)
     {
         SkipSpaces(rszPointer, rszPointer);
 
         BOOL fQuote = SkipString(rszPointer, "\"", rszPointer);
+
         // ok to use ExtractHexUInt() here as
         // valid range of <n> is 0-2 and
         // valid range of <status> is 0-5
-        // valid range of <AcT> is 0-2
 
         if (!ExtractHexUInt(rszPointer, uiParams[uiParamCount], rszPointer))
         {
@@ -329,10 +349,9 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
             {
                 goto Error;
             }
-
-            if(1 == uiParamCount)
+ 	if(1 == uiParamCount)
             {
-                // If we hit a " char after parsing 1 arguments, It is a UnSolicted response
+                // If we hit a " char after parsing 1 arguments, It is a UnSolic		ted response
                 fUnSolicited = TRUE;
             }
         }
@@ -362,7 +381,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
     }
 
     RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - uiParamCount=[%d]\r\n", uiParamCount);
- 
+    
     // If there are 2 or 5 parameters, this is not a notification - let the
     // response handler take care of it.
     if ((uiParamCount == 2) || (fUnSolicited == FALSE))
@@ -467,6 +486,7 @@ BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const BYTE* &rszPointe
         break;
     }
     
+    
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED);
 
@@ -476,3 +496,83 @@ Error:
     
     return bRet;
 }
+
+//
+//
+BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const BYTE* &rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Network::ParseCGEV() - Enter\r\n");
+    
+    BOOL bRet = FALSE;
+    
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: pResponse is NULL\r\n");
+        goto Error;
+    }
+    
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        // This isn't a complete registration notification -- no need to parse it
+        goto Error;
+    }
+    
+
+    //  Back up over the "\r\n".
+    rszPointer -= strlen(g_szNewLine);
+
+    //  Flag as unrecognized.
+    pResponse->SetUnrecognizedFlag(TRUE);
+    
+    //  Trigger data call list changed
+    //RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Called timed callback  START\r\n");
+    RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
+    //RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Called timed callback  END\r\n");
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CSilo_Network::ParseCGEV() - Exit\r\n");
+    return bRet;
+}
+
+
+//
+//
+BOOL CSilo_Network::ParseXCGEDPAGE(CResponse *const pResponse, const BYTE* &rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXCGEDPAGE() - Enter\r\n");
+    
+    BOOL bRet = FALSE;
+    
+    char szTemp[20] = {0};
+
+    
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCGEDPAGE() - Error: pResponse is NULL\r\n");
+        goto Error;
+    }
+    
+    // Look for a "<postfix>OK<postfix>"
+    sprintf(szTemp, "%sOK%s", g_szNewLine, g_szNewLine);
+    if (!FindAndSkipRspEnd(rszPointer, szTemp, rszPointer))
+    {
+        // This isn't a complete registration notification -- no need to parse it
+        goto Error;
+    }
+    
+
+    //  Back up over the "\r\n".
+    rszPointer -= strlen(g_szNewLine);
+
+    //  Flag as unrecognized.
+    pResponse->SetUnrecognizedFlag(TRUE);
+
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXCGEDPAGE() - Exit\r\n");
+    return bRet;
+}
+
+

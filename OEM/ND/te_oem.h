@@ -469,12 +469,18 @@ public:
 
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     long OEMParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData);
+    
+    // RIL_UNSOL_DATA_CALL_LIST_CHANGED  1010
+    long OEMParseDataCallListChanged(RESPONSE_DATA & rRspData);
 
     // GET IP ADDRESS (sent internally)
     long OEMParseIpAddress(RESPONSE_DATA & rRspData);
 
     // GET DNS (sent internally)
     long OEMParseDns(RESPONSE_DATA & rRspData);
+    
+    // PARSE CPIN2 Query (sent internally)
+    long OEMParseQueryPIN2(RESPONSE_DATA & rRspData);
 };
 
 #endif

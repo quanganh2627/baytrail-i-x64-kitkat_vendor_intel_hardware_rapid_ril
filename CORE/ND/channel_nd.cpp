@@ -53,7 +53,7 @@ CChannel::CChannel(UINT32 uiChannel)
     }
     else
     {
-        m_uiMaxTimeouts = 10;
+        m_uiMaxTimeouts = 2;
     }
 
     RIL_LOG_VERBOSE("CChannel::CChannel() - Exit\r\n");
@@ -102,8 +102,11 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
         // noop operation
         if (!ProcessNoop(pResponse))
             goto Error;
-    }    
-    else if (g_RadioState.IsRadioOff() && !rpCmd->IsHighPriority())
+    }
+    //  Feb 10/2011 - No need to check for this in this Infineon modem.  This modem is always
+    //                responsive to AT commands.  However, if modem is being reset then
+    //                possibly need to spoof responses.
+    else if ( /*g_RadioState.IsRadioOff() && !rpCmd->IsHighPriority() */ FALSE )
     {
         // cannot send command as radio is off
         if (!RejectRadioOff(pResponse))
@@ -112,53 +115,61 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
     else
     {
         // process command here
-        UINT32 uiBytesWritten = 0;
-        //UINT32 NumRetries = rpCmd->GetRetries();
-		// TODO: implement retries here!
-        pATCommand = (BYTE *) rpCmd->GetATCmd1();
-
-        // set flag for response thread
-        SetCmdThreadBlockedOnRxQueue();
-
-        // empty the queue before sending the command
-        g_pRxQueue[m_uiRilChannel]->MakeEmpty();
-        if (NULL != m_pResponse)
-            m_pResponse->FreeData();
-        
-        // write the command out to the com port
-        if (!WriteToPort(pATCommand, strlen(pATCommand), uiBytesWritten))
+        int nNumRetries = (int)rpCmd->GetRetries();
+        while (nNumRetries-- >= 0)
         {
-            // ignore the error and soldier on, something may have been written
-            // to the modem so wait for a potential response
-            RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Error writing command: %s\r\n",
-                            m_uiRilChannel,
-                            CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
-        }
-        
-        if (strlen(pATCommand) != uiBytesWritten)
-        {
-            RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Only wrote [%d] chars of command to port: %s\r\n",
-                            m_uiRilChannel,
-                            uiBytesWritten,
-                            CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
-        }
-        
-        //  Need this for reponse queue to be updated correctly.  Otherwise there are some situations where
-        //  the repsponse queue is empty, when it isn't, or vice versa.
-        //RIL_LOG_INFO("BEGIN SLEEP 25\r\n");
-        //Sleep(25);
-        //RIL_LOG_INFO("END SLEEP 25\r\n");
+            UINT32 uiBytesWritten = 0;
 
-        // retrieve response from modem
-        resCode = GetResponse(rpCmd, pResponse);
+            pATCommand = (BYTE *) rpCmd->GetATCmd1();
 
-        // response received, clear flag
-        ClearCmdThreadBlockedOnRxQueue();
+            // set flag for response thread
+            SetCmdThreadBlockedOnRxQueue();
 
-        if (!pResponse)
-        {
-            RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] No response received!\r\n", m_uiRilChannel);
-            goto Error;
+            // empty the queue before sending the command
+            g_pRxQueue[m_uiRilChannel]->MakeEmpty();
+            if (NULL != m_pResponse)
+                m_pResponse->FreeData();
+            
+            // write the command out to the com port
+            if (!WriteToPort(pATCommand, strlen(pATCommand), uiBytesWritten))
+            {
+                // ignore the error and soldier on, something may have been written
+                // to the modem so wait for a potential response
+                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Error writing command: %s\r\n",
+                                m_uiRilChannel,
+                                CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+            }
+            
+            if (strlen(pATCommand) != uiBytesWritten)
+            {
+                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Only wrote [%d] chars of command to port: %s\r\n",
+                                m_uiRilChannel,
+                                uiBytesWritten,
+                                CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+            }
+
+            // retrieve response from modem
+            resCode = GetResponse(rpCmd, pResponse);
+
+            // response received, clear flag
+            ClearCmdThreadBlockedOnRxQueue();
+
+            if (!pResponse)
+            {
+                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] No response received!\r\n", m_uiRilChannel);
+                goto Error;
+            }
+            
+            if (!pResponse->IsTimedOutFlag())
+            {
+                //  Our response is complete!
+                break;
+            }
+            else
+            {
+                //  Our response timed out, retry
+                RIL_LOG_INFO("CChannel::SendCommand() - Attempting retry  nNumRetries remaining=[%d]\r\n", nNumRetries+1);
+            }
         }
 
         // call Silo hook - PostSendCommandHook
@@ -249,6 +260,16 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
     {
         RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: Command timed out!\r\n");
         HandleTimedOutError(TRUE);
+        
+        //  Send extra AT to possibly abort command in progress
+        UINT32 uiBytesWritten = 0;
+        BYTE szATCmd[] = "ATE0V1\r";
+        WriteToPort(szATCmd, strlen(szATCmd), uiBytesWritten);
+        
+        CResponse *pRspTemp = NULL;
+        RIL_RESULT_CODE resTmp = ReadQueue(pRspTemp, 500); //  wait 0.5 seconds for response
+        delete pRspTemp;
+        
         goto Error;
     }
     else if (RIL_E_SUCCESS != resCode)
@@ -268,6 +289,15 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
     {
         pATCommand = (BYTE *) rpCmd->GetATCmd2();
         UINT32 uiBytesWritten = 0;
+        
+        //  Temp fix (delay before sending 2nd part of XRAT command)
+        if (ND_REQ_ID_SETPREFERREDNETWORKTYPE == rpCmd->GetRequestID())
+        {
+            const int dwSleep = 500;
+            RIL_LOG_INFO("CChannel::GetResponse() - chnl=[%d]  BEGIN SLEEP=[%d]ms\r\n", m_uiRilChannel, dwSleep);
+            Sleep(dwSleep);
+            RIL_LOG_INFO("CChannel::GetResponse() - chnl=[%d]  END SLEEP=[%d]ms\r\n", m_uiRilChannel, dwSleep);
+        }
 
         // send 2nd phase of command
         SetCmdThreadBlockedOnRxQueue();
@@ -297,6 +327,28 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         {
             RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: Command's second part timed out!\r\n");
             HandleTimedOutError(TRUE);
+            
+            
+            //  Send extra AT to possibly abort command in progress
+            if (ND_REQ_ID_SENDSMS == rpCmd->GetRequestID() ||
+                ND_REQ_ID_SENDSMSEXPECTMORE == rpCmd->GetRequestID())
+            {
+                
+                UINT32 uiBytesWritten = 0;
+                BYTE szATCmd[] = "\x1b\r";
+                WriteToPort(szATCmd, strlen(szATCmd), uiBytesWritten);
+            }
+            else
+            {
+                UINT32 uiBytesWritten = 0;
+                BYTE szATCmd[] = "ATE0V1\r";
+                WriteToPort(szATCmd, strlen(szATCmd), uiBytesWritten);
+            }
+            CResponse *pRspTemp = NULL;
+            RIL_RESULT_CODE resTmp = ReadQueue(pRspTemp, 500); //  wait 0.5 seconds for response
+            delete pRspTemp;
+            
+            
             goto Error;
         }
         else if (RIL_E_SUCCESS != resCode)
@@ -629,9 +681,9 @@ BOOL CChannel::ProcessResponse(CResponse*& rpResponse)
             //  Make sure the command thread is listening for a response in proper state.
             //  Sometimes, the Rx Queue IsEmpty() is TRUE, but we enqueue and signal just before
             //  the RxQueueEvent Reset gets called in CChannel::ReadQueue().
-            const unsigned int dwSleep = 75;
+            //const unsigned int dwSleep = 75;
             //RIL_LOG_INFO("CChannel::ProcessResponse() - BEGIN SLEEP %u\r\n", dwSleep);
-            Sleep(dwSleep);
+            //Sleep(dwSleep);
             //RIL_LOG_INFO("CChannel::ProcessResponse() - END SLEEP %u\r\n", dwSleep);
             
             //RIL_LOG_INFO("CChannel::ProcessResponse() - Enqueue response  resultcode=[%d]\r\n", rpResponse->GetResultCode() );
@@ -680,10 +732,11 @@ RIL_RESULT_CODE CChannel::ReadQueue(CResponse*& rpResponse, UINT32 uiTimeout)
 
     if (g_pRxQueue[m_uiRilChannel]->IsEmpty())
     {
+        CEvent *rgpEvents[] = {g_RxQueueEvent[m_uiRilChannel], m_pSystemManager->GetCancelEvent()};
+
         // wait for response
         //RIL_LOG_INFO("CChannel::ReadQueue() - QUEUE EMPTY, WAITING FOR RxQueueEvent...\r\n");
-        CEvent::Reset(g_RxQueueEvent[m_uiRilChannel]);
-        CEvent *rgpEvents[] = {g_RxQueueEvent[m_uiRilChannel], m_pSystemManager->GetCancelEvent()};
+        //CEvent::Reset(g_RxQueueEvent[m_uiRilChannel]);
         UINT32 uiRet = CEvent::WaitForAnyEvent(2, rgpEvents, uiTimeout);
         //CEvent::Reset(g_RxQueueEvent[m_uiRilChannel]);
         switch(uiRet)
@@ -730,6 +783,10 @@ RIL_RESULT_CODE CChannel::ReadQueue(CResponse*& rpResponse, UINT32 uiTimeout)
     {
         RIL_LOG_CRITICAL("CChannel::ReadQueue() : ERROR : Dequeue failed\r\n", m_uiRilChannel);
         goto Error;
+    }
+    else
+    {
+        CEvent::Reset(g_RxQueueEvent[m_uiRilChannel]);
     }
     //RIL_LOG_INFO("CChannel::ReadQueue() : chnl=[%d] g_RxQueue Dequeue END\r\n", m_uiRilChannel);
 

@@ -35,8 +35,23 @@ public:
     CTE_INF_N721();
     virtual ~CTE_INF_N721();
 
+private:
+    int m_nCurrentNetworkType;
+    
+protected:
+    char m_szNetworkInterfaceName[MAX_BUFFER_SIZE];
+    
+    //  Locally store CPIN2 query result for SIM_IO
+    char m_szCPIN2Result[MAX_BUFFER_SIZE];
+    
+    CEvent *m_pQueryPIN2Event;
+
 public:
     // modem overrides
+    
+    // RIL_REQUEST_GET_SIM_STATUS 1
+    virtual RIL_RESULT_CODE CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseGetSimStatus(RESPONSE_DATA & rRspData);
     
     // RIL_REQUEST_SIGNAL_STRENGTH 19
     //virtual RIL_RESULT_CODE ParseSignalStrength(RESPONSE_DATA & rRspData);
@@ -46,18 +61,12 @@ public:
     virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA & rRspData);
     
     // RIL_REQUEST_SIM_IO 28
+    virtual RIL_RESULT_CODE CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimIo(RESPONSE_DATA & rRspData);
     
-    // RIL_REQUEST_SEND_USSD 29
-    virtual RIL_RESULT_CODE ParseSendUssd(RESPONSE_DATA & rRspData);    
-
     // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
     virtual RIL_RESULT_CODE CoreDeactivateDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDeactivateDataCall(RESPONSE_DATA & rRspData);
-    
-    // RIL_REQUEST_SET_MUTE 53
-    virtual RIL_RESULT_CODE CoreSetMute(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSetMute(RESPONSE_DATA & rRspData);
     
     // RIL_REQUEST_OEM_HOOK_RAW 59
     virtual RIL_RESULT_CODE CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
@@ -116,7 +125,12 @@ public:
     // internal response handlers
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
 
 };
+
+//  Call these functions to set up data and bring down data.
+BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2);
+BOOL DataConfigDown();
 
 #endif

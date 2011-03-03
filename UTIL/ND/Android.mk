@@ -1,6 +1,7 @@
 #
 # Copyright 2010 Intrinsyc Software International, Inc.  All rights reserved.
 #
+
 ifneq (,$(findstring $(CUSTOM_BOARD),mrst_edv mfld_cdk mfld_pr1))
 
 LOCAL_PATH:= $(call my-dir)
@@ -32,7 +33,7 @@ LOCAL_PRELINK_MODULE := false
 LOCAL_STRIP_MODULE := true
 LOCAL_CFLAGS += -DRIL_SHLIB -Os
 LOCAL_MODULE:= librapid-ril-util
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS:= optional
 include $(BUILD_SHARED_LIBRARY)
 
 endif

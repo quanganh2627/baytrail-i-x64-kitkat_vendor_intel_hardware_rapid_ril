@@ -156,6 +156,9 @@ const char * g_szRequestNames[] =
     "SetSmscAddress",                       // ND_REQ_ID_SETSMSCADDRESS
     "ReportSmsMemoryStatus",                // ND_REQ_ID_REPORTSMSMEMORYSTATUS
     "ReportStkServiceIsRunning",            // ND_REQ_ID_REPORTSTKSERVICEISRUNNING
+    "GetIPAddress",                         // ND_REQ_ID_GETIPADDRESS
+    "GetDNS"                                // ND_REQ_ID_GETDNS
+
 };
 
 /////////////////////////////////////////////////
@@ -192,6 +195,8 @@ const char   g_szMaxInitRetries[]              = "MaxInitRetries";
 const char   g_szDataModeCmdDelay[]            = "DataModeCmdDelay";
 const char   g_szDataModeMaxTimeWithoutCmd[]   = "DataModeMaxTimeWithoutCmd";
 const char   g_szDefaultCmdRetries[]           = "DefaultCmdRetries";
+const char   g_szRadioOnDelay[]                = "RadioOnDelay";
+const char   g_szRadioOffDelay[]               = "RadioOffDelay";
 
 /////////////////////////////////////////////////
 
@@ -266,6 +271,7 @@ const char   g_szInitializeSimPhonebookTimeout[]= "PhonebookQueryTimeout";
 const char   g_szGroupModem[]                   = "Modem";
 
 const char   g_szSupportedModem[]               = "SupportedModem";
+const char   g_szNetworkInterfaceName[]         = "NetworkInterfaceName";
 
 /////////////////////////////////////////////////
 

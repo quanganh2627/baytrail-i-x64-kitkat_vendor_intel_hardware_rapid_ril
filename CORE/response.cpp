@@ -45,8 +45,8 @@ const BYTE* pszSMSResponse   = "> ";
 const BYTE* pszCMEError      = "+CME ERROR: ";
 const BYTE* pszCMSError      = "+CMS ERROR: ";
 const BYTE* pszConnectResponse = "CONNECT";
-
-const int   MAX_RESPONSE_TOKEN_LEN = 10;
+const BYTE* pszNoCarrierResponse = "NO CARRIER";
+const BYTE* pszAborted       = "ABORTED";
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -99,10 +99,6 @@ BOOL CResponse::IsCompleteResponse()
         {
             bRet = TRUE;
         }
-        else if (IsCorruptResponse())
-        {
-            bRet = TRUE;
-        }
         else if (IsOkResponse())
         {
             bRet = TRUE;
@@ -112,6 +108,18 @@ BOOL CResponse::IsCompleteResponse()
             bRet = TRUE;
         }
         else if (IsConnectResponse())
+        {
+            bRet = TRUE;
+        }
+        else if (IsNoCarrierResponse())
+        {
+            bRet = TRUE;
+        }
+        else if (IsAbortedResponse())
+        {
+            bRet = TRUE;
+        }
+        else if (IsCorruptResponse())
         {
             bRet = TRUE;
         }
@@ -218,6 +226,7 @@ Error:
 BOOL CResponse::IsCorruptResponse()
 {
     BOOL bRet = FALSE;
+    const BYTE *szDummy = NULL;
 
     RIL_LOG_VERBOSE("CResponse::IsCorruptResponse() : Enter\r\n");
     
@@ -231,12 +240,19 @@ BOOL CResponse::IsCorruptResponse()
         if (FindAndSkipString(szPointer, "\r", szPointer))
         {
             // if the CR is followed by a LF, then consume that, too.
-            (void) SkipString(szPointer, "\n", szPointer);
+            if (SkipString(szPointer, "\n", szPointer))
+            {
+                //  If next item is \r, then stop here
+                if (SkipString(szPointer+1, "\r", szDummy))
+                {
+                    
     
-            // treat as unrecognized
-            SetUnrecognizedFlag(TRUE);
-            m_uiResponseEndMarker = szPointer - m_szBuffer;
-            bRet = TRUE;
+                    // treat as unrecognized
+                    SetUnrecognizedFlag(TRUE);
+                    m_uiResponseEndMarker = szPointer - m_szBuffer;
+                    bRet = TRUE;
+                }
+            }
         }
     }
 
@@ -251,7 +267,7 @@ BOOL CResponse::IsCorruptResponse()
 BOOL CResponse::IsOkResponse()
 {
     const BYTE* szPointer = m_szBuffer;
-    BYTE szToken[MAX_RESPONSE_TOKEN_LEN];
+    BYTE szToken[MAX_BUFFER_SIZE] = {0};
     BOOL bRet;
 
     RIL_LOG_VERBOSE("CResponse::IsOkResponse() : Enter\r\n");
@@ -287,7 +303,7 @@ Error:
 BOOL CResponse::IsErrorResponse()
 {
     const BYTE* szPointer = m_szBuffer;
-    BYTE szToken[MAX_RESPONSE_TOKEN_LEN];
+    BYTE szToken[MAX_BUFFER_SIZE] = {0};
     BOOL bRet = FALSE;
 
     RIL_LOG_VERBOSE("CResponse::IsErrorResponse() : Enter\r\n");
@@ -318,13 +334,13 @@ Error:
 BOOL CResponse::IsConnectResponse()
 {
     const BYTE* szPointer = m_szBuffer;
-    BYTE szToken[MAX_RESPONSE_TOKEN_LEN];
+    BYTE szToken[MAX_BUFFER_SIZE] = {0};
     BOOL bRet;
 
     RIL_LOG_VERBOSE("CResponse::IsConnectResponse() : Enter\r\n");
 
     // look for "CONNECT" in response data
-    sprintf(szToken, "%s%s", g_szNewLine, pszConnectResponse);
+    sprintf(szToken, "%s%s%s", g_szNewLine, pszConnectResponse, g_szNewLine);
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
     if (bRet)
@@ -338,6 +354,63 @@ Error:
     RIL_LOG_VERBOSE("CResponse::IsConnectResponse() : Exit [%d]\r\n", bRet);
     return bRet;
 }
+
+//
+//
+//
+BOOL CResponse::IsNoCarrierResponse()
+{
+    const BYTE* szPointer = m_szBuffer;
+    BYTE szToken[MAX_BUFFER_SIZE] = {0};
+    BOOL bRet;
+
+    RIL_LOG_VERBOSE("CResponse::IsNoCarrierResponse() : Enter\r\n");
+
+    // look for "NO CARRIER" in response data
+    sprintf(szToken, "%s%s%s", g_szNewLine, pszNoCarrierResponse, g_szNewLine);
+    bRet = FindAndSkipString(szPointer, szToken, szPointer);
+
+    if (bRet)
+    {
+        SetUnsolicitedFlag(FALSE);
+        m_uiResponseEndMarker = szPointer - m_szBuffer;
+        m_uiResultCode = RIL_E_SUCCESS;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CResponse::IsNoCarrierResponse() : Exit [%d]\r\n", bRet);
+    return bRet;
+}
+
+
+//
+//
+//
+BOOL CResponse::IsAbortedResponse()
+{
+    const BYTE* szPointer = m_szBuffer;
+    BYTE szToken[MAX_BUFFER_SIZE] = {0};
+    BOOL bRet;
+
+    RIL_LOG_VERBOSE("CResponse::IsAbortedResponse() : Enter\r\n");
+
+    // look for "ABORTED" in response data
+    sprintf(szToken, "%s%s%s", g_szNewLine, pszAborted, g_szNewLine);
+    bRet = FindAndSkipString(szPointer, szToken, szPointer);
+
+    if (bRet)
+    {
+        SetUnsolicitedFlag(FALSE);
+        m_uiResponseEndMarker = szPointer - m_szBuffer;
+        m_uiResultCode = RIL_E_SUCCESS;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CResponse::IsAbortedResponse() : Exit [%d]\r\n", bRet);
+    return bRet;
+}
+
+
 
 //
 //

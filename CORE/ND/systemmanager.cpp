@@ -39,8 +39,10 @@
 #include "cmdcontext.h"
 #include "rilchannels.h"
 #include "channel_atcmd.h"
-#include "channel_sim.h"
 #include "channel_data.h"
+#include "channel_DLC2.h"
+#include "channel_DLC6.h"
+#include "channel_DLC8.h"
 #include "response.h"
 #include "repository.h"
 #include "te.h"
@@ -607,11 +609,17 @@ CChannel* CSystemManager::CreateChannel(UINT32 eIndex)
             pChannel = new CChannel_ATCmd(eIndex); 
             break;
 
-#ifdef RIL_ENABLE_CHANNEL_SIM
-        case RIL_CHANNEL_SIM:
-            pChannel = new CChannel_SIM(eIndex);
+        case RIL_CHANNEL_DLC2:
+            pChannel = new CChannel_DLC2(eIndex);
             break;
-#endif // RIL_ENABLE_CHANNEL_SIM
+        
+        case RIL_CHANNEL_DLC6:
+            pChannel = new CChannel_DLC6(eIndex);
+            break;
+            
+        case RIL_CHANNEL_DLC8:
+            pChannel = new CChannel_DLC8(eIndex);
+            break;
 
         default:
             if (eIndex >= RIL_CHANNEL_DATA1) {
@@ -1102,7 +1110,7 @@ BOOL CSystemManager::QuerySimPin(BOOL& bSimLockEnabled)
         memset(&reqInfo, 0, sizeof(reqInfo));
         GetRequestInfo(reqID, reqInfo);
 
-        CCommand * pCmd = new CCommand(RIL_CHANNEL_SIM, NULL,
+        CCommand * pCmd = new CCommand(RIL_CHANNEL_DLC8, NULL,
                                        reqID,
                                        "AT+CPIN?\r",
                                        &CTE::ParseGetSimStatus);
@@ -1218,7 +1226,7 @@ BOOL CSystemManager::InitializeSimSms()
     {
         // queue SMS command
         memset(&reqData, 0, sizeof(REQUEST_DATA));
-        CCommand* pCmd = new CCommand(RIL_CHANNEL_SIM,
+        CCommand* pCmd = new CCommand(RIL_CHANNEL_DLC6,
                                       NULL,
                                       ND_REQ_ID_NONE,
                                       "AT+CSMS=1\r");
@@ -1242,7 +1250,7 @@ BOOL CSystemManager::InitializeSimSms()
         // set the MO SMS to Circuit switched preferred.
         memset(&reqData, 0, sizeof(REQUEST_DATA));
         
-        pCmd = new CCommand(RIL_CHANNEL_SIM,
+        pCmd = new CCommand(RIL_CHANNEL_DLC6,
                             NULL,
                             ND_REQ_ID_NONE,
                             "AT+CGSMS=3\r");
@@ -1266,7 +1274,7 @@ BOOL CSystemManager::InitializeSimSms()
         RIL_LOG_INFO("InitializeSimSms() : Sending CNMI request\r\n");
         memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-        pCmd = new CCommand(RIL_CHANNEL_SIM,
+        pCmd = new CCommand(RIL_CHANNEL_DLC6,
                             NULL,
                             ND_REQ_ID_NONE,
                             szCmd);
@@ -1332,7 +1340,7 @@ BOOL CSystemManager::InitializeSimSTK()
     RIL_LOG_VERBOSE("InitializeSimSTK() : Enter\r\n");
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    CCommand* pCmd = new CCommand(RIL_CHANNEL_SIM,
+    CCommand* pCmd = new CCommand(RIL_CHANNEL_DLC8,
                                   NULL,
                                   ND_REQ_ID_NONE,
                                   "AT+CFUN=6\r");
@@ -1395,7 +1403,7 @@ BOOL CSystemManager::InitializeSimPhonebook()
             goto Done;
         }
 
-        CCommand* pCmd = new CCommand(RIL_CHANNEL_SIM,
+        CCommand* pCmd = new CCommand(RIL_CHANNEL_DLC8,
                                       NULL,
                                       ND_REQ_ID_NONE,
                                       "AT+CPBS=\"SM\";+CPBR=?\r");

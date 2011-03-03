@@ -26,24 +26,35 @@
 
 #pragma once
 
+#include "request_id.h"
+
 //  List channels here (one per COM port)
 
 // TODO - this should be read from repository? Set to 1 in the case
 // where there is only a single ATCMD channel and no data channels.
-#define RIL_CHANNEL_MAX 2   // Just use 2 channels for initial test
+#define RIL_CHANNEL_MAX 5   // Just use 2 channels for initial test
 
+//  Call control commands, misc commands
 #define RIL_CHANNEL_ATCMD 0
 
-#ifdef RIL_ENABLE_CHANNEL_SIM
-#define RIL_CHANNEL_SIM    (RIL_CHANNEL_ATCMD + 1)
-#else
-#define RIL_CHANNEL_SIM    RIL_CHANNEL_ATCMD
-#endif // RIL_ENABLE_CHANNEL_SIM
+//  GPRS/UMTS management (GPRS attach/detach), network commands
+#define RIL_CHANNEL_DLC2 1
 
-#define RIL_CHANNEL_DATA1    (RIL_CHANNEL_SIM + 1)
+//  Call settings, SMS, supplementary services
+#define RIL_CHANNEL_DLC6 2
+
+//  SIM related functions, SIM toolkit
+#define RIL_CHANNEL_DLC8 3
+
+//  GPRS/UMTS data (1st primary context)
+#define RIL_CHANNEL_DATA1 4
+
 
 // TODO - currently allow up to one reserved channel (e.g., for direct audio use).
 // Set this to -1 or a number greater than RIL_CHANNEL_MAX if there is no reserved channel
-#define RIL_CHANNEL_RESERVED 3
+#define RIL_CHANNEL_RESERVED 555
 
+
+//  Channel mapping array
+extern UINT32 g_arChannelMapping[REQ_ID_TOTAL];
 

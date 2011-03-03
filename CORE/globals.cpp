@@ -33,7 +33,7 @@ const UINT32 TIMEOUT_CMD_ONLINE             (10000);
 const UINT32 TIMEOUT_API_DEFAULT            (10000);
 const UINT32 TIMEOUT_DTRDROP                ( 5000);
 const UINT32 TIMEOUT_WAITFORINIT            (20000);
-const UINT32 DEFAULT_CMD_RETRIES            (    3);
+const UINT32 DEFAULT_CMD_RETRIES            (    2);
 const UINT32 TIMEOUT_CHNL_INIT              (10000);
 
 ///////////////////////////////////////////////////////////////////////////////

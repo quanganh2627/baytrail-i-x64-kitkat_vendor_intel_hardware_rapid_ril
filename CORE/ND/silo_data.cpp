@@ -24,6 +24,8 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
+#include <stdio.h>
+
 #include "types.h"
 #include "rillog.h"
 #include "channel_nd.h"
@@ -31,6 +33,9 @@
 #include "extract.h"
 #include "silo_data.h"
 #include "channel_data.h"
+#include "te_inf_n721.h"
+#include "rildmain.h"
+#include "callbacks.h"
 
 //
 //
@@ -44,10 +49,11 @@ CSilo_Data::CSilo_Data(CChannel *pChannel)
     {
 //        { "+++3"     , (PFN_ATRSP_PARSE)&CSilo_Data::ParseTriplePlus   },
 //        { "CONNECT"  , (PFN_ATRSP_PARSE)&CSilo_Data::ParseConnect      },
-//        { "NO CARRIER"  , (PFN_ATRSP_PARSE)&CSilo_Data::ParseNoCarrier },
+        { "NO CARRIER"  , (PFN_ATRSP_PARSE)&CSilo_Data::ParseNoCarrier },
         { "+XCIEV: "      , (PFN_ATRSP_PARSE)&CSilo_Data::ParseUnrecognized },
         { "+XCIEV:"      , (PFN_ATRSP_PARSE)&CSilo_Data::ParseUnrecognized },
         { "RING"         , (PFN_ATRSP_PARSE)&CSilo_Data::ParseUnrecognized },
+        { "+XCGEDPAGE:" , (PFN_ATRSP_PARSE)&CSilo_Data::ParseXCGEDPAGE    },
         { ""         , (PFN_ATRSP_PARSE)&CSilo_Data::ParseNULL         }
     };
 
@@ -84,7 +90,11 @@ BOOL CSilo_Data::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, B
         if (pDataChannel)
         {
             //  Reset the CID on this data channel to 0.  Free up channel for future use.
+            RIL_LOG_INFO("CSilo_Data::PostParseResponseHook - Setting chnl=[%d] to CID=[0]\r\n", uiChannel);
             pDataChannel->SetContextID(0);
+            
+            //  Release network interface
+            DataConfigDown();
         }
     }
 
@@ -137,10 +147,12 @@ Error:
 //
 BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPointer)
 {
-    RIL_LOG_VERBOSE("CSilo_Data::ParseNoCarrier() - Enter\r\n");
+    RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Enter\r\n");
 
     const BYTE* szDummy;
     BOOL fRet = FALSE;
+    
+    CChannel_Data* pDataChannel = NULL;
 
     if (pResponse == NULL)
     {
@@ -155,17 +167,64 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPoin
         goto Error;
     }
 
-    // TODO: this should not send the notification here, a GetDataCallList should
-    // be queued to get the current list of APNs
-    RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() : TODO: Queue a GetDataCallList request\r\n");
-
     pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_DATA_CALL_LIST_CHANGED);
+    //pResponse->SetResultCode(RIL_UNSOL_DATA_CALL_LIST_CHANGED);
+    //RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Called timed callback  START\r\n");
+    //RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
+    //RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Called timed callback  END\r\n");    
+    
+    
+    // Free this channel's context ID.
+    pDataChannel = CChannel_Data::GetChnlFromRilChannelNumber(m_pChannel->GetRilChannel());
+    pDataChannel->SetContextID(0);
+    RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() : setting chnl=[%d] to have ContextID of 0\r\n", m_pChannel->GetRilChannel());
+
+    //  Release network interface
+    DataConfigDown();
+    
     fRet = TRUE;
 
 Error:
-    RIL_LOG_VERBOSE("CSilo_Data::ParseNoCarrier() - Exit\r\n");
+    RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Exit\r\n");
     return fRet;
 }
 
+//
+//
+BOOL CSilo_Data::ParseXCGEDPAGE(CResponse *const pResponse, const BYTE* &rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Data::ParseXCGEDPAGE() - Enter\r\n");
+    
+    BOOL bRet = FALSE;
+    
+    char szTemp[20] = {0};
+
+    
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_Data::ParseXCGEDPAGE() - Error: pResponse is NULL\r\n");
+        goto Error;
+    }
+    
+    // Look for a "<postfix>OK<postfix>"
+    sprintf(szTemp, "%sOK%s", g_szNewLine, g_szNewLine);
+    if (!FindAndSkipRspEnd(rszPointer, szTemp, rszPointer))
+    {
+        // This isn't a complete registration notification -- no need to parse it
+        goto Error;
+    }
+    
+
+    //  Back up over the "\r\n".
+    rszPointer -= strlen(g_szNewLine);
+
+    //  Flag as unrecognized.
+    pResponse->SetUnrecognizedFlag(TRUE);
+
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CSilo_Data::ParseXCGEDPAGE() - Exit\r\n");
+    return bRet;
+}
 

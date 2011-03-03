@@ -44,7 +44,7 @@ void notifySIMStatusChanged(void *param)
 
 void triggerSignalStrength(void *param)
 {
-    CCommand * pCmd = new CCommand(RIL_CHANNEL_ATCMD, NULL, REQ_ID_NONE, "AT+CSQ\r", &CTE::ParseUnsolicitedSignalStrength);
+    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIGNALSTRENGTH], NULL, REQ_ID_NONE, "AT+CSQ\r", &CTE::ParseUnsolicitedSignalStrength);
     
     if (pCmd)
     {
@@ -63,7 +63,7 @@ void triggerSignalStrength(void *param)
 
 void triggerSMSAck(void *param)
 {
-    CCommand * pCmd = new CCommand(RIL_CHANNEL_ATCMD, NULL, REQ_ID_NONE, "AT+CNMA=1\r");
+    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SMSACKNOWLEDGE], NULL, REQ_ID_NONE, "AT+CNMA=1\r");
     
     if (pCmd)
     {
@@ -89,4 +89,22 @@ void triggerUSSDNotification(void *param)
     free(pUssdStatus);
 }
 
+void triggerDataCallListChanged(void *param)
+{
+    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_PDPCONTEXTLIST], NULL, REQ_ID_NONE, "AT+CGACT?;+CGDCONT?\r", &CTE::ParseDataCallListChanged);
+    
+    if (pCmd)
+    {
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("triggerDataCallListChanged() - ERROR: Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("triggerDataCallListChanged() - ERROR: Unable to allocate memory for new command!\r\n");
+    }
+}
 

@@ -29,10 +29,10 @@
 
 //  Com init strings for this channel.
 
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|S0=0|+CMEE=1",  0};
-INITSTRING_DATA ATCmdUnlockInitString   = { "+XRAT=1,2|+CRC=1|+CR=1", 0 };
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|S0=0|+CMEE=1|+XCALLSTAT=1",  0};
+INITSTRING_DATA ATCmdUnlockInitString   = { "+CRC=1|+CR=1", 0 };
 INITSTRING_DATA ATCmdPowerOnInitString  = { "", 0 };
-INITSTRING_DATA ATCmdReadyInitString    = { "+CSSN=1,1|+CMGF=0|+CCWA=1|+CUSD=1|+CTZU=1|+CTZR=1|+XCALLSTAT=1|+XREG=1|+CREG=2|+CGREG=2", 0 };
+INITSTRING_DATA ATCmdReadyInitString    = { "", 0 };
 
 CChannel_ATCmd::CChannel_ATCmd(UINT32 uiChannel)
 : CChannel(uiChannel)
@@ -84,13 +84,12 @@ BOOL CChannel_ATCmd::AddSilos()
     RIL_LOG_VERBOSE("CChannel_ATCmd::AddSilos() - Enter\r\n");
     BOOL bRet = FALSE;
 
-    //  ATCmd channel contains 6 silos:
+    //  ATCmd channel contains 5 silos:
     //     Voice Silo
     //     Network Silo
     //     SMS Silo
     //     Phonebook Silo
     //     SIM Silo
-    //     Data Silo
     CSilo *pSilo = NULL;
 
 
@@ -115,7 +114,6 @@ BOOL CChannel_ATCmd::AddSilos()
         goto Error;
     }
 
-#ifndef RIL_ENABLE_CHANNEL_SIM
     pSilo = CSilo_Factory::GetSiloSIM(this);
     if (!pSilo || !AddSilo(pSilo))
     {
@@ -127,14 +125,6 @@ BOOL CChannel_ATCmd::AddSilos()
     if (!pSilo || !AddSilo(pSilo))
     {
         RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
-        goto Error;
-    }
-#endif // RIL_ENABLE_CHANNEL_SIM
-
-    pSilo = CSilo_Factory::GetSiloData(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Data\r\n", m_uiRilChannel);
         goto Error;
     }
 

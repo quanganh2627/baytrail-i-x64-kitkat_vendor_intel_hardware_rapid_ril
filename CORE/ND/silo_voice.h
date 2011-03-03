@@ -84,6 +84,10 @@ protected:
     virtual BOOL    ParseDISCONNECT(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseIndicatorEvent(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseXCALLSTAT(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseBusy(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseNoAnswer(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseCTMCall(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseNoCTMCall(CResponse* const pResponse, const BYTE*& rszPointer);
 };
 
 #endif // RRIL_SILO_VOICE_H

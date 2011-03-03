@@ -364,44 +364,6 @@ UINT32 CChannelBase::CommandThread()
             }
         }
 
-#if 0
-        // if we have yet to complete the init process, allow only high priority commands at this stage
-        //if (RADIO_STATE_SIM_LOCKED_OR_ABSENT != g_RadioState.GetRadioState() )
-        //{
-            if (CSystemManager::GetInstance().BlockNonHighPriorityCmds())
-            {
-                // check if the front element is a high priority command
-                if (!g_pTxQueue[m_uiRilChannel]->GetFront(pCmd))
-                {
-                    //RIL_LOG_INFO("CChannelBase::CommandThread() : TxQueue is empty!\r\n");
-                    if (!WaitForCommand())
-                    {
-                        RIL_LOG_CRITICAL("CChannelBase::CommandThread() : WaitForCommand returns False, exiting\r\n");
-                        break;
-                    }
-                    //continue;
-                }
-                else if (pCmd && 
-                    !pCmd->IsHighPriority())
-                {
-                    //RIL_LOG_INFO("CChannelBase::CommandThread() : Non high priority command in front of queue, wait\r\n");
-
-                    if (!WaitForCommand())
-                    {
-                        RIL_LOG_CRITICAL("CChannelBase::CommandThread() : WaitForCommand returns False, exiting\r\n");
-                        break;
-                    }
-                    //continue;
-                }
-            }
-        //}
-        //else
-        //{
-        //   // We're SIM locked or SIM absent.
-        //    RIL_LOG_INFO("CChannelBase::CommandThread() : SIM locked or absent!\r\n");
-        //}
-#endif // 0
-
         //RIL_LOG_INFO("CChannelBase::CommandThread() : Getting command  DEQUEUE BEGIN\r\n");
         if (!g_pTxQueue[m_uiRilChannel]->Dequeue(pCmd))
         {
@@ -471,7 +433,6 @@ BOOL CChannelBase::WaitForCommand()
     //RIL_LOG_INFO("CChannelBase::WaitForCommand() - WAITING FOR TxQueue EVENT...\r\n");
     CEvent::Reset(g_TxQueueEvent[m_uiRilChannel]);
     UINT32 uiRet = CEvent::WaitForAnyEvent(2, rpEvents, WAIT_FOREVER);
-
     
     //RIL_LOG_INFO("CChannelBase::WaitForCommand() - Got TxQueue event!\r\n");
     
@@ -584,28 +545,31 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         {
             bLastCmd = TRUE;
         }
-
-        // Send the command
-        (void)PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT%s\r", pszStart);
-        pCmd = new CCommand(m_uiRilChannel,
-                            0,
-                            REQ_ID_NONE,
-                            szCmd);
         
-        if (pCmd)
+        if ('\0' != pszStart[0])
         {
-            CContext* pContext = new CContextInitString(eInitIndex, m_uiRilChannel, bLastCmd);
-            pCmd->SetContext(pContext);
-            pCmd->SetTimeout(TIMEOUT_INITIALIZATION_COMMAND);
-            pCmd->SetHighPriority();
-        }
+            // Send the command
+            (void)PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT%s\r", pszStart);
+            pCmd = new CCommand(m_uiRilChannel,
+                                0,
+                                REQ_ID_NONE,
+                                szCmd);
+            
+            if (pCmd)
+            {
+                CContext* pContext = new CContextInitString(eInitIndex, m_uiRilChannel, bLastCmd);
+                pCmd->SetContext(pContext);
+                pCmd->SetTimeout(TIMEOUT_INITIALIZATION_COMMAND);
+                pCmd->SetHighPriority();
+            }
 
-        if (!pCmd || !CCommand::AddCmdToQueue(pCmd))
-        {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() - ERROR: Could not queue command.\r\n");
-            goto Done;
+            if (!pCmd || !CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() - ERROR: Could not queue command.\r\n");
+                goto Done;
+            }
         }
-
+        
         // If this was the last command, get out now
         if (!pszEnd)
         {

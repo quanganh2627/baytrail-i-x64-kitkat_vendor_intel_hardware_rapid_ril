@@ -148,26 +148,28 @@ typedef struct
 //
 // Struct for reporting PDP Context List to Android
 //
-#define MAXLENGTH_PDPTYPE                           (16)    // @constdefine 16
-#define MAXLENGTH_IPADDRESS                         (16)    // @constdefine 16
 #define MAX_PDP_CONTEXTS                            ( 3)
 
 typedef struct
 {
-    RIL_Data_Call_Response* pPDPPointers[MAX_PDP_CONTEXTS];
     RIL_Data_Call_Response  pPDPData[MAX_PDP_CONTEXTS];
     char                    pTypeBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
     char                    pApnBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
     char                    pAddressBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
 } S_ND_PDP_CONTEXT_DATA, *P_ND_PDP_CONTEXT_DATA;
 
-#define CELL_ID_ARRAY_LENGTH     9
-#define MCC_DEFAULT_VALUE        65535
+//
+// Struct for reporting Neighboring Cell List to Android
+//
+#define RRIL_MAX_CELL_ID_COUNT                      (30)
+#define CELL_ID_ARRAY_LENGTH                        (9)
 
 typedef struct
 {
-    char szCellID[CELL_ID_ARRAY_LENGTH];
-} S_ND_CELL_ID_STRING, *P_ND_CELL_ID_STRING;
+    RIL_NeighboringCell*     pnCellPointers      [RRIL_MAX_CELL_ID_COUNT];
+    RIL_NeighboringCell      pnCellData          [RRIL_MAX_CELL_ID_COUNT];
+    char                     pnCellCIDBuffers    [RRIL_MAX_CELL_ID_COUNT][CELL_ID_ARRAY_LENGTH];
+} S_ND_N_CELL_DATA, *P_ND_N_CELL_DATA;
 
 
 #define REG_STATUS_LENGTH 8

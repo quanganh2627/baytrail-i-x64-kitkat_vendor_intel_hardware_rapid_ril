@@ -59,4 +59,10 @@ void triggerSMSAck(void *param);
 //
 void triggerUSSDNotification(void *param);
 
+
+//
+// Callback to get data call list
+//
+void triggerDataCallListChanged(void *param);
+
 #endif

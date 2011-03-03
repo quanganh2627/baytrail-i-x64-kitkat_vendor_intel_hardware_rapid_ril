@@ -1381,6 +1381,14 @@ long CTEOem::OEMParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData)
 }
 
 //
+// RIL_UNSOL_DATA_CALL_LIST_CHANGED  1010
+//
+long CTEOem::OEMParseDataCallListChanged(RESPONSE_DATA & rRspData)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+//
 // GET IP ADDRESS (sent interally)
 //
 long CTEOem::OEMParseIpAddress(RESPONSE_DATA & rRspData)
@@ -1395,3 +1403,12 @@ long CTEOem::OEMParseDns(RESPONSE_DATA & rRspData)
 {
     return RIL_E_REQUEST_NOT_SUPPORTED;
 }
+
+//
+// PARSE CPIN2 QUERY (sent interally)
+//
+long CTEOem::OEMParseQueryPIN2(RESPONSE_DATA & rRspData)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+

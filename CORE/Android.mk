@@ -27,7 +27,9 @@ LOCAL_SRC_FILES:= \
     channelbase.cpp \
     channel_atcmd.cpp \
     channel_data.cpp \
-    channel_sim.cpp \
+    channel_DLC2.cpp \
+    channel_DLC6.cpp \
+    channel_DLC8.cpp \
     port.cpp \
     ND/callbacks.cpp \
     ND/file_ops.cpp \
@@ -38,6 +40,7 @@ LOCAL_SRC_FILES:= \
     cmdcontext.cpp \
     command.cpp \
     globals.cpp \
+    rilchannels.cpp \
     response.cpp \
     request_info_table.cpp \
     thread_manager.cpp \
@@ -80,7 +83,7 @@ LOCAL_SHARED_LIBRARIES += librapid-ril-util librapid-ril-oem
 LOCAL_LDLIBS += -lpthread
 LOCAL_CFLAGS += -DRIL_SHLIB -Os
 LOCAL_MODULE:= librapid-ril-core
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS:= optional
 include $(BUILD_SHARED_LIBRARY)
 
 endif

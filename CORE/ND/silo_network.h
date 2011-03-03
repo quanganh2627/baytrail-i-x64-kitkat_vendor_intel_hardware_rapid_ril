@@ -68,6 +68,8 @@ protected:
     virtual BOOL    ParseCREG(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseCGREG(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseXREG(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseCGEV(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseXCGEDPAGE(CResponse* const pResponse, const BYTE*& rszPointer);
 };
 
 #endif // RRIL_SILO_NETWORK_H

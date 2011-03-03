@@ -33,14 +33,16 @@ extern BYTE* g_szDataPort1; // TODO replace this with base port name e.g., /dev/
 extern BOOL  g_bIsSocket;
 
 //  Init commands for this channel.
-INITSTRING_DATA DataBasicInitString = { "E0V1Q0X4|+CMEE=1", 0 };
+INITSTRING_DATA DataBasicInitString = { "E0V1Q0X4|S0=0|+CMEE=1", 0 };
 INITSTRING_DATA DataUnlockInitString = { "", 0 };
 INITSTRING_DATA DataPowerOnInitString = { "", 0 };
 INITSTRING_DATA DataReadyInitString = { "", 0 };
 
 CChannel_Data::CChannel_Data(UINT32 uiChannel)
 :   CChannel(uiChannel),
-    m_szIpAddr(NULL)
+    m_szIpAddr(NULL),
+    m_szDNS1(NULL),
+    m_szDNS2(NULL)
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
 
@@ -66,12 +68,15 @@ CChannel_Data::~CChannel_Data()
     delete m_pSetupDoneEvent;
     m_pSetupDoneEvent = NULL;
 
-    if (m_szIpAddr)
-    {
-        delete[] m_szIpAddr;
-        m_szIpAddr = NULL;
-    }
+    delete[] m_szIpAddr;
+    m_szIpAddr = NULL;
 
+    delete[] m_szDNS1;
+    m_szDNS1 = NULL;
+
+    delete[] m_szDNS2;
+    m_szDNS2 = NULL;
+    
     RIL_LOG_VERBOSE("CChannel_Data::~CChannel_Data() - Exit\r\n");
 }
 
