@@ -64,7 +64,8 @@ CSilo_SIM::CSilo_SIM(CChannel *pChannel)
         { "+STKCNF: "  , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseProSessionStatus },
 #else
         { "+SATI: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATI },
-        { "+SATN: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATN },        
+        { "+SATN: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATN },  
+        { "+SATF: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseTermRespConfirm },              
 #endif		
         { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
     };
@@ -621,6 +622,56 @@ Error:
     }
     
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Exit\r\n");
+    return fRet;
+}
+
+BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - Enter\r\n");
+    BOOL fRet = FALSE;
+    const char* pszEnd = NULL;	
+	UINT32 uiStatus1;
+	UINT32 uiStatus2;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() : ERROR : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    // Look for a "<postfix>" to be sure we got a whole message
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Extract "<sw1>"
+    if (!ExtractUInt(rszPointer, uiStatus1, rszPointer))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - ERROR: Could not parse sw1.\r\n");
+        goto Error;
+    }
+
+	RIL_LOG_INFO(" Status 1: %u.\r\n", uiStatus1);
+
+	// Extract "<sw2>"
+	if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
+		 (!ExtractUInt(rszPointer, uiStatus2, rszPointer)))
+	{
+		RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - ERROR: Could not parse sw2.\r\n");
+		goto Error;
+	}
+    
+    RIL_LOG_INFO(" Status 2: %u.\r\n", uiStatus2);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_STK_SESSION_END);
+
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - Exit\r\n");
     return fRet;
 }
 #endif //USE_STK_RAW_MODE

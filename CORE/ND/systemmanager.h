@@ -86,13 +86,17 @@ public:
     void            StopSimInitialization();
 
     void            GetRequestInfo(REQ_ID reqID, REQ_INFO &rReqInfo);
+    
+    //  For resetting modem
+    void            CloseChannelPorts();
+    BOOL            OpenChannelPortsOnly();
 
 private:
     // Framework Init Functions
     BOOL            CreateQueues();
     void            DeleteQueues();
     BOOL            OpenChannelPorts();
-    void            CloseChannelPorts();
+    //void            CloseChannelPorts();
     void            DeleteChannels();
     CChannel*       CreateChannel(UINT32 uiIndex);
     

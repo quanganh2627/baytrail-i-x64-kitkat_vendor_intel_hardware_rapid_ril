@@ -34,6 +34,7 @@
 #include "util.h"
 #include "rillog.h"
 #include "port.h"
+#include "rildmain.h"
 
 CPort::CPort() :
     m_fIsPortOpen(FALSE),
@@ -246,21 +247,54 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
     BOOL fRet = FALSE;
 
     // TODO : Pull these values from repository
-    const UINT32 uiRetries = 30;
-    const UINT32 uiInterval = 2000;
+    UINT32 uiRetries = 30;   //5;
+    UINT32 uiInterval = 2000;
+    UINT32 uiAttempts = 0;
     
-    //for (UINT32 uiAttempts = 0; uiAttempts < uiRetries; uiAttempts++)
-    for (;;)
+
+    while(!fRet)
     {
-        fRet = CFile::Open(m_pFile, pszFileName, FILE_ACCESS_READ_WRITE, FILE_OPEN_EXIST, FILE_OPT_NONE);
-        
-        if (fRet)
+        //for (uiAttempts = 0; uiAttempts < uiRetries; uiAttempts++)
+        for(;;)
         {
-            m_fIsPortOpen = TRUE;
-            break;
+            //if (uiAttempts > 0)
+            //{
+            //    Sleep(uiInterval);
+            //}
+            
+            RIL_LOG_INFO("CPort::OpenPort()  ATTEMPT NUMBER %d\r\n", uiAttempts);
+            fRet = CFile::Open(m_pFile, pszFileName, FILE_ACCESS_READ_WRITE, FILE_OPEN_EXIST, FILE_OPT_NONE);
+
+            if (fRet)
+            {
+                m_fIsPortOpen = TRUE;
+                break;
+            }
+            else
+            {
+				Sleep(uiInterval);
+			}
         }
         
-        Sleep(uiInterval);
+/*       
+        //  If we didn't open the port, issue critical reset
+        if (!fRet)
+        {
+            RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT after %d attempts, issuing critical reboot\r\n", uiAttempts);
+            TriggerRadioErrorAsync(eRadioError_OpenPortFailure, __LINE__, __FILE__);
+
+            Sleep(2000);
+            
+            while (g_bIsTriggerRadioError)
+            {
+                RIL_LOG_INFO("In g_bIsTriggerRadioError\r\n");
+                Sleep(250);
+            }
+
+            RIL_LOG_CRITICAL("CPort::OpenPort() ****CALLING EXIT**********\r\n");
+            exit(0);
+        }
+*/
     }
 
     RIL_LOG_VERBOSE("CPort::OpenPort() - Exit\r\n");

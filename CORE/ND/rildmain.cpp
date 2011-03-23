@@ -41,6 +41,12 @@
 #include "repository.h"
 #include "../util.h"
 #include "rildmain.h"
+#include "channel_data.h"
+
+#include <sys/ioctl.h>
+#include <include/linux/spi/ifx6x60_ioctl.h>
+#include <cutils/properties.h>
+#include <sys/system_properties.h>
 
 ///////////////////////////////////////////////////////////
 //  FUNCTION PROTOTYPES
@@ -81,6 +87,10 @@ BYTE* g_szDLC8Port = NULL;
 
 //  Global variable to see if modem is dead.  (TEMPORARY)
 BOOL g_bIsModemDead = FALSE;
+
+//  Global variable to see if we are in TriggerRadioError() function.
+//  Use this to "spoof" responses to commands while resetting modem.
+BOOL g_bIsTriggerRadioError = FALSE;
 
 
 static const RIL_RadioFunctions gs_callbacks =
@@ -557,6 +567,13 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_GET_CURRENT_CALLS:  // 9
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GET_CURRENT_CALLS\r\n");
+            if (g_bIsTriggerRadioError)
+            {
+                RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_GET_CURRENT_CALLS *********************\r\n");
+                eRetVal = RIL_E_SUCCESS;
+                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+                break;
+            }
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGetCurrentCalls(hRilToken, pData, datalen);
         }
         break;
@@ -627,6 +644,13 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_SIGNAL_STRENGTH:  // 19
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIGNAL_STRENGTH\r\n");
+            if (g_bIsTriggerRadioError)
+            {
+                RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_SIGNAL_STRENGTH *********************\r\n");
+                eRetVal = RIL_E_SUCCESS;
+                RIL_onRequestComplete(hRilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+                break;
+            }
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSignalStrength(hRilToken, pData, datalen);
         }
         break;
@@ -683,6 +707,13 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_SETUP_DATA_CALL:  // 27
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SETUP_DATA_CALL\r\n");
+            if (g_bIsTriggerRadioError)
+            {
+                RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_SETUP_DATA_CALL *********************\r\n");
+                eRetVal = RIL_E_SUCCESS;
+                RIL_onRequestComplete(hRilToken, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
+                break;
+            }
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSetupDataCall(hRilToken, pData, datalen);
         }
         break;
@@ -781,6 +812,13 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_DEACTIVATE_DATA_CALL:  // 41
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_DEACTIVATE_DATA_CALL\r\n");
+            if (g_bIsTriggerRadioError)
+            {
+                RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_DEACTIVATE_DATA_CALL *********************\r\n");
+                eRetVal = RIL_E_SUCCESS;
+                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+                break;
+            }
             eRetVal = (RIL_Errno)CTE::GetTE().RequestDeactivateDataCall(hRilToken, pData, datalen);
         }
         break;
@@ -1419,7 +1457,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M3.5 for Android 2.2 (Build Feb 18/2011)";
+    return "Intrinsyc Rapid-RIL M5.1 for Android 2.3 (Build Mar 18/2011)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};
@@ -1488,75 +1526,191 @@ Error:
     return (void*)dwRet;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////
 void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE* lpszFileName)
 {    
     RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
     RIL_LOG_CRITICAL("TriggerRadioError() - ERROR: eRadioError=%d, uiLineNum=%d, lpszFileName=%hs\r\n", (int)eRadioErrorVal, uiLineNum, lpszFileName);
     RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
 
-    BOOL bShutdownRRIL = FALSE;
-    
-    //  Is this error severe enough to shutdown RRIL completely?
-    switch(eRadioErrorVal)
+	int iTemp = 0;
+    CRepository repository;
+    if (repository.Read(g_szGroupModem, g_szDisableModemReset, iTemp))
     {
-        //  Just power off radio, power back on.  Keep RRIL alive!
-        case eRadioError_ChannelDead:
-        case eRadioError_InitFailure:
-            bShutdownRRIL = FALSE;
-            break;
-            
-        default:
-            bShutdownRRIL = TRUE;
+		if (iTemp > 0)
+		{
+			//  Don't support modem reset.  Just set global flag to error out future requests.
+			RIL_LOG_CRITICAL("MODEM RESET NOT SUPPORTED - ERROR OUT FUTURE REQUESTS\r\n");
+			g_bIsModemDead = TRUE;
+			return;
+		}
+	}
+    
+    g_bIsTriggerRadioError = TRUE;
+    
+    //  Get FD to SPI.
+    int fd_IFX0 = -1;
+    int ret = 0;
+    int ldisc = 0;
+    
+    UINT32 dwSleep = 5000;
+
+    
+#define SPIFILE "/dev/ttyIFX0"
+
+    fd_IFX0 = open(SPIFILE, O_RDONLY);
+    if (fd_IFX0 < 0)
+    {
+        RIL_LOG_CRITICAL("TriggerRadioError(): unable to open the file: %s, error: %s", SPIFILE, strerror(errno));
+        goto Error;
     }
     
-    
-    if (!bShutdownRRIL)
+    //  Clear data connection
+    //  Tell RRIL no more data connection
     {
-        //  TEMP - Flag our global variable to return ERROR for incoming requests.
-        g_bIsModemDead = TRUE;
-        return;
-        
-        // TODO: Here we should be powering off the modem, wait, then power back on.
-        
-        //  1. Power off modem
-        
-        g_RadioState.DisablePowerStateChange();
-        // We need to set the radio off first so the SIM status flags are reset
-        g_RadioState.SetRadioOff();
-        
-        //  TODO: Phyiscally power off modem here.
+        RIL_LOG_INFO("TriggerRadioError() - telling RRIL no more data\r\n");
+        extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
+        CChannel_Data* pChannelData = NULL;
+
+        for (int i = RIL_CHANNEL_DATA1; i < RIL_CHANNEL_MAX; i++)
+        {
+            if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+                continue;
+
+            CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+            if (pChannelData)
+            {
+                RIL_LOG_INFO("TriggerRadioError() - Setting chnl=[%d] contextID to 0\r\n", i);
+                pChannelData->SetContextID(0);
+            }
+        }
+    }
+    
+    //  Tell Android no more data connection
+    RIL_LOG_INFO("TriggerRadioError() - telling Android no more data\r\n");
+    RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
+    
+    RIL_LOG_INFO("TriggerRadioError() - Calling DataConfigDown()\r\n");
+    DataConfigDown();
+    
+    
+    //  If there was a voice call active, it is disconnected.
+    //  This will cause a RIL_REQUEST_GET_CURRENT_CALLS to be sent
+    RIL_LOG_INFO("TriggerRadioError() - telling Android no more voice calls\r\n");
+    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
+    
+    
+    dwSleep = 500;
+    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+    Sleep(dwSleep);
+    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
+
+	RIL_LOG_INFO("TriggerRadioError() - Closing channel ports\r\n");
+    CSystemManager::GetInstance().CloseChannelPorts();
+    
+    dwSleep = 250;
+    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+    Sleep(dwSleep);
+    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
 
 
-        //  2. Wait
-        UINT32 dwSleep = 5000;
-        RIL_LOG_CRITICAL("TriggerRadioError() - BEGIN Wait=[%d]\r\n", dwSleep);
-        Sleep(dwSleep);
-        RIL_LOG_CRITICAL("TriggerRadioError() - END Wait=[%d]\r\n", dwSleep);
+    //  Detatch the STMD
+    RIL_LOG_INFO( "TriggerRadioError() - Detach MUX ld from spi tty ()\r\n" );
 
-        
-        //  3. Power on modem
-        
-        //  TODO:  Physically power on the modem here.
-        
-        
-        g_RadioState.EnablePowerStateChange();
-        g_RadioState.SetRadioOn();
-        
-        
-        //  4. Send init string
-        CSystemManager::GetInstance().ResumeSystemFromModemReset();
+    ldisc = 0;
+    if (ioctl(fd_IFX0, TIOCSETD, &ldisc) < 0)
+    {
+        RIL_LOG_CRITICAL("TriggerRadioError() - ERROR Detach MUX TIOCSETD\r\n");
     }
     else
     {
-        //  Bring down RRIL as clean as possible!
-
-        RIL_LOG_CRITICAL("TriggerRadioError() - ERROR: Exiting RIL!\r\n");
-    
-        CSystemManager::Destroy();
-    
-        RIL_LOG_CRITICAL("TriggerRadioError() - ERROR: Calling exit(0)!\r\n");
-        exit(0);
+        RIL_LOG_CRITICAL("TriggerRadioError() - Detach MUX TIOCSETD OK\r\n");
     }
+    if (ioctl(fd_IFX0, TIOCGETD, &ldisc) < 0)
+    {
+        RIL_LOG_CRITICAL("TriggerRadioError() - ERROR Detach MUX TIOCGETD\r\n");
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("TriggerRadioError() - Detach MUX TIOCGETD OK\r\n");
+    }
+    RIL_LOG_INFO( "TriggerRadioError() - line disc: %d\r\n", ldisc );
+    
+    dwSleep = 500;
+    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+    Sleep(dwSleep);
+    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
+    
+    if (fd_IFX0 >= 0)
+    {
+        RIL_LOG_INFO("TriggerRadioError() - Closing FD_IFX0\r\n");
+        close(fd_IFX0);
+        fd_IFX0 = -1;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+    //  Try using ctrl.stop property
+    RIL_LOG_INFO("CALLING prop ctl.stop on stmd\r\n");
+    property_set("ctl.stop","stmd");
+    RIL_LOG_INFO("Done prop ctl.stop on stmd\r\n");
+    
+
+    dwSleep = 1000;
+    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+    Sleep(dwSleep);
+    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
+    
+
+    //  Try using ctrl.start property
+    RIL_LOG_INFO("CALLING prop ctl.start on ifxreset\r\n");
+    property_set("ctl.start","ifxreset_svc");
+    RIL_LOG_INFO("Done prop ctl.start on ifxreset\r\n");
+    
+    
+    dwSleep = 3000;
+    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+    Sleep(dwSleep);
+    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
+    
+    
+    //  Try using ctrl.start property
+    RIL_LOG_INFO("CALLING prop ctl.start on stmd\r\n");
+    property_set("ctl.start","stmd");
+    RIL_LOG_INFO("Done prop ctl.start on stmd\r\n");
+    
+    dwSleep = 6000;
+    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+    Sleep(dwSleep);
+    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
+
+    
+    //  If we're opening ports, don't do this.
+    if (eRadioErrorVal != eRadioError_OpenPortFailure)
+    {
+        RIL_LOG_INFO("TriggerRadioError() -Calling OpenChannelPortsOnly()\r\n");
+        CSystemManager::GetInstance().OpenChannelPortsOnly();
+        
+        Sleep(1000);
+
+        g_RadioState.SetRadioOff();
+        g_RadioState.SetRadioOn();
+    
+        //  4. Send init string
+        CSystemManager::GetInstance().ResumeSystemFromModemReset();
+    }
+
+Error:
+    if (fd_IFX0 >= 0)
+    {
+        close(fd_IFX0);
+    }
+    
+    g_bIsTriggerRadioError = FALSE;
+    
+    RIL_LOG_CRITICAL("TriggerRadioError() - EXIT\r\n");
 }
 
 typedef struct

@@ -197,6 +197,7 @@ const char   g_szDataModeMaxTimeWithoutCmd[]   = "DataModeMaxTimeWithoutCmd";
 const char   g_szDefaultCmdRetries[]           = "DefaultCmdRetries";
 const char   g_szRadioOnDelay[]                = "RadioOnDelay";
 const char   g_szRadioOffDelay[]               = "RadioOffDelay";
+const char   g_szUseUSIMAddress[]              = "UseUSIMAddress";
 
 /////////////////////////////////////////////////
 
@@ -272,6 +273,7 @@ const char   g_szGroupModem[]                   = "Modem";
 
 const char   g_szSupportedModem[]               = "SupportedModem";
 const char   g_szNetworkInterfaceName[]         = "NetworkInterfaceName";
+const char   g_szDisableModemReset[]            = "DisableModemReset";
 
 /////////////////////////////////////////////////
 

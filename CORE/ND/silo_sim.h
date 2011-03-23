@@ -69,7 +69,8 @@ protected:
     virtual BOOL    ParseProSessionStatus(CResponse* const pResponse, const BYTE*& rszPointer);
 #else    
     virtual BOOL    ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rszPointer);        
+    virtual BOOL    ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rszPointer);      
 #endif
 
 private:

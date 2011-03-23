@@ -284,7 +284,7 @@ Error:
 //
 BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BYTE*& rszPointer, BOOL const bGPRS)
 {
-	RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - Enter\r\n");
+    RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Enter\r\n");
 
     const BYTE* szDummy;
     BOOL   fRet = FALSE, fUnSolicited = FALSE;
@@ -380,7 +380,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
         goto Error;
     }
 
-    RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - uiParamCount=[%d]\r\n", uiParamCount);
+    RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - uiParamCount=[%d]\r\n", uiParamCount);
     
     // If there are 2 or 5 parameters, this is not a notification - let the
     // response handler take care of it.
@@ -396,7 +396,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
     fRet = TRUE;
 
 Error:
-    RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - Exit\r\n");
+    RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Exit\r\n");
     return fRet;
 }
 
@@ -485,6 +485,19 @@ BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const BYTE* &rszPointe
         g_uiAccessTechnology = ACT_UNKNOWN;
         break;
     }
+    
+    //  Skip to end (Medfield fix for XREG)
+    
+    // Look for a "<postfix>"
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        // This isn't a complete registration notification -- no need to parse it
+        RIL_LOG_CRITICAL("CSilo::ParseXREG() chnl=[%d] - ERROR: Failed to find postfix in the response.\r\n", m_pChannel->GetRilChannel());
+        goto Error;
+    }
+
+    //  Back up over the "\r\n".
+    rszPointer -= strlen(g_szNewLine);
     
     
     pResponse->SetUnsolicitedFlag(TRUE);

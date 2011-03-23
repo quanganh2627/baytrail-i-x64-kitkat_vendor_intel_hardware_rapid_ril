@@ -52,7 +52,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <linux/route.h>
-#include <linux/if_ether.h>
+#include <linux/if_ether.h>	// Pranav
 
 extern "C" char *hex_to_stk_at(const char *at);
 
@@ -145,9 +145,25 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetSimStatus(RESPONSE_DATA & rRspData)
             {
                 RIL_LOG_INFO("CTE_INF_N721::ParseGetSimStatus() - SIM type = %d  detected USIM\r\n", nValue);
                 
-                // [DennisP] Feb 4,2011
-                //  Comment out following line to set USIM.  Reading contacts from USIM fails.
-                //pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
+                //  Grab setting from repository
+                CRepository repository;
+                int nUseUSIMAddress = 0;
+                
+                //  Grab the network interface name
+                if (!repository.Read(g_szGroupRILSettings, g_szUseUSIMAddress, nUseUSIMAddress))
+                {
+                    RIL_LOG_CRITICAL("CCTE_INF_N721::ParseGetSimStatus() - Could not read UseUSIMAddress from repository\r\n");
+                }
+                else
+                {
+                    RIL_LOG_INFO("CTE_INF_N721::ParseGetSimStatus() - nUseUSIMAddress=[%d]\r\n", nUseUSIMAddress);
+                }
+
+                if (nUseUSIMAddress >= 1)
+                {
+                    //  Set to USIM
+                    pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
+                }
             }
             else if (0 == nValue)
             {
@@ -319,7 +335,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    char szIP[PROPERTY_VALUE_MAX];
+    char szIP[PROPERTY_VALUE_MAX] = {0};
     P_ND_SETUP_DATA_CALL pDataCallRsp = NULL;
 
 #ifdef RIL_USE_PPP
@@ -402,15 +418,16 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     pDataChannel->SetContextID(nCID);
 
 // Following code-block is moved up here from the end of this function to get if_name needed for netconfig (N_GSM)
+// But the IP address is filled in end of function.
     pDataCallRsp = (P_ND_SETUP_DATA_CALL)malloc(sizeof(S_ND_SETUP_DATA_CALL));
     sprintf(pDataCallRsp->szCID, "%d", pDataChannel->GetContextID());
     strcpy(pDataCallRsp->szNetworkInterfaceName, m_szNetworkInterfaceName);
-    strcpy(pDataCallRsp->szIPAddress, szIP);
+    //strcpy(pDataCallRsp->szIPAddress, szIP);
     pDataCallRsp->sSetupDataCallPointers.pszCID = pDataCallRsp->szCID;
     pDataCallRsp->sSetupDataCallPointers.pszNetworkInterfaceName = pDataCallRsp->szNetworkInterfaceName;
-    pDataCallRsp->sSetupDataCallPointers.pszIPAddress = pDataCallRsp->szIPAddress;
-    rRspData.pData = (void*)pDataCallRsp;
-    rRspData.uiDataSize = sizeof(S_ND_SETUP_DATA_CALL_POINTERS);
+    //pDataCallRsp->sSetupDataCallPointers.pszIPAddress = pDataCallRsp->szIPAddress;
+    //rRspData.pData = (void*)pDataCallRsp;
+    //rRspData.uiDataSize = sizeof(S_ND_SETUP_DATA_CALL_POINTERS);
 
 // N_GSM related code
 	netconfig.adaption = 3;
@@ -531,12 +548,12 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 //     pDataCallRsp = (P_ND_SETUP_DATA_CALL)malloc(sizeof(S_ND_SETUP_DATA_CALL));
 //     sprintf(pDataCallRsp->szCID, "%d", pDataChannel->GetContextID());
 //     strcpy(pDataCallRsp->szNetworkInterfaceName, m_szNetworkInterfaceName);
-//     strcpy(pDataCallRsp->szIPAddress, szIP);
+     strcpy(pDataCallRsp->szIPAddress, szIP);
 //     pDataCallRsp->sSetupDataCallPointers.pszCID = pDataCallRsp->szCID;
 //     pDataCallRsp->sSetupDataCallPointers.pszNetworkInterfaceName = pDataCallRsp->szNetworkInterfaceName;
-//     pDataCallRsp->sSetupDataCallPointers.pszIPAddress = pDataCallRsp->szIPAddress;
-//     rRspData.pData = (void*)pDataCallRsp;
-//     rRspData.uiDataSize = sizeof(S_ND_SETUP_DATA_CALL_POINTERS);
+     pDataCallRsp->sSetupDataCallPointers.pszIPAddress = pDataCallRsp->szIPAddress;
+     rRspData.pData = (void*)pDataCallRsp;
+     rRspData.uiDataSize = sizeof(S_ND_SETUP_DATA_CALL_POINTERS);
     res = RRIL_RESULT_OK;
 
 Error:
@@ -1917,29 +1934,30 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
     struct gsm_netconfig netconfig;
 	int fd=-1;
 	int ret =-1;
- 
+   
     //  Set CID to 0 for this data channel
     int nCID = 0;
     nCID = (int)rRspData.pContextData;
 
-	// N_GSM related code
     CChannel_Data* pDataChannel = CChannel_Data::GetChnlFromContextID(nCID);
     if (pDataChannel)
     {
         // Reset ContextID to 0, to free up the channel for future use
         RIL_LOG_INFO("CTE_INF_N721::ParseDeactivateDataCall() - Setting chnl=[%d] to CID=[0]\r\n", pDataChannel->GetRilChannel());
         pDataChannel->SetContextID(0);
+        
 
-		// netconfig structure
-        netconfig.adaption = 3;
-        netconfig.protocol = htons(ETH_P_IP);
+        netconfig.adaption = 3;                                         // Pranav : what is 3 ?
+        netconfig.protocol = htons(ETH_P_IP);           // Pranav
         fd = pDataChannel->GetFD();
         if (fd >= 0)
         {
-            ret = ioctl( fd, GSMIOC_DISABLE_NET, &netconfig );		// PDP Deactivation
+            ret = ioctl( fd, GSMIOC_DISABLE_NET, &netconfig );               // Pranav
         }
+
     }
 
+    
     if (!DataConfigDown())
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseDeactivateDataCall() - ERROR : Couldn't DataConfigDown\r\n");

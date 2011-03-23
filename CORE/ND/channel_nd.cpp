@@ -248,7 +248,21 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
     {
         nCount++;
         RIL_LOG_INFO("COUNT = %d\r\n", nCount);
-        if (nCount == 3 || nCount == 6)
+        if (nCount == 4)
+        {
+            TriggerRadioErrorAsync(eRadioError_ChannelDead, __LINE__, __FILE__);
+            goto Error;
+        }
+    }
+#endif // 0
+
+#if 0
+    static int nCount = 0;
+    if (ND_REQ_ID_SCREENSTATE == rpCmd->GetRequestID())
+    {
+        nCount++;
+        RIL_LOG_INFO("COUNT = %d\r\n", nCount);
+        if (nCount == 2)
         {
             TriggerRadioErrorAsync(eRadioError_ChannelDead, __LINE__, __FILE__);
             goto Error;

@@ -176,6 +176,10 @@ BOOL CFile::Open(   const char * pszFileName,
             RIL_LOG_CRITICAL("CFile::Open() : ERROR : open failed, m_file=[0x%08x], [%d]\r\n", m_file, m_file);
             goto Error;
         }
+        else
+        {
+            RIL_LOG_CRITICAL("**********CFile::Open() : m_file=[%d]\r\n", m_file);
+        }
     
         {
             termios terminalParameters;
@@ -203,6 +207,7 @@ BOOL CFile::Close()
         return FALSE;
     }
 
+    RIL_LOG_CRITICAL("**********CFile::Close() - Closing %d \r\n", m_file);
     if (0 > close(m_file))
     {
         RIL_LOG_CRITICAL("CFile::Close() : ERROR : Error when closing file\r\n");

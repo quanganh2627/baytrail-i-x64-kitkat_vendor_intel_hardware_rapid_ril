@@ -678,6 +678,21 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
         }
 #endif // 0
 
+#if 0
+		//  New for Medfield R2
+		//  There's an extra <lf> in here, skip over it.
+		// Look for a "<postfix>"
+		if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+		{
+			RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : cannot find the end postfix!!\r\n");
+			goto Error;
+		}
+		else
+		{
+			//  Back up over the "\r\n".
+			rszPointer -= strlen(g_szNewLine);
+		}
+#endif
 
         //  Allocate blob.
         pUssdStatus = (P_ND_USSD_STATUS) malloc(sizeof(S_ND_USSD_STATUS));

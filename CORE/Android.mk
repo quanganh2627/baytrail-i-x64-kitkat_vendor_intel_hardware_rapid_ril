@@ -68,6 +68,7 @@ LOCAL_CFLAGS += -DRIL_ENABLE_SIMTK
 
 LOCAL_C_INCLUDES :=  \
     $(KERNEL_HEADERS) \
+    hardware/intel/linux-2.6/ \
     $(LOCAL_PATH)/ND  \
     $(LOCAL_PATH)/ND/MODEMS  \
     $(LOCAL_PATH)/MODEMS  \

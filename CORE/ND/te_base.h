@@ -75,7 +75,7 @@ public:
     virtual RIL_RESULT_CODE ParseGetCurrentCalls(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_DIAL 10
-    virtual RIL_RESULT_CODE CoreDial(REQUEST_DATA & rReqData_pre1, REQUEST_DATA & rReqData_pre2,REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDial(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_GET_IMSI 11
@@ -196,7 +196,7 @@ public:
     virtual RIL_RESULT_CODE ParseGetImeisv(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_ANSWER 40
-    virtual RIL_RESULT_CODE CoreAnswer(REQUEST_DATA & rReqData_pre1,REQUEST_DATA & rReqData_pre2,REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize); 
+    virtual RIL_RESULT_CODE CoreAnswer(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize); 
     virtual RIL_RESULT_CODE ParseAnswer(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_DEACTIVATE_DATA_CALL 41

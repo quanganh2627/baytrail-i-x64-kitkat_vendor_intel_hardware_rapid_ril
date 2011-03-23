@@ -37,12 +37,15 @@ extern BYTE * g_szDataPort3;
 
 extern BOOL  g_bIsSocket;
 
+extern BOOL  g_bIsTriggerRadioError;
+
 enum eRadioError
 {
-    eRadioError_ForceShutdown,
-    eRadioError_LowMemory,
-    eRadioError_ChannelDead,
-    eRadioError_InitFailure
+    eRadioError_ForceShutdown = 1,
+    eRadioError_LowMemory = 2,
+    eRadioError_ChannelDead = 3,
+    eRadioError_InitFailure = 4,
+    eRadioError_OpenPortFailure = 5
 };
 
 void RIL_onRequestComplete(RIL_Token tRIL, RIL_Errno eErrNo, void *pResponse, size_t responseLen);

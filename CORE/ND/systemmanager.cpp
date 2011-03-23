@@ -678,6 +678,48 @@ Done:
     return bRet;
 }
 
+
+///////////////////////////////////////////////////////////////////////////////
+BOOL CSystemManager::OpenChannelPortsOnly()
+{
+    RIL_LOG_VERBOSE("CSystemManager::OpenChannelPortsOnly() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+
+    //  Init our array of global CChannel pointers.
+    for (int i = 0; i < RIL_CHANNEL_MAX; i++)
+    {
+        if (i == RIL_CHANNEL_RESERVED)
+            continue;
+
+        if (!g_pRilChannel[i]->OpenPort())
+        {
+            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPortsOnly : Channel[%d] OpenPort() failed\r\n", i);
+            goto Done;
+        }
+
+        if (!g_pRilChannel[i]->InitPort())
+        {
+            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPortsOnly : Channel[%d] InitPort() failed\r\n", i);
+            goto Done;
+        }        
+    }
+
+    //  We made it this far, return TRUE.
+    bRet = TRUE;
+
+Done:
+    if (!bRet)
+    {
+        //  We had an error.
+        CloseChannelPorts();
+    }
+
+    RIL_LOG_VERBOSE("CSystemManager::OpenChannelPortsOnly() - Exit\r\n");
+    return bRet;
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 void CSystemManager::CloseChannelPorts()
 {
