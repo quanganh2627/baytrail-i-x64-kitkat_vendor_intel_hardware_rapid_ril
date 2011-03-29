@@ -73,7 +73,7 @@ RIL_RadioState CRadioState::GetRadioState()
         sState = RADIO_STATE_SIM_LOCKED_OR_ABSENT;
     }
     // Radio is on and SIM is not locked!
-    else if (m_rgRadioState[RRIL_RADIO_STATE_SMS_READY] && 
+    else if (m_rgRadioState[RRIL_RADIO_STATE_SMS_READY] &&
              m_rgRadioState[RRIL_RADIO_STATE_SIM_PB_READY] &&
              m_rgRadioState[RRIL_RADIO_STATE_SIM_READY])
     {
@@ -177,7 +177,7 @@ void CRadioState::SetRadioSIMAbsent()
 
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
 }
-    
+
 
 ///////////////////////////////////////////////////////////////////////////////
 void CRadioState::SetRadioSIMUnlocked()

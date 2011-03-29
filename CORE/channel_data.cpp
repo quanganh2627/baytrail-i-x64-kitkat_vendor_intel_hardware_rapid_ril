@@ -76,7 +76,7 @@ CChannel_Data::~CChannel_Data()
 
     delete[] m_szDNS2;
     m_szDNS2 = NULL;
-    
+
     RIL_LOG_VERBOSE("CChannel_Data::~CChannel_Data() - Exit\r\n");
 }
 
@@ -88,12 +88,12 @@ BOOL CChannel_Data::OpenPort()
     RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s...\r\n", g_szDataPort1);
     RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
 
-    // TODO: Instead of using g_szDatatPort1, use channel number to create port name from 
+    // TODO: Instead of using g_szDatatPort1, use channel number to create port name from
     // the base port name + channel# + 1. E.g, data channel 1 uses port /dev/ttyGSM2
     bRetVal = m_Port.Open(g_szDataPort1, g_bIsSocket);
 
     RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
-    
+
     return bRetVal;
 }
 
@@ -141,13 +141,13 @@ BOOL CChannel_Data::AddSilos()
         RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_Data\r\n", m_uiRilChannel);
         goto Error;
     }
-    
+
     pSilo = CSilo_Factory::GetSiloPhonebook(this);
     if (!pSilo || !AddSilo(pSilo))
     {
         RIL_LOG_CRITICAL("CChannel_ATCmd::RegisterSilos : ERROR : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
         goto Error;
-    }    
+    }
 
     bRet = TRUE;
 Error:

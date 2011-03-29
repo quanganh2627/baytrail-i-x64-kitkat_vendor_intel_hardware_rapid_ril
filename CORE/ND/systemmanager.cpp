@@ -19,7 +19,7 @@
  *  United States and other jurisdictions
  *
  * Description:
- *    General utilities and system start-up and 
+ *    General utilities and system start-up and
  *    shutdown management
  *
  *  Author: Francesc J. Vilarino Guell
@@ -113,15 +113,15 @@ CSystemManager::CSystemManager()
     m_fIsSimThreadRunning(FALSE)
 {
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Enter\r\n");
-    
+
     // create mutexes
     m_pAccessorMutex = new CMutex();
-    
+
     // TODO / FIXME : Someone is locking this mutex outside of the destructor or system init functions
     //                Need to track down when time is available. Workaround for now is to call TryLock
     //                so we don't block during suspend.
     m_pSystemManagerMutex = new CMutex();
-    
+
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Exit\r\n");
 }
 
@@ -149,9 +149,9 @@ CSystemManager::~CSystemManager()
             break;
         }
     }
-    
+
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] after Lock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
- 
+
 
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before signal m_pExitRilEvent\r\n");
     // signal the cancel event to kill the thread
@@ -160,22 +160,22 @@ CSystemManager::~CSystemManager()
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before StopSimInitialization\r\n");
     //  Cancel SIM initialization if running
     StopSimInitialization();
-    
+
     Sleep(300);
-    
+
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CloseChannelPorts\r\n");
     //  Close the COM ports
     CloseChannelPorts();
-    
+
     Sleep(300);
-    
+
     //  Delete channels
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteChannels\r\n");
     // free queues
     DeleteChannels();
-    
+
     Sleep(300);
-    
+
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CThreadManager::Stop\r\n");
     CThreadManager::Stop();
 
@@ -215,14 +215,14 @@ CSystemManager::~CSystemManager()
         delete m_pModemPowerOnEvent;
         m_pModemPowerOnEvent = NULL;
     }
-    
+
     if (m_pInitStringCompleteEvent)
     {
         RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pInitStringCompleteEvent\r\n");
         delete m_pInitStringCompleteEvent;
         m_pInitStringCompleteEvent = NULL;
     }
-    
+
     if (m_pAccessorMutex)
     {
         RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pAccessorMutex\r\n");
@@ -233,7 +233,7 @@ CSystemManager::~CSystemManager()
     if (fLocked)
     {
         RIL_LOG_INFO("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] before Unlock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
-        
+
         CMutex::Unlock(m_pSystemManagerMutex);
 
         RIL_LOG_INFO("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] after Unlock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
@@ -256,7 +256,7 @@ CSystemManager::~CSystemManager()
 BOOL CSystemManager::InitializeSystem()
 {
     RIL_LOG_INFO("CSystemManager::InitializeSystem() - Enter\r\n");
-    
+
     CMutex::Lock(m_pSystemManagerMutex);
 
     CRepository repository;
@@ -387,7 +387,7 @@ BOOL CSystemManager::InitializeSystem()
             goto Done;
         }
     }
-    
+
     ResetSystemState();
 
     // Open the serial ports (and populate g_pRilChannel)
@@ -417,6 +417,12 @@ BOOL CSystemManager::InitializeSystem()
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Thread manager failed to start.\r\n");
     }
 
+    if (!CreateWatchdogThread())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't create watchdog thread!\r\n");
+        goto Done;
+    }
+
     if (!InitializeModem())
     {
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't start Modem initialization!\r\n");
@@ -426,9 +432,10 @@ BOOL CSystemManager::InitializeSystem()
     if (!InitializeSim())
     {
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't start SIM initialization!\r\n");
-        goto Done;        
+        goto Done;
     }
-    
+
+
     bRetVal = TRUE;
 
 Done:
@@ -451,13 +458,13 @@ Done:
             delete m_pModemPowerOnEvent;
             m_pModemPowerOnEvent = NULL;
         }
-        
+
         if (m_pInitStringCompleteEvent)
         {
             delete m_pInitStringCompleteEvent;
             m_pInitStringCompleteEvent = NULL;
         }
-        
+
         CThreadManager::Stop();
 
         if (m_pExitRilEvent)
@@ -494,7 +501,7 @@ BOOL CSystemManager::VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex)
             break;
         }
     }
-    
+
     return bRetVal;
 }
 
@@ -535,12 +542,12 @@ void CSystemManager::ResetChannelCompletedInit()
 void CSystemManager::ResetSystemState()
 {
     RIL_LOG_VERBOSE("CSystemManager::ResetSystemState() - Enter\r\n");
-    
+
     m_fModemUnlockInitComplete = FALSE;
     m_fSimGeneralInitComplete = FALSE;
-    
+
     ResetChannelCompletedInit();
-    
+
     RIL_LOG_VERBOSE("CSystemManager::ResetSystemState() - Exit\r\n");
 }
 
@@ -584,7 +591,7 @@ void CSystemManager::DeleteQueues()
     {
         delete g_TxQueueEvent[i];
         g_TxQueueEvent[i] = NULL;
-            
+
         delete g_pTxQueue[i];
         g_pTxQueue[i] = NULL;
 
@@ -606,17 +613,17 @@ CChannel* CSystemManager::CreateChannel(UINT32 eIndex)
     switch(eIndex)
     {
         case RIL_CHANNEL_ATCMD:
-            pChannel = new CChannel_ATCmd(eIndex); 
+            pChannel = new CChannel_ATCmd(eIndex);
             break;
 
         case RIL_CHANNEL_DLC2:
             pChannel = new CChannel_DLC2(eIndex);
             break;
-        
+
         case RIL_CHANNEL_DLC6:
             pChannel = new CChannel_DLC6(eIndex);
             break;
-            
+
         case RIL_CHANNEL_DLC8:
             pChannel = new CChannel_DLC8(eIndex);
             break;
@@ -624,7 +631,7 @@ CChannel* CSystemManager::CreateChannel(UINT32 eIndex)
         default:
             if (eIndex >= RIL_CHANNEL_DATA1) {
                 pChannel = new CChannel_Data(eIndex);
-            }       
+            }
             break;
     }
 
@@ -661,7 +668,7 @@ BOOL CSystemManager::OpenChannelPorts()
         {
             RIL_LOG_CRITICAL("CSystemManager::OpenChannelPorts : Channel[%d] InitPort() failed\r\n", i);
             goto Done;
-        }        
+        }
     }
 
     //  We made it this far, return TRUE.
@@ -702,7 +709,7 @@ BOOL CSystemManager::OpenChannelPortsOnly()
         {
             RIL_LOG_CRITICAL("CSystemManager::OpenChannelPortsOnly : Channel[%d] InitPort() failed\r\n", i);
             goto Done;
-        }        
+        }
     }
 
     //  We made it this far, return TRUE.
@@ -784,7 +791,7 @@ BOOL CSystemManager::InitializeModem()
 {
     BOOL bRetVal = TRUE;
     CThread* pModemThread = NULL;
-    
+
     if (!SendModemInitCommands(COM_BASIC_INIT_INDEX))
     {
         RIL_LOG_CRITICAL("StartModemInitializationThread() - ERROR: Unable to send basic init commands!\r\n");
@@ -859,11 +866,11 @@ void CSystemManager::StartModemInitializationThread()
                     fUnlocked = true;
                     break;
                 }
-                
+
                 case WAIT_EVENT_0_SIGNALED + 1:
                 {
                     RIL_LOG_VERBOSE("StartModemInitializationThread() - DEBUG: Power on signaled\r\n");
-                    
+
                     if (!SendModemInitCommands(COM_POWER_ON_INIT_INDEX))
                     {
                         RIL_LOG_CRITICAL("StartModemInitializationThread() - ERROR: Unable to send power on init commands!\r\n");
@@ -936,7 +943,7 @@ void CSystemManager::StartModemInitializationThread()
 
     {
         CEvent* rgpEvents[] = { m_pInitStringCompleteEvent, m_pExitRilEvent };
-        
+
         switch(CEvent::WaitForAnyEvent(2, rgpEvents, WAIT_FOREVER))
         {
             case WAIT_EVENT_0_SIGNALED:
@@ -945,7 +952,7 @@ void CSystemManager::StartModemInitializationThread()
                 goto Done;
                 break;
             }
-            
+
             case WAIT_EVENT_0_SIGNALED + 1:
             default:
             {
@@ -968,7 +975,7 @@ BOOL CSystemManager::SendModemInitCommands(eComInitIndex eInitIndex)
     for (int i = 0; i < RIL_CHANNEL_MAX; i++)
     {
         extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
-        
+
         if (g_pRilChannel[i])
         {
             if (!g_pRilChannel[i]->SendModemConfigurationCommands(eInitIndex))
@@ -986,7 +993,7 @@ BOOL CSystemManager::SendModemInitCommands(eComInitIndex eInitIndex)
 ///////////////////////////////////////////////////////////////////////////////
 void CSystemManager::StopSimInitialization()
 {
-    if (m_fIsSimThreadRunning && 
+    if (m_fIsSimThreadRunning &&
         m_pSimInitializationEvent != NULL)
     {
         // signal thread to stop
@@ -1005,7 +1012,7 @@ void* CSystemManager::StartSimInitializationThreadWrapper(void *pArg)
 BOOL CSystemManager::InitializeSim()
 {
     BOOL bRetVal = TRUE;
-    
+
     if (!m_fIsSimThreadRunning)
     {
         CThread* pSimThread = new CThread(StartSimInitializationThreadWrapper, this, THREAD_FLAGS_NONE, 0);
@@ -1067,7 +1074,7 @@ void CSystemManager::StartSimInitializationThread()
         RIL_LOG_INFO("StartSimInitializationThread() : Setting unlocked event as SIM is Ready\r\n");
         TriggerSimUnlockedEvent();
     }
-    
+
     // Query SMS status
     if (repository.Read(g_szGroupSystemReady, g_szInitializeSimSms, iVal) && (0 != iVal))
     {
@@ -1082,7 +1089,7 @@ void CSystemManager::StartSimInitializationThread()
         RIL_LOG_INFO("StartSimInitializationThread() : Skipping SMS Init\r\n");
         g_RadioState.SetRadioSMSReady();
     }
-    
+
 #ifdef RIL_ENABLE_SIMTK
     // Query STK status
     if (repository.Read(g_szGroupSystemReady, g_szInitializeSimSTK, iVal) && (0 != iVal))
@@ -1095,7 +1102,7 @@ void CSystemManager::StartSimInitializationThread()
     }
     else
     {
-        RIL_LOG_INFO("StartSimInitializationThread() : Skipping STK init\r\n");        
+        RIL_LOG_INFO("StartSimInitializationThread() : Skipping STK init\r\n");
     }
 #endif  // RIL_ENABLE_SIMTK
 
@@ -1116,9 +1123,9 @@ void CSystemManager::StartSimInitializationThread()
 
     // the SIM is now ready
     g_RadioState.SetRadioSIMReady();
-    
+
     m_fSimGeneralInitComplete = TRUE;
-    
+
 Done:
     delete m_pSimInitializationEvent;
     m_pSimInitializationEvent = NULL;
@@ -1291,7 +1298,7 @@ BOOL CSystemManager::InitializeSimSms()
 
         // set the MO SMS to Circuit switched preferred.
         memset(&reqData, 0, sizeof(REQUEST_DATA));
-        
+
         pCmd = new CCommand(RIL_CHANNEL_DLC6,
                             NULL,
                             ND_REQ_ID_NONE,
@@ -1338,7 +1345,7 @@ BOOL CSystemManager::InitializeSimSms()
             RIL_LOG_CRITICAL("InitializeSimSms() - ERROR: Unable to allocate memory for command\r\n");
             goto Done;
         }
-            
+
         // block until we get a response back
         uiWaitRes = CEvent::Wait(m_pSimInitializationEvent, g_TimeoutCmdInit);
         if (m_fAbortSimInitialization)
@@ -1438,7 +1445,7 @@ BOOL CSystemManager::InitializeSimPhonebook()
             RIL_LOG_VERBOSE("InitializeSimPhonebook() - Defaulting to 10000ms timeout\r\n");
         }
         reqData.uiTimeout = iTimeout;
-        
+
         if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CPBS=\"SM\";+CPBR=?\r", sizeof(reqData.szCmd1)))
         {
             RIL_LOG_CRITICAL("InitializeSimPhonebook() - ERROR: Unable to write command to buffer\r\n");
@@ -1506,7 +1513,7 @@ Done:
 void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIndex eInitIndex)
 {
     SetChannelCompletedInit(uiChannel, eInitIndex);
-    
+
     if (VerifyAllChannelsCompletedInit(COM_READY_INIT_INDEX))
     {
         RIL_LOG_VERBOSE("TriggerInitStringCompleteEvent() - DEBUG: All channels complete ready init!\r\n");
@@ -1542,8 +1549,8 @@ BOOL CSystemManager::BlockNonHighPriorityCmds()
     else
     {
         // Block until the minimum initialization is complete
-        RIL_LOG_VERBOSE("BlockNonHighPriorityCmds() - DEBUG: ModemUnlock=[%s]   SimInit=[%s]  returning TRUE\r\n", 
-            m_fModemUnlockInitComplete ? "TRUE" : "FALSE", 
+        RIL_LOG_VERBOSE("BlockNonHighPriorityCmds() - DEBUG: ModemUnlock=[%s]   SimInit=[%s]  returning TRUE\r\n",
+            m_fModemUnlockInitComplete ? "TRUE" : "FALSE",
             m_fSimGeneralInitComplete ? "TRUE" : "FALSE");
 
         return true;
@@ -1558,23 +1565,23 @@ BOOL CSystemManager::ResumeSystemFromFlightMode()
 BOOL CSystemManager::ResumeSystemFromModemReset()
 {
     RIL_LOG_INFO("CSystemManager::ResumeSystemFromModemReset - ENTER\r\n");
-    
+
     BOOL bRet = FALSE;
-    
+
     ResetSystemState();
-    
+
     if (!InitializeModem())
     {
         RIL_LOG_CRITICAL("CSystemManager::ResumeSystemFromModemReset() - ERROR: InitializeModem\r\n");
         goto Error;
     }
-    
+
     if (!InitializeSim())
     {
         RIL_LOG_CRITICAL("CSystemManager::ResumeSystemFromModemReset() - ERROR: initializeSim\r\n");
         goto Error;
     }
-    
+
     bRet = TRUE;
 Error:
     RIL_LOG_INFO("CSystemManager::ResumeSystemFromModemReset - EXIT  bRet=[%d]\r\n", bRet);

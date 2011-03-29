@@ -21,11 +21,11 @@ void * ThreadProcStartStop(void * pVoid)
 
     {
         THREAD_DATA * pThreadData = (THREAD_DATA*)pVoid;
-    
+
         THREAD_PROC_PTR pvThreadProc = pThreadData->pvThreadProc;
         void * pvDataObj = pThreadData->pvDataObj;
         BOOL * pfRunning = pThreadData->pfRunning;
-    
+
         delete pThreadData;
 
         *pfRunning = TRUE;

@@ -1,6 +1,176 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+Mar. 25, 2011 (M5.2 release for Medfield CDK)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
+Android version 2.3 (Gingerbread).  
+
+NOTES: 
+- This release has been tested with basic sanity tests.
+- This release was tested with Intel's Gingerbread ABSP from the Intel lab
+
+KBoot: kboot.mfld_cdk.2011.0214.2212.bin
+Firmware: V176.009/B0.09
+Modem Firmware: *OCEAN_6260_SMB_REV30_1105.01_B3*
+Modem: Rev2
+
+
+Release Notes for M5.2
+======================
+What's new:
+
+1. Bug 519 - Activate call waiting bug using MMI codes
+   Fixed.  Now can use *43# to activate call waiting.
+  
+2. Add "DisableModemReset" in repository.txt under group "Modem".
+   "0" = Use IFX_MODEM_RESET IOCTL to reset modem when calling TriggerRadioError().
+         RIL attempts to connect to modem ports and re-init gracefully.
+   "1" = Do not use IFX_MODEM_RESET IOCTL.  Set global flag that errors out all
+         future requests from Android.
+
+3. Add support for re-initializing RIL and STMD when modem has reset itself.  RRIL
+   implements a watchdog thread that uses poll() on '/dev/gsmtty1' to wait for the
+   POLLHUP event.  If received, then modem has reset itself.  RRIL re-initializes
+   the STMD and RIL, and attempts re-init (depending on 'DisableModemReset' flag).
+
+4. Bug 428 - Power consumption
+   Fixed.  Added AT+XPOW=0,0,0 to AT init strings.
+
+5. For "Use only 2G networks" UI option, simply use AT+XRAT command without
+   unregistering and re-registering to network.
+
+6. NITZ notifications were not working properly.  This is now fixed.
+
+7. There was a parsing error regarding +CREG and +CGREG commands for the unsolicited
+   and solicited cases.  This was causing some errors in the UI.  This is now fixed.
+
+8. When screen is off, RIL was turning network updates off to conserve power.  This
+   may cause the UI to display a wrong network state when screen is back on again.
+   RIL now keeps network updates enabled.
+   
+9. Fix USSD notifications.  There was a <cr> missing from the end of the +CUSD
+   response from the modem.  This was causing parsing issues and causing USSD not to
+   work.  This is now fixed (as long as response is +CUSD to the AT+CUSD request).
+
+
+Known ABSP/modem Issues:
+=========================
+- Does not camp on a network on every boot.  May require several power cycles.  This
+  is because RIL cannot open the /dev/gsmttyX ports.  The open() call fails with
+  errorno = 51 (Level 2 halted).
+
+- While browsing, sometimes, a web page does not finish loading.  After a few minutes,
+  voice/data disconnects.
+
+- No audio from the speaker/mic during a call and when there's an incoming call (ring).
+  No audio as well from a headset plugged into the speaker jack.
+
+- RIL cannot connect to /dev/gsmttyX ports even though STMD has started and the ports
+  exist.  The errorno is 51 (level 2 halted).  A possible fix which works some of the
+  time is in adb shell:
+  # stop stmd &
+  # ifxreset &
+  # start stmd &
+
+- If entering *#77# in the dialer, the AT+CUSD command reponse is +COLR: X.  RIL currently
+  does not handle non +CUSD responses to AT+CUSD command.  This will be fixed in a
+  future release.
+
+
+Testing results:
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS--not consistent for every boot.
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G -> 3G only.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns +CME ERROR: 100.
+    NOTE: Infineon says this is by design.
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+21. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+22. Send 2 multipart SMSs to self (more than 160 characters)
+    FAIL
+
+23. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+24. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+25. Send 2 MMSs to self.  (requires setting up MMS APN)
+    FAIL
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 Mar. 18, 2011 (M5.1 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,

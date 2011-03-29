@@ -31,7 +31,7 @@ class CChannel_DLC2 : public CChannel
 public:
     CChannel_DLC2(UINT32 uiChannel);
     virtual ~CChannel_DLC2();
-    
+
     //  public port interface
     BOOL    OpenPort();
 

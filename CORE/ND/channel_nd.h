@@ -61,7 +61,7 @@ private:
     BOOL            ProcessResponse(CResponse*& rpRsp);
     BOOL            ProcessNoop(CResponse*& rpRsp);
     BOOL            RejectRadioOff(CResponse*& rpRsp);
-    
+
     //  Go through Tx queue and find identical request IDs.  Send response to IDs that match.
     //  Maybe make this a global function?
     BOOL FindIdenticalRequestsAndSendResponses(UINT32 uiReqID, RIL_Errno eErrNo, void *pResponse, size_t responseLen);

@@ -272,7 +272,7 @@ void scenario_3()
     CThread * pThreadB = NULL;
 
     printf("Start scenario 3 : Test multiple manual reset events\r\n");
-    
+
     printf("-- Create Event A --\r\n");
     pEventA = new CEvent(NULL, TRUE);
     if (!pEventA)
@@ -477,7 +477,7 @@ void scenario_4()
     CThread * pThreadB = NULL;
 
     printf("Start scenario 4 : Test multiple auto reset events\r\n");
-    
+
     printf("-- Create Event A --\r\n");
     pEventA = new CEvent();
     if (!pEventA)
@@ -614,7 +614,7 @@ void scenario_5()
     CThread * pThreadC = NULL;
 
     printf("Start scenario 5 : Test multiple thread single manual reset event\r\n");
-    
+
     printf("-- Create Event --\r\n");
     pEvent = new CEvent(NULL, TRUE);
     if (!pEvent)
@@ -729,7 +729,7 @@ void scenario_6()
     CThread * pThreadC = NULL;
 
     printf("Start scenario 6 : Test multiple thread single auto reset event\r\n");
-    
+
     printf("-- Create Event --\r\n");
     pEvent = new CEvent();
     if (!pEvent)
@@ -920,7 +920,7 @@ void scenario_7()
     CThread * pThreadD = NULL;
 
     printf("Start scenario 7 : Test multiple thread multiple manual reset event\r\n");
-    
+
     printf("-- Create Event A --\r\n");
     pEventA = new CEvent(NULL, TRUE);
     if (!pEventA)
@@ -1132,7 +1132,7 @@ void scenario_8()
     CThread * pThreadD = NULL;
 
     printf("Start scenario 8 : Test multiple thread multiple auto reset events\r\n");
-    
+
     printf("-- Create Event A --\r\n");
     pEventA = new CEvent();
     if (!pEventA)
@@ -1315,9 +1315,9 @@ void scenario_9()
     while(1)
     {
         printf("-- State: %s   Lead: %d     ThreadA: %d      ThreadB: %d --\r\n",
-            (nThreadA > nThreadB) ? "TRUE" : "FALSE", 
-            (nThreadA > nThreadB) ? nThreadA - nThreadB : nThreadB - nThreadA, 
-            nThreadA, 
+            (nThreadA > nThreadB) ? "TRUE" : "FALSE",
+            (nThreadA > nThreadB) ? nThreadA - nThreadB : nThreadB - nThreadA,
+            nThreadA,
             nThreadB);
 
         if (WAIT_TIMEDOUT != pThreadC->WaitForThread(1000))

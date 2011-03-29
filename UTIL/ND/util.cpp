@@ -2296,7 +2296,7 @@ Error:
 BOOL CopyStringNullTerminate(char * const pszOut, const char * pszIn, const UINT32 cbOut)
 {
     BOOL fRet = TRUE;
-    
+
     //RIL_LOG_VERBOSE("CopyStringNullTerminate() - Enter\r\n");
 
     if ((NULL != pszIn) || (NULL != pszOut))
@@ -2421,7 +2421,7 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
         {
             char szTmp[5] = {0};
             snprintf(szTmp, 5, "[%02X]", pszIn[nWalk]);
-            strcat(m_pszString, szTmp); 
+            strcat(m_pszString, szTmp);
         }
     }
 }
@@ -2439,7 +2439,7 @@ void Sleep(UINT32 dwTimeInMs)
 
     tv.tv_sec = dwTimeInMs / 1000;
     tv.tv_usec = (dwTimeInMs % 1000) * 1000;
-    
+
     select(0, NULL, NULL, NULL, &tv);
 }
 

@@ -43,7 +43,7 @@ public:
     BOOL SetContextID( UINT32 dwContextID );
 
     BOOL IsInDataMode() const { return m_bDataMode; };
-    BOOL SetDataMode( BOOL bDataMode );                  // [in ] TRUE - data mode, FALSE - command mode 
+    BOOL SetDataMode( BOOL bDataMode );                  // [in ] TRUE - data mode, FALSE - command mode
 
     virtual BOOL SendDataInDataMode();
 
@@ -60,7 +60,7 @@ public:
     static UINT32 GetNextContextID();
 
     CEvent *            m_pSetupDoneEvent;
-    
+
     //  Local storage of IP adress, DNS1, DNS2
     BYTE*               m_szIpAddr;
     BYTE*               m_szDNS1;

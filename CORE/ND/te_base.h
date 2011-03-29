@@ -6,7 +6,7 @@
 //
 //
 // Description:
-//    Defines the CTEBase class which handles all requests and 
+//    Defines the CTEBase class which handles all requests and
 //    basic behavior for responses
 //
 // Author:  Mike Worth
@@ -118,7 +118,7 @@ public:
     // RIL_REQUEST_REGISTRATION_STATE 20
     virtual RIL_RESULT_CODE CoreRegistrationState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseRegistrationState(RESPONSE_DATA & rRspData);
-    
+
     // RIL_REQUEST_GPRS_REGISTRATION_STATE 21
     virtual RIL_RESULT_CODE CoreGPRSRegistrationState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA & rRspData);
@@ -196,7 +196,7 @@ public:
     virtual RIL_RESULT_CODE ParseGetImeisv(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_ANSWER 40
-    virtual RIL_RESULT_CODE CoreAnswer(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize); 
+    virtual RIL_RESULT_CODE CoreAnswer(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseAnswer(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
@@ -456,16 +456,16 @@ public:
 
     // RIL_UNSOL_DATA_CALL_LIST_CHANGED  1010
     virtual RIL_RESULT_CODE ParseDataCallListChanged(RESPONSE_DATA & rRspData);
-    
+
     // GET IP ADDRESS
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);
 
     // GET DNS
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
-    
+
     // QUERY PIN2
     virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
-    
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus *& pCardStatus);
 };

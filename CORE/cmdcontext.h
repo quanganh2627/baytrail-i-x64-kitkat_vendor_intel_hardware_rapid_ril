@@ -113,7 +113,7 @@ public:
     virtual ~CContextInitString() {}
 
     virtual void Execute(BOOL, UINT32);
-    
+
 private:
     eComInitIndex m_eInitIndex;
     UINT32 m_uiChannel;
@@ -145,9 +145,9 @@ public:
         m_pEvent(pEvent),
         m_rbResult(rbResult) {}
     virtual ~CContextSimPhonebookQuery() {}
-    
+
     virtual void Execute(BOOL, UINT32);
-    
+
 private:
     CEvent&     m_pEvent;
     BOOL&       m_rbResult;

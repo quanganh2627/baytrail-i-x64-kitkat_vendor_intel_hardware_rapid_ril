@@ -26,6 +26,8 @@
 #include "types.h"
 #include <telephony/ril.h>
 
+class CThread;
+
 // The device path to use for the AT command channel
 extern BYTE * g_szCmdPort;
 // The device path to use for the data channel1
@@ -39,13 +41,16 @@ extern BOOL  g_bIsSocket;
 
 extern BOOL  g_bIsTriggerRadioError;
 
+extern BOOL CreateWatchdogThread();
+
 enum eRadioError
 {
-    eRadioError_ForceShutdown = 1,
-    eRadioError_LowMemory = 2,
-    eRadioError_ChannelDead = 3,
-    eRadioError_InitFailure = 4,
-    eRadioError_OpenPortFailure = 5
+    eRadioError_ForceShutdown,
+    eRadioError_LowMemory,
+    eRadioError_ChannelDead,
+    eRadioError_InitFailure,
+    eRadioError_OpenPortFailure,
+    eRadioError_ModemInitiatedCrash
 };
 
 void RIL_onRequestComplete(RIL_Token tRIL, RIL_Errno eErrNo, void *pResponse, size_t responseLen);

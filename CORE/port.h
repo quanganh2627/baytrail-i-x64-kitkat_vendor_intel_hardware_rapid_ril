@@ -31,7 +31,7 @@ class CPort
 public:
     CPort();
     ~CPort();
-    
+
     BOOL Open(const BYTE * pszFileName, BOOL fIsSocket);
     BOOL Init();
 
@@ -43,13 +43,13 @@ public:
     BOOL WaitForAvailableData(UINT32 uiTimeout);
 
     BOOL IsOpen()   {   return m_fIsPortOpen;   };
-    
+
     int  GetFD();
 
 private:
     BOOL OpenPort(const BYTE * pszFileName);
     BOOL OpenSocket(const BYTE * pszSocketName);
-    
+
     BOOL        m_fIsPortOpen;
     CFile *     m_pFile;
 };

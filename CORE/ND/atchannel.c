@@ -608,18 +608,18 @@ int at_open(int fd, ATUnsolHandler h)
     ret = ioctl(fd, OMAP_CSMI_TTY_ENABLE_ACK);
     if(ret == 0) {
         int ack_count;
-		int read_count;
+        int read_count;
         int old_flags;
         char sync_buf[256];
         old_flags = fcntl(fd, F_GETFL, 0);
         fcntl(fd, F_SETFL, old_flags | O_NONBLOCK);
         do {
             ioctl(fd, OMAP_CSMI_TTY_READ_UNACKED, &ack_count);
-			read_count = 0;
+            read_count = 0;
             do {
                 ret = read(fd, sync_buf, sizeof(sync_buf));
-				if(ret > 0)
-					read_count += ret;
+                if(ret > 0)
+                    read_count += ret;
             } while(ret > 0 || (ret < 0 && errno == EINTR));
             ioctl(fd, OMAP_CSMI_TTY_ACK, &ack_count);
          } while(ack_count > 0 || read_count > 0);

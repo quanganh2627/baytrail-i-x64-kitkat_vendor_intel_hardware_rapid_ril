@@ -51,7 +51,7 @@ CPort::~CPort()
             RIL_LOG_CRITICAL("CPort::~CPort() - ERROR: Failed to close port!\r\n");
         }
     }
-    
+
     delete m_pFile;
     m_pFile = NULL;
 }
@@ -70,14 +70,14 @@ BOOL CPort::Open(const BYTE * pszFileName, BOOL fIsSocket)
 {
     RIL_LOG_VERBOSE("CPort::Open() - Enter  fIsSocket=[%d]\r\n", fIsSocket);
     BOOL fRet = FALSE;
-    
+
     if (!m_fIsPortOpen)
     {
         if (NULL == m_pFile)
         {
             m_pFile = new CFile();
         }
-        
+
         if (fIsSocket)
         {
             fRet = OpenSocket(pszFileName);
@@ -91,7 +91,7 @@ BOOL CPort::Open(const BYTE * pszFileName, BOOL fIsSocket)
     {
         RIL_LOG_CRITICAL("CPort::Open() - ERROR: Port is already open!\r\n");
     }
-    
+
     RIL_LOG_VERBOSE("CPort::Open() - Exit\r\n");
     return fRet;
 }
@@ -129,10 +129,10 @@ BOOL CPort::Init()
             // set input mode (non-canonical, no echo,...)
             newtio.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
             //newtio.c_lflag &= ~(ICANON | ISIG);
-                    
+
             //newtio.c_cc[VTIME]    = 1000;   /* inter-character timer unused */
             //newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
-                    
+
             tcflush(fd, TCIFLUSH);
             tcsetattr(fd,TCSANOW,&newtio);
 
@@ -176,7 +176,7 @@ BOOL CPort::Close()
     {
         m_fIsPortOpen = FALSE;
         fRet = CFile::Close(m_pFile);
-        
+
         if (!fRet)
         {
             RIL_LOG_CRITICAL("CPort::Close() - ERROR: Unable to properly close port!\r\n");
@@ -250,7 +250,7 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
     UINT32 uiRetries = 30;   //5;
     UINT32 uiInterval = 2000;
     UINT32 uiAttempts = 0;
-    
+
 
     while(!fRet)
     {
@@ -261,7 +261,7 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
             //{
             //    Sleep(uiInterval);
             //}
-            
+
             RIL_LOG_INFO("CPort::OpenPort()  ATTEMPT NUMBER %d\r\n", uiAttempts);
             fRet = CFile::Open(m_pFile, pszFileName, FILE_ACCESS_READ_WRITE, FILE_OPEN_EXIST, FILE_OPT_NONE);
 
@@ -272,11 +272,14 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
             }
             else
             {
-				Sleep(uiInterval);
-			}
+                Sleep(uiInterval);
+            }
+
+            //  Remove this when using for loop
+            uiAttempts++;
         }
-        
-/*       
+
+/*
         //  If we didn't open the port, issue critical reset
         if (!fRet)
         {
@@ -284,7 +287,7 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
             TriggerRadioErrorAsync(eRadioError_OpenPortFailure, __LINE__, __FILE__);
 
             Sleep(2000);
-            
+
             while (g_bIsTriggerRadioError)
             {
                 RIL_LOG_INFO("In g_bIsTriggerRadioError\r\n");
@@ -313,21 +316,21 @@ BOOL CPort::OpenSocket(const BYTE * pszSocketName)
     BYTE szResponse[10] = {0};
 
     BOOL fRet = FALSE;
-    
+
     const UINT32 uiRetries = 30;
     const UINT32 uiInterval = 2000;
-    
+
     for (UINT32 uiAttempts = 0; uiAttempts < uiRetries; uiAttempts++)
     {
         fRet = CFile::Open(m_pFile, pszSocketName, 0, 0, 0, TRUE);
-        
+
         if (fRet)
         {
             m_fIsPortOpen = TRUE;
             RIL_LOG_INFO("CPort::OpenSocket() - Port is open!!\r\n");
             break;
         }
-        
+
         Sleep(uiInterval);
     }
 

@@ -241,11 +241,11 @@ char *build_play_tone(char *line, ATLine *lines) {
     char *result;
 
     // Params reading
-    if (at_tok_nextint(&line, &tone) < 0) goto end; 
+    if (at_tok_nextint(&line, &tone) < 0) goto end;
     if (at_tok_nextint(&line, &unit) < 0) goto end;
-    if (at_tok_nextint(&line, &duration) < 0) goto end;      
+    if (at_tok_nextint(&line, &duration) < 0) goto end;
     if (at_tok_nextstr(&line, &alphaId) < 0) goto end;
-    if (at_tok_nextint(&line, &iconId) < 0) goto end; 
+    if (at_tok_nextint(&line, &iconId) < 0) goto end;
 
     LOGD(" tone= %d\r\n", tone);
     LOGD(" unit= %d\r\n", unit);
@@ -283,7 +283,7 @@ char *build_play_tone(char *line, ATLine *lines) {
     {
         LOGD(" add tone tlv\r\n");
         simpletlv = create_simple_tlv(STK_TAG_TONE);
-        sprintf(tone_str, "%02X", tone);    
+        sprintf(tone_str, "%02X", tone);
         simpletlv_add_value(simpletlv, tone_str);
         bertlv_add_tlv(bertlv, simpletlv);
     }
@@ -293,13 +293,13 @@ char *build_play_tone(char *line, ATLine *lines) {
     {
         LOGD(" add duration tlv\r\n");
         simpletlv = create_simple_tlv(STK_TAG_DURATION);
-        sprintf(unit_str, "%02X", unit); 
-        simpletlv_add_value(simpletlv, unit_str);        
+        sprintf(unit_str, "%02X", unit);
+        simpletlv_add_value(simpletlv, unit_str);
         sprintf(duration_str, "%02X", duration);
         simpletlv_add_value(simpletlv, duration_str);
         bertlv_add_tlv(bertlv, simpletlv);
     }
-    
+
     // Icon identifier (optional)
     if (iconId)
     {
@@ -309,7 +309,7 @@ char *build_play_tone(char *line, ATLine *lines) {
         simpletlv_add_value(simpletlv, "00");
         simpletlv_add_value(simpletlv, icon);
         bertlv_add_tlv(bertlv, simpletlv);
-    }    
+    }
 
 end:
     result = bertlv_to_string(bertlv);
@@ -377,10 +377,10 @@ char *build_display_text(char *line, ATLine *lines) {
         simpletlv_add_value(simpletlv, icon);
         bertlv_add_tlv(bertlv, simpletlv);
     }
-    
+
     result = bertlv_to_string(bertlv);
     bertlv_free(bertlv);
-    
+
     LOGD("build_display_text() - Exit\r\n");
     return result;
 invalid:
@@ -466,11 +466,11 @@ char *build_get_input(char *line, ATLine *lines) {
     if(at_tok_nextint(&line, &qualifier_flags) < 0) goto invalid;
     if(at_tok_nextstr(&line, &dcs) < 0) goto invalid;
     if(at_tok_nextstr(&line, &text) < 0) goto invalid;
-    if(at_tok_nextint(&line, &maxLength) < 0) goto invalid;    
+    if(at_tok_nextint(&line, &maxLength) < 0) goto invalid;
     if(at_tok_nextint(&line, &minLength) < 0) goto invalid;
     if(at_tok_nextstr(&line, &defaultText) < 0) goto invalid;
     if(at_tok_nextint(&line, &iconId) < 0) goto invalid;
-        
+
     LOGD(" qualifier_flags= %d\r\n", qualifier_flags);
     LOGD(" dcs= %s\r\n", dcs);
     LOGD(" text= %s\r\n", text);
@@ -510,7 +510,7 @@ char *build_get_input(char *line, ATLine *lines) {
     simpletlv_add_value(simpletlv, minLength_str);
     simpletlv_add_value(simpletlv, maxLength_str);
     bertlv_add_tlv(bertlv, simpletlv);
-    
+
     // Default text (optional)
     if (defaultText)
     {
@@ -518,9 +518,9 @@ char *build_get_input(char *line, ATLine *lines) {
         simpletlv = create_simple_tlv(STK_TAG_DEFAULT_TEXT);
         simpletlv_add_value(simpletlv, dcs);
         simpletlv_add_value(simpletlv, defaultText);
-        bertlv_add_tlv(bertlv, simpletlv);                 
+        bertlv_add_tlv(bertlv, simpletlv);
     }
-    
+
     // Icon identifier (optional)
     if (iconId)
     {
@@ -529,12 +529,12 @@ char *build_get_input(char *line, ATLine *lines) {
         sprintf(icon, "%02X", iconId);
         simpletlv_add_value(simpletlv, "00");
         simpletlv_add_value(simpletlv, icon);
-        bertlv_add_tlv(bertlv, simpletlv);     
+        bertlv_add_tlv(bertlv, simpletlv);
     }
 
     result = bertlv_to_string(bertlv);
-    bertlv_free(bertlv);    
-    
+    bertlv_free(bertlv);
+
     LOGD("build_get_input() - Exit\r\n");
     return result;
 invalid:
@@ -641,13 +641,13 @@ char *build_set_up_menu(char *line, ATLine *lines) {
 //    int parsedItems = 0;
 
     LOGD("build_set_up_menu() - Enter\r\n");
-    
+
     // Params reading
     if(at_tok_nextint(&line, &qualifier_flags) < 0) goto invalid;
-    if(at_tok_nextstr(&line, &alpha) < 0) goto invalid;    
+    if(at_tok_nextstr(&line, &alpha) < 0) goto invalid;
     if(at_tok_nextint(&line, &itemId) < 0) goto invalid;
     if(at_tok_nextint(&line, &numItems) < 0) goto invalid;
-    if(at_tok_nextstr(&line, &itemText) < 0) goto invalid;    
+    if(at_tok_nextstr(&line, &itemText) < 0) goto invalid;
 //    if(at_tok_nextint(&line, &selection) < 0) goto invalid;
 //    if(at_tok_nextint(&line, &helpInfo) < 0) goto invalid;
 //    if(at_tok_nextint(&line, &removeMenu) < 0) goto invalid;
@@ -711,13 +711,13 @@ char *build_set_up_menu(char *line, ATLine *lines) {
     simpletlv_add_value(simpletlv, item);
     simpletlv_add_value(simpletlv, itemText);
     bertlv_add_tlv(bertlv, simpletlv);
-    
+
     result = bertlv_to_string(bertlv);
     bertlv_free(bertlv);
-    
+
     LOGD("build_set_up_menu() - Exit\r\n");
-    return result;    
-    
+    return result;
+
 invalid:
     if (bertlv) bertlv_free(bertlv);
     LOGD("build_set_up_menu() - Exit, Invalid\r\n");
@@ -737,7 +737,7 @@ char *stk_at_to_hex(ATResponse *p_response) {
     LOGD("line: %s", line);
 
     at_tok_try_to_start(line);
-//    if (at_tok_nexthexint(&line, &cmd) < 0) {    
+//    if (at_tok_nexthexint(&line, &cmd) < 0) {
     if (at_tok_nextint(&line, &cmd) < 0) {
         return NULL;
     }
@@ -752,8 +752,8 @@ char *stk_at_to_hex(ATResponse *p_response) {
         case STK_CMD_POLL_INTERVAL: result = NULL; break;
         case STK_CMD_POLLING_OFF: result = NULL; break;
         case STK_CMD_SET_UP_CALL:
-			result = build_set_up_call(line, p_response->p_intermediates);
-			break;
+            result = build_set_up_call(line, p_response->p_intermediates);
+            break;
         case STK_CMD_SEND_SS: result = NULL; break;
         case STK_CMD_SEND_USSD: result = NULL; break;
         case STK_CMD_SEND_SMS: result = NULL; break;

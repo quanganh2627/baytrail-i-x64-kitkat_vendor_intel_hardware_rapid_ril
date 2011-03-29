@@ -20,7 +20,7 @@
 //  Date       Who      Ver   Description
 //  ---------  -------  ----  -----------------------------------------------
 //  June 3/08  DP       1.00  Established v1.00 based on current code base.
-//  Oct 27/10  GR       1.01  Re-worked to support variable number of data channels. 
+//  Oct 27/10  GR       1.01  Re-worked to support variable number of data channels.
 //
 /////////////////////////////////////////////////////////////////////////////
 

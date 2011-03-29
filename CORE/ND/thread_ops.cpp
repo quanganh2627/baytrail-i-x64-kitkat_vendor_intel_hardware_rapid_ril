@@ -31,10 +31,10 @@ void * ThreadProcStartStop(void * pVoid)
 
     {
         THREAD_DATA * pThreadData = (THREAD_DATA*)pVoid;
-    
+
         THREAD_PROC_PTR pvThreadProc = pThreadData->pvThreadProc;
         void * pvDataObj = pThreadData->pvDataObj;
-    
+
         delete pThreadData;
         pThreadData = NULL;
 
@@ -190,7 +190,7 @@ BOOL CThread::SetPriority(UINT32 dwPriority)
             int MaxPriority = sched_get_priority_max(SCHED_RR);
             int NormalPriority = (MaxPriority - MinPriority) / 2;
             int Delta = 2;
-    
+
             switch (dwPriority)
             {
                 case THREAD_PRIORITY_LEVEL_LOWEST:

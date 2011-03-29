@@ -26,7 +26,7 @@
 #include "rril.h"
 #include "request_id.h"
 
-struct REQ_INFO 
+struct REQ_INFO
 {
     UINT32 uiTimeout;
     UINT32 uiRetries;

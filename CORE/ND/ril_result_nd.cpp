@@ -26,12 +26,12 @@
 #include "rril.h"
 #include "ril_result_nd.h"
 
-BOOL CRilResult::SetResult( const UINT32 uiRspCode, 
-                            const void* pRspData, 
+BOOL CRilResult::SetResult( const UINT32 uiRspCode,
+                            const void* pRspData,
                             const UINT32 cbRspData)
 {
     BOOL fRet = FALSE;
-    
+
     switch ((RIL_Errno)uiRspCode)
     {
         case RIL_E_SUCCESS:
@@ -41,7 +41,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = RRIL_RESULT_CODE_NONE;
             break;
         }
-        
+
         case RIL_E_RADIO_NOT_AVAILABLE:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -49,7 +49,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = RRIL_RESULT_CODE_RADIO_NOT_AVAILABLE;
             break;
         }
-        
+
         case RIL_E_GENERIC_FAILURE:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -57,7 +57,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = RRIL_RESULT_CODE_NONE;
             break;
         }
-        
+
         case RIL_E_PASSWORD_INCORRECT:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -65,7 +65,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = CME_ERROR_INCORRECT_PASSWORD;
             break;
         }
-        
+
         case RIL_E_SIM_PIN2:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -73,7 +73,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = CME_ERROR_SIM_PIN2_REQUIRED;
             break;
         }
-        
+
         case RIL_E_SIM_PUK2:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -89,7 +89,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = CME_ERROR_OPERATION_NOT_SUPPORTED;
             break;
         }
-        
+
         case RIL_E_CANCELLED:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -97,7 +97,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = RRIL_RESULT_CODE_CMD_CANCELLED;
             break;
         }
-        
+
         case RIL_E_OP_NOT_ALLOWED_DURING_VOICE_CALL:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -105,7 +105,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = RRIL_RESULT_CODE_CMD_NOT_ALLOWED_DURING_VOICE_CALL;
             break;
         }
-        
+
         case RIL_E_OP_NOT_ALLOWED_BEFORE_REG_TO_NW:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -113,7 +113,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = RRIL_RESULT_CODE_CMD_NOT_ALLOWED_BEFORE_NW_REG;
             break;
         }
-        
+
         case RIL_E_SMS_SEND_FAIL_RETRY:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -121,7 +121,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = RRIL_RESULT_CODE_SMS_SEND_FAILED;
             break;
         }
-        
+
         case RIL_E_SIM_ABSENT:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -129,7 +129,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = CME_ERROR_SIM_NOT_INSERTED;
             break;
         }
-        
+
         case RIL_E_SUBSCRIPTION_NOT_AVAILABLE:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -137,7 +137,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = RRIL_RESULT_CODE_SUBSCRIPTION_NOT_AVAILABLE;
             break;
         }
-        
+
         case RIL_E_MODE_NOT_SUPPORTED:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -145,7 +145,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = RRIL_RESULT_CODE_NW_MODE_NOT_SUPPORTED;
             break;
         }
-        
+
         case RIL_E_FDN_CHECK_FAILURE:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -153,7 +153,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             resultCode  = RRIL_RESULT_CODE_FDN_CHECK_FAILED;
             break;
         }
-                
+
         default:
         {
             result      = RIL_API_RESULT_FAIL;
@@ -162,7 +162,7 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
             return fRet;
         }
     }
-    
+
     fRet = TRUE;
     return fRet;
 }
@@ -170,25 +170,25 @@ BOOL CRilResult::SetResult( const UINT32 uiRspCode,
 RIL_Errno GetErrnoForCME(UINT32 resultCode)
 {
     RIL_Errno rilErrno;
-    
+
     switch (resultCode)
     {
         case CME_ERROR_OPERATION_NOT_SUPPORTED:
             rilErrno = RIL_E_REQUEST_NOT_SUPPORTED;
             break;
-        
+
         case CME_ERROR_SIM_NOT_INSERTED:
             rilErrno = RIL_E_SIM_ABSENT;
             break;
-        
+
         case CME_ERROR_INCORRECT_PASSWORD:
             rilErrno = RIL_E_PASSWORD_INCORRECT;
             break;
-        
+
         case CME_ERROR_SIM_PIN2_REQUIRED:
             rilErrno = RIL_E_SIM_PIN2;
             break;
-        
+
         case CME_ERROR_SIM_PUK2_REQUIRED:
             rilErrno = RIL_E_SIM_PUK2;
             break;
@@ -198,14 +198,14 @@ RIL_Errno GetErrnoForCME(UINT32 resultCode)
             rilErrno = RIL_E_GENERIC_FAILURE;
             break;
     }
-    
+
     return rilErrno;
 }
 
 RIL_Errno GetErrnoForCMS(UINT32 resultCode)
 {
     RIL_Errno rilErrno;
-    
+
     switch (resultCode)
     {
         case CMS_ERROR_SIM_NOT_INSERTED:
@@ -216,14 +216,14 @@ RIL_Errno GetErrnoForCMS(UINT32 resultCode)
             rilErrno = RIL_E_GENERIC_FAILURE;
             break;
     }
-    
+
     return rilErrno;
 }
 
 RIL_Errno GetErrnoForV25(UINT32 resultCode)
 {
     RIL_Errno rilErrno;
-    
+
     switch (resultCode)
     {
         case V25_RESULT_CODE_CONNECT:
@@ -239,14 +239,14 @@ RIL_Errno GetErrnoForV25(UINT32 resultCode)
             rilErrno = RIL_E_GENERIC_FAILURE;
             break;
     }
-    
+
     return rilErrno;
 }
 
 RIL_Errno GetErrnoForRRIL(UINT32 resultCode)
 {
     RIL_Errno rilErrno;
-    
+
     switch (resultCode)
     {
         case RRIL_RESULT_CODE_NOT_IMPLEMENTED:
@@ -295,14 +295,14 @@ RIL_Errno GetErrnoForRRIL(UINT32 resultCode)
             rilErrno = RIL_E_GENERIC_FAILURE;
             break;
     }
-    
+
     return rilErrno;
 }
 
 // NOTE: We do not update the data pointers in Android. We assume the parsing
 //       functions did their job properly and populated them as required.
 BOOL CRilResult::GetOSResponse( UINT32 & ruiRspCode,
-                                void *& rpRspData, 
+                                void *& rpRspData,
                                 UINT32 & rcbRspData)
 {
     BOOL fRet = FALSE;

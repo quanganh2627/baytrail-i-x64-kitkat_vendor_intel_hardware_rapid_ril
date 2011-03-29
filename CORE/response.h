@@ -46,10 +46,10 @@ private:
 
 public:
     static BOOL TransferData(CResponse*& rpRspIn, CResponse*& rpRspOut);
-   
+
     // For unsolicited responses, set fCpyMem to FALSE. This ensures our internal string pointers
     // are correct in the memory we return to upper layers. The framework already ensures this memory
-    // will be freed. 
+    // will be freed.
     BOOL    SetData(void* pData, const UINT32 nSize, const BOOL fCpyMem = TRUE);
     void    GetData(void*& rpData, UINT32& rnDataSize) const  { rpData = m_pData; rnDataSize = m_uiDataSize; };
     void    GetData(RESPONSE_DATA& responseData) const        { responseData.pData = m_pData; responseData.uiDataSize = m_uiDataSize; };
@@ -63,7 +63,7 @@ public:
 
     UINT32   GetErrorCode() const                            { return m_uiErrorCode; };
     void    SetErrorCode(const UINT32 uiErrorCode)           { m_uiErrorCode = uiErrorCode; };
-    
+
     BOOL    IsUnsolicitedFlag() const                       { return ( (m_uiFlags & E_RSP_FLAG_UNSOLICITED) ? TRUE : FALSE); };
     void    SetUnsolicitedFlag(const BOOL bUnsolicited)     { (bUnsolicited ? (m_uiFlags |= E_RSP_FLAG_UNSOLICITED) : (m_uiFlags &= ~E_RSP_FLAG_UNSOLICITED)); };
 
@@ -101,7 +101,7 @@ private:
     UINT32    m_uiDataSize;
     CChannel* m_pChannel;
     UINT32    m_uiResponseEndMarker;
-    
+
     //  internal flags.
     UINT32     m_uiFlags;
 };

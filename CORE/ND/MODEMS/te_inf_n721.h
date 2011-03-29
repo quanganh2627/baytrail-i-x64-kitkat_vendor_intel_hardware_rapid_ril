@@ -37,44 +37,41 @@ public:
 
 private:
     int m_nCurrentNetworkType;
-    
+
 protected:
     char m_szNetworkInterfaceName[MAX_BUFFER_SIZE];
-    
+
     //  Locally store CPIN2 query result for SIM_IO
     char m_szCPIN2Result[MAX_BUFFER_SIZE];
-    
+
     CEvent *m_pQueryPIN2Event;
 
 public:
     // modem overrides
-    
+
     // RIL_REQUEST_GET_SIM_STATUS 1
     virtual RIL_RESULT_CODE CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetSimStatus(RESPONSE_DATA & rRspData);
-    
+
     // RIL_REQUEST_SIGNAL_STRENGTH 19
     //virtual RIL_RESULT_CODE ParseSignalStrength(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SETUP_DATA_CALL 27
     virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 uiCID);
     virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA & rRspData);
-    
+
     // RIL_REQUEST_SIM_IO 28
     virtual RIL_RESULT_CODE CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimIo(RESPONSE_DATA & rRspData);
-    
+
     // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
     virtual RIL_RESULT_CODE CoreDeactivateDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDeactivateDataCall(RESPONSE_DATA & rRspData);
-    
+
     // RIL_REQUEST_OEM_HOOK_RAW 59
     virtual RIL_RESULT_CODE CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseHookRaw(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_SCREEN_STATE 61
-    virtual RIL_RESULT_CODE CoreScreenState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    
     // RIL_REQUEST_SET_BAND_MODE 65
     virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
 
@@ -109,7 +106,7 @@ public:
     // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
     virtual RIL_RESULT_CODE CoreGetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetPreferredNetworkType(RESPONSE_DATA & rRspData);
-    
+
     // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
     virtual RIL_RESULT_CODE CoreGetNeighboringCellIDs(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData);

@@ -246,10 +246,10 @@ typedef struct
 
 enum ACCESS_TECHNOLOGY
 {
-	ACT_UNKNOWN = 0,
+    ACT_UNKNOWN = 0,
     ACT_GPRS = 1,
-	ACT_EDGE = 2,
-	ACT_UMTS = 3,
+    ACT_EDGE = 2,
+    ACT_UMTS = 3,
     ACT_IS95A = 4,
     ACT_IS95B = 5,
     ACT_1xRTT = 6,

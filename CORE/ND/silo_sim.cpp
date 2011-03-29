@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// silo_SIM.cpp                       
+// silo_SIM.cpp
 //
 // Copyright 2005-2007 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
@@ -53,20 +53,14 @@ CSilo_SIM::CSilo_SIM(CChannel *pChannel)
     {
         { "+STKCTRLIND: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
         { "+STKCC: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
-        //  This is TEMP until we solve SimTk. (Jan 7/2011)
-        //  Ignore simtoolkit notifications (which seem to randomly appear)
-        { "+SATI: " , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
-        { "+SATN: " , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
-        { "+SATF: " , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
-        //  end TEMP
-#ifndef USE_STK_RAW_MODE	        
+#ifndef USE_STK_RAW_MODE
         { "+STKPRO: "  , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseSTKProCmd },
         { "+STKCNF: "  , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseProSessionStatus },
 #else
         { "+SATI: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATI },
-        { "+SATN: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATN },  
-        { "+SATF: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseTermRespConfirm },              
-#endif		
+        { "+SATN: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATN },
+        { "+SATF: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseTermRespConfirm },
+#endif
         { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
     };
 
@@ -92,7 +86,7 @@ BOOL CSilo_SIM::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::PreParseResponseHook() - Enter\r\n");
     BOOL bRetVal = TRUE;
-    
+
     switch(rpCmd->GetRequestID())
     {
         case ND_REQ_ID_ENTERSIMPIN:
@@ -127,7 +121,7 @@ BOOL CSilo_SIM::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::PostParseResponseHook() - Enter\r\n");
     BOOL bRetVal = TRUE;
-    
+
     switch(rpCmd->GetRequestID())
     {
         case ND_REQ_ID_GETSIMSTATUS:
@@ -152,18 +146,18 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
 
     if (RIL_E_SUCCESS != rpRsp->GetResultCode())
     {
-        
+
         switch(rpRsp->GetErrorCode())
         {
             case CME_ERROR_INCORRECT_PASSWORD:
                 RIL_LOG_INFO("CSilo_SIM::ParsePin() - Incorrect password");
                 rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
                 break;
-                
+
             case CME_ERROR_SIM_PUK_REQUIRED:
                 RIL_LOG_INFO("CSilo_SIM::ParsePin() - SIM PUK required");
                 rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-                
+
                 //  Set radio state to sim locked or absent.
                 //  Note that when the radio state *changes*, the upper layers will query
                 //  for more information.  This is why we cannot change the radio state for
@@ -172,11 +166,11 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
                 //  But PIN -> PUK we have to do this otherwise phone will think we are still PIN'd.
                 RIL_requestTimedCallback(notifySIMLocked, NULL, 0, 500000);
                 break;
-                
+
             case CME_ERROR_SIM_PUK2_REQUIRED:
                 RIL_LOG_INFO("CSilo_SIM::ParsePin() - SIM PUK2 required");
                 rpRsp->SetResultCode(RIL_E_SIM_PUK2);
-                
+
                 //  Set radio state to sim locked or absent.
                 //  Note that when the radio state *changes*, the upper layers will query
                 //  for more information.  This is why we cannot change the radio state for
@@ -185,16 +179,16 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
                 //  But PIN2 -> PUK2 we have to do this otherwise phone will think we are still PIN2'd.
                 RIL_requestTimedCallback(notifySIMLocked, NULL, 0, 500000);
                 break;
-            
+
             default:
                 RIL_LOG_INFO("CSilo_SIM::ParsePin() - Unknown error [%d]", rpRsp->GetErrorCode());
                 rpRsp->SetResultCode(RIL_E_GENERIC_FAILURE);
                 break;
-        }            
+        }
 
         rpRsp->FreeData();
         int* pInt = (int *) malloc(sizeof(int));
-        
+
         if (NULL == pInt)
         {
             RIL_LOG_CRITICAL("CSilo_SIM::ParsePin() : Unable to allocate memory for SIM unlock retries\r\n");
@@ -211,10 +205,10 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
             pInt = NULL;
             goto Error;
         }
-        
+
     }
 
-    
+
     bRetVal = TRUE;
 
 Error:
@@ -247,9 +241,9 @@ BOOL CSilo_SIM::ParseSimIO(CCommand*& rpCmd, CResponse*& rpRsp)
                 RIL_LOG_INFO("CSilo_SIM::ParseSimIO() - Unknown error [%d]", rpRsp->GetErrorCode());
                 rpRsp->SetResultCode(RIL_E_GENERIC_FAILURE);
                 break;
-        }            
+        }
     }
-    
+
     bRetVal = TRUE;
 
 Error:
@@ -260,7 +254,7 @@ Error:
 BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::ParseSimStatus() - Enter\r\n");
-        
+
     BOOL bRetVal = FALSE;
     if (RIL_E_SUCCESS != rpRsp->GetResultCode())
     {
@@ -273,7 +267,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 RIL_LOG_INFO("CSilo_SIM::ParseSimStatus() : SIM Card is absent!\r\n");
                 rpRsp->FreeData();
                 rpRsp->SetResultCode(RIL_E_SUCCESS);
-    
+
                 RIL_CardStatus* pCardStatus = (RIL_CardStatus *) malloc(sizeof(RIL_CardStatus));
                 if (NULL == pCardStatus)
                 {
@@ -281,14 +275,14 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                     goto Error;
                 }
                 memset(pCardStatus, 0, sizeof(RIL_CardStatus));
-    
+
                 // Initialize as per reference ril as insufficient documentation currently is available
                 pCardStatus->gsm_umts_subscription_app_index = RIL_CARD_MAX_APPS;
                 pCardStatus->cdma_subscription_app_index = RIL_CARD_MAX_APPS;
                 pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
                 pCardStatus->card_state = RIL_CARDSTATE_ABSENT;
                 pCardStatus->num_applications = 0;
-    
+
                 // Don't copy the memory, just pass along the pointer as is.
                 if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus*), FALSE))
                 {
@@ -299,13 +293,13 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 }
             }
             break;
-            
+
             case RRIL_CME_ERROR_NOT_READY:
             {
                 RIL_LOG_INFO("CSilo_SIM::ParseSimStatus() : SIM Card is not ready!\r\n");
                 rpRsp->FreeData();
                 rpRsp->SetResultCode(RIL_E_SUCCESS);
-    
+
                 RIL_CardStatus* pCardStatus = (RIL_CardStatus*) malloc(sizeof(RIL_CardStatus));
                 if (NULL == pCardStatus)
                 {
@@ -313,14 +307,14 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                     goto Error;
                 }
                 memset(pCardStatus, 0, sizeof(RIL_CardStatus));
-    
+
                 // Initialize as per reference ril as insufficient documentation currently is available
                 pCardStatus->gsm_umts_subscription_app_index = 0;
                 pCardStatus->cdma_subscription_app_index = RIL_CARD_MAX_APPS;
                 pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
                 pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
                 pCardStatus->num_applications = 1;
-    
+
                 pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
                 pCardStatus->applications[0].app_state = RIL_APPSTATE_DETECTED;
                 pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
@@ -329,7 +323,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 pCardStatus->applications[0].pin1_replaced = 0;
                 pCardStatus->applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
                 pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
-    
+
                 // Don't copy the memory, just pass along the pointer as is.
                 if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus*), FALSE))
                 {
@@ -339,7 +333,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                     goto Error;
                 }
             }
-            
+
             default:
                 break;
         }
@@ -357,7 +351,7 @@ BOOL CSilo_SIM::ParseSTKProCmd(CResponse* const pResponse, const BYTE*& rszPoint
 {
     RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() - Enter\r\n");
     BOOL fRet = FALSE;
-	char* line = NULL;
+    char* line = NULL;
     ATResponse* pAtResp = new ATResponse;
 
     if (pResponse == NULL)
@@ -366,15 +360,15 @@ BOOL CSilo_SIM::ParseSTKProCmd(CResponse* const pResponse, const BYTE*& rszPoint
         goto Error;
     }
 
-	if (NULL == pAtResp)
-	{
-		RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() : Unable to allocate memory for ATResponse\r\n");
-		goto Error;
-	}
+    if (NULL == pAtResp)
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() : Unable to allocate memory for ATResponse\r\n");
+        goto Error;
+    }
 
-	memset(pAtResp, 0, sizeof(ATResponse));
-	pAtResp->p_intermediates = new ATLine;
-	asprintf(&pAtResp->p_intermediates->line, "%s", rszPointer);
+    memset(pAtResp, 0, sizeof(ATResponse));
+    pAtResp->p_intermediates = new ATLine;
+    asprintf(&pAtResp->p_intermediates->line, "%s", rszPointer);
 
     // Look for a "<postfix>" to be sure we got a whole message
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
@@ -382,24 +376,24 @@ BOOL CSilo_SIM::ParseSTKProCmd(CResponse* const pResponse, const BYTE*& rszPoint
         RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() : ERROR : Could not find response end\r\n");
         goto Error;
     }
-		
+
     // Create STK proactive hex string
     line = stk_at_to_hex(pAtResp);
-	
-	RIL_LOG_INFO(" line= %s\r\n", line);
+
+    RIL_LOG_INFO(" line= %s\r\n", line);
 
     //  Back up over the "\r\n".
     rszPointer -= strlen(g_szNewLine);
 
-	delete pAtResp->p_intermediates;
-	delete pAtResp;
+    delete pAtResp->p_intermediates;
+    delete pAtResp;
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_STK_PROACTIVE_COMMAND);
 
     if (!pResponse->SetData((void*) line, sizeof(char *), FALSE))
     {
-		RIL_LOG_INFO(" SetData failed\r\n");
+        RIL_LOG_INFO(" SetData failed\r\n");
         goto Error;
     }
 
@@ -414,11 +408,11 @@ BOOL CSilo_SIM::ParseProSessionStatus(CResponse* const pResponse, const BYTE*& r
 {
     RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - Enter\r\n");
     BOOL fRet = FALSE;
-    const char* pszEnd = NULL;	
-	UINT32 uiCmd;
-	UINT32 uiResult;
-	UINT32 uiAddResult;
-	UINT32 uiStatus;
+    const char* pszEnd = NULL;
+    UINT32 uiCmd;
+    UINT32 uiResult;
+    UINT32 uiAddResult;
+    UINT32 uiStatus;
 
     if (pResponse == NULL)
     {
@@ -440,37 +434,37 @@ BOOL CSilo_SIM::ParseProSessionStatus(CResponse* const pResponse, const BYTE*& r
         goto Error;
     }
 
-	RIL_LOG_INFO(" Proactive Cmd: %u.\r\n", uiCmd);
+    RIL_LOG_INFO(" Proactive Cmd: %u.\r\n", uiCmd);
 
-	// Extract "<result>"
-	if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
-		 (!ExtractUInt(rszPointer, uiResult, rszPointer)))
-	{
-		RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse result.\r\n");
-		goto Error;
-	}
+    // Extract "<result>"
+    if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
+         (!ExtractUInt(rszPointer, uiResult, rszPointer)))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse result.\r\n");
+        goto Error;
+    }
 
-	RIL_LOG_INFO(" Result: %u.\r\n", uiResult);
+    RIL_LOG_INFO(" Result: %u.\r\n", uiResult);
 
-	// Extract "<add_result>"
-	if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
-		 (!ExtractUInt(rszPointer, uiAddResult, rszPointer)))
-	{
-		RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse additional result.\r\n");
-		goto Error;
-	} 
+    // Extract "<add_result>"
+    if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
+         (!ExtractUInt(rszPointer, uiAddResult, rszPointer)))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse additional result.\r\n");
+        goto Error;
+    }
 
-	RIL_LOG_INFO(" Additional result: %u.\r\n", uiAddResult);
+    RIL_LOG_INFO(" Additional result: %u.\r\n", uiAddResult);
 
-	// Extract "<sw1>"
-	if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
-		 (!ExtractUInt(rszPointer, uiStatus, rszPointer)))
-	{
-		RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse status.\r\n");
-		goto Error;
-	} 
+    // Extract "<sw1>"
+    if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
+         (!ExtractUInt(rszPointer, uiStatus, rszPointer)))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse status.\r\n");
+        goto Error;
+    }
 
-	RIL_LOG_INFO(" Status: %u.\r\n", uiStatus);
+    RIL_LOG_INFO(" Status: %u.\r\n", uiStatus);
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_STK_SESSION_END);
@@ -507,9 +501,9 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rsz
     else
     {
         // PDU is followed by g_szNewline, so look for g_szNewline and use its
-        // position to determine length of PDU string.  
-        
-        // Calculate PDU length + NULL byte  
+        // position to determine length of PDU string.
+
+        // Calculate PDU length + NULL byte
         uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(g_szNewLine) + 1;
         RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATI() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
@@ -520,7 +514,7 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rsz
         RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() - ERROR: Could not alloc mem for command.\r\n");
         goto Error;
     }
-    
+
     // Parse <"hex_string">
     if (!ExtractQuotedString(rszPointer, pszProactiveCmd, uiLength, rszPointer))
     {
@@ -571,16 +565,16 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rsz
     // Look for a "<postfix>" to be sure we got the whole message
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
     {
-		// incomplete message notification
+        // incomplete message notification
         RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() : ERROR : Could not find response end\r\n");
         goto Error;
     }
     else
     {
         // PDU is followed by g_szNewline, so look for g_szNewline and use its
-        // position to determine length of PDU string.  
-        
-        // Calculate PDU length + NULL byte  
+        // position to determine length of PDU string.
+
+        // Calculate PDU length + NULL byte
         uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(g_szNewLine) + 1;
         RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATN() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
@@ -620,7 +614,7 @@ Error:
         free(pszProactiveCmd);
         pszProactiveCmd = NULL;
     }
-    
+
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Exit\r\n");
     return fRet;
 }
@@ -629,9 +623,9 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rs
 {
     RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - Enter\r\n");
     BOOL fRet = FALSE;
-    const char* pszEnd = NULL;	
-	UINT32 uiStatus1;
-	UINT32 uiStatus2;
+    const char* pszEnd = NULL;
+    UINT32 uiStatus1;
+    UINT32 uiStatus2;
 
     if (pResponse == NULL)
     {
@@ -653,16 +647,16 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rs
         goto Error;
     }
 
-	RIL_LOG_INFO(" Status 1: %u.\r\n", uiStatus1);
+    RIL_LOG_INFO(" Status 1: %u.\r\n", uiStatus1);
 
-	// Extract "<sw2>"
-	if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
-		 (!ExtractUInt(rszPointer, uiStatus2, rszPointer)))
-	{
-		RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - ERROR: Could not parse sw2.\r\n");
-		goto Error;
-	}
-    
+    // Extract "<sw2>"
+    if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
+         (!ExtractUInt(rszPointer, uiStatus2, rszPointer)))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - ERROR: Could not parse sw2.\r\n");
+        goto Error;
+    }
+
     RIL_LOG_INFO(" Status 2: %u.\r\n", uiStatus2);
 
     pResponse->SetUnsolicitedFlag(TRUE);

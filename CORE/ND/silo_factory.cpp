@@ -43,7 +43,7 @@ CSilo* CSilo_Factory::GetSiloVoice(CChannel *pChannel)
 
     CRepository repository;
     BYTE szModem[uiMaxModemNameLen];
-    
+
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
         if (0 == strcmp(szModem, szInfineonN721))
@@ -67,7 +67,7 @@ CSilo* CSilo_Factory::GetSiloSIM(CChannel *pChannel)
 
     CRepository repository;
     BYTE szModem[uiMaxModemNameLen];
-    
+
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
         if (0 == strcmp(szModem, szInfineonN721))
@@ -91,7 +91,7 @@ CSilo* CSilo_Factory::GetSiloSMS(CChannel *pChannel)
 
     CRepository repository;
     BYTE szModem[uiMaxModemNameLen];
-    
+
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
         if (0 == strcmp(szModem, szInfineonN721))
@@ -115,7 +115,7 @@ CSilo* CSilo_Factory::GetSiloData(CChannel *pChannel)
 
     CRepository repository;
     BYTE szModem[uiMaxModemNameLen];
-    
+
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
         if (0 == strcmp(szModem, szInfineonN721))
@@ -139,7 +139,7 @@ CSilo* CSilo_Factory::GetSiloNetwork(CChannel *pChannel)
 
     CRepository repository;
     BYTE szModem[uiMaxModemNameLen];
-    
+
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
         if (0 == strcmp(szModem, szInfineonN721))
@@ -163,7 +163,7 @@ CSilo* CSilo_Factory::GetSiloPhonebook(CChannel *pChannel)
 
     CRepository repository;
     BYTE szModem[uiMaxModemNameLen];
-    
+
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
         if (0 == strcmp(szModem, szInfineonN721))

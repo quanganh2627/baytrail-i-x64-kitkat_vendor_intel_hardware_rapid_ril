@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// silo_SIM.h                       
+// silo_SIM.h
 //
 // Copyright 2005-2007 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
@@ -64,13 +64,13 @@ public:
 
 protected:
     //  Parse notification functions here.
-#ifndef USE_STK_RAW_MODE    
+#ifndef USE_STK_RAW_MODE
     virtual BOOL    ParseSTKProCmd(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseProSessionStatus(CResponse* const pResponse, const BYTE*& rszPointer);
-#else    
+#else
     virtual BOOL    ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rszPointer);      
+    virtual BOOL    ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rszPointer);
 #endif
 
 private:

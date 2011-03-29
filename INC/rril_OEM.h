@@ -36,7 +36,7 @@ typedef struct s_request_data
                                 // the parsing process that otherwise is not available.
                                 // Can be left NULL if not required
 
-    unsigned int cbContextData;  // Size in bytes of the context data object 
+    unsigned int cbContextData;  // Size in bytes of the context data object
 } REQUEST_DATA;
 
 typedef struct s_response_data
@@ -44,7 +44,7 @@ typedef struct s_response_data
     char * szResponse;          // AT response string from modem
     void * pData;               // Point to blob of memory containing response expected by
                                 // upper layers
-                                
+
     unsigned long uiDataSize;   // Size of response blob
 
     unsigned long uiChannel;    // Channel the response was received on

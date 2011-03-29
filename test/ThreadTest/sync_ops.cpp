@@ -253,7 +253,7 @@ CMutipleEvent::~CMutipleEvent()
 void CMutipleEvent::AddEvent(int iEventIndex, CEvent* pEvent)
 {
     assert((iEventIndex >= 0) && (iEventIndex < m_nEvents));
-    
+
     EnterMutex();
     {
         if (m_pEvents[iEventIndex])
@@ -293,7 +293,7 @@ BOOL CMutipleEvent::Update(int iEventIndex)
         fHandled = TRUE;
 
         //printf("CMutipleEvent::Update() : m_nLastSignaledEvent = %d\r\n", m_nLastSignaledEvent);
-    
+
         pthread_cond_signal(&m_MultipleEventCond);
     }
 

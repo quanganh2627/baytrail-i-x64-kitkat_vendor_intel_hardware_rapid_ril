@@ -56,13 +56,13 @@ BOOL CChannel_DLC2::OpenPort()
 {
     BOOL bRetVal = FALSE;
 
-    RIL_LOG_INFO("CChannel_DLC2::OpenPort() - Opening COM Port: %s...\r\n", g_szDLC2Port);
+    RIL_LOG_INFO("CChannel_DLC2::OpenPort() - Opening COM Port:%s...\r\n", g_szDLC2Port);
     RIL_LOG_INFO("CChannel_DLC2::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
 
     bRetVal = m_Port.Open(g_szDLC2Port, g_bIsSocket);
 
-    RIL_LOG_INFO("CChannel_DLC2::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
-    
+    RIL_LOG_INFO("CChannel_DLC2::OpenPort() - Opening COM Port:%s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
+
     return bRetVal;
 }
 
@@ -98,7 +98,7 @@ BOOL CChannel_DLC2::AddSilos()
 {
     RIL_LOG_VERBOSE("CChannel_DLC2::AddSilos() - Enter\r\n");
     BOOL bRet = FALSE;
-    
+
     //  DLC2 channel contains 5 silos:
     //     Voice Silo
     //     Network Silo

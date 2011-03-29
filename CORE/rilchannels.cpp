@@ -112,6 +112,6 @@ UINT32 g_arChannelMapping[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_GETIPADDRESS,                        // 103
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_GETDNS,                              // 104
     RIL_CHANNEL_DLC8   //ND_REQ_ID_QUERYPIN2,                           // 105
-    
+
 };
 

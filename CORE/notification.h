@@ -12,7 +12,7 @@ public:
     BOOL                InitFromDWORDBlob(const UINT32 dwCode, const UINT32 dwBlob);
 
     // For all Android unsolicited responses, set fCpyMem to FALSE. This ensures our internal string pointers
-    // are correct in the memory we return to Android. The framework already ensures this memory will be freed. 
+    // are correct in the memory we return to Android. The framework already ensures this memory will be freed.
     BOOL                InitFromRealBlob(const UINT32 dwCode, void* pBlob, UINT32 cbBlob, const BOOL fCpyMem = TRUE);
 
     BOOL                FinishInitFromRspBlob(const CResponse& rRsp);

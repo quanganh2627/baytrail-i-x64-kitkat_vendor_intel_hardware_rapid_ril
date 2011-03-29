@@ -69,7 +69,7 @@ BOOL CThreadManager::Stop()
     RIL_LOG_VERBOSE("CThreadManager::Stop() - Exit\r\n");
     return fRet;
 }
-    
+
 CThreadManager::CThreadManager(unsigned int nChannels, CEvent *& pStopThreadsEvent) :
     m_nChannelsTotal(nChannels),
     m_nChannelsActive(0),
@@ -127,7 +127,7 @@ BOOL CThreadManager::Initialize()
         RIL_LOG_CRITICAL("CThreadManager::Initialize() : ERROR : Failed to launch channel threads\r\n");
         goto Error;
     }
-    
+
     if (WAIT_EVENT_0_SIGNALED != CEvent::Wait(m_pStartupCompleteEvent, TIMEOUT_CHNL_INIT))
     {
         RIL_LOG_CRITICAL("CThreadManager::Initialize() : ERROR : Timed out waiting for threads to register\r\n");
@@ -183,7 +183,7 @@ void CThreadManager::RegisterThread()
     {
         RIL_LOG_CRITICAL("CThreadManager::RegisterThread() called with no instance!\r\n");
     }
-       
+
     RIL_LOG_VERBOSE("CThreadManager::RegisterThread() - Exit\r\n");
 }
 
@@ -192,16 +192,16 @@ void CThreadManager::Register()
     RIL_LOG_VERBOSE("CThreadManager::Register() - Enter\r\n");
 
     CMutex::Lock(m_pTManMutex);
-    
+
     ++m_nChannelsActive;
     RIL_LOG_INFO("CThreadManager::RegisterThread() : %d of %d threads registered\r\n", m_nChannelsActive, m_nChannelsTotal);
-    
+
     if (m_nChannelsActive == m_nChannelsTotal)
     {
         RIL_LOG_INFO("CThreadManager::RegisterThread() : Channel threads are running. Setting event.\r\n");
         SignalComplete();
     }
-    
+
     CMutex::Unlock(m_pTManMutex);
     RIL_LOG_VERBOSE("CThreadManager::Register() - Exit\r\n");
 

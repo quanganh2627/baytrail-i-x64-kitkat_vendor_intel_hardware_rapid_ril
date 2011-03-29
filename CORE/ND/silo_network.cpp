@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// silo_network.cpp                       
+// silo_network.cpp
 //
 // Copyright 2005-2007 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
@@ -92,7 +92,7 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         RIL_LOG_INFO("PostParseResponseHook() - INFO: Override generic error with OK as modem is pin locked\r\n");
         rpRsp->SetResultCode(RRIL_RESULT_OK);
     }
-    
+
     return TRUE;
 }
 
@@ -119,6 +119,9 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     BYTE szTimeZone[TIME_ZONE_SIZE] = {0};
     int nTimeZone = 0;
     int nTimeDiff = 0;
+    struct tm lt;
+
+
     BYTE * pszTimeData = (BYTE*)malloc(sizeof(BYTE) * MAX_BUFFER_SIZE);
     if (NULL == pszTimeData)
     {
@@ -152,22 +155,22 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
 
     //  First parse the <tz>,
     if (!ExtractUnquotedString(rszPointer, ",", szTimeZone, TIME_ZONE_SIZE, rszPointer) ||
-        !SkipString(rszPointer, ",", rszPointer))    
+        !SkipString(rszPointer, ",", rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to find time zone!\r\n");
         goto Error;
     }
-       
+
     // Extract "<date, time>"
     if (!ExtractQuotedString(rszPointer, pszTimeData, MAX_BUFFER_SIZE, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to find date/time string!\r\n");
         goto Error;
     }
-    
+
     // Extract time/date values from quoted string
     szTemp = pszTimeData;
-    
+
     // Extract "yy/mm/dd"
     if ( (!ExtractUInt(szTemp, uiYear, szTemp)) ||
          (!FindAndSkipString(szTemp, "/", szTemp)) ||
@@ -180,16 +183,16 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     }
 
     // Extract "hh:mm:ss"
-	if ( (!FindAndSkipString(szTemp, ",", szTemp)) ||
-		 (!ExtractUInt(szTemp, uiHour, szTemp)) ||
+    if ( (!FindAndSkipString(szTemp, ",", szTemp)) ||
+         (!ExtractUInt(szTemp, uiHour, szTemp)) ||
          (!FindAndSkipString(szTemp, ":", szTemp)) ||
          (!ExtractUInt(szTemp, uiMins, szTemp)) ||
-         (!FindAndSkipString(szTemp, ":", szTemp)) ||         
+         (!FindAndSkipString(szTemp, ":", szTemp)) ||
          (!ExtractUInt(szTemp, uiSecs, szTemp)) )
-	{
-		RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to extract hh:mm:ss!\r\n");
-		goto Error;
-	}
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to extract hh:mm:ss!\r\n");
+        goto Error;
+    }
 
     if (!SkipRspEnd(rszPointer, g_szNewLine, rszPointer) ||
         !FindAndSkipString(rszPointer, "+CTZDST: ", rszPointer))
@@ -197,7 +200,7 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to skip +CTZDST:!\r\n");
         goto Error;
     }
-    
+
     //  Parse <dst>.
     szDummy = rszPointer;
     if(!ExtractUInt(rszPointer, uiDST, rszPointer))
@@ -205,9 +208,8 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to parse dst!\r\n");
         goto Error;
     }
-            
+
     // Fill in broken-down time struct with local time values
-    struct tm lt;
     memset(&lt, 0, sizeof(struct tm));
     lt.tm_sec = uiSecs;
     lt.tm_min = uiMins;
@@ -215,21 +217,26 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     lt.tm_mday = uiDay;
     lt.tm_mon = uiMonth - 1;    // num months since Jan, range 0 to 11
     lt.tm_year = uiYear + 100;  // num years since 1900
-    lt.tm_isdst = uiDST;
-    
+    //lt.tm_isdst = uiDST;      // DO NOT SET THIS to 1, it will cause error in mktime().
+
+
+
     // Convert broken-down time -> calendar time (secs)
     ctime_secs = mktime(&lt);
-    if (ctime_secs == -1)
+    if (-1 == ctime_secs)
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to convert local to calendar time!\r\n");
+        //  Just skip over notification
+        free(pszTimeData);
+        fRet = TRUE;
         goto Error;
     }
-    
+
     //RIL_LOG_INFO("ctime_secs = [%u]\r\n", (UINT32)ctime_secs);
 
     // Convert local time (in calendar, secs) to GMT
     //pGMT = gmtime(&ctime_secs);
-    
+
     //  The problem here is that Android expects GMT, but modem gives us local time.
     //  We need to calculate how many seconds to add/subtract from the mktime() call.
     //  Also, the szTimeZone from the modem includes DST offset (from my observations).
@@ -243,28 +250,31 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     ctime_secs += (time_t)nTimeDiff;
     //RIL_LOG_INFO("ctime_secs = [%u]\r\n", (UINT32)ctime_secs);
     pGMT = localtime(&ctime_secs);
-    
+
     // Format date time as "yy/mm/dd,hh:mm:ss"
-    memset(pszTimeData, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);    
+    memset(pszTimeData, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
     strftime(pszTimeData, sizeof(BYTE) * MAX_BUFFER_SIZE, "%y/%m/%d,%T", pGMT);
-    
+
     // Add timezone and dst: "(+/-)tz,dt"
     strncat(pszTimeData, szTimeZone, strlen(szTimeZone));
-    strcat(pszTimeData, ",");
-    strncat(pszTimeData, szDummy, rszPointer - szDummy);
+
+    //  FIX: The time from the modem includes DST so DON'T set it here!!
+    //strcat(pszTimeData, ",");
+    //strncat(pszTimeData, szDummy, rszPointer - szDummy);
+    strcat(pszTimeData, ",0");
 
     RIL_LOG_INFO("CSilo_Network::ParseCTZV() - INFO: pszTimeData: %s\r\n", pszTimeData);
 
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_NITZ_TIME_RECEIVED);
-    
+
     if (!pResponse->SetData((void*)pszTimeData, sizeof(BYTE*), FALSE))
     {
         fRet = FALSE;
         goto Error;
     }
-    
+
     fRet = TRUE;
 Error:
     if (!fRet)
@@ -287,11 +297,12 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
     RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Enter\r\n");
 
     const BYTE* szDummy;
-    BOOL   fRet = FALSE, fUnSolicited = FALSE;
-    UINT32   uiParamCount = 0;
-    const UINT32   uiParamCountMax = 6;
-    UINT32   uiParamCountMaxGPRS = 0;
-    UINT32   uiParams[uiParamCountMax] = {0, 0, 0, 0, 0, 0};
+    BOOL   fRet = FALSE, fUnSolicited = TRUE;
+    int nNumParams = 1;
+    BYTE* pszCommaBuffer = NULL;  //  Store notification in here.
+                                  //  Note that cannot loop on rszPointer as it may contain
+                                  //  other notifications as well.
+
 
     if (NULL == pResponse)
     {
@@ -305,97 +316,114 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
         goto Error;
     }
 
-    // Valid CREG/CGREG notifications can have from one to four parameters, as follows:
-    //       <status>               for an unsolicited notification without location data
-    //  <n>, <status>               for a command response without location data
-    //       <status>, <lac>, <ci>  for an unsolicited notification with location data
-    //  <n>, <status>, <lac>, <ci>  for a command response with location data
+    pszCommaBuffer = new BYTE[szDummy-rszPointer+1];
+    if (!pszCommaBuffer)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - cannot allocate pszCommaBuffer\r\n");
+        goto Error;
+    }
+
+    memset(pszCommaBuffer, 0, szDummy-rszPointer+1);
+    strncpy(pszCommaBuffer, rszPointer, szDummy-rszPointer);
+    //RIL_LOG_INFO("pszCommaBuffer=[%s]\r\n", CRLFExpandedString(pszCommaBuffer,szDummy-rszPointer).GetString() );
+
+
+    // Valid CREG notifications can have from one to five parameters, as follows:
+    //       <status>                      for an unsolicited notification without location data
+    //  <n>, <status>                      for a command response without location data
+    //       <status>, <lac>, <ci>, <AcT>  for an unsolicited notification with location data
+    //  <n>, <status>, <lac>, <ci>, <AcT>  for a command response with location data
+
+    // Valid CGREG notifications can have from one to six parameters, as follows:
+    //       <status>                             for an unsolicited notification without location data
+    //  <n>, <status>                             for a command response without location data
+    //       <status>, <lac>, <ci>, <AcT>, <rac>  for an unsolicited notification with location data
+    //  <n>, <status>, <lac>, <ci>, <AcT>, <rac>  for a command response with location data
 
     //  3GPP TS 27.007 version 5.4.0 release 5 section 7.2
     //  <n>      valid values: 0, 1, 2
     //  <status> valid values: 0, 1, 2, 3, 4, 5
     //  <lac>    string type, in hex
     //  <ci>     string type, in hex
+    //  <AcT>    valid values: 0=GSM, 1=GSM Compact, 2=UTRAN
+    //  <rac>    (routing area code) string type, in hex (one byte)
 
-    // Parse and store parameters
-    if(bGPRS)
+
+    //  Loop and count parameters (separated by comma)
+    szDummy = pszCommaBuffer;
+    while(FindAndSkipString(szDummy, ",", szDummy))
     {
-        uiParamCountMaxGPRS = uiParamCountMax;
+        nNumParams++;
+    }
+    //RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - nNumParams=[%d]\r\n", nNumParams);
+
+
+    if (bGPRS)
+    {
+        //  The +CGREG case
+        //  Unsol is 1 and 5
+        if ((1 == nNumParams) || (5 == nNumParams))
+        {
+            fUnSolicited = TRUE;
+        }
+        else if ((2 == nNumParams) || (6 == nNumParams))
+        {
+            //  Sol is 2 and 6
+            fUnSolicited = FALSE;
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - GPRS Unknown param count=%d\r\n", nNumParams);
+            fUnSolicited = TRUE;
+        }
+        RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CGREG paramcount=%d  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
     }
     else
     {
-        uiParamCountMaxGPRS = uiParamCountMax - 1;
-    }
- 
-   while (uiParamCount < uiParamCountMaxGPRS)
-    {
-        SkipSpaces(rszPointer, rszPointer);
-
-        BOOL fQuote = SkipString(rszPointer, "\"", rszPointer);
-
-        // ok to use ExtractHexUInt() here as
-        // valid range of <n> is 0-2 and
-        // valid range of <status> is 0-5
-
-        if (!ExtractHexUInt(rszPointer, uiParams[uiParamCount], rszPointer))
+        //  The +CREG case
+        //  Unsol is 1 and 4
+        if ((1 == nNumParams) || (4 == nNumParams))
         {
+            fUnSolicited = TRUE;
+        }
+        else if ((2 == nNumParams) || (5 == nNumParams))
+        {
+            // sol is 2 and 5
+            fUnSolicited = FALSE;
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - Unknown param count=%d\r\n", nNumParams);
+            fUnSolicited = TRUE;
+        }
+        RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CREG paramcount=%d  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
+    }
+
+    if (fUnSolicited)
+    {
+        // Look for the postfix
+        if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - Cannot find postfix  bGPRS=[%d]\r\n", bGPRS);
             goto Error;
         }
+        rszPointer -= strlen(g_szNewLine);
 
-        if (fQuote)
-        {
-            // skip end quote
-            if (!SkipString(rszPointer, "\"", rszPointer))
-            {
-                goto Error;
-            }
- 	if(1 == uiParamCount)
-            {
-                // If we hit a " char after parsing 1 arguments, It is a UnSolic		ted response
-                fUnSolicited = TRUE;
-            }
-        }
-
-        uiParamCount++;
-
-        SkipSpaces(rszPointer, rszPointer);
-
-        if (SkipString(rszPointer, "\r", szDummy))
-        {
-            // done
-            break;
-        }
-        else if (!SkipString(rszPointer, ",", rszPointer))
-        {
-             // unexpected token
-            goto Error;           
-        }          
+        pResponse->SetUnsolicitedFlag(TRUE);
+        pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED);
+        fRet = TRUE;
     }
-    
-
-    // We have the parameters, look for the postfix
-    if (!SkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    else
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - Cannot find postfix  bGPRS=[%d]\r\n", bGPRS);
+        fRet = FALSE;
         goto Error;
     }
-
-    RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - uiParamCount=[%d]\r\n", uiParamCount);
-    
-    // If there are 2 or 5 parameters, this is not a notification - let the
-    // response handler take care of it.
-    if ((uiParamCount == 2) || (fUnSolicited == FALSE))
-    {
-        goto Error;
-    }
-
-    pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED);
 
 
     fRet = TRUE;
-
 Error:
+    delete[] pszCommaBuffer;
+    pszCommaBuffer = NULL;
     RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Exit\r\n");
     return fRet;
 }
@@ -421,33 +449,33 @@ BOOL CSilo_Network::ParseCGREG(CResponse *const pResponse, const BYTE* &rszPoint
 BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const BYTE* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXREG() - Enter\r\n");
-    
+
     extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
-    
+
     BOOL bRet = FALSE;
     const BYTE* szDummy;
     UINT32 n = 0, state = 0;
-    
+
     if (NULL == pResponse)
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXREG() - Error: pResponse is NULL\r\n");
         goto Error;
     }
-    
+
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
         // This isn't a complete registration notification -- no need to parse it
         goto Error;
     }
-    
+
     //  Parse <n>,<state>
     if (!ExtractUInt32(rszPointer, state, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXREG() - Error: Parsing error\r\n");
         goto Error;
     }
-    
+
     //  Check state and set global variable for network technology
     switch(state)
     {
@@ -455,17 +483,17 @@ BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const BYTE* &rszPointe
         // registered, GPRS
         g_uiAccessTechnology = ACT_GPRS;
         break;
-        
+
         case 2:
         // registered, EDGE
         g_uiAccessTechnology = ACT_EDGE;
         break;
-        
+
         case 3:
         // registered, WCDMA
         g_uiAccessTechnology = ACT_UMTS;
         break;
-      
+
         case 4:
         // registered, HSDPA
         g_uiAccessTechnology = ACT_HSDPA;
@@ -475,19 +503,19 @@ BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const BYTE* &rszPointe
         // registered, HSUPA
         g_uiAccessTechnology = ACT_HSUPA;
         break;
-        
+
         case 6:
         // registered, HSUPA and HSDPA
         g_uiAccessTechnology = ACT_HSPA;
         break;
- 
+
         default:
         g_uiAccessTechnology = ACT_UNKNOWN;
         break;
     }
-    
+
     //  Skip to end (Medfield fix for XREG)
-    
+
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
@@ -498,15 +526,15 @@ BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const BYTE* &rszPointe
 
     //  Back up over the "\r\n".
     rszPointer -= strlen(g_szNewLine);
-    
-    
+
+
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED);
 
     bRet = TRUE;
 Error:
     RIL_LOG_VERBOSE("CSilo_Network::ParseXREG() - Exit\r\n");
-    
+
     return bRet;
 }
 
@@ -515,28 +543,28 @@ Error:
 BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const BYTE* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseCGEV() - Enter\r\n");
-    
+
     BOOL bRet = FALSE;
-    
+
     if (NULL == pResponse)
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: pResponse is NULL\r\n");
         goto Error;
     }
-    
+
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
         // This isn't a complete registration notification -- no need to parse it
         goto Error;
     }
-    
+
 
     //  Back up over the "\r\n".
     rszPointer -= strlen(g_szNewLine);
 
     //  Flag as unrecognized.
     pResponse->SetUnrecognizedFlag(TRUE);
-    
+
     //  Trigger data call list changed
     //RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Called timed callback  START\r\n");
     RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
@@ -554,18 +582,18 @@ Error:
 BOOL CSilo_Network::ParseXCGEDPAGE(CResponse *const pResponse, const BYTE* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCGEDPAGE() - Enter\r\n");
-    
+
     BOOL bRet = FALSE;
-    
+
     char szTemp[20] = {0};
 
-    
+
     if (NULL == pResponse)
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXCGEDPAGE() - Error: pResponse is NULL\r\n");
         goto Error;
     }
-    
+
     // Look for a "<postfix>OK<postfix>"
     sprintf(szTemp, "%sOK%s", g_szNewLine, g_szNewLine);
     if (!FindAndSkipRspEnd(rszPointer, szTemp, rszPointer))
@@ -573,7 +601,7 @@ BOOL CSilo_Network::ParseXCGEDPAGE(CResponse *const pResponse, const BYTE* &rszP
         // This isn't a complete registration notification -- no need to parse it
         goto Error;
     }
-    
+
 
     //  Back up over the "\r\n".
     rszPointer -= strlen(g_szNewLine);

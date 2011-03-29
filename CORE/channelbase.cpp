@@ -87,7 +87,7 @@ CChannelBase::~CChannelBase()
         delete m_pBlockReadThreadEvent;
         m_pBlockReadThreadEvent = NULL;
     }
-    
+
     int count = m_SiloContainer.nSilos;
     for (int i = 0; i < count; ++i)
     {
@@ -387,7 +387,7 @@ UINT32 CChannelBase::CommandThread()
         if (!SendCommand(pCmd))
         {
             RIL_LOG_CRITICAL("CChannelBase::CommandThread() : ERROR : chnl=[%d] Unable to send command!\r\n", m_uiRilChannel);
-            
+
             // Need to return a failed response to the upper layers and deallocate the memory
             RIL_onRequestComplete(pCmd->GetToken(), RIL_E_GENERIC_FAILURE, NULL, 0);
             delete pCmd;
@@ -415,7 +415,7 @@ UINT32 CChannelBase::CommandThread()
     }
 
 Done:
-    
+
     if (pCmd)
     {
         delete pCmd;
@@ -429,13 +429,13 @@ Done:
 BOOL CChannelBase::WaitForCommand()
 {
     CEvent *rpEvents[] = {g_TxQueueEvent[m_uiRilChannel], GETCANCELEVENT};
-    
+
     //RIL_LOG_INFO("CChannelBase::WaitForCommand() - WAITING FOR TxQueue EVENT...\r\n");
     CEvent::Reset(g_TxQueueEvent[m_uiRilChannel]);
     UINT32 uiRet = CEvent::WaitForAnyEvent(2, rpEvents, WAIT_FOREVER);
-    
+
     //RIL_LOG_INFO("CChannelBase::WaitForCommand() - Got TxQueue event!\r\n");
-    
+
     return  (WAIT_EVENT_0_SIGNALED == uiRet);
 }
 
@@ -545,7 +545,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         {
             bLastCmd = TRUE;
         }
-        
+
         if ('\0' != pszStart[0])
         {
             // Send the command
@@ -554,7 +554,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                                 0,
                                 REQ_ID_NONE,
                                 szCmd);
-            
+
             if (pCmd)
             {
                 CContext* pContext = new CContextInitString(eInitIndex, m_uiRilChannel, bLastCmd);
@@ -569,7 +569,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                 goto Done;
             }
         }
-        
+
         // If this was the last command, get out now
         if (!pszEnd)
         {
@@ -626,7 +626,11 @@ UINT32 CChannelBase::ResponseThread()
         if (uiReadError >= 3)
         {
             RIL_LOG_CRITICAL("CChannel::ResponseThread() - ERROR: chnl=[%d] uiReadError > = 3! Trigger radio error!\r\n", m_uiRilChannel);
-            TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
+            Sleep(100);
+            //TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
+			TriggerRadioError(eRadioError_ForceShutdown, __LINE__, __FILE__);
+
+
 
             // the modem is down and we're switching off, so no need to hang around
             // listening on the COM port, bail out now
@@ -644,7 +648,7 @@ UINT32 CChannelBase::ResponseThread()
             break;
         }
         */
-        
+
         // Wait for more data
         RIL_LOG_VERBOSE("CChannel::ResponseThread() chnl=[%d] - Waiting for data\r\n", m_uiRilChannel);
         if (!WaitForAvailableData(WAIT_FOREVER))
@@ -656,14 +660,16 @@ UINT32 CChannelBase::ResponseThread()
             if (!IsPortOpen())
             {
                 RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Port closed, rebooting\r\n", m_uiRilChannel);
-                TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
+                Sleep(100);
+                //TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
+                TriggerRadioError(eRadioError_ForceShutdown, __LINE__, __FILE__);
                 break;
             }
             continue;
         }
         RIL_LOG_VERBOSE("CChannel::ResponseThread() chnl=[%d] - Data received\r\n", m_uiRilChannel);
 
-        BOOL bFirstRead = TRUE;    
+        BOOL bFirstRead = TRUE;
         do
         {
             if (!ReadFromPort(szData, uiRespDataBufSize, uiRead))
@@ -676,7 +682,7 @@ UINT32 CChannelBase::ResponseThread()
             {
                 if (bFirstRead)
                 {
-                    RIL_LOG_CRITICAL("CChannel::ResponseThread() chnl=[%d] - ERROR: Data availabe but uiRead is 0!\r\n", m_uiRilChannel);
+                    RIL_LOG_CRITICAL("CChannel::ResponseThread() chnl=[%d] - ERROR: Data available but uiRead is 0!\r\n", m_uiRilChannel);
                     ++uiReadError;
                 }
                 break;
@@ -698,7 +704,7 @@ UINT32 CChannelBase::ResponseThread()
     }
 
 Done:
-    RIL_LOG_VERBOSE("CChannelBase::ResponseThread() chnl=[%d] - Exit\r\n", m_uiRilChannel);
+    RIL_LOG_INFO("CChannelBase::ResponseThread() chnl=[%d] - Exit\r\n", m_uiRilChannel);
     return 0;
 }
 
@@ -893,7 +899,7 @@ BOOL CChannelBase::OpenPort()
     bRetVal = m_Port.Open(g_szCmdPort, g_bIsSocket);
 
     RIL_LOG_INFO("CChannelBase::OpenPort() - Opening COM Port: %s\r\n", (bRetVal ? "SUCCESS" : "FAILED!") );
-    
+
     return bRetVal;
 }
 
@@ -914,9 +920,9 @@ BOOL CChannelBase::WriteToPort(const BYTE* pData, UINT32 uiBytesToWrite, UINT32&
     RIL_LOG_INFO("CChannelBase::WriteToPort() - INFO: chnl=[%d] TX [%s]\r\n",
                        m_uiRilChannel,
                        CRLFExpandedString(pData,uiBytesToWrite).GetString());
-                       
+
     bRetVal = m_Port.Write(pData, uiBytesToWrite, ruiBytesWritten);
-    
+
     if (!bRetVal)
     {
         RIL_LOG_CRITICAL("CChannelBase::WriteToPort() - ERROR: chnl=[%d] Failed to write command: [%s]\r\n",

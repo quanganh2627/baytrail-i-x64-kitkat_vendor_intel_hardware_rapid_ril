@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// silo_voice.h                       
+// silo_voice.h
 //
 // Copyright 2005-2007 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.

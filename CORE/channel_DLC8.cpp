@@ -62,7 +62,7 @@ BOOL CChannel_DLC8::OpenPort()
     bRetVal = m_Port.Open(g_szDLC8Port, g_bIsSocket);
 
     RIL_LOG_INFO("CChannel_DLC8::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
-    
+
     return bRetVal;
 }
 
@@ -98,7 +98,7 @@ BOOL CChannel_DLC8::AddSilos()
 {
     RIL_LOG_VERBOSE("CChannel_DLC8::AddSilos() - Enter\r\n");
     BOOL bRet = FALSE;
-    
+
     //  DLC8 channel contains 5 silos:
     //     Voice Silo
     //     Network Silo

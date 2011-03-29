@@ -59,7 +59,7 @@ public:
 
     // Sets the radio as available
     void SetRadioAvailable();
-    
+
     // Sets the radio to report unavailable. Used when we are turning the radio on or rebooting/re-initializing.
     void    SetRadioUnavailable(BOOL fResetState);
 

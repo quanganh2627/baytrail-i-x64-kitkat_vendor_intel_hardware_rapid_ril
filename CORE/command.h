@@ -70,7 +70,7 @@ public:
     UINT32              GetRetries()        { return m_uiRetries;   };
     CContext *          GetContext()        { return m_pContext;    };
     void*               GetContextData()    { return m_pContextData;};
-    unsigned int        GetContextDataSize(){ return m_cbContextData;}; 
+    unsigned int        GetContextDataSize(){ return m_cbContextData;};
 
     BOOL                IsAlwaysParse()     { return m_fAlwaysParse; };
     BOOL                IsHighPriority()    { return m_fHighPriority; };

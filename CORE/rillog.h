@@ -54,14 +54,14 @@ public:
 
 private:
     static const UINT32 m_uiMaxLogBufferSize = 1024;
-    enum 
+    enum
     {
         E_RIL_VERBOSE_LOG  = 0x01,
         E_RIL_INFO_LOG     = 0x02,
         E_RIL_WARNING_LOG  = 0x04,
         E_RIL_CRITICAL_LOG = 0x08
     };
-    
+
     static UINT8 m_uiFlags;
     static BOOL  m_bInitialized;
 };

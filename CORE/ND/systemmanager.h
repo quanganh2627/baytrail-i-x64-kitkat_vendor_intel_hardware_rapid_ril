@@ -19,7 +19,7 @@
  *  United States and other jurisdictions
  *
  * Description:
- *    General utilities and system start-up and 
+ *    General utilities and system start-up and
  *    shutdown management
  *
  *  Author: Francesc J. Vilarino Guell
@@ -69,7 +69,7 @@ public:
     BOOL            ResumeSystemFromModemReset();
 
     BOOL            IsExitRequestSignalled() const;
-        
+
     //  Get/Set functions.
     static CEvent*  GetSystemInitCompleteEvent()        { return GetInstance().m_pSystemInitCompleteEvent; }
     static CEvent*  GetCancelEvent()                    { return GetInstance().m_pExitRilEvent;    };
@@ -86,7 +86,7 @@ public:
     void            StopSimInitialization();
 
     void            GetRequestInfo(REQ_ID reqID, REQ_INFO &rReqInfo);
-    
+
     //  For resetting modem
     void            CloseChannelPorts();
     BOOL            OpenChannelPortsOnly();
@@ -99,7 +99,7 @@ private:
     //void            CloseChannelPorts();
     void            DeleteChannels();
     CChannel*       CreateChannel(UINT32 uiIndex);
-    
+
     // Internal Init helper functions
     void            SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
     BOOL            IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);

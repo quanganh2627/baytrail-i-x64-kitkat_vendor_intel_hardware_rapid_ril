@@ -173,7 +173,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const BYTE*& rszPointer)
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - ERROR: Could not parse PDU Length.\r\n");
         goto Error;
     }
-    
+
     //RIL_LOG_INFO("CMT=[%s]\r\n", CRLFExpandedString(rszPointer,strlen(rszPointer)).GetString() );
 
     // The PDU will be followed by g_szNewline, so look for g_szNewline
@@ -217,7 +217,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const BYTE*& rszPointer)
     {
         goto Error;
     }
-    
+
     //  Here we ack the incoming SMS PDU immediately, otherwise will get CMS error 340.  Have to be quick.
     //RIL_requestTimedCallback(triggerSMSAck, NULL, 0, uiSMSAckDelayUSec);
 
@@ -331,13 +331,13 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const BYTE*& rszPointer)
     BYTE* szPDU = NULL;
     BYTE   szAlpha[MAX_BUFFER_SIZE];
     BOOL  fRet = FALSE;
-    
+
     if (NULL == pResponse)
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - ERROR: pResponse is NULL.\r\n");
         goto Error;
     }
-    
+
     // Throw out the alpha chars if there are any
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
 
@@ -348,7 +348,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const BYTE*& rszPointer)
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - ERROR: Could not parse PDU Length.\r\n");
         goto Error;
     }
-    
+
     //RIL_LOG_INFO("CDS=[%s]\r\n", CRLFExpandedString(rszPointer,strlen(rszPointer)).GetString() );
 
     // The PDU will be followed by g_szNewline, so look for g_szNewline
@@ -391,7 +391,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const BYTE*& rszPointer)
     {
         goto Error;
     }
-    
+
     //  Here we ack the incoming SMS PDU immediately, otherwise will get CMS error 340.  Have to be quick.
     //RIL_requestTimedCallback(triggerSMSAck, NULL, 0, uiSMSAckDelayUSec);
 
@@ -406,7 +406,7 @@ Error:
 
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCDS() - Exit\r\n");
     return fRet;
-        
+
 }
 
 //

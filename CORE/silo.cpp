@@ -110,27 +110,27 @@ PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const BYTE*& pszStr)
         for (int nRow = 0; ; ++nRow)
         {
             const BYTE* szATRsp = pRspTable[nRow].szATResponse;
-            
+
             // Check for a valid pointer
             if (NULL == szATRsp)
             {
                 RIL_LOG_INFO("CSilo::FindParser() chnl=[%d] - Prefix String pointer is NULL\r\n", m_pChannel->GetRilChannel());
                 break;
             }
-            
+
             // Check for the end of the AT response table
             if (0 == strlen(szATRsp))
             {
                 break;
             }
-            
+
             if (SkipString(pszStr, szATRsp, pszStr))
             {
                 fctParser = m_pATRspTable[nRow].pfnATParseRsp;
                 //RIL_LOG_INFO("CSilo::FindParser() chnl=[%d] - Found parse function for response [%s]\r\n",
                 //                m_pChannel->GetRilChannel(),
                 //                CRLFExpandedString(m_pATRspTable[nRow].szATResponse, strlen(m_pATRspTable[nRow].szATResponse)).GetString());
-            
+
                 break;
             }
         }

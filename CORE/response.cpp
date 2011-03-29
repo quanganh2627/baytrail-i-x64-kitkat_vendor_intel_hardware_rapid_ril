@@ -141,11 +141,8 @@ BOOL CResponse::IsUnsolicitedResponse()
 
     RIL_LOG_VERBOSE("CResponse::IsUnsolicitedResponse() : Enter\r\n");
 
-    // Parse "<prefix>"
-    if (!SkipRspStart(szPointer, g_szNewLine, szPointer))
-    {
-        goto Error;
-    }
+    // Parse "<prefix>" if it exists.
+    SkipRspStart(szPointer, g_szNewLine, szPointer);
 
     if (m_pChannel->ParseUnsolicitedResponse(this, szPointer, fDummy))
     {
@@ -229,12 +226,12 @@ BOOL CResponse::IsCorruptResponse()
     const BYTE *szDummy = NULL;
 
     RIL_LOG_VERBOSE("CResponse::IsCorruptResponse() : Enter\r\n");
-    
+
     if (IsCorruptFlag())
     {
         RIL_LOG_INFO("chnl=[%d] Attempting to filter corrupt response\r\n", m_pChannel->GetRilChannel());
         SetCorruptFlag(FALSE);
-        
+
         // heuristic used is to parse everything up to the first CR.
         const BYTE* szPointer = m_szBuffer;
         if (FindAndSkipString(szPointer, "\r", szPointer))
@@ -245,8 +242,8 @@ BOOL CResponse::IsCorruptResponse()
                 //  If next item is \r, then stop here
                 if (SkipString(szPointer+1, "\r", szDummy))
                 {
-                    
-    
+
+
                     // treat as unrecognized
                     SetUnrecognizedFlag(TRUE);
                     m_uiResponseEndMarker = szPointer - m_szBuffer;
@@ -275,6 +272,13 @@ BOOL CResponse::IsOkResponse()
     // look for "OK" in response data
     sprintf(szToken, "%s%s%s", g_szNewLine, pszOkResponse, g_szNewLine);
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
+
+    if (!bRet)
+    {
+        //  Maybe we have just OK<cr><lf> due to modem missing a character
+        sprintf(szToken, "%s%s", pszOkResponse, g_szNewLine);
+        bRet = FindAndSkipString(szPointer, szToken, szPointer);
+    }
 
     if (!bRet)
     {
@@ -319,7 +323,7 @@ BOOL CResponse::IsErrorResponse()
         SetUnsolicitedFlag(FALSE);
         m_uiResultCode = RIL_E_GENERIC_FAILURE;
 
-        m_uiResponseEndMarker = szPointer - m_szBuffer;   
+        m_uiResponseEndMarker = szPointer - m_szBuffer;
         bRet = TRUE;
     }
 
@@ -557,24 +561,24 @@ BOOL CResponse::ParseResponse(CCommand*& rpCmd)
         //GetData(rspData);
         rspData.szResponse = m_szBuffer;
         rspData.uiChannel = m_pChannel->GetRilChannel();
-        
+
         rspData.pContextData = rpCmd->GetContextData();
         rspData.cbContextData = rpCmd->GetContextDataSize();
-        
+
 
         RIL_LOG_VERBOSE("CResponse::ParseResponse : chnl=[%d] Calling Parsing Function\r\n", m_pChannel->GetRilChannel() );
         resCode = (CTE::GetTE().*parser)(rspData);
-        
+
         m_pData = rspData.pData;
         m_uiDataSize = rspData.uiDataSize;
-        
+
         if (RIL_E_SUCCESS != resCode)
         {
             RIL_LOG_CRITICAL("CResponse::ParseResponse() - ERROR: chnl=[%d] Error parsing response: \"%s\"; resCode = 0x%x\r\n",
                             m_pChannel->GetRilChannel(),
                             CRLFExpandedString(m_szBuffer, strlen(m_szBuffer)).GetString(),
                             resCode);
-           
+
             SetResultCode(resCode);
             SetUnsolicitedFlag(FALSE);
         }

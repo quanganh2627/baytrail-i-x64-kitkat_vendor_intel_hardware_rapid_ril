@@ -87,16 +87,16 @@ typedef enum
 class CRilResultBase
 {
 public:
-    CRilResultBase() : 
+    CRilResultBase() :
         result(RIL_API_RESULT_OK),
         resultType(RIL_RESULT_TYPE_NONE),
         resultCode(RRIL_RESULT_CODE_NONE) {};
 
     virtual ~CRilResultBase() {};
-    
+
     // Called after getting response from OEM.
     virtual BOOL SetResult(const UINT32 uiRspCode, const void * pRspData, const UINT32 cbRspData) = 0;
-    
+
     // Called before sending response to OS.
     virtual BOOL GetOSResponse(UINT32 & ruiRspCode, void *& rpRspData, UINT32 & rcbRspData) = 0;
 

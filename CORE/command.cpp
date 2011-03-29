@@ -53,7 +53,7 @@ CCommand::CCommand( UINT32 uiChannel,
     {
         RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", uiChannel);
     }
-    
+
     if ((NULL == pszATCmd) || ('\0' == pszATCmd[0]))
     {
         m_pszATCmd1 = NULL;
@@ -72,7 +72,7 @@ CCommand::CCommand( UINT32 uiChannel,
                     UINT32 uiReqId,
                     const BYTE* pszATCmd1,
                     const BYTE* pszATCmd2,
-                    PFN_TE_PARSE pParseFcn) : 
+                    PFN_TE_PARSE pParseFcn) :
     m_uiChannel(RIL_CHANNEL_ATCMD),
     m_token(token),
     m_uiReqId(uiReqId),
@@ -95,7 +95,7 @@ CCommand::CCommand( UINT32 uiChannel,
     {
         RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", uiChannel);
     }
-    
+
     if ((NULL == pszATCmd1) || ('\0' == pszATCmd1[0]))
     {
         m_pszATCmd1 = NULL;
@@ -125,7 +125,7 @@ CCommand::CCommand( UINT32 uiChannel,
                     RIL_Token token,
                     UINT32 uiReqId,
                     REQUEST_DATA reqData,
-                    PFN_TE_PARSE pParseFcn) : 
+                    PFN_TE_PARSE pParseFcn) :
     m_uiChannel(RIL_CHANNEL_ATCMD),
     m_token(token),
     m_uiReqId(uiReqId),
@@ -148,7 +148,7 @@ CCommand::CCommand( UINT32 uiChannel,
     {
         RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", uiChannel);
     }
-    
+
     if ('\0' == reqData.szCmd1[0])
     {
         m_pszATCmd1 = NULL;
@@ -194,7 +194,7 @@ BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd)
 
         REQ_INFO reqInfo;
         memset(&reqInfo, 0, sizeof(reqInfo));
-        
+
         // Get the info about this API
         CSystemManager::GetInstance().GetRequestInfo((REQ_ID)rpCmd->GetRequestID(), reqInfo);
 
@@ -203,7 +203,7 @@ BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd)
         {
             rpCmd->SetTimeout(reqInfo.uiTimeout);
         }
-        
+
         //  A value of "0" for uiRetries will use the retrieved request info from the registry.
         if (0 == rpCmd->GetRetries())
         {
@@ -220,7 +220,7 @@ BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd)
             (void) CEvent::Signal(g_TxQueueEvent[nChannel]);
             //(void) CEvent::Reset(g_TxQueueEvent[nChannel]);
             //RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue SIGNAL END\r\n");
-            
+
             // The queue owns the command now
             rpCmd = NULL;
 

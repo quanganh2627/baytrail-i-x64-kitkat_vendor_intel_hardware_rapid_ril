@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <alloca.h>
+#include <poll.h>
 
 #include "types.h"
 #include "rillog.h"
@@ -84,6 +85,7 @@ BYTE* g_szDataPort3 = NULL;
 BYTE* g_szDLC2Port = NULL;
 BYTE* g_szDLC6Port = NULL;
 BYTE* g_szDLC8Port = NULL;
+CThread* g_pWatchdogThread = NULL;
 
 //  Global variable to see if modem is dead.  (TEMPORARY)
 BOOL g_bIsModemDead = FALSE;
@@ -114,6 +116,99 @@ static const struct RIL_Env * gs_pRilEnv;
 // FUNCTION DEFINITIONS
 //
 
+//
+// This thread waits for a device hangup event before triggering
+// a radio error and performing a re-init of the RIL.
+//
+void* WatchdogThreadProc(void* pVoid)
+{
+    RIL_LOG_INFO("WatchdogThreadStart() - Enter\r\n");
+    struct pollfd fds[1] = { {0,0,0} };
+    UINT32 numFds = sizeof(fds)/sizeof(fds[0]);
+    int timeout_msecs = -1; // infinite timeout
+    int fd = 0;
+    int ret = -1;
+    UINT32 i = 0;
+    const BYTE pszFileName[] = "/dev/gsmtty1";
+    const UINT32 uiInterval = 2000;
+    UINT32 uiAttempts = 0;
+
+    Sleep(100);
+
+    while (TRUE)
+    {
+        // open tty device
+        RIL_LOG_INFO("WatchdogThreadProc() - opening port=[%s].....\r\n", pszFileName);
+        fd = open(pszFileName, O_RDWR | CLOCAL | O_NONBLOCK);
+        if (fd)
+        {
+            RIL_LOG_INFO("WatchdogThreadProc() - open %s successful\r\n", pszFileName);
+            break;
+        }
+        else
+        {
+            ++uiAttempts;
+            RIL_LOG_CRITICAL("WatchdogThreadProc() : ERROR : open failed, attempt %d\r\n", uiAttempts);
+            Sleep(uiInterval);
+        }
+    }
+
+    fds[0].fd = fd;
+
+    // block until event occurs
+    ret = poll(fds, numFds, timeout_msecs);
+    if (ret > 0)
+    {
+        // An event on one of the fds has occurred
+        for (i = 0; i < numFds; i++)
+        {
+            RIL_LOG_INFO("WatchdogThreadProc() - got event on fd[%d]\r\n", i);
+
+            if (fds[i].revents & POLLHUP)
+            {
+                // A hangup has occurred on device number i
+                RIL_LOG_INFO("WatchdogThreadProc() - hangup event on fd[%d]\r\n", i);
+
+                TriggerRadioError(eRadioError_ModemInitiatedCrash, __LINE__, __FILE__);
+            }
+        }
+    }
+
+    RIL_LOG_INFO("WatchdogThreadStart() - Exit\r\n");
+    return NULL;
+}
+
+//
+// Create watchdog thread to monitor disconnection of gsmtty device
+//
+BOOL CreateWatchdogThread()
+{
+    BOOL bResult = FALSE;
+
+    //  launch watchdog thread.
+    g_pWatchdogThread = new CThread(WatchdogThreadProc, NULL, THREAD_FLAGS_JOINABLE, 0);
+    if (!g_pWatchdogThread)
+    {
+        RIL_LOG_CRITICAL("CreateWatchdogThread() - ERROR: Unable to launch watchdog thread\r\n");
+        goto Error;
+    }
+
+    bResult = TRUE;
+
+Error:
+    if (!bResult)
+    {
+        if (g_pWatchdogThread)
+        {
+            delete g_pWatchdogThread;
+            g_pWatchdogThread = NULL;
+        }
+    }
+
+    RIL_LOG_INFO("CreateWatchdogThread() - Exit\r\n");
+    return bResult;
+}
+
 #ifdef TIMEBOMB
 
 
@@ -125,21 +220,21 @@ bool StartTimebomb(unsigned int nSleep)
         RIL_LOG_CRITICAL("StartTimebomb() - ERROR: Unable to launch Timebomb thread\r\n");
         return false;
     }
-    
+
     delete pTimebombThread;
     pTimebombThread = NULL;
-    
+
     return true;
 }
 
 static void*    TimebombThreadProc(void *pArg)
 {
     unsigned int nDelay = (unsigned int) pArg;
-    
+
     Sleep(1000 * 60 * nDelay);
-        
+
     g_bSetTimebomb = true;
-    
+
     return NULL;
 }
 
@@ -149,7 +244,7 @@ void CheckTimebomb()
     {
         RIL_LOG_CRITICAL("\r\n\r\nYour Demonstration time has expired.\r\n");
         RIL_LOG_CRITICAL("Please contact a sales representative at www.intrinsyc.com to purchase your production software.\r\n\r\n\r\n");
-        
+
         for (int i=7346; i<3567478; i++)
         {
             int tmp = 0;
@@ -163,7 +258,7 @@ void CheckTimebomb()
                     Sleep(0xDCC908F2);
                 }
             }
-        }        
+        }
         exit(5);
     }
 }
@@ -182,7 +277,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
 {
 #ifdef RIL_SHLIB
     bool bSendNotification = true;
-    
+
 #ifdef TIMEBOMB
     CheckTimebomb();
 #endif
@@ -356,11 +451,11 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
         case RIL_UNSOL_CALL_RING:  // 1018
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CALL_RING\r\n");
             break;
-            
+
         case RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED:  // 1019
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED\r\n");
             break;
-            
+
         case RIL_UNSOL_RESPONSE_CDMA_NEW_SMS:  // 1020 - CDMA, not supported
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_CDMA_NEW_SMS\r\n");
             bSendNotification = false;
@@ -378,7 +473,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_RUIM_SMS_STORAGE_FULL\r\n");
             bSendNotification = false;
             break;
-            
+
         case RIL_UNSOL_RESTRICTED_STATE_CHANGED:  // 1023
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESTRICTED_STATE_CHANGED\r\n");
             if (pData && dataSize)
@@ -390,7 +485,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
         case RIL_UNSOL_ENTER_EMERGENCY_CALLBACK_MODE:  // 1024
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_ENTER_EMERGENCY_CALLBACK_MODE\r\n");
             break;
-            
+
         case RIL_UNSOL_CDMA_CALL_WAITING:  // 1025 - CDMA, not supported
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_CALL_WAITING\r\n");
             bSendNotification = false;
@@ -400,12 +495,12 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_OTA_PROVISION_STATUS\r\n");
             bSendNotification = false;
             break;
-            
+
         case RIL_UNSOL_CDMA_INFO_REC:  // 1027 - CDMA, not supported
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_INFO_REC\r\n");
             bSendNotification = false;
             break;
-          
+
         case RIL_UNSOL_OEM_HOOK_RAW:  // 1028
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_OEM_HOOK_RAW\r\n");
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - dataSize=%d\r\n", dataSize);
@@ -418,18 +513,18 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
                 RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RINGBACK_TONE=[%d]\r\n", ((int *)pData)[0]);
             }
             break;
-            
+
         case RIL_UNSOL_RESEND_INCALL_MUTE:  // 1030
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESEND_INCALL_MUTE\r\n");
             break;
-            
+
 
         default:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - Ignoring Unknown Notification id=0x%08X, %d\r\n", unsolResponseID, unsolResponseID);
             bSendNotification = false;
             break;
     }
-    
+
     if ( (NULL == pData) && (0 == dataSize) )
     {
         RIL_LOG_INFO("RIL_onUnsolicitedResponse() - pData is NULL! id=%d\r\n", unsolResponseID);
@@ -489,7 +584,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
 {
     RIL_Errno eRetVal = RIL_E_SUCCESS;
     RIL_LOG_INFO("onRequest() - id=%d token: 0x%08x\r\n", requestID, (int) hRilToken);
-    
+
 #ifdef TIMEBOMB
     CheckTimebomb();
 #endif
@@ -500,11 +595,34 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         RIL_LOG_CRITICAL("*********************************************************************\r\n");
         RIL_LOG_CRITICAL("onRequest() - MODEM DEAD return error to request id=0x%08X, %d   token=0x%08x\r\n", requestID, requestID, (int) hRilToken);
         RIL_LOG_CRITICAL("*********************************************************************\r\n");
-        RIL_onRequestComplete(hRilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+        RIL_onRequestComplete(hRilToken, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
         return;
     }
     //  TEMP - end Jan 6/2011
-        
+
+
+    //  If we're in the middle of TriggerRadioError(), spoof all commands.
+    if (g_bIsTriggerRadioError)
+    {
+        if (RIL_REQUEST_GET_CURRENT_CALLS == requestID)
+        {
+            RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_GET_CURRENT_CALLS *********************\r\n");
+            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+            return;
+        }
+        else if (RIL_REQUEST_DEACTIVATE_DATA_CALL == requestID)
+        {
+            RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_DEACTIVATE_DATA_CALL *********************\r\n");
+            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+            return;
+        }
+        else
+        {
+            RIL_LOG_INFO("****************** SPOOFED REQID=0x%08X, %d  token=0x%08x *********************\r\n", requestID, requestID, (int) hRilToken);
+            RIL_onRequestComplete(hRilToken, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
+            return;
+        }
+    }
 
     switch (requestID)
     {
@@ -567,13 +685,6 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_GET_CURRENT_CALLS:  // 9
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GET_CURRENT_CALLS\r\n");
-            if (g_bIsTriggerRadioError)
-            {
-                RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_GET_CURRENT_CALLS *********************\r\n");
-                eRetVal = RIL_E_SUCCESS;
-                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
-                break;
-            }
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGetCurrentCalls(hRilToken, pData, datalen);
         }
         break;
@@ -644,13 +755,6 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_SIGNAL_STRENGTH:  // 19
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIGNAL_STRENGTH\r\n");
-            if (g_bIsTriggerRadioError)
-            {
-                RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_SIGNAL_STRENGTH *********************\r\n");
-                eRetVal = RIL_E_SUCCESS;
-                RIL_onRequestComplete(hRilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
-                break;
-            }
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSignalStrength(hRilToken, pData, datalen);
         }
         break;
@@ -707,13 +811,6 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_SETUP_DATA_CALL:  // 27
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SETUP_DATA_CALL\r\n");
-            if (g_bIsTriggerRadioError)
-            {
-                RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_SETUP_DATA_CALL *********************\r\n");
-                eRetVal = RIL_E_SUCCESS;
-                RIL_onRequestComplete(hRilToken, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
-                break;
-            }
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSetupDataCall(hRilToken, pData, datalen);
         }
         break;
@@ -812,13 +909,6 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_DEACTIVATE_DATA_CALL:  // 41
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_DEACTIVATE_DATA_CALL\r\n");
-            if (g_bIsTriggerRadioError)
-            {
-                RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_DEACTIVATE_DATA_CALL *********************\r\n");
-                eRetVal = RIL_E_SUCCESS;
-                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
-                break;
-            }
             eRetVal = (RIL_Errno)CTE::GetTE().RequestDeactivateDataCall(hRilToken, pData, datalen);
         }
         break;
@@ -883,7 +973,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_DTMF_STOP\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestDtmfStop(hRilToken, pData, datalen);
-            
+
             // If not supported by OEM or CORE send success notification for now
             if (RIL_E_REQUEST_NOT_SUPPORTED == eRetVal)
             {
@@ -967,7 +1057,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SCREEN_STATE\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestScreenState(hRilToken, pData, datalen);
-            
+
             // If not supported by OEM or CORE send success notification for now
             if (RIL_E_REQUEST_NOT_SUPPORTED == eRetVal)
             {
@@ -1081,7 +1171,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSetLocationUpdates(hRilToken, pData, datalen);
         }
         break;
-        
+
         case RIL_REQUEST_CDMA_SET_SUBSCRIPTION:  // 77 - CDMA, not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_SET_SUBSCRIPTION\r\n");
@@ -1102,77 +1192,77 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
             RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
         }
         break;
-        
+
         case RIL_REQUEST_SET_TTY_MODE:  // 80
         {
-            RIL_LOG_INFO("onRequest() - RIL_REQUEST_SET_TTY_MODE\r\n");            
-            eRetVal = (RIL_Errno)CTE::GetTE().RequestSetTtyMode(hRilToken, pData, datalen);            
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_SET_TTY_MODE\r\n");
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestSetTtyMode(hRilToken, pData, datalen);
         }
         break;
-        
+
         case RIL_REQUEST_QUERY_TTY_MODE:  // 81
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_QUERY_TTY_MODE\r\n");
-            eRetVal = (RIL_Errno)CTE::GetTE().RequestQueryTtyMode(hRilToken, pData, datalen); 
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestQueryTtyMode(hRilToken, pData, datalen);
         }
         break;
-        
+
         case RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE:  // 82 - CDMA, not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE\r\n");
             RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
         }
         break;
-        
+
         case RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE:  // 83 - CDMA, not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE\r\n");
             RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
         }
         break;
-        
+
         case RIL_REQUEST_CDMA_FLASH:  // 84 - CDMA, not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_FLASH\r\n");
             RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
         }
         break;
-        
+
         case RIL_REQUEST_CDMA_BURST_DTMF:  // 85 - CDMA, not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_BURST_DTMF\r\n");
             RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
         }
         break;
-        
+
         case RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY:  // 86 - CDMA, not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY\r\n");
             RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
         }
         break;
-        
+
         case RIL_REQUEST_CDMA_SEND_SMS:  // 87 - CDMA, not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_SEND_SMS\r\n");
             RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
         }
         break;
-        
+
         case RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE:  // 88 - CDMA, not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE\r\n");
             RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
         }
         break;
-        
+
         case RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG:  // 89
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGsmGetBroadcastSmsConfig(hRilToken, pData, datalen);
         }
         break;
-        
+
         case RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG:  // 90
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG\r\n");
@@ -1186,7 +1276,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGsmSmsBroadcastActivation(hRilToken, pData, datalen);
         }
         break;
-        
+
         case RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG:  // 92 - CDMA, not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG\r\n");
@@ -1228,14 +1318,14 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
             RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
         }
         break;
-               
+
         case RIL_REQUEST_DEVICE_IDENTITY:  // 98 - not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_DEVICE_IDENTITY\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestDeviceIdentity(hRilToken, pData, datalen);
         }
         break;
-        
+
         case RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE:  // 99 - not supported
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE\r\n");
@@ -1249,14 +1339,14 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGetSmscAddress(hRilToken, pData, datalen);
         }
         break;
-        
+
         case RIL_REQUEST_SET_SMSC_ADDRESS:  // 101
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SET_SMSC_ADDRESS\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSetSmscAddress(hRilToken, pData, datalen);
         }
         break;
-        
+
         case RIL_REQUEST_REPORT_SMS_MEMORY_STATUS:  // 102
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_REPORT_SMS_MEMORY_STATUS\r\n");
@@ -1270,7 +1360,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
             eRetVal = (RIL_Errno)CTE::GetTE().RequestReportStkServiceRunning(hRilToken, pData, datalen);
         }
         break;
-        
+
         default:
         {
             RIL_LOG_INFO("onRequest() - Unknown Request ID id=0x%08X, %d\r\n", requestID, requestID);
@@ -1356,7 +1446,7 @@ static int onSupports(int requestCode)
         case RIL_REQUEST_SMS_ACKNOWLEDGE:  // 37
         case RIL_REQUEST_GET_IMEI:  // 38
         case RIL_REQUEST_GET_IMEISV:  // 39
-        
+
         case RIL_REQUEST_ANSWER:  // 40
         case RIL_REQUEST_DEACTIVATE_DATA_CALL:  // 41
         case RIL_REQUEST_QUERY_FACILITY_LOCK:  // 42
@@ -1367,7 +1457,7 @@ static int onSupports(int requestCode)
         case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:  // 47
         case RIL_REQUEST_QUERY_AVAILABLE_NETWORKS:  // 48
         case RIL_REQUEST_DTMF_START:  // 49
-        
+
         case RIL_REQUEST_DTMF_STOP:  // 50
         case RIL_REQUEST_BASEBAND_VERSION:  // 51
         case RIL_REQUEST_SEPARATE_CONNECTION:  // 52
@@ -1376,7 +1466,7 @@ static int onSupports(int requestCode)
         case RIL_REQUEST_QUERY_CLIP:  // 55
         case RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE:  // 56
         case RIL_REQUEST_DATA_CALL_LIST:  // 57
-        
+
         case RIL_REQUEST_OEM_HOOK_STRINGS:  // 60
         case RIL_REQUEST_SCREEN_STATE:  // 61
         case RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION:  // 62
@@ -1387,7 +1477,7 @@ static int onSupports(int requestCode)
         case RIL_REQUEST_STK_GET_PROFILE:  // 67
         case RIL_REQUEST_STK_SET_PROFILE:  // 68
         case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:  // 69
-        
+
         case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:  // 70
         case RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM:  // 71
         case RIL_REQUEST_EXPLICIT_CALL_TRANSFER:  // 72
@@ -1395,11 +1485,11 @@ static int onSupports(int requestCode)
         case RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE:  // 74
         case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:  // 75
         case RIL_REQUEST_SET_LOCATION_UPDATES:  // 76
-        
+
         case RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG:  // 89
-        
+
         case RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG:  // 90
-        case RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION:  // 91        
+        case RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION:  // 91
 
         case RIL_REQUEST_GET_SMSC_ADDRESS:  // 100
         case RIL_REQUEST_SET_SMSC_ADDRESS:  // 101
@@ -1410,11 +1500,11 @@ static int onSupports(int requestCode)
 
         case RIL_REQUEST_RESET_RADIO:  // 58
         case RIL_REQUEST_OEM_HOOK_RAW:  // 59
-        
+
         case RIL_REQUEST_CDMA_SET_SUBSCRIPTION:  // 77 - CDMA
         case RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE:  // 78 - CDMA
         case RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE:  // 79 - CDMA
-        
+
         case RIL_REQUEST_SET_TTY_MODE:  // 80
         case RIL_REQUEST_QUERY_TTY_MODE:  // 81
         case RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE:  // 82 - CDMA
@@ -1424,7 +1514,7 @@ static int onSupports(int requestCode)
         case RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY:  // 86 - CDMA
         case RIL_REQUEST_CDMA_SEND_SMS:  // 87 - CDMA
         case RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE:  // 88 - CDMA
-        
+
         case RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG:  // 92 - CDMA
         case RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG:  // 93 - CDMA
         case RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION:  // 94 - CDMA
@@ -1457,7 +1547,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.1 for Android 2.3 (Build Mar 18/2011)";
+    return "Intrinsyc Rapid-RIL M5.2 for Android 2.3 (Build Mar 25/2011)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};
@@ -1490,7 +1580,7 @@ static void* mainLoop(void *param)
 
     // Initialize logging class
     CRilLog::Init();
-    
+
 #ifdef TIMEBOMB
     if (!StartTimebomb(TIMEBOMB_DELAY_MINUTES))
     {
@@ -1509,7 +1599,7 @@ static void* mainLoop(void *param)
     }
 
     RIL_LOG_INFO("mainLoop() - RIL Initialization completed successfully.\r\n");
-    
+
 Error:
     if (!dwRet)
     {
@@ -1529,34 +1619,41 @@ Error:
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE* lpszFileName)
-{    
+{
     RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
     RIL_LOG_CRITICAL("TriggerRadioError() - ERROR: eRadioError=%d, uiLineNum=%d, lpszFileName=%hs\r\n", (int)eRadioErrorVal, uiLineNum, lpszFileName);
     RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
 
-	int iTemp = 0;
+    int iTemp = 0;
     CRepository repository;
     if (repository.Read(g_szGroupModem, g_szDisableModemReset, iTemp))
     {
-		if (iTemp > 0)
-		{
-			//  Don't support modem reset.  Just set global flag to error out future requests.
-			RIL_LOG_CRITICAL("MODEM RESET NOT SUPPORTED - ERROR OUT FUTURE REQUESTS\r\n");
-			g_bIsModemDead = TRUE;
-			return;
-		}
-	}
-    
+        if (iTemp > 0)
+        {
+            //  Don't support modem reset.  Just set global flag to error out future requests.
+            RIL_LOG_CRITICAL("MODEM RESET NOT SUPPORTED - ERROR OUT FUTURE REQUESTS\r\n");
+            g_bIsModemDead = TRUE;
+            return;
+        }
+    }
+
+    //  We're already in here, just exit
+    if (g_bIsTriggerRadioError)
+    {
+        RIL_LOG_CRITICAL("TriggerRadioError() - Already taking place, return  eRadioError=%d\r\n", eRadioErrorVal);
+        return;
+    }
+
     g_bIsTriggerRadioError = TRUE;
-    
+
     //  Get FD to SPI.
     int fd_IFX0 = -1;
     int ret = 0;
     int ldisc = 0;
-    
+
     UINT32 dwSleep = 5000;
 
-    
+
 #define SPIFILE "/dev/ttyIFX0"
 
     fd_IFX0 = open(SPIFILE, O_RDONLY);
@@ -1565,7 +1662,7 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
         RIL_LOG_CRITICAL("TriggerRadioError(): unable to open the file: %s, error: %s", SPIFILE, strerror(errno));
         goto Error;
     }
-    
+
     //  Clear data connection
     //  Tell RRIL no more data connection
     {
@@ -1586,33 +1683,33 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
             }
         }
     }
-    
+
     //  Tell Android no more data connection
     RIL_LOG_INFO("TriggerRadioError() - telling Android no more data\r\n");
     RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
-    
+
     RIL_LOG_INFO("TriggerRadioError() - Calling DataConfigDown()\r\n");
     DataConfigDown();
-    
-    
+
+
     //  If there was a voice call active, it is disconnected.
     //  This will cause a RIL_REQUEST_GET_CURRENT_CALLS to be sent
     RIL_LOG_INFO("TriggerRadioError() - telling Android no more voice calls\r\n");
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
-    
-    
+
+
     dwSleep = 500;
     RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
     Sleep(dwSleep);
     RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
 
-	RIL_LOG_INFO("TriggerRadioError() - Closing channel ports\r\n");
+    RIL_LOG_INFO("TriggerRadioError() - Closing channel ports\r\n");
     CSystemManager::GetInstance().CloseChannelPorts();
-    
-    dwSleep = 250;
-    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
-    Sleep(dwSleep);
-    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
+
+    //dwSleep = 2000;
+    //RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+    //Sleep(dwSleep);
+    //RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
 
 
     //  Detatch the STMD
@@ -1636,18 +1733,20 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
         RIL_LOG_CRITICAL("TriggerRadioError() - Detach MUX TIOCGETD OK\r\n");
     }
     RIL_LOG_INFO( "TriggerRadioError() - line disc: %d\r\n", ldisc );
-    
+
     dwSleep = 500;
-    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  check ports are gone\r\n", dwSleep);
     Sleep(dwSleep);
     RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
-    
+
+
     if (fd_IFX0 >= 0)
     {
         RIL_LOG_INFO("TriggerRadioError() - Closing FD_IFX0\r\n");
         close(fd_IFX0);
         fd_IFX0 = -1;
     }
+
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1656,60 +1755,73 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     RIL_LOG_INFO("CALLING prop ctl.stop on stmd\r\n");
     property_set("ctl.stop","stmd");
     RIL_LOG_INFO("Done prop ctl.stop on stmd\r\n");
-    
 
-    dwSleep = 1000;
-    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+
+    dwSleep = 500;
+    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  check stmd is gone\r\n", dwSleep);
     Sleep(dwSleep);
     RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
-    
 
-    //  Try using ctrl.start property
-    RIL_LOG_INFO("CALLING prop ctl.start on ifxreset\r\n");
-    property_set("ctl.start","ifxreset_svc");
-    RIL_LOG_INFO("Done prop ctl.start on ifxreset\r\n");
-    
-    
-    dwSleep = 3000;
-    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
-    Sleep(dwSleep);
-    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
-    
-    
+
+    //if (eRadioError_ModemInitiatedCrash != eRadioErrorVal)
+    //{
+        //  Try using ctrl.start property
+        RIL_LOG_INFO("CALLING prop ctl.start on ifxreset\r\n");
+        property_set("ctl.start","ifxreset_svc");
+        RIL_LOG_INFO("Done prop ctl.start on ifxreset\r\n");
+
+        dwSleep = 4000;
+        RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+        Sleep(dwSleep);
+        RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
+    //}
+
+
+
     //  Try using ctrl.start property
     RIL_LOG_INFO("CALLING prop ctl.start on stmd\r\n");
     property_set("ctl.start","stmd");
     RIL_LOG_INFO("Done prop ctl.start on stmd\r\n");
-    
-    dwSleep = 6000;
-    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+
+    dwSleep = 7000;
+    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  Wait for MUX to activate\r\n", dwSleep);
     Sleep(dwSleep);
     RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
 
-    
+
+#if 0
     //  If we're opening ports, don't do this.
     if (eRadioErrorVal != eRadioError_OpenPortFailure)
     {
         RIL_LOG_INFO("TriggerRadioError() -Calling OpenChannelPortsOnly()\r\n");
         CSystemManager::GetInstance().OpenChannelPortsOnly();
-        
+
         Sleep(1000);
 
         g_RadioState.SetRadioOff();
         g_RadioState.SetRadioOn();
-    
+
         //  4. Send init string
         CSystemManager::GetInstance().ResumeSystemFromModemReset();
     }
+#endif
+
 
 Error:
     if (fd_IFX0 >= 0)
     {
         close(fd_IFX0);
+        fd_IFX0 = -1;
     }
-    
+
     g_bIsTriggerRadioError = FALSE;
-    
+
+    RIL_LOG_CRITICAL("*****************************************************************\r\n");
+    RIL_LOG_CRITICAL("************TriggerRadioError() - CALLING EXIT ******************\r\n");
+    RIL_LOG_CRITICAL("*****************************************************************\r\n");
+
+    exit(0);
+
     RIL_LOG_CRITICAL("TriggerRadioError() - EXIT\r\n");
 }
 
@@ -1723,27 +1835,27 @@ typedef struct
 static void*    TriggerRadioErrorThreadProc(void *pArg)
 {
     RIL_LOG_CRITICAL("TriggerRadioErrorThreadProc - ENTER\r\n");
-    
+
     TRIGGER_RADIO_ERROR_STRUCT *pTrigger = (TRIGGER_RADIO_ERROR_STRUCT*)pArg;
-    
+
     eRadioError eRadioErrorVal;
     UINT32 uiLineNum;
     BYTE* lpszFileName;
-    
+
     if (pTrigger)
     {
         eRadioErrorVal = pTrigger->m_eRadioErrorVal;
         uiLineNum = pTrigger->m_uiLineNum;
         lpszFileName = pTrigger->m_lpszFileName;
-        
+
         RIL_LOG_CRITICAL("TriggerRadioErrorThreadProc - BEFORE TriggerRadioError\r\n");
         TriggerRadioError(eRadioErrorVal, uiLineNum, lpszFileName);
         RIL_LOG_CRITICAL("TriggerRadioErrorThreadProc - AFTER TriggerRadioError\r\n");
     }
-    
-        
+
+
     RIL_LOG_CRITICAL("TriggerRadioErrorThreadProc - EXIT\r\n");
-    
+
     delete pTrigger;
     pTrigger = NULL;
 
@@ -1755,7 +1867,7 @@ void TriggerRadioErrorAsync(eRadioError eRadioErrorVal, UINT32 uiLineNum, const 
 {
     //static BOOL bForceShutdown;
     RIL_LOG_CRITICAL("TriggerRadioErrorAsync() - ENTER\r\n");
-    
+
     TRIGGER_RADIO_ERROR_STRUCT *pTrigger = NULL;
     pTrigger = new TRIGGER_RADIO_ERROR_STRUCT;
     if (!pTrigger)
@@ -1765,12 +1877,12 @@ void TriggerRadioErrorAsync(eRadioError eRadioErrorVal, UINT32 uiLineNum, const 
         TriggerRadioError(eRadioErrorVal, uiLineNum, lpszFileName);
         return;
     }
-    
+
     //  populate struct
     pTrigger->m_eRadioErrorVal = eRadioErrorVal;
     pTrigger->m_uiLineNum = uiLineNum;
     strncpy(pTrigger->m_lpszFileName, lpszFileName, 255);
-    
+
     //  spawn thread
     CThread* pTriggerRadioErrorThread = new CThread(TriggerRadioErrorThreadProc, (void*)pTrigger, THREAD_FLAGS_NONE, 0);
     if (!pTriggerRadioErrorThread || !CThread::IsRunning(pTriggerRadioErrorThread))
@@ -1782,16 +1894,16 @@ void TriggerRadioErrorAsync(eRadioError eRadioErrorVal, UINT32 uiLineNum, const 
         pTrigger = NULL;
         return;
     }
-    
+
     delete pTriggerRadioErrorThread;
     pTriggerRadioErrorThread = NULL;
-    
+
     RIL_LOG_CRITICAL("TriggerRadioErrorAsync() - EXIT\r\n");
     return;
 }
 
 
-    
+
 
 static void usage(char *szProgName)
 {
@@ -1829,19 +1941,19 @@ static bool RIL_SetGlobals(int argc, char **argv)
                 g_szDataPort1 = optarg;
                 RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel (DLC3)\r\n", g_szDataPort1);
             break;
-            
+
             // This should be the non-emulator case.
             case 'n':
                 g_szDLC2Port = optarg;
                 RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Network channel (DLC2)\r\n", g_szDLC2Port);
             break;
-            
+
             // This should be the non-emulator case.
             case 'm':
                 g_szDLC6Port = optarg;
                 RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Messaging channel (DLC6)\r\n", g_szDLC6Port);
             break;
-            
+
             // This should be the non-emulator case.
             case 'c':
                 g_szDLC8Port = optarg;
@@ -1887,7 +1999,7 @@ const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, cha
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
         ret = pthread_create(&gs_tid_mainloop, &attr, mainLoop, NULL);
-	while(!init_finish)
+    while(!init_finish)
 
         {
 
@@ -1900,8 +2012,8 @@ const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, cha
 
 
         RIL_LOG_INFO("RIL_Init,init finish:%d \r\n",init_finish);
-        
-	return &gs_callbacks;
+
+    return &gs_callbacks;
     }
     else
     {

@@ -45,7 +45,7 @@ void notifySIMStatusChanged(void *param)
 void triggerSignalStrength(void *param)
 {
     CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIGNALSTRENGTH], NULL, REQ_ID_NONE, "AT+CSQ\r", &CTE::ParseUnsolicitedSignalStrength);
-    
+
     if (pCmd)
     {
         if (!CCommand::AddCmdToQueue(pCmd))
@@ -64,7 +64,7 @@ void triggerSignalStrength(void *param)
 void triggerSMSAck(void *param)
 {
     CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SMSACKNOWLEDGE], NULL, REQ_ID_NONE, "AT+CNMA=1\r");
-    
+
     if (pCmd)
     {
         if (!CCommand::AddCmdToQueue(pCmd))
@@ -83,16 +83,16 @@ void triggerSMSAck(void *param)
 void triggerUSSDNotification(void *param)
 {
     P_ND_USSD_STATUS pUssdStatus = (P_ND_USSD_STATUS)param;
-    
+
     RIL_onUnsolicitedResponse (RIL_UNSOL_ON_USSD, pUssdStatus, sizeof(S_ND_USSD_POINTERS));
-    
+
     free(pUssdStatus);
 }
 
 void triggerDataCallListChanged(void *param)
 {
     CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_PDPCONTEXTLIST], NULL, REQ_ID_NONE, "AT+CGACT?;+CGDCONT?\r", &CTE::ParseDataCallListChanged);
-    
+
     if (pCmd)
     {
         if (!CCommand::AddCmdToQueue(pCmd))

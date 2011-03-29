@@ -43,7 +43,7 @@ private:
     BOOL StartChannelThreads();
 
     static CThreadManager* m_pInstance;
-    
+
     unsigned int    m_nChannelsTotal;
     unsigned int    m_nChannelsActive;
     CMutex *        m_pTManMutex;

@@ -6,7 +6,7 @@
 //
 //
 // Description:
-//    Defines the CTE class which handles all overrides to requests and 
+//    Defines the CTE class which handles all overrides to requests and
 //    basic behavior for responses for a specific modem
 //
 // Author:  Mike Worth
@@ -128,7 +128,7 @@ public:
     // RIL_REQUEST_REGISTRATION_STATE 20
     RIL_RESULT_CODE RequestRegistrationState(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseRegistrationState(RESPONSE_DATA & rRspData);
-    
+
     // RIL_REQUEST_GPRS_REGISTRATION_STATE 21
     RIL_RESULT_CODE RequestGPRSRegistrationState(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA & rRspData);
@@ -466,7 +466,7 @@ public:
 
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData);
-    
+
     // RIL_UNSOL_DATA_CALL_LIST_CHANGED  1010
     RIL_RESULT_CODE ParseDataCallListChanged(RESPONSE_DATA & rRspData);
 
@@ -475,7 +475,7 @@ public:
 
     // REQ_ID_GETDNS
     RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
-    
+
     // REQ_ID_QUERYPIN2
     RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
 };

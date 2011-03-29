@@ -58,11 +58,11 @@ CMutex::CMutex() :
     pthread_mutexattr_t _attr;
 
     rc = pthread_mutexattr_init(&_attr);
-    
+
     if (rc)
     {
         perror("CMutex::CMutex");
-        
+
         switch (rc)
         {
             case ENOMEM:
@@ -74,19 +74,19 @@ CMutex::CMutex() :
                 break;
         }
     }
-    
+
     rc = pthread_mutexattr_settype(&_attr, PTHREAD_MUTEX_RECURSIVE_NP);
 
     if (rc)
     {
         perror("CMutex::CMutex");
-        
+
         switch (rc)
         {
             case EINVAL:
                 RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutexattr_settype EINVAL code returned\r\n");
                 break;
-            
+
             default:
                 RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutexattr_settype [%d] code returned\r\n", rc);
                 break;
@@ -98,17 +98,17 @@ CMutex::CMutex() :
     if (rc)
     {
         perror("CMutex::CMutex");
-        
+
         switch (rc)
         {
             case EAGAIN:
                 RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutex_init EAGAIN code returned\r\n");
                 break;
-                
+
             case EINVAL:
                 RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutex_init EINVAL code returned\r\n");
                 break;
-            
+
             case ENOMEM:
                 RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutex_init ENOMEM code returned\r\n");
                 break;
@@ -132,13 +132,13 @@ CMutex::CMutex() :
     if (rc)
     {
         perror("CMutex::CMutex");
-        
+
         switch (rc)
         {
             case EINVAL:
                 RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutexattr_destroy EINVAL code returned\r\n");
                 break;
-            
+
             default:
                 RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutexattr_destroy [%d] code returned\r\n", rc);
                 break;
@@ -149,17 +149,17 @@ CMutex::CMutex() :
 CMutex::~CMutex()
 {
     int rc = pthread_mutex_destroy(&m_mutex);
-    
+
     if (rc)
     {
         perror("CMutex::~CMutex");
-        
+
         switch (rc)
         {
             case EINVAL:
                 RIL_LOG_CRITICAL("CMutex::~CMutex() - ERROR: pthread_mutex_destroy EINVAL code returned\r\n");
                 break;
-            
+
             case EBUSY:
                 RIL_LOG_CRITICAL("CMutex::~CMutex() - ERROR: pthread_mutex_destroy EBUSY code returned\r\n");
                 break;
@@ -188,17 +188,17 @@ BOOL CMutex::EnterMutex(BOOL fTryLock)
     if (rc)
     {
         perror("CMutex::EnterMutex");
-        
+
         switch (rc)
         {
             case EINVAL:
                 RIL_LOG_CRITICAL("CMutex::EnterMutex() - ERROR: EINVAL code returned\r\n");
                 break;
-            
+
             case EBUSY:
                 RIL_LOG_CRITICAL("CMutex::EnterMutex() - ERROR: EBUSY code returned\r\n");
                 break;
-            
+
             default:
                 RIL_LOG_CRITICAL("CMutex::EnterMutex() - ERROR: [%d] code returned\r\n", rc);
                 break;
@@ -209,24 +209,24 @@ BOOL CMutex::EnterMutex(BOOL fTryLock)
         fRet = TRUE;
         nLockValue++;
     }
-    
+
     return fRet;
 }
 
 void CMutex::LeaveMutex()
 {
     int rc = pthread_mutex_unlock(&m_mutex);
-    
+
     if (rc)
     {
         perror("CMutex::LeaveMutex");
-        
+
         switch (rc)
         {
             case EINVAL:
                 RIL_LOG_CRITICAL("CMutex::LeaveMutex() - ERROR: EINVAL code returned\r\n");
                 break;
-            
+
             case EAGAIN:
                 RIL_LOG_CRITICAL("CMutex::LeaveMutex() - ERROR: EAGAIN code returned\r\n");
                 break;
@@ -268,7 +268,7 @@ BOOL CMutex::TryLock(CMutex* pMutex)
     {
         RIL_LOG_CRITICAL("CMutex::TryLock() : ERROR : Unable to lock mutex as it is NULL!\r\n");
     }
-    
+
     return FALSE;
 }
 
@@ -614,7 +614,7 @@ CMutipleEvent::~CMutipleEvent()
 void CMutipleEvent::AddEvent(int iEventIndex, CEvent* pEvent)
 {
     assert((iEventIndex >= 0) && (iEventIndex < m_nEvents));
-    
+
     EnterMutex();
     {
         if (m_pEvents[iEventIndex])

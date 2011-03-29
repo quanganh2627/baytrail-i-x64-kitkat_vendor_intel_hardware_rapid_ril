@@ -52,7 +52,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <linux/route.h>
-#include <linux/if_ether.h>	// Pranav
+#include <linux/if_ether.h>   // Pranav
 
 extern "C" char *hex_to_stk_at(const char *at);
 
@@ -62,9 +62,9 @@ m_pQueryPIN2Event(NULL)
 {
     strcpy(m_szNetworkInterfaceName, "");
     strcpy(m_szCPIN2Result, "");
-    
+
     CRepository repository;
-    
+
     //  Grab the network interface name
     if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceName, m_szNetworkInterfaceName, MAX_BUFFER_SIZE))
     {
@@ -75,14 +75,14 @@ m_pQueryPIN2Event(NULL)
     {
         RIL_LOG_INFO("CTE_INF_N721::CTE_INF_N721() - m_szNetworkInterfaceName=[%s]\r\n", m_szNetworkInterfaceName);
     }
-    
+
     //  Create PIN2 query event
     m_pQueryPIN2Event = new CEvent();
     if (!m_pQueryPIN2Event)
     {
         RIL_LOG_CRITICAL("TE_INF_N721::CTE_INF_N721() - ERROR: Could not create new QueryPIN2Event!\r\n");
     }
-        
+
 }
 
 CTE_INF_N721::~CTE_INF_N721()
@@ -144,11 +144,11 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetSimStatus(RESPONSE_DATA & rRspData)
             if (1 == nValue)
             {
                 RIL_LOG_INFO("CTE_INF_N721::ParseGetSimStatus() - SIM type = %d  detected USIM\r\n", nValue);
-                
+
                 //  Grab setting from repository
                 CRepository repository;
                 int nUseUSIMAddress = 0;
-                
+
                 //  Grab the network interface name
                 if (!repository.Read(g_szGroupRILSettings, g_szUseUSIMAddress, nUseUSIMAddress))
                 {
@@ -171,7 +171,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetSimStatus(RESPONSE_DATA & rRspData)
             }
         }
     }
-    
+
     res = RRIL_RESULT_OK;
 
     rRspData.pData   = (void*)pCardStatus;
@@ -185,7 +185,7 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CTE_INF_N721::ParseGetSimStatus() - Exit\r\n");
-    return res; 
+    return res;
 }
 
 
@@ -197,12 +197,12 @@ Error:
 RIL_RESULT_CODE CTE_INF_N721::ParseSignalStrength(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTE_INF_N721::ParseSignalStrength() - Enter\r\n");
-    
+
     extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
-    
+
     uint                uiRSSI  = 0;
     uint                uiBER   = 0;
     RIL_SignalStrength* pSigStrData;
@@ -221,22 +221,22 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSignalStrength(RESPONSE_DATA & rRspData)
         !SkipString(pszRsp, "+CSQ: ", pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseSignalStrength() - ERROR: Could not find AT response.\r\n");
-        goto Error;            
+        goto Error;
     }
-    
+
     if (!ExtractUInt(pszRsp, uiRSSI, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseSignalStrength() - ERROR: Could not extract uiRSSI.\r\n");
-        goto Error;                        
+        goto Error;
     }
-    
+
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt(pszRsp, uiBER, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseSignalStrength() - ERROR: Could not extract uiBER.\r\n");
-        goto Error;            
+        goto Error;
     }
-    
+
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseSignalStrength() - ERROR: Could not extract the response end.\r\n");
@@ -262,8 +262,8 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSignalStrength(RESPONSE_DATA & rRspData)
 
     rRspData.pData   = (void*)pSigStrData;
     rRspData.uiDataSize  = sizeof(RIL_SignalStrength);
-    
-    res = RRIL_RESULT_OK;        
+
+    res = RRIL_RESULT_OK;
 
 Error:
     if (RRIL_RESULT_OK != res)
@@ -273,7 +273,7 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CTE_INF_N721::ParseSignalStrength() - Exit\r\n");
-    return res;    
+    return res;
 }
 #endif // 0
 
@@ -283,7 +283,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     PdpData stPdpData;
-    
+
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetupDataCall() - ERROR: Data pointer is NULL.\r\n");
@@ -295,8 +295,8 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetupDataCall() - ERROR: Invalid data size. Was given %d bytes\r\n", uiDataSize);
         goto Error;
     }
-    
-    
+
+
     // extract data
     stPdpData.szRadioTechnology = ((char **)pData)[0];  // not used
     stPdpData.szRILDataProfile  = ((char **)pData)[1];  // not used
@@ -305,7 +305,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     stPdpData.szPassword        = ((char **)pData)[4];  // not used
     stPdpData.szPAPCHAP         = ((char **)pData)[5];  // not used
 
-    // For setting up data call we need to send 2 sets of chained commands: AT+CGDCONT to define PDP Context, 
+    // For setting up data call we need to send 2 sets of chained commands: AT+CGDCONT to define PDP Context,
     // with +CGQREQ to specify requested QoS and +CGACT to activate PDP Context; then
     // if RAW IP is used send AT+CGDATA to enable Raw IP on data channel (which will then switch the channel to data mode).
     //
@@ -314,7 +314,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+CGQREQ=%d;+CGQMIN=%d;+XDNS=%d,1;+CGACT=0,%d\r", uiCID,
         stPdpData.szApn, uiCID, uiCID, uiCID, uiCID);
 
-#ifndef RIL_USE_PPP       
+#ifndef RIL_USE_PPP
    (void)PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGDATA=\"M-RAW_IP\",%d\r", uiCID);
 #endif //!RIL_USE_PPP
 
@@ -375,14 +375,14 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
 #else
 
-    // For RAW IP, when we get the CONNECT response to AT+CGDATA, we then need to send AT+CGPADDR (or AT+CGDCONT?) 
+    // For RAW IP, when we get the CONNECT response to AT+CGDATA, we then need to send AT+CGPADDR (or AT+CGDCONT?)
     // to get the IP address (which is returned in the response to the RIL_REQUEST_SETUP_DATA_CALL) and finally
     // AT+XDNS to query for the DNS address of the activated context. We wait until we get DNS response before
     // sending the reply to RIL_REQUEST_SETUP_DATA_CALL.
 
 // N_GSM related code
-	struct gsm_config cfg;
-	struct gsm_netconfig netconfig;
+    struct gsm_config cfg;
+    struct gsm_netconfig netconfig;
 
     CCommand * pCmd1 = NULL;
     CCommand * pCmd2 = NULL;
@@ -393,7 +393,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     CChannel_Data* pDataChannel = NULL;
     int nCID = 0;
     int fd = -1;
-    int ret = 0;    
+    int ret = 0;
     CRepository repository;
 
     // 1st confirm we got "CONNECT"
@@ -430,14 +430,14 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     //rRspData.uiDataSize = sizeof(S_ND_SETUP_DATA_CALL_POINTERS);
 
 // N_GSM related code
-	netconfig.adaption = 3;
-	netconfig.protocol = htons(ETH_P_IP);
-	strncpy(netconfig.if_name, pDataCallRsp->szNetworkInterfaceName, IFNAMSIZ);
+    netconfig.adaption = 3;
+    netconfig.protocol = htons(ETH_P_IP);
+    strncpy(netconfig.if_name, pDataCallRsp->szNetworkInterfaceName, IFNAMSIZ);
 // Add IF NAME
     fd = pDataChannel->GetFD();
     if (fd >= 0)
     {
-        ret = ioctl( fd, GSMIOC_ENABLE_NET, &netconfig );		// Enable data channel
+        ret = ioctl( fd, GSMIOC_ENABLE_NET, &netconfig );    // Enable data channel
     }
     else
     {
@@ -445,7 +445,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseSetupDataCall() - ERROR: Could not get Data Channel chnl=[%d] fd=[%d].\r\n", rRspData.uiChannel, fd);
         goto Error;
     }
- 
+
 
     // Send AT+CGPADDR and AT+XDNS? commands to query for assigned IP Address and DNS and wait for responses
 
@@ -486,7 +486,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseSetupDataCall() - ERROR: Unable to allocate memory for new AT+XDNS? command!\r\n");
         goto Error;
     }
-    
+
     //  Read the 2 AT command timeouts from repository.  Sum them.
     bRet1 = repository.Read(g_szGroupRequestTimeouts, g_szRequestNames[ND_REQ_ID_GETIPADDRESS], nIPAddrTimeout);
     bRet2 = repository.Read(g_szGroupRequestTimeouts, g_szRequestNames[ND_REQ_ID_GETDNS], nDNSTimeout);
@@ -501,10 +501,10 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseSetupDataCall() - ERROR: bRet1=[%d] bRet2=[%d]  nTotalTimeout=[%d]\r\n",
                         bRet1, bRet2, nTotalTimeout);
     }
-    
+
 
     uiWaitRes = CEvent::Wait(pDataChannel->m_pSetupDoneEvent, nTotalTimeout);
-    switch (uiWaitRes) 
+    switch (uiWaitRes)
     {
         case WAIT_EVENT_0_SIGNALED:
             RIL_LOG_INFO("CTE_INF_N721::ParseSetupDataCall() : SetupData event signalled\r\n");
@@ -564,7 +564,7 @@ Error:
         {
             RIL_LOG_INFO("CTE_INF_N721::ParseSetupDataCall() - Setting chnl=[%d] to CID=[0]\r\n", rRspData.uiChannel);
             pDataChannel->SetContextID(0);
-            
+
             //  Release network interface
             DataConfigDown();
         }
@@ -600,7 +600,7 @@ BOOL setflags(int s, struct ifreq *ifr, int set, int clr)
         RIL_LOG_CRITICAL("setflags : ERROR: SIOCGIFFLAGS\r\n");
         return FALSE;
     }
-    
+
     ifr->ifr_flags = (ifr->ifr_flags & (~clr)) | set;
     RIL_LOG_INFO("setflags - calling SIOCGIFFLAGS 2\r\n");
     if(ioctl(s, SIOCSIFFLAGS, ifr) < 0)
@@ -647,8 +647,8 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
     int s = -1;
     char szNetworkInterfaceName[MAX_BUFFER_SIZE] = {0};
     char szPropName[MAX_BUFFER_SIZE] = {0};
-    
-    
+
+
     //  Grab the network interface name
     if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceName, szNetworkInterfaceName, MAX_BUFFER_SIZE))
     {
@@ -659,34 +659,34 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
 
     RIL_LOG_INFO("DataConfigUp() ENTER  szNetworkInterfaceName=[%s]  szIpAddr=[%s]\r\n", szNetworkInterfaceName, szIpAddr);
     RIL_LOG_INFO("DataConfigUp() ENTER  szDNS1=[%s]  szDNS2=[%s]\r\n", szDNS1, szDNS2);
-    
 
-    
+
+
     // set net. properties
     // TODO For multiple PDP context support this will have to be updated to be consistent with whatever changes to
     // the Android framework's use of these properties is made. (Currently there is only one property for the
-    // IP address and there needs to be one for each context.  
+    // IP address and there needs to be one for each context.
     RIL_LOG_INFO("DataConfigUp() : Setting 'net.interfaces.defaultroute' to 'gprs'\r\n");
     property_set("net.interfaces.defaultroute", "gprs");
-    
+
     RIL_LOG_INFO("DataConfigUp() : Setting 'net.gprs.local-ip' to '%s'\r\n", szIpAddr);
     property_set("net.gprs.local-ip", szIpAddr);
-    
+
     RIL_LOG_INFO("DataConfigUp() : Setting 'net.gprs.operstate' to 'up'\r\n");
     property_set("net.gprs.operstate", "up");
-    
-    
-    //  Open socket for ifconfig and route commands    
+
+
+    //  Open socket for ifconfig and route commands
     s = socket(AF_INET, SOCK_DGRAM, 0);
     if (s < 0)
     {
         RIL_LOG_CRITICAL("DataConfigUp() : cannot open control socket\n");
         goto Error;
     }
-    
+
     //  Code in this function is from system/core/toolbox/ifconfig.c
     //  also from system/core/toolbox/route.c
-    
+
 
     //  ifconfig ifx02 <ip address> netmask 255.255.255.0
     {
@@ -694,28 +694,28 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
         memset(&ifr, 0, sizeof(struct ifreq));
         strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
         ifr.ifr_name[IFNAMSIZ-1] = 0;
-        
+
         RIL_LOG_INFO("DataConfigUp() : Setting addr\r\n");
         if (!setaddr(s, &ifr, szIpAddr)) // ipaddr
         {
             //goto Error;
             RIL_LOG_CRITICAL("DataConfigUp() : Error setting add\r\n");
-        } 
-        
+        }
+
         RIL_LOG_INFO("DataConfigUp() : Setting flags\r\n");
         if (!setflags(s, &ifr, IFF_UP, 0))
         {
             //goto Error;
             RIL_LOG_CRITICAL("DataConfigUp() : Error setting flags\r\n");
         }
-        
+
         RIL_LOG_INFO("DataConfigUp() : Setting netmask\r\n");
         if (!setnetmask(s, &ifr, "255.255.255.0"))  // the netmask
         {
             //goto Error;
             RIL_LOG_CRITICAL("DataConfigUp() : Error setting netmask\r\n");
         }
-        
+
         RIL_LOG_INFO("DataConfigUp() : Setting mtu\r\n");
         if (!setmtu(s, &ifr, 1460))
         {
@@ -725,17 +725,17 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
     }
 
 
-    
+
     //  route add default dev ifx02
     {
         struct rtentry rt;
         memset(&rt, 0, sizeof(struct rtentry));
-        
+
         rt.rt_dst.sa_family = AF_INET;
         rt.rt_genmask.sa_family = AF_INET;
         rt.rt_gateway.sa_family = AF_INET;
 
-        
+
         rt.rt_flags = RTF_UP;
         rt.rt_dev = szNetworkInterfaceName;
 
@@ -746,13 +746,13 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
             //goto Error;
         }
     }
-    
-    
+
+
     //  setprop gsm.net.interface ifx02
     RIL_LOG_INFO("DataConfigUp() - setting 'gsm.net.interface' to '%s'\r\n", szNetworkInterfaceName);
     property_set("gsm.net.interface", szNetworkInterfaceName);
-    
-    
+
+
     //  Set DNS1
     if (szDNS1)
     {
@@ -762,7 +762,7 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
         RIL_LOG_INFO("DataConfigUp() - setting 'net.dns1' to '%s'\r\n", szDNS1);
         property_set("net.dns1", szDNS1);
     }
-    
+
     //  Set DNS2
     if (szDNS2)
     {
@@ -772,17 +772,17 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
         RIL_LOG_INFO("DataConfigUp() - setting 'net.dns2' to '%s'\r\n", szDNS2);
         property_set("net.dns2", szDNS2);
     }
-    
+
     bRet = TRUE;
-    
+
 Error:
     if (s >= 0)
     {
         close(s);
     }
-    
+
     RIL_LOG_INFO("DataConfigUp() EXIT  bRet=[%d]\r\n", bRet);
-    
+
     return bRet;
 }
 
@@ -797,7 +797,7 @@ BOOL DataConfigDown()
     int s = -1;
     char szNetworkInterfaceName[MAX_BUFFER_SIZE] = {0};
     char szPropName[MAX_BUFFER_SIZE] = {0};
-    
+
     //  Grab the network interface name
     if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceName, szNetworkInterfaceName, MAX_BUFFER_SIZE))
     {
@@ -806,38 +806,38 @@ BOOL DataConfigDown()
         goto Error;
     }
     RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName=[%s]\r\n", szNetworkInterfaceName);
-    
 
-    
+
+
     // unset net. properties
     // TODO For multiple PDP context support this will have to be updated to be consistent with whatever changes to
     // the Android framework's use of these properties is made.
-    
+
     RIL_LOG_INFO("DataConfigDown() - setting 'net.interfaces.defaultroute' to ''\r\n");
     property_set("net.interfaces.defaultroute", "");
-    
+
     RIL_LOG_INFO("DataConfigDown() - setting 'net.gprs.local-ip' to ''\r\n");
     property_set("net.gprs.local-ip", "");
-    
+
     RIL_LOG_INFO("DataConfigDown() - setting 'net.gprs.operstate' to ''\r\n");
     property_set("net.gprs.operstate", "down");
-    
+
     RIL_LOG_INFO("DataConfigDown() - setting 'gsm.net.interface' to ''\r\n");
     property_set("gsm.net.interface","");
-    
+
     PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns1", szNetworkInterfaceName);
-    RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);    
+    RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
     property_set(szPropName, "");
-    RIL_LOG_INFO("DataConfigDown() - setting 'net.dns1' to ''\r\n");    
+    RIL_LOG_INFO("DataConfigDown() - setting 'net.dns1' to ''\r\n");
     property_set("net.dns1", "");
-    
+
     PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName);
-    RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);    
+    RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
     property_set(szPropName, "");
-    RIL_LOG_INFO("DataConfigDown() - setting 'net.dns2' to ''\r\n"); 
+    RIL_LOG_INFO("DataConfigDown() - setting 'net.dns2' to ''\r\n");
     property_set("net.dns2", "");
-    
-    //  Open socket for ifconfig and route commands    
+
+    //  Open socket for ifconfig and route commands
     s = socket(AF_INET, SOCK_DGRAM, 0);
     if (s < 0)
     {
@@ -845,7 +845,7 @@ BOOL DataConfigDown()
         goto Error;
     }
 
-    
+
     //  ifconfig ifx02 down
     {
         struct ifreq ifr;
@@ -861,22 +861,22 @@ BOOL DataConfigDown()
             RIL_LOG_CRITICAL("DataConfigDown() : ERROR: Setting flags\r\n");
         }
     }
-    
+
     //  TODO: Implement callback to polling data call list.
     //RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
-    
+
     //RIL_LOG_INFO("DataConfigDown() - Called timed callback  START\r\n");
     //RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
     //RIL_LOG_INFO("DataConfigDown() - Called timed callback  END\r\n");
-    
+
     bRet = TRUE;
-    
+
 Error:
     if (s >= 0)
     {
         close(s);
     }
-    
+
     RIL_LOG_INFO("DataConfigDown() EXIT  bRet=[%d]\r\n", bRet);
     return bRet;
 }
@@ -909,7 +909,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseIpAddress(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseIpAddress() - ERROR: Unable to parse <cid>!\r\n");
         goto Error;
     }
-    
+
     pDataChannel = CChannel_Data::GetChnlFromContextID(nCid);
     if (!pDataChannel)
     {
@@ -974,13 +974,13 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDns(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseSetupDataCall() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
         goto Error;
     }
-    
+
     //  Remove previous DNS1 and DNS2 (if it existed)
     delete[] pDataChannel->m_szDNS1;
     pDataChannel->m_szDNS1 = NULL;
     delete[] pDataChannel->m_szDNS2;
     pDataChannel->m_szDNS2 = NULL;
-    
+
 
     // Parse <primary DNS>
     if (SkipString(szRsp, ",", szRsp))
@@ -992,7 +992,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDns(RESPONSE_DATA & rRspData)
         }
         RIL_LOG_INFO("CTE_INF_N721::ParseDns() - DNS1: %s\r\n", pDataChannel->m_szDNS1);
     }
-    
+
 
     // Parse <secondary DNS>
     if (SkipString(szRsp, ",", szRsp))
@@ -1026,8 +1026,8 @@ RIL_RESULT_CODE CTE_INF_N721::ParseQueryPIN2(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const BYTE* szRsp = rRspData.szResponse;
-    
-    
+
+
     // Parse "+CPIN2: "
     if (!FindAndSkipString(szRsp, "+CPIN2: ", szRsp))
     {
@@ -1154,7 +1154,7 @@ struct sUSIMGetResponse
 #define RIL_SIMRECORDTYPE_MASTER        (0x00000004)
 #define RIL_SIMRECORDTYPE_DEDICATED     (0x00000005)
 
-            
+
 //
 //  This function converts a USIM GET_RESPONSE response into a SIM GET_RESPONSE that Android
 //  can understand.  We extract the record type, total size, and record size.
@@ -1165,7 +1165,7 @@ struct sUSIMGetResponse
 BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetResponse *sUSIM)
 {
     RIL_LOG_VERBOSE("ParseUSIMRecordStatus - ENTER\r\n");
-    
+
     BOOL bRet = FALSE;
 
     const UINT8 FCP_TAG = 0x62;
@@ -1179,16 +1179,16 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
     UINT32 dwTotalSize = 0;
     BerTlv tlvFileDescriptor;
     BerTlv tlvFcp;
-    
+
     const UINT8* pbFcpData = NULL;
     UINT32 cbFcpDataSize = 0;
     UINT32 cbDataUsed = 0;
     const UINT8* pbFileDescData = NULL;
     UINT32 cbFileDescDataSize = 0;
-    
+
     BOOL fIsDf = FALSE;
     UINT8 bEfStructure = 0;
-    
+
     if (NULL == sResponse ||
         0 == cbResponse ||
         NULL == sUSIM)
@@ -1242,7 +1242,7 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
     {
         RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: File descriptor can only be 2 or 5 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
         goto Error;
-  
+
     }
     if (2 > cbFileDescDataSize)
     {
@@ -1303,7 +1303,7 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
             // Retrieve the file size.
             BerTlv tlvCurrent;
 
-            while (cbFcpDataSize > cbDataUsed) 
+            while (cbFcpDataSize > cbDataUsed)
             {
                 if (!tlvCurrent.Parse(
                     pbFcpData + cbDataUsed,
@@ -1318,7 +1318,7 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
                 if (FILE_SIZE_TAG == tlvCurrent.GetTag())
                 {
                     const UINT8* pbFileSize = NULL;
-                    
+
                     if (2 > tlvCurrent.GetLength())
                     {
                         RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: TRANSPARENT length must be at least 2\r\n");
@@ -1341,7 +1341,7 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
     {
         const UINT8* pbFileId = NULL;
         UINT32 uFileId = 0;
-        
+
         // Next data object should be File ID.
         BerTlv tlvFileId;
         tlvFileId.Parse(
@@ -1375,7 +1375,7 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
     sUSIM->dwRecordType = dwRecordType;
     sUSIM->dwTotalSize = dwTotalSize;
     sUSIM->dwRecordSize = dwRecordSize;
-    
+
     bRet = TRUE;
 Error:
 
@@ -1392,7 +1392,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSimIo() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_SIM_IO *   pSimIOArgs = NULL;
-    
+
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreSimIo() - ERROR: Data pointer is NULL.\r\n");
@@ -1404,10 +1404,10 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreSimIo() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
-    
+
     // extract data
     pSimIOArgs = (RIL_SIM_IO *)pData;
-    
+
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSimIo() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSimIo() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSimIo() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
@@ -1416,23 +1416,23 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSimIo() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSimIo() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSimIo() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
-    
+
     //  If PIN2 is required, send out AT+CPIN2 request
     if (pSimIOArgs->pin2)
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreSimIo() - PIN2 required\r\n");
-        
+
         CCommand *pCmd1 = NULL;
         BYTE szCmd1[MAX_BUFFER_SIZE] = {0};
         UINT32 uiWaitRes = 0;
         BOOL bEnterPIN2 = FALSE;
-        
+
         CEvent::Reset(m_pQueryPIN2Event);
 
         (void)CopyStringNullTerminate(szCmd1,
                      "AT+CPIN2?\r",
                      sizeof(szCmd1));
-                     
+
         pCmd1 = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYPIN2], NULL, ND_REQ_ID_QUERYPIN2, szCmd1, &CTE::ParseQueryPIN2);
         if (pCmd1)
         {
@@ -1450,10 +1450,10 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
             goto Error;
         }
 
-        
+
         //  Wait here for response
         uiWaitRes = CEvent::Wait(m_pQueryPIN2Event, g_TimeoutAPIDefault);
-        switch (uiWaitRes) 
+        switch (uiWaitRes)
         {
             case WAIT_EVENT_0_SIGNALED:
                 RIL_LOG_INFO("CTE_INF_N721::CoreSimIo() : CPIN2 event signalled\r\n");
@@ -1488,7 +1488,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                  RIL_LOG_CRITICAL("CTE_INF_N721::CoreSimIo() - Unexpected event result on Wait for CPIN2, res: %d\r\n", uiWaitRes);
                  goto Error;
         }
-        
+
         if (bEnterPIN2)
         {
             (void)PrintStringNullTerminate(rReqData.szCmd1,
@@ -1496,7 +1496,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                 "AT+CPIN2=\"%s\"\r",
                 pSimIOArgs->pin2);
 
-        
+
             if (NULL == pSimIOArgs->data)
             {
                 (void)PrintStringNullTerminate(rReqData.szCmd2,
@@ -1548,14 +1548,14 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                              pSimIOArgs->p3,
                              pSimIOArgs->data);
             }
-            
+
         }
-        
+
     }
     else
     {
         //  No PIN2
-            
+
 
         if (NULL == pSimIOArgs->data)
         {
@@ -1581,7 +1581,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                          pSimIOArgs->data);
         }
     }
-    
+
     //  Set the context of this command to the SIM_IO command-type.
     rReqData.pContextData = (void*)pSimIOArgs->command;
 
@@ -1598,17 +1598,17 @@ Error:
 RIL_RESULT_CODE CTE_INF_N721::ParseSimIo(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTE_INF_N721::ParseSimIo() - Enter\r\n");
-    
+
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
-    
+
     uint  uiSW1 = 0;
     uint  uiSW2 = 0;
     BYTE* szResponseString = NULL;
     UINT32  cbResponseString = 0;
 
     RIL_SIM_IO_Response* pResponse = NULL;
-    
+
 
     if (NULL == rRspData.szResponse)
     {
@@ -1664,19 +1664,19 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSimIo(RESPONSE_DATA & rRspData)
             RIL_LOG_CRITICAL("CTE_INF_N721::ParseSimIo() : ERROR : String was not a multiple of 2.\r\n");
             goto Error;
         }
-        
+
         // Check for USIM GET_RESPONSE response
         int nCRSMCommand = (int)rRspData.pContextData;
         if ((192 == nCRSMCommand) && ('6' == szResponseString[0]) && ('2' == szResponseString[1]))
         {
             //  USIM GET_RESPONSE response
             RIL_LOG_INFO("CTE_INF_N721::ParseSimIo() - USIM GET_RESPONSE\r\n");
-            
+
             char szTemp[5] = {0};
 
             struct sUSIMGetResponse sUSIM;
             memset(&sUSIM, 0, sizeof(struct sUSIMGetResponse));
-            
+
             //  Need to convert the response string from ascii to binary.
             BYTE *sNewString = NULL;
             UINT32 cbNewString = (cbResponseString-1)/2;
@@ -1687,7 +1687,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSimIo(RESPONSE_DATA & rRspData)
                 goto Error;
             }
             memset(sNewString, 0, cbNewString);
-            
+
             UINT32 cbUsed = 0;
             if (!GSMHexToGSM(szResponseString, cbResponseString, sNewString, cbNewString, cbUsed))
             {
@@ -1697,7 +1697,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSimIo(RESPONSE_DATA & rRspData)
                 cbNewString = 0;
                 goto Error;
             }
-            
+
             //  OK, now parse!
             if (!ParseUSIMRecordStatus((UINT8*)sNewString, cbNewString, &sUSIM))
             {
@@ -1707,22 +1707,22 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSimIo(RESPONSE_DATA & rRspData)
                 cbNewString = 0;
                 goto Error;
             }
-            
-                        
+
+
             delete[] sNewString;
             sNewString = NULL;
             cbNewString = 0;
-            
+
             RIL_LOG_VERBOSE("CTE_INF_N721::ParseSimIo() - sUSIM.dwRecordType=[0x%04X]\r\n", sUSIM.dwRecordType);
             RIL_LOG_VERBOSE("CTE_INF_N721::ParseSimIo() - sUSIM.dwTotalSize=[0x%04X]\r\n", sUSIM.dwTotalSize);
             RIL_LOG_VERBOSE("CTE_INF_N721::ParseSimIo() - sUSIM.dwRecordSize=[0x%04X]\r\n", sUSIM.dwRecordSize);
-            
+
 
             //  Delete old original response.  Create new "fake" response.
             delete []szResponseString;
             szResponseString = NULL;
             cbResponseString = 0;
-            
+
             //  Java layers as of Froyo (Nov 1/2010) only use:
             //  Total size (0-based bytes 2 and 3), File type (0-based byte 6),
             //  Data structure (0-based byte 13), Data record length (0-based byte 14)
@@ -1740,10 +1740,10 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSimIo(RESPONSE_DATA & rRspData)
             //  Extract info, put into new response string
             (void)PrintStringNullTerminate(szTemp, 5, "%04X", sUSIM.dwTotalSize);
             memcpy(&szResponseString[4], szTemp, 4);
-            
+
             (void)PrintStringNullTerminate(szTemp, 3, "%02X", sUSIM.dwRecordSize);
             memcpy(&szResponseString[28], szTemp, 2);
-            
+
             if (RIL_SIMRECORDTYPE_UNKNOWN == sUSIM.dwRecordType)
             {
                 //  bad parse.
@@ -1752,8 +1752,8 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSimIo(RESPONSE_DATA & rRspData)
                 sNewString = NULL;
                 goto Error;
             }
-            
-            
+
+
             if (RIL_SIMRECORDTYPE_MASTER == sUSIM.dwRecordType)
             {
                 szResponseString[13] = '1';
@@ -1766,7 +1766,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSimIo(RESPONSE_DATA & rRspData)
             {
                 //  elementary file
                 szResponseString[13] = '4';
-                
+
                 if (RIL_SIMRECORDTYPE_TRANSPARENT == sUSIM.dwRecordType)
                 {
                     szResponseString[27] = '0';
@@ -1780,7 +1780,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSimIo(RESPONSE_DATA & rRspData)
                     szResponseString[27] = '3';
                 }
             }
-            
+
             //  ok we're done.  print.
             RIL_LOG_INFO("CTE_INF_N721::ParseSimIo() - new USIM response=[%s]\r\n", szResponseString);
 
@@ -1823,7 +1823,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSimIo(RESPONSE_DATA & rRspData)
 
     rRspData.pData   = (void*)pResponse;
     rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
-    
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -1833,15 +1833,15 @@ Error:
         pResponse = NULL;
     }
 
-    delete[] szResponseString; 
-    szResponseString = NULL;       
+    delete[] szResponseString;
+    szResponseString = NULL;
 
     RIL_LOG_VERBOSE("CTE_INF_N721::ParseSimIo() - Exit\r\n");
     return res;
 }
 
-    
-    
+
+
 //
 // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
 //
@@ -1858,24 +1858,24 @@ RIL_RESULT_CODE CTE_INF_N721::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreDeactivateDataCall() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
-    
+
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreDeactivateDataCall() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
-    
-    pszCid = ((char**)pData)[0];    
+
+    pszCid = ((char**)pData)[0];
     chCid = pszCid[0];
-    
+
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%c\r", chCid))
     {
         res = RRIL_RESULT_OK;
     }
-    
+
     //  Set the context of this command to the CID (for multiple context support).
     rReqData.pContextData = (void*)((int)(chCid - '0'));  // Store this as an int.
-    
+
 
 Error:
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreDeactivateDataCall() - Exit\r\n");
@@ -1886,7 +1886,7 @@ Error:
 RIL_RESULT_CODE CTE_INF_N721::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_INFO("CTE_INF_N721::ParseDeactivateDataCall() - Enter\r\n");
-    
+
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
 #ifdef RIL_USE_PPP
@@ -1932,9 +1932,9 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
 
     struct gsm_config cfg;
     struct gsm_netconfig netconfig;
-	int fd=-1;
-	int ret =-1;
-   
+    int fd=-1;
+    int ret =-1;
+
     //  Set CID to 0 for this data channel
     int nCID = 0;
     nCID = (int)rRspData.pContextData;
@@ -1945,7 +1945,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
         // Reset ContextID to 0, to free up the channel for future use
         RIL_LOG_INFO("CTE_INF_N721::ParseDeactivateDataCall() - Setting chnl=[%d] to CID=[0]\r\n", pDataChannel->GetRilChannel());
         pDataChannel->SetContextID(0);
-        
+
 
         netconfig.adaption = 3;                                         // Pranav : what is 3 ?
         netconfig.protocol = htons(ETH_P_IP);           // Pranav
@@ -1957,7 +1957,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
 
     }
 
-    
+
     if (!DataConfigDown())
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseDeactivateDataCall() - ERROR : Couldn't DataConfigDown\r\n");
@@ -1979,18 +1979,18 @@ Error:
 RIL_RESULT_CODE CTE_INF_N721::CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_INFO("CTE_INF_N721::CoreHookRaw() - Enter\r\n");
-    
+
     BYTE *pDataBytes = (BYTE*)pData;
-    
+
     RIL_LOG_INFO("CTE_INF_N721::CoreHookRaw() - uiDataSize=[%d]\r\n", uiDataSize);
     for (int i = 0; i < (int)uiDataSize; i++)
     {
         BYTE b = pDataBytes[i];
         RIL_LOG_INFO("CTE_INF_N721::CoreHookRaw() - pData[%d]=[0x%02X]\r\n", i, b);
     }
-    
+
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    
+
     BYTE bCommand = 0;
 
     if (1 != uiDataSize)
@@ -1998,40 +1998,40 @@ RIL_RESULT_CODE CTE_INF_N721::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreHookRaw() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
-    
+
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreHookRaw() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
-    
+
     //  [DP] Dec 14/2010: All this command does right now is echo the data bytes after the command byte.
     //  i.e. Copy the data bytes into the response and send it.
-    
+
     bCommand = (BYTE)pDataBytes[0];  //  This is the command.
     switch(bCommand)
     {
         case RIL_OEM_HOOK_RAW_API1:
             RIL_LOG_INFO("TE_INF_N721::CoreHookRaw() - API1 Command=[0x%02X] received OK\r\n", bCommand);
-            
+
             //  Shouldn't be any data following command
-            
+
             //  We have to be unregistered to do the change.
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CPWROFF\r", sizeof(rReqData.szCmd1)))
             {
                 RIL_LOG_CRITICAL("TE_INF_N721::CoreHookRaw() - ERROR: API1 - Can't construct szCmd1.\r\n");
-                goto Error;        
+                goto Error;
             }
 
             break;
-            
+
         default:
             RIL_LOG_CRITICAL("TE_INF_N721::CoreHookRaw() - ERROR: Received unknown command=[0x%02X]\r\n", bCommand);
             goto Error;
             break;
     }
 
-    
+
     res = RRIL_RESULT_OK;
 Error:
     RIL_LOG_INFO("CTE_INF_N721::CoreHookRaw() - Exit\r\n");
@@ -2042,64 +2042,14 @@ Error:
 RIL_RESULT_CODE CTE_INF_N721::ParseHookRaw(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_INFO("CTE_INF_N721::ParseHookRaw() - Enter\r\n");
-    
+
     RIL_LOG_INFO("CTE_INF_N721::ParseHookRaw() - Exit\r\n");
     return RRIL_RESULT_OK;
 }
 
 
-//
-// RIL_REQUEST_SCREEN_STATE 61
-//
-RIL_RESULT_CODE CTE_INF_N721::CoreScreenState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("CTE_INF_N721::CoreScreenState() - Enter\r\n");
-    
-    // TODO : Mark flags for unsol updates for LAC, CID, CSQ to not send updates
-    //        when screen is off. Resume updates when screen turns back on.
-    //        will probably need to trigger immediate updates on resume to have correct
-    //        info on screen. For now, just return OK and keep throwing updates.
-    //
-    //  Note that we added +XREG=1 during init.
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int nEnable = 0;
-    
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_N721::CoreScreenState() - ERROR: Data pointer is NULL.\r\n");
-        goto Error;
-    }
 
-    nEnable = ((int *)pData)[0];
-    
-    //  0 is off
-    //  1 is on
-    switch(nEnable)
-    {
-        case 0:
-            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=0;+CGREG=0;+XREG=0\r", sizeof(rReqData.szCmd1)))
-            {
-                res = RRIL_RESULT_OK;
-            }
-            break;
-        case 1:
-            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=2;+CGREG=2;+XREG=1\r", sizeof(rReqData.szCmd1)))
-            {
-                res = RRIL_RESULT_OK;
-            }
-            break;
-        default:
-            RIL_LOG_CRITICAL("CTE_INF_N721::CoreScreenState() - ERROR: unknown nEnable=[%d]\r\n", nEnable);
-            break;
-    }
 
-Error:
-    RIL_LOG_VERBOSE("CTE_INF_N721::CoreScreenState() - Exit\r\n");
-    return res;
-}
-    
-
-    
 //
 // RIL_REQUEST_SET_BAND_MODE 65
 //
@@ -2114,13 +2064,13 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetBandMode(REQUEST_DATA & rReqData, void * pD
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetBandMode() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
-    
+
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetBandMode() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
-    
+
     pnBandMode = (UINT32*)pData;
 
     switch(*pnBandMode)
@@ -2205,7 +2155,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDa
     BOOL aus = FALSE;
     BOOL aus2 = FALSE;
     UINT32 count = 0, count2 = 0;
-    
+
     int * pModes = NULL;
 
     // Skip "+XBANDSEL: "
@@ -2327,13 +2277,13 @@ RIL_RESULT_CODE CTE_INF_N721::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDa
     }
 
     RIL_LOG_INFO("CTE_INF_N721::ParseQueryAvailableBandMode() - count=%d\r\n", count);
-    
+
     if (0 == count)
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseGetAvailableBandModes() - ERROR: Cannot have a count of zero.\r\n");
         goto Error;
     }
-    
+
     //  Alloc array and don't forget about the first entry for size.
     pModes = (int*)malloc( (1 + count) * sizeof(int));
     if (NULL == pModes)
@@ -2341,7 +2291,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDa
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseGetAvailableBandModes() - ERROR: Could not allocate memory for response.\r\n");
         goto Error;
     }
-    
+
     pModes[0] = count + 1;
 
     //  Go assign bands in array.
@@ -2412,7 +2362,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreStkGetProfile(REQUEST_DATA & rReqData, void * 
     {
         res = RRIL_RESULT_OK;
     }
-    
+
     RIL_LOG_INFO("CTE_INF_N721::CoreStkGetProfile() - Exit\r\n");
     return res;
 }
@@ -2425,19 +2375,19 @@ RIL_RESULT_CODE CTE_INF_N721::ParseStkGetProfile(RESPONSE_DATA & rRspData)
     const char* pszRsp = rRspData.szResponse;
     char* pszTermProfile = NULL;
     UINT32 uiLength = 0;
-     
+
     if (NULL == pszRsp)
     {
         RIL_LOG_INFO("CTE_INF_N721::ParseStkGetProfile() - ERROR: Response string is NULL!\r\n");
         goto Error;
-    }    
-    
+    }
+
     pszTermProfile = (char*)malloc(MAX_BUFFER_SIZE);
     if (NULL == pszTermProfile)
     {
         RIL_LOG_INFO("CTE_INF_N721::ParseStkGetProfile() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
         goto Error;
-    }    
+    }
 
     memset(pszTermProfile, 0x00, MAX_BUFFER_SIZE);
 
@@ -2478,7 +2428,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseStkGetProfile(RESPONSE_DATA & rRspData)
     rRspData.pData   = (void*)pszTermProfile;
     rRspData.uiDataSize  = uiLength;
 
-    res = RRIL_RESULT_OK;  
+    res = RRIL_RESULT_OK;
 
 Error:
     if (RRIL_RESULT_OK != res)
@@ -2505,20 +2455,20 @@ RIL_RESULT_CODE CTE_INF_N721::CoreStkSetProfile(REQUEST_DATA & rReqData, void * 
         RIL_LOG_INFO("CTE_INF_N721::CoreStkSetProfile() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
-    
+
     if (NULL == pData)
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreStkSetProfile() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
-    
+
     // extract data
     pszTermProfile = (char*)pData;
-    
+
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+STKPROF=%u,\"%s\"\r", uiDataSize, pszTermProfile))
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreStkSetProfile() - ERROR: Could not form string.\r\n");
-        goto Error;        
+        goto Error;
     }
 
     res = RRIL_RESULT_OK;
@@ -2552,20 +2502,20 @@ RIL_RESULT_CODE CTE_INF_N721::CoreStkSendEnvelopeCommand(REQUEST_DATA & rReqData
         RIL_LOG_INFO("CTE_INF_N721::CoreStkSendEnvelopeCommand() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
-    
+
     if (NULL == pData)
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreStkSendEnvelopeCommand() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
-    
+
     // extract data
     pszEnvCommand = (char*)pData;
-    
+
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATE=\"%s\"\r", pszEnvCommand))
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreStkSendEnvelopeCommand() - ERROR: Could not form string.\r\n");
-        goto Error;        
+        goto Error;
     }
 
     res = RRIL_RESULT_OK;
@@ -2579,7 +2529,112 @@ RIL_RESULT_CODE CTE_INF_N721::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
 {
     RIL_LOG_INFO("CTE_INF_N721::ParseStkSendEnvelopeCommand() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    UINT32 uiSw1 = 0, uiSw2 = 0;
+    UINT32 uiEventType = 0;
+    UINT32 uiEnvelopeType = 0;
+    char* pszRespData = NULL;
+
+    const char* pszRsp = rRspData.szResponse;
+    if (NULL == pszRsp)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseStkSendEnvelopeCommand() - ERROR: Response string is NULL!\r\n");
+        goto Error;
+    }
+
+    // Parse "<prefix>"
+    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseStkSendEnvelopeCommand() - ERROR: Could not skip over response prefix.\r\n");
+        goto Error;
+    }
+
+    // Parse "+SATE: "
+    if (!SkipString(pszRsp, "+SATE: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseStkSendEnvelopeCommand() - ERROR: Could not skip over \"+SATE: \".\r\n");
+        goto Error;
+    }
+
+    // Parse "<sw1>"
+    if (!ExtractUInt(pszRsp, uiSw1, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseStkSendEnvelopeCommand() - ERROR: Could not extract sw1.\r\n");
+        goto Error;
+    }
+
+    // Parse ",<sw2>"
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt(pszRsp, uiSw2, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseStkSendEnvelopeCommand() - ERROR: Could not extract sw2.\r\n");
+        goto Error;
+    }
+
+    // Parse ",<event_type>"
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt(pszRsp, uiEventType, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseStkSendEnvelopeCommand() - ERROR: Could not extract event type.\r\n");
+        goto Error;
+    }
+
+    // Parse ",<envelope_type>"
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt(pszRsp, uiEnvelopeType, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseStkSendEnvelopeCommand() - ERROR: Could not extract envelope type.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO(" sw1: %u, sw2: %u\r\n", uiSw1, uiSw2);
+    RIL_LOG_INFO(" event type: %u\r\n", uiEventType);
+    RIL_LOG_INFO(" envelope type: %u\r\n", uiEnvelopeType);
+
+    // Parse "," if response data exists
+    if (SkipString(pszRsp, ",", pszRsp))
+    {
+        pszRespData = (char*)malloc(MAX_BUFFER_SIZE);
+        if (NULL == pszRespData)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_N721::ParseStkSendEnvelopeCommand() - ERROR: Could not alloc mem for command.\r\n");
+            goto Error;
+        }
+
+        memset(pszRespData, 0x00, MAX_BUFFER_SIZE);
+
+        // Parse ",<response_data>"
+        if (!ExtractUnquotedString(pszRsp, g_cTerminator, pszRespData, MAX_BUFFER_SIZE, pszRsp))
+        {
+            RIL_LOG_INFO("CTE_INF_N721::ParseStkSendEnvelopeCommand() - ERROR: Could not parse response data.\r\n");
+            goto Error;
+        }
+
+        RIL_LOG_INFO("CTE_INF_N721::ParseStkSendEnvelopeCommand() - response data: \"%s\".\r\n", pszRespData);
+    }
+    else
+    {
+       pszRespData = NULL;
+    }
+
+    // Parse "<postfix>"
+    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_N721::ParseStkSendEnvelopeCommand() - ERROR: Could not extract the response end.\r\n");
+        goto Error;
+    }
+
+    rRspData.pData   = (void*)pszRespData;
+    rRspData.uiDataSize  = sizeof(char*);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pszRespData);
+        pszRespData = NULL;
+    }
 
     RIL_LOG_INFO("CTE_INF_N721::ParseStkSendEnvelopeCommand() - Exit\r\n");
     return res;
@@ -2592,11 +2647,11 @@ RIL_RESULT_CODE CTE_INF_N721::CoreStkSendTerminalResponse(REQUEST_DATA & rReqDat
 {
     RIL_LOG_INFO("CTE_INF_N721::CoreStkSendTerminalResponse() - Enter\r\n");
     char* pszTermResponse = NULL;
-#ifndef USE_STK_RAW_MODE      
-    char* cmd = NULL; 
+#ifndef USE_STK_RAW_MODE
+    char* cmd = NULL;
 #endif
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    
+
     if (NULL == pData)
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreStkSendTerminalResponse() - ERROR: Data pointer is NULL.\r\n");
@@ -2608,27 +2663,27 @@ RIL_RESULT_CODE CTE_INF_N721::CoreStkSendTerminalResponse(REQUEST_DATA & rReqDat
         RIL_LOG_INFO("CTE_INF_N721::CoreStkSendTerminalResponse() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
-    
+
     RIL_LOG_INFO(" uiDataSize= %d\r\n", uiDataSize);
-    
+
     pszTermResponse = (char *)pData;
 
-#if USE_STK_RAW_MODE    
+#if USE_STK_RAW_MODE
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATR=\"%s\"\r", pszTermResponse))
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreStkSendTerminalResponse() - ERROR: Could not form string.\r\n");
         goto Error;
     }
-#else    
+#else
     cmd = hex_to_stk_at(pszTermResponse);
-    
+
     if (!CopyStringNullTerminate(rReqData.szCmd1, cmd, sizeof(rReqData.szCmd1)))
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreStkSendTerminalResponse() - ERROR: Could not form string.\r\n");
-        goto Error;        
-    }     
+        goto Error;
+    }
 #endif
-    
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -2638,11 +2693,11 @@ Error:
 
 RIL_RESULT_CODE CTE_INF_N721::ParseStkSendTerminalResponse(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_INFO("CTE_INF_N721::ParseStkSendTerminalResponse() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseStkSendTerminalResponse() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_INFO("CTE_INF_N721::ParseStkSendTerminalResponse() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseStkSendTerminalResponse() - Exit\r\n");
     return res;
 }
 
@@ -2654,19 +2709,19 @@ RIL_RESULT_CODE CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DAT
     RIL_LOG_INFO("CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim() - Enter\r\n");
     int nConfirmation = 0;
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    
+
     if (NULL == pData)
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
-    if (uiDataSize != 1)
+    if (uiDataSize != sizeof(int *))
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
-    
+
     nConfirmation = ((int *)pData)[0];
     if (0 == nConfirmation)
     {
@@ -2674,7 +2729,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DAT
         {
             RIL_LOG_INFO("CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Could not form string.\r\n");
             goto Error;
-        }        
+        }
     }
     else
     {
@@ -2682,9 +2737,9 @@ RIL_RESULT_CODE CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DAT
         {
             RIL_LOG_INFO("CTE_INF_N721::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Could not form string.\r\n");
             goto Error;
-        }        
+        }
     }
-        
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -2694,11 +2749,11 @@ Error:
 
 RIL_RESULT_CODE CTE_INF_N721::ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_INFO("CTE_INF_N721::ParseStkHandleCallSetupRequestedFromSim() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseStkHandleCallSetupRequestedFromSim() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_INFO("CTE_INF_N721::ParseStkHandleCallSetupRequestedFromSim() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTE_INF_N721::ParseStkHandleCallSetupRequestedFromSim() - Exit\r\n");
     return res;
 }
 
@@ -2710,7 +2765,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSetPreferredNetworkType() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int nNetworkType = 0;
-    
+
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Data pointer is NULL.\r\n");
@@ -2722,16 +2777,9 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
         RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
-    
+
     nNetworkType = ((int *)pData)[0];
-    
-    //  We have to be unregistered to do the change.
-    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+COPS=2\r", sizeof(rReqData.szCmd1)))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd1.\r\n");
-        goto Error;        
-    }
-    
+
     // if network type already set, NO-OP this command
     if (m_nCurrentNetworkType == nNetworkType)
     {
@@ -2740,88 +2788,37 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
         RIL_LOG_INFO("CTE_INF_N721::CoreSetPreferredNetworkType() - Network type {%d} already set.\r\n", nNetworkType);
         goto Error;
     }
-    
+
     switch (nNetworkType)
     {
-        case 0: // WCMDA Preferred
-            if (0 == m_nNetworkRegistrationType)
+        case 0: // WCDMA Preferred
+
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=1,2\r", sizeof(rReqData.szCmd1) ))
             {
-                if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XRAT=1,2;+COPS=0\r", sizeof(rReqData.szCmd2) ))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd2 nNetworkType=%d\r\n", nNetworkType);
-                    goto Error;        
-                }
+                RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd1 nNetworkType=%d\r\n", nNetworkType);
+                goto Error;
             }
-            else if (1 == m_nNetworkRegistrationType)
-            {
-                if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+XRAT=1,2;+COPS=1,2,\"%s\"\r", m_szManualMCCMNC ))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd2 nNetworkType=%d\r\n", nNetworkType);
-                    goto Error;        
-                }
-            }
-            else
-            {
-                if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XRAT=1,2\r", sizeof(rReqData.szCmd2) ))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd2 nNetworkType=%d\r\n", nNetworkType);
-                    goto Error;        
-                }
-            }
+
            break;
 
         case 1: // GSM Only
-            if (0 == m_nNetworkRegistrationType)
+
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=0\r", sizeof(rReqData.szCmd1) ))
             {
-                if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XRAT=0,0;+COPS=0\r", sizeof(rReqData.szCmd2) ))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd2 nNetworkType=%d\r\n", nNetworkType);
-                    goto Error;        
-                }
+                RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd1 nNetworkType=%d\r\n", nNetworkType);
+                goto Error;
             }
-            else if (1 == m_nNetworkRegistrationType)
-            {
-                if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+XRAT=0,0;+COPS=1,2,\"%s\"\r", m_szManualMCCMNC ))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd2 nNetworkType=%d\r\n", nNetworkType);
-                    goto Error;        
-                }
-            }
-            else
-            {
-                if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XRAT=0,0\r", sizeof(rReqData.szCmd2) ))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd2 nNetworkType=%d\r\n", nNetworkType);
-                    goto Error;        
-                }
-            }
+
             break;
 
         case 2: // WCDMA Only
-            if (0 == m_nNetworkRegistrationType)
+
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=2\r", sizeof(rReqData.szCmd1) ))
             {
-                if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XRAT=2,2;+COPS=0\r", sizeof(rReqData.szCmd2) ))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd2 nNetworkType=%d\r\n", nNetworkType);
-                    goto Error;        
-                }
+                RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd1 nNetworkType=%d\r\n", nNetworkType);
+                goto Error;
             }
-            else if (1 == m_nNetworkRegistrationType)
-            {
-                if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+XRAT=2,2;+COPS=1,2,\"%s\"\r", m_szManualMCCMNC ))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd2 nNetworkType=%d\r\n", nNetworkType);
-                    goto Error;        
-                }
-            }
-            else
-            {
-                if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XRAT=2,2\r", sizeof(rReqData.szCmd2) ))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_N721::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd2 nNetworkType=%d\r\n", nNetworkType);
-                    goto Error;        
-                }
-            }
+
             break;
 
         default:
@@ -2830,14 +2827,14 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
             goto Error;
             break;
     }
-    
+
     //  Set the context of this command to the network type we're attempting to set
     rReqData.pContextData = (void*)nNetworkType;  // Store this as an int.
 
-    
+
     res = RRIL_RESULT_OK;
-    
-Error:    
+
+Error:
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreSetPreferredNetworkType() - Exit\r\n");
     return res;
 }
@@ -2847,7 +2844,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspD
     RIL_LOG_VERBOSE("CTE_INF_N721::ParseSetPreferredNetworkType() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
-    
+
     int nNetworkType = (int)rRspData.pContextData;
     m_nCurrentNetworkType = nNetworkType;
 
@@ -2867,7 +2864,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreGetPreferredNetworkType(REQUEST_DATA & rReqDat
     {
         res = RRIL_RESULT_OK;
     }
-    
+
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreGetPreferredNetworkType() - Exit\r\n");
     return res;
 }
@@ -2878,7 +2875,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspD
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
-    
+
     UINT32 rat = 0;
     UINT32 pref = 0;
 
@@ -2926,14 +2923,14 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspD
             m_nCurrentNetworkType = 1;
             break;
         }
-    
+
         case 1:     // WCDMA Preferred
         {
             pRat[0] = 0;
             m_nCurrentNetworkType = 0;
             break;
         }
-        
+
         case 2:     // WCDMA only
         {
             pRat[0] = 2;
@@ -2972,12 +2969,12 @@ RIL_RESULT_CODE CTE_INF_N721::CoreGetNeighboringCellIDs(REQUEST_DATA & rReqData,
 {
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreGetNeighboringCellIDs() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    
+
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCELLINFO?\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
-    
+
     RIL_LOG_VERBOSE("CTE_INF_N721::CoreGetNeighboringCellIDs() - Exit\r\n");
     return res;
 }
@@ -2990,7 +2987,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
     const char * pszRsp = rRspData.szResponse;
 
     const BYTE* szDummy = pszRsp;
-    
+
     UINT32 nFound = 0, nTotal = 0;
     UINT32 nMode = 0;
     UINT32 nType = 0;
@@ -3002,7 +2999,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
     P_ND_N_CELL_DATA pCellData = NULL;
 
 
-    
+
     //  Data is either (according to rev 27 of AT spec)
     //  GSM:
     //  +XCELLINFO: <mode>,<type>,<MCC>,<MNC>,<LAC>,<CI>,<RxLev>[,t_advance]
@@ -3010,13 +3007,13 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
     //  +XCELLINFO: <mode>,<type>,<MCC>,<MNC>,<LAC>,<CI>,<scrambling_code>,<dl_frequency>,<rscp>,<ecn0>
     //
     //  A <type> of 0 or 1 = GSM.  A <type> of 2,3,4 = UMTS.
-    
+
 
     // Loop on +XCELLINFO until no more entries are found
     while (FindAndSkipString(szDummy, "+XCELLINFO: ", szDummy))
     {
         nTotal++;
-        
+
         if (!ExtractUInt(szDummy, nMode, szDummy) ||
             !SkipString(szDummy, ",", szDummy) ||
             !ExtractUInt(szDummy, nType, szDummy))
@@ -3024,7 +3021,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
             RIL_LOG_CRITICAL("CTE_INF_N721::ParseGetNeighboringCellIDs() - ERROR: Could not extract nMode or nType 1.\r\n");
             goto Error;
         }
-        
+
         //  Find next ,
         if (!FindAndSkipString(szDummy, ",", szDummy))
         {
@@ -3045,14 +3042,14 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
             RIL_LOG_CRITICAL("CTE_INF_N721::ParseGetNeighboringCellIDs() - ERROR: Could not find comma 3.\r\n");
             goto Error;
         }
-        
+
         //  Get <LAC>
         if (!ExtractUnquotedString(szDummy, ',', szLAC, CELL_ID_ARRAY_LENGTH, szDummy))
         {
             RIL_LOG_CRITICAL("CTE_INF_N721::ParseGetNeighboringCellIDs() - ERROR: Could not extract LAC.\r\n");
             goto Error;
         }
-        
+
         //  Bogus cell infos have LAC of "ffff" regardless of GSM or UMTS.
         if ((0 == strncmp("ffff", szLAC, 4)) ||
             (0 == strncmp("FFFF", szLAC, 4)))
@@ -3065,7 +3062,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
         //  Made it this far, add one to count.
         nFound++;
     }
-    
+
     RIL_LOG_INFO("CTE_INF_N721::ParseGetNeighboringCellIDs() - INFO: Found %d entries out of %d total\r\n", nFound, nTotal);
 
     if (nFound >= RRIL_MAX_CELL_ID_COUNT)
@@ -3085,12 +3082,12 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
 
     nFound = 0;
     nTotal = 0;
-    
+
     //  Ok, loop through again.
     while (FindAndSkipString(pszRsp, "+XCELLINFO: ", pszRsp))
     {
         nTotal++;
-        
+
         //  Get type
         if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
             (!ExtractUInt(pszRsp, nType, pszRsp)) )
@@ -3098,13 +3095,13 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
             RIL_LOG_CRITICAL("CTE_INF_N721::ParseGetNeighboringCellIDs() - ERROR: Could not extract type.\r\n");
             goto Error;
         }
-        
+
         if (nType >= 5)
         {
             RIL_LOG_CRITICAL("CTE_INF_N721::ParseGetNeighboringCellIDs() - ERROR: Invalid type=[%d]\r\n", nType);
             goto Error;
         }
-        
+
         //  Skip to LAC
         if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
             (!FindAndSkipString(pszRsp, ",", pszRsp)) ||
@@ -3114,7 +3111,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
             RIL_LOG_CRITICAL("CTE_INF_N721::ParseGetNeighboringCellIDs() - ERROR: Could not extract LAC value. 2\r\n");
             goto Error;
         }
-        
+
         //  If LAC is "ffff" or "FFFF", skip
         if ((0 == strncmp("ffff", szLAC, 4)) ||
             (0 == strncmp("FFFF", szLAC, 4)))
@@ -3131,7 +3128,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
             RIL_LOG_CRITICAL("CTE_INF_N721::ParseGetNeighboringCellIDs() - ERROR: Could not extract CI value. 2\r\n");
             goto Error;
         }
-        
+
         //  Read <RxLev> or <scrambling_code>
         if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
             (!ExtractUInt(pszRsp, nRSSI, pszRsp)))
@@ -3139,7 +3136,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
             RIL_LOG_CRITICAL("CTE_INF_N721::ParseGetNeighboringCellIDs() - ERROR: Could not extract nRSSI value. 2\r\n");
             goto Error;
         }
-        
+
         //  If we're type UMTS (2,3,4), read rscp.
         if ( (2 ==nType) || (3 == nType) || (4 == nType) )
         {
@@ -3152,18 +3149,18 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                 goto Error;
             }
         }
-        
+
         //  Now populate data we have for this entry.
-        
+
         //  UMTS
         if ( (2 ==nType) || (3 == nType) || (4 == nType) )
         {
             //  cid = <scrambling code> as char *
             pCellData->pnCellData[nFound].cid = pCellData->pnCellCIDBuffers[nFound];
             snprintf(pCellData->pnCellCIDBuffers[nFound], CELL_ID_ARRAY_LENGTH, "%08x", nRSSI);
-            
+
             RIL_LOG_INFO("CTE_INF_N721::ParseGetNeighboringCellIDs() - UMTS scramblingcode index=[%d]  cid=[%s]\r\n", nFound, pCellData->pnCellCIDBuffers[nFound]);
-            
+
             //  rssi = rscp
             pCellData->pnCellData[nFound].rssi = (int)nRSCP;
             RIL_LOG_INFO("CTE_INF_N721::ParseGetNeighboringCellIDs() - UMTS rscp index=[%d]  rssi=[%d]\r\n", nFound, pCellData->pnCellData[nFound].rssi);
@@ -3173,26 +3170,26 @@ RIL_RESULT_CODE CTE_INF_N721::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
         {
             //  GSM
             pCellData->pnCellData[nFound].cid = pCellData->pnCellCIDBuffers[nFound];
-            
+
             //  cid = upper 16 bits (LAC), lower 16 bits (CID)
             memcpy(pCellData->pnCellCIDBuffers[nFound], szLAC, 4);
             memcpy(&pCellData->pnCellCIDBuffers[nFound][4], szCI, 4);
             pCellData->pnCellCIDBuffers[nFound][8] = '\0';
-            
+
             RIL_LOG_INFO("CTE_INF_N721::ParseGetNeighboringCellIDs() - GSM LAC,CID index=[%d]  cid=[%s]\r\n", nFound, pCellData->pnCellCIDBuffers[nFound]);
-            
+
             //  rssi = <RxLev>
-            
+
             //  May have to convert RxLev to asu (0 to 31).
             //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
             //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
-            
+
             //  But for now, just leave it as is.
             pCellData->pnCellData[nFound].rssi = (int)nRSSI;
             RIL_LOG_INFO("CTE_INF_N721::ParseGetNeighboringCellIDs() - GSM rxlev index=[%d]  rssi=[%d]\r\n", nFound, pCellData->pnCellData[nFound].rssi);
 
         }
-        
+
         //  Connect the pointer
         pCellData->pnCellPointers[nFound] = &(pCellData->pnCellData[nFound]);
 
@@ -3230,7 +3227,7 @@ Error:
 // RIL_REQUEST_SET_TTY_MODE 80
 //
 RIL_RESULT_CODE CTE_INF_N721::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
-{    
+{
     RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int nTtyMode = 0;
@@ -3240,26 +3237,26 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pDa
         RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
-    
+
     if (NULL == pData)
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
-    
+
     // extract the data
     nTtyMode = ((int*)pData)[0];
-    
+
     RIL_LOG_INFO(" Set TTY mode: %d\r\n", nTtyMode);
 
     // check for invalid value
     if ((nTtyMode < 0) || (nTtyMode > 3))
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - ERROR: Undefined CTM/TTY mode: %d\r\n", nTtyMode);
-        res = RIL_E_GENERIC_FAILURE;  
-        goto Error;      
+        res = RIL_E_GENERIC_FAILURE;
+        goto Error;
     }
-    
+
     //  Need to switch 2 and 3 for this modem.
     if (2 == nTtyMode)
         nTtyMode = 3;
@@ -3269,21 +3266,21 @@ RIL_RESULT_CODE CTE_INF_N721::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pDa
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XCTMS=%d\r", nTtyMode))
     {
         RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - ERROR: Could not form string.\r\n");
-        goto Error;        
+        goto Error;
     }
 
     res = RRIL_RESULT_OK;
 Error:
     RIL_LOG_INFO("CTE_INF_N721::CoreSetTtyMode() - Exit\r\n");
-    return res;          
+    return res;
 }
 
 RIL_RESULT_CODE CTE_INF_N721::ParseSetTtyMode(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTE_INF_N721::ParseSetTtyMode() - Enter\r\n");
     RIL_LOG_VERBOSE("CTE_INF_N721::ParseSetTtyMode() - Exit\r\n");
-    
-    return RRIL_RESULT_OK;    
+
+    return RRIL_RESULT_OK;
 }
 
 //
@@ -3300,7 +3297,7 @@ RIL_RESULT_CODE CTE_INF_N721::CoreQueryTtyMode(REQUEST_DATA & rReqData, void * p
     }
 
     RIL_LOG_INFO("CTE_INF_N721::CoreQueryTtyMode() - Exit\r\n");
-    return res;    
+    return res;
 }
 
 RIL_RESULT_CODE CTE_INF_N721::ParseQueryTtyMode(RESPONSE_DATA & rRspData)
@@ -3330,7 +3327,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseQueryTtyMode(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseQueryTtyMode() - ERROR: Unable to parse <mode>!\r\n");
         goto Error;
     }
-    
+
     //  Need to switch 2 and 3 for this modem.
     if (2 == uiTtyMode)
         uiTtyMode = 3;
@@ -3338,9 +3335,9 @@ RIL_RESULT_CODE CTE_INF_N721::ParseQueryTtyMode(RESPONSE_DATA & rRspData)
         uiTtyMode = 2;
 
     pnMode[0] = (int)uiTtyMode;
-    
+
     RIL_LOG_INFO(" Current TTY mode: %d\r\n", uiTtyMode);
-    
+
     rRspData.pData  = (void*)pnMode;
     rRspData.uiDataSize = sizeof(int*);
 
@@ -3353,5 +3350,5 @@ Error:
         pnMode = NULL;
     }
     RIL_LOG_INFO("CTE_INF_N721::ParseQueryTtyMode() - Exit\r\n");
-    return res;    
+    return res;
 }

@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// silo_data.cpp                       
+// silo_data.cpp
 //
 // Copyright 2005-2007 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
@@ -92,7 +92,7 @@ BOOL CSilo_Data::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, B
             //  Reset the CID on this data channel to 0.  Free up channel for future use.
             RIL_LOG_INFO("CSilo_Data::PostParseResponseHook - Setting chnl=[%d] to CID=[0]\r\n", uiChannel);
             pDataChannel->SetContextID(0);
-            
+
             //  Release network interface
             DataConfigDown();
         }
@@ -125,7 +125,7 @@ BOOL CSilo_Data::ParseConnect(CResponse* const pResponse, const BYTE*& rszPointe
         //  incomplete notification
         goto Error;
     }
-    
+
     //  CONNECT 9600000<cr><lf>
     //  Check for possible space
     if (SkipString(rszPointer, " ", rszPointer))
@@ -151,7 +151,7 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPoin
 
     const BYTE* szDummy;
     BOOL fRet = FALSE;
-    
+
     CChannel_Data* pDataChannel = NULL;
 
     if (pResponse == NULL)
@@ -171,9 +171,9 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPoin
     //pResponse->SetResultCode(RIL_UNSOL_DATA_CALL_LIST_CHANGED);
     //RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Called timed callback  START\r\n");
     //RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
-    //RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Called timed callback  END\r\n");    
-    
-    
+    //RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Called timed callback  END\r\n");
+
+
     // Free this channel's context ID.
     pDataChannel = CChannel_Data::GetChnlFromRilChannelNumber(m_pChannel->GetRilChannel());
     pDataChannel->SetContextID(0);
@@ -181,7 +181,7 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPoin
 
     //  Release network interface
     DataConfigDown();
-    
+
     fRet = TRUE;
 
 Error:
@@ -194,18 +194,18 @@ Error:
 BOOL CSilo_Data::ParseXCGEDPAGE(CResponse *const pResponse, const BYTE* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Data::ParseXCGEDPAGE() - Enter\r\n");
-    
+
     BOOL bRet = FALSE;
-    
+
     char szTemp[20] = {0};
 
-    
+
     if (NULL == pResponse)
     {
         RIL_LOG_CRITICAL("CSilo_Data::ParseXCGEDPAGE() - Error: pResponse is NULL\r\n");
         goto Error;
     }
-    
+
     // Look for a "<postfix>OK<postfix>"
     sprintf(szTemp, "%sOK%s", g_szNewLine, g_szNewLine);
     if (!FindAndSkipRspEnd(rszPointer, szTemp, rszPointer))
@@ -213,7 +213,7 @@ BOOL CSilo_Data::ParseXCGEDPAGE(CResponse *const pResponse, const BYTE* &rszPoin
         // This isn't a complete registration notification -- no need to parse it
         goto Error;
     }
-    
+
 
     //  Back up over the "\r\n".
     rszPointer -= strlen(g_szNewLine);

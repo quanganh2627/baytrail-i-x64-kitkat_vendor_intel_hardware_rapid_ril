@@ -53,7 +53,7 @@ BOOL FindAndSkipRspEnd(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rsz
 // digit it will also be consumed. Returns TRUE if at least one digit is found.
 BOOL ExtractUInt(const BYTE* szStart, UINT32 &rnValue, const BYTE* &rszEnd);
 
-// Extracts a UINT32 from a given string. 
+// Extracts a UINT32 from a given string.
 BOOL ExtractUInt32(const BYTE* szStart, UINT32 &rdwValue, const BYTE* &rszEnd);
 
 // Extracts a string enclosed by quotes into a given buffer. Returns TRUE if two quotes are found and

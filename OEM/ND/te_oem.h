@@ -42,9 +42,9 @@
  *  Must never fail
  */
 
-// Therefore, pData will be NULL for the request input and in the parse function 
-// rRspData.pVoid will point to a RIL_CardStatus and rRspData.cbVoid will be set 
-// to the size of a RIL_CardStatus pointer. This memory will be freed by RapidRIL 
+// Therefore, pData will be NULL for the request input and in the parse function
+// rRspData.pVoid will point to a RIL_CardStatus and rRspData.cbVoid will be set
+// to the size of a RIL_CardStatus pointer. This memory will be freed by RapidRIL
 // provided it was allocated as a single contiguous piece of memory with malloc.
 
 class CTEOem
@@ -53,7 +53,7 @@ public:
 
     CTEOem();
     ~CTEOem();
-    
+
     // RIL_REQUEST_GET_SIM_STATUS 1
     long OEMGetSimStatus(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
     long OEMParseGetSimStatus(RESPONSE_DATA & rRspData);
@@ -170,7 +170,7 @@ public:
     // RIL_REQUEST_SEND_USSD 29
     long OEMSendUssd(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
     long OEMParseSendUssd(RESPONSE_DATA & rRspData);
-    
+
     // RIL_REQUEST_CANCEL_USSD 30
     long OEMCancelUssd(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
     long OEMParseCancelUssd(RESPONSE_DATA & rRspData);
@@ -469,7 +469,7 @@ public:
 
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     long OEMParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData);
-    
+
     // RIL_UNSOL_DATA_CALL_LIST_CHANGED  1010
     long OEMParseDataCallListChanged(RESPONSE_DATA & rRspData);
 
@@ -478,7 +478,7 @@ public:
 
     // GET DNS (sent internally)
     long OEMParseDns(RESPONSE_DATA & rRspData);
-    
+
     // PARSE CPIN2 Query (sent internally)
     long OEMParseQueryPIN2(RESPONSE_DATA & rRspData);
 };

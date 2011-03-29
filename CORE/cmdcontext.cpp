@@ -123,8 +123,8 @@ void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
 {
     if (m_bFinalCmd)
     {
-        RIL_LOG_INFO("CContextInitString::Execute() - Last command for init index [%d] on channel [%d] had result [%s]\r\n", 
-            m_eInitIndex, 
+        RIL_LOG_INFO("CContextInitString::Execute() - Last command for init index [%d] on channel [%d] had result [%s]\r\n",
+            m_eInitIndex,
             m_uiChannel,
             bRes ? "OK" : "FAIL");
 
@@ -177,10 +177,10 @@ void CContextPinQuery::Execute(BOOL bRes, UINT32 uiErrorCode)
 void CContextSimPhonebookQuery::Execute(BOOL bRes, UINT32 uiErrorCode)
 {
     RIL_LOG_VERBOSE("CContextSimPhonebookQuery::Execute() - Enter\r\n");
-    
+
     RIL_LOG_INFO("CContextSimPhonebookQuery::Execute() - Signalling event and setting result to [%s]!\r\n", bRes ? "TRUE" : "FALSE");
     m_rbResult = bRes;
     CEvent::Signal(&m_pEvent);
-    
+
     RIL_LOG_VERBOSE("CContextSimPhonebookQuery::Execute() - Exit\r\n");
 }

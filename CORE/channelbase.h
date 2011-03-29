@@ -68,7 +68,7 @@ public:
     BOOL            StopChannelThreads();
     virtual UINT32  CommandThread();
     virtual UINT32  ResponseThread();
-    
+
     BOOL            SendModemConfigurationCommands(eComInitIndex eInitIndex);
 
     // Public port interface
@@ -84,7 +84,7 @@ public:
 
     BOOL            BlockReadThread()   { return CEvent::Reset(m_pBlockReadThreadEvent); }
     BOOL            UnblockReadThread() { return CEvent::Signal(m_pBlockReadThreadEvent); }
-    
+
     //  Public interfaces to notify all silos.
     BOOL            ParseUnsolicitedResponse(CResponse* const pResponse, const BYTE*& rszPointer, BOOL &fGotoError);
 
@@ -152,7 +152,7 @@ protected:
     INITSTRING_DATA*                m_prisdModuleInit;
 
     SILO_CONTAINER                  m_SiloContainer;
-    
+
     CPort                           m_Port;
 };
 

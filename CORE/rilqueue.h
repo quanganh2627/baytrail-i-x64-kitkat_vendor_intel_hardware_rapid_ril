@@ -38,7 +38,7 @@ class CRilQueue
     void MakeEmpty( );
     BOOL Dequeue(Object& rObj);
     BOOL Enqueue(const Object & rObj, UINT32 uiPriority = m_uiMinPriority);
-    
+
     void GetAllQueuedObjects(Object* &rpObjArray, int &rnNumOfObjects);
     void DequeueByObj(Object &rObj);
 
@@ -86,9 +86,9 @@ template <class Object>
 BOOL CRilQueue<Object>::IsEmpty()
 {
     CMutex::Lock(&m_cMutex);
-    
+
     BOOL bIsEmpty = (m_pFront == NULL);
-    
+
     CMutex::Unlock(&m_cMutex);
     return bIsEmpty;
 }
@@ -116,7 +116,7 @@ template <class Object>
 BOOL CRilQueue<Object>::GetFront(Object& rObj)
 {
     BOOL bRetVal = true;
-        
+
     CMutex::Lock(&m_cMutex);
 
     if (IsEmpty())
@@ -128,9 +128,9 @@ BOOL CRilQueue<Object>::GetFront(Object& rObj)
         rObj = m_pFront->m_Element;
         bRetVal = true;
     }
-    
+
     CMutex::Unlock(&m_cMutex);
-    
+
     return bRetVal;
 }
 
@@ -141,9 +141,9 @@ template <class Object>
 BOOL CRilQueue<Object>::Dequeue(Object& rObj)
 {
     BOOL bRetVal = true;
-    
+
     CMutex::Lock(&m_cMutex);
-        
+
     if (false == GetFront(rObj))
     {
         bRetVal = false;
@@ -160,13 +160,13 @@ BOOL CRilQueue<Object>::Dequeue(Object& rObj)
         }
         else
         {
-            m_pFront = m_pFront->m_pNext;        
+            m_pFront = m_pFront->m_pNext;
         }
         delete pOld;
     }
 
     CMutex::Unlock(&m_cMutex);
-    
+
     return bRetVal;
 }
 
@@ -260,16 +260,16 @@ template <class Object>
 void CRilQueue<Object>::GetAllQueuedObjects(Object* &rpObjArray, int &rnNumOfObjects)
 {
     RIL_LOG_VERBOSE("CRilQueue::GetAllQueuedObjects() - ENTER\r\n");
-    
-    CMutex::Lock(&m_cMutex);      
-      
+
+    CMutex::Lock(&m_cMutex);
+
     ListNode* node  = NULL;
     int nCount = 0;
-    
+
     //  Start count at zero.
     rnNumOfObjects = 0;
     rpObjArray = NULL;
-    
+
     if (IsEmpty())
     {
         RIL_LOG_VERBOSE("CRilQueue::GetAllQueuedObjects() - Empty!  EXIT\r\n");
@@ -281,9 +281,9 @@ void CRilQueue<Object>::GetAllQueuedObjects(Object* &rpObjArray, int &rnNumOfObj
     {
         rnNumOfObjects++;
     }
-    
+
     RIL_LOG_VERBOSE("CRilQueue::GetAllQueuedObjects() - count = [%d]\r\n", rnNumOfObjects);
-    
+
     //  Allocate pointer array
     rpObjArray = new Object[rnNumOfObjects];
     if (NULL == rpObjArray)
@@ -291,18 +291,18 @@ void CRilQueue<Object>::GetAllQueuedObjects(Object* &rpObjArray, int &rnNumOfObj
         RIL_LOG_CRITICAL("CRilQueue::GetAllQueuedObjects() - Cannot allocate memory for %d object pointers\r\n", rnNumOfObjects);
         goto Error;
     }
-    
+
     //  Iterate through queue, copy Object.
     for (node = m_pFront; node != NULL; node = node->m_pNext)
     {
         rpObjArray[nCount] = node->m_Element;
         nCount++;
     }
-    
+
 
 Error:
     CMutex::Unlock(&m_cMutex);
-    
+
     RIL_LOG_VERBOSE("CRilQueue::GetAllQueuedObjects() - EXIT\r\n");
 }
 
@@ -311,15 +311,15 @@ template <class Object>
 void CRilQueue<Object>::DequeueByObj(Object &rObj)
 {
     RIL_LOG_VERBOSE("CRilQueue::DequeueByObj() - ENTER  rObj=[0x%08x]\r\n", (unsigned long)rObj);
-    
-    CMutex::Lock(&m_cMutex);    
-        
+
+    CMutex::Lock(&m_cMutex);
+
     if (IsEmpty())
     {
         RIL_LOG_VERBOSE("CRilQueue::DequeueByObj() - Empty!  EXIT\r\n");
         goto Done;
     }
-    
+
     ListNode* node;
     ListNode* previous;
     for (previous = node = m_pFront;
@@ -363,7 +363,7 @@ void CRilQueue<Object>::DequeueByObj(Object &rObj)
 
 Done:
     CMutex::Unlock(&m_cMutex);
-    
+
     RIL_LOG_VERBOSE("CRilQueue::DequeueByObj() - EXIT\r\n");
 }
 

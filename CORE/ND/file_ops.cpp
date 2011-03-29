@@ -45,7 +45,7 @@ CFile::~CFile()
         {
             RIL_LOG_CRITICAL("CFile::~CFile() : ERROR : Error when closing file\r\n");
         }
-    
+
         m_fInitialized = FALSE;
     }
 }
@@ -72,16 +72,16 @@ Error:
    return m_fInitialized;
 }
 
-BOOL CFile::Open(   const char * pszFileName, 
-                    UINT32 dwAccessFlags, 
-                    UINT32 dwOpenFlags, 
-                    UINT32 dwOptFlags, 
+BOOL CFile::Open(   const char * pszFileName,
+                    UINT32 dwAccessFlags,
+                    UINT32 dwOpenFlags,
+                    UINT32 dwOptFlags,
                     BOOL fIsSocket)
 {
     RIL_LOG_INFO("CFile::Open() - Enter\r\n");
     RIL_LOG_INFO("CFile::Open() : pszFileName=[%s]\r\n", (NULL == pszFileName ? "NULL" : pszFileName));
     RIL_LOG_INFO("CFile::Open() : fIsSocket=[%d]\r\n", fIsSocket);
-    
+
     UINT32 dwAttr = 0;
     BOOL fExists = FALSE;
     BOOL fFile = FALSE;
@@ -100,7 +100,7 @@ BOOL CFile::Open(   const char * pszFileName,
     else
     {
         dwAttr = GetFileAttributes(pszFileName);
-    
+
         fExists = (dwAttr == FILE_ATTRIB_DOESNT_EXIST) ? FALSE : TRUE;
         fFile   = (dwAttr == FILE_ATTRIB_DOESNT_EXIST) ? FALSE : ((dwAttr & FILE_ATTRIB_REG) ? TRUE : FALSE);
         RIL_LOG_INFO("CFile::Open() : fExists=[%d]  fFile=[%d]\r\n", fExists, fFile);
@@ -112,28 +112,28 @@ BOOL CFile::Open(   const char * pszFileName,
                 iAttr = O_RDONLY;
                 break;
             }
-    
+
             case FILE_ACCESS_WRITE_ONLY:
             {
                 iAttr = O_WRONLY;
                 break;
             }
-    
+
             case FILE_ACCESS_READ_WRITE:
             {
-				RIL_LOG_INFO("--- FILE_ACCESS_READ_WRITE --- Pranav\r\n ");
+                RIL_LOG_INFO("--- FILE_ACCESS_READ_WRITE --- Pranav\r\n ");
                 //iAttr = O_RDWR;
-				iAttr = CLOCAL | O_NONBLOCK | O_RDWR;		// Pranav
+                iAttr = CLOCAL | O_NONBLOCK | O_RDWR;       // Pranav
                 break;
             }
-    
+
             default:
             {
                 RIL_LOG_CRITICAL("CFile::Open() : ERROR : Invalid access flags given: 0x%X\r\n", dwAccessFlags);
                 goto Error;
             }
         }
-    
+
         // Only open if file already exists
         if (FILE_OPEN_EXIST & dwOpenFlags)
         {
@@ -143,34 +143,34 @@ BOOL CFile::Open(   const char * pszFileName,
                 goto Error;
             }
         }
-    
+
         if (FILE_OPEN_NON_BLOCK & dwOpenFlags)
         {
             iAttr |= O_NONBLOCK;
         }
-    
+
         if (FILE_OPEN_APPEND & dwOpenFlags)
         {
             iAttr |= O_APPEND;
         }
-    
+
         if (FILE_OPEN_CREATE & dwOpenFlags)
         {
             iAttr |= O_CREAT;
         }
-    
+
         if (FILE_OPEN_TRUNCATE & dwOpenFlags)
         {
             iAttr |= O_TRUNC;
         }
-    
+
         if (FILE_OPEN_EXCL & dwOpenFlags)
         {
             iAttr |= O_EXCL;
         }
-    
-        m_file = open(pszFileName, iAttr | CLOCAL | O_NONBLOCK);		// Pranav, check if we need these changes
-    
+
+        m_file = open(pszFileName, iAttr | CLOCAL | O_NONBLOCK);        // Pranav, check if we need these changes
+
         if (m_file < 0)
         {
             RIL_LOG_CRITICAL("CFile::Open() : ERROR : open failed, m_file=[0x%08x], [%d]\r\n", m_file, m_file);
@@ -180,7 +180,7 @@ BOOL CFile::Open(   const char * pszFileName,
         {
             RIL_LOG_CRITICAL("**********CFile::Open() : m_file=[%d]\r\n", m_file);
         }
-    
+
         {
             termios terminalParameters;
             int err = tcgetattr(m_file, &terminalParameters);
@@ -190,7 +190,7 @@ BOOL CFile::Open(   const char * pszFileName,
                 tcsetattr(m_file, TCSANOW, &terminalParameters);
             }
         }
-    
+
         m_fInitialized = TRUE;
     }
 
