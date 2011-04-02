@@ -1547,7 +1547,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.2 for Android 2.3 (Build Mar 25/2011)";
+    return "Intrinsyc Rapid-RIL M5.3 for Android 2.3 (Build Mar 31/2011)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};
@@ -1647,21 +1647,9 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     g_bIsTriggerRadioError = TRUE;
 
     //  Get FD to SPI.
-    int fd_IFX0 = -1;
     int ret = 0;
-    int ldisc = 0;
 
     UINT32 dwSleep = 5000;
-
-
-#define SPIFILE "/dev/ttyIFX0"
-
-    fd_IFX0 = open(SPIFILE, O_RDONLY);
-    if (fd_IFX0 < 0)
-    {
-        RIL_LOG_CRITICAL("TriggerRadioError(): unable to open the file: %s, error: %s", SPIFILE, strerror(errno));
-        goto Error;
-    }
 
     //  Clear data connection
     //  Tell RRIL no more data connection
@@ -1715,38 +1703,10 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     //  Detatch the STMD
     RIL_LOG_INFO( "TriggerRadioError() - Detach MUX ld from spi tty ()\r\n" );
 
-    ldisc = 0;
-    if (ioctl(fd_IFX0, TIOCSETD, &ldisc) < 0)
-    {
-        RIL_LOG_CRITICAL("TriggerRadioError() - ERROR Detach MUX TIOCSETD\r\n");
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("TriggerRadioError() - Detach MUX TIOCSETD OK\r\n");
-    }
-    if (ioctl(fd_IFX0, TIOCGETD, &ldisc) < 0)
-    {
-        RIL_LOG_CRITICAL("TriggerRadioError() - ERROR Detach MUX TIOCGETD\r\n");
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("TriggerRadioError() - Detach MUX TIOCGETD OK\r\n");
-    }
-    RIL_LOG_INFO( "TriggerRadioError() - line disc: %d\r\n", ldisc );
-
     dwSleep = 500;
     RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  check ports are gone\r\n", dwSleep);
     Sleep(dwSleep);
     RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
-
-
-    if (fd_IFX0 >= 0)
-    {
-        RIL_LOG_INFO("TriggerRadioError() - Closing FD_IFX0\r\n");
-        close(fd_IFX0);
-        fd_IFX0 = -1;
-    }
-
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1808,12 +1768,6 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
 
 
 Error:
-    if (fd_IFX0 >= 0)
-    {
-        close(fd_IFX0);
-        fd_IFX0 = -1;
-    }
-
     g_bIsTriggerRadioError = FALSE;
 
     RIL_LOG_CRITICAL("*****************************************************************\r\n");

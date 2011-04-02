@@ -505,7 +505,7 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rsz
 
         // Calculate PDU length + NULL byte
         uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(g_szNewLine) + 1;
-        RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATI() - Calculated PDU String length: %u chars.\r\n", uiLength);
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
     pszProactiveCmd = (char*)malloc(sizeof(char) * uiLength);
@@ -518,14 +518,14 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rsz
     // Parse <"hex_string">
     if (!ExtractQuotedString(rszPointer, pszProactiveCmd, uiLength, rszPointer))
     {
-        RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATI() - ERROR: Could not parse hex String.\r\n");
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - ERROR: Could not parse hex String.\r\n");
         goto Error;
     }
 
     // Ensure NULL termination
     pszProactiveCmd[uiLength] = '\0';
 
-    RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATI() - Hex String: \"%s\".\r\n", pszProactiveCmd);
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Hex String: \"%s\".\r\n", pszProactiveCmd);
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_STK_PROACTIVE_COMMAND);
@@ -576,7 +576,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rsz
 
         // Calculate PDU length + NULL byte
         uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(g_szNewLine) + 1;
-        RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATN() - Calculated PDU String length: %u chars.\r\n", uiLength);
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
     pszProactiveCmd = (char*)malloc(sizeof(char) * uiLength);
@@ -589,14 +589,14 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rsz
     // Parse <"hex_string">
     if (!ExtractQuotedString(rszPointer, pszProactiveCmd, uiLength, rszPointer))
     {
-        RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATN() - ERROR: Could not parse hex String.\r\n");
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - ERROR: Could not parse hex String.\r\n");
         goto Error;
     }
 
     // Ensure NULL termination
     pszProactiveCmd[uiLength] = '\0';
 
-    RIL_LOG_INFO("CSilo_SMS::ParseIndicationSATN() - Hex String: \"%s\".\r\n", pszProactiveCmd);
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Hex String: \"%s\".\r\n", pszProactiveCmd);
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);

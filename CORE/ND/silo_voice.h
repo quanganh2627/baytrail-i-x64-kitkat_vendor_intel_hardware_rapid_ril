@@ -81,6 +81,8 @@ protected:
     virtual BOOL    ParseCallMeter(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseCallProgressInformation(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseConnLineIdPresentation(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseConnLineIdRestriction(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseDISCONNECT(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseIndicatorEvent(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseXCALLSTAT(CResponse* const pResponse, const BYTE*& rszPointer);

@@ -52,7 +52,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <linux/route.h>
-#include <linux/if_ether.h>   // Pranav
+#include <linux/if_ether.h> // Pranav
 
 extern "C" char *hex_to_stk_at(const char *at);
 
@@ -437,7 +437,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     fd = pDataChannel->GetFD();
     if (fd >= 0)
     {
-        ret = ioctl( fd, GSMIOC_ENABLE_NET, &netconfig );    // Enable data channel
+        ret = ioctl( fd, GSMIOC_ENABLE_NET, &netconfig );       // Enable data channel
     }
     else
     {

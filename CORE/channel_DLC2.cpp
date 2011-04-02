@@ -31,7 +31,7 @@ extern BYTE* g_szDLC2Port;
 extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
-INITSTRING_DATA DLC2BasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+XRAT=1,2|+CTZU=1|+CTZR=1|+XREG=1|+CREG=2|+CGREG=2|+CGEREP=1,0", 0 };
+INITSTRING_DATA DLC2BasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+CTZU=1|+CTZR=1|+XREG=1|+CREG=2|+CGREG=2|+CGEREP=1,0", 0 };
 INITSTRING_DATA DLC2UnlockInitString  = { "", 0 };
 INITSTRING_DATA DLC2PowerOnInitString = { "", 0 };
 INITSTRING_DATA DLC2ReadyInitString   = { "", 0 };
@@ -56,12 +56,12 @@ BOOL CChannel_DLC2::OpenPort()
 {
     BOOL bRetVal = FALSE;
 
-    RIL_LOG_INFO("CChannel_DLC2::OpenPort() - Opening COM Port:%s...\r\n", g_szDLC2Port);
+    RIL_LOG_INFO("CChannel_DLC2::OpenPort() - Opening COM Port: %s...\r\n", g_szDLC2Port);
     RIL_LOG_INFO("CChannel_DLC2::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
 
     bRetVal = m_Port.Open(g_szDLC2Port, g_bIsSocket);
 
-    RIL_LOG_INFO("CChannel_DLC2::OpenPort() - Opening COM Port:%s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
+    RIL_LOG_INFO("CChannel_DLC2::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
 
     return bRetVal;
 }

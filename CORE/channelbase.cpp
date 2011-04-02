@@ -112,10 +112,10 @@ BOOL CChannelBase::InitChannel()
 
     m_pBlockReadThreadEvent = new CEvent(NULL, TRUE, TRUE);
     if (!m_pBlockReadThreadEvent)
-	{
+    {
         RIL_LOG_CRITICAL("CChannelBase::InitChannel() - ERROR: chnl=[%d] Failed to create block read thread event!\r\n", m_uiRilChannel);
         goto Done;
-	}
+    }
 
     if (RIL_CHANNEL_MAX <= m_uiRilChannel)
     {
@@ -628,7 +628,7 @@ UINT32 CChannelBase::ResponseThread()
             RIL_LOG_CRITICAL("CChannel::ResponseThread() - ERROR: chnl=[%d] uiReadError > = 3! Trigger radio error!\r\n", m_uiRilChannel);
             Sleep(100);
             //TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
-			TriggerRadioError(eRadioError_ForceShutdown, __LINE__, __FILE__);
+            TriggerRadioError(eRadioError_ForceShutdown, __LINE__, __FILE__);
 
 
 

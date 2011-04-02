@@ -58,6 +58,8 @@ CSilo_Voice::CSilo_Voice(CChannel *pChannel)
         { "+CSSI: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseIntermediateSSInfo },
         { "+CCCM: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallMeter },
         { "+CUSD: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseUSSDInfo },
+        { "+COLP: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseConnLineIdPresentation },
+        { "+COLR: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseConnLineIdRestriction },
         { "+XCIEV: "      , (PFN_ATRSP_PARSE)/*&CSilo_Voice::ParseIndicatorEvent*/ &CSilo_Voice::ParseUnrecognized },
         { "+XCIEV:"      , (PFN_ATRSP_PARSE)/*&CSilo_Voice::ParseIndicatorEvent*/ &CSilo_Voice::ParseUnrecognized },
         { "+XCALLINFO: "  , (PFN_ATRSP_PARSE)/*&CSilo_Voice::ParseCallProgressInformation*/ &CSilo_Voice::ParseUnrecognized },
@@ -735,6 +737,187 @@ Error:
     szUcs2 = NULL;
 
     RIL_LOG_VERBOSE("CSilo_Voice::ParseUSSDInfo() - Exit\r\n");
+    return fRet;
+}
+
+//
+//
+BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCOLPInfo()nTypeCode - Enter\r\n");
+    BOOL fRet = FALSE;
+    const BYTE* szDummy;
+    UINT32 uiStatusPresentation = 0;
+    UINT32 uiStatusService = 0;
+    P_ND_USSD_STATUS pUssdStatus = NULL;
+    char* szDataString = NULL;
+    int nTypeCode = 0; // USSD Notify
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCOLPInfo() : ERROR : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    // Look for a "<postfix>" to make sure we got the whole message
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    {
+        // This isn't a complete USSD notification -- no need to parse it
+        RIL_LOG_INFO("CSilo_Voice::ParseCOLPInfo() : ERROR : Couldn't find response end\r\n");
+        goto Error;
+    }
+
+    // Extract "<n>"
+    if (!ExtractUInt(rszPointer, uiStatusPresentation, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCOLPInfo() : ERROR : Couldn't extract presentation status\r\n");
+        goto Error;
+    }
+
+    // Extract "<m>"
+    if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
+         (!ExtractUInt(rszPointer, uiStatusService, rszPointer)))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseCOLPInfo() - ERROR: Couldn't extract service status\r\n");
+        goto Error;
+    }
+
+    if (!uiStatusService)
+    {
+        asprintf(&szDataString, "%s", "Connected Line ID Presentation Service is Disabled");
+    }
+    else if (uiStatusService == 1)
+    {
+        asprintf(&szDataString, "%s", "Connected Line ID Presentation Service is Enabled");
+    }
+    else if (uiStatusService == 2)
+    {
+        asprintf(&szDataString, "%s", "Connected Line ID Presentation Service Status is Unknown");
+    }
+
+    // allocate memory for message string
+    pUssdStatus = (P_ND_USSD_STATUS) malloc(sizeof(S_ND_USSD_STATUS));
+    if (!pUssdStatus)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCOLPInfo() - ERROR: malloc failed\r\n");
+        goto Error;
+    }
+    memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
+    snprintf(pUssdStatus->szType, 2, "%d", (int) nTypeCode);
+    (void)CopyStringNullTerminate(pUssdStatus->szMessage, szDataString , MAX_BUFFER_SIZE * 2);
+
+    // update status pointers
+    pUssdStatus->sStatusPointers.pszType    = pUssdStatus->szType;
+    pUssdStatus->sStatusPointers.pszMessage = pUssdStatus->szMessage;
+
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCOLPInfo() - %s\r\n", pUssdStatus->szMessage);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_ON_USSD);
+
+    if (!pResponse->SetData((void*)pUssdStatus, 2 * sizeof(BYTE *), FALSE))
+    {
+        goto Error;
+    }
+
+    fRet = TRUE;
+
+Error:
+    if (!fRet)
+    {
+        free(pUssdStatus);
+        pUssdStatus = NULL;
+    }
+
+    free(szDataString);
+
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCOLPInfo() - Exit\r\n");
+    return fRet;
+}
+
+//
+//
+BOOL CSilo_Voice::ParseConnLineIdRestriction(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCOLRInfo() - Enter\r\n");
+    BOOL fRet = FALSE;
+    const BYTE* szDummy;
+    UINT32 uiStatus = 0;
+    P_ND_USSD_STATUS pUssdStatus = NULL;
+    char* szDataString = NULL;
+    int nTypeCode = 0; // USSD Notify
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCOLRInfo() : ERROR : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    // Look for a "<postfix>" to make sure we got the whole message
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    {
+        // This isn't a complete USSD notification -- no need to parse it
+        RIL_LOG_INFO("CSilo_Voice::ParseCOLRInfo() : ERROR : Couldn't find response end\r\n");
+        goto Error;
+    }
+
+    // Extract "<status>"
+    if (!ExtractUInt(rszPointer, uiStatus, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCOLRInfo() : ERROR : Couldn't extract status\r\n");
+        goto Error;
+    }
+
+    if (!uiStatus)
+    {
+        asprintf(&szDataString, "%s", "Connected Line ID Restriction Service is Disabled");
+    }
+    else if (uiStatus == 1)
+    {
+         asprintf(&szDataString, "%s", "Connected Line ID Restriction Service is Enabled");
+    }
+    else if (uiStatus == 2)
+    {
+        asprintf(&szDataString, "%s", "Connected Line ID Restriction Service Status is Unknown");
+    }
+
+    // allocate memory for message string
+    pUssdStatus = (P_ND_USSD_STATUS) malloc(sizeof(S_ND_USSD_STATUS));
+    if (!pUssdStatus)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCOLRInfo() - ERROR: malloc failed\r\n");
+        goto Error;
+    }
+    memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
+    snprintf(pUssdStatus->szType, 2, "%d", (int) nTypeCode);
+    (void)CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE * 2);
+
+    // update status pointers
+    pUssdStatus->sStatusPointers.pszType    = pUssdStatus->szType;
+    pUssdStatus->sStatusPointers.pszMessage = pUssdStatus->szMessage;
+
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCOLRInfo() - %s\r\n", pUssdStatus->szMessage);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_ON_USSD);
+
+    if (!pResponse->SetData((void*)pUssdStatus, 2 * sizeof(BYTE *), FALSE))
+    {
+        goto Error;
+    }
+
+    fRet = TRUE;
+
+Error:
+    if (!fRet)
+    {
+        free(pUssdStatus);
+        pUssdStatus = NULL;
+    }
+
+    free(szDataString);
+
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCOLRInfo() - Exit\r\n");
     return fRet;
 }
 

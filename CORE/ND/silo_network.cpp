@@ -141,17 +141,6 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
         // This isn't a complete registration notification -- no need to parse it
         goto Error;
     }
-    else
-    {
-        //  Check to see if we also have a complete CTZDST notification
-        if (!FindAndSkipString(szDummy, "+CTZDST: ", szDummy) ||
-            !FindAndSkipRspEnd(szDummy, g_szNewLine, szDummy))
-        {
-            //  We don't have a complete CTZDST.
-            RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - INFO: Did not get CTZDST notification\r\n");
-            goto Error;
-        }
-    }
 
     //  First parse the <tz>,
     if (!ExtractUnquotedString(rszPointer, ",", szTimeZone, TIME_ZONE_SIZE, rszPointer) ||
@@ -194,19 +183,16 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
         goto Error;
     }
 
-    if (!SkipRspEnd(rszPointer, g_szNewLine, rszPointer) ||
-        !FindAndSkipString(rszPointer, "+CTZDST: ", rszPointer))
+    // if optional CTZDST exists, parse it
+    if (FindAndSkipString(rszPointer, "+CTZDST: ", rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to skip +CTZDST:!\r\n");
-        goto Error;
-    }
-
-    //  Parse <dst>.
-    szDummy = rszPointer;
-    if(!ExtractUInt(rszPointer, uiDST, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to parse dst!\r\n");
-        goto Error;
+        //  Parse <dst>
+        szDummy = rszPointer;
+        if(!ExtractUInt(rszPointer, uiDST, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to parse dst!\r\n");
+            goto Error;
+        }        
     }
 
     // Fill in broken-down time struct with local time values
@@ -218,8 +204,6 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     lt.tm_mon = uiMonth - 1;    // num months since Jan, range 0 to 11
     lt.tm_year = uiYear + 100;  // num years since 1900
     //lt.tm_isdst = uiDST;      // DO NOT SET THIS to 1, it will cause error in mktime().
-
-
 
     // Convert broken-down time -> calendar time (secs)
     ctime_secs = mktime(&lt);
