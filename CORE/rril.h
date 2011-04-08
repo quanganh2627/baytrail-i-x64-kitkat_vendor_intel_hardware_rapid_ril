@@ -58,6 +58,7 @@ typedef long                RIL_RESULT_CODE;
 //
 #define MAX_BUFFER_SIZE     (512)
 #define MAX_MSG_BUFFER_SIZE (512)
+#define MAX_PROP_VALUE      (81)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Registration States

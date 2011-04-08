@@ -8,6 +8,7 @@
 // Description:
 //    Defines the CChannel_ATCmd class, which is used to
 //    facilitate the use of multiple command channels.
+//    Call control commands, misc commands
 //
 // Author:  Dennis Peter
 // Created: 2007-07-30

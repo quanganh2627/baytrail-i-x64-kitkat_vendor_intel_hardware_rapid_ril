@@ -8,6 +8,7 @@
 // Description:
 //    Defines the CChannel_DLC2 class, which is used to
 //    facilitate the use of multiple AT channels.
+//    GPRS/UMTS management (GPRS attach/detach), network commands
 //
 // Author:  Dennis Peter
 // Created: 2011-02-08

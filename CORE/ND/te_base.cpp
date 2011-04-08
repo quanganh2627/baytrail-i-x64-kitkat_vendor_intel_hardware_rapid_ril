@@ -1192,17 +1192,17 @@ RIL_RESULT_CODE CTEBase::ParseGetImsi(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    szSerialNumber = (char*)malloc(MAX_BUFFER_SIZE);
+    szSerialNumber = (char*)malloc(MAX_PROP_VALUE);
     if (NULL == szSerialNumber)
     {
         RIL_LOG_CRITICAL("ParseGetImsi() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
         goto Error;
     }
-    memset(szSerialNumber, 0x00, MAX_BUFFER_SIZE);
+    memset(szSerialNumber, 0x00, MAX_PROP_VALUE);
 
     // Parse "<prefix><serial_number><postfix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
-        !ExtractUnquotedString(pszRsp, g_cTerminator, szSerialNumber, MAX_BUFFER_SIZE, pszRsp) ||
+        !ExtractUnquotedString(pszRsp, g_cTerminator, szSerialNumber, MAX_PROP_VALUE, pszRsp) ||
         !SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("ParseGetImsi() - ERROR: Could not extract the IMSI string.\r\n");
@@ -3705,11 +3705,11 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     const BYTE* szRsp = rRspData.szResponse;
-    char * szSerialNumber = (char*)malloc(MAX_BUFFER_SIZE);
+    char * szIMEI = (char*)malloc(MAX_PROP_VALUE);
 
-    if (NULL == szSerialNumber)
+    if (NULL == szIMEI)
     {
-        RIL_LOG_CRITICAL("ParseGetImei() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
+        RIL_LOG_CRITICAL("ParseGetImei() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
         goto Error;
     }
 
@@ -3719,28 +3719,23 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!ExtractUnquotedString(szRsp, g_cTerminator, szSerialNumber, MAX_BUFFER_SIZE, szRsp))
+    if (!ExtractUnquotedString(szRsp, g_cTerminator, szIMEI, MAX_PROP_VALUE, szRsp))
     {
         RIL_LOG_CRITICAL("ParseGetImei() - ERROR: Could not find unquoted string\r\n");
         goto Error;
     }
-
-    if (!SkipRspEnd(szRsp, g_szNewLine, szRsp))
-    {
-        RIL_LOG_CRITICAL("ParseGetImei() - ERROR: Could not find response end\r\n");
-        goto Error;
-    }
+    RIL_LOG_INFO("ParseGetImei() - szIMEI=[%s]\r\n", szIMEI);
 
     res = RRIL_RESULT_OK;
 
-    rRspData.pData   = (void*)szSerialNumber;
+    rRspData.pData   = (void*)szIMEI;
     rRspData.uiDataSize  = sizeof(char*);
 
 Error:
     if (RRIL_RESULT_OK != res)
     {
-        free(szSerialNumber);
-        szSerialNumber = NULL;
+        free(szIMEI);
+        szIMEI = NULL;
     }
 
     RIL_LOG_VERBOSE("ParseGetImei() - Exit\r\n");
@@ -3755,7 +3750,7 @@ RIL_RESULT_CODE CTEBase::CoreGetImeisv(REQUEST_DATA & rReqData, void * pData, UI
     RIL_LOG_VERBOSE("CoreGetImeisv() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGSN\r"))
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGSN;+CGMR\r"))
     {
         res = RRIL_RESULT_OK;
     }
@@ -3771,42 +3766,76 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     const BYTE* szRsp = rRspData.szResponse;
-    char * szSerialNumber = (char*)malloc(MAX_BUFFER_SIZE);
+    char * szIMEISV = (char*)malloc(MAX_PROP_VALUE);
+    char szIMEI[MAX_BUFFER_SIZE] = {0};
+    char szSV[MAX_BUFFER_SIZE] = {0};
+    char szSVDigits[MAX_BUFFER_SIZE] = {0};
+    int nIndex = 0;
 
-    if (NULL == szSerialNumber)
+    if (NULL == szIMEISV)
     {
-        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
+        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
+        goto Error;
+    }
+    memset(szIMEISV, 0, MAX_PROP_VALUE);
+
+    //  Skip over <prefix> if there.
+    SkipRspStart(szRsp, g_szNewLine, szRsp);
+
+    //  Skip spaces (if any)
+    SkipSpaces(szRsp, szRsp);
+
+    //  Grab IMEI into szIMEI
+    if (!ExtractUnquotedString(szRsp, g_cTerminator, szIMEI, MAX_BUFFER_SIZE, szRsp))
+    {
+        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not find unquoted string szIMEI\r\n");
         goto Error;
     }
 
-    if (!SkipRspStart(szRsp, g_szNewLine, szRsp))
+    //  Skip over <postfix>
+    SkipRspEnd(szRsp, g_szNewLine, szRsp);
+
+    //  Skip over <prefix>
+    SkipRspStart(szRsp, g_szNewLine, szRsp);
+
+    //  Skip spaces (if any)
+    SkipSpaces(szRsp, szRsp);
+
+    //  Grab SV into szSV
+    if (!ExtractUnquotedString(szRsp, g_cTerminator, szSV, MAX_BUFFER_SIZE, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not find response start\r\n");
+        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not find unquoted string szSV\r\n");
         goto Error;
     }
 
-    if (!ExtractUnquotedString(szRsp, g_cTerminator, szSerialNumber, MAX_BUFFER_SIZE, szRsp))
+    //  Now only copy the digits into szSVDigits
+    for (UINT32 i=0; i<strlen(szSV) && i<MAX_BUFFER_SIZE; i++)
     {
-        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not find unquoted string\r\n");
-        goto Error;
+        if ( ('0' <= szSV[i]) && ('9' >= szSV[i]) )
+        {
+            szSVDigits[nIndex] = szSV[i];
+            nIndex++;
+        }
     }
 
-    if (!SkipRspEnd(szRsp, g_szNewLine, szRsp))
+    //  Copy IMEI + 2 digit SV into szIMEISV
+    if (!PrintStringNullTerminate(szIMEISV, MAX_PROP_VALUE, "%s%c%c", szIMEI, szSVDigits[0], szSVDigits[1]))
     {
-        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not find response end\r\n");
+        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not copy string szIMEISV\r\n");
         goto Error;
     }
+    RIL_LOG_INFO("ParseGetImeisv() - szIMEISV=[%s]\r\n", szIMEISV);
 
     res = RRIL_RESULT_OK;
 
-    rRspData.pData   = (void*)szSerialNumber;
+    rRspData.pData   = (void*)szIMEISV;
     rRspData.uiDataSize  = sizeof(char*);
 
 Error:
     if (RRIL_RESULT_OK != res)
     {
-        free(szSerialNumber);
-        szSerialNumber = NULL;
+        free(szIMEISV);
+        szIMEISV = NULL;
     }
 
     RIL_LOG_VERBOSE("ParseGetImeisv() - Exit\r\n");
@@ -4706,7 +4735,7 @@ RIL_RESULT_CODE CTEBase::CoreBasebandVersion(REQUEST_DATA & rReqData, void * pDa
     RIL_LOG_VERBOSE("CoreBasebandVersion() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CGMR\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XGENDATA\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -4722,24 +4751,38 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    char* szModelId = (char*)malloc(MAX_BUFFER_SIZE);
-    if (NULL == szModelId)
+    char szTemp[MAX_BUFFER_SIZE] = {0};
+    char* szBasebandVersion = (char*)malloc(MAX_PROP_VALUE);
+    if (NULL == szBasebandVersion)
     {
-        RIL_LOG_CRITICAL("ParseBasebandVersion() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
+        RIL_LOG_CRITICAL("ParseBasebandVersion() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
         goto Error;
     }
-    memset(szModelId, 0x00, MAX_BUFFER_SIZE);
+    memset(szBasebandVersion, 0x00, MAX_PROP_VALUE);
 
     // Parse "<prefix><serial_number><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
-        !ExtractUnquotedString(pszRsp, g_cTerminator, szModelId, MAX_BUFFER_SIZE,pszRsp) ||
-        !SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+
+    if (!SkipString(pszRsp, "+XGENDATA: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseBasebandVersion() - ERROR: Could not extract the IMSI string.\r\n");
+        RIL_LOG_CRITICAL("ParseBasebandVersion() - ERROR: Could not find XGENDATA in response!\r\n");
         goto Error;
     }
 
-    rRspData.pData   = (void*)szModelId;
+    SkipString(pszRsp, "\"", pszRsp);
+
+    SkipSpaces(pszRsp, pszRsp);
+
+    if (!ExtractUnquotedString(pszRsp, '\n', szTemp, MAX_BUFFER_SIZE, pszRsp))
+    {
+        RIL_LOG_CRITICAL("ParseBasebandVersion() - ERROR: Could not extract the baseband version string.\r\n");
+        goto Error;
+    }
+
+    PrintStringNullTerminate(szBasebandVersion, MAX_PROP_VALUE, "%s", szTemp);
+    RIL_LOG_INFO("ParseBasebandVersion() - szBasebandVersion=[%s]\r\n", szBasebandVersion);
+
+    rRspData.pData   = (void*)szBasebandVersion;
     rRspData.uiDataSize  = sizeof(char*);
 
     res = RRIL_RESULT_OK;
@@ -4747,8 +4790,8 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA & rRspData)
 Error:
     if (RRIL_RESULT_OK != res)
     {
-        free(szModelId);
-        szModelId = NULL;
+        free(szBasebandVersion);
+        szBasebandVersion = NULL;
     }
 
     RIL_LOG_VERBOSE("ParseBasebandVersion() - Exit\r\n");
@@ -6858,6 +6901,9 @@ RIL_RESULT_CODE CTEBase::CoreReportStkServiceRunning(REQUEST_DATA & rReqData, vo
 
     //  [DP] Let's NO-OP this command.
     rReqData.szCmd1[0] = '\0';
+
+    if (g_RadioState.IsRadioSIMReady())
+        CSystemManager::GetInstance().InitializeSimSTK();
 
     g_fReadyForSTKNotifications = TRUE;
 

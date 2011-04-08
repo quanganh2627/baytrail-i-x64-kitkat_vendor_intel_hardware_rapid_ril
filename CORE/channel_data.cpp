@@ -8,6 +8,7 @@
 // Description:
 //    Provides implementations for helper functions used
 //    to facilitate the use of multiple data channels.
+//    GPRS/UMTS data (1st primary context)
 //
 // Author:  Dennis Peter
 // Created: 2007-09-20
@@ -33,6 +34,7 @@ extern BYTE* g_szDataPort1; // TODO replace this with base port name e.g., /dev/
 extern BOOL  g_bIsSocket;
 
 //  Init commands for this channel.
+//  GPRS/UMTS data (1st primary context)
 INITSTRING_DATA DataBasicInitString = { "E0V1Q0X4|S0=0|+CMEE=1", 0 };
 INITSTRING_DATA DataUnlockInitString = { "", 0 };
 INITSTRING_DATA DataPowerOnInitString = { "", 0 };

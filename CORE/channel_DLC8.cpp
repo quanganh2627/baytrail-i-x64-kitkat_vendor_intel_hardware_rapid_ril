@@ -8,6 +8,7 @@
 // Description:
 //    Provides implementations for helper functions used
 //    to facilitate the use of multiple AT channels.
+//    SIM related functions, SIM toolkit
 //
 // Author:  Dennis Peter
 // Created: 2011-02-08
@@ -31,7 +32,8 @@ extern BYTE* g_szDLC8Port;
 extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
-INITSTRING_DATA DLC8BasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1", 0 };
+//  SIM related functions, SIM toolkit
+INITSTRING_DATA DLC8BasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+XSIMSTATE=1", 0 };
 INITSTRING_DATA DLC8UnlockInitString  = { "", 0 };
 INITSTRING_DATA DLC8PowerOnInitString = { "", 0 };
 INITSTRING_DATA DLC8ReadyInitString   = { "", 0 };

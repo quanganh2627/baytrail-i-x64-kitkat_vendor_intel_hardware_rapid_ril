@@ -3315,7 +3315,7 @@ RIL_RESULT_CODE CTE_INF_N721::ParseQueryTtyMode(RESPONSE_DATA & rRspData)
     }
 
     // Parse prefix
-    if (!FindAndSkipString(szRsp, "CTM/TTY mode: ", szRsp))
+    if (!FindAndSkipString(szRsp, "+XCTMS: ", szRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_N721::ParseQueryTtyMode() - ERROR: Unable to parse \"CTM/TTY mode: \" prefix.!\r\n");
         goto Error;

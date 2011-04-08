@@ -1094,10 +1094,13 @@ void CSystemManager::StartSimInitializationThread()
     // Query STK status
     if (repository.Read(g_szGroupSystemReady, g_szInitializeSimSTK, iVal) && (0 != iVal))
     {
-        RIL_LOG_VERBOSE("StartSimInitializationThread() : Query STK stage\r\n");
-        if (!InitializeSimSTK() || m_fAbortSimInitialization)
+        if (g_fReadyForSTKNotifications)
         {
-            goto Done;
+            RIL_LOG_VERBOSE("StartSimInitializationThread() : Query STK stage\r\n");
+            if (!InitializeSimSTK() || m_fAbortSimInitialization)
+            {
+                goto Done;
+            }
         }
     }
     else
@@ -1392,7 +1395,7 @@ BOOL CSystemManager::InitializeSimSTK()
     CCommand* pCmd = new CCommand(RIL_CHANNEL_DLC8,
                                   NULL,
                                   ND_REQ_ID_NONE,
-                                  "AT+CFUN=6\r");
+                                  "AT+XSATK=1,1\r");
     if (pCmd)
     {
         if (!CCommand::AddCmdToQueue(pCmd))

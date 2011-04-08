@@ -8,6 +8,7 @@
 // Description:
 //    Provides implementations for helper functions used
 //    to facilitate the use of multiple command channels.
+//    Call control commands, misc commands
 //
 // Author:  Dennis Peter
 // Created: 2007-07-30
@@ -28,6 +29,7 @@
 #include "silo_factory.h"
 
 //  Com init strings for this channel.
+//  Call control commands, misc commands
 
 INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|S0=0|+CMEE=1|+XCALLSTAT=1",  0};
 INITSTRING_DATA ATCmdUnlockInitString   = { "+CRC=1|+CR=1", 0 };

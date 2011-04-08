@@ -8,6 +8,7 @@
 // Description:
 //    Defines the CChannel_Data class, which is used to
 //    facilitate the use of multiple data channels.
+//    GPRS/UMTS data (1st primary context)
 //
 // Author:  Dennis Peter
 // Created: 2007-09-20

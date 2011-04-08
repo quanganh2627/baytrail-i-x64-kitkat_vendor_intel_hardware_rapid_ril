@@ -8,6 +8,7 @@
 // Description:
 //    Defines the CChannel_DLC8 class, which is used to
 //    facilitate the use of multiple AT channels.
+//    SIM related functions, SIM toolkit
 //
 // Author:  Dennis Peter
 // Created: 2011-02-08

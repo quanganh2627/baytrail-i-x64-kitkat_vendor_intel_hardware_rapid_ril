@@ -72,6 +72,10 @@ protected:
     virtual BOOL    ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rszPointer);
 #endif
+    virtual BOOL    ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer);
+
+    //  For XSIM state (initialized to -1)
+    int m_nXSIMStatePrev;
 
 private:
     // helper functions

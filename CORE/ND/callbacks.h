@@ -65,4 +65,9 @@ void triggerUSSDNotification(void *param);
 //
 void triggerDataCallListChanged(void *param);
 
+//
+// Callback to trigger re-init for SIM inserted
+//
+void triggerSIMInserted(void *param);
+
 #endif

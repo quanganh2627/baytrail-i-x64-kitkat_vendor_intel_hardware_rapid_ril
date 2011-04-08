@@ -174,6 +174,7 @@ BOOL CFile::Open(   const char * pszFileName,
         if (m_file < 0)
         {
             RIL_LOG_CRITICAL("CFile::Open() : ERROR : open failed, m_file=[0x%08x], [%d]\r\n", m_file, m_file);
+            RIL_LOG_CRITICAL("CFile::Open() : ERROR : errno=[%d],[%s]\r\n", errno, strerror(errno));
             goto Error;
         }
         else

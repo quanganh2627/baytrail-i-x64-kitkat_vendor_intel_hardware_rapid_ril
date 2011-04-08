@@ -109,7 +109,7 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     const BYTE* szDummy;
     const BYTE* szTemp;
     BOOL fRet = FALSE;
-    UINT32 uiDST;
+    //UINT32 uiDST;
     UINT32 uiHour, uiMins, uiSecs;
     UINT32 uiMonth, uiDay, uiYear;
     time_t ctime_secs;
@@ -181,18 +181,6 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to extract hh:mm:ss!\r\n");
         goto Error;
-    }
-
-    // if optional CTZDST exists, parse it
-    if (FindAndSkipString(rszPointer, "+CTZDST: ", rszPointer))
-    {
-        //  Parse <dst>
-        szDummy = rszPointer;
-        if(!ExtractUInt(rszPointer, uiDST, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to parse dst!\r\n");
-            goto Error;
-        }        
     }
 
     // Fill in broken-down time struct with local time values

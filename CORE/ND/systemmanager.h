@@ -91,6 +91,8 @@ public:
     void            CloseChannelPorts();
     BOOL            OpenChannelPortsOnly();
 
+    BOOL            InitializeSimSTK();
+
 private:
     // Framework Init Functions
     BOOL            CreateQueues();
@@ -118,7 +120,6 @@ private:
 
     // SIM initialization helper functions (called by component init functions)
     BOOL            InitializeSimSms();
-    BOOL            InitializeSimSTK();
     BOOL            InitializeSimPhonebook();
     BOOL            QuerySimPin(BOOL& bSimLockEnabled);
     static void*    StartSimInitializationThreadWrapper(void *pArg);

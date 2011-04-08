@@ -1,12 +1,350 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+Apr. 7, 2011 (M5.4 release for Medfield CDK)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
+Android version 2.3 (Gingerbread). 
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was tested with Intel's Gingerbread ABSP from the Intel lab
+
+KBoot: kboot.mfld_cdk.2011.0214.2212.bin
+Firmware: V176.009/B0.09
+Modem Firmware: *OCEAN_6260_SMB_REV30_1105.01_B3*
+Modem: Rev2
+
+
+Release Notes for M5.4
+======================
+What's new:
+
+1. Implement 'Hot Swappable SIM card'.  RIL uses the +XSIM notification to
+   determine if the SIM card has been removed.  RIL also uses the +XSIM
+   notification to determine if a SIM card has been inserted.  Upon insertion
+   RIL is re-initialized.
+
+2. Fix parsing for TTY responses ("CTM/TTY mode:" changed to "+XCTMS: ").
+
+3. Fix response for IMEI, IMEISV, Baseband Version so it displays correct values.
+   Also limit response to 82 characters maximum (Android only supports 82 chars
+   for these otherwise phone process will crash)
+   IMEI:  AT+CGSN
+   IMSISV: AT+CGSN;+CGMR  (append digits of CGMR response to IMEI string)
+   Baseband Version: AT+XGENDATA  (first line of response)
+
+4. Apply 2 Sim Toolkit patches
+   -Use XSATK instead of CFUN=6 to start SIMTK.
+   -Check status code for STK session end.
+
+5. NITZ: No need to parse +CTZDST notification in +CTZV handler as the framework
+   will handle that automatically.  Note we do not need to use CTZDST value as
+   notification from modem includes DST offset.
+
+6. When RIL attempts to open /dev/gsmttyX port and it fails, display the errno
+   code in the radio logcat as well as the error string.
+   (e.g. errno=51, Level 2 halted)
+
+7. Updated property_service.c with Jack's latest changes.
+   (added ifxreset to whitelist)
+   Also updated init.mfld_cdk.rc and core.mk.
+   This will make integration easier.
+
+8. Changed filetype permissions on RapidRIL files so all source files have
+   non-executable permissions (Jack's suggestion).
+
+
+Known ABSP/modem Issues:
+=========================
+- Does not camp on a network on every boot.  May require several power cycles.  This
+  is because RIL cannot open the /dev/gsmttyX ports.  The open() call fails with
+  errorno = 51 (Level 2 halted).
+
+- While browsing, sometimes, a web page does not finish loading.  After a few minutes,
+  voice/data disconnects.
+
+- No audio from the speaker/mic during a call and when there's an incoming call (ring).
+  No audio as well from a headset plugged into the speaker jack (DTMF tones and the
+  incoming ringer only).
+
+- RIL cannot connect to /dev/gsmttyX ports even though STMD has started and the ports
+  exist.  The errorno is 51 (level 2 halted).  A possible fix which works some of the
+  time is in adb shell:
+  # stop stmd &
+  # ifxreset &
+  # start stmd &
+
+
+
+Testing results:
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS--not consistent for every boot due to SPI/MUX initialization problem.
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS (conditional)
+   NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
+         technologies.  This causes RIL to re-init because it assumes someone
+         inserted a new SIM card (part of hot swappable SIM feature).  The
+         '+XSIM: 0' notification should not be sent because the SIM was never
+         removed from the device.  A side effect of this is that the modem
+         sometimes does not register with a network again.
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS (conditional)
+   NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
+         technologies.  This causes RIL to re-init because it assumes someone
+         inserted a new SIM card (part of hot swappable SIM feature).  The
+         '+XSIM: 0' notification should not be sent because the SIM was never
+         removed from the device.  A side effect of this is that the modem
+         sometimes does not register with a network again.
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns +CME ERROR: 100.
+    NOTE: Infineon says this is by design.
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+21. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+22. Send 2 multipart SMSs to self (more than 160 characters)
+    FAIL (message sent in UI, but only partially received from modem)
+
+23. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+23. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+24. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+25. Send 2 MMSs to self.  (requires setting up MMS APN)
+    PASS
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Mar. 31, 2011 (M5.3 release for Medfield CDK)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
+Android version 2.3 (Gingerbread). 
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was tested with Intel's Gingerbread ABSP from the Intel lab
+
+KBoot: kboot.mfld_cdk.2011.0214.2212.bin
+Firmware: V176.009/B0.09
+Modem Firmware: *OCEAN_6260_SMB_REV30_1106.01_B3*
+Modem: Rev2
+
+
+Release Notes for M5.3
+======================
+What's new:
+
+1. Added fix to support COLR and COLP USSD notifications.  Normally, unrecognized MMI
+   commands would generate +CUSD responses from the modem (from AT+CUSD command),
+   however, when querying COLR and COLP (*#77# and *#76# from the dialer), +COLR and
+   +COLP responses are returned.  These responses weren't handled previously.
+
+2. Removed unecessary code in the TriggerRadioError() function for reverting back to
+   standard line discipline before stopping STMD.  The line discipline is already
+   removed when STMD is stopped.
+
+3. Removed XRAT=1,2 from the init string for DCL2.  The modem default is XRAT=1,2 so
+   setting this on init isn't necessary.
+
+4. Added fix for correctly displaying the time when +CTZDST is not part of the NITZ response.
+   Note: This has NOT been tested.
+
+5. Removed the sending of AT+XDRV from CoreDial() and CoreAnswer() in te_base.cpp.
+   This was existing code from the initial Medfield ABSP and isn't necessary anymore.
+
+6. Removed offending whitespace from all RIL code--trailing spaces, tabs.
+
+
+Known ABSP/modem Issues:
+=========================
+- Does not camp on a network on every boot.  May require several power cycles.  This
+  is because RIL cannot open the /dev/gsmttyX ports.  The open() call fails with
+  errorno = 51 (Level 2 halted).
+
+- While browsing, sometimes, a web page does not finish loading.  After a few minutes,
+  voice/data disconnects.
+
+- No audio from the speaker/mic during a call and when there's an incoming call (ring).
+  No audio as well from a headset plugged into the speaker jack (DTMF tones and the
+  incoming ringer only).
+
+- RIL cannot connect to /dev/gsmttyX ports even though STMD has started and the ports
+  exist.  The errorno is 51 (level 2 halted).  A possible fix which works some of the
+  time is in adb shell:
+  # stop stmd &
+  # ifxreset &
+  # start stmd &
+
+
+Testing results:
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS--not consistent for every boot.
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G -> 3G only.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns +CME ERROR: 100.
+    NOTE: Infineon says this is by design.
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+21. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+22. Send 2 multipart SMSs to self (more than 160 characters)
+    FAIL
+
+23. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+24. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+25. Send 2 MMSs to self.  (requires setting up MMS APN)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 Mar. 25, 2011 (M5.2 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
-Android version 2.3 (Gingerbread).  
+Android version 2.3 (Gingerbread). 
 
-NOTES: 
+NOTES:
 - This release has been tested with basic sanity tests.
 - This release was tested with Intel's Gingerbread ABSP from the Intel lab
 
@@ -22,7 +360,7 @@ What's new:
 
 1. Bug 519 - Activate call waiting bug using MMI codes
    Fixed.  Now can use *43# to activate call waiting.
-  
+
 2. Add "DisableModemReset" in repository.txt under group "Modem".
    "0" = Use IFX_MODEM_RESET IOCTL to reset modem when calling TriggerRadioError().
          RIL attempts to connect to modem ports and re-init gracefully.
@@ -48,7 +386,7 @@ What's new:
 8. When screen is off, RIL was turning network updates off to conserve power.  This
    may cause the UI to display a wrong network state when screen is back on again.
    RIL now keeps network updates enabled.
-   
+
 9. Fix USSD notifications.  There was a <cr> missing from the end of the +CUSD
    response from the modem.  This was causing parsing issues and causing USSD not to
    work.  This is now fixed (as long as response is +CUSD to the AT+CUSD request).
@@ -174,9 +512,9 @@ Testing results:
 Mar. 18, 2011 (M5.1 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
-Android version 2.3 (Gingerbread).  
+Android version 2.3 (Gingerbread). 
 
-NOTES: 
+NOTES:
 - This release has been tested with basic sanity tests.
 - This release was tested with Intel's Gingerbread ABSP from the Intel lab
 
@@ -202,7 +540,7 @@ What's new:
 3. Added code to call radio reset when attempting to open ports after 5 failed retries.
    This code is in the RIL but commented out (Sri request).  Will investigate for
    future drop.
-   
+
 Known ABSP/modem Issues:
 =========================
 - Does not camp on a network on every boot.  May require several power cycles.
@@ -316,9 +654,9 @@ Testing results:
 Mar. 11, 2011 (M5.0 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
-Android version 2.3 (Gingerbread).  
+Android version 2.3 (Gingerbread). 
 
-NOTES: 
+NOTES:
 - This release has been tested with basic sanity tests.
 - This release was tested with Intel's Gingerbread ABSP and is based on the
   M3.5 release for the PR1 device (Moorestown).
@@ -338,9 +676,9 @@ What's new:
 
 2. Added the UseUSIMAddress flag to repository.txt to use a different address when retrieving
    phonebook entries from a USIM card (CRSM restricted SIM command). If set to 0, the reading
-   of phone contacts from the SIM card is done using a normal SIM address. If set to 1, the 
+   of phone contacts from the SIM card is done using a normal SIM address. If set to 1, the
    USIM address is used. This is used for diagnosing Bug 416 (issue when reading SIM contacts using
-   the USIM contact address) and allows switching between USIM and normal SIM addresses without 
+   the USIM contact address) and allows switching between USIM and normal SIM addresses without
    re-compiling the RIL.
 
 
@@ -452,7 +790,7 @@ Release Notes for M4.0
 ======================
 What's new:
 
-1. STK: Added support for the SATF unsolicited response from the modem after a terminal 
+1. STK: Added support for the SATF unsolicited response from the modem after a terminal
    response to signal the end of a session. Only the DISPLAY_TEXT command is validated thus far.
 
 
@@ -460,7 +798,7 @@ Known ABSP/modem Issues:
 =========================
 - Takes > 3 mins to camp to the mobile network. Does not camp reliably to the network.
 
-- No audio from the speaker/mic during a call, however the ringer can be heard from the speaker. 
+- No audio from the speaker/mic during a call, however the ringer can be heard from the speaker.
   No audio as well from a headset plugged into the speaker jack.
 
 - Cannot create an APN. After entering the APN settings, the following error occurs after

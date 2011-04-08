@@ -1547,7 +1547,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.3 for Android 2.3 (Build Mar 31/2011)";
+    return "Intrinsyc Rapid-RIL M5.4 for Android 2.3 (Build Apr 7/2011)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};
@@ -1694,15 +1694,6 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     RIL_LOG_INFO("TriggerRadioError() - Closing channel ports\r\n");
     CSystemManager::GetInstance().CloseChannelPorts();
 
-    //dwSleep = 2000;
-    //RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
-    //Sleep(dwSleep);
-    //RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
-
-
-    //  Detatch the STMD
-    RIL_LOG_INFO( "TriggerRadioError() - Detach MUX ld from spi tty ()\r\n" );
-
     dwSleep = 500;
     RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  check ports are gone\r\n", dwSleep);
     Sleep(dwSleep);
@@ -1723,18 +1714,15 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
 
 
-    //if (eRadioError_ModemInitiatedCrash != eRadioErrorVal)
-    //{
-        //  Try using ctrl.start property
-        RIL_LOG_INFO("CALLING prop ctl.start on ifxreset\r\n");
-        property_set("ctl.start","ifxreset_svc");
-        RIL_LOG_INFO("Done prop ctl.start on ifxreset\r\n");
+    //  Try using ctrl.start property
+    RIL_LOG_INFO("CALLING prop ctl.start on ifxreset\r\n");
+    property_set("ctl.start","ifxreset_svc");
+    RIL_LOG_INFO("Done prop ctl.start on ifxreset\r\n");
 
-        dwSleep = 4000;
-        RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
-        Sleep(dwSleep);
-        RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
-    //}
+    dwSleep = 4000;
+    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+    Sleep(dwSleep);
+    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
 
 
 

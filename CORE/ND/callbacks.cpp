@@ -108,3 +108,12 @@ void triggerDataCallListChanged(void *param)
     }
 }
 
+void triggerSIMInserted(void *param)
+{
+    g_RadioState.SetRadioOff();
+    g_RadioState.SetRadioOn();
+
+    //  4. Send init string
+    CSystemManager::GetInstance().ResumeSystemFromFlightMode();
+}
+

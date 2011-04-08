@@ -8,6 +8,7 @@
 // Description:
 //    Provides implementations for helper functions used
 //    to facilitate the use of multiple AT channels.
+//    Call settings, SMS, supplementary services
 //
 // Author:  Dennis Peter
 // Created: 2011-02-08
@@ -31,6 +32,7 @@ extern BYTE* g_szDLC6Port;
 extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
+//  Call settings, SMS, supplementary services
 INITSTRING_DATA DLC6BasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+CSSN=1,1|+CMGF=0", 0 };
 INITSTRING_DATA DLC6UnlockInitString  = { "+CCWA=1|+CUSD=1", 0 };
 INITSTRING_DATA DLC6PowerOnInitString = { "", 0 };

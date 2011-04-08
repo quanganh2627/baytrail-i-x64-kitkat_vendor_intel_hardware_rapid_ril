@@ -37,6 +37,7 @@
 #include "silo_sim.h"
 #include "atchannel.h"
 #include "stk.h"
+#include "callbacks.h"
 
 extern "C" char *stk_at_to_hex(ATResponse *p_response);
 
@@ -44,7 +45,8 @@ extern "C" char *stk_at_to_hex(ATResponse *p_response);
 //
 //
 CSilo_SIM::CSilo_SIM(CChannel *pChannel)
-: CSilo(pChannel)
+: CSilo(pChannel),
+m_nXSIMStatePrev(-1)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::CSilo_SIM() - Enter\r\n");
 
@@ -61,6 +63,8 @@ CSilo_SIM::CSilo_SIM(CChannel *pChannel)
         { "+SATN: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATN },
         { "+SATF: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseTermRespConfirm },
 #endif
+        { "+XLOCK: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "+XSIM: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIM },
         { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
     };
 
@@ -659,8 +663,11 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rs
 
     RIL_LOG_INFO(" Status 2: %u.\r\n", uiStatus2);
 
-    pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_STK_SESSION_END);
+    if (uiStatus1 == 0x90 && uiStatus2 == 0x00)
+    {
+        pResponse->SetUnsolicitedFlag(TRUE);
+        pResponse->SetResultCode(RIL_UNSOL_STK_SESSION_END);
+    }
 
     fRet = TRUE;
 
@@ -669,3 +676,53 @@ Error:
     return fRet;
 }
 #endif //USE_STK_RAW_MODE
+
+
+BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIM() - Enter\r\n");
+    BOOL fRet = FALSE;
+    const char* pszEnd = NULL;
+    UINT32 nSIMState = 0;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXSIM() : ERROR : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    // Look for a "<postfix>" to be sure we got a whole message
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXSIM() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Extract "<SIM state>"
+    if (!ExtractUInt(rszPointer, nSIMState, rszPointer))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - ERROR: Could not parse nSIMState.\r\n");
+        goto Error;
+    }
+
+    //  If we re-inserted a SIM, then do a re-init
+    //  April 5/11 - nSIMState of 0 means SIM removed or booted without SIM
+    if ( ((9 == m_nXSIMStatePrev) || (0 == m_nXSIMStatePrev)) && (0 != nSIMState) )
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM was inserted!\r\n");
+
+        RIL_requestTimedCallback(triggerSIMInserted, NULL, 0, 500000);
+    }
+
+    //  Save SIM state
+    m_nXSIMStatePrev = nSIMState;
+
+
+    //  Flag as unrecognized.
+    pResponse->SetUnrecognizedFlag(TRUE);
+
+    fRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIM() - Exit\r\n");
+    return fRet;
+}
