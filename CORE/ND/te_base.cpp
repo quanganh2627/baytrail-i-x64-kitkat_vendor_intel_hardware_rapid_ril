@@ -4140,7 +4140,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
         }
     }
     // Password provided
-    else if (NULL == ppszFacility[3])
+    else if (NULL == ppszFacility[3] || (NULL != ppszFacility[3] && 0 == strcmp(ppszFacility[3], "0")))
     {
         if (PrintStringNullTerminate(   rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
