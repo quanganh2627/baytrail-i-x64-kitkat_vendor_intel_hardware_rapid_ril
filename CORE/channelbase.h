@@ -46,7 +46,6 @@ const UINT32 MAX_SILOS = 6;
 struct INITSTRING_DATA
 {
     const BYTE* szCmd;
-    UINT32 uiFutureUse;
 };
 
 // Structure to hold silos

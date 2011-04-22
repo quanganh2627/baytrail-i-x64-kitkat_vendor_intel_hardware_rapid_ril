@@ -1024,19 +1024,6 @@ Continue:
     rRspData.pData  = (void*)pCallListData;
     rRspData.uiDataSize = nUsed * sizeof(RIL_Call*);
 
-#if 0
-    if (nUsed > 0)
-    {
-        if (fHyperPoll)
-        {
-            RIL_requestTimedCallback(notifyChangedCallState, NULL, &CallStateHyperPoll);
-        }
-        else
-        {
-            RIL_requestTimedCallback(notifyChangedCallState, NULL, &CallStateSlowPoll);
-        }
-    }
-#endif // 0
 
     res = RRIL_RESULT_OK;
 
@@ -1528,7 +1515,7 @@ RIL_RESULT_CODE CTEBase::CoreSignalStrength(REQUEST_DATA & rReqData, void * pDat
     RIL_LOG_VERBOSE("CoreSignalStrength() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-#if 0
+#if 0   //  NOTE: Uncomment this block to simulate unsolicited modem reset
     static int nCount = 0;
     nCount++;
     RIL_LOG_INFO("COUNT = %d\r\n", nCount);
@@ -1540,7 +1527,6 @@ RIL_RESULT_CODE CTEBase::CoreSignalStrength(REQUEST_DATA & rReqData, void * pDat
         }
     }
     else
-
 
 #endif // 0
 
@@ -2126,22 +2112,6 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
             {
                 uint act;
                 ExtractUInt(pszRsp, act, pszRsp);
-                #if 0
-                switch (act)
-                {
-                    case 0:
-                        g_uiAccessTechnology = ACT_GPRS;
-                        break;
-                    case 1:
-                        g_uiAccessTechnology = ACT_EDGE;
-                        break;
-                    case 2:
-                        g_uiAccessTechnology = ACT_UMTS;
-                        break;
-                    default:
-                        g_uiAccessTechnology = ACT_UNKNOWN;
-                }
-                #endif // 0
             }
             else
             {
@@ -2311,7 +2281,7 @@ RIL_RESULT_CODE CTEBase::CoreDtmf(REQUEST_DATA & rReqData, void * pData, UINT32 
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+VTS=%c,30\r"), tone)
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+VTS=%c,30\r", tone))
     {
         RIL_LOG_CRITICAL("CoreDtmf() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
@@ -4232,10 +4202,10 @@ RIL_RESULT_CODE CTEBase::CoreChangeBarringPassword(REQUEST_DATA & rReqData, void
 
     if (PrintStringNullTerminate(   rReqData.szCmd1,
                                     sizeof(rReqData.szCmd1),
-                                    "AT+CPWD=\"%s\",\"%s\",\"%s\"\r"),
+                                    "AT+CPWD=\"%s\",\"%s\",\"%s\"\r",
                                     pszFacility,
                                     pszOldPassword,
-                                    pszNewPassword)
+                                    pszNewPassword))
     {
         res = RRIL_RESULT_OK;
     }
@@ -5502,7 +5472,7 @@ RIL_RESULT_CODE CTEBase::CoreWriteSmsToSim(REQUEST_DATA & rReqData, void * pData
     nPDULength = (strlen(pSmsArgs->pdu) / 2);
 
     if ((PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CMGW=%u,%u\r", nPDULength, pSmsArgs->status)) &&
-        (PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "%s\x1a"), pSmsArgs->pdu))
+        (PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "%s\x1a", pSmsArgs->pdu)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -6970,22 +6940,6 @@ RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData
         goto Error;
     }
 
-#if 0
-    if (ACT_UMTS == g_uiAccessTechnology)
-    {
-        RIL_LOG_INFO("ParseUnsolicitedSignalStrength() - Compressing values in UMTS\r\n");
-        // compress values - this needs to be reviewed as the mapping is not linear,
-        // but this will do for now
-
-        // for Infineon modem, the range is 0..91, so compress down to 0..31
-        if (99 != uiRSSI)
-            uiRSSI /= 3;
-
-        // for Infineon modem, the range is 0..49, so compress down to 0..7
-        if (99 != uiBER)
-            uiBER /= 7;
-    }
-#endif
     pSigStrData->GW_SignalStrength.signalStrength = (int) uiRSSI;
     pSigStrData->GW_SignalStrength.bitErrorRate   = (int) uiBER;
 

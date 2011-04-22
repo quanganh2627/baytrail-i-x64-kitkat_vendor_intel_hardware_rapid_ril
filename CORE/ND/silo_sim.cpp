@@ -711,7 +711,13 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
     {
         RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM was inserted!\r\n");
 
-        RIL_requestTimedCallback(triggerSIMInserted, NULL, 0, 500000);
+        RIL_requestTimedCallback(triggerSIMInserted, NULL, 0, 250000);
+    }
+    else if ( (0 == nSIMState) && (0 < m_nXSIMStatePrev) )
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM was removed or missing!\r\n");
+
+        RIL_requestTimedCallback(triggerSIMRemoved, NULL, 0, 250000);
     }
 
     //  Save SIM state

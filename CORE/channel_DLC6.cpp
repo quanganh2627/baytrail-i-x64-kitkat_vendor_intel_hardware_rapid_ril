@@ -33,10 +33,10 @@ extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
 //  Call settings, SMS, supplementary services
-INITSTRING_DATA DLC6BasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+CSSN=1,1|+CMGF=0", 0 };
-INITSTRING_DATA DLC6UnlockInitString  = { "+CCWA=1|+CUSD=1", 0 };
-INITSTRING_DATA DLC6PowerOnInitString = { "", 0 };
-INITSTRING_DATA DLC6ReadyInitString   = { "", 0 };
+INITSTRING_DATA DLC6BasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+CSSN=1,1|+CMGF=0" };
+INITSTRING_DATA DLC6UnlockInitString  = { "+CCWA=1|+CUSD=1" };
+INITSTRING_DATA DLC6PowerOnInitString = { "" };
+INITSTRING_DATA DLC6ReadyInitString   = { "" };
 
 CChannel_DLC6::CChannel_DLC6(UINT32 uiChannel)
 : CChannel(uiChannel)

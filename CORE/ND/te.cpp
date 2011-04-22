@@ -67,22 +67,22 @@ CTE::~CTE()
 
 CTEBase* CTE::CreateModemTE()
 {
-    const BYTE* szInfineonN721       = "InfineonN721";
+    const BYTE* szInfineon6260       = "Infineon6260";
 
     CRepository repository;
     BYTE szModem[m_uiMaxModemNameLen];
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, m_uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineon6260))
         {
-            RIL_LOG_INFO("GetTE() - Using Infineon N721\r\n");
+            RIL_LOG_INFO("GetTE() - Using Infineon 6260\r\n");
 
             //  Set g_cTerminator and g_szNewLine
             g_cTerminator = '\r';
             (void)CopyStringNullTerminate(g_szNewLine, "\r\n", sizeof(g_szNewLine));
 
-            return new CTE_INF_N721();
+            return new CTE_INF_6260();
         }
     }
 

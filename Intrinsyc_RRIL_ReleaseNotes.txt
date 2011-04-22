@@ -1,10 +1,168 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+Apr. 21, 2011 (M5.5 release for Medfield CDK)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
+Android version 2.3 (Gingerbread).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was tested with Intel's Gingerbread ABSP from the Intel lab
+
+KBoot: kboot.mfld_cdk.2011.0214.2212.bin
+Firmware: V176.009/B0.09
+Modem Firmware: *OCEAN_6260_SMB_REV30_1105.01_B3*
+Modem: Rev2
+
+
+Release Notes for M5.5
+======================
+What's new:
+
+1. Bug 703: Cannot enter airplane mode when no SIM inserted.
+   Fixed.  RIL was sending an incorrect radio state notification for that particular
+   situation.  RIL now sends RADIO_OFF for airplane mode in that state.
+
+2. Core dump: This release includes the "Core Dump" feature.  To activate the "Core
+   Dump", the "coredump_svc" must be defined and point to the core dump executable in
+   the init.mfld_cdk.rc file.  This feature also needs the IOCTL definitions from the
+   hsi_ffl_tty.h header file located at hardware/intel/linux-2.6/include/linux/hsi
+   directory.  Namely, the FFL_TTY_GET_HANGUP_REASON IOCTL is used to query the
+   POLLHUP reason.
+
+   To disable core dump functionality, set the "DisableCoreDump" value to "1" in the
+   repository.txt file under the group "Group Modem".
+
+3. Hot SIM swap: Removing SIM will make Android display "No SIM inserted, emergency
+   calls only" message.  User will also see SIM icon at top in status area.  Re-
+   inserting SIM will make Android query info for the new SIM card.  Hot swappable
+   SIM also works in flight mode.
+
+4. Call barring fix: Fix AT command when no class is specified.
+
+5. Code cleanup: Remove unnecessary functions.  Change inf_n721 to inf_6260.
+   In repository.txt, replace "InfineonN721" with "Infineon6260".
+
+6. Update ifxreset.c with HSI IOCTLs.
+
+
+Testing results:  (tested with SPI interface)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS--not consistent for every boot due to SPI/MUX initialization problem.
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS (conditional)
+   NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
+         technologies.  This causes RIL to re-init because it assumes someone
+         inserted a new SIM card (part of hot swappable SIM feature).  The
+         '+XSIM: 0' notification should not be sent because the SIM was never
+         removed from the device.  A side effect of this is that the modem
+         sometimes does not register with a network again.
+   NOTE: A hardware modification will fix this bug (not implmented for test)
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS (conditional)
+   NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
+         technologies.  This causes RIL to re-init because it assumes someone
+         inserted a new SIM card (part of hot swappable SIM feature).  The
+         '+XSIM: 0' notification should not be sent because the SIM was never
+         removed from the device.  A side effect of this is that the modem
+         sometimes does not register with a network again.
+   NOTE: A hardware modification will fix this bug (not implmented for test)
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns +CME ERROR: 100.
+    NOTE: Infineon says this is by design.
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+21. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+22. Send 2 multipart SMSs to self (more than 160 characters)
+    FAIL (message sent in UI, but only partially received from modem)
+
+23. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+24. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+25. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+26. Send 2 MMSs to self.  (requires setting up MMS APN)
+    PASS
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 Apr. 7, 2011 (M5.4 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
-Android version 2.3 (Gingerbread). 
+Android version 2.3 (Gingerbread).
 
 NOTES:
 - This release has been tested with basic sanity tests.
@@ -65,7 +223,7 @@ Known ABSP/modem Issues:
   voice/data disconnects.
 
 - No audio from the speaker/mic during a call and when there's an incoming call (ring).
-  No audio as well from a headset plugged into the speaker jack (DTMF tones and the
+  No audio as well from a headset plugged into the speaker jack (DTMF tones and the
   incoming ringer only).
 
 - RIL cannot connect to /dev/gsmttyX ports even though STMD has started and the ports
@@ -81,24 +239,24 @@ Testing results:
 ================
 
 1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
-   PASS--not consistent for every boot due to SPI/MUX initialization problem.
+   PASS--not consistent for every boot due to SPI/MUX initialization problem.
 
 2. Connect data, download data.
-   PASS
+   PASS
 
 3. Disconnect data (uncheck "Data enabled" checkbox).
-   Reconnect data (check "Data enabled" checkbox).
-   Download data.
-   PASS
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
 
 4. Go into Flight Mode.
-   PASS
+   PASS
 
-5. Exit Flight Mode.  Data should re-connect.  Download data.
-   PASS
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
 
-6. Switch technology from 3G -> 2G only.  Download data.
-   PASS (conditional)
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS (conditional)
    NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
          technologies.  This causes RIL to re-init because it assumes someone
          inserted a new SIM card (part of hot swappable SIM feature).  The
@@ -106,8 +264,8 @@ Testing results:
          removed from the device.  A side effect of this is that the modem
          sometimes does not register with a network again.
 
-7. Switch technology from 2G only -> 3G.  Download data.
-   PASS (conditional)
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS (conditional)
    NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
          technologies.  This causes RIL to re-init because it assumes someone
          inserted a new SIM card (part of hot swappable SIM feature).  The
@@ -115,71 +273,71 @@ Testing results:
          removed from the device.  A side effect of this is that the modem
          sometimes does not register with a network again.
 
-8. MO Voice call.  Local Hangup.
-   PASS
+8. MO Voice call.  Local Hangup.
+   PASS
 
-9. MT Voice call.  Answer call. Remote Hangup.
-   PASS
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
 
-10. MT voice call, reject.  Caller should be sent to voice mail.
-    PASS
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
 
-11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
-    PASS
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
 
-12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
-    PASS
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
 
 13. Voice call, DTMF tones.
-    PASS
+    PASS
 
-14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
-    Second call is active.
-    PASS
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
 
-15. Swap calls.  Now first call is active.  Second call should be on hold.
-    PASS.
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
 
-16. Join calls to make conference call.  Ensure conference call is active and working.
-    PASS.
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
 
-17. Conference call, DTMF tones.  Ensure DTMF tones working.
-    FAIL.  AT command returns +CME ERROR: 100.
-    NOTE: Infineon says this is by design.
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns +CME ERROR: 100.
+    NOTE: Infineon says this is by design.
 
-18. Conference call, put conference call on hold.  Ensure conference call is on hold.
-    (The 2 connected parties should still hear each other, but not the device)
-    PASS.
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
 
-18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
-    PASS
+18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
 
-19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
-    PASS
+19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
 
-20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
-    PASS.
+20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
 
-21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
-    PASS.
+21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
 
-21. Send 2 SMSs to self.  (less than 160 characters)
-    PASS
+21. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
 
 22. Send 2 multipart SMSs to self (more than 160 characters)
-    FAIL (message sent in UI, but only partially received from modem)
+    FAIL (message sent in UI, but only partially received from modem)
 
 23. Receive 2 multipart SMSs from another recipient (more than 160 characters)
     PASS
 
-23. Send 2 short SMS (less than 160 characters) to multiple recipients.
-    PASS
+24. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
 
-24. Send 2 long SMS (more than 160 characters) to multiple recipients.
-    PASS
+25. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
 
-25. Send 2 MMSs to self.  (requires setting up MMS APN)
-    PASS
+26. Send 2 MMSs to self.  (requires setting up MMS APN)
+    PASS
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -188,7 +346,7 @@ Testing results:
 Mar. 31, 2011 (M5.3 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
-Android version 2.3 (Gingerbread). 
+Android version 2.3 (Gingerbread).
 
 NOTES:
 - This release has been tested with basic sanity tests.
@@ -235,7 +393,7 @@ Known ABSP/modem Issues:
   voice/data disconnects.
 
 - No audio from the speaker/mic during a call and when there's an incoming call (ring).
-  No audio as well from a headset plugged into the speaker jack (DTMF tones and the
+  No audio as well from a headset plugged into the speaker jack (DTMF tones and the
   incoming ringer only).
 
 - RIL cannot connect to /dev/gsmttyX ports even though STMD has started and the ports
@@ -250,90 +408,90 @@ Testing results:
 ================
 
 1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
-   PASS--not consistent for every boot.
+   PASS--not consistent for every boot.
 
 2. Connect data, download data.
-   PASS
+   PASS
 
 3. Disconnect data (uncheck "Data enabled" checkbox).
-   Reconnect data (check "Data enabled" checkbox).
-   Download data.
-   PASS
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
 
 4. Go into Flight Mode.
-   PASS
+   PASS
 
-5. Exit Flight Mode.  Data should re-connect.  Download data.
-   PASS
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
 
-6. Switch technology from 3G -> 2G only.  Download data.
-   PASS
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
 
-7. Switch technology from 2G -> 3G only.  Download data.
-   PASS
+7. Switch technology from 2G -> 3G only.  Download data.
+   PASS
 
-8. MO Voice call.  Local Hangup.
-   PASS
+8. MO Voice call.  Local Hangup.
+   PASS
 
-9. MT Voice call.  Answer call. Remote Hangup.
-   PASS
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
 
-10. MT voice call, reject.  Caller should be sent to voice mail.
-    PASS
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
 
-11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
-    PASS
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
 
-12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
-    PASS
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
 
 13. Voice call, DTMF tones.
-    PASS
+    PASS
 
-14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
-    Second call is active.
-    PASS
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
 
-15. Swap calls.  Now first call is active.  Second call should be on hold.
-    PASS.
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
 
-16. Join calls to make conference call.  Ensure conference call is active and working.
-    PASS.
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
 
-17. Conference call, DTMF tones.  Ensure DTMF tones working.
-    FAIL.  AT command returns +CME ERROR: 100.
-    NOTE: Infineon says this is by design.
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns +CME ERROR: 100.
+    NOTE: Infineon says this is by design.
 
-18. Conference call, put conference call on hold.  Ensure conference call is on hold.
-    (The 2 connected parties should still hear each other, but not the device)
-    PASS.
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
 
-18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
-    PASS
+18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
 
-19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
-    PASS
+19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
 
-20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
-    PASS.
+20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
 
-21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
-    PASS.
+21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
 
-21. Send 2 SMSs to self.  (less than 160 characters)
-    PASS
+21. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
 
 22. Send 2 multipart SMSs to self (more than 160 characters)
-    FAIL
+    FAIL
 
 23. Send 2 short SMS (less than 160 characters) to multiple recipients.
-    PASS
+    PASS
 
 24. Send 2 long SMS (more than 160 characters) to multiple recipients.
-    PASS
+    PASS
 
-25. Send 2 MMSs to self.  (requires setting up MMS APN)
-    PASS
+25. Send 2 MMSs to self.  (requires setting up MMS APN)
+    PASS
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -342,7 +500,7 @@ Testing results:
 Mar. 25, 2011 (M5.2 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
-Android version 2.3 (Gingerbread). 
+Android version 2.3 (Gingerbread).
 
 NOTES:
 - This release has been tested with basic sanity tests.
@@ -402,7 +560,7 @@ Known ABSP/modem Issues:
   voice/data disconnects.
 
 - No audio from the speaker/mic during a call and when there's an incoming call (ring).
-  No audio as well from a headset plugged into the speaker jack.
+  No audio as well from a headset plugged into the speaker jack.
 
 - RIL cannot connect to /dev/gsmttyX ports even though STMD has started and the ports
   exist.  The errorno is 51 (level 2 halted).  A possible fix which works some of the
@@ -420,90 +578,90 @@ Testing results:
 ================
 
 1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
-   PASS--not consistent for every boot.
+   PASS--not consistent for every boot.
 
 2. Connect data, download data.
-   PASS
+   PASS
 
 3. Disconnect data (uncheck "Data enabled" checkbox).
-   Reconnect data (check "Data enabled" checkbox).
-   Download data.
-   PASS
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
 
 4. Go into Flight Mode.
-   PASS
+   PASS
 
-5. Exit Flight Mode.  Data should re-connect.  Download data.
-   PASS
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
 
-6. Switch technology from 3G -> 2G only.  Download data.
-   PASS
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
 
-7. Switch technology from 2G -> 3G only.  Download data.
-   PASS
+7. Switch technology from 2G -> 3G only.  Download data.
+   PASS
 
-8. MO Voice call.  Local Hangup.
-   PASS
+8. MO Voice call.  Local Hangup.
+   PASS
 
-9. MT Voice call.  Answer call. Remote Hangup.
-   PASS
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
 
-10. MT voice call, reject.  Caller should be sent to voice mail.
-    PASS
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
 
-11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
-    PASS
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
 
-12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
-    PASS
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
 
 13. Voice call, DTMF tones.
-    PASS
+    PASS
 
-14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
-    Second call is active.
-    PASS
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
 
-15. Swap calls.  Now first call is active.  Second call should be on hold.
-    PASS.
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
 
-16. Join calls to make conference call.  Ensure conference call is active and working.
-    PASS.
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
 
-17. Conference call, DTMF tones.  Ensure DTMF tones working.
-    FAIL.  AT command returns +CME ERROR: 100.
-    NOTE: Infineon says this is by design.
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns +CME ERROR: 100.
+    NOTE: Infineon says this is by design.
 
-18. Conference call, put conference call on hold.  Ensure conference call is on hold.
-    (The 2 connected parties should still hear each other, but not the device)
-    PASS.
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
 
-18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
-    PASS
+18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
 
-19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
-    PASS
+19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
 
-20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
-    PASS.
+20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
 
-21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
-    PASS.
+21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
 
-21. Send 2 SMSs to self.  (less than 160 characters)
-    PASS
+21. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
 
 22. Send 2 multipart SMSs to self (more than 160 characters)
-    FAIL
+    FAIL
 
 23. Send 2 short SMS (less than 160 characters) to multiple recipients.
-    PASS
+    PASS
 
 24. Send 2 long SMS (more than 160 characters) to multiple recipients.
-    PASS
+    PASS
 
-25. Send 2 MMSs to self.  (requires setting up MMS APN)
-    FAIL
+25. Send 2 MMSs to self.  (requires setting up MMS APN)
+    FAIL
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -512,7 +670,7 @@ Testing results:
 Mar. 18, 2011 (M5.1 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
-Android version 2.3 (Gingerbread). 
+Android version 2.3 (Gingerbread).
 
 NOTES:
 - This release has been tested with basic sanity tests.
@@ -549,7 +707,7 @@ Known ABSP/modem Issues:
   voice/data disconnects.
 
 - No audio from the speaker/mic during a call and when there's an incoming call (ring).
-  No audio as well from a headset plugged into the speaker jack.
+  No audio as well from a headset plugged into the speaker jack.
 
 - NITZ (network time) notifications stopped working in the RIL.  Upon investigation,
   the function mktime() has stopped working.  Will attempt to fix for next release.
@@ -559,90 +717,90 @@ Testing results:
 ================
 
 1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
-   PASS--not consistent for every boot.
+   PASS--not consistent for every boot.
 
 2. Connect data, download data.
-   PASS
+   PASS
 
 3. Disconnect data (uncheck "Data enabled" checkbox).
-   Reconnect data (check "Data enabled" checkbox).
-   Download data.
-   PASS
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
 
 4. Go into Flight Mode.
-   PASS
+   PASS
 
-5. Exit Flight Mode.  Data should re-connect.  Download data.
-   PASS
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
 
-6. Switch technology from 3G -> 2G only.  Download data.
-   PASS
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
 
-7. Switch technology from 2G -> 3G only.  Download data.
-   PASS
+7. Switch technology from 2G -> 3G only.  Download data.
+   PASS
 
-8. MO Voice call.  Local Hangup.
-   PASS
+8. MO Voice call.  Local Hangup.
+   PASS
 
-9. MT Voice call.  Answer call. Remote Hangup.
-   PASS
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
 
-10. MT voice call, reject.  Caller should be sent to voice mail.
-    PASS
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
 
-11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
-    PASS
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
 
-12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
-    PASS
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
 
 13. Voice call, DTMF tones.
-    PASS
+    PASS
 
-14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
-    Second call is active.
-    PASS
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
 
-15. Swap calls.  Now first call is active.  Second call should be on hold.
-    PASS.
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
 
-16. Join calls to make conference call.  Ensure conference call is active and working.
-    PASS.
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
 
-17. Conference call, DTMF tones.  Ensure DTMF tones working.
-    FAIL.  AT command returns +CME ERROR: 100.
-    NOTE: Infineon says this is by design.
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns +CME ERROR: 100.
+    NOTE: Infineon says this is by design.
 
-18. Conference call, put conference call on hold.  Ensure conference call is on hold.
-    (The 2 connected parties should still hear each other, but not the device)
-    PASS.
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
 
-18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
-    PASS
+18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
 
-19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
-    PASS
+19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
 
-20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
-    PASS.
+20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
 
-21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
-    PASS.
+21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
 
-21. Send 2 SMSs to self.  (less than 160 characters)
-    PASS
+21. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
 
 22. Send 2 multipart SMSs to self (more than 160 characters)
-    FAIL
+    FAIL
 
 23. Send 2 short SMS (less than 160 characters) to multiple recipients.
-    PASS
+    PASS
 
 24. Send 2 long SMS (more than 160 characters) to multiple recipients.
-    PASS
+    PASS
 
-25. Send 2 MMSs to self.  (requires setting up MMS APN)
-    FAIL
+25. Send 2 MMSs to self.  (requires setting up MMS APN)
+    FAIL
 
 
 
@@ -654,7 +812,7 @@ Testing results:
 Mar. 11, 2011 (M5.0 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
-Android version 2.3 (Gingerbread). 
+Android version 2.3 (Gingerbread).
 
 NOTES:
 - This release has been tested with basic sanity tests.
@@ -690,97 +848,97 @@ Known ABSP/modem Issues:
   voice/data disconnects.
 
 - No audio from the speaker/mic during a call and when there's an incoming call (ring).
-  No audio as well from a headset plugged into the speaker jack.
+  No audio as well from a headset plugged into the speaker jack.
 
 
 Testing results:
 ================
 
 1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
-   PASS--not consistent for every boot.
+   PASS--not consistent for every boot.
 
 2. Connect data, download data.
-   PASS
+   PASS
 
 3. Disconnect data (uncheck "Data enabled" checkbox).
-   Reconnect data (check "Data enabled" checkbox).
-   Download data.
-   PASS
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
 
 4. Go into Flight Mode.
-   PASS
+   PASS
 
-5. Exit Flight Mode.  Data should re-connect.  Download data.
-   PASS
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
 
-6. Switch technology from 3G -> 2G only.  Download data.
-   PASS
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
 
-7. Switch technology from 2G -> 3G only.  Download data.
-   PASS
+7. Switch technology from 2G -> 3G only.  Download data.
+   PASS
 
-8. MO Voice call.  Local Hangup.
-   PASS
+8. MO Voice call.  Local Hangup.
+   PASS
 
-9. MT Voice call.  Answer call. Remote Hangup.
-   PASS
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
 
-10. MT voice call, reject.  Caller should be sent to voice mail.
-    PASS
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
 
-11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
-    PASS
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
 
-12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
-    PASS
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
 
 13. Voice call, DTMF tones.
-    PASS
+    PASS
 
-14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
-    Second call is active.
-    PASS
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
 
-15. Swap calls.  Now first call is active.  Second call should be on hold.
-    PASS.
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
 
-16. Join calls to make conference call.  Ensure conference call is active and working.
-    PASS.
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
 
-17. Conference call, DTMF tones.  Ensure DTMF tones working.
-    FAIL.  AT command returns +CME ERROR: 100.
-    NOTE: Infineon says this is by design.
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns +CME ERROR: 100.
+    NOTE: Infineon says this is by design.
 
-18. Conference call, put conference call on hold.  Ensure conference call is on hold.
-    (The 2 connected parties should still hear each other, but not the device)
-    PASS.
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
 
-18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
-    PASS
+18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
 
-19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
-    PASS
+19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
 
-20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
-    PASS.
+20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
 
-21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
-    PASS.
+21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
 
-21. Send 2 SMSs to self.  (less than 160 characters)
-    PASS
+21. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
 
 22. Send 2 multipart SMSs to self (more than 160 characters)
-    FAIL
+    FAIL
 
 23. Send 2 short SMS (less than 160 characters) to multiple recipients.
-    PASS
+    PASS
 
 24. Send 2 long SMS (more than 160 characters) to multiple recipients.
-    PASS
+    PASS
 
-25. Send 2 MMSs to self.  (requires setting up MMS APN)
-    FAIL
+25. Send 2 MMSs to self.  (requires setting up MMS APN)
+    FAIL
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -791,7 +949,7 @@ Release Notes for M4.0
 What's new:
 
 1. STK: Added support for the SATF unsolicited response from the modem after a terminal
-   response to signal the end of a session. Only the DISPLAY_TEXT command is validated thus far.
+   response to signal the end of a session. Only the DISPLAY_TEXT command is validated thus far.
 
 
 Known ABSP/modem Issues:
@@ -799,118 +957,118 @@ Known ABSP/modem Issues:
 - Takes > 3 mins to camp to the mobile network. Does not camp reliably to the network.
 
 - No audio from the speaker/mic during a call, however the ringer can be heard from the speaker.
-  No audio as well from a headset plugged into the speaker jack.
+  No audio as well from a headset plugged into the speaker jack.
 
 - Cannot create an APN. After entering the APN settings, the following error occurs after
-  trying to save it:
+  trying to save it:
 
-01-01 00:04:10.890 D/GSM     ( 1354): GSMDataConnTrack handleMessage { what=29 when=224906 }
-01-01 00:04:10.900 D/GSM     ( 1354): [GsmDataConnectionTracker] No APN found for carrier: null
-01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnectionTracker] setState: FAILED
-01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnectionTracker] Clean up connection due to apnChanged
-01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnectionTracker] setState: DISCONNECTING
-01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnectionTracker] cleanUpConnection: !tearDown, call conn.resetSynchronously
-01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnection-1] DcInactiveState: msg.what=EVENT_RESET, ignore we're already reset
-01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnection-1] NotifyDisconnectCompleted
-01-01 00:04:10.930 D/GSM     ( 1354): [DataConnection] Stop poll NetStat
-01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] cleanupConnection: !notificationDeferred
-01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] gotoIdleAndNotifyDataConnection: reason=apnChanged
-01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] setState: IDLE
-01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnection-1] clearSettings
-01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] ***trySetupData due to apnChanged
-01-01 00:04:10.930 D/GSM     ( 1354): [DSAC DEB] trySetupData with mIsPsRestricted=false
-01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] No APN found
-01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] setState: FAILED
+01-01 00:04:10.890 D/GSM     ( 1354): GSMDataConnTrack handleMessage { what=29 when=224906 }
+01-01 00:04:10.900 D/GSM     ( 1354): [GsmDataConnectionTracker] No APN found for carrier: null
+01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnectionTracker] setState: FAILED
+01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnectionTracker] Clean up connection due to apnChanged
+01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnectionTracker] setState: DISCONNECTING
+01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnectionTracker] cleanUpConnection: !tearDown, call conn.resetSynchronously
+01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnection-1] DcInactiveState: msg.what=EVENT_RESET, ignore we're already reset
+01-01 00:04:10.910 D/GSM     ( 1354): [GsmDataConnection-1] NotifyDisconnectCompleted
+01-01 00:04:10.930 D/GSM     ( 1354): [DataConnection] Stop poll NetStat
+01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] cleanupConnection: !notificationDeferred
+01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] gotoIdleAndNotifyDataConnection: reason=apnChanged
+01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] setState: IDLE
+01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnection-1] clearSettings
+01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] ***trySetupData due to apnChanged
+01-01 00:04:10.930 D/GSM     ( 1354): [DSAC DEB] trySetupData with mIsPsRestricted=false
+01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] No APN found
+01-01 00:04:10.930 D/GSM     ( 1354): [GsmDataConnectionTracker] setState: FAILED
 
 
 Testing results:
 ================
 
 1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
-   PASS--not consistent for every boot.
+   PASS--not consistent for every boot.
 
 2. Connect data, download data.
-   FAIL--cannot create APN.
+   FAIL--cannot create APN.
 
 3. Disconnect data (uncheck "Data enabled" checkbox).
-   Reconnect data (check "Data enabled" checkbox).
-   Download data.
-   FAIL--cannot create APN.
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   FAIL--cannot create APN.
 
 4. Go into Flight Mode.
-   PASS
+   PASS
 
-5. Exit Flight Mode.  Data should re-connect.  Download data.
-   FAIL--cannot create APN. Camps on network.
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   FAIL--cannot create APN. Camps on network.
 
-6. Switch technology from 3G -> 2G only.  Download data.
-   FAIL--cannot create APN.
+6. Switch technology from 3G -> 2G only.  Download data.
+   FAIL--cannot create APN.
 
-7. Switch technology from 2G -> 3G only.  Download data.
-   FAIL--cannot create APN.
+7. Switch technology from 2G -> 3G only.  Download data.
+   FAIL--cannot create APN.
 
-8. MO Voice call.  Local Hangup.
-   PASS
+8. MO Voice call.  Local Hangup.
+   PASS
 
-9. MT Voice call.  Answer call. Remote Hangup.
-   PASS
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
 
-10. MT voice call, reject.  Caller should be sent to voice mail.
-    PASS
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
 
-11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
-    PASS
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
 
-12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
-    PASS
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
 
 13. Voice call, DTMF tones.
-    PASS
+    PASS
 
-14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
-    Second call is active.
-    PASS
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
 
-15. Swap calls.  Now first call is active.  Second call should be on hold.
-    PASS.
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
 
-16. Join calls to make conference call.  Ensure conference call is active and working.
-    PASS.
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
 
-17. Conference call, DTMF tones.  Ensure DTMF tones working.
-    FAIL.  AT command returns +CME ERROR: 100.
-    NOTE: Infineon says this is by design.
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns +CME ERROR: 100.
+    NOTE: Infineon says this is by design.
 
-18. Conference call, put conference call on hold.  Ensure conference call is on hold.
-    (The 2 connected parties should still hear each other, but not the device)
-    PASS.
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
 
-18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
-    FAIL--cannot detatch - "Manage conference call button" missing from menu.
+18. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    FAIL--cannot detatch - "Manage conference call button" missing from menu.
 
-19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
-    FAIL--cannot detatch - "Manage conference call button" missing from menu.
+19. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    FAIL--cannot detatch - "Manage conference call button" missing from menu.
 
-20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
-    PASS.
+20. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
 
-21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
-    PASS.
+21. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
 
-21. Send 2 SMSs to self.  (less than 160 characters)
-    PASS
+21. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
 
 22. Send 2 multipart SMSs to self (more than 160 characters)
-    FAIL
+    FAIL
 
 23. Send 2 short SMS (less than 160 characters) to multiple recipients.
-    PASS
+    PASS
 
 24. Send 2 long SMS (more than 160 characters) to multiple recipients.
-    FAIL - message received by first recipient, but message to second recipient never got sent.
-    NOTE: This appears to be a bug with the Messaging App in Android.  RIL does not receive SMS
-          send request after first recipient.  We can repro this with Froyo emulator.  Also, we
-          can repro this with Gingerbread emulator.  This may require a fix in the Messaging App.
+    FAIL - message received by first recipient, but message to second recipient never got sent.
+    NOTE: This appears to be a bug with the Messaging App in Android.  RIL does not receive SMS
+          send request after first recipient.  We can repro this with Froyo emulator.  Also, we
+          can repro this with Gingerbread emulator.  This may require a fix in the Messaging App.
 
-25. Send 2 MMSs to self.  (requires setting up MMS APN)
-    FAIL--cannot create APN.
+25. Send 2 MMSs to self.  (requires setting up MMS APN)
+    FAIL--cannot create APN.

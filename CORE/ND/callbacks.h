@@ -70,4 +70,9 @@ void triggerDataCallListChanged(void *param);
 //
 void triggerSIMInserted(void *param);
 
+//
+// Callback to trigger SIM removed
+//
+void triggerSIMRemoved(void *param);
+
 #endif

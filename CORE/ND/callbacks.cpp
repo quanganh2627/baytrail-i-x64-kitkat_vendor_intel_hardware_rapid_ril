@@ -91,7 +91,7 @@ void triggerUSSDNotification(void *param)
 
 void triggerDataCallListChanged(void *param)
 {
-    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_PDPCONTEXTLIST], NULL, REQ_ID_NONE, "AT+CGACT?;+CGDCONT?\r", &CTE::ParseDataCallListChanged);
+    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_PDPCONTEXTLIST_UNSOL], NULL, ND_REQ_ID_PDPCONTEXTLIST_UNSOL, "AT+CGACT?;+CGDCONT?\r", &CTE::ParseDataCallListChanged);
 
     if (pCmd)
     {
@@ -110,10 +110,14 @@ void triggerDataCallListChanged(void *param)
 
 void triggerSIMInserted(void *param)
 {
-    g_RadioState.SetRadioOff();
-    g_RadioState.SetRadioOn();
+    g_RadioState.SetRadioSIMUnlocked();
 
-    //  4. Send init string
     CSystemManager::GetInstance().ResumeSystemFromFlightMode();
+}
+
+void triggerSIMRemoved(void *param)
+{
+    g_RadioState.SetRadioSIMAbsent();
+    CSystemManager::GetInstance().StopSimInitialization();
 }
 

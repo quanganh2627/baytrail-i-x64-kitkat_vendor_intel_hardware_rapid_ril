@@ -85,20 +85,6 @@ BOOL ExtractFixedPointValue(const BYTE* szStart, UINT32 &rdwFPValue, const BYTE*
 // Extracts a decimal value and returns it as a double
 BOOL ExtractDouble(const BYTE* szStart, double &rdbValue, const BYTE* &rszEnd);
 
-// Extracts an Unquoted GSM Hex string and returns it as a Unicode string
-BOOL ExtractUnquotedGSMHexStringToUnicode(const BYTE* szIn, UINT32 cbInLen,  WCHAR* wszOut, UINT32 cbOutLen);
-
-// Extracts a quoted GSM Hex string and returns a Unicode string
-BOOL ExtractQuotedGSMHexStringToUnicode(const BYTE* szStart,  WCHAR* wszOut, UINT32 cbOutLen, const BYTE* &rszEnd);
-
-// Extracts an unquoted unicode hex string and returns a unicode string
-BOOL ExtractUnquotedUnicodeHexStringToUnicode(const BYTE* szIn, UINT32 cbInLen,  WCHAR* wszOut, UINT32 cbOutLen);
-
-// Extracts a quoted unicode hex string and returns a unicode string
-BOOL ExtractQuotedUnicodeHexStringToUnicode(const BYTE* szStart,  WCHAR* wszOut, UINT32 cbOutLen, const BYTE* &rszEnd);
-
-// Gets the required size of a Unicode string to hold the buffer
-BOOL ConvertSizeToUnicodeSize(ENCODING_TYPE enc, size_t cbIn, size_t &cbOut);
 
 BOOL ExtractIntAndConvertToUInt(const char* szData, UINT32& rnVal, const char*& rszRemainder);
 

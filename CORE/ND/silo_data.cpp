@@ -33,7 +33,7 @@
 #include "extract.h"
 #include "silo_data.h"
 #include "channel_data.h"
-#include "te_inf_n721.h"
+#include "te_inf_6260.h"
 #include "rildmain.h"
 #include "callbacks.h"
 

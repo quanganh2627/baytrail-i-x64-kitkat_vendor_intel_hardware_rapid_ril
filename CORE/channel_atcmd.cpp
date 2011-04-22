@@ -31,10 +31,10 @@
 //  Com init strings for this channel.
 //  Call control commands, misc commands
 
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|S0=0|+CMEE=1|+XCALLSTAT=1",  0};
-INITSTRING_DATA ATCmdUnlockInitString   = { "+CRC=1|+CR=1", 0 };
-INITSTRING_DATA ATCmdPowerOnInitString  = { "+XPOW=0,0,0", 0 };
-INITSTRING_DATA ATCmdReadyInitString    = { "", 0 };
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|S0=0|+CMEE=1|+XCALLSTAT=1" };
+INITSTRING_DATA ATCmdUnlockInitString   = { "+CRC=1|+CR=1" };
+INITSTRING_DATA ATCmdPowerOnInitString  = { "+XPOW=0,0,0" };
+INITSTRING_DATA ATCmdReadyInitString    = { "" };
 
 CChannel_ATCmd::CChannel_ATCmd(UINT32 uiChannel)
 : CChannel(uiChannel)

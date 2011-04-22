@@ -254,7 +254,7 @@ BOOL CChannelBase::StartChannelThreads()
     // Switch the read thread into higher priority (to guarantee that the module's in buffer doesn't get overflown)
     if (!CThread::SetPriority(m_pReadThread, THREAD_PRIORITY_LEVEL_HIGH))
     {
-        RIL_LOG_WARNING("LaunchThreads() : WARN : Unable to raise priority of read thread!!\r\n");
+        //RIL_LOG_WARNING("LaunchThreads() : WARN : Unable to raise priority of read thread!!\r\n");
     }
 
     bResult = TRUE;
@@ -477,9 +477,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         goto Done;
     }
 
-#ifdef GPRS_CONTEXT_CACHING
-    ClearGPRSContextCommandCache();
-#endif // GPRS_CONTEXT_CACHING
 
     // Get any pre-init commands from non-volatile memory
 
@@ -509,21 +506,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|");
         ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp);
     }
-
-    // TODO: REVIEW THIS
-#if 0
-    if ((iString == COM_UNLOCK_INDEX) && (RIL_CHANNEL_ATCMD == m_uiRilChannel))
-    {
-        // send these down after SIM is unlocked
-        // Note that COLR is read-only for this modem.
-        char szNextInitCmd[MAX_BUFFER_SIZE];
-        szNextInitCmd[0] = NULL;
-
-        // CLIP is not supported on Sierra Wireless MC8775
-        (void)PrintStringNullTerminate(szNextInitCmd, MAX_BUFFER_SIZE, "|+CLIR=%u|+COLP=%u", /*g_dwLastCLIP,*/ g_dwLastCLIR, g_dwLastCOLP);
-        ConcatenateStringNullTerminate(szInit,sizeof(szInit),szNextInitCmd);
-    }
-#endif
 
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands : String [%s]\r\n", szInit);
 
@@ -579,13 +561,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         // Get the next command
         pszStart = pszEnd+1;
     }
-
-#if defined (RIL_CACHE_AUDIO_MUTING)
-
-    // We know the mute is turned off here
-    extern BOOL g_fAudioMutingOn;
-    g_fAudioMutingOn = FALSE;
-#endif
 
     bRetVal = TRUE;
 

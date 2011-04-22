@@ -230,6 +230,7 @@ BOOL CThread::SetPriority(UINT32 dwPriority)
                 fRet = FALSE;
                 //perror("pthread_setschedparam");
                 //RIL_LOG_CRITICAL("CThread::SetPriority() - ERROR: pthread_setschedparam returned failed response: %d\r\n", nRes);
+                //RIL_LOG_CRITICAL("CThread::SetPriority() - ERROR: errno=[%d],[%s]\r\n", errno, strerror(errno));
             }
         }
         else

@@ -40,9 +40,6 @@ class CRadioState
 private:
     BOOL                m_rgRadioState[RRIL_RADIO_STATE_TOTAL];
     BOOL                m_fAllowPowerStateChange;
-    RADIO_STATE_INDEX   m_LastStateSet;
-
-    BOOL                IsRadioStateChanged(RADIO_STATE_INDEX lastState);
 
 public:
 
@@ -87,7 +84,7 @@ public:
     void    EnablePowerStateChange();
     BOOL    IsPowerStateChangeable()    { return m_fAllowPowerStateChange; }
 
-    BOOL&   IsRadioOff()            { return m_rgRadioState[RRIL_RADIO_STATE_OFF]; }
+    BOOL    IsRadioOff()            { return m_rgRadioState[RRIL_RADIO_STATE_OFF]; }
     BOOL    IsRadioUnavailable()    { return m_rgRadioState[RRIL_RADIO_STATE_UNAVAILABLE]; }
     BOOL    IsRadioSMSReady()       { return m_rgRadioState[RRIL_RADIO_STATE_SMS_READY]; }
     BOOL    IsRadioSIMPBReady()     { return m_rgRadioState[RRIL_RADIO_STATE_SIM_PB_READY]; }

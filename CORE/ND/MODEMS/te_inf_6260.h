@@ -1,12 +1,12 @@
 ////////////////////////////////////////////////////////////////////////////
-// te_inf_n721.h
+// te_inf_6260.h
 //
 // Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
 //
 //
 // Description:
-//    Overlay for the Infineon N721 modem
+//    Overlay for the Infineon 6260 modem
 //
 // Author:  Francesc J. Vilarino Guell
 // Created: 2009-12-11
@@ -20,20 +20,20 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef RRIL_TE_INF_N721_H
-#define RRIL_TE_INF_N721_H
+#ifndef RRIL_TE_INF_6260_H
+#define RRIL_TE_INF_6260_H
 
 #include "te_base.h"
 #include "rril.h"
 
 class CEvent;
 
-class CTE_INF_N721 : public CTEBase
+class CTE_INF_6260 : public CTEBase
 {
 public:
 
-    CTE_INF_N721();
-    virtual ~CTE_INF_N721();
+    CTE_INF_6260();
+    virtual ~CTE_INF_6260();
 
 private:
     int m_nCurrentNetworkType;

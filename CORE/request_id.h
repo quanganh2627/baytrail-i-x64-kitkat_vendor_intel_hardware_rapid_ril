@@ -282,7 +282,8 @@ enum ND_REQ_ID_ID {
     ND_REQ_ID_GETIPADDRESS,                        // 103
     ND_REQ_ID_GETDNS,                              // 104
     ND_REQ_ID_QUERYPIN2,                           // 105
-    ND_REQ_ID_TOTAL                                // 106
+    ND_REQ_ID_PDPCONTEXTLIST_UNSOL,                // 106
+    ND_REQ_ID_TOTAL                                // 107
 };
 
 

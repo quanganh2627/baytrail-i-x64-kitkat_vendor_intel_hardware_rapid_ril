@@ -35,7 +35,7 @@
 #include "rildmain.h"
 #include "silo_network.h"
 #include "channel_data.h"
-#include "te_inf_n721.h"
+#include "te_inf_6260.h"
 
 
 //
@@ -89,8 +89,37 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         (RRIL_RESULT_ERROR == rpRsp->GetResultCode()) &&
         (RADIO_STATE_SIM_LOCKED_OR_ABSENT == g_RadioState.GetRadioState()))
     {
-        RIL_LOG_INFO("PostParseResponseHook() - INFO: Override generic error with OK as modem is pin locked\r\n");
+        RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - INFO: Override GET CURRENT CALLS error with OK as SIM is locked or absent\r\n");
         rpRsp->SetResultCode(RRIL_RESULT_OK);
+    }
+    else if ((ND_REQ_ID_PDPCONTEXTLIST_UNSOL == rpCmd->GetRequestID()) &&
+             (RRIL_RESULT_ERROR == rpRsp->GetResultCode()) &&
+             (10 == rpRsp->GetErrorCode()))  // CME ERROR: 10 = SIM absent
+    {
+        RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - INFO: Override REQUEST PDP CONTEXT LIST error with OK as SIM is locked or absent\r\n");
+        rpRsp->SetResultCode(RRIL_RESULT_OK);
+
+        //  Bring down data context internally.
+        CChannel_Data* pChannelData = NULL;
+
+        for (int i = RIL_CHANNEL_DATA1; i < RIL_CHANNEL_MAX; i++)
+        {
+            if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+                continue;
+
+            CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+            if (pChannelData)
+            {
+                RIL_LOG_INFO("TriggerRadioError() - Setting chnl=[%d] contextID to 0\r\n", i);
+                pChannelData->SetContextID(0);
+            }
+        }
+
+        DataConfigDown();
+
+        RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
+
+
     }
 
     return TRUE;

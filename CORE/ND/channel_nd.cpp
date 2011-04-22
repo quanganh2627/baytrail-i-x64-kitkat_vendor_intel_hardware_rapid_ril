@@ -181,21 +181,6 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
 
     }
 
-    /************** ALL THIS SHOULD BE IN A CONTEXT, IF REQUIRED *************/
-#if 0
-#ifdef GPRS_CONTEXT_CACHING
-    if ((ND_REQ_ID_SETUPDEFAULTPDP == rpCmd->GetReqID()) &&
-        (!rpCmd->FNoOp()) &&
-        (RRIL_RESULT_OK == pResponse->GetNotifyCode()))
-    {
-        // We just set the GPRS context.  Don't set the same context again
-        // unless the radio reboots.
-        // NOTE: We assume pCmdData is a valid string here!
-        UpdateGPRSContextCommandCache((BYTE*)pCmdData);
-    }
-#endif // GPRS_CONTEXT_CACHING
-
-#endif  // 0
 
     // Handle the response
     // TODO: fix these dummies
@@ -249,20 +234,6 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         nCount++;
         RIL_LOG_INFO("COUNT = %d\r\n", nCount);
         if (nCount == 4)
-        {
-            TriggerRadioErrorAsync(eRadioError_ChannelDead, __LINE__, __FILE__);
-            goto Error;
-        }
-    }
-#endif // 0
-
-#if 0
-    static int nCount = 0;
-    if (ND_REQ_ID_SCREENSTATE == rpCmd->GetRequestID())
-    {
-        nCount++;
-        RIL_LOG_INFO("COUNT = %d\r\n", nCount);
-        if (nCount == 2)
         {
             TriggerRadioErrorAsync(eRadioError_ChannelDead, __LINE__, __FILE__);
             goto Error;
@@ -460,48 +431,6 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHung
         rpCmd->GetContext()->Execute(RIL_E_SUCCESS == rpRsp->GetResultCode(), rpRsp->GetErrorCode());
     }
 
-    /******** MOVE TO CMD CONTEXT *********/
-#if 0
-
-
-    // If we got a CONNECT response, it must be a response to successful ATD or ATA -- change it to OK
-    if (RRIL_NOTIFY_CONNECT == rpRsp->GetNotifyCode())
-    {
-        CRepository repository;
-
-        rpRsp->ConnectToOK();
-
-        // Some networks seem to require a brief delay after a data connection is made
-        // before data can be sent via the connection. We pause here before sending the
-        // connect response to the client. The delay is configured using a registry value.
-        // If the value is not present, then there is no delay.
-
-        int iTemp = 0;
-
-        if (repository.Read(g_szGroupNetworkSettings, g_szConnectRspDelay, iTemp))
-        {
-            RIL_LOG_INFO("CChannel::HandleRsp() : chnl=[%d] BEGIN ConnectResponseDelay Sleep(%d)\r\n", m_uiRilChannel, iTemp);
-            Sleep(iTemp);
-            RIL_LOG_INFO("CChannel::HandleRsp() : chnl=[%d] END ConnectResponseDelay Sleep(%d)\r\n", m_uiRilChannel, iTemp);
-        }
-    }
-    else
-    {
-        // For non-CONNECT responses, if we have a notification to send upon success, do it now
-        pnd = rpCmd->GiveUpNotificationData();
-        if (pnd)
-        {
-            if (RRIL_RESULT_OK == rpRsp->GetNotifyCode() &&
-               (!pnd->FDelayedInitFromRsp() || pnd->FinishInitFromRspBlob(*rpRsp)))
-            {
-                RIL_LOG_INFO("CChannel::HandleRsp() : chnl=[%d] Broadcasting Notification: 0x%08X\r\n", m_uiRilChannel, pnd->GetCode());
-                RIL_onUnsolicitedResponse(pnd->GetCode(), pnd->GetBlob(), pnd->GetSize());
-            }
-            delete pnd;
-            pnd = NULL;
-        }
-    }
-#endif  // 0
 
     // Forward the response we got to the handle that sent the command
     //  Call our hook

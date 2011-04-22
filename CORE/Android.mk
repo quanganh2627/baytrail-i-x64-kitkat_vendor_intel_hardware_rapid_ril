@@ -45,7 +45,7 @@ LOCAL_SRC_FILES:= \
     request_info_table.cpp \
     thread_manager.cpp \
     ND/silo_factory.cpp \
-    ND/MODEMS/te_inf_n721.cpp \
+    ND/MODEMS/te_inf_6260.cpp \
     ND/MODEMS/silo_voice_inf.cpp \
     ND/MODEMS/silo_sim_inf.cpp \
     ND/MODEMS/silo_sms_inf.cpp \
@@ -56,19 +56,15 @@ LOCAL_SRC_FILES:= \
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils
 
-LOCAL_CFLAGS = -DRIL_RADIO_RESILIENCE
 LOCAL_CFLAGS += -DDEBUG
 LOCAL_CFLAGS += -DRIL_ENABLE_CHANNEL_DATA1
 LOCAL_CFLAGS += -DRIL_ENABLE_SIMTK
-
 LOCAL_CFLAGS += -DUSE_STK_RAW_MODE
 
-#include this if you want a TIMEBOMB.
-#LOCAL_CFLAGS += -DTIMEBOMB
 
 LOCAL_C_INCLUDES :=  \
     $(KERNEL_HEADERS) \
-    hardware/intel/linux-2.6/ \
+    hardware/intel/linux-2.6 \
     $(LOCAL_PATH)/ND  \
     $(LOCAL_PATH)/ND/MODEMS  \
     $(LOCAL_PATH)/MODEMS  \

@@ -146,6 +146,7 @@ extern const char   g_szGroupModem[];
 extern const char   g_szSupportedModem[];
 extern const char   g_szNetworkInterfaceName[];
 extern const char   g_szDisableModemReset[];
+extern const char   g_szDisableCoreDump[];
 
 //////////////////////////////////////////////////////////////////////////
 

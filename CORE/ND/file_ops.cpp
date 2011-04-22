@@ -121,7 +121,6 @@ BOOL CFile::Open(   const char * pszFileName,
 
             case FILE_ACCESS_READ_WRITE:
             {
-                RIL_LOG_INFO("--- FILE_ACCESS_READ_WRITE --- Pranav\r\n ");
                 //iAttr = O_RDWR;
                 iAttr = CLOCAL | O_NONBLOCK | O_RDWR;       // Pranav
                 break;

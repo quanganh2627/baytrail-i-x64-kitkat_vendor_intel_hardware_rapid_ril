@@ -25,7 +25,7 @@
 #define RRIL_TE_H
 
 #include "te_base.h"
-#include "te_inf_n721.h"
+#include "te_inf_6260.h"
 #include "te_oem.h"
 #include "rril.h"
 

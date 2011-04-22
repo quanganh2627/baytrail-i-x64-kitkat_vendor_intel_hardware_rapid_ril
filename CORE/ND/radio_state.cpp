@@ -38,7 +38,6 @@ CRadioState::CRadioState()
     m_rgRadioState[RRIL_RADIO_STATE_SIM_LOCKED_OR_ABSENT]    = FALSE;
     m_rgRadioState[RRIL_RADIO_STATE_SIM_READY]               = FALSE;
 
-    m_LastStateSet = RRIL_RADIO_STATE_OFF;
     m_fAllowPowerStateChange = TRUE;
 
     RIL_LOG_VERBOSE("CRadioState::CRadioState() - Exit\r\n");
@@ -101,10 +100,7 @@ void CRadioState::SetRadioOff()
     m_rgRadioState[RRIL_RADIO_STATE_SIM_LOCKED_OR_ABSENT]    = FALSE;
     m_rgRadioState[RRIL_RADIO_STATE_SIM_READY]               = FALSE;
 
-    if (IsRadioStateChanged(RRIL_RADIO_STATE_OFF))
-    {
-        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
-    }
+    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -136,10 +132,8 @@ void CRadioState::SetRadioUnavailable(BOOL fResetState)
         m_rgRadioState[RRIL_RADIO_STATE_SIM_PB_READY]        = FALSE;
     }
 
-    if (IsRadioStateChanged(RRIL_RADIO_STATE_UNAVAILABLE))
-    {
-        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
-    }
+    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -196,29 +190,7 @@ void CRadioState::SetRadioSIMReady()
     m_rgRadioState[RRIL_RADIO_STATE_UNAVAILABLE]             = FALSE;
     m_rgRadioState[RRIL_RADIO_STATE_SIM_READY]               = TRUE;
 
-    if (IsRadioStateChanged(RRIL_RADIO_STATE_SIM_READY))
-    {
-        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-BOOL CRadioState::IsRadioStateChanged(RADIO_STATE_INDEX newState)
-{
-    BOOL fRet = FALSE;
-
-    if (newState != m_LastStateSet)
-    {
-        RIL_LOG_INFO("IsRadioStateChanged() - State has changed, sending notification!\r\n");
-        m_LastStateSet = newState;
-        fRet = TRUE;
-    }
-    else
-    {
-        RIL_LOG_INFO("IsRadioStateChanged() - State has not changed, ignoring update\r\n");
-    }
-
-    return fRet;
+    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

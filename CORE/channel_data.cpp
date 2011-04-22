@@ -35,10 +35,10 @@ extern BOOL  g_bIsSocket;
 
 //  Init commands for this channel.
 //  GPRS/UMTS data (1st primary context)
-INITSTRING_DATA DataBasicInitString = { "E0V1Q0X4|S0=0|+CMEE=1", 0 };
-INITSTRING_DATA DataUnlockInitString = { "", 0 };
-INITSTRING_DATA DataPowerOnInitString = { "", 0 };
-INITSTRING_DATA DataReadyInitString = { "", 0 };
+INITSTRING_DATA DataBasicInitString = { "E0V1Q0X4|S0=0|+CMEE=1" };
+INITSTRING_DATA DataUnlockInitString = { "" };
+INITSTRING_DATA DataPowerOnInitString = { "" };
+INITSTRING_DATA DataReadyInitString = { "" };
 
 CChannel_Data::CChannel_Data(UINT32 uiChannel)
 :   CChannel(uiChannel),

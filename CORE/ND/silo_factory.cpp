@@ -32,7 +32,7 @@
 #include "silo_factory.h"
 
 // constants
-static const BYTE* const    szInfineonN721       = "InfineonN721";
+static const BYTE* const    szInfineon6260       = "Infineon6260";
 static const UINT32         uiMaxModemNameLen    = 64;
 
 
@@ -46,7 +46,7 @@ CSilo* CSilo_Factory::GetSiloVoice(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineon6260))
             pSilo = new CSilo_Voice_INF(pChannel);
     }
 
@@ -70,7 +70,7 @@ CSilo* CSilo_Factory::GetSiloSIM(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineon6260))
             pSilo = new CSilo_SIM_INF(pChannel);
     }
 
@@ -94,7 +94,7 @@ CSilo* CSilo_Factory::GetSiloSMS(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineon6260))
             pSilo = new CSilo_SMS_INF(pChannel);
     }
 
@@ -118,7 +118,7 @@ CSilo* CSilo_Factory::GetSiloData(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineon6260))
             pSilo = new CSilo_Data_INF(pChannel);
     }
 
@@ -142,7 +142,7 @@ CSilo* CSilo_Factory::GetSiloNetwork(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineon6260))
             pSilo = new CSilo_Network_INF(pChannel);
     }
 
@@ -166,7 +166,7 @@ CSilo* CSilo_Factory::GetSiloPhonebook(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        if (0 == strcmp(szModem, szInfineonN721))
+        if (0 == strcmp(szModem, szInfineon6260))
             pSilo = new CSilo_Phonebook_INF(pChannel);
     }
 

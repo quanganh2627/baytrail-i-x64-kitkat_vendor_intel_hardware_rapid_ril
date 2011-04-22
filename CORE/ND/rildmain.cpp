@@ -49,6 +49,17 @@
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
 
+//  Core dump
+#include <include/linux/hsi/hsi_ffl_tty.h>
+//  reasons for hanging up tty
+//  THIS IS TEMP
+enum
+{
+    HU_TIMEOUT = 1,
+    HU_RESET = 2,
+    HU_COREDUMP = 4,
+};
+
 ///////////////////////////////////////////////////////////
 //  FUNCTION PROTOTYPES
 //
@@ -59,23 +70,10 @@ static int onSupports(int requestCode);
 static void onCancel(RIL_Token t);
 static const BYTE* getVersion();
 
-#ifdef TIMEBOMB
-static void StartTimeBomb(unsigned int nTimeMs);
-#endif
 
 ///////////////////////////////////////////////////////////
 //  GLOBAL VARIABLES
 //
-
-#ifdef TIMEBOMB
-
-#define TIMEBOMB_DELAY_MINUTES 120
-
-volatile bool g_bSetTimebomb = false;
-static void*    TimebombThreadProc(void *pArg);
-
-#endif
-
 
 BYTE* g_szCmdPort  = NULL;
 BOOL  g_bIsSocket = FALSE;
@@ -105,16 +103,171 @@ static const RIL_RadioFunctions gs_callbacks =
     getVersion
 };
 
-#ifdef RIL_SHLIB
+
 
 static const struct RIL_Env * gs_pRilEnv;
 
-#endif // RIL_SHLIB
+
 
 
 ///////////////////////////////////////////////////////////
 // FUNCTION DEFINITIONS
 //
+
+//  When watchdog thread has detected a POLLHUP signal,
+//  call this function to see if the reason is core dump.
+//
+//  If the repository value of "DisableCoreDump" is >= 1, then
+//  skip this function.
+//
+//  return TRUE if reason is core dump
+//  return FALSE if not
+BOOL CheckForCoreDumpFlag(void)
+{
+    BOOL bRet = FALSE;
+    int fdIfx = -1;
+    int nRet = -1;
+    int nReason = 0;
+    const BYTE pszFileNameIFX[] = "/dev/ttyIFX0";
+
+    //  Check repository first
+    {
+        CRepository repository;
+        int nVal = 0;
+
+        if (repository.Read(g_szGroupModem, g_szDisableCoreDump, nVal))
+        {
+            if (nVal > 0)
+            {
+                //  Don't support core dump
+                RIL_LOG_CRITICAL("CheckForCoreDumpFlag() - CORE DUMP NOT SUPPORTED!!  nVal=[%d]\r\n", nVal);
+                return FALSE;
+            }
+        }
+    }
+
+    RIL_LOG_INFO("CheckForCoreDumpFlag() - Enter\r\n");
+
+    fdIfx = open(pszFileNameIFX, O_RDONLY);
+    if (fdIfx < 0)
+    {
+        RIL_LOG_CRITICAL("CheckForCoreDumpFlag() - Cannot open port [%s]  errno=[%d],[%s]\r\n", pszFileNameIFX, errno, strerror(errno));
+        bRet = FALSE;
+    }
+    else
+    {
+        //  Port open successful
+        RIL_LOG_INFO("CheckForCoreDumpFlag() - Open port=[%s]\r\n", pszFileNameIFX);
+        nRet = ioctl(fdIfx, FFL_TTY_GET_HANGUP_REASON, &nReason);
+        if (nRet < 0)
+        {
+            // ioctl error occured
+            RIL_LOG_CRITICAL("CheckForCoreDumpFlag() - IOCTL FAILED on port=[%s]\r\n", pszFileNameIFX);
+            bRet = FALSE;
+        }
+        else
+        {
+            //  ioctl OK
+            RIL_LOG_INFO("CheckForCoreDumpFlag() - IOCTL OK, nReason=[0x%08X]\r\n", nReason);
+
+            if (HU_COREDUMP & nReason)
+            {
+                RIL_LOG_INFO("CheckForCoreDumpFlag() - COREDUMP flag set\r\n");
+
+                bRet = TRUE;
+            }
+        }
+    }
+
+    if (fdIfx >= 0)
+    {
+        RIL_LOG_INFO("CheckForCoreDumpFlag() - Closing port=[%s]\r\n", pszFileNameIFX);
+        close(fdIfx);
+        fdIfx = -1;
+    }
+
+    RIL_LOG_INFO("CheckForCoreDumpFlag() - Exit  bRet=[%d]\r\n", (int)bRet);
+    return bRet;
+}
+
+//  This function is called to handle all core dump functionality
+BOOL HandleCoreDump(int& fdGsm)
+{
+    RIL_LOG_INFO("HandleCoreDump() - Enter\r\n");
+
+    BOOL bRet = TRUE;
+    int nPoll = 0;
+    struct pollfd fds[1] = { {0,0,0} };
+    int numFds = sizeof(fds)/sizeof(fds[0]);
+    int timeout_msecs = 1000;
+    int nRetries = 30, nCount = 0;  //  loop for 30 secs
+    char szProp[MAX_BUFFER_SIZE] = {0};
+    char szCoreDumpProperty[] = "CMCDDLD_RC";
+
+    //  Launch Core Dump Download Manager
+    RIL_LOG_INFO("HandleCoreDump() - Launch Core dump service\r\n");
+    property_set("ctl.start","coredump_svc");
+
+    for (nCount = 0; nCount <= nRetries; nCount++)
+    {
+        //  Meantime, call poll again.
+
+        fds[0].fd = fdGsm;
+
+        //  If we're past 30 secs, just call poll with infinite value
+        if (nCount >= 30)
+        {
+            timeout_msecs = -1;
+        }
+
+        RIL_LOG_INFO("HandleCoreDump() - calling poll  msec=[%d]  try=[%d]\r\n", timeout_msecs, nCount);
+        nPoll = poll(fds, numFds, timeout_msecs);
+        if (nPoll < 0)
+        {
+            RIL_LOG_CRITICAL("HandleCoreDump() - ERROR on poll - errno=[%d],[%s]\r\n", errno, strerror(errno));
+            bRet = FALSE;
+            goto Done;
+        }
+        else if (0 == nPoll)
+        {
+            //  got timeout
+
+            //  Let's see what the property value is
+            property_get(szCoreDumpProperty, szProp, "");
+
+            RIL_LOG_INFO("HandleCoreDump() - timeout! szProp=[%s]\r\n", szProp);
+        }
+        else
+        {
+            //  We got an event
+            for (int i = 0; i < numFds; i++)
+            {
+                if (fds[i].revents & POLLHUP)
+                {
+                    // A hangup has occurred on device number i
+                    RIL_LOG_INFO("HandleCoreDump() - hangup event on fd[%d]\r\n", i);
+
+                    //  Close port before triggering error
+                    if (fdGsm >= 0)
+                    {
+                        RIL_LOG_INFO("WatchdogThreadProc() - Close port=[%s]\r\n", g_szCmdPort);
+                        close(fdGsm);
+                        fdGsm = -1;
+                    }
+
+                    //  Trigger the error
+                    TriggerRadioError(eRadioError_ModemInitiatedCrash, __LINE__, __FILE__);
+                }
+            }
+
+        }
+
+    }
+
+Done:
+    RIL_LOG_INFO("HandleCoreDump() - Exit  bRet=[%d]\r\n", (int)bRet);
+    return bRet;
+}
 
 //
 // This thread waits for a device hangup event before triggering
@@ -124,36 +277,43 @@ void* WatchdogThreadProc(void* pVoid)
 {
     RIL_LOG_INFO("WatchdogThreadStart() - Enter\r\n");
     struct pollfd fds[1] = { {0,0,0} };
-    UINT32 numFds = sizeof(fds)/sizeof(fds[0]);
+    int numFds = sizeof(fds)/sizeof(fds[0]);
     int timeout_msecs = -1; // infinite timeout
-    int fd = 0;
+    int fdGsm = -1;
     int ret = -1;
-    UINT32 i = 0;
-    const BYTE pszFileName[] = "/dev/gsmtty1";
+    int i = 0;
+    //const BYTE pszFileNameGsm[] = "/dev/gsmtty1";
     const UINT32 uiInterval = 2000;
     UINT32 uiAttempts = 0;
+
+    if ( (NULL == g_szCmdPort) || (0 == strlen(g_szCmdPort)) )
+    {
+        RIL_LOG_CRITICAL("WatchdogThreadProc() - g_szCmdPort = 0\r\n");
+        return NULL;
+    }
 
     Sleep(100);
 
     while (TRUE)
     {
         // open tty device
-        RIL_LOG_INFO("WatchdogThreadProc() - opening port=[%s].....\r\n", pszFileName);
-        fd = open(pszFileName, O_RDWR | CLOCAL | O_NONBLOCK);
-        if (fd)
+        RIL_LOG_INFO("WatchdogThreadProc() - opening port=[%s].....\r\n", g_szCmdPort);
+        fdGsm = open(g_szCmdPort, O_RDONLY);
+        if (fdGsm >= 0)
         {
-            RIL_LOG_INFO("WatchdogThreadProc() - open %s successful\r\n", pszFileName);
+            RIL_LOG_INFO("WatchdogThreadProc() - open %s successful\r\n", g_szCmdPort);
             break;
         }
         else
         {
             ++uiAttempts;
             RIL_LOG_CRITICAL("WatchdogThreadProc() : ERROR : open failed, attempt %d\r\n", uiAttempts);
+            RIL_LOG_CRITICAL("WatchdogThreadProc() : ERROR : errno=[%d],[%s]\r\n", errno, strerror(errno));
             Sleep(uiInterval);
         }
     }
 
-    fds[0].fd = fd;
+    fds[0].fd = fdGsm;
 
     // block until event occurs
     ret = poll(fds, numFds, timeout_msecs);
@@ -162,16 +322,55 @@ void* WatchdogThreadProc(void* pVoid)
         // An event on one of the fds has occurred
         for (i = 0; i < numFds; i++)
         {
-            RIL_LOG_INFO("WatchdogThreadProc() - got event on fd[%d]\r\n", i);
 
             if (fds[i].revents & POLLHUP)
             {
                 // A hangup has occurred on device number i
                 RIL_LOG_INFO("WatchdogThreadProc() - hangup event on fd[%d]\r\n", i);
 
+                //  Check for core-dump flag
+                if (CheckForCoreDumpFlag())
+                {
+                    if (!HandleCoreDump(fdGsm))
+                    {
+                        RIL_LOG_CRITICAL("WatchdogThreadProc() - HandleCoreDump FAILED!!\r\n");
+                    }
+                    else
+                    {
+                        RIL_LOG_INFO("WatchdogThreadProc() - HandleCoreDump OK!\r\n");
+                    }
+                }
+                else
+                {
+                    //  No core dump flag
+                    RIL_LOG_INFO("WatchdogThreadProc() - No core dump flag set or not supported\r\n");
+                }
+
+
+                //  Close port before triggering error
+                if (fdGsm >= 0)
+                {
+                    RIL_LOG_INFO("WatchdogThreadProc() - Close port=[%s]\r\n", g_szCmdPort);
+                    close(fdGsm);
+                    fdGsm = -1;
+                }
+
+                //  Trigger the error
                 TriggerRadioError(eRadioError_ModemInitiatedCrash, __LINE__, __FILE__);
             }
+            else
+            {
+                //  Not POLLHUP
+                RIL_LOG_CRITICAL("WatchdogThreadProc() - NO HANGUP!! Event is = [0x%08X] on fd[%d]\r\n", fds[i].revents, i);
+            }
         }
+    }
+
+    if (fdGsm >= 0)
+    {
+        RIL_LOG_INFO("WatchdogThreadProc() - Close port=[%s]\r\n", g_szCmdPort);
+        close(fdGsm);
+        fdGsm = -1;
     }
 
     RIL_LOG_INFO("WatchdogThreadStart() - Exit\r\n");
@@ -209,78 +408,16 @@ Error:
     return bResult;
 }
 
-#ifdef TIMEBOMB
-
-
-bool StartTimebomb(unsigned int nSleep)
-{
-    CThread* pTimebombThread = new CThread(TimebombThreadProc, (void*)nSleep, THREAD_FLAGS_NONE, 0);
-    if (!pTimebombThread || !CThread::IsRunning(pTimebombThread))
-    {
-        RIL_LOG_CRITICAL("StartTimebomb() - ERROR: Unable to launch Timebomb thread\r\n");
-        return false;
-    }
-
-    delete pTimebombThread;
-    pTimebombThread = NULL;
-
-    return true;
-}
-
-static void*    TimebombThreadProc(void *pArg)
-{
-    unsigned int nDelay = (unsigned int) pArg;
-
-    Sleep(1000 * 60 * nDelay);
-
-    g_bSetTimebomb = true;
-
-    return NULL;
-}
-
-void CheckTimebomb()
-{
-    if (g_bSetTimebomb)
-    {
-        RIL_LOG_CRITICAL("\r\n\r\nYour Demonstration time has expired.\r\n");
-        RIL_LOG_CRITICAL("Please contact a sales representative at www.intrinsyc.com to purchase your production software.\r\n\r\n\r\n");
-
-        for (int i=7346; i<3567478; i++)
-        {
-            int tmp = 0;
-            int tmp2 = 0;
-            tmp += 703351;
-            for (int j=560; j<115429; j++)
-            {
-                tmp2 += 33357;
-                while(1)
-                {
-                    Sleep(0xDCC908F2);
-                }
-            }
-        }
-        exit(5);
-    }
-}
-#endif
 
 void RIL_onRequestComplete(RIL_Token tRIL, RIL_Errno eErrNo, void *pResponse, size_t responseLen)
 {
-#ifdef RIL_SHLIB
-    //RIL_LOG_INFO("Calling gs_pRilEnv->OnRequestComplete(): token=0x%08x, eErrNo=%d, pResponse=[0x%08x], len=[%d]\r\n", tRIL, eErrNo, pResponse, responseLen);
     gs_pRilEnv->OnRequestComplete(tRIL, eErrNo, pResponse, responseLen);
     RIL_LOG_INFO("After OnRequestComplete(): token=0x%08x, eErrNo=%d, pResponse=[0x%08x], len=[%d]\r\n", tRIL, eErrNo, pResponse, responseLen);
-#endif // RIL_SHLIB
 }
 
 void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t dataSize)
 {
-#ifdef RIL_SHLIB
     bool bSendNotification = true;
-
-#ifdef TIMEBOMB
-    CheckTimebomb();
-#endif
 
     switch (unsolResponseID)
     {
@@ -539,12 +676,10 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
     {
         RIL_LOG_INFO("RIL_onUnsolicitedResponse() - ignoring id=%d\r\n", unsolResponseID);
     }
-#endif // RIL_SHLIB
 }
 
 void RIL_requestTimedCallback(RIL_TimedCallback callback, void * pParam, const struct timeval * pRelativeTime)
 {
-#ifdef RIL_SHLIB
     if (pRelativeTime)
     {
         RIL_LOG_INFO("Calling gs_pRilEnv->RequestTimedCallback() timeval sec=[%d]  usec=[%d]\r\n", pRelativeTime->tv_sec, pRelativeTime->tv_usec);
@@ -554,18 +689,15 @@ void RIL_requestTimedCallback(RIL_TimedCallback callback, void * pParam, const s
         RIL_LOG_INFO("Calling gs_pRilEnv->RequestTimedCallback() timeval sec=[0]  usec=[0]\r\n");
     }
     gs_pRilEnv->RequestTimedCallback(callback, pParam, pRelativeTime);
-#endif // RIL_SHLIB
 }
 
 void RIL_requestTimedCallback(RIL_TimedCallback callback, void * pParam, const unsigned long seconds, const unsigned long microSeconds)
 {
-#ifdef RIL_SHLIB
     RIL_LOG_INFO("Calling gs_pRilEnv->RequestTimedCallback() sec=[%d]  usec=[%d]\r\n", seconds, microSeconds);
     struct timeval myTimeval = {0,0};
     myTimeval.tv_sec = seconds;
     myTimeval.tv_usec = microSeconds;
     gs_pRilEnv->RequestTimedCallback(callback, pParam, &myTimeval);
-#endif // RIL_SHLIB
 }
 
 /**
@@ -585,9 +717,6 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
     RIL_Errno eRetVal = RIL_E_SUCCESS;
     RIL_LOG_INFO("onRequest() - id=%d token: 0x%08x\r\n", requestID, (int) hRilToken);
 
-#ifdef TIMEBOMB
-    CheckTimebomb();
-#endif
 
     //  TEMP Jan 6/2011- If modem dead flag is set, then simply return error without going through rest of RRIL.
     if (g_bIsModemDead)
@@ -1401,139 +1530,6 @@ static int onSupports(int requestCode)
     int nSupport = 0;
     RIL_LOG_INFO("onSupports() - Request [%d]\r\n", requestCode);
 
-#if 0
-    switch (requestCode)
-    {
-        case RIL_REQUEST_GET_SIM_STATUS:  // 1
-        case RIL_REQUEST_ENTER_SIM_PIN:  // 2
-        case RIL_REQUEST_ENTER_SIM_PUK:  // 3
-        case RIL_REQUEST_ENTER_SIM_PIN2:  // 4
-        case RIL_REQUEST_ENTER_SIM_PUK2:  // 5
-        case RIL_REQUEST_CHANGE_SIM_PIN:  // 6
-        case RIL_REQUEST_CHANGE_SIM_PIN2:  // 7
-        case RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION:  // 8
-        case RIL_REQUEST_GET_CURRENT_CALLS:  // 9
-
-        case RIL_REQUEST_DIAL:  // 10
-        case RIL_REQUEST_GET_IMSI:  //  11
-        case RIL_REQUEST_HANGUP:  // 12
-        case RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND:  // 13
-        case RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND:  // 14
-        case RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE:  // 15
-        case RIL_REQUEST_CONFERENCE:  // 16
-        case RIL_REQUEST_UDUB:  // 17
-        case RIL_REQUEST_LAST_CALL_FAIL_CAUSE:  // 18
-        case RIL_REQUEST_SIGNAL_STRENGTH:  // 19
-
-        case RIL_REQUEST_REGISTRATION_STATE:  // 20
-        case RIL_REQUEST_GPRS_REGISTRATION_STATE:  // 21
-        case RIL_REQUEST_OPERATOR:  // 22
-        case RIL_REQUEST_RADIO_POWER:  // 23
-        case RIL_REQUEST_DTMF:  // 24
-        case RIL_REQUEST_SEND_SMS:  // 25
-        case RIL_REQUEST_SEND_SMS_EXPECT_MORE:  // 26
-        case RIL_REQUEST_SETUP_DATA_CALL:  // 27
-        case RIL_REQUEST_SIM_IO:  // 28
-        case RIL_REQUEST_SEND_USSD:  // 29
-
-        case RIL_REQUEST_CANCEL_USSD:  // 30
-        case RIL_REQUEST_GET_CLIR:  // 31
-        case RIL_REQUEST_SET_CLIR:  // 32
-        case RIL_REQUEST_QUERY_CALL_FORWARD_STATUS:  // 33
-        case RIL_REQUEST_SET_CALL_FORWARD:  // 34
-        case RIL_REQUEST_QUERY_CALL_WAITING:  // 35
-        case RIL_REQUEST_SET_CALL_WAITING:  // 36
-        case RIL_REQUEST_SMS_ACKNOWLEDGE:  // 37
-        case RIL_REQUEST_GET_IMEI:  // 38
-        case RIL_REQUEST_GET_IMEISV:  // 39
-
-        case RIL_REQUEST_ANSWER:  // 40
-        case RIL_REQUEST_DEACTIVATE_DATA_CALL:  // 41
-        case RIL_REQUEST_QUERY_FACILITY_LOCK:  // 42
-        case RIL_REQUEST_SET_FACILITY_LOCK:  // 43
-        case RIL_REQUEST_CHANGE_BARRING_PASSWORD:  // 44
-        case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:  // 45
-        case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC:  // 46
-        case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:  // 47
-        case RIL_REQUEST_QUERY_AVAILABLE_NETWORKS:  // 48
-        case RIL_REQUEST_DTMF_START:  // 49
-
-        case RIL_REQUEST_DTMF_STOP:  // 50
-        case RIL_REQUEST_BASEBAND_VERSION:  // 51
-        case RIL_REQUEST_SEPARATE_CONNECTION:  // 52
-        case RIL_REQUEST_SET_MUTE:  // 53
-        case RIL_REQUEST_GET_MUTE:  // 54
-        case RIL_REQUEST_QUERY_CLIP:  // 55
-        case RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE:  // 56
-        case RIL_REQUEST_DATA_CALL_LIST:  // 57
-
-        case RIL_REQUEST_OEM_HOOK_STRINGS:  // 60
-        case RIL_REQUEST_SCREEN_STATE:  // 61
-        case RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION:  // 62
-        case RIL_REQUEST_WRITE_SMS_TO_SIM:  // 63
-        case RIL_REQUEST_DELETE_SMS_ON_SIM:  // 64
-        case RIL_REQUEST_SET_BAND_MODE:  // 65
-        case RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE:  // 66
-        case RIL_REQUEST_STK_GET_PROFILE:  // 67
-        case RIL_REQUEST_STK_SET_PROFILE:  // 68
-        case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:  // 69
-
-        case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:  // 70
-        case RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM:  // 71
-        case RIL_REQUEST_EXPLICIT_CALL_TRANSFER:  // 72
-        case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:  // 73
-        case RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE:  // 74
-        case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:  // 75
-        case RIL_REQUEST_SET_LOCATION_UPDATES:  // 76
-
-        case RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG:  // 89
-
-        case RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG:  // 90
-        case RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION:  // 91
-
-        case RIL_REQUEST_GET_SMSC_ADDRESS:  // 100
-        case RIL_REQUEST_SET_SMSC_ADDRESS:  // 101
-        case RIL_REQUEST_REPORT_SMS_MEMORY_STATUS:  // 102
-        case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:  // 103
-            nSupport = 1;
-            break;
-
-        case RIL_REQUEST_RESET_RADIO:  // 58
-        case RIL_REQUEST_OEM_HOOK_RAW:  // 59
-
-        case RIL_REQUEST_CDMA_SET_SUBSCRIPTION:  // 77 - CDMA
-        case RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE:  // 78 - CDMA
-        case RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE:  // 79 - CDMA
-
-        case RIL_REQUEST_SET_TTY_MODE:  // 80
-        case RIL_REQUEST_QUERY_TTY_MODE:  // 81
-        case RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE:  // 82 - CDMA
-        case RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE:  // 83 - CDMA
-        case RIL_REQUEST_CDMA_FLASH:  // 84 - CDMA
-        case RIL_REQUEST_CDMA_BURST_DTMF:  // 85 - CDMA
-        case RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY:  // 86 - CDMA
-        case RIL_REQUEST_CDMA_SEND_SMS:  // 87 - CDMA
-        case RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE:  // 88 - CDMA
-
-        case RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG:  // 92 - CDMA
-        case RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG:  // 93 - CDMA
-        case RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION:  // 94 - CDMA
-        case RIL_REQUEST_CDMA_SUBSCRIPTION:  // 95 - CDMA
-        case RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM:  // 96 - CDMA
-        case RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM:  // 97 - CDMA
-        case RIL_REQUEST_DEVICE_IDENTITY:  // 98
-        case RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE:  // 99
-
-            RIL_LOG_INFO("onSupports() - Request [%d] NOT supported\r\n", requestCode);
-            nSupport = 0;
-            break;
-
-        default:
-            RIL_LOG_WARNING("onSupports() - WARNING - Unknown Request ID=0x%08X\r\n", requestCode);
-            nSupport = 0;
-            break;
-    }
-#endif // 0
     nSupport = 1;
     return nSupport;
 }
@@ -1547,7 +1543,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.4 for Android 2.3 (Build Apr 7/2011)";
+    return "Intrinsyc Rapid-RIL M5.5 for Android 2.3 (Build Apr 21/2011)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};
@@ -1581,13 +1577,6 @@ static void* mainLoop(void *param)
     // Initialize logging class
     CRilLog::Init();
 
-#ifdef TIMEBOMB
-    if (!StartTimebomb(TIMEBOMB_DELAY_MINUTES))
-    {
-        dwRet = 0;
-        goto Error;
-    }
-#endif
 
     // Create and start system manager
     if (!CSystemManager::GetInstance().InitializeSystem())
@@ -1737,24 +1726,6 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
 
 
-#if 0
-    //  If we're opening ports, don't do this.
-    if (eRadioErrorVal != eRadioError_OpenPortFailure)
-    {
-        RIL_LOG_INFO("TriggerRadioError() -Calling OpenChannelPortsOnly()\r\n");
-        CSystemManager::GetInstance().OpenChannelPortsOnly();
-
-        Sleep(1000);
-
-        g_RadioState.SetRadioOff();
-        g_RadioState.SetRadioOn();
-
-        //  4. Send init string
-        CSystemManager::GetInstance().ResumeSystemFromModemReset();
-    }
-#endif
-
-
 Error:
     g_bIsTriggerRadioError = FALSE;
 
@@ -1849,12 +1820,7 @@ void TriggerRadioErrorAsync(eRadioError eRadioErrorVal, UINT32 uiLineNum, const 
 
 static void usage(char *szProgName)
 {
-#ifdef RIL_SHLIB
     fprintf(stderr, "RapidRIL requires: -a /dev/at_tty_device -d /dev/data_tty_device\n");
-#else  // RIL_SHLIB
-    fprintf(stderr, "usage: %s [-a /dev/at_tty_device -d /dev/data_tty_device]\n", szProgName);
-    exit(-1);
-#endif // RIL_SHLIB
 }
 
 static bool RIL_SetGlobals(int argc, char **argv)
@@ -1921,7 +1887,6 @@ static bool RIL_SetGlobals(int argc, char **argv)
     return true;
 }
 
-#if RIL_SHLIB
 
 pthread_t gs_tid_mainloop;
 
@@ -1941,8 +1906,8 @@ const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, cha
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
         ret = pthread_create(&gs_tid_mainloop, &attr, mainLoop, NULL);
-    while(!init_finish)
 
+        while(!init_finish)
         {
 
             RIL_LOG_INFO("RIL_Init,init not finish:%d \r\n",init_finish);
@@ -1955,7 +1920,7 @@ const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, cha
 
         RIL_LOG_INFO("RIL_Init,init finish:%d \r\n",init_finish);
 
-    return &gs_callbacks;
+        return &gs_callbacks;
     }
     else
     {
@@ -1963,21 +1928,3 @@ const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, cha
     }
 }
 
-#else  // RIL_SHLIB
-
-int main (int argc, char **argv)
-{
-    int ret;
-    int fd = -1;
-
-    if (RIL_SetGlobals(argc, argv))
-    {
-        RIL_register(&gs_callbacks);
-
-        mainLoop(NULL);
-    }
-
-    return 0;
-}
-
-#endif // RIL_SHLIB

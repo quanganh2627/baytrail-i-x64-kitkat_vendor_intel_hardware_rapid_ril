@@ -157,7 +157,8 @@ const char * g_szRequestNames[] =
     "ReportSmsMemoryStatus",                // ND_REQ_ID_REPORTSMSMEMORYSTATUS
     "ReportStkServiceIsRunning",            // ND_REQ_ID_REPORTSTKSERVICEISRUNNING
     "GetIPAddress",                         // ND_REQ_ID_GETIPADDRESS
-    "GetDNS"                                // ND_REQ_ID_GETDNS
+    "GetDNS",                               // ND_REQ_ID_GETDNS
+    "PdpContextListUnsol"                   // ND_REQ_ID_PDPCONTEXTLIST_UNSOL
 
 };
 
@@ -274,6 +275,7 @@ const char   g_szGroupModem[]                   = "Modem";
 const char   g_szSupportedModem[]               = "SupportedModem";
 const char   g_szNetworkInterfaceName[]         = "NetworkInterfaceName";
 const char   g_szDisableModemReset[]            = "DisableModemReset";
+const char   g_szDisableCoreDump[]              = "DisableCoreDump";
 
 /////////////////////////////////////////////////
 

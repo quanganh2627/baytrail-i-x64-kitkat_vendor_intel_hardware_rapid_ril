@@ -35,13 +35,13 @@ static const RIL_RadioFunctions s_callbacks =
     getVersion
 };
 
-#ifdef RIL_SHLIB
+
 static const struct RIL_Env *s_rilenv;
 
 #define RIL_onRequestComplete(t, e, response, responselen) s_rilenv->OnRequestComplete(t,e, response, responselen)
 #define RIL_onUnsolicitedResponse(a,b,c) s_rilenv->OnUnsolicitedResponse(a,b,c)
 #define RIL_requestTimedCallback(a,b,c) s_rilenv->RequestTimedCallback(a,b,c)
-#endif
+
 
 static RIL_RadioState sState = RADIO_STATE_UNAVAILABLE;
 
@@ -102,7 +102,6 @@ static void* mainLoop(void *param)
 
 }
 
-#if RIL_SHLIB
 
 pthread_t s_tid_mainloop;
 
@@ -119,17 +118,3 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc, char **a
     return &s_callbacks;
 }
 
-#else /* RIL_SHLIB */
-
-int main (int argc, char **argv)
-{
-    int ret;
-
-    RIL_register(&s_callbacks);
-
-    mainLoop(NULL);
-
-    return 0;
-}
-
-#endif /* RIL_SHLIB */
