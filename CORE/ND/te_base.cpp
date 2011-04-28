@@ -3923,21 +3923,9 @@ RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA & rReqData, void * p
         goto Error;
     }
 
-    if (NULL == pszPassword)
+    if (NULL == pszPassword|| (NULL != pszPassword && 0 == strcmp(pszPassword, "0")))
     {
-        RIL_LOG_CRITICAL("CoreQueryFacilityLock() - ERROR: Password string pointer is NULL.\r\n");
-        goto Error;
-    }
-
-    if (NULL == pszClass)
-    {
-        RIL_LOG_CRITICAL("CoreQueryFacilityLock() - ERROR: Class string pointer is NULL.\r\n");
-        goto Error;
-    }
-
-    if ('\0' == pszPassword[0])
-    {
-        if ('\0' == pszClass[0])
+        if (NULL == pszClass|| (NULL != pszClass && 0 == strcmp(pszClass, "0")))
         {
             if (PrintStringNullTerminate(   rReqData.szCmd1,
                                             sizeof(rReqData.szCmd1),
@@ -3961,7 +3949,7 @@ RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA & rReqData, void * p
     }
     else
     {
-        if ('\0' == pszClass[0])
+        if (NULL == pszClass|| (NULL != pszClass && 0 == strcmp(pszClass, "0")))
         {
             if (PrintStringNullTerminate(   rReqData.szCmd1,
                                             sizeof(rReqData.szCmd1),
