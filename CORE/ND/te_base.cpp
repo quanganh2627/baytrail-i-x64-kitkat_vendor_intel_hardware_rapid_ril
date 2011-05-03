@@ -2281,7 +2281,7 @@ RIL_RESULT_CODE CTEBase::CoreDtmf(REQUEST_DATA & rReqData, void * pData, UINT32 
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+VTS=%c,30\r", tone))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+VTS=%c\r", tone))
     {
         RIL_LOG_CRITICAL("CoreDtmf() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
@@ -4647,7 +4647,7 @@ RIL_RESULT_CODE CTEBase::CoreDtmfStart(REQUEST_DATA & rReqData, void * pData, UI
 
     cTone = ((char*)pData)[0];
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+VTS=%c,5\r", cTone))
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+VTS=%c\r", cTone))
     {
         res = RRIL_RESULT_OK;
     }

@@ -1543,7 +1543,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.5 for Android 2.3 (Build Apr 21/2011)";
+    return "Intrinsyc Rapid-RIL M5.6 for Android 2.3 (Build Apr 21/2011)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};
@@ -1894,6 +1894,7 @@ const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, cha
 {
     pthread_attr_t attr;
     int ret;
+    int try_again_delay = 1;
 
     gs_pRilEnv = pRilEnv;
 
@@ -1909,14 +1910,15 @@ const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, cha
 
         while(!init_finish)
         {
-
             RIL_LOG_INFO("RIL_Init,init not finish:%d \r\n",init_finish);
 
-            sleep(1);
-
+            /* maybe modem is absent, so dont wake up the system too often
+               in that case.
+               we do exponential retry with 20 minutes maximum */
+            if (try_again_delay < 1200)
+                try_again_delay *= 2;
+            sleep(try_again_delay);
         }
-
-
 
         RIL_LOG_INFO("RIL_Init,init finish:%d \r\n",init_finish);
 

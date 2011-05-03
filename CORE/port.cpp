@@ -272,6 +272,11 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
             }
             else
             {
+                /* maybe modem is absent, so dont wake up the system too
+                   often in that case.
+                   we do exponential retry with 20 minutes maximum */
+                if (uiInterval < 1200000)
+                    uiInterval *= 2;
                 Sleep(uiInterval);
             }
 

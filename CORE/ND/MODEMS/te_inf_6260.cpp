@@ -1905,7 +1905,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
     BYTE bCommand = 0;
 
-    if (1 != uiDataSize)
+    //  uiDataSize MUST be 1 or greater.
+    if (0 == uiDataSize)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
@@ -1917,21 +1918,19 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
-    //  [DP] Dec 14/2010: All this command does right now is echo the data bytes after the command byte.
-    //  i.e. Copy the data bytes into the response and send it.
 
     bCommand = (BYTE)pDataBytes[0];  //  This is the command.
     switch(bCommand)
     {
-        case RIL_OEM_HOOK_RAW_API1:
-            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - API1 Command=[0x%02X] received OK\r\n", bCommand);
+        case RIL_OEM_HOOK_RAW_POWEROFF:
+            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_POWEROFF Command=[0x%02X] received OK\r\n", bCommand);
 
             //  Shouldn't be any data following command
 
             //  We have to be unregistered to do the change.
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CPWROFF\r", sizeof(rReqData.szCmd1)))
             {
-                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: API1 - Can't construct szCmd1.\r\n");
+                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_POWEROFF - Can't construct szCmd1.\r\n");
                 goto Error;
             }
 

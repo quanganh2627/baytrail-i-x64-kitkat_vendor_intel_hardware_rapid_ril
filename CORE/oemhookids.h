@@ -32,9 +32,19 @@
  */
 
 //  The first byte of the byte[] is the command.  The data follows.
-const BYTE RIL_OEM_HOOK_RAW_API1 = 0xAA;
-const BYTE RIL_OEM_HOOK_RAW_API2 = 0xBB;
-const BYTE RIL_OEM_HOOK_RAW_API3 = 0xCC;
+
+
+//
+//  RIL_OEM_HOOK_RAW_POWEROFF
+//  Command ID = 0xAA
+//
+//  This command sends AT+CPWROFF to the modem.
+//
+//  "data" = NULL
+//  "response" = NULL
+//
+const BYTE RIL_OEM_HOOK_RAW_POWEROFF = 0xAA;
+
 
 
 
