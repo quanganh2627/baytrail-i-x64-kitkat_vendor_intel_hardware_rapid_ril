@@ -45,7 +45,6 @@
 #include "channel_data.h"
 
 #include <sys/ioctl.h>
-#include <include/linux/spi/ifx6x60_ioctl.h>
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
 
@@ -1490,6 +1489,35 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
+        case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 104
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_TRANSMIT_BASIC\r\n");
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestSimTransmitBasic(hRilToken, pData, datalen);
+        }
+        break;
+
+        case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 105
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_OPEN_CHANNEL\r\n");
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestSimOpenChannel(hRilToken, pData, datalen);
+        }
+        break;
+
+        case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 106
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_CLOSE_CHANNEL\r\n");
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestSimCloseChannel(hRilToken, pData, datalen);
+        }
+        break;
+
+        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 107
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_TRANSMIT_CHANNEL\r\n");
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestSimTransmitChannel(hRilToken, pData, datalen);
+        }
+        break;
+
+
         default:
         {
             RIL_LOG_INFO("onRequest() - Unknown Request ID id=0x%08X, %d\r\n", requestID, requestID);
@@ -1543,7 +1571,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.6 for Android 2.3 (Build Apr 21/2011)";
+    return "Intrinsyc Rapid-RIL M5.7 for Android 2.3 (Build May 5/2011)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};
@@ -1702,17 +1730,21 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     Sleep(dwSleep);
     RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
 
+    //  NOTE that we do not want to call ifxreset when doing a modem initiated crash.
+    if (eRadioErrorVal != eRadioError_ModemInitiatedCrash)
+    {
+        //  Try using ctrl.start property
+        RIL_LOG_INFO("CALLING prop ctl.start on ifxreset\r\n");
+        property_set("ctl.start","ifxreset_svc");
+        RIL_LOG_INFO("Done prop ctl.start on ifxreset\r\n");
 
-    //  Try using ctrl.start property
-    RIL_LOG_INFO("CALLING prop ctl.start on ifxreset\r\n");
-    property_set("ctl.start","ifxreset_svc");
-    RIL_LOG_INFO("Done prop ctl.start on ifxreset\r\n");
+        //  Wait for ifxreset to complete
+        dwSleep = 4000;
+        RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
+        Sleep(dwSleep);
+        RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
 
-    dwSleep = 4000;
-    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
-    Sleep(dwSleep);
-    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
-
+    }
 
 
     //  Try using ctrl.start property
@@ -1895,6 +1927,7 @@ const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, cha
     pthread_attr_t attr;
     int ret;
     int try_again_delay = 1;
+    int try_again_count = 0;
 
     gs_pRilEnv = pRilEnv;
 
@@ -1915,7 +1948,9 @@ const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, cha
             /* maybe modem is absent, so dont wake up the system too often
                in that case.
                we do exponential retry with 20 minutes maximum */
-            if (try_again_delay < 1200)
+            try_again_count++;
+
+            if (try_again_count > 9 && try_again_delay < 1200)
                 try_again_delay *= 2;
             sleep(try_again_delay);
         }

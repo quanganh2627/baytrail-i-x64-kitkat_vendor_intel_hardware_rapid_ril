@@ -254,13 +254,13 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
 
     while(!fRet)
     {
-        //for (uiAttempts = 0; uiAttempts < uiRetries; uiAttempts++)
-        for(;;)
+        for (uiAttempts = 0; uiAttempts < uiRetries; uiAttempts++)
+//        for(;;)
         {
-            //if (uiAttempts > 0)
-            //{
-            //    Sleep(uiInterval);
-            //}
+            if (uiAttempts > 0)
+            {
+                Sleep(uiInterval);
+            }
 
             RIL_LOG_INFO("CPort::OpenPort()  ATTEMPT NUMBER %d\r\n", uiAttempts);
             fRet = CFile::Open(m_pFile, pszFileName, FILE_ACCESS_READ_WRITE, FILE_OPEN_EXIST, FILE_OPT_NONE);
@@ -270,21 +270,21 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
                 m_fIsPortOpen = TRUE;
                 break;
             }
-            else
-            {
-                /* maybe modem is absent, so dont wake up the system too
-                   often in that case.
-                   we do exponential retry with 20 minutes maximum */
-                if (uiInterval < 1200000)
-                    uiInterval *= 2;
-                Sleep(uiInterval);
-            }
+            // else
+            // {
+            //    /* maybe modem is absent, so dont wake up the system too
+            //       often in that case.
+            //       we do exponential retry with 20 minutes maximum */
+            //    if (uiAttempts > 9 && uiInterval < 1200000)
+            //        uiInterval *= 2;
+            //    Sleep(uiInterval);
+            //}
 
             //  Remove this when using for loop
-            uiAttempts++;
+            // uiAttempts++;
         }
 
-/*
+
         //  If we didn't open the port, issue critical reset
         if (!fRet)
         {
@@ -302,7 +302,7 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
             RIL_LOG_CRITICAL("CPort::OpenPort() ****CALLING EXIT**********\r\n");
             exit(0);
         }
-*/
+
     }
 
     RIL_LOG_VERBOSE("CPort::OpenPort() - Exit\r\n");

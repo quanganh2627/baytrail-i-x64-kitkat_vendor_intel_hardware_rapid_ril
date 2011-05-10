@@ -451,6 +451,23 @@ public:
     virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
 
+    // RIL_REQUEST_SIM_TRANSMIT_BASIC 104
+    virtual RIL_RESULT_CODE CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSimTransmitBasic(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_SIM_OPEN_CHANNEL 105
+    virtual RIL_RESULT_CODE CoreSimOpenChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_SIM_CLOSE_CHANNEL 106
+    virtual RIL_RESULT_CODE CoreSimCloseChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 107
+    virtual RIL_RESULT_CODE CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA & rRspData);
+
+
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     virtual RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData);
 

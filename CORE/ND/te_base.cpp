@@ -2823,7 +2823,6 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
     // Allocate memory for the response struct PLUS a buffer for the response string
     // The char* in the RIL_SIM_IO_Response will point to the buffer allocated directly after the RIL_SIM_IO_Response
     // When the RIL_SIM_IO_Response is deleted, the corresponding response string will be freed as well.
-    // Note: cbResponseString is the number of chars in the string, and does not include the NULL terminator.
     pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
     if (NULL == pResponse)
     {
@@ -3923,9 +3922,9 @@ RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA & rReqData, void * p
         goto Error;
     }
 
-    if (NULL == pszPassword|| (NULL != pszPassword && 0 == strcmp(pszPassword, "0")))
+    if (NULL == pszPassword || '\0' == pszPassword[0])
     {
-        if (NULL == pszClass|| (NULL != pszClass && 0 == strcmp(pszClass, "0")))
+        if (NULL == pszClass || '\0' == pszClass[0])
         {
             if (PrintStringNullTerminate(   rReqData.szCmd1,
                                             sizeof(rReqData.szCmd1),
@@ -3949,7 +3948,7 @@ RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA & rReqData, void * p
     }
     else
     {
-        if (NULL == pszClass|| (NULL != pszClass && 0 == strcmp(pszClass, "0")))
+        if (NULL == pszClass || '\0' == pszClass[0])
         {
             if (PrintStringNullTerminate(   rReqData.szCmd1,
                                             sizeof(rReqData.szCmd1),
@@ -4098,7 +4097,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
         }
     }
     // Password provided
-    else if (NULL == ppszFacility[3] || (NULL != ppszFacility[3] && 0 == strcmp(ppszFacility[3], "0")))
+    else if (NULL == ppszFacility[3] || (NULL != ppszFacility[3] && '\0' == ppszFacility[3]))
     {
         if (PrintStringNullTerminate(   rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
@@ -6746,7 +6745,7 @@ RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("ParseReportSmsMemoryStatus() - Enter\r\n");
 
-        RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     const BYTE* szRsp = rRspData.szResponse;
     const int nMaxStorageStringLen = 5;
@@ -6875,6 +6874,533 @@ RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("ParseReportStkServiceRunning() - Exit\r\n");
     return RRIL_RESULT_OK;
 }
+
+//
+// RIL_REQUEST_SIM_TRANSMIT_BASIC 104
+//
+RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_SIM_IO *   pSimIOArgs = NULL;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CoreSimTransmitBasic() - ERROR: Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (sizeof(RIL_SIM_IO) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CoreSimTransmitBasic() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    // extract data
+    pSimIOArgs = (RIL_SIM_IO *)pData;
+
+    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - cla=[0x%08x]  [%d]\r\n", pSimIOArgs->cla, pSimIOArgs->cla);
+    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
+    //RIL_LOG_VERBOSE("CoreSimTransmitBasic() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
+    //RIL_LOG_VERBOSE("CoreSimTransmitBasic() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
+    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
+    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
+    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
+    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
+    //RIL_LOG_VERBOSE("CoreSimTransmitBasic() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
+
+
+    if ((NULL == pSimIOArgs->data) || (strlen(pSimIOArgs->data) == 0))
+    {
+        if (pSimIOArgs->p3 < 0)
+        {
+            (void)PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1),
+                    "AT+CSIM=%d,\"%02x%02x%02x%02x\"",
+                    8,
+                    pSimIOArgs->cla,
+                    pSimIOArgs->command,
+                    pSimIOArgs->p1,
+                    pSimIOArgs->p2);
+        }
+        else
+        {
+            (void)PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1),
+                    "AT+CSIM=%d,\"%02x%02x%02x%02x%02x\"",
+                    10,
+                    pSimIOArgs->cla,
+                    pSimIOArgs->command,
+                    pSimIOArgs->p1,
+                    pSimIOArgs->p2,
+                    pSimIOArgs->p3);
+        }
+    }
+    else
+    {
+        (void)PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CSIM=%d,\"%02x%02x%02x%02x%02x%s\"",
+                10 + strlen(pSimIOArgs->data),
+                pSimIOArgs->cla,
+                pSimIOArgs->command,
+                pSimIOArgs->p1,
+                pSimIOArgs->p2,
+                pSimIOArgs->p3,
+                pSimIOArgs->data);
+    }
+
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("ParseSimTransmitBasic() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+
+    uint  uiSW1 = 0;
+    uint  uiSW2 = 0;
+    uint  uiLen = 0;
+    BYTE* szResponseString = NULL;
+    UINT32  cbResponseString = 0;
+
+    RIL_SIM_IO_Response* pResponse = NULL;
+
+    if (NULL == rRspData.szResponse)
+    {
+        RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Response String pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    // Parse "<prefix>+CSIM: <len>,"<response>"<postfix>"
+    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+
+
+    if (!SkipString(pszRsp, "+CSIM: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Could not skip over \"+CSIM: \".\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt(pszRsp, uiLen, pszRsp))
+    {
+        RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Could not extract uiLen value.\r\n");
+        goto Error;
+    }
+
+
+    // Parse ","
+    if (SkipString(pszRsp, ",", pszRsp))
+    {
+        // Parse <response>
+        // NOTE: we take ownership of allocated szResponseString
+        if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString, cbResponseString, pszRsp))
+        {
+            RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Could not extract data string.\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("ParseSimTransmitBasic() - Extracted data string: \"%s\" (%u chars)\r\n", szResponseString, cbResponseString);
+        }
+
+        if (0 != (cbResponseString - 1) % 2)
+        {
+            RIL_LOG_CRITICAL("ParseSimTransmitBasic() : ERROR : String was not a multiple of 2.\r\n");
+            goto Error;
+        }
+    }
+
+    // Allocate memory for the response struct PLUS a buffer for the response string
+    // The char* in the RIL_SIM_IO_Response will point to the buffer allocated directly after the RIL_SIM_IO_Response
+    // When the RIL_SIM_IO_Response is deleted, the corresponding response string will be freed as well.
+    pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+        goto Error;
+    }
+
+    //  Response must be 4 chars or longer
+    if ( (cbResponseString - 1) < 4)
+    {
+        RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: response length must be 4 or greater.\r\n");
+        goto Error;
+    }
+
+    sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
+    szResponseString[cbResponseString-5] = '\0';
+
+    pResponse->sw1 = uiSW1;
+    pResponse->sw2 = uiSW2;
+
+    if (NULL == szResponseString)
+    {
+        pResponse->simResponse = NULL;
+    }
+    else
+    {
+        pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
+        (void)CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString);
+
+        // Ensure NULL termination!
+        pResponse->simResponse[cbResponseString] = '\0';
+    }
+
+    // Parse "<postfix>"
+    SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+
+    rRspData.pData   = (void*)pResponse;
+    rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    delete[] szResponseString;
+    szResponseString = NULL;
+
+    RIL_LOG_VERBOSE("ParseSimTransmitBasic() - Exit\r\n");
+    return res;
+}
+
+//
+// RIL_REQUEST_SIM_OPEN_CHANNEL 105
+//
+RIL_RESULT_CODE CTEBase::CoreSimOpenChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CoreSimOpenChannel() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    char *szAID = NULL;
+
+    if (sizeof(char*) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CoreSimOpenChannel() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CoreSimOpenChannel() - ERROR: Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+
+    szAID = (char*)pData;
+
+
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CCHO=\"%s\"\r", szAID))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+
+Error:
+    RIL_LOG_VERBOSE("CoreSimOpenChannel() - Exit\r\n");
+    return res;
+}
+
+
+RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("ParseSimOpenChannel() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const BYTE* szRsp = rRspData.szResponse;
+    unsigned int nChannelId = 0;
+
+    int* pnChannelId = (int*)malloc(sizeof(int));
+    if (NULL == pnChannelId)
+    {
+        RIL_LOG_CRITICAL("ParseSimOpenChannel() - ERROR: Could not allocate memory for an int.\r\n", sizeof(int));
+        goto Error;
+    }
+    memset(pnChannelId, 0, sizeof(int));
+
+    // Parse "<prefix><channelId><postfix>"
+    SkipRspStart(szRsp, g_szNewLine, szRsp);
+
+    //if (!FindAndSkipString(szRsp, "+CCHO: ", szRsp) ||
+    //    !ExtractUInt(szRsp, nChannelId, szRsp))
+    if (!ExtractUInt(szRsp, nChannelId, szRsp))
+    {
+        RIL_LOG_CRITICAL("ParseSimOpenChannel() - ERROR: Could not extract the Channel Id.\r\n");
+        goto Error;
+    }
+
+    *pnChannelId = nChannelId;
+
+    res = RRIL_RESULT_OK;
+
+    rRspData.pData   = (void*)pnChannelId;
+    rRspData.uiDataSize  = sizeof(int*);
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pnChannelId);
+        pnChannelId = NULL;
+    }
+
+    RIL_LOG_VERBOSE("ParseSimOpenChannel() - Exit\r\n");
+    return res;
+}
+
+
+//
+// RIL_REQUEST_SIM_CLOSE_CHANNEL 106
+//
+RIL_RESULT_CODE CTEBase::CoreSimCloseChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CoreSimCloseChannel() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int nChannelId = 0;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CoreSimCloseChannel() - ERROR: Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    nChannelId = ((int *)pData)[0];
+
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CCHC=%u\r", nChannelId))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CoreSimCloseChannel() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("ParseSimCloseChannel() - Enter\r\n");
+    RIL_LOG_VERBOSE("ParseSimCloseChannel() - Exit\r\n");
+    return RRIL_RESULT_OK;
+}
+
+
+
+//
+// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 107
+//
+RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_SIM_IO *   pSimIOArgs = NULL;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CoreSimTransmitChannel() - ERROR: Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (sizeof(RIL_SIM_IO) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CoreSimTransmitChannel() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    // extract data
+    pSimIOArgs = (RIL_SIM_IO *)pData;
+
+    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - cla=[0x%08x]  [%d]\r\n", pSimIOArgs->cla, pSimIOArgs->cla);
+    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
+    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
+    //RIL_LOG_VERBOSE("CoreSimTransmitChannel() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
+    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
+    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
+    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
+    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
+    //RIL_LOG_VERBOSE("CoreSimTransmitChannel() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
+
+
+    if ((NULL == pSimIOArgs->data) || (strlen(pSimIOArgs->data) == 0))
+    {
+        if (pSimIOArgs->p3 < 0)
+        {
+            (void)PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1),
+                    "AT+CGLA=%d,%d,\"%02x%02x%02x%02x\"",
+                    pSimIOArgs->fileid,
+                    8,
+                    pSimIOArgs->cla,
+                    pSimIOArgs->command,
+                    pSimIOArgs->p1,
+                    pSimIOArgs->p2);
+        }
+        else
+        {
+            (void)PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1),
+                    "AT+CGLA=%d,%d,\"%02x%02x%02x%02x%02x\"",
+                    pSimIOArgs->fileid,
+                    10,
+                    pSimIOArgs->cla,
+                    pSimIOArgs->command,
+                    pSimIOArgs->p1,
+                    pSimIOArgs->p2,
+                    pSimIOArgs->p3);
+        }
+    }
+    else
+    {
+        (void)PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CGLA=%d,%d,\"%02x%02x%02x%02x%02x%s\"",
+                pSimIOArgs->fileid,
+                10 + strlen(pSimIOArgs->data),
+                pSimIOArgs->cla,
+                pSimIOArgs->command,
+                pSimIOArgs->p1,
+                pSimIOArgs->p2,
+                pSimIOArgs->p3,
+                pSimIOArgs->data);
+    }
+
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("ParseSimTransmitChannel() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+
+    uint  uiSW1 = 0;
+    uint  uiSW2 = 0;
+    uint  uiLen = 0;
+    BYTE* szResponseString = NULL;
+    UINT32  cbResponseString = 0;
+
+    RIL_SIM_IO_Response* pResponse = NULL;
+
+    if (NULL == rRspData.szResponse)
+    {
+        RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Response String pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    // Parse "<prefix>+CSIM: <len>,<response><postfix>"
+    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+
+
+    if (!SkipString(pszRsp, "+CGLA: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Could not skip over \"+CSIM: \".\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt(pszRsp, uiLen, pszRsp))
+    {
+        RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Could not extract uiLen value.\r\n");
+        goto Error;
+    }
+
+
+    // Parse ","
+    if (SkipString(pszRsp, ",", pszRsp))
+    {
+        // Parse <response>
+        // NOTE: we take ownership of allocated szResponseString
+        if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString, cbResponseString, pszRsp))
+        {
+            RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Could not extract data string.\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("ParseSimTransmitChannel() - Extracted data string: \"%s\" (%u chars)\r\n", szResponseString, cbResponseString);
+        }
+
+        if (0 != (cbResponseString - 1) % 2)
+        {
+            RIL_LOG_CRITICAL("ParseSimTransmitChannel() : ERROR : String was not a multiple of 2.\r\n");
+            goto Error;
+        }
+    }
+
+    // Allocate memory for the response struct PLUS a buffer for the response string
+    // The char* in the RIL_SIM_IO_Response will point to the buffer allocated directly after the RIL_SIM_IO_Response
+    // When the RIL_SIM_IO_Response is deleted, the corresponding response string will be freed as well.
+    pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+        goto Error;
+    }
+
+    //  Response must be 4 chars or longer
+    if ( (cbResponseString - 1) < 4)
+    {
+        RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: response length must be 4 or greater.\r\n");
+        goto Error;
+    }
+
+    sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
+    szResponseString[cbResponseString-5] = '\0';
+
+    pResponse->sw1 = uiSW1;
+    pResponse->sw2 = uiSW2;
+
+    if (NULL == szResponseString)
+    {
+        pResponse->simResponse = NULL;
+    }
+    else
+    {
+        pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
+        (void)CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString);
+
+        // Ensure NULL termination!
+        pResponse->simResponse[cbResponseString] = '\0';
+    }
+
+    // Parse "<postfix>"
+    SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+
+    rRspData.pData   = (void*)pResponse;
+    rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    delete[] szResponseString;
+    szResponseString = NULL;
+
+    RIL_LOG_VERBOSE("ParseSimTransmitChannel() - Exit\r\n");
+    return res;
+}
+
+
+
+
 
 //
 // RIL_UNSOL_SIGNAL_STRENGTH  1009

@@ -6152,6 +6152,258 @@ RIL_RESULT_CODE CTE::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
     return res;
 }
 
+
+
+//
+// RIL_REQUEST_SIM_TRANSMIT_BASIC 104
+//
+RIL_RESULT_CODE CTE::RequestSimTransmitBasic(RIL_Token rilToken, void * pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("RequestSimTransmitBasic() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEOemInstance->OEMSimTransmitBasic(reqData, pData, datalen);
+
+    if (RRIL_RESULT_NOTSUPPORTED == res)
+    {
+        res = m_pTEBaseInstance->CoreSimTransmitBasic(reqData, pData, datalen);
+    }
+
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("RequestSimTransmitBasic() - ERROR: Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIMTRANSMITBASIC], rilToken, ND_REQ_ID_SIMTRANSMITBASIC, reqData, &CTE::ParseSimTransmitBasic);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("RequestSimTransmitBasic() - ERROR: Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("RequestSimTransmitBasic() - ERROR: Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("RequestSimTransmitBasic() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("ParseSimTransmitBasic() - Enter\r\n");
+
+    RIL_RESULT_CODE res = m_pTEOemInstance->OEMParseSimTransmitBasic(rRspData);
+
+    if (RRIL_RESULT_NOTSUPPORTED == res)
+    {
+        res = m_pTEBaseInstance->ParseSimTransmitBasic(rRspData);
+    }
+
+    RIL_LOG_VERBOSE("ParseSimTransmitBasic() - Exit\r\n");
+    return res;
+}
+
+
+
+//
+// RIL_REQUEST_SIM_OPEN_CHANNEL 105
+//
+RIL_RESULT_CODE CTE::RequestSimOpenChannel(RIL_Token rilToken, void * pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("RequestSimOpenChannel() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEOemInstance->OEMSimOpenChannel(reqData, pData, datalen);
+
+    if (RRIL_RESULT_NOTSUPPORTED == res)
+    {
+        res = m_pTEBaseInstance->CoreSimOpenChannel(reqData, pData, datalen);
+    }
+
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("RequestSimOpenChannel() - ERROR: Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIMOPENCHANNEL], rilToken, ND_REQ_ID_SIMOPENCHANNEL, reqData, &CTE::ParseSimOpenChannel);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("RequestSimOpenChannel() - ERROR: Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("RequestSimOpenChannel() - ERROR: Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("RequestSimOpenChannel() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("ParseSimOpenChannel() - Enter\r\n");
+
+    RIL_RESULT_CODE res = m_pTEOemInstance->OEMParseSimOpenChannel(rRspData);
+
+    if (RRIL_RESULT_NOTSUPPORTED == res)
+    {
+        res = m_pTEBaseInstance->ParseSimOpenChannel(rRspData);
+    }
+
+    RIL_LOG_VERBOSE("ParseSimOpenChannel() - Exit\r\n");
+    return res;
+}
+
+
+
+//
+// RIL_REQUEST_SIM_CLOSE_CHANNEL 106
+//
+RIL_RESULT_CODE CTE::RequestSimCloseChannel(RIL_Token rilToken, void * pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("RequestSimCloseChannel() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEOemInstance->OEMSimCloseChannel(reqData, pData, datalen);
+
+    if (RRIL_RESULT_NOTSUPPORTED == res)
+    {
+        res = m_pTEBaseInstance->CoreSimCloseChannel(reqData, pData, datalen);
+    }
+
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("RequestSimCloseChannel() - ERROR: Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIMCLOSECHANNEL], rilToken, ND_REQ_ID_SIMCLOSECHANNEL, reqData, &CTE::ParseSimCloseChannel);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("RequestSimCloseChannel() - ERROR: Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("RequestSimCloseChannel() - ERROR: Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("RequestSimCloseChannel() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("ParseSimCloseChannel() - Enter\r\n");
+
+    RIL_RESULT_CODE res = m_pTEOemInstance->OEMParseSimCloseChannel(rRspData);
+
+    if (RRIL_RESULT_NOTSUPPORTED == res)
+    {
+        res = m_pTEBaseInstance->ParseSimCloseChannel(rRspData);
+    }
+
+    RIL_LOG_VERBOSE("ParseSimCloseChannel() - Exit\r\n");
+    return res;
+}
+
+
+//
+// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 107
+//
+RIL_RESULT_CODE CTE::RequestSimTransmitChannel(RIL_Token rilToken, void * pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("RequestSimTransmitChannel() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEOemInstance->OEMSimTransmitChannel(reqData, pData, datalen);
+
+    if (RRIL_RESULT_NOTSUPPORTED == res)
+    {
+        res = m_pTEBaseInstance->CoreSimTransmitChannel(reqData, pData, datalen);
+    }
+
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("RequestSimTransmitChannel() - ERROR: Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIMTRANSMITCHANNEL], rilToken, ND_REQ_ID_SIMTRANSMITCHANNEL, reqData, &CTE::ParseSimTransmitChannel);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("RequestSimTransmitChannel() - ERROR: Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("RequestSimTransmitChannel() - ERROR: Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("RequestSimTransmitChannel() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("ParseSimTransmitChannel() - Enter\r\n");
+
+    RIL_RESULT_CODE res = m_pTEOemInstance->OEMParseSimTransmitChannel(rRspData);
+
+    if (RRIL_RESULT_NOTSUPPORTED == res)
+    {
+        res = m_pTEBaseInstance->ParseSimTransmitChannel(rRspData);
+    }
+
+    RIL_LOG_VERBOSE("ParseSimTransmitChannel() - Exit\r\n");
+    return res;
+}
+
+
 //
 // RIL_UNSOL_SIGNAL_STRENGTH  1009
 //

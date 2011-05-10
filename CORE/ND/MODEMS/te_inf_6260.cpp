@@ -1703,7 +1703,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
     // Allocate memory for the response struct PLUS a buffer for the response string
     // The char* in the RIL_SIM_IO_Response will point to the buffer allocated directly after the RIL_SIM_IO_Response
     // When the RIL_SIM_IO_Response is deleted, the corresponding response string will be freed as well.
-    // Note: cbResponseString is the number of chars in the string, and does not include the NULL terminator.
     pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
     if (NULL == pResponse)
     {
@@ -1928,11 +1927,16 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
             //  Shouldn't be any data following command
 
             //  We have to be unregistered to do the change.
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CPWROFF\r", sizeof(rReqData.szCmd1)))
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=0\r", sizeof(rReqData.szCmd1)))
             {
                 RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_POWEROFF - Can't construct szCmd1.\r\n");
                 goto Error;
             }
+
+            //  NOTE: I am assuming this is the last AT command to be sent to the modem.
+            //  It turns out that this AT command causes TriggerRadioError() to be called.
+            //  The following line will simply return out of the TriggerRadioError() function call.
+            g_bIsTriggerRadioError = TRUE;
 
             break;
 

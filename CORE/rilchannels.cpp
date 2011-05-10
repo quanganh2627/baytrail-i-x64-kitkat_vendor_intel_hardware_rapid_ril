@@ -112,7 +112,11 @@ UINT32 g_arChannelMapping[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_GETIPADDRESS,                        // 103
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_GETDNS,                              // 104
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_QUERYPIN2,                           // 105
-    RIL_CHANNEL_ATCMD  //ND_REQ_ID_PDPCONTEXTLIST_UNSOL                 // 106
+    RIL_CHANNEL_ATCMD,  //ND_REQ_ID_PDPCONTEXTLIST_UNSOL                 // 106
+    RIL_CHANNEL_DLC8,  //ND_REQ_ID_SIMTRANSMITBASIC                     // 107
+    RIL_CHANNEL_DLC8,  //ND_REQ_ID_SIMOPENCHANNEL                       // 108
+    RIL_CHANNEL_DLC8,  //ND_REQ_ID_SIMCLOSECHANNEL                      // 109
+    RIL_CHANNEL_DLC8   //ND_REQ_ID_SIMTRANSMITCHANNEL                   // 110
 
 };
 

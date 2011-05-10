@@ -56,7 +56,7 @@ public:
     virtual BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
 
     //  Called in CChannel::ParseResponse() before CResponse::ParseResponse() is called.
-    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
+    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp);
 
 
     //  Called in CChannel::ParseResponse() after CResponse::ParseResponse() is called, and before

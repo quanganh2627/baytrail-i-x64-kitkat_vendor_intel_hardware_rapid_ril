@@ -158,7 +158,11 @@ const char * g_szRequestNames[] =
     "ReportStkServiceIsRunning",            // ND_REQ_ID_REPORTSTKSERVICEISRUNNING
     "GetIPAddress",                         // ND_REQ_ID_GETIPADDRESS
     "GetDNS",                               // ND_REQ_ID_GETDNS
-    "PdpContextListUnsol"                   // ND_REQ_ID_PDPCONTEXTLIST_UNSOL
+    "PdpContextListUnsol",                  // ND_REQ_ID_PDPCONTEXTLIST_UNSOL
+    "SimTransmitBasic",                     // ND_REQ_ID_SIMTRANSMITBASIC
+    "SimOpenChannel",                       // ND_REQ_ID_SIMOPENCHANNEL
+    "SimCloseChannel",                      // ND_REQ_ID_SIMCLOSECHANNEL
+    "SimTransmitChannel"                    // ND_REQ_ID_SIMTRANSMITCHANNEL
 
 };
 
@@ -276,6 +280,7 @@ const char   g_szSupportedModem[]               = "SupportedModem";
 const char   g_szNetworkInterfaceName[]         = "NetworkInterfaceName";
 const char   g_szDisableModemReset[]            = "DisableModemReset";
 const char   g_szDisableCoreDump[]              = "DisableCoreDump";
+const char   g_szDisableWatchdogThread[]        = "DisableWatchdogThread";
 
 /////////////////////////////////////////////////
 
@@ -784,7 +789,7 @@ Error:
     return iRetVal;
 }
 
-int CRepository::ReadLine(char* szBuf, bool bRemoveLF)
+int CRepository::ReadLine(char* szBuf, bool bRemoveCRAndLF)
 {
     int  iRetVal = E_ERROR;
     int  iCount = 0;
@@ -797,11 +802,11 @@ int CRepository::ReadLine(char* szBuf, bool bRemoveLF)
         switch(read(m_iFd, &cCh, 1))
         {
         case 1:
-            if (cCh == '\n')
+            if (cCh == '\n' || cCh == '\r')
             {
                 if (szBuf)
                 {
-                    if (!bRemoveLF)
+                    if (!bRemoveCRAndLF)
                         szBuf[iCount++] = cCh;
 
                     szBuf[iCount] = '\0';

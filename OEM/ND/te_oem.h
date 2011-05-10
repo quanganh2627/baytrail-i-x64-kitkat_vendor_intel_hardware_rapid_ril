@@ -467,6 +467,22 @@ public:
     long OEMReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
     long OEMParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
 
+    // RIL_REQUEST_SIM_TRANSMIT_BASIC 104
+    long OEMSimTransmitBasic(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
+    long OEMParseSimTransmitBasic(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_SIM_OPEN_CHANNEL 105
+    long OEMSimOpenChannel(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
+    long OEMParseSimOpenChannel(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_SIM_CLOSE_CHANNEL 106
+    long OEMSimCloseChannel(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
+    long OEMParseSimCloseChannel(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 107
+    long OEMSimTransmitChannel(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
+    long OEMParseSimTransmitChannel(RESPONSE_DATA & rRspData);
+
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     long OEMParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData);
 

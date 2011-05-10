@@ -147,6 +147,7 @@ extern const char   g_szSupportedModem[];
 extern const char   g_szNetworkInterfaceName[];
 extern const char   g_szDisableModemReset[];
 extern const char   g_szDisableCoreDump[];
+extern const char   g_szDisableWatchdogThread[];
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -183,7 +184,7 @@ private:
     // file access and manipulation
     BOOL  OpenRepositoryFile(void);
     void  CloseRepositoryFile(void);
-    int   ReadLine(char *szBuf = NULL, bool bRemoveLF = true);
+    int   ReadLine(char *szBuf = NULL, bool bRemoveCRAndLF = true);
     void  RemoveComment(char* szIn);
     char* SkipSpace(char *szIn);
     void  RemoveTrailingSpaces(char * szIn);

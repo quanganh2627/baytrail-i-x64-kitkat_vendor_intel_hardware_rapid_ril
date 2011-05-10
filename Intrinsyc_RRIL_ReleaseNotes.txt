@@ -1,6 +1,180 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+May 5, 2011 (M5.7 release for Medfield CDK)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
+Android version 2.3 (Gingerbread).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was tested with Intel's external ABSP dated April 7, 2011.
+- We are using the HSI interface.
+
+KBoot: POS-kboot.mfld_cdk.2011.0328.1307.bin
+IFWI: IFWI_vB0.13_FSTK_223_IA_0.34_IASup_0.34_SCU_B0.24_VH_0.49_Punit_1.1A_XML_B0.22_HSI_Chaabi_0.72.bin
+Misc Module: Signed_PNW_B0_FWR_DnX_FD.15.bin
+OS Recovery Module: Signed_PNW_B0_OSR_DnX_0D.35.bin
+Modem Firmware: SUNRISE_SMB_1110.01.fls
+Modem: Rev2
+
+
+Release Notes for M5.7
+======================
+
+1. Add SEEK for Android APIs: (untested)
+   RIL_REQUEST_SIM_TRANSMIT_BASIC       104  (AT+CSIM)
+   RIL_REQUEST_SIM_OPEN_CHANNEL         105  (AT+CCHO)
+   RIL_REQUEST_SIM_CLOSE_CHANNEL        106  (AT+CCHC)
+   RIL_REQUEST_SIM_TRANSMIT_CHANNEL     107  (AT+CGLA)
+
+   NOTE: The patches must be incorporated into the Android source code for
+         this M5.7 to compile.  Go to:
+         http://code.google.com/p/seek-for-android/downloads/detail?name=smartcard-api-2_1_1.tgz&can=2&q=
+         Install all 3 patches.
+
+2. Bug 1487: Modify AT+CNMI command to use mode 2 for incoming SMS notifications.
+
+3. Fix sending SMS error response for "not in FDN list" and "network timeout"
+   cases.
+
+4. Incorporate Jack's modification for "conditional inclusion of RIL associated
+   services based on hardware configuration" in /system/core/init package.
+
+5. Fix line endings of several files from Windows (CRLF) to UNIX (LF).
+
+6. Incorporate exponential timer backoff when modem is not available
+   (modifications received from Jack).
+
+7. Incorporate a minor patch regarding call barring (received from Jack).
+
+
+Known ABSP/modem Issues:
+=========================
+- During a voice call, a clicking noise is heard every half a second.  This only
+  seems to happen with the device.
+- The ifxreset application does not function with this ABSP.  This is because
+  the reset IOCTL was not implemented in this ABSP release.
+
+
+Testing results:  (tested with HSI interface)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS (conditional)
+   NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
+         technologies.  This causes RIL to re-init because it assumes someone
+         inserted a new SIM card (part of hot swappable SIM feature).  The
+         '+XSIM: 0' notification should not be sent because the SIM was never
+         removed from the device.  A side effect of this is that the modem
+         sometimes does not register with a network again.
+   NOTE: A hardware modification will fix this bug (not implmented for test)
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS (conditional)
+   NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
+         technologies.  This causes RIL to re-init because it assumes someone
+         inserted a new SIM card (part of hot swappable SIM feature).  The
+         '+XSIM: 0' notification should not be sent because the SIM was never
+         removed from the device.  A side effect of this is that the modem
+         sometimes does not register with a network again.
+   NOTE: A hardware modification will fix this bug (not implmented for test)
+
+8. MO Voice call.  Local Hangup.
+   PASS (conditional)
+   NOTE: In one test case, the modem became unresponsive and I had to reboot
+         the device twice before it became usable again.
+   NOTE: In the voice call, I heard a ticking noise every half a second.  This
+         only occured with voice calls to/from the device.
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS (conditional)
+   NOTE: In the voice call, I heard a ticking noise every half a second.  This
+     only occured with voice calls to/from the device.
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns +CME ERROR: 100.
+    NOTE: Infineon says this is by design.
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    FAIL (message sent in UI, but only partially received from modem)
+    NOTE: Bug 1487 is tracking this issue for a potential fix.
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 Apr. 28, 2011 (M5.6 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,

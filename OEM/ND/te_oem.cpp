@@ -1373,6 +1373,59 @@ long CTEOem::OEMParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 }
 
 //
+// RIL_REQUEST_SIM_TRANSMIT_BASIC 104
+//
+long CTEOem::OEMSimTransmitBasic(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+long CTEOem::OEMParseSimTransmitBasic(RESPONSE_DATA & rRspData)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+//
+// RIL_REQUEST_SIM_OPEN_CHANNEL 105
+//
+long CTEOem::OEMSimOpenChannel(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+long CTEOem::OEMParseSimOpenChannel(RESPONSE_DATA & rRspData)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+//
+// RIL_REQUEST_SIM_CLOSE_CHANNEL 106
+//
+long CTEOem::OEMSimCloseChannel(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+long CTEOem::OEMParseSimCloseChannel(RESPONSE_DATA & rRspData)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+//
+// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 107
+//
+long CTEOem::OEMSimTransmitChannel(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+long CTEOem::OEMParseSimTransmitChannel(RESPONSE_DATA & rRspData)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+
+//
 // RIL_UNSOL_SIGNAL_STRENGTH  1009
 //
 long CTEOem::OEMParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData)

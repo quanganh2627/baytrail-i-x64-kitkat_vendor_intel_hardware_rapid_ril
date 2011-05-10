@@ -464,6 +464,23 @@ public:
     RIL_RESULT_CODE RequestReportStkServiceRunning(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
 
+    // RIL_REQUEST_SIM_TRANSMIT_BASIC 104
+    RIL_RESULT_CODE RequestSimTransmitBasic(RIL_Token rilToken, void * pData, size_t datalen);
+    RIL_RESULT_CODE ParseSimTransmitBasic(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_SIM_OPEN_CHANNEL 105
+    RIL_RESULT_CODE RequestSimOpenChannel(RIL_Token rilToken, void * pData, size_t datalen);
+    RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_SIM_CLOSE_CHANNEL 106
+    RIL_RESULT_CODE RequestSimCloseChannel(RIL_Token rilToken, void * pData, size_t datalen);
+    RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 107
+    RIL_RESULT_CODE RequestSimTransmitChannel(RIL_Token rilToken, void * pData, size_t datalen);
+    RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA & rRspData);
+
+
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData);
 

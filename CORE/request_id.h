@@ -283,7 +283,11 @@ enum ND_REQ_ID_ID {
     ND_REQ_ID_GETDNS,                              // 104
     ND_REQ_ID_QUERYPIN2,                           // 105
     ND_REQ_ID_PDPCONTEXTLIST_UNSOL,                // 106
-    ND_REQ_ID_TOTAL                                // 107
+    ND_REQ_ID_SIMTRANSMITBASIC,                    // 107
+    ND_REQ_ID_SIMOPENCHANNEL,                      // 108
+    ND_REQ_ID_SIMCLOSECHANNEL,                     // 109
+    ND_REQ_ID_SIMTRANSMITCHANNEL,                  // 110
+    ND_REQ_ID_TOTAL                                // 111
 };
 
 

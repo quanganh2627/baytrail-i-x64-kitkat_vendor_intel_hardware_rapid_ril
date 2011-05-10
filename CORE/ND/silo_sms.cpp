@@ -71,6 +71,38 @@ CSilo_SMS::~CSilo_SMS()
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
+
+BOOL CSilo_SMS::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
+{
+    RIL_LOG_VERBOSE("CSilo_SMS::PreParseResponseHook() - Enter\r\n");
+    BOOL bRetVal = TRUE;
+
+    if ( (ND_REQ_ID_SENDSMS == rpCmd->GetRequestID() || ND_REQ_ID_SENDSMSEXPECTMORE == rpCmd->GetRequestID()) &&
+         (RIL_E_GENERIC_FAILURE == rpRsp->GetResultCode()) )
+    {
+        if (332 == rpRsp->GetErrorCode())
+        {
+            //  Tried sending SMS, network timeout
+            RIL_LOG_INFO("CSilo_SMS::PreParseResponseHook() - Send SMS failed, network timeout\r\n");
+            rpRsp->SetResultCode(RIL_E_SMS_SEND_FAIL_RETRY);
+        }
+        else if (545 == rpRsp->GetErrorCode())
+        {
+            //  tried sending SMS, not in FDN list
+            //  NOTE: I tested this, it doesn't work with messaging app.
+            //RIL_LOG_INFO("CSilo_SMS::PreParseResponseHook() - Send SMS failed, not in FDN list\r\n");
+            //rpRsp->SetResultCode(RIL_E_FDN_CHECK_FAILURE);
+        }
+    }
+
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_SMS::PreParseResponseHook() - Exit\r\n");
+    return bRetVal;
+}
+
+
+
 //
 //
 BOOL CSilo_SMS::ParseMessage(CResponse* const pResponse, const BYTE*& rszPointer, SILO_SMS_MSG_TYPES msgType)

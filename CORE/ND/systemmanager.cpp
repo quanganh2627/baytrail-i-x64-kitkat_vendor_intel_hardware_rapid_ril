@@ -417,10 +417,24 @@ BOOL CSystemManager::InitializeSystem()
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Thread manager failed to start.\r\n");
     }
 
-    if (!CreateWatchdogThread())
+    //  Check repository to see if we support the watchdog thread.
+    if (repository.Read(g_szGroupModem, g_szDisableWatchdogThread, iTemp))
     {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't create watchdog thread!\r\n");
-        goto Done;
+        if (0 == iTemp)
+        {
+            //  support watchdog thread
+            if (!CreateWatchdogThread())
+            {
+                RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't create watchdog thread!\r\n");
+                goto Done;
+            }
+        }
+        else
+        {
+            //  don't support watchdog thread
+            RIL_LOG_CRITICAL("******* CSystemManager::InitializeSystem() - Watchdog thread is DISABLED.\r\n");
+            RIL_LOG_CRITICAL("******* Unsoliticited modem reset detection AND core dump will not function.\r\n");
+        }
     }
 
     if (!InitializeModem())
@@ -1262,9 +1276,9 @@ BOOL CSystemManager::InitializeSimSms()
     UINT32       uiWaitRes;
     REQUEST_DATA reqData;
 #ifdef RIL_CELL_BROADCAST
-    const BYTE* szCmd = "AT+CNMI=1,2,2,1\r";
+    const BYTE* szCmd = "AT+CNMI=2,2,2,1\r";
 #else
-    const BYTE* szCmd = "AT+CNMI=1,2,0,1\r";
+    const BYTE* szCmd = "AT+CNMI=2,2,0,1\r";
 #endif  // RIL_CELL_BROADCAST
 
     RIL_LOG_VERBOSE("InitializeSimSms() : Enter\r\n");
