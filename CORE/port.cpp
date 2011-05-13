@@ -35,6 +35,7 @@
 #include "rillog.h"
 #include "port.h"
 #include "rildmain.h"
+#include "repository.h"
 
 CPort::CPort() :
     m_fIsPortOpen(FALSE),
@@ -246,23 +247,36 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
     RIL_LOG_VERBOSE("CPort::OpenPort() - Enter\r\n");
     BOOL fRet = FALSE;
 
-    // TODO : Pull these values from repository
-    UINT32 uiRetries = 30;   //5;
-    UINT32 uiInterval = 2000;
-    UINT32 uiAttempts = 0;
+    int iRetries = 30;     // default values
+    int iInterval = 2000;  // default values
 
+    int  iAttempts = 0;
+
+    //  Grab retries and interval from repository.
+    CRepository repository;
+    if (!repository.Read(g_szGroupRILSettings, g_szOpenPortRetries, iRetries))
+    {
+        iRetries = 30;
+    }
+    RIL_LOG_INFO("CPort::OpenPort() - iRetries=[%d]\r\n", iRetries);
+
+    if (!repository.Read(g_szGroupRILSettings, g_szOpenPortInterval, iInterval))
+    {
+        iInterval = 2000;
+    }
+    RIL_LOG_INFO("CPort::OpenPort() - iInterval=[%d]\r\n", iInterval);
 
     while(!fRet)
     {
-        for (uiAttempts = 0; uiAttempts < uiRetries; uiAttempts++)
+        for (iAttempts = 0; iAttempts < iRetries; iAttempts++)
 //        for(;;)
         {
-            if (uiAttempts > 0)
+            if (iAttempts > 0)
             {
-                Sleep(uiInterval);
+                Sleep(iInterval);
             }
 
-            RIL_LOG_INFO("CPort::OpenPort()  ATTEMPT NUMBER %d\r\n", uiAttempts);
+            RIL_LOG_INFO("CPort::OpenPort()  ATTEMPT NUMBER %d\r\n", iAttempts);
             fRet = CFile::Open(m_pFile, pszFileName, FILE_ACCESS_READ_WRITE, FILE_OPEN_EXIST, FILE_OPT_NONE);
 
             if (fRet)
@@ -275,20 +289,20 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
             //    /* maybe modem is absent, so dont wake up the system too
             //       often in that case.
             //       we do exponential retry with 20 minutes maximum */
-            //    if (uiAttempts > 9 && uiInterval < 1200000)
-            //        uiInterval *= 2;
-            //    Sleep(uiInterval);
+            //    if (iAttempts > 9 && iInterval < 1200000)
+            //        iInterval *= 2;
+            //    Sleep(iInterval);
             //}
 
             //  Remove this when using for loop
-            // uiAttempts++;
+            // iAttempts++;
         }
 
 
         //  If we didn't open the port, issue critical reset
         if (!fRet)
         {
-            RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT after %d attempts, issuing critical reboot\r\n", uiAttempts);
+            RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT after %d attempts, issuing critical reboot\r\n", iAttempts);
             TriggerRadioErrorAsync(eRadioError_OpenPortFailure, __LINE__, __FILE__);
 
             Sleep(2000);

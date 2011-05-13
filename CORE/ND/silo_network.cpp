@@ -110,7 +110,7 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
             CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
             if (pChannelData)
             {
-                RIL_LOG_INFO("TriggerRadioError() - Setting chnl=[%d] contextID to 0\r\n", i);
+                RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - Setting chnl=[%d] contextID to 0\r\n", i);
                 pChannelData->SetContextID(0);
             }
         }
@@ -543,9 +543,11 @@ Error:
 //
 BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const BYTE* &rszPointer)
 {
-    RIL_LOG_VERBOSE("CSilo_Network::ParseCGEV() - Enter\r\n");
+    RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Enter\r\n");
 
     BOOL bRet = FALSE;
+    char* szDummy = NULL;
+    CChannel_Data* pDataChannel = NULL;
 
     if (NULL == pResponse)
     {
@@ -553,6 +555,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const BYTE* &rszPointe
         goto Error;
     }
 
+    szDummy = strstr(rszPointer, "NW DEACT");
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
         // This isn't a complete registration notification -- no need to parse it
@@ -563,17 +566,25 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const BYTE* &rszPointe
     //  Back up over the "\r\n".
     rszPointer -= strlen(g_szNewLine);
 
-    //  Flag as unrecognized.
-    pResponse->SetUnrecognizedFlag(TRUE);
+    if (szDummy != NULL)
+    {
+        pResponse->SetUnrecognizedFlag(TRUE);
+        RIL_requestTimedCallback(triggerDeactivateDataCall, NULL, 0, 0);
+    }
+    else
+    {
+        //  Flag as unrecognized.
+        pResponse->SetUnrecognizedFlag(TRUE);
 
-    //  Trigger data call list changed
-    //RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Called timed callback  START\r\n");
-    RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
-    //RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Called timed callback  END\r\n");
+        //  Trigger data call list changed
+        //RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Called timed callback  START\r\n");
+        RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
+        //RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Called timed callback  END\r\n");
+    }
 
     bRet = TRUE;
 Error:
-    RIL_LOG_VERBOSE("CSilo_Network::ParseCGEV() - Exit\r\n");
+    RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Exit\r\n");
     return bRet;
 }
 

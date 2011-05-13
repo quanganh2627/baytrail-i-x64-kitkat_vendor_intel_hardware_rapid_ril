@@ -203,6 +203,8 @@ const char   g_szDefaultCmdRetries[]           = "DefaultCmdRetries";
 const char   g_szRadioOnDelay[]                = "RadioOnDelay";
 const char   g_szRadioOffDelay[]               = "RadioOffDelay";
 const char   g_szUseUSIMAddress[]              = "UseUSIMAddress";
+const char   g_szOpenPortRetries[]             = "OpenPortRetries";
+const char   g_szOpenPortInterval[]            = "OpenPortInterval";
 
 /////////////////////////////////////////////////
 
@@ -281,6 +283,8 @@ const char   g_szNetworkInterfaceName[]         = "NetworkInterfaceName";
 const char   g_szDisableModemReset[]            = "DisableModemReset";
 const char   g_szDisableCoreDump[]              = "DisableCoreDump";
 const char   g_szDisableWatchdogThread[]        = "DisableWatchdogThread";
+const char   g_szRadioResetDelay[]              = "RadioResetDelay";
+const char   g_szRadioResetStartStmdDelay[]     = "RadioResetStartStmdDelay";
 
 /////////////////////////////////////////////////
 

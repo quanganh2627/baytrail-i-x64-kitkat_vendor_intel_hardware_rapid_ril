@@ -84,6 +84,8 @@ extern const char   g_szDefaultCmdRetries[];
 extern const char   g_szRadioOnDelay[];
 extern const char   g_szRadioOffDelay[];
 extern const char   g_szUseUSIMAddress[];
+extern const char   g_szOpenPortRetries[];
+extern const char   g_szOpenPortInterval[];
 
 /////////////////////////////////////////////////
 
@@ -148,6 +150,8 @@ extern const char   g_szNetworkInterfaceName[];
 extern const char   g_szDisableModemReset[];
 extern const char   g_szDisableCoreDump[];
 extern const char   g_szDisableWatchdogThread[];
+extern const char   g_szRadioResetDelay[];
+extern const char   g_szRadioResetStartStmdDelay[];
 
 //////////////////////////////////////////////////////////////////////////
 

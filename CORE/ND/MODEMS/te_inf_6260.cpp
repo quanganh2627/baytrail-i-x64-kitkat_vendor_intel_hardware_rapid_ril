@@ -1897,7 +1897,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
     for (int i = 0; i < (int)uiDataSize; i++)
     {
         BYTE b = pDataBytes[i];
-        RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - pData[%d]=[0x%02X]\r\n", i, b);
+        RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - pData[%d]=[0x%02X]\r\n", i, (unsigned char)b);
     }
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -1919,10 +1919,11 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
 
     bCommand = (BYTE)pDataBytes[0];  //  This is the command.
+    rReqData.pContextData = (void*)((unsigned int)bCommand);
     switch(bCommand)
     {
         case RIL_OEM_HOOK_RAW_POWEROFF:
-            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_POWEROFF Command=[0x%02X] received OK\r\n", bCommand);
+            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_POWEROFF Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
 
             //  Shouldn't be any data following command
 
@@ -1957,6 +1958,16 @@ Error:
 RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Enter\r\n");
+
+    if (0xAA == (unsigned int)rRspData.pContextData)
+    {
+        RIL_LOG_INFO("Got AA\r\n");
+
+        const unsigned int nSleep = 5000;
+        RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - BEGIN sleep=[%d]\r\n", nSleep);
+        Sleep(nSleep);
+        RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - END sleep=[%d]\r\n", nSleep);
+    }
 
     RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Exit\r\n");
     return RRIL_RESULT_OK;

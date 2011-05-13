@@ -134,15 +134,17 @@ BOOL CheckForCoreDumpFlag(void)
         CRepository repository;
         int nVal = 0;
 
-        if (repository.Read(g_szGroupModem, g_szDisableCoreDump, nVal))
+        if (!repository.Read(g_szGroupModem, g_szDisableCoreDump, nVal))
         {
-            if (nVal > 0)
-            {
-                //  Don't support core dump
-                RIL_LOG_CRITICAL("CheckForCoreDumpFlag() - CORE DUMP NOT SUPPORTED!!  nVal=[%d]\r\n", nVal);
-                return FALSE;
-            }
+            nVal = 0;
         }
+        if (nVal > 0)
+        {
+            //  Don't support core dump
+            RIL_LOG_CRITICAL("CheckForCoreDumpFlag() - CORE DUMP NOT SUPPORTED!!  nVal=[%d]\r\n", nVal);
+            return FALSE;
+        }
+
     }
 
     RIL_LOG_INFO("CheckForCoreDumpFlag() - Enter\r\n");
@@ -249,7 +251,7 @@ BOOL HandleCoreDump(int& fdGsm)
                     //  Close port before triggering error
                     if (fdGsm >= 0)
                     {
-                        RIL_LOG_INFO("WatchdogThreadProc() - Close port=[%s]\r\n", g_szCmdPort);
+                        RIL_LOG_INFO("HandleCoreDump() - Close port=[%s]\r\n", g_szCmdPort);
                         close(fdGsm);
                         fdGsm = -1;
                     }
@@ -274,7 +276,7 @@ Done:
 //
 void* WatchdogThreadProc(void* pVoid)
 {
-    RIL_LOG_INFO("WatchdogThreadStart() - Enter\r\n");
+    RIL_LOG_INFO("WatchdogThreadProc() - Enter\r\n");
     struct pollfd fds[1] = { {0,0,0} };
     int numFds = sizeof(fds)/sizeof(fds[0]);
     int timeout_msecs = -1; // infinite timeout
@@ -372,7 +374,7 @@ void* WatchdogThreadProc(void* pVoid)
         fdGsm = -1;
     }
 
-    RIL_LOG_INFO("WatchdogThreadStart() - Exit\r\n");
+    RIL_LOG_INFO("WatchdogThreadProc() - Exit\r\n");
     return NULL;
 }
 
@@ -742,6 +744,12 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         {
             RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_DEACTIVATE_DATA_CALL *********************\r\n");
             RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+            return;
+        }
+        else if (RIL_REQUEST_SETUP_DATA_CALL == requestID)
+        {
+            RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_SETUP_DATA_CALL *********************\r\n");
+            RIL_onRequestComplete(hRilToken, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
             return;
         }
         else
@@ -1571,7 +1579,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.7 for Android 2.3 (Build May 5/2011)";
+    return "Intrinsyc Rapid-RIL M5.8 for Android 2.3 (Build May 12/2011)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};
@@ -1642,17 +1650,22 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
 
     int iTemp = 0;
+    int iRadioResetDelay = 2000;            // Default value
+    int iRadioResetStartStmdDelay = 4000;   // Default value
+
     CRepository repository;
-    if (repository.Read(g_szGroupModem, g_szDisableModemReset, iTemp))
+    if (!repository.Read(g_szGroupModem, g_szDisableModemReset, iTemp))
     {
-        if (iTemp > 0)
-        {
-            //  Don't support modem reset.  Just set global flag to error out future requests.
-            RIL_LOG_CRITICAL("MODEM RESET NOT SUPPORTED - ERROR OUT FUTURE REQUESTS\r\n");
-            g_bIsModemDead = TRUE;
-            return;
-        }
+        iTemp = 0;
     }
+    if (iTemp > 0)
+    {
+        //  Don't support modem reset.  Just set global flag to error out future requests.
+        RIL_LOG_CRITICAL("MODEM RESET NOT SUPPORTED - ERROR OUT FUTURE REQUESTS\r\n");
+        g_bIsModemDead = TRUE;
+        return;
+    }
+
 
     //  We're already in here, just exit
     if (g_bIsTriggerRadioError)
@@ -1662,6 +1675,19 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     }
 
     g_bIsTriggerRadioError = TRUE;
+
+    //  Read timeout values from repository.
+    if (!repository.Read(g_szGroupModem, g_szRadioResetDelay, iRadioResetDelay))
+    {
+        iRadioResetDelay = 2000;
+    }
+    RIL_LOG_INFO("TriggerRadioError() - iRadioResetDelay=[%d]\r\n", iRadioResetDelay);
+
+    if (!repository.Read(g_szGroupModem, g_szRadioResetStartStmdDelay, iRadioResetStartStmdDelay))
+    {
+        iRadioResetStartStmdDelay = 4000;
+    }
+    RIL_LOG_INFO("TriggerRadioError() - iRadioResetStartStmdDelay=[%d]\r\n", iRadioResetStartStmdDelay);
 
     //  Get FD to SPI.
     int ret = 0;
@@ -1703,7 +1729,7 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 
 
-    dwSleep = 500;
+    dwSleep = 200;
     RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
     Sleep(dwSleep);
     RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
@@ -1711,7 +1737,7 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     RIL_LOG_INFO("TriggerRadioError() - Closing channel ports\r\n");
     CSystemManager::GetInstance().CloseChannelPorts();
 
-    dwSleep = 500;
+    dwSleep = 200;
     RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  check ports are gone\r\n", dwSleep);
     Sleep(dwSleep);
     RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
@@ -1725,7 +1751,7 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     RIL_LOG_INFO("Done prop ctl.stop on stmd\r\n");
 
 
-    dwSleep = 500;
+    dwSleep = 200;
     RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  check stmd is gone\r\n", dwSleep);
     Sleep(dwSleep);
     RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
@@ -1739,10 +1765,9 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
         RIL_LOG_INFO("Done prop ctl.start on ifxreset\r\n");
 
         //  Wait for ifxreset to complete
-        dwSleep = 4000;
-        RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
-        Sleep(dwSleep);
-        RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
+        RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", iRadioResetDelay);
+        Sleep(iRadioResetDelay);
+        RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", iRadioResetDelay);
 
     }
 
@@ -1752,10 +1777,9 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     property_set("ctl.start","stmd");
     RIL_LOG_INFO("Done prop ctl.start on stmd\r\n");
 
-    dwSleep = 7000;
-    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  Wait for MUX to activate\r\n", dwSleep);
-    Sleep(dwSleep);
-    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
+    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  Wait for MUX to activate\r\n", iRadioResetStartStmdDelay);
+    Sleep(iRadioResetStartStmdDelay);
+    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", iRadioResetStartStmdDelay);
 
 
 Error:

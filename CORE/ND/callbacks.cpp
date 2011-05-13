@@ -25,6 +25,7 @@
 #include "rildmain.h"
 #include "rillog.h"
 #include "te.h"
+#include "../util.h"
 
 void notifySIMLocked(void *param)
 {
@@ -121,3 +122,26 @@ void triggerSIMRemoved(void *param)
     CSystemManager::GetInstance().StopSimInitialization();
 }
 
+void triggerDeactivateDataCall(void *param)
+{
+    REQUEST_DATA rReqData;
+    memset(&rReqData, 0, sizeof(REQUEST_DATA));
+    PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,1\r");
+    rReqData.pContextData = (void*)1;//TBD: get the cid for multiple PDP
+    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL], NULL, ND_REQ_ID_DEACTIVATEDATACALL, rReqData, &CTE::ParseDeactivateDataCall);
+
+    if (pCmd)
+    {
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("triggerDeactivateDataCall() - ERROR: Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("triggerDeactivateDataCall() - ERROR: Unable to allocate memory for new command!\r\n");
+    }
+
+}

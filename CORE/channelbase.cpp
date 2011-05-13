@@ -376,7 +376,7 @@ UINT32 CChannelBase::CommandThread()
         {
             RIL_LOG_CRITICAL("CChannelBase::CommandThread() : ERROR : chnl=[%d] Failed init, returning RIL_E_GENERIC_FAILURE\r\n", m_uiRilChannel);
 
-            if (0 != pCmd->GetToken())
+            if ( (NULL != pCmd) && (0 != pCmd->GetToken()) )
             {
                 RIL_LOG_VERBOSE("CChannelBase::CommandThread() - Complete for token 0x%08x, error: %d\r\n", pCmd->GetToken(), RIL_E_GENERIC_FAILURE);
                 RIL_onRequestComplete(pCmd->GetToken(), RIL_E_GENERIC_FAILURE, NULL, 0);
@@ -601,7 +601,7 @@ UINT32 CChannelBase::ResponseThread()
         if (uiReadError >= 3)
         {
             RIL_LOG_CRITICAL("CChannel::ResponseThread() - ERROR: chnl=[%d] uiReadError > = 3! Trigger radio error!\r\n", m_uiRilChannel);
-            Sleep(100);
+            Sleep(200);
             //TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
             TriggerRadioError(eRadioError_ForceShutdown, __LINE__, __FILE__);
 

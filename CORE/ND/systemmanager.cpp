@@ -418,24 +418,27 @@ BOOL CSystemManager::InitializeSystem()
     }
 
     //  Check repository to see if we support the watchdog thread.
-    if (repository.Read(g_szGroupModem, g_szDisableWatchdogThread, iTemp))
+    iTemp = 0;
+    if (!repository.Read(g_szGroupModem, g_szDisableWatchdogThread, iTemp))
     {
-        if (0 == iTemp)
+        iTemp = 0;
+    }
+    if (0 == iTemp)
+    {
+        //  support watchdog thread
+        if (!CreateWatchdogThread())
         {
-            //  support watchdog thread
-            if (!CreateWatchdogThread())
-            {
-                RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't create watchdog thread!\r\n");
-                goto Done;
-            }
-        }
-        else
-        {
-            //  don't support watchdog thread
-            RIL_LOG_CRITICAL("******* CSystemManager::InitializeSystem() - Watchdog thread is DISABLED.\r\n");
-            RIL_LOG_CRITICAL("******* Unsoliticited modem reset detection AND core dump will not function.\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't create watchdog thread!\r\n");
+            goto Done;
         }
     }
+    else
+    {
+        //  don't support watchdog thread
+        RIL_LOG_CRITICAL("******* CSystemManager::InitializeSystem() - Watchdog thread is DISABLED.\r\n");
+        RIL_LOG_CRITICAL("******* Unsoliticited modem reset detection AND core dump will not function.\r\n");
+    }
+
 
     if (!InitializeModem())
     {

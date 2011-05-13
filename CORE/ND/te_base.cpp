@@ -4063,7 +4063,10 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
 {
     RIL_LOG_VERBOSE("CoreSetFacilityLock() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    char ** ppszFacility = NULL;
+    char * pszFacility = NULL;
+    char * pszMode = NULL;
+    char * pszPassword = NULL;
+    char * pszClass = NULL;
 
     if ((4 * sizeof(char *)) != uiDataSize)
     {
@@ -4077,34 +4080,37 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
         goto Error;
     }
 
-    ppszFacility = (char **)pData;
+    pszFacility = ((char **)pData)[0];
+    pszMode     = ((char **)pData)[1];
+    pszPassword = ((char **)pData)[2];
+    pszClass    = ((char **)pData)[3];
 
-    if ((NULL == ppszFacility[0]) || (NULL == ppszFacility[1]))
+    if ((NULL == pszFacility) || (NULL == pszMode))
     {
         RIL_LOG_CRITICAL("CoreSetFacilityLock() - ERROR: Facility or Mode strings were NULL\r\n");
         goto Error;
     }
     // Facility and Mode provided
-    else if (NULL == ppszFacility[2])
+    else if (NULL == pszPassword || '\0' == pszPassword[0])
     {
         if (PrintStringNullTerminate(   rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
                                         "AT+CLCK=\"%s\",%s\r",
-                                        ppszFacility[0],
-                                        ppszFacility[1]))
+                                        pszFacility,
+                                        pszMode))
         {
             res = RRIL_RESULT_OK;
         }
     }
     // Password provided
-    else if (NULL == ppszFacility[3] || (NULL != ppszFacility[3] && '\0' == ppszFacility[3]))
+    else if (NULL == pszClass || '\0' == pszClass[0])
     {
         if (PrintStringNullTerminate(   rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
                                         "AT+CLCK=\"%s\",%s,\"%s\"\r",
-                                        ppszFacility[0],
-                                        ppszFacility[1],
-                                        ppszFacility[2]))
+                                        pszFacility,
+                                        pszMode,
+                                        pszPassword))
         {
             res = RRIL_RESULT_OK;
         }
@@ -4113,10 +4119,10 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     else if (PrintStringNullTerminate(  rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
                                         "AT+CLCK=\"%s\",%s,\"%s\",%s\r",
-                                        ppszFacility[0],
-                                        ppszFacility[1],
-                                        ppszFacility[2],
-                                        ppszFacility[3]))
+                                        pszFacility,
+                                        pszMode,
+                                        pszPassword,
+                                        pszClass))
     {
         res = RRIL_RESULT_OK;
     }
@@ -4410,7 +4416,6 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
     UINT32 nValue;
     UINT32 nEntries = 0;
     UINT32 nCurrent = 0;
-    //WCHAR tmp[MAX_BUFFER_SIZE];
     BYTE tmp[MAX_BUFFER_SIZE];
 
     P_ND_OPINFO_PTRS pOpInfoPtr = NULL;
@@ -4503,7 +4508,6 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
         // Extract ",<long_name>"
         if (!SkipString(szRsp, ",", szRsp) ||
-           //(!ExtractQuotedUnicodeHexStringToUnicode(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
            (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
         {
             RIL_LOG_CRITICAL("ParseGetOperatorList() - ERROR: Could not extract the Long Format Operator Name.\r\n");
@@ -4515,7 +4519,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
             int len = strlen(tmp);
             if (0 == len)
             {
-                strcpy(pOpInfoData[nCurrent].szOpInfoLong, "<UNKNOWN>");
+                //  if long format operator is empty return string "".
+                strcpy(pOpInfoData[nCurrent].szOpInfoLong, "");
             }
             else
             {
@@ -4530,7 +4535,6 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
         // Extract ",<short_name>"
         if (!SkipString(szRsp, ",", szRsp) ||
-           //(!ExtractQuotedUnicodeHexStringToUnicode(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
            (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
         {
             RIL_LOG_CRITICAL("ParseGetOperatorList() - ERROR: Could not extract the Short Format Operator Name.\r\n");
@@ -4542,7 +4546,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
             int len = strlen(tmp);
             if (0 == len)
             {
-                strcpy(pOpInfoData[nCurrent].szOpInfoShort, "<UNKNOWN>");
+                //  if short format operator is empty return string "".
+                strcpy(pOpInfoData[nCurrent].szOpInfoShort, "");
             }
             else
             {
@@ -4557,7 +4562,6 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
         // Extract ",<num_name>"
         if (!SkipString(szRsp, ",", szRsp) ||
-           //(!ExtractQuotedUnicodeHexStringToUnicode(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
            (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
         {
             RIL_LOG_CRITICAL("ParseGetOperatorList() - ERROR: Could not extract the Numeric Format Operator Name.\r\n");
@@ -4569,7 +4573,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
             int len = strlen(tmp);
             if (0 == len)
             {
-                strcpy(pOpInfoData[nCurrent].szOpInfoNumeric, "<UNKNOWN>");
+                //  if numeric format operator is empty return string "".
+                strcpy(pOpInfoData[nCurrent].szOpInfoNumeric, "");
             }
             else
             {

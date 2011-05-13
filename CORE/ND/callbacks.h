@@ -75,4 +75,9 @@ void triggerSIMInserted(void *param);
 //
 void triggerSIMRemoved(void *param);
 
+//
+// Callback to trigger deactivate Data call
+//
+void triggerDeactivateDataCall(void *param);
+
 #endif
