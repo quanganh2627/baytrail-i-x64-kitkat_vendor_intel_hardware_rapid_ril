@@ -33,7 +33,7 @@ extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
 //  SIM related functions, SIM toolkit
-INITSTRING_DATA DLC8BasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+XSIMSTATE=1" };
+INITSTRING_DATA DLC8BasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1" };
 INITSTRING_DATA DLC8UnlockInitString  = { "" };
 INITSTRING_DATA DLC8PowerOnInitString = { "" };
 INITSTRING_DATA DLC8ReadyInitString   = { "" };

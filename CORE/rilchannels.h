@@ -32,7 +32,7 @@
 
 // TODO - this should be read from repository? Set to 1 in the case
 // where there is only a single ATCMD channel and no data channels.
-#define RIL_CHANNEL_MAX 5   // Just use 2 channels for initial test
+#define RIL_CHANNEL_MAX 6   // Just use 2 channels for initial test
 
 //  Call control commands, misc commands
 #define RIL_CHANNEL_ATCMD 0
@@ -46,8 +46,11 @@
 //  SIM related functions, SIM toolkit
 #define RIL_CHANNEL_DLC8 3
 
+//  URC channel
+#define RIL_CHANNEL_URC 4
+
 //  GPRS/UMTS data (1st primary context)
-#define RIL_CHANNEL_DATA1 4
+#define RIL_CHANNEL_DATA1 5
 
 
 // TODO - currently allow up to one reserved channel (e.g., for direct audio use).

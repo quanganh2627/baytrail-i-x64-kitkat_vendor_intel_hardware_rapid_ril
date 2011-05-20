@@ -90,11 +90,10 @@ BOOL CSilo_Data::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, B
         if (pDataChannel)
         {
             //  Reset the CID on this data channel to 0.  Free up channel for future use.
-            RIL_LOG_INFO("CSilo_Data::PostParseResponseHook - Setting chnl=[%d] to CID=[0]\r\n", uiChannel);
-            pDataChannel->SetContextID(0);
 
             //  Release network interface
-            DataConfigDown();
+            RIL_LOG_INFO("CSilo_Data::PostParseResponseHook - calling DataConfigDown(%d)\r\n", pDataChannel->GetContextID());
+            DataConfigDown(pDataChannel->GetContextID());
         }
     }
 
@@ -176,12 +175,13 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPoin
 
     // Free this channel's context ID.
     pDataChannel = CChannel_Data::GetChnlFromRilChannelNumber(m_pChannel->GetRilChannel());
-    pDataChannel->SetContextID(0);
-    RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() : setting chnl=[%d] to have ContextID of 0\r\n", m_pChannel->GetRilChannel());
+    if (pDataChannel)
+    {
+        RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() : calling DataConfigDown(%d)\r\n", pDataChannel->GetContextID());
 
-    //  Release network interface
-    DataConfigDown();
-
+        //  Release network interface
+        DataConfigDown(pDataChannel->GetContextID());
+    }
     fRet = TRUE;
 
 Error:

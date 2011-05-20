@@ -1469,7 +1469,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
     //  Some error cases here are different.
     if (279 == uiCause)
         uiCause = CALL_FAIL_FDN_BLOCKED;
-    else if (280 == uiCause)
+    else if ( (280 == uiCause) || (8 == uiCause) )
         uiCause = CALL_FAIL_CALL_BARRED;
 
     switch(uiCause)
@@ -3787,6 +3787,13 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
         }
     }
     
+    // Take into account the case where the output of CGMR is "V1.1,nn" where nn are the two digits of SV
+    if(nIndex > 2)
+    {
+        szSVDigits[0] = szSVDigits[nIndex - 2];
+        szSVDigits[1] = szSVDigits[nIndex - 1];
+    }
+
     // Take into account the case where the output of CGMR is "V1.1,nn" where nn are the two digits of SV
     if(nIndex > 2)
     {

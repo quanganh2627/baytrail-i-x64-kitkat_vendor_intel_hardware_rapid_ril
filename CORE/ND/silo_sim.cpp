@@ -560,6 +560,8 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rsz
     const char* pszEnd = NULL;
     BOOL fRet = FALSE;
 
+    int *pInts = NULL;
+
     if (pResponse == NULL)
     {
         RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() : ERROR : pResponse was NULL\r\n");
@@ -603,11 +605,44 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rsz
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Hex String: \"%s\".\r\n", pszProactiveCmd);
 
     pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);
 
-    if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char *), FALSE))
+    //  Need to see if this is a SIM_REFRESH command.
+    //  NOTE: Due to time constraints this code is incomplete.
+    //  We really need a TLV parser here.
+    if (strstr(pszProactiveCmd, "81030101"))
     {
-        goto Error;
+        RIL_LOG_INFO("*** We found 81030101 SIM_REFRESH ***\r\n");
+        pResponse->SetResultCode(RIL_UNSOL_SIM_REFRESH);
+
+        pInts = (int*)malloc(2 * sizeof(int));
+        if (NULL != pInts)
+        {
+            pInts[0] = SIM_INIT;
+            pInts[1] = NULL;
+
+            if (!pResponse->SetData((void*)pInts, 2 * sizeof(int), FALSE))
+            {
+                goto Error;
+            }
+
+            //  free the alloc'd buffer since we're using the pInts one.
+            free(pszProactiveCmd);
+            pszProactiveCmd = NULL;
+        }
+        else
+        {
+            goto Error;
+        }
+    }
+    else
+    {
+        //  Normal STK Event notify
+        pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);
+
+        if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char *), FALSE))
+        {
+            goto Error;
+        }
     }
 
     fRet = TRUE;
@@ -617,6 +652,8 @@ Error:
     {
         free(pszProactiveCmd);
         pszProactiveCmd = NULL;
+        free(pInts);
+        pInts = NULL;
     }
 
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Exit\r\n");
@@ -706,14 +743,15 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
     }
 
     //  If we re-inserted a SIM, then do a re-init
-    //  April 5/11 - nSIMState of 0 means SIM removed or booted without SIM
-    if ( ((9 == m_nXSIMStatePrev) || (0 == m_nXSIMStatePrev)) && (0 != nSIMState) )
+    //  May 17/11 - nSIMState of 0 means booted without SIM
+    //              nSIMState of 9 means SIM removed
+    if ( (0 != nSIMState && 9 != nSIMState) && (9 == m_nXSIMStatePrev || 0 == m_nXSIMStatePrev) )
     {
         RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM was inserted!\r\n");
 
         RIL_requestTimedCallback(triggerSIMInserted, NULL, 0, 250000);
     }
-    else if ( (0 == nSIMState) && (0 < m_nXSIMStatePrev) )
+    else if ( (9 == nSIMState || 0 == nSIMState) && (0 != m_nXSIMStatePrev && 9 != m_nXSIMStatePrev) )
     {
         RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM was removed or missing!\r\n");
 

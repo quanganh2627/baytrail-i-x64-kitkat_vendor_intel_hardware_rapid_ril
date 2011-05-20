@@ -82,6 +82,7 @@ BYTE* g_szDataPort3 = NULL;
 BYTE* g_szDLC2Port = NULL;
 BYTE* g_szDLC6Port = NULL;
 BYTE* g_szDLC8Port = NULL;
+BYTE* g_szURCPort = NULL;
 CThread* g_pWatchdogThread = NULL;
 
 //  Global variable to see if modem is dead.  (TEMPORARY)
@@ -1579,7 +1580,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.8 for Android 2.3 (Build May 12/2011)";
+    return "Intrinsyc Rapid-RIL M5.9 for Android 2.3 (Build May 12/2011)";
 }
 
 static const struct timeval TIMEVAL_SIMPOLL = {1,0};
@@ -1709,18 +1710,16 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
             CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
             if (pChannelData)
             {
-                RIL_LOG_INFO("TriggerRadioError() - Setting chnl=[%d] contextID to 0\r\n", i);
-                pChannelData->SetContextID(0);
+                RIL_LOG_INFO("TriggerRadioError() - Calling DataConfigDown(%d)\r\n", pChannelData->GetContextID());
+                DataConfigDown(pChannelData->GetContextID());
             }
         }
     }
 
+
     //  Tell Android no more data connection
     RIL_LOG_INFO("TriggerRadioError() - telling Android no more data\r\n");
     RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
-
-    RIL_LOG_INFO("TriggerRadioError() - Calling DataConfigDown()\r\n");
-    DataConfigDown();
 
 
     //  If there was a voice call active, it is disconnected.
@@ -1883,7 +1882,7 @@ static bool RIL_SetGlobals(int argc, char **argv)
 {
     int opt;
 
-    while (-1 != (opt = getopt(argc, argv, "d:s:a:n:m:c:")))
+    while (-1 != (opt = getopt(argc, argv, "d:s:a:n:m:c:u:")))
     {
         switch (opt)
         {
@@ -1897,32 +1896,38 @@ static bool RIL_SetGlobals(int argc, char **argv)
             // This should be the non-emulator case.
             case 'a':
                 g_szCmdPort = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for AT channel (DLC1)\r\n", g_szCmdPort);
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for AT channel chnl=[%d] -a\r\n", g_szCmdPort, RIL_CHANNEL_ATCMD);
             break;
 
             // This should be the non-emulator case.
             case 'd':
                 g_szDataPort1 = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel (DLC3)\r\n", g_szDataPort1);
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort1, RIL_CHANNEL_DATA1);
             break;
 
             // This should be the non-emulator case.
             case 'n':
                 g_szDLC2Port = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Network channel (DLC2)\r\n", g_szDLC2Port);
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Network channel chnl=[%d] -n\r\n", g_szDLC2Port, RIL_CHANNEL_DLC2);
             break;
 
             // This should be the non-emulator case.
             case 'm':
                 g_szDLC6Port = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Messaging channel (DLC6)\r\n", g_szDLC6Port);
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Messaging channel chnl=[%d] -m\r\n", g_szDLC6Port, RIL_CHANNEL_DLC6);
             break;
 
             // This should be the non-emulator case.
             case 'c':
                 g_szDLC8Port = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for SIM/USIM Card channel (DLC8)\r\n", g_szDLC8Port);
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for SIM/USIM Card channel chnl=[%d] -c\r\n", g_szDLC8Port, RIL_CHANNEL_DLC8);
             break;
+
+            // This should be the non-emulator case.
+            case 'u':
+                g_szURCPort = optarg;
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for URC channel chnl=[%d] -u\r\n", g_szURCPort, RIL_CHANNEL_URC);
+                break;
 
             default:
                 usage(argv[0]);

@@ -128,6 +128,6 @@ public:
 
 //  Call these functions to set up data and bring down data.
 BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2);
-BOOL DataConfigDown();
+BOOL DataConfigDown(int nCID);
 
 #endif

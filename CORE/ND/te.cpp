@@ -2706,7 +2706,7 @@ RIL_RESULT_CODE CTE::RequestAnswer(RIL_Token rilToken, void * pData, size_t data
     }
     else
     {
-    CCommand * pCmd = new CCommand(RIL_CHANNEL_ATCMD, rilToken, ND_REQ_ID_ANSWER, reqData, &CTE::ParseAnswer);
+    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_ANSWER], rilToken, ND_REQ_ID_ANSWER, reqData, &CTE::ParseAnswer);
 
 
 

@@ -31,8 +31,8 @@
 //  Com init strings for this channel.
 //  Call control commands, misc commands
 
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|S0=0|+CMEE=1|+XCALLSTAT=1" };
-INITSTRING_DATA ATCmdUnlockInitString   = { "+CRC=1|+CR=1" };
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|S0=0|+CMEE=1" };
+INITSTRING_DATA ATCmdUnlockInitString   = { "" };
 INITSTRING_DATA ATCmdPowerOnInitString  = { "+XPOW=0,0,0" };
 INITSTRING_DATA ATCmdReadyInitString    = { "" };
 

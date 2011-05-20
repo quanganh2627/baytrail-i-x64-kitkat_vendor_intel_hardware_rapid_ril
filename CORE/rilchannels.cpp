@@ -42,7 +42,7 @@ UINT32 g_arChannelMapping[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_SETCALLFORWARD,                      // 33
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_QUERYCALLWAITING,                    // 34
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_SETCALLWAITING,                      // 35
-    RIL_CHANNEL_DLC6,  //ND_REQ_ID_SMSACKNOWLEDGE,                      // 36
+    RIL_CHANNEL_ATCMD,  //ND_REQ_ID_SMSACKNOWLEDGE,                      // 36
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_GETIMEI,                             // 37
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_GETIMEISV,                           // 38
     RIL_CHANNEL_ATCMD,  //ND_REQ_ID_ANSWER,                              // 39

@@ -246,14 +246,6 @@ BOOL CSilo_Voice::ParseCallWaitingInfo(CResponse* const pResponse, const BYTE*& 
         goto Error;
     }
 
-    // Parse "<address>
-    if (!ExtractQuotedString(rszPointer, szAddress, MAX_BUFFER_SIZE, rszPointer))
-    {
-        // This is not a unsolicited response CCWA. Return error so the response will be handled properly.
-        goto Error;
-    }
-
-
 
     // Walk back over the <CR>
     rszPointer -= strlen(g_szNewLine);

@@ -43,6 +43,7 @@
 #include "channel_DLC2.h"
 #include "channel_DLC6.h"
 #include "channel_DLC8.h"
+#include "channel_URC.h"
 #include "response.h"
 #include "repository.h"
 #include "te.h"
@@ -643,6 +644,10 @@ CChannel* CSystemManager::CreateChannel(UINT32 eIndex)
 
         case RIL_CHANNEL_DLC8:
             pChannel = new CChannel_DLC8(eIndex);
+            break;
+
+        case RIL_CHANNEL_URC:
+            pChannel = new CChannel_URC(eIndex);
             break;
 
         default:
@@ -1343,7 +1348,7 @@ BOOL CSystemManager::InitializeSimSms()
         RIL_LOG_INFO("InitializeSimSms() : Sending CNMI request\r\n");
         memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-        pCmd = new CCommand(RIL_CHANNEL_DLC6,
+        pCmd = new CCommand(RIL_CHANNEL_URC,
                             NULL,
                             ND_REQ_ID_NONE,
                             szCmd);
@@ -1409,7 +1414,7 @@ BOOL CSystemManager::InitializeSimSTK()
     RIL_LOG_VERBOSE("InitializeSimSTK() : Enter\r\n");
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    CCommand* pCmd = new CCommand(RIL_CHANNEL_DLC8,
+    CCommand* pCmd = new CCommand(RIL_CHANNEL_URC,
                                   NULL,
                                   ND_REQ_ID_NONE,
                                   "AT+XSATK=1,1\r");

@@ -110,15 +110,12 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
             CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
             if (pChannelData)
             {
-                RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - Setting chnl=[%d] contextID to 0\r\n", i);
-                pChannelData->SetContextID(0);
+                RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - calling DataConfigDown(%d)\r\n", pChannelData->GetContextID());
+                DataConfigDown(pChannelData->GetContextID());
             }
         }
 
-        DataConfigDown();
-
         RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
-
 
     }
 

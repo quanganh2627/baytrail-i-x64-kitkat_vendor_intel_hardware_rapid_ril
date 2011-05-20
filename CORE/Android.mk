@@ -30,6 +30,7 @@ LOCAL_SRC_FILES:= \
     channel_DLC2.cpp \
     channel_DLC6.cpp \
     channel_DLC8.cpp \
+    channel_URC.cpp \
     port.cpp \
     ND/callbacks.cpp \
     ND/file_ops.cpp \

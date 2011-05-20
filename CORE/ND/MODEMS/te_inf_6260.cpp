@@ -349,6 +349,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     fd = pDataChannel->GetFD();
     if (fd >= 0)
     {
+        RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - ***** PUTTING channel=[%d] in DATA MODE *****\r\n", rRspData.uiChannel);
         ret = ioctl( fd, GSMIOC_ENABLE_NET, &netconfig );       // Enable data channel
     }
     else
@@ -474,11 +475,10 @@ Error:
         RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Error cleanup\r\n");
         if (pDataChannel)
         {
-            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Setting chnl=[%d] to CID=[0]\r\n", rRspData.uiChannel);
-            pDataChannel->SetContextID(0);
+            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - calling DataConfigDown(%d)\r\n", pDataChannel->GetContextID());
 
             //  Release network interface
-            DataConfigDown();
+            DataConfigDown(pDataChannel->GetContextID());
         }
     }
     RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Exit\r\n");
@@ -702,13 +702,17 @@ Error:
 //
 //  Call this whenever data is disconnected
 //
-BOOL DataConfigDown()
+BOOL DataConfigDown(int nCID)
 {
     CRepository repository;
     BOOL bRet = FALSE;
     int s = -1;
     char szNetworkInterfaceName[MAX_BUFFER_SIZE] = {0};
     char szPropName[MAX_BUFFER_SIZE] = {0};
+    CChannel_Data* pDataChannel = NULL;
+    struct gsm_netconfig netconfig;
+    int fd=-1;
+    int ret =-1;
 
     //  Grab the network interface name
     if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceName, szNetworkInterfaceName, MAX_BUFFER_SIZE))
@@ -717,8 +721,30 @@ BOOL DataConfigDown()
         strcpy(szNetworkInterfaceName, "");
         goto Error;
     }
-    RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName=[%s]\r\n", szNetworkInterfaceName);
+    RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName=[%s]  CID=[%d]\r\n", szNetworkInterfaceName, nCID);
 
+    //  Get data channel and set CID to 0.
+    if (nCID > 0)
+    {
+        pDataChannel = CChannel_Data::GetChnlFromContextID(nCID);
+        if (pDataChannel)
+        {
+            // Reset ContextID to 0, to free up the channel for future use
+            RIL_LOG_INFO("DataConfigDown() - Setting chnl=[%d] to CID=[0]\r\n", pDataChannel->GetRilChannel());
+            pDataChannel->SetContextID(0);
+            fd = pDataChannel->GetFD();
+
+            //  Put the channel back into AT command mode
+            netconfig.adaption = 3;
+            netconfig.protocol = htons(ETH_P_IP);
+
+            if (fd >= 0)
+            {
+                RIL_LOG_INFO("DataConfigDown() - ***** PUTTING channel=[%d] in AT COMMAND MODE *****\r\n", pDataChannel->GetRilChannel());
+                ret = ioctl( fd, GSMIOC_DISABLE_NET, &netconfig );
+            }
+        }
+    }
 
 
     // unset net. properties
@@ -822,29 +848,36 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    pDataChannel = CChannel_Data::GetChnlFromContextID(nCid);
-    if (!pDataChannel)
+    if (nCid > 0)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
-        goto Error;
+        pDataChannel = CChannel_Data::GetChnlFromContextID(nCid);
+        if (!pDataChannel)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
+            goto Error;
+        }
+
+        //  Remove previous IP addr (if it existed)
+        delete[] pDataChannel->m_szIpAddr;
+        pDataChannel->m_szIpAddr = NULL;
+
+
+        // Parse <PDP_addr>
+        if (!SkipString(szRsp, ",", szRsp) ||
+            !ExtractQuotedStringWithAllocatedMemory(szRsp, pDataChannel->m_szIpAddr, cbIpAddr, szRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Unable to parse <PDP_addr>!\r\n");
+            goto Error;
+        }
+
+        RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IP address: %s\r\n", pDataChannel->m_szIpAddr);
+
+        res = RRIL_RESULT_OK;
     }
-
-    //  Remove previous IP addr (if it existed)
-    delete[] pDataChannel->m_szIpAddr;
-    pDataChannel->m_szIpAddr = NULL;
-
-
-    // Parse <PDP_addr>
-    if (!SkipString(szRsp, ",", szRsp) ||
-        !ExtractQuotedStringWithAllocatedMemory(szRsp, pDataChannel->m_szIpAddr, cbIpAddr, szRsp))
+    else
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Unable to parse <PDP_addr>!\r\n");
-        goto Error;
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - nCid=[%d] not valid!\r\n", nCid);
     }
-
-    RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IP address: %s\r\n", pDataChannel->m_szIpAddr);
-
-    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseIpAddress() - Exit\r\n");
@@ -880,44 +913,51 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    pDataChannel = CChannel_Data::GetChnlFromContextID(nCid);
-    if (!pDataChannel)
+    if (nCid > 0)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
-        goto Error;
-    }
-
-    //  Remove previous DNS1 and DNS2 (if it existed)
-    delete[] pDataChannel->m_szDNS1;
-    pDataChannel->m_szDNS1 = NULL;
-    delete[] pDataChannel->m_szDNS2;
-    pDataChannel->m_szDNS2 = NULL;
-
-
-    // Parse <primary DNS>
-    if (SkipString(szRsp, ",", szRsp))
-    {
-        if (!ExtractQuotedStringWithAllocatedMemory(szRsp, pDataChannel->m_szDNS1, cbDns1, szRsp))
+        pDataChannel = CChannel_Data::GetChnlFromContextID(nCid);
+        if (!pDataChannel)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Unable to parse <primary DNS>! szDns1\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
             goto Error;
         }
-        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1: %s\r\n", pDataChannel->m_szDNS1);
-    }
+
+        //  Remove previous DNS1 and DNS2 (if it existed)
+        delete[] pDataChannel->m_szDNS1;
+        pDataChannel->m_szDNS1 = NULL;
+        delete[] pDataChannel->m_szDNS2;
+        pDataChannel->m_szDNS2 = NULL;
 
 
-    // Parse <secondary DNS>
-    if (SkipString(szRsp, ",", szRsp))
-    {
-        if (!ExtractQuotedStringWithAllocatedMemory(szRsp, pDataChannel->m_szDNS2, cbDns2, szRsp))
+        // Parse <primary DNS>
+        if (SkipString(szRsp, ",", szRsp))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Unable to parse <secondary DNS>! szDns2\r\n");
-            goto Error;
+            if (!ExtractQuotedStringWithAllocatedMemory(szRsp, pDataChannel->m_szDNS1, cbDns1, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Unable to parse <primary DNS>! szDns1\r\n");
+                goto Error;
+            }
+            RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1: %s\r\n", pDataChannel->m_szDNS1);
         }
-        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2: %s\r\n", pDataChannel->m_szDNS2);
-    }
 
-    res = RRIL_RESULT_OK;
+
+        // Parse <secondary DNS>
+        if (SkipString(szRsp, ",", szRsp))
+        {
+            if (!ExtractQuotedStringWithAllocatedMemory(szRsp, pDataChannel->m_szDNS2, cbDns2, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Unable to parse <secondary DNS>! szDns2\r\n");
+                goto Error;
+            }
+            RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2: %s\r\n", pDataChannel->m_szDNS2);
+        }
+
+        res = RRIL_RESULT_OK;
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - nCid=[%d] not valid!\r\n", nCid);
+    }
 
 Error:
 
@@ -1776,17 +1816,27 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
         goto Error;
     }
 
-    pszCid = ((char**)pData)[0];
-    chCid = pszCid[0];
-
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%c\r", chCid))
+    //  May 18,2011 - Don't call AT+CGACT=0,X if SIM was removed since context is already deactivated.
+    if (RADIO_STATE_SIM_LOCKED_OR_ABSENT == g_RadioState.GetRadioState())
     {
+        RIL_LOG_INFO("CTE_INF_6260::CoreDeactivateDataCall() - SIM LOCKED OR ABSENT!! no-op this command\r\n");
+        rReqData.szCmd1[0] = '\0';
         res = RRIL_RESULT_OK;
+        rReqData.pContextData = (void*)((int)0);
     }
+    else
+    {
+        pszCid = ((char**)pData)[0];
+        chCid = pszCid[0];
 
-    //  Set the context of this command to the CID (for multiple context support).
-    rReqData.pContextData = (void*)((int)(chCid - '0'));  // Store this as an int.
+        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%c\r", chCid))
+        {
+            res = RRIL_RESULT_OK;
+        }
 
+        //  Set the context of this command to the CID (for multiple context support).
+        rReqData.pContextData = (void*)((int)(chCid - '0'));  // Store this as an int.
+    }
 
 Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreDeactivateDataCall() - Exit\r\n");
@@ -1841,35 +1891,13 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
 
 #else
 
-    struct gsm_config cfg;
-    struct gsm_netconfig netconfig;
-    int fd=-1;
-    int ret =-1;
+
 
     //  Set CID to 0 for this data channel
     int nCID = 0;
     nCID = (int)rRspData.pContextData;
 
-    CChannel_Data* pDataChannel = CChannel_Data::GetChnlFromContextID(nCID);
-    if (pDataChannel)
-    {
-        // Reset ContextID to 0, to free up the channel for future use
-        RIL_LOG_INFO("CTE_INF_6260::ParseDeactivateDataCall() - Setting chnl=[%d] to CID=[0]\r\n", pDataChannel->GetRilChannel());
-        pDataChannel->SetContextID(0);
-
-
-        netconfig.adaption = 3;                                         // Pranav : what is 3 ?
-        netconfig.protocol = htons(ETH_P_IP);           // Pranav
-        fd = pDataChannel->GetFD();
-        if (fd >= 0)
-        {
-            ret = ioctl( fd, GSMIOC_DISABLE_NET, &netconfig );               // Pranav
-        }
-
-    }
-
-
-    if (!DataConfigDown())
+    if (!DataConfigDown(nCID))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseDeactivateDataCall() - ERROR : Couldn't DataConfigDown\r\n");
     }
@@ -1919,7 +1947,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
 
     bCommand = (BYTE)pDataBytes[0];  //  This is the command.
-    rReqData.pContextData = (void*)((unsigned int)bCommand);
+
     switch(bCommand)
     {
         case RIL_OEM_HOOK_RAW_POWEROFF:
@@ -1958,16 +1986,6 @@ Error:
 RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Enter\r\n");
-
-    if (0xAA == (unsigned int)rRspData.pContextData)
-    {
-        RIL_LOG_INFO("Got AA\r\n");
-
-        const unsigned int nSleep = 5000;
-        RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - BEGIN sleep=[%d]\r\n", nSleep);
-        Sleep(nSleep);
-        RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - END sleep=[%d]\r\n", nSleep);
-    }
 
     RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Exit\r\n");
     return RRIL_RESULT_OK;

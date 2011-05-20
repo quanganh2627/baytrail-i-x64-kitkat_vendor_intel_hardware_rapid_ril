@@ -360,6 +360,11 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
 
     // Size increase for each instance is from 1 char to 4 chars
     m_pszString = new char[nInLen + (nCRLFs * 3) + (nOther * 3) + 1];
+    if (NULL == m_pszString)
+    {
+        RIL_LOG_CRITICAL("CRLFExpandedString::CRLFExpandedString() : ERROR : Couldn't allocate m_pszString\r\n");
+        return;
+    }
     memset(m_pszString, 0, nInLen + (nCRLFs * 3) + (nOther * 3) + 1);
 
     for (int nWalk = 0; nWalk < nInLen; nWalk++)
