@@ -3786,6 +3786,13 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
             nIndex++;
         }
     }
+    
+    // Take into account the case where the output of CGMR is "V1.1,nn" where nn are the two digits of SV
+    if(nIndex > 2)
+    {
+        szSVDigits[0] = szSVDigits[nIndex - 2];
+        szSVDigits[1] = szSVDigits[nIndex - 1];
+    }
 
     //  Copy IMEI + 2 digit SV into szIMEISV
     if (!PrintStringNullTerminate(szIMEISV, MAX_PROP_VALUE, "%s%c%c", szIMEI, szSVDigits[0], szSVDigits[1]))
