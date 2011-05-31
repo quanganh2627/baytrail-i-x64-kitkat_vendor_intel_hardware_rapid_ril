@@ -2274,12 +2274,6 @@ RIL_RESULT_CODE CTEBase::CoreDtmf(REQUEST_DATA & rReqData, void * pData, UINT32 
     }
 
     tone = ((char *)pData)[0];
-    // tone should be one of 12 values: 0-9,*,#
-    if (!(('#' == tone) || ('*' == tone) || ((tone >= '0') && (tone <= '9'))))
-    {
-        RIL_LOG_CRITICAL("CoreDtmf() - ERROR: DTMF tone [%c] out of range\r\n", tone);
-        goto Error;
-    }
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+VTS=%c\r", tone))
     {
@@ -3786,13 +3780,6 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
             nIndex++;
         }
     }
-    
-    // Take into account the case where the output of CGMR is "V1.1,nn" where nn are the two digits of SV
-    if(nIndex > 2)
-    {
-        szSVDigits[0] = szSVDigits[nIndex - 2];
-        szSVDigits[1] = szSVDigits[nIndex - 1];
-    }
 
     // Take into account the case where the output of CGMR is "V1.1,nn" where nn are the two digits of SV
     if(nIndex > 2)
@@ -4690,7 +4677,23 @@ RIL_RESULT_CODE CTEBase::ParseDtmfStart(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreDtmfStop(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_NOTSUPPORTED;
+    return RRIL_RESULT_OK;  //TEMPORARY until modem fix is ready
+    
+    //NOTE:  code below is NOT FUNCTIONAL due to return above..
+    //       This is a TEMPORARY fix until the modem fw is ready
+
+    RIL_LOG_VERBOSE("CoreDtmfStop() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+VTS=\r", sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CoreDtmfStop() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseDtmfStop(RESPONSE_DATA & rRspData)

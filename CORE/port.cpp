@@ -247,8 +247,11 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
     RIL_LOG_VERBOSE("CPort::OpenPort() - Enter\r\n");
     BOOL fRet = FALSE;
 
-    int iRetries = 30;     // default values
-    int iInterval = 2000;  // default values
+    const int iRETRIES_DEFAULT = 30;    // default values
+    const int iINTERVAL_DEFAULT = 1000; // default values
+
+    int iRetries = iRETRIES_DEFAULT;
+    int iInterval = iINTERVAL_DEFAULT;
 
     int  iAttempts = 0;
 
@@ -256,13 +259,13 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
     CRepository repository;
     if (!repository.Read(g_szGroupRILSettings, g_szOpenPortRetries, iRetries))
     {
-        iRetries = 30;
+        iRetries = iRETRIES_DEFAULT;
     }
     RIL_LOG_INFO("CPort::OpenPort() - iRetries=[%d]\r\n", iRetries);
 
     if (!repository.Read(g_szGroupRILSettings, g_szOpenPortInterval, iInterval))
     {
-        iInterval = 2000;
+        iInterval = iINTERVAL_DEFAULT;
     }
     RIL_LOG_INFO("CPort::OpenPort() - iInterval=[%d]\r\n", iInterval);
 

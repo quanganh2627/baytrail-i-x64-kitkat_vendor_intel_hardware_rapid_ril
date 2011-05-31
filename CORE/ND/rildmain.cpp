@@ -1111,7 +1111,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_DTMF_STOP\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestDtmfStop(hRilToken, pData, datalen);
 
-            // If not supported by OEM or CORE send success notification for now
+           // If not supported by OEM or CORE send success notification for now
             if (RIL_E_REQUEST_NOT_SUPPORTED == eRetVal)
             {
                 RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
@@ -1580,25 +1580,15 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.9 for Android 2.3 (Build May 12/2011)";
+    return "Intrinsyc Rapid-RIL M5.10 for Android 2.3 (Build May 26/2011)";
 }
 
-static const struct timeval TIMEVAL_SIMPOLL = {1,0};
 
-static void initializeCallback(void *param)
-{
-    RIL_LOG_VERBOSE("initializeCallback() - Enter\r\n");
-
-    // Indicate that the Radio is off.
-
-    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
-
-    RIL_LOG_VERBOSE("initializeCallback() - Exit\r\n");
-}
-
-static int init_finish = 0;
+static CEvent *g_pInitFinishEvent = NULL;
 static void* mainLoop(void *param)
 {
+    RIL_LOG_INFO("mainLoop() - Enter\r\n");
+
     UINT32 dwRet = 1;
     UINT32 dwEONSEnabled = 0;
 
@@ -1634,11 +1624,7 @@ Error:
         CSystemManager::Destroy();
     }
 
-    RIL_requestTimedCallback(initializeCallback, NULL, &TIMEVAL_SIMPOLL);
-
-    RIL_LOG_VERBOSE("mainLoop() - Exit\r\n");
-
-    init_finish = 1;
+    RIL_LOG_INFO("mainLoop() - Exit\r\n");
     return (void*)dwRet;
 }
 
@@ -1949,47 +1935,25 @@ static bool RIL_SetGlobals(int argc, char **argv)
 }
 
 
-pthread_t gs_tid_mainloop;
 
 const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, char **argv)
 {
-    pthread_attr_t attr;
-    int ret;
-    int try_again_delay = 1;
-    int try_again_count = 0;
+    RIL_LOG_INFO("RIL_Init() - Enter\r\n");
 
     gs_pRilEnv = pRilEnv;
 
-    int fd = -1;
-
     if  (RIL_SetGlobals(argc, argv))
     {
-        pthread_attr_init(&attr);
+        //  Call mainLoop()
+        //  This returns when init is complete.
+        mainLoop(NULL);
 
-        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-        ret = pthread_create(&gs_tid_mainloop, &attr, mainLoop, NULL);
-
-        while(!init_finish)
-        {
-            RIL_LOG_INFO("RIL_Init,init not finish:%d \r\n",init_finish);
-
-            /* maybe modem is absent, so dont wake up the system too often
-               in that case.
-               we do exponential retry with 20 minutes maximum */
-            try_again_count++;
-
-            if (try_again_count > 9 && try_again_delay < 1200)
-                try_again_delay *= 2;
-            sleep(try_again_delay);
-        }
-
-        RIL_LOG_INFO("RIL_Init,init finish:%d \r\n",init_finish);
-
+        RIL_LOG_INFO("RIL_Init() - returning gs_callbacks\r\n");
         return &gs_callbacks;
     }
     else
     {
+        RIL_LOG_CRITICAL("RIL_Init() - returning NULL\r\n");
         return NULL;
     }
 }

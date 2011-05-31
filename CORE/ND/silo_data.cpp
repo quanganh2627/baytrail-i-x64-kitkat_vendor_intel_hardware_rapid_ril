@@ -90,7 +90,7 @@ BOOL CSilo_Data::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, B
         if (pDataChannel)
         {
             //  Reset the CID on this data channel to 0.  Free up channel for future use.
-
+            //  This is done by DataConfigDown() function.
             //  Release network interface
             RIL_LOG_INFO("CSilo_Data::PostParseResponseHook - calling DataConfigDown(%d)\r\n", pDataChannel->GetContextID());
             DataConfigDown(pDataChannel->GetContextID());

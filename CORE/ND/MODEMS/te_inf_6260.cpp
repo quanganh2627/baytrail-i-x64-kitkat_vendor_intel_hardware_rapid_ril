@@ -549,6 +549,18 @@ static BOOL setmtu(int s, struct ifreq *ifr, int mtu)
 }
 
 
+BOOL setroute(int s, struct rtentry *rt, const char *addr)
+{
+    init_sockaddr_in((struct sockaddr_in *) &rt->rt_gateway, addr);
+    RIL_LOG_INFO("setroute - calling SIOCADDRT\r\n");
+    if(ioctl(s, SIOCADDRT, rt) < 0)
+    {
+        RIL_LOG_CRITICAL("setroute: ERROR: SIOCADDRT\r\n");
+        return FALSE;
+    }
+    return TRUE;
+}
+
 //
 //  Call this function whenever data is activated
 //
@@ -559,7 +571,7 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
     int s = -1;
     char szNetworkInterfaceName[MAX_BUFFER_SIZE] = {0};
     char szPropName[MAX_BUFFER_SIZE] = {0};
-
+    char *defaultGatewayStr = NULL;
 
     //  Grab the network interface name
     if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceName, szNetworkInterfaceName, MAX_BUFFER_SIZE))
@@ -638,8 +650,27 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
 
 
 
-    //  route add default dev ifx02
-    {
+   // TODO retrieve gateway from the modem with XDNS?
+
+    if (defaultGatewayStr == NULL) {
+        in_addr_t gw;
+        struct in_addr gwaddr;
+    in_addr_t addr;
+
+        RIL_LOG_INFO("set default gateway to fake value");
+        if (inet_pton(AF_INET, szIpAddr, &addr) <= 0) {
+            RIL_LOG_INFO("inet_pton() failed for %s!", szIpAddr);
+            goto Error;
+        }
+        gw = ntohl(addr) & 0xFFFFFF00;
+        gw |= 1;
+
+        gwaddr.s_addr = htonl(gw);
+
+        defaultGatewayStr = strdup(inet_ntoa(gwaddr));
+}
+
+    if (defaultGatewayStr != NULL) {
         struct rtentry rt;
         memset(&rt, 0, sizeof(struct rtentry));
 
@@ -648,22 +679,25 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
         rt.rt_gateway.sa_family = AF_INET;
 
 
-        rt.rt_flags = RTF_UP;
+        rt.rt_flags = RTF_UP | RTF_GATEWAY;
         rt.rt_dev = szNetworkInterfaceName;
 
-        RIL_LOG_INFO("DataConfigUp() - calling SIOCADDRT\r\n");
-        if (ioctl(s, SIOCADDRT, &rt) < 0)
+        if (!setroute(s, &rt, defaultGatewayStr)) // defaultGatewayStr
         {
-            RIL_LOG_CRITICAL("DataConfigUp() : ERROR: SIOCADDRT\r\n");
             //goto Error;
+            RIL_LOG_CRITICAL("DataConfigUp() : Error setting gateway\r\n");
         }
+
+        PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.gw", szNetworkInterfaceName);
+        RIL_LOG_INFO("DataConfigUp() - setting '%s' to '%s'\r\n", szPropName, defaultGatewayStr);
+        property_set(szPropName, defaultGatewayStr);
     }
 
-
+    /*This property does not exist so cannot be modified.
     //  setprop gsm.net.interface ifx02
     RIL_LOG_INFO("DataConfigUp() - setting 'gsm.net.interface' to '%s'\r\n", szNetworkInterfaceName);
     property_set("gsm.net.interface", szNetworkInterfaceName);
-
+    */
 
     //  Set DNS1
     if (szDNS1)
@@ -671,8 +705,9 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
         PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns1", szNetworkInterfaceName);
         RIL_LOG_INFO("DataConfigUp() - setting '%s' to '%s'\r\n", szPropName, szDNS1);
         property_set(szPropName, szDNS1);
+        /*It's the framwork that have to modify this property
         RIL_LOG_INFO("DataConfigUp() - setting 'net.dns1' to '%s'\r\n", szDNS1);
-        property_set("net.dns1", szDNS1);
+        property_set("net.dns1", szDNS1);*/
     }
 
     //  Set DNS2
@@ -681,13 +716,17 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
         PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName);
         RIL_LOG_INFO("DataConfigUp() - setting '%s' to '%s'\r\n", szPropName, szDNS2);
         property_set(szPropName, szDNS2);
+        /*It's the framwork that have to modify this property
         RIL_LOG_INFO("DataConfigUp() - setting 'net.dns2' to '%s'\r\n", szDNS2);
-        property_set("net.dns2", szDNS2);
+        property_set("net.dns2", szDNS2);*/
     }
 
     bRet = TRUE;
 
 Error:
+    if (defaultGatewayStr != NULL)
+        free(defaultGatewayStr);
+
     if (s >= 0)
     {
         close(s);
@@ -766,14 +805,18 @@ BOOL DataConfigDown(int nCID)
     PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns1", szNetworkInterfaceName);
     RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
     property_set(szPropName, "");
+    /*
     RIL_LOG_INFO("DataConfigDown() - setting 'net.dns1' to ''\r\n");
     property_set("net.dns1", "");
+    */
 
     PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName);
     RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
     property_set(szPropName, "");
+    /*
     RIL_LOG_INFO("DataConfigDown() - setting 'net.dns2' to ''\r\n");
     property_set("net.dns2", "");
+    */
 
     //  Open socket for ifconfig and route commands
     s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -853,7 +896,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
         pDataChannel = CChannel_Data::GetChnlFromContextID(nCid);
         if (!pDataChannel)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
             goto Error;
         }
 
@@ -918,7 +961,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
         pDataChannel = CChannel_Data::GetChnlFromContextID(nCid);
         if (!pDataChannel)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
             goto Error;
         }
 

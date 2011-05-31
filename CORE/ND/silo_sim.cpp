@@ -559,6 +559,14 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rsz
     UINT32 uiLength = 0;
     const char* pszEnd = NULL;
     BOOL fRet = FALSE;
+    char* pRefresh = NULL;
+    char* pFileTag = NULL;
+    char szRefreshCmd[] = "8103";
+    char szFileTag[] = "92";
+    char szFileTagLength[3] = {0};
+    char szFileID[5] = {0};
+    UINT32 uiFileTagLength = 0;
+    char szRefreshType[3] = {0};
 
     int *pInts = NULL;
 
@@ -580,8 +588,8 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rsz
         // PDU is followed by g_szNewline, so look for g_szNewline and use its
         // position to determine length of PDU string.
 
-        // Calculate PDU length + NULL byte
-        uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(g_szNewLine) + 1;
+        // Calculate PDU length  - including NULL byte, not including quotes
+        uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(g_szNewLine) - 1;
         RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
@@ -607,43 +615,141 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rsz
     pResponse->SetUnsolicitedFlag(TRUE);
 
     //  Need to see if this is a SIM_REFRESH command.
-    //  NOTE: Due to time constraints this code is incomplete.
-    //  We really need a TLV parser here.
-    if (strstr(pszProactiveCmd, "81030101"))
+    //  Check for "8103", jump next byte and verify if followed by "01".
+    pRefresh = strstr(pszProactiveCmd, szRefreshCmd);
+    if (pRefresh)
     {
-        RIL_LOG_INFO("*** We found 81030101 SIM_REFRESH ***\r\n");
-        pResponse->SetResultCode(RIL_UNSOL_SIM_REFRESH);
+        UINT32 uiPos = pRefresh - pszProactiveCmd;
+        //RIL_LOG_INFO("uiPos = %d\r\n", uiPos);
 
-        pInts = (int*)malloc(2 * sizeof(int));
-        if (NULL != pInts)
+        uiPos += strlen(szRefreshCmd);
+        //RIL_LOG_INFO("uiPos = %d  uiLength=%d\r\n", uiPos, uiLength);
+        if ( (uiPos + 6) < uiLength)  // 6 is next byte plus "01" plus type of SIM refresh
         {
-            pInts[0] = SIM_INIT;
-            pInts[1] = NULL;
+            //  Skip next byte
+            uiPos += 2;
+            //RIL_LOG_INFO("uiPos = %d\r\n", uiPos);
 
-            if (!pResponse->SetData((void*)pInts, 2 * sizeof(int), FALSE))
+            if (0 == strncmp(&pszProactiveCmd[uiPos], "01", 2))
             {
-                goto Error;
+                //  Skip to type of SIM refresh
+                uiPos += 2;
+                //RIL_LOG_INFO("uiPos = %d\r\n", uiPos);
+
+                //  See what our SIM Refresh command is
+                strncpy(szRefreshType, &pszProactiveCmd[uiPos], 2);
+                uiPos += 2;
+
+                RIL_LOG_INFO("*** We found %s SIM_REFRESH   type=[%s]***\r\n", szRefreshCmd, szRefreshType);
+
+                //  If refresh type = "01"  -> SIM_FILE_UPDATE
+                //  If refresh type = "00","02","03" -> SIM_INIT
+                //  If refresh type = "04","05","06" -> SIM_RESET
+
+                pInts = (int*)malloc(2 * sizeof(int));
+                if (NULL != pInts)
+                {
+                    //  default to SIM_INIT
+                    pInts[0] = SIM_INIT;
+                    pInts[1] = NULL;
+
+                    //  Check for type of refresh
+                    if ( (0 == strncmp(szRefreshType, "00", 2)) ||
+                         (0 == strncmp(szRefreshType, "02", 2)) ||
+                         (0 == strncmp(szRefreshType, "03", 2)) )
+                    {
+                        //  SIM_INIT
+                        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - SIM_INIT\r\n");
+                        pInts[0] = SIM_INIT;
+                        pInts[1] = NULL;  // see ril.h
+                    }
+                    else if ( (0 == strncmp(szRefreshType, "04", 2)) ||
+                              (0 == strncmp(szRefreshType, "05", 2)) ||
+                              (0 == strncmp(szRefreshType, "06", 2)) )
+                    {
+                        //  SIM_RESET
+                        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - SIM_RESET\r\n");
+                        pInts[0] = SIM_RESET;
+                        pInts[1] = NULL;  // see ril.h
+                    }
+                    else if ( (0 == strncmp(szRefreshType, "01", 2)) )
+                    {
+                        //  SIM_FILE_UPDATE
+                        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - SIM_FILE_UPDATE\r\n");
+                        pInts[0] = SIM_FILE_UPDATE;
+
+                        //  Tough part here - need to read file ID(s)
+                        //  Android looks for EF_MBDN 0x6FC7 or EF_MAILBOX_CPHS 0x6F17
+                        //  File tag is "92".  Just look for "92" from uiPos.
+                        if ('\0' != pszProactiveCmd[uiPos])
+                        {
+                            //  Look for "92"
+                            pFileTag = strstr(&pszProactiveCmd[uiPos], szFileTag);
+                            if (pFileTag)
+                            {
+                                //  Found "92" somewhere in rest of string
+                                uiPos = pFileTag - pszProactiveCmd;
+                                uiPos += strlen(szFileTag);
+                                RIL_LOG_INFO("FOUND FileTag uiPos now = %d\r\n", uiPos);
+                                if (uiPos < uiLength)
+                                {
+                                    //  Read length of tag
+                                    strncpy(szFileTagLength, &pszProactiveCmd[uiPos], 2);
+                                    //RIL_LOG_INFO("file tag length = %s\r\n", szFileTagLength);
+                                    uiFileTagLength = SemiByteCharsToByte(szFileTagLength[0], szFileTagLength[1]);
+                                    RIL_LOG_INFO("file tag length = %d\r\n", uiFileTagLength);
+                                    uiPos += 2;  //  we read the tag length
+                                    uiPos += (uiFileTagLength * 2);
+                                    //RIL_LOG_INFO("uiPos is now end hopefully = %d  uilength=%d\r\n", uiPos, uiLength);
+
+                                    if (uiPos <= uiLength)
+                                    {
+                                        //  Read last 2 bytes (last 4 characters) of tag
+                                        uiPos -= 4;
+                                        //RIL_LOG_INFO("uiPos before reading fileID=%d\r\n", uiPos);
+                                        strncpy(szFileID, &pszProactiveCmd[uiPos], 4);
+                                        RIL_LOG_INFO("szFileID[%s]\r\n", szFileID);
+
+                                        //  Convert hex string to int
+                                        unsigned int i1 = 0, i2 = 0;
+                                        i1 = (unsigned int)SemiByteCharsToByte(szFileID[0], szFileID[1]);
+                                        i2 = (unsigned int)SemiByteCharsToByte(szFileID[2], szFileID[3]);
+                                        pInts[1] = (i1 << 8) + i2;
+                                        RIL_LOG_INFO("pInts[1]=[%d],%04X\r\n", pInts[1], pInts[1]);
+
+
+                                    }
+                                }
+                            }
+
+                        }
+
+                    }
+
+                    //  Send out SIM_REFRESH notification
+                    RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)pInts, 2 * sizeof(int));
+
+                }
+                else
+                {
+                    RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() - ERROR: cannot allocate pInts\r\n");
+                }
+
             }
-
-            //  free the alloc'd buffer since we're using the pInts one.
-            free(pszProactiveCmd);
-            pszProactiveCmd = NULL;
-        }
-        else
-        {
-            goto Error;
         }
     }
-    else
+
+
+    //  Normal STK Event notify
+    pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);
+
+    if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char *), FALSE))
     {
-        //  Normal STK Event notify
-        pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);
-
-        if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char *), FALSE))
-        {
-            goto Error;
-        }
+        goto Error;
     }
+
+    free(pInts);
+    pInts = NULL;
 
     fRet = TRUE;
 

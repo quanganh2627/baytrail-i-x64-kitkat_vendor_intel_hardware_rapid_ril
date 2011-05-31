@@ -3323,11 +3323,7 @@ RIL_RESULT_CODE CTE::RequestDtmfStop(RIL_Token rilToken, void * pData, size_t da
         res = m_pTEBaseInstance->CoreDtmfStop(reqData, pData, datalen);
     }
 
-    if (RRIL_RESULT_NOTSUPPORTED == res)
-    {
-        RIL_LOG_CRITICAL("RequestDtmfStop() - INFO: Command currently not supported\r\n");
-    }
-    else if (RRIL_RESULT_OK != res)
+    if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("RequestDtmfStop() - ERROR: Unable to create AT command data\r\n");
     }
