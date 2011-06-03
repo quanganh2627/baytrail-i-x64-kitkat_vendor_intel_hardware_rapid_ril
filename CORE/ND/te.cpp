@@ -2226,16 +2226,6 @@ RIL_RESULT_CODE CTE::RequestSetClir(RIL_Token rilToken, void * pData, size_t dat
         }
     }
 
-    // cache this value because the radio does not persist it across reboots or radio resets
-    if (!repository.Write(g_szGroupLastValues, g_szLastCLIR, (int)g_dwLastCLIR))
-    {
-        RIL_LOG_WARNING("RequestSetClir() - WARN: Could not preserve Last CLIR value.\r\n");
-    }
-    else
-    {
-        RIL_LOG_VERBOSE("RequestSetClir() - Saved LastCLIR = 0x%X\r\n", g_dwLastCLIR);
-    }
-
     RIL_LOG_VERBOSE("RequestSetClir() - Exit\r\n");
     return res;
 }

@@ -60,20 +60,6 @@ extern const char   g_szTimeoutWaitForInit[];
 
 /////////////////////////////////////////////////
 
-extern const char   g_szGroupTTY[];
-
-extern const char   g_szCommandPort[];
-extern const char   g_szSimPort[];
-extern const char   g_szData1Port[];
-extern const char   g_szData2Port[];
-extern const char   g_szData3Port[];
-extern const char   g_szBaudRate[];
-extern const char   g_szNumOpenAttempts[];
-extern const char   g_szTimeBetweenOpenAttempts[];
-extern const char   g_szDataModeInterruptionQuantum[];
-
-/////////////////////////////////////////////////
-
 extern const char   g_szGroupRILSettings[];
 
 extern const char   g_szMaxCommandTimeouts[];
@@ -98,28 +84,6 @@ extern const char   g_szGroupInitCmds[];
 
 extern const char * g_szPreInitCmds[];
 extern const char * g_szPostInitCmds[];
-
-/////////////////////////////////////////////////
-
-extern const char   g_szGroupEons[];
-
-extern const char   g_szUseCphsPlmnName[];
-
-/////////////////////////////////////////////////
-
-extern const char   g_szGroupSecure[];
-
-extern const char   g_szEonsEnabled[];
-
-/////////////////////////////////////////////////
-
-extern const char   g_szGroupLastValues[];
-
-extern const char   g_szLastCLIP[];
-extern const char   g_szLastCLIR[];
-extern const char   g_szLastCOLP[];
-extern const char   g_szLastCOLR[];
-extern const char   g_szLastEquipmentState[];
 
 /////////////////////////////////////////////////
 

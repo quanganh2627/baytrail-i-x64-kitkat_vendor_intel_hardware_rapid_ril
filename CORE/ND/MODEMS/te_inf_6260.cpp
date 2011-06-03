@@ -590,8 +590,11 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
     // TODO For multiple PDP context support this will have to be updated to be consistent with whatever changes to
     // the Android framework's use of these properties is made. (Currently there is only one property for the
     // IP address and there needs to be one for each context.
-    RIL_LOG_INFO("DataConfigUp() : Setting 'net.interfaces.defaultroute' to 'gprs'\r\n");
-    property_set("net.interfaces.defaultroute", "gprs");
+
+    // This property does not exist.
+    // RIL_LOG_INFO("DataConfigUp() : Setting 'net.interfaces.defaultroute' to 'gprs'\r\n");
+    // property_set("net.interfaces.defaultroute", "gprs");
+    //
 
     RIL_LOG_INFO("DataConfigUp() : Setting 'net.gprs.local-ip' to '%s'\r\n", szIpAddr);
     property_set("net.gprs.local-ip", szIpAddr);
@@ -693,11 +696,10 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
         property_set(szPropName, defaultGatewayStr);
     }
 
-    /*This property does not exist so cannot be modified.
     //  setprop gsm.net.interface ifx02
     RIL_LOG_INFO("DataConfigUp() - setting 'gsm.net.interface' to '%s'\r\n", szNetworkInterfaceName);
     property_set("gsm.net.interface", szNetworkInterfaceName);
-    */
+
 
     //  Set DNS1
     if (szDNS1)
@@ -705,9 +707,9 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
         PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns1", szNetworkInterfaceName);
         RIL_LOG_INFO("DataConfigUp() - setting '%s' to '%s'\r\n", szPropName, szDNS1);
         property_set(szPropName, szDNS1);
-        /*It's the framwork that have to modify this property
-        RIL_LOG_INFO("DataConfigUp() - setting 'net.dns1' to '%s'\r\n", szDNS1);
-        property_set("net.dns1", szDNS1);*/
+        // RIL has no right to modify this property.
+        // RIL_LOG_INFO("DataConfigUp() - setting 'net.dns1' to '%s'\r\n", szDNS1);
+        // property_set("net.dns1", szDNS1);
     }
 
     //  Set DNS2
@@ -716,9 +718,9 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
         PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName);
         RIL_LOG_INFO("DataConfigUp() - setting '%s' to '%s'\r\n", szPropName, szDNS2);
         property_set(szPropName, szDNS2);
-        /*It's the framwork that have to modify this property
-        RIL_LOG_INFO("DataConfigUp() - setting 'net.dns2' to '%s'\r\n", szDNS2);
-        property_set("net.dns2", szDNS2);*/
+        // RIL has no right to modify this property.
+        // RIL_LOG_INFO("DataConfigUp() - setting 'net.dns2' to '%s'\r\n", szDNS2);
+        // property_set("net.dns2", szDNS2);
     }
 
     bRet = TRUE;
@@ -790,8 +792,10 @@ BOOL DataConfigDown(int nCID)
     // TODO For multiple PDP context support this will have to be updated to be consistent with whatever changes to
     // the Android framework's use of these properties is made.
 
-    RIL_LOG_INFO("DataConfigDown() - setting 'net.interfaces.defaultroute' to ''\r\n");
-    property_set("net.interfaces.defaultroute", "");
+    // This property does not exist.
+    // RIL_LOG_INFO("DataConfigDown() - setting 'net.interfaces.defaultroute' to ''\r\n");
+    // property_set("net.interfaces.defaultroute", "");
+    //
 
     RIL_LOG_INFO("DataConfigDown() - setting 'net.gprs.local-ip' to ''\r\n");
     property_set("net.gprs.local-ip", "");
@@ -805,18 +809,18 @@ BOOL DataConfigDown(int nCID)
     PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns1", szNetworkInterfaceName);
     RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
     property_set(szPropName, "");
-    /*
-    RIL_LOG_INFO("DataConfigDown() - setting 'net.dns1' to ''\r\n");
-    property_set("net.dns1", "");
-    */
+    // RIL has no right to set this property
+    // RIL_LOG_INFO("DataConfigDown() - setting 'net.dns1' to ''\r\n");
+    // property_set("net.dns1", "");
+    //
 
     PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName);
     RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
     property_set(szPropName, "");
-    /*
-    RIL_LOG_INFO("DataConfigDown() - setting 'net.dns2' to ''\r\n");
-    property_set("net.dns2", "");
-    */
+    // RIL has no right to set this property
+    // RIL_LOG_INFO("DataConfigDown() - setting 'net.dns2' to ''\r\n");
+    // property_set("net.dns2", "");
+    //
 
     //  Open socket for ifconfig and route commands
     s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -1421,6 +1425,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
         BYTE szCmd1[MAX_BUFFER_SIZE] = {0};
         UINT32 uiWaitRes = 0;
         BOOL bEnterPIN2 = FALSE;
+        BOOL bPIN2Ready = FALSE;
 
         CEvent::Reset(m_pQueryPIN2Event);
 
@@ -1454,8 +1459,9 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                 RIL_LOG_INFO("CTE_INF_6260::CoreSimIo() : CPIN2 event signalled\r\n");
                 if (0 == strcmp("READY", m_szCPIN2Result))
                 {
-                    //  Found READY, don't enter CPIN2
-                    bEnterPIN2 = FALSE;
+                    //  Found READY, send AT+CPWD="P2","<PIN2>","<PIN2>" to validate PIN2
+                    bEnterPIN2 = TRUE;
+                    bPIN2Ready = TRUE;
                 }
                 else if (0 == strcmp("SIM PIN2", m_szCPIN2Result))
                 {
@@ -1486,11 +1492,21 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
 
         if (bEnterPIN2)
         {
-            (void)PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CPIN2=\"%s\"\r",
-                pSimIOArgs->pin2);
-
+            if (!bPIN2Ready)
+            {
+                (void)PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1),
+                    "AT+CPIN2=\"%s\"\r",
+                    pSimIOArgs->pin2);
+            }
+            else
+            {
+                (void)PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1),
+                    "AT+CPWD=\"P2\",\"%s\",\"%s\"\r",
+                    pSimIOArgs->pin2,
+                    pSimIOArgs->pin2);
+            }
 
             if (NULL == pSimIOArgs->data)
             {
@@ -1994,23 +2010,113 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
     switch(bCommand)
     {
         case RIL_OEM_HOOK_RAW_POWEROFF:
+        {
             RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_POWEROFF Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
 
             //  Shouldn't be any data following command
-
-            //  We have to be unregistered to do the change.
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=0\r", sizeof(rReqData.szCmd1)))
+            if (sizeof(sOEM_HOOK_RAW_POWEROFF) == uiDataSize)
             {
-                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_POWEROFF - Can't construct szCmd1.\r\n");
+                //  We have to be unregistered to do the change.
+                if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=0\r", sizeof(rReqData.szCmd1)))
+                {
+                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_POWEROFF - Can't construct szCmd1.\r\n");
+                    goto Error;
+                }
+
+                //  NOTE: I am assuming this is the last AT command to be sent to the modem.
+                //  It turns out that this AT command causes TriggerRadioError() to be called.
+                //  The following line will simply return out of the TriggerRadioError() function call.
+                g_bIsTriggerRadioError = TRUE;
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not OEM_HOOK_RAW_POWEROFF=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_POWEROFF));
+                goto Error;
+            }
+        }
+        break;
+
+        case RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY:
+        {
+            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+
+            //  Cast our data into our structure
+            if (sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY) == uiDataSize)
+            {
+                sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY sTFD;
+                memset(&sTFD, 0, sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY));
+                memcpy(&sTFD, pDataBytes, sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY));
+
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - bCommand=[0x%02X]\r\n", (unsigned char)sTFD.bCommand);
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - nMode=[%d]\r\n", (int)sTFD.nMode);
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - nFDDDelayTimer=[%d]\r\n", (int)sTFD.nFDDDelayTimer);
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - nSCRITimer=[%d]\r\n", (int)sTFD.nSCRITimer);
+
+                if (0 == sTFD.nFDDDelayTimer)
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDOR=%u\r", sTFD.nMode))
+                    {
+                        RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1. 1\r\n");
+                        goto Error;
+                    }
+                }
+                else if (0 == sTFD.nSCRITimer)
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDOR=%u,%u\r", sTFD.nMode, sTFD.nFDDDelayTimer))
+                    {
+                        RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1. 2\r\n");
+                        goto Error;
+                    }
+                }
+                else
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDOR=%u,%u,%u\r", sTFD.nMode, sTFD.nFDDDelayTimer, sTFD.nSCRITimer))
+                    {
+                        RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1. 3\r\n");
+                        goto Error;
+                    }
+                }
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY));
                 goto Error;
             }
 
-            //  NOTE: I am assuming this is the last AT command to be sent to the modem.
-            //  It turns out that this AT command causes TriggerRadioError() to be called.
-            //  The following line will simply return out of the TriggerRadioError() function call.
-            g_bIsTriggerRadioError = TRUE;
+        }
+        break;
 
-            break;
+        case RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER:
+        {
+            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+
+            //  Cast our data into our structure
+            if (sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER) == uiDataSize)
+            {
+                sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER sFDT;
+                memset(&sFDT, 0, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
+                memcpy(&sFDT, pDataBytes, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
+
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - bCommand=[0x%02X]\r\n", (unsigned char)sFDT.bCommand);
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - nTimerValue=[%d]\r\n", (int)sFDT.nTimerValue);
+
+
+                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDORT=%u\r", sFDT.nTimerValue))
+                {
+                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER - Can't construct szCmd1.\r\n");
+                    goto Error;
+                }
+
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
+                goto Error;
+            }
+
+        }
+        break;
+
 
         default:
             RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: Received unknown command=[0x%02X]\r\n", bCommand);

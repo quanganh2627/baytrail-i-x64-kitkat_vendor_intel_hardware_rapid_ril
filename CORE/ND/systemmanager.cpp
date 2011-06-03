@@ -274,30 +274,6 @@ BOOL CSystemManager::InitializeSystem()
         }
     }
 
-    if (repository.Read(g_szGroupLastValues, g_szLastCLIP, iTemp))
-    {
-        g_dwLastCLIP = (UINT32)iTemp;
-        RIL_LOG_INFO("CSystemManager::InitializeSystem() - Retrieved Last CLIP Value: 0x%X\r\n", g_dwLastCLIP);
-    }
-
-    if (repository.Read(g_szGroupLastValues, g_szLastCLIR, iTemp))
-    {
-        g_dwLastCLIR = (UINT32)iTemp;
-        RIL_LOG_INFO("CSystemManager::InitializeSystem() - Retrieved Last CLIR Value: 0x%X\r\n", g_dwLastCLIR);
-    }
-
-    if (repository.Read(g_szGroupLastValues, g_szLastCOLP, iTemp))
-    {
-        g_dwLastCOLP = (UINT32)iTemp;
-        RIL_LOG_INFO("CSystemManager::InitializeSystem() - Retrieved Last COLP Value: 0x%X\r\n", g_dwLastCOLP);
-    }
-
-    if (repository.Read(g_szGroupLastValues, g_szLastCOLR, iTemp))
-    {
-        g_dwLastCOLR = (UINT32)iTemp;
-        RIL_LOG_INFO("CSystemManager::InitializeSystem() - Retrieved Last COLR Value: 0x%X\r\n", g_dwLastCOLR);
-    }
-
     if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutCmdInit, iTemp))
     {
         g_TimeoutCmdInit = (UINT32)iTemp;

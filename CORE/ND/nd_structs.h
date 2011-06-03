@@ -67,36 +67,6 @@ typedef struct
     char szOpInfoStatus[MAX_BUFFER_SIZE];
 } S_ND_OPINFO_DATA, *P_ND_OPINFO_DATA;
 
-//
-// Structs for OEM Hook String commands
-//
-typedef struct
-{
-    char* pszRilVersion;
-    char* pszModemAddr;
-    char* pszHwSupport;
-    char* pszReleasedTo;
-} S_ND_OEM_HOOK_GET_VERSION_POINTERS, *P_ND_OEM_HOOK_GET_VERSION_POINTERS;
-
-typedef struct
-{
-    S_ND_OEM_HOOK_GET_VERSION_POINTERS sStatusPointers;
-    char szRilVersion[MAX_BUFFER_SIZE];
-    char szModemAddr[MAX_BUFFER_SIZE];
-    char szHwSupport[MAX_BUFFER_SIZE];
-    char szReleasedTo[MAX_BUFFER_SIZE];
-} S_ND_OEM_HOOK_GET_VERSION_STATUS, *P_ND_OEM_HOOK_GET_VERSION_STATUS;
-
-typedef struct
-{
-    char* pszRxGain;
-}S_ND_OEM_HOOK_GET_RXGAIN_POINTER, *P_ND_OEM_HOOK_GET_RXGAIN_POINTER;
-
-typedef struct
-{
-    S_ND_OEM_HOOK_GET_RXGAIN_POINTER sRxGainPointers;
-    char szRxGain[MAX_BUFFER_SIZE];
-}S_ND_OEM_HOOK_GET_RXGAIN_DATA, *P_ND_OEM_HOOK_GET_RXGAIN_DATA;
 
 #define RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES     10
 //

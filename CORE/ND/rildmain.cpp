@@ -1110,13 +1110,6 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_DTMF_STOP\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestDtmfStop(hRilToken, pData, datalen);
-
-           // If not supported by OEM or CORE send success notification for now
-            if (RIL_E_REQUEST_NOT_SUPPORTED == eRetVal)
-            {
-                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
-                eRetVal = RIL_E_SUCCESS;
-            }
         }
         break;
 
@@ -1580,7 +1573,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.10 for Android 2.3 (Build May 26/2011)";
+    return "Intrinsyc Rapid-RIL M5.11 for Android 2.3 (Build June 2/2011)";
 }
 
 
@@ -1590,7 +1583,6 @@ static void* mainLoop(void *param)
     RIL_LOG_INFO("mainLoop() - Enter\r\n");
 
     UINT32 dwRet = 1;
-    UINT32 dwEONSEnabled = 0;
 
     // Make sure we can access Non-Volatile Memory
     if (!CRepository::Init())

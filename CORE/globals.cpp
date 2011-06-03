@@ -46,12 +46,6 @@ UINT32 g_DefaultCmdRetries(DEFAULT_CMD_RETRIES);
 UINT32 g_TimeoutCmdInit(TIMEOUT_INITIALIZATION_COMMAND);
 
 ///////////////////////////////////////////////////////////////////////////////
-UINT32 g_dwLastCLIP (0);
-UINT32 g_dwLastCLIR (0);
-UINT32 g_dwLastCOLP (0);
-UINT32 g_dwLastCOLR (0);
-
-///////////////////////////////////////////////////////////////////////////////
 char g_cTerminator = '\r';
 char g_szNewLine[3] = "\r\n";
 

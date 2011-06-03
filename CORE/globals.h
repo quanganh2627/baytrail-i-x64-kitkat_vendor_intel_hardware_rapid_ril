@@ -52,12 +52,6 @@ extern UINT32 g_TimeoutWaitForInit;
 extern UINT32 g_DefaultCmdRetries;
 
 ///////////////////////////////////////////////////////////////////////////////
-extern UINT32 g_dwLastCLIP;
-extern UINT32 g_dwLastCLIR;
-extern UINT32 g_dwLastCOLP;
-extern UINT32 g_dwLastCOLR;
-
-///////////////////////////////////////////////////////////////////////////////
 extern char g_cTerminator;
 extern char g_szNewLine[3];
 

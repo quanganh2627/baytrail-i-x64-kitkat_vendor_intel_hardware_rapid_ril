@@ -39,6 +39,9 @@
 #include "stk.h"
 #include "callbacks.h"
 
+#include <cutils/properties.h>
+#include <sys/system_properties.h>
+
 extern "C" char *stk_at_to_hex(ATResponse *p_response);
 
 
@@ -65,10 +68,13 @@ m_nXSIMStatePrev(-1)
 #endif
         { "+XLOCK: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
         { "+XSIM: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIM },
+        { "+XLEMA: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLEMA },
         { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
     };
 
     m_pATRspTable = pATRspTable;
+
+    memset(m_szECCList, 0, sizeof(m_szECCList));
 
     RIL_LOG_VERBOSE("CSilo_SIM::CSilo_SIM() - Exit\r\n");
 }
@@ -130,6 +136,13 @@ BOOL CSilo_SIM::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
     {
         case ND_REQ_ID_GETSIMSTATUS:
             bRetVal = ParseSimStatus(rpCmd, rpRsp);
+            break;
+
+        case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION:
+            if (RIL_E_SUCCESS == rpRsp->GetResultCode())
+            {
+                g_RadioState.SetRadioSIMUnlocked();
+            }
             break;
 
         default:
@@ -876,3 +889,95 @@ Error:
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIM() - Exit\r\n");
     return fRet;
 }
+
+BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseXLEMA() - Enter\r\n");
+    BOOL fRet = FALSE;
+    const char* pszEnd = NULL;
+    unsigned int uiIndex = 0;
+    unsigned int uiTotalCnt = 0;
+    char szECCItem[MAX_BUFFER_SIZE] = {0};
+
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() : ERROR : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    // Look for a "<postfix>" to be sure we got a whole message
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Extract "<index>"
+    if (!ExtractUInt(rszPointer, uiIndex, rszPointer))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - ERROR: Could not parse uiIndex.\r\n");
+        goto Error;
+    }
+
+    // Extract ",<total cnt>"
+    if (!SkipString(rszPointer, ",", rszPointer) ||
+        !ExtractUInt(rszPointer, uiTotalCnt, rszPointer) )
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - ERROR: Could not parse uiTotalCnt.\r\n");
+        goto Error;
+    }
+
+    if (!SkipString(rszPointer, ",", rszPointer) ||
+        !ExtractQuotedString(rszPointer, szECCItem, MAX_BUFFER_SIZE, rszPointer))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - ERROR: Could not parse szECCItem.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - Found ECC item=[%d] out of [%d]  ECC=[%s]\r\n", uiIndex, uiTotalCnt, szECCItem);
+
+    //  Skip the rest of the parameters (if any)
+    // Look for a "<postfix>" to be sure we got a whole message
+    FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer);
+
+    //  Back up over the "\r\n".
+    rszPointer -= strlen(g_szNewLine);
+
+
+    //  If the uiIndex is 1, then assume reading first ECC code.
+    //  Clear the master list and store the code.
+    if (1 == uiIndex)
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - First index, clear master ECC list, store code=[%s]\r\n", szECCItem);
+        PrintStringNullTerminate(m_szECCList, MAX_BUFFER_SIZE, "%s", szECCItem);
+    }
+    else
+    {
+        //  else add code to the end.
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - store code=[%s]\r\n", szECCItem);
+        strncat(m_szECCList, ",", MAX_BUFFER_SIZE - strlen(m_szECCList) - 1);
+        strncat(m_szECCList, szECCItem, MAX_BUFFER_SIZE - strlen(m_szECCList) - 1);
+    }
+
+    RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - m_szECCList=[%s]\r\n", m_szECCList);
+
+
+    //  If the uiIndex is the total count, assume we have all ECC codes.
+    //  In that case, set property!
+    if (uiIndex == uiTotalCnt)
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - uiIndex == uiTotalCnt == %d\r\n", uiTotalCnt);
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - setting ril.ecclist = [%s]\r\n", m_szECCList);
+        property_set("ril.ecclist", m_szECCList);
+    }
+
+    //  Flag as unrecognized.
+    //pResponse->SetUnrecognizedFlag(TRUE);
+
+    fRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIM() - Exit\r\n");
+    return fRet;
+}
+

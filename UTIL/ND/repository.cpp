@@ -179,20 +179,6 @@ const char   g_szTimeoutWaitForInit[]          = "TimeoutWaitForInit";
 
 /////////////////////////////////////////////////
 
-const char   g_szGroupTTY[]                    = "TTY";
-
-const char   g_szCommandPort[]                 = "CommandPort";
-const char   g_szSimPort[]                     = "SimPort";
-const char   g_szData1Port[]                   = "Data1Port";
-const char   g_szData2Port[]                   = "Data2Port";
-const char   g_szData3Port[]                   = "Data3Port";
-const char   g_szBaudRate[]                    = "BaudRate";
-const char   g_szNumOpenAttempts[]             = "NumOpenAttempts";
-const char   g_szTimeBetweenOpenAttempts[]     = "TimeBetweenOpenAttempts";
-const char   g_szDataModeInterruptionQuantum[] = "DataModeInterruptionQuantum";
-
-/////////////////////////////////////////////////
-
 const char   g_szGroupRILSettings[]            = "RILSettings";
 
 const char   g_szMaxCommandTimeouts[]          = "MaxCommandTimeouts";
@@ -231,28 +217,6 @@ const char * g_szPostInitCmds[] =
     "PostUnlockCmds",   // COM_UNLOCK_INDEX
     "PostSmsInitCmds",  // COM_SMSINIT_INDEX
 };
-
-/////////////////////////////////////////////////
-
-const char   g_szGroupEons[]                   = "Eons";
-
-const char   g_szUseCphsPlmnName[]             = "UseCphsPlmnName";
-
-/////////////////////////////////////////////////
-
-const char   g_szGroupSecure[]                 = "Secure";
-
-const char   g_szEonsEnabled[]                 = "EONSEnabled";
-
-/////////////////////////////////////////////////
-
-const char   g_szGroupLastValues[]             = "LastValues";
-
-const char   g_szLastCLIP[]                    = "LastCLIP";
-const char   g_szLastCLIR[]                    = "LastCLIR";
-const char   g_szLastCOLP[]                    = "LastCOLP";
-const char   g_szLastCOLR[]                    = "LastCOLR";
-const char   g_szLastEquipmentState[]          = "LastEquipmentState";
 
 /////////////////////////////////////////////////
 
