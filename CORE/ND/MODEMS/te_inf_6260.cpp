@@ -202,7 +202,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         goto Error;
     }
 
-    if (6 * sizeof(char*) != uiDataSize)
+    if (7 * sizeof(char*) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: Invalid data size. Was given %d bytes\r\n", uiDataSize);
         goto Error;

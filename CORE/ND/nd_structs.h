@@ -122,6 +122,7 @@ struct PdpData
     char* szUserName;
     char* szPassword;
     char* szPAPCHAP;
+    char* szUnused;
 };
 
 
