@@ -584,7 +584,11 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
         }
         memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
         snprintf(pUssdStatus->szType, 2, "%d", (int) uiStatus);
-        (void)CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE*2);
+        if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE))
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot CopyStringNullTerminate szDataString\r\n");
+            goto Error;
+        }
 
         RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - %s\r\n", pUssdStatus->szMessage);
 
@@ -683,7 +687,11 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
     }
     memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
     snprintf(pUssdStatus->szType, 2, "%d", (int) nTypeCode);
-    (void)CopyStringNullTerminate(pUssdStatus->szMessage, szDataString , MAX_BUFFER_SIZE * 2);
+    if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString , MAX_BUFFER_SIZE))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCOLPInfo() - ERROR: Cannot CopyStringNullTerminate szDataString\r\n");
+        goto Error;
+    }
 
     // update status pointers
     pUssdStatus->sStatusPointers.pszType    = pUssdStatus->szType;
@@ -769,7 +777,11 @@ BOOL CSilo_Voice::ParseConnLineIdRestriction(CResponse* const pResponse, const B
     }
     memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
     snprintf(pUssdStatus->szType, 2, "%d", (int) nTypeCode);
-    (void)CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE * 2);
+    if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCOLRInfo() - ERROR: Cannot CopyStringNullTerminate szDataString\r\n");
+        goto Error;
+    }
 
     // update status pointers
     pUssdStatus->sStatusPointers.pszType    = pUssdStatus->szType;

@@ -25,8 +25,8 @@
 
 typedef struct s_request_data
 {
-    char szCmd1[512];           // AT command buffer to be sent to modem
-    char szCmd2[512];           // AT command buffer to send after cmd1 returns if populated
+    char szCmd1[1024];           // AT command buffer to be sent to modem
+    char szCmd2[1024];           // AT command buffer to send after cmd1 returns if populated
 
     unsigned long uiTimeout;    // Time to wait for response in milliseconds
     unsigned long uiRetries;    // If command fails, retry this many times.

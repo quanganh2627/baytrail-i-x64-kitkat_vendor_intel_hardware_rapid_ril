@@ -376,7 +376,15 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
+#if 0
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\",\"%s\"\r", pszPUK, pszNewPIN))
+    {
+        RIL_LOG_CRITICAL("CoreEnterSimPuk() - ERROR: Unable to write command string to buffer\r\n");
+        goto Error;
+    }
+#endif // 0
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "ATD**05*%s*%s*%s#\r", pszPUK, pszNewPIN, pszNewPIN))
     {
         RIL_LOG_CRITICAL("CoreEnterSimPuk() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
@@ -532,7 +540,15 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk2(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
+#if 0
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN2=\"%s\",\"%s\"\r", pszPUK2, pszNewPIN2))
+    {
+        RIL_LOG_CRITICAL("CoreEnterSimPuk2() - ERROR: Unable to write command string to buffer\r\n");
+        goto Error;
+    }
+#endif // 0
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "ATD**052*%s*%s*%s#\r", pszPUK2, pszNewPIN2, pszNewPIN2))
     {
         RIL_LOG_CRITICAL("CoreEnterSimPuk2() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
@@ -1120,16 +1136,28 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
 
     if (1 == clirVal)  // "CLIR invocation" (restrict CLI presentation)
     {
-        (void)CopyStringNullTerminate(szCmdWalk, "I", cchCmd - (szCmdWalk - rReqData.szCmd1));
+        if (!CopyStringNullTerminate(szCmdWalk, "I", cchCmd - (szCmdWalk - rReqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CoreDial() - ERROR: CopyStringNullTerminate I failed\r\n");
+            goto Error;
+        }
         szCmdWalk++;
     }
     else if (2 == clirVal)  // "CLIR suppression" (allow CLI presentation)
     {
-        (void)CopyStringNullTerminate(szCmdWalk, "i", cchCmd - (szCmdWalk - rReqData.szCmd1));
+        if (!CopyStringNullTerminate(szCmdWalk, "i", cchCmd - (szCmdWalk - rReqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CoreDial() - ERROR: CopyStringNullTerminate i failed\r\n");
+            goto Error;
+        }
         szCmdWalk++;
     }
 
-    (void)CopyStringNullTerminate(szCmdWalk, ";\r", cchCmd - (szCmdWalk - rReqData.szCmd1));
+    if (!CopyStringNullTerminate(szCmdWalk, ";\r", cchCmd - (szCmdWalk - rReqData.szCmd1)))
+    {
+        RIL_LOG_CRITICAL("CoreDial() - ERROR: CopyStringNullTerminate <cr> failed\r\n");
+        goto Error;
+    }
 
     eRetVal = RIL_E_SUCCESS;
 
@@ -2284,9 +2312,16 @@ RIL_RESULT_CODE CTEBase::CoreDtmf(REQUEST_DATA & rReqData, void * pData, UINT32 
 
     tone = ((char *)pData)[0];
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+VTS=%c\r", tone))
+    //  Need to stop any outstanding tone first.
+    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XVTS=\r", sizeof(rReqData.szCmd1)))
     {
-        RIL_LOG_CRITICAL("CoreDtmf() - ERROR: Unable to write command string to buffer\r\n");
+        RIL_LOG_CRITICAL("CoreDtmf() - ERROR: Unable to write XVTS= string to buffer\r\n");
+        goto Error;
+    }
+
+    if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+XVTS=%c\r", tone))
+    {
+        RIL_LOG_CRITICAL("CoreDtmf() - ERROR: Unable to write XVTS=tone string to buffer\r\n");
         goto Error;
     }
 
@@ -2353,9 +2388,17 @@ RIL_RESULT_CODE CTEBase::CoreSendSms(REQUEST_DATA & rReqData, void * pData, UINT
         szSMSAddress = szNoAddress;
     }
 
-    (void)PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CMGS=%u\r", nPDULength);
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CMGS=%u\r", nPDULength))
+    {
+        RIL_LOG_CRITICAL("CoreSendSms() - ERROR: Cannot create CMGS command\r\n");
+        goto Error;
+    }
 
-    (void)PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "%s%s\x1a", szSMSAddress, szPDU);
+    if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "%s%s\x1a", szSMSAddress, szPDU))
+    {
+        RIL_LOG_CRITICAL("CoreSendSms() - ERROR: Cannot create CMGS PDU\r\n");
+        goto Error;
+    }
 
     RIL_LOG_INFO("Payload: %s\r\n", CRLFExpandedString(rReqData.szCmd2, strlen(rReqData.szCmd2)).GetString());
 
@@ -2459,7 +2502,9 @@ RIL_RESULT_CODE CTEBase::CoreSendSmsExpectMore(REQUEST_DATA & rReqData, void * p
     char **       pszCmdData   = NULL;
     char *        szSMSAddress = NULL;
     char *        szPDU        = NULL;
+
     int nPDULength = 0;
+    char szNoAddress[] = "00";
 
     if (NULL == pData)
     {
@@ -2467,15 +2512,16 @@ RIL_RESULT_CODE CTEBase::CoreSendSmsExpectMore(REQUEST_DATA & rReqData, void * p
         goto Error;
     }
 
-    if (uiDataSize != sizeof(char **))
+    if (uiDataSize != 2 * sizeof(char *))
     {
-        RIL_LOG_CRITICAL("CoreSendSmsExpectMore() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CoreSendSmsExpectMore() - ERROR: Invalid data size.  uiDataSize=[%d]\r\n", uiDataSize);
         goto Error;
     }
 
     pszCmdData   = (char**)pData;
 
     szSMSAddress = pszCmdData[0];
+
     szPDU        = pszCmdData[1];
 
     if (NULL == szPDU)
@@ -2489,12 +2535,20 @@ RIL_RESULT_CODE CTEBase::CoreSendSmsExpectMore(REQUEST_DATA & rReqData, void * p
 
     if (NULL == szSMSAddress)
     {
-        strcpy(szSMSAddress, "00");
+        szSMSAddress = szNoAddress;
     }
 
-    (void)PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CMMS=1;+CMGS=%u\r", nPDULength);
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CMMS=1;+CMGS=%u\r", nPDULength))
+    {
+        RIL_LOG_CRITICAL("CoreSendSmsExpectMore() - ERROR: Cannot create CMGS command\r\n");
+        goto Error;
+    }
 
-    (void)PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "%s%s\x1a", szSMSAddress, szPDU);
+    if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "%s%s\x1a", szSMSAddress, szPDU))
+    {
+        RIL_LOG_CRITICAL("CoreSendSmsExpectMore() - ERROR: Cannot create CMGS PDU\r\n");
+        goto Error;
+    }
 
     RIL_LOG_INFO("Payload: %s\r\n", CRLFExpandedString(rReqData.szCmd2, strlen(rReqData.szCmd2)).GetString());
 
@@ -2613,12 +2667,20 @@ RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData
     stPdpData.szPassword        = ((char **)pData)[4];  // not used
     stPdpData.szPAPCHAP         = ((char **)pData)[5];  // not used
 
-    (void)PrintStringNullTerminate(rReqData.szCmd1,
+    if (!PrintStringNullTerminate(rReqData.szCmd1,
           sizeof(rReqData.szCmd1),
           "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+CGQREQ=%d;+CGQMIN=%d;+CGACT=0,%d\r", uiCID,
-          stPdpData.szApn, uiCID, uiCID, uiCID);
+          stPdpData.szApn, uiCID, uiCID, uiCID))
+    {
+        RIL_LOG_CRITICAL("CoreSetupDataCall() - ERROR: Cannot create CGDCONT command\r\n");
+        goto Error;
+    }
 
-    (void)CopyStringNullTerminate(rReqData.szCmd2, "ATD*99***1#\r", sizeof(rReqData.szCmd2));
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "ATD*99***1#\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CoreSetupDataCall() - ERROR: Cannot CopyStringNullTerminate ATD\r\n");
+        goto Error;
+    }
 
     //  Store the potential uiCID in the pContext
     rReqData.pContextData = (void*)uiCID;
@@ -2679,26 +2741,34 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
     {
         RIL_LOG_INFO("CoreSimIo() - PIN2 required\r\n");
 
-        (void)PrintStringNullTerminate(rReqData.szCmd1,
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
                      sizeof(rReqData.szCmd1),
                      "AT+CPIN2=\"%s\"\r",
-                     pSimIOArgs->pin2);
+                     pSimIOArgs->pin2))
+        {
+            RIL_LOG_CRITICAL("CoreSimIo() - ERROR: cannot create CPIN2 command\r\n");
+            goto Error;
+        }
 
 
         if (NULL == pSimIOArgs->data)
         {
-            (void)PrintStringNullTerminate(rReqData.szCmd2,
+            if (!PrintStringNullTerminate(rReqData.szCmd2,
                          sizeof(rReqData.szCmd2),
                          "AT+CRSM=%d,%d,%d,%d,%d\r",
                          pSimIOArgs->command,
                          pSimIOArgs->fileid,
                          pSimIOArgs->p1,
                          pSimIOArgs->p2,
-                         pSimIOArgs->p3);
+                         pSimIOArgs->p3))
+            {
+                RIL_LOG_CRITICAL("CoreSimIo() - ERROR: cannot create CRSM command 1\r\n");
+                goto Error;
+            }
         }
         else
         {
-            (void)PrintStringNullTerminate(rReqData.szCmd2,
+            if (!PrintStringNullTerminate(rReqData.szCmd2,
                          sizeof(rReqData.szCmd2),
                          "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
                          pSimIOArgs->command,
@@ -2706,7 +2776,11 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
                          pSimIOArgs->p1,
                          pSimIOArgs->p2,
                          pSimIOArgs->p3,
-                         pSimIOArgs->data);
+                         pSimIOArgs->data))
+            {
+                RIL_LOG_CRITICAL("CoreSimIo() - ERROR: cannot create CRSM command 2\r\n");
+                goto Error;
+            }
         }
 
 
@@ -2719,18 +2793,22 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
 
         if (NULL == pSimIOArgs->data)
         {
-            (void)PrintStringNullTerminate(rReqData.szCmd1,
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
                          sizeof(rReqData.szCmd1),
                          "AT+CRSM=%d,%d,%d,%d,%d\r",
                          pSimIOArgs->command,
                          pSimIOArgs->fileid,
                          pSimIOArgs->p1,
                          pSimIOArgs->p2,
-                         pSimIOArgs->p3);
+                         pSimIOArgs->p3))
+            {
+                RIL_LOG_CRITICAL("CoreSimIo() - ERROR: cannot create CRSM command 3\r\n");
+                goto Error;
+            }
         }
         else
         {
-            (void)PrintStringNullTerminate(rReqData.szCmd1,
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
                          sizeof(rReqData.szCmd1),
                          "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
                          pSimIOArgs->command,
@@ -2738,7 +2816,11 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
                          pSimIOArgs->p1,
                          pSimIOArgs->p2,
                          pSimIOArgs->p3,
-                         pSimIOArgs->data);
+                         pSimIOArgs->data))
+            {
+                RIL_LOG_CRITICAL("CoreSimIo() - ERROR: cannot create CRSM command 4\r\n");
+                goto Error;
+            }
         }
     }
 
@@ -2843,7 +2925,11 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
     else
     {
         pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
-        (void)CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString);
+        if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
+        {
+            RIL_LOG_CRITICAL("ParseSimIo() - ERROR: Could not CopyStringNullTerminate szResponseString\r\n");
+            goto Error;
+        }
 
         // Ensure NULL termination!
         pResponse->simResponse[cbResponseString] = '\0';
@@ -2898,7 +2984,11 @@ RIL_RESULT_CODE CTEBase::CoreSendUssd(REQUEST_DATA & rReqData, void * pData, UIN
     // extract data
     szUssdString = (char *)pData;
 
-    (void)PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CUSD=1,\"%s\"\r", szUssdString);
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CUSD=1,\"%s\"\r", szUssdString))
+    {
+        RIL_LOG_CRITICAL("CoreSendUssd() - ERROR: cannot create CUSD command\r\n");
+        goto Error;
+    }
 
     res = RRIL_RESULT_OK;
 
@@ -4101,7 +4191,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
         }
     }
     // Password provided
-    else if (NULL == pszClass || '\0' == pszClass[0])
+    else if (NULL == pszClass || '\0' == pszClass[0] || '0' == pszClass[0])
     {
         if (PrintStringNullTerminate(   rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
@@ -4347,7 +4437,11 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionManual(REQUEST_DATA & rReqData, 
         goto Error;
     }
 
-    CopyStringNullTerminate(pTemp, pszNumeric, MAX_BUFFER_SIZE);
+    if (!CopyStringNullTerminate(pTemp, pszNumeric, MAX_BUFFER_SIZE))
+    {
+        RIL_LOG_CRITICAL("CoreSetNetworkSelectionManual() - ERROR: Cannot CopyStringNullTerminate pszNumeric\r\n");
+        goto Error;
+    }
     rReqData.pContextData = (void*)pTemp;
 
     //  Send AT command
@@ -4375,7 +4469,11 @@ RIL_RESULT_CODE CTEBase::ParseSetNetworkSelectionManual(RESPONSE_DATA & rRspData
         goto Error;
     }
 
-    CopyStringNullTerminate(m_szManualMCCMNC, pTemp, MAX_BUFFER_SIZE);
+    if (!CopyStringNullTerminate(m_szManualMCCMNC, pTemp, MAX_BUFFER_SIZE))
+    {
+        RIL_LOG_CRITICAL("ParseSetNetworkSelectionManual() - ERROR: Cannot CopyStringNullTerminate pTemp\r\n");
+        goto Error;
+    }
     m_nNetworkRegistrationType = 1;
 
     delete[] pTemp;
@@ -4444,6 +4542,12 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("ParseQueryAvailableNetworks() - DEBUG: Found %d entries. Allocating memory...\r\n", nEntries);
 
     rRspData.pData = malloc(nEntries * (sizeof(S_ND_OPINFO_PTRS) + sizeof(S_ND_OPINFO_DATA)));
+    if (NULL == rRspData.pData)
+    {
+        RIL_LOG_CRITICAL("ParseQueryAvailableNetworks() - ERROR: Cannot allocate rRspData.pData  size=%d\r\n",
+                    nEntries * (sizeof(S_ND_OPINFO_PTRS) + sizeof(S_ND_OPINFO_DATA)) );
+        goto Error;
+    }
     memset(rRspData.pData, 0, nEntries * (sizeof(S_ND_OPINFO_PTRS) + sizeof(S_ND_OPINFO_DATA)));
     rRspData.uiDataSize = nEntries * sizeof(S_ND_OPINFO_PTRS);
 
@@ -4649,7 +4753,7 @@ RIL_RESULT_CODE CTEBase::CoreDtmfStart(REQUEST_DATA & rReqData, void * pData, UI
 
     cTone = ((char*)pData)[0];
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+VTS=%c\r", cTone))
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XVTS=%c\r", cTone))
     {
         res = RRIL_RESULT_OK;
     }
@@ -4677,10 +4781,10 @@ RIL_RESULT_CODE CTEBase::CoreDtmfStop(REQUEST_DATA & rReqData, void * pData, UIN
     RIL_LOG_VERBOSE("CoreDtmfStop() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    //  Temporary no-op of this command
-    //  (i.e. do not send any AT command, but return RIL_E_SUCCESS to this request).
-    rReqData.szCmd1[0] = '\0';
-    res = RRIL_RESULT_OK;
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XVTS=\r", sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
 
 Error:
     RIL_LOG_VERBOSE("CoreDtmfStop() - Exit\r\n");
@@ -4749,7 +4853,12 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    PrintStringNullTerminate(szBasebandVersion, MAX_PROP_VALUE, "%s", szTemp);
+    if (!PrintStringNullTerminate(szBasebandVersion, MAX_PROP_VALUE, "%s", szTemp))
+    {
+        RIL_LOG_CRITICAL("ParseBasebandVersion() - ERROR: Could not create szBasebandVersion\r\n");
+        goto Error;
+    }
+
     RIL_LOG_INFO("ParseBasebandVersion() - szBasebandVersion=[%s]\r\n", szBasebandVersion);
 
     rRspData.pData   = (void*)szBasebandVersion;
@@ -5923,11 +6032,19 @@ RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA & rReqData, void * 
 
     if (1 == nUpdatesEnabled)     // Enable location updates
     {
-        (void)CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=2;+CGREG=2\r", sizeof(rReqData.szCmd1));
+        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=2;+CGREG=2\r", sizeof(rReqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CoreSetLocationUpdates() - ERROR: Cannot CopyStringNullTerminate CREG=2\r\n");
+            goto Error;
+        }
     }
     else if (0 == nUpdatesEnabled)
     {
-        (void)CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=1;+CGREG=1\r", sizeof(rReqData.szCmd1));
+        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=1;+CGREG=1\r", sizeof(rReqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CoreSetLocationUpdates() - ERROR: Cannot CopyStringNullTerminate CREG=1\r\n");
+            goto Error;
+        }
     }
     else
     {
@@ -6442,7 +6559,11 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
         //  See if this is last range.  If not, add a ','.
         if (i+1 < nNumOfConfigInfos)
         {
-            (void)PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%s,", szLangs);
+            if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%s,", szLangs))
+            {
+                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: cannot add last range of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                goto Error;
+            }
         }
     }
 
@@ -6921,18 +7042,22 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
     {
         if (pSimIOArgs->p3 < 0)
         {
-            (void)PrintStringNullTerminate(rReqData.szCmd1,
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
                     sizeof(rReqData.szCmd1),
                     "AT+CSIM=%d,\"%02x%02x%02x%02x\"",
                     8,
                     pSimIOArgs->cla,
                     pSimIOArgs->command,
                     pSimIOArgs->p1,
-                    pSimIOArgs->p2);
+                    pSimIOArgs->p2))
+            {
+                RIL_LOG_CRITICAL("CoreSimTransmitBasic() - ERROR: cannot create CSIM command 1\r\n");
+                goto Error;
+            }
         }
         else
         {
-            (void)PrintStringNullTerminate(rReqData.szCmd1,
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
                     sizeof(rReqData.szCmd1),
                     "AT+CSIM=%d,\"%02x%02x%02x%02x%02x\"",
                     10,
@@ -6940,12 +7065,16 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
                     pSimIOArgs->command,
                     pSimIOArgs->p1,
                     pSimIOArgs->p2,
-                    pSimIOArgs->p3);
+                    pSimIOArgs->p3))
+            {
+                RIL_LOG_CRITICAL("CoreSimTransmitBasic() - ERROR: cannot create CSIM command 2\r\n");
+                goto Error;
+            }
         }
     }
     else
     {
-        (void)PrintStringNullTerminate(rReqData.szCmd1,
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
                 "AT+CSIM=%d,\"%02x%02x%02x%02x%02x%s\"",
                 10 + strlen(pSimIOArgs->data),
@@ -6954,7 +7083,11 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
                 pSimIOArgs->p1,
                 pSimIOArgs->p2,
                 pSimIOArgs->p3,
-                pSimIOArgs->data);
+                pSimIOArgs->data))
+        {
+            RIL_LOG_CRITICAL("CoreSimTransmitBasic() - ERROR: cannot create CSIM command 3\r\n");
+            goto Error;
+        }
     }
 
 
@@ -7055,7 +7188,11 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
     else
     {
         pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
-        (void)CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString);
+        if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
+        {
+            RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Cannot CopyStringNullTerminate szResponseString\r\n");
+            goto Error;
+        }
 
         // Ensure NULL termination!
         pResponse->simResponse[cbResponseString] = '\0';
@@ -7240,7 +7377,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
     {
         if (pSimIOArgs->p3 < 0)
         {
-            (void)PrintStringNullTerminate(rReqData.szCmd1,
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
                     sizeof(rReqData.szCmd1),
                     "AT+CGLA=%d,%d,\"%02x%02x%02x%02x\"",
                     pSimIOArgs->fileid,
@@ -7248,11 +7385,15 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
                     pSimIOArgs->cla,
                     pSimIOArgs->command,
                     pSimIOArgs->p1,
-                    pSimIOArgs->p2);
+                    pSimIOArgs->p2))
+            {
+                RIL_LOG_CRITICAL("CoreSimTransmitChannel() - ERROR: cannot create CGLA command 1\r\n");
+                goto Error;
+            }
         }
         else
         {
-            (void)PrintStringNullTerminate(rReqData.szCmd1,
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
                     sizeof(rReqData.szCmd1),
                     "AT+CGLA=%d,%d,\"%02x%02x%02x%02x%02x\"",
                     pSimIOArgs->fileid,
@@ -7261,12 +7402,16 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
                     pSimIOArgs->command,
                     pSimIOArgs->p1,
                     pSimIOArgs->p2,
-                    pSimIOArgs->p3);
+                    pSimIOArgs->p3))
+            {
+                RIL_LOG_CRITICAL("CoreSimTransmitChannel() - ERROR: cannot create CGLA command 2\r\n");
+                goto Error;
+            }
         }
     }
     else
     {
-        (void)PrintStringNullTerminate(rReqData.szCmd1,
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
                 "AT+CGLA=%d,%d,\"%02x%02x%02x%02x%02x%s\"",
                 pSimIOArgs->fileid,
@@ -7276,7 +7421,11 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
                 pSimIOArgs->p1,
                 pSimIOArgs->p2,
                 pSimIOArgs->p3,
-                pSimIOArgs->data);
+                pSimIOArgs->data))
+        {
+            RIL_LOG_CRITICAL("CoreSimTransmitChannel() - ERROR: cannot create CGLA command 3\r\n");
+            goto Error;
+        }
     }
 
 
@@ -7377,7 +7526,11 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
     else
     {
         pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
-        (void)CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString);
+        if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
+        {
+            RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Cannot CopyStringNullTerminate szResponseString\r\n");
+            goto Error;
+        }
 
         // Ensure NULL termination!
         pResponse->simResponse[cbResponseString] = '\0';

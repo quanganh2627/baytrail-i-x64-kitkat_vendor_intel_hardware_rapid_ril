@@ -82,6 +82,12 @@ BOOL CFile::Open(   const char * pszFileName,
     RIL_LOG_INFO("CFile::Open() : pszFileName=[%s]\r\n", (NULL == pszFileName ? "NULL" : pszFileName));
     RIL_LOG_INFO("CFile::Open() : fIsSocket=[%d]\r\n", fIsSocket);
 
+    if (NULL == pszFileName)
+    {
+        RIL_LOG_CRITICAL("CFile::Open() : ERROR : pszFilename is NULL!\r\n");
+        return FALSE;
+    }
+
     UINT32 dwAttr = 0;
     BOOL fExists = FALSE;
     BOOL fFile = FALSE;

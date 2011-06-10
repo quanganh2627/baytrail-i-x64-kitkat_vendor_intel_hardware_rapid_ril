@@ -92,7 +92,6 @@ struct PdpData
     char* szUserName;
     char* szPassword;
     char* szPAPCHAP;
-    char* szUnused;
 };
 
 
@@ -241,7 +240,7 @@ typedef struct
 {
     S_ND_USSD_POINTERS sStatusPointers;
     BYTE szType[MAX_BUFFER_SIZE];
-    BYTE szMessage[MAX_BUFFER_SIZE * 2];
+    BYTE szMessage[MAX_BUFFER_SIZE];
 } S_ND_USSD_STATUS, *P_ND_USSD_STATUS;
 
 

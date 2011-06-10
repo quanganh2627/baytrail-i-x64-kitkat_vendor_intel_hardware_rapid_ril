@@ -478,7 +478,8 @@ BOOL CResponse::SetData(void* pData, const UINT32 nSize, const BOOL fCpyMem)
     {
         if (NULL == pData)
         {
-            RIL_LOG_CRITICAL("CResponse::SetData() : ERROR : pData was NULL\r\n");
+            RIL_LOG_CRITICAL("CResponse::SetData() : ERROR : pData was NULL  nSize=[%d]\r\n", nSize);
+            goto Error;
         }
 
         if (fCpyMem)

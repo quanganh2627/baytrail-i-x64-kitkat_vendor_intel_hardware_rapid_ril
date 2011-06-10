@@ -35,14 +35,10 @@
 #include "callbacks.h"
 #include "rildmain.h"
 #include "silo_sim.h"
-#include "atchannel.h"
-#include "stk.h"
 #include "callbacks.h"
 
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
-
-extern "C" char *stk_at_to_hex(ATResponse *p_response);
 
 
 //
@@ -58,14 +54,9 @@ m_nXSIMStatePrev(-1)
     {
         { "+STKCTRLIND: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
         { "+STKCC: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
-#ifndef USE_STK_RAW_MODE
-        { "+STKPRO: "  , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseSTKProCmd },
-        { "+STKCNF: "  , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseProSessionStatus },
-#else
         { "+SATI: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATI },
         { "+SATN: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATN },
         { "+SATF: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseTermRespConfirm },
-#endif
         { "+XLOCK: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
         { "+XSIM: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIM },
         { "+XLEMA: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLEMA },
@@ -363,137 +354,7 @@ Error:
     return bRetVal;
 }
 
-#ifndef USE_STK_RAW_MODE
-BOOL CSilo_SIM::ParseSTKProCmd(CResponse* const pResponse, const BYTE*& rszPointer)
-{
-    RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() - Enter\r\n");
-    BOOL fRet = FALSE;
-    char* line = NULL;
-    ATResponse* pAtResp = new ATResponse;
 
-    if (pResponse == NULL)
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() : ERROR : pResponse was NULL\r\n");
-        goto Error;
-    }
-
-    if (NULL == pAtResp)
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() : Unable to allocate memory for ATResponse\r\n");
-        goto Error;
-    }
-
-    memset(pAtResp, 0, sizeof(ATResponse));
-    pAtResp->p_intermediates = new ATLine;
-    asprintf(&pAtResp->p_intermediates->line, "%s", rszPointer);
-
-    // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() : ERROR : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Create STK proactive hex string
-    line = stk_at_to_hex(pAtResp);
-
-    RIL_LOG_INFO(" line= %s\r\n", line);
-
-    //  Back up over the "\r\n".
-    rszPointer -= strlen(g_szNewLine);
-
-    delete pAtResp->p_intermediates;
-    delete pAtResp;
-
-    pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_STK_PROACTIVE_COMMAND);
-
-    if (!pResponse->SetData((void*) line, sizeof(char *), FALSE))
-    {
-        RIL_LOG_INFO(" SetData failed\r\n");
-        goto Error;
-    }
-
-    fRet = TRUE;
-
-Error:
-    RIL_LOG_INFO("CSilo_SIM::ParseSTKProCmd() - Exit\r\n");
-    return fRet;
-}
-
-BOOL CSilo_SIM::ParseProSessionStatus(CResponse* const pResponse, const BYTE*& rszPointer)
-{
-    RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - Enter\r\n");
-    BOOL fRet = FALSE;
-    const char* pszEnd = NULL;
-    UINT32 uiCmd;
-    UINT32 uiResult;
-    UINT32 uiAddResult;
-    UINT32 uiStatus;
-
-    if (pResponse == NULL)
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() : ERROR : pResponse was NULL\r\n");
-        goto Error;
-    }
-
-    // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() : ERROR : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Extract "<proactive_cmd>"
-    if (!ExtractUInt(rszPointer, uiCmd, rszPointer))
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse proactive cmd.\r\n");
-        goto Error;
-    }
-
-    RIL_LOG_INFO(" Proactive Cmd: %u.\r\n", uiCmd);
-
-    // Extract "<result>"
-    if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
-         (!ExtractUInt(rszPointer, uiResult, rszPointer)))
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse result.\r\n");
-        goto Error;
-    }
-
-    RIL_LOG_INFO(" Result: %u.\r\n", uiResult);
-
-    // Extract "<add_result>"
-    if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
-         (!ExtractUInt(rszPointer, uiAddResult, rszPointer)))
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse additional result.\r\n");
-        goto Error;
-    }
-
-    RIL_LOG_INFO(" Additional result: %u.\r\n", uiAddResult);
-
-    // Extract "<sw1>"
-    if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
-         (!ExtractUInt(rszPointer, uiStatus, rszPointer)))
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - ERROR: Could not parse status.\r\n");
-        goto Error;
-    }
-
-    RIL_LOG_INFO(" Status: %u.\r\n", uiStatus);
-
-    pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_STK_SESSION_END);
-
-    fRet = TRUE;
-
-Error:
-    RIL_LOG_INFO("CSilo_SIM::ParseProSessionStatus() - Exit\r\n");
-    return fRet;
-}
-
-#else //USE_STK_RAW_MODE
 BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rszPointer)
 {
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Enter\r\n");
@@ -831,7 +692,7 @@ Error:
     RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - Exit\r\n");
     return fRet;
 }
-#endif //USE_STK_RAW_MODE
+
 
 
 BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
@@ -950,7 +811,11 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const BYTE*& rszPointer)
     if (1 == uiIndex)
     {
         RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - First index, clear master ECC list, store code=[%s]\r\n", szECCItem);
-        PrintStringNullTerminate(m_szECCList, MAX_BUFFER_SIZE, "%s", szECCItem);
+        if (!PrintStringNullTerminate(m_szECCList, MAX_BUFFER_SIZE, "%s", szECCItem))
+        {
+            RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - ERROR: Could not create m_szCCList\r\n");
+            goto Error;
+        }
     }
     else
     {

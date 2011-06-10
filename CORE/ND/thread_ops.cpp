@@ -93,6 +93,7 @@ void * ThreadWaitProc(void * pVoid)
 CThread::CThread(THREAD_PROC_PTR pvThreadProc, void * pvDataObj, UINT32 dwFlags, UINT32 dwStackSize) :
     m_pvDataObj(pvDataObj),
     m_uiPriority(THREAD_PRIORITY_LEVEL_UNKNOWN),
+    m_fJoinable(FALSE),
     m_fRunning(FALSE),
     m_fInitialized(FALSE)
 {
@@ -122,6 +123,7 @@ CThread::CThread(THREAD_PROC_PTR pvThreadProc, void * pvDataObj, UINT32 dwFlags,
     }
     else
     {
+        m_fJoinable = FALSE;
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     }
 

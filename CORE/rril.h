@@ -56,8 +56,7 @@ typedef long                RIL_RESULT_CODE;
 ///////////////////////////////////////////////////////////////////////////////
 // Maximum length for various buffers and string parameters
 //
-#define MAX_BUFFER_SIZE     (512)
-#define MAX_MSG_BUFFER_SIZE (512)
+#define MAX_BUFFER_SIZE     (1024)
 #define MAX_PROP_VALUE      (81)
 
 ///////////////////////////////////////////////////////////////////////////////

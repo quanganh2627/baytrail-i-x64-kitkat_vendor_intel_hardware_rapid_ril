@@ -15,10 +15,6 @@ LOCAL_SRC_FILES:= \
     silo.cpp \
     ND/silo_voice.cpp \
     ND/silo_network.cpp \
-    ND/atchannel.c \
-    ND/at_tok.c \
-    ND/stk.c \
-    ND/misc.c \
     ND/silo_sim.cpp \
     ND/silo_data.cpp \
     ND/silo_phonebook.cpp \

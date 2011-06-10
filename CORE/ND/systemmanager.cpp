@@ -74,7 +74,10 @@ CSystemManager& CSystemManager::GetInstance()
         if (!m_pInstance)
         {
             RIL_LOG_CRITICAL("CSystemManager::GetInstance() - ERROR - Cannot create instance\r\n");
-            // TODO: blow-up
+
+            //  Can't call TriggerRadioError here as SystemManager isn't even up yet.
+            //  Just call exit and let rild clean everything up.
+            exit(0);
         }
     }
     //RIL_LOG_VERBOSE("CSystemManager::GetInstance() - Exit\r\n");

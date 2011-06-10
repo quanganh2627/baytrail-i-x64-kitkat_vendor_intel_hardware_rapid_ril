@@ -78,9 +78,6 @@ BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cb
 
 
 BOOL IsElementarySimFile(UINT32 dwFileID);
-BOOL AllocateOrReallocateStorage(BYTE** const prgrData, const size_t stSize, const UINT32 nUsed, UINT32* const pnAllocated,
-                                 const UINT32 nGrowSize);
-
 
 void Sleep(UINT32 dwTimeInMS);
 UINT32 GetTickCount();

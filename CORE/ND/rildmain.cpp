@@ -1573,7 +1573,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.11 for Android 2.3 (Build June 2/2011)";
+    return "Intrinsyc Rapid-RIL M5.12 for Android 2.3 (Build June 9/2011)";
 }
 
 
@@ -1838,6 +1838,8 @@ void TriggerRadioErrorAsync(eRadioError eRadioErrorVal, UINT32 uiLineNum, const 
         TriggerRadioError(eRadioErrorVal, uiLineNum, lpszFileName);
         delete pTrigger;
         pTrigger = NULL;
+        delete pTriggerRadioErrorThread;
+        pTriggerRadioErrorThread = NULL;
         return;
     }
 

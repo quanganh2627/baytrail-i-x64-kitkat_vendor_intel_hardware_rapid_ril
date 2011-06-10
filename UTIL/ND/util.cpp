@@ -143,65 +143,6 @@ BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cb
 
 
 
-//
-// (Re)Allocates storage for data elements
-//      prgrData - Pointer to current buffer (buffer must be NULL if (0 == nAllocated))
-//        stSize - Size (in bytes) of the data elements in the buffer
-//         nUsed - Number of valid data elements in the buffer
-//   pnAllocated - Total number of data elements in the buffer
-//     nGrowSize - Number of elements by which to increase the size of the buffer
-//
-BOOL AllocateOrReallocateStorage(BYTE** const prgrData, const size_t stSize, const UINT32 nUsed, UINT32* const pnAllocated, const UINT32 nGrowSize)
-{
-    //RIL_LOG_VERBOSE("AllocateOrReallocateStorage() - Enter\r\n");
-    BOOL fSuccess = FALSE;
-
-    if (NULL == prgrData)
-    {
-        RIL_LOG_CRITICAL("AllocateOrReallocateStorage() : ERROR : prgrData was NULL\r\n");
-        goto Error;
-    }
-
-    if (NULL == pnAllocated)
-    {
-        RIL_LOG_CRITICAL("AllocateOrReallocateStorage() : ERROR : pnAllocated was NULL\r\n");
-        goto Error;
-    }
-
-    if (NULL == *prgrData && 0 != *pnAllocated)
-    {
-        RIL_LOG_CRITICAL("AllocateOrReallocateStorage() : ERROR : *prgrData was NULL and *pnAllocated was not 0\r\n");
-        goto Error;
-    }
-
-    {
-        *pnAllocated += nGrowSize;
-        const size_t stAllocateBytes = *pnAllocated * stSize;
-        BYTE* const prbTemp = (BYTE*)malloc(stAllocateBytes);
-        if (prbTemp)
-        {
-            const size_t stUsedBytes = nUsed * stSize;
-            memcpy(prbTemp, *prgrData, stUsedBytes);
-            // The following line seems like a good idea, but may waste resources
-            // 0-initializing memory that is never used.
-            // memset(prbTemp + stUsedBytes, 0x00, stAllocateBytes - stUsedBytes);
-            free(*prgrData);
-            *prgrData = prbTemp;
-            fSuccess = TRUE;
-        }
-        else
-        {
-            *pnAllocated -= nGrowSize;
-        }
-    }
-
-Error:
-    //RIL_LOG_VERBOSE("AllocateOrReallocateStorage() - Exit\r\n");
-    return fSuccess;
-}
-
-
-
 CSelfExpandBuffer::CSelfExpandBuffer() : m_szBuffer(NULL), m_uiUsed(0), m_nCapacity(0)
 {
 }
@@ -258,7 +199,7 @@ BOOL CopyStringNullTerminate(char * const pszOut, const char * pszIn, const UINT
 
     //RIL_LOG_VERBOSE("CopyStringNullTerminate() - Enter\r\n");
 
-    if ((NULL != pszIn) || (NULL != pszOut))
+    if ((NULL != pszIn) && (NULL != pszOut))
     {
         UINT32 cbIn = strlen(pszIn);
 

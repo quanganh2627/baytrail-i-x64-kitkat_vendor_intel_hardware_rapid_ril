@@ -439,7 +439,7 @@ BOOL CChannelBase::WaitForCommand()
     return  (WAIT_EVENT_0_SIGNALED == uiRet);
 }
 
-#define INIT_CMD_STRLEN  (4 * MAX_BUFFER_SIZE)
+#define INIT_CMD_STRLEN  (MAX_BUFFER_SIZE)
 
 //
 // Send an intialization command string to the COM port
@@ -450,7 +450,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands : chnl=[%d] index=[%d]\r\n", m_uiRilChannel, eInitIndex);
 
     BYTE*        szInit;
-    const UINT32 szInitLen = 1024;
+    const UINT32 szInitLen = MAX_BUFFER_SIZE;
     BOOL         bRetVal  = FALSE;
     CCommand*    pCmd = NULL;
     BOOL         bLastCmd;
@@ -482,8 +482,16 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 
     if (repository.Read(g_szGroupInitCmds, g_szPreInitCmds[eInitIndex], szTemp, MAX_BUFFER_SIZE))
     {
-        ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp);
-        ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|");
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Concat szTemp failed\r\n");
+            goto Done;
+        }
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Concat szTemp | failed\r\n");
+            goto Done;
+        }
     }
 
     // Add the hard-coded Init Commands to the Init String
@@ -496,15 +504,27 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 
     if (m_prisdModuleInit[eInitIndex].szCmd[0])
     {
-        ConcatenateStringNullTerminate(szInit, szInitLen, m_prisdModuleInit[eInitIndex].szCmd);
+        if (!ConcatenateStringNullTerminate(szInit, szInitLen, m_prisdModuleInit[eInitIndex].szCmd))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Concat szCmd failed  eInitIndex=[%d]r\n", eInitIndex);
+            goto Done;
+        }
     }
 
     // Get any post-init commands from non-volatile memory
 
     if (repository.Read(g_szGroupInitCmds, g_szPostInitCmds[eInitIndex], szTemp, MAX_BUFFER_SIZE))
     {
-        ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|");
-        ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp);
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Concat | failed  eInitIndex=[%d]\r\n", eInitIndex);
+            goto Done;
+        }
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Concat szTemp failed  eInitIndex=[%d]\r\n", eInitIndex);
+            goto Done;
+        }
     }
 
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands : String [%s]\r\n", szInit);
@@ -531,7 +551,11 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         if ('\0' != pszStart[0])
         {
             // Send the command
-            (void)PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT%s\r", pszStart);
+            if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT%s\r", pszStart))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() - ERROR: Could not make command.\r\n");
+                goto Done;
+            }
             pCmd = new CCommand(m_uiRilChannel,
                                 0,
                                 REQ_ID_NONE,
@@ -870,7 +894,11 @@ BOOL CChannelBase::OpenPort()
 
     RIL_LOG_INFO("CChannelBase::OpenPort() - Opening COM Port=[%s]  g_bIsSocket=[%d]\r\n", (g_szCmdPort ? g_szCmdPort : "NULL") , g_bIsSocket);
 
-    // TODO: Grab this from repository
+    if (NULL == g_szCmdPort)
+    {
+        RIL_LOG_CRITICAL("CChannelBase::OpenPort() - g_szCmdPort is NULL!\r\n");
+        return FALSE;
+    }
     bRetVal = m_Port.Open(g_szCmdPort, g_bIsSocket);
 
     RIL_LOG_INFO("CChannelBase::OpenPort() - Opening COM Port: %s\r\n", (bRetVal ? "SUCCESS" : "FAILED!") );

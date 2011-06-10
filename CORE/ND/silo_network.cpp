@@ -226,6 +226,7 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to convert local to calendar time!\r\n");
         //  Just skip over notification
         free(pszTimeData);
+        pszTimeData = NULL;
         fRet = TRUE;
         goto Error;
     }
@@ -248,18 +249,27 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     ctime_secs += (time_t)nTimeDiff;
     //RIL_LOG_INFO("ctime_secs = [%u]\r\n", (UINT32)ctime_secs);
     pGMT = localtime(&ctime_secs);
+    if (NULL == pGMT)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: pGMT is NULL!\r\n");
+        //  Just skip over notification
+        free(pszTimeData);
+        pszTimeData = NULL;
+        fRet = TRUE;
+        goto Error;
+    }
 
     // Format date time as "yy/mm/dd,hh:mm:ss"
     memset(pszTimeData, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
     strftime(pszTimeData, sizeof(BYTE) * MAX_BUFFER_SIZE, "%y/%m/%d,%T", pGMT);
 
     // Add timezone and dst: "(+/-)tz,dt"
-    strncat(pszTimeData, szTimeZone, strlen(szTimeZone));
+    strncat(pszTimeData, szTimeZone, MAX_BUFFER_SIZE - strlen(pszTimeData) - 1);
 
     //  FIX: The time from the modem includes DST so DON'T set it here!!
     //strcat(pszTimeData, ",");
     //strncat(pszTimeData, szDummy, rszPointer - szDummy);
-    strcat(pszTimeData, ",0");
+    strncat(pszTimeData, ",0", MAX_BUFFER_SIZE - strlen(pszTimeData) - 1);
 
     RIL_LOG_INFO("CSilo_Network::ParseCTZV() - INFO: pszTimeData: %s\r\n", pszTimeData);
 
