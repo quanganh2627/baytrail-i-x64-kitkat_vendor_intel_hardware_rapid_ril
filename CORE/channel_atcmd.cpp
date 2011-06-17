@@ -31,9 +31,9 @@
 //  Com init strings for this channel.
 //  Call control commands, misc commands
 
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|S0=0|+CMEE=1" };
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|+XPOW=0,0,0|S0=0|+CMEE=1" };
 INITSTRING_DATA ATCmdUnlockInitString   = { "" };
-INITSTRING_DATA ATCmdPowerOnInitString  = { "+XPOW=0,0,0" };
+INITSTRING_DATA ATCmdPowerOnInitString  = { "" };
 INITSTRING_DATA ATCmdReadyInitString    = { "" };
 
 CChannel_ATCmd::CChannel_ATCmd(UINT32 uiChannel)
@@ -61,7 +61,7 @@ BOOL CChannel_ATCmd::FinishInit()
     m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
     if (!m_prisdModuleInit)
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::Init : chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::FinishInit() : chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 

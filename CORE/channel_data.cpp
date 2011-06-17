@@ -108,7 +108,7 @@ BOOL CChannel_Data::FinishInit()
     m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
     if (!m_prisdModuleInit)
     {
-        RIL_LOG_CRITICAL("CChannel_Data::Init : ERROR : chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_Data::FinishInit() : ERROR : chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -246,7 +246,7 @@ Error:
 //
 UINT32 CChannel_Data::GetNextContextID()
 {
-    RIL_LOG_VERBOSE("CChannel_Data::GetNextContextID - Enter\r\n");
+    RIL_LOG_VERBOSE("CChannel_Data::GetNextContextID() - Enter\r\n");
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     UINT32 uiCID = 1;

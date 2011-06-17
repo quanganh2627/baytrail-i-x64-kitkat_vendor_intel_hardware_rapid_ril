@@ -459,7 +459,7 @@ int CEvent::Wait(UINT32 uiTimeout)
             {
                 if (rc != ETIMEDOUT)
                 {
-                    RIL_LOG_CRITICAL("CEvent::WaitForEvent() : ERROR : pthread_cond_timedwait(): returned %d\r\n", rc);
+                    RIL_LOG_CRITICAL("CEvent::Wait() : ERROR : pthread_cond_timedwait(): returned %d\r\n", rc);
                 }
             }
         }
@@ -688,7 +688,7 @@ int CMutipleEvent::Wait(UINT32 uiTimeout)
         {
             if (rc != ETIMEDOUT)
             {
-                RIL_LOG_CRITICAL("CEvent::Wait() : ERROR : pthread_cond_timedwait(): returned %d\r\n", rc);
+                RIL_LOG_CRITICAL("CMutipleEvent::Wait() : ERROR : pthread_cond_timedwait(): returned %d\r\n", rc);
 
                 // TODO Deal with these errors
                 rc = ETIMEDOUT;

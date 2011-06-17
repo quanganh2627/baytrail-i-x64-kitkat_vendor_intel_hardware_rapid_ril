@@ -127,7 +127,7 @@ BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const BYTE*& rszPo
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseMessageInSim() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseMessageInSim() : ERROR : pResponse was NULL\r\n");
         goto Error;
     }
 
@@ -349,7 +349,8 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCBM() - Exit\r\n");
-    return fRet;}
+    return fRet;
+}
 
 //
 //

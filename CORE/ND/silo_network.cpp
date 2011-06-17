@@ -332,7 +332,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
     }
 
     memset(pszCommaBuffer, 0, szDummy-rszPointer+1);
-    strncpy(pszCommaBuffer, rszPointer, szDummy-rszPointer);
+    strncpy(pszCommaBuffer, rszPointer, (szDummy-rszPointer+1) - strlen(pszCommaBuffer) - 1);
     //RIL_LOG_INFO("pszCommaBuffer=[%s]\r\n", CRLFExpandedString(pszCommaBuffer,szDummy-rszPointer).GetString() );
 
 

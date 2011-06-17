@@ -69,6 +69,7 @@ protected:
     virtual BOOL    ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rszPointer);
 
     virtual BOOL    ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseXLOCK(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseXLEMA(CResponse* const pResponse, const BYTE*& rszPointer);
 
     //  For XSIM state (initialized to -1)

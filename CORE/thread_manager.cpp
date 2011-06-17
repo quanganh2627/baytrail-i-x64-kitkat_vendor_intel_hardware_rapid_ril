@@ -194,11 +194,11 @@ void CThreadManager::Register()
     CMutex::Lock(m_pTManMutex);
 
     ++m_nChannelsActive;
-    RIL_LOG_INFO("CThreadManager::RegisterThread() : %d of %d threads registered\r\n", m_nChannelsActive, m_nChannelsTotal);
+    RIL_LOG_INFO("CThreadManager::Register() : %d of %d threads registered\r\n", m_nChannelsActive, m_nChannelsTotal);
 
     if (m_nChannelsActive == m_nChannelsTotal)
     {
-        RIL_LOG_INFO("CThreadManager::RegisterThread() : Channel threads are running. Setting event.\r\n");
+        RIL_LOG_INFO("CThreadManager::Register() : Channel threads are running. Setting event.\r\n");
         SignalComplete();
     }
 

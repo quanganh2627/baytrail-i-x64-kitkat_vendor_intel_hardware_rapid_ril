@@ -81,8 +81,10 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO &rReqInfo)
         // Set up non-pre-defined strings
 
         // Group Strings are constant, while Item Strings are Request-Dependent.
-        strncpy(g_szItemRequestTimeouts,   g_szRequestNames[requestID], MAX_REQUEST_ITEM_LENGTH);
-        strncpy(g_szItemRequestNumRetries, g_szRequestNames[requestID], MAX_REQUEST_ITEM_LENGTH);
+        memset(g_szItemRequestTimeouts, 0, sizeof(g_szItemRequestTimeouts));
+        memset(g_szItemRequestNumRetries, 0, sizeof(g_szItemRequestNumRetries));
+        strncpy(g_szItemRequestTimeouts,   g_szRequestNames[requestID], MAX_REQUEST_ITEM_LENGTH-1);
+        strncpy(g_szItemRequestNumRetries, g_szRequestNames[requestID], MAX_REQUEST_ITEM_LENGTH-1);
 
         if (repository.Read(g_szGroupRequestTimeouts, g_szItemRequestTimeouts, iTemp))
         {

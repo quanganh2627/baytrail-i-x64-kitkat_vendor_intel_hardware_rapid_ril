@@ -92,6 +92,7 @@ struct PdpData
     char* szUserName;
     char* szPassword;
     char* szPAPCHAP;
+    char* szPDPType;
 };
 
 
@@ -103,6 +104,8 @@ typedef struct
     char* pszCID;
     char* pszNetworkInterfaceName;
     char* pszIPAddress;
+    char* pszDNS;       // Ignored prior to Android 3.0
+    char* pszGateway;   // Ignored prior to Android 3.0
 } S_ND_SETUP_DATA_CALL_POINTERS, *P_ND_SETUP_DATA_CALL_POINTERS;
 
 typedef struct
@@ -111,6 +114,8 @@ typedef struct
     char szCID[MAX_BUFFER_SIZE];
     char szNetworkInterfaceName[MAX_BUFFER_SIZE];
     char szIPAddress[MAX_BUFFER_SIZE];
+    char szDNS[MAX_BUFFER_SIZE];        // Ignored prior to Android 3.0
+    char szGateway[MAX_BUFFER_SIZE];    // Ignored prior to Android 3.0
 } S_ND_SETUP_DATA_CALL, *P_ND_SETUP_DATA_CALL;
 
 

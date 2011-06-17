@@ -531,7 +531,7 @@ BOOL CChannel::ProcessModemData(BYTE *szRxBytes, UINT32 uiRxBytesSize)
         goto Error;
     }
 
-    RIL_LOG_INFO("CChannelBase::ProcessModemData() - INFO: chnl=[%d] size=[%d] RX [%s]\r\n", m_uiRilChannel, uiRxBytesSize, CRLFExpandedString(szRxBytes,uiRxBytesSize).GetString());
+    RIL_LOG_INFO("CChannel::ProcessModemData() - INFO: chnl=[%d] size=[%d] RX [%s]\r\n", m_uiRilChannel, uiRxBytesSize, CRLFExpandedString(szRxBytes,uiRxBytesSize).GetString());
 
     if (!m_pResponse)
     {

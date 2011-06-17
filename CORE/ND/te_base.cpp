@@ -38,8 +38,7 @@
 #include "te_base.h"
 
 CTEBase::CTEBase() :
-m_nNetworkRegistrationType(0),
-m_uiRSSI(0)
+m_nNetworkRegistrationType(0)
 {
     memset(m_szManualMCCMNC, 0, MAX_BUFFER_SIZE);
 }
@@ -53,7 +52,7 @@ CTEBase::~CTEBase()
 //
 RIL_RESULT_CODE CTEBase::CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGetSimStatus() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetSimStatus() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CPIN?\r", sizeof(rReqData.szCmd1)))
@@ -61,27 +60,27 @@ RIL_RESULT_CODE CTEBase::CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData,
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreGetSimStatus() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetSimStatus() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCardStatus)
 {
-    RIL_LOG_VERBOSE("ParseSimPin() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimPin() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char szSimState[MAX_BUFFER_SIZE];
 
     if (NULL == pszRsp)
     {
-        RIL_LOG_CRITICAL("ParseSimPin() - ERROR: Response string is NULL!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - ERROR: Response string is NULL!\r\n");
         goto Error;
     }
 
     pCardStatus = (RIL_CardStatus*)malloc(sizeof(RIL_CardStatus));
     if (NULL == pCardStatus)
     {
-        RIL_LOG_CRITICAL("ParseSimPin() - ERROR: Could not allocate memory for RIL_CardStatus.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - ERROR: Could not allocate memory for RIL_CardStatus.\r\n");
         goto Error;
     }
 
@@ -90,25 +89,25 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     // Parse "<prefix>+CPIN: <state><postfix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimPin() - ERROR: Could not skip response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - ERROR: Could not skip response prefix.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, "+CPIN: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimPin() - ERROR: Could not skip \"+CPIN: \".\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - ERROR: Could not skip \"+CPIN: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUnquotedString(pszRsp, g_cTerminator, szSimState, MAX_BUFFER_SIZE, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimPin() - ERROR: Could not extract SIM State.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - ERROR: Could not extract SIM State.\r\n");
         goto Error;
     }
 
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimPin() - ERROR: Could not skip response postfix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - ERROR: Could not skip response postfix.\r\n");
         goto Error;
     }
 
@@ -122,7 +121,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
 
     if (0 == strcmp(szSimState, "READY"))
     {
-        RIL_LOG_INFO("ParseSimPin() - SIM Status: RIL_SIM_READY\r\n");
+        RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_READY\r\n");
         g_RadioState.SetRadioSIMReady();
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
@@ -139,7 +138,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     }
     else if (0 == strcmp(szSimState, "SIM PIN"))
     {
-        RIL_LOG_INFO("ParseSimPin() - SIM Status: RIL_SIM_PIN\r\n");
+        RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PIN\r\n");
         g_RadioState.SetRadioSIMLocked();
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
@@ -156,7 +155,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     }
     else if (0 == strcmp(szSimState, "SIM PUK"))
     {
-        RIL_LOG_INFO("ParseSimPin() - SIM Status: RIL_SIM_PUK\r\n");
+        RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PUK\r\n");
         g_RadioState.SetRadioSIMLocked();
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
@@ -173,7 +172,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     }
     else if (0 == strcmp(szSimState, "PH-NET PIN"))
     {
-        RIL_LOG_INFO("ParseSimPin() - SIM Status: RIL_SIM_NETWORK_PERSONALIZATION\r\n");
+        RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_NETWORK_PERSONALIZATION\r\n");
         g_RadioState.SetRadioSIMLocked();
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
@@ -190,7 +189,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     }
     else if (0 == strcmp(szSimState, "SIM PIN2"))
     {
-        RIL_LOG_INFO("ParseSimPin() - SIM Status: RIL_SIM_PIN2\r\n");
+        RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PIN2\r\n");
         //g_RadioState.SetRadioSIMLocked();
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
@@ -207,7 +206,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     }
     else if (0 == strcmp(szSimState, "SIM PUK2"))
     {
-        RIL_LOG_INFO("ParseSimPin() - SIM Status: RIL_SIM_PUK2\r\n");
+        RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PUK2\r\n");
         //g_RadioState.SetRadioSIMLocked();
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
@@ -225,7 +224,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     else
     {
         // Anything not covered above gets treated as NO SIM
-        RIL_LOG_INFO("ParseSimPin() - SIM Status: RIL_SIM_ABSENT\r\n");
+        RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_ABSENT\r\n");
         g_RadioState.SetRadioSIMLocked();
         pCardStatus->card_state = RIL_CARDSTATE_ABSENT;
         pCardStatus->num_applications = 0;
@@ -234,21 +233,21 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("ParseSimPin() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimPin() - Exit\r\n");
 
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGetSimStatus() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetSimStatus() - Enter\r\n");
 
     const char * pszRsp = rRspData.szResponse;
     RIL_CardStatus* pCardStatus = NULL;
     RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus);
     if (res != RRIL_RESULT_OK)
     {
-        RIL_LOG_CRITICAL("ParseGetSimStatus() - ERROR: Could not parse Sim Pin.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetSimStatus() - ERROR: Could not parse Sim Pin.\r\n");
         goto Error;
     }
 
@@ -262,7 +261,7 @@ Error:
         pCardStatus = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseGetSimStatus() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetSimStatus() - Exit\r\n");
     return res;
 }
 
@@ -271,7 +270,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreEnterSimPin(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreEnterSimPin() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreEnterSimPin() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     char **pszCmdData = NULL;
@@ -279,13 +278,13 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin(REQUEST_DATA & rReqData, void * pData, 
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPin() - ERROR: Invalid input\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin() - ERROR: Invalid input\r\n");
         goto Error;
     }
 
     if (sizeof(char*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPin() - ERROR: Request data was of unexpected size!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin() - ERROR: Request data was of unexpected size!\r\n");
         goto Error;
     }
 
@@ -294,26 +293,26 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin(REQUEST_DATA & rReqData, void * pData, 
 
     if (NULL == pszPassword)
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPin() - ERROR: SIM PIN string was NULL!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin() - ERROR: SIM PIN string was NULL!\r\n");
         goto Error;
     }
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\"\r", pszPassword))
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPin() - ERROR: Failed to write command to buffer!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin() - ERROR: Failed to write command to buffer!\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreEnterSimPin() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreEnterSimPin() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseEnterSimPin() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPin() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
@@ -321,7 +320,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
     {
-        RIL_LOG_CRITICAL("ParseEnterSimPin() - ERROR: Could not alloc int\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - ERROR: Could not alloc int\r\n");
         goto Error;
     }
 
@@ -340,7 +339,7 @@ Error:
         pnRetries = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseEnterSimPin() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPin() - Exit\r\n");
     return res;
 }
 
@@ -349,7 +348,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreEnterSimPuk(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreEnterSimPuk() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreEnterSimPuk() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     char* pszPUK;
@@ -357,13 +356,13 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk(REQUEST_DATA & rReqData, void * pData, 
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPuk() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if ((2 * sizeof(char *)) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPuk() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
 
@@ -372,34 +371,34 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk(REQUEST_DATA & rReqData, void * pData, 
 
     if ((NULL == pszPUK) || (NULL == pszNewPIN))
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPuk() - ERROR: PUK or new PIN string was NULL!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk() - ERROR: PUK or new PIN string was NULL!\r\n");
         goto Error;
     }
 
 #if 0
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\",\"%s\"\r", pszPUK, pszNewPIN))
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPuk() - ERROR: Unable to write command string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
     }
 #endif // 0
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "ATD**05*%s*%s*%s#\r", pszPUK, pszNewPIN, pszNewPIN))
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPuk() - ERROR: Unable to write command string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreEnterSimPuk() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreEnterSimPuk() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseEnterSimPuk() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPuk() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
@@ -407,7 +406,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
     {
-        RIL_LOG_CRITICAL("ParseEnterSimPuk() - ERROR: Could not alloc int\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPuk() - ERROR: Could not alloc int\r\n");
         goto Error;
     }
 
@@ -426,7 +425,7 @@ Error:
         pnRetries = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseEnterSimPuk() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPuk() - Exit\r\n");
     return res;
 }
 
@@ -435,7 +434,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreEnterSimPin2(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreEnterSimPin2() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreEnterSimPin2() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     char **pszCmdData = NULL;
@@ -443,13 +442,13 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin2(REQUEST_DATA & rReqData, void * pData,
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPin2() - ERROR: Invalid input\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin2() - ERROR: Invalid input\r\n");
         goto Error;
     }
 
     if (sizeof(char*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPin2() - ERROR: Request data was of unexpected size!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin2() - ERROR: Request data was of unexpected size!\r\n");
         goto Error;
     }
 
@@ -458,26 +457,26 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin2(REQUEST_DATA & rReqData, void * pData,
 
     if (NULL == pszPassword)
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPin2() - ERROR: SIM PIN string was NULL!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin2() - ERROR: SIM PIN string was NULL!\r\n");
         goto Error;
     }
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN2=\"%s\"\r", pszPassword))
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPin2() - ERROR: Failed to write command to buffer!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin2() - ERROR: Failed to write command to buffer!\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreEnterSimPin2() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreEnterSimPin2() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseEnterSimPin2(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseEnterSimPin2() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPin2() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
@@ -485,7 +484,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin2(RESPONSE_DATA & rRspData)
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
     {
-        RIL_LOG_CRITICAL("ParseEnterSimPin2() - ERROR: Could not alloc int\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin2() - ERROR: Could not alloc int\r\n");
         goto Error;
     }
 
@@ -504,7 +503,7 @@ Error:
         pnRetries = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseEnterSimPin2() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPin2() - Exit\r\n");
     return res;
 }
 
@@ -513,7 +512,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreEnterSimPuk2(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreEnterSimPuk2() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreEnterSimPuk2() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     char* pszPUK2;
@@ -521,13 +520,13 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk2(REQUEST_DATA & rReqData, void * pData,
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPuk2() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk2() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if ((2 * sizeof(char *)) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPuk2() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk2() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
 
@@ -536,34 +535,34 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk2(REQUEST_DATA & rReqData, void * pData,
 
     if ((NULL == pszPUK2) || (NULL == pszNewPIN2))
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPuk2() - ERROR: PUK2 or new PIN2 was NULL!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk2() - ERROR: PUK2 or new PIN2 was NULL!\r\n");
         goto Error;
     }
 
 #if 0
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN2=\"%s\",\"%s\"\r", pszPUK2, pszNewPIN2))
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPuk2() - ERROR: Unable to write command string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk2() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
     }
 #endif // 0
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "ATD**052*%s*%s*%s#\r", pszPUK2, pszNewPIN2, pszNewPIN2))
     {
-        RIL_LOG_CRITICAL("CoreEnterSimPuk2() - ERROR: Unable to write command string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk2() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreEnterSimPuk2() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreEnterSimPuk2() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseEnterSimPuk2(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseEnterSimPuk2() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPuk2() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
@@ -571,7 +570,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk2(RESPONSE_DATA & rRspData)
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
     {
-        RIL_LOG_CRITICAL("ParseEnterSimPuk2() - ERROR: Could not alloc int\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPuk2() - ERROR: Could not alloc int\r\n");
         goto Error;
     }
 
@@ -590,7 +589,7 @@ Error:
         pnRetries = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseEnterSimPuk2() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPuk2() - Exit\r\n");
     return res;
 }
 
@@ -599,7 +598,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreChangeSimPin(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreChangeSimPin() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreChangeSimPin() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     char* pszOldPIN;
@@ -607,13 +606,13 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin(REQUEST_DATA & rReqData, void * pData,
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreChangeSimPin() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if ((2 * sizeof(char *)) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreChangeSimPin() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
 
@@ -622,26 +621,26 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin(REQUEST_DATA & rReqData, void * pData,
 
     if ((NULL == pszOldPIN) || (NULL == pszNewPIN))
     {
-        RIL_LOG_CRITICAL("CoreChangeSimPin() - ERROR: old or new PIN was NULL!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin() - ERROR: old or new PIN was NULL!\r\n");
         goto Error;
     }
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPWD=\"SC\",\"%s\",\"%s\"\r", pszOldPIN, pszNewPIN))
     {
-        RIL_LOG_CRITICAL("CoreChangeSimPin() - ERROR: Unable to write command string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreChangeSimPin() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreChangeSimPin() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseChangeSimPin() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseChangeSimPin() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
@@ -649,7 +648,7 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA & rRspData)
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
     {
-        RIL_LOG_CRITICAL("ParseChangeSimPin() - ERROR: Could not alloc int\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - ERROR: Could not alloc int\r\n");
         goto Error;
     }
 
@@ -668,7 +667,7 @@ Error:
         pnRetries = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseChangeSimPin() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseChangeSimPin() - Exit\r\n");
     return res;
 }
 
@@ -677,7 +676,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreChangeSimPin2(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreChangeSimPin2() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreChangeSimPin2() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     char* pszOldPIN2;
@@ -685,13 +684,13 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin2(REQUEST_DATA & rReqData, void * pData
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreChangeSimPin2() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin2() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if ((2 * sizeof(char *)) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreChangeSimPin2() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin2() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
 
@@ -700,26 +699,26 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin2(REQUEST_DATA & rReqData, void * pData
 
     if ((NULL == pszOldPIN2) || (NULL == pszNewPIN2))
     {
-        RIL_LOG_CRITICAL("CoreChangeSimPin2() - ERROR: old or new PIN2 was NULL!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin2() - ERROR: old or new PIN2 was NULL!\r\n");
         goto Error;
     }
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPWD=\"P2\",\"%s\",\"%s\"\r", pszOldPIN2, pszNewPIN2))
     {
-        RIL_LOG_CRITICAL("CoreChangeSimPin2() - ERROR: Unable to write command string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin2() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreChangeSimPin2() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreChangeSimPin2() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseChangeSimPin2(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseChangeSimPin2() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseChangeSimPin2() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
@@ -727,7 +726,7 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin2(RESPONSE_DATA & rRspData)
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
     {
-        RIL_LOG_CRITICAL("ParseChangeSimPin2() - ERROR: Could not alloc int\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin2() - ERROR: Could not alloc int\r\n");
         goto Error;
     }
 
@@ -746,7 +745,7 @@ Error:
         pnRetries = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseChangeSimPin2() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseChangeSimPin2() - Exit\r\n");
     return res;
 }
 
@@ -755,20 +754,20 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreEnterNetworkDepersonalization(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreEnterNetworkDepersonalization() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreEnterNetworkDepersonalization() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     char* pszPassword;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreEnterNetworkDepersonalization() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterNetworkDepersonalization() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (sizeof(char *) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreEnterNetworkDepersonalization() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterNetworkDepersonalization() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
 
@@ -776,26 +775,26 @@ RIL_RESULT_CODE CTEBase::CoreEnterNetworkDepersonalization(REQUEST_DATA & rReqDa
 
     if (NULL == pszPassword)
     {
-        RIL_LOG_CRITICAL("CoreEnterNetworkDepersonalization() - ERROR: Depersonalization code was NULL!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterNetworkDepersonalization() - ERROR: Depersonalization code was NULL!\r\n");
         goto Error;
     }
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CLCK=\"PN\",0,\"%s\"\r", pszPassword))
     {
-        RIL_LOG_CRITICAL("CoreEnterNetworkDepersonalization() - ERROR: Unable to write command string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterNetworkDepersonalization() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreEnterNetworkDepersonalization() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreEnterNetworkDepersonalization() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseEnterNetworkDepersonalization(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseEnterNetworkDepersonalization() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseEnterNetworkDepersonalization() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
@@ -803,7 +802,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterNetworkDepersonalization(RESPONSE_DATA & rRsp
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
     {
-        RIL_LOG_CRITICAL("ParseEnterNetworkDepersonalization() - ERROR: Could not alloc int\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseEnterNetworkDepersonalization() - ERROR: Could not alloc int\r\n");
         goto Error;
     }
 
@@ -822,7 +821,7 @@ Error:
         pnRetries = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseEnterNetworkDepersonalization() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseEnterNetworkDepersonalization() - Exit\r\n");
     return res;
 }
 
@@ -831,25 +830,25 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreGetCurrentCalls(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGetCurrentCalls() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetCurrentCalls() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CLCC\r"))
     {
-        RIL_LOG_CRITICAL("CoreGetCurrentCalls() - ERROR: Unable to write command string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreGetCurrentCalls() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreGetCurrentCalls() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetCurrentCalls() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGetCurrentCalls() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetCurrentCalls() - Enter\r\n");
 
     UINT32 nValue;
     UINT32 nUsed = 0;
@@ -870,7 +869,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
     // Parse "<prefix>"
     if (!SkipRspStart(szRsp, g_szNewLine, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetCurrentCalls() - ERROR: Couldn't find rsp start\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() - ERROR: Couldn't find rsp start\r\n");
         goto Error;
     }
 
@@ -882,18 +881,18 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
 
     if (nCalls >= RRIL_MAX_CALL_ID_COUNT)
     {
-        RIL_LOG_CRITICAL("ParseGetCurrentCalls() - ERROR: Can't process %d calls due to insufficient space.\r\n", nCalls);
+        RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() - ERROR: Can't process %d calls due to insufficient space.\r\n", nCalls);
         goto Error;
     }
     else
     {
-        RIL_LOG_INFO("ParseGetCurrentCalls() - Found %d calls\r\n", nCalls);
+        RIL_LOG_INFO("CTEBase::ParseGetCurrentCalls() - Found %d calls\r\n", nCalls);
     }
 
     pCallListData = (P_ND_CALL_LIST_DATA)malloc(sizeof(S_ND_CALL_LIST_DATA));
     if (NULL == pCallListData)
     {
-        RIL_LOG_CRITICAL("ParseGetCurrentCalls() - ERROR: Could not allocate memory for a S_ND_CALL_LIST_DATA struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() - ERROR: Could not allocate memory for a S_ND_CALL_LIST_DATA struct.\r\n");
         goto Error;
     }
     memset(pCallListData, 0, sizeof(S_ND_CALL_LIST_DATA));
@@ -992,7 +991,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
                 BYTE description[MAX_BUFFER_SIZE];
                 if (!ExtractQuotedString(szRsp, description, MAX_BUFFER_SIZE, szRsp))
                 {
-                    RIL_LOG_WARNING("ParseGetCurrentCalls() - WARNING: Failed to extract call name\r\n");
+                    RIL_LOG_WARNING("CTEBase::ParseGetCurrentCalls() - WARNING: Failed to extract call name\r\n");
                     goto Continue;
                 }
                 else
@@ -1009,7 +1008,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
                     else
                     {
                         pCallListData->pCallNameBuffers[nUsed][MAX_BUFFER_SIZE - 1] = '\0';
-                        RIL_LOG_WARNING("ParseGetCurrentCalls() - WARNING: Buffer overflow in name buffer\r\n");
+                        RIL_LOG_WARNING("CTEBase::ParseGetCurrentCalls() - WARNING: Buffer overflow in name buffer\r\n");
                     }
 
                      pCallListData->pCallData[nUsed].name = pCallListData->pCallNameBuffers[nUsed];
@@ -1052,7 +1051,7 @@ Error:
     }
 
 
-    RIL_LOG_VERBOSE("ParseGetCurrentCalls() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetCurrentCalls() - Exit\r\n");
     return res;
 }
 
@@ -1061,7 +1060,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreDial() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDial() - Enter\r\n");
 
     RIL_Errno eRetVal    = RIL_E_GENERIC_FAILURE;
     RIL_Dial *pRilDial   = NULL;
@@ -1077,13 +1076,19 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreDial() - ERROR: pData is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: pData is NULL.\r\n");
         goto Error;
     }
 
     if (sizeof(RIL_Dial) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreDial() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    if (NULL == szCmdWalk)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: szCmdWalk is NULL.\r\n");
         goto Error;
     }
 
@@ -1094,14 +1099,14 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
 
     if (!CopyStringNullTerminate(szCmdWalk, "ATD", cchCmd - (szCmdWalk - rReqData.szCmd1)))
     {
-        RIL_LOG_CRITICAL("CoreDial() - ERROR: String truncation or other error when writting ATD!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: String truncation or other error when writting ATD!\r\n");
         goto Error;
     }
 
     szCmdWalk = strchr(szCmdWalk, '\0');  // NO_TYPO: 27
     if (NULL == szCmdWalk)
     {
-        RIL_LOG_CRITICAL("CoreDial() - ERROR: Did not find NULL termination character in string.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: Did not find NULL termination character in string.\r\n");
         goto Error;
     }
 
@@ -1121,13 +1126,13 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
     //  Check to see if the dial string is too long.
     if ((szCmdWalk - szDialStringStart) > nMaxDialStringLength)
     {
-        RIL_LOG_CRITICAL("CoreDial() - ERROR: Dial string is too long.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: Dial string is too long.\r\n");
         goto Error;
     }
 
     if (szCmdWalk == szDialStringStart)
     {
-        RIL_LOG_CRITICAL("CoreDial() - ERROR: Address string does not contain any valid characters.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: Address string does not contain any valid characters.\r\n");
         goto Error;
     }
 
@@ -1138,7 +1143,7 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
     {
         if (!CopyStringNullTerminate(szCmdWalk, "I", cchCmd - (szCmdWalk - rReqData.szCmd1)))
         {
-            RIL_LOG_CRITICAL("CoreDial() - ERROR: CopyStringNullTerminate I failed\r\n");
+            RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: CopyStringNullTerminate I failed\r\n");
             goto Error;
         }
         szCmdWalk++;
@@ -1147,7 +1152,7 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
     {
         if (!CopyStringNullTerminate(szCmdWalk, "i", cchCmd - (szCmdWalk - rReqData.szCmd1)))
         {
-            RIL_LOG_CRITICAL("CoreDial() - ERROR: CopyStringNullTerminate i failed\r\n");
+            RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: CopyStringNullTerminate i failed\r\n");
             goto Error;
         }
         szCmdWalk++;
@@ -1155,24 +1160,24 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
 
     if (!CopyStringNullTerminate(szCmdWalk, ";\r", cchCmd - (szCmdWalk - rReqData.szCmd1)))
     {
-        RIL_LOG_CRITICAL("CoreDial() - ERROR: CopyStringNullTerminate <cr> failed\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: CopyStringNullTerminate <cr> failed\r\n");
         goto Error;
     }
 
     eRetVal = RIL_E_SUCCESS;
 
 Error:
-    RIL_LOG_VERBOSE("CoreDial() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDial() - Exit\r\n");
     return eRetVal;
 }
 
 RIL_RESULT_CODE CTEBase::ParseDial(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseDial() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDial() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseDial() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDial() - Exit\r\n");
     return res;
 }
 
@@ -1181,7 +1186,7 @@ RIL_RESULT_CODE CTEBase::ParseDial(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreGetImsi(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGetImsi() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetImsi() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CIMI\r", sizeof(rReqData.szCmd1)))
@@ -1189,13 +1194,13 @@ RIL_RESULT_CODE CTEBase::CoreGetImsi(REQUEST_DATA & rReqData, void * pData, UINT
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreGetImsi() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetImsi() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGetImsi(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGetImsi() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetImsi() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -1204,14 +1209,14 @@ RIL_RESULT_CODE CTEBase::ParseGetImsi(RESPONSE_DATA & rRspData)
 
     if (NULL == pszRsp)
     {
-        RIL_LOG_CRITICAL("ParseGetImsi() - ERROR: Response string is NULL!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetImsi() - ERROR: Response string is NULL!\r\n");
         goto Error;
     }
 
     szSerialNumber = (char*)malloc(MAX_PROP_VALUE);
     if (NULL == szSerialNumber)
     {
-        RIL_LOG_CRITICAL("ParseGetImsi() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
+        RIL_LOG_CRITICAL("CTEBase::ParseGetImsi() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
         goto Error;
     }
     memset(szSerialNumber, 0x00, MAX_PROP_VALUE);
@@ -1221,7 +1226,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImsi(RESPONSE_DATA & rRspData)
         !ExtractUnquotedString(pszRsp, g_cTerminator, szSerialNumber, MAX_PROP_VALUE, pszRsp) ||
         !SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetImsi() - ERROR: Could not extract the IMSI string.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetImsi() - ERROR: Could not extract the IMSI string.\r\n");
         goto Error;
     }
 
@@ -1237,7 +1242,7 @@ Error:
         szSerialNumber = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseGetImsi() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetImsi() - Exit\r\n");
     return res;
 }
 
@@ -1246,19 +1251,19 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreHangup(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreHangup() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreHangup() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int * pnLine = NULL;
 
     if (sizeof(int*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreHangup() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreHangup() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreHangup() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreHangup() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -1271,17 +1276,17 @@ RIL_RESULT_CODE CTEBase::CoreHangup(REQUEST_DATA & rReqData, void * pData, UINT3
 
 Error:
 
-    RIL_LOG_VERBOSE("CoreHangup() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreHangup() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseHangup(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseHangup() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseHangup() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseHangup() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseHangup() - Exit\r\n");
     return res;
 }
 
@@ -1290,7 +1295,7 @@ RIL_RESULT_CODE CTEBase::ParseHangup(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreHangupWaitingOrBackground(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreHangupWaitingOrBackground() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreHangupWaitingOrBackground() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=0\r", sizeof(rReqData.szCmd1)))
@@ -1298,17 +1303,17 @@ RIL_RESULT_CODE CTEBase::CoreHangupWaitingOrBackground(REQUEST_DATA & rReqData, 
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreHangupWaitingOrBackground() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreHangupWaitingOrBackground() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseHangupWaitingOrBackground(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseHangupWaitingOrBackground() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseHangupWaitingOrBackground() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseHangupWaitingOrBackground() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseHangupWaitingOrBackground() - Exit\r\n");
     return res;
 }
 
@@ -1317,7 +1322,7 @@ RIL_RESULT_CODE CTEBase::ParseHangupWaitingOrBackground(RESPONSE_DATA & rRspData
 //
 RIL_RESULT_CODE CTEBase::CoreHangupForegroundResumeBackground(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreHangupForegroundResumeBackground() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreHangupForegroundResumeBackground() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=1\r", sizeof(rReqData.szCmd1)))
@@ -1325,17 +1330,17 @@ RIL_RESULT_CODE CTEBase::CoreHangupForegroundResumeBackground(REQUEST_DATA & rRe
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreHangupForegroundResumeBackground() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreHangupForegroundResumeBackground() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseHangupForegroundResumeBackground(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseHangupForegroundResumeBackground() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseHangupForegroundResumeBackground() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseHangupForegroundResumeBackground() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseHangupForegroundResumeBackground() - Exit\r\n");
     return res;
 }
 
@@ -1345,7 +1350,7 @@ RIL_RESULT_CODE CTEBase::ParseHangupForegroundResumeBackground(RESPONSE_DATA & r
 //
 RIL_RESULT_CODE CTEBase::CoreSwitchHoldingAndActive(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSwitchHoldingAndActive() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSwitchHoldingAndActive() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=2\r", sizeof(rReqData.szCmd1)))
@@ -1353,17 +1358,17 @@ RIL_RESULT_CODE CTEBase::CoreSwitchHoldingAndActive(REQUEST_DATA & rReqData, voi
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreSwitchHoldingAndActive() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSwitchHoldingAndActive() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSwitchHoldingAndActive(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSwitchHoldingAndActive() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSwitchHoldingAndActive() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSwitchHoldingAndActive() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSwitchHoldingAndActive() - Exit\r\n");
     return res;
 }
 
@@ -1372,7 +1377,7 @@ RIL_RESULT_CODE CTEBase::ParseSwitchHoldingAndActive(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreConference(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreConference() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreConference() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=3\r", sizeof(rReqData.szCmd1)))
@@ -1380,17 +1385,17 @@ RIL_RESULT_CODE CTEBase::CoreConference(REQUEST_DATA & rReqData, void * pData, U
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreConference() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreConference() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseConference(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseConference() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseConference() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseConference() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseConference() - Exit\r\n");
     return res;
 }
 
@@ -1399,7 +1404,7 @@ RIL_RESULT_CODE CTEBase::ParseConference(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreUdub(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreUdub() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreUdub() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "ATH\r", sizeof(rReqData.szCmd1)))
@@ -1407,17 +1412,17 @@ RIL_RESULT_CODE CTEBase::CoreUdub(REQUEST_DATA & rReqData, void * pData, UINT32 
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreUdub() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreUdub() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseUdub(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseUdub() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseUdub() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseUdub() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseUdub() - Exit\r\n");
     return res;
 }
 
@@ -1426,7 +1431,7 @@ RIL_RESULT_CODE CTEBase::ParseUdub(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreLastCallFailCause(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreLastCallFailCause() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreLastCallFailCause() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CEER\r", sizeof(rReqData.szCmd1)))
@@ -1434,13 +1439,13 @@ RIL_RESULT_CODE CTEBase::CoreLastCallFailCause(REQUEST_DATA & rReqData, void * p
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreLastCallFailCause() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreLastCallFailCause() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseLastCallFailCause() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseLastCallFailCause() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -1452,7 +1457,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
     pCause= (int*) malloc(sizeof(int));
     if (NULL == pCause)
     {
-        RIL_LOG_CRITICAL("ParseLastCallFailCause() - ERROR: Could not allocate memory for an integer.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseLastCallFailCause() - ERROR: Could not allocate memory for an integer.\r\n");
         goto Error;
     }
 
@@ -1460,7 +1465,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
         !SkipString(pszRsp, "+CEER: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseLastCallFailCause() - ERROR: Could not find AT response.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseLastCallFailCause() - ERROR: Could not find AT response.\r\n");
         goto Error;
     }
 
@@ -1468,7 +1473,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
     // TODO: should check if this is indeed for a call?
     if (!ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseLastCallFailCause() - ERROR: Could not find first string.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseLastCallFailCause() - ERROR: Could not find first string.\r\n");
         goto Error;
     }
 
@@ -1477,7 +1482,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
     {
         if (!ExtractUInt(pszRsp, uiCause, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseLastCallFailCause() - ERROR: Could not extract failure cause.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseLastCallFailCause() - ERROR: Could not extract failure cause.\r\n");
             goto Error;
         }
     }
@@ -1487,11 +1492,11 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
     {
         if (!ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_WARNING("ParseLastCallFailCause() - WARNING: Could not extract verbose cause.\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseLastCallFailCause() - WARNING: Could not extract verbose cause.\r\n");
         }
         else if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
         {
-            RIL_LOG_WARNING("ParseLastCallFailCause() - WARNING: Could not extract RspEnd.\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseLastCallFailCause() - WARNING: Could not extract RspEnd.\r\n");
         }
     }
 
@@ -1521,7 +1526,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pCause;
     rRspData.uiDataSize   = sizeof(int*);
-    RIL_LOG_INFO("ParseLastCallFailCause() - Last call fail cause [%d]\r\n", uiCause);
+    RIL_LOG_INFO("CTEBase::ParseLastCallFailCause() - Last call fail cause [%d]\r\n", uiCause);
 
     res = RRIL_RESULT_OK;
 
@@ -1532,7 +1537,7 @@ Error:
         pCause = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseLastCallFailCause() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseLastCallFailCause() - Exit\r\n");
     return res;
 }
 
@@ -1541,7 +1546,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSignalStrength(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSignalStrength() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSignalStrength() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
 #if 0   //  NOTE: Uncomment this block to simulate unsolicited modem reset
@@ -1564,13 +1569,13 @@ RIL_RESULT_CODE CTEBase::CoreSignalStrength(REQUEST_DATA & rReqData, void * pDat
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreSignalStrength() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSignalStrength() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSignalStrength(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSignalStrength() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSignalStrength() - Enter\r\n");
 
     extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
 
@@ -1585,7 +1590,7 @@ RIL_RESULT_CODE CTEBase::ParseSignalStrength(RESPONSE_DATA & rRspData)
 
     if (NULL == pSigStrData)
     {
-        RIL_LOG_CRITICAL("ParseSignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
         goto Error;
     }
     memset(pSigStrData, 0x00, sizeof(RIL_SignalStrength));
@@ -1594,30 +1599,29 @@ RIL_RESULT_CODE CTEBase::ParseSignalStrength(RESPONSE_DATA & rRspData)
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
         !SkipString(pszRsp, "+CSQ: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSignalStrength() - ERROR: Could not find AT response.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not find AT response.\r\n");
         goto Error;
     }
 
     if (!ExtractUInt(pszRsp, uiRSSI, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSignalStrength() - ERROR: Could not extract uiRSSI.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not extract uiRSSI.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt(pszRsp, uiBER, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSignalStrength() - ERROR: Could not extract uiBER.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not extract uiBER.\r\n");
         goto Error;
     }
 
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSignalStrength() - ERROR: Could not extract the response end.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not extract the response end.\r\n");
         goto Error;
     }
 
-    m_uiRSSI = uiRSSI;
     pSigStrData->GW_SignalStrength.signalStrength = (int) uiRSSI;
     pSigStrData->GW_SignalStrength.bitErrorRate   = (int) uiBER;
 
@@ -1633,7 +1637,7 @@ Error:
         pSigStrData = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseSignalStrength() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSignalStrength() - Exit\r\n");
     return res;
 }
 
@@ -1642,7 +1646,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreRegistrationState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreRegistrationState() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreRegistrationState() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG?\r", sizeof(rReqData.szCmd1)))
@@ -1650,13 +1654,13 @@ RIL_RESULT_CODE CTEBase::CoreRegistrationState(REQUEST_DATA & rReqData, void * p
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreRegistrationState() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreRegistrationState() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseRegistrationState() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseRegistrationState() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -1674,28 +1678,28 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     pRegStatus = (P_ND_REG_STATUS)malloc(sizeof(S_ND_REG_STATUS));
     if (NULL == pRegStatus)
     {
-        RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not allocate memory for a S_ND_REG_STATUS struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not allocate memory for a S_ND_REG_STATUS struct.\r\n");
         goto Error;
     }
 
     // Skip "<prefix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not skip response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not skip response prefix.\r\n");
         goto Error;
     }
 
     // Skip "+CREG: "
     if (!SkipString(pszRsp, "+CREG: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not skip \"+CREG: \".\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not skip \"+CREG: \".\r\n");
         goto Error;
     }
 
     // Extract <n> and throw away
     if (!ExtractUInt(pszRsp, uiNum, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not extract <n>.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <n>.\r\n");
         goto Error;
     }
 
@@ -1703,7 +1707,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt(pszRsp, uiStat, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not extract <stat>.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <stat>.\r\n");
         goto Error;
     }
 
@@ -1714,7 +1718,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
         SkipString(pszRsp, "\"", pszRsp);
         if (!ExtractHexUInt(pszRsp, uiLAC, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not extract <lac>.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <lac>.\r\n");
             goto Error;
         }
         SkipString(pszRsp, "\"", pszRsp);
@@ -1722,13 +1726,13 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
         // Extract ",<cid>"
         if (!SkipString(pszRsp, ",", pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not extract \",<cid>\".\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract \",<cid>\".\r\n");
             goto Error;
         }
         SkipString(pszRsp, "\"", pszRsp);
         if (!ExtractHexUInt(pszRsp, uiCID, pszRsp))
          {
-             RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not extract <cid>.\r\n");
+             RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <cid>.\r\n");
              goto Error;
          }
         SkipString(pszRsp, "\"", pszRsp);
@@ -1741,7 +1745,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
        // Skip ",<AcT>"
        if (!ExtractUInt(pszRsp, uiAct, pszRsp))
        {
-           RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not extract <AcT>.\r\n");
+           RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <AcT>.\r\n");
            goto Error;
        }
     }
@@ -1751,7 +1755,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
         // Extract <n2> and throw away
         if (!ExtractUInt(pszRsp, uiNum, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not extract <n2>.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <n2>.\r\n");
             goto Error;
         }
     }
@@ -1759,15 +1763,19 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     // Skip "<postfix>"
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseRegistrationState() - ERROR: Could not skip response postfix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not skip response postfix.\r\n");
         goto Error;
     }
 
-    // Check if we are in the case of an emergency call only mode
-    if ((uiStat != 1) && (uiStat <= 4))
+    /*
+     * Registration status value of 2,3 or 4 means that there is a cell
+     * around on which emergency calls are possible. Inorder to show
+     * emergency calls only, Android telephony stack expects the registration
+     * status value to be one of 10,12,13,14.
+     */
+    if (2 == uiStat || 3 == uiStat || 4 == uiStat)
     {
-        if ((m_uiRSSI > 0) && (m_uiRSSI <= 31))
-            uiStat = uiStat + 10;
+        uiStat += 10;
     }
 
     snprintf(pRegStatus->szStat,        REG_STATUS_LENGTH, "%d", (int)uiStat);
@@ -1835,7 +1843,7 @@ Error:
         pRegStatus = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseRegistrationState() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseRegistrationState() - Exit\r\n");
     return res;
 }
 
@@ -1844,7 +1852,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreGPRSRegistrationState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGPRSRegistrationState() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGPRSRegistrationState() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CGREG?\r", sizeof(rReqData.szCmd1)))
@@ -1852,13 +1860,13 @@ RIL_RESULT_CODE CTEBase::CoreGPRSRegistrationState(REQUEST_DATA & rReqData, void
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreGPRSRegistrationState() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGPRSRegistrationState() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGPRSRegistrationState() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGPRSRegistrationState() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -1876,28 +1884,28 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     pGPRSRegStatus = (P_ND_GPRS_REG_STATUS)malloc(sizeof(S_ND_GPRS_REG_STATUS));
     if (NULL == pGPRSRegStatus)
     {
-        RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not allocate memory for a S_ND_GPRS_REG_STATUS struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not allocate memory for a S_ND_GPRS_REG_STATUS struct.\r\n");
         goto Error;
     }
 
     // Parse "<prefix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not skip over response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not skip over response prefix.\r\n");
         goto Error;
     }
 
     // Parse "+CGREG: "
     if (!SkipString(pszRsp, "+CGREG: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not skip over \"+CGREG: \".\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not skip over \"+CGREG: \".\r\n");
         goto Error;
     }
 
     // Parse <n> and throw away
     if (!ExtractUInt(pszRsp, uiNum, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not extract <n>.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <n>.\r\n");
         goto Error;
     }
 
@@ -1905,7 +1913,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt(pszRsp, uiStat, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not extract <stat>.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <stat>.\r\n");
         goto Error;
     }
 
@@ -1916,7 +1924,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
         SkipString(pszRsp, "\"", pszRsp);
         if (!ExtractHexUInt(pszRsp, uiLAC, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not extract <lac>.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <lac>.\r\n");
             goto Error;
         }
         SkipString(pszRsp, "\"", pszRsp);
@@ -1924,13 +1932,13 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
         // Parse ",<cid>"
         if (!SkipString(pszRsp, ",", pszRsp))
          {
-             RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not extract <cid>.\r\n");
+             RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <cid>.\r\n");
              goto Error;
          }
          SkipString(pszRsp, "\"", pszRsp);
          if (!ExtractHexUInt(pszRsp, uiCID, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not extract <cid>.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <cid>.\r\n");
             goto Error;
         }
         SkipString(pszRsp, "\"", pszRsp);
@@ -1942,7 +1950,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
         // Extract <n2> and throw away
         if (!ExtractUInt(pszRsp, uiNum, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseGPRSRegistrationState() - ERROR: Could not extract <n2>.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <n2>.\r\n");
             goto Error;
         }
     }
@@ -2000,7 +2008,7 @@ Error:
         pGPRSRegStatus = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseGPRSRegistrationState() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGPRSRegistrationState() - Exit\r\n");
     return res;
 }
 
@@ -2009,7 +2017,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreOperator(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreOperator() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreOperator() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+COPS=3,0;+COPS?;+COPS=3,1;+COPS?;+COPS=3,2;+COPS?\r", sizeof(rReqData.szCmd1)))
@@ -2017,13 +2025,13 @@ RIL_RESULT_CODE CTEBase::CoreOperator(REQUEST_DATA & rReqData, void * pData, UIN
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreOperator() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreOperator() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseOperator() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -2040,7 +2048,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
     pOpNames = (P_ND_OP_NAMES)malloc(sizeof(S_ND_OP_NAMES));
     if (NULL == pOpNames)
     {
-        RIL_LOG_CRITICAL("ParseOperator() - ERROR: Could not allocate memory for S_ND_OP_NAMES struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not allocate memory for S_ND_OP_NAMES struct.\r\n");
         goto Error;
     }
     memset(pOpNames, 0, sizeof(S_ND_OP_NAMES));
@@ -2054,11 +2062,11 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
     // Parse "<prefix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseOperator() - ERROR: Could not skip response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not skip response prefix.\r\n");
         goto Error;
     }
 
-    RIL_LOG_VERBOSE("ParseOperator() - Response: %s\r\n", CRLFExpandedString(pszRsp, strlen(pszRsp)).GetString());
+    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Response: %s\r\n", CRLFExpandedString(pszRsp, strlen(pszRsp)).GetString());
 
     // no short name in Infineon modem
     pOpNames->szOpNameShort[0] = '\0';
@@ -2068,7 +2076,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
         // Extract "<mode>"
         if (!ExtractUInt(pszRsp, uiMode, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseOperator() - ERROR: Could not extract <mode>.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract <mode>.\r\n");
             goto Error;
         }
 
@@ -2078,7 +2086,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
             if (!ExtractUInt(pszRsp, uiFormat, pszRsp) ||
                 !SkipString(pszRsp, ",", pszRsp))
             {
-                RIL_LOG_CRITICAL("ParseOperator() - ERROR: Could not extract <format>.\r\n");
+                RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract <format>.\r\n");
                 goto Error;
             }
 
@@ -2092,13 +2100,13 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                     BYTE tmp[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
-                        RIL_LOG_CRITICAL("ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
+                        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
                     }
                     int i;
                     for (i = 0; tmp[i]; pOpNames->szOpNameLong[i] = (char) tmp[i], ++i);
                     pOpNames->szOpNameLong[i] = '\0';
-                    RIL_LOG_VERBOSE("ParseOperator() - Long oper: %s\r\n", pOpNames->szOpNameLong);
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Long oper: %s\r\n", pOpNames->szOpNameLong);
                 }
                 break;
 
@@ -2109,13 +2117,13 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                     BYTE tmp[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
-                        RIL_LOG_CRITICAL("ParseOperator() - ERROR: Could not extract the Short Format Operator Name.\r\n");
+                        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Short Format Operator Name.\r\n");
                         goto Error;
                     }
                     int i;
                     for (i = 0; tmp[i]; pOpNames->szOpNameShort[i] = (char) tmp[i], ++i);
                     pOpNames->szOpNameShort[i] = '\0';
-                    RIL_LOG_VERBOSE("ParseOperator() - Short oper: %s\r\n", pOpNames->szOpNameShort);
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Short oper: %s\r\n", pOpNames->szOpNameShort);
 
                 }
                 break;
@@ -2127,19 +2135,19 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                     BYTE tmp[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
-                        RIL_LOG_CRITICAL("ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
+                        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
                     }
                     int i;
                     for (i = 0; tmp[i]; pOpNames->szOpNameNumeric[i] = (char) tmp[i], ++i);
                     pOpNames->szOpNameNumeric[i] = '\0';
-                    RIL_LOG_VERBOSE("ParseOperator() - Numeric: %s\r\n", pOpNames->szOpNameNumeric);
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Numeric: %s\r\n", pOpNames->szOpNameNumeric);
                 }
                 break;
 
                 default:
                 {
-                    RIL_LOG_CRITICAL("ParseOperator() - ERROR: Unknown Format.\r\n");
+                    RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Unknown Format.\r\n");
                     goto Error;
                 }
                 break;
@@ -2159,13 +2167,13 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
             pOpNames->sOpNamePtrs.pszOpNameShort   = pOpNames->szOpNameShort;
             pOpNames->sOpNamePtrs.pszOpNameNumeric = pOpNames->szOpNameNumeric;
 
-            RIL_LOG_VERBOSE("ParseOperator() - Long    Name: \"%s\"\r\n", pOpNames->sOpNamePtrs.pszOpNameLong);
-            RIL_LOG_VERBOSE("ParseOperator() - Short   Name: \"%s\"\r\n", pOpNames->sOpNamePtrs.pszOpNameShort);
-            RIL_LOG_VERBOSE("ParseOperator() - Numeric Name: \"%s\"\r\n", pOpNames->sOpNamePtrs.pszOpNameNumeric);
+            RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Long    Name: \"%s\"\r\n", pOpNames->sOpNamePtrs.pszOpNameLong);
+            RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Short   Name: \"%s\"\r\n", pOpNames->sOpNamePtrs.pszOpNameShort);
+            RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Numeric Name: \"%s\"\r\n", pOpNames->sOpNamePtrs.pszOpNameNumeric);
         }
         else
         {
-            RIL_LOG_VERBOSE("ParseOperator() - <format> and <oper> not present.\r\n");
+            RIL_LOG_VERBOSE("CTEBase::ParseOperator() - <format> and <oper> not present.\r\n");
             pOpNames->sOpNamePtrs.pszOpNameLong    = NULL;
             pOpNames->sOpNamePtrs.pszOpNameShort   = NULL;
             pOpNames->sOpNamePtrs.pszOpNameNumeric = NULL;
@@ -2175,7 +2183,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
         // Extract "<CR><LF>"
         if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseOperator() - ERROR: Could not extract response postfix.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract response postfix.\r\n");
             goto Error;
         }
 
@@ -2184,7 +2192,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
         SkipRspStart(pszRsp, g_szNewLine, pszRsp);
 
-        RIL_LOG_VERBOSE("ParseOperator() - Response: %s\r\n", CRLFExpandedString(pszRsp, strlen(pszRsp)).GetString());
+        RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Response: %s\r\n", CRLFExpandedString(pszRsp, strlen(pszRsp)).GetString());
     }
 
     // We cheat with the size here.
@@ -2204,7 +2212,7 @@ Error:
         pOpNames = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseOperator() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Exit\r\n");
     return res;
 }
 
@@ -2213,18 +2221,18 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreRadioPower() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     bool bTurnRadioOn = false;
 
     if (0 == *(int *)pData)
     {
-        RIL_LOG_INFO("CoreRadioPower() - Turn Radio OFF\r\n");
+        RIL_LOG_INFO("CTEBase::CoreRadioPower() - Turn Radio OFF\r\n");
         bTurnRadioOn = false;
     }
     else
     {
-        RIL_LOG_INFO("CoreRadioPower() - Turn Radio ON\r\n");
+        RIL_LOG_INFO("CTEBase::CoreRadioPower() - Turn Radio ON\r\n");
         bTurnRadioOn = true;
     }
 
@@ -2233,7 +2241,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
 
     if (bTurnRadioOn)
     {
-        RIL_LOG_INFO("CoreRadioPower() - Turning the Radio ON\r\n");
+        RIL_LOG_INFO("CTEBase::CoreRadioPower() - Turning the Radio ON\r\n");
 
         if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=1\r", sizeof(rReqData.szCmd1)))
         {
@@ -2242,7 +2250,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
     }
     else
     {
-        RIL_LOG_INFO("CoreRadioPower() - Turning the Radio OFF\r\n");
+        RIL_LOG_INFO("CTEBase::CoreRadioPower() - Turning the Radio OFF\r\n");
 
 
         if (CopyStringNullTerminate(rReqData.szCmd1, "AT+COPS=2;+CFUN=4\r", sizeof(rReqData.szCmd1)))
@@ -2251,13 +2259,13 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
         }
     }
 
-    RIL_LOG_VERBOSE("CoreRadioPower() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseRadioPower() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
@@ -2271,21 +2279,21 @@ RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
         //  Turning off phone
         int nSleep = 500;
         repository.Read(g_szGroupRILSettings, g_szRadioOffDelay, nSleep);
-        RIL_LOG_VERBOSE("ParseRadioPower() - Turn off phone - BEGIN Sleep=[%d]\r\n", nSleep);
+        RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Turn off phone - BEGIN Sleep=[%d]\r\n", nSleep);
         Sleep((UINT32)nSleep);
-        RIL_LOG_VERBOSE("ParseRadioPower() - Turn off phone - END Sleep=[%d]\r\n", nSleep);
+        RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Turn off phone - END Sleep=[%d]\r\n", nSleep);
     }
     else if (1 == nPower)
     {
         //  Turning on phone
         int nSleep = 1500;
         repository.Read(g_szGroupRILSettings, g_szRadioOnDelay, nSleep);
-        RIL_LOG_VERBOSE("ParseRadioPower() - Turn on phone - BEGIN Sleep=[%d]\r\n", nSleep);
+        RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Turn on phone - BEGIN Sleep=[%d]\r\n", nSleep);
         Sleep((UINT32)nSleep);
-        RIL_LOG_VERBOSE("ParseRadioPower() - Turn on phone - END Sleep=[%d]\r\n", nSleep);
+        RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Turn on phone - END Sleep=[%d]\r\n", nSleep);
     }
 
-    RIL_LOG_VERBOSE("ParseRadioPower() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Exit\r\n");
     return res;
 }
 
@@ -2294,19 +2302,19 @@ RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreDtmf(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreDtmf() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDtmf() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char tone;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreDtmf() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDtmf() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize != sizeof(char *))
     {
-        RIL_LOG_CRITICAL("CoreDtmf() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDtmf() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
 
@@ -2315,30 +2323,30 @@ RIL_RESULT_CODE CTEBase::CoreDtmf(REQUEST_DATA & rReqData, void * pData, UINT32 
     //  Need to stop any outstanding tone first.
     if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XVTS=\r", sizeof(rReqData.szCmd1)))
     {
-        RIL_LOG_CRITICAL("CoreDtmf() - ERROR: Unable to write XVTS= string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDtmf() - ERROR: Unable to write XVTS= string to buffer\r\n");
         goto Error;
     }
 
     if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+XVTS=%c\r", tone))
     {
-        RIL_LOG_CRITICAL("CoreDtmf() - ERROR: Unable to write XVTS=tone string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDtmf() - ERROR: Unable to write XVTS=tone string to buffer\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreDtmf() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDtmf() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseDtmf(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseDtmf() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDtmf() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseDtmf() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDtmf() - Exit\r\n");
     return res;
 }
 
@@ -2347,7 +2355,7 @@ RIL_RESULT_CODE CTEBase::ParseDtmf(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreSendSms(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSendSms() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSendSms() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char **       pszCmdData   = NULL;
     char *        szSMSAddress = NULL;
@@ -2358,13 +2366,13 @@ RIL_RESULT_CODE CTEBase::CoreSendSms(REQUEST_DATA & rReqData, void * pData, UINT
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSendSms() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendSms() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize != 2 * sizeof(char *))
     {
-        RIL_LOG_CRITICAL("CoreSendSms() - ERROR: Invalid data size. Was given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSendSms() - ERROR: Invalid data size. Was given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
@@ -2376,7 +2384,7 @@ RIL_RESULT_CODE CTEBase::CoreSendSms(REQUEST_DATA & rReqData, void * pData, UINT
 
     if (NULL == szPDU)
     {
-        RIL_LOG_CRITICAL("CoreSendSms() - ERROR: Invalid input(s).\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendSms() - ERROR: Invalid input(s).\r\n");
         goto Error;
     }
 
@@ -2390,13 +2398,13 @@ RIL_RESULT_CODE CTEBase::CoreSendSms(REQUEST_DATA & rReqData, void * pData, UINT
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CMGS=%u\r", nPDULength))
     {
-        RIL_LOG_CRITICAL("CoreSendSms() - ERROR: Cannot create CMGS command\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendSms() - ERROR: Cannot create CMGS command\r\n");
         goto Error;
     }
 
     if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "%s%s\x1a", szSMSAddress, szPDU))
     {
-        RIL_LOG_CRITICAL("CoreSendSms() - ERROR: Cannot create CMGS PDU\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendSms() - ERROR: Cannot create CMGS PDU\r\n");
         goto Error;
     }
 
@@ -2405,14 +2413,14 @@ RIL_RESULT_CODE CTEBase::CoreSendSms(REQUEST_DATA & rReqData, void * pData, UINT
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreSendSms() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSendSms() - Exit\r\n");
     return res;
 
 }
 
 RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSendSms() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSendSms() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -2423,13 +2431,13 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
     pSendMsg = (P_ND_SEND_MSG)malloc(sizeof(S_ND_SEND_MSG));
     if (NULL == pSendMsg)
     {
-        RIL_LOG_CRITICAL("ParseSendSms() - ERROR: Could not allocate memory for a S_ND_SEND_MSG struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSendSms() - ERROR: Could not allocate memory for a S_ND_SEND_MSG struct.\r\n");
         goto Error;
     }
 
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSendSms() - ERROR: Could not parse response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSendSms() - ERROR: Could not parse response prefix.\r\n");
         goto Error;
     }
 
@@ -2438,13 +2446,13 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
 
     if (!SkipString(pszRsp, "+CMGS: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSendSms() - ERROR: Could not parse \"+CMGS: \".\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSendSms() - ERROR: Could not parse \"+CMGS: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt(pszRsp, uiMsgRef, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSendSms() - ERROR: Could not parse <msgRef>.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSendSms() - ERROR: Could not parse <msgRef>.\r\n");
         goto Error;
     }
     else
@@ -2456,7 +2464,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
     {
         if (!ExtractUnquotedString(pszRsp, g_cTerminator, pSendMsg->szAckPDU, 160, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseSendSms() - ERROR: Could not parse <ackPdu>.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSendSms() - ERROR: Could not parse <ackPdu>.\r\n");
             goto Error;
         }
 
@@ -2472,7 +2480,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
 
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSendSms() - ERROR: Could not parse response postfix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSendSms() - ERROR: Could not parse response postfix.\r\n");
         goto Error;
     }
 
@@ -2488,7 +2496,7 @@ Error:
         pSendMsg = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseSendSms() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSendSms() - Exit\r\n");
     return res;
 }
 
@@ -2497,7 +2505,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSendSmsExpectMore(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSendSmsExpectMore() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSendSmsExpectMore() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char **       pszCmdData   = NULL;
     char *        szSMSAddress = NULL;
@@ -2508,13 +2516,13 @@ RIL_RESULT_CODE CTEBase::CoreSendSmsExpectMore(REQUEST_DATA & rReqData, void * p
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSendSmsExpectMore() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendSmsExpectMore() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize != 2 * sizeof(char *))
     {
-        RIL_LOG_CRITICAL("CoreSendSmsExpectMore() - ERROR: Invalid data size.  uiDataSize=[%d]\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSendSmsExpectMore() - ERROR: Invalid data size.  uiDataSize=[%d]\r\n", uiDataSize);
         goto Error;
     }
 
@@ -2526,7 +2534,7 @@ RIL_RESULT_CODE CTEBase::CoreSendSmsExpectMore(REQUEST_DATA & rReqData, void * p
 
     if (NULL == szPDU)
     {
-        RIL_LOG_CRITICAL("CoreSendSmsExpectMore() - ERROR: Invalid input(s).\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendSmsExpectMore() - ERROR: Invalid input(s).\r\n");
         goto Error;
     }
 
@@ -2540,13 +2548,13 @@ RIL_RESULT_CODE CTEBase::CoreSendSmsExpectMore(REQUEST_DATA & rReqData, void * p
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CMMS=1;+CMGS=%u\r", nPDULength))
     {
-        RIL_LOG_CRITICAL("CoreSendSmsExpectMore() - ERROR: Cannot create CMGS command\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendSmsExpectMore() - ERROR: Cannot create CMGS command\r\n");
         goto Error;
     }
 
     if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "%s%s\x1a", szSMSAddress, szPDU))
     {
-        RIL_LOG_CRITICAL("CoreSendSmsExpectMore() - ERROR: Cannot create CMGS PDU\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendSmsExpectMore() - ERROR: Cannot create CMGS PDU\r\n");
         goto Error;
     }
 
@@ -2555,13 +2563,13 @@ RIL_RESULT_CODE CTEBase::CoreSendSmsExpectMore(REQUEST_DATA & rReqData, void * p
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreSendSmsExpectMore() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSendSmsExpectMore() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSendSmsExpectMore() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSendSmsExpectMore() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -2572,25 +2580,25 @@ RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
     pSendMsg = (P_ND_SEND_MSG)malloc(sizeof(S_ND_SEND_MSG));
     if (NULL == pSendMsg)
     {
-        RIL_LOG_CRITICAL("ParseSendSmsExpectMore() - ERROR: Could not allocate memory for a S_ND_SEND_MSG struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSendSmsExpectMore() - ERROR: Could not allocate memory for a S_ND_SEND_MSG struct.\r\n");
         goto Error;
     }
 
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSendSmsExpectMore() - ERROR: Could not parse response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSendSmsExpectMore() - ERROR: Could not parse response prefix.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, "+CMGS: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSendSmsExpectMore() - ERROR: Could not parse \"+CMGS: \".\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSendSmsExpectMore() - ERROR: Could not parse \"+CMGS: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt(pszRsp, uiMsgRef, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSendSmsExpectMore() - ERROR: Could not parse <msgRef>.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSendSmsExpectMore() - ERROR: Could not parse <msgRef>.\r\n");
         goto Error;
     }
     else
@@ -2602,7 +2610,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
     {
         if (!ExtractUnquotedString(pszRsp, g_cTerminator, pSendMsg->szAckPDU, 160, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseSendSmsExpectMore() - ERROR: Could not parse <ackPdu>.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSendSmsExpectMore() - ERROR: Could not parse <ackPdu>.\r\n");
             goto Error;
         }
 
@@ -2618,7 +2626,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
 
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSendSmsExpectMore() - ERROR: Could not parse response postfix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSendSmsExpectMore() - ERROR: Could not parse response postfix.\r\n");
         goto Error;
     }
 
@@ -2634,7 +2642,7 @@ Error:
         pSendMsg = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseSendSmsExpectMore() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSendSmsExpectMore() - Exit\r\n");
     return res;
 }
 
@@ -2643,21 +2651,25 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 uiCID)
 {
-    RIL_LOG_VERBOSE("CoreSetupDataCall() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     PdpData stPdpData;
+    memset(&stPdpData, 0, sizeof(PdpData));
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSetupDataCall() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetupDataCall() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
-    if (6 * sizeof(char*) != uiDataSize)
+    if (uiDataSize < (6 * sizeof(char*)))
     {
-        RIL_LOG_CRITICAL("CoreSetupDataCall() - ERROR: Invalid data size. Was given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSetupDataCall() - ERROR: Invalid data size. Was given %d bytes\r\n", uiDataSize);
         goto Error;
     }
+
+    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - uiDataSize=[%d]\r\n", uiDataSize);
+
 
     // extract data
     stPdpData.szRadioTechnology = ((char **)pData)[0];  // not used
@@ -2667,18 +2679,32 @@ RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData
     stPdpData.szPassword        = ((char **)pData)[4];  // not used
     stPdpData.szPAPCHAP         = ((char **)pData)[5];  // not used
 
+    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szRadioTechnology=[%s]\r\n", stPdpData.szRadioTechnology);
+    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szRILDataProfile=[%s]\r\n", stPdpData.szRILDataProfile);
+    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szApn=[%s]\r\n", stPdpData.szApn);
+    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szUserName=[%s]\r\n", stPdpData.szUserName);
+    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n", stPdpData.szPassword);
+    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n", stPdpData.szPAPCHAP);
+
+
+    if (RIL_VERSION >= 4 && (uiDataSize >= (7 * sizeof(char*))))
+    {
+        stPdpData.szPDPType         = ((char **)pData)[6];  // new in Android 2.3.4.
+        RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szPDPType=[%s]\r\n", stPdpData.szPDPType);
+    }
+
     if (!PrintStringNullTerminate(rReqData.szCmd1,
           sizeof(rReqData.szCmd1),
           "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+CGQREQ=%d;+CGQMIN=%d;+CGACT=0,%d\r", uiCID,
           stPdpData.szApn, uiCID, uiCID, uiCID))
     {
-        RIL_LOG_CRITICAL("CoreSetupDataCall() - ERROR: Cannot create CGDCONT command\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetupDataCall() - ERROR: Cannot create CGDCONT command\r\n");
         goto Error;
     }
 
     if (!CopyStringNullTerminate(rReqData.szCmd2, "ATD*99***1#\r", sizeof(rReqData.szCmd2)))
     {
-        RIL_LOG_CRITICAL("CoreSetupDataCall() - ERROR: Cannot CopyStringNullTerminate ATD\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetupDataCall() - ERROR: Cannot CopyStringNullTerminate ATD\r\n");
         goto Error;
     }
 
@@ -2689,17 +2715,17 @@ RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetupDataCall() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetupDataCall() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetupDataCall() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetupDataCall() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSetupDataCall() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetupDataCall() - Exit\r\n");
     return res;
 }
 
@@ -2708,45 +2734,45 @@ RIL_RESULT_CODE CTEBase::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSimIo() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_SIM_IO *   pSimIOArgs = NULL;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSimIo() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (sizeof(RIL_SIM_IO) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSimIo() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     // extract data
     pSimIOArgs = (RIL_SIM_IO *)pData;
 
-    RIL_LOG_VERBOSE("CoreSimIo() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
-    RIL_LOG_VERBOSE("CoreSimIo() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
-    RIL_LOG_VERBOSE("CoreSimIo() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
-    RIL_LOG_VERBOSE("CoreSimIo() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
-    RIL_LOG_VERBOSE("CoreSimIo() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
-    RIL_LOG_VERBOSE("CoreSimIo() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
-    RIL_LOG_VERBOSE("CoreSimIo() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
-    RIL_LOG_VERBOSE("CoreSimIo() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
 
     //  If PIN2 is required, send out AT+CPIN2 request
     if (pSimIOArgs->pin2)
     {
-        RIL_LOG_INFO("CoreSimIo() - PIN2 required\r\n");
+        RIL_LOG_INFO("CTEBase::CoreSimIo() - PIN2 required\r\n");
 
         if (!PrintStringNullTerminate(rReqData.szCmd1,
                      sizeof(rReqData.szCmd1),
                      "AT+CPIN2=\"%s\"\r",
                      pSimIOArgs->pin2))
         {
-            RIL_LOG_CRITICAL("CoreSimIo() - ERROR: cannot create CPIN2 command\r\n");
+            RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - ERROR: cannot create CPIN2 command\r\n");
             goto Error;
         }
 
@@ -2762,7 +2788,7 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
                          pSimIOArgs->p2,
                          pSimIOArgs->p3))
             {
-                RIL_LOG_CRITICAL("CoreSimIo() - ERROR: cannot create CRSM command 1\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - ERROR: cannot create CRSM command 1\r\n");
                 goto Error;
             }
         }
@@ -2778,7 +2804,7 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
                          pSimIOArgs->p3,
                          pSimIOArgs->data))
             {
-                RIL_LOG_CRITICAL("CoreSimIo() - ERROR: cannot create CRSM command 2\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - ERROR: cannot create CRSM command 2\r\n");
                 goto Error;
             }
         }
@@ -2802,7 +2828,7 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
                          pSimIOArgs->p2,
                          pSimIOArgs->p3))
             {
-                RIL_LOG_CRITICAL("CoreSimIo() - ERROR: cannot create CRSM command 3\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - ERROR: cannot create CRSM command 3\r\n");
                 goto Error;
             }
         }
@@ -2818,7 +2844,7 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
                          pSimIOArgs->p3,
                          pSimIOArgs->data))
             {
-                RIL_LOG_CRITICAL("CoreSimIo() - ERROR: cannot create CRSM command 4\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - ERROR: cannot create CRSM command 4\r\n");
                 goto Error;
             }
         }
@@ -2831,13 +2857,13 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreSimIo() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSimIo() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimIo() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -2851,37 +2877,37 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
 
     if (NULL == rRspData.szResponse)
     {
-        RIL_LOG_CRITICAL("ParseSimIo() - ERROR: Response String pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - ERROR: Response String pointer is NULL.\r\n");
         goto Error;
     }
 
     // Parse "<prefix>+CRSM: <sw1>,<sw2>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimIo() - ERROR: Could not skip over response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - ERROR: Could not skip over response prefix.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, "+CRSM: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimIo() - ERROR: Could not skip over \"+CRSM: \".\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - ERROR: Could not skip over \"+CRSM: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt(pszRsp, uiSW1, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimIo() - ERROR: Could not extract SW1 value.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - ERROR: Could not extract SW1 value.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt(pszRsp, uiSW2, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimIo() - ERROR: Could not extract SW2 value.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - ERROR: Could not extract SW2 value.\r\n");
         goto Error;
     }
 
-    RIL_LOG_INFO("ParseSimIo() - Extracted SW1 = %u and SW2 = %u\r\n", uiSW1, uiSW2);
+    RIL_LOG_INFO("CTEBase::ParseSimIo() - Extracted SW1 = %u and SW2 = %u\r\n", uiSW1, uiSW2);
 
     // Parse ","
     if (SkipString(pszRsp, ",", pszRsp))
@@ -2890,17 +2916,17 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
         // NOTE: we take ownership of allocated szResponseString
         if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString, cbResponseString, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseSimIo() - ERROR: Could not extract data string.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - ERROR: Could not extract data string.\r\n");
             goto Error;
         }
         else
         {
-            RIL_LOG_INFO("ParseSimIo() - Extracted data string: \"%s\" (%u chars)\r\n", szResponseString, cbResponseString);
+            RIL_LOG_INFO("CTEBase::ParseSimIo() - Extracted data string: \"%s\" (%u chars)\r\n", szResponseString, cbResponseString);
         }
 
         if (0 != (cbResponseString - 1) % 2)
         {
-            RIL_LOG_CRITICAL("ParseSimIo() : ERROR : String was not a multiple of 2.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSimIo() : ERROR : String was not a multiple of 2.\r\n");
             goto Error;
         }
     }
@@ -2911,7 +2937,7 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
     pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("ParseSimIo() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
         goto Error;
     }
 
@@ -2927,7 +2953,7 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
         pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
         if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
         {
-            RIL_LOG_CRITICAL("ParseSimIo() - ERROR: Could not CopyStringNullTerminate szResponseString\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - ERROR: Could not CopyStringNullTerminate szResponseString\r\n");
             goto Error;
         }
 
@@ -2956,7 +2982,7 @@ Error:
     delete[] szResponseString;
     szResponseString = NULL;
 
-    RIL_LOG_VERBOSE("ParseSimIo() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimIo() - Exit\r\n");
     return res;
 }
 
@@ -2965,19 +2991,19 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSendUssd(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSendUssd() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSendUssd() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char *szUssdString = NULL;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSendUssd() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendUssd() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (sizeof(char *) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSendUssd() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendUssd() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
 
@@ -2986,24 +3012,24 @@ RIL_RESULT_CODE CTEBase::CoreSendUssd(REQUEST_DATA & rReqData, void * pData, UIN
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CUSD=1,\"%s\"\r", szUssdString))
     {
-        RIL_LOG_CRITICAL("CoreSendUssd() - ERROR: cannot create CUSD command\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendUssd() - ERROR: cannot create CUSD command\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreSendUssd() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSendUssd() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSendUssd(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSendUssd() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSendUssd() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSendUssd() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSendUssd() - Exit\r\n");
     return res;
 }
 
@@ -3012,7 +3038,7 @@ RIL_RESULT_CODE CTEBase::ParseSendUssd(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreCancelUssd(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreCancelUssd() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreCancelUssd() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CUSD=2\r", sizeof(rReqData.szCmd1)))
@@ -3020,17 +3046,17 @@ RIL_RESULT_CODE CTEBase::CoreCancelUssd(REQUEST_DATA & rReqData, void * pData, U
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreCancelUssd() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreCancelUssd() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCancelUssd(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseCancelUssd() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseCancelUssd() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseCancelUssd() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseCancelUssd() - Exit\r\n");
     return res;
 }
 
@@ -3039,7 +3065,7 @@ RIL_RESULT_CODE CTEBase::ParseCancelUssd(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreGetClir(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGetClir() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetClir() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CLIR?\r", sizeof(rReqData.szCmd1)))
@@ -3047,13 +3073,13 @@ RIL_RESULT_CODE CTEBase::CoreGetClir(REQUEST_DATA & rReqData, void * pData, UINT
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreGetClir() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetClir() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGetClir(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGetClir() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetClir() - Enter\r\n");
 
     int * pCLIRBlob = NULL;
 
@@ -3066,7 +3092,7 @@ RIL_RESULT_CODE CTEBase::ParseGetClir(RESPONSE_DATA & rRspData)
 
     if (NULL == pCLIRBlob)
     {
-        RIL_LOG_CRITICAL("ParseGetClir() - ERROR: Could not allocate memory for response.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetClir() - ERROR: Could not allocate memory for response.\r\n");
         goto Error;
     }
 
@@ -3075,7 +3101,7 @@ RIL_RESULT_CODE CTEBase::ParseGetClir(RESPONSE_DATA & rRspData)
         !SkipString(szRsp, "+CLIR: ", szRsp) ||
         !ExtractUInt(szRsp, nValue, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetClir() - ERROR: Could not find status value\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetClir() - ERROR: Could not find status value\r\n");
         goto Error;
     }
 
@@ -3103,7 +3129,7 @@ Error:
         pCLIRBlob = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseGetClir() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetClir() - Exit\r\n");
     return res;
 }
 
@@ -3112,19 +3138,19 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSetClir(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetClir() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetClir() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int * pnClir = NULL;
 
     if (sizeof(int*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSetClir() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSetClir() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSetClir() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetClir() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -3136,17 +3162,17 @@ RIL_RESULT_CODE CTEBase::CoreSetClir(REQUEST_DATA & rReqData, void * pData, UINT
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetClir() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetClir() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetClir(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetClir() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetClir() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSetClir() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetClir() - Exit\r\n");
     return res;
 }
 
@@ -3155,19 +3181,19 @@ RIL_RESULT_CODE CTEBase::ParseSetClir(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreQueryCallForwardStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreQueryCallForwardStatus() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryCallForwardStatus() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_CallForwardInfo* pCallFwdInfo = NULL;
 
     if (sizeof(RIL_CallForwardInfo) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreQueryCallForwardStatus() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryCallForwardStatus() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreQueryCallForwardStatus() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryCallForwardStatus() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -3197,13 +3223,13 @@ RIL_RESULT_CODE CTEBase::CoreQueryCallForwardStatus(REQUEST_DATA & rReqData, voi
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreQueryCallForwardStatus() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryCallForwardStatus() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseQueryCallForwardStatus() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryCallForwardStatus() - Enter\r\n");
 
     P_ND_CALLFWD_DATA pCallFwdBlob = NULL;
 
@@ -3219,11 +3245,11 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
         nEntries++;
     }
 
-    RIL_LOG_INFO("ParseQueryCallForwardStatus() - INFO: Found %d CCFC entries!\r\n", nEntries);
+    RIL_LOG_INFO("CTEBase::ParseQueryCallForwardStatus() - INFO: Found %d CCFC entries!\r\n", nEntries);
 
     if (RIL_MAX_CALLFWD_ENTRIES < nEntries)
     {
-        RIL_LOG_CRITICAL("ParseQueryCallForwardStatus() - ERROR: Too many CCFC entries!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryCallForwardStatus() - ERROR: Too many CCFC entries!\r\n");
         goto Error;
     }
 
@@ -3231,7 +3257,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
 
     if (NULL == pCallFwdBlob)
     {
-        RIL_LOG_CRITICAL("ParseQueryCallForwardStatus() - ERROR: Could not allocate memory for a S_ND_CALLFWD_DATA struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryCallForwardStatus() - ERROR: Could not allocate memory for a S_ND_CALLFWD_DATA struct.\r\n");
         goto Error;
     }
 
@@ -3244,7 +3270,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
         // Parse "<status>"
         if (!ExtractUInt(szRsp, nValue, szRsp))
         {
-            RIL_LOG_WARNING("ParseQueryCallForwardStatus() - WARN: Could not find status value, skipping entry\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseQueryCallForwardStatus() - WARN: Could not find status value, skipping entry\r\n");
             goto Continue;
         }
 
@@ -3254,7 +3280,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
         if (!SkipString(szRsp, ",", szRsp) ||
             !ExtractUInt(szRsp, nValue, szRsp))
         {
-            RIL_LOG_WARNING("ParseQueryCallForwardStatus() - WARN: Could not find service class value, skipping entry\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseQueryCallForwardStatus() - WARN: Could not find service class value, skipping entry\r\n");
             goto Continue;
         }
 
@@ -3267,7 +3293,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
             if (!ExtractQuotedString(szRsp, pCallFwdBlob->pCallFwdBuffers[nCur], MAX_BUFFER_SIZE, szRsp) ||
                 !SkipString(szRsp, ",", szRsp))
             {
-                RIL_LOG_WARNING("ParseQueryCallForwardStatus() - WARN: Could not find address string, skipping entry\r\n");
+                RIL_LOG_WARNING("CTEBase::ParseQueryCallForwardStatus() - WARN: Could not find address string, skipping entry\r\n");
                 goto Continue;
             }
 
@@ -3290,7 +3316,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
                 // Parse ","
                 if (!FindAndSkipString(szRsp, ",", szRsp))
                 {
-                    RIL_LOG_WARNING("ParseQueryCallForwardStatus() - WARN: Couldn't find comma after subaddress, skipping entry\r\n");
+                    RIL_LOG_WARNING("CTEBase::ParseQueryCallForwardStatus() - WARN: Couldn't find comma after subaddress, skipping entry\r\n");
                     goto Continue;
                 }
 
@@ -3300,7 +3326,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
                     // Parse "<time>"
                     if (!ExtractUInt(szRsp, nValue, szRsp))
                     {
-                        RIL_LOG_WARNING("ParseQueryCallForwardStatus() - WARN: Couldn't find comma after time, skipping entry\r\n");
+                        RIL_LOG_WARNING("CTEBase::ParseQueryCallForwardStatus() - WARN: Couldn't find comma after time, skipping entry\r\n");
                         goto Continue;
                     }
 
@@ -3318,7 +3344,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
 Continue:
         if (!FindAndSkipRspEnd(szRsp, g_szNewLine, szRsp))
         {
-            RIL_LOG_CRITICAL("ParseQueryCallForwardStatus() - ERROR: Could not find response end\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryCallForwardStatus() - ERROR: Could not find response end\r\n");
             goto Error;
         }
     }
@@ -3335,7 +3361,7 @@ Error:
         pCallFwdBlob = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseQueryCallForwardStatus() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryCallForwardStatus() - Exit\r\n");
     return res;
 }
 
@@ -3344,7 +3370,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetCallForward() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetCallForward() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     UINT32 nValue = 0;
@@ -3353,13 +3379,13 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
 
     if (sizeof(RIL_CallForwardInfo) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSetCallForward() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSetCallForward() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSetCallForward() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetCallForward() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -3367,7 +3393,7 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
 
     if (NULL != pCallFwdInfo->number)
     {
-        RIL_LOG_INFO("CoreSetCallForward() - status: %d   info class: %d   reason: %d   number: %s   toa: %d   time: %d\r\n",
+        RIL_LOG_INFO("CTEBase::CoreSetCallForward() - status: %d   info class: %d   reason: %d   number: %s   toa: %d   time: %d\r\n",
                         pCallFwdInfo->status,
                         pCallFwdInfo->serviceClass,
                         pCallFwdInfo->reason,
@@ -3378,7 +3404,7 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
     }
     else
     {
-        RIL_LOG_INFO("CoreSetCallForward() - status: %d   info class: %d   reason: %d   number: %s   toa: %d   time: %d\r\n",
+        RIL_LOG_INFO("CTEBase::CoreSetCallForward() - status: %d   info class: %d   reason: %d   number: %s   toa: %d   time: %d\r\n",
                         pCallFwdInfo->status,
                         pCallFwdInfo->serviceClass,
                         pCallFwdInfo->reason,
@@ -3402,7 +3428,7 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
                                             pCallFwdInfo->serviceClass,
                                             pCallFwdInfo->timeSeconds))
             {
-                RIL_LOG_CRITICAL("CoreSetCallForward() - ERROR: Unable to write command to buffer\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSetCallForward() - ERROR: Unable to write command to buffer\r\n");
                 goto Error;
             }
         }
@@ -3417,7 +3443,7 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
                                             pCallFwdInfo->toa,
                                             pCallFwdInfo->serviceClass))
             {
-                RIL_LOG_CRITICAL("CoreSetCallForward() - ERROR: Unable to write command to buffer\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSetCallForward() - ERROR: Unable to write command to buffer\r\n");
                 goto Error;
             }
         }
@@ -3435,7 +3461,7 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
                                             pCallFwdInfo->toa,
                                             pCallFwdInfo->timeSeconds))
             {
-                RIL_LOG_CRITICAL("CoreSetCallForward() - ERROR: Unable to write command to buffer\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSetCallForward() - ERROR: Unable to write command to buffer\r\n");
                 goto Error;
             }
         }
@@ -3449,7 +3475,7 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
                                             szNumber /*pCallFwdInfo->number*/ ,
                                             pCallFwdInfo->toa))
             {
-                RIL_LOG_CRITICAL("CoreSetCallForward() - ERROR: Unable to write command to buffer\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSetCallForward() - ERROR: Unable to write command to buffer\r\n");
                 goto Error;
             }
         }
@@ -3458,17 +3484,17 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetCallForward() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetCallForward() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetCallForward(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetCallForward() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetCallForward() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSetCallForward() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetCallForward() - Exit\r\n");
     return res;
 }
 
@@ -3477,19 +3503,19 @@ RIL_RESULT_CODE CTEBase::ParseSetCallForward(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreQueryCallWaiting(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreQueryCallWaiting() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryCallWaiting() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int * pnInfoClasses = NULL;
 
     if (sizeof(int*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreQueryCallWaiting() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryCallWaiting() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreQueryCallWaiting() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryCallWaiting() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -3517,14 +3543,14 @@ RIL_RESULT_CODE CTEBase::CoreQueryCallWaiting(REQUEST_DATA & rReqData, void * pD
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreQueryCallWaiting() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryCallWaiting() - Exit\r\n");
     return res;
 
 }
 
 RIL_RESULT_CODE CTEBase::ParseQueryCallWaiting(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseQueryCallWaiting() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryCallWaiting() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int * prgnCallWaiting = NULL;
@@ -3541,11 +3567,11 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallWaiting(RESPONSE_DATA & rRspData)
             !SkipString(szRsp, ",", szRsp) ||
             !ExtractUInt(szRsp, nClass, szRsp))
         {
-            RIL_LOG_WARNING("ParseQueryCallWaiting() - WARN: Unable to extract UINTS, skip to next entry\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseQueryCallWaiting() - WARN: Unable to extract UINTS, skip to next entry\r\n");
             goto Continue;
         }
 
-        RIL_LOG_INFO("ParseQueryCallWaiting() - INFO: Status= %d    Class=%d\r\n", nStatus, nClass);
+        RIL_LOG_INFO("CTEBase::ParseQueryCallWaiting() - INFO: Status= %d    Class=%d\r\n", nStatus, nClass);
 
         if (1 == nStatus)
         {
@@ -3553,30 +3579,30 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallWaiting(RESPONSE_DATA & rRspData)
 
             dwServiceInfo |= nClass;
 
-            RIL_LOG_INFO("ParseQueryCallWaiting() - INFO: Recording service %d. Current mask: %d\r\n", nClass, dwServiceInfo);
+            RIL_LOG_INFO("CTEBase::ParseQueryCallWaiting() - INFO: Recording service %d. Current mask: %d\r\n", nClass, dwServiceInfo);
         }
 
 Continue:
         // Find "<postfix>"
         if (!FindAndSkipRspEnd(szRsp, g_szNewLine, szRsp))
         {
-            RIL_LOG_CRITICAL("ParseQueryCallWaiting() - ERROR: Unable to find response end\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryCallWaiting() - ERROR: Unable to find response end\r\n");
             goto Error;
         }
     }
 
-    RIL_LOG_INFO("ParseQueryCallWaiting() - INFO: No more +CCWA strings found, building result struct\r\n");
+    RIL_LOG_INFO("CTEBase::ParseQueryCallWaiting() - INFO: No more +CCWA strings found, building result struct\r\n");
 
     // If we have an active infoclass, we return 2 ints.
     if (1 == dwStatus)
     {
-        RIL_LOG_INFO("ParseQueryCallWaiting() - INFO: Returning 2 ints\r\n");
+        RIL_LOG_INFO("CTEBase::ParseQueryCallWaiting() - INFO: Returning 2 ints\r\n");
         rRspData.uiDataSize = 2 * sizeof(int*);
 
         prgnCallWaiting = (int *)malloc(rRspData.uiDataSize);
         if (!prgnCallWaiting)
         {
-            RIL_LOG_CRITICAL("ParseQueryCallWaiting() - ERROR: Could not allocate memory for response.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryCallWaiting() - ERROR: Could not allocate memory for response.\r\n");
             goto Error;
         }
 
@@ -3585,13 +3611,13 @@ Continue:
     }
     else
     {
-        RIL_LOG_INFO("ParseQueryCallWaiting() - INFO: Returning 1 int\r\n");
+        RIL_LOG_INFO("CTEBase::ParseQueryCallWaiting() - INFO: Returning 1 int\r\n");
         rRspData.uiDataSize = sizeof(int);
 
         prgnCallWaiting = (int *)malloc(rRspData.uiDataSize);
         if (!prgnCallWaiting)
         {
-            RIL_LOG_CRITICAL("ParseQueryCallWaiting() - ERROR: Could not allocate memory for response.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryCallWaiting() - ERROR: Could not allocate memory for response.\r\n");
             goto Error;
         }
 
@@ -3608,7 +3634,7 @@ Error:
         prgnCallWaiting = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseQueryCallWaiting() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryCallWaiting() - Exit\r\n");
     return res;
 }
 
@@ -3617,7 +3643,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSetCallWaiting(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetCallWaiting() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetCallWaiting() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     UINT32 nStatus;
@@ -3625,13 +3651,13 @@ RIL_RESULT_CODE CTEBase::CoreSetCallWaiting(REQUEST_DATA & rReqData, void * pDat
 
     if ((2 * sizeof(int *)) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSetCallWaiting() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSetCallWaiting() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSetCallWaiting() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetCallWaiting() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -3654,17 +3680,17 @@ RIL_RESULT_CODE CTEBase::CoreSetCallWaiting(REQUEST_DATA & rReqData, void * pDat
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetCallWaiting() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetCallWaiting() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetCallWaiting(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetCallWaiting() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetCallWaiting() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSetCallWaiting() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetCallWaiting() - Exit\r\n");
     return res;
 }
 
@@ -3673,7 +3699,7 @@ RIL_RESULT_CODE CTEBase::ParseSetCallWaiting(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreSmsAcknowledge(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSmsAcknowledge() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSmsAcknowledge() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     BOOL fSuccess = FALSE;
@@ -3681,13 +3707,13 @@ RIL_RESULT_CODE CTEBase::CoreSmsAcknowledge(REQUEST_DATA & rReqData, void * pDat
 
     if ((sizeof(int *) != uiDataSize) && ((2 * sizeof(int *)) != uiDataSize))
     {
-        RIL_LOG_CRITICAL("CoreSmsAcknowledge() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSmsAcknowledge() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSmsAcknowledge() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSmsAcknowledge() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -3717,17 +3743,17 @@ RIL_RESULT_CODE CTEBase::CoreSmsAcknowledge(REQUEST_DATA & rReqData, void * pDat
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreSmsAcknowledge() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSmsAcknowledge() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSmsAcknowledge(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSmsAcknowledge() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSmsAcknowledge() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSmsAcknowledge() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSmsAcknowledge() - Exit\r\n");
     return res;
 }
 
@@ -3736,7 +3762,7 @@ RIL_RESULT_CODE CTEBase::ParseSmsAcknowledge(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreGetImei(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGetImei() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetImei() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGSN\r"))
@@ -3744,13 +3770,13 @@ RIL_RESULT_CODE CTEBase::CoreGetImei(REQUEST_DATA & rReqData, void * pData, UINT
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreGetImei() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetImei() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGetImei() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetImei() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
@@ -3759,22 +3785,22 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA & rRspData)
 
     if (NULL == szIMEI)
     {
-        RIL_LOG_CRITICAL("ParseGetImei() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
+        RIL_LOG_CRITICAL("CTEBase::ParseGetImei() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
         goto Error;
     }
 
     if (!SkipRspStart(szRsp, g_szNewLine, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetImei() - ERROR: Could not find response start\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetImei() - ERROR: Could not find response start\r\n");
         goto Error;
     }
 
     if (!ExtractUnquotedString(szRsp, g_cTerminator, szIMEI, MAX_PROP_VALUE, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetImei() - ERROR: Could not find unquoted string\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetImei() - ERROR: Could not find unquoted string\r\n");
         goto Error;
     }
-    RIL_LOG_INFO("ParseGetImei() - szIMEI=[%s]\r\n", szIMEI);
+    RIL_LOG_INFO("CTEBase::ParseGetImei() - szIMEI=[%s]\r\n", szIMEI);
 
     res = RRIL_RESULT_OK;
 
@@ -3788,7 +3814,7 @@ Error:
         szIMEI = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseGetImei() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetImei() - Exit\r\n");
     return res;
 }
 
@@ -3797,7 +3823,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreGetImeisv(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGetImeisv() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetImeisv() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGSN;+CGMR\r"))
@@ -3805,13 +3831,13 @@ RIL_RESULT_CODE CTEBase::CoreGetImeisv(REQUEST_DATA & rReqData, void * pData, UI
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreGetImeisv() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetImeisv() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGetImeisv() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetImeisv() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
@@ -3824,7 +3850,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
 
     if (NULL == szIMEISV)
     {
-        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
+        RIL_LOG_CRITICAL("CTEBase::ParseGetImeisv() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
         goto Error;
     }
     memset(szIMEISV, 0, MAX_PROP_VALUE);
@@ -3838,7 +3864,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
     //  Grab IMEI into szIMEI
     if (!ExtractUnquotedString(szRsp, g_cTerminator, szIMEI, MAX_BUFFER_SIZE, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not find unquoted string szIMEI\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetImeisv() - ERROR: Could not find unquoted string szIMEI\r\n");
         goto Error;
     }
 
@@ -3854,7 +3880,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
     //  Grab SV into szSV
     if (!ExtractUnquotedString(szRsp, g_cTerminator, szSV, MAX_BUFFER_SIZE, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not find unquoted string szSV\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetImeisv() - ERROR: Could not find unquoted string szSV\r\n");
         goto Error;
     }
 
@@ -3878,10 +3904,10 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
     //  Copy IMEI + 2 digit SV into szIMEISV
     if (!PrintStringNullTerminate(szIMEISV, MAX_PROP_VALUE, "%s%c%c", szIMEI, szSVDigits[0], szSVDigits[1]))
     {
-        RIL_LOG_CRITICAL("ParseGetImeisv() - ERROR: Could not copy string szIMEISV\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetImeisv() - ERROR: Could not copy string szIMEISV\r\n");
         goto Error;
     }
-    RIL_LOG_INFO("ParseGetImeisv() - szIMEISV=[%s]\r\n", szIMEISV);
+    RIL_LOG_INFO("CTEBase::ParseGetImeisv() - szIMEISV=[%s]\r\n", szIMEISV);
 
     res = RRIL_RESULT_OK;
 
@@ -3895,7 +3921,7 @@ Error:
         szIMEISV = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseGetImeisv() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetImeisv() - Exit\r\n");
     return res;
 }
 
@@ -3904,7 +3930,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreAnswer(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreAnswer() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreAnswer() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "ATA\r"))
@@ -3912,17 +3938,17 @@ RIL_RESULT_CODE CTEBase::CoreAnswer(REQUEST_DATA & rReqData, void * pData, UINT3
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreAnswer() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreAnswer() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseAnswer(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseAnswer() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseAnswer() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseAnswer() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseAnswer() - Exit\r\n");
     return res;
 }
 
@@ -3931,48 +3957,61 @@ RIL_RESULT_CODE CTEBase::ParseAnswer(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreDeactivateDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreDeactivateDataCall() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDeactivateDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    char * pszCid = 0;
-    char chCid = '1';
+    char * pszCid = NULL;
+    int nCid = 0;
 
-    if (sizeof(char **) != uiDataSize)
+    if (uiDataSize < (1 * sizeof(char*)))
     {
-        RIL_LOG_CRITICAL("CoreDeactivateDataCall() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreDeactivateDataCall() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreDeactivateDataCall() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDeactivateDataCall() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
     pszCid = ((char**)pData)[0];
-    chCid = pszCid[0];
+    if (NULL == pszCid || '\0' == pszCid[0])
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreDeactivateDataCall() - ERROR: pszCid was NULL\r\n");
+        goto Error;
+    }
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%c;+CGDCONT=%c\r", chCid, chCid))
+    //  Get CID as int.
+    if (sscanf(pszCid, "%d", &nCid) == EOF)
+    {
+        // Error
+        RIL_LOG_CRITICAL("CTEBase::CoreDeactivateDataCall() - ERROR: cannot convert %s to int\r\n", pszCid);
+        goto Error;
+    }
+
+
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%s;+CGDCONT=%s\r", pszCid, pszCid))
     {
         res = RRIL_RESULT_OK;
     }
 
     //  Set the context of this command to the CID (for multiple context support).
-    rReqData.pContextData = (void*)((int)(chCid - '0'));  // Store this as an int.
+    rReqData.pContextData = (void*)nCid;  // Store this as an int.
 
 
 Error:
-    RIL_LOG_VERBOSE("CoreDeactivateDataCall() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDeactivateDataCall() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseDeactivateDataCall() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDeactivateDataCall() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseDeactivateDataCall() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDeactivateDataCall() - Exit\r\n");
     return res;
 }
 
@@ -3981,7 +4020,7 @@ RIL_RESULT_CODE CTEBase::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreQueryFacilityLock() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryFacilityLock() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     char * pszFacility = NULL;
@@ -3990,13 +4029,13 @@ RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA & rReqData, void * p
 
     if ((3 * sizeof(char *)) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreQueryFacilityLock() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryFacilityLock() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreQueryFacilityLock() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryFacilityLock() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -4006,7 +4045,7 @@ RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA & rReqData, void * p
 
     if (NULL == pszFacility)
     {
-        RIL_LOG_CRITICAL("CoreQueryFacilityLock() - ERROR: Facility string pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryFacilityLock() - ERROR: Facility string pointer is NULL.\r\n");
         goto Error;
     }
 
@@ -4062,13 +4101,13 @@ RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA & rReqData, void * p
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreQueryFacilityLock() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryFacilityLock() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseQueryFacilityLock(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseQueryFacilityLock() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryFacilityLock() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int * pnClass = NULL;
@@ -4078,7 +4117,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryFacilityLock(RESPONSE_DATA & rRspData)
     pnClass = (int*)malloc(sizeof(int));
     if (NULL == pnClass)
     {
-        RIL_LOG_CRITICAL("ParseQueryFacilityLock() - ERROR: Could not allocate memory for an integer.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryFacilityLock() - ERROR: Could not allocate memory for an integer.\r\n");
         goto Error;
     }
 
@@ -4088,7 +4127,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryFacilityLock(RESPONSE_DATA & rRspData)
         // Parse "<status>"
         if (!ExtractUInt(szRsp, dwStatus, szRsp))
         {
-            RIL_LOG_WARNING("ParseQueryFacilityLock() - WARN: Unable to extract <status>, skip to next entry\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseQueryFacilityLock() - WARN: Unable to extract <status>, skip to next entry\r\n");
             goto Continue;
         }
 
@@ -4097,7 +4136,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryFacilityLock(RESPONSE_DATA & rRspData)
         {
             if(!ExtractUInt(szRsp, dwClass, szRsp))
             {
-                RIL_LOG_WARNING("ParseQueryFacilityLock() - WARN: Unable to extract <class>, skip to next entry\r\n");
+                RIL_LOG_WARNING("CTEBase::ParseQueryFacilityLock() - WARN: Unable to extract <class>, skip to next entry\r\n");
                 goto Continue;
             }
         }
@@ -4107,14 +4146,14 @@ RIL_RESULT_CODE CTEBase::ParseQueryFacilityLock(RESPONSE_DATA & rRspData)
             dwClass = 1;
         }
 
-        RIL_LOG_INFO("ParseQueryFacilityLock() - INFO: Status= %d    Class=%d, 0x%02x\r\n", dwStatus, dwClass, dwClass);
+        RIL_LOG_INFO("CTEBase::ParseQueryFacilityLock() - INFO: Status= %d    Class=%d, 0x%02x\r\n", dwStatus, dwClass, dwClass);
 
         //  If the status was active, add bit to dwServices.
         if (1 == dwStatus)
         {
             dwServices |= dwClass;
 
-            RIL_LOG_INFO("ParseQueryFacilityLock() - INFO: Recording service %d, 0x%02x. Current mask: %d, 0x%02x\r\n",
+            RIL_LOG_INFO("CTEBase::ParseQueryFacilityLock() - INFO: Recording service %d, 0x%02x. Current mask: %d, 0x%02x\r\n",
                 dwClass, dwClass, dwServices, dwServices);
         }
 
@@ -4122,7 +4161,7 @@ Continue:
         // Find "<postfix>"
         if (!FindAndSkipRspEnd(szRsp, g_szNewLine, szRsp))
         {
-            RIL_LOG_CRITICAL("ParseQueryFacilityLock() - ERROR: Unable to find response end\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryFacilityLock() - ERROR: Unable to find response end\r\n");
             goto Error;
         }
     }
@@ -4140,7 +4179,7 @@ Error:
         pnClass = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseQueryFacilityLock() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryFacilityLock() - Exit\r\n");
     return res;
 }
 
@@ -4149,7 +4188,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetFacilityLock() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetFacilityLock() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char * pszFacility = NULL;
     char * pszMode = NULL;
@@ -4158,13 +4197,13 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
 
     if ((4 * sizeof(char *)) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSetFacilityLock() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSetFacilityLock() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -4175,7 +4214,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
 
     if ((NULL == pszFacility) || (NULL == pszMode))
     {
-        RIL_LOG_CRITICAL("CoreSetFacilityLock() - ERROR: Facility or Mode strings were NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - ERROR: Facility or Mode strings were NULL\r\n");
         goto Error;
     }
     // Facility and Mode provided
@@ -4216,13 +4255,13 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetFacilityLock() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetFacilityLock() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetFacilityLock() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetFacilityLock() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
@@ -4230,7 +4269,7 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
     {
-        RIL_LOG_CRITICAL("ParseSetFacilityLock() - ERROR: Could not alloc int\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - ERROR: Could not alloc int\r\n");
         goto Error;
     }
 
@@ -4249,7 +4288,7 @@ Error:
         pnRetries = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseSetFacilityLock() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetFacilityLock() - Exit\r\n");
     return res;
 }
 
@@ -4258,7 +4297,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreChangeBarringPassword(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreChangeBarringPassword() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreChangeBarringPassword() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     const char * pszFacility;
@@ -4267,13 +4306,13 @@ RIL_RESULT_CODE CTEBase::CoreChangeBarringPassword(REQUEST_DATA & rReqData, void
 
     if ((3 * sizeof(char *) != uiDataSize))
     {
-        RIL_LOG_CRITICAL("CoreChangeBarringPassword() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeBarringPassword() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreChangeBarringPassword() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeBarringPassword() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -4292,17 +4331,17 @@ RIL_RESULT_CODE CTEBase::CoreChangeBarringPassword(REQUEST_DATA & rReqData, void
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreChangeBarringPassword() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreChangeBarringPassword() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseChangeBarringPassword(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseChangeBarringPassword() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseChangeBarringPassword() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseChangeBarringPassword() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseChangeBarringPassword() - Exit\r\n");
     return res;
 }
 
@@ -4311,7 +4350,7 @@ RIL_RESULT_CODE CTEBase::ParseChangeBarringPassword(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreQueryNetworkSelectionMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreQueryNetworkSelectionMode() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryNetworkSelectionMode() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS?\r"))
@@ -4320,13 +4359,13 @@ RIL_RESULT_CODE CTEBase::CoreQueryNetworkSelectionMode(REQUEST_DATA & rReqData, 
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreQueryNetworkSelectionMode() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryNetworkSelectionMode() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseQueryNetworkSelectionMode(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseQueryNetworkSelectionMode() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryNetworkSelectionMode() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int * pnMode = NULL;
@@ -4335,19 +4374,19 @@ RIL_RESULT_CODE CTEBase::ParseQueryNetworkSelectionMode(RESPONSE_DATA & rRspData
     pnMode = (int*)malloc(sizeof(int));
     if (NULL == pnMode)
     {
-        RIL_LOG_CRITICAL("ParseQueryNetworkSelectionMode() - ERROR: Could not allocate memory for an int.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryNetworkSelectionMode() - ERROR: Could not allocate memory for an int.\r\n");
         goto Error;
     }
 
     if (!FindAndSkipString(szRsp, "+COPS: ", szRsp))
     {
-        RIL_LOG_CRITICAL("ParseQueryNetworkSelectionMode() - ERROR: Could not find +COPS:\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryNetworkSelectionMode() - ERROR: Could not find +COPS:\r\n");
         goto Error;
     }
 
     if (!ExtractUInt(szRsp, (UINT32&)*pnMode, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseQueryNetworkSelectionMode() - ERROR: Could not extract the mode.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryNetworkSelectionMode() - ERROR: Could not extract the mode.\r\n");
         goto Error;
     }
 
@@ -4369,7 +4408,7 @@ Error:
         pnMode = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseQueryNetworkSelectionMode() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryNetworkSelectionMode() - Exit\r\n");
     return res;
 }
 
@@ -4378,7 +4417,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionAutomatic(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetNetworkSelectionAutomatic() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionAutomatic() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS=0\r"))
@@ -4387,20 +4426,20 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionAutomatic(REQUEST_DATA & rReqDat
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetNetworkSelectionAutomatic() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionAutomatic() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetNetworkSelectionAutomatic(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetNetworkSelectionAutomatic() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetNetworkSelectionAutomatic() - Enter\r\n");
 
     m_nNetworkRegistrationType = 0;
     m_szManualMCCMNC[0] = '\0';
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSetNetworkSelectionAutomatic() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetNetworkSelectionAutomatic() - Exit\r\n");
     return res;
 }
 
@@ -4409,7 +4448,7 @@ RIL_RESULT_CODE CTEBase::ParseSetNetworkSelectionAutomatic(RESPONSE_DATA & rRspD
 //
 RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionManual(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetNetworkSelectionManual() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionManual() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     const BYTE* pszNumeric = NULL;
@@ -4417,13 +4456,13 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionManual(REQUEST_DATA & rReqData, 
 
     if (sizeof(char *) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSetNetworkSelectionManual() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSetNetworkSelectionManual() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSetNetworkSelectionManual() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetNetworkSelectionManual() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -4433,13 +4472,13 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionManual(REQUEST_DATA & rReqData, 
     pTemp = new char[MAX_BUFFER_SIZE];
     if (!pTemp)
     {
-        RIL_LOG_CRITICAL("CoreSetNetworkSelectionManual() - ERROR: Cannot allocate memory\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetNetworkSelectionManual() - ERROR: Cannot allocate memory\r\n");
         goto Error;
     }
 
     if (!CopyStringNullTerminate(pTemp, pszNumeric, MAX_BUFFER_SIZE))
     {
-        RIL_LOG_CRITICAL("CoreSetNetworkSelectionManual() - ERROR: Cannot CopyStringNullTerminate pszNumeric\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetNetworkSelectionManual() - ERROR: Cannot CopyStringNullTerminate pszNumeric\r\n");
         goto Error;
     }
     rReqData.pContextData = (void*)pTemp;
@@ -4451,13 +4490,19 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionManual(REQUEST_DATA & rReqData, 
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetNetworkSelectionManual() - Exit\r\n");
+    if (res != RRIL_RESULT_OK)
+    {
+        delete []pTemp;
+        pTemp = NULL;
+        rReqData.pContextData = NULL;
+    }
+    RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionManual() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetNetworkSelectionManual(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetNetworkSelectionManual() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetNetworkSelectionManual() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
@@ -4465,13 +4510,13 @@ RIL_RESULT_CODE CTEBase::ParseSetNetworkSelectionManual(RESPONSE_DATA & rRspData
     char *pTemp = (char*)rRspData.pContextData;
     if (!pTemp)
     {
-        RIL_LOG_CRITICAL("ParseSetNetworkSelectionManual() - ERROR: Cannot extract pContextData\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSetNetworkSelectionManual() - ERROR: Cannot extract pContextData\r\n");
         goto Error;
     }
 
     if (!CopyStringNullTerminate(m_szManualMCCMNC, pTemp, MAX_BUFFER_SIZE))
     {
-        RIL_LOG_CRITICAL("ParseSetNetworkSelectionManual() - ERROR: Cannot CopyStringNullTerminate pTemp\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSetNetworkSelectionManual() - ERROR: Cannot CopyStringNullTerminate pTemp\r\n");
         goto Error;
     }
     m_nNetworkRegistrationType = 1;
@@ -4481,7 +4526,7 @@ RIL_RESULT_CODE CTEBase::ParseSetNetworkSelectionManual(RESPONSE_DATA & rRspData
 
     res = RRIL_RESULT_OK;
 Error:
-    RIL_LOG_VERBOSE("ParseSetNetworkSelectionManual() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetNetworkSelectionManual() - Exit\r\n");
     return res;
 }
 
@@ -4490,7 +4535,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreQueryAvailableNetworks() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableNetworks() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS=?\r"))
@@ -4499,13 +4544,13 @@ RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA & rReqData, voi
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreQueryAvailableNetworks() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableNetworks() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseQueryAvailableNetworks() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryAvailableNetworks() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
@@ -4528,7 +4573,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
     if (!FindAndSkipString(szRsp, "+COPS: ", szRsp))
     {
-        RIL_LOG_CRITICAL("ParseQueryAvailableNetworks() - ERROR: Unable to find +COPS: in response\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - ERROR: Unable to find +COPS: in response\r\n");
         goto Error;
     }
 
@@ -4539,12 +4584,12 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
         nEntries++;
     }
 
-    RIL_LOG_VERBOSE("ParseQueryAvailableNetworks() - DEBUG: Found %d entries. Allocating memory...\r\n", nEntries);
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryAvailableNetworks() - DEBUG: Found %d entries. Allocating memory...\r\n", nEntries);
 
     rRspData.pData = malloc(nEntries * (sizeof(S_ND_OPINFO_PTRS) + sizeof(S_ND_OPINFO_DATA)));
     if (NULL == rRspData.pData)
     {
-        RIL_LOG_CRITICAL("ParseQueryAvailableNetworks() - ERROR: Cannot allocate rRspData.pData  size=%d\r\n",
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - ERROR: Cannot allocate rRspData.pData  size=%d\r\n",
                     nEntries * (sizeof(S_ND_OPINFO_PTRS) + sizeof(S_ND_OPINFO_DATA)) );
         goto Error;
     }
@@ -4563,7 +4608,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
         // Extract "<stat>"
         if (!ExtractUInt(szRsp, nValue, szRsp))
         {
-            RIL_LOG_CRITICAL("ParseQueryAvailableNetworks() - ERROR: Unable to extract status\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - ERROR: Unable to extract status\r\n");
             goto Error;
         }
 
@@ -4603,7 +4648,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
             default:
             {
-                RIL_LOG_CRITICAL("ParseQueryAvailableNetworks() - ERROR: Invalid status found: %d\r\n", nValue);
+                RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - ERROR: Invalid status found: %d\r\n", nValue);
                 goto Error;
             }
         }
@@ -4612,7 +4657,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
         if (!SkipString(szRsp, ",", szRsp) ||
            (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
         {
-            RIL_LOG_CRITICAL("ParseQueryAvailableNetworks() - ERROR: Could not extract the Long Format Operator Name.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - ERROR: Could not extract the Long Format Operator Name.\r\n");
             goto Error;
         }
         else
@@ -4632,14 +4677,14 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
             }
 
             pOpInfoPtr[nCurrent].pszOpInfoLong = pOpInfoData[nCurrent].szOpInfoLong;
-            RIL_LOG_INFO("ParseQueryAvailableNetworks() - Long oper: %s\r\n", pOpInfoData[nCurrent].szOpInfoLong);
+            RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - Long oper: %s\r\n", pOpInfoData[nCurrent].szOpInfoLong);
         }
 
         // Extract ",<short_name>"
         if (!SkipString(szRsp, ",", szRsp) ||
            (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
         {
-            RIL_LOG_CRITICAL("ParseQueryAvailableNetworks() - ERROR: Could not extract the Short Format Operator Name.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - ERROR: Could not extract the Short Format Operator Name.\r\n");
             goto Error;
         }
         else
@@ -4659,14 +4704,14 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
             }
 
             pOpInfoPtr[nCurrent].pszOpInfoShort = pOpInfoData[nCurrent].szOpInfoShort;
-            RIL_LOG_INFO("ParseQueryAvailableNetworks() - Short oper: %s\r\n", pOpInfoData[nCurrent].szOpInfoShort);
+            RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - Short oper: %s\r\n", pOpInfoData[nCurrent].szOpInfoShort);
        }
 
         // Extract ",<num_name>"
         if (!SkipString(szRsp, ",", szRsp) ||
            (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
         {
-            RIL_LOG_CRITICAL("ParseQueryAvailableNetworks() - ERROR: Could not extract the Numeric Format Operator Name.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - ERROR: Could not extract the Numeric Format Operator Name.\r\n");
             goto Error;
         }
         else
@@ -4686,13 +4731,13 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
             }
 
             pOpInfoPtr[nCurrent].pszOpInfoNumeric = pOpInfoData[nCurrent].szOpInfoNumeric;
-            RIL_LOG_INFO("ParseQueryAvailableNetworks() - Numeric oper: %s\r\n", pOpInfoData[nCurrent].szOpInfoNumeric);
+            RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - Numeric oper: %s\r\n", pOpInfoData[nCurrent].szOpInfoNumeric);
        }
 
         //Extract ")"
         if (!FindAndSkipString(szRsp, ")", szRsp))
         {
-            RIL_LOG_CRITICAL("ParseQueryAvailableNetworks() - ERROR: Did not find closing bracket\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - ERROR: Did not find closing bracket\r\n");
             goto Error;
         }
 
@@ -4703,7 +4748,7 @@ Continue:
         // Extract ","
         if (!FindAndSkipString(szRsp, ",", szRsp))
         {
-            RIL_LOG_INFO("ParseQueryAvailableNetworks() - INFO: Finished parsing entries\r\n");
+            RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - INFO: Finished parsing entries\r\n");
             break;
         }
     }
@@ -4726,7 +4771,7 @@ Error:
         rRspData.uiDataSize  = 0;
     }
 
-    RIL_LOG_VERBOSE("ParseQueryAvailableNetworks() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryAvailableNetworks() - Exit\r\n");
     return res;
 }
 
@@ -4735,19 +4780,19 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreDtmfStart(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreDtmfStart() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDtmfStart() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char cTone;
 
     if (sizeof(char*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreDtmfStart() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreDtmfStart() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreDtmfStart() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDtmfStart() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -4759,17 +4804,17 @@ RIL_RESULT_CODE CTEBase::CoreDtmfStart(REQUEST_DATA & rReqData, void * pData, UI
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreDtmfStart() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDtmfStart() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseDtmfStart(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseDtmfStart() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDtmfStart() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseDtmfStart() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDtmfStart() - Exit\r\n");
     return res;
 }
 
@@ -4778,7 +4823,7 @@ RIL_RESULT_CODE CTEBase::ParseDtmfStart(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreDtmfStop(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreDtmfStop() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDtmfStop() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XVTS=\r", sizeof(rReqData.szCmd1)))
@@ -4787,17 +4832,17 @@ RIL_RESULT_CODE CTEBase::CoreDtmfStop(REQUEST_DATA & rReqData, void * pData, UIN
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreDtmfStop() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDtmfStop() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseDtmfStop(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseDtmfStop() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDtmfStop() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseDtmfStop() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDtmfStop() - Exit\r\n");
     return res;
 }
 
@@ -4806,7 +4851,7 @@ RIL_RESULT_CODE CTEBase::ParseDtmfStop(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreBasebandVersion(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreBasebandVersion() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreBasebandVersion() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XGENDATA\r", sizeof(rReqData.szCmd1)))
@@ -4814,13 +4859,13 @@ RIL_RESULT_CODE CTEBase::CoreBasebandVersion(REQUEST_DATA & rReqData, void * pDa
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreBasebandVersion() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreBasebandVersion() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseBasebandVersion() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseBasebandVersion() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -4829,7 +4874,7 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA & rRspData)
     char* szBasebandVersion = (char*)malloc(MAX_PROP_VALUE);
     if (NULL == szBasebandVersion)
     {
-        RIL_LOG_CRITICAL("ParseBasebandVersion() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
+        RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
         goto Error;
     }
     memset(szBasebandVersion, 0x00, MAX_PROP_VALUE);
@@ -4839,7 +4884,7 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA & rRspData)
 
     if (!SkipString(pszRsp, "+XGENDATA: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseBasebandVersion() - ERROR: Could not find XGENDATA in response!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() - ERROR: Could not find XGENDATA in response!\r\n");
         goto Error;
     }
 
@@ -4849,17 +4894,17 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA & rRspData)
 
     if (!ExtractUnquotedString(pszRsp, '\n', szTemp, MAX_BUFFER_SIZE, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseBasebandVersion() - ERROR: Could not extract the baseband version string.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() - ERROR: Could not extract the baseband version string.\r\n");
         goto Error;
     }
 
     if (!PrintStringNullTerminate(szBasebandVersion, MAX_PROP_VALUE, "%s", szTemp))
     {
-        RIL_LOG_CRITICAL("ParseBasebandVersion() - ERROR: Could not create szBasebandVersion\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() - ERROR: Could not create szBasebandVersion\r\n");
         goto Error;
     }
 
-    RIL_LOG_INFO("ParseBasebandVersion() - szBasebandVersion=[%s]\r\n", szBasebandVersion);
+    RIL_LOG_INFO("CTEBase::ParseBasebandVersion() - szBasebandVersion=[%s]\r\n", szBasebandVersion);
 
     rRspData.pData   = (void*)szBasebandVersion;
     rRspData.uiDataSize  = sizeof(char*);
@@ -4873,7 +4918,7 @@ Error:
         szBasebandVersion = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseBasebandVersion() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseBasebandVersion() - Exit\r\n");
     return res;
 }
 
@@ -4882,13 +4927,13 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSeparateConnection(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSeparateConnection() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSeparateConnection() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int callId = 0;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSeparateConnection() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSeparateConnection() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
@@ -4900,17 +4945,17 @@ RIL_RESULT_CODE CTEBase::CoreSeparateConnection(REQUEST_DATA & rReqData, void * 
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreSeparateConnection() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSeparateConnection() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSeparateConnection(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSeparateConnection() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSeparateConnection() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSeparateConnection() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSeparateConnection() - Exit\r\n");
     return res;
 }
 
@@ -4919,13 +4964,13 @@ RIL_RESULT_CODE CTEBase::ParseSeparateConnection(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreSetMute(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetMute() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetMute() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int nEnable = 0;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSetMute() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetMute() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
@@ -4937,17 +4982,17 @@ RIL_RESULT_CODE CTEBase::CoreSetMute(REQUEST_DATA & rReqData, void * pData, UINT
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetMute() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetMute() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetMute(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetMute() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetMute() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSetMute() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetMute() - Exit\r\n");
     return res;
 }
 
@@ -4956,7 +5001,7 @@ RIL_RESULT_CODE CTEBase::ParseSetMute(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreGetMute(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGetMute() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetMute() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CMUT?\r", sizeof(rReqData.szCmd1)))
@@ -4965,13 +5010,13 @@ RIL_RESULT_CODE CTEBase::CoreGetMute(REQUEST_DATA & rReqData, void * pData, UINT
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreGetMute() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetMute() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGetMute(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGetMute() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetMute() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -4982,7 +5027,7 @@ RIL_RESULT_CODE CTEBase::ParseGetMute(RESPONSE_DATA & rRspData)
     pMuteVal = (int*)malloc(sizeof(int));
     if (!pMuteVal)
     {
-        RIL_LOG_CRITICAL("ParseGetMute() - ERROR : Can't allocate an int.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetMute() - ERROR : Can't allocate an int.\r\n");
         goto Error;
     }
     memset(pMuteVal, 0, sizeof(int));
@@ -4992,20 +5037,20 @@ RIL_RESULT_CODE CTEBase::ParseGetMute(RESPONSE_DATA & rRspData)
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp)                         ||
         !SkipString(pszRsp, "+CMUT: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetMute() - ERROR : Can't parse prefix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetMute() - ERROR : Can't parse prefix.\r\n");
         goto Error;
     }
 
     if (!ExtractUpperBoundedUInt(pszRsp, 2, nValue, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetMute() - ERROR : Can't parse nValue.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetMute() - ERROR : Can't parse nValue.\r\n");
         goto Error;
     }
     *pMuteVal = nValue;
 
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetMute() - ERROR : Can't parse postfix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetMute() - ERROR : Can't parse postfix.\r\n");
         goto Error;
     }
 
@@ -5021,7 +5066,7 @@ Error:
         pMuteVal = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseGetMute() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetMute() - Exit\r\n");
     return res;
 }
 
@@ -5030,7 +5075,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreQueryClip(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreQueryClip() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryClip() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CLIP?\r", sizeof(rReqData.szCmd1)))
@@ -5039,13 +5084,13 @@ RIL_RESULT_CODE CTEBase::CoreQueryClip(REQUEST_DATA & rReqData, void * pData, UI
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreQueryClip() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryClip() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseQueryClip() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryClip() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -5056,7 +5101,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
     pClipVal = (int*)malloc(sizeof(int));
     if (!pClipVal)
     {
-        RIL_LOG_CRITICAL("ParseQueryClip() - ERROR : Can't allocate an int.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryClip() - ERROR : Can't allocate an int.\r\n");
         goto Error;
     }
     memset(pClipVal, 0, sizeof(int));
@@ -5066,13 +5111,13 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp)                         ||
         !SkipString(pszRsp, "+CLIP: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseQueryClip() - ERROR : Can't parse prefix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryClip() - ERROR : Can't parse prefix.\r\n");
         goto Error;
     }
 
     if (!ExtractUInt(pszRsp, nValue, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseQueryClip() - ERROR : Can't parse nValue1.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryClip() - ERROR : Can't parse nValue1.\r\n");
         goto Error;
     }
 
@@ -5080,7 +5125,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
     {
         if (!ExtractUInt(pszRsp, nValue, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseQueryClip() - ERROR : Can't parse nValue2.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryClip() - ERROR : Can't parse nValue2.\r\n");
             goto Error;
         }
     }
@@ -5088,7 +5133,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
 
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseQueryClip() - ERROR : Can't parse postfix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryClip() - ERROR : Can't parse postfix.\r\n");
         goto Error;
     }
 
@@ -5104,7 +5149,7 @@ Error:
         pClipVal = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseQueryClip() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryClip() - Exit\r\n");
     return res;
 }
 
@@ -5113,7 +5158,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreLastDataCallFailCause(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreLastDataCallFailCause() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreLastDataCallFailCause() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CEER\r", sizeof(rReqData.szCmd1)))
@@ -5122,13 +5167,13 @@ RIL_RESULT_CODE CTEBase::CoreLastDataCallFailCause(REQUEST_DATA & rReqData, void
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreLastDataCallFailCause() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreLastDataCallFailCause() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseLastDataCallFailCause() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseLastDataCallFailCause() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -5140,7 +5185,7 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
     pCause= (int*) malloc(sizeof(int));
     if (NULL == pCause)
     {
-        RIL_LOG_CRITICAL("ParseLastDataCallFailCause() - ERROR: Could not allocate memory for an integer.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseLastDataCallFailCause() - ERROR: Could not allocate memory for an integer.\r\n");
         goto Error;
     }
 
@@ -5148,7 +5193,7 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
         !SkipString(pszRsp, "+CEER: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseLastDataCallFailCause() - ERROR: Could not find AT response.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseLastDataCallFailCause() - ERROR: Could not find AT response.\r\n");
         goto Error;
     }
 
@@ -5156,7 +5201,7 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
     // TODO: should check if this is indeed for a call?
     if (!ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseLastDataCallFailCause() - ERROR: Could not find first string.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseLastDataCallFailCause() - ERROR: Could not find first string.\r\n");
         goto Error;
     }
 
@@ -5164,7 +5209,7 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
     {
         if (!ExtractUInt(pszRsp, uiCause, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseLastDataCallFailCause() - ERROR: Could not extract failure cause.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseLastDataCallFailCause() - ERROR: Could not extract failure cause.\r\n");
             goto Error;
         }
     }
@@ -5174,16 +5219,16 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
     {
         if (!ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_WARNING("ParseLastDataCallFailCause() - WARNING: Could not extract verbose cause.\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseLastDataCallFailCause() - WARNING: Could not extract verbose cause.\r\n");
         }
         else if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
         {
-            RIL_LOG_WARNING("ParseLastDataCallFailCause() - WARNING: Could not extract RspEnd.\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseLastDataCallFailCause() - WARNING: Could not extract RspEnd.\r\n");
         }
     }
     else if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_WARNING("ParseLastDataCallFailCause() - WARNING: Could not extract RspEnd.\r\n");
+        RIL_LOG_WARNING("CTEBase::ParseLastDataCallFailCause() - WARNING: Could not extract RspEnd.\r\n");
     }
 
     *pCause= (int) uiCause;
@@ -5191,7 +5236,7 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
     rRspData.pData    = (void*) pCause;
     rRspData.uiDataSize   = sizeof(int*);
 
-    RIL_LOG_INFO("ParseLastDataCallFailCause() - Last call fail cause [%d]\r\n", uiCause);
+    RIL_LOG_INFO("CTEBase::ParseLastDataCallFailCause() - Last call fail cause [%d]\r\n", uiCause);
 
     res = RRIL_RESULT_OK;
 
@@ -5202,7 +5247,7 @@ Error:
         pCause = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseLastDataCallFailCause() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseLastDataCallFailCause() - Exit\r\n");
     return res;
 }
 
@@ -5211,7 +5256,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreDataCallList(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreDataCallList() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDataCallList() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CGACT?;+CGDCONT?\r", sizeof(rReqData.szCmd1)))
@@ -5220,13 +5265,13 @@ RIL_RESULT_CODE CTEBase::CoreDataCallList(REQUEST_DATA & rReqData, void * pData,
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreDataCallList() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDataCallList() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseDataCallList() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDataCallList() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -5243,7 +5288,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
     pPDPListData = (P_ND_PDP_CONTEXT_DATA)malloc(sizeof(S_ND_PDP_CONTEXT_DATA));
     if (NULL == pPDPListData)
     {
-        RIL_LOG_CRITICAL("ParseDataCallList() - ERROR: Could not allocate memory for a P_ND_PDP_CONTEXT_DATA struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not allocate memory for a P_ND_PDP_CONTEXT_DATA struct.\r\n");
         goto Error;
     }
     memset(pPDPListData, 0, sizeof(S_ND_PDP_CONTEXT_DATA));
@@ -5259,7 +5304,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         // Parse <cid>
         if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
-            RIL_LOG_CRITICAL("ParseDataCallList() - ERROR: Invalid CID.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Invalid CID.\r\n");
             goto Error;
         }
 
@@ -5267,16 +5312,16 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractUpperBoundedUInt(pszRsp, 2, nValue, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallList() - ERROR: Invalid state.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Invalid state.\r\n");
             goto Error;
         }
         active[nCID - 1] = nValue;
-        RIL_LOG_INFO("ParseDataCallList() - Context %d %s.\r\n", nCID, (nValue ? "active" : "not active") );
+        RIL_LOG_INFO("CTEBase::ParseDataCallList() - Context %d %s.\r\n", nCID, (nValue ? "active" : "not active") );
 
         // Find "<postfix>"
         if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallList() - ERROR: Could not find terminator.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not find terminator.\r\n");
             goto Error;
         }
     }
@@ -5292,7 +5337,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         // Parse <cid>
         if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
-            RIL_LOG_CRITICAL("ParseDataCallList() - ERROR: Could not extract CID.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract CID.\r\n");
             goto Error;
         }
         pPDPListData->pPDPData[count].cid = nCID;
@@ -5304,7 +5349,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallList() - ERROR: Could not extract PDP type.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract PDP type.\r\n");
             goto Error;
         }
         strncpy(pPDPListData->pTypeBuffers[count], szAPN, MAX_BUFFER_SIZE);
@@ -5314,7 +5359,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallList() - ERROR: Could not extract APN.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract APN.\r\n");
             goto Error;
         }
         strncpy(pPDPListData->pApnBuffers[count], szAPN, MAX_BUFFER_SIZE);
@@ -5324,7 +5369,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallList() - ERROR: Could not extract APN.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract APN.\r\n");
             goto Error;
         }
         strncpy(pPDPListData->pAddressBuffers[count], szIP, MAX_BUFFER_SIZE);
@@ -5334,7 +5379,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractUpperBoundedUInt(pszRsp, 0x2, nValue, pszRsp))
         {
-            RIL_LOG_WARNING("ParseDataCallList() - WARNING: Could not extract data comp.\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseDataCallList() - WARNING: Could not extract data comp.\r\n");
             goto Continue;
         }
 
@@ -5342,7 +5387,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractUpperBoundedUInt(pszRsp, 0x2, nValue, pszRsp))
         {
-            RIL_LOG_WARNING("ParseDataCallList() - WARNING: Could not extract header comp.\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseDataCallList() - WARNING: Could not extract header comp.\r\n");
             goto Continue;
         }
 
@@ -5353,7 +5398,7 @@ Continue:
         // Find "<postfix>"
         if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallList() - ERROR: Could not find terminator.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not find terminator.\r\n");
             goto Error;
         }
 
@@ -5374,7 +5419,7 @@ Continue:
         rRspData.uiDataSize = 0;
     }
     res = RRIL_RESULT_OK;
-    RIL_LOG_INFO("ParseDataCallList() - Parse complete, found [%d] contexts.\r\n", count);
+    RIL_LOG_INFO("CTEBase::ParseDataCallList() - Parse complete, found [%d] contexts.\r\n", count);
 
 #if defined(DEBUG)
     for (int i = 0; i < count; ++i)
@@ -5395,7 +5440,7 @@ Error:
         pPDPListData = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseDataCallList() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDataCallList() - Exit\r\n");
     return res;
 }
 
@@ -5404,20 +5449,20 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreResetRadio(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreResetRadio() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreResetRadio() - Enter\r\n");
     RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
-    RIL_LOG_VERBOSE("CoreResetRadio() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreResetRadio() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseResetRadio(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseResetRadio() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseResetRadio() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseResetRadio() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseResetRadio() - Exit\r\n");
     return res;
 }
 
@@ -5426,20 +5471,20 @@ RIL_RESULT_CODE CTEBase::ParseResetRadio(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreHookRaw() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreHookRaw() - Enter\r\n");
     RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
-    RIL_LOG_VERBOSE("CoreHookRaw() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreHookRaw() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseHookRaw(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseHookRaw() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseHookRaw() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseHookRaw() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseHookRaw() - Exit\r\n");
     return res;
 }
 
@@ -5448,20 +5493,20 @@ RIL_RESULT_CODE CTEBase::ParseHookRaw(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreHookStrings(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreHookStrings() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreHookStrings() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;
 
-    RIL_LOG_VERBOSE("CoreHookStrings() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreHookStrings() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseHookStrings(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseHookStrings() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseHookStrings() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseHookStrings() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseHookStrings() - Exit\r\n");
     return res;
 }
 
@@ -5470,7 +5515,7 @@ RIL_RESULT_CODE CTEBase::ParseHookStrings(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreScreenState() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreScreenState() - Enter\r\n");
 
     // TODO : Mark flags for unsol updates for LAC, CID, CSQ to not send updates
     //        when screen is off. Resume updates when screen turns back on.
@@ -5481,7 +5526,7 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreScreenState() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
@@ -5492,17 +5537,17 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreScreenState() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreScreenState() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseScreenState() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseScreenState() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseScreenState() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseScreenState() - Exit\r\n");
     return res;
 }
 
@@ -5511,18 +5556,18 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreSetSuppSvcNotification(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetSuppSvcNotification() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetSuppSvcNotification() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (sizeof(int*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSetSuppSvcNotification() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSetSuppSvcNotification() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSetSuppSvcNotification() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetSuppSvcNotification() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -5533,17 +5578,17 @@ RIL_RESULT_CODE CTEBase::CoreSetSuppSvcNotification(REQUEST_DATA & rReqData, voi
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetSuppSvcNotification() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetSuppSvcNotification() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetSuppSvcNotification(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetSuppSvcNotification() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetSuppSvcNotification() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSetSuppSvcNotification() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetSuppSvcNotification() - Exit\r\n");
     return res;
 }
 
@@ -5552,20 +5597,20 @@ RIL_RESULT_CODE CTEBase::ParseSetSuppSvcNotification(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreWriteSmsToSim(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreWriteSmsToSim() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreWriteSmsToSim() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_SMS_WriteArgs* pSmsArgs;
     UINT32 nPDULength;
 
     if (sizeof(RIL_SMS_WriteArgs) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreWriteSmsToSim() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreWriteSmsToSim() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreWriteSmsToSim() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreWriteSmsToSim() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -5581,13 +5626,13 @@ RIL_RESULT_CODE CTEBase::CoreWriteSmsToSim(REQUEST_DATA & rReqData, void * pData
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreWriteSmsToSim() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreWriteSmsToSim() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseWriteSmsToSim(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseWriteSmsToSim() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseWriteSmsToSim() - Enter\r\n");
 
     int * pIndex = NULL;
     const BYTE* szRsp = rRspData.szResponse;
@@ -5596,7 +5641,7 @@ RIL_RESULT_CODE CTEBase::ParseWriteSmsToSim(RESPONSE_DATA & rRspData)
     pIndex = (int*)malloc(sizeof(int));
     if (NULL == pIndex)
     {
-        RIL_LOG_CRITICAL("ParseWriteSmsToSim() - ERROR: Unable to allocate memory for int\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseWriteSmsToSim() - ERROR: Unable to allocate memory for int\r\n");
         goto Error;
     }
 
@@ -5604,7 +5649,7 @@ RIL_RESULT_CODE CTEBase::ParseWriteSmsToSim(RESPONSE_DATA & rRspData)
         !ExtractUInt(szRsp, (UINT32&)*pIndex, szRsp)  ||
         !SkipRspEnd(szRsp, g_szNewLine, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseWriteSmsToSim() - ERROR: Could not extract the Message Index.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseWriteSmsToSim() - ERROR: Could not extract the Message Index.\r\n");
         goto Error;
     }
 
@@ -5620,7 +5665,7 @@ Error:
         pIndex = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseWriteSmsToSim() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseWriteSmsToSim() - Exit\r\n");
     return res;
 }
 
@@ -5629,18 +5674,18 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreDeleteSmsOnSim(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreDeleteSmsOnSim() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDeleteSmsOnSim() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (sizeof(int*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreDeleteSmsOnSim() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreDeleteSmsOnSim() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreDeleteSmsOnSim() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDeleteSmsOnSim() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -5650,17 +5695,17 @@ RIL_RESULT_CODE CTEBase::CoreDeleteSmsOnSim(REQUEST_DATA & rReqData, void * pDat
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreDeleteSmsOnSim() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreDeleteSmsOnSim() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseDeleteSmsOnSim(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseDeleteSmsOnSim() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDeleteSmsOnSim() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseDeleteSmsOnSim() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDeleteSmsOnSim() - Exit\r\n");
     return res;
 }
 
@@ -5669,23 +5714,23 @@ RIL_RESULT_CODE CTEBase::ParseDeleteSmsOnSim(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreSetBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetBandMode() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetBandMode() - Enter\r\n");
 
     // this is modem dependent, to be implemented in te_modem_xxx.cpp
     RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetBandMode() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetBandMode() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetBandMode(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetBandMode() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetBandMode() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSetBandMode() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetBandMode() - Exit\r\n");
     return res;
 }
 
@@ -5694,21 +5739,21 @@ RIL_RESULT_CODE CTEBase::ParseSetBandMode(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreQueryAvailableBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreQueryAvailableBandMode() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableBandMode() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    RIL_LOG_VERBOSE("CoreQueryAvailableBandMode() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableBandMode() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseQueryAvailableBandMode() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryAvailableBandMode() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    RIL_LOG_VERBOSE("ParseQueryAvailableBandMode() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryAvailableBandMode() - Exit\r\n");
     return res;
 }
 
@@ -5717,7 +5762,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreStkGetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreStkGetProfile() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreStkGetProfile() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+cmd?\r"))
@@ -5726,17 +5771,17 @@ RIL_RESULT_CODE CTEBase::CoreStkGetProfile(REQUEST_DATA & rReqData, void * pData
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreStkGetProfile() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreStkGetProfile() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseStkGetProfile(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseStkGetProfile() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseStkGetProfile() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseStkGetProfile() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseStkGetProfile() - Exit\r\n");
     return res;
 }
 
@@ -5745,18 +5790,18 @@ RIL_RESULT_CODE CTEBase::ParseStkGetProfile(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreStkSetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreStkSetProfile() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreStkSetProfile() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (sizeof(char*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreStkSetProfile() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreStkSetProfile() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreStkSetProfile() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreStkSetProfile() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -5766,17 +5811,17 @@ RIL_RESULT_CODE CTEBase::CoreStkSetProfile(REQUEST_DATA & rReqData, void * pData
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreStkSetProfile() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreStkSetProfile() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseStkSetProfile(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseStkSetProfile() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseStkSetProfile() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseStkSetProfile() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseStkSetProfile() - Exit\r\n");
     return res;
 }
 
@@ -5785,18 +5830,18 @@ RIL_RESULT_CODE CTEBase::ParseStkSetProfile(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreStkSendEnvelopeCommand(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreStkSendEnvelopeCommand() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreStkSendEnvelopeCommand() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (sizeof(char*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreStkSendEnvelopeCommand() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreStkSendEnvelopeCommand() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreStkSendEnvelopeCommand() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreStkSendEnvelopeCommand() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -5806,17 +5851,17 @@ RIL_RESULT_CODE CTEBase::CoreStkSendEnvelopeCommand(REQUEST_DATA & rReqData, voi
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreStkSendEnvelopeCommand() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreStkSendEnvelopeCommand() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseStkSendEnvelopeCommand() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseStkSendEnvelopeCommand() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseStkSendEnvelopeCommand() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseStkSendEnvelopeCommand() - Exit\r\n");
     return res;
 }
 
@@ -5825,19 +5870,19 @@ RIL_RESULT_CODE CTEBase::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreStkSendTerminalResponse(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreStkSendTerminalResponse() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreStkSendTerminalResponse() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char *szResponse = NULL;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreStkSendTerminalResponse() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreStkSendTerminalResponse() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize != sizeof(char *))
     {
-        RIL_LOG_CRITICAL("CoreStkSendTerminalResponse() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreStkSendTerminalResponse() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
 
@@ -5845,24 +5890,24 @@ RIL_RESULT_CODE CTEBase::CoreStkSendTerminalResponse(REQUEST_DATA & rReqData, vo
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+=%s\r", szResponse))
     {
-        RIL_LOG_CRITICAL("CoreStkSendTerminalResponse() - ERROR: Could not form string.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreStkSendTerminalResponse() - ERROR: Could not form string.\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreStkSendTerminalResponse() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreStkSendTerminalResponse() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseStkSendTerminalResponse(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseStkSendTerminalResponse() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseStkSendTerminalResponse() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseStkSendTerminalResponse() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseStkSendTerminalResponse() - Exit\r\n");
     return res;
 }
 
@@ -5871,19 +5916,19 @@ RIL_RESULT_CODE CTEBase::ParseStkSendTerminalResponse(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreStkHandleCallSetupRequestedFromSim() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreStkHandleCallSetupRequestedFromSim() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int nCallSetup = 0;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreStkHandleCallSetupRequestedFromSim() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize != sizeof(int *))
     {
-        RIL_LOG_CRITICAL("CoreStkHandleCallSetupRequestedFromSim() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
 
@@ -5891,24 +5936,24 @@ RIL_RESULT_CODE CTEBase::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA & r
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+=%d\r", nCallSetup))
     {
-        RIL_LOG_CRITICAL("CoreStkHandleCallSetupRequestedFromSim() - ERROR: Could not form string.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Could not form string.\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreStkHandleCallSetupRequestedFromSim() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreStkHandleCallSetupRequestedFromSim() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseStkHandleCallSetupRequestedFromSim() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseStkHandleCallSetupRequestedFromSim() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseStkHandleCallSetupRequestedFromSim() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseStkHandleCallSetupRequestedFromSim() - Exit\r\n");
     return res;
 }
 
@@ -5917,7 +5962,7 @@ RIL_RESULT_CODE CTEBase::ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DATA &
 //
 RIL_RESULT_CODE CTEBase::CoreExplicitCallTransfer(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreExplicitCallTransfer() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreExplicitCallTransfer() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=4\r", sizeof(rReqData.szCmd1)))
@@ -5925,17 +5970,17 @@ RIL_RESULT_CODE CTEBase::CoreExplicitCallTransfer(REQUEST_DATA & rReqData, void 
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CoreExplicitCallTransfer() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreExplicitCallTransfer() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseExplicitCallTransfer(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseExplicitCallTransfer() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseExplicitCallTransfer() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseExplicitCallTransfer() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseExplicitCallTransfer() - Exit\r\n");
     return res;
 }
 
@@ -5944,19 +5989,19 @@ RIL_RESULT_CODE CTEBase::ParseExplicitCallTransfer(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetPreferredNetworkType() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetPreferredNetworkType() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_LOG_VERBOSE("CoreSetPreferredNetworkType() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetPreferredNetworkType() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetPreferredNetworkType() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetPreferredNetworkType() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSetPreferredNetworkType() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetPreferredNetworkType() - Exit\r\n");
     return res;
 }
 
@@ -5965,17 +6010,17 @@ RIL_RESULT_CODE CTEBase::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreGetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGetPreferredNetworkType() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetPreferredNetworkType() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_LOG_VERBOSE("CoreGetPreferredNetworkType() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetPreferredNetworkType() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGetPreferredNetworkType() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetPreferredNetworkType() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_LOG_VERBOSE("ParseGetPreferredNetworkType() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetPreferredNetworkType() - Exit\r\n");
     return res;
 }
 
@@ -5984,25 +6029,25 @@ RIL_RESULT_CODE CTEBase::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreGetNeighboringCellIDs(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGetNeighboringCellIDs() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetNeighboringCellIDs() - Enter\r\n");
 
     // this is modem dependent, to be implemented in the modem
     // specific TE
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    RIL_LOG_VERBOSE("CoreGetNeighboringCellIDs() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetNeighboringCellIDs() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGetNeighboringCellIDs() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetNeighboringCellIDs() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     // this is modem dependent, to be implemented in the modem
     // specific TE
-    RIL_LOG_VERBOSE("ParseGetNeighboringCellIDs() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetNeighboringCellIDs() - Exit\r\n");
     return res;
 }
 
@@ -6011,20 +6056,20 @@ RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetLocationUpdates() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetLocationUpdates() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     int nUpdatesEnabled = 0;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSetLocationUpdates() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize != sizeof(int *))
     {
-        RIL_LOG_CRITICAL("CoreSetLocationUpdates() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - ERROR: Invalid data size.\r\n");
         goto Error;
     }
 
@@ -6034,7 +6079,7 @@ RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA & rReqData, void * 
     {
         if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=2;+CGREG=2\r", sizeof(rReqData.szCmd1)))
         {
-            RIL_LOG_CRITICAL("CoreSetLocationUpdates() - ERROR: Cannot CopyStringNullTerminate CREG=2\r\n");
+            RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - ERROR: Cannot CopyStringNullTerminate CREG=2\r\n");
             goto Error;
         }
     }
@@ -6042,13 +6087,13 @@ RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA & rReqData, void * 
     {
         if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=1;+CGREG=1\r", sizeof(rReqData.szCmd1)))
         {
-            RIL_LOG_CRITICAL("CoreSetLocationUpdates() - ERROR: Cannot CopyStringNullTerminate CREG=1\r\n");
+            RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - ERROR: Cannot CopyStringNullTerminate CREG=1\r\n");
             goto Error;
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CoreSetLocationUpdates() - ERROR: Undefined update setting: %d\r\n", nUpdatesEnabled);
+        RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - ERROR: Undefined update setting: %d\r\n", nUpdatesEnabled);
         res = RIL_E_GENERIC_FAILURE;
         goto Error;
     }
@@ -6056,17 +6101,17 @@ RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA & rReqData, void * 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetLocationUpdates() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetLocationUpdates() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetLocationUpdates(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetLocationUpdates() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetLocationUpdates() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSetLocationUpdates() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetLocationUpdates() - Exit\r\n");
     return res;
 }
 
@@ -6075,20 +6120,20 @@ RIL_RESULT_CODE CTEBase::ParseSetLocationUpdates(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSetSubscription(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreCdmaSetSubscription() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSetSubscription() - Enter\r\n");
     RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
-    RIL_LOG_VERBOSE("CoreCdmaSetSubscription() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSetSubscription() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaSetSubscription(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseCdmaSetSubscription() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetSubscription() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseCdmaSetSubscription() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetSubscription() - Exit\r\n");
     return res;
 }
 
@@ -6097,20 +6142,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSetSubscription(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSetRoamingPreference(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreCdmaSetRoamingPreference() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSetRoamingPreference() - Enter\r\n");
     RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
-    RIL_LOG_VERBOSE("CoreCdmaSetRoamingPreference() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSetRoamingPreference() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaSetRoamingPreference(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseCdmaSetRoamingPreference() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetRoamingPreference() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseCdmaSetRoamingPreference() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetRoamingPreference() - Exit\r\n");
     return res;
 }
 
@@ -6119,20 +6164,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSetRoamingPreference(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaQueryRoamingPreference(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreCdmaQueryRoamingPreference() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaQueryRoamingPreference() - Enter\r\n");
     RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
-    RIL_LOG_VERBOSE("CoreCdmaQueryRoamingPreference() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaQueryRoamingPreference() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaQueryRoamingPreference(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseCdmaQueryRoamingPreference() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaQueryRoamingPreference() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseCdmaQueryRoamingPreference() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaQueryRoamingPreference() - Exit\r\n");
     return res;
 }
 
@@ -6258,7 +6303,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSmsAcknowledge(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreGsmGetBroadcastSmsConfig(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGsmGetBroadcastSmsConfig() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGsmGetBroadcastSmsConfig() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CSCB?\r"))
@@ -6267,13 +6312,13 @@ RIL_RESULT_CODE CTEBase::CoreGsmGetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreGsmGetBroadcastSmsConfig() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGsmGetBroadcastSmsConfig() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGsmGetBroadcastSmsConfig() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGsmGetBroadcastSmsConfig() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
@@ -6290,7 +6335,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
     pBroadcastSmsConfigInfoBlob = (P_ND_BROADCASTSMSCONFIGINFO_DATA)malloc(sizeof(S_ND_BROADCASTSMSCONFIGINFO_DATA));
     if (NULL == pBroadcastSmsConfigInfoBlob)
     {
-        RIL_LOG_CRITICAL("ParseGsmGetBroadcastSmsConfig() - ERROR: Could not allocate memory for pBroadcastSmsConfigInfoBlob.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGsmGetBroadcastSmsConfig() - ERROR: Could not allocate memory for pBroadcastSmsConfigInfoBlob.\r\n");
         goto Error;
     }
     //  Set bytes to 0xFF because 0 values mean something in this structure.
@@ -6306,7 +6351,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
         !ExtractQuotedString(szRsp, szLangs, MAX_BUFFER_SIZE, szRsp) ||
         !SkipRspEnd(szRsp, g_szNewLine, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseGsmGetBroadcastSmsConfig() - ERROR: Could not extract data.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGsmGetBroadcastSmsConfig() - ERROR: Could not extract data.\r\n");
         goto Error;
     }
 
@@ -6337,13 +6382,13 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
     if (nCount > RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES)
     {
         //  Too many.  Error out.
-        RIL_LOG_CRITICAL("ParseGsmGetBroadcastSmsConfig() - ERROR: Too many structs needed!  nCount=%d.\r\n", nCount);
+        RIL_LOG_CRITICAL("CTEBase::ParseGsmGetBroadcastSmsConfig() - ERROR: Too many structs needed!  nCount=%d.\r\n", nCount);
         goto Error;
     }
 
     //  Parse through szChannels.
     pszChannels = szChannels;
-    for (UINT32 i = 0; i < nStructsChannels; i++)
+    for (UINT32 i = 0; (i < nStructsChannels) && (i < RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES); i++)
     {
         UINT32 nValue1, nValue2;
         if (!ExtractUInt(pszChannels, nValue1, pszChannels))
@@ -6360,7 +6405,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
                 if (!ExtractUInt(pszChannels, nValue2, pszChannels))
                 {
                     //  Nothing after the "-" is an error.
-                    RIL_LOG_CRITICAL("ParseGsmGetBroadcastSmsConfig() - ERROR: Parsing szChannels range. nStructsChannels=%d i=%d\r\n", nStructsChannels, i);
+                    RIL_LOG_CRITICAL("CTEBase::ParseGsmGetBroadcastSmsConfig() - ERROR: Parsing szChannels range. nStructsChannels=%d i=%d\r\n", nStructsChannels, i);
                     goto Error;
                 }
             }
@@ -6385,7 +6430,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
 
     //  Parse through szLangs.
     pszLangs = szLangs;
-    for (UINT32 i = 0; i < nStructsLangs; i++)
+    for (UINT32 i = 0; (i < nStructsLangs) && (i < RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES); i++)
     {
         UINT32 nValue1, nValue2;
         if (!ExtractUInt(pszLangs, nValue1, pszLangs))
@@ -6402,7 +6447,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
                 if (!ExtractUInt(pszLangs, nValue2, pszLangs))
                 {
                     //  Nothing after the "-" is an error.
-                    RIL_LOG_CRITICAL("ParseGsmGetBroadcastSmsConfig() - ERROR: Parsing szLangs range. nStructsLangs=%d i=%d\r\n", nStructsLangs, i);
+                    RIL_LOG_CRITICAL("CTEBase::ParseGsmGetBroadcastSmsConfig() - ERROR: Parsing szLangs range. nStructsLangs=%d i=%d\r\n", nStructsLangs, i);
                     goto Error;
                 }
             }
@@ -6426,7 +6471,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
     }
 
     //  Loop through each struct, populate "selected".
-    for (UINT32 i=0; i < nCount; i++)
+    for (UINT32 i=0; (i < nCount) && (i < RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES); i++)
     {
         pBroadcastSmsConfigInfoBlob->BroadcastSmsConfigInfoData[i].selected = (unsigned char)nSelected;
     }
@@ -6444,7 +6489,7 @@ Error:
     }
 
 
-    RIL_LOG_VERBOSE("ParseGsmGetBroadcastSmsConfig() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGsmGetBroadcastSmsConfig() - Exit\r\n");
     return res;
 }
 
@@ -6453,7 +6498,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGsmSetBroadcastSmsConfig() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGsmSetBroadcastSmsConfig() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     char szChannels[MAX_BUFFER_SIZE] = {0};
@@ -6464,13 +6509,13 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
 
     if (sizeof(RIL_GSM_BroadcastSmsConfigInfo) > uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -6482,7 +6527,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
         const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[0];
         if (NULL == pConfigInfo)
         {
-            RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[0] is NULL. (selected)\r\n");
+            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[0] is NULL. (selected)\r\n");
             goto Error;
         }
 
@@ -6496,7 +6541,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
         const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[i];
         if (NULL == pConfigInfo)
         {
-            RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (channels)\r\n", i);
+            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (channels)\r\n", i);
             goto Error;
         }
 
@@ -6504,7 +6549,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
         {
             if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u", pConfigInfo->fromServiceId))
             {
-                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                 goto Error;
             }
         }
@@ -6512,7 +6557,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
         {
             if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u-%u", pConfigInfo->fromServiceId, pConfigInfo->toServiceId))
             {
-                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                 goto Error;
             }
         }
@@ -6522,7 +6567,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
         {
             if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%s,", szChannels))
             {
-                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print channels of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print channels of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                 goto Error;
             }
         }
@@ -6535,7 +6580,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
         const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[i];
         if (NULL == pConfigInfo)
         {
-            RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (langs)\r\n", i);
+            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (langs)\r\n", i);
             goto Error;
         }
 
@@ -6543,7 +6588,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
         {
             if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u", pConfigInfo->fromCodeScheme))
             {
-                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                 goto Error;
             }
         }
@@ -6551,7 +6596,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
         {
             if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u-%u", pConfigInfo->fromCodeScheme, pConfigInfo->toCodeScheme))
             {
-                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from from-to code scheme of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from from-to code scheme of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                 goto Error;
             }
         }
@@ -6561,7 +6606,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
         {
             if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%s,", szLangs))
             {
-                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: cannot add last range of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: cannot add last range of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                 goto Error;
             }
         }
@@ -6574,17 +6619,17 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreGsmSetBroadcastSmsConfig() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGsmSetBroadcastSmsConfig() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGsmSetBroadcastSmsConfig() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGsmSetBroadcastSmsConfig() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseGsmSetBroadcastSmsConfig() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGsmSetBroadcastSmsConfig() - Exit\r\n");
     return res;
 }
 
@@ -6595,38 +6640,56 @@ RIL_RESULT_CODE CTEBase::ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
 
 RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGsmSmsBroadcastActivation() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGsmSmsBroadcastActivation() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    int nFlag = 0;
 
     if (sizeof(int*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreGsmSmsBroadcastActivation() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreGsmSmsBroadcastActivation() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CSCB=%u\r", ((int*)pData)[0]))
+    nFlag = ((int*)pData)[0];
+    RIL_LOG_INFO("CTEBase::CoreGsmSmsBroadcastActivation() - nFlag=[%u]\r\n", nFlag);
+
+    //  According to ril.h, 0 = activate, 1 = disable
+    if (0 == nFlag)
     {
-        res = RRIL_RESULT_OK;
+        //  activate
+        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSCB=1\r", sizeof(rReqData.szCmd1)))
+        {
+            res = RRIL_RESULT_OK;
+        }
+    }
+    else
+    {
+        //  disable
+        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSCB=0\r", sizeof(rReqData.szCmd1)))
+        {
+            res = RRIL_RESULT_OK;
+        }
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreGsmSmsBroadcastActivation() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGsmSmsBroadcastActivation() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGsmSmsBroadcastActivation(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGsmSmsBroadcastActivation() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGsmSmsBroadcastActivation() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseGsmSmsBroadcastActivation() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGsmSmsBroadcastActivation() - Exit\r\n");
     return res;
 }
 
@@ -6739,7 +6802,7 @@ RIL_RESULT_CODE CTEBase::ParseExitEmergencyCallbackMode(RESPONSE_DATA & rRspData
 //
 RIL_RESULT_CODE CTEBase::CoreGetSmscAddress(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreGetSmscAddress() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetSmscAddress() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CSCA?\r"))
@@ -6748,13 +6811,13 @@ RIL_RESULT_CODE CTEBase::CoreGetSmscAddress(REQUEST_DATA & rReqData, void * pDat
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreGetSmscAddress() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreGetSmscAddress() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseGetSmscAddress(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseGetSmscAddress() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetSmscAddress() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const BYTE* szRsp = rRspData.szResponse;
@@ -6762,7 +6825,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSmscAddress(RESPONSE_DATA & rRspData)
     char* szSCAddr = (char*)malloc(MAX_BUFFER_SIZE);
     if (NULL == szSCAddr)
     {
-        RIL_LOG_CRITICAL("ParseGetSMSCAddress() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
+        RIL_LOG_CRITICAL("CTEBase::ParseGetSMSCAddress() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
         goto Error;
     }
 
@@ -6773,7 +6836,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSmscAddress(RESPONSE_DATA & rRspData)
     if (!FindAndSkipString(szRsp, "+CSCA: ", szRsp) ||
         !ExtractQuotedString(szRsp, szSCAddr, MAX_BUFFER_SIZE, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseGetSMSCAddress() - ERROR: Could not extract the SMS Service Center address string.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetSMSCAddress() - ERROR: Could not extract the SMS Service Center address string.\r\n");
         goto Error;
     }
 
@@ -6789,7 +6852,7 @@ Error:
         szSCAddr = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseGetSMSCAddress() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetSMSCAddress() - Exit\r\n");
     return res;
 }
 
@@ -6798,19 +6861,19 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSetSmscAddress(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSetSmscAddress() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetSmscAddress() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char *szSMSC = NULL;
 
     if (sizeof(char*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSetSmscAddress() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSetSmscAddress() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSetSmscAddress() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSetSmscAddress() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -6837,17 +6900,17 @@ RIL_RESULT_CODE CTEBase::CoreSetSmscAddress(REQUEST_DATA & rReqData, void * pDat
 
 
 Error:
-    RIL_LOG_VERBOSE("CoreSetSmscAddress() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSetSmscAddress() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetSmscAddress(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSetSmscAddress() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetSmscAddress() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_LOG_VERBOSE("ParseSetSmscAddress() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSetSmscAddress() - Exit\r\n");
     return res;
 }
 
@@ -6856,7 +6919,7 @@ RIL_RESULT_CODE CTEBase::ParseSetSmscAddress(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreReportSmsMemoryStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreReportSmsMemoryStatus() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreReportSmsMemoryStatus() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPMS?\r"))
@@ -6865,13 +6928,13 @@ RIL_RESULT_CODE CTEBase::CoreReportSmsMemoryStatus(REQUEST_DATA & rReqData, void
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreReportSmsMemoryStatus() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreReportSmsMemoryStatus() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseReportSmsMemoryStatus() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseReportSmsMemoryStatus() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
@@ -6886,7 +6949,7 @@ RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
     int* pStorageIsAvailable = (int*)malloc(sizeof(int));
     if (NULL == pStorageIsAvailable)
     {
-        RIL_LOG_CRITICAL("ParseReportSmsMemoryStatus() - ERROR: Could not allocate memory for an int.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not allocate memory for an int.\r\n");
         goto Error;
     }
     memset(pStorageIsAvailable, 0x01, sizeof(int));
@@ -6897,7 +6960,7 @@ RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
     if (!SkipRspStart(szRsp, g_szNewLine, szRsp) ||
         !SkipString(szRsp, "+CPMS: ", szRsp))
     {
-        RIL_LOG_CRITICAL("ParseReportSmsMemoryStatus() - ERROR: Could not extract +CPMS: string.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract +CPMS: string.\r\n");
         goto Error;
     }
 
@@ -6908,14 +6971,14 @@ RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
         !SkipString(szRsp, ",", szRsp) ||
         !ExtractUInt(szRsp, nTotal1, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseReportSmsMemoryStatus() - ERROR: Could not extract set 1 data.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract set 1 data.\r\n");
         goto Error;
     }
 
     //  Parse ","
     if (!SkipString(szRsp, ",", szRsp))
     {
-        RIL_LOG_CRITICAL("ParseReportSmsMemoryStatus() - ERROR: Could not extract set 1 comma.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract set 1 comma.\r\n");
         goto Error;
     }
 
@@ -6926,14 +6989,14 @@ RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
         !SkipString(szRsp, ",", szRsp) ||
         !ExtractUInt(szRsp, nTotal2, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseReportSmsMemoryStatus() - ERROR: Could not extract set 2 data.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract set 2 data.\r\n");
         goto Error;
     }
 
     //  Parse ","
     if (!SkipString(szRsp, ",", szRsp))
     {
-        RIL_LOG_CRITICAL("ParseReportSmsMemoryStatus() - ERROR: Could not extract set 2 comma.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract set 2 comma.\r\n");
         goto Error;
     }
 
@@ -6944,7 +7007,7 @@ RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
         !SkipString(szRsp, ",", szRsp) ||
         !ExtractUInt(szRsp, nTotal3, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseReportSmsMemoryStatus() - ERROR: Could not extract set 3 data.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract set 3 data.\r\n");
         goto Error;
     }
 
@@ -6972,7 +7035,7 @@ Error:
     }
 
 
-    RIL_LOG_VERBOSE("ParseReportSmsMemoryStatus() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseReportSmsMemoryStatus() - Exit\r\n");
     return res;
 }
 
@@ -6998,8 +7061,8 @@ RIL_RESULT_CODE CTEBase::CoreReportStkServiceRunning(REQUEST_DATA & rReqData, vo
 
 RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseReportStkServiceRunning() - Enter\r\n");
-    RIL_LOG_VERBOSE("ParseReportStkServiceRunning() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseReportStkServiceRunning() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseReportStkServiceRunning() - Exit\r\n");
     return RRIL_RESULT_OK;
 }
 
@@ -7008,34 +7071,34 @@ RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_SIM_IO *   pSimIOArgs = NULL;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSimTransmitBasic() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitBasic() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (sizeof(RIL_SIM_IO) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSimTransmitBasic() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitBasic() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     // extract data
     pSimIOArgs = (RIL_SIM_IO *)pData;
 
-    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - cla=[0x%08x]  [%d]\r\n", pSimIOArgs->cla, pSimIOArgs->cla);
-    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
-    //RIL_LOG_VERBOSE("CoreSimTransmitBasic() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
-    //RIL_LOG_VERBOSE("CoreSimTransmitBasic() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
-    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
-    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
-    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
-    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
-    //RIL_LOG_VERBOSE("CoreSimTransmitBasic() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - cla=[0x%08x]  [%d]\r\n", pSimIOArgs->cla, pSimIOArgs->cla);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
+    //RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
+    //RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
+    //RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
 
 
     if ((NULL == pSimIOArgs->data) || (strlen(pSimIOArgs->data) == 0))
@@ -7051,7 +7114,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
                     pSimIOArgs->p1,
                     pSimIOArgs->p2))
             {
-                RIL_LOG_CRITICAL("CoreSimTransmitBasic() - ERROR: cannot create CSIM command 1\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitBasic() - ERROR: cannot create CSIM command 1\r\n");
                 goto Error;
             }
         }
@@ -7067,7 +7130,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
                     pSimIOArgs->p2,
                     pSimIOArgs->p3))
             {
-                RIL_LOG_CRITICAL("CoreSimTransmitBasic() - ERROR: cannot create CSIM command 2\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitBasic() - ERROR: cannot create CSIM command 2\r\n");
                 goto Error;
             }
         }
@@ -7085,7 +7148,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
                 pSimIOArgs->p3,
                 pSimIOArgs->data))
         {
-            RIL_LOG_CRITICAL("CoreSimTransmitBasic() - ERROR: cannot create CSIM command 3\r\n");
+            RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitBasic() - ERROR: cannot create CSIM command 3\r\n");
             goto Error;
         }
     }
@@ -7094,13 +7157,13 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreSimTransmitBasic() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSimTransmitBasic() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitBasic() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -7115,7 +7178,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
 
     if (NULL == rRspData.szResponse)
     {
-        RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Response String pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() - ERROR: Response String pointer is NULL.\r\n");
         goto Error;
     }
 
@@ -7125,13 +7188,13 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
 
     if (!SkipString(pszRsp, "+CSIM: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Could not skip over \"+CSIM: \".\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() - ERROR: Could not skip over \"+CSIM: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt(pszRsp, uiLen, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Could not extract uiLen value.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() - ERROR: Could not extract uiLen value.\r\n");
         goto Error;
     }
 
@@ -7143,17 +7206,17 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
         // NOTE: we take ownership of allocated szResponseString
         if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString, cbResponseString, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Could not extract data string.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() - ERROR: Could not extract data string.\r\n");
             goto Error;
         }
         else
         {
-            RIL_LOG_INFO("ParseSimTransmitBasic() - Extracted data string: \"%s\" (%u chars)\r\n", szResponseString, cbResponseString);
+            RIL_LOG_INFO("CTEBase::ParseSimTransmitBasic() - Extracted data string: \"%s\" (%u chars)\r\n", szResponseString, cbResponseString);
         }
 
         if (0 != (cbResponseString - 1) % 2)
         {
-            RIL_LOG_CRITICAL("ParseSimTransmitBasic() : ERROR : String was not a multiple of 2.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() : ERROR : String was not a multiple of 2.\r\n");
             goto Error;
         }
     }
@@ -7164,19 +7227,19 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
     pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
         goto Error;
     }
 
-    //  Response must be 4 chars or longer
-    if ( (cbResponseString - 1) < 4)
+    //  Response must be 4 chars or longer - cbResponseString includes NULL character
+    if (cbResponseString < 5)
     {
-        RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: response length must be 4 or greater.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() - ERROR: response length must be 4 or greater.\r\n");
         goto Error;
     }
 
     sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
-    szResponseString[cbResponseString-5] = '\0';
+    szResponseString[cbResponseString-1] = '\0';
 
     pResponse->sw1 = uiSW1;
     pResponse->sw2 = uiSW2;
@@ -7190,7 +7253,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
         pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
         if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
         {
-            RIL_LOG_CRITICAL("ParseSimTransmitBasic() - ERROR: Cannot CopyStringNullTerminate szResponseString\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() - ERROR: Cannot CopyStringNullTerminate szResponseString\r\n");
             goto Error;
         }
 
@@ -7216,7 +7279,7 @@ Error:
     delete[] szResponseString;
     szResponseString = NULL;
 
-    RIL_LOG_VERBOSE("ParseSimTransmitBasic() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitBasic() - Exit\r\n");
     return res;
 }
 
@@ -7225,19 +7288,19 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSimOpenChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSimOpenChannel() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimOpenChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char *szAID = NULL;
 
     if (sizeof(char*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSimOpenChannel() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSimOpenChannel() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSimOpenChannel() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSimOpenChannel() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -7251,14 +7314,14 @@ RIL_RESULT_CODE CTEBase::CoreSimOpenChannel(REQUEST_DATA & rReqData, void * pDat
 
 
 Error:
-    RIL_LOG_VERBOSE("CoreSimOpenChannel() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimOpenChannel() - Exit\r\n");
     return res;
 }
 
 
 RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSimOpenChannel() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimOpenChannel() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const BYTE* szRsp = rRspData.szResponse;
@@ -7267,7 +7330,7 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
     int* pnChannelId = (int*)malloc(sizeof(int));
     if (NULL == pnChannelId)
     {
-        RIL_LOG_CRITICAL("ParseSimOpenChannel() - ERROR: Could not allocate memory for an int.\r\n", sizeof(int));
+        RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - ERROR: Could not allocate memory for an int.\r\n", sizeof(int));
         goto Error;
     }
     memset(pnChannelId, 0, sizeof(int));
@@ -7279,7 +7342,7 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
     //    !ExtractUInt(szRsp, nChannelId, szRsp))
     if (!ExtractUInt(szRsp, nChannelId, szRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimOpenChannel() - ERROR: Could not extract the Channel Id.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - ERROR: Could not extract the Channel Id.\r\n");
         goto Error;
     }
 
@@ -7297,7 +7360,7 @@ Error:
         pnChannelId = NULL;
     }
 
-    RIL_LOG_VERBOSE("ParseSimOpenChannel() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimOpenChannel() - Exit\r\n");
     return res;
 }
 
@@ -7307,13 +7370,13 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreSimCloseChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSimCloseChannel() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimCloseChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int nChannelId = 0;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSimCloseChannel() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSimCloseChannel() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
@@ -7325,14 +7388,14 @@ RIL_RESULT_CODE CTEBase::CoreSimCloseChannel(REQUEST_DATA & rReqData, void * pDa
     }
 
 Error:
-    RIL_LOG_VERBOSE("CoreSimCloseChannel() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimCloseChannel() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSimCloseChannel() - Enter\r\n");
-    RIL_LOG_VERBOSE("ParseSimCloseChannel() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimCloseChannel() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimCloseChannel() - Exit\r\n");
     return RRIL_RESULT_OK;
 }
 
@@ -7343,34 +7406,34 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_SIM_IO *   pSimIOArgs = NULL;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CoreSimTransmitChannel() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (sizeof(RIL_SIM_IO) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CoreSimTransmitChannel() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     // extract data
     pSimIOArgs = (RIL_SIM_IO *)pData;
 
-    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - cla=[0x%08x]  [%d]\r\n", pSimIOArgs->cla, pSimIOArgs->cla);
-    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
-    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
-    //RIL_LOG_VERBOSE("CoreSimTransmitChannel() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
-    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
-    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
-    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
-    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
-    //RIL_LOG_VERBOSE("CoreSimTransmitChannel() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - cla=[0x%08x]  [%d]\r\n", pSimIOArgs->cla, pSimIOArgs->cla);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
+    //RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
+    //RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
 
 
     if ((NULL == pSimIOArgs->data) || (strlen(pSimIOArgs->data) == 0))
@@ -7387,7 +7450,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
                     pSimIOArgs->p1,
                     pSimIOArgs->p2))
             {
-                RIL_LOG_CRITICAL("CoreSimTransmitChannel() - ERROR: cannot create CGLA command 1\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() - ERROR: cannot create CGLA command 1\r\n");
                 goto Error;
             }
         }
@@ -7404,7 +7467,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
                     pSimIOArgs->p2,
                     pSimIOArgs->p3))
             {
-                RIL_LOG_CRITICAL("CoreSimTransmitChannel() - ERROR: cannot create CGLA command 2\r\n");
+                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() - ERROR: cannot create CGLA command 2\r\n");
                 goto Error;
             }
         }
@@ -7423,7 +7486,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
                 pSimIOArgs->p3,
                 pSimIOArgs->data))
         {
-            RIL_LOG_CRITICAL("CoreSimTransmitChannel() - ERROR: cannot create CGLA command 3\r\n");
+            RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() - ERROR: cannot create CGLA command 3\r\n");
             goto Error;
         }
     }
@@ -7432,13 +7495,13 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CoreSimTransmitChannel() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseSimTransmitChannel() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitChannel() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -7453,7 +7516,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
 
     if (NULL == rRspData.szResponse)
     {
-        RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Response String pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Response String pointer is NULL.\r\n");
         goto Error;
     }
 
@@ -7463,13 +7526,13 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
 
     if (!SkipString(pszRsp, "+CGLA: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Could not skip over \"+CSIM: \".\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not skip over \"+CSIM: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt(pszRsp, uiLen, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Could not extract uiLen value.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not extract uiLen value.\r\n");
         goto Error;
     }
 
@@ -7481,17 +7544,17 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
         // NOTE: we take ownership of allocated szResponseString
         if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString, cbResponseString, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Could not extract data string.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not extract data string.\r\n");
             goto Error;
         }
         else
         {
-            RIL_LOG_INFO("ParseSimTransmitChannel() - Extracted data string: \"%s\" (%u chars)\r\n", szResponseString, cbResponseString);
+            RIL_LOG_INFO("CTEBase::ParseSimTransmitChannel() - Extracted data string: \"%s\" (%u chars)\r\n", szResponseString, cbResponseString);
         }
 
         if (0 != (cbResponseString - 1) % 2)
         {
-            RIL_LOG_CRITICAL("ParseSimTransmitChannel() : ERROR : String was not a multiple of 2.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() : ERROR : String was not a multiple of 2.\r\n");
             goto Error;
         }
     }
@@ -7502,19 +7565,19 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
     pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
         goto Error;
     }
 
-    //  Response must be 4 chars or longer
-    if ( (cbResponseString - 1) < 4)
+    //  Response must be 4 chars or longer - cbResponseString includes NULL character
+    if (cbResponseString < 5)
     {
-        RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: response length must be 4 or greater.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: response length must be 4 or greater.\r\n");
         goto Error;
     }
 
     sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
-    szResponseString[cbResponseString-5] = '\0';
+    szResponseString[cbResponseString-1] = '\0';
 
     pResponse->sw1 = uiSW1;
     pResponse->sw2 = uiSW2;
@@ -7528,7 +7591,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
         pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
         if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
         {
-            RIL_LOG_CRITICAL("ParseSimTransmitChannel() - ERROR: Cannot CopyStringNullTerminate szResponseString\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Cannot CopyStringNullTerminate szResponseString\r\n");
             goto Error;
         }
 
@@ -7554,7 +7617,7 @@ Error:
     delete[] szResponseString;
     szResponseString = NULL;
 
-    RIL_LOG_VERBOSE("ParseSimTransmitChannel() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitChannel() - Exit\r\n");
     return res;
 }
 
@@ -7567,7 +7630,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseUnsolicitedSignalStrength() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseUnsolicitedSignalStrength() - Enter\r\n");
 
     extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
 
@@ -7582,7 +7645,7 @@ RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData
 
     if (NULL == pSigStrData)
     {
-        RIL_LOG_CRITICAL("ParseUnsolicitedSignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
         goto Error;
     }
     memset(pSigStrData, 0x00, sizeof(RIL_SignalStrength));
@@ -7591,26 +7654,26 @@ RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
         !SkipString(pszRsp, "+CSQ: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseUnsolicitedSignalStrength() - ERROR: Could not find AT response.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not find AT response.\r\n");
         goto Error;
     }
 
     if (!ExtractUInt(pszRsp, uiRSSI, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseUnsolicitedSignalStrength() - ERROR: Could not extract uiRSSI.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not extract uiRSSI.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt(pszRsp, uiBER, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseUnsolicitedSignalStrength() - ERROR: Could not extract uiBER.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not extract uiBER.\r\n");
         goto Error;
     }
 
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("ParseUnsolicitedSignalStrength() - ERROR: Could not extract the response end.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not extract the response end.\r\n");
         goto Error;
     }
 
@@ -7625,7 +7688,7 @@ Error:
     free(pSigStrData);
     pSigStrData = NULL;
 
-    RIL_LOG_VERBOSE("ParseUnsolicitedSignalStrength() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseUnsolicitedSignalStrength() - Exit\r\n");
     return res;
 }
 
@@ -7635,7 +7698,7 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("ParseDataCallListChanged() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDataCallListChanged() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -7652,7 +7715,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
     pPDPListData = (P_ND_PDP_CONTEXT_DATA)malloc(sizeof(S_ND_PDP_CONTEXT_DATA));
     if (NULL == pPDPListData)
     {
-        RIL_LOG_CRITICAL("ParseDataCallListChanged() - ERROR: Could not allocate memory for a P_ND_PDP_CONTEXT_DATA struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not allocate memory for a P_ND_PDP_CONTEXT_DATA struct.\r\n");
         goto Error;
     }
     memset(pPDPListData, 0, sizeof(S_ND_PDP_CONTEXT_DATA));
@@ -7668,7 +7731,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         // Parse <cid>
         if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
-            RIL_LOG_CRITICAL("ParseDataCallListChanged() - ERROR: Invalid CID.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Invalid CID.\r\n");
             goto Error;
         }
 
@@ -7676,16 +7739,16 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractUpperBoundedUInt(pszRsp, 2, nValue, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallListChanged() - ERROR: Invalid state.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Invalid state.\r\n");
             goto Error;
         }
         active[nCID - 1] = nValue;
-        RIL_LOG_INFO("ParseDataCallListChanged() - Context %d %s.\r\n", nCID, (nValue ? "active" : "not active") );
+        RIL_LOG_INFO("CTEBase::ParseDataCallListChanged() - Context %d %s.\r\n", nCID, (nValue ? "active" : "not active") );
 
         // Find "<postfix>"
         if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallListChanged() - ERROR: Could not find terminator.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not find terminator.\r\n");
             goto Error;
         }
     }
@@ -7701,7 +7764,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         // Parse <cid>
         if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
-            RIL_LOG_CRITICAL("ParseDataCallListChanged() - ERROR: Could not extract CID.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract CID.\r\n");
             goto Error;
         }
         pPDPListData->pPDPData[count].cid = nCID;
@@ -7713,7 +7776,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallListChanged() - ERROR: Could not extract PDP type.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract PDP type.\r\n");
             goto Error;
         }
         strncpy(pPDPListData->pTypeBuffers[count], szAPN, MAX_BUFFER_SIZE);
@@ -7723,7 +7786,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallListChanged() - ERROR: Could not extract APN.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract APN.\r\n");
             goto Error;
         }
         strncpy(pPDPListData->pApnBuffers[count], szAPN, MAX_BUFFER_SIZE);
@@ -7733,7 +7796,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallListChanged() - ERROR: Could not extract APN.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract APN.\r\n");
             goto Error;
         }
         strncpy(pPDPListData->pAddressBuffers[count], szIP, MAX_BUFFER_SIZE);
@@ -7743,7 +7806,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractUpperBoundedUInt(pszRsp, 0x2, nValue, pszRsp))
         {
-            RIL_LOG_WARNING("ParseDataCallListChanged() - WARNING: Could not extract data comp.\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseDataCallListChanged() - WARNING: Could not extract data comp.\r\n");
             goto Continue;
         }
 
@@ -7751,7 +7814,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractUpperBoundedUInt(pszRsp, 0x2, nValue, pszRsp))
         {
-            RIL_LOG_WARNING("ParseDataCallListChanged() - WARNING: Could not extract header comp.\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseDataCallListChanged() - WARNING: Could not extract header comp.\r\n");
             goto Continue;
         }
 
@@ -7762,7 +7825,7 @@ Continue:
         // Find "<postfix>"
         if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
         {
-            RIL_LOG_CRITICAL("ParseDataCallListChanged() - ERROR: Could not find terminator.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not find terminator.\r\n");
             goto Error;
         }
 
@@ -7770,7 +7833,7 @@ Continue:
         ++count;
     }
 
-    RIL_LOG_INFO("ParseDataCallListChanged() - Parse complete, found [%d] contexts.\r\n", count);
+    RIL_LOG_INFO("CTEBase::ParseDataCallListChanged() - Parse complete, found [%d] contexts.\r\n", count);
 
 #if defined(DEBUG)
     for (int i = 0; i < count; ++i)
@@ -7809,7 +7872,7 @@ Error:
     pPDPListData = NULL;
 
 
-    RIL_LOG_VERBOSE("ParseDataCallListChanged() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDataCallListChanged() - Exit\r\n");
     return res;
 }
 

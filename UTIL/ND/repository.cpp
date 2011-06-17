@@ -246,6 +246,7 @@ const char   g_szSupportedModem[]               = "SupportedModem";
 const char   g_szNetworkInterfaceName[]         = "NetworkInterfaceName";
 const char   g_szDisableModemReset[]            = "DisableModemReset";
 const char   g_szDisableCoreDump[]              = "DisableCoreDump";
+const char   g_szCoreDumpTimeout[]              = "CoreDumpTimeout";
 const char   g_szDisableWatchdogThread[]        = "DisableWatchdogThread";
 const char   g_szRadioResetDelay[]              = "RadioResetDelay";
 const char   g_szRadioResetStartStmdDelay[]     = "RadioResetStartStmdDelay";

@@ -388,7 +388,7 @@ BOOL CThread::IsInitialized(CThread * pThread)
     }
     else
     {
-        RIL_LOG_CRITICAL("CThread::IsRunning() - ERROR: Unable to call as pThread was NULL\r\n");
+        RIL_LOG_CRITICAL("CThread::IsInitialized() - ERROR: Unable to call as pThread was NULL\r\n");
         return FALSE;
     }
 }

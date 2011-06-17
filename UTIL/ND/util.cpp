@@ -300,23 +300,24 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
     //RIL_LOG_INFO("CRLFExpandedString::CRLFExpandedString() : Found %d instances of CR and LF combined\r\n", nCRLFs);
 
     // Size increase for each instance is from 1 char to 4 chars
-    m_pszString = new char[nInLen + (nCRLFs * 3) + (nOther * 3) + 1];
+    nNewLen = nInLen + (nCRLFs * 3) + (nOther * 3) + 1;
+    m_pszString = new char[nNewLen];
     if (NULL == m_pszString)
     {
         RIL_LOG_CRITICAL("CRLFExpandedString::CRLFExpandedString() : ERROR : Couldn't allocate m_pszString\r\n");
         return;
     }
-    memset(m_pszString, 0, nInLen + (nCRLFs * 3) + (nOther * 3) + 1);
+    memset(m_pszString, 0, nNewLen);
 
     for (int nWalk = 0; nWalk < nInLen; nWalk++)
     {
         if (0x0A == pszIn[nWalk])
         {
-            strcat(m_pszString, "<lf>");
+            strncat(m_pszString, "<lf>", nNewLen - strlen(m_pszString) - 1);
         }
         else if (0x0D == pszIn[nWalk])
         {
-            strcat(m_pszString, "<cr>");
+            strncat(m_pszString, "<cr>", nNewLen - strlen(m_pszString) - 1);
         }
         else if ((pszIn[nWalk] >= 0x20) && (pszIn[nWalk] <= 0x7E))
         {
@@ -326,7 +327,7 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
         {
             char szTmp[5] = {0};
             snprintf(szTmp, 5, "[%02X]", pszIn[nWalk]);
-            strcat(m_pszString, szTmp);
+            strncat(m_pszString, szTmp, nNewLen - strlen(m_pszString) - 1);
         }
     }
 }

@@ -57,7 +57,7 @@ m_nXSIMStatePrev(-1)
         { "+SATI: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATI },
         { "+SATN: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationSATN },
         { "+SATF: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseTermRespConfirm },
-        { "+XLOCK: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "+XLOCK: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLOCK },
         { "+XSIM: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIM },
         { "+XLEMA: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLEMA },
         { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
@@ -742,14 +742,46 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
     m_nXSIMStatePrev = nSIMState;
 
 
-    //  Flag as unrecognized.
-    pResponse->SetUnrecognizedFlag(TRUE);
+    //  France team didn't like the unrecognized log message here even though it is ok
+    //  and functionally does the same thing.
+    //pResponse->SetUnrecognizedFlag(TRUE);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     fRet = TRUE;
 Error:
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIM() - Exit\r\n");
     return fRet;
 }
+
+
+//  This can be flagged as unrecognized or just parse as normal.
+//  France team didn't like unrecognized log message, even though we ignore XLOCK.
+BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseXLOCK() - Enter\r\n");
+
+    BOOL fRet = FALSE;
+
+    // Skip to the next <postfix>
+    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Walk back over the <CR>
+    rszPointer -= strlen(g_szNewLine);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseXLOCK() - Exit\r\n");
+    return fRet;
+}
+
 
 BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const BYTE*& rszPointer)
 {
@@ -842,7 +874,7 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const BYTE*& rszPointer)
 
     fRet = TRUE;
 Error:
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIM() - Exit\r\n");
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseXLEMA() - Exit\r\n");
     return fRet;
 }
 

@@ -195,9 +195,9 @@ void * ChannelCommandThreadStart(void * pVoid)
 
     if (pChannel)
     {
-        RIL_LOG_INFO("ChannelCommandThreadStart : chnl=[%d] Entering, pChannel=0x%X\r\n", pChannel->GetRilChannel(), pChannel);
+        RIL_LOG_INFO("ChannelCommandThreadStart() : chnl=[%d] Entering, pChannel=0x%X\r\n", pChannel->GetRilChannel(), pChannel);
         pChannel->CommandThread();
-        RIL_LOG_INFO("ChannelCommandThreadStart : chnl=[%d] THREAD IS EXITING\r\n", pChannel->GetRilChannel());
+        RIL_LOG_INFO("ChannelCommandThreadStart() : chnl=[%d] THREAD IS EXITING\r\n", pChannel->GetRilChannel());
     }
 
     RIL_LOG_VERBOSE("ChannelCommandThreadStart() - Exit\r\n");
@@ -221,9 +221,9 @@ void * ChannelResponseThreadStart(void * pVoid)
 
     if (pChannel)
     {
-        RIL_LOG_INFO("ChannelResponseThreadStart : chnl=[%d] Entering, pChannel=0x%X\r\n", pChannel->GetRilChannel(), pChannel);
+        RIL_LOG_INFO("ChannelResponseThreadStart() : chnl=[%d] Entering, pChannel=0x%X\r\n", pChannel->GetRilChannel(), pChannel);
         pChannel->ResponseThread();
-        RIL_LOG_INFO("ChannelResponseThreadStart : chnl=[%d] THREAD IS EXITING\r\n", pChannel->GetRilChannel());
+        RIL_LOG_INFO("ChannelResponseThreadStart() : chnl=[%d] THREAD IS EXITING\r\n", pChannel->GetRilChannel());
     }
 
     RIL_LOG_VERBOSE("ChannelResponseThreadStart() - Exit\r\n");
@@ -239,7 +239,7 @@ BOOL CChannelBase::StartChannelThreads()
     m_pCmdThread = new CThread(ChannelCommandThreadStart, (void*)this, THREAD_FLAGS_JOINABLE, 0);
     if (!m_pCmdThread)
     {
-        RIL_LOG_CRITICAL("StartChannelThreads() - ERROR: Unable to launch command thread\r\n");
+        RIL_LOG_CRITICAL("CChannelBase::StartChannelThreads() - ERROR: Unable to launch command thread\r\n");
         goto Done;
     }
 
@@ -247,14 +247,14 @@ BOOL CChannelBase::StartChannelThreads()
     m_pReadThread = new CThread(ChannelResponseThreadStart, (void*)this, THREAD_FLAGS_JOINABLE, 0);
     if (!m_pReadThread)
     {
-        RIL_LOG_CRITICAL("StartChannelThreads() - ERROR: Unable to launch response thread\r\n");
+        RIL_LOG_CRITICAL("CChannelBase::StartChannelThreads() - ERROR: Unable to launch response thread\r\n");
         goto Done;
     }
 
     // Switch the read thread into higher priority (to guarantee that the module's in buffer doesn't get overflown)
     if (!CThread::SetPriority(m_pReadThread, THREAD_PRIORITY_LEVEL_HIGH))
     {
-        //RIL_LOG_WARNING("LaunchThreads() : WARN : Unable to raise priority of read thread!!\r\n");
+        //RIL_LOG_WARNING("CChannelBase::StartChannelThreads() : WARN : Unable to raise priority of read thread!!\r\n");
     }
 
     bResult = TRUE;
@@ -447,7 +447,7 @@ BOOL CChannelBase::WaitForCommand()
 BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 {
     RIL_LOG_VERBOSE("CChannelBase::SendModemConfigurationCommands() - Enter\r\n");
-    RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands : chnl=[%d] index=[%d]\r\n", m_uiRilChannel, eInitIndex);
+    RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : chnl=[%d] index=[%d]\r\n", m_uiRilChannel, eInitIndex);
 
     BYTE*        szInit;
     const UINT32 szInitLen = MAX_BUFFER_SIZE;
@@ -460,20 +460,20 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     szInit = new BYTE[szInitLen];
     if (!szInit)
     {
-        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Out of memory\r\n");
+        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Out of memory\r\n");
         goto Done;
     }
     szInit[0] = NULL;
 
     if (eInitIndex >= COM_MAX_INDEX)
     {
-        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Invalid index [%d]\r\n", eInitIndex);
+        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Invalid index [%d]\r\n", eInitIndex);
         goto Done;
     }
 
     if (NULL == m_prisdModuleInit)
     {
-        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : m_prisdModuleInit was NULL!\r\n");
+        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : m_prisdModuleInit was NULL!\r\n");
         goto Done;
     }
 
@@ -484,12 +484,12 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     {
         if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp))
         {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Concat szTemp failed\r\n");
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szTemp failed\r\n");
             goto Done;
         }
         if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
         {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Concat szTemp | failed\r\n");
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szTemp | failed\r\n");
             goto Done;
         }
     }
@@ -498,7 +498,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 
     if (NULL == m_prisdModuleInit[eInitIndex].szCmd)
     {
-        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : m_prisdModuleInit[%d].szCmd was NULL!\r\n", eInitIndex);
+        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : m_prisdModuleInit[%d].szCmd was NULL!\r\n", eInitIndex);
         goto Done;
     }
 
@@ -506,7 +506,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     {
         if (!ConcatenateStringNullTerminate(szInit, szInitLen, m_prisdModuleInit[eInitIndex].szCmd))
         {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Concat szCmd failed  eInitIndex=[%d]r\n", eInitIndex);
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szCmd failed  eInitIndex=[%d]r\n", eInitIndex);
             goto Done;
         }
     }
@@ -517,17 +517,17 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     {
         if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
         {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Concat | failed  eInitIndex=[%d]\r\n", eInitIndex);
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed  eInitIndex=[%d]\r\n", eInitIndex);
             goto Done;
         }
         if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp))
         {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands : Concat szTemp failed  eInitIndex=[%d]\r\n", eInitIndex);
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szTemp failed  eInitIndex=[%d]\r\n", eInitIndex);
             goto Done;
         }
     }
 
-    RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands : String [%s]\r\n", szInit);
+    RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : String [%s]\r\n", szInit);
 
     // Now go through the string and break it up into individual commands separated by a '|'
     BYTE szCmd[MAX_BUFFER_SIZE];
@@ -615,16 +615,19 @@ UINT32 CChannelBase::ResponseThread()
     UINT32       uiRead;
     UINT32       uiBlockRead = 0;
     UINT32       uiReadError = 0;
+    const UINT32 uiMAX_READERROR = 3;
 
     CThreadManager::RegisterThread();
+
+    Sleep(200);
 
     while (TRUE)
     {
         // If the error count is accumulated
         // to 3, we trigger a radio error and reboot the modem.
-        if (uiReadError >= 3)
+        if (uiReadError >= uiMAX_READERROR)
         {
-            RIL_LOG_CRITICAL("CChannel::ResponseThread() - ERROR: chnl=[%d] uiReadError > = 3! Trigger radio error!\r\n", m_uiRilChannel);
+            RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - ERROR: chnl=[%d] uiReadError > = %d! Trigger radio error!\r\n", m_uiRilChannel, uiMAX_READERROR);
             Sleep(200);
             //TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
             TriggerRadioError(eRadioError_ForceShutdown, __LINE__, __FILE__);
@@ -638,7 +641,7 @@ UINT32 CChannelBase::ResponseThread()
 
         /*
         uiBlockRead = CEvent::Wait(m_pBlockReadThreadEvent, WAIT_FOREVER);
-        RIL_LOG_VERBOSE("CChannel::ResponseThread() : DEBUG : chnl=[%d] Wait(m_hBlockReadThreadEvent) returns 0x%X", m_uiRilChannel, uiBlockRead);
+        RIL_LOG_VERBOSE("CChannelBase::ResponseThread() : DEBUG : chnl=[%d] Wait(m_hBlockReadThreadEvent) returns 0x%X", m_uiRilChannel, uiBlockRead);
 
         // See if the thread needs to terminate
         if (ISEXITSET)
@@ -649,24 +652,24 @@ UINT32 CChannelBase::ResponseThread()
         */
 
         // Wait for more data
-        RIL_LOG_VERBOSE("CChannel::ResponseThread() chnl=[%d] - Waiting for data\r\n", m_uiRilChannel);
+        RIL_LOG_VERBOSE("CChannelBase::ResponseThread() chnl=[%d] - Waiting for data\r\n", m_uiRilChannel);
         if (!WaitForAvailableData(WAIT_FOREVER))
         {
-            RIL_LOG_CRITICAL("CChannel::ResponseThread() chnl=[%d] - ERROR - Waiting for data failed!\r\n", m_uiRilChannel);
+            RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR - Waiting for data failed!\r\n", m_uiRilChannel);
             ++uiReadError;
 
             // if the port is not open, reboot
             if (!IsPortOpen())
             {
                 RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Port closed, rebooting\r\n", m_uiRilChannel);
-                Sleep(100);
+                Sleep(200);
                 //TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
                 TriggerRadioError(eRadioError_ForceShutdown, __LINE__, __FILE__);
                 break;
             }
             continue;
         }
-        RIL_LOG_VERBOSE("CChannel::ResponseThread() chnl=[%d] - Data received\r\n", m_uiRilChannel);
+        RIL_LOG_VERBOSE("CChannelBase::ResponseThread() chnl=[%d] - Data received\r\n", m_uiRilChannel);
 
         BOOL bFirstRead = TRUE;
         do
@@ -681,8 +684,9 @@ UINT32 CChannelBase::ResponseThread()
             {
                 if (bFirstRead)
                 {
-                    RIL_LOG_CRITICAL("CChannel::ResponseThread() chnl=[%d] - ERROR: Data available but uiRead is 0!\r\n", m_uiRilChannel);
+                    RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Data available but uiRead is 0!\r\n", m_uiRilChannel);
                     ++uiReadError;
+                    Sleep(100);
                 }
                 break;
             }

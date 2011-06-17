@@ -124,47 +124,45 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
     if (pCardStatus->card_state != RIL_CARDSTATE_ABSENT)
     {
         // Parse "<prefix>+XUICC: <state><postfix>"
-        if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: Could not skip response prefix.\r\n");
-            goto Error;
-        }
+        SkipRspStart(pszRsp, g_szNewLine, pszRsp);
 
         if (SkipString(pszRsp, "+XUICC: ", pszRsp))
         {
             if (!ExtractUpperBoundedUInt(pszRsp, 2, nValue, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: Invalid SIM type.\r\n");
-                goto Error;
             }
-
-            if (1 == nValue)
+            else
             {
-                RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() - SIM type = %d  detected USIM\r\n", nValue);
 
-                //  Grab setting from repository
-                CRepository repository;
-                int nUseUSIMAddress = 0;
+                if (1 == nValue)
+                {
+                    RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() - SIM type = %d  detected USIM\r\n", nValue);
 
-                //  Grab the network interface name
-                if (!repository.Read(g_szGroupRILSettings, g_szUseUSIMAddress, nUseUSIMAddress))
-                {
-                    RIL_LOG_CRITICAL("CCTE_INF_6260::ParseGetSimStatus() - Could not read UseUSIMAddress from repository\r\n");
-                }
-                else
-                {
-                    RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() - nUseUSIMAddress=[%d]\r\n", nUseUSIMAddress);
-                }
+                    //  Grab setting from repository
+                    CRepository repository;
+                    int nUseUSIMAddress = 0;
 
-                if (nUseUSIMAddress >= 1)
-                {
-                    //  Set to USIM
-                    pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
+                    //  Grab the network interface name
+                    if (!repository.Read(g_szGroupRILSettings, g_szUseUSIMAddress, nUseUSIMAddress))
+                    {
+                        RIL_LOG_CRITICAL("CCTE_INF_6260::ParseGetSimStatus() - Could not read UseUSIMAddress from repository\r\n");
+                    }
+                    else
+                    {
+                        RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() - nUseUSIMAddress=[%d]\r\n", nUseUSIMAddress);
+                    }
+
+                    if (nUseUSIMAddress >= 1)
+                    {
+                        //  Set to USIM
+                        pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
+                    }
                 }
-            }
-            else if (0 == nValue)
-            {
-                RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() - SIM type = %d  detected normal SIM\r\n", nValue);
+                else if (0 == nValue)
+                {
+                    RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() - SIM type = %d  detected normal SIM\r\n", nValue);
+                }
             }
         }
     }
@@ -192,6 +190,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     PdpData stPdpData;
+    memset(&stPdpData, 0, sizeof(PdpData));
 
     if (NULL == pData)
     {
@@ -199,12 +198,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         goto Error;
     }
 
-    //  Omit size check for Android 2.3.4.
-    //if (6 * sizeof(char*) != uiDataSize)
-    //{
-    //    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: Invalid data size. Was given %d bytes\r\n", uiDataSize);
-    //    goto Error;
-    //}
+    if (uiDataSize < (6 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: Invalid data size. Was given %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - uiDataSize=[%d]\r\n", uiDataSize);
 
 
     // extract data
@@ -214,6 +214,20 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     stPdpData.szUserName        = ((char **)pData)[3];  // not used
     stPdpData.szPassword        = ((char **)pData)[4];  // not used
     stPdpData.szPAPCHAP         = ((char **)pData)[5];  // not used
+
+    RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szRadioTechnology=[%s]\r\n", stPdpData.szRadioTechnology);
+    RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szRILDataProfile=[%s]\r\n", stPdpData.szRILDataProfile);
+    RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szApn=[%s]\r\n", stPdpData.szApn);
+    RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szUserName=[%s]\r\n", stPdpData.szUserName);
+    RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n", stPdpData.szPassword);
+    RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n", stPdpData.szPAPCHAP);
+
+
+    if (RIL_VERSION >= 4 && (uiDataSize >= (7 * sizeof(char*))))
+    {
+        stPdpData.szPDPType         = ((char **)pData)[6];  // new in Android 2.3.4.
+        RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPDPType=[%s]\r\n", stPdpData.szPDPType);
+    }
 
     // For setting up data call we need to send 2 sets of chained commands: AT+CGDCONT to define PDP Context,
     // with +CGQREQ to specify requested QoS and +CGACT to activate PDP Context; then
@@ -344,6 +358,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Cannot allocate pDataCallRsp  size=[%d]\r\n", sizeof(S_ND_SETUP_DATA_CALL));
         goto Error;
     }
+    memset(pDataCallRsp, 0, sizeof(S_ND_SETUP_DATA_CALL));
+
     sprintf(pDataCallRsp->szCID, "%d", pDataChannel->GetContextID());
     strcpy(pDataCallRsp->szNetworkInterfaceName, m_szNetworkInterfaceName);
     //strcpy(pDataCallRsp->szIPAddress, szIP);
@@ -466,23 +482,41 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
 #endif //RIL_USE_PPP
 
+
     // invoke netcfg commands
     if (!DataConfigUp(pDataChannel->m_szIpAddr, pDataChannel->m_szDNS1, pDataChannel->m_szDNS2))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Unable to set ifconfig\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Unable to set ifconfig\r\n");
         goto Error;
     }
+
+
 
 
 //     pDataCallRsp = (P_ND_SETUP_DATA_CALL)malloc(sizeof(S_ND_SETUP_DATA_CALL));
 //     sprintf(pDataCallRsp->szCID, "%d", pDataChannel->GetContextID());
 //     strcpy(pDataCallRsp->szNetworkInterfaceName, m_szNetworkInterfaceName);
-     strcpy(pDataCallRsp->szIPAddress, szIP);
+    strcpy(pDataCallRsp->szIPAddress, szIP);
 //     pDataCallRsp->sSetupDataCallPointers.pszCID = pDataCallRsp->szCID;
 //     pDataCallRsp->sSetupDataCallPointers.pszNetworkInterfaceName = pDataCallRsp->szNetworkInterfaceName;
-     pDataCallRsp->sSetupDataCallPointers.pszIPAddress = pDataCallRsp->szIPAddress;
-     rRspData.pData = (void*)pDataCallRsp;
-     rRspData.uiDataSize = sizeof(S_ND_SETUP_DATA_CALL_POINTERS);
+    pDataCallRsp->sSetupDataCallPointers.pszIPAddress = pDataCallRsp->szIPAddress;
+
+
+    //  New for Android 2.3.4 - TODO: Implement for Android 3.0.
+    pDataCallRsp->sSetupDataCallPointers.pszDNS = NULL;
+    pDataCallRsp->sSetupDataCallPointers.pszGateway = NULL;
+
+
+    rRspData.pData = (void*)pDataCallRsp;
+
+    if (RIL_VERSION >= 4)
+    {
+        rRspData.uiDataSize = sizeof(S_ND_SETUP_DATA_CALL_POINTERS);
+    }
+    else
+    {
+        rRspData.uiDataSize = 3 * sizeof(char *);
+    }
     res = RRIL_RESULT_OK;
 
 Error:
@@ -674,14 +708,16 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
 
    // TODO retrieve gateway from the modem with XDNS?
 
-    if (defaultGatewayStr == NULL) {
+    if (defaultGatewayStr == NULL)
+    {
         in_addr_t gw;
         struct in_addr gwaddr;
-    in_addr_t addr;
+        in_addr_t addr;
 
-        RIL_LOG_INFO("set default gateway to fake value");
-        if (inet_pton(AF_INET, szIpAddr, &addr) <= 0) {
-            RIL_LOG_INFO("inet_pton() failed for %s!", szIpAddr);
+        RIL_LOG_INFO("DataConfigUp() : set default gateway to fake value");
+        if (inet_pton(AF_INET, szIpAddr, &addr) <= 0)
+        {
+            RIL_LOG_INFO("DataConfigUp() : inet_pton() failed for %s!", szIpAddr);
             goto Error;
         }
         gw = ntohl(addr) & 0xFFFFFF00;
@@ -690,9 +726,10 @@ BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
         gwaddr.s_addr = htonl(gw);
 
         defaultGatewayStr = strdup(inet_ntoa(gwaddr));
-}
+    }
 
-    if (defaultGatewayStr != NULL) {
+    if (defaultGatewayStr != NULL)
+    {
         struct rtentry rt;
         memset(&rt, 0, sizeof(struct rtentry));
 
@@ -1575,33 +1612,72 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
 
             if (NULL == pSimIOArgs->data)
             {
-                if (!PrintStringNullTerminate(rReqData.szCmd2,
-                             sizeof(rReqData.szCmd2),
-                             "AT+CRSM=%d,%d,%d,%d,%d\r",
-                             pSimIOArgs->command,
-                             pSimIOArgs->fileid,
-                             pSimIOArgs->p1,
-                             pSimIOArgs->p2,
-                             pSimIOArgs->p3))
+                if(NULL == pSimIOArgs->path)
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 1\r\n");
-                    goto Error;
+                    if (!PrintStringNullTerminate(rReqData.szCmd2,
+                        sizeof(rReqData.szCmd2),
+                        "AT+CRSM=%d,%d,%d,%d,%d\r",
+                        pSimIOArgs->command,
+                        pSimIOArgs->fileid,
+                        pSimIOArgs->p1,
+                        pSimIOArgs->p2,
+                        pSimIOArgs->p3))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 1\r\n");
+                        goto Error;
+                    }
+                }
+                else
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd2,
+                                  sizeof(rReqData.szCmd2),
+                                  "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
+                                  pSimIOArgs->command,
+                                  pSimIOArgs->fileid,
+                                  pSimIOArgs->p1,
+                                  pSimIOArgs->p2,
+                                  pSimIOArgs->p3,
+                                  pSimIOArgs->path))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 2\r\n");
+                        goto Error;
+                    }
                 }
             }
             else
             {
-                if (!PrintStringNullTerminate(rReqData.szCmd2,
-                             sizeof(rReqData.szCmd2),
-                             "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
-                             pSimIOArgs->command,
-                             pSimIOArgs->fileid,
-                             pSimIOArgs->p1,
-                             pSimIOArgs->p2,
-                             pSimIOArgs->p3,
-                             pSimIOArgs->data))
+                if(NULL == pSimIOArgs->path)
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 2\r\n");
-                    goto Error;
+                    if (!PrintStringNullTerminate(rReqData.szCmd2,
+                        sizeof(rReqData.szCmd2),
+                        "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
+                        pSimIOArgs->command,
+                        pSimIOArgs->fileid,
+                        pSimIOArgs->p1,
+                        pSimIOArgs->p2,
+                        pSimIOArgs->p3,
+                        pSimIOArgs->data))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 3\r\n");
+                        goto Error;
+                    }
+                }
+                else
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd2,
+                        sizeof(rReqData.szCmd2),
+                        "AT+CRSM=%d,%d,%d,%d,%d,\"%s\",\"%s\"\r",
+                        pSimIOArgs->command,
+                        pSimIOArgs->fileid,
+                        pSimIOArgs->p1,
+                        pSimIOArgs->p2,
+                        pSimIOArgs->p3,
+                        pSimIOArgs->data,
+                        pSimIOArgs->path))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 4\r\n");
+                        goto Error;
+                    }
                 }
             }
 
@@ -1611,33 +1687,72 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
             //  Didn't have to enter PIN2
             if (NULL == pSimIOArgs->data)
             {
-                if (!PrintStringNullTerminate(rReqData.szCmd1,
-                             sizeof(rReqData.szCmd1),
-                             "AT+CRSM=%d,%d,%d,%d,%d\r",
-                             pSimIOArgs->command,
-                             pSimIOArgs->fileid,
-                             pSimIOArgs->p1,
-                             pSimIOArgs->p2,
-                             pSimIOArgs->p3))
+                if(NULL == pSimIOArgs->path)
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 3\r\n");
-                    goto Error;
+                    if (!PrintStringNullTerminate(rReqData.szCmd1,
+                        sizeof(rReqData.szCmd1),
+                        "AT+CRSM=%d,%d,%d,%d,%d\r",
+                        pSimIOArgs->command,
+                        pSimIOArgs->fileid,
+                        pSimIOArgs->p1,
+                        pSimIOArgs->p2,
+                        pSimIOArgs->p3))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 5\r\n");
+                        goto Error;
+                    }
+                }
+                else
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd1,
+                        sizeof(rReqData.szCmd1),
+                        "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
+                        pSimIOArgs->command,
+                        pSimIOArgs->fileid,
+                        pSimIOArgs->p1,
+                        pSimIOArgs->p2,
+                        pSimIOArgs->p3,
+                        pSimIOArgs->path))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 6\r\n");
+                        goto Error;
+                    }
                 }
             }
             else
             {
-                if (!PrintStringNullTerminate(rReqData.szCmd1,
-                             sizeof(rReqData.szCmd1),
-                             "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
-                             pSimIOArgs->command,
-                             pSimIOArgs->fileid,
-                             pSimIOArgs->p1,
-                             pSimIOArgs->p2,
-                             pSimIOArgs->p3,
-                             pSimIOArgs->data))
+                if(NULL == pSimIOArgs->path)
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 4\r\n");
-                    goto Error;
+                    if (!PrintStringNullTerminate(rReqData.szCmd1,
+                        sizeof(rReqData.szCmd1),
+                        "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
+                        pSimIOArgs->command,
+                        pSimIOArgs->fileid,
+                        pSimIOArgs->p1,
+                        pSimIOArgs->p2,
+                        pSimIOArgs->p3,
+                        pSimIOArgs->data))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 7\r\n");
+                        goto Error;
+                    }
+                }
+                else
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd1,
+                        sizeof(rReqData.szCmd1),
+                        "AT+CRSM=%d,%d,%d,%d,%d,\"%s\",\"%s\"\r",
+                        pSimIOArgs->command,
+                        pSimIOArgs->fileid,
+                        pSimIOArgs->p1,
+                        pSimIOArgs->p2,
+                        pSimIOArgs->p3,
+                        pSimIOArgs->data,
+                        pSimIOArgs->path))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 8\r\n");
+                        goto Error;
+                    }
                 }
             }
 
@@ -1651,33 +1766,72 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
 
         if (NULL == pSimIOArgs->data)
         {
-            if (!PrintStringNullTerminate(rReqData.szCmd1,
-                         sizeof(rReqData.szCmd1),
-                         "AT+CRSM=%d,%d,%d,%d,%d\r",
-                         pSimIOArgs->command,
-                         pSimIOArgs->fileid,
-                         pSimIOArgs->p1,
-                         pSimIOArgs->p2,
-                         pSimIOArgs->p3))
+            if(NULL == pSimIOArgs->path)
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 5\r\n");
-                goto Error;
+                if (!PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1),
+                    "AT+CRSM=%d,%d,%d,%d,%d\r",
+                    pSimIOArgs->command,
+                    pSimIOArgs->fileid,
+                    pSimIOArgs->p1,
+                    pSimIOArgs->p2,
+                    pSimIOArgs->p3))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 9\r\n");
+                    goto Error;
+                }
+            }
+            else
+            {
+                if (!PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1),
+                    "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
+                    pSimIOArgs->command,
+                    pSimIOArgs->fileid,
+                    pSimIOArgs->p1,
+                    pSimIOArgs->p2,
+                    pSimIOArgs->p3,
+                    pSimIOArgs->path))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 10\r\n");
+                    goto Error;
+                }
             }
         }
         else
         {
-            if (!PrintStringNullTerminate(rReqData.szCmd1,
-                         sizeof(rReqData.szCmd1),
-                         "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
-                         pSimIOArgs->command,
-                         pSimIOArgs->fileid,
-                         pSimIOArgs->p1,
-                         pSimIOArgs->p2,
-                         pSimIOArgs->p3,
-                         pSimIOArgs->data))
+            if(NULL == pSimIOArgs->path)
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 6\r\n");
-                goto Error;
+                if (!PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1),
+                    "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
+                    pSimIOArgs->command,
+                    pSimIOArgs->fileid,
+                    pSimIOArgs->p1,
+                    pSimIOArgs->p2,
+                    pSimIOArgs->p3,
+                    pSimIOArgs->data))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 11\r\n");
+                    goto Error;
+                }
+            }
+            else
+            {
+                if (!PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1),
+                    "AT+CRSM=%d,%d,%d,%d,%d,\"%s\",\"%s\"\r",
+                    pSimIOArgs->command,
+                    pSimIOArgs->fileid,
+                    pSimIOArgs->p1,
+                    pSimIOArgs->p2,
+                    pSimIOArgs->p3,
+                    pSimIOArgs->data,
+                    pSimIOArgs->path))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 12\r\n");
+                    goto Error;
+                }
             }
         }
     }
@@ -1971,21 +2125,44 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreDeactivateDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    char * pszCid = 0;
-    char chCid = '1';
+    char * pszCid = NULL;
+    char * pszReason = NULL;
+    int nCid = 0;
 
-    //  Omit size check for Android 2.3.4.
-    //if (sizeof(char **) != uiDataSize)
-    //{
-    //    RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
-    //    goto Error;
-    //}
+    if (uiDataSize < (1 * sizeof(char *)))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
 
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: Passed data pointer was NULL\r\n");
         goto Error;
     }
+
+    RIL_LOG_INFO("CTE_INF_6260::CoreDeactivateDataCall() - uiDataSize=[%d]\r\n", uiDataSize);
+
+    pszCid = ((char**)pData)[0];
+    if (pszCid == NULL || '\0' == pszCid[0])
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: pszCid was NULL\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_INF_6260::CoreDeactivateDataCall() - pszCid=[%s]\r\n", pszCid);
+
+    if ( (RIL_VERSION >= 4) && (uiDataSize >= (2 * sizeof(char *))) )
+    {
+        pszReason = ((char**)pData)[1];
+        if (pszReason == NULL || '\0' == pszReason[0])
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: pszReason was NULL\r\n");
+            goto Error;
+        }
+        RIL_LOG_INFO("CTE_INF_6260::CoreDeactivateDataCall() - pszReason=[%s]\r\n", pszReason);
+    }
+
 
     //  May 18,2011 - Don't call AT+CGACT=0,X if SIM was removed since context is already deactivated.
     if (RADIO_STATE_SIM_LOCKED_OR_ABSENT == g_RadioState.GetRadioState())
@@ -1997,16 +2174,21 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
     }
     else
     {
-        pszCid = ((char**)pData)[0];
-        chCid = pszCid[0];
+        //  Get CID as int.
+        if (sscanf(pszCid, "%d", &nCid) == EOF)
+        {
+            // Error
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: cannot convert %s to int\r\n", pszCid);
+            goto Error;
+        }
 
-        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%c\r", chCid))
+        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%s\r", pszCid))
         {
             res = RRIL_RESULT_OK;
         }
 
         //  Set the context of this command to the CID (for multiple context support).
-        rReqData.pContextData = (void*)((int)(chCid - '0'));  // Store this as an int.
+        rReqData.pContextData = (void*)nCid;  // Store this as an int.
     }
 
 Error:
@@ -2366,7 +2548,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDa
     // Skip "+XBANDSEL: "
     if (!FindAndSkipString(szRsp, "+XBANDSEL: ", szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetRegistrationStatus() - ERROR: Could not skip \"+XBANDSEL: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryAvailableBandMode() - ERROR: Could not skip \"+XBANDSEL: \".\r\n");
         goto Error;
     }
 
@@ -2485,7 +2667,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDa
 
     if (0 == count)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetAvailableBandModes() - ERROR: Cannot have a count of zero.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryAvailableBandMode() - ERROR: Cannot have a count of zero.\r\n");
         goto Error;
     }
 
@@ -2493,7 +2675,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDa
     pModes = (int*)malloc( (1 + count) * sizeof(int));
     if (NULL == pModes)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetAvailableBandModes() - ERROR: Could not allocate memory for response.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryAvailableBandMode() - ERROR: Could not allocate memory for response.\r\n");
         goto Error;
     }
 
@@ -3398,6 +3580,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
     {
         rRspData.pData  = NULL;
         rRspData.uiDataSize = 0;
+        free(pCellData);
+        pCellData = NULL;
     }
 
     res = RRIL_RESULT_OK;

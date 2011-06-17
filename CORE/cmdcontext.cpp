@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// cmccontext.cpp
+// cmdcontext.cpp
 //
 // Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.

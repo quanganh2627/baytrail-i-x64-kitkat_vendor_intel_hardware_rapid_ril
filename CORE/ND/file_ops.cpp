@@ -262,7 +262,7 @@ BOOL CFile::Read(void * pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
     {
         if (errno != EAGAIN)
         {
-            RIL_LOG_CRITICAL("CFile::Write() : ERROR : Error during read process!\r\n");
+            RIL_LOG_CRITICAL("CFile::Read() : ERROR : Error during read process!\r\n");
             return FALSE;
         }
 
@@ -330,7 +330,7 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
 
     if (m_file < 0)
     {
-        RIL_LOG_CRITICAL("CFile::WaitCommEvent() : ERROR : m_file was not valid");
+        RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : m_file was not valid");
         return FALSE;
     }
 

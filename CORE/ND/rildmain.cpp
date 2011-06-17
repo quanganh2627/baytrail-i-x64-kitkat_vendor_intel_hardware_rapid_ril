@@ -202,9 +202,18 @@ BOOL HandleCoreDump(int& fdGsm)
     struct pollfd fds[1] = { {0,0,0} };
     int numFds = sizeof(fds)/sizeof(fds[0]);
     int timeout_msecs = 1000;
-    int nRetries = 30, nCount = 0;  //  loop for 30 secs
+    const int COREDUMP_RETRIES = 30;
+    int nRetries = COREDUMP_RETRIES, nCount = 0;  //  loop for 30 secs
     char szProp[MAX_BUFFER_SIZE] = {0};
     char szCoreDumpProperty[] = "CMCDDLD_RC";
+
+    //  Check repository for coredump retries
+    CRepository repository;
+    if (!repository.Read(g_szGroupModem, g_szCoreDumpTimeout, nRetries))
+    {
+        nRetries = COREDUMP_RETRIES;
+    }
+    RIL_LOG_INFO("HandleCoreDump() - nRetries=[%d] sec\r\n", nRetries);
 
     //  Launch Core Dump Download Manager
     RIL_LOG_INFO("HandleCoreDump() - Launch Core dump service\r\n");
@@ -216,8 +225,8 @@ BOOL HandleCoreDump(int& fdGsm)
 
         fds[0].fd = fdGsm;
 
-        //  If we're past 30 secs, just call poll with infinite value
-        if (nCount >= 30)
+        //  If we're past nRetries secs, just call poll with infinite value
+        if (nCount >= nRetries)
         {
             timeout_msecs = -1;
         }
@@ -238,6 +247,9 @@ BOOL HandleCoreDump(int& fdGsm)
             property_get(szCoreDumpProperty, szProp, "");
 
             RIL_LOG_INFO("HandleCoreDump() - timeout! szProp=[%s]\r\n", szProp);
+
+            //  NOTE: Should check szProp value here, but according to specs the modem
+            //        should call POLLHUP by itself.
         }
         else
         {
@@ -247,7 +259,7 @@ BOOL HandleCoreDump(int& fdGsm)
                 if (fds[i].revents & POLLHUP)
                 {
                     // A hangup has occurred on device number i
-                    RIL_LOG_INFO("HandleCoreDump() - hangup event on fd[%d]\r\n", i);
+                    RIL_LOG_INFO("*****HandleCoreDump() - HANGUP event POLLHUP on fd[%d]\r\n", i);
 
                     //  Close port before triggering error
                     if (fdGsm >= 0)
@@ -1573,7 +1585,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.12 for Android 2.3 (Build June 9/2011)";
+    return "Intrinsyc Rapid-RIL M5.13 for Android 2.3 (Build June 21/2011)";
 }
 
 

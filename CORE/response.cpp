@@ -229,7 +229,7 @@ BOOL CResponse::IsCorruptResponse()
 
     if (IsCorruptFlag())
     {
-        RIL_LOG_INFO("chnl=[%d] Attempting to filter corrupt response\r\n", m_pChannel->GetRilChannel());
+        RIL_LOG_INFO("CResponse::IsCorruptResponse() : chnl=[%d] Attempting to filter corrupt response\r\n", m_pChannel->GetRilChannel());
         SetCorruptFlag(FALSE);
 
         // heuristic used is to parse everything up to the first CR.
@@ -567,7 +567,7 @@ BOOL CResponse::ParseResponse(CCommand*& rpCmd)
         rspData.cbContextData = rpCmd->GetContextDataSize();
 
 
-        RIL_LOG_VERBOSE("CResponse::ParseResponse : chnl=[%d] Calling Parsing Function\r\n", m_pChannel->GetRilChannel() );
+        RIL_LOG_VERBOSE("CResponse::ParseResponse() : chnl=[%d] Calling Parsing Function\r\n", m_pChannel->GetRilChannel() );
         resCode = (CTE::GetTE().*parser)(rspData);
 
         m_pData = rspData.pData;

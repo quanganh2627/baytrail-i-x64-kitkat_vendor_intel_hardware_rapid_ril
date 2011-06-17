@@ -354,6 +354,7 @@ BOOL ExtractQuotedStringWithAllocatedMemory(const BYTE* szStart, BYTE* &rszStrin
             rcbString = sizeof(char) * (nLen + 1);
 
             strncpy(rszString, szWalk, nLen);
+            rszString[nLen] = '\0';
             fRet = TRUE;
         }
     }

@@ -333,11 +333,11 @@ BOOL CRilResult::GetOSResponse( UINT32 & ruiRspCode,
     }
     else
     {
-        RIL_LOG_CRITICAL("CreateResponseFromResult() - ERROR: Invalid result type found: %d\r\n", resultType);
+        RIL_LOG_CRITICAL("CRilResult::GetOSResponse() - ERROR: Invalid result type found: %d\r\n", resultType);
         return fRet;
     }
 
-    RIL_LOG_INFO("CreateResponseFromResult() - INFO: Setting response rilErrno to %d\r\n", ruiRspCode);
+    RIL_LOG_INFO("CRilResult::GetOSResponse() - INFO: Setting response rilErrno to %d\r\n", ruiRspCode);
 
     fRet = TRUE;
     return fRet;

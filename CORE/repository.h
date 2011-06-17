@@ -32,7 +32,6 @@
 #include <pthread.h>
 
 
-#define MAX_REQUEST_GROUP_LENGTH  256
 #define MAX_REQUEST_ITEM_LENGTH    64
 
 
@@ -113,6 +112,7 @@ extern const char   g_szSupportedModem[];
 extern const char   g_szNetworkInterfaceName[];
 extern const char   g_szDisableModemReset[];
 extern const char   g_szDisableCoreDump[];
+extern const char   g_szCoreDumpTimeout[];
 extern const char   g_szDisableWatchdogThread[];
 extern const char   g_szRadioResetDelay[];
 extern const char   g_szRadioResetStartStmdDelay[];

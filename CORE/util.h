@@ -436,7 +436,7 @@ BOOL CQueue<Type, Size>::PeekInternal(Type*& rpItem)
 
     if (FALSE == m_fInited)
     {
-        RIL_LOG_CRITICAL("PeekInternal() - ERROR: m_fInited was FALSE\r\n");
+        RIL_LOG_CRITICAL("CQueue<Type, Size>::PeekInternal() - ERROR: m_fInited was FALSE\r\n");
         goto Error;
     }
 
@@ -444,14 +444,14 @@ BOOL CQueue<Type, Size>::PeekInternal(Type*& rpItem)
 
     if (!m_uiUsed)
     {
-        RIL_LOG_CRITICAL("PeekInternal() - ERROR: m_uiUsed was 0\r\n");
+        RIL_LOG_CRITICAL("CQueue<Type, Size>::PeekInternal() - ERROR: m_uiUsed was 0\r\n");
         goto Error;
     }
 
     rpItem = m_rgpItems[0];
     if (NULL == rpItem)
     {
-        RIL_LOG_CRITICAL("PeekInternal() - ERROR: rpItem was NULL\r\n");
+        RIL_LOG_CRITICAL("CQueue<Type, Size>::PeekInternal() - ERROR: rpItem was NULL\r\n");
         goto Error;
     }
 

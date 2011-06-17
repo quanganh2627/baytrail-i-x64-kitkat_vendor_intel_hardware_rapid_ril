@@ -312,7 +312,7 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
 
             while (g_bIsTriggerRadioError)
             {
-                RIL_LOG_INFO("In g_bIsTriggerRadioError\r\n");
+                RIL_LOG_INFO("CPort::OpenPort() - In g_bIsTriggerRadioError\r\n");
                 Sleep(250);
             }
 

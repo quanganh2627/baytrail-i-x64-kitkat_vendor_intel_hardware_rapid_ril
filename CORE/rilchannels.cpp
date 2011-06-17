@@ -1,3 +1,24 @@
+////////////////////////////////////////////////////////////////////////////
+// rilchannels.cpp
+//
+// Copyright 2011 Intrinsyc Software International, Inc.  All rights reserved.
+// Patents pending in the United States of America and other jurisdictions.
+//
+//
+// Description:
+//    Map Android AT command requests to DLC channels.
+//
+// Author:  Dennis Peter
+// Created: 2011-06-15
+//
+/////////////////////////////////////////////////////////////////////////////
+//  Modification Log:
+//
+//  Date       Who      Ver   Description
+//  ---------  -------  ----  -----------------------------------------------
+//  Jun 15/11  DP       1.00  Established v1.00 based on current code base.
+//
+/////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
 #include "rilchannels.h"
