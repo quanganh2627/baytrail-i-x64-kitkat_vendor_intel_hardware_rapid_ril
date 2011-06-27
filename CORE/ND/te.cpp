@@ -1874,11 +1874,9 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
     }
     else
     {
-#ifdef RIL_ENABLE_CHANNEL_DATA1
         RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ERROR: No free data channels available\r\n");
         res = RIL_E_GENERIC_FAILURE;
         goto Error;
-#endif
     }
 
     res = m_pTEOemInstance->OEMSetupDataCall(reqData, pData, datalen, uiCID);

@@ -182,7 +182,7 @@ BOOL CResponse::IsExtendedError(const BYTE* pszToken)
 
         // get error code
         UINT32 nCode;
-        if (!RetrieveErrorCode(szPointer, nCode))
+        if (!RetrieveErrorCode(szPointer, nCode, pszToken))
         {
             RIL_LOG_CRITICAL("CResponse::IsExtendedError() - ERROR: chnl=[%d] could not extract error code\r\n", m_pChannel->GetRilChannel());
             // treat as unrecognized - discard everything until the CR LF or end of buffer
@@ -508,7 +508,7 @@ Error:
     return bRet;
 }
 
-BOOL CResponse::RetrieveErrorCode(const BYTE*& rszPointer, UINT32 &nCode)
+BOOL CResponse::RetrieveErrorCode(const BYTE*& rszPointer, UINT32 &nCode, const BYTE *pszToken)
 {
     RIL_LOG_VERBOSE("CResponse::RetrieveErrorCode() - Enter\r\n");
     RIL_RESULT_CODE resCode = RIL_E_GENERIC_FAILURE;
@@ -533,7 +533,7 @@ BOOL CResponse::RetrieveErrorCode(const BYTE*& rszPointer, UINT32 &nCode)
     SetErrorCode(nCode);
     SetUnsolicitedFlag(FALSE);
 
-    RIL_LOG_INFO("CResponse::RetrieveErrorCode() : Result: 0x%X   CME Error: %d\r\n", m_uiResultCode, nCode);
+    RIL_LOG_INFO("CResponse::RetrieveErrorCode() : Result: 0x%X   %s %d\r\n", m_uiResultCode, pszToken, nCode);
 
     bRet = TRUE;
 

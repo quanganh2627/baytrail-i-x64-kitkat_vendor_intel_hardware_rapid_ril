@@ -33,7 +33,7 @@ extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
 //  GPRS/UMTS management (GPRS attach/detach), network commands
-INITSTRING_DATA DLC2BasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1" };
+INITSTRING_DATA DLC2BasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+CREG=2|+CGREG=2" };
 INITSTRING_DATA DLC2UnlockInitString  = { "" };
 INITSTRING_DATA DLC2PowerOnInitString = { "" };
 INITSTRING_DATA DLC2ReadyInitString   = { "" };

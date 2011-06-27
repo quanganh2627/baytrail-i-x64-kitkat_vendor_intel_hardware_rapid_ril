@@ -72,6 +72,12 @@ BOOL CPort::Open(const BYTE * pszFileName, BOOL fIsSocket)
     RIL_LOG_VERBOSE("CPort::Open() - Enter  fIsSocket=[%d]\r\n", fIsSocket);
     BOOL fRet = FALSE;
 
+    if (NULL == pszFileName)
+    {
+        RIL_LOG_CRITICAL("CPort::Open() - ERROR: pszFileName is NULL!\r\n");
+        return FALSE;
+    }
+
     if (!m_fIsPortOpen)
     {
         if (NULL == m_pFile)

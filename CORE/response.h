@@ -90,7 +90,7 @@ private:
     BOOL    IsCorruptResponse();
     BOOL    IsOkResponse();
     BOOL    IsErrorResponse();
-    BOOL    RetrieveErrorCode(const BYTE*& rszPointer,  UINT32 &nCode);
+    BOOL    RetrieveErrorCode(const BYTE*& rszPointer,  UINT32 &nCode, const BYTE* pszToken);
     BOOL    IsConnectResponse();
     BOOL    IsNoCarrierResponse();
     BOOL    IsAbortedResponse();

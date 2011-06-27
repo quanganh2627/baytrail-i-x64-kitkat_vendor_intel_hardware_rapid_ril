@@ -34,6 +34,9 @@ public:
     CChannel_ATCmd(UINT32 uiChannel);
     virtual ~CChannel_ATCmd();
 
+    //  public port interface
+    BOOL    OpenPort();
+
 protected:
     BOOL    FinishInit();
     BOOL    AddSilos();

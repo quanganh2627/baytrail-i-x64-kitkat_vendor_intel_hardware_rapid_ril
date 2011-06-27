@@ -1585,7 +1585,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.13 for Android 2.3 (Build June 21/2011)";
+    return "Intrinsyc Rapid-RIL M5.14 for Android 2.3 (Build June 23/2011)";
 }
 
 
@@ -1867,7 +1867,17 @@ void TriggerRadioErrorAsync(eRadioError eRadioErrorVal, UINT32 uiLineNum, const 
 
 static void usage(char *szProgName)
 {
-    fprintf(stderr, "RapidRIL requires: -a /dev/at_tty_device -d /dev/data_tty_device\n");
+    fprintf(stderr, "RapidRIL requires:\n");
+    fprintf(stderr, "    -a <Call and Misc AT command port>\n");
+    fprintf(stderr, "    -n <Network AT command port>\n");
+    fprintf(stderr, "    -m <SMS, Supp Service, Call Setting AT command port>\n");
+    fprintf(stderr, "    -c <SIM related, SIM Toolkit AT command port>\n");
+    fprintf(stderr, "    -u <Notification channel>\n");
+    fprintf(stderr, "    -d <PDP Primary Context - data channel 1>\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Example in init.rc file:\n");
+    fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12 -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1 -d /dev/gsmtty3\n", szProgName);
+    fprintf(stderr, "\n");
 }
 
 static bool RIL_SetGlobals(int argc, char **argv)
@@ -1927,11 +1937,8 @@ static bool RIL_SetGlobals(int argc, char **argv)
         }
     }
 
-#ifdef RIL_ENABLE_CHANNEL_DATA1
-    if (! g_szCmdPort || ! g_szDataPort1)
-#else  // RIL_ENABLE_CHANNEL_DATA1
-    if (! g_szCmdPort)
-#endif // RIL_ENABLE_CHANNEL_DATA1
+    //  RIL will not function without all ports defined
+    if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1)
     {
         usage(argv[0]);
         return false;

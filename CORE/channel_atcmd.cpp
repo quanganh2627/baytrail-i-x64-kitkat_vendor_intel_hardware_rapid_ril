@@ -28,6 +28,9 @@
 #include "channel_atcmd.h"
 #include "silo_factory.h"
 
+extern BYTE* g_szCmdPort;
+extern BOOL  g_bIsSocket;
+
 //  Com init strings for this channel.
 //  Call control commands, misc commands
 
@@ -51,6 +54,22 @@ CChannel_ATCmd::~CChannel_ATCmd()
     m_prisdModuleInit = NULL;
 
 }
+
+//  Override from base class
+BOOL CChannel_ATCmd::OpenPort()
+{
+    BOOL bRetVal = FALSE;
+
+    RIL_LOG_INFO("CChannel_ATCmd::OpenPort() - Opening COM Port: %s...\r\n", g_szCmdPort);
+    RIL_LOG_INFO("CChannel_ATCmd::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
+
+    bRetVal = m_Port.Open(g_szCmdPort, g_bIsSocket);
+
+    RIL_LOG_INFO("CChannel_ATCmd::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
+
+    return bRetVal;
+}
+
 
 BOOL CChannel_ATCmd::FinishInit()
 {

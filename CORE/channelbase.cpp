@@ -892,24 +892,6 @@ Done:
 
 }
 
-BOOL CChannelBase::OpenPort()
-{
-    BOOL bRetVal = FALSE;
-
-    RIL_LOG_INFO("CChannelBase::OpenPort() - Opening COM Port=[%s]  g_bIsSocket=[%d]\r\n", (g_szCmdPort ? g_szCmdPort : "NULL") , g_bIsSocket);
-
-    if (NULL == g_szCmdPort)
-    {
-        RIL_LOG_CRITICAL("CChannelBase::OpenPort() - g_szCmdPort is NULL!\r\n");
-        return FALSE;
-    }
-    bRetVal = m_Port.Open(g_szCmdPort, g_bIsSocket);
-
-    RIL_LOG_INFO("CChannelBase::OpenPort() - Opening COM Port: %s\r\n", (bRetVal ? "SUCCESS" : "FAILED!") );
-
-    return bRetVal;
-}
-
 BOOL CChannelBase::InitPort()
 {
     return m_Port.Init();

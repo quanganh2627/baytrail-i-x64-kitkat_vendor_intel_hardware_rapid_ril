@@ -575,13 +575,13 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const BYTE* &rszPointe
 
     if (szDummy != NULL)
     {
-        pResponse->SetUnrecognizedFlag(TRUE);
+        //pResponse->SetUnrecognizedFlag(TRUE);
         RIL_requestTimedCallback(triggerDeactivateDataCall, NULL, 0, 0);
     }
     else
     {
         //  Flag as unrecognized.
-        pResponse->SetUnrecognizedFlag(TRUE);
+        //pResponse->SetUnrecognizedFlag(TRUE);
 
         //  Trigger data call list changed
         //RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Called timed callback  START\r\n");
@@ -626,7 +626,7 @@ BOOL CSilo_Network::ParseXCGEDPAGE(CResponse *const pResponse, const BYTE* &rszP
     rszPointer -= strlen(g_szNewLine);
 
     //  Flag as unrecognized.
-    pResponse->SetUnrecognizedFlag(TRUE);
+    //pResponse->SetUnrecognizedFlag(TRUE);
 
 
     bRet = TRUE;

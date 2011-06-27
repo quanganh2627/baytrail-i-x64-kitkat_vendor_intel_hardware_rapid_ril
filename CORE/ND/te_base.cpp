@@ -403,6 +403,14 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
 
+    /*
+     * Android Telephony framework expects the change in radio state
+     * inorder to trigger the GET_SIM_STATUS and QUERY_FACILITY_LOCK
+     * requests. Based on the value returned by those requests,
+     * sim lock status is updated in the UI
+     */
+    g_RadioState.SetRadioSIMLocked();
+
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
     {
@@ -2321,9 +2329,9 @@ RIL_RESULT_CODE CTEBase::CoreDtmf(REQUEST_DATA & rReqData, void * pData, UINT32 
     tone = ((char *)pData)[0];
 
     //  Need to stop any outstanding tone first.
-    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XVTS=\r", sizeof(rReqData.szCmd1)))
+    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XVTS\r", sizeof(rReqData.szCmd1)))
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreDtmf() - ERROR: Unable to write XVTS= string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDtmf() - ERROR: Unable to write XVTS string to buffer\r\n");
         goto Error;
     }
 
@@ -4826,7 +4834,7 @@ RIL_RESULT_CODE CTEBase::CoreDtmfStop(REQUEST_DATA & rReqData, void * pData, UIN
     RIL_LOG_VERBOSE("CTEBase::CoreDtmfStop() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XVTS=\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XVTS\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -6919,124 +6927,14 @@ RIL_RESULT_CODE CTEBase::ParseSetSmscAddress(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreReportSmsMemoryStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CTEBase::CoreReportSmsMemoryStatus() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPMS?\r"))
-    {
-        res = RRIL_RESULT_OK;
-    }
-
-Error:
-    RIL_LOG_VERBOSE("CTEBase::CoreReportSmsMemoryStatus() - Exit\r\n");
-    return res;
+    RIL_LOG_VERBOSE("CTEBase::CoreReportSmsMemoryStatus() - Enter / Exit\r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED;
 }
 
 RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseReportSmsMemoryStatus() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    const BYTE* szRsp = rRspData.szResponse;
-    const int nMaxStorageStringLen = 5;
-    char szMem1[nMaxStorageStringLen] = {0};
-    char szMem2[nMaxStorageStringLen] = {0};
-    char szMem3[nMaxStorageStringLen] = {0};
-    unsigned int nUsed1 = 0, nUsed2 = 0, nUsed3 = 0;
-    unsigned int nTotal1 = 0, nTotal2 = 0, nTotal3 = 0;
-
-    int* pStorageIsAvailable = (int*)malloc(sizeof(int));
-    if (NULL == pStorageIsAvailable)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not allocate memory for an int.\r\n");
-        goto Error;
-    }
-    memset(pStorageIsAvailable, 0x01, sizeof(int));
-
-    // Parse "<prefix>+CPMS: <mem1>,<used1>,<total1>,<mem2>,<used2>,<total2>,<mem3>,<used3>,<total3><postfix>"
-
-    //  Parse beginning
-    if (!SkipRspStart(szRsp, g_szNewLine, szRsp) ||
-        !SkipString(szRsp, "+CPMS: ", szRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract +CPMS: string.\r\n");
-        goto Error;
-    }
-
-    //  Parse <mem1>,<used1>,<total1>
-    if (!ExtractQuotedString(szRsp, szMem1, nMaxStorageStringLen, szRsp) ||
-        !SkipString(szRsp, ",", szRsp) ||
-        !ExtractUInt(szRsp, nUsed1, szRsp) ||
-        !SkipString(szRsp, ",", szRsp) ||
-        !ExtractUInt(szRsp, nTotal1, szRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract set 1 data.\r\n");
-        goto Error;
-    }
-
-    //  Parse ","
-    if (!SkipString(szRsp, ",", szRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract set 1 comma.\r\n");
-        goto Error;
-    }
-
-    //  Parse <mem2>,<used2>,<total2>
-    if (!ExtractQuotedString(szRsp, szMem2, nMaxStorageStringLen, szRsp) ||
-        !SkipString(szRsp, ",", szRsp) ||
-        !ExtractUInt(szRsp, nUsed2, szRsp) ||
-        !SkipString(szRsp, ",", szRsp) ||
-        !ExtractUInt(szRsp, nTotal2, szRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract set 2 data.\r\n");
-        goto Error;
-    }
-
-    //  Parse ","
-    if (!SkipString(szRsp, ",", szRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract set 2 comma.\r\n");
-        goto Error;
-    }
-
-    //  Parse <mem3>,<used3>,<total3>
-    if (!ExtractQuotedString(szRsp, szMem3, nMaxStorageStringLen, szRsp) ||
-        !SkipString(szRsp, ",", szRsp) ||
-        !ExtractUInt(szRsp, nUsed3, szRsp) ||
-        !SkipString(szRsp, ",", szRsp) ||
-        !ExtractUInt(szRsp, nTotal3, szRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseReportSmsMemoryStatus() - ERROR: Could not extract set 3 data.\r\n");
-        goto Error;
-    }
-
-    //  Determine if storage is available.
-    //  Not sure if this is correct, but if any of the <usedX> = <totalX>, then full.
-    if ( (nUsed1 >= nTotal1) || (nUsed2 >= nTotal2) || (nUsed3 >= nTotal3) )
-    {
-        ((int *)pStorageIsAvailable)[0] = 0;
-    }
-    else
-    {
-        ((int *)pStorageIsAvailable)[0] = 1;
-    }
-
-    res = RRIL_RESULT_OK;
-
-    rRspData.pData   = (void*)pStorageIsAvailable;
-    rRspData.uiDataSize  = sizeof(int*);
-
-Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pStorageIsAvailable);
-        pStorageIsAvailable = NULL;
-    }
-
-
-    RIL_LOG_VERBOSE("CTEBase::ParseReportSmsMemoryStatus() - Exit\r\n");
-    return res;
+    RIL_LOG_VERBOSE("CTEBase::ParseReportSmsMemoryStatus() - Enter / Exit\r\n");
+    return RRIL_RESULT_OK;
 }
 
 //

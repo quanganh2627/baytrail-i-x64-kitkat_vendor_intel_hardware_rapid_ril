@@ -71,7 +71,7 @@ public:
     BOOL            SendModemConfigurationCommands(eComInitIndex eInitIndex);
 
     // Public port interface
-    virtual BOOL    OpenPort();
+    virtual BOOL    OpenPort() = 0;
     BOOL            InitPort();
     BOOL            ClosePort();
     int             GetFD() { return m_Port.GetFD(); };

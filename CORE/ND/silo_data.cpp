@@ -219,7 +219,7 @@ BOOL CSilo_Data::ParseXCGEDPAGE(CResponse *const pResponse, const BYTE* &rszPoin
     rszPointer -= strlen(g_szNewLine);
 
     //  Flag as unrecognized.
-    pResponse->SetUnrecognizedFlag(TRUE);
+    //pResponse->SetUnrecognizedFlag(TRUE);
 
 
     bRet = TRUE;

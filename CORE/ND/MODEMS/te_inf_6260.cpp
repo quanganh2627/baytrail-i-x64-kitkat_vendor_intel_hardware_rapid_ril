@@ -3728,3 +3728,33 @@ Error:
     RIL_LOG_INFO("CTE_INF_6260::ParseQueryTtyMode() - Exit\r\n");
     return res;
 }
+
+//
+// RIL_REQUEST_REPORT_SMS_MEMORY_STATUS 102
+//
+RIL_RESULT_CODE CTE_INF_6260::CoreReportSmsMemoryStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CoreReportSmsMemoryStatus - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    int nSmsMemoryStatus = 0;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreReportSmsMemoryStatus() - ERROR: Data pointer is NULL\r\n");
+        goto Error;
+    }
+
+    nSmsMemoryStatus = ((int *)pData)[0];
+
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            ((nSmsMemoryStatus == 1) ? "AT+XTESM=0\r" : "AT+XTESM=1\r")) )
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::CoreReportSmsMemoryStatus() - Exit\r\n");
+    return res;
+}
+
