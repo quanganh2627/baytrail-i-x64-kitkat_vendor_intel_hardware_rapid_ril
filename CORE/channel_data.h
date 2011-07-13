@@ -33,7 +33,12 @@ public:
     CChannel_Data(UINT32 uiChannel);
     virtual ~CChannel_Data();
 
+private:
+    //  Prevent assignment: Declared but not implemented.
+    CChannel_Data(const CChannel_Data& rhs);  // Copy Constructor
+    CChannel_Data& operator=(const CChannel_Data& rhs);  //  Assignment operator
 
+public:
     //  public port interface
     BOOL    OpenPort();
 

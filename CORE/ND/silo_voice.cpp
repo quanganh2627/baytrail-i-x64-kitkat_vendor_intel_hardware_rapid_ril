@@ -256,7 +256,8 @@ BOOL CSilo_Voice::ParseCallWaitingInfo(CResponse* const pResponse, const BYTE*& 
         goto Error;
     }
     memset(pszTempBuffer, 0, szDummy-rszPointer+1);
-    strncpy(pszTempBuffer, rszPointer, (szDummy-rszPointer+1) - strlen(pszTempBuffer) - 1);
+    strncpy(pszTempBuffer, rszPointer, szDummy-rszPointer);
+    pszTempBuffer[szDummy-rszPointer] = '\0';  // Klokworks fix
 
     //  Loop and count parameters
     szDummy = pszTempBuffer;

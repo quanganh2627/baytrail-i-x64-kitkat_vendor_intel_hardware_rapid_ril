@@ -35,6 +35,11 @@ private:
     CTE();
     ~CTE();
 
+    //  Prevent assignment: Declared but not implemented.
+    CTE(const CTE& rhs);  // Copy Constructor
+    CTE& operator=(const CTE& rhs);  //  Assignment operator
+
+
     static CTE*         m_pTEInstance;
 
     static const UINT32 m_uiMaxModemNameLen = 64;

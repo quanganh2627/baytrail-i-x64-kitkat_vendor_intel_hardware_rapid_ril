@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// silo_network.h                       
+// silo_network.h
 //
 // Copyright 2005-2007 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
@@ -64,12 +64,16 @@ protected:
     //  Parse notification functions here.
     virtual BOOL    ParseRegistrationStatus(CResponse* const pResponse, const BYTE*& rszPointer, BOOL const bGPRS);
     virtual BOOL    ParseCTZV(CResponse* const pResponse, const BYTE*& rszPointer);
-    //virtual BOOL    ParseCTZDST(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseCTZDST(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseCREG(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseCGREG(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseXREG(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseCGEV(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseXCGEDPAGE(CResponse* const pResponse, const BYTE*& rszPointer);
+
+    //  Fix NITZ time-zone DST issue (store potential NITZ string here
+    char m_szNITZ[MAX_BUFFER_SIZE];
+
 };
 
 #endif // RRIL_SILO_NETWORK_H

@@ -61,6 +61,12 @@ public:
     CChannelBase(UINT32 uiChannel);
     virtual ~CChannelBase();
 
+private:
+    //  Prevent assignment: Declared but not implemented.
+    CChannelBase(const CChannelBase& rhs);  // Copy Constructor
+    CChannelBase& operator=(const CChannelBase& rhs);  //  Assignment operator
+
+public:
     //  Init functions
     BOOL            InitChannel();
     BOOL            StartChannelThreads();

@@ -1,6 +1,335 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+
+July 12, 2011 (M5.16 release for Medfield CDK)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
+Android version 2.3.4 (Gingerbread).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was tested with Intel's external ABSP dated May 18, 2011.
+- We are using the HSI interface.
+
+KBoot: kboot.mfld_cdk.2011.0518.2014.bin
+IFWI: IFWI_vB0.19-HSI_FSTK226_IA_00.3A_IASupp_00.3A_SCU_vB0.30_Punit_1.1D_VH_0.4C_XML_vB0.27_extapp_0.830_iChache_0.800_resident_0.800.bin
+Misc Module: Signed_PNW_B0_FWR_DnX_FD.15.bin
+OS Recovery Module: Signed_PNW_B0_OSR_DnX_0D.35.bin
+Modem Firmware: SUNRISE_SMB_REV30_V1.1_1119.B_signed_MIPI_HSI.fls
+Modem: Rev2
+
+
+Release Notes for M5.16
+=======================
+
+1. Modify comments in repository.txt and remove values that are not used anymore.
+
+2. NITZ: (Leftover from Bugzilla 4017)
+   -Use +CTZDST notification to inform Android of correct timezone and DST values.
+   -Settings -> Date & Time (should have correct timezone listed)
+
+3. Fix Klokwork "critical" errors.
+   -Ensure NULL terminated strings.
+   -Add copy constructors and operator overload functions to classes.
+
+4. Add "Operator Name" patch (from Jack)
+   -Use +XCOPS instead of +COPS
+
+5. Fix TriggerRadioError() issue when TriggerRadioError() is called when a
+   Core Dump is currently active.
+
+6. Add Copyright header to OEM/ND/oem_android_init.cpp file.
+
+7. In WatchdogThreadProc(), if poll() returns an error, sleep() then call
+   poll() again.  The sleep() is set to 250ms.
+
+
+Known ABSP/modem Issues:
+=========================
+- During a voice call, a clicking noise is heard every half a second.  This only
+  seems to happen with the device.
+- Conference call, DTMF tones.  Ensure DTMF tones working.
+  FAIL.  AT command returns OK, DTMF tone sounds like static.
+- General Dialer UI sluggishness during conference call and DTMF screen.
+
+
+Testing results:  (tested with HSI interface)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS (conditional)
+   NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
+         technologies.  This causes RIL to re-init because it assumes someone
+         inserted a new SIM card (part of hot swappable SIM feature).  The
+         '+XSIM: 0' notification should not be sent because the SIM was never
+         removed from the device.  A side effect of this is that the modem
+         sometimes does not register with a network again.
+   NOTE: A hardware modification will fix this bug (not implmented for test)
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS (conditional)
+   NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
+         technologies.  This causes RIL to re-init because it assumes someone
+         inserted a new SIM card (part of hot swappable SIM feature).  The
+         '+XSIM: 0' notification should not be sent because the SIM was never
+         removed from the device.  A side effect of this is that the modem
+         sometimes does not register with a network again.
+   NOTE: A hardware modification will fix this bug (not implmented for test)
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+    NOTE: General UI sliggishness in DTMF UI screen.
+    NOTE: Cannot test with AT+XVTS to stop tone with my current setup.
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns OK, DTMF tone sounds like static.
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+July 7, 2011 (M5.15 release for Medfield CDK)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
+Android version 2.3.4 (Gingerbread).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was tested with Intel's external ABSP dated May 18, 2011.
+- We are using the HSI interface.
+
+KBoot: kboot.mfld_cdk.2011.0518.2014.bin
+IFWI: IFWI_vB0.19-HSI_FSTK226_IA_00.3A_IASupp_00.3A_SCU_vB0.30_Punit_1.1D_VH_0.4C_XML_vB0.27_extapp_0.830_iChache_0.800_resident_0.800.bin
+Misc Module: Signed_PNW_B0_FWR_DnX_FD.15.bin
+OS Recovery Module: Signed_PNW_B0_OSR_DnX_0D.35.bin
+Modem Firmware: SUNRISE_SMB_REV30_V1.1_1119.B_signed_MIPI_HSI.fls
+Modem: Rev2
+
+
+Release Notes for M5.15
+=======================
+
+1. Bugzilla 4407: Improve radio on/off state handling
+   -Remove AT+CFUN=X sleeps from RIL code and repository. (Jeevaka patch)
+
+2. Bugzilla 4618: Remove unused timer in set network code
+   -Remove dead code from AT+XRAT technology change. (Jeevaka patch)
+
+3. Patch to retreive the base-band version. (Guillaume patch)
+   -Use "at@vers:sw_version()" instead of "AT+XGENDATA"
+
+4. Bugzilla 4017: Correct NITZ errors
+   -Fix error regarding Daylight Savings Time (error in conversion from
+    local time to gmt time)
+
+5. Disable silent reset by default (in repository.txt)
+   -"DisableWatchdogThread" = 0 and "DisableModemReset" = 1
+
+6. Bugzilla 2959: Improved CoreDump handling
+   -Incorporate patch (Arun patch)
+
+7. Increase "CoreDumpTimeout" in repository.txt to 120 (previously 30) seconds.
+
+
+Known ABSP/modem Issues:
+=========================
+- During a voice call, a clicking noise is heard every half a second.  This only
+  seems to happen with the device.
+- Conference call, DTMF tones.  Ensure DTMF tones working.
+  FAIL.  AT command returns OK, DTMF tone sounds like static.
+- General Dialer UI sluggishness during conference call and DTMF screen.
+
+
+Testing results:  (tested with HSI interface)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS (conditional)
+   NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
+         technologies.  This causes RIL to re-init because it assumes someone
+         inserted a new SIM card (part of hot swappable SIM feature).  The
+         '+XSIM: 0' notification should not be sent because the SIM was never
+         removed from the device.  A side effect of this is that the modem
+         sometimes does not register with a network again.
+   NOTE: A hardware modification will fix this bug (not implmented for test)
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS (conditional)
+   NOTE: Sometimes RIL receives '+XSIM: 0' from modem in middle of switching
+         technologies.  This causes RIL to re-init because it assumes someone
+         inserted a new SIM card (part of hot swappable SIM feature).  The
+         '+XSIM: 0' notification should not be sent because the SIM was never
+         removed from the device.  A side effect of this is that the modem
+         sometimes does not register with a network again.
+   NOTE: A hardware modification will fix this bug (not implmented for test)
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+    NOTE: General UI sliggishness in DTMF UI screen.
+    NOTE: Cannot test with AT+XVTS to stop tone with my current setup.
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    FAIL.  AT command returns OK, DTMF tone sounds like static.
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 June 23, 2011 (M5.14 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,

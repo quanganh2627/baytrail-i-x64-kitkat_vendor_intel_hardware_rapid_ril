@@ -32,6 +32,13 @@ public:
     CPort();
     ~CPort();
 
+private:
+    //  Prevent assignment: Declared but not implemented.
+    CPort(const CPort& rhs);  // Copy Constructor
+    CPort& operator=(const CPort& rhs);  //  Assignment operator
+
+
+public:
     BOOL Open(const BYTE * pszFileName, BOOL fIsSocket);
     BOOL Init();
 

@@ -36,6 +36,11 @@ public:
 private:
     CThreadManager(unsigned int nChannels, CEvent *& pStopThreadsEvent);
     ~CThreadManager();
+
+    //  Prevent assignment: Declared but not implemented.
+    CThreadManager(const CThreadManager& rhs);  // Copy Constructor
+    CThreadManager& operator=(const CThreadManager& rhs);  //  Assignment operator
+
     BOOL Initialize();
     BOOL StopThreads();
     void Register();

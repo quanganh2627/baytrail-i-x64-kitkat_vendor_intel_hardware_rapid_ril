@@ -41,8 +41,9 @@ public:
     ~CResponse();
 
 private:
-    // Prevent assignement: declared but not implemented
-    CResponse& operator =(const CResponse&);
+    //  Prevent assignment: Declared but not implemented.
+    CResponse(const CResponse& rhs);  // Copy Constructor
+    CResponse& operator=(const CResponse& rhs);  //  Assignment operator
 
 public:
     static BOOL TransferData(CResponse*& rpRspIn, CResponse*& rpRspOut);

@@ -35,6 +35,12 @@ public:
     CChannel(UINT32 uiChannel);
     virtual ~CChannel();
 
+private:
+    //  Prevent assignment: Declared but not implemented.
+    CChannel(const CChannel& rhs);  // Copy Constructor
+    CChannel& operator=(const CChannel& rhs);  //  Assignment operator
+
+public:
     //  Init functions
     virtual UINT32  CommandThread()  { return CChannelBase::CommandThread(); }
     virtual UINT32  ResponseThread() { return CChannelBase::ResponseThread(); }

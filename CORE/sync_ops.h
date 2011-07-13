@@ -60,12 +60,18 @@ class CEvent;
 // all associated events. It creates observers for each event when they are added
 // and deletes them when removed. Will get signaled when any of the events watched
 // are signaled.
-class CMutipleEvent : public CMutex
+class CMultipleEvent : public CMutex
 {
     public:
-        CMutipleEvent(UINT32 nEvents);
-        ~CMutipleEvent();
+        CMultipleEvent(UINT32 nEvents);
+        ~CMultipleEvent();
 
+    private:
+        //  Prevent assignment: Declared but not implemented.
+        CMultipleEvent(const CMultipleEvent& rhs);  // Copy Constructor
+        CMultipleEvent& operator=(const CMultipleEvent& rhs);  //  Assignment operator
+
+    public:
         // Sets last signaled event and the multievent condition
         BOOL Update(int iEventIndex);
 
@@ -93,7 +99,7 @@ class CMutipleEvent : public CMutex
 class CObserver
 {
     public:
-        CObserver(CMutipleEvent* pMultipleEvent, int iEventIndex)
+        CObserver(CMultipleEvent* pMultipleEvent, int iEventIndex)
         {
             m_iEventIndex = iEventIndex;
             m_pMultipleEvent = pMultipleEvent;
@@ -104,7 +110,7 @@ class CObserver
         CObserver*     m_pNext;
         CObserver*     m_pPrev;
 
-        CMutipleEvent* m_pMultipleEvent;
+        CMultipleEvent* m_pMultipleEvent;
         int            m_iEventIndex;
 };
 
@@ -139,11 +145,11 @@ class CEvent
         BOOL Signal();
         int Wait(UINT32 uiTimeoutInMS = 0);
 
-        void CreateObserver(CMutipleEvent* pMultiEvent, int iValue);
-        void DeleteObserver(CMutipleEvent*);
+        void CreateObserver(CMultipleEvent* pMultiEvent, int iValue);
+        void DeleteObserver(CMultipleEvent*);
 
-        friend void CMutipleEvent::AddEvent(int iEventIndex , CEvent* pEvent);
-        friend void CMutipleEvent::RemoveEvent(int iEventIndex);
+        friend void CMultipleEvent::AddEvent(int iEventIndex , CEvent* pEvent);
+        friend void CMultipleEvent::RemoveEvent(int iEventIndex);
 
         BYTE *          m_szName;
         BOOL            m_fManual;

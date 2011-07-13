@@ -192,20 +192,171 @@ BOOL CheckForCoreDumpFlag(void)
     return bRet;
 }
 
+
+// This Function aggregates the actions of updating Android stack, when a reset is identified.
+static void ModemResetUpdate()
+{
+
+    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
+    RIL_LOG_CRITICAL("ModemResetUpdate() - \r\n");
+    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
+
+    RIL_LOG_INFO("ModemResetUpdate() - telling RRIL no more data\r\n");
+    extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
+    CChannel_Data* pChannelData = NULL;
+
+    for (int i = RIL_CHANNEL_DATA1; i < RIL_CHANNEL_MAX; i++)
+    {
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
+
+        CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+        if (pChannelData)
+        {
+            RIL_LOG_INFO("ModemResetUpdate() - Calling DataConfigDown(%d)\r\n", pChannelData->GetContextID());
+            DataConfigDown(pChannelData->GetContextID());
+        }
+    }
+
+    //  Tell Android no more data connection
+    RIL_LOG_INFO("ModemResetUpdate() - telling Android no more data\r\n");
+    RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
+
+
+    //  If there was a voice call active, it is disconnected.
+    //  This will cause a RIL_REQUEST_GET_CURRENT_CALLS to be sent
+    RIL_LOG_INFO("ModemResetUpdate() - telling Android no more voice calls\r\n");
+    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
+
+    RIL_LOG_INFO("ModemResetUpdate() - telling Android radio status changed\r\n");
+    g_RadioState.SetRadioUnavailable(FALSE);
+
+    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
+    RIL_LOG_CRITICAL("ModemResetUpdate() - COMPLETE\r\n");
+    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
+
+}
+
+/////////////////////////////////////////////////////////////////////////////
+static void ResetModemAndRestart(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE* lpszFileName)
+{
+    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
+    RIL_LOG_CRITICAL("ResetModemAndRestart() - ERROR: eRadioError=%d, uiLineNum=%d, lpszFileName=%hs\r\n", (int)eRadioErrorVal, uiLineNum, lpszFileName);
+    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
+
+    int iTemp = 0;
+    int iRadioResetDelay = 2000;            // Default value
+    int iRadioResetStartStmdDelay = 4000;   // Default value
+    char szCoreDumpStatus[PROPERTY_VALUE_MAX] = {0};
+    CRepository repository;
+    if (!repository.Read(g_szGroupModem, g_szDisableModemReset, iTemp))
+    {
+        iTemp = 0;
+    }
+    if (iTemp > 0)
+    {
+        //  Don't support modem reset.  Just set global flag to error out future requests.
+        RIL_LOG_CRITICAL("MODEM RESET NOT SUPPORTED - ERROR OUT FUTURE REQUESTS\r\n");
+        g_bIsModemDead = TRUE;
+        return;
+    }
+
+    //  Read timeout values from repository.
+    if (!repository.Read(g_szGroupModem, g_szRadioResetDelay, iRadioResetDelay))
+    {
+        iRadioResetDelay = 2000;
+    }
+    RIL_LOG_INFO("ResetModemAndRestart() - iRadioResetDelay=[%d]\r\n", iRadioResetDelay);
+
+    if (!repository.Read(g_szGroupModem, g_szRadioResetStartStmdDelay, iRadioResetStartStmdDelay))
+    {
+        iRadioResetStartStmdDelay = 4000;
+    }
+    RIL_LOG_INFO("ResetModemAndRestart() - iRadioResetStartStmdDelay=[%d]\r\n", iRadioResetStartStmdDelay);
+
+    //  Get FD to SPI.
+    int ret = 0;
+
+    UINT32 dwSleep = 200;
+
+    RIL_LOG_INFO("ResetModemAndRestart() - BEGIN SLEEP %d\r\n", dwSleep);
+    Sleep(dwSleep);
+    RIL_LOG_INFO("ResetModemAndRestart() - END SLEEP %d\r\n", dwSleep);
+
+    RIL_LOG_INFO("ResetModemAndRestart() - Closing channel ports\r\n");
+    CSystemManager::GetInstance().CloseChannelPorts();
+
+    dwSleep = 200;
+    RIL_LOG_INFO("ResetModemAndRestart() - BEGIN SLEEP %d  check ports are gone\r\n", dwSleep);
+    Sleep(dwSleep);
+    RIL_LOG_INFO("ResetModemAndRestart() - END SLEEP %d\r\n", dwSleep);
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+    //  Try using ctrl.stop property
+    RIL_LOG_INFO("CALLING prop ctl.stop on stmd\r\n");
+    property_set("ctl.stop","stmd");
+    RIL_LOG_INFO("Done prop ctl.stop on stmd\r\n");
+
+
+    RIL_LOG_INFO("ResetModemAndRestart() - BEGIN SLEEP %d  check stmd is gone\r\n", dwSleep);
+    Sleep(dwSleep);
+    RIL_LOG_INFO("ResetModemAndRestart() - END SLEEP %d\r\n", dwSleep);
+
+    //  NOTE that we do not want to call ifxreset when doing a modem initiated crash.
+    if (eRadioErrorVal != eRadioError_ModemInitiatedCrash)
+    {
+        //  Try using ctrl.start property
+        RIL_LOG_INFO("CALLING prop ctl.start on ifxreset\r\n");
+        property_set("ctl.start","ifxreset_svc");
+        RIL_LOG_INFO("Done prop ctl.start on ifxreset\r\n");
+
+        //  Wait for ifxreset to complete
+        RIL_LOG_INFO("ResetModemAndRestart() - BEGIN SLEEP %d\r\n", iRadioResetDelay);
+        Sleep(iRadioResetDelay);
+        RIL_LOG_INFO("ResetModemAndRestart() - END SLEEP %d\r\n", iRadioResetDelay);
+
+    }
+
+
+    //  Try using ctrl.start property
+    RIL_LOG_INFO("CALLING prop ctl.start on stmd\r\n");
+    property_set("ctl.start","stmd");
+    RIL_LOG_INFO("Done prop ctl.start on stmd\r\n");
+
+    RIL_LOG_INFO("ResetModemAndRestart() - BEGIN SLEEP %d  Wait for MUX to activate\r\n", iRadioResetStartStmdDelay);
+    Sleep(iRadioResetStartStmdDelay);
+    RIL_LOG_INFO("ResetModemAndRestart() - END SLEEP %d\r\n", iRadioResetStartStmdDelay);
+
+
+Error:
+    g_bIsTriggerRadioError = FALSE;
+
+    RIL_LOG_CRITICAL("********************************************************************\r\n");
+    RIL_LOG_CRITICAL("************ResetModemAndRestart() - CALLING EXIT ******************\r\n");
+    RIL_LOG_CRITICAL("********************************************************************\r\n");
+
+    exit(0);
+
+    RIL_LOG_CRITICAL("ResetModemAndRestart() - EXIT\r\n");
+}
+
+
 //  This function is called to handle all core dump functionality
 BOOL HandleCoreDump(int& fdGsm)
 {
     RIL_LOG_INFO("HandleCoreDump() - Enter\r\n");
 
     BOOL bRet = TRUE;
-    int nPoll = 0;
-    struct pollfd fds[1] = { {0,0,0} };
-    int numFds = sizeof(fds)/sizeof(fds[0]);
-    int timeout_msecs = 1000;
-    const int COREDUMP_RETRIES = 30;
-    int nRetries = COREDUMP_RETRIES, nCount = 0;  //  loop for 30 secs
-    char szProp[MAX_BUFFER_SIZE] = {0};
-    char szCoreDumpProperty[] = "CMCDDLD_RC";
+    int timeout_msecs = 1000; //1 sec timeout
+    const int COREDUMP_RETRIES = 120;
+    int nRetries = COREDUMP_RETRIES, nCount = 0; // loop for 2 min. The typical core dump data size is 10Mb
+                                         // UART speed 1Mbps, we timeout after >2*(total time to receive 10Mb)
+    char szCoreDumpStatus[PROPERTY_VALUE_MAX] = {0};
+
+    property_set("CoreDumpStatus", "None");
+    RIL_LOG_INFO("HandleCoreDump() - Initialized the coredump status to None\r\n");
 
     //  Check repository for coredump retries
     CRepository repository;
@@ -217,68 +368,34 @@ BOOL HandleCoreDump(int& fdGsm)
 
     //  Launch Core Dump Download Manager
     RIL_LOG_INFO("HandleCoreDump() - Launch Core dump service\r\n");
-    property_set("ctl.start","coredump_svc");
+    property_set("ctl.start", "coredump_svc");
+    //some delay for the coredump reader to start and running
+    Sleep(1000);
 
-    for (nCount = 0; nCount <= nRetries; nCount++)
+    for (nCount = 0; nCount < nRetries; nCount++)
     {
-        //  Meantime, call poll again.
-
-        fds[0].fd = fdGsm;
-
-        //  If we're past nRetries secs, just call poll with infinite value
-        if (nCount >= nRetries)
+        RIL_LOG_INFO("HandleCoreDump() - sleep for %d msec before checking the core dump completion\r\n", timeout_msecs);
+        Sleep(timeout_msecs);
+        property_get("CoreDumpStatus", szCoreDumpStatus, "");
+        RIL_LOG_INFO("HandleCoreDump() - count=%d, CoreDumpStatus is: %s\r\n", nCount, szCoreDumpStatus);
+        if (strcmp(szCoreDumpStatus, "InProgress") != 0)
         {
-            timeout_msecs = -1;
+            RIL_LOG_CRITICAL("HandleCoreDump() - Complete!\r\n");
+            break;
         }
-
-        RIL_LOG_INFO("HandleCoreDump() - calling poll  msec=[%d]  try=[%d]\r\n", timeout_msecs, nCount);
-        nPoll = poll(fds, numFds, timeout_msecs);
-        if (nPoll < 0)
-        {
-            RIL_LOG_CRITICAL("HandleCoreDump() - ERROR on poll - errno=[%d],[%s]\r\n", errno, strerror(errno));
-            bRet = FALSE;
-            goto Done;
-        }
-        else if (0 == nPoll)
-        {
-            //  got timeout
-
-            //  Let's see what the property value is
-            property_get(szCoreDumpProperty, szProp, "");
-
-            RIL_LOG_INFO("HandleCoreDump() - timeout! szProp=[%s]\r\n", szProp);
-
-            //  NOTE: Should check szProp value here, but according to specs the modem
-            //        should call POLLHUP by itself.
-        }
-        else
-        {
-            //  We got an event
-            for (int i = 0; i < numFds; i++)
-            {
-                if (fds[i].revents & POLLHUP)
-                {
-                    // A hangup has occurred on device number i
-                    RIL_LOG_INFO("*****HandleCoreDump() - HANGUP event POLLHUP on fd[%d]\r\n", i);
-
-                    //  Close port before triggering error
-                    if (fdGsm >= 0)
-                    {
-                        RIL_LOG_INFO("HandleCoreDump() - Close port=[%s]\r\n", g_szCmdPort);
-                        close(fdGsm);
-                        fdGsm = -1;
-                    }
-
-                    //  Trigger the error
-                    TriggerRadioError(eRadioError_ModemInitiatedCrash, __LINE__, __FILE__);
-                }
-            }
-
-        }
-
     }
 
-Done:
+    property_get("CoreDumpStatus", szCoreDumpStatus, "");
+
+    if (strcmp(szCoreDumpStatus, "None") != 0)
+    {
+        RIL_LOG_CRITICAL("HandleCoreDump() - ERROR Core Dump Incomplete: %s\r\n", szCoreDumpStatus);
+        RIL_LOG_CRITICAL("Reset the property and Stop coredump\r\n");
+        property_set("ctl.stop", "coredump_svc");
+        property_set("CoreDumpStatus", "None");
+    }
+
+
     RIL_LOG_INFO("HandleCoreDump() - Exit  bRet=[%d]\r\n", (int)bRet);
     return bRet;
 }
@@ -299,6 +416,8 @@ void* WatchdogThreadProc(void* pVoid)
     //const BYTE pszFileNameGsm[] = "/dev/gsmtty1";
     const UINT32 uiInterval = 2000;
     UINT32 uiAttempts = 0;
+
+    BOOL bIsPOLLHUP = FALSE;
 
     if ( (NULL == g_szCmdPort) || (0 == strlen(g_szCmdPort)) )
     {
@@ -327,58 +446,75 @@ void* WatchdogThreadProc(void* pVoid)
         }
     }
 
-    fds[0].fd = fdGsm;
 
-    // block until event occurs
-    ret = poll(fds, numFds, timeout_msecs);
-    if (ret > 0)
+    //  Start polling loop here (until POLLHUP)
+    while (!bIsPOLLHUP)
     {
-        // An event on one of the fds has occurred
-        for (i = 0; i < numFds; i++)
+        fds[0].fd = fdGsm;
+
+        // block until event occurs
+        ret = poll(fds, numFds, timeout_msecs);
+        if (ret > 0)
         {
-
-            if (fds[i].revents & POLLHUP)
+            // An event on one of the fds has occurred
+            for (i = 0; i < numFds; i++)
             {
-                // A hangup has occurred on device number i
-                RIL_LOG_INFO("WatchdogThreadProc() - hangup event on fd[%d]\r\n", i);
 
-                //  Check for core-dump flag
-                if (CheckForCoreDumpFlag())
+                if (fds[i].revents & POLLHUP)
                 {
-                    if (!HandleCoreDump(fdGsm))
+                    bIsPOLLHUP = TRUE;
+
+                    // A hangup has occurred on device number i
+                    RIL_LOG_INFO("WatchdogThreadProc() - POLLHUP hangup event on fd[%d] and Update Android about Reset\r\n", i);
+                    ModemResetUpdate();
+
+                    //  Check for core-dump flag
+                    if (CheckForCoreDumpFlag())
                     {
-                        RIL_LOG_CRITICAL("WatchdogThreadProc() - HandleCoreDump FAILED!!\r\n");
+                        if (!HandleCoreDump(fdGsm))
+                        {
+                            RIL_LOG_CRITICAL("WatchdogThreadProc() - HandleCoreDump FAILED!!\r\n");
+                        }
+                        else
+                        {
+                            RIL_LOG_INFO("WatchdogThreadProc() - HandleCoreDump OK!\r\n");
+                        }
                     }
                     else
                     {
-                        RIL_LOG_INFO("WatchdogThreadProc() - HandleCoreDump OK!\r\n");
+                        //  No core dump flag
+                        RIL_LOG_INFO("WatchdogThreadProc() - No core dump flag set or not supported\r\n");
                     }
+
+
+                    //  Close port before triggering error
+                    if (fdGsm >= 0)
+                    {
+                        RIL_LOG_INFO("WatchdogThreadProc() - Close port=[%s]\r\n", g_szCmdPort);
+                        close(fdGsm);
+                        fdGsm = -1;
+                    }
+
+                    // now restart everything
+                    //ResetModemAndRestart(eRadioError_ModemInitiatedCrash, __LINE__, __FILE__);
+                    TriggerRadioError(eRadioError_ModemInitiatedCrash, __LINE__, __FILE__);
                 }
                 else
                 {
-                    //  No core dump flag
-                    RIL_LOG_INFO("WatchdogThreadProc() - No core dump flag set or not supported\r\n");
+                    //  Not POLLHUP
+                    RIL_LOG_CRITICAL("WatchdogThreadProc() - NO HANGUP!! Event is = [0x%08X] on fd[%d]\r\n", fds[i].revents, i);
                 }
-
-
-                //  Close port before triggering error
-                if (fdGsm >= 0)
-                {
-                    RIL_LOG_INFO("WatchdogThreadProc() - Close port=[%s]\r\n", g_szCmdPort);
-                    close(fdGsm);
-                    fdGsm = -1;
-                }
-
-                //  Trigger the error
-                TriggerRadioError(eRadioError_ModemInitiatedCrash, __LINE__, __FILE__);
-            }
-            else
-            {
-                //  Not POLLHUP
-                RIL_LOG_CRITICAL("WatchdogThreadProc() - NO HANGUP!! Event is = [0x%08X] on fd[%d]\r\n", fds[i].revents, i);
             }
         }
-    }
+        else
+        {
+            RIL_LOG_CRITICAL("WatchdogThreadProc() - poll() returned error!  ret=%d, errno=%s\r\n", ret, strerror(errno));
+            //  TODO: Figure out optimum sleep value here on poll error.
+            Sleep(250);  // 250 ms is arbitrary.
+        }
+
+    } // end !bIsPOLLHUP loop
+
 
     if (fdGsm >= 0)
     {
@@ -1585,7 +1721,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.14 for Android 2.3 (Build June 23/2011)";
+    return "Intrinsyc Rapid-RIL M5.16 for Android 2.3.4 (Build July 12/2011)";
 }
 
 
@@ -1640,23 +1776,7 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
     RIL_LOG_CRITICAL("TriggerRadioError() - ERROR: eRadioError=%d, uiLineNum=%d, lpszFileName=%hs\r\n", (int)eRadioErrorVal, uiLineNum, lpszFileName);
     RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
 
-    int iTemp = 0;
-    int iRadioResetDelay = 2000;            // Default value
-    int iRadioResetStartStmdDelay = 4000;   // Default value
-
-    CRepository repository;
-    if (!repository.Read(g_szGroupModem, g_szDisableModemReset, iTemp))
-    {
-        iTemp = 0;
-    }
-    if (iTemp > 0)
-    {
-        //  Don't support modem reset.  Just set global flag to error out future requests.
-        RIL_LOG_CRITICAL("MODEM RESET NOT SUPPORTED - ERROR OUT FUTURE REQUESTS\r\n");
-        g_bIsModemDead = TRUE;
-        return;
-    }
-
+    char szCoreDumpStatus[PROPERTY_VALUE_MAX] = {0};
 
     //  We're already in here, just exit
     if (g_bIsTriggerRadioError)
@@ -1667,118 +1787,31 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
 
     g_bIsTriggerRadioError = TRUE;
 
-    //  Read timeout values from repository.
-    if (!repository.Read(g_szGroupModem, g_szRadioResetDelay, iRadioResetDelay))
+    property_get("CoreDumpStatus", szCoreDumpStatus, "");
+
+    RIL_LOG_CRITICAL("TriggerRadioError() - CoreDumpStatus is: %s\r\n", szCoreDumpStatus);
+
+
+    if (strcmp(szCoreDumpStatus, "InProgress") == 0)
     {
-        iRadioResetDelay = 2000;
-    }
-    RIL_LOG_INFO("TriggerRadioError() - iRadioResetDelay=[%d]\r\n", iRadioResetDelay);
+        RIL_LOG_CRITICAL("TriggerRadioError() - CoreDump In Progress.., return eRadioError=%d\r\n", eRadioErrorVal);
 
-    if (!repository.Read(g_szGroupModem, g_szRadioResetStartStmdDelay, iRadioResetStartStmdDelay))
-    {
-        iRadioResetStartStmdDelay = 4000;
-    }
-    RIL_LOG_INFO("TriggerRadioError() - iRadioResetStartStmdDelay=[%d]\r\n", iRadioResetStartStmdDelay);
-
-    //  Get FD to SPI.
-    int ret = 0;
-
-    UINT32 dwSleep = 5000;
-
-    //  Clear data connection
-    //  Tell RRIL no more data connection
-    {
-        RIL_LOG_INFO("TriggerRadioError() - telling RRIL no more data\r\n");
-        extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
-        CChannel_Data* pChannelData = NULL;
-
-        for (int i = RIL_CHANNEL_DATA1; i < RIL_CHANNEL_MAX; i++)
-        {
-            if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
-                continue;
-
-            CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
-            if (pChannelData)
-            {
-                RIL_LOG_INFO("TriggerRadioError() - Calling DataConfigDown(%d)\r\n", pChannelData->GetContextID());
-                DataConfigDown(pChannelData->GetContextID());
-            }
-        }
+        //  If core dump is in progress and someone calls TriggerRadioError(), we don't want
+        //  to interfere with the active core dump.  Also, when the core dump is complete
+        //  that thread calls TriggerRadioError() which will just return unless this flag
+        //  is set to FALSE.
+        g_bIsTriggerRadioError = FALSE;
+        return;
     }
 
+    // There is no coredump running, and this is the case of unresponsive at command.
 
-    //  Tell Android no more data connection
-    RIL_LOG_INFO("TriggerRadioError() - telling Android no more data\r\n");
-    RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
+    RIL_LOG_CRITICAL("TriggerRadioError() - Update Android about reset\r\n");
 
+    ModemResetUpdate();
 
-    //  If there was a voice call active, it is disconnected.
-    //  This will cause a RIL_REQUEST_GET_CURRENT_CALLS to be sent
-    RIL_LOG_INFO("TriggerRadioError() - telling Android no more voice calls\r\n");
-    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
-
-
-    dwSleep = 200;
-    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", dwSleep);
-    Sleep(dwSleep);
-    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
-
-    RIL_LOG_INFO("TriggerRadioError() - Closing channel ports\r\n");
-    CSystemManager::GetInstance().CloseChannelPorts();
-
-    dwSleep = 200;
-    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  check ports are gone\r\n", dwSleep);
-    Sleep(dwSleep);
-    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-    //  Try using ctrl.stop property
-    RIL_LOG_INFO("CALLING prop ctl.stop on stmd\r\n");
-    property_set("ctl.stop","stmd");
-    RIL_LOG_INFO("Done prop ctl.stop on stmd\r\n");
-
-
-    dwSleep = 200;
-    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  check stmd is gone\r\n", dwSleep);
-    Sleep(dwSleep);
-    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", dwSleep);
-
-    //  NOTE that we do not want to call ifxreset when doing a modem initiated crash.
-    if (eRadioErrorVal != eRadioError_ModemInitiatedCrash)
-    {
-        //  Try using ctrl.start property
-        RIL_LOG_INFO("CALLING prop ctl.start on ifxreset\r\n");
-        property_set("ctl.start","ifxreset_svc");
-        RIL_LOG_INFO("Done prop ctl.start on ifxreset\r\n");
-
-        //  Wait for ifxreset to complete
-        RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d\r\n", iRadioResetDelay);
-        Sleep(iRadioResetDelay);
-        RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", iRadioResetDelay);
-
-    }
-
-
-    //  Try using ctrl.start property
-    RIL_LOG_INFO("CALLING prop ctl.start on stmd\r\n");
-    property_set("ctl.start","stmd");
-    RIL_LOG_INFO("Done prop ctl.start on stmd\r\n");
-
-    RIL_LOG_INFO("TriggerRadioError() - BEGIN SLEEP %d  Wait for MUX to activate\r\n", iRadioResetStartStmdDelay);
-    Sleep(iRadioResetStartStmdDelay);
-    RIL_LOG_INFO("TriggerRadioError() - END SLEEP %d\r\n", iRadioResetStartStmdDelay);
-
-
-Error:
-    g_bIsTriggerRadioError = FALSE;
-
-    RIL_LOG_CRITICAL("*****************************************************************\r\n");
-    RIL_LOG_CRITICAL("************TriggerRadioError() - CALLING EXIT ******************\r\n");
-    RIL_LOG_CRITICAL("*****************************************************************\r\n");
-
-    exit(0);
+    //  Now reset the modem
+    ResetModemAndRestart(eRadioErrorVal, uiLineNum, lpszFileName);
 
     RIL_LOG_CRITICAL("TriggerRadioError() - EXIT\r\n");
 }
@@ -1943,6 +1976,7 @@ static bool RIL_SetGlobals(int argc, char **argv)
         usage(argv[0]);
         return false;
     }
+
 
     return true;
 }

@@ -53,10 +53,18 @@ public:
     CRLFExpandedString(const char * const pszIn, const int nInLen);
     ~CRLFExpandedString();
 
+private:
+    //  Prevent assignment: Declared but not implemented
+    CRLFExpandedString(const CRLFExpandedString& rhs);  // Copy Constructor
+    CRLFExpandedString& operator=(const CRLFExpandedString& rhs);  //  Assignment operator
+
+
+public:
     char *& GetString() { return m_pszString; };
 
 private:
     char * m_pszString;
+
 };
 
 //
@@ -910,6 +918,12 @@ public:
     CSelfExpandBuffer();
     virtual ~CSelfExpandBuffer();
 
+private:
+    //  Prevent assignment: Declared but not implemented.
+    CSelfExpandBuffer(const CSelfExpandBuffer& rhs);  // Copy Constructor
+    CSelfExpandBuffer& operator=(const CSelfExpandBuffer& rhs);  //  Assignment operator
+
+public:
     BOOL            Append(const BYTE *szIn, UINT32 nLength);
     const BYTE*     Data() const    { return m_szBuffer; };
     UINT32          Size() const    { return m_uiUsed; };

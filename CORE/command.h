@@ -60,6 +60,13 @@ public:
 
     ~CCommand();
 
+private:
+    //  Prevent assignment: Declared but not implemented.
+    CCommand(const CCommand& rhs);  // Copy Constructor
+    CCommand& operator=(const CCommand& rhs);  //  Assignment operator
+
+
+public:
     UINT32              GetChannel()        { return m_uiChannel;   };
     RIL_Token           GetToken()          { return m_token;       };
     UINT32              GetRequestID()      { return m_uiReqId;     };

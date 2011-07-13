@@ -275,15 +275,6 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         pATCommand = (BYTE *) rpCmd->GetATCmd2();
         UINT32 uiBytesWritten = 0;
 
-        //  Temp fix (delay before sending 2nd part of XRAT command)
-        if (ND_REQ_ID_SETPREFERREDNETWORKTYPE == rpCmd->GetRequestID())
-        {
-            const int dwSleep = 500;
-            RIL_LOG_INFO("CChannel::GetResponse() - chnl=[%d]  BEGIN SLEEP=[%d]ms\r\n", m_uiRilChannel, dwSleep);
-            Sleep(dwSleep);
-            RIL_LOG_INFO("CChannel::GetResponse() - chnl=[%d]  END SLEEP=[%d]ms\r\n", m_uiRilChannel, dwSleep);
-        }
-
         // send 2nd phase of command
         SetCmdThreadBlockedOnRxQueue();
 

@@ -1,3 +1,25 @@
+////////////////////////////////////////////////////////////////////////////
+// oem_android_init.cpp
+//
+// Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
+// Patents pending in the United States of America and other jurisdictions.
+//
+//
+// Description:
+//    Defines the OEM overrides for RILD interface.
+//
+//  Author: Mike Worth
+//  Created: 2009-09-30
+//
+/////////////////////////////////////////////////////////////////////////////
+//  Modification Log:
+//
+//  Date        Who      Ver   Description
+//  ----------  -------  ----  -----------------------------------------------
+//  Sep  30/09  MW       1.00  Established v1.00 based on current code base.
+//
+/////////////////////////////////////////////////////////////////////////////
+
 #include <telephony/ril.h>
 #include <stdio.h>
 #include <assert.h>

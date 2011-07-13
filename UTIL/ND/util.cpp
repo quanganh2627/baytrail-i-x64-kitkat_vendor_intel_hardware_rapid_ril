@@ -205,6 +205,10 @@ BOOL CopyStringNullTerminate(char * const pszOut, const char * pszIn, const UINT
 
         strncpy(pszOut, pszIn, cbOut);
 
+        //  Klokworks fix here
+        pszOut[cbOut - 1] = '\0';
+        //  End Klokworks fix
+
         if (cbOut <= cbIn)
         {
             fRet = FALSE;

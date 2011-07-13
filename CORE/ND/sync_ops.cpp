@@ -352,7 +352,7 @@ CEvent::~CEvent()
     }
 }
 
-void CEvent::CreateObserver(CMutipleEvent* pMultipleEvent, int iValue)
+void CEvent::CreateObserver(CMultipleEvent* pMultipleEvent, int iValue)
 {
     EnterMutex();
 
@@ -362,7 +362,7 @@ void CEvent::CreateObserver(CMutipleEvent* pMultipleEvent, int iValue)
     LeaveMutex();
 }
 
-void CEvent::DeleteObserver(CMutipleEvent* pMultipleEvent)
+void CEvent::DeleteObserver(CMultipleEvent* pMultipleEvent)
 {
     EnterMutex();
 
@@ -391,7 +391,7 @@ BOOL CEvent::SignalMultipleEventObject()
         if (pObserver)
         {
             int iEventIndex = pObserver->m_iEventIndex;
-            CMutipleEvent* pMultipleEvent = pObserver->m_pMultipleEvent;
+            CMultipleEvent* pMultipleEvent = pObserver->m_pMultipleEvent;
 
             fEventHandled = pMultipleEvent->Update(iEventIndex);
         }
@@ -527,7 +527,7 @@ UINT32 CEvent::Wait(CEvent * pEvent, UINT32 uiTimeoutInMS)
 
 UINT32 CEvent::WaitForAnyEvent(UINT32 nEvents, CEvent ** rgpEvents, UINT32 uiTimeoutInMS)
 {
-    CMutipleEvent* pMultipleEvents = new CMutipleEvent(nEvents);
+    CMultipleEvent* pMultipleEvents = new CMultipleEvent(nEvents);
     BOOL fHaveAtLeastOne = FALSE;
     UINT32 uiRet = WAIT_TIMEDOUT;
 
@@ -585,7 +585,7 @@ UINT32 CEvent::WaitForAllEvents(UINT32 nEvents, CEvent ** rgpEvents, UINT32 uiTi
     return WAIT_TIMEDOUT;
 }
 
-CMutipleEvent::CMutipleEvent(UINT32 nEvents)
+CMultipleEvent::CMultipleEvent(UINT32 nEvents)
 {
     pthread_cond_init(&m_MultipleEventCond, NULL);
     m_nLastSignaledEvent = -1;
@@ -600,7 +600,7 @@ CMutipleEvent::CMutipleEvent(UINT32 nEvents)
     }
 };
 
-CMutipleEvent::~CMutipleEvent()
+CMultipleEvent::~CMultipleEvent()
 {
     EnterMutex();
     {
@@ -611,7 +611,7 @@ CMutipleEvent::~CMutipleEvent()
     LeaveMutex();
 };
 
-void CMutipleEvent::AddEvent(int iEventIndex, CEvent* pEvent)
+void CMultipleEvent::AddEvent(int iEventIndex, CEvent* pEvent)
 {
     assert((iEventIndex >= 0) && (iEventIndex < m_nEvents));
 
@@ -633,7 +633,7 @@ void CMutipleEvent::AddEvent(int iEventIndex, CEvent* pEvent)
     LeaveMutex();
 }
 
-void CMutipleEvent::RemoveEvent(int iEventIndex)
+void CMultipleEvent::RemoveEvent(int iEventIndex)
 {
     assert((iEventIndex >= 0) && (iEventIndex < m_nEvents));
 
@@ -643,7 +643,7 @@ void CMutipleEvent::RemoveEvent(int iEventIndex)
     m_pEvents[iEventIndex] = NULL;
 }
 
-BOOL CMutipleEvent::Update(int iEventIndex)
+BOOL CMultipleEvent::Update(int iEventIndex)
 {
     BOOL fHandled = FALSE;
 
@@ -659,7 +659,7 @@ BOOL CMutipleEvent::Update(int iEventIndex)
     return fHandled;
 }
 
-int CMutipleEvent::Wait(UINT32 uiTimeout)
+int CMultipleEvent::Wait(UINT32 uiTimeout)
 {
     int rc = WAIT_TIMEDOUT;
     struct timespec Time;
@@ -688,7 +688,7 @@ int CMutipleEvent::Wait(UINT32 uiTimeout)
         {
             if (rc != ETIMEDOUT)
             {
-                RIL_LOG_CRITICAL("CMutipleEvent::Wait() : ERROR : pthread_cond_timedwait(): returned %d\r\n", rc);
+                RIL_LOG_CRITICAL("CMultipleEvent::Wait() : ERROR : pthread_cond_timedwait(): returned %d\r\n", rc);
 
                 // TODO Deal with these errors
                 rc = ETIMEDOUT;

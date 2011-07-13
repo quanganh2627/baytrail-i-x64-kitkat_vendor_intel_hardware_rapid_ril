@@ -2028,7 +2028,7 @@ RIL_RESULT_CODE CTEBase::CoreOperator(REQUEST_DATA & rReqData, void * pData, UIN
     RIL_LOG_VERBOSE("CTEBase::CoreOperator() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+COPS=3,0;+COPS?;+COPS=3,1;+COPS?;+COPS=3,2;+COPS?\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCOPS=6;+XCOPS=5;+XCOPS=0\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -2044,8 +2044,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    uint      uiMode    = 0;
-    uint      uiFormat  = 0;
+    uint      uiType    = 0;
     int       i         = 0;
     int       numericID = 0;
 
@@ -2078,33 +2077,72 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
     // no short name in Infineon modem
     pOpNames->szOpNameShort[0] = '\0';
-    // Skip "+COPS: "
-    while (SkipString(pszRsp, "+COPS: ", pszRsp))
+    // Skip "+XCOPS: "
+    while (SkipString(pszRsp, "+XCOPS: ", pszRsp))
     {
-        // Extract "<mode>"
-        if (!ExtractUInt(pszRsp, uiMode, pszRsp))
+        // Extract "<Type>"
+        if (!ExtractUInt(pszRsp, uiType, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract <mode>.\r\n");
             goto Error;
         }
 
-        // Extract ",<format>,<oper>" - these are optional
+        // Extract ","
         if (SkipString(pszRsp, ",", pszRsp))
         {
-            if (!ExtractUInt(pszRsp, uiFormat, pszRsp) ||
-                !SkipString(pszRsp, ",", pszRsp))
+            // Based on type get the long/short/numeric network name
+            switch (uiType)
             {
-                RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract <format>.\r\n");
-                goto Error;
-            }
-
-
-            switch (uiFormat)
-            {
-                case 0:
+                //“network name”, “additional Unicode network name” for <type> = 1 or 2
+                // Based on NV-RAM
+                case 2:
                 {
-                    //WCHAR tmp[MAX_BUFFER_SIZE];
-                    //if (!ExtractQuotedUnicodeHexStringToUnicode(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    BYTE tmp[MAX_BUFFER_SIZE];
+                    if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
+                        goto Error;
+                    }
+                    int i;
+                    for (i = 0; tmp[i]; pOpNames->szOpNameLong[i] = (char) tmp[i], ++i);
+                    pOpNames->szOpNameLong[i] = '\0';
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Long oper: %s\r\n", pOpNames->szOpNameLong);
+                    // Getting unicode long name (skip over it)
+                    if (SkipString(pszRsp, ",", pszRsp))
+                    {
+                        //TODO
+                        //  Skip over unicode string (if it exists)
+                        ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp);
+                    }
+                }
+                break;
+
+                case 1:
+                {
+                    BYTE tmp[MAX_BUFFER_SIZE];
+                    if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Short Format Operator Name.\r\n");
+                        goto Error;
+                    }
+                    int i;
+                    for (i = 0; tmp[i]; pOpNames->szOpNameShort[i] = (char) tmp[i], ++i);
+                    pOpNames->szOpNameShort[i] = '\0';
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() -  short oper: %s\r\n", pOpNames->szOpNameShort);
+                    // Getting unicode short name (skip over it)
+                    if (SkipString(pszRsp, ",", pszRsp))
+                    {
+                        //TODO
+                        //  Skip over unicode string (if it exists)
+                        ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp);
+                    }
+                }
+                break;
+
+                // If 6 (NITZ based long name) not available modem should fall back to 4(CPHS)
+                case 6:
+                case 4:
+                {
                     BYTE tmp[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
@@ -2118,10 +2156,10 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 }
                 break;
 
-                case 1:
+                // If 5 (NITZ based long name) not available modem should fall back to 3 (CPHS)
+                case 5:
+                case 3:
                 {
-                    //WCHAR tmp[MAX_BUFFER_SIZE];
-                    //if (!ExtractQuotedUnicodeHexStringToUnicode(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     BYTE tmp[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
@@ -2136,10 +2174,8 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 }
                 break;
 
-                case 2:
+                case 0:
                 {
-                    //WCHAR tmp[MAX_BUFFER_SIZE];
-                    //if (!ExtractQuotedUnicodeHexStringToUnicode(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     BYTE tmp[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
@@ -2161,15 +2197,6 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 break;
             }
 
-            if (SkipString(pszRsp, ",", pszRsp))
-            {
-                uint act;
-                ExtractUInt(pszRsp, act, pszRsp);
-            }
-            else
-            {
-                //g_uiAccessTechnology = ACT_UNKNOWN;
-            }
 
             pOpNames->sOpNamePtrs.pszOpNameLong    = pOpNames->szOpNameLong;
             pOpNames->sOpNamePtrs.pszOpNameShort   = pOpNames->szOpNameShort;
@@ -2231,40 +2258,10 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
 {
     RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    bool bTurnRadioOn = false;
 
-    if (0 == *(int *)pData)
+    if (CopyStringNullTerminate(rReqData.szCmd1, (0 == *(int *)pData) ? "AT+CFUN=4\r" : "AT+CFUN=1\r", sizeof(rReqData.szCmd1)))
     {
-        RIL_LOG_INFO("CTEBase::CoreRadioPower() - Turn Radio OFF\r\n");
-        bTurnRadioOn = false;
-    }
-    else
-    {
-        RIL_LOG_INFO("CTEBase::CoreRadioPower() - Turn Radio ON\r\n");
-        bTurnRadioOn = true;
-    }
-
-    //  Store setting in context.
-    rReqData.pContextData = (void*)bTurnRadioOn;
-
-    if (bTurnRadioOn)
-    {
-        RIL_LOG_INFO("CTEBase::CoreRadioPower() - Turning the Radio ON\r\n");
-
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=1\r", sizeof(rReqData.szCmd1)))
-        {
-            res = RRIL_RESULT_OK;
-        }
-    }
-    else
-    {
-        RIL_LOG_INFO("CTEBase::CoreRadioPower() - Turning the Radio OFF\r\n");
-
-
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+COPS=2;+CFUN=4\r", sizeof(rReqData.szCmd1)))
-        {
-            res = RRIL_RESULT_OK;
-        }
+        res = RRIL_RESULT_OK;
     }
 
     RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Exit\r\n");
@@ -2273,36 +2270,9 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
 
 RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Enter / Exit\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
-
-    CRepository repository;
-
-    //  Extract power setting from context
-    int nPower = (int)rRspData.pContextData;
-
-    if (0 == nPower)
-    {
-        //  Turning off phone
-        int nSleep = 500;
-        repository.Read(g_szGroupRILSettings, g_szRadioOffDelay, nSleep);
-        RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Turn off phone - BEGIN Sleep=[%d]\r\n", nSleep);
-        Sleep((UINT32)nSleep);
-        RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Turn off phone - END Sleep=[%d]\r\n", nSleep);
-    }
-    else if (1 == nPower)
-    {
-        //  Turning on phone
-        int nSleep = 1500;
-        repository.Read(g_szGroupRILSettings, g_szRadioOnDelay, nSleep);
-        RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Turn on phone - BEGIN Sleep=[%d]\r\n", nSleep);
-        Sleep((UINT32)nSleep);
-        RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Turn on phone - END Sleep=[%d]\r\n", nSleep);
-    }
-
-    RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Exit\r\n");
-    return res;
+    return RRIL_RESULT_OK;
 }
 
 //
@@ -4862,7 +4832,7 @@ RIL_RESULT_CODE CTEBase::CoreBasebandVersion(REQUEST_DATA & rReqData, void * pDa
     RIL_LOG_VERBOSE("CTEBase::CoreBasebandVersion() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XGENDATA\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "at@vers:sw_version()\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -4887,20 +4857,16 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA & rRspData)
     }
     memset(szBasebandVersion, 0x00, MAX_PROP_VALUE);
 
-    // Parse "<prefix><serial_number><postfix>"
-    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
-
-    if (!SkipString(pszRsp, "+XGENDATA: ", pszRsp))
+    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() - ERROR: Could not find XGENDATA in response!\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() - ERROR: Could not find response start\r\n");
         goto Error;
     }
 
-    SkipString(pszRsp, "\"", pszRsp);
+    // There is two NewLine before the sw_version, so do again a SkipRspStart
+    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
 
-    SkipSpaces(pszRsp, pszRsp);
-
-    if (!ExtractUnquotedString(pszRsp, '\n', szTemp, MAX_BUFFER_SIZE, pszRsp))
+    if (!ExtractUnquotedString(pszRsp, g_cTerminator, szTemp, MAX_BUFFER_SIZE, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() - ERROR: Could not extract the baseband version string.\r\n");
         goto Error;

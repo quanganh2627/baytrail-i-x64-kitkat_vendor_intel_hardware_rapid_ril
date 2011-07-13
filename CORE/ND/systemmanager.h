@@ -62,6 +62,11 @@ private:
     CSystemManager();
     ~CSystemManager();
 
+    //  Prevent assignment: Declared but not implemented.
+    CSystemManager(const CSystemManager& rhs);  // Copy Constructor
+    CSystemManager& operator=(const CSystemManager& rhs);  //  Assignment operator
+
+
 public:
     // Start system initialization process
     BOOL            InitializeSystem();
