@@ -44,8 +44,7 @@
 //
 //
 CSilo_SIM::CSilo_SIM(CChannel *pChannel)
-: CSilo(pChannel),
-m_nXSIMStatePrev(-1)
+: CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::CSilo_SIM() - Enter\r\n");
 
@@ -132,7 +131,8 @@ BOOL CSilo_SIM::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION:
             if (RIL_E_SUCCESS == rpRsp->GetResultCode())
             {
-                g_RadioState.SetRadioSIMUnlocked();
+                g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
+                CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             }
             break;
 
@@ -165,27 +165,11 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
             case CME_ERROR_SIM_PUK_REQUIRED:
                 RIL_LOG_INFO("CSilo_SIM::ParsePin() - SIM PUK required");
                 rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-
-                //  Set radio state to sim locked or absent.
-                //  Note that when the radio state *changes*, the upper layers will query
-                //  for more information.  This is why we cannot change the radio state for
-                //  incorrect PIN (not PUKd yet) because state is
-                //  "sim locked or absent" -> "sim locked or absent".
-                //  But PIN -> PUK we have to do this otherwise phone will think we are still PIN'd.
-                RIL_requestTimedCallback(notifySIMLocked, NULL, 0, 500000);
                 break;
 
             case CME_ERROR_SIM_PUK2_REQUIRED:
                 RIL_LOG_INFO("CSilo_SIM::ParsePin() - SIM PUK2 required");
                 rpRsp->SetResultCode(RIL_E_SIM_PUK2);
-
-                //  Set radio state to sim locked or absent.
-                //  Note that when the radio state *changes*, the upper layers will query
-                //  for more information.  This is why we cannot change the radio state for
-                //  incorrect PIN2 (not PUK2d yet) because state is
-                //  "sim locked or absent" -> "sim locked or absent".
-                //  But PIN2 -> PUK2 we have to do this otherwise phone will think we are still PIN2'd.
-                RIL_requestTimedCallback(notifySIMLocked, NULL, 0, 500000);
                 break;
 
             default:
@@ -193,6 +177,9 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
                 rpRsp->SetResultCode(RIL_E_GENERIC_FAILURE);
                 break;
         }
+
+        g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+
 
         rpRsp->FreeData();
         int* pInt = (int *) malloc(sizeof(int));
@@ -693,8 +680,6 @@ Error:
     return fRet;
 }
 
-
-
 BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIM() - Enter\r\n");
@@ -722,31 +707,35 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
         goto Error;
     }
 
-    //  If we re-inserted a SIM, then do a re-init
-    //  May 17/11 - nSIMState of 0 means booted without SIM
-    //              nSIMState of 9 means SIM removed
-    if ( (0 != nSIMState && 9 != nSIMState) && (9 == m_nXSIMStatePrev || 0 == m_nXSIMStatePrev) )
+    /// @TODO: Need to revisit the XSIM and radio state mapping
+    switch (nSIMState)
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM was inserted!\r\n");
-
-        RIL_requestTimedCallback(triggerSIMInserted, NULL, 0, 250000);
+        case 2: // PIN verification not needed - Ready
+        case 3: // PIN verified - Ready
+        case 7: // ready for attach (+COPS)
+        case 11: // SIM Reactivated
+            g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
+            CSystemManager::GetInstance().TriggerSimUnlockedEvent();
+            break;
+        case 0: // SIM not present
+        case 1: // PIN verification needed
+        case 4: // PUK verification needed
+        case 5: // SIM permanently blocked
+        default:
+            g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+            break;
     }
-    else if ( (9 == nSIMState || 0 == nSIMState) && (0 != m_nXSIMStatePrev && 9 != m_nXSIMStatePrev) )
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM was removed or missing!\r\n");
 
-        RIL_requestTimedCallback(triggerSIMRemoved, NULL, 0, 250000);
-    }
-
-    //  Save SIM state
-    m_nXSIMStatePrev = nSIMState;
-
-
-    //  France team didn't like the unrecognized log message here even though it is ok
-    //  and functionally does the same thing.
-    //pResponse->SetUnrecognizedFlag(TRUE);
-
+    /*
+     * Instead of triggering the GET_SIM_STATUS and QUERY_FACILITY_LOCK
+     * requests based on RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED,
+     * android telephony stack is triggering those requests based on
+     * RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED.
+     * Might change in the future, so its better to trigger
+     * the RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED
+     */
     pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
 
     fRet = TRUE;
 Error:

@@ -165,7 +165,7 @@ enum
 // CME Error code defines
 //
 #define RRIL_CME_ERROR_SIM_ABSENT                   10
-#define RRIL_CME_ERROR_NOT_READY                    515
+#define RRIL_CME_ERROR_NOT_READY                    14
 
 ///////////////////////////////////////////////////////////////////////////////
 // CMS Error code defines

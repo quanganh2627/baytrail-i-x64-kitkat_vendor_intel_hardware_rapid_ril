@@ -70,20 +70,6 @@ private:
     ListNode* m_pBack;
 };
 
-class CContextPower : public CContext
-{
-public:
-    CContextPower (BOOL bFlag, CCommand& rCmd) :
-        m_bPowerOn(bFlag), m_rCmd(rCmd) {}
-    virtual ~CContextPower() {}
-
-    virtual void Execute(BOOL, UINT32);
-
-private:
-    BOOL          m_bPowerOn;
-    CCommand&     m_rCmd;
-};
-
 class CContextEvent : public CContext
 {
 public:
@@ -94,15 +80,6 @@ public:
 
 private:
     CEvent&     m_pEvent;
-};
-
-class CContextUnlock : public CContext
-{
-public:
-    CContextUnlock() {}
-    virtual ~CContextUnlock() {}
-
-    virtual void Execute(BOOL, UINT32);
 };
 
 class CContextInitString : public CContext
@@ -120,37 +97,5 @@ private:
     BOOL m_bFinalCmd;
 };
 
-class CContextNetworkType : public CContext
-{
-public:
-    CContextNetworkType() {}
-    virtual ~CContextNetworkType() {}
-
-    virtual void Execute(BOOL, UINT32);
-};
-
-class CContextPinQuery : public CContext
-{
-public:
-    CContextPinQuery() {}
-    virtual ~CContextPinQuery() {}
-
-    virtual void Execute(BOOL, UINT32);
-};
-
-class CContextSimPhonebookQuery : public CContext
-{
-public:
-    CContextSimPhonebookQuery(CEvent& pEvent, BOOL& rbResult) :
-        m_pEvent(pEvent),
-        m_rbResult(rbResult) {}
-    virtual ~CContextSimPhonebookQuery() {}
-
-    virtual void Execute(BOOL, UINT32);
-
-private:
-    CEvent&     m_pEvent;
-    BOOL&       m_rbResult;
-};
 
 #endif  // __RIL_CMD_CONTEXT__

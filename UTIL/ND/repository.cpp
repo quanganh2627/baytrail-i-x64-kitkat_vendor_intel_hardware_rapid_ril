@@ -230,12 +230,6 @@ const char   g_szGroupOperatorNames[]          = "OperatorNames";
 
 const char   g_szGroupSystemReady[]             = "SystemReadySettings";
 
-const char   g_szQuerySimLock[]                 = "SimLockQuery";
-const char   g_szInitializeSimSms[]             = "SMSQuery";
-const char   g_szInitializeSimSTK[]             = "STKQuery";
-const char   g_szInitializeSimPhonebook[]       = "PhonebookQuery";
-const char   g_szInitializeSimPhonebookTimeout[]= "PhonebookQueryTimeout";
-
 /////////////////////////////////////////////////
 
 const char   g_szGroupModem[]                   = "Modem";

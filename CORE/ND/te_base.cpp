@@ -122,7 +122,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     if (0 == strcmp(szSimState, "READY"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_READY\r\n");
-        g_RadioState.SetRadioSIMReady();
+        //g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
         pCardStatus->gsm_umts_subscription_app_index = 0;
@@ -139,7 +139,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     else if (0 == strcmp(szSimState, "SIM PIN"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PIN\r\n");
-        g_RadioState.SetRadioSIMLocked();
+        //g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
         pCardStatus->gsm_umts_subscription_app_index = 0;
@@ -156,7 +156,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     else if (0 == strcmp(szSimState, "SIM PUK"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PUK\r\n");
-        g_RadioState.SetRadioSIMLocked();
+        //g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
         pCardStatus->gsm_umts_subscription_app_index = 0;
@@ -173,7 +173,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     else if (0 == strcmp(szSimState, "PH-NET PIN"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_NETWORK_PERSONALIZATION\r\n");
-        g_RadioState.SetRadioSIMLocked();
+        //g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
         pCardStatus->gsm_umts_subscription_app_index = 0;
@@ -225,7 +225,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
     {
         // Anything not covered above gets treated as NO SIM
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_ABSENT\r\n");
-        g_RadioState.SetRadioSIMLocked();
+        //g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
         pCardStatus->card_state = RIL_CARDSTATE_ABSENT;
         pCardStatus->num_applications = 0;
     }
@@ -409,7 +409,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
      * requests. Based on the value returned by those requests,
      * sim lock status is updated in the UI
      */
-    g_RadioState.SetRadioSIMLocked();
+    g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -2028,6 +2028,8 @@ RIL_RESULT_CODE CTEBase::CoreOperator(REQUEST_DATA & rReqData, void * pData, UIN
     RIL_LOG_VERBOSE("CTEBase::CoreOperator() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
+    // Request for 9 (long E-ONS) and 8 (short E-ONS) and numeric network names
+    //  (July 19/2011 - Use XCOPS=6 and XCOPS=5 due to CME ERROR: 100.  Bugzilla 4670)
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCOPS=6;+XCOPS=5;+XCOPS=0\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
@@ -2060,11 +2062,10 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
     }
     memset(pOpNames, 0, sizeof(S_ND_OP_NAMES));
 
-    // We ask the modem for the Long Name and the Numeric Name, but it looks
-    // like we actually receive the Short name and the Numeric Name. (If we ask
-    // for the Short name, we get CME ERROR 21.) We can thus assume that the
-    // given Long Name is actually the Short Name, and use the Numeric Name
-    // and our global lookup table to get the actual Long Name.
+    // XCOPS follows a fall back mechanism if a requested type is not available.
+    // For requested type 9, fallback types are 6 or 4 or 2 or 0
+    // For requested type 8, fallback types are 5 or 3 or 1 or 0
+    // Other details can be found in the C-AT specifications.
 
     // Parse "<prefix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
@@ -2075,7 +2076,6 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Response: %s\r\n", CRLFExpandedString(pszRsp, strlen(pszRsp)).GetString());
 
-    // no short name in Infineon modem
     pOpNames->szOpNameShort[0] = '\0';
     // Skip "+XCOPS: "
     while (SkipString(pszRsp, "+XCOPS: ", pszRsp))
@@ -2095,6 +2095,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
             {
                 //“network name”, “additional Unicode network name” for <type> = 1 or 2
                 // Based on NV-RAM
+                // Here this comes as a fall back case, as we request 9/8 always.
                 case 2:
                 {
                     BYTE tmp[MAX_BUFFER_SIZE];
@@ -2139,7 +2140,9 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 }
                 break;
 
-                // If 6 (NITZ based long name) not available modem should fall back to 4(CPHS)
+                //“network name” for <type> = 9, 6 or 4, long name based on EONS, CPHS or NITZ
+                // This could also be a fall back as we always request for type 9
+                case 9:
                 case 6:
                 case 4:
                 {
@@ -2156,7 +2159,9 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 }
                 break;
 
-                // If 5 (NITZ based long name) not available modem should fall back to 3 (CPHS)
+                //“network name” for <type> = 8, 5 or 3, short name based on EONS, CPHS or NITZ
+                // This could also be a fall back as we always request for type 8
+                case 8:
                 case 5:
                 case 3:
                 {
@@ -2174,6 +2179,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 }
                 break;
 
+                // Numeric name
                 case 0:
                 {
                     BYTE tmp[MAX_BUFFER_SIZE];
@@ -2197,7 +2203,6 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 break;
             }
 
-
             pOpNames->sOpNamePtrs.pszOpNameLong    = pOpNames->szOpNameLong;
             pOpNames->sOpNamePtrs.pszOpNameShort   = pOpNames->szOpNameShort;
             pOpNames->sOpNamePtrs.pszOpNameNumeric = pOpNames->szOpNameNumeric;
@@ -2208,7 +2213,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
         }
         else
         {
-            RIL_LOG_VERBOSE("CTEBase::ParseOperator() - <format> and <oper> not present.\r\n");
+            RIL_LOG_VERBOSE("CTEBase::ParseOperator() - <network name> not present.\r\n");
             pOpNames->sOpNamePtrs.pszOpNameLong    = NULL;
             pOpNames->sOpNamePtrs.pszOpNameShort   = NULL;
             pOpNames->sOpNamePtrs.pszOpNameNumeric = NULL;
@@ -2258,8 +2263,14 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
 {
     RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    bool bTurnRadioOn = (0 == *(int *)pData) ? false : true;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, (0 == *(int *)pData) ? "AT+CFUN=4\r" : "AT+CFUN=1\r", sizeof(rReqData.szCmd1)))
+    //  Store setting in context.
+    rReqData.pContextData = (void*)bTurnRadioOn;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
+                                        "AT+CFUN=1\r" : "AT+CFUN=4\r",
+                                        sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -2270,9 +2281,27 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
 
 RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Enter / Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Enter\r\n");
 
-    return RRIL_RESULT_OK;
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    //  Extract power setting from context
+    int nPower = (int)rRspData.pContextData;
+
+    if (0 == nPower)
+    {
+        //  Turning off phone
+        g_RadioState.SetRadioState(FALSE);
+    }
+    else if (1 == nPower)
+    {
+        //  Turning on phone
+        g_RadioState.SetRadioState(TRUE);
+        CSystemManager::GetInstance().TriggerModemPowerOnEvent();
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6908,19 +6937,8 @@ RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CTEBase::CoreReportStkServiceRunning() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
-
-    //  [DP] Let's NO-OP this command.
-    rReqData.szCmd1[0] = '\0';
-
-    if (g_RadioState.IsRadioSIMReady())
-        CSystemManager::GetInstance().InitializeSimSTK();
-
-    g_fReadyForSTKNotifications = TRUE;
-
-    RIL_LOG_VERBOSE("CTEBase::CoreReportStkServiceRunning() - Exit\r\n");
-    return res;
+    RIL_LOG_VERBOSE("CTEBase::CoreReportStkServiceRunning() - Enter / Exit\r\n");
+    return RRIL_RESULT_ERROR;
 }
 
 RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)

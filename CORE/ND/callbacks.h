@@ -30,19 +30,9 @@ static const struct timeval CallStateSlowPoll = {0, 5000000};
 static const struct timeval CallStateHyperPoll = {0, 500000};
 
 //
-// Callback to trigger radio state changed
-//
-void notifySIMLocked(void *param);
-
-//
 // Callback to trigger call state update
 //
 void notifyChangedCallState(void *param);
-
-//
-// Callback to trigger SIM status changed
-//
-void notifySIMStatusChanged(void *param);
 
 //
 // Callback to trigger signal strength update
@@ -59,21 +49,10 @@ void triggerSMSAck(void *param);
 //
 void triggerUSSDNotification(void *param);
 
-
 //
 // Callback to get data call list
 //
 void triggerDataCallListChanged(void *param);
-
-//
-// Callback to trigger re-init for SIM inserted
-//
-void triggerSIMInserted(void *param);
-
-//
-// Callback to trigger SIM removed
-//
-void triggerSIMRemoved(void *param);
 
 //
 // Callback to trigger deactivate Data call

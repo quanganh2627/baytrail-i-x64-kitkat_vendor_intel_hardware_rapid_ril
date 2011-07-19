@@ -96,12 +96,6 @@ extern const char   g_szGroupOperatorNames[];
 
 extern const char   g_szGroupSystemReady[];
 
-extern const char   g_szQuerySimLock[];
-extern const char   g_szInitializeSimSms[];
-extern const char   g_szInitializeSimSTK[];
-extern const char   g_szInitializeSimPhonebook[];
-extern const char   g_szInitializeSimPhonebookTimeout[];
-
 //////////////////////////////////////////////////////////////////////////
 
 extern const char   g_szGroupModem[];

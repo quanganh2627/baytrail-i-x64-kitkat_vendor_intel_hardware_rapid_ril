@@ -27,21 +27,10 @@
 #include "te.h"
 #include "../util.h"
 
-void notifySIMLocked(void *param)
-{
-    g_RadioState.SetRadioSIMLocked();
-}
-
 void notifyChangedCallState(void *param)
 {
     RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 }
-
-void notifySIMStatusChanged(void *param)
-{
-    RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
-}
-
 
 void triggerSignalStrength(void *param)
 {
@@ -107,19 +96,6 @@ void triggerDataCallListChanged(void *param)
     {
         RIL_LOG_CRITICAL("triggerDataCallListChanged() - ERROR: Unable to allocate memory for new command!\r\n");
     }
-}
-
-void triggerSIMInserted(void *param)
-{
-    g_RadioState.SetRadioSIMUnlocked();
-
-    CSystemManager::GetInstance().ResumeSystemFromFlightMode();
-}
-
-void triggerSIMRemoved(void *param)
-{
-    g_RadioState.SetRadioSIMAbsent();
-    CSystemManager::GetInstance().StopSimInitialization();
 }
 
 void triggerDeactivateDataCall(void *param)

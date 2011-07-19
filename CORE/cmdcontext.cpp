@@ -64,35 +64,6 @@ void CContextContainer::Add(CContext* pContext)
         m_pBack = m_pBack->m_pNext = new ListNode(pContext);
 }
 
-// CContextPower
-void CContextPower::Execute(BOOL bRes, UINT32 uiErrorCode)
-{
-    RIL_LOG_VERBOSE("CContextPower::Execute() - Enter");
-
-    // update the global on/off state.
-    if (bRes)
-    {
-        if (m_bPowerOn)
-        {
-            if (g_RadioState.IsRadioOff())
-            {
-                g_RadioState.SetRadioOn();
-                CSystemManager::GetInstance().TriggerModemPowerOnEvent();
-                CSystemManager::GetInstance().ResumeSystemFromFlightMode();
-                RIL_LOG_INFO("CContextPower::Execute() - Radio turned on.");
-            }
-        }
-        else
-        {
-            RIL_LOG_INFO("CContextPower::Execute() - Radio turned off. Call StopSimInitialization()");
-            g_RadioState.SetRadioOff();
-            CSystemManager::GetInstance().StopSimInitialization();
-        }
-    }
-
-    RIL_LOG_VERBOSE("CContextPower::Execute() - Exit");
-}
-
 
 // CContextEvent
 void CContextEvent::Execute(BOOL bRes, UINT32 uiErrorCode)
@@ -104,19 +75,6 @@ void CContextEvent::Execute(BOOL bRes, UINT32 uiErrorCode)
     }
 }
 
-// CContextUnlock
-void CContextUnlock::Execute(BOOL bRes, UINT32 uiErrorCode)
-{
-    if (bRes)
-    {
-        // phone successfully unlocked
-        RIL_LOG_VERBOSE("CContextUnlock::Execute() - Phone is unlocking... (2 seconds)\r\n");
-        Sleep(2000);
-        RIL_LOG_INFO("CContextUnlock::Execute() - The phone is now unlocked\r\n");
-        g_RadioState.SetRadioSIMUnlocked();
-        CSystemManager::GetInstance().TriggerSimUnlockedEvent();
-    }
-}
 
 // CContextInitString
 void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
@@ -141,46 +99,3 @@ void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
     }
 }
 
-// CContextNetworkType
-void CContextNetworkType::Execute(BOOL bRes, UINT32 uiErrorCode)
-{
-    RIL_LOG_VERBOSE("CContextNetworkType::Execute() - Enter\r\n");
-
-    g_RadioState.EnablePowerStateChange();
-    if (bRes)
-    {
-        // We need to set the radio off first so the SIM status flags are reset
-        g_RadioState.SetRadioOff();
-        g_RadioState.SetRadioOn();
-        CSystemManager::GetInstance().ResumeSystemFromFlightMode();
-    }
-
-    RIL_LOG_VERBOSE("CContextNetworkType::Execute() - Exit\r\n");
-}
-
-// CContextSimStatus
-void CContextPinQuery::Execute(BOOL bRes, UINT32 uiErrorCode)
-{
-    RIL_LOG_VERBOSE("CContextPinQuery::Execute() - Enter\r\n");
-
-    if (RRIL_CME_ERROR_SIM_ABSENT == uiErrorCode)
-    {
-        RIL_LOG_INFO("CContextPinQuery::Execute() : RRIL_CME_ERROR_SIM_ABSENT\r\n");
-        g_RadioState.SetRadioSIMAbsent();
-        CSystemManager::GetInstance().StopSimInitialization();
-    }
-
-    RIL_LOG_VERBOSE("CContextPinQuery::Execute() - Exit\r\n");
-}
-
-// CContextSimPhonebookQuery
-void CContextSimPhonebookQuery::Execute(BOOL bRes, UINT32 uiErrorCode)
-{
-    RIL_LOG_VERBOSE("CContextSimPhonebookQuery::Execute() - Enter\r\n");
-
-    RIL_LOG_INFO("CContextSimPhonebookQuery::Execute() - Signalling event and setting result to [%s]!\r\n", bRes ? "TRUE" : "FALSE");
-    m_rbResult = bRes;
-    CEvent::Signal(&m_pEvent);
-
-    RIL_LOG_VERBOSE("CContextSimPhonebookQuery::Execute() - Exit\r\n");
-}

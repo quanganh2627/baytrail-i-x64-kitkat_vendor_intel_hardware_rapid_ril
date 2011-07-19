@@ -71,7 +71,7 @@ protected:
     virtual BOOL    ParseCGEV(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseXCGEDPAGE(CResponse* const pResponse, const BYTE*& rszPointer);
 
-    //  Fix NITZ time-zone DST issue (store potential NITZ string here
+    //  Fix NITZ time-zone DST issue (store potential NITZ string here)
     char m_szNITZ[MAX_BUFFER_SIZE];
 
 };

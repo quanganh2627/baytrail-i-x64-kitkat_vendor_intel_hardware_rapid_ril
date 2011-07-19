@@ -108,13 +108,8 @@ CSystemManager::CSystemManager()
     m_pSimUnlockedEvent(NULL),
     m_pModemPowerOnEvent(NULL),
     m_pInitStringCompleteEvent(NULL),
-    m_bExitSimInitializationThread(FALSE),
     m_RequestInfoTable(),
-    m_bFailedToInitialize(FALSE),
-    m_fModemUnlockInitComplete(FALSE),
-    m_fSimGeneralInitComplete(FALSE),
-    m_fIsModemThreadRunning(FALSE),
-    m_fIsSimThreadRunning(FALSE)
+    m_bFailedToInitialize(FALSE)
 {
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Enter\r\n");
 
@@ -160,12 +155,6 @@ CSystemManager::~CSystemManager()
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before signal m_pExitRilEvent\r\n");
     // signal the cancel event to kill the thread
     CEvent::Signal(m_pExitRilEvent);
-
-    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before StopSimInitialization\r\n");
-    //  Cancel SIM initialization if running
-    StopSimInitialization();
-
-    Sleep(300);
 
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CloseChannelPorts\r\n");
     //  Close the COM ports
@@ -426,13 +415,6 @@ BOOL CSystemManager::InitializeSystem()
         goto Done;
     }
 
-    if (!InitializeSim())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't start SIM initialization!\r\n");
-        goto Done;
-    }
-
-
     bRetVal = TRUE;
 
 Done:
@@ -539,9 +521,6 @@ void CSystemManager::ResetChannelCompletedInit()
 void CSystemManager::ResetSystemState()
 {
     RIL_LOG_VERBOSE("CSystemManager::ResetSystemState() - Enter\r\n");
-
-    m_fModemUnlockInitComplete = FALSE;
-    m_fSimGeneralInitComplete = FALSE;
 
     ResetChannelCompletedInit();
 
@@ -788,6 +767,7 @@ void* CSystemManager::StartModemInitializationThreadWrapper(void *pArg)
     return NULL;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 BOOL CSystemManager::InitializeModem()
 {
     BOOL bRetVal = TRUE;
@@ -805,10 +785,6 @@ BOOL CSystemManager::InitializeModem()
         RIL_LOG_CRITICAL("CSystemManager::InitializeModem() - ERROR: Unable to launch modem init thread\r\n");
         bRetVal = FALSE;
     }
-    else
-    {
-        m_fIsModemThreadRunning = TRUE;
-    }
 
     delete pModemThread;
     pModemThread = NULL;
@@ -817,6 +793,7 @@ Done:
     return bRetVal;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 void CSystemManager::StartModemInitializationThread()
 {
     RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() : Start Modem initialization thread\r\n");
@@ -965,10 +942,10 @@ void CSystemManager::StartModemInitializationThread()
     }
 
 Done:
-    m_fIsModemThreadRunning = FALSE;
     RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() : Modem initialized, thread exiting\r\n");
 }
 
+///////////////////////////////////////////////////////////////////////////////
 BOOL CSystemManager::SendModemInitCommands(eComInitIndex eInitIndex)
 {
     RIL_LOG_VERBOSE("CSystemManager::SendModemInitCommands() - Enter\r\n");
@@ -992,524 +969,6 @@ BOOL CSystemManager::SendModemInitCommands(eComInitIndex eInitIndex)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void CSystemManager::StopSimInitialization()
-{
-    if (m_fIsSimThreadRunning &&
-        m_pSimInitializationEvent != NULL)
-    {
-        // signal thread to stop
-        m_fAbortSimInitialization = TRUE;
-        CEvent::Signal(m_pSimInitializationEvent);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void* CSystemManager::StartSimInitializationThreadWrapper(void *pArg)
-{
-    static_cast<CSystemManager *> (pArg)->StartSimInitializationThread();
-    return NULL;
-}
-
-BOOL CSystemManager::InitializeSim()
-{
-    BOOL bRetVal = TRUE;
-
-    if (!m_fIsSimThreadRunning)
-    {
-        CThread* pSimThread = new CThread(StartSimInitializationThreadWrapper, this, THREAD_FLAGS_NONE, 0);
-        if (!pSimThread || !CThread::IsRunning(pSimThread))
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSim() - ERROR: Unable to start SIM initialization thread\r\n");
-            bRetVal = FALSE;
-        }
-        else
-        {
-            m_fIsSimThreadRunning = TRUE;
-        }
-        delete pSimThread;
-        pSimThread = NULL;
-    }
-    else
-    {
-        RIL_LOG_WARNING("CSystemManager::InitializeSim() - WARN: SIM initialization thread is already running\r\n");
-        bRetVal = FALSE;
-    }
-
-    return bRetVal;
-}
-
-void CSystemManager::StartSimInitializationThread()
-{
-    CRepository repository;
-    int         iVal;
-    BOOL        bSimLockEnabled = FALSE;
-
-    // Create event to notify when state changes
-    m_fAbortSimInitialization = FALSE;
-    m_pSimInitializationEvent = new CEvent();
-    if (NULL == m_pSimInitializationEvent)
-    {
-        RIL_LOG_CRITICAL("CSystemManager::StartSimInitializationThread() : ERROR - Could not create event.\r\n");
-        goto Done;
-    }
-
-    // Query SIM PIN
-    if (repository.Read(g_szGroupSystemReady, g_szQuerySimLock, iVal) && (0 != iVal))
-    {
-        RIL_LOG_VERBOSE("CSystemManager::StartSimInitializationThread() : Query SIM stage\r\n");
-        if (!QuerySimPin(bSimLockEnabled) || m_fAbortSimInitialization)
-        {
-            goto Done;
-        }
-    }
-    else
-    {
-        RIL_LOG_INFO("CSystemManager::StartSimInitializationThread() : Skipping SIM unlock Init\r\n");
-
-        g_RadioState.SetRadioOn();
-        g_RadioState.SetRadioSIMReady();
-    }
-
-    if (!bSimLockEnabled)
-    {
-        RIL_LOG_INFO("CSystemManager::StartSimInitializationThread() : Setting unlocked event as SIM is Ready\r\n");
-        TriggerSimUnlockedEvent();
-    }
-
-    // Query SMS status
-    if (repository.Read(g_szGroupSystemReady, g_szInitializeSimSms, iVal) && (0 != iVal))
-    {
-        RIL_LOG_VERBOSE("CSystemManager::StartSimInitializationThread() : Query SMS stage\r\n");
-        if (!InitializeSimSms() || m_fAbortSimInitialization)
-        {
-            goto Done;
-        }
-    }
-    else
-    {
-        RIL_LOG_INFO("CSystemManager::StartSimInitializationThread() : Skipping SMS Init\r\n");
-        g_RadioState.SetRadioSMSReady();
-    }
-
-#ifdef RIL_ENABLE_SIMTK
-    // Query STK status
-    if (repository.Read(g_szGroupSystemReady, g_szInitializeSimSTK, iVal) && (0 != iVal))
-    {
-        if (g_fReadyForSTKNotifications)
-        {
-            RIL_LOG_VERBOSE("CSystemManager::StartSimInitializationThread() : Query STK stage\r\n");
-            if (!InitializeSimSTK() || m_fAbortSimInitialization)
-            {
-                goto Done;
-            }
-        }
-    }
-    else
-    {
-        RIL_LOG_INFO("CSystemManager::StartSimInitializationThread() : Skipping STK init\r\n");
-    }
-#endif  // RIL_ENABLE_SIMTK
-
-    // Query phonebook status
-    if (repository.Read(g_szGroupSystemReady, g_szInitializeSimPhonebook, iVal) && (0 != iVal))
-    {
-        RIL_LOG_VERBOSE("CSystemManager::StartSimInitializationThread() : Query phonebook stage\r\n");
-        if (!InitializeSimPhonebook() || m_fAbortSimInitialization)
-        {
-            goto Done;
-        }
-    }
-    else
-    {
-        RIL_LOG_INFO("CSystemManager::StartSimInitializationThread() : Skipping PB Init\r\n");
-        g_RadioState.SetRadioSIMPBReady();
-    }
-
-    // the SIM is now ready
-    g_RadioState.SetRadioSIMReady();
-
-    m_fSimGeneralInitComplete = TRUE;
-
-Done:
-    delete m_pSimInitializationEvent;
-    m_pSimInitializationEvent = NULL;
-    m_fIsSimThreadRunning = FALSE;
-    RIL_LOG_VERBOSE("CSystemManager::StartSimInitializationThread() : SIM initialized, thread exiting\r\n");
-}
-
-///////////////////////////////////////////////////////////////////////////////
-BOOL CSystemManager::QuerySimPin(BOOL& bSimLockEnabled)
-{
-    BOOL              fRet = FALSE;
-    CCommand*         pCmd          = NULL;
-    //REQUEST_DATA      reqData;
-    REQ_ID            reqID;
-    REQ_INFO          reqInfo;
-    UINT32            uiWaitRes;
-
-    RIL_LOG_VERBOSE("CSystemManager::QuerySimPin() : Enter\r\n");
-
-    // Query for the PIN until we don't get back 515 as an error
-    bSimLockEnabled = FALSE;
-    while (!m_fAbortSimInitialization)
-    {
-        RIL_LOG_VERBOSE("CSystemManager::QuerySimPin() : Sending SIM Query Command\r\n");
-
-        // Set up a CPIN command to be sent
-        // Note that we don't care what the return value is, so long as it's not that the radio isn't ready
-        reqID = ND_REQ_ID_GETSIMSTATUS;
-
-        // Get the info about this API
-        memset(&reqInfo, 0, sizeof(reqInfo));
-        GetRequestInfo(reqID, reqInfo);
-
-        CCommand * pCmd = new CCommand(RIL_CHANNEL_DLC8, NULL,
-                                       reqID,
-                                       "AT+CPIN?\r",
-                                       &CTE::ParseGetSimStatus);
-        if (pCmd)
-        {
-            pCmd->SetTimeout(reqInfo.uiTimeout);
-            pCmd->SetHighPriority();
-
-            CContextContainer* pContainer = new CContextContainer();
-            if (pContainer)
-            {
-                pContainer->Add(new CContextEvent(*m_pSimInitializationEvent));
-                pContainer->Add(new CContextPinQuery());
-            }
-            pCmd->SetContext((CContext*&) pContainer);
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CSystemManager::QuerySimPin() - ERROR: Unable to add command to queue\r\n");
-                delete pCmd;
-                pCmd = NULL;
-                break;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CSystemManager::QuerySimPin() - ERROR: Unable to allocate memory for command\r\n");
-            break;
-        }
-
-        // block until we get a response back
-        CEvent::Wait(m_pSimInitializationEvent, reqInfo.uiTimeout);
-
-        if (m_fAbortSimInitialization)
-            break;
-
-        // we bail out when the SIM is ready (no PIN), or when
-        // it's PIN locked
-        if (g_RadioState.IsRadioSIMReady() ||
-            g_RadioState.IsRadioSIMLocked())
-        {
-            RIL_LOG_INFO("CSystemManager::QuerySimPin() : SIM responding\r\n");
-            break;
-        }
-        else
-        {
-            // timed-out, sleep before the next try
-            const UINT32 dwSIMSleep = 2000;
-
-            RIL_LOG_INFO("CSystemManager::QuerySimPin() : BEGIN Sleep [%d]\r\n", dwSIMSleep);
-            Sleep(dwSIMSleep);
-            RIL_LOG_INFO("CSystemManager::QuerySimPin() : END Sleep\r\n");
-        }
-    }
-
-    if (m_fAbortSimInitialization)
-    {
-        goto Done;
-    }
-
-    //  In this phase this SIM may be responding, but locked.  We need to poll until the SIM is
-    //  unlocked.
-    while (g_RadioState.IsRadioSIMLocked())
-    {
-        bSimLockEnabled = TRUE;
-        if (m_fAbortSimInitialization)
-        {
-            goto Done;
-        }
-
-        const UINT32 uiSimUnlockTimeout = 3000;
-        RIL_LOG_INFO("CSystemManager::QuerySimPin() : Waiting for uiSimUnlockTimeout [%d]\r\n", uiSimUnlockTimeout);
-
-        uiWaitRes = CEvent::Wait(m_pSimInitializationEvent, uiSimUnlockTimeout);
-
-        if (WAIT_EVENT_0_SIGNALED == uiWaitRes)
-        {
-            RIL_LOG_INFO("CSystemManager::QuerySimPin() : SIM unlocked\r\n");
-        }
-    }
-
-    if (m_fAbortSimInitialization)
-    {
-        goto Done;
-    }
-
-    fRet = TRUE;
-
-Done:
-    RIL_LOG_VERBOSE("CSystemManager::QuerySimPin() : Exit\r\n");
-    return fRet;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-BOOL CSystemManager::InitializeSimSms()
-{
-    BOOL         fRet = FALSE;
-    UINT32       uiWaitRes;
-    REQUEST_DATA reqData;
-
-
-    RIL_LOG_VERBOSE("CSystemManager::InitializeSimSms() : Enter\r\n");
-
-    if (g_RadioState.IsRadioSIMLocked())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSimSms() : ERROR : InitializeSimSms called when SIM locked!\r\n");
-        goto Done;
-    }
-
-    {
-        // queue SMS command
-        memset(&reqData, 0, sizeof(REQUEST_DATA));
-        CCommand* pCmd = new CCommand(RIL_CHANNEL_DLC6,
-                                      NULL,
-                                      ND_REQ_ID_NONE,
-                                      "AT+CSMS=1\r");
-        if (pCmd)
-        {
-            pCmd->SetHighPriority();
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CSystemManager::InitializeSimSms() - ERROR: Unable to add command to queue\r\n");
-                delete pCmd;
-                pCmd = NULL;
-                goto Done;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSimSms() - ERROR: Unable to allocate memory for command\r\n");
-            goto Done;
-        }
-
-        // set the MO SMS to Circuit switched preferred.
-        memset(&reqData, 0, sizeof(REQUEST_DATA));
-
-        pCmd = new CCommand(RIL_CHANNEL_DLC6,
-                            NULL,
-                            ND_REQ_ID_NONE,
-                            "AT+CGSMS=3\r");
-        if (pCmd)
-        {
-            pCmd->SetHighPriority();
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CSystemManager::InitializeSimSms() - ERROR: Unable to add command to queue\r\n");
-                delete pCmd;
-                pCmd = NULL;
-                goto Done;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSimSms() - ERROR: Unable to allocate memory for command\r\n");
-            goto Done;
-        }
-
-        RIL_LOG_INFO("CSystemManager::InitializeSimSms() : Sending CNMI request\r\n");
-        memset(&reqData, 0, sizeof(REQUEST_DATA));
-
-        pCmd = new CCommand(RIL_CHANNEL_URC,
-                            NULL,
-                            ND_REQ_ID_NONE,
-                            "AT+CNMI=2,2,2,1\r");
-        if (pCmd)
-        {
-            pCmd->SetHighPriority();
-            CContext* pContext = new CContextEvent(*m_pSimInitializationEvent);
-            pCmd->SetContext(pContext);
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CSystemManager::InitializeSimSms() - ERROR: Unable to add command to queue\r\n");
-                delete pCmd;
-                pCmd = NULL;
-                goto Done;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSimSms() - ERROR: Unable to allocate memory for command\r\n");
-            goto Done;
-        }
-
-        // block until we get a response back
-        uiWaitRes = CEvent::Wait(m_pSimInitializationEvent, g_TimeoutCmdInit);
-        if (m_fAbortSimInitialization)
-            goto Done;
-
-        if (WAIT_EVENT_0_SIGNALED == uiWaitRes)
-        {
-            RIL_LOG_INFO("CSystemManager::InitializeSimSms() : SMS Unlocked!\r\n");
-        }
-        else
-        {
-            // sleep before the next try
-            //const UINT32 dwSMSSleep = 5000;
-            //RIL_LOG_VERBOSE("CSystemManager::InitializeSimSms() : BEGIN Sleep [%d]\r\n", dwSMSSleep);
-            //Sleep(dwSMSSleep);
-            //RIL_LOG_VERBOSE("CSystemManager::InitializeSimSms() : END Sleep\r\n");
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSimSms() : COMMAND TIMED-OUT!\r\n");
-        }
-    }
-
-    if (m_fAbortSimInitialization)
-    {
-        goto Done;
-    }
-
-    g_RadioState.SetRadioSMSReady();
-    fRet = TRUE;
-
-Done:
-    RIL_LOG_VERBOSE("CSystemManager::InitializeSimSms() : Exit\r\n");
-    return fRet;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-#ifdef RIL_ENABLE_SIMTK
-BOOL CSystemManager::InitializeSimSTK()
-{
-    BOOL         fRet = FALSE;
-    REQUEST_DATA reqData;
-
-    RIL_LOG_VERBOSE("CSystemManager::InitializeSimSTK() : Enter\r\n");
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
-
-    CCommand* pCmd = new CCommand(RIL_CHANNEL_URC,
-                                  NULL,
-                                  ND_REQ_ID_NONE,
-                                  "AT+XSATK=1,1\r");
-    if (pCmd)
-    {
-        if (!CCommand::AddCmdToQueue(pCmd))
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSimSTK() - ERROR: Unable to add command to queue\r\n");
-            delete pCmd;
-            pCmd = NULL;
-            goto Done;
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSimSTK() - ERROR: Unable to allocate memory for command\r\n");
-        goto Done;
-    }
-
-    fRet = TRUE;
-
-Done:
-    RIL_LOG_VERBOSE("CSystemManager::InitializeSimSTK() : Exit\r\n");
-    return fRet;
-}
-#endif // RIL_ENABLE_SIMTK
-
-///////////////////////////////////////////////////////////////////////////////
-BOOL CSystemManager::InitializeSimPhonebook()
-{
-    BOOL         fRet = FALSE;
-    REQUEST_DATA reqData;
-    UINT32       uiWaitRes;
-    CRepository  repository;
-    int          iTimeout = 10000;
-
-    RIL_LOG_VERBOSE("CSystemManager::InitializeSimPhonebook() : Enter\r\n");
-
-    if (g_RadioState.IsRadioSIMLocked())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSimPhonebook() : ERROR : InitializeSimPhonebook called when SIM locked!\r\n");
-        goto Done;
-    }
-
-    while (!m_fAbortSimInitialization)
-    {
-        RIL_LOG_VERBOSE("CSystemManager::InitializeSimPhonebook() : Sending select SIM Phbk Command\r\n");
-        BOOL bResult = FALSE;
-
-        memset(&reqData, 0, sizeof(REQUEST_DATA));
-        if (!repository.Read(g_szGroupSystemReady, g_szInitializeSimPhonebookTimeout, iTimeout))
-        {
-            RIL_LOG_VERBOSE("CSystemManager::InitializeSimPhonebook() - Defaulting to 10000ms timeout\r\n");
-        }
-        reqData.uiTimeout = iTimeout;
-
-        if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CPBS=\"SM\";+CPBR=?\r", sizeof(reqData.szCmd1)))
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSimPhonebook() - ERROR: Unable to write command to buffer\r\n");
-            goto Done;
-        }
-
-        CCommand* pCmd = new CCommand(RIL_CHANNEL_DLC8,
-                                      NULL,
-                                      ND_REQ_ID_NONE,
-                                      "AT+CPBS=\"SM\";+CPBR=?\r");
-        if (pCmd)
-        {
-            pCmd->SetHighPriority();
-            CContext* pContext = new CContextSimPhonebookQuery(*m_pSimInitializationEvent, bResult);
-            pCmd->SetContext(pContext);
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CSystemManager::InitializeSimPhonebook() - ERROR: Unable to add command to queue\r\n");
-                delete pCmd;
-                pCmd = NULL;
-                goto Done;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSimPhonebook() - ERROR: Unable to allocate memory for command\r\n");
-            goto Done;
-        }
-
-        // block until we get notified
-        uiWaitRes = CEvent::Wait(m_pSimInitializationEvent, iTimeout);
-
-        if (m_fAbortSimInitialization)
-            break;
-
-        if ((WAIT_EVENT_0_SIGNALED == uiWaitRes) && (bResult))
-        {
-            // response received, bail out
-            RIL_LOG_INFO("CSystemManager::InitializeSimPhonebook() : PHONEBOOK Unlocked!\r\n");
-            break;
-        }
-        else
-        {
-            // sleep before the next try
-            const UINT32 uiSIMPBSleep = 1000;
-            RIL_LOG_VERBOSE("CSystemManager::InitializeSimPhonebook() : BEGIN Sleep [%d]\r\n", uiSIMPBSleep);
-            Sleep(uiSIMPBSleep);
-            RIL_LOG_VERBOSE("CSystemManager::InitializeSimPhonebook() : END Sleep\r\n");
-        }
-    }
-
-    if (m_fAbortSimInitialization)
-    {
-        goto Done;
-    }
-
-    g_RadioState.SetRadioSIMPBReady();
-    fRet = TRUE;
-
-Done:
-    RIL_LOG_VERBOSE("CSystemManager::InitializeSimPhonebook() : Exit\r\n");
-    return fRet;
-}
-
 void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIndex eInitIndex)
 {
     SetChannelCompletedInit(uiChannel, eInitIndex);
@@ -1522,7 +981,6 @@ void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIn
     else if (VerifyAllChannelsCompletedInit(COM_UNLOCK_INIT_INDEX))
     {
         RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() - DEBUG: All channels complete unlock init!\r\n");
-        m_fModemUnlockInitComplete = TRUE;
     }
     else if (VerifyAllChannelsCompletedInit(COM_BASIC_INIT_INDEX))
     {
@@ -1538,53 +996,3 @@ void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIn
     }
 }
 
-BOOL CSystemManager::BlockNonHighPriorityCmds()
-{
-    if (m_fModemUnlockInitComplete && m_fSimGeneralInitComplete)
-    {
-        // Let all commands through
-        RIL_LOG_VERBOSE("CSystemManager::BlockNonHighPriorityCmds() - returning FALSE\r\n");
-        return false;
-    }
-    else
-    {
-        // Block until the minimum initialization is complete
-        RIL_LOG_VERBOSE("CSystemManager::BlockNonHighPriorityCmds() - DEBUG: ModemUnlock=[%s]   SimInit=[%s]  returning TRUE\r\n",
-            m_fModemUnlockInitComplete ? "TRUE" : "FALSE",
-            m_fSimGeneralInitComplete ? "TRUE" : "FALSE");
-
-        return true;
-    }
-}
-
-BOOL CSystemManager::ResumeSystemFromFlightMode()
-{
-    return InitializeSim();
-}
-
-BOOL CSystemManager::ResumeSystemFromModemReset()
-{
-    RIL_LOG_INFO("CSystemManager::ResumeSystemFromModemReset() - ENTER\r\n");
-
-    BOOL bRet = FALSE;
-
-    ResetSystemState();
-
-    if (!InitializeModem())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::ResumeSystemFromModemReset() - ERROR: InitializeModem\r\n");
-        goto Error;
-    }
-
-    if (!InitializeSim())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::ResumeSystemFromModemReset() - ERROR: initializeSim\r\n");
-        goto Error;
-    }
-
-    bRet = TRUE;
-Error:
-    RIL_LOG_INFO("CSystemManager::ResumeSystemFromModemReset() - EXIT  bRet=[%d]\r\n", bRet);
-
-    return bRet;
-}

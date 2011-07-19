@@ -203,24 +203,11 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin(RIL_Token rilToken, void * pData, size_t
 
         if (pCmd)
         {
-            CContext* pContext = new CContextUnlock();
-            if (pContext)
-            {
-                pCmd->SetContext(pContext);
-                //  Call when radio is off.
-                pCmd->SetHighPriority();
+            pCmd->SetHighPriority();
 
-                if (!CCommand::AddCmdToQueue(pCmd))
-                {
-                    RIL_LOG_CRITICAL("CTE::RequestEnterSimPin() - ERROR: Unable to add command to queue\r\n");
-                    res = RIL_E_GENERIC_FAILURE;
-                    delete pCmd;
-                    pCmd = NULL;
-                }
-            }
-            else
+            if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestEnterSimPin() - ERROR: Could not create context.\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestEnterSimPin() - ERROR: Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -279,24 +266,11 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk(RIL_Token rilToken, void * pData, size_t
 
         if (pCmd)
         {
-            CContext* pContext = new CContextUnlock();
-            if (pContext)
-            {
-                pCmd->SetContext(pContext);
-                //  Call when radio is off.
-                pCmd->SetHighPriority();
+            pCmd->SetHighPriority();
 
-                if (!CCommand::AddCmdToQueue(pCmd))
-                {
-                    RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk() - ERROR: Unable to add command to queue\r\n");
-                    res = RIL_E_GENERIC_FAILURE;
-                    delete pCmd;
-                    pCmd = NULL;
-                }
-            }
-            else
+            if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk() - ERROR: Could not create context.\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk() - ERROR: Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -355,24 +329,12 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin2(RIL_Token rilToken, void * pData, size_
 
         if (pCmd)
         {
-            CContext* pContext = new CContextUnlock();
-            if (pContext)
-            {
-                pCmd->SetContext(pContext);
-                //  Call when radio is off.
-                pCmd->SetHighPriority();
 
-                if (!CCommand::AddCmdToQueue(pCmd))
-                {
-                    RIL_LOG_CRITICAL("CTE::RequestEnterSimPin2() - ERROR: Unable to add command to queue\r\n");
-                    res = RIL_E_GENERIC_FAILURE;
-                    delete pCmd;
-                    pCmd = NULL;
-                }
-            }
-            else
+            pCmd->SetHighPriority();
+
+            if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestEnterSimPin2() - ERROR: Could not create context.\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestEnterSimPin2() - ERROR: Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -431,24 +393,11 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk2(RIL_Token rilToken, void * pData, size_
 
         if (pCmd)
         {
-            CContext* pContext = new CContextUnlock();
-            if (pContext)
-            {
-                pCmd->SetContext(pContext);
-                //  Call when radio is off.
-                pCmd->SetHighPriority();
+            pCmd->SetHighPriority();
 
-                if (!CCommand::AddCmdToQueue(pCmd))
-                {
-                    RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk2() - ERROR: Unable to add command to queue\r\n");
-                    res = RIL_E_GENERIC_FAILURE;
-                    delete pCmd;
-                    pCmd = NULL;
-                }
-            }
-            else
+            if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk2() - ERROR: Could not create context.\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk2() - ERROR: Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1539,6 +1488,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
+    RIL_RadioState radio_state = g_RadioState.GetRadioState();
 
     if (NULL == pData)
     {
@@ -1563,16 +1513,9 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
         bTurnRadioOn = true;
     }
 
-    if (FALSE == g_RadioState.IsPowerStateChangeable())
-    {
-        RIL_LOG_INFO("CTE::RequestRadioPower() - Preventing command\r\n");
-        res = RIL_E_RADIO_NOT_AVAILABLE;
-        goto Error;
-    }
-
     // check if the required state is the same as the current one
     // if so, ignore command
-    if ((bTurnRadioOn && !g_RadioState.IsRadioOff()) || (!bTurnRadioOn && g_RadioState.IsRadioOff()))
+    if ((bTurnRadioOn && RADIO_STATE_OFF != radio_state) || (!bTurnRadioOn && RADIO_STATE_OFF == radio_state))
     {
         RIL_LOG_INFO("CTE::RequestRadioPower() - No change in state, spoofing command.\r\n");
         res = RIL_E_SUCCESS;
@@ -1597,47 +1540,13 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
 
             if (pCmd)
             {
-                CContextContainer* pContext = new CContextContainer();
-                if (pContext)
+                pCmd->SetHighPriority();
+
+                if (!CCommand::AddCmdToQueue(pCmd))
                 {
-                    CContext* pPowerContext = NULL;
-
-                    if (bTurnRadioOn)
-                    {
-                        pPowerContext = new CContextPower(true, *pCmd);
-                    }
-                    else
-                    {
-                        pPowerContext = new CContextPower(false, *pCmd);
-                    }
-
-                    if (pPowerContext)
-                    {
-                        pContext->Add(pPowerContext);
-                        pCmd->SetContext((CContext*&) pContext);
-                        pCmd->SetHighPriority();
-
-                        if (!CCommand::AddCmdToQueue(pCmd))
-                        {
-                            RIL_LOG_CRITICAL("CTE::RequestRadioPower() - ERROR: Unable to add command to queue\r\n");
-                            res = RIL_E_GENERIC_FAILURE;
-                            delete pCmd;  //  When pCmd is deleted, the pContext is deleted as well.
-                            pCmd = NULL;
-                        }
-                    }
-                    else
-                    {
-                        RIL_LOG_CRITICAL("CTE::RequestRadioPower() : ERROR : Unable to create contexts!\r\n");
-                        res = RIL_E_GENERIC_FAILURE;
-                        delete pCmd;  //  When pCmd is deleted, the pContext is deleted as well.
-                        pCmd = NULL;
-                    }
-                }
-                else
-                {
-                    RIL_LOG_CRITICAL("CTE::RequestRadioPower() : ERROR : Unable to create context container!\r\n");
+                    RIL_LOG_CRITICAL("CTE::RequestRadioPower() : ERROR : Unable to add command to queue\r\n");
                     res = RIL_E_GENERIC_FAILURE;
-                    delete pCmd;  //  When pCmd is deleted, the pContext is deleted as well.
+                    delete pCmd;
                     pCmd = NULL;
                 }
             }
@@ -4738,43 +4647,6 @@ RIL_RESULT_CODE CTE::RequestSetPreferredNetworkType(RIL_Token rilToken, void * p
             RIL_LOG_CRITICAL("CTE::RequestSetPreferredNetworkType() - ERROR: Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
-
-
-/*
-        if (pCmd)
-        {
-            CContext* pContext = new CContextNetworkType();
-            if (pContext)
-            {
-                pCmd->SetContext(pContext);
-
-                if (!CCommand::AddCmdToQueue(pCmd))
-                {
-                    RIL_LOG_CRITICAL("CTE::RequestSetPreferredNetworkType() - ERROR: Unable to add command to queue\r\n");
-                    res = RIL_E_GENERIC_FAILURE;
-                    delete pCmd;
-                    pCmd = NULL;
-                }
-                else
-                {
-                    // Ensure that we don't mess with the power state while these commands are still processing
-                    g_RadioState.DisablePowerStateChange();
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CTE::RequestSetPreferredNetworkType() - ERROR: Could not create context.\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE::RequestSetPreferredNetworkType() - ERROR: Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-        }
-*/
     }
 
     RIL_LOG_VERBOSE("CTE::RequestSetPreferredNetworkType() - Exit\r\n");

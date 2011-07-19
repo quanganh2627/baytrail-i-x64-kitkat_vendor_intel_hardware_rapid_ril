@@ -126,6 +126,9 @@ public:
     // RIL_REQUEST_SMS_MEMORY_STATUS 102
     virtual RIL_RESULT_CODE CoreReportSmsMemoryStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
 
+    // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
+    virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+
     // internal response handlers
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);

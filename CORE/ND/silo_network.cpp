@@ -300,7 +300,7 @@ BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const BYTE* &rszPoin
     }
 
     //  Now, if we have m_szNITZ then send the NITZ notification!
-    m_szNITZ[sizeof(m_szNITZ) - 1] = NULL;  //Klocwork fix
+    m_szNITZ[MAX_BUFFER_SIZE - 1] = NULL;  //Klocwork fix
     if (strlen(m_szNITZ) > 0)
     {
         //  Append the ",<dst>" to locally stored NITZ string.
@@ -308,11 +308,11 @@ BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const BYTE* &rszPoin
         {
             RIL_LOG_CRITICAL("CSilo_Network::ParseCTZDST() - Can't make append string - assuming 0\r\n");
 
-            strncat(&m_szNITZ[0], ",0", sizeof(m_szNITZ) - strlen(m_szNITZ) - 1);
+            strlcat(&m_szNITZ[0], ",0", MAX_BUFFER_SIZE - strlen(m_szNITZ) - 1);
         }
         else
         {
-            strncat(&m_szNITZ[0], szDST, sizeof(m_szNITZ) - strlen(m_szNITZ) - 1);
+            strlcat(&m_szNITZ[0], szDST, MAX_BUFFER_SIZE - strlen(m_szNITZ) - 1);
         }
 
         RIL_LOG_INFO("CSilo_Network::ParseCTZDST() - INFO: m_szNITZ: %s\r\n", m_szNITZ);

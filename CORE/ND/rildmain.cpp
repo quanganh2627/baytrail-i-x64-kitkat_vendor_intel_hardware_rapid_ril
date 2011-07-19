@@ -89,9 +89,12 @@ CThread* g_pWatchdogThread = NULL;
 BOOL g_bIsModemDead = FALSE;
 
 //  Global variable to see if we are in TriggerRadioError() function.
-//  Use this to "spoof" responses to commands while resetting modem.
 BOOL g_bIsTriggerRadioError = FALSE;
 
+//  Use this to "spoof" responses to commands while resetting modem.
+//  Need separate variable for spoofing commands, since core dump app
+//  may be running.
+BOOL g_bSpoofCommands = FALSE;
 
 static const RIL_RadioFunctions gs_callbacks =
 {
@@ -229,7 +232,7 @@ static void ModemResetUpdate()
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 
     RIL_LOG_INFO("ModemResetUpdate() - telling Android radio status changed\r\n");
-    g_RadioState.SetRadioUnavailable(FALSE);
+    g_RadioState.SetSIMState(RADIO_STATE_UNAVAILABLE);
 
     RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
     RIL_LOG_CRITICAL("ModemResetUpdate() - COMPLETE\r\n");
@@ -332,6 +335,7 @@ static void ResetModemAndRestart(eRadioError eRadioErrorVal, UINT32 uiLineNum, c
 
 Error:
     g_bIsTriggerRadioError = FALSE;
+    g_bSpoofCommands = FALSE;
 
     RIL_LOG_CRITICAL("********************************************************************\r\n");
     RIL_LOG_CRITICAL("************ResetModemAndRestart() - CALLING EXIT ******************\r\n");
@@ -463,6 +467,9 @@ void* WatchdogThreadProc(void* pVoid)
                 if (fds[i].revents & POLLHUP)
                 {
                     bIsPOLLHUP = TRUE;
+
+                    //  Spoof commands from now on
+                    g_bSpoofCommands = TRUE;
 
                     // A hangup has occurred on device number i
                     RIL_LOG_INFO("WatchdogThreadProc() - POLLHUP hangup event on fd[%d] and Update Android about Reset\r\n", i);
@@ -881,7 +888,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
 
 
     //  If we're in the middle of TriggerRadioError(), spoof all commands.
-    if (g_bIsTriggerRadioError)
+    if (g_bIsTriggerRadioError || g_bSpoofCommands)
     {
         if (RIL_REQUEST_GET_CURRENT_CALLS == requestID)
         {
@@ -1721,7 +1728,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.16 for Android 2.3.4 (Build July 12/2011)";
+    return "Intrinsyc Rapid-RIL M5.17 for Android 2.3.4 (Build July 19/2011)";
 }
 
 
@@ -1976,12 +1983,8 @@ static bool RIL_SetGlobals(int argc, char **argv)
         usage(argv[0]);
         return false;
     }
-
-
     return true;
 }
-
-
 
 const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, char **argv)
 {

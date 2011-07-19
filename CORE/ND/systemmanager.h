@@ -70,8 +70,6 @@ private:
 public:
     // Start system initialization process
     BOOL            InitializeSystem();
-    BOOL            ResumeSystemFromFlightMode();
-    BOOL            ResumeSystemFromModemReset();
 
     BOOL            IsExitRequestSignalled() const;
 
@@ -83,20 +81,14 @@ public:
     void            TriggerModemPowerOnEvent() const        { CEvent::Signal(m_pModemPowerOnEvent);     };
     void            TriggerInitStringCompleteEvent(UINT32 eChannel, eComInitIndex eInitIndex);
 
-    BOOL            BlockNonHighPriorityCmds();
-
     BOOL            IsInitializationSuccessful() const      { return !m_bFailedToInitialize; };
     void            SetInitializationUnsuccessful()         { m_bFailedToInitialize = TRUE; };
-
-    void            StopSimInitialization();
 
     void            GetRequestInfo(REQ_ID reqID, REQ_INFO &rReqInfo);
 
     //  For resetting modem
     void            CloseChannelPorts();
     BOOL            OpenChannelPortsOnly();
-
-    BOOL            InitializeSimSTK();
 
 private:
     // Framework Init Functions
@@ -123,13 +115,6 @@ private:
     static void*    StartModemInitializationThreadWrapper(void *pArg);
     void            StartModemInitializationThread();
 
-    // SIM initialization helper functions (called by component init functions)
-    BOOL            InitializeSimSms();
-    BOOL            InitializeSimPhonebook();
-    BOOL            QuerySimPin(BOOL& bSimLockEnabled);
-    static void*    StartSimInitializationThreadWrapper(void *pArg);
-    void            StartSimInitializationThread();
-
 private:
     static CSystemManager* m_pInstance;
     CEvent *            m_pSystemInitCompleteEvent;
@@ -142,22 +127,11 @@ private:
     CMutex *            m_pAccessorMutex;
     CMutex *            m_pSystemManagerMutex;
 
-    BOOL                m_bExitSimInitializationThread;
     CRequestInfoTable   m_RequestInfoTable;
 
     BOOL                m_bFailedToInitialize;
 
-    // Used to track if we are blocking non high priority commands
-    BOOL                m_fModemUnlockInitComplete;
-    BOOL                m_fSimGeneralInitComplete;
-
     BOOL                m_rgfChannelCompletedInit[RIL_CHANNEL_MAX][COM_MAX_INDEX];
-
-    BOOL                m_fIsModemThreadRunning;
-    BOOL                m_fIsSimThreadRunning;
-
-    BOOL                m_fAbortSimInitialization;
-    CEvent*             m_pSimInitializationEvent;
 
 };
 
