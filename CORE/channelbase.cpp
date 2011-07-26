@@ -35,16 +35,6 @@
 #include "channelbase.h"
 
 
-
-#define ISEXITSET       (CSystemManager::GetInstance().IsExitRequestSignalled())
-#define GETCANCELEVENT  (CSystemManager::GetCancelEvent())
-#define GETINITEVENT    (CSystemManager::GetSystemInitCompleteEvent())
-
-
-#undef __out_arg
-
-extern BOOL PromptForSimAndRequeueCmd(CCommand* pCmd, UINT32 dwLockFacility);
-
 CChannelBase::CChannelBase(UINT32 uiChannel)
   : m_uiRilChannel(uiChannel),
     m_fWaitingForRsp(FALSE),
@@ -402,16 +392,6 @@ UINT32 CChannelBase::CommandThread()
             goto Done;
         }
 
-        /***************************************************/
-        /*************** DO WE NEED THIS????? **************/
-        /***************************************************/
-        /*
-        if (!SendDataInDataMode())
-        {
-            RIL_LOG_CRITICAL("CChannelBase::CommandThread() - ERROR: chnl=[%d] Error in sending packet!\r\n", m_uiRilChannel);
-            goto Error;
-        }
-        */
     }
 
 Done:
@@ -428,7 +408,7 @@ Done:
 
 BOOL CChannelBase::WaitForCommand()
 {
-    CEvent *rpEvents[] = {g_TxQueueEvent[m_uiRilChannel], GETCANCELEVENT};
+    CEvent *rpEvents[] = {g_TxQueueEvent[m_uiRilChannel], CSystemManager::GetCancelEvent()};
 
     //RIL_LOG_INFO("CChannelBase::WaitForCommand() - WAITING FOR TxQueue EVENT...\r\n");
     CEvent::Reset(g_TxQueueEvent[m_uiRilChannel]);
@@ -565,7 +545,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             {
                 CContext* pContext = new CContextInitString(eInitIndex, m_uiRilChannel, bLastCmd);
                 pCmd->SetContext(pContext);
-                pCmd->SetTimeout(TIMEOUT_INITIALIZATION_COMMAND);
+                pCmd->SetTimeout(g_TimeoutCmdInit);
                 pCmd->SetHighPriority();
             }
 
@@ -613,7 +593,6 @@ UINT32 CChannelBase::ResponseThread()
     const UINT32 uiRespDataBufSize = 1024;
     BYTE         szData[uiRespDataBufSize];
     UINT32       uiRead;
-    UINT32       uiBlockRead = 0;
     UINT32       uiReadError = 0;
     const UINT32 uiMAX_READERROR = 3;
 
@@ -639,17 +618,6 @@ UINT32 CChannelBase::ResponseThread()
             break;
         }
 
-        /*
-        uiBlockRead = CEvent::Wait(m_pBlockReadThreadEvent, WAIT_FOREVER);
-        RIL_LOG_VERBOSE("CChannelBase::ResponseThread() : DEBUG : chnl=[%d] Wait(m_hBlockReadThreadEvent) returns 0x%X", m_uiRilChannel, uiBlockRead);
-
-        // See if the thread needs to terminate
-        if (ISEXITSET)
-        {
-            RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - ERROR: chnl=[%d] Cancel event was set\r\n", m_uiRilChannel);
-            break;
-        }
-        */
 
         // Wait for more data
         RIL_LOG_VERBOSE("CChannelBase::ResponseThread() chnl=[%d] - Waiting for data\r\n", m_uiRilChannel);

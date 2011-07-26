@@ -33,7 +33,6 @@ LOCAL_SRC_FILES:= \
     ND/rildmain.cpp \
     ND/sync_ops.cpp \
     ND/thread_ops.cpp \
-    ND/ril_result_nd.cpp \
     cmdcontext.cpp \
     command.cpp \
     globals.cpp \

@@ -103,18 +103,16 @@ BOOL CSystemManager::Destroy()
 ///////////////////////////////////////////////////////////////////////////////
 CSystemManager::CSystemManager()
   :
-    m_pSystemInitCompleteEvent(NULL),
     m_pExitRilEvent(NULL),
     m_pSimUnlockedEvent(NULL),
     m_pModemPowerOnEvent(NULL),
     m_pInitStringCompleteEvent(NULL),
+    m_pTriggerRadioErrorMutex(NULL),
+    m_pDataChannelAccessorMutex(NULL),
     m_RequestInfoTable(),
     m_bFailedToInitialize(FALSE)
 {
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Enter\r\n");
-
-    // create mutexes
-    m_pAccessorMutex = new CMutex();
 
     // TODO / FIXME : Someone is locking this mutex outside of the destructor or system init functions
     //                Need to track down when time is available. Workaround for now is to call TryLock
@@ -188,13 +186,6 @@ CSystemManager::~CSystemManager()
 
     Sleep(300);
 
-    if (m_pSystemInitCompleteEvent)
-    {
-        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pSystemInitCompleteEvent\r\n");
-        delete m_pSystemInitCompleteEvent;
-        m_pSystemInitCompleteEvent = NULL;
-    }
-
     if (m_pSimUnlockedEvent)
     {
         RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pSimUnlockedEvent\r\n");
@@ -216,11 +207,18 @@ CSystemManager::~CSystemManager()
         m_pInitStringCompleteEvent = NULL;
     }
 
-    if (m_pAccessorMutex)
+    if (m_pTriggerRadioErrorMutex)
     {
-        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pAccessorMutex\r\n");
-        delete m_pAccessorMutex;
-        m_pAccessorMutex = NULL;
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pTriggerRadioErrorMutex\r\n");
+        delete m_pTriggerRadioErrorMutex;
+        m_pTriggerRadioErrorMutex = NULL;
+    }
+
+    if (m_pDataChannelAccessorMutex)
+    {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pDataChannelAccessorMutex\r\n");
+        delete m_pDataChannelAccessorMutex;
+        m_pDataChannelAccessorMutex = NULL;
     }
 
     if (fLocked)
@@ -256,39 +254,15 @@ BOOL CSystemManager::InitializeSystem()
     int iTemp;
     BOOL bRetVal = FALSE;
 
-    if (NULL != m_pSystemInitCompleteEvent)
-    {
-        if (WAIT_EVENT_0_SIGNALED == CEvent::Wait(m_pSystemInitCompleteEvent, 0))
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: System is already initialized\r\n");
-            bRetVal = TRUE;
-            goto Done;
-        }
-    }
 
     if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutCmdInit, iTemp))
     {
         g_TimeoutCmdInit = (UINT32)iTemp;
     }
 
-    if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutCmdNoOp, iTemp))
-    {
-        g_TimeoutCmdNoOp = (UINT32)iTemp;
-    }
-
-    if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutCmdOnline, iTemp))
-    {
-        g_TimeoutCmdOnline = (UINT32)iTemp;
-    }
-
     if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutAPIDefault, iTemp))
     {
         g_TimeoutAPIDefault = (UINT32)iTemp;
-    }
-
-    if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutDTRDrop, iTemp))
-    {
-        g_TimeoutDTRDrop = (UINT32)iTemp;
     }
 
     if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutWaitForInit, iTemp))
@@ -301,19 +275,6 @@ BOOL CSystemManager::InitializeSystem()
         g_DefaultCmdRetries = (UINT32)iTemp;
     }
 
-    if (m_pSystemInitCompleteEvent)
-    {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pSystemInitCompleteEvent was already created!\r\n");
-    }
-    else
-    {
-        m_pSystemInitCompleteEvent = new CEvent(NULL, TRUE);
-        if (!m_pSystemInitCompleteEvent)
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Could not create System Init Complete Event.\r\n");
-            goto Done;
-        }
-    }
 
     if (m_pSimUnlockedEvent)
     {
@@ -353,6 +314,34 @@ BOOL CSystemManager::InitializeSystem()
         if (!m_pInitStringCompleteEvent)
         {
             RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Could not create Init commands complete Event.\r\n");
+            goto Done;
+        }
+    }
+
+    if (m_pTriggerRadioErrorMutex)
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pTriggerRadioErrorMutex was already created!\r\n");
+    }
+    else
+    {
+        m_pTriggerRadioErrorMutex = new CMutex();
+        if (!m_pTriggerRadioErrorMutex)
+        {
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Could not create m_pTriggerRadioErrorMutex.\r\n");
+            goto Done;
+        }
+    }
+
+    if (m_pDataChannelAccessorMutex)
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pDataChannelAccessorMutex was already created!\r\n");
+    }
+    else
+    {
+        m_pDataChannelAccessorMutex = new CMutex();
+        if (!m_pDataChannelAccessorMutex)
+        {
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Could not create m_pDataChannelAccessorMutex.\r\n");
             goto Done;
         }
     }
@@ -420,12 +409,6 @@ BOOL CSystemManager::InitializeSystem()
 Done:
     if (!bRetVal)
     {
-        if (m_pSystemInitCompleteEvent)
-        {
-            delete m_pSystemInitCompleteEvent;
-            m_pSystemInitCompleteEvent = NULL;
-        }
-
         if (m_pSimUnlockedEvent)
         {
             delete m_pSimUnlockedEvent;
@@ -442,6 +425,18 @@ Done:
         {
             delete m_pInitStringCompleteEvent;
             m_pInitStringCompleteEvent = NULL;
+        }
+
+        if (m_pTriggerRadioErrorMutex)
+        {
+            delete m_pTriggerRadioErrorMutex;
+            m_pTriggerRadioErrorMutex = NULL;
+        }
+
+        if (m_pDataChannelAccessorMutex)
+        {
+            delete m_pDataChannelAccessorMutex;
+            m_pDataChannelAccessorMutex = NULL;
         }
 
         CThreadManager::Stop();

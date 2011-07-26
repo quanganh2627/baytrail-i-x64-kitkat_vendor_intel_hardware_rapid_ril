@@ -34,20 +34,12 @@
 
 // Default API execution time (in msec)
 extern const UINT32 TIMEOUT_INITIALIZATION_COMMAND;
-
-extern const UINT32 TIMEOUT_CMD_NOOP;
-extern const UINT32 TIMEOUT_CMD_ONLINE;
 extern const UINT32 TIMEOUT_API_DEFAULT;
-extern const UINT32 TIMEOUT_DTRDROP;
 extern const UINT32 TIMEOUT_WAITFORINIT;
 extern const UINT32 DEFAULT_CMD_RETRIES;
-extern const UINT32 TIMEOUT_CHNL_INIT;
 
 extern UINT32 g_TimeoutCmdInit;
-extern UINT32 g_TimeoutCmdNoOp;
-extern UINT32 g_TimeoutCmdOnline;
 extern UINT32 g_TimeoutAPIDefault;
-extern UINT32 g_TimeoutDTRDrop;
 extern UINT32 g_TimeoutWaitForInit;
 extern UINT32 g_DefaultCmdRetries;
 
@@ -56,17 +48,11 @@ extern char g_cTerminator;
 extern char g_szNewLine[3];
 
 ///////////////////////////////////////////////////////////////////////////////
-extern BOOL g_fReadyForSTKNotifications;
-
-///////////////////////////////////////////////////////////////////////////////
 extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
 
 ///////////////////////////////////////////////////////////////////////////////
 // This global class instance tracks the radio state and handles notifications
 extern CRadioState g_RadioState;
 
-///////////////////////////////////////////////////////////////////////////////
-//  Event handle used for getting registration status during SIMReadyThread().
-extern CEvent * g_pSIMReadyRegEvent;
 
 #endif // RRIL_GLOBALS_H

@@ -57,20 +57,20 @@ CTE_INF_6260::CTE_INF_6260()
 : m_nCurrentNetworkType(0),
 m_pQueryPIN2Event(NULL)
 {
-    strcpy(m_szNetworkInterfaceName, "");
+    strcpy(m_szNetworkInterfaceNamePrefix, "");
     strcpy(m_szCPIN2Result, "");
 
     CRepository repository;
 
     //  Grab the network interface name
-    if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceName, m_szNetworkInterfaceName, MAX_BUFFER_SIZE))
+    if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceNamePrefix, m_szNetworkInterfaceNamePrefix, MAX_BUFFER_SIZE))
     {
-        RIL_LOG_CRITICAL("CCTE_INF_6260::CTE_INF_6260() - Could not read network interface name from repository\r\n");
-        strcpy(m_szNetworkInterfaceName, "");
+        RIL_LOG_CRITICAL("CCTE_INF_6260::CTE_INF_6260() - Could not read network interface name prefix from repository\r\n");
+        strcpy(m_szNetworkInterfaceNamePrefix, "");
     }
     else
     {
-        RIL_LOG_INFO("CTE_INF_6260::CTE_INF_6260() - m_szNetworkInterfaceName=[%s]\r\n", m_szNetworkInterfaceName);
+        RIL_LOG_INFO("CTE_INF_6260::CTE_INF_6260() - m_szNetworkInterfaceNamePrefix=[%s]\r\n", m_szNetworkInterfaceNamePrefix);
     }
 
     //  Create PIN2 query event
@@ -131,37 +131,23 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
             if (!ExtractUpperBoundedUInt(pszRsp, 2, nValue, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: Invalid SIM type.\r\n");
+                pCardStatus->applications[0].app_type = RIL_APPTYPE_UNKNOWN;
             }
             else
             {
-
                 if (1 == nValue)
                 {
                     RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() - SIM type = %d  detected USIM\r\n", nValue);
 
-                    //  Grab setting from repository
-                    CRepository repository;
-                    int nUseUSIMAddress = 0;
-
-                    //  Grab the network interface name
-                    if (!repository.Read(g_szGroupRILSettings, g_szUseUSIMAddress, nUseUSIMAddress))
-                    {
-                        RIL_LOG_CRITICAL("CCTE_INF_6260::ParseGetSimStatus() - Could not read UseUSIMAddress from repository\r\n");
-                    }
-                    else
-                    {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() - nUseUSIMAddress=[%d]\r\n", nUseUSIMAddress);
-                    }
-
-                    if (nUseUSIMAddress >= 1)
-                    {
-                        //  Set to USIM
-                        pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
-                    }
+                    //  Set to USIM
+                    pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
                 }
                 else if (0 == nValue)
                 {
                     RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() - SIM type = %d  detected normal SIM\r\n", nValue);
+
+                    //  Set to SIM
+                    pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
                 }
             }
         }
@@ -347,6 +333,11 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     //  Set CID
     nCID = (int)rRspData.pContextData;
+    if (nCID <= 0)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - CID must be >= 1!! CID=[%d]\r\n", nCID);
+        goto Error;
+    }
     RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Setting chnl=[%d] to CID=[%d]\r\n", rRspData.uiChannel, nCID);
     pDataChannel->SetContextID(nCID);
 
@@ -360,8 +351,17 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
     memset(pDataCallRsp, 0, sizeof(S_ND_SETUP_DATA_CALL));
 
+    //  Populate pDataCallRsp
     sprintf(pDataCallRsp->szCID, "%d", pDataChannel->GetContextID());
-    strcpy(pDataCallRsp->szNetworkInterfaceName, m_szNetworkInterfaceName);
+    if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, nCID-1))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Cannot set network interface name\r\n");
+        goto Error;
+    }
+    else
+    {
+        RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - szNetworkInterfaceName=[%s], CID=[%d]\r\n", pDataCallRsp->szNetworkInterfaceName, nCID);
+    }
     //strcpy(pDataCallRsp->szIPAddress, szIP);
     pDataCallRsp->sSetupDataCallPointers.pszCID = pDataCallRsp->szCID;
     pDataCallRsp->sSetupDataCallPointers.pszNetworkInterfaceName = pDataCallRsp->szNetworkInterfaceName;
@@ -484,7 +484,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
 
     // invoke netcfg commands
-    if (!DataConfigUp(pDataChannel->m_szIpAddr, pDataChannel->m_szDNS1, pDataChannel->m_szDNS2))
+    if (!DataConfigUp(pDataCallRsp->szNetworkInterfaceName, pDataChannel->m_szIpAddr, pDataChannel->m_szDNS1, pDataChannel->m_szDNS2))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Unable to set ifconfig\r\n");
         goto Error;
@@ -617,22 +617,14 @@ BOOL setroute(int s, struct rtentry *rt, const char *addr)
 //
 //  Call this function whenever data is activated
 //
-BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2)
+BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, char *szDNS2)
 {
     CRepository repository;
     BOOL bRet = FALSE;
     int s = -1;
-    char szNetworkInterfaceName[MAX_BUFFER_SIZE] = {0};
     char szPropName[MAX_BUFFER_SIZE] = {0};
     char *defaultGatewayStr = NULL;
 
-    //  Grab the network interface name
-    if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceName, szNetworkInterfaceName, MAX_BUFFER_SIZE))
-    {
-        RIL_LOG_CRITICAL("DataConfigUp() - Could not read network interface name from repository\r\n");
-        strcpy(szNetworkInterfaceName, "");
-        goto Error;
-    }
 
     RIL_LOG_INFO("DataConfigUp() ENTER  szNetworkInterfaceName=[%s]  szIpAddr=[%s]\r\n", szNetworkInterfaceName, szIpAddr);
     RIL_LOG_INFO("DataConfigUp() ENTER  szDNS1=[%s]  szDNS2=[%s]\r\n", szDNS1, szDNS2);
@@ -832,13 +824,27 @@ BOOL DataConfigDown(int nCID)
     int ret =-1;
 
     //  Grab the network interface name
-    if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceName, szNetworkInterfaceName, MAX_BUFFER_SIZE))
+    if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceNamePrefix, szNetworkInterfaceName, MAX_BUFFER_SIZE))
     {
-        RIL_LOG_CRITICAL("DataConfigDown() - Could not read network interface name from repository\r\n");
+        RIL_LOG_CRITICAL("DataConfigDown() - Could not read network interface name prefix from repository\r\n");
         strcpy(szNetworkInterfaceName, "");
         goto Error;
     }
-    RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName=[%s]  CID=[%d]\r\n", szNetworkInterfaceName, nCID);
+    RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName prefix=[%s]  CID=[%d]\r\n", szNetworkInterfaceName, nCID);
+    //  Don't forget to append the Context ID!
+    if (nCID > 0)
+    {
+        if (!PrintStringNullTerminate(szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", szNetworkInterfaceName, nCID-1))
+        {
+            RIL_LOG_CRITICAL("DataConfigDown() - Could not create network interface name\r\n");
+            strcpy(szNetworkInterfaceName, "");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName=[%s]  CID=[%d]\r\n", szNetworkInterfaceName, nCID);
+        }
+    }
 
     //  Get data channel and set CID to 0.
     if (nCID > 0)
@@ -2507,6 +2513,14 @@ Error:
     return res;
 }
 
+RIL_RESULT_CODE CTE_INF_6260::ParseSetBandMode(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseSetBandMode() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseSetBandMode() - Exit\r\n");
+    return res;
+}
+
 
 //
 // RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE 66
@@ -3758,6 +3772,15 @@ Error:
     return res;
 }
 
+RIL_RESULT_CODE CTE_INF_6260::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseReportSmsMemoryStatus() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseReportSmsMemoryStatus() - Exit\r\n");
+    return res;
+}
+
+
 //
 // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
 //
@@ -3774,4 +3797,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreReportStkServiceRunning(REQUEST_DATA & rReqDat
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreReportStkServiceRunning() - Exit\r\n");
     return res;
 }
+
+RIL_RESULT_CODE CTE_INF_6260::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseReportStkServiceRunning() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseReportStkServiceRunning() - Exit\r\n");
+    return res;
+}
+
 

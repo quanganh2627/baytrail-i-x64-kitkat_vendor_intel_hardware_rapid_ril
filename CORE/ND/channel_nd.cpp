@@ -31,13 +31,6 @@
 #include "rildmain.h"
 #include "channel_nd.h"
 
-#undef __out_arg
-
-namespace
-{
-const bool ATCMD_LOG_RESPONSE (true);
-}
-
 
 CChannel::CChannel(UINT32 uiChannel)
 : CChannelBase(uiChannel)
@@ -53,7 +46,7 @@ CChannel::CChannel(UINT32 uiChannel)
     }
     else
     {
-        m_uiMaxTimeouts = 2;
+        m_uiMaxTimeouts = 3;
     }
 
     RIL_LOG_VERBOSE("CChannel::CChannel() - Exit\r\n");
@@ -80,11 +73,10 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
     CResponse*      pResponse = NULL;
     RIL_RESULT_CODE resCode = RRIL_E_UNKNOWN_ERROR;
     BOOL            bResult = FALSE;
-    CEvent*         pQuitEvent = NULL;
 
     if (NULL == rpCmd)
     {
-        RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] NULL params [0x%08x] [0x%08x]\r\n", m_uiRilChannel, m_pSystemManager, rpCmd);
+        RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] NULL params\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -202,12 +194,6 @@ Error:
     {
         delete pResponse;
         pResponse = NULL;
-    }
-
-    if (pQuitEvent)
-    {
-        delete pQuitEvent;
-        pQuitEvent = NULL;
     }
 
     RIL_LOG_VERBOSE("CChannel::SendCommand() - Exit\r\n");
@@ -666,7 +652,7 @@ RIL_RESULT_CODE CChannel::ReadQueue(CResponse*& rpResponse, UINT32 uiTimeout)
 
     if (g_pRxQueue[m_uiRilChannel]->IsEmpty())
     {
-        CEvent *rgpEvents[] = {g_RxQueueEvent[m_uiRilChannel], m_pSystemManager->GetCancelEvent()};
+        CEvent *rgpEvents[] = {g_RxQueueEvent[m_uiRilChannel], CSystemManager::GetCancelEvent()};
 
         // wait for response
         //RIL_LOG_INFO("CChannel::ReadQueue() - QUEUE EMPTY, WAITING FOR RxQueueEvent...\r\n");

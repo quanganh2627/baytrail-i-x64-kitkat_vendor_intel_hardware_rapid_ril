@@ -74,8 +74,9 @@ public:
     BOOL            IsExitRequestSignalled() const;
 
     //  Get/Set functions.
-    static CEvent*  GetSystemInitCompleteEvent()        { return GetInstance().m_pSystemInitCompleteEvent; }
     static CEvent*  GetCancelEvent()                    { return GetInstance().m_pExitRilEvent;    };
+    static CMutex*  GetTriggerRadioErrorMutex()         { return GetInstance().m_pTriggerRadioErrorMutex;   };
+    static CMutex*  GetDataChannelAccessorMutex()       { return GetInstance().m_pDataChannelAccessorMutex; };
 
     void            TriggerSimUnlockedEvent() const         { CEvent::Signal(m_pSimUnlockedEvent);      };
     void            TriggerModemPowerOnEvent() const        { CEvent::Signal(m_pModemPowerOnEvent);     };
@@ -117,15 +118,17 @@ private:
 
 private:
     static CSystemManager* m_pInstance;
-    CEvent *            m_pSystemInitCompleteEvent;
 
     CEvent *            m_pExitRilEvent;
     CEvent *            m_pSimUnlockedEvent;
     CEvent *            m_pModemPowerOnEvent;
     CEvent *            m_pInitStringCompleteEvent;
 
-    CMutex *            m_pAccessorMutex;
     CMutex *            m_pSystemManagerMutex;
+
+    CMutex *            m_pTriggerRadioErrorMutex;
+
+    CMutex *            m_pDataChannelAccessorMutex;
 
     CRequestInfoTable   m_RequestInfoTable;
 

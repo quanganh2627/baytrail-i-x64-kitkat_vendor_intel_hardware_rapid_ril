@@ -128,7 +128,7 @@ BOOL CThreadManager::Initialize()
         goto Error;
     }
 
-    if (WAIT_EVENT_0_SIGNALED != CEvent::Wait(m_pStartupCompleteEvent, TIMEOUT_CHNL_INIT))
+    if (WAIT_EVENT_0_SIGNALED != CEvent::Wait(m_pStartupCompleteEvent, g_TimeoutWaitForInit))
     {
         RIL_LOG_CRITICAL("CThreadManager::Initialize() : ERROR : Timed out waiting for threads to register\r\n");
         goto Error;

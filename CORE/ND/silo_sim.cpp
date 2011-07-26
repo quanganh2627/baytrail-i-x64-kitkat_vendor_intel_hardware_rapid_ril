@@ -257,7 +257,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
 
         switch (rpRsp->GetErrorCode())
         {
-            case RRIL_CME_ERROR_SIM_ABSENT:
+            case RRIL_CME_ERROR_SIM_NOT_INSERTED:
             {
                 RIL_LOG_INFO("CSilo_SIM::ParseSimStatus() : SIM Card is absent!\r\n");
                 rpRsp->FreeData();
@@ -289,7 +289,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
             }
             break;
 
-            case RRIL_CME_ERROR_NOT_READY:
+            case RRIL_CME_ERROR_SIM_NOT_READY:
             {
                 RIL_LOG_INFO("CSilo_SIM::ParseSimStatus() : SIM Card is not ready!\r\n");
                 rpRsp->FreeData();

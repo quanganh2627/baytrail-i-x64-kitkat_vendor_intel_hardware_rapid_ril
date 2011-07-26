@@ -135,7 +135,6 @@ protected:
 protected:
     //  Member variables
     UINT32                          m_uiRilChannel;
-    CSystemManager*                 m_pSystemManager;
 
     UINT32                          m_bCmdThreadBlockedOnRxQueue : 1;
     UINT32                          m_bTimeoutWaitingForResponse : 1;

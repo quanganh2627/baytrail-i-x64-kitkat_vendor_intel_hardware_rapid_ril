@@ -1840,11 +1840,6 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     res = RRIL_RESULT_OK;
 
 Error:
-    if (g_pSIMReadyRegEvent)
-    {
-        CEvent::Signal(g_pSIMReadyRegEvent);
-    }
-
     if (RRIL_RESULT_OK != res)
     {
         free(pRegStatus);
@@ -5719,8 +5714,8 @@ RIL_RESULT_CODE CTEBase::CoreSetBandMode(REQUEST_DATA & rReqData, void * pData, 
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSetBandMode() - Enter\r\n");
 
-    // this is modem dependent, to be implemented in te_modem_xxx.cpp
-    RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSetBandMode() - Exit\r\n");
@@ -5731,7 +5726,8 @@ RIL_RESULT_CODE CTEBase::ParseSetBandMode(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSetBandMode() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::ParseSetBandMode() - Exit\r\n");
     return res;
@@ -5744,7 +5740,8 @@ RIL_RESULT_CODE CTEBase::CoreQueryAvailableBandMode(REQUEST_DATA & rReqData, voi
 {
     RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableBandMode() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableBandMode() - Exit\r\n");
     return res;
@@ -5754,7 +5751,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseQueryAvailableBandMode() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::ParseQueryAvailableBandMode() - Exit\r\n");
     return res;
@@ -5766,14 +5764,10 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTEBase::CoreStkGetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreStkGetProfile() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+cmd?\r"))
-    {
-        res = RRIL_RESULT_OK;
-    }
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
-Error:
     RIL_LOG_VERBOSE("CTEBase::CoreStkGetProfile() - Exit\r\n");
     return res;
 }
@@ -5782,7 +5776,8 @@ RIL_RESULT_CODE CTEBase::ParseStkGetProfile(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseStkGetProfile() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::ParseStkGetProfile() - Exit\r\n");
     return res;
@@ -5794,26 +5789,10 @@ RIL_RESULT_CODE CTEBase::ParseStkGetProfile(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTEBase::CoreStkSetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreStkSetProfile() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (sizeof(char*) != uiDataSize)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreStkSetProfile() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
-        goto Error;
-    }
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreStkSetProfile() - ERROR: Passed data pointer was NULL\r\n");
-        goto Error;
-    }
-
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+cmd=%s\r", (char*)pData))
-    {
-        res = RRIL_RESULT_OK;
-    }
-
-Error:
     RIL_LOG_VERBOSE("CTEBase::CoreStkSetProfile() - Exit\r\n");
     return res;
 }
@@ -5822,7 +5801,8 @@ RIL_RESULT_CODE CTEBase::ParseStkSetProfile(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseStkSetProfile() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::ParseStkSetProfile() - Exit\r\n");
     return res;
@@ -5834,26 +5814,10 @@ RIL_RESULT_CODE CTEBase::ParseStkSetProfile(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTEBase::CoreStkSendEnvelopeCommand(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreStkSendEnvelopeCommand() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (sizeof(char*) != uiDataSize)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreStkSendEnvelopeCommand() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
-        goto Error;
-    }
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreStkSendEnvelopeCommand() - ERROR: Passed data pointer was NULL\r\n");
-        goto Error;
-    }
-
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+cmd=%s\r", (char*)pData))
-    {
-        res = RRIL_RESULT_OK;
-    }
-
-Error:
     RIL_LOG_VERBOSE("CTEBase::CoreStkSendEnvelopeCommand() - Exit\r\n");
     return res;
 }
@@ -5862,7 +5826,8 @@ RIL_RESULT_CODE CTEBase::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseStkSendEnvelopeCommand() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::ParseStkSendEnvelopeCommand() - Exit\r\n");
     return res;
@@ -5874,32 +5839,10 @@ RIL_RESULT_CODE CTEBase::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTEBase::CoreStkSendTerminalResponse(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreStkSendTerminalResponse() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    char *szResponse = NULL;
 
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreStkSendTerminalResponse() - ERROR: Data pointer is NULL.\r\n");
-        goto Error;
-    }
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
-    if (uiDataSize != sizeof(char *))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreStkSendTerminalResponse() - ERROR: Invalid data size.\r\n");
-        goto Error;
-    }
-
-    szResponse = (char *)pData;
-
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+=%s\r", szResponse))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreStkSendTerminalResponse() - ERROR: Could not form string.\r\n");
-        goto Error;
-    }
-
-    res = RRIL_RESULT_OK;
-
-Error:
     RIL_LOG_VERBOSE("CTEBase::CoreStkSendTerminalResponse() - Exit\r\n");
     return res;
 }
@@ -5908,7 +5851,8 @@ RIL_RESULT_CODE CTEBase::ParseStkSendTerminalResponse(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseStkSendTerminalResponse() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::ParseStkSendTerminalResponse() - Exit\r\n");
     return res;
@@ -5920,32 +5864,10 @@ RIL_RESULT_CODE CTEBase::ParseStkSendTerminalResponse(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTEBase::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreStkHandleCallSetupRequestedFromSim() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int nCallSetup = 0;
 
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Data pointer is NULL.\r\n");
-        goto Error;
-    }
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
-    if (uiDataSize != sizeof(int *))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Invalid data size.\r\n");
-        goto Error;
-    }
-
-    nCallSetup = ((int *)pData)[0];
-
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+=%d\r", nCallSetup))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Could not form string.\r\n");
-        goto Error;
-    }
-
-    res = RRIL_RESULT_OK;
-
-Error:
     RIL_LOG_VERBOSE("CTEBase::CoreStkHandleCallSetupRequestedFromSim() - Exit\r\n");
     return res;
 }
@@ -5954,7 +5876,8 @@ RIL_RESULT_CODE CTEBase::ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DATA &
 {
     RIL_LOG_VERBOSE("CTEBase::ParseStkHandleCallSetupRequestedFromSim() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::ParseStkHandleCallSetupRequestedFromSim() - Exit\r\n");
     return res;
@@ -5993,7 +5916,10 @@ RIL_RESULT_CODE CTEBase::ParseExplicitCallTransfer(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTEBase::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSetPreferredNetworkType() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
     RIL_LOG_VERBOSE("CTEBase::CoreSetPreferredNetworkType() - Exit\r\n");
     return res;
 }
@@ -6002,7 +5928,8 @@ RIL_RESULT_CODE CTEBase::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSetPreferredNetworkType() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::ParseSetPreferredNetworkType() - Exit\r\n");
     return res;
@@ -6014,7 +5941,10 @@ RIL_RESULT_CODE CTEBase::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTEBase::CoreGetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreGetPreferredNetworkType() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
     RIL_LOG_VERBOSE("CTEBase::CoreGetPreferredNetworkType() - Exit\r\n");
     return res;
 }
@@ -6022,7 +5952,10 @@ RIL_RESULT_CODE CTEBase::CoreGetPreferredNetworkType(REQUEST_DATA & rReqData, vo
 RIL_RESULT_CODE CTEBase::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseGetPreferredNetworkType() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
     RIL_LOG_VERBOSE("CTEBase::ParseGetPreferredNetworkType() - Exit\r\n");
     return res;
 }
@@ -6034,9 +5967,8 @@ RIL_RESULT_CODE CTEBase::CoreGetNeighboringCellIDs(REQUEST_DATA & rReqData, void
 {
     RIL_LOG_VERBOSE("CTEBase::CoreGetNeighboringCellIDs() - Enter\r\n");
 
-    // this is modem dependent, to be implemented in the modem
-    // specific TE
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::CoreGetNeighboringCellIDs() - Exit\r\n");
     return res;
@@ -6046,10 +5978,9 @@ RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseGetNeighboringCellIDs() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
-    // this is modem dependent, to be implemented in the modem
-    // specific TE
     RIL_LOG_VERBOSE("CTEBase::ParseGetNeighboringCellIDs() - Exit\r\n");
     return res;
 }
@@ -6134,7 +6065,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSetSubscription(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetSubscription() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetSubscription() - Exit\r\n");
     return res;
@@ -6156,7 +6087,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSetRoamingPreference(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetRoamingPreference() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetRoamingPreference() - Exit\r\n");
     return res;
@@ -6178,7 +6109,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaQueryRoamingPreference(RESPONSE_DATA & rRspDat
 {
     RIL_LOG_VERBOSE("CTEBase::ParseCdmaQueryRoamingPreference() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
 
     RIL_LOG_VERBOSE("CTEBase::ParseCdmaQueryRoamingPreference() - Exit\r\n");
     return res;
@@ -6189,12 +6120,24 @@ RIL_RESULT_CODE CTEBase::ParseCdmaQueryRoamingPreference(RESPONSE_DATA & rRspDat
 //
 RIL_RESULT_CODE CTEBase::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreSetTtyMode() - Enter\r\n");
+
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreSetTtyMode() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetTtyMode(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseSetTtyMode() - Enter\r\n");
+
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseSetTtyMode() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6202,12 +6145,24 @@ RIL_RESULT_CODE CTEBase::ParseSetTtyMode(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreQueryTtyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryTtyMode() - Enter\r\n");
+
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryTtyMode() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseQueryTtyMode(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryTtyMode() - Enter\r\n");
+
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryTtyMode() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6215,12 +6170,20 @@ RIL_RESULT_CODE CTEBase::ParseQueryTtyMode(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSetPreferredVoicePrivacyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSetPreferredVoicePrivacyMode() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSetPreferredVoicePrivacyMode() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaSetPreferredVoicePrivacyMode(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetPreferredVoicePrivacyMode() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetPreferredVoicePrivacyMode() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6228,12 +6191,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSetPreferredVoicePrivacyMode(RESPONSE_DATA & r
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaQueryPreferredVoicePrivacyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaQueryPreferredVoicePrivacyMode() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaQueryPreferredVoicePrivacyMode() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaQueryPreferredVoicePrivacyMode(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaQueryPreferredVoicePrivacyMode() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaQueryPreferredVoicePrivacyMode() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6241,12 +6212,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaQueryPreferredVoicePrivacyMode(RESPONSE_DATA &
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaFlash(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaFlash() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaFlash() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaFlash(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaFlash() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaFlash() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6254,12 +6233,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaFlash(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaBurstDtmf(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaBurstDtmf() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaBurstDtmf() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaBurstDtmf(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaBurstDtmf() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaBurstDtmf() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6267,12 +6254,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaBurstDtmf(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaValidateAndWriteAkey(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaValidateAndWriteAkey() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaValidateAndWriteAkey() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaValidateAndWriteAkey(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaValidateAndWriteAkey() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaValidateAndWriteAkey() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6280,12 +6275,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaValidateAndWriteAkey(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSendSms(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSendSms() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSendSms() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaSendSms(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSendSms() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSendSms() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6293,12 +6296,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSendSms(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSmsAcknowledge(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSmsAcknowledge() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSmsAcknowledge() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaSmsAcknowledge(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSmsAcknowledge() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSmsAcknowledge() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6701,12 +6712,20 @@ RIL_RESULT_CODE CTEBase::ParseGsmSmsBroadcastActivation(RESPONSE_DATA & rRspData
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaGetBroadcastSmsConfig(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaGetBroadcastSmsConfig() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaGetBroadcastSmsConfig() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaGetBroadcastSmsConfig() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaGetBroadcastSmsConfig() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6714,12 +6733,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaGetBroadcastSmsConfig(RESPONSE_DATA & rRspData
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSetBroadcastSmsConfig(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSetBroadcastSmsConfig() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSetBroadcastSmsConfig() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaSetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetBroadcastSmsConfig() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSetBroadcastSmsConfig() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6727,12 +6754,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSetBroadcastSmsConfig(RESPONSE_DATA & rRspData
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSmsBroadcastActivation(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSmsBroadcastActivation() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSmsBroadcastActivation() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaSmsBroadcastActivation(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSmsBroadcastActivation() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSmsBroadcastActivation() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6740,12 +6775,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSmsBroadcastActivation(RESPONSE_DATA & rRspDat
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSubscription(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSubscription() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaSubscription() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaSubscription(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSubscription() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaSubscription() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6753,12 +6796,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSubscription(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaWriteSmsToRuim(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaWriteSmsToRuim() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaWriteSmsToRuim() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaWriteSmsToRuim(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaWriteSmsToRuim() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaWriteSmsToRuim() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6766,12 +6817,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaWriteSmsToRuim(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaDeleteSmsOnRuim(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaDeleteSmsOnRuim() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreCdmaDeleteSmsOnRuim() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseCdmaDeleteSmsOnRuim(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaDeleteSmsOnRuim() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCdmaDeleteSmsOnRuim() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6779,12 +6838,20 @@ RIL_RESULT_CODE CTEBase::ParseCdmaDeleteSmsOnRuim(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreDeviceIdentity(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreDeviceIdentity() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreDeviceIdentity() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseDeviceIdentity(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseDeviceIdentity() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseDeviceIdentity() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6792,12 +6859,20 @@ RIL_RESULT_CODE CTEBase::ParseDeviceIdentity(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreExitEmergencyCallbackMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::CoreExitEmergencyCallbackMode() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreExitEmergencyCallbackMode() - Exit\r\n");
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseExitEmergencyCallbackMode(RESPONSE_DATA & rRspData)
 {
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseExitEmergencyCallbackMode() - Enter\r\n");
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseExitEmergencyCallbackMode() - Exit\r\n");
+    return res;
 }
 
 //
@@ -6923,13 +6998,15 @@ RIL_RESULT_CODE CTEBase::ParseSetSmscAddress(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTEBase::CoreReportSmsMemoryStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreReportSmsMemoryStatus() - Enter / Exit\r\n");
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
     return RIL_E_REQUEST_NOT_SUPPORTED;
 }
 
 RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseReportSmsMemoryStatus() - Enter / Exit\r\n");
-    return RRIL_RESULT_OK;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    return RIL_E_REQUEST_NOT_SUPPORTED;
 }
 
 //
@@ -6938,14 +7015,15 @@ RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTEBase::CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreReportStkServiceRunning() - Enter / Exit\r\n");
-    return RRIL_RESULT_ERROR;
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    return RIL_E_REQUEST_NOT_SUPPORTED;
 }
 
 RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseReportStkServiceRunning() - Enter\r\n");
-    RIL_LOG_VERBOSE("CTEBase::ParseReportStkServiceRunning() - Exit\r\n");
-    return RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTEBase::ParseReportStkServiceRunning() - Enter / Exit\r\n");
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    return RIL_E_REQUEST_NOT_SUPPORTED;
 }
 
 //

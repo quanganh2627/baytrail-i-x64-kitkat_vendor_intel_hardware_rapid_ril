@@ -50,7 +50,6 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
 
     m_uiContextID = 0;
 
-    m_bDataMode = FALSE;
     m_pSetupDoneEvent = new CEvent();
     if (!m_pSetupDoneEvent)
     {
@@ -162,7 +161,10 @@ Error:
 //
 CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 uiContextID)
 {
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromContextID() - Enter\r\n");
+
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
@@ -182,6 +184,8 @@ CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 uiContextID)
 
 Error:
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromContextID() - Exit\r\n");
+
+    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
     return pChannelData;
 }
 
@@ -190,6 +194,8 @@ Error:
 //
 CChannel_Data* CChannel_Data::GetFreeChnl()
 {
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnl() - Enter\r\n");
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
@@ -210,6 +216,8 @@ CChannel_Data* CChannel_Data::GetFreeChnl()
 
 Error:
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnl() - Exit\r\n");
+
+    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
     return pChannelData;
 }
 
@@ -218,6 +226,8 @@ Error:
 //
 CChannel_Data* CChannel_Data::GetChnlFromRilChannelNumber(UINT32 index)
 {
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromRilChannelNumber() - Enter\r\n");
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
@@ -238,6 +248,8 @@ CChannel_Data* CChannel_Data::GetChnlFromRilChannelNumber(UINT32 index)
 
 Error:
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromRilChannelNumber() - Exit\r\n");
+
+    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
     return pChannelData;
 }
 
@@ -246,6 +258,8 @@ Error:
 //
 UINT32 CChannel_Data::GetNextContextID()
 {
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+
     RIL_LOG_VERBOSE("CChannel_Data::GetNextContextID() - Enter\r\n");
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
@@ -279,14 +293,35 @@ UINT32 CChannel_Data::GetNextContextID()
 
 Error:
     RIL_LOG_VERBOSE("CChannel_Data::GetNextContextID() - Exit\r\n");
+
+    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
     return uiCID;
 }
+
+UINT32 CChannel_Data::GetContextID() const
+{
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetContextID() - Enter\r\n");
+
+    UINT32 nCID = m_uiContextID;
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetContextID() - Exit\r\n");
+
+    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
+    return nCID;
+}
+
 
 //
 //  Sets this channel's context ID value
 //
 BOOL CChannel_Data::SetContextID(UINT32 dwContextID)
 {
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+
     RIL_LOG_VERBOSE("CChannel_Data::SetContextID() - Enter\r\n");
 
     BOOL fRet = FALSE;
@@ -302,43 +337,11 @@ BOOL CChannel_Data::SetContextID(UINT32 dwContextID)
 
 Error:
     RIL_LOG_VERBOSE("CChannel_Data::SetContextID() - Exit\r\n");
+
+    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
     return fRet;
 }
 
-//
-//  Can be used to notify MUX of switch to Data mode if required
-//
-BOOL CChannel_Data::SetDataMode(
-    BOOL bDataMode   // [in ] TRUE - data mode, FALSE - command mode
-)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::SetDataMode() - Enter\r\n");
-    BOOL bRet = TRUE;
-
-    m_bDataMode = bDataMode;
-
-    if(!bDataMode)
-    {
-
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::SetDataMode() - Exit\r\n");
-    return bRet;
-}
-
-
-
-// Triggers the RNDIS on the channel to send the next packet
-BOOL CChannel_Data::SendDataInDataMode()
-{
-    RIL_LOG_VERBOSE("CChannel_Data::SendDataInDataMode() - Enter\r\n");
-
-    while (IsInDataMode())
-    {
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::SendDataInDataMode() - Exit\r\n");
-    return TRUE;
-}
 
 

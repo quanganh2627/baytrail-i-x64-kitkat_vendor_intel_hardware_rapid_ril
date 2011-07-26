@@ -43,7 +43,7 @@ private:
     int m_nCurrentNetworkType;
 
 protected:
-    char m_szNetworkInterfaceName[MAX_BUFFER_SIZE];
+    char m_szNetworkInterfaceNamePrefix[MAX_BUFFER_SIZE];
 
     //  Locally store CPIN2 query result for SIM_IO
     char m_szCPIN2Result[MAX_BUFFER_SIZE];
@@ -78,6 +78,7 @@ public:
 
     // RIL_REQUEST_SET_BAND_MODE 65
     virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSetBandMode(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE 66
     virtual RIL_RESULT_CODE CoreQueryAvailableBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
@@ -125,9 +126,11 @@ public:
 
     // RIL_REQUEST_SMS_MEMORY_STATUS 102
     virtual RIL_RESULT_CODE CoreReportSmsMemoryStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
     virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
 
     // internal response handlers
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);
@@ -137,7 +140,7 @@ public:
 };
 
 //  Call these functions to set up data and bring down data.
-BOOL DataConfigUp(char *szIpAddr, char *szDNS1, char *szDNS2);
+BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, char *szDNS2);
 BOOL DataConfigDown(int nCID);
 
 #endif

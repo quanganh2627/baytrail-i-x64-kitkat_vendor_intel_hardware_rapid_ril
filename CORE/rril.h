@@ -164,8 +164,17 @@ enum
 ///////////////////////////////////////////////////////////////////////////////
 // CME Error code defines
 //
-#define RRIL_CME_ERROR_SIM_ABSENT                   10
-#define RRIL_CME_ERROR_NOT_READY                    14
+#define RRIL_CME_ERROR_OPERATION_NOT_SUPPORTED                   4
+#define RRIL_CME_ERROR_SIM_NOT_INSERTED                          10
+#define RRIL_CME_ERROR_SIM_PIN_REQUIRED                          11
+#define RRIL_CME_ERROR_SIM_PUK_REQUIRED                          12
+#define RRIL_CME_ERROR_SIM_FAILURE                               13
+#define RRIL_CME_ERROR_SIM_NOT_READY                             14
+#define RRIL_CME_ERROR_SIM_WRONG                                 15
+#define RRIL_CME_ERROR_INCORRECT_PASSWORD                        16
+#define RRIL_CME_ERROR_SIM_PIN2_REQUIRED                         17
+#define RRIL_CME_ERROR_SIM_PUK2_REQUIRED                         18
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // CMS Error code defines

@@ -44,7 +44,6 @@ static int onSupports(int requestCode);
 static void onCancel(RIL_Token t);
 static const char* getVersion();
 
-//extern const char* requestToString(int request);
 
 /*** Static Variables ***/
 static const RIL_RadioFunctions s_callbacks =

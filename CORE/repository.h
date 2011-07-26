@@ -51,10 +51,7 @@ extern const char * g_szRequestNames[];
 extern const char   g_szGroupOtherTimeouts[];
 
 extern const char   g_szTimeoutCmdInit[];
-extern const char   g_szTimeoutCmdNoOp[];
-extern const char   g_szTimeoutCmdOnline[];
 extern const char   g_szTimeoutAPIDefault[];
-extern const char   g_szTimeoutDTRDrop[];
 extern const char   g_szTimeoutWaitForInit[];
 
 /////////////////////////////////////////////////
@@ -62,18 +59,9 @@ extern const char   g_szTimeoutWaitForInit[];
 extern const char   g_szGroupRILSettings[];
 
 extern const char   g_szMaxCommandTimeouts[];
-extern const char   g_szMaxInitRetries[];
-extern const char   g_szDataModeCmdDelay[];
-extern const char   g_szDataModeMaxTimeWithoutCmd[];
 extern const char   g_szDefaultCmdRetries[];
-extern const char   g_szUseUSIMAddress[];
 extern const char   g_szOpenPortRetries[];
 extern const char   g_szOpenPortInterval[];
-
-/////////////////////////////////////////////////
-
-extern const char   g_szGroupNetworkSettings[];
-extern const char   g_szConnectRspDelay[];
 
 /////////////////////////////////////////////////
 
@@ -82,26 +70,12 @@ extern const char   g_szGroupInitCmds[];
 extern const char * g_szPreInitCmds[];
 extern const char * g_szPostInitCmds[];
 
-/////////////////////////////////////////////////
-
-extern const char   g_szGroupSIMTK[];
-
-extern const char   g_szTerminalProfile[];
-
-/////////////////////////////////////////////////
-
-extern const char   g_szGroupOperatorNames[];
-
-/////////////////////////////////////////////////
-
-extern const char   g_szGroupSystemReady[];
-
 //////////////////////////////////////////////////////////////////////////
 
 extern const char   g_szGroupModem[];
 
 extern const char   g_szSupportedModem[];
-extern const char   g_szNetworkInterfaceName[];
+extern const char   g_szNetworkInterfaceNamePrefix[];
 extern const char   g_szDisableModemReset[];
 extern const char   g_szDisableCoreDump[];
 extern const char   g_szCoreDumpTimeout[];

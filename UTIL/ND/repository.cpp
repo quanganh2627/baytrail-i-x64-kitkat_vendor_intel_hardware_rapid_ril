@@ -171,10 +171,7 @@ const char * g_szRequestNames[] =
 const char   g_szGroupOtherTimeouts[]          = "OtherTimeouts";
 
 const char   g_szTimeoutCmdInit[]              = "TimeoutCmdInit";
-const char   g_szTimeoutCmdNoOp[]              = "TimeoutCmdNoOp";
-const char   g_szTimeoutCmdOnline[]            = "TimeoutCmdOnline";
 const char   g_szTimeoutAPIDefault[]           = "TimeoutAPIDefault";
-const char   g_szTimeoutDTRDrop[]              = "TimeoutDTRDrop";
 const char   g_szTimeoutWaitForInit[]          = "TimeoutWaitForInit";
 
 /////////////////////////////////////////////////
@@ -182,19 +179,9 @@ const char   g_szTimeoutWaitForInit[]          = "TimeoutWaitForInit";
 const char   g_szGroupRILSettings[]            = "RILSettings";
 
 const char   g_szMaxCommandTimeouts[]          = "MaxCommandTimeouts";
-const char   g_szMaxInitRetries[]              = "MaxInitRetries";
-const char   g_szDataModeCmdDelay[]            = "DataModeCmdDelay";
-const char   g_szDataModeMaxTimeWithoutCmd[]   = "DataModeMaxTimeWithoutCmd";
 const char   g_szDefaultCmdRetries[]           = "DefaultCmdRetries";
-const char   g_szUseUSIMAddress[]              = "UseUSIMAddress";
 const char   g_szOpenPortRetries[]             = "OpenPortRetries";
 const char   g_szOpenPortInterval[]            = "OpenPortInterval";
-
-/////////////////////////////////////////////////
-
-const char   g_szGroupNetworkSettings[]        = "NetworkSettings";
-
-const char   g_szConnectRspDelay[]             = "ConnectResponseDelay";
 
 /////////////////////////////////////////////////
 
@@ -218,24 +205,10 @@ const char * g_szPostInitCmds[] =
 
 /////////////////////////////////////////////////
 
-const char   g_szGroupSIMTK[]                  = "SIMTK";
-
-const char   g_szTerminalProfile[]             = "TerminalProfile";
-
-/////////////////////////////////////////////////
-
-const char   g_szGroupOperatorNames[]          = "OperatorNames";
-
-/////////////////////////////////////////////////
-
-const char   g_szGroupSystemReady[]             = "SystemReadySettings";
-
-/////////////////////////////////////////////////
-
 const char   g_szGroupModem[]                   = "Modem";
 
 const char   g_szSupportedModem[]               = "SupportedModem";
-const char   g_szNetworkInterfaceName[]         = "NetworkInterfaceName";
+const char   g_szNetworkInterfaceNamePrefix[]   = "NetworkInterfaceNamePrefix";
 const char   g_szDisableModemReset[]            = "DisableModemReset";
 const char   g_szDisableCoreDump[]              = "DisableCoreDump";
 const char   g_szCoreDumpTimeout[]              = "CoreDumpTimeout";

@@ -34,7 +34,7 @@ extern BOOL  g_bIsSocket;
 //  Com init strings for this channel.
 //  Call control commands, misc commands
 
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|+XPOW=0,0,0|S0=0|+CMEE=1" };
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|+XPOW=0,0,0|+XRXDIV=1,3|S0=0|+CMEE=1" };
 INITSTRING_DATA ATCmdUnlockInitString   = { "" };
 INITSTRING_DATA ATCmdPowerOnInitString  = { "" };
 INITSTRING_DATA ATCmdReadyInitString    = { "" };

@@ -190,7 +190,6 @@ BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd)
 
     if (NULL != rpCmd)
     {
-        //extern CSystemManager* g_pDevice;
 
         REQ_INFO reqInfo;
         memset(&reqInfo, 0, sizeof(reqInfo));

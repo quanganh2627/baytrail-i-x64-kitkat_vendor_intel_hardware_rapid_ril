@@ -1,6 +1,147 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+July 26, 2011 (M5.18 release for Medfield CDK)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,
+Android version 2.3.4 (Gingerbread).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ABSP dated May 18, 2011.
+- We are using the HSI interface.
+
+KBoot: kboot.bin (ww29 - received from Jack L.)
+IFWI: IFWI_vB0.28-HSI_FSTK227_IA_00.44_IASupp_00.44_SCU_vB0.36_Punit_1.1E_VH_0.4F_XML_vB0.33_extapp_0.853_iChache_0.830_resident_0.830.bin
+Misc Module: Signed_PNW_B0_FWR_DnX_FD.15.bin
+OS Recovery Module: Signed_PNW_B0_OSR_DnX_0D.36.bin
+Modem Firmware: SUNRISE_6260_IMC_MODEM_FIRMWARE_HSI.fls  (1126.B)
+Modem: Rev2
+
+
+Release Notes for M5.18
+=======================
+
+1. In repository.txt, set "DisableModemReset" to "0" by default (previously = "1").
+
+2. Remove unused settings in repository and RIL.  Add comments to unused functions in te_base.cpp.
+
+3. General code cleanup.  Remove functions that are not used.
+
+4. Bugzilla 5037: Make TriggerRadioError() thread safe
+   -Add mutex owned by CSystemManager class.
+
+5. Update init.mfld_cdk.rc based on Jack's WW19 drop.
+
+6. In repository change to "NetworkInterfaceNamePrefix" (previously "NetworkInterfaceName").
+   -RIL will append the number to the prefix depending on the context ID.
+   -e.g. Context ID = 1, "rmnet0".   Context ID = 2, "rmnet1"
+
+7. Bugzilla 4926: Patch to remove UseUSIMAddress
+   -Remove "UseUSIMAddress" from repository and RIL.
+
+8. Add mutex to CChannel_Data class for accessing context ID.  This is to help support
+   multiple PDP contexts simultaneously.
+
+
+Testing results:  (tested with HSI interface)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 July 19, 2011 (M5.17 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,

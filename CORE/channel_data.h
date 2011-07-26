@@ -44,18 +44,10 @@ public:
 
     // get / set functions
 
-    UINT32 GetContextID() const { return m_uiContextID; }
+    UINT32 GetContextID() const;
 
     BOOL SetContextID( UINT32 dwContextID );
 
-    BOOL IsInDataMode() const { return m_bDataMode; };
-    BOOL SetDataMode( BOOL bDataMode );                  // [in ] TRUE - data mode, FALSE - command mode
-
-    virtual BOOL SendDataInDataMode();
-
-    //virtual BOOL HandleRxData(char *szData, UINT32 dwRead, void* pRxData);
-
-    //UINT32 ActivateContext();
 
     //
     // helper functions to convert ContextID, Dlci and Channel
@@ -67,15 +59,18 @@ public:
 
     CEvent *            m_pSetupDoneEvent;
 
+
     //  Local storage of IP adress, DNS1, DNS2
     BYTE*               m_szIpAddr;
     BYTE*               m_szDNS1;
     BYTE*               m_szDNS2;
 
+
 private:
 
     UINT32              m_uiContextID;
-    BOOL                m_bDataMode;
+
+
 
 protected:
     BOOL    FinishInit();

@@ -1720,11 +1720,10 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.17 for Android 2.3.4 (Build July 19/2011)";
+    return "Intrinsyc Rapid-RIL M5.18 for Android 2.3.4 (Build July 26/2011)";
 }
 
 
-static CEvent *g_pInitFinishEvent = NULL;
 static void* mainLoop(void *param)
 {
     RIL_LOG_INFO("mainLoop() - Enter\r\n");
@@ -1777,30 +1776,40 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
 
     char szCoreDumpStatus[PROPERTY_VALUE_MAX] = {0};
 
-    //  We're already in here, just exit
-    if (g_bIsTriggerRadioError)
     {
-        RIL_LOG_CRITICAL("TriggerRadioError() - Already taking place, return  eRadioError=%d\r\n", eRadioErrorVal);
-        return;
-    }
+        //  Enter Mutex
+        CMutex::Lock(CSystemManager::GetTriggerRadioErrorMutex());
 
-    g_bIsTriggerRadioError = TRUE;
+        //  We're already in here, just exit
+        if (g_bIsTriggerRadioError)
+        {
+            RIL_LOG_CRITICAL("TriggerRadioError() - Already taking place, return  eRadioError=%d\r\n", eRadioErrorVal);
+            CMutex::Unlock(CSystemManager::GetTriggerRadioErrorMutex());
+            return;
+        }
 
-    property_get("CoreDumpStatus", szCoreDumpStatus, "");
+        g_bIsTriggerRadioError = TRUE;
 
-    RIL_LOG_CRITICAL("TriggerRadioError() - CoreDumpStatus is: %s\r\n", szCoreDumpStatus);
+        property_get("CoreDumpStatus", szCoreDumpStatus, "");
+
+        RIL_LOG_CRITICAL("TriggerRadioError() - CoreDumpStatus is: %s\r\n", szCoreDumpStatus);
 
 
-    if (strcmp(szCoreDumpStatus, "InProgress") == 0)
-    {
-        RIL_LOG_CRITICAL("TriggerRadioError() - CoreDump In Progress.., return eRadioError=%d\r\n", eRadioErrorVal);
+        if (strcmp(szCoreDumpStatus, "InProgress") == 0)
+        {
+            RIL_LOG_CRITICAL("TriggerRadioError() - CoreDump In Progress.., return eRadioError=%d\r\n", eRadioErrorVal);
 
-        //  If core dump is in progress and someone calls TriggerRadioError(), we don't want
-        //  to interfere with the active core dump.  Also, when the core dump is complete
-        //  that thread calls TriggerRadioError() which will just return unless this flag
-        //  is set to FALSE.
-        g_bIsTriggerRadioError = FALSE;
-        return;
+            //  If core dump is in progress and someone calls TriggerRadioError(), we don't want
+            //  to interfere with the active core dump.  Also, when the core dump is complete
+            //  that thread calls TriggerRadioError() which will just return unless this flag
+            //  is set to FALSE.
+            g_bIsTriggerRadioError = FALSE;
+            CMutex::Unlock(CSystemManager::GetTriggerRadioErrorMutex());
+            return;
+        }
+
+        //  Exit Mutex
+        CMutex::Unlock(CSystemManager::GetTriggerRadioErrorMutex());
     }
 
     // There is no coredump running, and this is the case of unresponsive at command.
