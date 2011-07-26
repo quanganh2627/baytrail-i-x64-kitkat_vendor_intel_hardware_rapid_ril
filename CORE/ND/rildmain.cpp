@@ -50,14 +50,6 @@
 
 //  Core dump
 #include <include/linux/hsi/hsi_ffl_tty.h>
-//  reasons for hanging up tty
-//  THIS IS TEMP
-enum
-{
-    HU_TIMEOUT = 1,
-    HU_RESET = 2,
-    HU_COREDUMP = 4,
-};
 
 ///////////////////////////////////////////////////////////
 //  FUNCTION PROTOTYPES
