@@ -43,6 +43,7 @@
 #include "../util.h"
 #include "rildmain.h"
 #include "channel_data.h"
+#include "te_inf_6260.h" // For DataConfigDown
 
 #include <sys/ioctl.h>
 #include <cutils/properties.h>
@@ -50,6 +51,7 @@
 
 //  Core dump
 #include <include/linux/hsi/hsi_ffl_tty.h>
+
 
 ///////////////////////////////////////////////////////////
 //  FUNCTION PROTOTYPES
@@ -206,7 +208,7 @@ static void ModemResetUpdate()
             continue;
 
         CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
-        if (pChannelData)
+        if (pChannelData && pChannelData->GetContextID() > 0)
         {
             RIL_LOG_INFO("ModemResetUpdate() - Calling DataConfigDown(%d)\r\n", pChannelData->GetContextID());
             DataConfigDown(pChannelData->GetContextID());
@@ -1720,7 +1722,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.18 for Android 2.3.4 (Build July 26/2011)";
+    return "Intrinsyc Rapid-RIL M5.19 for Android 2.3.4 (Build August 2/2011)";
 }
 
 

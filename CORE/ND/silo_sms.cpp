@@ -288,9 +288,8 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const BYTE*& rszPointer)
     // Throw out the alpha chars if there are any
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
 
-    // Parse ",<length><CR><LF>
-    if (!SkipString(rszPointer, ",", rszPointer)       ||
-        !ExtractUInt(rszPointer, uiLength, rszPointer) ||
+    // Parse "<length><CR><LF>
+    if (!ExtractUInt(rszPointer, uiLength, rszPointer) ||
         !SkipString(rszPointer, g_szNewLine, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - ERROR: Could not parse PDU Length.\r\n");

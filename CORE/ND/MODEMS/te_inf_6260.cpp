@@ -221,8 +221,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     //
     if (!PrintStringNullTerminate(rReqData.szCmd1,
         sizeof(rReqData.szCmd1),
-        "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+CGQREQ=%d;+CGQMIN=%d;+XDNS=%d,1;+CGACT=0,%d\r", uiCID,
-        stPdpData.szApn, uiCID, uiCID, uiCID, uiCID))
+        "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+CGQREQ=%d;+CGQMIN=%d;+XDNS=%d,1\r", uiCID,
+        stPdpData.szApn, uiCID, uiCID, uiCID))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command\r\n");
         goto Error;
@@ -523,7 +523,7 @@ Error:
     if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Error cleanup\r\n");
-        if (pDataChannel)
+        if (pDataChannel && pDataChannel->GetContextID() > 0)
         {
             RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - calling DataConfigDown(%d)\r\n", pDataChannel->GetContextID());
 
@@ -888,67 +888,72 @@ BOOL DataConfigDown(int nCID)
     RIL_LOG_INFO("DataConfigDown() - setting 'gsm.net.interface' to ''\r\n");
     property_set("gsm.net.interface","");
 
-    if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns1", szNetworkInterfaceName))
+    if (nCID > 0)
     {
-        RIL_LOG_CRITICAL("DataConfigDown() :cannot create szPropName net.X.dns1\r\n");
-    }
-    else
-    {
-        RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
-        property_set(szPropName, "");
-    }
-
-    // RIL has no right to set this property
-    // RIL_LOG_INFO("DataConfigDown() - setting 'net.dns1' to ''\r\n");
-    // property_set("net.dns1", "");
-    //
-
-    if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName))
-    {
-        RIL_LOG_CRITICAL("DataConfigUp() :cannot create szPropName net.X.dns2\r\n");
-    }
-    else
-    {
-        RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
-        property_set(szPropName, "");
-    }
-
-    // RIL has no right to set this property
-    // RIL_LOG_INFO("DataConfigDown() - setting 'net.dns2' to ''\r\n");
-    // property_set("net.dns2", "");
-    //
-
-    //  Open socket for ifconfig and route commands
-    s = socket(AF_INET, SOCK_DGRAM, 0);
-    if (s < 0)
-    {
-        RIL_LOG_CRITICAL("DataConfigDown() : cannot open control socket\n");
-        goto Error;
-    }
-
-
-    //  ifconfig ifx02 down
-    {
-        struct ifreq ifr;
-        memset(&ifr, 0, sizeof(struct ifreq));
-        strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
-        ifr.ifr_name[IFNAMSIZ-1] = 0;
-
-        RIL_LOG_CRITICAL("DataConfigDown() : +++++ InterfacName = %s\n", ifr.ifr_name);
-
-        RIL_LOG_INFO("DataConfigDown() : Setting flags\r\n");
-        if (!setflags(s, &ifr, 0, IFF_UP))
+        if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns1", szNetworkInterfaceName))
         {
-            RIL_LOG_CRITICAL("DataConfigDown() : ERROR: Setting flags\r\n");
+            RIL_LOG_CRITICAL("DataConfigDown() :cannot create szPropName net.X.dns1\r\n");
         }
+        else
+        {
+            RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
+            property_set(szPropName, "");
+        }
+
+        // RIL has no right to set this property
+        // RIL_LOG_INFO("DataConfigDown() - setting 'net.dns1' to ''\r\n");
+        // property_set("net.dns1", "");
+        //
+
+        if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName))
+        {
+            RIL_LOG_CRITICAL("DataConfigUp() :cannot create szPropName net.X.dns2\r\n");
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
+            property_set(szPropName, "");
+        }
+
+        // RIL has no right to set this property
+        // RIL_LOG_INFO("DataConfigDown() - setting 'net.dns2' to ''\r\n");
+        // property_set("net.dns2", "");
+        //
+
+
+        //  Open socket for ifconfig and route commands
+        s = socket(AF_INET, SOCK_DGRAM, 0);
+        if (s < 0)
+        {
+            RIL_LOG_CRITICAL("DataConfigDown() : cannot open control socket\n");
+            goto Error;
+        }
+
+
+
+        //  ifconfig ifx02 down
+        {
+            struct ifreq ifr;
+            memset(&ifr, 0, sizeof(struct ifreq));
+            strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
+            ifr.ifr_name[IFNAMSIZ-1] = 0;
+
+            RIL_LOG_CRITICAL("DataConfigDown() : +++++ InterfacName = %s\n", ifr.ifr_name);
+
+            RIL_LOG_INFO("DataConfigDown() : Setting flags\r\n");
+            if (!setflags(s, &ifr, 0, IFF_UP))
+            {
+                RIL_LOG_CRITICAL("DataConfigDown() : ERROR: Setting flags\r\n");
+            }
+        }
+
+        //  TODO: Implement callback to polling data call list.
+        //RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
+
+        //RIL_LOG_INFO("DataConfigDown() - Called timed callback  START\r\n");
+        //RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
+        //RIL_LOG_INFO("DataConfigDown() - Called timed callback  END\r\n");
     }
-
-    //  TODO: Implement callback to polling data call list.
-    //RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
-
-    //RIL_LOG_INFO("DataConfigDown() - Called timed callback  START\r\n");
-    //RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
-    //RIL_LOG_INFO("DataConfigDown() - Called timed callback  END\r\n");
 
     bRet = TRUE;
 
@@ -2256,9 +2261,12 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
     int nCID = 0;
     nCID = (int)rRspData.pContextData;
 
-    if (!DataConfigDown(nCID))
+    if (nCID > 0)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDeactivateDataCall() - ERROR : Couldn't DataConfigDown\r\n");
+        if (!DataConfigDown(nCID))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDeactivateDataCall() - ERROR : Couldn't DataConfigDown\r\n");
+        }
     }
 
     res = RRIL_RESULT_OK;

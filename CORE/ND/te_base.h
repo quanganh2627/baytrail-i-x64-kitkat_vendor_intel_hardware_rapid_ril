@@ -25,7 +25,7 @@
 #define RRIL_TE_BASE_H
 
 #include "types.h"
-#include "te_oem.h"
+#include "rril_OEM.h"
 #include "rril.h"
 
 class CTEBase

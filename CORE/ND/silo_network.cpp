@@ -111,7 +111,7 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
                 continue;
 
             CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
-            if (pChannelData)
+            if (pChannelData && pChannelData->GetContextID() > 0)
             {
                 RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - calling DataConfigDown(%d)\r\n", pChannelData->GetContextID());
                 DataConfigDown(pChannelData->GetContextID());

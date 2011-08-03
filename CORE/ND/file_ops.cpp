@@ -346,7 +346,7 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
     {
         if (-1 == select(maxfd, &readfs, NULL, &errorfs, NULL))
         {
-            RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : Select returned -1\r\n");
+            RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : Select returned -1  errorfs=[%d]\r\n", errorfs);
             return FALSE;
         }
     }
@@ -356,7 +356,7 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
 
         if (-1 == select(maxfd, &readfs, NULL, &errorfs, &Time))
         {
-            RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : Select returned -1\r\n");
+            RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : Select returned -1  errorfs=[%d]\r\n", errorfs);
             return FALSE;
         }
     }

@@ -87,7 +87,7 @@ BOOL CSilo_Data::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, B
         //  Some error with PDP activation.  We got a CME ERROR to the PDP activate command.
         UINT32 uiChannel = rpCmd->GetChannel();
         CChannel_Data* pDataChannel = static_cast<CChannel_Data*>(g_pRilChannel[uiChannel]);
-        if (pDataChannel)
+        if (pDataChannel && pDataChannel->GetContextID() > 0)
         {
             //  Reset the CID on this data channel to 0.  Free up channel for future use.
             //  This is done by DataConfigDown() function.
@@ -175,7 +175,7 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPoin
 
     // Free this channel's context ID.
     pDataChannel = CChannel_Data::GetChnlFromRilChannelNumber(m_pChannel->GetRilChannel());
-    if (pDataChannel)
+    if (pDataChannel && pDataChannel->GetContextID() > 0)
     {
         RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() : calling DataConfigDown(%d)\r\n", pDataChannel->GetContextID());
 

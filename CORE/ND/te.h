@@ -25,8 +25,6 @@
 #define RRIL_TE_H
 
 #include "te_base.h"
-#include "te_inf_6260.h"
-#include "te_oem.h"
 #include "rril.h"
 
 class CTE
@@ -44,7 +42,6 @@ private:
 
     static const UINT32 m_uiMaxModemNameLen = 64;
     CTEBase*            m_pTEBaseInstance;
-    CTEOem*             m_pTEOemInstance;
 
 private:
     static CTEBase*     CreateModemTE();

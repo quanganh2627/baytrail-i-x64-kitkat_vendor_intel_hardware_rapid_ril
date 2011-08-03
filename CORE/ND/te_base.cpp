@@ -6517,9 +6517,17 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
 
     char szChannels[MAX_BUFFER_SIZE] = {0};
     char szLangs[MAX_BUFFER_SIZE] = {0};
+    char szChannelsInt[MAX_BUFFER_SIZE] = {0};
+    char szLangsInt[MAX_BUFFER_SIZE] = {0};
     UINT32 nSelected = 0;
     const RIL_GSM_BroadcastSmsConfigInfo **   ppBroadcastSmsConfigInfo;
     UINT32 nNumOfConfigInfos = 0;
+    UINT32 nChannelToAccept = 0;
+    UINT32 i = 0;
+    int fromServiceIdMem = 0;
+    int toServiceIdMem = 0;
+    int fromCodeSchemeMem = 0;
+    int toCodeSchemeMem = 0;
 
     if (sizeof(RIL_GSM_BroadcastSmsConfigInfo) > uiDataSize)
     {
@@ -6536,21 +6544,11 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
     ppBroadcastSmsConfigInfo = (const RIL_GSM_BroadcastSmsConfigInfo **)pData;
     nNumOfConfigInfos = uiDataSize / sizeof(RIL_GSM_BroadcastSmsConfigInfo *);
 
-    //  For now, use the "selected" member of the first struct to choose active or not.
-    {
-        const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[0];
-        if (NULL == pConfigInfo)
-        {
-            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[0] is NULL. (selected)\r\n");
-            goto Error;
-        }
-
-        nSelected = (UINT32)(pConfigInfo->selected);
-    }
 
     //  Loop through each RIL_GSM_BroadcastSmsConfigInfo structure.
     //  Make string szChannels our list of channels to add.
-    for (UINT32 i = 0; i < nNumOfConfigInfos; i++)
+    nSelected = 1;
+    for (i = 0; i < nNumOfConfigInfos; i++)
     {
         const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[i];
         if (NULL == pConfigInfo)
@@ -6559,75 +6557,170 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
             goto Error;
         }
 
-        if (pConfigInfo->fromServiceId == pConfigInfo->toServiceId)
+        // Default Value. If no channel selected the mode must at the not accepted value (1).
+        if (pConfigInfo->selected == true)
         {
-            if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u", pConfigInfo->fromServiceId))
-            {
-                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                goto Error;
-            }
-        }
-        else
-        {
-            if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u-%u", pConfigInfo->fromServiceId, pConfigInfo->toServiceId))
-            {
-                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                goto Error;
-            }
-        }
-
-        //  See if this is last range.  If not, add a ','.
-        if (i+1 < nNumOfConfigInfos)
-        {
-            if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%s,", szChannels))
-            {
-                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print channels of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                goto Error;
-            }
+            nSelected = 0;
+            nChannelToAccept++;
         }
     }
 
-    //  Loop through each RIL_GSM_BroadcastSmsConfigInfo structure.
-    //  Make string szLangs our list of languages to add.
-    for (UINT32 i = 0; i < nNumOfConfigInfos; i++)
+    if (nChannelToAccept > 0)
     {
-        const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[i];
-        if (NULL == pConfigInfo)
+        //  Loop through each RIL_GSM_BroadcastSmsConfigInfo structure.
+        //  Make string szChannels our list of channels to add.
+        nChannelToAccept = 0;
+        for (i = 0; i < nNumOfConfigInfos; i++)
         {
-            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (langs)\r\n", i);
-            goto Error;
+            const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[i];
+            if (NULL == pConfigInfo)
+            {
+                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (channels)\r\n", i);
+                goto Error;
+            }
+
+            if (pConfigInfo->selected == true)
+            {
+
+                if (nChannelToAccept == 0)
+                {
+                    if (pConfigInfo->fromServiceId == pConfigInfo->toServiceId)
+                    {
+                        if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u", pConfigInfo->fromServiceId))
+                        {
+                            RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                            goto Error;
+                        }
+                    }
+                    else
+                    {
+                        if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u-%u", pConfigInfo->fromServiceId, pConfigInfo->toServiceId))
+                        {
+                            RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                            goto Error;
+                        }
+                    }
+                    nChannelToAccept++;
+                }
+                else
+                {
+                    if ((fromServiceIdMem != pConfigInfo->fromServiceId) && (toServiceIdMem != pConfigInfo->toServiceId))
+                    {
+                        if (pConfigInfo->fromServiceId == pConfigInfo->toServiceId)
+                        {
+                            if (!PrintStringNullTerminate(szChannelsInt, MAX_BUFFER_SIZE - strlen(szChannelsInt), ",%u", pConfigInfo->fromServiceId))
+                            {
+                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                            if (!ConcatenateStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
+                            {
+                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                        }
+                        else
+                        {
+                            if (!PrintStringNullTerminate(szChannelsInt, MAX_BUFFER_SIZE - strlen(szChannelsInt), ",%u-%u", pConfigInfo->fromServiceId, pConfigInfo->toServiceId))
+                            {
+                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                            if (!ConcatenateStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
+                            {
+                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                        }
+                        nChannelToAccept++;
+                    }
+                    fromServiceIdMem = pConfigInfo->fromServiceId;
+                    toServiceIdMem = pConfigInfo->toServiceId;
+                }
+            }
         }
 
-        if (pConfigInfo->fromCodeScheme == pConfigInfo->toCodeScheme)
+        //  Loop through each RIL_GSM_BroadcastSmsConfigInfo structure.
+        //  Make string szLangs our list of languages to add.
+        nChannelToAccept = 0;
+        for (i = 0; i < nNumOfConfigInfos; i++)
         {
-            if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u", pConfigInfo->fromCodeScheme))
+            const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[i];
+            if (NULL == pConfigInfo)
             {
-                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (langs)\r\n", i);
                 goto Error;
             }
-        }
-        else
-        {
-            if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u-%u", pConfigInfo->fromCodeScheme, pConfigInfo->toCodeScheme))
+
+            if (pConfigInfo->selected == true)
             {
-                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from from-to code scheme of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                goto Error;
+
+                if (nChannelToAccept == 0)
+                {
+                    if (pConfigInfo->fromCodeScheme == pConfigInfo->toCodeScheme)
+                    {
+                        if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u", pConfigInfo->fromCodeScheme))
+                        {
+                            RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                            goto Error;
+                        }
+                    }
+                    else
+                    {
+                        if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u-%u", pConfigInfo->fromCodeScheme, pConfigInfo->toCodeScheme))
+                        {
+                            RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from from-to code scheme of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                            goto Error;
+                        }
+                    }
+                    nChannelToAccept++;
+                }
+                else
+                {
+                    if ((fromCodeSchemeMem != pConfigInfo->fromCodeScheme) && (toCodeSchemeMem != pConfigInfo->toCodeScheme))
+                    {
+                        if (pConfigInfo->fromCodeScheme == pConfigInfo->toCodeScheme)
+                        {
+                            if (!PrintStringNullTerminate(szLangsInt, MAX_BUFFER_SIZE - strlen(szLangsInt), ",%u", pConfigInfo->fromCodeScheme))
+                            {
+                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                            if (!ConcatenateStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
+                            {
+                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                        }
+                        else
+                        {
+                            if (!PrintStringNullTerminate(szLangsInt, MAX_BUFFER_SIZE - strlen(szLangsInt), ",%u-%u", pConfigInfo->fromCodeScheme, pConfigInfo->toCodeScheme))
+                            {
+                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from from-to code scheme of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                            if (!ConcatenateStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
+                            {
+                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                        }
+                        nChannelToAccept++;
+                    }
+                }
+                fromCodeSchemeMem = pConfigInfo->fromCodeScheme;
+                toCodeSchemeMem = pConfigInfo->toCodeScheme;
             }
         }
 
-        //  See if this is last range.  If not, add a ','.
-        if (i+1 < nNumOfConfigInfos)
+        //  Make the final string.
+        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CSCB=%u,\"%s\",\"%s\"\r", nSelected, szChannels, szLangs))
         {
-            if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%s,", szLangs))
-            {
-                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: cannot add last range of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                goto Error;
-            }
+            res = RRIL_RESULT_OK;
         }
+
     }
-
-    //  Make the final string.
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CSCB=%u,\"%s\",\"%s\"\r", nSelected, szChannels, szLangs))
+    else
     {
         res = RRIL_RESULT_OK;
     }
@@ -7067,7 +7160,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
         {
             if (!PrintStringNullTerminate(rReqData.szCmd1,
                     sizeof(rReqData.szCmd1),
-                    "AT+CSIM=%d,\"%02x%02x%02x%02x\"",
+                    "AT+CSIM=%d,\"%02x%02x%02x%02x\"\r",
                     8,
                     pSimIOArgs->cla,
                     pSimIOArgs->command,
@@ -7082,7 +7175,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
         {
             if (!PrintStringNullTerminate(rReqData.szCmd1,
                     sizeof(rReqData.szCmd1),
-                    "AT+CSIM=%d,\"%02x%02x%02x%02x%02x\"",
+                    "AT+CSIM=%d,\"%02x%02x%02x%02x%02x\"\r",
                     10,
                     pSimIOArgs->cla,
                     pSimIOArgs->command,
@@ -7099,7 +7192,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
-                "AT+CSIM=%d,\"%02x%02x%02x%02x%02x%s\"",
+                "AT+CSIM=%d,\"%02x%02x%02x%02x%02x%s\"\r",
                 10 + strlen(pSimIOArgs->data),
                 pSimIOArgs->cla,
                 pSimIOArgs->command,
@@ -7199,7 +7292,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
     }
 
     sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
-    szResponseString[cbResponseString-1] = '\0';
+    szResponseString[cbResponseString-5] = '\0';
 
     pResponse->sw1 = uiSW1;
     pResponse->sw2 = uiSW2;
@@ -7537,7 +7630,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
     }
 
     sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
-    szResponseString[cbResponseString-1] = '\0';
+    szResponseString[cbResponseString-5] = '\0';
 
     pResponse->sw1 = uiSW1;
     pResponse->sw2 = uiSW2;
