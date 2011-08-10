@@ -6575,7 +6575,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
             const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[i];
             if (NULL == pConfigInfo)
             {
-                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (channels)\r\n", i);
+                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (channels)\r\n", i);
                 goto Error;
             }
 
@@ -6588,7 +6588,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
                     {
                         if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u", pConfigInfo->fromServiceId))
                         {
-                            RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                             goto Error;
                         }
                     }
@@ -6596,7 +6596,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
                     {
                         if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u-%u", pConfigInfo->fromServiceId, pConfigInfo->toServiceId))
                         {
-                            RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                             goto Error;
                         }
                     }
@@ -6610,12 +6610,12 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
                         {
                             if (!PrintStringNullTerminate(szChannelsInt, MAX_BUFFER_SIZE - strlen(szChannelsInt), ",%u", pConfigInfo->fromServiceId))
                             {
-                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                                 goto Error;
                             }
                             if (!ConcatenateStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
                             {
-                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                                 goto Error;
                             }
                         }
@@ -6623,12 +6623,12 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
                         {
                             if (!PrintStringNullTerminate(szChannelsInt, MAX_BUFFER_SIZE - strlen(szChannelsInt), ",%u-%u", pConfigInfo->fromServiceId, pConfigInfo->toServiceId))
                             {
-                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                                 goto Error;
                             }
                             if (!ConcatenateStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
                             {
-                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                                 goto Error;
                             }
                         }
@@ -6648,7 +6648,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
             const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[i];
             if (NULL == pConfigInfo)
             {
-                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (langs)\r\n", i);
+                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (langs)\r\n", i);
                 goto Error;
             }
 
@@ -6661,7 +6661,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
                     {
                         if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u", pConfigInfo->fromCodeScheme))
                         {
-                            RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                             goto Error;
                         }
                     }
@@ -6669,7 +6669,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
                     {
                         if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u-%u", pConfigInfo->fromCodeScheme, pConfigInfo->toCodeScheme))
                         {
-                            RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from from-to code scheme of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from from-to code scheme of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                             goto Error;
                         }
                     }
@@ -6683,12 +6683,12 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
                         {
                             if (!PrintStringNullTerminate(szLangsInt, MAX_BUFFER_SIZE - strlen(szLangsInt), ",%u", pConfigInfo->fromCodeScheme))
                             {
-                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                                 goto Error;
                             }
                             if (!ConcatenateStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
                             {
-                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                                 goto Error;
                             }
                         }
@@ -6696,12 +6696,12 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
                         {
                             if (!PrintStringNullTerminate(szLangsInt, MAX_BUFFER_SIZE - strlen(szLangsInt), ",%u-%u", pConfigInfo->fromCodeScheme, pConfigInfo->toCodeScheme))
                             {
-                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from from-to code scheme of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from from-to code scheme of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                                 goto Error;
                             }
                             if (!ConcatenateStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
                             {
-                                RIL_LOG_CRITICAL("CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
                                 goto Error;
                             }
                         }
@@ -6722,7 +6722,11 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
     }
     else
     {
-        res = RRIL_RESULT_OK;
+        //  Make the final string.
+        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CSCB=0,\"\",\"\"\r"))
+        {
+            res = RRIL_RESULT_OK;
+        }
     }
 
 Error:
@@ -6771,7 +6775,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA & rReqData, 
     if (0 == nFlag)
     {
         //  activate
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSCB=1\r", sizeof(rReqData.szCmd1)))
+        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSCB=0\r", sizeof(rReqData.szCmd1)))
         {
             res = RRIL_RESULT_OK;
         }
@@ -6779,7 +6783,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA & rReqData, 
     else
     {
         //  disable
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSCB=0\r", sizeof(rReqData.szCmd1)))
+        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSCB=1\r", sizeof(rReqData.szCmd1)))
         {
             res = RRIL_RESULT_OK;
         }
@@ -7675,7 +7679,194 @@ Error:
 }
 
 
+#if defined(M2_FEATURE_ENABLED)
+//
+// RIL_REQUEST_HANGUP_VT 108
+//
+RIL_RESULT_CODE CTEBase::CoreHangupVT(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreHangupVT() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int nCause = 0;
 
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreHangupVT() - ERROR: Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (sizeof(int*) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreHangupVT() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    //  Extract data
+    nCause = ((int *)pData)[0];
+    RIL_LOG_INFO("CTEBase::CoreHangupVT() - Cause value=[%d]\r\n", nCause);
+
+    //  Form AT command string
+    //  TODO: For now use ATH until we know what the real AT command is.
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "ATH\r"))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::CoreHangupVT() - Exit\r\n");
+    return res;
+}
+
+
+RIL_RESULT_CODE CTEBase::ParseHangupVT(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseHangupVT() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseHangupVT() - Exit\r\n");
+    return RRIL_RESULT_OK;
+}
+
+
+//
+// RIL_REQUEST_DIAL_VT 109
+//
+RIL_RESULT_CODE CTEBase::CoreDialVT(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    //  NOTE: This is based off the normal dial request
+    RIL_LOG_VERBOSE("CTEBase::CoreDialVT() - Enter\r\n");
+
+    //  This dial VT request is sent out in 2 parts due to multiple AT commands.
+    //  First we set FCLASS and CBST in szCmd1.
+    //  Then we set the ATD in szCmd2.
+
+    RIL_Errno eRetVal    = RIL_E_GENERIC_FAILURE;
+    RIL_Dial *pRilDial   = NULL;
+    BYTE*     szCmdWalk  = rReqData.szCmd2;
+    BYTE*     szAddrWalk = NULL;
+    BYTE*     szDialStringStart = NULL;
+    UINT32      cchCmd     = sizeof(rReqData.szCmd2);
+    int       clirVal    = 0;
+    const int nMaxDialStringLength = 43;
+
+    const char* pcszCmdEnd = NULL;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: pData is NULL.\r\n");
+        goto Error;
+    }
+
+    if (sizeof(RIL_Dial) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    if (NULL == szCmdWalk)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: szCmdWalk is NULL.\r\n");
+        goto Error;
+    }
+
+    //  Now fill in szCmd1
+    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+FCLASS=0;+CBST=134,1,0\r", sizeof(rReqData.szCmd1)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: CopyStringNullTerminate FCLASS,CBST failed\r\n");
+        goto Error;
+    }
+
+    //  Now fill in szCmd2
+    //  Extract data.
+    pRilDial = (RIL_Dial *)pData;
+    szAddrWalk = (BYTE*)(pRilDial->address);
+    clirVal = pRilDial->clir;
+
+    if (!CopyStringNullTerminate(szCmdWalk, "ATD", cchCmd - (szCmdWalk - rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: String truncation or other error when writting ATD!\r\n");
+        goto Error;
+    }
+
+    szCmdWalk = strchr(szCmdWalk, '\0');  // NO_TYPO: 27
+    if (NULL == szCmdWalk)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: Did not find NULL termination character in string.\r\n");
+        goto Error;
+    }
+
+    szDialStringStart = szCmdWalk;
+
+    pcszCmdEnd = rReqData.szCmd2 + cchCmd - 1;
+    while (szCmdWalk < pcszCmdEnd && *szAddrWalk != '\0')
+    {
+        // Only allow characters in the set specified by GSM 07.07 section 6.2
+        if (strchr("1234567890*#+ABCD,TP!W@", *szAddrWalk))
+        {
+            *szCmdWalk++ = *szAddrWalk;
+        }
+        szAddrWalk++;
+    }
+
+    //  Check to see if the dial string is too long.
+    if ((szCmdWalk - szDialStringStart) > nMaxDialStringLength)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: Dial string is too long.\r\n");
+        goto Error;
+    }
+
+    if (szCmdWalk == szDialStringStart)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: Address string does not contain any valid characters.\r\n");
+        goto Error;
+    }
+
+    // Remember to paste on the terminating '\0'
+    *szCmdWalk='\0';
+
+    if (1 == clirVal)  // "CLIR invocation" (restrict CLI presentation)
+    {
+        if (!CopyStringNullTerminate(szCmdWalk, "I", cchCmd - (szCmdWalk - rReqData.szCmd2)))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: CopyStringNullTerminate I failed\r\n");
+            goto Error;
+        }
+        szCmdWalk++;
+    }
+    else if (2 == clirVal)  // "CLIR suppression" (allow CLI presentation)
+    {
+        if (!CopyStringNullTerminate(szCmdWalk, "i", cchCmd - (szCmdWalk - rReqData.szCmd2)))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: CopyStringNullTerminate i failed\r\n");
+            goto Error;
+        }
+        szCmdWalk++;
+    }
+
+    //  For VT we do not need the semi-colon at the end of ATD command
+    if (!CopyStringNullTerminate(szCmdWalk, "\r", cchCmd - (szCmdWalk - rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: CopyStringNullTerminate <cr> failed\r\n");
+        goto Error;
+    }
+
+
+    //  Done
+    eRetVal = RIL_E_SUCCESS;
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::CoreDialVT() - Exit\r\n");
+    return eRetVal;
+
+
+}
+
+RIL_RESULT_CODE CTEBase::ParseDialVT(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseDialVT() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseDialVT() - Exit\r\n");
+    return RRIL_RESULT_OK;
+}
+#endif // M2_FEATURE_ENABLED
 
 
 //

@@ -30,9 +30,11 @@
 
 //  List channels here (one per COM port)
 
-// TODO - this should be read from repository? Set to 1 in the case
-// where there is only a single ATCMD channel and no data channels.
-#define RIL_CHANNEL_MAX 6   // Just use 2 channels for initial test
+#if defined(M2_FEATURE_ENABLED)
+#define RIL_CHANNEL_MAX 10
+#else // M2_FEATURE_ENABLED
+#define RIL_CHANNEL_MAX 6
+#endif // M2_FEATURE_ENABLED
 
 //  Call control commands, misc commands
 #define RIL_CHANNEL_ATCMD 0
@@ -52,6 +54,17 @@
 //  GPRS/UMTS data (1st primary context)
 #define RIL_CHANNEL_DATA1 5
 
+//  GPRS/UMTS data (2nd primary context)
+#define RIL_CHANNEL_DATA2 6
+
+//  GPRS/UMTS data (3rd primary context)
+#define RIL_CHANNEL_DATA3 7
+
+//  GPRS/UMTS data (4th primary context)
+#define RIL_CHANNEL_DATA4 8
+
+//  GPRS/UMTS data (5th primary context)
+#define RIL_CHANNEL_DATA5 9
 
 // TODO - currently allow up to one reserved channel (e.g., for direct audio use).
 // Set this to -1 or a number greater than RIL_CHANNEL_MAX if there is no reserved channel

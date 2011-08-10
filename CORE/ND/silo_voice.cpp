@@ -69,6 +69,11 @@ CSilo_Voice::CSilo_Voice(CChannel *pChannel)
         { "NO ANSWER"     , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoAnswer },
         { "CTM CALL"      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCTMCall },
         { "NO CTM CALL"   , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCTMCall },
+#if defined(M2_FEATURE_ENABLED)
+        // TODO: When call fail cause URC is defined, set it here.
+        // Handle Call failed cause unsolicited notification here
+        { "CALL_FAILED_CAUSE" , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallFailedCause },
+#endif // M2_FEATURE_ENABLED
         { ""              , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNULL }
     };
 
@@ -84,10 +89,27 @@ CSilo_Voice::~CSilo_Voice()
 
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL CSilo_Voice::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
+{
+    if (ND_REQ_ID_HANGUP == rpCmd->GetRequestID())
+    {
+        // If this is a hangup command and we got a NO CARRIER response, turn it into OK
+        if (RRIL_RESULT_NOCARRIER == rpRsp->GetResultCode())
+        {
+            rpRsp->FreeData();
+            rpRsp->SetResultCode(RRIL_RESULT_OK);
+        }
+    }
+
+    return TRUE;
+}
+
 //
 //
 BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const BYTE*& rszPointer)
@@ -95,20 +117,49 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const BYTE*& rszPoint
     RIL_LOG_VERBOSE("CSilo_Voice::ParseExtRing() - Enter\r\n");
 
     BOOL fRet = FALSE;
+    const BYTE* szDummy = NULL;
+    char szType[MAX_BUFFER_SIZE] = {0};
 
-    // Skip to the next <postfix>
-    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    // Make sure this is a complete notification
+    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : ERROR : incomplete notification\r\n");
         goto Error;
     }
 
+    //  Extract <type>
+    if (!ExtractUnquotedString(rszPointer, g_cTerminator, szType, MAX_BUFFER_SIZE, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : ERROR : cannot extract <type>\r\n");
+        goto Error;
+    }
+
+    // Skip to end
+    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : ERROR : Couldn't find end of notification\r\n");
+        goto Error;
+    }
     // Walk back over the <CR>
     rszPointer -= strlen(g_szNewLine);
 
     pResponse->SetUnsolicitedFlag(TRUE);
-    //pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+
+    //  Normal case, just send ring notification.
     pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
+
+#if defined(M2_FEATURE_ENABLED)
+    //  Check to see if incoming video telephony call
+    if (0 == strncmp(szType, "SYNC", 4))
+    {
+        RIL_LOG_INFO("CSilo_Voice::ParseExtRing() : Incoming video telephony call\r\n");
+
+        //  TODO: Send notification for video telephony incoming call
+        //        For now, just do normal ring
+        pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
+    }
+#endif // M2_FEATURE_ENABLED
+
     fRet = TRUE;
 
 Error:
@@ -1023,18 +1074,35 @@ Error:
     return fRet;
 }
 
-BOOL CSilo_Voice::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
+
+#if defined (M2_FEATURE_ENABLED)
+
+BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const BYTE*& rszPointer)
 {
-    if (ND_REQ_ID_HANGUP == rpCmd->GetRequestID())
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCallFailedCause() - Enter\r\n");
+
+    BOOL fRet = FALSE;
+
+    //  TODO: Parse the notification and get call id, and failed cause.
+    //  Until then, just skip over notification.
+
+    // Skip to the next <postfix>
+    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        // If this is a hangup command and we got a NO CARRIER response, turn it into OK
-        if (RRIL_RESULT_NOCARRIER == rpRsp->GetResultCode())
-        {
-            rpRsp->FreeData();
-            rpRsp->SetResultCode(RRIL_RESULT_OK);
-        }
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Could not find response end\r\n");
+        goto Error;
     }
 
-    return TRUE;
+    // Walk back over the <CR>
+    rszPointer -= strlen(g_szNewLine);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_CALL_FAILED_CAUSE);
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCallFailedCause() - Exit\r\n");
+    return fRet;
 }
 
+#endif // M2_FEATURE_ENABLED

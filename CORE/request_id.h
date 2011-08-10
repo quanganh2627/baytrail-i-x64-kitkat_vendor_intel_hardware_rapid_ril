@@ -23,156 +23,6 @@
 #ifndef RRIL_REQUEST_ID_H
 #define RRIL_REQUEST_ID_H
 
-// Note: The WM_REQ_ID_XXX items must be in sync with the CELLCORE registry APIInfo.
-enum WM_REQ_ID_ID {
-    WM_REQ_ID_NONE                          = -1,
-    WM_REQ_ID_GETSUBSCRIBERNUMBERS          = 0,
-    WM_REQ_ID_GETOPERATORLIST,              // 1
-    WM_REQ_ID_GETPREFERREDOPERATORLIST,     // 2
-    WM_REQ_ID_ADDPREFERREDOPERATOR,         // 3
-    WM_REQ_ID_REMOVEPREFERREDOPERATOR,      // 4
-    WM_REQ_ID_GETCURRENTOPERATOR,           // 5
-    WM_REQ_ID_REGISTERONNETWORK,            // 6
-    WM_REQ_ID_UNREGISTERFROMNETWORK,        // 7
-    WM_REQ_ID_GETREGISTRATIONSTATUS,        // 8
-    WM_REQ_ID_GETCALLERIDSETTINGS,          // 9
-    WM_REQ_ID_SETCALLERIDSTATUS,            // 10
-    WM_REQ_ID_GETHIDEIDSETTINGS,            // 11
-    WM_REQ_ID_SETHIDEIDSTATUS,              // 12
-    WM_REQ_ID_GETDIALEDIDSETTINGS,          // 13
-    WM_REQ_ID_SETDIALEDIDSTATUS,            // 14
-    WM_REQ_ID_GETCLOSEDGROUPSETTINGS,       // 15
-    WM_REQ_ID_SETCLOSEDGROUPSETTINGS,       // 16
-    WM_REQ_ID_GETCALLFORWARDINGSETTINGS,    // 17
-    WM_REQ_ID_ADDCALLFORWARDING,            // 18
-    WM_REQ_ID_REMOVECALLFORWARDING,         // 19
-    WM_REQ_ID_SETCALLFORWARDINGSTATUS,      // 20
-    WM_REQ_ID_GETCALLWAITINGSETTINGS,       // 21
-    WM_REQ_ID_SETCALLWAITINGSTATUS,         // 22
-    WM_REQ_ID_SENDSUPSERVICEDATA,           // 23
-    WM_REQ_ID_CANCELSUPSERVICEDATASESSION,  // 24
-    WM_REQ_ID_DIAL,                         // 25
-    WM_REQ_ID_ANSWER,                       // 26
-    WM_REQ_ID_HANGUP,                       // 27
-    WM_REQ_ID_SENDDTMF,                     // 28
-    WM_REQ_ID_SETDTMFMONITORING,            // 29
-    WM_REQ_ID_GETCALLLIST,                  // 30
-    WM_REQ_ID_MANAGECALLS,                  // 31
-    WM_REQ_ID_TRANSFERCALL,                 // 32
-    WM_REQ_ID_GETLINESTATUS,                // 33
-    WM_REQ_ID_GETAUDIOGAIN,                 // 34
-    WM_REQ_ID_SETAUDIOGAIN,                 // 35
-    WM_REQ_ID_GETAUDIODEVICES,              // 36
-    WM_REQ_ID_SETAUDIODEVICES,              // 37
-    WM_REQ_ID_GETAUDIOMUTING,               // 38
-    WM_REQ_ID_SETAUDIOMUTING,               // 39
-    WM_REQ_ID_GETHSCSDOPTIONS,              // 40
-    WM_REQ_ID_SETHSCSDOPTIONS,              // 41
-    WM_REQ_ID_GETHSCSDCALLSETTINGS,         // 42
-    WM_REQ_ID_GETDATACOMPRESSION,           // 43
-    WM_REQ_ID_SETDATACOMPRESSION,           // 44
-    WM_REQ_ID_GETERRORCORRECTION,           // 45
-    WM_REQ_ID_SETERRORCORRECTION,           // 46
-    WM_REQ_ID_GETBEARERSERVICEOPTIONS,      // 47
-    WM_REQ_ID_SETBEARERSERVICEOPTIONS,      // 48
-    WM_REQ_ID_GETRLPOPTIONS,                // 49
-    WM_REQ_ID_SETRLPOPTIONS,                // 50
-    WM_REQ_ID_GETMSGSERVICEOPTIONS,         // 51
-    WM_REQ_ID_SETMSGSERVICEOPTIONS,         // 52
-    WM_REQ_ID_GETMSGCONFIG,                 // 53
-    WM_REQ_ID_SETMSGCONFIG,                 // 54
-    WM_REQ_ID_RESTOREMSGCONFIG,             // 55
-    WM_REQ_ID_SAVEMSGCONFIG,                // 56
-    WM_REQ_ID_READMSG,                      // 57
-    WM_REQ_ID_DELETEMSG,                    // 58
-    WM_REQ_ID_WRITEMSG,                     // 59
-    WM_REQ_ID_SENDMSG,                      // 60
-    WM_REQ_ID_SENDSTOREDMSG,                // 61
-    WM_REQ_ID_SENDMSGACKNOWLEDGEMENT,       // 62
-    WM_REQ_ID_GETUSERIDENTITY,              // 63
-    WM_REQ_ID_GETPHONELOCKEDSTATE,          // 64
-    WM_REQ_ID_UNLOCKPHONE,                  // 65
-    WM_REQ_ID_GETLOCKINGSTATUS,             // 66
-    WM_REQ_ID_SETLOCKINGSTATUS,             // 67
-    WM_REQ_ID_CHANGELOCKINGPASSWORD,        // 68
-    WM_REQ_ID_GETCALLBARRINGSTATUS,         // 69
-    WM_REQ_ID_SETCALLBARRINGSTATUS,         // 70
-    WM_REQ_ID_CHANGECALLBARRINGPASSWORD,    // 71
-    WM_REQ_ID_GETEQUIPMENTINFO,             // 72
-    WM_REQ_ID_GETEQUIPMENTSTATE,            // 73
-    WM_REQ_ID_SETEQUIPMENTSTATE,            // 74
-    WM_REQ_ID_GETPHONEBOOKOPTIONS,          // 75
-    WM_REQ_ID_SETPHONEBOOKOPTIONS,          // 76
-    WM_REQ_ID_READPHONEBOOKENTRIES,         // 77
-    WM_REQ_ID_WRITEPHONEBOOKENTRY,          // 78
-    WM_REQ_ID_DELETEPHONEBOOKENTRY,         // 79
-    WM_REQ_ID_SENDSIMCMD,                   // 80
-    WM_REQ_ID_SENDRESTRICTEDSIMCMD,         // 81
-    WM_REQ_ID_GETSIMRECORDSTATUS,           // 82
-    WM_REQ_ID_GETSIMTOOLKITPROFILE,         // 83
-    WM_REQ_ID_SETSIMTOOLKITPROFILE,         // 84
-    WM_REQ_ID_SENDSIMTOOLKITENVELOPECMD,    // 85
-    WM_REQ_ID_FETCHSIMTOOLKITCMD,           // 86
-    WM_REQ_ID_SENDSIMTOOLKITCMDRESPONSE,    // 87
-    WM_REQ_ID_TERMINATESIMTOOLKITSESSION,   // 88
-    WM_REQ_ID_GETCOSTINFO,                  // 89
-    WM_REQ_ID_SETCOSTINFO,                  // 90
-    WM_REQ_ID_GETSIGNALQUALITY,             // 91
-    WM_REQ_ID_GETCELLTOWERINFO,             // 92
-    WM_REQ_ID_DEVSPECIFIC,                  // 93
-    WM_REQ_ID_GETDEVCAPS,                   // 94
-    WM_REQ_ID_GETHIDECONNECTEDIDSETTINGS,   // 95
-    WM_REQ_ID_SETHIDECONNECTEDIDSTATUS,     // 96
-    WM_REQ_ID_GETUUSREQUIREDSTATUS,         // 97
-    WM_REQ_ID_CLEARCCBSREGISTRATION,        // 98
-    WM_REQ_ID_GETSYSTEMTIME,                    // 99
-    WM_REQ_ID_GETGPRSCONTEXTLIST,               // 100
-    WM_REQ_ID_SETGPRSCONTEXT,                   // 101
-    WM_REQ_ID_DELETEGPRSCONTEXT,                // 102
-    WM_REQ_ID_GETREQUESTEDQUALITYOFSERVICELIST, // 103
-    WM_REQ_ID_SETREQUESTEDQUALITYOFSERVICE,     // 104
-    WM_REQ_ID_DELETEREQUESTEDQUALITYOFSERVICE,  // 105
-    WM_REQ_ID_GETMINIMUMQUALITYOFSERVICELIST,   // 106
-    WM_REQ_ID_SETMINIMUMQUALITYOFSERVICE,       // 107
-    WM_REQ_ID_DELETEMINIMUMQUALITYOFSERVICE,    // 108
-    WM_REQ_ID_SETGPRSATTACHED,                  // 109
-    WM_REQ_ID_GETGPRSATTACHED,                  // 110
-    WM_REQ_ID_SETGPRSCONTEXTACTIVATED,          // 111
-    WM_REQ_ID_GETGPRSCONTEXTACTIVATEDLIST,      // 112
-    WM_REQ_ID_ENTERGPRSDATAMODE,                // 113
-    WM_REQ_ID_GETGPRSADDRESS,                   // 114
-    WM_REQ_ID_GPRSANSWER,                       // 115
-    WM_REQ_ID_GETGPRSREGISTRATIONSTATUS,        // 116
-    WM_REQ_ID_GETGPRSCLASS,                     // 117
-    WM_REQ_ID_SETGPRSCLASS,                     // 118
-    WM_REQ_ID_GETMOSMSSERVICE,                  // 119
-    WM_REQ_ID_SETMOSMSSERVICE,                  // 120
-    WM_REQ_ID_GETCBMSGCONFIG,                   // 121
-    WM_REQ_ID_SETCBMSGCONFIG,                   // 122
-    WM_REQ_ID_GETCURRENTADDRESSID,              // 123
-    WM_REQ_ID_SETCURRENTADDRESSID,              // 124
-    WM_REQ_ID_GETPACKETBYTECOUNT,               // 125
-    WM_REQ_ID_RESETPACKETBYTECOUNT,             // 126
-    WM_REQ_ID_GETCURRENTPRIVACYSTATUS,          // 127
-    WM_REQ_ID_GETCURRENTSYSTEMTYPE,             // 128
-    WM_REQ_ID_GETALLOPERATORSLIST,              // 129
-    WM_REQ_ID_REBOOTRADIO,                      // 130
-    WM_REQ_ID_REGISTERATCOMMANDLOGGING,         // 131
-    WM_REQ_ID_ATCOMMANDLOGFILE,                 // 132
-    WM_REQ_ID_GETATR,                           // 133
-    WM_REQ_ID_SENDSIMTOOLKITEVENTDOWNLOAD,      // 134
-    WM_REQ_ID_LOGEVENTTORADIO,                  // 135
-    WM_REQ_ID_GETVTSERIALPORTHANDLE,            // 136
-    WM_REQ_ID_CHANGECALLBARRINGPASSWORDEX,      // 137
-    WM_REQ_ID_GETNETWORKSELECTIONMODE,          // 138
-    WM_REQ_ID_GETIMEI,                          // 139
-    WM_REQ_ID_GETIMSI,                          // 140
-    WM_REQ_ID_GETBASEBANDVERSION,               // 141
-    WM_REQ_ID_REQUESTSETUPDEFAULTPDP,           // 142
-    WM_REQ_ID_TOTAL                             // 143
-};
-
-
 // Note: g_szRequestNames[] in repository.cpp must contain an appropriate value for each valid Request ID.
 enum ND_REQ_ID_ID {
     ND_REQ_ID_NONE                                 = -1,
@@ -287,7 +137,11 @@ enum ND_REQ_ID_ID {
     ND_REQ_ID_SIMOPENCHANNEL,                      // 108
     ND_REQ_ID_SIMCLOSECHANNEL,                     // 109
     ND_REQ_ID_SIMTRANSMITCHANNEL,                  // 110
-    ND_REQ_ID_TOTAL                                // 111
+#if defined(M2_FEATURE_ENABLED)
+    ND_REQ_ID_HANGUPVT,                            // 111
+    ND_REQ_ID_DIALVT,                              // 112
+#endif // M2_FEATURE_ENABLED
+    ND_REQ_ID_TOTAL                                // 111 or 113
 };
 
 

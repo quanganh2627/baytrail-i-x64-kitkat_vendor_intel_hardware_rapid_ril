@@ -98,16 +98,25 @@ void triggerDataCallListChanged(void *param)
     }
 }
 
+
+//  [in] param = context id.
 void triggerDeactivateDataCall(void *param)
 {
+    UINT32 nCID;
     REQUEST_DATA rReqData;
+
+    if (param == NULL)
+       return;
+
+    nCID = (UINT32)param;
+
     memset(&rReqData, 0, sizeof(REQUEST_DATA));
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,1\r"))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%d\r", nCID))
     {
         RIL_LOG_CRITICAL("triggerDeactivateDataCall() - ERROR: Unable to create CGACT command!\r\n");
         return;
     }
-    rReqData.pContextData = (void*)1;//TBD: get the cid for multiple PDP
+    rReqData.pContextData = param;
     CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL], NULL, ND_REQ_ID_DEACTIVATEDATACALL, rReqData, &CTE::ParseDeactivateDataCall);
 
     if (pCmd)

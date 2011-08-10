@@ -196,7 +196,7 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
         if (!rpRsp->SetData((void*) pInt, sizeof(int*), FALSE))
         {
             RIL_LOG_CRITICAL("CSilo_SIM::ParsePin() : Unable to set data with number of SIM unlock retries left\r\n");
-            delete pInt;
+            free(pInt);
             pInt = NULL;
             goto Error;
         }
@@ -282,7 +282,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus*), FALSE))
                 {
                     RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to set data with sim state\r\n");
-                    delete pCardStatus;
+                    free(pCardStatus);
                     pCardStatus = NULL;
                     goto Error;
                 }
@@ -323,11 +323,44 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus*), FALSE))
                 {
                     RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to set data with sim state\r\n");
-                    delete pCardStatus;
+                    free(pCardStatus);
                     pCardStatus = NULL;
                     goto Error;
                 }
             }
+            break;
+
+            case RRIL_CME_ERROR_SIM_WRONG:
+            {
+                RIL_LOG_INFO("CSilo_SIM::ParseSimStatus() : WRONG SIM Card!\r\n");
+                rpRsp->FreeData();
+                rpRsp->SetResultCode(RIL_E_SUCCESS);
+
+                RIL_CardStatus* pCardStatus = (RIL_CardStatus*) malloc(sizeof(RIL_CardStatus));
+                if (NULL == pCardStatus)
+                {
+                    RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to allocate memory for RIL_CardStatus\r\n");
+                    goto Error;
+                }
+                memset(pCardStatus, 0, sizeof(RIL_CardStatus));
+
+                // Initialize as per reference ril as insufficient documentation currently is available
+                pCardStatus->gsm_umts_subscription_app_index = 0;
+                pCardStatus->cdma_subscription_app_index = RIL_CARD_MAX_APPS;
+                pCardStatus->universal_pin_state = RIL_PINSTATE_ENABLED_PERM_BLOCKED;
+                pCardStatus->card_state = RIL_CARDSTATE_ERROR;  //RIL_CARDSTATE_ABSENT
+                pCardStatus->num_applications = 0;
+
+                // Don't copy the memory, just pass along the pointer as is.
+                if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus*), FALSE))
+                {
+                    RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to set data with sim state\r\n");
+                    free(pCardStatus);
+                    pCardStatus = NULL;
+                    goto Error;
+                }
+            }
+            break;
 
             default:
                 break;

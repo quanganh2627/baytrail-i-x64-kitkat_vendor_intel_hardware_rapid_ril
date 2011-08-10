@@ -30,7 +30,11 @@
 #include "silo_factory.h"
 #include "channel_data.h"
 
-extern BYTE* g_szDataPort1; // TODO replace this with base port name e.g., /dev/ttyGSM
+extern BYTE* g_szDataPort1;
+extern BYTE* g_szDataPort2;
+extern BYTE* g_szDataPort3;
+extern BYTE* g_szDataPort4;
+extern BYTE* g_szDataPort5;
 extern BOOL  g_bIsSocket;
 
 //  Init commands for this channel.
@@ -86,12 +90,47 @@ BOOL CChannel_Data::OpenPort()
 {
     BOOL bRetVal = FALSE;
 
-    RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s...\r\n", g_szDataPort1);
-    RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
+    switch(m_uiRilChannel)
+    {
+        case RIL_CHANNEL_DATA1:
+            RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s...\r\n", g_szDataPort1);
+            RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
+            bRetVal = m_Port.Open(g_szDataPort1, g_bIsSocket);
+            break;
 
-    // TODO: Instead of using g_szDatatPort1, use channel number to create port name from
-    // the base port name + channel# + 1. E.g, data channel 1 uses port /dev/ttyGSM2
-    bRetVal = m_Port.Open(g_szDataPort1, g_bIsSocket);
+#if defined(M2_FEATURE_ENABLED)
+        case RIL_CHANNEL_DATA2:
+            RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s...\r\n", g_szDataPort2);
+            RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
+            bRetVal = m_Port.Open(g_szDataPort2, g_bIsSocket);
+            break;
+
+        case RIL_CHANNEL_DATA3:
+            RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s...\r\n", g_szDataPort3);
+            RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
+            bRetVal = m_Port.Open(g_szDataPort3, g_bIsSocket);
+            break;
+
+        case RIL_CHANNEL_DATA4:
+            RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s...\r\n", g_szDataPort4);
+            RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
+            bRetVal = m_Port.Open(g_szDataPort4, g_bIsSocket);
+            break;
+
+        case RIL_CHANNEL_DATA5:
+            RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s...\r\n", g_szDataPort5);
+            RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
+            bRetVal = m_Port.Open(g_szDataPort5, g_bIsSocket);
+            break;
+#endif // M2_FEATURE_ENABLED
+
+        default:
+            RIL_LOG_CRITICAL("CChannel_Data::OpenPort() - ERROR channel does not exist m_uiRilChannel=%d\r\n", m_uiRilChannel);
+            bRetVal = FALSE;
+            break;
+    }
+
+
 
     RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
 

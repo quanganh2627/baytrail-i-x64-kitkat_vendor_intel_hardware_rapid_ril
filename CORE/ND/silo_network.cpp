@@ -102,7 +102,7 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - INFO: Override REQUEST PDP CONTEXT LIST error with OK as SIM is locked or absent\r\n");
         rpRsp->SetResultCode(RRIL_RESULT_OK);
 
-        //  Bring down data context internally.
+        //  Bring down all data contexts internally.
         CChannel_Data* pChannelData = NULL;
 
         for (int i = RIL_CHANNEL_DATA1; i < RIL_CHANNEL_MAX; i++)
@@ -111,9 +111,11 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
                 continue;
 
             CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+            //  We are taking down all data connections here, so we are looping over each data channel.
+            //  Don't call DataConfigDown with invalid CID.
             if (pChannelData && pChannelData->GetContextID() > 0)
             {
-                RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - calling DataConfigDown(%d)\r\n", pChannelData->GetContextID());
+                RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", i, pChannelData->GetContextID());
                 DataConfigDown(pChannelData->GetContextID());
             }
         }
@@ -613,8 +615,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const BYTE* &rszPointe
     RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Enter\r\n");
 
     BOOL bRet = FALSE;
-    char* szDummy = NULL;
-    CChannel_Data* pDataChannel = NULL;
+    const char* szDummy = NULL;
 
     if (NULL == pResponse)
     {
@@ -635,8 +636,28 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const BYTE* &rszPointe
 
     if (szDummy != NULL)
     {
-        //pResponse->SetUnrecognizedFlag(TRUE);
-        RIL_requestTimedCallback(triggerDeactivateDataCall, NULL, 0, 0);
+        //  Now we need to get the CID from the notification
+        UINT32 nCID = 0;
+
+        //  Format is "NW DEACT "IP", "xx.xx.xx.xx",<cid>"
+        if (!FindAndSkipString(szDummy, ",", szDummy) ||
+            !FindAndSkipString(szDummy, ",", szDummy))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: Couldn't find 2 commas to find cid\r\n");
+        }
+        else
+        {
+            //  Should be at <cid> now.
+            if (!ExtractUInt(szDummy, nCID, szDummy))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: Couldn't extract cid\r\n");
+            }
+            else
+            {
+                RIL_LOG_INFO("Silo_Network::ParseCGEV() - NE DEACT , extracted cid=[%d]\r\n", nCID);
+            }
+        }
+        RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)nCID, 0, 0);
     }
     else
     {

@@ -86,14 +86,17 @@ BOOL CSilo_Data::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, B
     {
         //  Some error with PDP activation.  We got a CME ERROR to the PDP activate command.
         UINT32 uiChannel = rpCmd->GetChannel();
-        CChannel_Data* pDataChannel = static_cast<CChannel_Data*>(g_pRilChannel[uiChannel]);
-        if (pDataChannel && pDataChannel->GetContextID() > 0)
+        CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[uiChannel]);
+        if (pChannelData)
         {
             //  Reset the CID on this data channel to 0.  Free up channel for future use.
             //  This is done by DataConfigDown() function.
             //  Release network interface
-            RIL_LOG_INFO("CSilo_Data::PostParseResponseHook - calling DataConfigDown(%d)\r\n", pDataChannel->GetContextID());
-            DataConfigDown(pDataChannel->GetContextID());
+            RIL_LOG_INFO("CSilo_Data::PostParseResponseHook - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", uiChannel, pChannelData->GetContextID());
+            if (!DataConfigDown(pChannelData->GetContextID()))
+            {
+                RIL_LOG_CRITICAL("CSilo_Data::PostParseResponseHook - DataConfigDown FAILED chnl=[%d], cid=[%d]\r\n", uiChannel, pChannelData->GetContextID());
+            }
         }
     }
 
@@ -151,7 +154,7 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPoin
     const BYTE* szDummy;
     BOOL fRet = FALSE;
 
-    CChannel_Data* pDataChannel = NULL;
+    CChannel_Data* pChannelData = NULL;
 
     if (pResponse == NULL)
     {
@@ -174,13 +177,17 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPoin
 
 
     // Free this channel's context ID.
-    pDataChannel = CChannel_Data::GetChnlFromRilChannelNumber(m_pChannel->GetRilChannel());
-    if (pDataChannel && pDataChannel->GetContextID() > 0)
+    pChannelData = CChannel_Data::GetChnlFromRilChannelNumber(m_pChannel->GetRilChannel());
+    if (pChannelData)
     {
-        RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() : calling DataConfigDown(%d)\r\n", pDataChannel->GetContextID());
+        RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() : Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", m_pChannel->GetRilChannel(), pChannelData->GetContextID());
 
         //  Release network interface
-        DataConfigDown(pDataChannel->GetContextID());
+        if (!DataConfigDown(pChannelData->GetContextID()))
+        {
+            RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() - DataConfigDown FAILED chnl=[%d], cid=[%d]\r\n", m_pChannel->GetRilChannel(), pChannelData->GetContextID());
+        }
+
     }
     fRet = TRUE;
 

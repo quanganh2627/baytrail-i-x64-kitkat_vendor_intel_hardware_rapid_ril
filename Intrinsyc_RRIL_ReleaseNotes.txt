@@ -1,6 +1,230 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+August 9, 2011 (M5.20 release for Medfield iCDK and PR2)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+iCDK and PR2 devices, Android version 2.3.4 (Gingerbread).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ABSP dated July 20, 2011 (ww30)
+- We are using the HSI interface.
+
+iCDK Setup
+==========
+KBoot: kboot.bin (from ABSP dated July 20,2011 ww30)
+IFWI: IFWI_vB0.29-HSI_FSTK227_IA_00.45_IASupp_00.45_SCU_vB0.36_Punit_1.1E_VH_0.4F_XML_vB0.35_extapp_0.853_iChache_0.830_resident_0.830.bin
+Misc Module: Signed_PNW_B0_FWR_DnX_FD.15.bin
+OS Recovery Module: Signed_PNW_B0_OSR_DnX_0D.36.bin
+Modem Firmware: SUNRISE_SMB_REV30_V2_1128.B_engi_3_signed_MIPI_HSI_USIF_V2.13.fls
+
+PR2 Setup (not tested with this platform due to lack of time)
+=========
+KBoot:
+IFWI:
+Misc Module:
+OS Recovery Module:
+Modem Firmware:
+
+
+Release Notes for M5.20
+=======================
+
+1. M2 feature
+   Video Telephony calls support
+
+   -Added 2 new RIL_REQUEST APIs in ril.h:
+   #define RIL_REQUEST_HANGUP_VT 108
+   #define RIL_REQUEST_DIAL_VT 109
+
+   -Added 1 new RIL_UNSOL define in ril.h:
+   #define RIL_UNSOL_CALL_FAILED_CAUSE 1031
+
+   -NOTE: RIL source code for this is wrapped in #if defined(M2_FEATURE_ENABLED)
+          This is enabled by default.
+
+   -AT commands for HangupVT and DialVT are in rapid_ril/CORE/ND/te_base.cpp
+    Functions: CTEBase::CoreHangupVT() and CTEBase::CoreDialVT()
+   -Notification handling for CallFailedCause is in rapid_ril/CORE/ND/silo_voice.cpp
+    Functions: CSilo_Voice::ParseCallFailedCause() and string to look for will have
+               to be modified in static ATRSPTABLE pATRspTable[].
+
+   -NOTE: This code is currently untested due to lack of Android middleware support.
+
+   -NOTE: The AT command for VT hangup is currently set at "ATH".  A future patch is
+          pending to update this.
+
+   -NOTE: For incoming VT calls, a "+CRING: SYNC" is expected from the modem.  The
+          handling of +CRING notifications is done in rapid_ril/CORE/ND/silo_voice.cpp
+          function CSilo_Voice::ParseExtRing().  Currently, RIL_UNSOL_CALL_RING is
+          sent to Android, but a special VT ring notification can be sent here.
+
+2. M2 feature
+   Multiple PDP context support
+   -Added support for 5 DLC data channels in RIL.
+   -Added support for dynamic context IDs in RIL code (used for establishing data
+    connection, setting Android system properties, and deactivating data).
+   -Multiple PDP uses same RIL APIs (RIL_REQUEST_SETUP_DATA_CALL and
+    RIL_REQUEST_DEACTIVATE_DATA_CALL) to establish and deactivate data connections.
+   -Port names are defined in init.mfld_xxx.rc file using the -d flag in the
+    ril-daemon argument list.  All 5 DLC data channels must be defined in the
+    init.mfld_xxx.rc file if this feature (M2_FEATURE_ENABLED) is enabled in the build.
+
+   -NOTE: RIL source code for this is wrapped in #if defined(M2_FEATURE_ENABLED)
+          This is enabled by default.
+
+   -NOTE: This code is mainly untested due to lack of Android middleware support.
+          However, setting the constant PDP_CONNECTION_POOL_SIZE to more than 1
+          has had limited success in called RIL_REQUEST_SETUP_DATA_CALL more than
+          once.  The constant is in GsmDataConnectionTracker.java in
+          frameworks/base/telephony/java/com/android/internal/telephony/gsm
+          More investigation with this is required.
+
+   -NOTE: Certain system properties will have to be changed to support multiple PDP.
+          These can be found in rapid_ril/CORE/ND/MODEMS/te_inf_6260.cpp function
+          DataConfigUp() and DataConfigDown().
+          net.gprs.local-ip
+          net.gprs.operstate
+          gsm.net.interface
+
+
+3. Update init.mfld_cdk.rc to ww30 bits (same as ABSP).
+   Add init.mfld_pr2.rc to RIL drop.
+   Add repository.txt in mfld_PR2 directory to RIL drop.
+
+4. Fix function DataConfigDown() to return FALSE immediately if invalid Context ID is
+   passed in.
+
+5. In case of "+CGEV: NW DEACT" notification, need to pass CID from the notification to
+   the triggerDeactivateDataCall() function.  Previously this was hard-coded to 1.
+   RIL supports multiple PDP so this needed to be changed.
+
+6. Add comments to repository.txt to describe how some settings function.
+
+7. Fix patch for cell broadcast (Bugzilla 5751).
+
+8. Bugzilla 6687 - Adding SMS CB (Pdu decoding)
+   -Incorporate patch.
+
+9. Bugzilla 6202 - UI displays no services with a permanently blocked SIM card
+   -Treat "SIM Wrong" (+CME ERROR: 15) response properly.
+
+10. Bugzilla 5079 - Rx Diversity
+    -Remove AT+XRXDIV=1,3 string from init commands, until it is OK to put it back in.
+
+11. Bugzilla 2822 - 3GPP conformance - SATK Icon test are failing
+    -Fix restricted SIM command function.  Replace "img" with "graphics" full path which
+     is "3F007F105F50".
+
+
+Known Issues:
+=============
+-RIL_REQUEST_DATA_CALL_LIST API returns 0 active contexts when more than one context is
+ active.  Fix is in progress, target is next drop.
+
+-RIL_REQUEST_GET_NEIGHBORING_CELL_IDS API is broken and will return RIL_E_GENERIC_ERROR
+ when called.  Fix is in progress, target is next drop.
+
+
+
+Testing results:  (tested with HSI interface)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 August 2, 2011 (M5.19 release for Medfield CDK)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield CDK device,

@@ -73,6 +73,8 @@ BOOL  g_bIsSocket = FALSE;
 BYTE* g_szDataPort1 = NULL;
 BYTE* g_szDataPort2 = NULL;
 BYTE* g_szDataPort3 = NULL;
+BYTE* g_szDataPort4 = NULL;
+BYTE* g_szDataPort5 = NULL;
 BYTE* g_szDLC2Port = NULL;
 BYTE* g_szDLC6Port = NULL;
 BYTE* g_szDLC8Port = NULL;
@@ -207,10 +209,12 @@ static void ModemResetUpdate()
         if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
             continue;
 
-        CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+        pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+        //  We are taking down all data connections here, so we are looping over each data channel.
+        //  Don't call DataConfigDown with invalid CID.
         if (pChannelData && pChannelData->GetContextID() > 0)
         {
-            RIL_LOG_INFO("ModemResetUpdate() - Calling DataConfigDown(%d)\r\n", pChannelData->GetContextID());
+            RIL_LOG_INFO("ModemResetUpdate() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", i, pChannelData->GetContextID());
             DataConfigDown(pChannelData->GetContextID());
         }
     }
@@ -345,6 +349,11 @@ Error:
 BOOL HandleCoreDump(int& fdGsm)
 {
     RIL_LOG_INFO("HandleCoreDump() - Enter\r\n");
+
+    // lunch intent to warn user about the core dump
+    char cmd[1024] = {0};
+    sprintf(cmd, "am broadcast -a com.intel.action.CORE_DUMP_WARNING");
+    int status = system(cmd);
 
     BOOL bRet = TRUE;
     int timeout_msecs = 1000; //1 sec timeout
@@ -805,6 +814,19 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
         case RIL_UNSOL_RESEND_INCALL_MUTE:  // 1030
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESEND_INCALL_MUTE\r\n");
             break;
+
+#if defined(M2_FEATURE_ENABLED)
+
+        case RIL_UNSOL_CALL_FAILED_CAUSE:  // 1031
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CALL_FAILED_CAUSE\r\n");
+            if (pData && dataSize)
+            {
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - call id=[%d]\r\n", ((int *)pData)[0]);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - failed cause=[%d]\r\n", ((int *)pData)[1]);
+            }
+            break;
+
+#endif //  M2_FEATURE_ENABLED
 
 
         default:
@@ -1668,6 +1690,23 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
+#if defined(M2_FEATURE_ENABLED)
+
+        case RIL_REQUEST_HANGUP_VT:  // 108
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_HANGUP_VT\r\n");
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestHangupVT(hRilToken, pData, datalen);
+        }
+        break;
+
+        case RIL_REQUEST_DIAL_VT:  // 109
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_DIAL_VT\r\n");
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestDialVT(hRilToken, pData, datalen);
+        }
+        break;
+
+#endif // M2_FEATURE_ENABLED
 
         default:
         {
@@ -1722,7 +1761,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.19 for Android 2.3.4 (Build August 2/2011)";
+    return "Intrinsyc Rapid-RIL M5.20 for Android 2.3.4 (Build August 9/2011)";
 }
 
 
@@ -1917,15 +1956,26 @@ static void usage(char *szProgName)
     fprintf(stderr, "    -c <SIM related, SIM Toolkit AT command port>\n");
     fprintf(stderr, "    -u <Notification channel>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 1>\n");
+#if defined(M2_FEATURE_ENABLED)
+    fprintf(stderr, "    -d <PDP Primary Context - data channel 2>\n");
+    fprintf(stderr, "    -d <PDP Primary Context - data channel 3>\n");
+    fprintf(stderr, "    -d <PDP Primary Context - data channel 4>\n");
+    fprintf(stderr, "    -d <PDP Primary Context - data channel 5>\n");
+#endif  // M2_FEATURE_ENABLED
     fprintf(stderr, "\n");
     fprintf(stderr, "Example in init.rc file:\n");
+#if defined(M2_FEATURE_ENABLED)
+    fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12 -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1 -d /dev/gsmtty3 -d /dev/gsmtty4 -d /dev/gsmtty15 -d /dev/gsmtty16 -d /dev/gsmtty17\n", szProgName);
+#else  // M2_FEATURE_ENABLED
     fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12 -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1 -d /dev/gsmtty3\n", szProgName);
+#endif // M2_FEATURE_ENABLED
     fprintf(stderr, "\n");
 }
 
 static bool RIL_SetGlobals(int argc, char **argv)
 {
     int opt;
+    int nDataPortCount = 0;
 
     while (-1 != (opt = getopt(argc, argv, "d:s:a:n:m:c:u:")))
     {
@@ -1942,12 +1992,6 @@ static bool RIL_SetGlobals(int argc, char **argv)
             case 'a':
                 g_szCmdPort = optarg;
                 RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for AT channel chnl=[%d] -a\r\n", g_szCmdPort, RIL_CHANNEL_ATCMD);
-            break;
-
-            // This should be the non-emulator case.
-            case 'd':
-                g_szDataPort1 = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort1, RIL_CHANNEL_DATA1);
             break;
 
             // This should be the non-emulator case.
@@ -1972,7 +2016,45 @@ static bool RIL_SetGlobals(int argc, char **argv)
             case 'u':
                 g_szURCPort = optarg;
                 RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for URC channel chnl=[%d] -u\r\n", g_szURCPort, RIL_CHANNEL_URC);
-                break;
+            break;
+
+            // This should be the non-emulator case.
+            //  For M2_FEATURE_ENABLED, must choose 5 data ports.
+            //  For non M2_FEATURE_ENABLED, only need 1 data port.
+            case 'd':
+                switch(nDataPortCount)
+                {
+                    case 0:
+                        g_szDataPort1 = optarg;
+                        RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort1, RIL_CHANNEL_DATA1);
+                        break;
+
+                    case 1:
+                        g_szDataPort2 = optarg;
+                        RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort2, RIL_CHANNEL_DATA2);
+                        break;
+
+                    case 2:
+                        g_szDataPort3 = optarg;
+                        RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort3, RIL_CHANNEL_DATA3);
+                        break;
+
+                    case 3:
+                        g_szDataPort4 = optarg;
+                        RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort4, RIL_CHANNEL_DATA4);
+                        break;
+
+                    case 4:
+                        g_szDataPort5 = optarg;
+                        RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort5, RIL_CHANNEL_DATA5);
+                        break;
+
+                    default:
+                        usage(argv[0]);
+                        return false;
+                }
+                nDataPortCount++;
+            break;
 
             default:
                 usage(argv[0]);
@@ -1981,7 +2063,11 @@ static bool RIL_SetGlobals(int argc, char **argv)
     }
 
     //  RIL will not function without all ports defined
+#if defined(M2_FEATURE_ENABLED)
+    if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3 || !g_szDataPort4 || !g_szDataPort5)
+#else // M2_FEATURE_ENABLED
     if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1)
+#endif // M2_FEATURE_ENABLED
     {
         usage(argv[0]);
         return false;

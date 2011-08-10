@@ -87,6 +87,8 @@ public:
     void SetAlwaysParse()                   { m_fAlwaysParse = TRUE;    };
     void SetHighPriority()                  { m_fHighPriority = TRUE; };
     void SetContext(CContext*& pContext)    { m_pContext = pContext; pContext = NULL; };
+    void SetContextData(void *pData)        { m_pContextData = pData; };
+    void SetContextDataSize(unsigned int nSize) { m_cbContextData = nSize; };
 
     static BOOL AddCmdToQueue(CCommand *& pCmd);
 

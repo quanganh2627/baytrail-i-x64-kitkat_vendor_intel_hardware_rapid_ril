@@ -46,12 +46,22 @@ CTE::CTE() :
         RIL_LOG_CRITICAL("CTE::CTE() - ERROR: Unable to construct base terminal equipment!!!!!! EXIT!\r\n");
         exit(0);
     }
+
+    m_pSetupDataCallMutex = new CMutex();
+    if (NULL == m_pSetupDataCallMutex)
+    {
+        RIL_LOG_CRITICAL("CTE::CTE() - ERROR: Cannot create m_pSetupDataCallMutex\r\n");
+        //  No need to exit here.  If no mutex created, then still ok.
+    }
 }
 
 CTE::~CTE()
 {
     delete m_pTEBaseInstance;
     m_pTEBaseInstance = NULL;
+
+    delete m_pSetupDataCallMutex;
+    m_pSetupDataCallMutex = NULL;
 }
 
 CTEBase* CTE::CreateModemTE()
@@ -1397,19 +1407,31 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     RIL_RESULT_CODE res;
-    UINT32 uiRilChannel = RIL_CHANNEL_DATA1;
-    UINT32 uiCID = CChannel_Data::GetNextContextID();
+    UINT32 uiRilChannel = 0, uiCID = 0;
 
-    CChannel_Data* pDataChannel = CChannel_Data::GetFreeChnl();
-    if (pDataChannel)
+    //  Must protect retreiving next context ID and free data channel in a mutex.
+    //  This is because of multiple PDP contexts.  More than one thread can call
+    //  this at a time, causing multi-threading data issues.
     {
-        uiRilChannel = pDataChannel->GetRilChannel();
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ERROR: No free data channels available\r\n");
-        res = RIL_E_GENERIC_FAILURE;
-        goto Error;
+        CMutex::Lock(m_pSetupDataCallMutex);
+        uiRilChannel = RIL_CHANNEL_DATA1;
+        uiCID = CChannel_Data::GetNextContextID();
+
+        CChannel_Data* pChannelData = CChannel_Data::GetFreeChnl();
+        if (pChannelData)
+        {
+            uiRilChannel = pChannelData->GetRilChannel();
+            RIL_LOG_INFO("CTE::RequestSetupDataCall() - ****** Setting chnl=[%d] to CID=[%d] ******\r\n", uiRilChannel, uiCID);
+            pChannelData->SetContextID(uiCID);
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ERROR: No free data channels available\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+            CMutex::Unlock(m_pSetupDataCallMutex);
+            goto Error;
+        }
+        CMutex::Unlock(m_pSetupDataCallMutex);
     }
 
     res = m_pTEBaseInstance->CoreSetupDataCall(reqData, pData, datalen, uiCID);
@@ -4779,6 +4801,104 @@ RIL_RESULT_CODE CTE::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
 
     return m_pTEBaseInstance->ParseSimTransmitChannel(rRspData);
 }
+
+
+#if defined(M2_FEATURE_ENABLED)
+//
+// RIL_REQUEST_HANGUP_VT 108
+//
+RIL_RESULT_CODE CTE::RequestHangupVT(RIL_Token rilToken, void * pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestHangupVT() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHangupVT(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestHangupVT() - ERROR: Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_HANGUPVT], rilToken, ND_REQ_ID_HANGUPVT, reqData, &CTE::ParseHangupVT);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestHangupVT() - ERROR: Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestHangupVT() - ERROR: Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestHangupVT() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseHangupVT(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseHangupVT() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseHangupVT(rRspData);
+}
+
+
+//
+// RIL_REQUEST_DIAL_VT 109
+//
+RIL_RESULT_CODE CTE::RequestDialVT(RIL_Token rilToken, void * pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestDialVT() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDialVT(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestDialVT() - ERROR: Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DIALVT], rilToken, ND_REQ_ID_DIALVT, reqData, &CTE::ParseDialVT);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestDialVT() - ERROR: Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestDialVT() - ERROR: Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestDialVT() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseDialVT(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseDialVT() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseDialVT(rRspData);
+}
+#endif // M2_FEATURE_ENABLED
 
 //
 // RIL_UNSOL_SIGNAL_STRENGTH  1009

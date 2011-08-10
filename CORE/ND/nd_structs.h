@@ -123,7 +123,7 @@ typedef struct
 //
 // Struct for reporting PDP Context List to Android
 //
-#define MAX_PDP_CONTEXTS                            ( 3)
+#define MAX_PDP_CONTEXTS                            ( 5)
 
 typedef struct
 {

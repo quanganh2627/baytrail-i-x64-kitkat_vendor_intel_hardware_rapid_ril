@@ -90,6 +90,10 @@ protected:
     virtual BOOL    ParseNoAnswer(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseCTMCall(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseNoCTMCall(CResponse* const pResponse, const BYTE*& rszPointer);
+#if defined(M2_FEATURE_ENABLED)
+    virtual BOOL    ParseCallFailedCause(CResponse* const pResponse, const BYTE*& rszPointer);
+#endif // M2_FEATURE_ENABLED
+
 };
 
 #endif // RRIL_SILO_VOICE_H

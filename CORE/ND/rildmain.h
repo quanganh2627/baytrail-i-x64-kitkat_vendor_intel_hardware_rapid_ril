@@ -36,6 +36,10 @@ extern BYTE * g_szDataPort1;
 extern BYTE * g_szDataPort2;
 // The device path to use for the data channel3
 extern BYTE * g_szDataPort3;
+// The device path to use for the data channel4
+extern BYTE * g_szDataPort4;
+// The device path to use for the data channel5
+extern BYTE * g_szDataPort5;
 
 extern BOOL  g_bIsSocket;
 
