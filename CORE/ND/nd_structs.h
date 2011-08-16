@@ -136,7 +136,7 @@ typedef struct
 //
 // Struct for reporting Neighboring Cell List to Android
 //
-#define RRIL_MAX_CELL_ID_COUNT                      (30)
+#define RRIL_MAX_CELL_ID_COUNT                      (60)
 #define CELL_ID_ARRAY_LENGTH                        (9)
 
 typedef struct

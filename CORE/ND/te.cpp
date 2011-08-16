@@ -47,21 +47,12 @@ CTE::CTE() :
         exit(0);
     }
 
-    m_pSetupDataCallMutex = new CMutex();
-    if (NULL == m_pSetupDataCallMutex)
-    {
-        RIL_LOG_CRITICAL("CTE::CTE() - ERROR: Cannot create m_pSetupDataCallMutex\r\n");
-        //  No need to exit here.  If no mutex created, then still ok.
-    }
 }
 
 CTE::~CTE()
 {
     delete m_pTEBaseInstance;
     m_pTEBaseInstance = NULL;
-
-    delete m_pSetupDataCallMutex;
-    m_pSetupDataCallMutex = NULL;
 }
 
 CTEBase* CTE::CreateModemTE()
@@ -1407,31 +1398,15 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     RIL_RESULT_CODE res;
-    UINT32 uiRilChannel = 0, uiCID = 0;
+    UINT32 uiCID = 0;
 
-    //  Must protect retreiving next context ID and free data channel in a mutex.
-    //  This is because of multiple PDP contexts.  More than one thread can call
-    //  this at a time, causing multi-threading data issues.
+    //  Find free channel, and get the context ID that was set.
+    CChannel_Data* pChannelData = CChannel_Data::GetFreeChnl(uiCID);
+    if (NULL == pChannelData)
     {
-        CMutex::Lock(m_pSetupDataCallMutex);
-        uiRilChannel = RIL_CHANNEL_DATA1;
-        uiCID = CChannel_Data::GetNextContextID();
-
-        CChannel_Data* pChannelData = CChannel_Data::GetFreeChnl();
-        if (pChannelData)
-        {
-            uiRilChannel = pChannelData->GetRilChannel();
-            RIL_LOG_INFO("CTE::RequestSetupDataCall() - ****** Setting chnl=[%d] to CID=[%d] ******\r\n", uiRilChannel, uiCID);
-            pChannelData->SetContextID(uiCID);
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ERROR: No free data channels available\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-            CMutex::Unlock(m_pSetupDataCallMutex);
-            goto Error;
-        }
-        CMutex::Unlock(m_pSetupDataCallMutex);
+        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ****** ERROR: No free data channels available ******\r\n");
+        res = RIL_E_GENERIC_FAILURE;
+        goto Error;
     }
 
     res = m_pTEBaseInstance->CoreSetupDataCall(reqData, pData, datalen, uiCID);
@@ -1443,7 +1418,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
 
     else
     {
-        CCommand * pCmd = new CCommand(uiRilChannel, rilToken, ND_REQ_ID_SETUPDEFAULTPDP, reqData, &CTE::ParseSetupDataCall);
+        CCommand * pCmd = new CCommand(pChannelData->GetRilChannel(), rilToken, ND_REQ_ID_SETUPDEFAULTPDP, reqData, &CTE::ParseSetupDataCall);
 
         if (pCmd)
         {

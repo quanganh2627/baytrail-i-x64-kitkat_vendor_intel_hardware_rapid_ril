@@ -496,6 +496,8 @@ public:
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus *& pCardStatus);
+private:
+    RIL_SignalStrength* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
 };
 
 #endif

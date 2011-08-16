@@ -228,13 +228,12 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     }
 
 
-#ifndef RIL_USE_PPP
     if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGDATA=\"M-RAW_IP\",%d\r", uiCID))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDATA command\r\n");
         goto Error;
     }
-#endif //!RIL_USE_PPP
+
 
     //  Store the potential uiCID in the pContext
     rReqData.pContextData = (void*)uiCID;
@@ -256,42 +255,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     char szIP[PROPERTY_VALUE_MAX] = {0};
     P_ND_SETUP_DATA_CALL pDataCallRsp = NULL;
 
-#ifdef RIL_USE_PPP
-    char szOperstate[PROPERTY_VALUE_MAX];
-    BOOL fPPPUp = FALSE;
-    const unsigned int nSleep = 2000;
-    const int nRetries = 15;
-    property_set("ctl.start", "pppd_gprs");
 
-    for (int i = 0; i < nRetries; i++)
-    {
-        RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - INFO: Waiting %d seconds for ppp connection. (Attempt #%d/%d)\r\n",
-                    nSleep/1000, i + 1, nRetries);
-        Sleep(nSleep);
-
-        property_get("net.gprs.operstate", szOperstate, "");
-        RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - INFO: net.grps.operstate=[%s]\r\n", szOperstate);
-
-        if (0 == strcmp(szOperstate, "up"))
-        {
-            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - INFO: ppp connection is up!\r\n");
-            fPPPUp = TRUE;
-            break;
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: ppp connection is not up\r\n");
-        }
-    }
-
-    if (fPPPUp)
-    {
-        Sleep(nSleep);
-        property_get("net.grps.local-ip", szIP, "");
-        RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - INFO: net.grps.local-ip=[%s]\r\n", szIP);
-    }
-
-#else
 
     // For RAW IP, when we get the CONNECT response to AT+CGDATA, we then need to send AT+CGPADDR (or AT+CGDCONT?)
     // to get the IP address (which is returned in the response to the RIL_REQUEST_SETUP_DATA_CALL) and finally
@@ -309,7 +273,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     UINT32 uiWaitRes;
     BYTE szCmd[MAX_BUFFER_SIZE];
     CChannel_Data* pChannelData = NULL;
-    int nCID = 0;
+    UINT32 nCID = 0;
     int fd = -1;
     int ret = 0;
     CRepository repository;
@@ -331,8 +295,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
 
     //  Set CID
-    nCID = (int)rRspData.pContextData;
-    if (nCID <= 0)
+    nCID = (UINT32)rRspData.pContextData;
+    if (nCID == 0)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - CID must be >= 1!! CID=[%d]\r\n", nCID);
         goto Error;
@@ -349,7 +313,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     memset(pDataCallRsp, 0, sizeof(S_ND_SETUP_DATA_CALL));
 
     //  Populate pDataCallRsp
-    sprintf(pDataCallRsp->szCID, "%d", pChannelData->GetContextID());
+    sprintf(pDataCallRsp->szCID, "%d", nCID);
     if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, nCID-1))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Cannot set network interface name\r\n");
@@ -359,12 +323,10 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     {
         RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - szNetworkInterfaceName=[%s], CID=[%d]\r\n", pDataCallRsp->szNetworkInterfaceName, nCID);
     }
-    //strcpy(pDataCallRsp->szIPAddress, szIP);
+
     pDataCallRsp->sSetupDataCallPointers.pszCID = pDataCallRsp->szCID;
     pDataCallRsp->sSetupDataCallPointers.pszNetworkInterfaceName = pDataCallRsp->szNetworkInterfaceName;
-    //pDataCallRsp->sSetupDataCallPointers.pszIPAddress = pDataCallRsp->szIPAddress;
-    //rRspData.pData = (void*)pDataCallRsp;
-    //rRspData.uiDataSize = sizeof(S_ND_SETUP_DATA_CALL_POINTERS);
+
 
 // N_GSM related code
     netconfig.adaption = 3;
@@ -389,7 +351,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     CEvent::Reset(pChannelData->m_pSetupDoneEvent);
 
-    if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CGPADDR=%d\r", pChannelData->GetContextID()))
+    if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CGPADDR=%d\r", nCID))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: cannot create CGPADDR command\r\n");
         goto Error;
@@ -416,7 +378,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     if (pCmd2)
     {
         //  Need to send context ID to parse function so set contextData for this command
-        pCmd2->SetContextData((void*)pChannelData->GetContextID());
+        pCmd2->SetContextData(rRspData.pContextData);
         if (!CCommand::AddCmdToQueue(pCmd2))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Unable to queue AT+XDNS? command!\r\n");
@@ -479,8 +441,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
              goto Error;
     }
 
-#endif //RIL_USE_PPP
-
 
     // invoke netcfg commands
     if (!DataConfigUp(pDataCallRsp->szNetworkInterfaceName, pChannelData->m_szIpAddr, pChannelData->m_szDNS1, pChannelData->m_szDNS2))
@@ -489,17 +449,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-
-
-
-//     pDataCallRsp = (P_ND_SETUP_DATA_CALL)malloc(sizeof(S_ND_SETUP_DATA_CALL));
-//     sprintf(pDataCallRsp->szCID, "%d", pChannelData->GetContextID());
-//     strcpy(pDataCallRsp->szNetworkInterfaceName, m_szNetworkInterfaceName);
     strcpy(pDataCallRsp->szIPAddress, szIP);
-//     pDataCallRsp->sSetupDataCallPointers.pszCID = pDataCallRsp->szCID;
-//     pDataCallRsp->sSetupDataCallPointers.pszNetworkInterfaceName = pDataCallRsp->szNetworkInterfaceName;
     pDataCallRsp->sSetupDataCallPointers.pszIPAddress = pDataCallRsp->szIPAddress;
-
 
     //  New for Android 2.3.4 - TODO: Implement for Android 3.0.
     pDataCallRsp->sSetupDataCallPointers.pszDNS = NULL;
@@ -524,12 +475,12 @@ Error:
         RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Error cleanup\r\n");
         if (pChannelData)
         {
-            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", rRspData.uiChannel, pChannelData->GetContextID());
+            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", rRspData.uiChannel, nCID);
 
             //  Release network interface
-            if (!DataConfigDown(pChannelData->GetContextID()))
+            if (!DataConfigDown(nCID))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - DataConfigDown FAILED chnl=[%d], cid=[%d]\r\n", rRspData.uiChannel, pChannelData->GetContextID());
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - DataConfigDown FAILED chnl=[%d], cid=[%d]\r\n", rRspData.uiChannel, nCID);
             }
         }
 
@@ -638,17 +589,6 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, ch
     // the Android framework's use of these properties is made. (Currently there is only one property for the
     // IP address and there needs to be one for each context.
 
-    // This property does not exist.
-    // RIL_LOG_INFO("DataConfigUp() : Setting 'net.interfaces.defaultroute' to 'gprs'\r\n");
-    // property_set("net.interfaces.defaultroute", "gprs");
-    //
-
-    RIL_LOG_INFO("DataConfigUp() : Setting 'net.gprs.local-ip' to '%s'\r\n", szIpAddr);
-    property_set("net.gprs.local-ip", szIpAddr);
-
-    RIL_LOG_INFO("DataConfigUp() : Setting 'net.gprs.operstate' to 'up'\r\n");
-    property_set("net.gprs.operstate", "up");
-
 
     //  Open socket for ifconfig and route commands
     s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -741,6 +681,7 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, ch
             RIL_LOG_CRITICAL("DataConfigUp() : Error setting gateway\r\n");
         }
 
+        //  Set gateway system property
         if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.gw", szNetworkInterfaceName))
         {
             RIL_LOG_CRITICAL("DataConfigUp() :cannot create szPropName net.X.gw\r\n");
@@ -751,11 +692,6 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, ch
             property_set(szPropName, defaultGatewayStr);
         }
     }
-
-    //  setprop gsm.net.interface ifx02
-    RIL_LOG_INFO("DataConfigUp() - setting 'gsm.net.interface' to '%s'\r\n", szNetworkInterfaceName);
-    property_set("gsm.net.interface", szNetworkInterfaceName);
-
 
     //  Set DNS1
     if (szDNS1)
@@ -769,10 +705,6 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, ch
             RIL_LOG_INFO("DataConfigUp() - setting '%s' to '%s'\r\n", szPropName, szDNS1);
             property_set(szPropName, szDNS1);
         }
-
-        // RIL has no right to modify this property.
-        // RIL_LOG_INFO("DataConfigUp() - setting 'net.dns1' to '%s'\r\n", szDNS1);
-        // property_set("net.dns1", szDNS1);
     }
 
     //  Set DNS2
@@ -787,10 +719,6 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, ch
             RIL_LOG_INFO("DataConfigUp() - setting '%s' to '%s'\r\n", szPropName, szDNS2);
             property_set(szPropName, szDNS2);
         }
-
-        // RIL has no right to modify this property.
-        // RIL_LOG_INFO("DataConfigUp() - setting 'net.dns2' to '%s'\r\n", szDNS2);
-        // property_set("net.dns2", szDNS2);
     }
 
     bRet = TRUE;
@@ -885,49 +813,38 @@ BOOL DataConfigDown(int nCID)
     // TODO For multiple PDP context support this will have to be updated to be consistent with whatever changes to
     // the Android framework's use of these properties is made.
 
-    // This property does not exist.
-    // RIL_LOG_INFO("DataConfigDown() - setting 'net.interfaces.defaultroute' to ''\r\n");
-    // property_set("net.interfaces.defaultroute", "");
-    //
-
-    RIL_LOG_INFO("DataConfigDown() - setting 'net.gprs.local-ip' to ''\r\n");
-    property_set("net.gprs.local-ip", "");
-
-    RIL_LOG_INFO("DataConfigDown() - setting 'net.gprs.operstate' to ''\r\n");
-    property_set("net.gprs.operstate", "down");
-
-    RIL_LOG_INFO("DataConfigDown() - setting 'gsm.net.interface' to ''\r\n");
-    property_set("gsm.net.interface","");
-
+    //  Unset DNS1
     if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns1", szNetworkInterfaceName))
     {
         RIL_LOG_CRITICAL("DataConfigDown() :cannot create szPropName net.X.dns1\r\n");
     }
     else
     {
-        RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
+        RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szPropName);
         property_set(szPropName, "");
     }
 
-    // RIL has no right to set this property
-    // RIL_LOG_INFO("DataConfigDown() - setting 'net.dns1' to ''\r\n");
-    // property_set("net.dns1", "");
-    //
-
+    //  Unset DNS2
     if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName))
     {
         RIL_LOG_CRITICAL("DataConfigUp() :cannot create szPropName net.X.dns2\r\n");
     }
     else
     {
-        RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szNetworkInterfaceName);
+        RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szPropName);
         property_set(szPropName, "");
     }
 
-    // RIL has no right to set this property
-    // RIL_LOG_INFO("DataConfigDown() - setting 'net.dns2' to ''\r\n");
-    // property_set("net.dns2", "");
-    //
+    //  Unset net.X.gw
+    if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.gw", szNetworkInterfaceName))
+    {
+        RIL_LOG_CRITICAL("DataConfigUp() :cannot create szPropName net.X.gw\r\n");
+    }
+    else
+    {
+        RIL_LOG_INFO("DataConfigDown() - setting '%s' to ''\r\n", szPropName);
+        property_set(szPropName, "");
+    }
 
 
     //  Open socket for ifconfig and route commands
@@ -938,8 +855,6 @@ BOOL DataConfigDown(int nCID)
         goto Error;
     }
 
-
-
     //  ifconfig ifx02 down
     {
         struct ifreq ifr;
@@ -947,7 +862,7 @@ BOOL DataConfigDown(int nCID)
         strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
         ifr.ifr_name[IFNAMSIZ-1] = 0;
 
-        RIL_LOG_CRITICAL("DataConfigDown() : +++++ InterfacName = %s\n", ifr.ifr_name);
+        RIL_LOG_CRITICAL("DataConfigDown() : +++++ InterfaceName = %s\n", ifr.ifr_name);
 
         RIL_LOG_INFO("DataConfigDown() : Setting flags\r\n");
         if (!setflags(s, &ifr, 0, IFF_UP))
@@ -2238,52 +2153,9 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-#ifdef RIL_USE_PPP
-    char szOperstate[PROPERTY_VALUE_MAX];
-    char szIP[PROPERTY_VALUE_MAX];
-    char* pszDefault = NULL;
-    BOOL fPPPDown = FALSE;
-    const unsigned int nSleep = 3000;
-    const int nRetries = 10;
-
-    property_set("ctl.stop", "pppd_gprs");
-
-    for (int i = 0; i < nRetries; i++)
-    {
-        RIL_LOG_INFO("CTE_INF_6260::ParseDeactivateDataCall() - INFO: Waiting %d seconds for ppp deactivation. (Attempt #%d/%d)\r\n",
-                    nSleep/1000, i + 1, nRetries);
-        Sleep(nSleep);
-
-        property_get("net.gprs.operstate", szOperstate, "");
-        RIL_LOG_INFO("CTE_INF_6260::ParseDeactivateDataCall() - INFO: net.grps.operstate=[%s]\r\n", szOperstate);
-
-        if (0 == strcmp(szOperstate, "down"))
-        {
-            RIL_LOG_INFO("CTE_INF_6260::ParseDeactivateDataCall() - INFO: ppp connection is down!\r\n");
-            fPPPDown= TRUE;
-            break;
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDeactivateDataCall() - ERROR: ppp connection is not down\r\n");
-        }
-    }
-
-    if (fPPPDown)
-    {
-        //  Wait n seconds
-        const unsigned int nSec = 10;
-        Sleep(nSec * 1000);
-        res = RRIL_RESULT_OK;
-    }
-
-#else
-
-
-
     //  Set CID to 0 for this data channel
-    int nCID = 0;
-    nCID = (int)rRspData.pContextData;
+    UINT32 nCID = 0;
+    nCID = (UINT32)rRspData.pContextData;
 
     if (nCID > 0)
     {
@@ -2300,8 +2172,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
     }
 
     res = RRIL_RESULT_OK;
-
-#endif //RIL_USE_PPP
 
 Error:
     RIL_LOG_INFO("CTE_INF_6260::ParseDeactivateDataCall() - Exit\r\n");
@@ -3412,90 +3282,32 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    const BYTE* szDummy = pszRsp;
-
-    UINT32 nFound = 0, nTotal = 0;
+    UINT32 nIndex = 0, nTotal = 0;
+    UINT32 nLAC = 0, nCI = 0;
+    UINT32 nRSSI = 0;
+    UINT32 nScramblingCode = 0;
     UINT32 nMode = 0;
-    UINT32 nType = 0;
-    BYTE szLAC[CELL_ID_ARRAY_LENGTH] = {0};
-    BYTE szCI[CELL_ID_ARRAY_LENGTH] = {0};
-    UINT32 nRSSI = 0;  //  Use for both GSM and UMTS
-    UINT32 nRSCP = 0;  //  UMTS only
 
     P_ND_N_CELL_DATA pCellData = NULL;
 
 
-
-    //  Data is either (according to rev 27 of AT spec)
-    //  GSM:
-    //  +XCELLINFO: <mode>,<type>,<MCC>,<MNC>,<LAC>,<CI>,<RxLev>[,t_advance]
-    //  UMTS:
-    //  +XCELLINFO: <mode>,<type>,<MCC>,<MNC>,<LAC>,<CI>,<scrambling_code>,<dl_frequency>,<rscp>,<ecn0>
+    //  Data is either (according to C_AT_FS_SUNRISE_Rev6.0.pdf AT spec)
+    //  GSM cells:
+    //  +XCELLINFO: 0,<MCC>,<MNC>,<LAC>,<CI>,<RxLev>,<BSIC>,<BCCH_Car>,<true_freq>,<t_advance>
+    //  +XCELLINFO: 1,<LAC>,<CI>,<RxLev>,<BSIC>,<BCCH_Car>  // one row for each neighboring cell [0..6]
+    //  For GSM cells, according to ril.h, must return (LAC/CID , received RSSI)
     //
-    //  A <type> of 0 or 1 = GSM.  A <type> of 2,3,4 = UMTS.
-
-
-    // Loop on +XCELLINFO until no more entries are found
-    while (FindAndSkipString(szDummy, "+XCELLINFO: ", szDummy))
-    {
-        nTotal++;
-
-        if (!ExtractUInt(szDummy, nMode, szDummy) ||
-            !SkipString(szDummy, ",", szDummy) ||
-            !ExtractUInt(szDummy, nType, szDummy))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Could not extract nMode or nType 1.\r\n");
-            goto Error;
-        }
-
-        //  Find next ,
-        if (!FindAndSkipString(szDummy, ",", szDummy))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Could not find comma 1.\r\n");
-            goto Error;
-        }
-
-        //  Find next ,
-        if (!FindAndSkipString(szDummy, ",", szDummy))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Could not find comma 2.\r\n");
-            goto Error;
-        }
-
-        //  Find next ,
-        if (!FindAndSkipString(szDummy, ",", szDummy))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Could not find comma 3.\r\n");
-            goto Error;
-        }
-
-        //  Get <LAC>
-        if (!ExtractUnquotedString(szDummy, ',', szLAC, CELL_ID_ARRAY_LENGTH, szDummy))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Could not extract LAC.\r\n");
-            goto Error;
-        }
-
-        //  Bogus cell infos have LAC of "ffff" regardless of GSM or UMTS.
-        if ((0 == strncmp("ffff", szLAC, 4)) ||
-            (0 == strncmp("FFFF", szLAC, 4)))
-        {
-            //  Found bogus cell!  Skip
-            RIL_LOG_VERBOSE("CTE_INF_6260::ParseGetNeighboringCellIDs() - Found bogus cell nFound=[%d] nTotal=[%d]\r\n", nFound, nTotal);
-            continue;
-        }
-
-        //  Made it this far, add one to count.
-        nFound++;
-    }
-
-    RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - INFO: Found %d entries out of %d total\r\n", nFound, nTotal);
-
-    if (nFound >= RRIL_MAX_CELL_ID_COUNT)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - Too many neighboring cells\r\n");
-        goto Error;
-    }
+    //  UMTS FDD cells:
+    //  +XCELLINFO: 2,<MCC>,<MNC>,<LAC>,<UCI>,<scrambling_code>,<dl_frequency>,<ul_frequency>
+    //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>  // If UMTS
+    //                          // has any ACTIVE SET neighboring cell
+    //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>  // One row
+    //                          // for each intra-frequency neighboring cell [1..32] for each
+    //                          // frequency [0..8] in BA list
+    //  For UMTS cells, according to ril.h, must return (Primary scrambling code , received signal code power)
+    //  NOTE that for first UMTS format above, there is no <rcsp> parameter.
+    //
+    //  A <type> of 0 or 1 = GSM.  A <type> of 2,3 = UMTS.
 
 
     pCellData = (P_ND_N_CELL_DATA)malloc(sizeof(S_ND_N_CELL_DATA));
@@ -3506,127 +3318,244 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
     }
     memset(pCellData, 0, sizeof(S_ND_N_CELL_DATA));
 
-    nFound = 0;
-    nTotal = 0;
 
-    //  Ok, loop through again.
+    // Loop on +XCELLINFO until no more entries are found
+    nIndex = 0;
     while (FindAndSkipString(pszRsp, "+XCELLINFO: ", pszRsp))
     {
         nTotal++;
-
-        //  Get type
-        if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
-            (!ExtractUInt(pszRsp, nType, pszRsp)) )
+        if (RRIL_MAX_CELL_ID_COUNT == nTotal)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Could not extract type.\r\n");
+            //  We're full.
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Exceeded max count = %d\r\n", RRIL_MAX_CELL_ID_COUNT);
             goto Error;
         }
 
-        if (nType >= 5)
+        //  Get <mode>
+        if (!ExtractUInt(pszRsp, nMode, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Invalid type=[%d]\r\n", nType);
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: cannot extract <mode>\r\n");
             goto Error;
         }
 
-        //  Skip to LAC
-        if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
-            (!FindAndSkipString(pszRsp, ",", pszRsp)) ||
-            (!FindAndSkipString(pszRsp, ",", pszRsp)) ||
-            (!ExtractUnquotedString(pszRsp, ",", szLAC, CELL_ID_ARRAY_LENGTH, pszRsp)))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Could not extract LAC value. 2\r\n");
-            goto Error;
-        }
+        RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - nTotal=%d, found mode=%d\r\n", nTotal, nMode);
 
-        //  If LAC is "ffff" or "FFFF", skip
-        if ((0 == strncmp("ffff", szLAC, 4)) ||
-            (0 == strncmp("FFFF", szLAC, 4)))
+        switch(nMode)
         {
-            //  Found bogus cell!  Skip
-            RIL_LOG_VERBOSE("CTE_INF_6260::ParseGetNeighboringCellIDs() - Found bogus cell nFound=[%d] nTotal=[%d] 2\r\n", nFound, nTotal);
-            continue;
-        }
-
-        //  Read <CI>
-        if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
-            (!ExtractUnquotedString(pszRsp, ",", szCI, CELL_ID_ARRAY_LENGTH, pszRsp)))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Could not extract CI value. 2\r\n");
-            goto Error;
-        }
-
-        //  Read <RxLev> or <scrambling_code>
-        if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
-            (!ExtractUInt(pszRsp, nRSSI, pszRsp)))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Could not extract nRSSI value. 2\r\n");
-            goto Error;
-        }
-
-        //  If we're type UMTS (2,3,4), read rscp.
-        if ( (2 ==nType) || (3 == nType) || (4 == nType) )
-        {
-            //  Read <rscp>
-            if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
-                (!FindAndSkipString(pszRsp, ",", pszRsp)) ||
-                (!ExtractUInt(pszRsp, nRSCP, pszRsp)))
+            case 0: // GSM  get (LAC/CI , RxLev)
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Could not extract nRSCP value. 2\r\n");
+                //  <LAC> and <CI> are parameters 4 and 5
+                if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
+                    !FindAndSkipString(pszRsp, ",", pszRsp) ||
+                    !FindAndSkipString(pszRsp, ",", pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 0, cannot skip to LAC and CI\r\n");
+                    goto Error;
+                }
+
+                //  Read <LAC> and <CI>
+                if (!ExtractUInt(pszRsp, nLAC, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 0, could not extract LAC\r\n");
+                    goto Error;
+                }
+                //  Read <CI>
+                if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt(pszRsp, nCI, pszRsp)))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 0, could not extract CI value\r\n");
+                    goto Error;
+                }
+                //  Read <RxLev>
+                if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt(pszRsp, nRSSI, pszRsp)))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 0, could not extract RSSI value\r\n");
+                    goto Error;
+                }
+
+                //  We now have what we want, copy to main structure.
+                pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
+
+                //  cid = upper 16 bits (LAC), lower 16 bits (CID)
+                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%04X%04X", nLAC, nCI);
+
+                RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 0 GSM LAC,CID index=[%d]  cid=[%s]\r\n", nIndex, pCellData->pnCellCIDBuffers[nIndex]);
+
+                //  rssi = <RxLev>
+
+                //  Convert RxLev to asu (0 to 31).
+                //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
+                //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
+
+                //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31 like AT+CSQ response.
+                pCellData->pnCellData[nIndex].rssi = (int)(nRSSI / 2);
+                RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 0 GSM rxlev index=[%d]  rssi=[%d]\r\n", nIndex, pCellData->pnCellData[nIndex].rssi);
+            }
+            break;
+
+            case 1: // GSM  get (LAC/CI , RxLev)
+            {
+                //  <LAC> and <CI> are parameters 2 and 3
+                //  Read <LAC> and <CI>
+                if (!SkipString(pszRsp, ",", pszRsp) ||
+                    !ExtractUInt(pszRsp, nLAC, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 1, could not extract LAC\r\n");
+                    goto Error;
+                }
+                //  Read <CI>
+                if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt(pszRsp, nCI, pszRsp)))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 1, could not extract CI value\r\n");
+                    goto Error;
+                }
+                //  Read <RxLev>
+                if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt(pszRsp, nRSSI, pszRsp)))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 1, could not extract RSSI value\r\n");
+                    goto Error;
+                }
+
+                //  We now have what we want, copy to main structure.
+                pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
+
+                //  cid = upper 16 bits (LAC), lower 16 bits (CID)
+                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%04X%04X", nLAC, nCI);
+
+                RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 1 GSM LAC,CID index=[%d]  cid=[%s]\r\n", nIndex, pCellData->pnCellCIDBuffers[nIndex]);
+
+                //  rssi = <RxLev>
+
+                //  May have to convert RxLev to asu (0 to 31).
+                //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
+                //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
+
+                //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31 like AT+CSQ response.
+                pCellData->pnCellData[nIndex].rssi = (int)(nRSSI / 2);
+                RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 1 GSM rxlev index=[%d]  rssi=[%d]\r\n", nIndex, pCellData->pnCellData[nIndex].rssi);
+            }
+            break;
+
+            case 2: // UMTS  get (scrambling_code , rscp)
+            {
+                //  This can be either first case or second case.
+                //  Loop and count number of commas
+                char szBuf[MAX_BUFFER_SIZE] = {0};
+                const char *szDummy = pszRsp;
+                UINT32 nCommaCount = 0;
+                if (!ExtractUnquotedString(pszRsp, g_cTerminator, szBuf, MAX_BUFFER_SIZE, szDummy))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 2, could not extract temp buf\r\n");
+                    goto Error;
+                }
+                for (UINT32 n=0; n<strlen(szBuf); n++)
+                {
+                    if (szBuf[n] == ',')
+                        nCommaCount++;
+                }
+                RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 2, found %d commas\r\n", nCommaCount);
+
+                if (6 != nCommaCount)
+                {
+                    //  Handle first case here
+                    //  <scrambling_code> is parameter 6
+                    if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
+                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
+                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
+                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
+                        !FindAndSkipString(pszRsp, ",", pszRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 2, could not skip to scrambling code\r\n");
+                        goto Error;
+                    }
+                    if (!ExtractUInt(pszRsp, nScramblingCode, pszRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 2, could not extract scrambling code\r\n");
+                        goto Error;
+                    }
+                    //  Cannot get <rscp> as it does not exist.
+                    //  We now have what we want, copy to main structure.
+                    //  cid = <scrambling code> as char *
+                    pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
+                    snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%08x", nScramblingCode);
+
+                    RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 2 UMTS scramblingcode index=[%d]  cid=[%s]\r\n", nIndex, pCellData->pnCellCIDBuffers[nIndex]);
+
+                    //  rssi = rscp
+                    pCellData->pnCellData[nIndex].rssi = 0;
+                    RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 2 UMTS rscp index=[%d]  rssi=[%d]\r\n", nIndex, pCellData->pnCellData[nIndex].rssi);
+
+                    break;
+                }
+                else
+                {
+                    //  fall through to case 3
+                    RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - comma count = 6, drop to case 3\r\n");
+                }
+            }
+
+
+            case 3: // UMTS  get (scrambling_code , rscp)
+            {
+                //  scrabling_code is parameter 2
+                //  Read <scrambling_code>
+                if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt(pszRsp, nScramblingCode, pszRsp)))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode %d, could not extract scrambling code\r\n", nMode);
+                    goto Error;
+                }
+
+                //  rscp is parameter 5
+                if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
+                    !FindAndSkipString(pszRsp, ",", pszRsp) ||
+                    !FindAndSkipString(pszRsp, ",", pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode %d, could not skip to rscp\r\n", nMode);
+                    goto Error;
+                }
+                //  read <rscp>
+                if (!ExtractUInt(pszRsp, nRSSI, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode %d, could not extract rscp\r\n", nMode);
+                    goto Error;
+                }
+
+                //  We now have what we want, copy to main structure.
+                //  cid = <scrambling code> as char *
+                pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
+                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%08x", nScramblingCode);
+
+                RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode %d UMTS scramblingcode index=[%d]  cid=[%s]\r\n", nMode, nIndex, pCellData->pnCellCIDBuffers[nIndex]);
+
+                //  rssi = rscp
+                pCellData->pnCellData[nIndex].rssi = (int)nRSSI;
+                RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode %d UMTS rscp index=[%d]  rssi=[%d]\r\n", nMode, nIndex, pCellData->pnCellData[nIndex].rssi);
+            }
+            break;
+
+            default:
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Invalid nMode=[%d]\r\n", nMode);
                 goto Error;
             }
-        }
-
-        //  Now populate data we have for this entry.
-
-        //  UMTS
-        if ( (2 ==nType) || (3 == nType) || (4 == nType) )
-        {
-            //  cid = <scrambling code> as char *
-            pCellData->pnCellData[nFound].cid = pCellData->pnCellCIDBuffers[nFound];
-            snprintf(pCellData->pnCellCIDBuffers[nFound], CELL_ID_ARRAY_LENGTH, "%08x", nRSSI);
-
-            RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - UMTS scramblingcode index=[%d]  cid=[%s]\r\n", nFound, pCellData->pnCellCIDBuffers[nFound]);
-
-            //  rssi = rscp
-            pCellData->pnCellData[nFound].rssi = (int)nRSCP;
-            RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - UMTS rscp index=[%d]  rssi=[%d]\r\n", nFound, pCellData->pnCellData[nFound].rssi);
-
-        }
-        else if ( (0 == nType) || (1 == nType) )
-        {
-            //  GSM
-            pCellData->pnCellData[nFound].cid = pCellData->pnCellCIDBuffers[nFound];
-
-            //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-            memcpy(pCellData->pnCellCIDBuffers[nFound], szLAC, 4);
-            memcpy(&pCellData->pnCellCIDBuffers[nFound][4], szCI, 4);
-            pCellData->pnCellCIDBuffers[nFound][8] = '\0';
-
-            RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - GSM LAC,CID index=[%d]  cid=[%s]\r\n", nFound, pCellData->pnCellCIDBuffers[nFound]);
-
-            //  rssi = <RxLev>
-
-            //  May have to convert RxLev to asu (0 to 31).
-            //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
-            //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
-
-            //  But for now, just leave it as is.
-            pCellData->pnCellData[nFound].rssi = (int)nRSSI;
-            RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - GSM rxlev index=[%d]  rssi=[%d]\r\n", nFound, pCellData->pnCellData[nFound].rssi);
-
+            break;
         }
 
         //  Connect the pointer
-        pCellData->pnCellPointers[nFound] = &(pCellData->pnCellData[nFound]);
+        pCellData->pnCellPointers[nIndex] = &(pCellData->pnCellData[nIndex]);
 
-        nFound++;
+        nIndex++;
     }
 
 
-    if (nFound > 0)
+    if (nTotal > 0)
     {
         rRspData.pData  = (void*)pCellData;
-        rRspData.uiDataSize = nFound * sizeof(RIL_NeighboringCell*);
+        rRspData.uiDataSize = nTotal * sizeof(RIL_NeighboringCell*);
     }
     else
     {

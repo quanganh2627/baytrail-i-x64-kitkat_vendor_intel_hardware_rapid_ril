@@ -1082,6 +1082,16 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const BYTE*& 
     RIL_LOG_VERBOSE("CSilo_Voice::ParseCallFailedCause() - Enter\r\n");
 
     BOOL fRet = FALSE;
+    int *pFailedCauseData = NULL;
+
+    pFailedCauseData = (int*)malloc(2 * sizeof(int*));
+    if (!pFailedCauseData)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Could not allocate data\r\n");
+        goto Error;
+    }
+    memset(pFailedCauseData, 0, sizeof(2 * sizeof(int*)));
+
 
     //  TODO: Parse the notification and get call id, and failed cause.
     //  Until then, just skip over notification.
@@ -1096,11 +1106,31 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const BYTE*& 
     // Walk back over the <CR>
     rszPointer -= strlen(g_szNewLine);
 
+    RIL_LOG_INFO("CSilo_Voice::ParseCallFailedCause() : ***** RECEIVED CALL FAILED CAUSE NOTIFICATION *****\r\n");
+    RIL_LOG_INFO("CSilo_Voice::ParseCallFailedCause() : ***** SENDING NOTIFICATION=[%d] ******\r\n", RIL_UNSOL_CALL_FAILED_CAUSE);
+
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_CALL_FAILED_CAUSE);
+
+    //  TODO: Set call id = pData[0]
+    //        Set failed cause = pData[1]
+
+    pFailedCauseData[0] = 1; // call id
+    pFailedCauseData[1] = 2; // failed cause
+
+    if (!pResponse->SetData((void*)pFailedCauseData, 2 * sizeof(int *), FALSE))
+    {
+        goto Error;
+    }
+
     fRet = TRUE;
 
 Error:
+    if (!fRet)
+    {
+        free(pFailedCauseData);
+        pFailedCauseData = NULL;
+    }
     RIL_LOG_VERBOSE("CSilo_Voice::ParseCallFailedCause() - Exit\r\n");
     return fRet;
 }

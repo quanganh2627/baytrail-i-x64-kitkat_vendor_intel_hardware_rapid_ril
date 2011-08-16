@@ -18,6 +18,8 @@ LOCAL_SHARED_LIBRARIES := \
     libutils
 
 LOCAL_CFLAGS += -DDEBUG
+# To disable M2 features, remove M2_FEATURE_ENABLED flag
+# LOCAL_CFLAGS += -DM2_FEATURE_ENABLED
 
 LOCAL_C_INCLUDES :=  \
     $(KERNEL_HEADERS) \

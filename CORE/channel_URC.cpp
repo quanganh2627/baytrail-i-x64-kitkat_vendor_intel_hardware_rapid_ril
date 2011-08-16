@@ -34,6 +34,7 @@ extern BOOL  g_bIsSocket;
 //  Com init strings for this channel.
 //  All URCs go on this channel.
 INITSTRING_DATA URCBasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+XSIMSTATE=1|+XCALLSTAT=1|+CTZU=1|+CTZR=1|+XREG=1|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XLEMA=1" };
+//INITSTRING_DATA URCBasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+XSIMSTATE=1|+XCALLSTAT=1|+CTZU=1|+CTZR=1|+XREG=1|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XLEMA=1|+XCSQ=1" };
 INITSTRING_DATA URCUnlockInitString  = { "+CNMI=2,2,2,1|+CRC=1|+CCWA=1|+CUSD=1" };
 INITSTRING_DATA URCPowerOnInitString = { "" };
 INITSTRING_DATA URCReadyInitString   = { "" };

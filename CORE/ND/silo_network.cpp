@@ -49,6 +49,7 @@ CSilo_Network::CSilo_Network(CChannel *pChannel)
     // AT Response Table
     static ATRSPTABLE pATRspTable[] =
     {
+        { "+XCSQ:"      , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCSQ         },
         { "+CREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCREG         },
         { "+CGREG: "    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGREG        },
         { "+XREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXREG         },
@@ -651,23 +652,31 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const BYTE* &rszPointe
             if (!ExtractUInt(szDummy, nCID, szDummy))
             {
                 RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: Couldn't extract cid\r\n");
+                //  Just trigger normal DataCallListChanged - Let Android process
+                RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
+                bRet = TRUE;
+                goto Error;
             }
             else
             {
                 RIL_LOG_INFO("Silo_Network::ParseCGEV() - NE DEACT , extracted cid=[%d]\r\n", nCID);
             }
         }
-        RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)nCID, 0, 0);
+        if (nCID > 0)
+        {
+            //  Explicitly deactivate context ID = nCID
+            RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)nCID, 0, 0);
+        }
+        else
+        {
+            //  Just trigger normal DataCallListChanged - Let Android process
+            RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
+        }
     }
     else
     {
-        //  Flag as unrecognized.
-        //pResponse->SetUnrecognizedFlag(TRUE);
-
-        //  Trigger data call list changed
-        //RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Called timed callback  START\r\n");
+        //  Trigger data call list changed - Let Android process
         RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
-        //RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Called timed callback  END\r\n");
     }
 
     bRet = TRUE;
@@ -716,4 +725,71 @@ Error:
     return bRet;
 }
 
+//
+//
+BOOL CSilo_Network::ParseXCSQ(CResponse *const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXCSQ() - Enter\r\n");
 
+    BOOL bRet = FALSE;
+    const BYTE* szDummy;
+    UINT32 uiRSSI = 0, uiBER = 0;
+    RIL_SignalStrength* pSigStrData = NULL;
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() - Error: pResponse is NULL\r\n");
+        goto Error;
+    }
+
+    pSigStrData = (RIL_SignalStrength*)malloc(sizeof(RIL_SignalStrength));
+    if (NULL == pSigStrData)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
+        goto Error;
+    }
+    memset(pSigStrData, 0x00, sizeof(RIL_SignalStrength));
+
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    {
+        // This isn't a complete notification -- no need to parse it
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ: Failed to find rsp end!\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt32(rszPointer, uiRSSI, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() - ERROR: Could not extract uiRSSI.\r\n");
+        goto Error;
+    }
+
+    if (!SkipString(rszPointer, ",", rszPointer) ||
+        !ExtractUInt(rszPointer, uiBER, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() - ERROR: Could not extract uiBER.\r\n");
+        goto Error;
+    }
+
+    pSigStrData->GW_SignalStrength.signalStrength = (int) uiRSSI;
+    pSigStrData->GW_SignalStrength.bitErrorRate   = (int) uiBER;
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_SIGNAL_STRENGTH);
+
+    if (!pResponse->SetData((void*)pSigStrData, sizeof(RIL_SignalStrength), FALSE))
+    {
+        goto Error;
+    }
+
+    bRet = TRUE;
+
+Error:
+    if (!bRet)
+    {
+        free(pSigStrData);
+        pSigStrData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXCSQ() - Exit\r\n");
+    return bRet;
+}

@@ -1070,113 +1070,49 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
 {
     RIL_LOG_VERBOSE("CTEBase::CoreDial() - Enter\r\n");
 
-    RIL_Errno eRetVal    = RIL_E_GENERIC_FAILURE;
-    RIL_Dial *pRilDial   = NULL;
-    BYTE*     szCmdWalk  = rReqData.szCmd1;
-    BYTE*     szAddrWalk = NULL;
-    BYTE*     szDialStringStart = NULL;
-    UINT32      cchCmd     = sizeof(rReqData.szCmd1);
-    int       clirVal    = 0;
-    const int nMaxDialStringLength = 43;
-
-    const char* pcszCmdEnd = NULL;
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_Dial *pRilDial   = NULL;
+    const char *clir;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: pData is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (sizeof(RIL_Dial) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: Invalid data size=%d.\r\n, uiDataSize");
         goto Error;
     }
 
-    if (NULL == szCmdWalk)
+    pRilDial = (RIL_Dial*)pData;
+
+    switch (pRilDial->clir)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: szCmdWalk is NULL.\r\n");
-        goto Error;
+        case 1:  // invocation
+            clir = "I";
+            break;
+
+        case 2:  // suppression
+            clir = "i";
+            break;
+
+        default:  // subscription default
+            case 0:
+            clir = "";
+            break;
     }
 
-    //  Extract data.
-    pRilDial = (RIL_Dial *)pData;
-    szAddrWalk = (BYTE*)(pRilDial->address);
-    clirVal = pRilDial->clir;
-
-    if (!CopyStringNullTerminate(szCmdWalk, "ATD", cchCmd - (szCmdWalk - rReqData.szCmd1)))
+    if (PrintStringNullTerminate(rReqData.szCmd1,  sizeof(rReqData.szCmd1), "ATD%s%s;\r",
+                pRilDial->address, clir))
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: String truncation or other error when writting ATD!\r\n");
-        goto Error;
+        res = RRIL_RESULT_OK;
     }
-
-    szCmdWalk = strchr(szCmdWalk, '\0');  // NO_TYPO: 27
-    if (NULL == szCmdWalk)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: Did not find NULL termination character in string.\r\n");
-        goto Error;
-    }
-
-    szDialStringStart = szCmdWalk;
-
-    pcszCmdEnd = rReqData.szCmd1 + cchCmd - 1;
-    while (szCmdWalk < pcszCmdEnd && *szAddrWalk != '\0')
-    {
-        // Only allow characters in the set specified by GSM 07.07 section 6.2
-        if (strchr("1234567890*#+ABCD,TP!W@", *szAddrWalk))
-        {
-            *szCmdWalk++ = *szAddrWalk;
-        }
-        szAddrWalk++;
-    }
-
-    //  Check to see if the dial string is too long.
-    if ((szCmdWalk - szDialStringStart) > nMaxDialStringLength)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: Dial string is too long.\r\n");
-        goto Error;
-    }
-
-    if (szCmdWalk == szDialStringStart)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: Address string does not contain any valid characters.\r\n");
-        goto Error;
-    }
-
-    // Remember to paste on the terminating '\0'
-    *szCmdWalk='\0';
-
-    if (1 == clirVal)  // "CLIR invocation" (restrict CLI presentation)
-    {
-        if (!CopyStringNullTerminate(szCmdWalk, "I", cchCmd - (szCmdWalk - rReqData.szCmd1)))
-        {
-            RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: CopyStringNullTerminate I failed\r\n");
-            goto Error;
-        }
-        szCmdWalk++;
-    }
-    else if (2 == clirVal)  // "CLIR suppression" (allow CLI presentation)
-    {
-        if (!CopyStringNullTerminate(szCmdWalk, "i", cchCmd - (szCmdWalk - rReqData.szCmd1)))
-        {
-            RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: CopyStringNullTerminate i failed\r\n");
-            goto Error;
-        }
-        szCmdWalk++;
-    }
-
-    if (!CopyStringNullTerminate(szCmdWalk, ";\r", cchCmd - (szCmdWalk - rReqData.szCmd1)))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreDial() - ERROR: CopyStringNullTerminate <cr> failed\r\n");
-        goto Error;
-    }
-
-    eRetVal = RIL_E_SUCCESS;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreDial() - Exit\r\n");
-    return eRetVal;
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseDial(RESPONSE_DATA & rRspData)
@@ -1585,53 +1521,15 @@ RIL_RESULT_CODE CTEBase::ParseSignalStrength(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSignalStrength() - Enter\r\n");
 
-    extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
-
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
 
-    uint                uiRSSI  = 0;
-    uint                uiBER   = 0;
-    RIL_SignalStrength* pSigStrData;
-
-    pSigStrData = (RIL_SignalStrength*)malloc(sizeof(RIL_SignalStrength));
-
+    RIL_SignalStrength* pSigStrData = ParseQuerySignalStrength(rRspData);
     if (NULL == pSigStrData)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
         goto Error;
     }
-    memset(pSigStrData, 0x00, sizeof(RIL_SignalStrength));
 
-    // Parse "<prefix>+CSQ: <rssi>,<ber><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
-        !SkipString(pszRsp, "+CSQ: ", pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not find AT response.\r\n");
-        goto Error;
-    }
-
-    if (!ExtractUInt(pszRsp, uiRSSI, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not extract uiRSSI.\r\n");
-        goto Error;
-    }
-
-    if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt(pszRsp, uiBER, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not extract uiBER.\r\n");
-        goto Error;
-    }
-
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not extract the response end.\r\n");
-        goto Error;
-    }
-
-    pSigStrData->GW_SignalStrength.signalStrength = (int) uiRSSI;
-    pSigStrData->GW_SignalStrength.bitErrorRate   = (int) uiBER;
 
     rRspData.pData   = (void*)pSigStrData;
     rRspData.uiDataSize  = sizeof(RIL_SignalStrength);
@@ -1639,12 +1537,6 @@ RIL_RESULT_CODE CTEBase::ParseSignalStrength(RESPONSE_DATA & rRspData)
     res = RRIL_RESULT_OK;
 
 Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pSigStrData);
-        pSigStrData = NULL;
-    }
-
     RIL_LOG_VERBOSE("CTEBase::ParseSignalStrength() - Exit\r\n");
     return res;
 }
@@ -5293,11 +5185,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
     memset(active, 0, sizeof(active));
 
     // Parse +CGACT response
-    // Parse "<prefix>"
-    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
-
-    // Parse "+CGACT: "
-    while (SkipString(pszRsp, "+CGACT: ", pszRsp))
+    while (FindAndSkipString(pszRsp, "+CGACT: ", pszRsp))
     {
         // Parse <cid>
         if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
@@ -5315,22 +5203,13 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         }
         active[nCID - 1] = nValue;
         RIL_LOG_INFO("CTEBase::ParseDataCallList() - Context %d %s.\r\n", nCID, (nValue ? "active" : "not active") );
-
-        // Find "<postfix>"
-        if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not find terminator.\r\n");
-            goto Error;
-        }
     }
 
     // Parse +CGDCONT response
-    // Parse "<prefix>"
-    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
 
     // Parse "+CGDCONT: "
     count = 0;
-    while (SkipString(pszRsp, "+CGDCONT: ", pszRsp))
+    while (FindAndSkipString(pszRsp, "+CGDCONT: ", pszRsp))
     {
         // Parse <cid>
         if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
@@ -5345,12 +5224,12 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
 
         // Parse ,<PDP_type>
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szPDPType, MAX_BUFFER_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract PDP type.\r\n");
             goto Error;
         }
-        strncpy(pPDPListData->pTypeBuffers[count], szAPN, MAX_BUFFER_SIZE);
+        strncpy(pPDPListData->pTypeBuffers[count], szPDPType, MAX_BUFFER_SIZE);
         pPDPListData->pPDPData[count].type = pPDPListData->pTypeBuffers[count];
 
         // Parse ,<APN>
@@ -5393,12 +5272,6 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         // but Android does not care about extra parameters
         // so skip them all
 Continue:
-        // Find "<postfix>"
-        if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not find terminator.\r\n");
-            goto Error;
-        }
 
         // entry complete
         ++count;
@@ -5530,9 +5403,16 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
 
     nEnable = ((int *)pData)[0];
 
-    //  No-op this command
+    //  Store setting in context.
+    rReqData.pContextData = (void*)nEnable;
+
     rReqData.szCmd1[0] = '\0';
-    res = RRIL_RESULT_OK;
+
+// REMOVE COMMENT when modem supports AT+XCSQ command
+//    if (CopyStringNullTerminate(rReqData.szCmd1, (1 == nEnable) ? "AT+XCSQ=1\r" : "AT+XCSQ=0\r", sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreScreenState() - Exit\r\n");
@@ -5543,10 +5423,17 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseScreenState() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    //  Extract screen state from context
+    int nScreenState = (int)rRspData.pContextData;
+
+    //  Issue signal strength query only in screen on state
+    if (1 == nScreenState)
+    {
+        triggerSignalStrength(NULL);
+    }
 
     RIL_LOG_VERBOSE("CTEBase::ParseScreenState() - Exit\r\n");
-    return res;
+    return RRIL_RESULT_OK;
 }
 
 //
@@ -7731,133 +7618,64 @@ RIL_RESULT_CODE CTEBase::ParseHangupVT(RESPONSE_DATA & rRspData)
 //
 RIL_RESULT_CODE CTEBase::CoreDialVT(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
-    //  NOTE: This is based off the normal dial request
     RIL_LOG_VERBOSE("CTEBase::CoreDialVT() - Enter\r\n");
 
-    //  This dial VT request is sent out in 2 parts due to multiple AT commands.
-    //  First we set FCLASS and CBST in szCmd1.
-    //  Then we set the ATD in szCmd2.
-
-    RIL_Errno eRetVal    = RIL_E_GENERIC_FAILURE;
-    RIL_Dial *pRilDial   = NULL;
-    BYTE*     szCmdWalk  = rReqData.szCmd2;
-    BYTE*     szAddrWalk = NULL;
-    BYTE*     szDialStringStart = NULL;
-    UINT32      cchCmd     = sizeof(rReqData.szCmd2);
-    int       clirVal    = 0;
-    const int nMaxDialStringLength = 43;
-
-    const char* pcszCmdEnd = NULL;
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_Dial *pRilDial   = NULL;
+    const char *clir;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: pData is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (sizeof(RIL_Dial) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: Invalid data size=%d.\r\n, uiDataSize");
         goto Error;
     }
 
-    if (NULL == szCmdWalk)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: szCmdWalk is NULL.\r\n");
-        goto Error;
-    }
+    pRilDial = (RIL_Dial*)pData;
+
+
+    //  First populate rReqData.szCmd1 with FCLASS and CBST values.
+    //  Then populate rReqData.szCmd2 with ATD string.
 
     //  Now fill in szCmd1
+    //  TODO: These values may change.
     if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+FCLASS=0;+CBST=134,1,0\r", sizeof(rReqData.szCmd1)))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: CopyStringNullTerminate FCLASS,CBST failed\r\n");
         goto Error;
     }
 
-    //  Now fill in szCmd2
-    //  Extract data.
-    pRilDial = (RIL_Dial *)pData;
-    szAddrWalk = (BYTE*)(pRilDial->address);
-    clirVal = pRilDial->clir;
-
-    if (!CopyStringNullTerminate(szCmdWalk, "ATD", cchCmd - (szCmdWalk - rReqData.szCmd2)))
+    //  Now fill in szCmd1
+    switch (pRilDial->clir)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: String truncation or other error when writting ATD!\r\n");
-        goto Error;
+        case 1:  // invocation
+            clir = "I";
+            break;
+
+        case 2:  // suppression
+            clir = "i";
+            break;
+
+        default:  // subscription default
+            case 0:
+            clir = "";
+            break;
     }
 
-    szCmdWalk = strchr(szCmdWalk, '\0');  // NO_TYPO: 27
-    if (NULL == szCmdWalk)
+    if (PrintStringNullTerminate(rReqData.szCmd2,  sizeof(rReqData.szCmd2), "ATD%s%s\r",
+                pRilDial->address, clir))
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: Did not find NULL termination character in string.\r\n");
-        goto Error;
+        res = RRIL_RESULT_OK;
     }
-
-    szDialStringStart = szCmdWalk;
-
-    pcszCmdEnd = rReqData.szCmd2 + cchCmd - 1;
-    while (szCmdWalk < pcszCmdEnd && *szAddrWalk != '\0')
-    {
-        // Only allow characters in the set specified by GSM 07.07 section 6.2
-        if (strchr("1234567890*#+ABCD,TP!W@", *szAddrWalk))
-        {
-            *szCmdWalk++ = *szAddrWalk;
-        }
-        szAddrWalk++;
-    }
-
-    //  Check to see if the dial string is too long.
-    if ((szCmdWalk - szDialStringStart) > nMaxDialStringLength)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: Dial string is too long.\r\n");
-        goto Error;
-    }
-
-    if (szCmdWalk == szDialStringStart)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: Address string does not contain any valid characters.\r\n");
-        goto Error;
-    }
-
-    // Remember to paste on the terminating '\0'
-    *szCmdWalk='\0';
-
-    if (1 == clirVal)  // "CLIR invocation" (restrict CLI presentation)
-    {
-        if (!CopyStringNullTerminate(szCmdWalk, "I", cchCmd - (szCmdWalk - rReqData.szCmd2)))
-        {
-            RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: CopyStringNullTerminate I failed\r\n");
-            goto Error;
-        }
-        szCmdWalk++;
-    }
-    else if (2 == clirVal)  // "CLIR suppression" (allow CLI presentation)
-    {
-        if (!CopyStringNullTerminate(szCmdWalk, "i", cchCmd - (szCmdWalk - rReqData.szCmd2)))
-        {
-            RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: CopyStringNullTerminate i failed\r\n");
-            goto Error;
-        }
-        szCmdWalk++;
-    }
-
-    //  For VT we do not need the semi-colon at the end of ATD command
-    if (!CopyStringNullTerminate(szCmdWalk, "\r", cchCmd - (szCmdWalk - rReqData.szCmd2)))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreDialVT() - ERROR: CopyStringNullTerminate <cr> failed\r\n");
-        goto Error;
-    }
-
-
-    //  Done
-    eRetVal = RIL_E_SUCCESS;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreDialVT() - Exit\r\n");
-    return eRetVal;
-
-
+    return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseDialVT(RESPONSE_DATA & rRspData)
@@ -7869,15 +7687,9 @@ RIL_RESULT_CODE CTEBase::ParseDialVT(RESPONSE_DATA & rRspData)
 #endif // M2_FEATURE_ENABLED
 
 
-//
-// RIL_UNSOL_SIGNAL_STRENGTH  1009
-//
-RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData)
+RIL_SignalStrength* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseUnsolicitedSignalStrength() - Enter\r\n");
-
-    extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
-
+    RIL_LOG_VERBOSE("CTEBase::ParseQuerySignalStrength() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
@@ -7886,43 +7698,72 @@ RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData
     RIL_SignalStrength* pSigStrData;
 
     pSigStrData = (RIL_SignalStrength*)malloc(sizeof(RIL_SignalStrength));
-
     if (NULL == pSigStrData)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
         goto Error;
     }
+
     memset(pSigStrData, 0x00, sizeof(RIL_SignalStrength));
 
     // Parse "<prefix>+CSQ: <rssi>,<ber><postfix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
         !SkipString(pszRsp, "+CSQ: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not find AT response.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - ERROR: Could not find AT response.\r\n");
         goto Error;
     }
 
     if (!ExtractUInt(pszRsp, uiRSSI, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not extract uiRSSI.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - ERROR: Could not extract uiRSSI.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt(pszRsp, uiBER, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not extract uiBER.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - ERROR: Could not extract uiBER.\r\n");
         goto Error;
     }
 
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not extract the response end.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - ERROR: Could not extract the response end.\r\n");
         goto Error;
     }
 
     pSigStrData->GW_SignalStrength.signalStrength = (int) uiRSSI;
     pSigStrData->GW_SignalStrength.bitErrorRate   = (int) uiBER;
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pSigStrData);
+        pSigStrData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::ParseQuerySignalStrength - Exit()\r\n");
+    return pSigStrData;
+}
+
+//
+// RIL_UNSOL_SIGNAL_STRENGTH  1009
+//
+RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseUnsolicitedSignalStrength() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    RIL_SignalStrength* pSigStrData = ParseQuerySignalStrength(rRspData);
+    if (NULL == pSigStrData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
+        goto Error;
+    }
 
     res = RRIL_RESULT_OK;
 
@@ -7965,12 +7806,8 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
     memset(pPDPListData, 0, sizeof(S_ND_PDP_CONTEXT_DATA));
     memset(active, 0, sizeof(active));
 
-    // Parse +CGACT response
-    // Parse "<prefix>"
-    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
-
     // Parse "+CGACT: "
-    while (SkipString(pszRsp, "+CGACT: ", pszRsp))
+    while (FindAndSkipString(pszRsp, "+CGACT: ", pszRsp))
     {
         // Parse <cid>
         if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
@@ -7988,22 +7825,11 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         }
         active[nCID - 1] = nValue;
         RIL_LOG_INFO("CTEBase::ParseDataCallListChanged() - Context %d %s.\r\n", nCID, (nValue ? "active" : "not active") );
-
-        // Find "<postfix>"
-        if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not find terminator.\r\n");
-            goto Error;
-        }
     }
 
     // Parse +CGDCONT response
-    // Parse "<prefix>"
-    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
-
-    // Parse "+CGDCONT: "
     count = 0;
-    while (SkipString(pszRsp, "+CGDCONT: ", pszRsp))
+    while (FindAndSkipString(pszRsp, "+CGDCONT: ", pszRsp))
     {
         // Parse <cid>
         if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
@@ -8018,12 +7844,12 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
 
         // Parse ,<PDP_type>
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szPDPType, MAX_BUFFER_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract PDP type.\r\n");
             goto Error;
         }
-        strncpy(pPDPListData->pTypeBuffers[count], szAPN, MAX_BUFFER_SIZE);
+        strncpy(pPDPListData->pTypeBuffers[count], szPDPType, MAX_BUFFER_SIZE);
         pPDPListData->pPDPData[count].type = pPDPListData->pTypeBuffers[count];
 
         // Parse ,<APN>
@@ -8066,12 +7892,6 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         // but Android does not care about extra parameters
         // so skip them all
 Continue:
-        // Find "<postfix>"
-        if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not find terminator.\r\n");
-            goto Error;
-        }
 
         // entry complete
         ++count;

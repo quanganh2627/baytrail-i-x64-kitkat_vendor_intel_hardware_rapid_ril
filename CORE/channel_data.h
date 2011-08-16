@@ -54,8 +54,11 @@ public:
     //
     static CChannel_Data* GetChnlFromContextID(UINT32 dwContextID);
     static CChannel_Data* GetChnlFromRilChannelNumber(UINT32 index);
-    static CChannel_Data* GetFreeChnl();
-    static UINT32 GetNextContextID();
+
+    //  This function returns the next free data channel.  Also, populates the
+    //  context ID of returned channel.
+    //  If error, then NULL is returned.
+    static CChannel_Data* GetFreeChnl(UINT32& outCID);
 
     CEvent *            m_pSetupDoneEvent;
 

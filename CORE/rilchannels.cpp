@@ -87,7 +87,7 @@ UINT32 g_arChannelMapping[REQ_ID_TOTAL] =
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_RESETRADIO,                          // 57
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_OEMHOOKRAW,                          // 58
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_OEMHOOKSTRINGS,                      // 59
-    RIL_CHANNEL_DLC2,  //ND_REQ_ID_SCREENSTATE,                         // 60
+    RIL_CHANNEL_URC,   //ND_REQ_ID_SCREENSTATE,                         // 60
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_SETSUPPSVCNOTIFICATION,              // 61
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_WRITESMSTOSIM,                       // 62
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_DELETESMSONSIM,                      // 63

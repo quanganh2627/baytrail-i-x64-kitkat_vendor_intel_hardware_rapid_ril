@@ -230,8 +230,17 @@ Error:
 
 //
 //  Returns a free channel to use for data
+//  [out] UINT32 outCID - If successful, the new context ID, else 0.
+//  return value - CChannel_Data* - If successful, the free data channel, else NULL.
+//  Note: If successful the returned CChannel_Data* will have the new context ID set.
 //
-CChannel_Data* CChannel_Data::GetFreeChnl()
+//  The scheme is that the context ID will be set to the data channel number.
+//  i.e. RIL_CHANNEL_DATA1 = CID of 1
+//       RIL_CHANNEL_DATA2 = CID of 2
+//       ...
+//       RIL_CHANNEL_DATA5 = CID of 5
+//  No other context ID
+CChannel_Data* CChannel_Data::GetFreeChnl(UINT32& outCID)
 {
     CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
@@ -248,12 +257,24 @@ CChannel_Data* CChannel_Data::GetFreeChnl()
         CChannel_Data* pTemp = static_cast<CChannel_Data*>(g_pRilChannel[i]);
         if (pTemp && pTemp->GetContextID() == 0)
         {
+            //  We found a free data channel.
             pChannelData = pTemp;
+            outCID = (i - RIL_CHANNEL_DATA1) + 1;
+
+            RIL_LOG_INFO("CChannel_Data::GetFreeChnl() - ****** Setting chnl=[%d] to CID=[%d] ******\r\n", i, outCID);
+            pChannelData->SetContextID(outCID);
             break;
         }
     }
 
 Error:
+    if (NULL == pChannelData)
+    {
+        // Error, all channels full!
+        RIL_LOG_CRITICAL("CChannel_Data::GetFreeChnl() - ERROR: All channels full!!\r\n");
+        outCID = 0;
+    }
+
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnl() - Exit\r\n");
 
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
@@ -292,51 +313,7 @@ Error:
     return pChannelData;
 }
 
-//
-//  Returns the next available Context ID
-//
-UINT32 CChannel_Data::GetNextContextID()
-{
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
-    RIL_LOG_VERBOSE("CChannel_Data::GetNextContextID() - Enter\r\n");
-
-    extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
-    UINT32 uiCID = 1;
-    BOOL fAvailable = FALSE;
-    BOOL fFound = FALSE;
-
-    while (!fAvailable)
-    {
-        fFound = FALSE;
-        for (int i = RIL_CHANNEL_DATA1; i < RIL_CHANNEL_MAX; i++)
-        {
-            if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
-                continue;
-
-            CChannel_Data* pTemp = static_cast<CChannel_Data*>(g_pRilChannel[i]);
-            if (pTemp && pTemp->GetContextID() == uiCID)
-            {
-                fFound = TRUE;
-                break;
-            }
-        }
-        if (!fFound)
-        {
-            fAvailable = TRUE;
-            break;
-        }
-        else
-            uiCID++;
-    }
-
-Error:
-    RIL_LOG_VERBOSE("CChannel_Data::GetNextContextID() - Exit\r\n");
-
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
-
-    return uiCID;
-}
 
 UINT32 CChannel_Data::GetContextID() const
 {

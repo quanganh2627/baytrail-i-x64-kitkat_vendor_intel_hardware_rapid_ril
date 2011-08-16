@@ -1761,7 +1761,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.20 for Android 2.3.4 (Build August 9/2011)";
+    return "Intrinsyc Rapid-RIL M5.21 for Android 2.3.4 (Build August 16/2011)";
 }
 
 

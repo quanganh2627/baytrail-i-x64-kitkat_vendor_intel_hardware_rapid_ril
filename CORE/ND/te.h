@@ -47,7 +47,6 @@ private:
 private:
     static CTEBase*     CreateModemTE();
 
-    CMutex*             m_pSetupDataCallMutex;
 
 public:
     static CTE & GetTE();
