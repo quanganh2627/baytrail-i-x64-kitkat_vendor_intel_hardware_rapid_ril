@@ -1821,8 +1821,14 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
         //  Enter Mutex
         CMutex::Lock(CSystemManager::GetTriggerRadioErrorMutex());
 
-        //  We're already in here, just exit
-        if (g_bIsTriggerRadioError)
+       /*
+	* If TriggerRadioError was already called do nothing.
+	* If g_bSpoofCommands is set, this means that a modem reset is ongoing,
+	* so do noting except if the eRadioErrorVal is set to eRadioError_ModemInitiatedCrash.
+	* In this case, we need to execute the code because this means that the
+	* handling of the modem reset is terminated.
+	*/
+	 if (g_bIsTriggerRadioError || (g_bSpoofCommands && eRadioErrorVal != eRadioError_ModemInitiatedCrash) )
         {
             RIL_LOG_CRITICAL("TriggerRadioError() - Already taking place, return  eRadioError=%d\r\n", eRadioErrorVal);
             CMutex::Unlock(CSystemManager::GetTriggerRadioErrorMutex());
