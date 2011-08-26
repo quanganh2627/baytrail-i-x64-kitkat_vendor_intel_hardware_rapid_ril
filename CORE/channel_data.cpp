@@ -98,7 +98,7 @@ BOOL CChannel_Data::OpenPort()
             bRetVal = m_Port.Open(g_szDataPort1, g_bIsSocket);
             break;
 
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_MULTIPLE_PDP_FEATURE_ENABLED)
         case RIL_CHANNEL_DATA2:
             RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s...\r\n", g_szDataPort2);
             RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
@@ -122,7 +122,7 @@ BOOL CChannel_Data::OpenPort()
             RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
             bRetVal = m_Port.Open(g_szDataPort5, g_bIsSocket);
             break;
-#endif // M2_FEATURE_ENABLED
+#endif // M2_MULTIPLE_PDP_FEATURE_ENABLED
 
         default:
             RIL_LOG_CRITICAL("CChannel_Data::OpenPort() - ERROR channel does not exist m_uiRilChannel=%d\r\n", m_uiRilChannel);

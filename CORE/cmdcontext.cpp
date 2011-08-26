@@ -91,7 +91,7 @@ void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
             RIL_LOG_CRITICAL("CContextInitString::Execute() - ERROR: Shutting Down!\r\n");
             CSystemManager::GetInstance().SetInitializationUnsuccessful();
 #if defined(RESET_MGMT)
-            do_request_clean_up(eRadioError_InitFailure, __LINE__, __FILE__, FALSE);
+            do_request_clean_up(eRadioError_InitFailure, __LINE__, __FILE__);
 #else // RESET_MGMT
             TriggerRadioErrorAsync(eRadioError_InitFailure, __LINE__, __FILE__);
 #endif // RESET_MGMT

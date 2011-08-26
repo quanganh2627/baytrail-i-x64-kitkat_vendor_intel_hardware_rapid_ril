@@ -54,10 +54,21 @@ LOCAL_SHARED_LIBRARIES := libcutils libutils
 
 LOCAL_CFLAGS += -DDEBUG
 
-# To disable M2 features, remove M2_FEATURE_ENABLED flag
-LOCAL_CFLAGS += -DM2_FEATURE_ENABLED
-# To disable M2 Rx Diversity features remove M2_RXDIV_FEATURE_ENABLED flag
+# To disable M2 "Multiple Primary PDP Contexts" feature, remove M2_MULTIPLE_PDP_FEATURE_ENABLED flag
+LOCAL_CFLAGS += -DM2_MULTIPLE_PDP_FEATURE_ENABLED
+
+# To disable M2 "Video Telephony" feature, remove M2_VT_FEATURE_ENABLED flag
+LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
+
+# To disable M2 "Call Failed Cause Notification" feature, remove M2_CALL_FAILED_CAUSE_FEATURE_ENABLED flag
+LOCAL_CFLAGS += -DM2_CALL_FAILED_CAUSE_FEATURE_ENABLED
+
+# To disable M2 "Rx Diversity" features remove M2_RXDIV_FEATURE_ENABLED flag
 #LOCAL_CFLAGS += -DM2_RXDIV_FEATURE_ENABLED
+
+# To disable M2 "Cell Broadcast" features remove M2_CELL_BROADCAST_FEATURE_ENABLED flag
+LOCAL_CFLAGS += -DM2_CELL_BROADCAST_FEATURE_ENABLED
+
 
 # Enable new reset management code
 LOCAL_CFLAGS += -DRESET_MGMT

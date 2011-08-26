@@ -69,11 +69,11 @@ CSilo_Voice::CSilo_Voice(CChannel *pChannel)
         { "NO ANSWER"     , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoAnswer },
         { "CTM CALL"      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCTMCall },
         { "NO CTM CALL"   , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCTMCall },
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
         // TODO: When call fail cause URC is defined, set it here.
         // Handle Call failed cause unsolicited notification here
         { "CALL_FAILED_CAUSE" , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallFailedCause },
-#endif // M2_FEATURE_ENABLED
+#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
         { ""              , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNULL }
     };
 
@@ -148,7 +148,7 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const BYTE*& rszPoint
     //  Normal case, just send ring notification.
     pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
 
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_VT_FEATURE_ENABLED)
     //  Check to see if incoming video telephony call
     if (0 == strncmp(szType, "SYNC", 4))
     {
@@ -158,7 +158,7 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const BYTE*& rszPoint
         //        For now, just do normal ring
         pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
     }
-#endif // M2_FEATURE_ENABLED
+#endif // M2_VT_FEATURE_ENABLED
 
     fRet = TRUE;
 
@@ -1075,7 +1075,7 @@ Error:
 }
 
 
-#if defined (M2_FEATURE_ENABLED)
+#if defined (M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
 
 BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const BYTE*& rszPointer)
 {
@@ -1135,4 +1135,4 @@ Error:
     return fRet;
 }
 
-#endif // M2_FEATURE_ENABLED
+#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED

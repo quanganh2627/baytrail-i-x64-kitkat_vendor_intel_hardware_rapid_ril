@@ -131,7 +131,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
                                 m_uiRilChannel,
                                 CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
                 //  wait forever in here.
-                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__, TRUE);
+                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
 #else // RESET_MGMT
                 // ignore the error and soldier on, something may have been written
                 // to the modem so wait for a potential response
@@ -231,7 +231,7 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         if (nCount == 4)
         {
 #if defined(RESET_MGMT)
-            do_request_clean_up(eRadioError_ChannelDead, __LINE__, __FILE__, FALSE);
+            do_request_clean_up(eRadioError_ChannelDead, __LINE__, __FILE__);
 #else
             TriggerRadioErrorAsync(eRadioError_ChannelDead, __LINE__, __FILE__);
 #endif
@@ -351,7 +351,7 @@ BOOL CChannel::ProcessNoop(CResponse*& rpResponse)
     {
         // signal critical error for low memory
 #if defined(RESET_MGMT)
-        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__, FALSE);
+        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__);
 #else // RESET_MGMT
         TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
 #endif // RESET_MGMT
@@ -376,7 +376,7 @@ BOOL CChannel::RejectRadioOff(CResponse*& rpResponse)
     {
         // signal critical error for low memory
 #if defined(RESET_MGMT)
-        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__, FALSE);
+        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__);
 #else // RESET_MGMT
         TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
 #endif // RESET_MGMT
@@ -538,7 +538,7 @@ BOOL CChannel::ProcessModemData(BYTE *szRxBytes, UINT32 uiRxBytesSize)
         {
             // critically low on memory
 #if defined(RESET_MGMT)
-            do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__, FALSE);
+            do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__);
 #else // RESET_MGMT
             TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
 #endif // RESET_MGMT

@@ -137,10 +137,10 @@ enum ND_REQ_ID_ID {
     ND_REQ_ID_SIMOPENCHANNEL,                      // 108
     ND_REQ_ID_SIMCLOSECHANNEL,                     // 109
     ND_REQ_ID_SIMTRANSMITCHANNEL,                  // 110
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_VT_FEATURE_ENABLED)
     ND_REQ_ID_HANGUPVT,                            // 111
     ND_REQ_ID_DIALVT,                              // 112
-#endif // M2_FEATURE_ENABLED
+#endif // M2_VT_FEATURE_ENABLED
     ND_REQ_ID_TOTAL                                // 111 or 113
 };
 

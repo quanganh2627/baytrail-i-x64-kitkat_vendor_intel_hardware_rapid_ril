@@ -2215,6 +2215,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
 
     bCommand = (BYTE)pDataBytes[0];  //  This is the command.
+    rReqData.pContextData = (void*)(UINT32)bCommand;
 
     switch(bCommand)
     {
@@ -2233,7 +2234,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
                 }
 
 #if defined(RESET_MGMT)
-                //  TODO: What do we do here?  How does STMD / RIL react to this AT command?
+                //  The modem will be set to off and STMD will detect this.
+                //  so a MODEM_DOWN will be sent to the modem-status socket.
 #else // RESET_MGMT
                 //  NOTE: I am assuming this is the last AT command to be sent to the modem.
                 //  It turns out that this AT command causes TriggerRadioError() to be called.
@@ -2374,6 +2376,19 @@ Error:
 RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Enter\r\n");
+
+    UINT32 uCommand = (UINT32)rRspData.pContextData;
+
+    switch(uCommand)
+    {
+        case RIL_OEM_HOOK_RAW_POWEROFF:
+        {
+            g_RadioState.SetRadioState(FALSE);
+            break;
+        }
+        default:
+            break;
+    }
 
     RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Exit\r\n");
     return RRIL_RESULT_OK;

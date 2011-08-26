@@ -573,7 +573,7 @@ Done:
     {
         // Couldn't send an init string -- trigger radio error
 #if defined(RESET_MGMT)
-        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__, FALSE);
+        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__);
 #else // RESET_MGMT
         TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
 #endif // RESET_MGMT
@@ -612,7 +612,7 @@ UINT32 CChannelBase::ResponseThread()
         {
             RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - ERROR: chnl=[%d] uiReadError > = %d! Trigger radio error!\r\n", m_uiRilChannel, uiMAX_READERROR);
 #if defined(RESET_MGMT)
-            do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__, TRUE);
+            do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
 #else // RESET_MGMT
             Sleep(200);
             //TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
@@ -638,7 +638,7 @@ UINT32 CChannelBase::ResponseThread()
             {
                 RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Port closed, rebooting\r\n", m_uiRilChannel);
 #if defined(RESET_MGMT)
-                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__, TRUE);
+                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
 #else // RESET_MGMT
                 Sleep(200);
                 //TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
@@ -658,7 +658,7 @@ UINT32 CChannelBase::ResponseThread()
                 RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Read failed\r\n", m_uiRilChannel);
 #if defined(RESET_MGMT)
                 // read() < 0, call do_request_clean_up()
-                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__, TRUE);
+                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
                 //  exit thread
                 return 0;
 #endif // RESET_MGMT
@@ -717,7 +717,7 @@ void CChannelBase::HandleTimedOutError(BOOL fCmdTimedOut)
             RIL_LOG_CRITICAL("CChannelBase::HandleTimedOutError() - ERROR: chnl=[%d] Modem has not responded to multiple commands, restart RIL\r\n", m_uiRilChannel);
 
 #if defined(RESET_MGMT)
-            do_request_clean_up(eRadioError_ChannelDead, __LINE__, __FILE__, FALSE);
+            do_request_clean_up(eRadioError_ChannelDead, __LINE__, __FILE__);
 #else // RESET_MGMT
             TriggerRadioErrorAsync(eRadioError_ChannelDead, __LINE__, __FILE__);
 #endif // RESET_MGMT

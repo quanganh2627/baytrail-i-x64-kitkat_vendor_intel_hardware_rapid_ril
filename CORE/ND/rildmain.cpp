@@ -100,18 +100,13 @@ BOOL g_bIsTriggerRadioError = FALSE;
 //  Use this to "spoof" responses to commands while resetting modem.
 //  Need separate variable for spoofing commands, since core dump app
 //  may be running.
-BOOL g_bSpoofCommands = FALSE;
-
 #if defined(RESET_MGMT)
-//  Global variable - set to TRUE when RIL detects something is wrong
-BOOL g_bPendingCleanupRequest = FALSE;
-
-//  Global variable - set to TRUE when watchdog thread reads that modem
-//  is self-resetting
-BOOL g_bOngoingModemSelfReset = FALSE;
-
-
+BOOL g_bSpoofCommands = TRUE;
+#else // RESET_MGMT
+BOOL g_bSpoofCommands = FALSE;
 #endif // RESET_MGMT
+
+
 
 static const RIL_RadioFunctions gs_callbacks =
 {
@@ -138,72 +133,74 @@ static const struct RIL_Env * gs_pRilEnv;
 //
 //  RIL has detected something is wrong with the modem.
 //  Alert STMD to attempt a clean-up.
-void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const BYTE* lpszFileName, BOOL bWaitForever)
+void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const BYTE* lpszFileName)
 {
-    RIL_LOG_INFO("do_request_clean_up() - ENTER eError=[%d]  bWaitForever=[%d]\r\n", eError, bWaitForever);
+    RIL_LOG_INFO("do_request_clean_up() - ENTER eError=[%d]\r\n", eError);
     RIL_LOG_INFO("do_request_clean_up() - file=[%s], line num=[%d]\r\n", lpszFileName, uiLineNum);
 
-    if (g_bPendingCleanupRequest || g_bOngoingModemSelfReset)
+    if (g_bSpoofCommands)
     {
-        RIL_LOG_CRITICAL("do_request_clean_up() - pending... g_bPendingCleanupRequest=[%d] g_bOngoingModemSelfReset=[%d]\r\n",
-            g_bPendingCleanupRequest, g_bOngoingModemSelfReset);
-
-        //  wait forever or exit thread
-        goto Done;
+        RIL_LOG_CRITICAL("do_request_clean_up() - pending... g_bSpoofCommands=[%d]\r\n",
+            g_bSpoofCommands);
     }
     else
     {
-        RIL_LOG_CRITICAL("do_request_clean_up() - set g_bPendingCleanupRequest to TRUE\r\n");
-        g_bPendingCleanupRequest = TRUE;
+        RIL_LOG_CRITICAL("do_request_clean_up() - set g_bSpoofCommands to TRUE\r\n");
+        g_bSpoofCommands = TRUE;
 
-        //  Switch depending on the error
-        switch(eError)
-        {
-            case eRadioError_LowMemory:
-                RIL_LOG_INFO("do_request_clean_up() - eRadioError_LowMemory\r\n");
-                //  Low memory condition, nothing wrong with modem.
-                //  Just call exit and let init restart us.
-                RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
-                RIL_LOG_INFO("do_request_clean_up() - ******* Calling exit(0) *******\r\n");
-                RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
-                exit(0);
-                break;
+        //  Doesn't matter what the error is, we are notifying STMD that
+        //  something is wrong.  Let the modem status socket watchdog get
+        //  a MODEM_UP when things are OK again.
 
-            case eRadioError_InitFailure:
-                RIL_LOG_INFO("do_request_clean_up() - eRadioError_InitFailure\r\n");
-                //  Low memory condition, nothing wrong with modem.
-                //  Just call exit and let init restart us.
-                RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
-                RIL_LOG_INFO("do_request_clean_up() - ******* Calling exit(0) *******\r\n");
-                RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
-                exit(0);
-                break;
+        //  Close ports
+        RIL_LOG_INFO("do_request_clean_up() - Closing channel ports\r\n");
+        CSystemManager::GetInstance().CloseChannelPorts();
 
-            default:
-                RIL_LOG_INFO("do_request_clean_up() - eError=[%d], SendRequestCleanup\r\n", eError);
-                break;
-        }
+        //  Inform Android of new state
+        //  Voice calls disconnected, no more data connections
+        ModemResetUpdate();
+
+        RIL_LOG_INFO("do_request_clean_up() - eError=[%d], SendRequestCleanup\r\n", eError);
 
         //  Send "REQUEST_CLEANUP" on CleanupRequest socket
         if (!CSystemManager::GetInstance().SendRequestCleanup())
         {
             RIL_LOG_CRITICAL("do_request_clean_up() - ERROR: ***** CANNOT SEND CLEANUP REQUEST *****\r\n");
-            //  TODO: What to do here?
+            //  Socket could have been closed by STMD.
+            //  Restart RRIL, drop down to exit.
         }
 
-        //  wait forever or exit thread
-        goto Done;
+        RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
+        RIL_LOG_INFO("do_request_clean_up() - ******* Calling exit(0) *******\r\n");
+        RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
+        exit(0);
+
     }
 
-Done:
-    if (bWaitForever)
-    {
-        RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
-        RIL_LOG_INFO("do_request_clean_up() - ******* WAITING FOREVER *******\r\n");
-        RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
-        Sleep(0xFFFFFFFF);
-    }
     RIL_LOG_INFO("do_request_clean_up() - EXIT\r\n");
+}
+
+
+void* ContinueInitThreadProc(void* pVoid)
+{
+    RIL_LOG_INFO("ContinueInitThreadProc() - ENTER\r\n");
+
+    //  turn off spoof
+    g_bSpoofCommands = FALSE;
+
+    if (!CSystemManager::GetInstance().ContinueInit())
+    {
+        RIL_LOG_CRITICAL("ContinueInitThreadProc() - Continue init failed, try a restart\r\n");
+        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
+    }
+    else
+    {
+        RIL_LOG_INFO("ContinueInitThreadProc() - Open ports OK\r\n");
+
+    }
+
+    RIL_LOG_INFO("ContinueInitThreadProc() - EXIT\r\n");
+    return NULL;
 }
 
 
@@ -218,9 +215,14 @@ void* ModemWatchdogThreadProc(void* pVoid)
     int data_size = 0;
     unsigned int data;
     struct pollfd fds[1] = { {0,0,0} };
+    CThread* pContinueInitThread = NULL;
 
     const int NUM_LOOPS = 10;
     const int SLEEP_MS = 1000;  // 1 sec between retries
+
+    //  Store the previous modem's state.  Only handle the toggle of the modem state.
+    //  Initialize to MODEM_DOWN.
+    unsigned int nPreviousModemState = MODEM_DOWN;
 
     //  Let's connect to the modem status socket
     for (int i = 0; i < NUM_LOOPS; i++)
@@ -244,11 +246,17 @@ void* ModemWatchdogThreadProc(void* pVoid)
 
     if (fd_ModemStatusSocket < 0)
     {
-        //  TODO: what do we do here?
         RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: ***** CANNOT OPEN MODEM STATUS SOCKET *****\r\n");
+        //  STMD or the socket is not present, therefore, the modem is not accessible.
+        //  In this case, put RRIL in a state where it will spoof responses.
+        //  Call do_request_clean_up() here to hopefully wake up STMD
+        //  Upon RIL startup, spoof will be enabled.
+        do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
         return NULL;
     }
 
+
+#if 0
     //  Read current modem status
     data_size = recv(fd_ModemStatusSocket, &data, sizeof(unsigned int), 0);
     if (data_size == sizeof(unsigned int))
@@ -273,16 +281,17 @@ void* ModemWatchdogThreadProc(void* pVoid)
             RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: read failed [%d]\r\n", data_size);
         }
     }
+#endif // 0
 
-
-    //  Now start polling for modem status...
-    RIL_LOG_INFO("ModemWatchdogThreadProc() - starting polling for modem status......\r\n");
 
     for (;;)
     {
         fds[0].fd = fd_ModemStatusSocket;
         fds[0].events = POLLIN;
         fds[0].revents = 0;
+
+        //  Now start polling for modem status...
+        RIL_LOG_INFO("ModemWatchdogThreadProc() - starting polling for modem status......\r\n");
 
         nPollRet = poll(fds, 1, -1);
         if (nPollRet > 0)
@@ -292,60 +301,107 @@ void* ModemWatchdogThreadProc(void* pVoid)
                 data_size = recv(fd_ModemStatusSocket, &data, sizeof(unsigned int), 0);
                 if (data_size <= 0)
                 {
-                    RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - recv failed [%d]\r\n", data_size);
+                    RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - recv failed data_size=[%d]\r\n", data_size);
+                    //  It is possible that socket was closed by STMD.
+                    //  Restart this thread by cleaning up (by calling exit)
+                    //  let's exit, init will restart us
+                    RIL_LOG_CRITICAL("***********************************************************************\r\n");
+                    RIL_LOG_CRITICAL("************ModemWatchdogThreadProc() - CALLING EXIT ******************\r\n");
+                    RIL_LOG_CRITICAL("***********************************************************************\r\n");
+                    exit(0);
+                }
+                else if (sizeof(unsigned int) != data_size)
+                {
+                    RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - recv size mismatch!  data_size=[%d]\r\n", data_size);
+                    //  loop again
                 }
                 else
                 {
-                    switch(data)
+                    //  Compare with previous modem status.  Only handle the toggle.
+                    if (data == nPreviousModemState)
                     {
-                        case MODEM_UP:
-                            RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() received MODEM_UP\r\n");
+                        RIL_LOG_INFO("ModemWatchdogThreadProc() - *** RECEIVED SAME MODEM STATUS=[%d] ***\r\n", data);
+                        RIL_LOG_INFO("ModemWatchdogThreadProc() - *** DO NOTHING ***\r\n");
+                    }
+                    else
+                    {
+                        switch(data)
+                        {
+                            case MODEM_UP:
+                                RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() received MODEM_UP\r\n");
 
-                            //  transition to up
-                            //  let's exit, init will restart us
-                            RIL_LOG_CRITICAL("********************************************************************\r\n");
-                            RIL_LOG_CRITICAL("************ModemWatchdogThreadProc() - CALLING EXIT ******************\r\n");
-                            RIL_LOG_CRITICAL("********************************************************************\r\n");
+                                nPreviousModemState = data;
 
-                            exit(0);
+                                //  transition to up
 
-                            break;
-                        case MODEM_DOWN:
-                            RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() received MODEM_DOWN\r\n");
+                                //  Modem is alive, open ports since RIL has been waiting at this point.
+                                RIL_LOG_INFO("ModemWatchdogThreadProc() - Continue Init, open ports!\r\n");
 
-                            g_bOngoingModemSelfReset = TRUE;
+                                //  launch system mananger continue init thread.
+                                pContinueInitThread = new CThread(ContinueInitThreadProc, NULL, THREAD_FLAGS_JOINABLE, 0);
+                                if (!pContinueInitThread)
+                                {
+                                    RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: Unable to continue init thread\r\n");
+                                    //  let's exit, init will restart us
+                                    RIL_LOG_CRITICAL("***********************************************************************\r\n");
+                                    RIL_LOG_CRITICAL("************ModemWatchdogThreadProc() - CALLING EXIT ******************\r\n");
+                                    RIL_LOG_CRITICAL("***********************************************************************\r\n");
+                                    exit(0);
+                                }
 
-                            //  Spoof commands from now on
-                            g_bSpoofCommands = TRUE;
+                                delete pContinueInitThread;
+                                pContinueInitThread = NULL;
 
-                            //  Inform Android of new state
-                            //  Voice calls disconnected, no more data connections
-                            ModemResetUpdate();
+                                break;
+                            case MODEM_DOWN:
+                                RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() received MODEM_DOWN\r\n");
 
-                            //  Close ports
-                            RIL_LOG_INFO("ModemWatchdogThreadProc() - Closing channel ports\r\n");
-                            CSystemManager::GetInstance().CloseChannelPorts();
+                                nPreviousModemState = data;
 
-                            //  Rely on STMD to perform cleanup
-                            RIL_LOG_INFO("ModemWatchdogThreadProc() - Done closing channel ports\r\n");
-                            RIL_LOG_INFO("ModemWatchdogThreadProc() - Wait for MODEM_UP status...\r\n");
+                                //  Spoof commands from now on
+                                g_bSpoofCommands = TRUE;
 
-                            break;
-                        default:
-                            RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() UNKNOWN [%d]\r\n", data);
-                            break;
+                                //  Close ports
+                                RIL_LOG_INFO("ModemWatchdogThreadProc() - Closing channel ports\r\n");
+                                CSystemManager::GetInstance().CloseChannelPorts();
+
+                                //  Inform Android of new state
+                                //  Voice calls disconnected, no more data connections
+                                ModemResetUpdate();
+
+                                //  let's exit, init will restart us
+                                RIL_LOG_CRITICAL("********************************************************************\r\n");
+                                RIL_LOG_CRITICAL("************ModemWatchdogThreadProc() - CALLING EXIT ******************\r\n");
+                                RIL_LOG_CRITICAL("********************************************************************\r\n");
+
+                                exit(0);
+
+                                //  Rely on STMD to perform cleanup
+                                //RIL_LOG_INFO("ModemWatchdogThreadProc() - Done closing channel ports\r\n");
+                                //RIL_LOG_INFO("ModemWatchdogThreadProc() - Wait for MODEM_UP status...\r\n");
+
+                                break;
+                            default:
+                                RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() UNKNOWN [%d]\r\n", data);
+                                break;
+                        }
                     }
                 }
             }
             else if (fds[0].revents & POLLHUP)
             {
                 RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: POLLHUP received!\r\n");
-                //  TODO: What do we do here?
+                //  Reset RIL to recover to a good status
+                //  let's exit, init will restart us
+                RIL_LOG_CRITICAL("***********************************************************************\r\n");
+                RIL_LOG_CRITICAL("************ModemWatchdogThreadProc() - CALLING EXIT ******************\r\n");
+                RIL_LOG_CRITICAL("***********************************************************************\r\n");
+                exit(0);
             }
             else
             {
                 RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: UNKNOWN event received! [0x%08x]\r\n", fds[0].revents);
-                //  TODO: What do we do here?
+                //  continue polling
             }
         }
         else
@@ -509,6 +565,9 @@ void ModemResetUpdate()
 
     RIL_LOG_INFO("ModemResetUpdate() - telling Android radio status changed\r\n");
     g_RadioState.SetSIMState(RADIO_STATE_UNAVAILABLE);
+
+    //  Delay slightly so Java layer receives replies
+    Sleep(10);
 
     RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
     RIL_LOG_CRITICAL("ModemResetUpdate() - COMPLETE\r\n");
@@ -1094,7 +1153,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESEND_INCALL_MUTE\r\n");
             break;
 
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
 
         case RIL_UNSOL_CALL_FAILED_CAUSE:  // 1031
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CALL_FAILED_CAUSE\r\n");
@@ -1105,7 +1164,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             }
             break;
 
-#endif //  M2_FEATURE_ENABLED
+#endif //  M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
 
         default:
@@ -1843,21 +1902,36 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG:  // 89
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG\r\n");
+#if defined(M2_CELL_BROADCAST_FEATURE_ENABLED)
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGsmGetBroadcastSmsConfig(hRilToken, pData, datalen);
+#else
+            RIL_LOG_CRITICAL("onRequest() - Cell Broadcast not supported RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG\r\n");
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif // M2_CELL_BROADCAST_FEATURE_ENABLED
         }
         break;
 
         case RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG:  // 90
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG\r\n");
+#if defined(M2_CELL_BROADCAST_FEATURE_ENABLED)
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGsmSetBroadcastSmsConfig(hRilToken, pData, datalen);
+#else
+            RIL_LOG_CRITICAL("onRequest() - Cell Broadcast not supported RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG\r\n");
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif // M2_CELL_BROADCAST_FEATURE_ENABLED
         }
         break;
 
         case RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION:  // 91
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION\r\n");
+#if defined(M2_CELL_BROADCAST_FEATURE_ENABLED)
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGsmSmsBroadcastActivation(hRilToken, pData, datalen);
+#else
+            RIL_LOG_CRITICAL("onRequest() - Cell Broadcast not supported RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION\r\n");
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif // M2_CELL_BROADCAST_FEATURE_ENABLED
         }
         break;
 
@@ -1973,7 +2047,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_VT_FEATURE_ENABLED)
 
         case RIL_REQUEST_HANGUP_VT:  // 108
         {
@@ -1989,7 +2063,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-#endif // M2_FEATURE_ENABLED
+#endif // M2_VT_FEATURE_ENABLED
 
         default:
         {
@@ -2044,7 +2118,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.22 for Android 2.3.4 (Build August 23/2011)";
+    return "Intrinsyc Rapid-RIL M5.23 for Android 2.3.4 (Build August 30/2011)";
 }
 
 
@@ -2247,19 +2321,19 @@ static void usage(char *szProgName)
     fprintf(stderr, "    -c <SIM related, SIM Toolkit AT command port>\n");
     fprintf(stderr, "    -u <Notification channel>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 1>\n");
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_MULTIPLE_PDP_FEATURE_ENABLED)
     fprintf(stderr, "    -d <PDP Primary Context - data channel 2>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 3>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 4>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 5>\n");
-#endif  // M2_FEATURE_ENABLED
+#endif  // M2_MULTIPLE_PDP_FEATURE_ENABLED
     fprintf(stderr, "\n");
     fprintf(stderr, "Example in init.rc file:\n");
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_MULTIPLE_PDP_FEATURE_ENABLED)
     fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12 -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1 -d /dev/gsmtty3 -d /dev/gsmtty4 -d /dev/gsmtty15 -d /dev/gsmtty16 -d /dev/gsmtty17\n", szProgName);
-#else  // M2_FEATURE_ENABLED
+#else  // M2_MULTIPLE_PDP_FEATURE_ENABLED
     fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12 -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1 -d /dev/gsmtty3\n", szProgName);
-#endif // M2_FEATURE_ENABLED
+#endif // M2_MULTIPLE_PDP_FEATURE_ENABLED
     fprintf(stderr, "\n");
 }
 
@@ -2310,8 +2384,8 @@ static bool RIL_SetGlobals(int argc, char **argv)
             break;
 
             // This should be the non-emulator case.
-            //  For M2_FEATURE_ENABLED, must choose 5 data ports.
-            //  For non M2_FEATURE_ENABLED, only need 1 data port.
+            //  For M2_MULTIPLE_PDP_FEATURE_ENABLED, must choose 5 data ports.
+            //  For non M2_MULTIPLE_PDP_FEATURE_ENABLED, only need 1 data port.
             case 'd':
                 switch(nDataPortCount)
                 {
@@ -2354,11 +2428,11 @@ static bool RIL_SetGlobals(int argc, char **argv)
     }
 
     //  RIL will not function without all ports defined
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_MULTIPLE_PDP_FEATURE_ENABLED)
     if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3 || !g_szDataPort4 || !g_szDataPort5)
-#else // M2_FEATURE_ENABLED
+#else // M2_MULTIPLE_PDP_FEATURE_ENABLED
     if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1)
-#endif // M2_FEATURE_ENABLED
+#endif // M2_MULTIPLE_PDP_FEATURE_ENABLED
     {
         usage(argv[0]);
         return false;

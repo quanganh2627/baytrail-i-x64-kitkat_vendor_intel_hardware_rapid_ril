@@ -6417,12 +6417,12 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
     UINT32 nNumOfConfigInfos = 0;
     UINT32 nChannelToAccept = 0;
     UINT32 i = 0;
-    int fromServiceIdMem = 0;
-    int toServiceIdMem = 0;
-    int fromCodeSchemeMem = 0;
-    int toCodeSchemeMem = 0;
+    int fromServiceIdMem = 0xFFFF;
+    int toServiceIdMem = 0xFFFF;
+    int fromCodeSchemeMem = 0xFFFF;
+    int toCodeSchemeMem = 0xFFFF;
 
-    if (sizeof(RIL_GSM_BroadcastSmsConfigInfo) > uiDataSize)
+    if (sizeof(RIL_GSM_BroadcastSmsConfigInfo *) > uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
@@ -6640,8 +6640,6 @@ RIL_RESULT_CODE CTEBase::ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
 //
 // RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION 91
 //
-
-
 RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreGsmSmsBroadcastActivation() - Enter\r\n");
@@ -7575,7 +7573,7 @@ Error:
 }
 
 
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_VT_FEATURE_ENABLED)
 //
 // RIL_REQUEST_HANGUP_VT 108
 //
@@ -7692,7 +7690,7 @@ RIL_RESULT_CODE CTEBase::ParseDialVT(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseDialVT() - Exit\r\n");
     return RRIL_RESULT_OK;
 }
-#endif // M2_FEATURE_ENABLED
+#endif // M2_VT_FEATURE_ENABLED
 
 
 RIL_SignalStrength* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspData)

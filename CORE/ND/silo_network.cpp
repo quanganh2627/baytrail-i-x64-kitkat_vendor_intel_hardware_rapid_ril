@@ -153,7 +153,7 @@ void triggerNITZNotification(int sig)
     if (NULL == pszTimeData)
     {
         RIL_LOG_CRITICAL("triggerNITZNotification - ERROR: Could not allocate memory for pszTimeData.\r\n");
-       return;
+        return;
     }
 
     memset(pszTimeData, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
@@ -162,9 +162,10 @@ void triggerNITZNotification(int sig)
     // Reset the global buffer
     memset(g_szNITZ, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
 
-    RIL_onUnsolicitedResponse (RIL_UNSOL_NITZ_TIME_RECEIVED, (void *) pszTimeData, sizeof(BYTE *));
+    RIL_onUnsolicitedResponse(RIL_UNSOL_NITZ_TIME_RECEIVED, (void*)pszTimeData, sizeof(BYTE*));
     free(pszTimeData);
 }
+
 
 //
 //
@@ -294,7 +295,7 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
 
     pResponse->SetUnsolicitedFlag(TRUE);
 
-    // If the NITZ alarm is already active, disable the alarm.
+    //  If the NITZ alarm is already active, disable the alarm.
     if (g_bNITZTimerActive)
         alarm(0);
 
@@ -329,13 +330,15 @@ BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const BYTE* &rszPoin
     BYTE *pszTimeData = NULL;
 
     /*
-     * Disable the NITZ alarm, as we have received the CTZDST within 1second of the
+     * Disable the NITZ alarm, as we have received the CTZDST within 1 second of the
      * CTZV receival.
      */
-    if (g_bNITZTimerActive) {
+    if (g_bNITZTimerActive)
+    {
         g_bNITZTimerActive = false;
         alarm(0);
     }
+
 
     //  Check to see if we have a complete CTZDST notification.
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))

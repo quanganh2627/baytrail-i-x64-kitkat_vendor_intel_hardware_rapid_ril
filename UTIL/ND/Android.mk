@@ -19,8 +19,8 @@ LOCAL_SHARED_LIBRARIES := \
 
 LOCAL_CFLAGS += -DDEBUG
 
-# To disable M2 features, remove M2_FEATURE_ENABLED flag
-#LOCAL_CFLAGS += -DM2_FEATURE_ENABLED
+# To disable M2 "Video Telephony" feature, remove M2_VT_FEATURE_ENABLED flag
+LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
 
 LOCAL_C_INCLUDES :=  \
     $(KERNEL_HEADERS) \

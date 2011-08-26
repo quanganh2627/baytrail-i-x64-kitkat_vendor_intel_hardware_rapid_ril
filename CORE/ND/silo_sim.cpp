@@ -746,6 +746,11 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
     switch (nSIMState)
     {
         case 2: // PIN verification not needed - Ready
+            // The SIM is initialized, but modem is still in the process of it.
+            // we can inform Android that SIM is still not ready.
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - XSIM state 2 SIM NOT READY\r\n");
+            g_RadioState.SetSIMState(RADIO_STATE_SIM_NOT_READY);
+            break;
         case 3: // PIN verified - Ready
         case 7: // ready for attach (+COPS)
         case 11: // SIM Reactivated

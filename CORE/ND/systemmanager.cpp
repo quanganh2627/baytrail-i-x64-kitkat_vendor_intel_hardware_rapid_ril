@@ -374,6 +374,30 @@ BOOL CSystemManager::InitializeSystem()
 
     ResetSystemState();
 
+#if defined(RESET_MGMT)
+    //  Need to open the "clean up request" socket here.
+    if (!OpenCleanupRequestSocket())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Unable to create cleanup request socket\r\n");
+        goto Done;
+    }
+
+    //  Launch the modem reset watchdog socket thread
+    if (!CreateModemWatchdogThread())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't create modem watchdog thread!\r\n");
+        goto Done;
+    }
+
+    //  Create and initialize the channels (don't open ports yet)
+    if (!InitChannelPorts())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: InitChannelPorts() error!\r\n");
+        goto Done;
+    }
+#else  // RESET_MGMT
+
+
     // Open the serial ports (and populate g_pRilChannel)
     if (!OpenChannelPorts())
     {
@@ -396,28 +420,11 @@ BOOL CSystemManager::InitializeSystem()
         goto Done;
     }
 
-#if defined(RESET_MGMT)
-    //  Need to open the "clean up request" socket here.
-    if (!OpenCleanupRequestSocket())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Unable to create cleanup request socket\r\n");
-        goto Done;
-    }
-#endif // RESET_MGMT
-
     if (!CThreadManager::Start(RIL_CHANNEL_MAX * 2, m_pExitRilEvent))
     {
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Thread manager failed to start.\r\n");
     }
 
-#if defined(RESET_MGMT)
-    //  Launch the modem reset watchdog thread
-    if (!CreateModemWatchdogThread())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't create modem watchdog thread!\r\n");
-        goto Done;
-    }
-#else // RESET_MGMT
     //  Check repository to see if we support the watchdog thread.
     iTemp = 0;
     if (!repository.Read(g_szGroupModem, g_szDisableWatchdogThread, iTemp))
@@ -439,13 +446,13 @@ BOOL CSystemManager::InitializeSystem()
         RIL_LOG_CRITICAL("******* CSystemManager::InitializeSystem() - Watchdog thread is DISABLED.\r\n");
         RIL_LOG_CRITICAL("******* Unsoliticited modem reset detection AND core dump will not function.\r\n");
     }
-#endif // RESET_MGMT
 
     if (!InitializeModem())
     {
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't start Modem initialization!\r\n");
         goto Done;
     }
+#endif // RESET_MGMT
 
     bRetVal = TRUE;
 
@@ -491,7 +498,7 @@ Done:
             close(m_fdCleanupSocket);
             m_fdCleanupSocket = -1;
         }
-#endif // RESET_MGMT
+#else  // RESET_MGMT
 
         CThreadManager::Stop();
 
@@ -507,7 +514,9 @@ Done:
             delete m_pExitRilEvent;
             m_pExitRilEvent = NULL;
         }
+#endif // RESET_MGMT
     }
+
 
     CMutex::Unlock(m_pSystemManagerMutex);
 
@@ -515,6 +524,112 @@ Done:
 
     return bRetVal;
 }
+
+
+#if defined(RESET_MGMT)
+///////////////////////////////////////////////////////////////////////////////
+//  This function continues the init in the function InitializeSystem() left
+//  off from InitChannelPorts().  Called when MODEM_UP status is received.
+BOOL CSystemManager::ContinueInit()
+{
+    RIL_LOG_INFO("CSystemManager::ContinueInit() - ENTER\r\n");
+
+    BOOL bRetVal = FALSE;
+
+    CMutex::Lock(m_pSystemManagerMutex);
+
+    // Open the serial ports only (g_pRilChannel should already be populated)
+    if (!OpenChannelPortsOnly())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::ContinueInit() - ERROR: Couldn't open VSPs.\r\n");
+        goto Done;
+    }
+    RIL_LOG_INFO("CSystemManager::ContinueInit() - VSPs were opened successfully.\r\n");
+
+    m_pExitRilEvent = new CEvent(NULL, TRUE);
+    if (NULL == m_pExitRilEvent)
+    {
+        RIL_LOG_CRITICAL("CSystemManager::ContinueInit() - ERROR: Could not create exit event.\r\n");
+        goto Done;
+    }
+
+    // Create the Queues
+    if (!CreateQueues())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::ContinueInit() - ERROR: Unable to create queues\r\n");
+        goto Done;
+    }
+
+    if (!CThreadManager::Start(RIL_CHANNEL_MAX * 2, m_pExitRilEvent))
+    {
+        RIL_LOG_CRITICAL("CSystemManager::ContinueInit() - ERROR: Thread manager failed to start.\r\n");
+    }
+
+    if (!InitializeModem())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::ContinueInit() - ERROR: Couldn't start Modem initialization!\r\n");
+        goto Done;
+    }
+
+    bRetVal = TRUE;
+
+Done:
+    if (!bRetVal)
+    {
+        if (m_pSimUnlockedEvent)
+        {
+            delete m_pSimUnlockedEvent;
+            m_pSimUnlockedEvent = NULL;
+        }
+
+        if (m_pModemPowerOnEvent)
+        {
+            delete m_pModemPowerOnEvent;
+            m_pModemPowerOnEvent = NULL;
+        }
+
+        if (m_pInitStringCompleteEvent)
+        {
+            delete m_pInitStringCompleteEvent;
+            m_pInitStringCompleteEvent = NULL;
+        }
+
+        if (m_pDataChannelAccessorMutex)
+        {
+            delete m_pDataChannelAccessorMutex;
+            m_pDataChannelAccessorMutex = NULL;
+        }
+
+        if (m_fdCleanupSocket >= 0)
+        {
+            shutdown(m_fdCleanupSocket, SHUT_RDWR);
+            close(m_fdCleanupSocket);
+            m_fdCleanupSocket = -1;
+        }
+
+        CThreadManager::Stop();
+
+        if (m_pExitRilEvent)
+        {
+            if (CEvent::Signal(m_pExitRilEvent))
+            {
+                RIL_LOG_INFO("CSystemManager::ContinueInit() : INFO : Signaled m_pExitRilEvent as we are failing out, sleeping for 1 second\r\n");
+                Sleep(1000);
+                RIL_LOG_INFO("CSystemManager::ContinueInit() : INFO : Sleep complete\r\n");
+            }
+
+            delete m_pExitRilEvent;
+            m_pExitRilEvent = NULL;
+        }
+    }
+
+
+    CMutex::Unlock(m_pSystemManagerMutex);
+
+    return bRetVal;
+    RIL_LOG_INFO("CSystemManager::ContinueInit() - EXIT\r\n");
+}
+#endif // RESET_MGMT
 
 ///////////////////////////////////////////////////////////////////////////////
 BOOL CSystemManager::VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex)
@@ -668,6 +783,7 @@ CChannel* CSystemManager::CreateChannel(UINT32 eIndex)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+//  Note that OpenChannelPorts() = InitChannelPorts() + OpenChannelPortsOnly()
 BOOL CSystemManager::OpenChannelPorts()
 {
     RIL_LOG_VERBOSE("CSystemManager::OpenChannelPorts() - Enter\r\n");
@@ -714,6 +830,43 @@ Done:
     return bRet;
 }
 
+#if defined(RESET_MGMT)
+///////////////////////////////////////////////////////////////////////////////
+//  Create and initialize the channels, but don't actually open the ports.
+BOOL CSystemManager::InitChannelPorts()
+{
+    RIL_LOG_VERBOSE("CSystemManager::InitChannelPorts() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+
+    //  Init our array of global CChannel pointers.
+    for (int i = 0; i < RIL_CHANNEL_MAX; i++)
+    {
+        if (i == RIL_CHANNEL_RESERVED)
+            continue;
+
+        g_pRilChannel[i] = CreateChannel(i);
+        if (!g_pRilChannel[i] || !g_pRilChannel[i]->InitChannel())
+        {
+            RIL_LOG_CRITICAL("CSystemManager::InitChannelPorts() : Channel[%d] (0x%X) Init failed\r\n", i, (UINT32)g_pRilChannel[i]);
+            goto Done;
+        }
+    }
+
+    //  We made it this far, return TRUE.
+    bRet = TRUE;
+
+Done:
+    if (!bRet)
+    {
+        //  We had an error.
+        CloseChannelPorts();
+    }
+
+    RIL_LOG_VERBOSE("CSystemManager::InitChannelPorts() - Exit\r\n");
+    return bRet;
+}
+#endif // RESET_MGMT
 
 ///////////////////////////////////////////////////////////////////////////////
 BOOL CSystemManager::OpenChannelPortsOnly()

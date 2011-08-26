@@ -164,10 +164,10 @@ const char * g_szRequestNames[] =
     "SimOpenChannel",                       // ND_REQ_ID_SIMOPENCHANNEL 108
     "SimCloseChannel",                      // ND_REQ_ID_SIMCLOSECHANNEL 109
     "SimTransmitChannel",                   // ND_REQ_ID_SIMTRANSMITCHANNEL 110
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_VT_FEATURE_ENABLED)
     "HangupVT",                             // ND_REQ_ID_HANGUPVT 111
     "DialVT",                               // ND_REQ_ID_DIALVT 112
-#endif // M2_FEATURE_ENABLED
+#endif // M2_VT_FEATURE_ENABLED
 };
 
 /////////////////////////////////////////////////

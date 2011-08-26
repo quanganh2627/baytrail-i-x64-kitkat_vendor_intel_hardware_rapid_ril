@@ -66,10 +66,7 @@ enum eRadioError
 #if defined(RESET_MGMT)
 
 
-extern BOOL  g_bPendingCleanupRequest;
-extern BOOL  g_bOngoingModemSelfReset;
-
-void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const BYTE* lpszFileName, BOOL bWaitForever);
+void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const BYTE* lpszFileName);
 
 extern BOOL CreateModemWatchdogThread();
 

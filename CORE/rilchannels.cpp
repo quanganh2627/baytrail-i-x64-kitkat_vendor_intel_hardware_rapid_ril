@@ -138,10 +138,10 @@ UINT32 g_arChannelMapping[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_SIMOPENCHANNEL                       // 108
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_SIMCLOSECHANNEL                      // 109
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_SIMTRANSMITCHANNEL                   // 110
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_VT_FEATURE_ENABLED)
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_HANGUPVT                             // 111
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_DIALVT                               // 112
-#endif  // M2_FEATURE_ENABLED
+#endif  // M2_VT_FEATURE_ENABLED
 
 };
 

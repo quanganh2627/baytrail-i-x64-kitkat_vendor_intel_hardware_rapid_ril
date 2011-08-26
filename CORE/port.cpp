@@ -314,9 +314,8 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
             RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT after %d attempts, issuing critical reboot\r\n", iAttempts);
 
 #if defined(RESET_MGMT)
-            //  TODO: Make sure this is correct.
-            //  If we can't open the ports, tell STMD to cleanup and wait forever here.
-            do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__, TRUE);
+            //  If we can't open the ports, tell STMD to cleanup.
+            do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
 
 #else // RESET_MGMT
 

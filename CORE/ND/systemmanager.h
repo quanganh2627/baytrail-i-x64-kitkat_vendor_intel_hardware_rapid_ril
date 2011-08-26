@@ -95,16 +95,25 @@ public:
 
 #if defined(RESET_MGMT)
     BOOL            SendRequestCleanup();
+
+    //  This function continues the init in the function InitializeSystem() left
+    //  off from InitChannelPorts().  Called when MODEM_UP status is received.
+    BOOL            ContinueInit();
 #endif // RESET_MGMT
 
 private:
     // Framework Init Functions
     BOOL            CreateQueues();
     void            DeleteQueues();
+    //  Note that OpenChannelPorts() = InitChannelPorts() + OpenChannelPortsOnly()
     BOOL            OpenChannelPorts();
-    //void            CloseChannelPorts();
     void            DeleteChannels();
     CChannel*       CreateChannel(UINT32 uiIndex);
+
+#if defined(RESET_MGMT)
+    //  Create and initialize the channels, but don't actually open the ports.
+    BOOL            InitChannelPorts();
+#endif // RESET_MGMT
 
 #if defined(RESET_MGMT)
     BOOL            OpenCleanupRequestSocket();

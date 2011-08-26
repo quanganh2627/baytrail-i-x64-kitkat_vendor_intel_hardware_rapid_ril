@@ -519,6 +519,7 @@ RIL_RESULT_CODE CTE::RequestGetCurrentCalls(RIL_Token rilToken, void * pData, si
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestGetCurrentCalls() - ERROR: Unable to add command to queue\r\n");
@@ -567,6 +568,7 @@ RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void * pData, size_t datale
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestDial() - ERROR: Unable to add command to queue\r\n");
@@ -661,6 +663,7 @@ RIL_RESULT_CODE CTE::RequestHangup(RIL_Token rilToken, void * pData, size_t data
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestHangup() - ERROR: Unable to add command to queue\r\n");
@@ -708,6 +711,7 @@ RIL_RESULT_CODE CTE::RequestHangupWaitingOrBackground(RIL_Token rilToken, void *
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestHangupWaitingOrBackground() - ERROR: Unable to add command to queue\r\n");
@@ -755,6 +759,7 @@ RIL_RESULT_CODE CTE::RequestHangupForegroundResumeBackground(RIL_Token rilToken,
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestHangupForegroundResumeBackground() - ERROR: Unable to add command to queue\r\n");
@@ -803,6 +808,7 @@ RIL_RESULT_CODE CTE::RequestSwitchHoldingAndActive(RIL_Token rilToken, void * pD
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestSwitchHoldingAndActive() - ERROR: Unable to add command to queue\r\n");
@@ -850,6 +856,7 @@ RIL_RESULT_CODE CTE::RequestConference(RIL_Token rilToken, void * pData, size_t 
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestConference() - ERROR: Unable to add command to queue\r\n");
@@ -897,6 +904,7 @@ RIL_RESULT_CODE CTE::RequestUdub(RIL_Token rilToken, void * pData, size_t datale
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestUdub() - ERROR: Unable to add command to queue\r\n");
@@ -2040,6 +2048,7 @@ RIL_RESULT_CODE CTE::RequestAnswer(RIL_Token rilToken, void * pData, size_t data
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestAnswer() - ERROR: Unable to add command to queue\r\n");
@@ -2614,6 +2623,7 @@ RIL_RESULT_CODE CTE::RequestSeparateConnection(RIL_Token rilToken, void * pData,
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestSeparateConnection() - ERROR: Unable to add command to queue\r\n");
@@ -3555,6 +3565,7 @@ RIL_RESULT_CODE CTE::RequestExplicitCallTransfer(RIL_Token rilToken, void * pDat
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestExplicitCallTransfer() - ERROR: Unable to add command to queue\r\n");
@@ -4778,7 +4789,7 @@ RIL_RESULT_CODE CTE::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
 }
 
 
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_VT_FEATURE_ENABLED)
 //
 // RIL_REQUEST_HANGUP_VT 108
 //
@@ -4873,7 +4884,7 @@ RIL_RESULT_CODE CTE::ParseDialVT(RESPONSE_DATA & rRspData)
 
     return m_pTEBaseInstance->ParseDialVT(rRspData);
 }
-#endif // M2_FEATURE_ENABLED
+#endif // M2_VT_FEATURE_ENABLED
 
 //
 // RIL_UNSOL_SIGNAL_STRENGTH  1009

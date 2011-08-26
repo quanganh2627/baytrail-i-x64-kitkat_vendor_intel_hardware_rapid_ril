@@ -484,7 +484,7 @@ public:
     RIL_RESULT_CODE RequestSimTransmitChannel(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA & rRspData);
 
-#if defined(M2_FEATURE_ENABLED)
+#if defined(M2_VT_FEATURE_ENABLED)
     // RIL_REQUEST_HANGUP_VT 108
     RIL_RESULT_CODE RequestHangupVT(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseHangupVT(RESPONSE_DATA & rRspData);
@@ -492,7 +492,7 @@ public:
     // RIL_REQUEST_DIAL_VT 109
     RIL_RESULT_CODE RequestDialVT(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseDialVT(RESPONSE_DATA & rRspData);
-#endif // M2_FEATURE_ENABLED
+#endif // M2_VT_FEATURE_ENABLED
 
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData);
