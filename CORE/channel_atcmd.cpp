@@ -34,7 +34,14 @@ extern BOOL  g_bIsSocket;
 //  Com init strings for this channel.
 //  Call control commands, misc commands
 
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|+XPOW=0,0,0|S0=0|+CMEE=1" };
+//  Bugzilla 5079: 3G Rx Diversity
+//  Only send AT+XRXDIV=1,1 when M2 Rx Diversity feature is enabled.
+//  Otherwise, send AT+XRXDIV=0,1
+#if defined(M2_RXDIV_FEATURE_ENABLED)
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|+XPOW=0,0,0|+XRXDIV=1,1|S0=0|+CMEE=1" };
+#else
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|+XPOW=0,0,0|+XRXDIV=0,1|S0=0|+CMEE=1" };
+#endif
 INITSTRING_DATA ATCmdUnlockInitString   = { "" };
 INITSTRING_DATA ATCmdPowerOnInitString  = { "" };
 INITSTRING_DATA ATCmdReadyInitString    = { "" };
