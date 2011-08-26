@@ -89,6 +89,24 @@ typedef struct _TAG_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
 //
 const BYTE RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER = 0xCC;
 
+#if defined(M2_FEATURE_ENABLED)
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct _TAG_OEM_HOOK_RAW_SET_DATACHANNEL
+{
+    unsigned char bCommand;  //  Command ID
+} sOEM_HOOK_RAW_SET_DATACHANNEL;
+
+//
+//  RIL_OEM_HOOK_RAW_SET_DATACHANNEL
+//  Command ID = 0xDD
+//
+//  This command sends AT+XDATACHANNEL=1,0,"/mux/2","/mux/5",0 to the modem.
+//
+//  "response" = NULL
+//
+const BYTE RIL_OEM_HOOK_RAW_SET_DATACHANNEL = 0xDD;
+#endif //M2_FEATURE_ENABLED
 
 
 /***********************************************************************/

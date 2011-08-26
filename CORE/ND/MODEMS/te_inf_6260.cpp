@@ -2324,7 +2324,33 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
         }
         break;
+#if defined(M2_FEATURE_ENABLED)
 
+        case RIL_OEM_HOOK_RAW_SET_DATACHANNEL:
+        {
+            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_DATACHANNEL Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+
+            //  Shouldn't be any data following command
+            if (sizeof(sOEM_HOOK_RAW_SET_DATACHANNEL) == uiDataSize)
+            {
+		//TODO:Get the CtrlTid and Tid from Command Datas if exists, default values else
+		int chnlCtrlTid = 2;
+		int chnlTid = 5;
+                //  Creating command. Will return CME Error 3 if one of mux channels is not connected
+                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDATACHANNEL=1,0,\"/mux/%d\",\"/mux/%d\",0\r", chnlCtrlTid, chnlTid ))
+                {
+                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_SET_DATACHANNEL - Can't construct szCmd1.\r\n");
+                    goto Error;
+                }
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not OEM_HOOK_RAW_SET_DATACHANNEL=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_DATACHANNEL));
+                goto Error;
+            }
+        }
+        break;
+#endif //M2_FEATURE_ENABLED
 
         default:
             RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: Received unknown command=[0x%02X]\r\n", bCommand);
