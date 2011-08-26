@@ -25,6 +25,8 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>  // for sscanf
+#include <signal.h>
+#include <unistd.h>
 
 #include "types.h"
 #include "rillog.h"
@@ -38,6 +40,8 @@
 #include "te_inf_6260.h"
 #include "cutils/tztime.h"
 
+BYTE g_szNITZ[MAX_BUFFER_SIZE];
+BOOL g_bNITZTimerActive = false;
 
 //
 //
@@ -64,7 +68,7 @@ CSilo_Network::CSilo_Network(CChannel *pChannel)
 
     m_pATRspTable = pATRspTable;
 
-    memset(m_szNITZ, 0, sizeof(m_szNITZ));
+    memset(g_szNITZ, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
 
     RIL_LOG_VERBOSE("CSilo_Network::CSilo_Network() - Exit\r\n");
 }
@@ -133,6 +137,35 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
+void triggerNITZNotification(int sig)
+{
+    BYTE *pszTimeData = NULL;
+
+    RIL_LOG_INFO("triggerNITZNotification, g_bNITZTimerActive: %d", g_bNITZTimerActive);
+
+    if (!g_bNITZTimerActive)
+        return;
+
+    g_bNITZTimerActive = false;
+
+    //  Copy to dynamic buffer
+    pszTimeData = (BYTE*)malloc(sizeof(BYTE) * MAX_BUFFER_SIZE);
+    if (NULL == pszTimeData)
+    {
+        RIL_LOG_CRITICAL("triggerNITZNotification - ERROR: Could not allocate memory for pszTimeData.\r\n");
+       return;
+    }
+
+    memset(pszTimeData, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
+    strncpy(pszTimeData, g_szNITZ, sizeof(BYTE) * MAX_BUFFER_SIZE);
+
+    // Reset the global buffer
+    memset(g_szNITZ, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
+
+    RIL_onUnsolicitedResponse (RIL_UNSOL_NITZ_TIME_RECEIVED, (void *) pszTimeData, sizeof(BYTE *));
+    free(pszTimeData);
+}
+
 //
 //
 BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointer)
@@ -155,9 +188,6 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     //  The notification could come in as:
     //  +CTZV: <tz>,"<year>/<month>/<day>,<hr>:<min>:<sec>"<postfix>
 
-    //  Store the NITZ string locally, and use the +CTZDST notification to send
-    //  the actual notification to Android.
-
     //  Check to see if we have a complete CTZV notification.
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
@@ -174,15 +204,15 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     }
 
     // Extract "<date, time>"
-    memset(m_szNITZ, 0, sizeof(m_szNITZ));
-    if (!ExtractQuotedString(rszPointer, m_szNITZ, sizeof(m_szNITZ), rszPointer))
+    memset(g_szNITZ, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
+    if (!ExtractQuotedString(rszPointer, g_szNITZ, sizeof(g_szNITZ), rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to find date/time string!\r\n");
         goto Error;
     }
 
     // Extract time/date values from quoted string
-    szTemp = m_szNITZ;
+    szTemp = g_szNITZ;
 
     // Extract "yy/mm/dd"
     if ( (!ExtractUInt32(szTemp, uiYear, szTemp)) ||
@@ -254,18 +284,29 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     }
 
     // Format date time as "yy/mm/dd,hh:mm:ss"
-    // Store locally in m_szNITZ.  We actually send the NITZ notification when
-    // parsing +CTZDST.
-    memset(m_szNITZ, 0, sizeof(m_szNITZ));
-    strftime(m_szNITZ, sizeof(m_szNITZ), "%y/%m/%d,%T", pGMT);
+    memset(g_szNITZ, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
+    strftime(g_szNITZ, sizeof(g_szNITZ), "%y/%m/%d,%T", pGMT);
 
     // Add timezone: "(+/-)tz"
-    strncat(m_szNITZ, szTimeZone, sizeof(m_szNITZ) - strlen(m_szNITZ) - 1);
+    strncat(g_szNITZ, szTimeZone, sizeof(g_szNITZ) - strlen(g_szNITZ) - 1);
 
-    RIL_LOG_INFO("CSilo_Network::ParseCTZV() - INFO: m_szNITZ: %s\r\n", m_szNITZ);
-
+    RIL_LOG_INFO("CSilo_Network::ParseCTZV() - INFO: g_szNITZ: %s\r\n", g_szNITZ);
 
     pResponse->SetUnsolicitedFlag(TRUE);
+
+    // If the NITZ alarm is already active, disable the alarm.
+    if (g_bNITZTimerActive)
+        alarm(0);
+
+    /* CTZDST will be reported only if the network daylight saving time is
+     * received from network as part of the MM information message. So, we
+     * can't wait for CTZDST for updating the NITZ information to android.
+     * If the CTZDST is not received within 1 second of the CTZV receival,
+     * then update the NITZ information to android.
+     */
+    g_bNITZTimerActive = true;
+    signal(SIGALRM, triggerNITZNotification);
+    alarm(1);
 
     fRet = TRUE;
 Error:
@@ -287,6 +328,14 @@ BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const BYTE* &rszPoin
     char szDST[5] = {0};
     BYTE *pszTimeData = NULL;
 
+    /*
+     * Disable the NITZ alarm, as we have received the CTZDST within 1second of the
+     * CTZV receival.
+     */
+    if (g_bNITZTimerActive) {
+        g_bNITZTimerActive = false;
+        alarm(0);
+    }
 
     //  Check to see if we have a complete CTZDST notification.
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
@@ -302,23 +351,23 @@ BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const BYTE* &rszPoin
         goto Error;
     }
 
-    //  Now, if we have m_szNITZ then send the NITZ notification!
-    m_szNITZ[MAX_BUFFER_SIZE - 1] = NULL;  //Klocwork fix
-    if (strlen(m_szNITZ) > 0)
+    //  Now, if we have g_szNITZ then send the NITZ notification!
+    g_szNITZ[MAX_BUFFER_SIZE - 1] = NULL;  //Klocwork fix
+    if (strlen(g_szNITZ) > 0)
     {
         //  Append the ",<dst>" to locally stored NITZ string.
         if (!PrintStringNullTerminate(szDST, sizeof(szDST), ",%u", uiDst))
         {
             RIL_LOG_CRITICAL("CSilo_Network::ParseCTZDST() - Can't make append string - assuming 0\r\n");
 
-            strlcat(&m_szNITZ[0], ",0", MAX_BUFFER_SIZE - strlen(m_szNITZ) - 1);
+            strlcat(&g_szNITZ[0], ",0", MAX_BUFFER_SIZE - strlen(g_szNITZ) - 1);
         }
         else
         {
-            strlcat(&m_szNITZ[0], szDST, MAX_BUFFER_SIZE - strlen(m_szNITZ) - 1);
+            strlcat(&g_szNITZ[0], szDST, MAX_BUFFER_SIZE - strlen(g_szNITZ) - 1);
         }
 
-        RIL_LOG_INFO("CSilo_Network::ParseCTZDST() - INFO: m_szNITZ: %s\r\n", m_szNITZ);
+        RIL_LOG_INFO("CSilo_Network::ParseCTZDST() - INFO: g_szNITZ: %s\r\n", g_szNITZ);
 
         //  Copy to dynamic buffer
         pszTimeData = (BYTE*)malloc(sizeof(BYTE) * MAX_BUFFER_SIZE);
@@ -329,7 +378,10 @@ BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const BYTE* &rszPoin
         }
 
         memset(pszTimeData, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
-        strncpy(pszTimeData, m_szNITZ, sizeof(BYTE) * MAX_BUFFER_SIZE);
+        strncpy(pszTimeData, g_szNITZ, sizeof(BYTE) * MAX_BUFFER_SIZE);
+
+        // Reset the global buffer
+        memset(g_szNITZ, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
 
         pResponse->SetResultCode(RIL_UNSOL_NITZ_TIME_RECEIVED);
 
@@ -338,7 +390,6 @@ BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const BYTE* &rszPoin
             fRet = FALSE;
             goto Error;
         }
-
     }
 
     pResponse->SetUnsolicitedFlag(TRUE);
