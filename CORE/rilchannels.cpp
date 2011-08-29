@@ -66,7 +66,13 @@ UINT32 g_arChannelMapping[REQ_ID_TOTAL] =
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_SMSACKNOWLEDGE,                      // 36
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_GETIMEI,                             // 37
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_GETIMEISV,                           // 38
+#if defined(M2_FEATURE_ENABLED)
+// ANSWER must be on VT channel as we have no information to know if it is a
+// VT call are a voice call
+    RIL_CHANNEL_VT,    //ND_REQ_ID_ANSWER,                              // 39
+#else  // !M2_FEATURE_ENABLED
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_ANSWER,                              // 39
+#endif // M2_FEATURE_ENABLED
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_DEACTIVATEDATACALL,                  // 40
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_QUERYFACILITYLOCK,                   // 41
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_SETFACILITYLOCK,                     // 42
@@ -140,7 +146,7 @@ UINT32 g_arChannelMapping[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_SIMTRANSMITCHANNEL                   // 110
 #if defined(M2_FEATURE_ENABLED)
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_HANGUPVT                             // 111
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_DIALVT                               // 112
+    RIL_CHANNEL_VT,   //ND_REQ_ID_DIALVT                                // 112
 #endif  // M2_FEATURE_ENABLED
 
 };
