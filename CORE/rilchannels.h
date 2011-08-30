@@ -31,9 +31,8 @@
 //  List channels here (one per COM port)
 
 #if defined(M2_FEATURE_ENABLED)
-#define RIL_CHANNEL_MAX 11
+#define RIL_CHANNEL_MAX 10
 #else // M2_FEATURE_ENABLED
-//Note : Max channel doesn't change as RIL_CHANNEL_VT==RIL_CHANNEL_ATCMD
 #define RIL_CHANNEL_MAX 6
 #endif // M2_FEATURE_ENABLED
 
@@ -52,34 +51,20 @@
 //  URC channel
 #define RIL_CHANNEL_URC 4
 
-#if defined(M2_FEATURE_ENABLED)
 //  GPRS/UMTS data (1st primary context)
-#define RIL_CHANNEL_DATA1 6
-#else // M2_FEATURE_ENABLED
-// In order to avoid gap when M2 is not enabled
 #define RIL_CHANNEL_DATA1 5
-#endif // M2_FEATURE_ENABLED
-
 
 //  GPRS/UMTS data (2nd primary context)
-#define RIL_CHANNEL_DATA2 7
+#define RIL_CHANNEL_DATA2 6
 
 //  GPRS/UMTS data (3rd primary context)
-#define RIL_CHANNEL_DATA3 8
+#define RIL_CHANNEL_DATA3 7
 
 //  GPRS/UMTS data (4th primary context)
-#define RIL_CHANNEL_DATA4 9
+#define RIL_CHANNEL_DATA4 8
 
 //  GPRS/UMTS data (5th primary context)
-#define RIL_CHANNEL_DATA5 10
-
-#if defined(M2_FEATURE_ENABLED)
-//Note : RIL_CHANNEL_VT must be the fifth as there are tests on RIL_CHANNEL to know if
-//	they are > RIL_CHANNEL_DATA1. In this case they are considered as data channels
-#define RIL_CHANNEL_VT 5
-#else // M2_FEATURE_ENABLED
-#define RIL_CHANNEL_VT RIL_CHANNEL_ATCMD
-#endif // M2_FEATURE_ENABLED
+#define RIL_CHANNEL_DATA5 9
 
 // TODO - currently allow up to one reserved channel (e.g., for direct audio use).
 // Set this to -1 or a number greater than RIL_CHANNEL_MAX if there is no reserved channel

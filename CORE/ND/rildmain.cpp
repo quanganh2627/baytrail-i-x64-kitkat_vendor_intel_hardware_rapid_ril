@@ -78,9 +78,6 @@ BYTE* g_szDataPort5 = NULL;
 BYTE* g_szDLC2Port = NULL;
 BYTE* g_szDLC6Port = NULL;
 BYTE* g_szDLC8Port = NULL;
-#if defined(M2_FEATURE_ENABLED)
-BYTE* g_szVTPort = NULL;
-#endif //M2_FEATURE_ENABLED
 BYTE* g_szURCPort = NULL;
 CThread* g_pWatchdogThread = NULL;
 
@@ -2021,14 +2018,6 @@ static bool RIL_SetGlobals(int argc, char **argv)
                 RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for SIM/USIM Card channel chnl=[%d] -c\r\n", g_szDLC8Port, RIL_CHANNEL_DLC8);
             break;
 
-#if defined(M2_FEATURE_ENABLED)
-            // This should be the non-emulator case.
-            case 'v':
-                g_szVTPort = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for CS data channel chnl=[%d] -v\r\n", g_szVTPort, RIL_CHANNEL_VT);
-            break;
-#endif //M2_FEATURE_ENABLED
-
             // This should be the non-emulator case.
             case 'u':
                 g_szURCPort = optarg;
@@ -2081,7 +2070,6 @@ static bool RIL_SetGlobals(int argc, char **argv)
 
     //  RIL will not function without all ports defined
 #if defined(M2_FEATURE_ENABLED)
-// Don't need to check for g_szVTPort as we have default value for
     if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3 || !g_szDataPort4 || !g_szDataPort5)
 #else // M2_FEATURE_ENABLED
     if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1)
@@ -2090,13 +2078,6 @@ static bool RIL_SetGlobals(int argc, char **argv)
         usage(argv[0]);
         return false;
     }
-
-
-#if defined(M2_FEATURE_ENABLED)
-// Default value if we don't have set it
-    if(!g_szVTPort)
-	g_szVTPort = "/dev/gsmtty5";
-#endif // M2_FEATURE_ENABLED
     return true;
 }
 

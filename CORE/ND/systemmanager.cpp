@@ -43,11 +43,6 @@
 #include "channel_DLC2.h"
 #include "channel_DLC6.h"
 #include "channel_DLC8.h"
-
-#if defined(M2_FEATURE_ENABLED)
-#include "channel_VT.h"
-#endif //M2_FEATURE_ENABLED
-
 #include "channel_URC.h"
 #include "response.h"
 #include "repository.h"
@@ -607,11 +602,7 @@ CChannel* CSystemManager::CreateChannel(UINT32 eIndex)
         case RIL_CHANNEL_URC:
             pChannel = new CChannel_URC(eIndex);
             break;
-#if defined(M2_FEATURE_ENABLED)
-        case RIL_CHANNEL_VT:
-            pChannel = new CChannel_VT(eIndex);
-            break;
-#endif
+
         default:
             if (eIndex >= RIL_CHANNEL_DATA1) {
                 pChannel = new CChannel_Data(eIndex);
