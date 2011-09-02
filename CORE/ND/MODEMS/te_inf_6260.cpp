@@ -128,7 +128,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
 
         if (SkipString(pszRsp, "+XUICC: ", pszRsp))
         {
-            if (!ExtractUpperBoundedUInt(pszRsp, 2, nValue, pszRsp))
+            if (!ExtractUpperBoundedUInt32(pszRsp, 2, nValue, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: Invalid SIM type.\r\n");
                 pCardStatus->applications[0].app_type = RIL_APPTYPE_UNKNOWN;
@@ -906,7 +906,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
     }
 
     // Parse <cid>
-    if (!ExtractUInt(szRsp, nCid, szRsp))
+    if (!ExtractUInt32(szRsp, nCid, szRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Unable to parse <cid>!\r\n");
         goto Error;
@@ -971,7 +971,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
     while (FindAndSkipString(szRsp, "+XDNS: ", szRsp))
     {
         // Parse <cid>
-        if (!ExtractUInt(szRsp, nXDNSCid, szRsp))
+        if (!ExtractUInt32(szRsp, nXDNSCid, szRsp))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Unable to parse <cid>!\r\n");
             goto Error;
@@ -1806,8 +1806,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    uint  uiSW1 = 0;
-    uint  uiSW2 = 0;
+    UINT32  uiSW1 = 0;
+    UINT32  uiSW2 = 0;
     BYTE* szResponseString = NULL;
     UINT32  cbResponseString = 0;
 
@@ -1833,14 +1833,14 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!ExtractUInt(pszRsp, uiSW1, pszRsp))
+    if (!ExtractUInt32(pszRsp, uiSW1, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Could not extract SW1 value.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt(pszRsp, uiSW2, pszRsp))
+        !ExtractUInt32(pszRsp, uiSW2, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Could not extract SW2 value.\r\n");
         goto Error;
@@ -2019,6 +2019,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
         goto Error;
     }
+    memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
 
     pResponse->sw1 = uiSW1;
     pResponse->sw2 = uiSW2;
@@ -2231,10 +2232,14 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
                     goto Error;
                 }
 
+#if defined(RESET_MGMT)
+                //  TODO: What do we do here?  How does STMD / RIL react to this AT command?
+#else // RESET_MGMT
                 //  NOTE: I am assuming this is the last AT command to be sent to the modem.
                 //  It turns out that this AT command causes TriggerRadioError() to be called.
                 //  The following line will simply return out of the TriggerRadioError() function call.
                 g_bIsTriggerRadioError = TRUE;
+#endif // RESET_MGMT
             }
             else
             {
@@ -2626,6 +2631,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDa
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryAvailableBandMode() - ERROR: Could not allocate memory for response.\r\n");
         goto Error;
     }
+    memset(pModes, 0, (1 + count) * sizeof(int));
 
     pModes[0] = count + 1;
 
@@ -2739,7 +2745,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkGetProfile(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!ExtractUInt(pszRsp, uiLength, pszRsp))
+    if (!ExtractUInt32(pszRsp, uiLength, pszRsp))
     {
         RIL_LOG_INFO("CTE_INF_6260::ParseStkGetProfile() - ERROR: Could not extract length value.\r\n");
         goto Error;
@@ -2892,7 +2898,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
     }
 
     // Parse "<sw1>"
-    if (!ExtractUInt(pszRsp, uiSw1, pszRsp))
+    if (!ExtractUInt32(pszRsp, uiSw1, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not extract sw1.\r\n");
         goto Error;
@@ -2900,7 +2906,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
 
     // Parse ",<sw2>"
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt(pszRsp, uiSw2, pszRsp))
+        !ExtractUInt32(pszRsp, uiSw2, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not extract sw2.\r\n");
         goto Error;
@@ -2908,7 +2914,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
 
     // Parse ",<event_type>"
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt(pszRsp, uiEventType, pszRsp))
+        !ExtractUInt32(pszRsp, uiEventType, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not extract event type.\r\n");
         goto Error;
@@ -2916,7 +2922,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
 
     // Parse ",<envelope_type>"
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt(pszRsp, uiEnvelopeType, pszRsp))
+        !ExtractUInt32(pszRsp, uiEnvelopeType, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not extract envelope type.\r\n");
         goto Error;
@@ -3222,7 +3228,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspD
         goto Error;
     }
 
-    if (!ExtractUInt(pszRsp, rat, pszRsp))
+    if (!ExtractUInt32(pszRsp, rat, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - ERROR: Could not extract rat value.\r\n");
         goto Error;
@@ -3230,7 +3236,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspD
 
     if (FindAndSkipString(pszRsp, ",", pszRsp))
     {
-        if (!ExtractUInt(pszRsp, pref, pszRsp))
+        if (!ExtractUInt32(pszRsp, pref, pszRsp))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - ERROR: Could not find and skip pref value even though it was expected.\r\n");
             goto Error;
@@ -3358,7 +3364,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
         }
 
         //  Get <mode>
-        if (!ExtractUInt(pszRsp, nMode, pszRsp))
+        if (!ExtractUInt32(pszRsp, nMode, pszRsp))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: cannot extract <mode>\r\n");
             goto Error;
@@ -3380,21 +3386,21 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                 }
 
                 //  Read <LAC> and <CI>
-                if (!ExtractUInt(pszRsp, nLAC, pszRsp))
+                if (!ExtractUInt32(pszRsp, nLAC, pszRsp))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 0, could not extract LAC\r\n");
                     goto Error;
                 }
                 //  Read <CI>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt(pszRsp, nCI, pszRsp)))
+                    (!ExtractUInt32(pszRsp, nCI, pszRsp)))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 0, could not extract CI value\r\n");
                     goto Error;
                 }
                 //  Read <RxLev>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt(pszRsp, nRSSI, pszRsp)))
+                    (!ExtractUInt32(pszRsp, nRSSI, pszRsp)))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 0, could not extract RSSI value\r\n");
                     goto Error;
@@ -3425,21 +3431,21 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                 //  <LAC> and <CI> are parameters 2 and 3
                 //  Read <LAC> and <CI>
                 if (!SkipString(pszRsp, ",", pszRsp) ||
-                    !ExtractUInt(pszRsp, nLAC, pszRsp))
+                    !ExtractUInt32(pszRsp, nLAC, pszRsp))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 1, could not extract LAC\r\n");
                     goto Error;
                 }
                 //  Read <CI>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt(pszRsp, nCI, pszRsp)))
+                    (!ExtractUInt32(pszRsp, nCI, pszRsp)))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 1, could not extract CI value\r\n");
                     goto Error;
                 }
                 //  Read <RxLev>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt(pszRsp, nRSSI, pszRsp)))
+                    (!ExtractUInt32(pszRsp, nRSSI, pszRsp)))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 1, could not extract RSSI value\r\n");
                     goto Error;
@@ -3497,7 +3503,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                         RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 2, could not skip to scrambling code\r\n");
                         goto Error;
                     }
-                    if (!ExtractUInt(pszRsp, nScramblingCode, pszRsp))
+                    if (!ExtractUInt32(pszRsp, nScramblingCode, pszRsp))
                     {
                         RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 2, could not extract scrambling code\r\n");
                         goto Error;
@@ -3510,7 +3516,9 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
 
                     RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 2 UMTS scramblingcode index=[%d]  cid=[%s]\r\n", nIndex, pCellData->pnCellCIDBuffers[nIndex]);
 
-                    //  rssi = rscp
+                    //  rssi = <rscp>
+                    //  Note that <rscp> value does not exist with this response.
+                    //  Set to 0 for now.
                     pCellData->pnCellData[nIndex].rssi = 0;
                     RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 2 UMTS rscp index=[%d]  rssi=[%d]\r\n", nIndex, pCellData->pnCellData[nIndex].rssi);
 
@@ -3518,7 +3526,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                 }
                 else
                 {
-                    //  fall through to case 3
+                    //  fall through to case 3 as it is parsed the same.
                     RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - comma count = 6, drop to case 3\r\n");
                 }
             }
@@ -3529,13 +3537,13 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                 //  scrabling_code is parameter 2
                 //  Read <scrambling_code>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt(pszRsp, nScramblingCode, pszRsp)))
+                    (!ExtractUInt32(pszRsp, nScramblingCode, pszRsp)))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode %d, could not extract scrambling code\r\n", nMode);
                     goto Error;
                 }
 
-                //  rscp is parameter 5
+                //  <rscp> is parameter 5
                 if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
                     !FindAndSkipString(pszRsp, ",", pszRsp) ||
                     !FindAndSkipString(pszRsp, ",", pszRsp))
@@ -3544,7 +3552,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                     goto Error;
                 }
                 //  read <rscp>
-                if (!ExtractUInt(pszRsp, nRSSI, pszRsp))
+                if (!ExtractUInt32(pszRsp, nRSSI, pszRsp))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode %d, could not extract rscp\r\n", nMode);
                     goto Error;
@@ -3557,7 +3565,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
 
                 RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode %d UMTS scramblingcode index=[%d]  cid=[%s]\r\n", nMode, nIndex, pCellData->pnCellCIDBuffers[nIndex]);
 
-                //  rssi = rscp
+                //  rssi = <rscp>
+                //  Assume that rssi value is same as <rscp> value and no conversion needs to be done.
                 pCellData->pnCellData[nIndex].rssi = (int)nRSSI;
                 RIL_LOG_INFO("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode %d UMTS rscp index=[%d]  rssi=[%d]\r\n", nMode, nIndex, pCellData->pnCellData[nIndex].rssi);
             }
@@ -3705,7 +3714,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryTtyMode(RESPONSE_DATA & rRspData)
     }
 
     // Parse <mode>
-    if (!ExtractUInt(szRsp, uiTtyMode, szRsp))
+    if (!ExtractUInt32(szRsp, uiTtyMode, szRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryTtyMode() - ERROR: Unable to parse <mode>!\r\n");
         goto Error;

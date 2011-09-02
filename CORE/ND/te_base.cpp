@@ -409,7 +409,10 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
      * requests. Based on the value returned by those requests,
      * sim lock status is updated in the UI
      */
-    g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+    // Bugzilla 7189: Unblock PIN1 dialog stays on screen
+    //  Set radio state to SIM_READY instead of ABSENT_OR_BLOCKED.
+    //  If the response to PUK unlock is OK, then we are unlocked and SIM is ready.
+    g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -909,7 +912,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
     while (FindAndSkipString(szRsp, "+CLCC: ", szRsp))
     {
         // Parse "<id>"
-        if (!ExtractUInt(szRsp, nValue, szRsp))
+        if (!ExtractUInt32(szRsp, nValue, szRsp))
         {
             goto Continue;
         }
@@ -918,7 +921,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
 
         // Parse ",<direction>"
         if (!SkipString(szRsp, ",", szRsp) ||
-            !ExtractUpperBoundedUInt(szRsp, 2, nValue, szRsp))
+            !ExtractUpperBoundedUInt32(szRsp, 2, nValue, szRsp))
         {
             goto Continue;
         }
@@ -927,7 +930,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
 
         // Parse ",<status>"
         if (!SkipString(szRsp, ",", szRsp) ||
-            !ExtractUInt(szRsp, nValue, szRsp))
+            !ExtractUInt32(szRsp, nValue, szRsp))
         {
             goto Continue;
         }
@@ -942,7 +945,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
 
         // Parse ",<type>"
         if (!SkipString(szRsp, ",", szRsp) ||
-            !ExtractUInt(szRsp, nValue, szRsp))
+            !ExtractUInt32(szRsp, nValue, szRsp))
         {
             goto Continue;
         }
@@ -954,7 +957,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
 
         // Parse ",<multiparty>"
         if (!SkipString(szRsp, ",", szRsp) ||
-            !ExtractUpperBoundedUInt(szRsp, 2, nValue, szRsp))
+            !ExtractUpperBoundedUInt32(szRsp, 2, nValue, szRsp))
         {
             goto Continue;
         }
@@ -971,7 +974,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
                 strncpy(pCallListData->pCallNumberBuffers[nUsed], szAddress, MAX_BUFFER_SIZE);
 
                 if (!SkipString(szRsp, ",", szRsp) ||
-                    !ExtractUpperBoundedUInt(szRsp, 0x100, nValue, szRsp))
+                    !ExtractUpperBoundedUInt32(szRsp, 0x100, nValue, szRsp))
                 {
                     goto Continue;
                 }
@@ -984,7 +987,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
                 // meaning the ID is blocked. Since the address parameter
                 // is present, make sure the type also exists before continuing.
                 if (!SkipString(szRsp, ",", szRsp)                 ||
-                    !ExtractUpperBoundedUInt(szRsp, 0x100, nValue, szRsp))
+                    !ExtractUpperBoundedUInt32(szRsp, 0x100, nValue, szRsp))
                 {
                     goto Continue;
                 }
@@ -1099,7 +1102,6 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
             break;
 
         default:  // subscription default
-            case 0:
             clir = "";
             break;
     }
@@ -1394,7 +1396,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    uint      uiCause  = 0;
+    UINT32      uiCause  = 0;
     int*      pCause   = NULL;
     char      szDummy[MAX_BUFFER_SIZE];
 
@@ -1424,7 +1426,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
     // Get failure cause (if it exists)
     if (SkipString(pszRsp, ",", pszRsp))
     {
-        if (!ExtractUInt(pszRsp, uiCause, pszRsp))
+        if (!ExtractUInt32(pszRsp, uiCause, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseLastCallFailCause() - ERROR: Could not extract failure cause.\r\n");
             goto Error;
@@ -1565,11 +1567,11 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    uint      uiNum    = 0;
-    uint      uiStat   = 0;
-    uint      uiLAC    = 0;
-    uint      uiCID    = 0;
-    uint      uiAct    = 0;
+    UINT32      uiNum    = 0;
+    UINT32      uiStat   = 0;
+    UINT32      uiLAC    = 0;
+    UINT32      uiCID    = 0;
+    UINT32      uiAct    = 0;
 
     extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
 
@@ -1581,6 +1583,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not allocate memory for a S_ND_REG_STATUS struct.\r\n");
         goto Error;
     }
+    memset(pRegStatus, 0, sizeof(S_ND_REG_STATUS));
 
     // Skip "<prefix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
@@ -1597,7 +1600,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     }
 
     // Extract <n> and throw away
-    if (!ExtractUInt(pszRsp, uiNum, pszRsp))
+    if (!ExtractUInt32(pszRsp, uiNum, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <n>.\r\n");
         goto Error;
@@ -1605,7 +1608,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
 
     // Skip ",<stat>"
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt(pszRsp, uiStat, pszRsp))
+        !ExtractUInt32(pszRsp, uiStat, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <stat>.\r\n");
         goto Error;
@@ -1616,7 +1619,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     {
         // Extract "<lac>"
         SkipString(pszRsp, "\"", pszRsp);
-        if (!ExtractHexUInt(pszRsp, uiLAC, pszRsp))
+        if (!ExtractHexUInt32(pszRsp, uiLAC, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <lac>.\r\n");
             goto Error;
@@ -1630,7 +1633,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
             goto Error;
         }
         SkipString(pszRsp, "\"", pszRsp);
-        if (!ExtractHexUInt(pszRsp, uiCID, pszRsp))
+        if (!ExtractHexUInt32(pszRsp, uiCID, pszRsp))
          {
              RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <cid>.\r\n");
              goto Error;
@@ -1643,7 +1646,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     if (SkipString(pszRsp, ",", pszRsp))
     {
        // Skip ",<AcT>"
-       if (!ExtractUInt(pszRsp, uiAct, pszRsp))
+       if (!ExtractUInt32(pszRsp, uiAct, pszRsp))
        {
            RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <AcT>.\r\n");
            goto Error;
@@ -1653,7 +1656,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     if (SkipString(pszRsp, ",", pszRsp))
     {
         // Extract <n2> and throw away
-        if (!ExtractUInt(pszRsp, uiNum, pszRsp))
+        if (!ExtractUInt32(pszRsp, uiNum, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <n2>.\r\n");
             goto Error;
@@ -1766,11 +1769,11 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    uint uiNum = 0;
-    uint uiStat = 0;
-    uint uiLAC = 0;
-    uint uiCID = 0;
-    uint uiOther = 0;
+    UINT32 uiNum = 0;
+    UINT32 uiStat = 0;
+    UINT32 uiLAC = 0;
+    UINT32 uiCID = 0;
+    UINT32 uiOther = 0;
 
     P_ND_GPRS_REG_STATUS pGPRSRegStatus = NULL;
 
@@ -1782,6 +1785,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not allocate memory for a S_ND_GPRS_REG_STATUS struct.\r\n");
         goto Error;
     }
+    memset(pGPRSRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
     // Parse "<prefix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
@@ -1798,7 +1802,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     }
 
     // Parse <n> and throw away
-    if (!ExtractUInt(pszRsp, uiNum, pszRsp))
+    if (!ExtractUInt32(pszRsp, uiNum, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <n>.\r\n");
         goto Error;
@@ -1806,7 +1810,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
 
     // Parse ",<stat>"
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt(pszRsp, uiStat, pszRsp))
+        !ExtractUInt32(pszRsp, uiStat, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <stat>.\r\n");
         goto Error;
@@ -1817,7 +1821,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     {
         // Parse "<lac>"
         SkipString(pszRsp, "\"", pszRsp);
-        if (!ExtractHexUInt(pszRsp, uiLAC, pszRsp))
+        if (!ExtractHexUInt32(pszRsp, uiLAC, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <lac>.\r\n");
             goto Error;
@@ -1831,7 +1835,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
              goto Error;
          }
          SkipString(pszRsp, "\"", pszRsp);
-         if (!ExtractHexUInt(pszRsp, uiCID, pszRsp))
+         if (!ExtractHexUInt32(pszRsp, uiCID, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <cid>.\r\n");
             goto Error;
@@ -1843,7 +1847,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     if (SkipString(pszRsp, ",", pszRsp))
     {
         // Extract <n2> and throw away
-        if (!ExtractUInt(pszRsp, uiNum, pszRsp))
+        if (!ExtractUInt32(pszRsp, uiNum, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <n2>.\r\n");
             goto Error;
@@ -1933,7 +1937,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    uint      uiType    = 0;
+    UINT32      uiType    = 0;
     int       i         = 0;
     int       numericID = 0;
 
@@ -1968,7 +1972,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
     while (SkipString(pszRsp, "+XCOPS: ", pszRsp))
     {
         // Extract "<Type>"
-        if (!ExtractUInt(pszRsp, uiType, pszRsp))
+        if (!ExtractUInt32(pszRsp, uiType, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract <mode>.\r\n");
             goto Error;
@@ -2320,7 +2324,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
     const char * pszRsp = rRspData.szResponse;
 
     P_ND_SEND_MSG pSendMsg = NULL;
-    uint          uiMsgRef;
+    UINT32          uiMsgRef;
 
     pSendMsg = (P_ND_SEND_MSG)malloc(sizeof(S_ND_SEND_MSG));
     if (NULL == pSendMsg)
@@ -2328,6 +2332,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTEBase::ParseSendSms() - ERROR: Could not allocate memory for a S_ND_SEND_MSG struct.\r\n");
         goto Error;
     }
+    memset(pSendMsg, 0, sizeof(S_ND_SEND_MSG));
 
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
@@ -2344,7 +2349,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!ExtractUInt(pszRsp, uiMsgRef, pszRsp))
+    if (!ExtractUInt32(pszRsp, uiMsgRef, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSendSms() - ERROR: Could not parse <msgRef>.\r\n");
         goto Error;
@@ -2469,7 +2474,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
     const char * pszRsp = rRspData.szResponse;
 
     P_ND_SEND_MSG pSendMsg = NULL;
-    uint          uiMsgRef;
+    UINT32          uiMsgRef;
 
     pSendMsg = (P_ND_SEND_MSG)malloc(sizeof(S_ND_SEND_MSG));
     if (NULL == pSendMsg)
@@ -2477,6 +2482,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTEBase::ParseSendSmsExpectMore() - ERROR: Could not allocate memory for a S_ND_SEND_MSG struct.\r\n");
         goto Error;
     }
+    memset(pSendMsg, 0, sizeof(S_ND_SEND_MSG));
 
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
@@ -2490,7 +2496,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!ExtractUInt(pszRsp, uiMsgRef, pszRsp))
+    if (!ExtractUInt32(pszRsp, uiMsgRef, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSendSmsExpectMore() - ERROR: Could not parse <msgRef>.\r\n");
         goto Error;
@@ -2762,8 +2768,8 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    uint  uiSW1 = 0;
-    uint  uiSW2 = 0;
+    UINT32  uiSW1 = 0;
+    UINT32  uiSW2 = 0;
     BYTE* szResponseString = NULL;
     UINT32  cbResponseString = 0;
 
@@ -2788,14 +2794,14 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!ExtractUInt(pszRsp, uiSW1, pszRsp))
+    if (!ExtractUInt32(pszRsp, uiSW1, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - ERROR: Could not extract SW1 value.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt(pszRsp, uiSW2, pszRsp))
+        !ExtractUInt32(pszRsp, uiSW2, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - ERROR: Could not extract SW2 value.\r\n");
         goto Error;
@@ -2834,6 +2840,7 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
         goto Error;
     }
+    memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
 
     pResponse->sw1 = uiSW1;
     pResponse->sw2 = uiSW2;
@@ -2989,11 +2996,12 @@ RIL_RESULT_CODE CTEBase::ParseGetClir(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTEBase::ParseGetClir() - ERROR: Could not allocate memory for response.\r\n");
         goto Error;
     }
+    memset(pCLIRBlob, 0, sizeof(int) * 2);
 
     // Parse "<prefix>+CLIR: <status>"
     if (!SkipRspStart(szRsp, g_szNewLine, szRsp)          ||
         !SkipString(szRsp, "+CLIR: ", szRsp) ||
-        !ExtractUInt(szRsp, nValue, szRsp))
+        !ExtractUInt32(szRsp, nValue, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetClir() - ERROR: Could not find status value\r\n");
         goto Error;
@@ -3003,7 +3011,7 @@ RIL_RESULT_CODE CTEBase::ParseGetClir(RESPONSE_DATA & rRspData)
 
     // Parse ",<provisioning><postfix>"
     if (!SkipString(szRsp, ",", szRsp)     ||
-        !ExtractUInt(szRsp, nValue, szRsp) ||
+        !ExtractUInt32(szRsp, nValue, szRsp) ||
         !SkipRspEnd(szRsp, g_szNewLine, szRsp))
     {
         goto Error;
@@ -3132,7 +3140,6 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
     UINT32 nEntries = 0;
     UINT32 nCur = 0;
     UINT32 nValue;
-    char szAddress[MAX_BUFFER_SIZE];
 
     while (FindAndSkipString(szRsp, "+CCFC: ", szRsp))
     {
@@ -3154,6 +3161,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTEBase::ParseQueryCallForwardStatus() - ERROR: Could not allocate memory for a S_ND_CALLFWD_DATA struct.\r\n");
         goto Error;
     }
+    memset(pCallFwdBlob, 0, sizeof(S_ND_CALLFWD_DATA));
 
     // Reset our buffer to the beginning of the response
     szRsp = rRspData.szResponse;
@@ -3162,7 +3170,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
     while (FindAndSkipString(szRsp, "+CCFC: ", szRsp))
     {
         // Parse "<status>"
-        if (!ExtractUInt(szRsp, nValue, szRsp))
+        if (!ExtractUInt32(szRsp, nValue, szRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseQueryCallForwardStatus() - WARN: Could not find status value, skipping entry\r\n");
             goto Continue;
@@ -3172,7 +3180,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
 
         // Parse ",<serviceClass>"
         if (!SkipString(szRsp, ",", szRsp) ||
-            !ExtractUInt(szRsp, nValue, szRsp))
+            !ExtractUInt32(szRsp, nValue, szRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseQueryCallForwardStatus() - WARN: Could not find service class value, skipping entry\r\n");
             goto Continue;
@@ -3192,7 +3200,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
             }
 
             //  Parse type if available.
-            if (ExtractUpperBoundedUInt(szRsp, 0x100, nValue, szRsp))
+            if (ExtractUpperBoundedUInt32(szRsp, 0x100, nValue, szRsp))
             {
                 pCallFwdBlob->pCallFwdData[nCur].toa = nValue;
             }
@@ -3218,7 +3226,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
                 if (FindAndSkipString(szRsp, ",", szRsp))
                 {
                     // Parse "<time>"
-                    if (!ExtractUInt(szRsp, nValue, szRsp))
+                    if (!ExtractUInt32(szRsp, nValue, szRsp))
                     {
                         RIL_LOG_WARNING("CTEBase::ParseQueryCallForwardStatus() - WARN: Couldn't find comma after time, skipping entry\r\n");
                         goto Continue;
@@ -3457,9 +3465,9 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallWaiting(RESPONSE_DATA & rRspData)
     while (FindAndSkipString(szRsp, "+CCWA: ", szRsp))
     {
         // Parse "<status>,<class>"
-        if (!ExtractUInt(szRsp, nStatus, szRsp) ||
+        if (!ExtractUInt32(szRsp, nStatus, szRsp) ||
             !SkipString(szRsp, ",", szRsp) ||
-            !ExtractUInt(szRsp, nClass, szRsp))
+            !ExtractUInt32(szRsp, nClass, szRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseQueryCallWaiting() - WARN: Unable to extract UINTS, skip to next entry\r\n");
             goto Continue;
@@ -3682,6 +3690,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTEBase::ParseGetImei() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
         goto Error;
     }
+    memset(szIMEI, 0, MAX_PROP_VALUE);
 
     if (!SkipRspStart(szRsp, g_szNewLine, szRsp))
     {
@@ -4019,7 +4028,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryFacilityLock(RESPONSE_DATA & rRspData)
     while (FindAndSkipString(szRsp, "+CLCK: ", szRsp))
     {
         // Parse "<status>"
-        if (!ExtractUInt(szRsp, dwStatus, szRsp))
+        if (!ExtractUInt32(szRsp, dwStatus, szRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseQueryFacilityLock() - WARN: Unable to extract <status>, skip to next entry\r\n");
             goto Continue;
@@ -4028,7 +4037,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryFacilityLock(RESPONSE_DATA & rRspData)
         //  Optionally parse <class> if there.
         if (SkipString(szRsp, ",", szRsp))
         {
-            if(!ExtractUInt(szRsp, dwClass, szRsp))
+            if(!ExtractUInt32(szRsp, dwClass, szRsp))
             {
                 RIL_LOG_WARNING("CTEBase::ParseQueryFacilityLock() - WARN: Unable to extract <class>, skip to next entry\r\n");
                 goto Continue;
@@ -4278,7 +4287,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryNetworkSelectionMode(RESPONSE_DATA & rRspData
         goto Error;
     }
 
-    if (!ExtractUInt(szRsp, (UINT32&)*pnMode, szRsp))
+    if (!ExtractUInt32(szRsp, (UINT32&)*pnMode, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseQueryNetworkSelectionMode() - ERROR: Could not extract the mode.\r\n");
         goto Error;
@@ -4500,7 +4509,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
     while (SkipString(szRsp, "(", szRsp))
     {
         // Extract "<stat>"
-        if (!ExtractUInt(szRsp, nValue, szRsp))
+        if (!ExtractUInt32(szRsp, nValue, szRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - ERROR: Unable to extract status\r\n");
             goto Error;
@@ -4931,7 +4940,7 @@ RIL_RESULT_CODE CTEBase::ParseGetMute(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!ExtractUpperBoundedUInt(pszRsp, 2, nValue, pszRsp))
+    if (!ExtractUpperBoundedUInt32(pszRsp, 2, nValue, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetMute() - ERROR : Can't parse nValue.\r\n");
         goto Error;
@@ -5005,7 +5014,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!ExtractUInt(pszRsp, nValue, pszRsp))
+    if (!ExtractUInt32(pszRsp, nValue, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseQueryClip() - ERROR : Can't parse nValue1.\r\n");
         goto Error;
@@ -5013,7 +5022,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
 
     if (SkipString(pszRsp, ",", pszRsp))
     {
-        if (!ExtractUInt(pszRsp, nValue, pszRsp))
+        if (!ExtractUInt32(pszRsp, nValue, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseQueryClip() - ERROR : Can't parse nValue2.\r\n");
             goto Error;
@@ -5068,7 +5077,7 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    uint      uiCause  = 0;
+    UINT32      uiCause  = 0;
     int*      pCause   = NULL;
     char      szDummy[MAX_BUFFER_SIZE];
 
@@ -5097,7 +5106,7 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
 
     if (SkipString(pszRsp, ",", pszRsp))
     {
-        if (!ExtractUInt(pszRsp, uiCause, pszRsp))
+        if (!ExtractUInt32(pszRsp, uiCause, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseLastDataCallFailCause() - ERROR: Could not extract failure cause.\r\n");
             goto Error;
@@ -5188,7 +5197,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
     while (FindAndSkipString(pszRsp, "+CGACT: ", pszRsp))
     {
         // Parse <cid>
-        if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
+        if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Invalid CID.\r\n");
             goto Error;
@@ -5196,7 +5205,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
 
         // Parse <state>
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt(pszRsp, 2, nValue, pszRsp))
+            !ExtractUpperBoundedUInt32(pszRsp, 2, nValue, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Invalid state.\r\n");
             goto Error;
@@ -5212,7 +5221,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
     while (FindAndSkipString(pszRsp, "+CGDCONT: ", pszRsp))
     {
         // Parse <cid>
-        if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
+        if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract CID.\r\n");
             goto Error;
@@ -5254,7 +5263,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
 
         // Parse ,<data_comp>
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt(pszRsp, 0x2, nValue, pszRsp))
+            !ExtractUpperBoundedUInt32(pszRsp, 0x2, nValue, pszRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseDataCallList() - WARNING: Could not extract data comp.\r\n");
             goto Continue;
@@ -5262,7 +5271,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
 
         // Parse ,<head_comp>
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt(pszRsp, 0x2, nValue, pszRsp))
+            !ExtractUpperBoundedUInt32(pszRsp, 0x2, nValue, pszRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseDataCallList() - WARNING: Could not extract header comp.\r\n");
             goto Continue;
@@ -5406,10 +5415,7 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     //  Store setting in context.
     rReqData.pContextData = (void*)nEnable;
 
-    rReqData.szCmd1[0] = '\0';
-
-// REMOVE COMMENT when modem supports AT+XCSQ command
-//    if (CopyStringNullTerminate(rReqData.szCmd1, (1 == nEnable) ? "AT+XCSQ=1\r" : "AT+XCSQ=0\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, (1 == nEnable) ? "AT+XCSQ=1\r" : "AT+XCSQ=0\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -5531,7 +5537,7 @@ RIL_RESULT_CODE CTEBase::ParseWriteSmsToSim(RESPONSE_DATA & rRspData)
     }
 
     if (!FindAndSkipString(szRsp, "+CMGW: ", szRsp) ||
-        !ExtractUInt(szRsp, (UINT32&)*pIndex, szRsp)  ||
+        !ExtractUInt32(szRsp, (UINT32&)*pIndex, szRsp)  ||
         !SkipRspEnd(szRsp, g_szNewLine, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseWriteSmsToSim() - ERROR: Could not extract the Message Index.\r\n");
@@ -6245,7 +6251,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
     // Parse "<prefix>+CSCB: <mode>,<mids>,<dcss><postfix>"
     if (!SkipRspStart(szRsp, g_szNewLine, szRsp) ||
         !SkipString(szRsp, "+CSCB: ", szRsp) ||
-        !ExtractUInt(szRsp, nSelected, szRsp) ||
+        !ExtractUInt32(szRsp, nSelected, szRsp) ||
         !SkipString(szRsp, ",", szRsp) ||
         !ExtractQuotedString(szRsp, szChannels, MAX_BUFFER_SIZE, szRsp) ||
         !SkipString(szRsp, ",", szRsp) ||
@@ -6292,7 +6298,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
     for (UINT32 i = 0; (i < nStructsChannels) && (i < RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES); i++)
     {
         UINT32 nValue1, nValue2;
-        if (!ExtractUInt(pszChannels, nValue1, pszChannels))
+        if (!ExtractUInt32(pszChannels, nValue1, pszChannels))
         {
             //  Use -1 as no channels.
             nValue1 = -1;
@@ -6303,7 +6309,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
             if (SkipString(pszChannels, "-", pszChannels))
             {
                 //  It is a range.
-                if (!ExtractUInt(pszChannels, nValue2, pszChannels))
+                if (!ExtractUInt32(pszChannels, nValue2, pszChannels))
                 {
                     //  Nothing after the "-" is an error.
                     RIL_LOG_CRITICAL("CTEBase::ParseGsmGetBroadcastSmsConfig() - ERROR: Parsing szChannels range. nStructsChannels=%d i=%d\r\n", nStructsChannels, i);
@@ -6334,7 +6340,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
     for (UINT32 i = 0; (i < nStructsLangs) && (i < RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES); i++)
     {
         UINT32 nValue1, nValue2;
-        if (!ExtractUInt(pszLangs, nValue1, pszLangs))
+        if (!ExtractUInt32(pszLangs, nValue1, pszLangs))
         {
             //  Use -1 as error for now.
             nValue1 = -1;
@@ -6345,7 +6351,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
             if (SkipString(pszLangs, "-", pszLangs))
             {
                 //  It is a range.
-                if (!ExtractUInt(pszLangs, nValue2, pszLangs))
+                if (!ExtractUInt32(pszLangs, nValue2, pszLangs))
                 {
                     //  Nothing after the "-" is an error.
                     RIL_LOG_CRITICAL("CTEBase::ParseGsmGetBroadcastSmsConfig() - ERROR: Parsing szLangs range. nStructsLangs=%d i=%d\r\n", nStructsLangs, i);
@@ -6890,6 +6896,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSmscAddress(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTEBase::ParseGetSMSCAddress() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
         goto Error;
     }
+    memset(szSCAddr, 0, MAX_BUFFER_SIZE);
 
     // Parse "<prefix><sca>,<tosca><postfix>"
     //  We can ignore the , and <tosca>.
@@ -7112,9 +7119,9 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    uint  uiSW1 = 0;
-    uint  uiSW2 = 0;
-    uint  uiLen = 0;
+    UINT32  uiSW1 = 0;
+    UINT32  uiSW2 = 0;
+    UINT32  uiLen = 0;
     BYTE* szResponseString = NULL;
     UINT32  cbResponseString = 0;
 
@@ -7136,7 +7143,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!ExtractUInt(pszRsp, uiLen, pszRsp))
+    if (!ExtractUInt32(pszRsp, uiLen, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() - ERROR: Could not extract uiLen value.\r\n");
         goto Error;
@@ -7174,6 +7181,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
         goto Error;
     }
+    memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
 
     //  Response must be 4 chars or longer - cbResponseString includes NULL character
     if (cbResponseString < 5)
@@ -7283,8 +7291,8 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
     SkipRspStart(szRsp, g_szNewLine, szRsp);
 
     //if (!FindAndSkipString(szRsp, "+CCHO: ", szRsp) ||
-    //    !ExtractUInt(szRsp, nChannelId, szRsp))
-    if (!ExtractUInt(szRsp, nChannelId, szRsp))
+    //    !ExtractUInt32(szRsp, nChannelId, szRsp))
+    if (!ExtractUInt32(szRsp, nChannelId, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - ERROR: Could not extract the Channel Id.\r\n");
         goto Error;
@@ -7450,9 +7458,9 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    uint  uiSW1 = 0;
-    uint  uiSW2 = 0;
-    uint  uiLen = 0;
+    UINT32  uiSW1 = 0;
+    UINT32  uiSW2 = 0;
+    UINT32  uiLen = 0;
     BYTE* szResponseString = NULL;
     UINT32  cbResponseString = 0;
 
@@ -7474,7 +7482,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!ExtractUInt(pszRsp, uiLen, pszRsp))
+    if (!ExtractUInt32(pszRsp, uiLen, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not extract uiLen value.\r\n");
         goto Error;
@@ -7512,6 +7520,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
         goto Error;
     }
+    memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
 
     //  Response must be 4 chars or longer - cbResponseString includes NULL character
     if (cbResponseString < 5)
@@ -7662,7 +7671,6 @@ RIL_RESULT_CODE CTEBase::CoreDialVT(REQUEST_DATA & rReqData, void * pData, UINT3
             break;
 
         default:  // subscription default
-            case 0:
             clir = "";
             break;
     }
@@ -7693,8 +7701,8 @@ RIL_SignalStrength* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    uint                uiRSSI  = 0;
-    uint                uiBER   = 0;
+    UINT32 uiRSSI  = 0;
+    UINT32 uiBER   = 0;
     RIL_SignalStrength* pSigStrData;
 
     pSigStrData = (RIL_SignalStrength*)malloc(sizeof(RIL_SignalStrength));
@@ -7714,14 +7722,14 @@ RIL_SignalStrength* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!ExtractUInt(pszRsp, uiRSSI, pszRsp))
+    if (!ExtractUInt32(pszRsp, uiRSSI, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - ERROR: Could not extract uiRSSI.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt(pszRsp, uiBER, pszRsp))
+        !ExtractUInt32(pszRsp, uiBER, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - ERROR: Could not extract uiBER.\r\n");
         goto Error;
@@ -7810,7 +7818,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
     while (FindAndSkipString(pszRsp, "+CGACT: ", pszRsp))
     {
         // Parse <cid>
-        if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
+        if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Invalid CID.\r\n");
             goto Error;
@@ -7818,7 +7826,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
 
         // Parse <state>
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt(pszRsp, 2, nValue, pszRsp))
+            !ExtractUpperBoundedUInt32(pszRsp, 2, nValue, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Invalid state.\r\n");
             goto Error;
@@ -7832,7 +7840,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
     while (FindAndSkipString(pszRsp, "+CGDCONT: ", pszRsp))
     {
         // Parse <cid>
-        if (!ExtractUInt(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
+        if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract CID.\r\n");
             goto Error;
@@ -7874,7 +7882,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
 
         // Parse ,<data_comp>
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt(pszRsp, 0x2, nValue, pszRsp))
+            !ExtractUpperBoundedUInt32(pszRsp, 0x2, nValue, pszRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseDataCallListChanged() - WARNING: Could not extract data comp.\r\n");
             goto Continue;
@@ -7882,7 +7890,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
 
         // Parse ,<head_comp>
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt(pszRsp, 0x2, nValue, pszRsp))
+            !ExtractUpperBoundedUInt32(pszRsp, 0x2, nValue, pszRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseDataCallListChanged() - WARNING: Could not extract header comp.\r\n");
             goto Continue;

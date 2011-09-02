@@ -52,6 +52,13 @@
 //  Core dump
 #include <include/linux/hsi/hsi_ffl_tty.h>
 
+#if defined(RESET_MGMT)
+#include <cutils/sockets.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#endif // RESET_MGMT
 
 ///////////////////////////////////////////////////////////
 //  FUNCTION PROTOTYPES
@@ -79,6 +86,8 @@ BYTE* g_szDLC2Port = NULL;
 BYTE* g_szDLC6Port = NULL;
 BYTE* g_szDLC8Port = NULL;
 BYTE* g_szURCPort = NULL;
+
+#if !defined(RESET_MGMT)
 CThread* g_pWatchdogThread = NULL;
 
 //  Global variable to see if modem is dead.  (TEMPORARY)
@@ -86,11 +95,23 @@ BOOL g_bIsModemDead = FALSE;
 
 //  Global variable to see if we are in TriggerRadioError() function.
 BOOL g_bIsTriggerRadioError = FALSE;
+#endif // !RESET_MGMT
 
 //  Use this to "spoof" responses to commands while resetting modem.
 //  Need separate variable for spoofing commands, since core dump app
 //  may be running.
 BOOL g_bSpoofCommands = FALSE;
+
+#if defined(RESET_MGMT)
+//  Global variable - set to TRUE when RIL detects something is wrong
+BOOL g_bPendingCleanupRequest = FALSE;
+
+//  Global variable - set to TRUE when watchdog thread reads that modem
+//  is self-resetting
+BOOL g_bOngoingModemSelfReset = FALSE;
+
+
+#endif // RESET_MGMT
 
 static const RIL_RadioFunctions gs_callbacks =
 {
@@ -113,6 +134,263 @@ static const struct RIL_Env * gs_pRilEnv;
 // FUNCTION DEFINITIONS
 //
 
+#if defined(RESET_MGMT)
+//
+//  RIL has detected something is wrong with the modem.
+//  Alert STMD to attempt a clean-up.
+void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const BYTE* lpszFileName, BOOL bWaitForever)
+{
+    RIL_LOG_INFO("do_request_clean_up() - ENTER eError=[%d]  bWaitForever=[%d]\r\n", eError, bWaitForever);
+    RIL_LOG_INFO("do_request_clean_up() - file=[%s], line num=[%d]\r\n", lpszFileName, uiLineNum);
+
+    if (g_bPendingCleanupRequest || g_bOngoingModemSelfReset)
+    {
+        RIL_LOG_CRITICAL("do_request_clean_up() - pending... g_bPendingCleanupRequest=[%d] g_bOngoingModemSelfReset=[%d]\r\n",
+            g_bPendingCleanupRequest, g_bOngoingModemSelfReset);
+
+        //  wait forever or exit thread
+        goto Done;
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("do_request_clean_up() - set g_bPendingCleanupRequest to TRUE\r\n");
+        g_bPendingCleanupRequest = TRUE;
+
+        //  Switch depending on the error
+        switch(eError)
+        {
+            case eRadioError_LowMemory:
+                RIL_LOG_INFO("do_request_clean_up() - eRadioError_LowMemory\r\n");
+                //  Low memory condition, nothing wrong with modem.
+                //  Just call exit and let init restart us.
+                RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
+                RIL_LOG_INFO("do_request_clean_up() - ******* Calling exit(0) *******\r\n");
+                RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
+                exit(0);
+                break;
+
+            case eRadioError_InitFailure:
+                RIL_LOG_INFO("do_request_clean_up() - eRadioError_InitFailure\r\n");
+                //  Low memory condition, nothing wrong with modem.
+                //  Just call exit and let init restart us.
+                RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
+                RIL_LOG_INFO("do_request_clean_up() - ******* Calling exit(0) *******\r\n");
+                RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
+                exit(0);
+                break;
+
+            default:
+                RIL_LOG_INFO("do_request_clean_up() - eError=[%d], SendRequestCleanup\r\n", eError);
+                break;
+        }
+
+        //  Send "REQUEST_CLEANUP" on CleanupRequest socket
+        if (!CSystemManager::GetInstance().SendRequestCleanup())
+        {
+            RIL_LOG_CRITICAL("do_request_clean_up() - ERROR: ***** CANNOT SEND CLEANUP REQUEST *****\r\n");
+            //  TODO: What to do here?
+        }
+
+        //  wait forever or exit thread
+        goto Done;
+    }
+
+Done:
+    if (bWaitForever)
+    {
+        RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
+        RIL_LOG_INFO("do_request_clean_up() - ******* WAITING FOREVER *******\r\n");
+        RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
+        Sleep(0xFFFFFFFF);
+    }
+    RIL_LOG_INFO("do_request_clean_up() - EXIT\r\n");
+}
+
+
+//  This is the thread that monitors the "modem status" socket for notifications
+//  from STMD that the modem has reset itself.
+void* ModemWatchdogThreadProc(void* pVoid)
+{
+    RIL_LOG_INFO("ModemWatchdogThreadProc() - Enter\r\n");
+
+    int fd_ModemStatusSocket = -1;
+    int nPollRet = 0;
+    int data_size = 0;
+    unsigned int data;
+    struct pollfd fds[1] = { {0,0,0} };
+
+    const int NUM_LOOPS = 10;
+    const int SLEEP_MS = 1000;  // 1 sec between retries
+
+    //  Let's connect to the modem status socket
+    for (int i = 0; i < NUM_LOOPS; i++)
+    {
+        RIL_LOG_INFO("ModemWatchdogThreadProc() - Attempting open modem status socket try=[%d] out of %d\r\n", i+1, NUM_LOOPS);
+        fd_ModemStatusSocket = socket_local_client(SOCKET_NAME_MODEM_STATUS,
+                ANDROID_SOCKET_NAMESPACE_RESERVED,
+                SOCK_STREAM);
+
+        if (fd_ModemStatusSocket < 0)
+        {
+            RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: Cannot open fd_ModemStatusSocket\r\n");
+            Sleep(SLEEP_MS);
+        }
+        else
+        {
+            RIL_LOG_INFO("ModemWatchdogThreadProc() - *** CREATED socket fd=[%d] ***\r\n", fd_ModemStatusSocket);
+            break;
+        }
+    }
+
+    if (fd_ModemStatusSocket < 0)
+    {
+        //  TODO: what do we do here?
+        RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: ***** CANNOT OPEN MODEM STATUS SOCKET *****\r\n");
+        return NULL;
+    }
+
+    //  Read current modem status
+    data_size = recv(fd_ModemStatusSocket, &data, sizeof(unsigned int), 0);
+    if (data_size == sizeof(unsigned int))
+    {
+        switch(data)
+        {
+            case MODEM_UP:
+                RIL_LOG_INFO("ModemWatchdogThreadProc() - received initial MODEM_UP\r\n");
+                break;
+            case MODEM_DOWN:
+                RIL_LOG_INFO("ModemWatchdogThreadProc() - received initial MODEM_DOWN\r\n");
+                break;
+            default:
+                RIL_LOG_INFO("ModemWatchdogThreadProc() - received initial UNKNOWN [%d]\r\n", data);
+                break;
+        }
+    }
+    else
+    {
+        if (data_size < 0)
+        {
+            RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: read failed [%d]\r\n", data_size);
+        }
+    }
+
+
+    //  Now start polling for modem status...
+    RIL_LOG_INFO("ModemWatchdogThreadProc() - starting polling for modem status......\r\n");
+
+    for (;;)
+    {
+        fds[0].fd = fd_ModemStatusSocket;
+        fds[0].events = POLLIN;
+        fds[0].revents = 0;
+
+        nPollRet = poll(fds, 1, -1);
+        if (nPollRet > 0)
+        {
+            if (fds[0].revents & POLLIN)
+            {
+                data_size = recv(fd_ModemStatusSocket, &data, sizeof(unsigned int), 0);
+                if (data_size <= 0)
+                {
+                    RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - recv failed [%d]\r\n", data_size);
+                }
+                else
+                {
+                    switch(data)
+                    {
+                        case MODEM_UP:
+                            RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() received MODEM_UP\r\n");
+
+                            //  transition to up
+                            //  let's exit, init will restart us
+                            RIL_LOG_CRITICAL("********************************************************************\r\n");
+                            RIL_LOG_CRITICAL("************ModemWatchdogThreadProc() - CALLING EXIT ******************\r\n");
+                            RIL_LOG_CRITICAL("********************************************************************\r\n");
+
+                            exit(0);
+
+                            break;
+                        case MODEM_DOWN:
+                            RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() received MODEM_DOWN\r\n");
+
+                            g_bOngoingModemSelfReset = TRUE;
+
+                            //  Spoof commands from now on
+                            g_bSpoofCommands = TRUE;
+
+                            //  Inform Android of new state
+                            //  Voice calls disconnected, no more data connections
+                            ModemResetUpdate();
+
+                            //  Close ports
+                            RIL_LOG_INFO("ModemWatchdogThreadProc() - Closing channel ports\r\n");
+                            CSystemManager::GetInstance().CloseChannelPorts();
+
+                            //  Rely on STMD to perform cleanup
+                            RIL_LOG_INFO("ModemWatchdogThreadProc() - Done closing channel ports\r\n");
+                            RIL_LOG_INFO("ModemWatchdogThreadProc() - Wait for MODEM_UP status...\r\n");
+
+                            break;
+                        default:
+                            RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() UNKNOWN [%d]\r\n", data);
+                            break;
+                    }
+                }
+            }
+            else if (fds[0].revents & POLLHUP)
+            {
+                RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: POLLHUP received!\r\n");
+                //  TODO: What do we do here?
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: UNKNOWN event received! [0x%08x]\r\n", fds[0].revents);
+                //  TODO: What do we do here?
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: poll() FAILED! nPollRet=[%d]\r\n", nPollRet);
+        }
+
+    }  // end of poll loop
+
+
+    RIL_LOG_INFO("ModemWatchdogThreadProc() - Exit\r\n");
+    return NULL;
+}
+
+
+//
+// Create modem watchdog thread to monitor modem status socket
+//
+BOOL CreateModemWatchdogThread()
+{
+    RIL_LOG_INFO("CreateModemWatchdogThread() - Enter\r\n");
+    BOOL bResult = FALSE;
+
+    //  launch watchdog thread.
+    CThread* pModemWatchdogThread = new CThread(ModemWatchdogThreadProc, NULL, THREAD_FLAGS_JOINABLE, 0);
+    if (!pModemWatchdogThread)
+    {
+        RIL_LOG_CRITICAL("CreateModemWatchdogThread() - ERROR: Unable to launch modem watchdog thread\r\n");
+        goto Error;
+    }
+
+    bResult = TRUE;
+
+Error:
+    delete pModemWatchdogThread;
+    pModemWatchdogThread = NULL;
+
+    RIL_LOG_INFO("CreateModemWatchdogThread() - Exit\r\n");
+    return bResult;
+}
+
+#endif // RESET_MGMT
+
+
+#if !defined(RESET_MGMT)
 //  When watchdog thread has detected a POLLHUP signal,
 //  call this function to see if the reason is core dump.
 //
@@ -190,10 +468,10 @@ BOOL CheckForCoreDumpFlag(void)
     RIL_LOG_INFO("CheckForCoreDumpFlag() - Exit  bRet=[%d]\r\n", (int)bRet);
     return bRet;
 }
-
+#endif // !RESET_MGMT
 
 // This Function aggregates the actions of updating Android stack, when a reset is identified.
-static void ModemResetUpdate()
+void ModemResetUpdate()
 {
 
     RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
@@ -238,6 +516,7 @@ static void ModemResetUpdate()
 
 }
 
+#if !defined(RESET_MGMT)
 /////////////////////////////////////////////////////////////////////////////
 static void ResetModemAndRestart(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE* lpszFileName)
 {
@@ -567,7 +846,7 @@ Error:
     RIL_LOG_INFO("CreateWatchdogThread() - Exit\r\n");
     return bResult;
 }
-
+#endif // !RESET_MGMT
 
 void RIL_onRequestComplete(RIL_Token tRIL, RIL_Errno eErrNo, void *pResponse, size_t responseLen)
 {
@@ -890,7 +1169,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
     RIL_Errno eRetVal = RIL_E_SUCCESS;
     RIL_LOG_INFO("onRequest() - id=%d token: 0x%08x\r\n", requestID, (int) hRilToken);
 
-
+#if !defined(RESET_MGMT)
     //  TEMP Jan 6/2011- If modem dead flag is set, then simply return error without going through rest of RRIL.
     if (g_bIsModemDead)
     {
@@ -901,10 +1180,14 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         return;
     }
     //  TEMP - end Jan 6/2011
-
+#endif // !RESET_MGMT
 
     //  If we're in the middle of TriggerRadioError(), spoof all commands.
+#if defined(RESET_MGMT)
+    if (g_bSpoofCommands)
+#else  // RESET_MGMT
     if (g_bIsTriggerRadioError || g_bSpoofCommands)
+#endif // RESET_MGMT
     {
         if (RIL_REQUEST_GET_CURRENT_CALLS == requestID)
         {
@@ -1761,7 +2044,7 @@ static void onCancel(RIL_Token t)
 
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.21 for Android 2.3.4 (Build August 16/2011)";
+    return "Intrinsyc Rapid-RIL M5.22 for Android 2.3.4 (Build August 23/2011)";
 }
 
 
@@ -1807,6 +2090,8 @@ Error:
     return (void*)dwRet;
 }
 
+
+#if !defined(RESET_MGMT)
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE* lpszFileName)
@@ -1821,14 +2106,14 @@ void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE*
         //  Enter Mutex
         CMutex::Lock(CSystemManager::GetTriggerRadioErrorMutex());
 
-       /*
-	* If TriggerRadioError was already called do nothing.
-	* If g_bSpoofCommands is set, this means that a modem reset is ongoing,
-	* so do noting except if the eRadioErrorVal is set to eRadioError_ModemInitiatedCrash.
-	* In this case, we need to execute the code because this means that the
-	* handling of the modem reset is terminated.
-	*/
-	 if (g_bIsTriggerRadioError || (g_bSpoofCommands && eRadioErrorVal != eRadioError_ModemInitiatedCrash) )
+        /*
+         * If TriggerRadioError was already called do nothing.
+         * If g_bSpoofCommands is set, this means that a modem reset is ongoing,
+         * so do nothing except if the eRadioErrorVal is set to eRadioError_ModemInitiatedCrash.
+         * In this case, we need to execute the code because this means that the
+         * handling of the modem reset is terminated.
+         */
+        if (g_bIsTriggerRadioError || (g_bSpoofCommands && eRadioErrorVal != eRadioError_ModemInitiatedCrash) )
         {
             RIL_LOG_CRITICAL("TriggerRadioError() - Already taking place, return  eRadioError=%d\r\n", eRadioErrorVal);
             CMutex::Unlock(CSystemManager::GetTriggerRadioErrorMutex());
@@ -1949,7 +2234,7 @@ void TriggerRadioErrorAsync(eRadioError eRadioErrorVal, UINT32 uiLineNum, const 
     RIL_LOG_CRITICAL("TriggerRadioErrorAsync() - EXIT\r\n");
     return;
 }
-
+#endif // !RESET_MGMT
 
 
 

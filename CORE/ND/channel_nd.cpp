@@ -125,11 +125,20 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             // write the command out to the com port
             if (!WriteToPort(pATCommand, strlen(pATCommand), uiBytesWritten))
             {
+#if defined(RESET_MGMT)
+                // write() = -1, error.
+                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: write() = -1, chnl=[%d] Error writing command: %s\r\n",
+                                m_uiRilChannel,
+                                CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+                //  wait forever in here.
+                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__, TRUE);
+#else // RESET_MGMT
                 // ignore the error and soldier on, something may have been written
                 // to the modem so wait for a potential response
                 RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Error writing command: %s\r\n",
                                 m_uiRilChannel,
                                 CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+#endif // RESET_MGMT
             }
 
             if (strlen(pATCommand) != uiBytesWritten)
@@ -221,7 +230,11 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         RIL_LOG_INFO("COUNT = %d\r\n", nCount);
         if (nCount == 4)
         {
+#if defined(RESET_MGMT)
+            do_request_clean_up(eRadioError_ChannelDead, __LINE__, __FILE__, FALSE);
+#else
             TriggerRadioErrorAsync(eRadioError_ChannelDead, __LINE__, __FILE__);
+#endif
             goto Error;
         }
     }
@@ -337,7 +350,11 @@ BOOL CChannel::ProcessNoop(CResponse*& rpResponse)
     if (NULL == rpResponse)
     {
         // signal critical error for low memory
+#if defined(RESET_MGMT)
+        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__, FALSE);
+#else // RESET_MGMT
         TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
+#endif // RESET_MGMT
         return FALSE;
     }
 
@@ -358,7 +375,11 @@ BOOL CChannel::RejectRadioOff(CResponse*& rpResponse)
     if (NULL == rpResponse)
     {
         // signal critical error for low memory
+#if defined(RESET_MGMT)
+        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__, FALSE);
+#else // RESET_MGMT
         TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
+#endif // RESET_MGMT
         return FALSE;
     }
 
@@ -516,7 +537,11 @@ BOOL CChannel::ProcessModemData(BYTE *szRxBytes, UINT32 uiRxBytesSize)
         if (!m_pResponse)
         {
             // critically low on memory
+#if defined(RESET_MGMT)
+            do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__, FALSE);
+#else // RESET_MGMT
             TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
+#endif // RESET_MGMT
             goto Error;
         }
     }

@@ -141,37 +141,60 @@ BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cb
     return fRet;
 }
 
-// Convert UCS2 to UTF-8.
-// Input of Unicode character in variable ucs2 and converts it to the UTF-8 encoding.
-// Output buffer, utf8, is assumed to have at least 4 bytes of space allocated to write into.
-// Return value is the number of bytes actually written or -1 if error.
-// Adds a zero byte to the end of the string.
-int ucs2_to_utf8(int ucs2, unsigned char * utf8)
+//  UCS2 to UTF8
+//
+// Helper fuction for UCS2 to UTF8 conversion below.
+// This function was copied from external/qemu/telephony/gsm.c
+int
+utf8_write( unsigned char*  utf8, int  offset, int  v )
 {
-    if (ucs2 < 0x80)
-    {
-        utf8[0] = ucs2;
-        utf8[1] = '\0';
-        return 1;
+    int  result;
+
+    if (v < 128) {
+        result = 1;
+        if (utf8)
+            utf8[offset] = (unsigned char) v;
+    } else if (v < 0x800) {
+        result = 2;
+        if (utf8) {
+            utf8[offset+0] = (unsigned char)( 0xc0 | (v >> 6) );
+            utf8[offset+1] = (unsigned char)( 0x80 | (v & 0x3f) );
+        }
+    } else if (v < 0x10000) {
+        result = 3;
+        if (utf8) {
+            utf8[offset+0] = (unsigned char)( 0xe0 |  (v >> 12) );
+            utf8[offset+1] = (unsigned char)( 0x80 | ((v >> 6) & 0x3f) );
+            utf8[offset+2] = (unsigned char)( 0x80 |  (v & 0x3f) );
+        }
+    } else {
+        result = 4;
+        if (utf8) {
+            utf8[offset+0] = (unsigned char)( 0xf0 | ((v >> 18) & 0x7) );
+            utf8[offset+1] = (unsigned char)( 0x80 | ((v >> 12) & 0x3f) );
+            utf8[offset+2] = (unsigned char)( 0x80 | ((v >> 6) & 0x3f) );
+            utf8[offset+3] = (unsigned char)( 0x80 |  (v & 0x3f) );
+        }
     }
-    if (ucs2 >= 0x80 && ucs2 < 0x800)
-    {
-        utf8[0] = (ucs2 >> 6)   | 0xC0;
-        utf8[1] = (ucs2 & 0x3F) | 0x80;
-        utf8[2] = '\0';
-        return 2;
-    }
-    if (ucs2 >= 0x800 && ucs2 < 0xFFFF)
-    {
-        utf8[0] = ((ucs2 >> 12)       ) | 0xE0;
-        utf8[1] = ((ucs2 >> 6 ) & 0x3F) | 0x80;
-        utf8[2] = ((ucs2      ) & 0x3F) | 0x80;
-        utf8[3] = '\0';
-        return 3;
-    }
-    return -1;
+    return  result;
 }
 
+// convert a UCS2 string into a UTF8 byte string, assumes 'buf' is correctly sized
+// This function was copied from external/qemu/telephony/gsm.c
+int
+ucs2_to_utf8( const unsigned char*  ucs2,
+              int       ucs2len,
+              unsigned char*   buf )
+{
+    int  nn;
+    int  result = 0;
+
+    for (nn = 0; nn < ucs2len; ucs2 += 2, nn++) {
+        int  c= (ucs2[0] << 8) | ucs2[1];
+        result += utf8_write(buf, result, c);
+    }
+    return result;
+}
 
 
 CSelfExpandBuffer::CSelfExpandBuffer() : m_szBuffer(NULL), m_uiUsed(0), m_nCapacity(0)

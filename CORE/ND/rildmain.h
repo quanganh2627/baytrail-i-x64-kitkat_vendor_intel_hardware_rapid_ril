@@ -26,6 +26,10 @@
 #include "types.h"
 #include <telephony/ril.h>
 
+#if defined(RESET_MGMT)
+#include "stmd.h"
+#endif // RESET_MGMT
+
 class CThread;
 
 // The device path to use for the AT command channel
@@ -43,19 +47,41 @@ extern BYTE * g_szDataPort5;
 
 extern BOOL  g_bIsSocket;
 
+enum eRadioError
+{
+#if !defined(RESET_MGMT)
+    eRadioError_ForceShutdown,      //  Critical error occured
+#endif // RESET_MGMT
+    eRadioError_RequestCleanup,     //  General request clean up
+    eRadioError_LowMemory,          //  Couldn't allocate memory
+    eRadioError_ChannelDead,        //  Modem non-responsive
+    eRadioError_InitFailure,        //  AT command init sequence failed
+    eRadioError_OpenPortFailure,    //  Couldn't open the tty ports successfully
+
+#if !defined(RESET_MGMT)
+    eRadioError_ModemInitiatedCrash,    //  Detected modem initiated reset
+#endif // RESET_MGMT
+};
+
+#if defined(RESET_MGMT)
+
+
+extern BOOL  g_bPendingCleanupRequest;
+extern BOOL  g_bOngoingModemSelfReset;
+
+void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const BYTE* lpszFileName, BOOL bWaitForever);
+
+extern BOOL CreateModemWatchdogThread();
+
+#else // RESET_MGMT
+
 extern BOOL  g_bIsTriggerRadioError;
 
 extern BOOL CreateWatchdogThread();
 
-enum eRadioError
-{
-    eRadioError_ForceShutdown,
-    eRadioError_LowMemory,
-    eRadioError_ChannelDead,
-    eRadioError_InitFailure,
-    eRadioError_OpenPortFailure,
-    eRadioError_ModemInitiatedCrash
-};
+#endif // RESET_MGMT
+
+void ModemResetUpdate();
 
 void RIL_onRequestComplete(RIL_Token tRIL, RIL_Errno eErrNo, void *pResponse, size_t responseLen);
 
@@ -64,7 +90,9 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
 void RIL_requestTimedCallback(RIL_TimedCallback callback, void * pParam, const struct timeval * pRelativeTime);
 void RIL_requestTimedCallback(RIL_TimedCallback callback, void * pParam, const unsigned long seconds, const unsigned long microSeconds);
 
+#if !defined(RESET_MGMT)
 void TriggerRadioError(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE* lpszFileName);
 void TriggerRadioErrorAsync(eRadioError eRadioErrorVal, UINT32 uiLineNum, const BYTE* lpszFileName);
+#endif // !RESET_MGMT
 
 #endif // RRIL_RILDMAIN_H

@@ -412,6 +412,7 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rsz
         RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() - ERROR: Could not alloc mem for command.\r\n");
         goto Error;
     }
+    memset(pszProactiveCmd, 0, sizeof(char) * uiLength);
 
     // Parse <"hex_string">
     if (!ExtractQuotedString(rszPointer, pszProactiveCmd, uiLength, rszPointer))
@@ -493,6 +494,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rsz
         RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() - ERROR: Could not alloc mem for command.\r\n");
         goto Error;
     }
+    memset(pszProactiveCmd, 0, sizeof(char) * uiLength);
 
     // Parse <"hex_string">
     if (!ExtractQuotedString(rszPointer, pszProactiveCmd, uiLength, rszPointer))
@@ -682,7 +684,7 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rs
     }
 
     // Extract "<sw1>"
-    if (!ExtractUInt(rszPointer, uiStatus1, rszPointer))
+    if (!ExtractUInt32(rszPointer, uiStatus1, rszPointer))
     {
         RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - ERROR: Could not parse sw1.\r\n");
         goto Error;
@@ -692,7 +694,7 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rs
 
     // Extract "<sw2>"
     if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
-         (!ExtractUInt(rszPointer, uiStatus2, rszPointer)))
+         (!ExtractUInt32(rszPointer, uiStatus2, rszPointer)))
     {
         RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - ERROR: Could not parse sw2.\r\n");
         goto Error;
@@ -734,7 +736,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
     }
 
     // Extract "<SIM state>"
-    if (!ExtractUInt(rszPointer, nSIMState, rszPointer))
+    if (!ExtractUInt32(rszPointer, nSIMState, rszPointer))
     {
         RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - ERROR: Could not parse nSIMState.\r\n");
         goto Error;
@@ -829,7 +831,7 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const BYTE*& rszPointer)
     }
 
     // Extract "<index>"
-    if (!ExtractUInt(rszPointer, uiIndex, rszPointer))
+    if (!ExtractUInt32(rszPointer, uiIndex, rszPointer))
     {
         RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - ERROR: Could not parse uiIndex.\r\n");
         goto Error;
@@ -837,7 +839,7 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const BYTE*& rszPointer)
 
     // Extract ",<total cnt>"
     if (!SkipString(rszPointer, ",", rszPointer) ||
-        !ExtractUInt(rszPointer, uiTotalCnt, rszPointer) )
+        !ExtractUInt32(rszPointer, uiTotalCnt, rszPointer) )
     {
         RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - ERROR: Could not parse uiTotalCnt.\r\n");
         goto Error;

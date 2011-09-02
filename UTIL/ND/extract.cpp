@@ -146,7 +146,7 @@ BOOL FindAndSkipRspEnd(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rsz
 
 // Takes the digits in szStart and stores them into a UINT32. If a space follows the last
 // digit it will also be consumed. Returns TRUE if at least one digit is found.
-BOOL ExtractUInt(const BYTE* szStart, UINT32 &rnValue, const BYTE* &rszEnd)
+BOOL ExtractUInt32(const BYTE* szStart, UINT32 &rnValue, const BYTE* &rszEnd)
 {
     BOOL fRet = FALSE;
 
@@ -182,14 +182,6 @@ BOOL ExtractUInt(const BYTE* szStart, UINT32 &rnValue, const BYTE* &rszEnd)
 }
 
 
-// Extracts a UINT32 from a given string.
-BOOL ExtractUInt32(const BYTE* szStart, UINT32 &rdwValue, const BYTE* &rszEnd)
-{
-    //  Skip over any spaces
-    SkipSpaces(szStart, szStart);
-
-    return ExtractUInt(szStart, (UINT32&)rdwValue, rszEnd);
-}
 
 // Extracts a string enclosed by quotes into a given buffer. Returns TRUE if two quotes are found and
 // the buffer given is large enough to contain the string and a NULL termination character.
@@ -314,14 +306,6 @@ BOOL ExtractHexUInt32(const BYTE* szStart, UINT32 &rdwValue, const BYTE* &rszEnd
     return fRet;
 }
 
-// Extracts a UINT32 out from a hex string
-BOOL ExtractHexUInt(const BYTE* szStart, UINT32& rnValue, const BYTE* &rszEnd)
-{
-    //  Skip over any spaces
-    SkipSpaces(szStart, szStart);
-
-    return ExtractHexUInt32(szStart, (UINT32&)rnValue, rszEnd);
-}
 
 // Allocates memory for the quoted string extracted from the given buffer and returns it. Caller must delete
 // the memory when finished with it.
@@ -488,7 +472,7 @@ BOOL ExtractDouble(const BYTE* szStart, double &rdbValue, const BYTE* &rszEnd)
 }
 
 
-BOOL ExtractUpperBoundedUInt(const char* szData,
+BOOL ExtractUpperBoundedUInt32(const char* szData,
                              const UINT32 nUpperLimit,
                              UINT32& rnVal,
                              const char*& rszRemainder)
@@ -497,7 +481,7 @@ BOOL ExtractUpperBoundedUInt(const char* szData,
     SkipSpaces(szData, szData);
 
     // Extract the number
-    BOOL fRet = ExtractUInt(szData, rnVal, rszRemainder);
+    BOOL fRet = ExtractUInt32(szData, rnVal, rszRemainder);
 
     // check that the number is below the upper limit
     if (fRet)
@@ -514,7 +498,7 @@ BOOL ExtractUpperBoundedUInt(const char* szData,
 //
 //
 //
-BOOL ExtractLowerBoundedUInt(const char* szData,
+BOOL ExtractLowerBoundedUInt32(const char* szData,
                              const UINT32 nLowerLimit,
                              UINT32& rnVal,
                              const char*& rszRemainder)
@@ -523,7 +507,7 @@ BOOL ExtractLowerBoundedUInt(const char* szData,
     SkipSpaces(szData, szData);
 
     // Extract the number
-    BOOL fRet = ExtractUInt(szData, rnVal, rszRemainder);
+    BOOL fRet = ExtractUInt32(szData, rnVal, rszRemainder);
 
     // check that the number is above the lower limit
     if (fRet)
@@ -538,7 +522,7 @@ BOOL ExtractLowerBoundedUInt(const char* szData,
 }
 
 
-BOOL ExtractIntAndConvertToUInt(const char* szData, UINT32& rnVal, const char*& rszRemainder)
+BOOL ExtractIntAndConvertToUInt32(const char* szData, UINT32& rnVal, const char*& rszRemainder)
 {
     BOOL fNegative = FALSE;
     BOOL fRet = FALSE;
@@ -556,7 +540,7 @@ BOOL ExtractIntAndConvertToUInt(const char* szData, UINT32& rnVal, const char*& 
         rszRemainder = szData;
     }
 
-    if (ExtractUInt(rszRemainder, rnVal, rszRemainder))
+    if (ExtractUInt32(rszRemainder, rnVal, rszRemainder))
     {
         if (fNegative)
         {

@@ -340,23 +340,13 @@ BOOL CChannel_Data::SetContextID(UINT32 dwContextID)
 
     RIL_LOG_VERBOSE("CChannel_Data::SetContextID() - Enter\r\n");
 
-    BOOL fRet = FALSE;
-
-    // If we are setting a value other than 0, make sure it isn't already in use!
-    if (dwContextID)
-    {
-    }
-
     m_uiContextID = dwContextID;
 
-    fRet = TRUE;
-
-Error:
     RIL_LOG_VERBOSE("CChannel_Data::SetContextID() - Exit\r\n");
 
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
 
-    return fRet;
+    return TRUE;
 }
 
 

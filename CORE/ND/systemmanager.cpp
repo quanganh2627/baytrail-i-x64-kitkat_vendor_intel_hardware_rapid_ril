@@ -50,6 +50,14 @@
 #include "rildmain.h"
 #include "systemmanager.h"
 
+#if defined(RESET_MGMT)
+#include <cutils/sockets.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#endif // RESET_MGMT
+
 // Tx Queue
 CRilQueue<CCommand*>* g_pTxQueue[RIL_CHANNEL_MAX];
 CEvent* g_TxQueueEvent[RIL_CHANNEL_MAX];
@@ -107,8 +115,13 @@ CSystemManager::CSystemManager()
     m_pSimUnlockedEvent(NULL),
     m_pModemPowerOnEvent(NULL),
     m_pInitStringCompleteEvent(NULL),
+#if !defined(RESET_MGMT)
     m_pTriggerRadioErrorMutex(NULL),
+#endif // !RESET_MGMT
     m_pDataChannelAccessorMutex(NULL),
+#if defined(RESET_MGMT)
+    m_fdCleanupSocket(-1),
+#endif // RESET_MGMT
     m_RequestInfoTable(),
     m_bFailedToInitialize(FALSE)
 {
@@ -207,12 +220,14 @@ CSystemManager::~CSystemManager()
         m_pInitStringCompleteEvent = NULL;
     }
 
+#if !defined(RESET_MGMT)
     if (m_pTriggerRadioErrorMutex)
     {
         RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pTriggerRadioErrorMutex\r\n");
         delete m_pTriggerRadioErrorMutex;
         m_pTriggerRadioErrorMutex = NULL;
     }
+#endif // !RESET_MGMT
 
     if (m_pDataChannelAccessorMutex)
     {
@@ -220,6 +235,15 @@ CSystemManager::~CSystemManager()
         delete m_pDataChannelAccessorMutex;
         m_pDataChannelAccessorMutex = NULL;
     }
+
+#if defined(RESET_MGMT)
+    if (m_fdCleanupSocket >= 0)
+    {
+        shutdown(m_fdCleanupSocket, SHUT_RDWR);
+        close(m_fdCleanupSocket);
+        m_fdCleanupSocket = -1;
+    }
+#endif // RESET_MGMT
 
     if (fLocked)
     {
@@ -318,6 +342,7 @@ BOOL CSystemManager::InitializeSystem()
         }
     }
 
+#if !defined(RESET_MGMT)
     if (m_pTriggerRadioErrorMutex)
     {
         RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pTriggerRadioErrorMutex was already created!\r\n");
@@ -331,6 +356,7 @@ BOOL CSystemManager::InitializeSystem()
             goto Done;
         }
     }
+#endif // !RESET_MGMT
 
     if (m_pDataChannelAccessorMutex)
     {
@@ -370,11 +396,28 @@ BOOL CSystemManager::InitializeSystem()
         goto Done;
     }
 
+#if defined(RESET_MGMT)
+    //  Need to open the "clean up request" socket here.
+    if (!OpenCleanupRequestSocket())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Unable to create cleanup request socket\r\n");
+        goto Done;
+    }
+#endif // RESET_MGMT
+
     if (!CThreadManager::Start(RIL_CHANNEL_MAX * 2, m_pExitRilEvent))
     {
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Thread manager failed to start.\r\n");
     }
 
+#if defined(RESET_MGMT)
+    //  Launch the modem reset watchdog thread
+    if (!CreateModemWatchdogThread())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't create modem watchdog thread!\r\n");
+        goto Done;
+    }
+#else // RESET_MGMT
     //  Check repository to see if we support the watchdog thread.
     iTemp = 0;
     if (!repository.Read(g_szGroupModem, g_szDisableWatchdogThread, iTemp))
@@ -396,7 +439,7 @@ BOOL CSystemManager::InitializeSystem()
         RIL_LOG_CRITICAL("******* CSystemManager::InitializeSystem() - Watchdog thread is DISABLED.\r\n");
         RIL_LOG_CRITICAL("******* Unsoliticited modem reset detection AND core dump will not function.\r\n");
     }
-
+#endif // RESET_MGMT
 
     if (!InitializeModem())
     {
@@ -427,17 +470,28 @@ Done:
             m_pInitStringCompleteEvent = NULL;
         }
 
+#if !defined(RESET_MGMT)
         if (m_pTriggerRadioErrorMutex)
         {
             delete m_pTriggerRadioErrorMutex;
             m_pTriggerRadioErrorMutex = NULL;
         }
+#endif // !RESET_MGMT
 
         if (m_pDataChannelAccessorMutex)
         {
             delete m_pDataChannelAccessorMutex;
             m_pDataChannelAccessorMutex = NULL;
         }
+
+#if defined(RESET_MGMT)
+        if (m_fdCleanupSocket >= 0)
+        {
+            shutdown(m_fdCleanupSocket, SHUT_RDWR);
+            close(m_fdCleanupSocket);
+            m_fdCleanupSocket = -1;
+        }
+#endif // RESET_MGMT
 
         CThreadManager::Stop();
 
@@ -990,4 +1044,84 @@ void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIn
         RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() - DEBUG: Channel [%d] complete! Still waiting for other channels to complete index [%d]!\r\n", uiChannel, eInitIndex);
     }
 }
+
+///////////////////////////////////////////////////////////////////////////////
+#if defined(RESET_MGMT)
+//  This function opens clean-up request socket.
+//  The fd of this socket is stored in the CSystemManager class.
+BOOL CSystemManager::OpenCleanupRequestSocket()
+{
+    RIL_LOG_INFO("CSystemManager::OpenCleanupRequestSocket() - ENTER\r\n");
+
+    BOOL bRet = FALSE;
+    const int NUM_LOOPS = 10;
+    const int SLEEP_MS = 1000;  // 1 sec between retries
+    //  TODO: Change looping formula
+
+    for (int i = 0; i < NUM_LOOPS; i++)
+    {
+        RIL_LOG_INFO("CSystemManager::OpenCleanupRequestSocket() - Attempting open cleanup socket try=[%d] out of %d\r\n", i+1, NUM_LOOPS);
+        m_fdCleanupSocket = socket_local_client(SOCKET_NAME_CLEAN_UP,
+                ANDROID_SOCKET_NAMESPACE_RESERVED,
+                SOCK_STREAM);
+
+        if (m_fdCleanupSocket < 0)
+        {
+            RIL_LOG_CRITICAL("CSystemManager::OpenCleanupRequestSocket() - ERROR: Cannot open m_fdCleanupSocket\r\n");
+            Sleep(SLEEP_MS);
+        }
+        else
+        {
+            RIL_LOG_INFO("CSystemManager::OpenCleanupRequestSocket() - *** CREATED socket fd=[%d] ***\r\n", m_fdCleanupSocket);
+            break;
+        }
+    }
+
+    if (m_fdCleanupSocket < 0)
+        bRet = FALSE;
+    else
+        bRet = TRUE;
+
+    RIL_LOG_INFO("CSystemManager::OpenCleanupRequestSocket() - EXIT\r\n");
+    return bRet;
+}
+
+
+//  Send clean up request on the socket
+BOOL CSystemManager::SendRequestCleanup()
+{
+    RIL_LOG_INFO("CSystemManager::SendRequestCleanup() - ENTER\r\n");
+    BOOL bRet = FALSE;
+
+    if (m_fdCleanupSocket >= 0)
+    {
+        unsigned int data;
+        int data_size = 0;
+
+        RIL_LOG_INFO("CSystemManager::SendRequestCleanup() - Send request clean up\r\n");
+        data = REQUEST_CLEANUP;
+        data_size = send(m_fdCleanupSocket, &data, sizeof(unsigned int), 0);
+        if (data_size < 0)
+        {
+            RIL_LOG_CRITICAL("CSystemManager::SendRequestCleanup() - Failed to send CLEANUP_REQUEST\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSystemManager::SendRequestCleanup() - Send request clean up  SUCCESSFUL\r\n");
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CSystemManager::SendRequestCleanup() - invalid socket fd=[%d]\r\n", m_fdCleanupSocket);
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_INFO("CSystemManager::SendRequestCleanup() - EXIT\r\n");
+    return bRet;
+}
+#endif // RESET_MGMT
+
 

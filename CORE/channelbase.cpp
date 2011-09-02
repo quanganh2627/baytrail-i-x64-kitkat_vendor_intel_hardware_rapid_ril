@@ -572,7 +572,11 @@ Done:
     if (!bRetVal)
     {
         // Couldn't send an init string -- trigger radio error
+#if defined(RESET_MGMT)
+        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__, FALSE);
+#else // RESET_MGMT
         TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
+#endif // RESET_MGMT
     }
 
     delete[] szInit;
@@ -607,10 +611,13 @@ UINT32 CChannelBase::ResponseThread()
         if (uiReadError >= uiMAX_READERROR)
         {
             RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - ERROR: chnl=[%d] uiReadError > = %d! Trigger radio error!\r\n", m_uiRilChannel, uiMAX_READERROR);
+#if defined(RESET_MGMT)
+            do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__, TRUE);
+#else // RESET_MGMT
             Sleep(200);
             //TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
             TriggerRadioError(eRadioError_ForceShutdown, __LINE__, __FILE__);
-
+#endif // RESET_MGMT
 
 
             // the modem is down and we're switching off, so no need to hang around
@@ -630,9 +637,13 @@ UINT32 CChannelBase::ResponseThread()
             if (!IsPortOpen())
             {
                 RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Port closed, rebooting\r\n", m_uiRilChannel);
+#if defined(RESET_MGMT)
+                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__, TRUE);
+#else // RESET_MGMT
                 Sleep(200);
                 //TriggerRadioErrorAsync(eRadioError_ForceShutdown, __LINE__, __FILE__);
                 TriggerRadioError(eRadioError_ForceShutdown, __LINE__, __FILE__);
+#endif // RESET_MGMT
                 break;
             }
             continue;
@@ -645,6 +656,12 @@ UINT32 CChannelBase::ResponseThread()
             if (!ReadFromPort(szData, uiRespDataBufSize, uiRead))
             {
                 RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Read failed\r\n", m_uiRilChannel);
+#if defined(RESET_MGMT)
+                // read() < 0, call do_request_clean_up()
+                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__, TRUE);
+                //  exit thread
+                return 0;
+#endif // RESET_MGMT
                 break;
             }
 
@@ -653,8 +670,13 @@ UINT32 CChannelBase::ResponseThread()
                 if (bFirstRead)
                 {
                     RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Data available but uiRead is 0!\r\n", m_uiRilChannel);
+#if defined(RESET_MGMT)
+                    //  ignore, watchdog thread handles this now.
+                    Sleep(25);
+#else // RESET_MGMT
                     ++uiReadError;
                     Sleep(100);
+#endif // RESET_MGMT
                 }
                 break;
             }
@@ -693,7 +715,12 @@ void CChannelBase::HandleTimedOutError(BOOL fCmdTimedOut)
         if (m_uiNumTimeouts >= m_uiMaxTimeouts)
         {
             RIL_LOG_CRITICAL("CChannelBase::HandleTimedOutError() - ERROR: chnl=[%d] Modem has not responded to multiple commands, restart RIL\r\n", m_uiRilChannel);
+
+#if defined(RESET_MGMT)
+            do_request_clean_up(eRadioError_ChannelDead, __LINE__, __FILE__, FALSE);
+#else // RESET_MGMT
             TriggerRadioErrorAsync(eRadioError_ChannelDead, __LINE__, __FILE__);
+#endif // RESET_MGMT
         }
     }
     else

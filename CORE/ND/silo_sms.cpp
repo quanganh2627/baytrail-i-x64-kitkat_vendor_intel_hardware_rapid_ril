@@ -146,7 +146,7 @@ BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const BYTE*& rszPo
 
     // Look for a "<anything>,<Index>"
     if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
-         (!ExtractUInt(rszPointer, Index, rszPointer)))
+         (!ExtractUInt32(rszPointer, Index, rszPointer)))
     {
         goto Error;
     }
@@ -199,7 +199,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const BYTE*& rszPointer)
 
     // Parse ",<length><CR><LF>
     if (!SkipString(rszPointer, ",", rszPointer)       ||
-        !ExtractUInt(rszPointer, uiLength, rszPointer) ||
+        !ExtractUInt32(rszPointer, uiLength, rszPointer) ||
         !SkipString(rszPointer, g_szNewLine, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - ERROR: Could not parse PDU Length.\r\n");
@@ -230,6 +230,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const BYTE*& rszPointer)
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - ERROR: Could not allocate memory for szPDU.\r\n");
         goto Error;
     }
+    memset(szPDU, 0, sizeof(BYTE) * uiLength);
 
     if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, uiLength, rszPointer))
     {
@@ -274,7 +275,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const BYTE*& rszPointer)
    RIL_LOG_VERBOSE("CSilo_SMS::ParseCBM() - Enter\r\n");
 
     BOOL   fRet     = FALSE;
-    uint   uiLength = 0;
+    UINT32   uiLength = 0;
     BYTE*  szPDU    = NULL;
     BYTE   szAlpha[MAX_BUFFER_SIZE];
     const BYTE* szDummy;
@@ -289,7 +290,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const BYTE*& rszPointer)
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
 
     // Parse "<length><CR><LF>
-    if (!ExtractUInt(rszPointer, uiLength, rszPointer) ||
+    if (!ExtractUInt32(rszPointer, uiLength, rszPointer) ||
         !SkipString(rszPointer, g_szNewLine, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - ERROR: Could not parse PDU Length.\r\n");
@@ -308,7 +309,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const BYTE*& rszPointer)
     else
     {
         // Override the given length with the actual length. Don't forget the '\0'.
-        uiLength = ((uint)(szDummy - rszPointer)) - strlen(g_szNewLine) + 1;
+        uiLength = ((UINT32)(szDummy - rszPointer)) - strlen(g_szNewLine) + 1;
         RIL_LOG_INFO("CSilo_SMS::ParseCBM() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
@@ -318,6 +319,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const BYTE*& rszPointer)
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - ERROR: Could not allocate memory for szPDU.\r\n");
         goto Error;
     }
+    memset(szPDU, 0, sizeof(BYTE) * uiLength);
 
     if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, uiLength, rszPointer))
     {
@@ -358,7 +360,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const BYTE*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCDS() - Enter\r\n");
 
-    uint  uiLength = 0;
+    UINT32  uiLength = 0;
     const BYTE* szDummy;
     BYTE* szPDU = NULL;
     BYTE   szAlpha[MAX_BUFFER_SIZE];
@@ -374,7 +376,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const BYTE*& rszPointer)
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
 
     // Parse ",<length><CR><LF>
-    if (!ExtractUInt(rszPointer, uiLength, rszPointer) ||
+    if (!ExtractUInt32(rszPointer, uiLength, rszPointer) ||
         !SkipString(rszPointer, g_szNewLine, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - ERROR: Could not parse PDU Length.\r\n");
@@ -394,7 +396,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const BYTE*& rszPointer)
     else
     {
         // Override the given length with the actual length. Don't forget the '\0'.
-        uiLength = ((uint)(szDummy - rszPointer)) - strlen(g_szNewLine) + 1;
+        uiLength = ((UINT32)(szDummy - rszPointer)) - strlen(g_szNewLine) + 1;
         RIL_LOG_INFO("CSilo_SMS::ParseCDS() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
@@ -404,6 +406,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const BYTE*& rszPointer)
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - ERROR: Could not allocate memory for szPDU.\r\n");
         goto Error;
     }
+    memset(szPDU, 0, sizeof(BYTE) * uiLength);
 
     if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, uiLength, rszPointer))
     {

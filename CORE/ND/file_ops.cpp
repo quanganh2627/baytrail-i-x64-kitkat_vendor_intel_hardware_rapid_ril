@@ -7,6 +7,10 @@
 #include <sys/stat.h>
 #include <time.h>
 
+#if defined(RESET_MGMT)
+#include <poll.h>
+#endif // RESET_MGMT
+
 // Use to convert our timeout to a timeval in the future
 timeval msFromNowToTimeval(UINT32 msInFuture)
 {
@@ -238,7 +242,7 @@ BOOL CFile::Write(const void * pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesW
 
     if ((iCount = (write(m_file, pBuffer, dwBytesToWrite))) == -1)
     {
-        RIL_LOG_CRITICAL("CFile::Write() : ERROR : Error during write process!\r\n");
+        RIL_LOG_CRITICAL("CFile::Write() : ERROR : Error during write process!  errno=[%d] [%s]\r\n", errno, strerror(errno));
         return FALSE;
     }
 
@@ -262,8 +266,12 @@ BOOL CFile::Read(void * pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
     {
         if (errno != EAGAIN)
         {
-            RIL_LOG_CRITICAL("CFile::Read() : ERROR : Error during read process!\r\n");
+            RIL_LOG_CRITICAL("CFile::Read() : ERROR : Error during read process!  errno=[%d] [%s]\r\n", errno, strerror(errno));
             return FALSE;
+        }
+        else
+        {
+            //RIL_LOG_CRITICAL("CFile::Read() : ERROR : read() == -1, got errno=EAGAIN\r\n");
         }
 
         rdwBytesRead = 0;
@@ -323,6 +331,76 @@ UINT32 CFile::GetFileAttributes(const char * pszFileName)
     return dwReturn;
 }
 
+#if defined(RESET_MGMT)
+BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
+{
+    struct pollfd fds[1] = { {0,0,0} };
+    int nPollVal = 0;
+
+    rdwFlags = 0;
+
+    if (m_file < 0)
+    {
+        RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : m_file was not valid");
+        return FALSE;
+    }
+
+    fds[0].fd = m_file;
+    fds[0].events = POLLIN;
+
+    if (WAIT_FOREVER == dwTimeoutInMS)
+    {
+        //RIL_LOG_INFO("CFile::WaitForEvent() : calling poll() on fd=[%d]\r\n", m_file);
+
+        nPollVal = poll(fds, 1, -1);
+    }
+    else
+    {
+        //struct timeval Time = msFromNowToTimeval(dwTimeoutInMS);
+
+        RIL_LOG_INFO("CFile::WaitForEvent() : calling poll() on fd=[%d]  timeout=[%d]ms\r\n", m_file, dwTimeoutInMS);
+
+        nPollVal = poll(fds, 1, dwTimeoutInMS);
+    }
+
+    switch(nPollVal)
+    {
+        case -1:
+            //  Error
+            RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR: poll() returned -1\r\n");
+            RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR: errno=[%d] [%s]\r\n", errno, strerror(errno));
+            return FALSE;
+
+        case 0:
+            //  timed out
+            // ignore
+            break;
+
+        default:
+            //  Got an event on the fd
+            if (fds[0].revents & POLLIN)
+            {
+                //  We received valid data
+                rdwFlags = FILE_EVENT_RXCHAR;
+            }
+            else if (fds[0].revents & POLLHUP)
+            {
+                RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR: **** RECEIVED POLLHUP on fd=[%d]  ignoring...\r\n", m_file);
+                //  ignore, should clean-up when uiRead < 0
+            }
+            else
+            {
+                //  not sure if we will ever get here
+                RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR: unexpected event=[%08x]\r\n", fds[0].revents);
+                //  ignore
+            }
+            break;
+    }
+
+    return TRUE;
+}
+
+#else // RESET_MGMT
 BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
 {
     fd_set readfs, writefs, errorfs;
@@ -374,6 +452,7 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
 
     return TRUE;
 }
+#endif // RESET_MGMT
 
 BOOL CFile::Open(CFile * pFile, const char * pszFileName, UINT32 dwAccessFlags, UINT32 dwOpenFlags, UINT32 dwOptFlags, BOOL fIsSocket)
 {

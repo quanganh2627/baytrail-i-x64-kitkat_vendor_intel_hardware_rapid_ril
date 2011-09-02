@@ -111,8 +111,6 @@ public:
     // otherwise return -1
     BOOL Read(const char *szGroup, const char* szKey, int& iRes);
     BOOL Read(const char *szGroup, const char* szKey, char* szRes, int iMaxLen);
-    BOOL Write(const char *szGroup, const char* szKey, int iVal);
-    BOOL Write(const char *szGroup, const char* szKey, const char* szVal);
 
 private:
     // file access and manipulation
@@ -131,26 +129,18 @@ private:
     int LocateGroup(const char* szGroup);
     int LocateKey(const char* szKey, char* szOut = NULL);
     int ExtractValue(char* szIn, char* szRes, unsigned int iMaxLen);
-    int ReplaceKey(const char* szKey, const char* szVal);
-    int InsertKey(const char* szKey, const char* szVal, int iGroupLine);
-    int CreateGroup(const char* szGroup, const char* szKey, const char* szVal);
 
     // locking/unlocking access to the NVM file
     int ReaderLock();
     int ReaderUnlock();
-    int WriterLock();
-    int WriterUnlock();
 
 private:
     struct CRepLock
     {
         pthread_mutex_t stLock;         // master lock
         pthread_cond_t  stRead;         // lock for reader threads
-        pthread_cond_t  stWrite;        // lock for writer threads
         unsigned int    iReaders;       // # reader threads accessing the file
-        unsigned int    iWriters;       // # writer threads accessing the file
         unsigned int    iReadWaiters;   // # reader threads waiting to access the file
-        unsigned int    iWriteWaiters;  // # writer threads waiting to access the file
     };
 
     static struct CRepLock m_stLock;

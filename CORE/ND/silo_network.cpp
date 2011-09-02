@@ -185,11 +185,11 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     szTemp = m_szNITZ;
 
     // Extract "yy/mm/dd"
-    if ( (!ExtractUInt(szTemp, uiYear, szTemp)) ||
+    if ( (!ExtractUInt32(szTemp, uiYear, szTemp)) ||
          (!FindAndSkipString(szTemp, "/", szTemp)) ||
-         (!ExtractUInt(szTemp, uiMonth, szTemp)) ||
+         (!ExtractUInt32(szTemp, uiMonth, szTemp)) ||
          (!FindAndSkipString(szTemp, "/", szTemp)) ||
-         (!ExtractUInt(szTemp, uiDay, szTemp)) )
+         (!ExtractUInt32(szTemp, uiDay, szTemp)) )
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to extract yy/mm/dd!\r\n");
         goto Error;
@@ -197,11 +197,11 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
 
     // Extract "hh:mm:ss"
     if ( (!FindAndSkipString(szTemp, ",", szTemp)) ||
-         (!ExtractUInt(szTemp, uiHour, szTemp)) ||
+         (!ExtractUInt32(szTemp, uiHour, szTemp)) ||
          (!FindAndSkipString(szTemp, ":", szTemp)) ||
-         (!ExtractUInt(szTemp, uiMins, szTemp)) ||
+         (!ExtractUInt32(szTemp, uiMins, szTemp)) ||
          (!FindAndSkipString(szTemp, ":", szTemp)) ||
-         (!ExtractUInt(szTemp, uiSecs, szTemp)) )
+         (!ExtractUInt32(szTemp, uiSecs, szTemp)) )
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to extract hh:mm:ss!\r\n");
         goto Error;
@@ -296,7 +296,7 @@ BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const BYTE* &rszPoin
     }
 
     //  Extract <dst>
-    if (!ExtractUInt(rszPointer, uiDst, rszPointer))
+    if (!ExtractUInt32(rszPointer, uiDst, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZDST() - Cannot parse <dst>\r\n");
         goto Error;
@@ -649,7 +649,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const BYTE* &rszPointe
         else
         {
             //  Should be at <cid> now.
-            if (!ExtractUInt(szDummy, nCID, szDummy))
+            if (!ExtractUInt32(szDummy, nCID, szDummy))
             {
                 RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: Couldn't extract cid\r\n");
                 //  Just trigger normal DataCallListChanged - Let Android process
@@ -764,7 +764,7 @@ BOOL CSilo_Network::ParseXCSQ(CResponse *const pResponse, const BYTE*& rszPointe
     }
 
     if (!SkipString(rszPointer, ",", rszPointer) ||
-        !ExtractUInt(rszPointer, uiBER, rszPointer))
+        !ExtractUInt32(rszPointer, uiBER, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() - ERROR: Could not extract uiBER.\r\n");
         goto Error;

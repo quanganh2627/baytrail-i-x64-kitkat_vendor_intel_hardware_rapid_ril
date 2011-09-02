@@ -394,7 +394,7 @@ BOOL CSilo_Voice::ParseUnsolicitedSSInfo(CResponse* const pResponse, const BYTE*
     pSuppSvcBlob->notificationType = 1;
 
     // Extract <code2>
-    if (ExtractUInt(szPointer, nValue, szPointer) && (5 != nValue))
+    if (ExtractUInt32(szPointer, nValue, szPointer) && (5 != nValue))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseUnsolicitedSSInfo : Found code: %d\r\n", nValue);
 
@@ -406,7 +406,7 @@ BOOL CSilo_Voice::ParseUnsolicitedSSInfo(CResponse* const pResponse, const BYTE*
             RIL_LOG_CRITICAL("CSilo_Voice::ParseUnsolicitedSSInfo : Goto continue\r\n");
             goto Continue;
         }
-        if (ExtractUInt(szPointer, nValue, szPointer))
+        if (ExtractUInt32(szPointer, nValue, szPointer))
         {
             RIL_LOG_CRITICAL("CSilo_Voice::ParseUnsolicitedSSInfo : Found index: %d\r\n", nValue);
             pSuppSvcBlob->index = nValue;
@@ -430,7 +430,7 @@ BOOL CSilo_Voice::ParseUnsolicitedSSInfo(CResponse* const pResponse, const BYTE*
         // Skip "," and look for <type>
         if (SkipString(szPointer, ",", szPointer))
         {
-            if(!ExtractUInt(szPointer, nValue, szPointer))
+            if(!ExtractUInt32(szPointer, nValue, szPointer))
             {
                 RIL_LOG_CRITICAL("CSilo_Voice::ParseUnsolicitedSSInfo : Error during extraction of type\r\n");
                 goto Error;
@@ -528,7 +528,7 @@ BOOL CSilo_Voice::ParseIntermediateSSInfo(CResponse* const pResponse, const BYTE
     prssn->notificationType = 0;
 
     // Extract <code1>
-    if (!ExtractUInt(szPointer, nValue, szPointer))
+    if (!ExtractUInt32(szPointer, nValue, szPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseIntermediateSSInfo() : ERROR : Can't extract <code1>\r\n");
         goto Error;
@@ -541,7 +541,7 @@ BOOL CSilo_Voice::ParseIntermediateSSInfo(CResponse* const pResponse, const BYTE
         // Extract ,<index>
         if (SkipString(szPointer, ",", szPointer))
         {
-            if (ExtractUInt(szPointer, nValue, szPointer))
+            if (ExtractUInt32(szPointer, nValue, szPointer))
             {
                 prssn->index = nValue;
             }
@@ -624,7 +624,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
     }
 
     // Extract "<status>"
-    if (!ExtractUInt(rszPointer, uiStatus, rszPointer))
+    if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : ERROR : Couldn't extract status\r\n");
         goto Error;
@@ -655,7 +655,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
             goto Error;
         }
         if (!SkipString(rszPointer, ",", rszPointer) ||
-            !ExtractUInt(rszPointer, nDCS, rszPointer))
+            !ExtractUInt32(rszPointer, nDCS, rszPointer))
         {
             // default nDCS.  this parameter is supposed to be mandatory but we've
             // seen it missing from otherwise normal USSD responses.
@@ -754,7 +754,7 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
     }
 
     // Extract "<n>"
-    if (!ExtractUInt(rszPointer, uiStatusPresentation, rszPointer))
+    if (!ExtractUInt32(rszPointer, uiStatusPresentation, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdPresentation() : ERROR : Couldn't extract presentation status\r\n");
         goto Error;
@@ -762,7 +762,7 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
 
     // Extract "<m>"
     if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
-         (!ExtractUInt(rszPointer, uiStatusService, rszPointer)))
+         (!ExtractUInt32(rszPointer, uiStatusService, rszPointer)))
     {
         RIL_LOG_INFO("CSilo_Voice::ParseConnLineIdPresentation() - ERROR: Couldn't extract service status\r\n");
         goto Error;
@@ -852,7 +852,7 @@ BOOL CSilo_Voice::ParseConnLineIdRestriction(CResponse* const pResponse, const B
     }
 
     // Extract "<status>"
-    if (!ExtractUInt(rszPointer, uiStatus, rszPointer))
+    if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdRestriction() : ERROR : Couldn't extract status\r\n");
         goto Error;

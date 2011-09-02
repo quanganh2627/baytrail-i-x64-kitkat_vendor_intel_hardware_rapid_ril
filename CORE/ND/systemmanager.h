@@ -75,7 +75,9 @@ public:
 
     //  Get/Set functions.
     static CEvent*  GetCancelEvent()                    { return GetInstance().m_pExitRilEvent;    };
+#if !defined(RESET_MGMT)
     static CMutex*  GetTriggerRadioErrorMutex()         { return GetInstance().m_pTriggerRadioErrorMutex;   };
+#endif // !RESET_MGMT
     static CMutex*  GetDataChannelAccessorMutex()       { return GetInstance().m_pDataChannelAccessorMutex; };
 
     void            TriggerSimUnlockedEvent() const         { CEvent::Signal(m_pSimUnlockedEvent);      };
@@ -91,6 +93,10 @@ public:
     void            CloseChannelPorts();
     BOOL            OpenChannelPortsOnly();
 
+#if defined(RESET_MGMT)
+    BOOL            SendRequestCleanup();
+#endif // RESET_MGMT
+
 private:
     // Framework Init Functions
     BOOL            CreateQueues();
@@ -99,6 +105,10 @@ private:
     //void            CloseChannelPorts();
     void            DeleteChannels();
     CChannel*       CreateChannel(UINT32 uiIndex);
+
+#if defined(RESET_MGMT)
+    BOOL            OpenCleanupRequestSocket();
+#endif // RESET_MGMT
 
     // Internal Init helper functions
     void            SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
@@ -126,9 +136,15 @@ private:
 
     CMutex *            m_pSystemManagerMutex;
 
+#if !defined(RESET_MGMT)
     CMutex *            m_pTriggerRadioErrorMutex;
+#endif  // !RESET_MGMT
 
     CMutex *            m_pDataChannelAccessorMutex;
+
+#if defined(RESET_MGMT)
+    int                 m_fdCleanupSocket;
+#endif // RESET_MGMT
 
     CRequestInfoTable   m_RequestInfoTable;
 

@@ -83,13 +83,9 @@ BYTE SemiByteCharsToByte(const char chHigh, const char chLow);
 BOOL GSMHexToGSM(const BYTE* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cbOut, UINT32& rcbUsed);
 BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cbOut, UINT32& rcbUsed);
 
-// Convert UCS2 to UTF-8.
-// Input of Unicode character in variable ucs2 and converts it to the UTF-8 encoding.
-// Output buffer, utf8, is assumed to have at least 4 bytes of space allocated to write into.
-// Return value is the number of bytes actually written or -1 if error.
-// Adds a zero byte to the end of the string.
-int ucs2_to_utf8(int ucs2, unsigned char * utf8);
-
+// convert a ucs2 string into a utf8 byte string, assumes 'utf8' NULL or properly sized.
+// returns the number of utf8 bytes
+int      ucs2_to_utf8( const unsigned char*  ucs2, int  ucs2len, unsigned char*  utf8 );
 
 BOOL IsElementarySimFile(UINT32 dwFileID);
 

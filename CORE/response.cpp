@@ -488,7 +488,11 @@ BOOL CResponse::SetData(void* pData, const UINT32 nSize, const BOOL fCpyMem)
             if (!m_pData)
             {
                 // Critically low on memory
+#if defined(RESET_MGMT)
+                do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__, FALSE);
+#else // RESET_MGMT
                 TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
+#endif // RESET_MGMT
                 goto Error;
             }
             memcpy(m_pData, pData, nSize);
@@ -522,7 +526,7 @@ BOOL CResponse::RetrieveErrorCode(const BYTE*& rszPointer, UINT32 &nCode, const 
         goto Error;
     }
 
-    bRet = ExtractUInt(rszPointer, nCode, rszPointer);
+    bRet = ExtractUInt32(rszPointer, nCode, rszPointer);
 
     if (!bRet)
     {

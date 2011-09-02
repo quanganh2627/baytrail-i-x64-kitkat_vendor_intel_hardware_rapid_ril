@@ -251,7 +251,7 @@ static const int   GROUP_MARKER_LEN = 5;
 //////////////////////////////////////////////////////////////////////////
 // Variable Initialization
 
-struct CRepository::CRepLock CRepository::m_stLock = {{0}, {0}, {0}, 0, 0, 0, 0};
+struct CRepository::CRepLock CRepository::m_stLock = {{0}, {0}, 0, 0};
 bool CRepository::m_bInitialized = FALSE;
 
 
@@ -272,9 +272,7 @@ BOOL CRepository::Init()
     m_bInitialized = FALSE;
 
     CRepository::m_stLock.iReaders = 0;
-    CRepository::m_stLock.iWriters = 0;
     CRepository::m_stLock.iReadWaiters = 0;
-    CRepository::m_stLock.iWriteWaiters = 0;
 
     if (0 != pthread_mutex_init(&m_stLock.stLock, NULL))
     {
@@ -282,11 +280,6 @@ BOOL CRepository::Init()
     }
 
     if (0 != pthread_cond_init(&m_stLock.stRead, NULL))
-    {
-        goto Error;
-    }
-
-    if (0 != pthread_cond_init(&m_stLock.stWrite, NULL))
     {
         goto Error;
     }
@@ -303,7 +296,6 @@ BOOL CRepository::Close()
     {
         pthread_mutex_destroy(&m_stLock.stLock);
         pthread_cond_destroy(&m_stLock.stRead);
-        pthread_cond_destroy(&m_stLock.stWrite);
         m_bInitialized = FALSE;
     }
 
@@ -315,7 +307,7 @@ BOOL CRepository::OpenRepositoryFile()
     BOOL fRetVal = FALSE;
 
     m_iLine = 1;
-    m_iFd   = open(REPO_FILE, O_RDWR);
+    m_iFd   = open(REPO_FILE, O_RDONLY);
 
     if (m_iFd < 0)
     {
@@ -408,268 +400,6 @@ Error:
     return (E_OK == iRetVal);
 }
 
-BOOL CRepository::Write(const char *szGroup, const char* szKey, int iVal)
-{
-    char szTmp[MAX_INT_LEN];
-    sprintf(szTmp, "%d", iVal);
-    return Write(szGroup, szKey, szTmp);
-}
-
-BOOL CRepository::Write(const char *szGroup, const char* szKey, const char* szVal)
-{
-    int iRetVal = E_ERROR;
-    int iRes;
-    int iGroupLine;
-
-    if (!m_bInitialized)
-    {
-        RIL_LOG_CRITICAL("CRepository::Write() - ERROR: Repository has not been initialized.\r\n");
-        goto Error;
-    }
-
-    // grab lock before accessing file
-    WriterLock();
-
-    if (!OpenRepositoryFile())
-    {
-        RIL_LOG_CRITICAL("CRepository::Write() - ERROR: Could not open the Repository file.\r\n");
-        goto Error;
-    }
-
-    // look for group
-    iRes = LocateGroup(szGroup);
-    switch(iRes)
-    {
-        case E_OK:
-            iGroupLine = m_iLine;
-            iRes = LocateKey(szKey);
-            if (E_OK == iRes)
-            {
-                // the key exists, replace its value
-                iRetVal = ReplaceKey(szKey, szVal);
-                if (E_OK != iRetVal)
-                {
-                    RIL_LOG_CRITICAL("CRepository::Write() - ERROR: Could not update key value.\r\n");
-                }
-            }
-            else if (E_NOT_FOUND == iRes)
-            {
-                // this is a new key, insert it in this group
-                iRetVal = InsertKey(szKey, szVal, iGroupLine);
-                if (E_OK != iRetVal)
-                {
-                    RIL_LOG_CRITICAL("CRepository::Write() - ERROR: Could not add new key to existing group.\r\n");
-                }
-            }
-            break;
-
-        case E_NOT_FOUND:
-            // create a new group and key
-            iRetVal = CreateGroup(szGroup, szKey, szVal);
-            break;
-
-        default:
-            // We should never get here...
-            RIL_LOG_CRITICAL("CRepository::Write() - ERROR: Something bad happened when trying to locate the specified group.\r\n");
-            break;
-    }
-
-Error:
-    CloseRepositoryFile();
-    WriterUnlock();
-
-    return (E_OK == iRetVal);
-}
-
-int CRepository::ReplaceKey(const char* szKey, const char* szVal)
-{
-    int  iRetVal = E_ERROR;
-    int  iFd;
-    int  iLine = m_iLine - 1;  // after we found the key, the line counter points to the next line
-    int  iSize;
-    char szBuf[MAX_LINE_LEN];
-
-    // create temporary file
-    iFd = open(REPO_TMP_FILE, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (iFd < 0)
-    {
-        int iErrCode = errno;
-        RIL_LOG_CRITICAL("CRepository::ReplaceKey() - ERROR: Could not create temporary file (\"%s\") - %s\r\n", REPO_TMP_FILE, strerror(iErrCode));
-        goto Error;
-    }
-
-    // write from the top of the file to the current line, excluding the current line
-    if (E_OK != DumpLines(iFd, 1, iLine))
-    {
-        RIL_LOG_CRITICAL("CRepository::ReplaceKey() - ERROR: Could not write the lines before the modified entry.\r\n");
-        goto Error;
-    }
-
-    // write key
-    sprintf(szBuf, "\t%s\t%s\n", szKey, szVal);
-    iSize = strlen(szBuf);
-    if (write(iFd, szBuf, iSize) != iSize)
-    {
-        RIL_LOG_CRITICAL("CRepository::ReplaceKey() - ERROR: Could not write the modified entry.\r\n");
-        goto Error;
-    }
-
-    // dump rest of lines
-    if (E_OK != DumpLines(iFd, iLine + 1, END_OF_FILE))
-    {
-        RIL_LOG_CRITICAL("CRepository::ReplaceKey() - ERROR: Could not write the lines after the modified entry.\r\n");
-        goto Error;
-    }
-
-    // REPLACE THE MAIN FILE WITH THE TEMP FILE
-
-    // Close the temp file
-    close(iFd);
-    iFd = -1;
-
-    // Close the main file
-    CloseRepositoryFile();
-
-    // Delete the main file
-    remove(REPO_FILE);
-
-    // Rename the temp file so that it becomes the main file
-    iRetVal = rename(REPO_TMP_FILE, REPO_FILE) == 0 ? E_OK : E_ERROR;
-    if (E_OK != iRetVal)
-    {
-        int iErrCode = errno;
-        RIL_LOG_CRITICAL("CRepository::ReplaceKey() - ERROR: Could not replace \"%s\" with the updated version (\"%s\") - %s.\r\n", REPO_FILE, REPO_TMP_FILE, strerror(iErrCode));
-        goto Error;
-    }
-
-    // Reopen the main file
-    if (!OpenRepositoryFile())
-    {
-        RIL_LOG_CRITICAL("CRepository::ReplaceKey() - ERROR: Could not open the Repository file.\r\n");
-        iRetVal = E_ERROR;
-        goto Error;
-    }
-
-Error:
-    if (iFd >= 0)
-    {
-        close(iFd);
-        remove(REPO_TMP_FILE);
-    }
-
-    return iRetVal;
-}
-
-int CRepository::InsertKey(const char* szKey, const char* szVal, int iGroupLine)
-{
-    int  iRetVal = E_ERROR;
-    int  iFd;
-    int  iSize;
-    char szBuf[MAX_LINE_LEN];
-
-    // create temporary file
-    iFd = open(REPO_TMP_FILE, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (iFd < 0)
-    {
-        int iErrCode = errno;
-        RIL_LOG_CRITICAL("CRepository::InsertKey() - ERROR: Could not create temporary file (\"%s\") - %s\r\n", REPO_TMP_FILE, strerror(iErrCode));
-        goto Error;
-    }
-
-    // write from the top of the file to the group line, included
-    if (E_OK != DumpLines(iFd, 1, iGroupLine))
-    {
-        RIL_LOG_CRITICAL("CRepository::InsertKey() - ERROR: Could not write the lines before the new entry.\r\n");
-        goto Error;
-    }
-
-    // write key
-    sprintf(szBuf, "\t%s\t%s\n", szKey, szVal);
-    iSize = strlen(szBuf);
-    if (write(iFd, szBuf, iSize) != iSize)
-    {
-        RIL_LOG_CRITICAL("CRepository::InsertKey() - ERROR: Could not write the new entry.\r\n");
-        goto Error;
-    }
-
-    // dump rest of lines
-    if (E_OK != DumpLines(iFd, iGroupLine, END_OF_FILE))
-    {
-        RIL_LOG_CRITICAL("CRepository::InsertKey() - ERROR: Could not write the lines after the new entry.\r\n");
-        goto Error;
-    }
-
-    // REPLACE THE MAIN FILE WITH THE TEMP FILE
-
-    // Close the temp file
-    close(iFd);
-    iFd = -1;
-
-    // Close the main file
-    CloseRepositoryFile();
-
-    // Delete the main file
-    remove(REPO_FILE);
-
-    // Rename the temp file so that it becomes the main file
-    iRetVal = rename(REPO_TMP_FILE, REPO_FILE) == 0 ? E_OK : E_ERROR;
-    if (E_OK != iRetVal)
-    {
-        int iErrCode = errno;
-        RIL_LOG_CRITICAL("CRepository::InsertKey() - ERROR: Could not replace \"%s\" with the updated version (\"%s\") - %s.\r\n", REPO_FILE, REPO_TMP_FILE, strerror(iErrCode));
-        goto Error;
-    }
-
-    // Reopen the main file
-    if (!OpenRepositoryFile())
-    {
-        RIL_LOG_CRITICAL("CRepository::InsertKey() - ERROR: Could not open the Repository file.\r\n");
-        iRetVal = E_ERROR;
-        goto Error;
-    }
-
-Error:
-    if (iFd >= 0)
-    {
-        close(iFd);
-        remove(REPO_TMP_FILE);
-    }
-
-    return iRetVal;
-}
-
-int CRepository::CreateGroup(const char* szGroup, const char* szKey, const char* szVal)
-{
-    int  iRetVal = E_ERROR;
-    int  iSize;
-    char szBuf[MAX_LINE_LEN];
-
-    // go to end of file
-    lseek(m_iFd, 0, SEEK_END);
-
-    // append group
-    sprintf(szBuf, "\n%s %s\n", GROUP_MARKER, szGroup);
-    iSize = strlen(szBuf);
-    if (write(m_iFd, szBuf, iSize) != iSize)
-    {
-        RIL_LOG_CRITICAL("CRepository::CreateGroup() - ERROR: Could not create \"%s\" group.\r\n", szGroup);
-        goto Error;
-    }
-
-    // append key and value
-    sprintf(szBuf, "\t%s\t%s\n", szKey, szVal);
-    iSize = strlen(szBuf);
-    if (write(m_iFd, szBuf, iSize) != iSize)
-    {
-        RIL_LOG_CRITICAL("CRepository::CreateGroup() - ERROR: Could not create \"%s\" key.\r\n", szKey);
-        goto Error;
-    }
-
-    iRetVal = E_OK;
-
-Error:
-    return iRetVal;
-}
 
 int CRepository::DumpLines(int iFd, int iFrom, int iTo)
 {
@@ -961,24 +691,6 @@ int CRepository::ReaderLock()
 
     if (0 == pthread_mutex_lock(&m_stLock.stLock))
     {
-        if (m_stLock.iWriters || m_stLock.iWriteWaiters)
-        {
-            // writers accessing or waiting to access, need to wait
-            ++m_stLock.iReadWaiters;
-            close(m_iFd);
-            m_iFd = -1;
-            do
-            {
-                if (0 != pthread_cond_wait(&m_stLock.stRead, &m_stLock.stLock))
-                    goto Error;
-
-            }
-            while (m_stLock.iWriters || m_stLock.iWriteWaiters);
-
-            m_iFd = open(REPO_FILE, O_RDWR);
-            m_iLine = 1;
-            --m_stLock.iReadWaiters;
-        }
         ++m_stLock.iReaders;
         iRetVal = (pthread_mutex_unlock(&m_stLock.stLock) == 0) ? E_OK : E_ERROR;
     }
@@ -995,75 +707,6 @@ int CRepository::ReaderUnlock()
         goto Error;
 
     --m_stLock.iReaders;
-    if (m_stLock.iWriteWaiters)
-    {
-        // signal writers to go ahead
-        if (0 != pthread_cond_signal(&m_stLock.stWrite))
-        {
-            // ignore error
-        }
-    }
-
-    iRetVal = (pthread_mutex_unlock(&m_stLock.stLock) == 0) ? E_OK : E_ERROR;
-
-Error:
-    return iRetVal;
-}
-
-int CRepository::WriterLock()
-{
-    int iRetVal = E_ERROR;
-
-    if (0 != pthread_mutex_lock(&m_stLock.stLock))
-        goto Error;
-
-    if (m_stLock.iReaders || m_stLock.iWriters)
-    {
-        // file being accessed, have to wait
-        ++m_stLock.iWriteWaiters;
-        close(m_iFd);
-        m_iFd = -1;
-        do
-        {
-            if (0 != pthread_cond_wait(&m_stLock.stWrite, &m_stLock.stLock))
-                goto Error;
-        }
-        while (m_stLock.iReaders || m_stLock.iWriters);
-
-        m_iFd = open(REPO_FILE, O_RDWR);
-        m_iLine = 1;
-        --m_stLock.iWriteWaiters;
-    }
-    m_stLock.iWriters = 1;
-    iRetVal = (pthread_mutex_unlock(&m_stLock.stLock) == 0) ? E_OK : E_ERROR;
-
-Error:
-    return iRetVal;
-}
-
-int CRepository::WriterUnlock()
-{
-    int iRetVal = E_ERROR;
-
-    if (0 != pthread_mutex_lock(&m_stLock.stLock))
-        goto Error;
-
-    m_stLock.iWriters = 0;
-    if (m_stLock.iWriteWaiters)
-    {
-        if (0 != pthread_cond_signal(&m_stLock.stWrite))
-        {
-            // ignore error
-        }
-    }
-    else if (m_stLock.iReadWaiters)
-    {
-        if (0 != pthread_cond_broadcast(&m_stLock.stRead))
-        {
-            // ignore error
-        }
-    }
-
     iRetVal = (pthread_mutex_unlock(&m_stLock.stLock) == 0) ? E_OK : E_ERROR;
 
 Error:

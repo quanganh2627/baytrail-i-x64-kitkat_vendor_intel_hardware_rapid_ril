@@ -59,6 +59,9 @@ LOCAL_CFLAGS += -DM2_FEATURE_ENABLED
 # To disable M2 Rx Diversity features remove M2_RXDIV_FEATURE_ENABLED flag
 #LOCAL_CFLAGS += -DM2_RXDIV_FEATURE_ENABLED
 
+# Enable new reset management code
+#LOCAL_CFLAGS += -DRESET_MGMT
+
 
 LOCAL_C_INCLUDES :=  \
     $(KERNEL_HEADERS) \
