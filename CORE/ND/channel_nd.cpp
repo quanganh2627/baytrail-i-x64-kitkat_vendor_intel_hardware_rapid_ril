@@ -29,6 +29,7 @@
 #include "response.h"
 #include "cmdcontext.h"
 #include "rildmain.h"
+#include "reset.h"
 #include "channel_nd.h"
 
 

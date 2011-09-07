@@ -34,11 +34,11 @@
 #include "command.h"
 #include "te_inf_6260.h"
 #include "channel_data.h"
-#include "rildmain.h"
+#include "reset.h"
 #include "callbacks.h"
 #include "oemhookids.h"
 #include "repository.h"
-#include "../../../../IFX-modem/gsmmux.h"
+#include "../../../../linux-2.6/include/linux/gsmmux.h"
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
 
@@ -218,15 +218,43 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     // For setting up data call we need to send 2 sets of chained commands: AT+CGDCONT to define PDP Context, then
     // if RAW IP is used send AT+CGDATA to enable Raw IP on data channel (which will then switch the channel to data mode).
     //
+#if defined(M2_IPV6_FEATURE_ENABLED)
+    //  IP type is passed in dynamically.
+    if (NULL == stPdpData.szPDPType)
+    {
+        //  hard-code "IP"
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+            sizeof(rReqData.szCmd1),
+            "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+XDNS=%d,1\r", uiCID,
+            stPdpData.szApn, uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType is NULL\r\n");
+            goto Error;
+        }
+    }
+    else
+    {
+        //  dynamic PDP type
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+            sizeof(rReqData.szCmd1),
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,1\r", uiCID, stPdpData.szPDPType,
+            stPdpData.szApn, uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            goto Error;
+        }
+    }
+#else // M2_IPV6_FEATURE_ENABLED
+    //  just hard-code "IP" as we do not support IPv6
     if (!PrintStringNullTerminate(rReqData.szCmd1,
         sizeof(rReqData.szCmd1),
         "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+XDNS=%d,1\r", uiCID,
         stPdpData.szApn, uiCID))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, IP hard-coded\r\n");
         goto Error;
     }
-
+#endif // M2_IPV6_FEATURE_ENABLED
 
     if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGDATA=\"M-RAW_IP\",%d\r", uiCID))
     {

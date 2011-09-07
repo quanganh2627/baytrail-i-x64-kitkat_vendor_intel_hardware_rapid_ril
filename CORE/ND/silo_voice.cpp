@@ -687,10 +687,45 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
         }
         memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
         snprintf(pUssdStatus->szType, 2, "%d", (int) uiStatus);
-        if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE))
+
+        //  Add for USSD UCS2
+        if (0x08 == (nDCS & 0x0C))  // 3gpp 27.038 CBS Data Coding Scheme
         {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot CopyStringNullTerminate szDataString\r\n");
-            goto Error;
+            unsigned char* tmpUssdUcs2 = NULL;
+            unsigned char tmpUssdAscii[MAX_BUFFER_SIZE] = {0};
+            int lenUssdAscii = 0;
+
+            if (!CopyStringNullTerminate((char*)tmpUssdAscii, szDataString, MAX_BUFFER_SIZE))
+            {
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot CopyStringNullTerminate szDataString to tmpUssdAscii\r\n");
+                goto Error;
+            }
+
+            lenUssdAscii = strlen((char*)tmpUssdAscii);
+            if ( (lenUssdAscii % 2) != 0)
+            {
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Illegal string from modem\r\n");
+                goto Error;
+            }
+
+            tmpUssdUcs2 = new unsigned char[(lenUssdAscii/2)+1];
+            if (NULL == tmpUssdUcs2)
+            {
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot allocate %d bytes for tmpUssdUcs2\r\n", lenUssdAscii/2+1);
+                goto Error;
+            }
+
+            ussdAsciiToHex(tmpUssdAscii, lenUssdAscii, &tmpUssdUcs2);
+            ucs2_to_utf8((unsigned char*)tmpUssdUcs2, lenUssdAscii/2, (unsigned char*)pUssdStatus->szMessage);
+            delete []tmpUssdUcs2;
+        } // end for USSD ucs2
+        else
+        {
+            if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE))
+            {
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot CopyStringNullTerminate szDataString\r\n");
+                goto Error;
+            }
         }
 
         RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - %s\r\n", pUssdStatus->szMessage);

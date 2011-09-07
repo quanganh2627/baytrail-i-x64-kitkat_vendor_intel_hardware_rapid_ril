@@ -48,6 +48,7 @@
 #include "repository.h"
 #include "te.h"
 #include "rildmain.h"
+#include "reset.h"
 #include "systemmanager.h"
 
 #if defined(RESET_MGMT)

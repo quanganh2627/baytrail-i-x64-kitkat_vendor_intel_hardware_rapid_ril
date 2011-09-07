@@ -31,6 +31,7 @@
 #include "thread_ops.h"
 #include "silo.h"
 #include "rildmain.h"
+#include "reset.h"
 #include "repository.h"
 #include "channelbase.h"
 

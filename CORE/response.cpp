@@ -35,6 +35,7 @@
 #include "channel_nd.h"
 #include "systemmanager.h"
 #include "rildmain.h"
+#include "reset.h"
 #include "response.h"
 #include "command.h"
 #include "te.h"

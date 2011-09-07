@@ -68,7 +68,7 @@ CSilo_Network::CSilo_Network(CChannel *pChannel)
 
     m_pATRspTable = pATRspTable;
 
-    memset(g_szNITZ, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
+    memset(g_szNITZ, 0, sizeof(g_szNITZ));
 
     RIL_LOG_VERBOSE("CSilo_Network::CSilo_Network() - Exit\r\n");
 }
@@ -160,7 +160,7 @@ void triggerNITZNotification(int sig)
     strncpy(pszTimeData, g_szNITZ, sizeof(BYTE) * MAX_BUFFER_SIZE);
 
     // Reset the global buffer
-    memset(g_szNITZ, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
+    memset(g_szNITZ, 0, sizeof(g_szNITZ));
 
     RIL_onUnsolicitedResponse(RIL_UNSOL_NITZ_TIME_RECEIVED, (void*)pszTimeData, sizeof(BYTE*));
     free(pszTimeData);
@@ -205,7 +205,7 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     }
 
     // Extract "<date, time>"
-    memset(g_szNITZ, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
+    memset(g_szNITZ, 0, sizeof(g_szNITZ));
     if (!ExtractQuotedString(rszPointer, g_szNITZ, sizeof(g_szNITZ), rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to find date/time string!\r\n");
@@ -285,7 +285,7 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     }
 
     // Format date time as "yy/mm/dd,hh:mm:ss"
-    memset(g_szNITZ, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
+    memset(g_szNITZ, 0, sizeof(g_szNITZ));
     strftime(g_szNITZ, sizeof(g_szNITZ), "%y/%m/%d,%T", pGMT);
 
     // Add timezone: "(+/-)tz"
@@ -384,7 +384,7 @@ BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const BYTE* &rszPoin
         strncpy(pszTimeData, g_szNITZ, sizeof(BYTE) * MAX_BUFFER_SIZE);
 
         // Reset the global buffer
-        memset(g_szNITZ, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
+        memset(g_szNITZ, 0, sizeof(g_szNITZ));
 
         pResponse->SetResultCode(RIL_UNSOL_NITZ_TIME_RECEIVED);
 

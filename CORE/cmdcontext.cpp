@@ -34,6 +34,7 @@
 #include "channel_nd.h"
 #include "cmdcontext.h"
 #include "util.h"
+#include "reset.h"
 
 // CContextContainer
 CContextContainer::~CContextContainer()

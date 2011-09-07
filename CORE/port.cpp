@@ -35,6 +35,7 @@
 #include "rillog.h"
 #include "port.h"
 #include "rildmain.h"
+#include "reset.h"
 #include "repository.h"
 
 CPort::CPort() :

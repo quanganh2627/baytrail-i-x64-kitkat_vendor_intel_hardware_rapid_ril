@@ -413,3 +413,32 @@ UINT32 GetTickCount()
     gettimeofday( &t, NULL );
     return (t.tv_sec * 1000) + (t.tv_usec / 1000);
 }
+
+//  Add for USSD UCS2 transfer "4E2D..." to {0x4E, 0x2D}
+void ussdAsciiToHex(const unsigned char *inStr, int inLen, unsigned char** outHexStr)
+{
+    int i = 0;
+    int hex = 0;
+    unsigned char *tmpHex = NULL;
+
+    if (NULL == inStr)
+    {
+        RIL_LOG_CRITICAL("ussdAsciiToHex() - ERROR: inStr is NULL\r\n");
+        return;
+    }
+
+    if ((NULL == outHexStr) || (NULL == *outHexStr))
+    {
+        RIL_LOG_CRITICAL("ussdAsciiToHex() - ERROR: hexStr is NULL\r\n");
+        return;
+    }
+
+    tmpHex = *outHexStr;
+
+    for(i=0; i<inLen/2; i++)
+    {
+        sscanf((const char*)inStr, "%2x", &hex);
+        inStr += 2;
+        tmpHex[i] = hex;
+    }
+}

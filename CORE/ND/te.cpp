@@ -4811,6 +4811,7 @@ RIL_RESULT_CODE CTE::RequestHangupVT(RIL_Token rilToken, void * pData, size_t da
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestHangupVT() - ERROR: Unable to add command to queue\r\n");
@@ -4859,6 +4860,7 @@ RIL_RESULT_CODE CTE::RequestDialVT(RIL_Token rilToken, void * pData, size_t data
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestDialVT() - ERROR: Unable to add command to queue\r\n");

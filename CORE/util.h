@@ -939,3 +939,7 @@ protected:
     UINT32  m_nCapacity;
 };
 
+//  Add for USSD UCS2 transfer "4E2D..." to {0x4E, 0x2D}
+void ussdAsciiToHex(const unsigned char *inStr, int inLen, unsigned char** outHexStr);
+
+

@@ -1551,7 +1551,7 @@ RIL_RESULT_CODE CTEBase::CoreRegistrationState(REQUEST_DATA & rReqData, void * p
     RIL_LOG_VERBOSE("CTEBase::CoreRegistrationState() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG?\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=2;+CREG?;+CREG=0\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -1753,7 +1753,7 @@ RIL_RESULT_CODE CTEBase::CoreGPRSRegistrationState(REQUEST_DATA & rReqData, void
     RIL_LOG_VERBOSE("CTEBase::CoreGPRSRegistrationState() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CGREG?\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CGREG=2;+CGREG?;+CGREG=0\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -5904,17 +5904,17 @@ RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA & rReqData, void * 
 
     if (1 == nUpdatesEnabled)     // Enable location updates
     {
-        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=2;+CGREG=2\r", sizeof(rReqData.szCmd1)))
+        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XREG=1\r", sizeof(rReqData.szCmd1)))
         {
-            RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - ERROR: Cannot CopyStringNullTerminate CREG=2\r\n");
+            RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - ERROR: Cannot CopyStringNullTerminate enable location updates\r\n");
             goto Error;
         }
     }
     else if (0 == nUpdatesEnabled)
     {
-        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=1;+CGREG=1\r", sizeof(rReqData.szCmd1)))
+        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XREG=0\r", sizeof(rReqData.szCmd1)))
         {
-            RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - ERROR: Cannot CopyStringNullTerminate CREG=1\r\n");
+            RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - ERROR: Cannot CopyStringNullTerminate disable location updates\r\n");
             goto Error;
         }
     }
@@ -6422,7 +6422,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
     int fromCodeSchemeMem = 0xFFFF;
     int toCodeSchemeMem = 0xFFFF;
 
-    if (sizeof(RIL_GSM_BroadcastSmsConfigInfo *) > uiDataSize)
+    if ( (0 == uiDataSize) || (0 != (uiDataSize % sizeof(RIL_GSM_BroadcastSmsConfigInfo *))) )
     {
         RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
