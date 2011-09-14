@@ -318,6 +318,12 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 pCardStatus->applications[0].pin1_replaced = 0;
                 pCardStatus->applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
                 pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+                pCardStatus->applications[0].pin1_num_retries = -1;
+                pCardStatus->applications[0].puk1_num_retries = -1;
+                pCardStatus->applications[0].pin2_num_retries = -1;
+                pCardStatus->applications[0].puk2_num_retries = -1;
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
 
                 // Don't copy the memory, just pass along the pointer as is.
                 if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus*), FALSE))
@@ -327,6 +333,16 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                     pCardStatus = NULL;
                     goto Error;
                 }
+
+                g_RadioState.SetSIMState(RADIO_STATE_SIM_NOT_READY);
+
+                /*
+                 * Currently, framework relies on the state information sent as part
+                 * of the RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED UNSOL message.
+                 * This might change in the future, so its better to trigger
+                 * the RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED as well.
+                 */
+                RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
             }
             break;
 
@@ -746,14 +762,17 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
     switch (nSIMState)
     {
         case 2: // PIN verification not needed - Ready
+        case 3: // PIN verified - Ready
+        case 6: // SIM Error
+        case 8: // SIM Technical problem
+        case 10: // SIM Reactivating
+        case 11: // SIM Reactivated
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - XSIM state 2 SIM NOT READY\r\n");
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM NOT READY\r\n");
             g_RadioState.SetSIMState(RADIO_STATE_SIM_NOT_READY);
             break;
-        case 3: // PIN verified - Ready
         case 7: // ready for attach (+COPS)
-        case 11: // SIM Reactivated
             g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
@@ -761,6 +780,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
         case 1: // PIN verification needed
         case 4: // PUK verification needed
         case 5: // SIM permanently blocked
+        case 9: // SIM Removed
         default:
             g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
             break;
@@ -784,25 +804,108 @@ Error:
 }
 
 
-//  This can be flagged as unrecognized or just parse as normal.
-//  France team didn't like unrecognized log message, even though we ignore XLOCK.
 BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const BYTE*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXLOCK() - Enter\r\n");
 
-    BOOL fRet = FALSE;
+    /*
+     * If the MT is waiting for any of the following passwords
+     * PH-NET PIN, PH-NETSUB PIN, PH-SP PIN then only XLOCK URC will be
+     * received.
+     */
 
-    // Skip to the next <postfix>
-    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    BOOL fRet = FALSE;
+    int i = 0;
+    const char* pszEnd = NULL;
+
+    //  The number of locks returned by +XLOCK URC.
+    const int nMAX_LOCK_INFO = 5;
+
+    typedef struct
     {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() : ERROR : Could not find response end\r\n");
+        char fac[3];
+        UINT32 lock_state;
+        UINT32 lock_result;
+    } S_LOCK_INFO;
+
+    S_LOCK_INFO lock_info[nMAX_LOCK_INFO];
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() : ERROR : pResponse was NULL\r\n");
         goto Error;
     }
 
-    // Walk back over the <CR>
+    // Look for a "<postfix>" to be sure we got a whole message
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() : ERROR: Could not find response end\r\n");
+        goto Error;
+    }
+
+    memset(lock_info, 0, sizeof(lock_info));
+
+    // Change the number to the number of facility locks supported via XLOCK URC.
+    while (i < nMAX_LOCK_INFO)
+    {
+        memset(lock_info[i].fac, '\0', sizeof(lock_info[i].fac));
+
+        // Extract "<fac>"
+        if (!ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac), rszPointer))
+        {
+            RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - ERROR: Unable to find <fac>!\r\n");
+            goto Error;
+        }
+
+        // Extract ",<Lock state>"
+        if (!SkipString(rszPointer, ",", rszPointer) ||
+            !ExtractUInt32(rszPointer, lock_info[i].lock_state, rszPointer))
+        {
+            RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() - ERROR: Could not parse <lock state>.\r\n");
+            goto Error;
+        }
+
+        // Extract ",<Lock result>"
+        if (!SkipString(rszPointer, ",", rszPointer) ||
+            !ExtractUInt32(rszPointer, lock_info[i].lock_result, rszPointer))
+        {
+            RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() - ERROR: Could not parse <lock result>.\r\n");
+            goto Error;
+        }
+
+        SkipString(rszPointer, ",", rszPointer);
+
+        i++;
+    }
+
+    // Look for "<postfix>"
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - ERROR: Could not extract response postfix.\r\n");
+        goto Error;
+    }
+
+    // Walk back over the <CR><LF>
     rszPointer -= strlen(g_szNewLine);
 
     pResponse->SetUnsolicitedFlag(TRUE);
+
+    i = 0;
+    // Change the number to the number of facility locks supported via XLOCK URC.
+    while (i < nMAX_LOCK_INFO)
+    {
+        RIL_LOG_INFO("lock:%s state:%d result:%d", lock_info[i].fac, lock_info[i].lock_state,
+                        lock_info[i].lock_result);
+
+        /// @TODO: Need to revisit the lock state mapping.
+        if (lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1)
+        {
+            g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+            pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
+            break;
+        }
+        i++;
+    }
 
     fRet = TRUE;
 

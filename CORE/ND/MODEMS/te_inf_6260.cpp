@@ -35,6 +35,7 @@
 #include "te_inf_6260.h"
 #include "channel_data.h"
 #include "reset.h"
+#include "rildmain.h"
 #include "callbacks.h"
 #include "oemhookids.h"
 #include "repository.h"
@@ -97,10 +98,17 @@ RIL_RESULT_CODE CTE_INF_6260::CoreGetSimStatus(REQUEST_DATA & rReqData, void * p
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreGetSimStatus() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CPIN?;+XUICC?;+XPINCNT\r", sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+#else  // M2_PIN_RETRIES_FEATURE_ENABLED
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CPIN?;+XUICC?\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
 
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreGetSimStatus() - Exit\r\n");
     return res;
@@ -150,7 +158,46 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
                     pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
                 }
             }
+            SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
         }
+
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+        // Parse "<prefix>+XPINCNT: <PIN attempts>, <PIN2 attempts>, <PUK attempts>, <PUK2 attempts><postfix>"
+        SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+
+        if (SkipString(pszRsp, "+XPINCNT: ", pszRsp))
+        {
+            UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
+
+            if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
+                !SkipString(pszRsp, ",", pszRsp) ||
+                !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
+                !SkipString(pszRsp, ",", pszRsp) ||
+                !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
+                !SkipString(pszRsp, ",", pszRsp) ||
+                !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: Cannot parse XPINCNT\r\n");
+                //  Set pin retries to -1 (unknown)
+                pCardStatus->applications[0].pin1_num_retries = -1;
+                pCardStatus->applications[0].puk1_num_retries = -1;
+                pCardStatus->applications[0].pin2_num_retries = -1;
+                pCardStatus->applications[0].puk2_num_retries = -1;
+            }
+            else
+            {
+                RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() - retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
+                    uiPin1, uiPin2, uiPuk1, uiPuk2);
+
+                pCardStatus->applications[0].pin1_num_retries = uiPin1;
+                pCardStatus->applications[0].puk1_num_retries = uiPuk1;
+                pCardStatus->applications[0].pin2_num_retries = uiPin2;
+                pCardStatus->applications[0].puk2_num_retries = uiPuk2;
+            }
+            SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+        }
+
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
     }
 
     res = RRIL_RESULT_OK;
@@ -222,10 +269,10 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     //  IP type is passed in dynamically.
     if (NULL == stPdpData.szPDPType)
     {
-        //  hard-code "IP"
+        //  hard-code "IPV4V6" (this is the default)
         if (!PrintStringNullTerminate(rReqData.szCmd1,
             sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+XDNS=%d,1\r", uiCID,
+            "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,3\r", uiCID,
             stPdpData.szApn, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType is NULL\r\n");
@@ -234,11 +281,20 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     }
     else
     {
-        //  dynamic PDP type
+        //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
+        //  If not recognized, just use "3" as default.
+        int nXDNSParam = 3;
+        if (0 == strcasecmp(stPdpData.szPDPType, "IP"))
+            nXDNSParam = 1;
+        else if (0 == strcasecmp(stPdpData.szPDPType, "IPV6"))
+            nXDNSParam = 2;
+        else if (0 == strcasecmp(stPdpData.szPDPType, "IPV4V6"))
+            nXDNSParam = 3;
+
         if (!PrintStringNullTerminate(rReqData.szCmd1,
             sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,1\r", uiCID, stPdpData.szPDPType,
-            stPdpData.szApn, uiCID))
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,%d\r", uiCID, stPdpData.szPDPType,
+            stPdpData.szApn, uiCID, nXDNSParam))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
@@ -505,11 +561,10 @@ Error:
         {
             RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", rRspData.uiChannel, nCID);
 
-            //  Release network interface
-            if (!DataConfigDown(nCID))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - DataConfigDown FAILED chnl=[%d], cid=[%d]\r\n", rRspData.uiChannel, nCID);
-            }
+            //  Explicitly deactivate context ID = nCID
+            //  This will call DataConfigDown(nCID) and convert channel to AT mode.
+            //  Otherwise the data channel hangs and is unresponsive.
+            RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)nCID, 0, 0);
         }
 
         free(pDataCallRsp);
@@ -911,6 +966,133 @@ Error:
     return bRet;
 }
 
+#if defined(M2_IPV6_FEATURE_ENABLED)
+//  Helper function to convert IP addresses to Android-readable format.
+//  szIpIn [IN] - The IP string to be converted
+//  szIpOut [OUT] - The converted IP address in Android-readable format.
+//  uiIpOutSize [IN] - The size of the szIpOut buffer
+//  szIpOut2 [OUT] - The converted IP address in Android-readable format if szIpIn is IPv4v6 format
+//  uiIpOutSize [IN] - The size of szIpOut2 buffer
+//
+//  If IPv4 format a1.a2.a3.a4, then szIpIn is copied to szIpOut.
+//  If Ipv6 format:
+//    Convert a1.a2.a3.a4.a5. ... .a15.a16 to XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX IPv6 format
+//    output is copied to szIpOut
+//  If Ipv4v6 format:
+//    Convert a1.a2.a3.a4.a5. ... .a19.a20 to
+//      a1.a2.a3.a4 to szIpOut
+//      XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX (a5-a20) to szIpOut2
+//  If szIpOut2 is NULL, then this parameter is ignored
+BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpOutSize, char *szIpOut2, UINT32 uiIpOutSize2)
+{
+    RIL_LOG_VERBOSE("ConvertIPAddressToAndroidReadable() - Enter\r\n");
+    BOOL bRet = FALSE;
+
+    //  Sanity checks
+    if ( (NULL == szIpIn) || (NULL == szIpOut) || (0 == uiIpOutSize))
+    {
+        RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() : ERROR: Invalid inputs!\r\n");
+        return FALSE;
+    }
+
+    //  Count number of '.'
+    int nDotCount = 0;
+    for (unsigned int i=0; i<strlen(szIpIn); i++)
+    {
+        if ('.' == szIpIn[i])
+        {
+            //  Found a '.'
+            nDotCount++;
+        }
+    }
+
+    //  If 3 dots, IPv4.  If 15 dots, IPv6.  If 19 dots, then IPv4v6.
+    switch(nDotCount)
+    {
+        case 3:
+        {
+            //  IPv4 format.  Just copy to szIpOut.
+            strncpy(szIpOut, szIpIn, uiIpOutSize);
+        }
+        break;
+
+        case 15:
+        {
+            //  IPv6 format.  Need to re-format this to Android IPv6 format.
+
+            //  Extract a1...a16 into aIP.
+            //  Then convert aAddress to szIpOut.
+            unsigned int aIP[16] = {0};
+            if (EOF == sscanf(szIpIn, "%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u",
+                            &aIP[0], &aIP[1], &aIP[2], &aIP[3], &aIP[4], &aIP[5], &aIP[6], &aIP[7],
+                            &aIP[8], &aIP[9], &aIP[10], &aIP[11], &aIP[12], &aIP[13], &aIP[14], &aIP[15]))
+            {
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot sscanf into aIP[]! ipv6\r\n");
+                goto Error;
+            }
+
+            if (snprintf(szIpOut, uiIpOutSize,
+                    "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+                    aIP[0], aIP[1], aIP[2], aIP[3], aIP[4], aIP[5], aIP[6], aIP[7],
+                    aIP[8], aIP[9], aIP[10], aIP[11], aIP[12], aIP[13], aIP[14], aIP[15]) <= 0)
+            {
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: error with snprintf()!\r\n");
+                goto Error;
+            }
+        }
+        break;
+
+        case 19:
+        {
+            //  IPv4v6 format.  Grab a1.a2.a3.a4 and that's the IPv4 part.  The rest is IPv6.
+            //  Extract a1...a20 into aIP.
+            //  Then IPv4 part is extracted into szIpOut.
+            //  IPV6 part is extracted into szIpOut2.
+            unsigned int aIP[20] = {0};
+            if (EOF == sscanf(szIpIn, "%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u",
+                            &aIP[0], &aIP[1], &aIP[2], &aIP[3],
+                            &aIP[4], &aIP[5], &aIP[6], &aIP[7], &aIP[8], &aIP[9], &aIP[10], &aIP[11],
+                            &aIP[12], &aIP[13], &aIP[14], &aIP[15], &aIP[16], &aIP[17], &aIP[18], &aIP[19]
+                            ))
+            {
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot sscanf into aIP[]! ipv4v6\r\n");
+                goto Error;
+            }
+
+            if (snprintf(szIpOut, uiIpOutSize,
+                    "%u.%u.%u.%u",
+                    aIP[0], aIP[1], aIP[2], aIP[3]) <= 0)
+            {
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: error with snprintf()! ipv4v6 v4 part\r\n");
+                goto Error;
+            }
+
+            if (NULL != szIpOut2 && 0 != uiIpOutSize2)
+            {
+                if (snprintf(szIpOut2, uiIpOutSize2,
+                        "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+                        aIP[4], aIP[5], aIP[6], aIP[7], aIP[8], aIP[9], aIP[10], aIP[11],
+                        aIP[12], aIP[13], aIP[14], aIP[15], aIP[16], aIP[17], aIP[18], aIP[19]) <= 0)
+                {
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: error with snprintf()! ipv4v6 v6 part\r\n");
+                    goto Error;
+                }
+            }
+        }
+        break;
+
+        default:
+            RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: Unknown address format nDotCount=[%d]\r\n", nDotCount);
+            goto Error;
+    }
+
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("ConvertIPAddressToAndroidReadable() - Exit\r\n");
+    return bRet;
+}
+#endif // M2_IPV6_FEATURE_ENABLED
 
 //
 // Response to AT+CGPADDR=<CID>
@@ -953,7 +1135,81 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
         delete[] pChannelData->m_szIpAddr;
         pChannelData->m_szIpAddr = NULL;
 
+#if defined(M2_IPV6_FEATURE_ENABLED)
+        {
+            //  The response could come back as:
+            //  +CGPADDR: <cid>,<PDP_Addr1>,<PDP_Addr2>
+            //  Also, PDP_Addr1 and PDP_Addr2 could be in ipv4, ipv6, or ipv4v6 format.
+            //  String is in dot-separated numeric (0-255) of the form:
+            //  a1.a2.a3.a4 (for IPv4)
+            //  a1.a2.a3.a4.a5.a6.a7.a8.a9.a10.a11.a12.a13.a14.a15.a16 (for IPv6)
 
+            //  The IPV6 format above is incompatible with Android, so we need to convert
+            //  to an Android-readable IPV6 address format.
+
+            //  Extract original string into szPdpAddr.
+            //  Then converted address is in pChannelData->m_szIpAddr.
+            const int MAX_IPADDR_SIZE = 100;
+            BYTE szPdpAddr[MAX_IPADDR_SIZE] = {0};
+
+            //  Extract ,<Pdp_Addr1>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Unable to parse <PDP_addr1>!\r\n");
+                goto Error;
+            }
+
+            pChannelData->m_szIpAddr = new BYTE[MAX_IPADDR_SIZE];
+            if (NULL == pChannelData->m_szIpAddr)
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: cannot allocate m_szIpAddr!\r\n");
+                goto Error;
+            }
+            memset(pChannelData->m_szIpAddr, 0, sizeof(BYTE)*MAX_IPADDR_SIZE);
+
+            //  The AT+CGPADDR command doesn't return IPV4V6 format
+            if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr, MAX_IPADDR_SIZE, NULL, 0))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed!\r\n");
+                goto Error;
+            }
+
+            RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IP1 address: %s\r\n", pChannelData->m_szIpAddr);
+
+            //  Extract ,<PDP_Addr2>
+            //  Converted address is in pChannelData->m_szIpAddr2.
+            if (SkipString(szRsp, ",", szRsp))
+            {
+                if (!ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Unable to parse <PDP_addr2>!\r\n");
+                    goto Error;
+                }
+
+                //  Delete previous szIpAddr2 (if it existed)
+                delete[] pChannelData->m_szIpAddr2;
+
+                pChannelData->m_szIpAddr2 = new BYTE[MAX_IPADDR_SIZE];
+                if (NULL == pChannelData->m_szIpAddr2)
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: cannot allocate m_szIpAddr2!\r\n");
+                    goto Error;
+                }
+                memset(pChannelData->m_szIpAddr2, 0, sizeof(BYTE)*MAX_IPADDR_SIZE);
+
+                //  The AT+CGPADDR command doesn't return IPV4V6 format.
+                if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr2, MAX_IPADDR_SIZE, NULL, 0))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
+                    goto Error;
+                }
+
+                RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IP2 address: %s\r\n", pChannelData->m_szIpAddr2);
+            }
+        }
+#else // M2_IPV6_FEATURE_ENABLED
+        // Take original IPV4 string and copy it into data channel's m_szIpAddr.
         // Parse <PDP_addr>
         if (!SkipString(szRsp, ",", szRsp) ||
             !ExtractQuotedStringWithAllocatedMemory(szRsp, pChannelData->m_szIpAddr, cbIpAddr, szRsp))
@@ -963,6 +1219,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
         }
 
         RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IP address: %s\r\n", pChannelData->m_szIpAddr);
+#endif // M2_IPV6_FEATURE_ENABLED
 
         res = RRIL_RESULT_OK;
     }
@@ -1021,7 +1278,116 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
             delete[] pChannelData->m_szDNS2;
             pChannelData->m_szDNS2 = NULL;
 
+#if defined(M2_IPV6_FEATURE_ENABLED)
+            {
+                //  The response could come back as:
+                //  +XDNS: <cid>,<Primary_DNS>,<Secondary_DNS>
+                //  Also, Primary_DNS and Secondary_DNS could be in ipv4, ipv6, or ipv4v6 format.
+                //  String is in dot-separated numeric (0-255) of the form:
+                //  a1.a2.a3.a4 (for IPv4)
+                //  a1.a2.a3.a4.a5.a6.a7.a8.a9.a10.a11.a12.a13.a14.a15.a16 (for IPv6)
+                //  a1.a2.a3.a4.a5.a6.a7.a8.a9.a10.a11.a12.a13.a14.a15.a16.a17.a18.a19.a20 (for IPv4v6)
 
+                //  The IPV6, and IPV4V6 format above is incompatible with Android, so we need to convert
+                //  to an Android-readable IPV6, IPV4 address format.
+
+                //  Extract original string into szDNS.
+                //  Then converted address is in pChannelData->m_szDNS1, pChannelData->m_szDNS1_2 (if IPv4v6).
+                const int MAX_IPADDR_SIZE = 100;
+                BYTE szDNS[MAX_IPADDR_SIZE] = {0};
+
+                // Parse <primary DNS>
+                // Converted address is in m_szDNS1, m_szDNS1_2 (if necessary)
+                if (SkipString(szRsp, ",", szRsp))
+                {
+                    if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Unable to extact szDNS 1!\r\n");
+                        goto Error;
+                    }
+
+                    pChannelData->m_szDNS1 = new BYTE[MAX_IPADDR_SIZE];
+                    if (NULL == pChannelData->m_szDNS1)
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS1!\r\n");
+                        goto Error;
+                    }
+                    memset(pChannelData->m_szDNS1, 0, sizeof(BYTE)*MAX_IPADDR_SIZE);
+
+                    //  delete m_szDNS1_2 (if it existed)
+                    delete[] pChannelData->m_szDNS1_2;
+                    pChannelData->m_szDNS1_2 = new BYTE[MAX_IPADDR_SIZE];
+                    if (NULL == pChannelData->m_szDNS1_2)
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS1_2!\r\n");
+                        goto Error;
+                    }
+                    memset(pChannelData->m_szDNS1_2, 0, sizeof(BYTE)*MAX_IPADDR_SIZE);
+
+                    //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
+                    if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS1, MAX_IPADDR_SIZE,
+                            pChannelData->m_szDNS1_2, MAX_IPADDR_SIZE))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szDNS1\r\n");
+                        goto Error;
+                    }
+                    RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1: %s\r\n", pChannelData->m_szDNS1);
+                    if (strlen(pChannelData->m_szDNS1_2) > 0)
+                    {
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1_2: %s\r\n", pChannelData->m_szDNS1_2);
+                    }
+                    else
+                    {
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1_2: <NONE>\r\n");
+                    }
+                }
+
+                // Parse <secondary DNS>
+                // Converted address is in m_szDNS2, m_szDNS2_2 (if necessary)
+                if (SkipString(szRsp, ",", szRsp))
+                {
+                    if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Unable to extact szDNS 2!\r\n");
+                        goto Error;
+                    }
+
+                    pChannelData->m_szDNS2 = new BYTE[MAX_IPADDR_SIZE];
+                    if (NULL == pChannelData->m_szDNS2)
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS2!\r\n");
+                        goto Error;
+                    }
+
+                    //  delete m_szDNS2_2 (if it existed)
+                    delete[] pChannelData->m_szDNS2_2;
+                    pChannelData->m_szDNS2_2 = new BYTE[MAX_IPADDR_SIZE];
+                    if (NULL == pChannelData->m_szDNS2_2)
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS2_2!\r\n");
+                        goto Error;
+                    }
+                    memset(pChannelData->m_szDNS2_2, 0, sizeof(BYTE)*MAX_IPADDR_SIZE);
+
+                    //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
+                    if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS2, MAX_IPADDR_SIZE,
+                            pChannelData->m_szDNS2_2, MAX_IPADDR_SIZE))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szDNS2\r\n");
+                        goto Error;
+                    }
+                    RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2: %s\r\n", pChannelData->m_szDNS2);
+                    if (strlen(pChannelData->m_szDNS2_2) > 0)
+                    {
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2_2: %s\r\n", pChannelData->m_szDNS2_2);
+                    }
+                    else
+                    {
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2_2: <NONE>\r\n");
+                    }
+                }
+            }
+#else // M2_IPV6_FEATURE_ENABLED
             // Parse <primary DNS>
             if (SkipString(szRsp, ",", szRsp))
             {
@@ -1044,6 +1410,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                 }
                 RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2: %s\r\n", pChannelData->m_szDNS2);
             }
+#endif // M2_IPV6_FEATURE_ENABLED
 
             res = RRIL_RESULT_OK;
         }

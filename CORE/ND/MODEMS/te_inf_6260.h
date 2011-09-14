@@ -143,4 +143,24 @@ public:
 BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, char *szDNS2);
 BOOL DataConfigDown(int nCID);
 
+#if defined(M2_IPV6_FEATURE_ENABLED)
+//  Helper function to convert IP addresses to Android-readable format.
+//  szIpIn [IN] - The IP string to be converted
+//  szIpOut [OUT] - The converted IP address in Android-readable format.
+//  uiIpOutSize [IN] - The size of the szIpOut buffer
+//  szIpOut2 [OUT] - The converted IP address in Android-readable format if szIpIn is IPv4v6 format.
+//  uiIpOutSize [IN] - The size of szIpOut2 buffer
+//
+//  If IPv4 format a1.a2.a3.a4, then szIpIn is copied to szIpOut.
+//  If Ipv6 format:
+//    Convert a1.a2.a3.a4.a5. ... .a15.a16 to XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX IPv6 format
+//    output is copied to szIpOut
+//  If Ipv4v6 format:
+//    Convert a1.a2.a3.a4.a5. ... .a19.a20 to
+//      a1.a2.a3.a4 to szIpOut
+//      XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX (a5-a20) to szIpOut2
+//  If szIpOut2 is NULL, then this parameter is ignored
+BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpOutSize, char *szIpOut2, UINT32 uiIpOut2Size);
+#endif // M2_IPV6_FEATURE_ENABLED
+
 #endif

@@ -1,6 +1,173 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+September 13, 2011 (M5.25 release for Medfield PR2)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR2 devices, Android version 2.3.4 (Gingerbread).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ABSP dated August 12, 2011 (ww33)
+- We are using the HSI interface.
+
+PR2 Setup
+=========
+KBoot: kboot.bin (from ABSP dated August 12,2011 ww33)
+IFWI: IFWI_CRAK_PR2v01.09a_FSTK_227_IA_48b_SCU_C0.12_VH_0.4F_Punit_C0.0C_XML_v01.0A_830_830_0.854.bin
+Misc Module: SIGNED_PNW_C0_FWR_DnX.FD.19.bin
+OS Recovery Module: SIGNED_PNW_C0_OSR_DnX.0E.37.bin
+Modem Firmware: SUNRISE_SMB_REV30_V2_1130.C_signed_MIPI_HSI_USIF_V2.13.fls
+
+
+Release Notes for M5.25
+=======================
+
+1. Bugzilla 6991, 9532: Update RRIL to support IPv6 and IPv4v6 (2)
+   -Completed second part of IPv6 updates in RIL to support parsing of
+    AT+CGPADDR? and AT+XDNS? responses in IPv4, IPv6, IPv4v6 formats.
+   -TODO: Check and set proper Android system properties in
+          DataConfigUp() and DataConfigDown() in te_inf_6260.cpp.
+
+2. TriggerNITZNotification(), no need to copy NITZ string buffer into a temp buffer.
+
+3. Video Telephony: DialVT function
+   -Revert AT+XDATACHANNEL command in CTEBase::CoreDialVT()
+
+4. Video Telephony: Add M2_VT_XDATACHANNEL_TEST_ENABLED flag
+   -If defined in Android.mk, also with M2_VT_FEATURE_ENABLED flag, RIL will send
+    AT+XDATACHANNEL=1,0,"/mux/12","/mux/5",2 during init of ATCmd channel (/dev/gsmtty12)
+
+5. Bugzilla 6688: SIM Lock menu is not displayed using a SIM with pin enabled
+   -Integrate patch
+
+6. Bugzilla 5643 update: Messy code display when enter "*188#"
+   -Add proper handling of <dcs> value in +CUSD response.
+   -Note: RIL currently does not handle other encodings besides default encoding and UCS2.
+          May need to support GSM 7-bit and other encodings in the future.
+
+7. R2 feature:  Bugzilla 8745: Extend RIL_REQUEST_GET_SIM_STATUS to return PIN retries
+   -Use compilation flag M2_PIN_RETRIES_FEATURE_ENABLED to enable feature.
+   -Uses AT+XPINCNT to retreive number of PIN retries for PIN1, PIN2, PUK1, PUK2.
+   -The compilation flag is disabled by default in Android.mk.
+   -NOTE: The enabler of this feature must make modifications in Android java layer as
+          well as libril to marshall the new fields in RIL_AppStatus as defined in ril.h.
+
+8. Remove stmd.h from RIL drop as file is included in hardware/intel/IFX-modem directory.
+
+
+M2 features testing matrix
+==========================
+X = Basic tested (compiles, camp on network, data transfer, voice calls, SMS to self)
+-NOTE: Tested with new reset scheme (RESET_MGMT enabled)
+
+MULTIPLE_PDP | VT | CALL_FAILED_CAUSE | RXDIV | CELL_BROADCAST | IPV6 | PIN_RETRIES | Result
+-------------+----+-------------------+-------+----------------+------+-------------+--------
+             |    |                   |       |                |      |             | PASS
+      X      |    |                   |       |                |      |             | PASS
+             |    |                   |       |                |  X   |             | PASS
+      X      |    |                   |       |                |  X   |             | PASS
+      X      | X  |                   |       |                |      |             | PASS
+      X      | X  |         X         |   X   |       X        |  X   |     X       | PASS
+
+
+Testing results:  (tested on mfld_pr2, no M2 features enabled, RESET_MGMT enabled)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 September 6, 2011 (M5.24 release for Medfield PR2)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield

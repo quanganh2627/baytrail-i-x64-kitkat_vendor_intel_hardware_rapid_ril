@@ -49,6 +49,12 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
     m_szIpAddr(NULL),
     m_szDNS1(NULL),
     m_szDNS2(NULL)
+#if defined(M2_IPV6_FEATURE_ENABLED)
+    ,
+    m_szIpAddr2(NULL),
+    m_szDNS1_2(NULL),
+    m_szDNS2_2(NULL)
+#endif // M2_IPV6_FEATURE_ENABLED
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
 
@@ -81,6 +87,17 @@ CChannel_Data::~CChannel_Data()
 
     delete[] m_szDNS2;
     m_szDNS2 = NULL;
+
+#if defined(M2_IPV6_FEATURE_ENABLED)
+    delete[] m_szIpAddr2;
+    m_szIpAddr2 = NULL;
+
+    delete[] m_szDNS1_2;
+    m_szDNS1_2 = NULL;
+
+    delete[] m_szDNS2_2;
+    m_szDNS2_2 = NULL;
+#endif // M2_IPV6_FEATURE_ENABLED
 
     RIL_LOG_VERBOSE("CChannel_Data::~CChannel_Data() - Exit\r\n");
 }

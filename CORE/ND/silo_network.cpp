@@ -137,10 +137,9 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
+//  Callback function when SIGALRM alarm is signalled in CSilo_Network::ParseCTZV().
 void triggerNITZNotification(int sig)
 {
-    BYTE *pszTimeData = NULL;
-
     RIL_LOG_INFO("triggerNITZNotification, g_bNITZTimerActive: %d", g_bNITZTimerActive);
 
     if (!g_bNITZTimerActive)
@@ -148,22 +147,10 @@ void triggerNITZNotification(int sig)
 
     g_bNITZTimerActive = false;
 
-    //  Copy to dynamic buffer
-    pszTimeData = (BYTE*)malloc(sizeof(BYTE) * MAX_BUFFER_SIZE);
-    if (NULL == pszTimeData)
-    {
-        RIL_LOG_CRITICAL("triggerNITZNotification - ERROR: Could not allocate memory for pszTimeData.\r\n");
-        return;
-    }
-
-    memset(pszTimeData, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
-    strncpy(pszTimeData, g_szNITZ, sizeof(BYTE) * MAX_BUFFER_SIZE);
+    RIL_onUnsolicitedResponse(RIL_UNSOL_NITZ_TIME_RECEIVED, (void*)g_szNITZ, sizeof(BYTE*));
 
     // Reset the global buffer
     memset(g_szNITZ, 0, sizeof(g_szNITZ));
-
-    RIL_onUnsolicitedResponse(RIL_UNSOL_NITZ_TIME_RECEIVED, (void*)pszTimeData, sizeof(BYTE*));
-    free(pszTimeData);
 }
 
 

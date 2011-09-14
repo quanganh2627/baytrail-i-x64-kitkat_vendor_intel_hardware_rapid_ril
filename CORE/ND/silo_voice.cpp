@@ -603,9 +603,6 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
     BYTE* szDataString = NULL;
     UINT32 uiDataString = 0;
     UINT32 nDCS = 0;
-    //BOOL bSupported = FALSE;
-    WCHAR* szUcs2 = NULL;
-    UINT32 cbUsed = 0;
     UINT32 uiAllocSize = 0;
     const BYTE* szDummy;
     BOOL fRet = FALSE;
@@ -688,44 +685,79 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
         memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
         snprintf(pUssdStatus->szType, 2, "%d", (int) uiStatus);
 
-        //  Add for USSD UCS2
-        if (0x08 == (nDCS & 0x0C))  // 3gpp 27.038 CBS Data Coding Scheme
+        // Please see 3GPP 23.038 (section 5) CBS Data Coding Scheme
+        if ((nDCS >= 0x40) && (nDCS <= 0x5F))  // binary: 010xxxxx
         {
-            unsigned char* tmpUssdUcs2 = NULL;
-            unsigned char tmpUssdAscii[MAX_BUFFER_SIZE] = {0};
-            int lenUssdAscii = 0;
-
-            if (!CopyStringNullTerminate((char*)tmpUssdAscii, szDataString, MAX_BUFFER_SIZE))
+            unsigned char charset = ( (nDCS >> 2) & 0x03 ); // take bit 2 and bit3
+            if (0x00 == charset)
             {
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot CopyStringNullTerminate szDataString to tmpUssdAscii\r\n");
+                // GSM 7-bit
+                //  TODO: Implement this (if necessary)
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: GSM 7-bit not supported!\r\n");
                 goto Error;
             }
-
-            lenUssdAscii = strlen((char*)tmpUssdAscii);
-            if ( (lenUssdAscii % 2) != 0)
+            else if (0x01 == charset)
             {
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Illegal string from modem\r\n");
+                // 8-bit
+                //  TODO: Implement this (if necessary)
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: 8-bit not supported!\r\n");
                 goto Error;
             }
-
-            tmpUssdUcs2 = new unsigned char[(lenUssdAscii/2)+1];
-            if (NULL == tmpUssdUcs2)
+            else if (0x02 == charset)
             {
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot allocate %d bytes for tmpUssdUcs2\r\n", lenUssdAscii/2+1);
+                // UCS2
+                RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - UCS2 encoding\r\n");
+                unsigned char* tmpUssdUcs2 = NULL;
+                unsigned char tmpUssdAscii[MAX_BUFFER_SIZE] = {0};
+                int lenUssdAscii = 0;
+
+                if (!CopyStringNullTerminate((char*)tmpUssdAscii, szDataString, MAX_BUFFER_SIZE))
+                {
+                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot CopyStringNullTerminate szDataString to tmpUssdAscii\r\n");
+                    goto Error;
+                }
+
+                lenUssdAscii = strlen((char*)tmpUssdAscii);
+                if ( (lenUssdAscii % 2) != 0)
+                {
+                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Illegal string from modem\r\n");
+                    goto Error;
+                }
+
+                tmpUssdUcs2 = new unsigned char[(lenUssdAscii/2)+1];
+                if (NULL == tmpUssdUcs2)
+                {
+                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot allocate %d bytes for tmpUssdUcs2\r\n", lenUssdAscii/2+1);
+                    goto Error;
+                }
+
+                ussdAsciiToHex(tmpUssdAscii, lenUssdAscii, &tmpUssdUcs2);
+                ucs2_to_utf8((unsigned char*)tmpUssdUcs2, lenUssdAscii/2, (unsigned char*)pUssdStatus->szMessage);
+                delete []tmpUssdUcs2;
+            }
+            else
+            {
+                // reserved value
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: reserved value not supported!\r\n");
                 goto Error;
             }
-
-            ussdAsciiToHex(tmpUssdAscii, lenUssdAscii, &tmpUssdUcs2);
-            ucs2_to_utf8((unsigned char*)tmpUssdUcs2, lenUssdAscii/2, (unsigned char*)pUssdStatus->szMessage);
-            delete []tmpUssdUcs2;
-        } // end for USSD ucs2
-        else
+        }
+        else if (nDCS <= 0x0F)  // binary: 0000xxxx
         {
+            //  default encoding, just copy string from response directly.
+            RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - default encoding\r\n");
             if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE))
             {
                 RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot CopyStringNullTerminate szDataString\r\n");
                 goto Error;
             }
+        }
+        else
+        {
+            //  dcs not supported
+            //  TODO: Implement more dcs encodings
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: dcs value of [%d, 0x%02X] not supported\r\n", nDCS, nDCS);
+            goto Error;
         }
 
         RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - %s\r\n", pUssdStatus->szMessage);
@@ -754,8 +786,6 @@ Error:
 
     delete[] szDataString;
     szDataString = NULL;
-    delete[] szUcs2;
-    szUcs2 = NULL;
 
     RIL_LOG_VERBOSE("CSilo_Voice::ParseUSSDInfo() - Exit\r\n");
     return fRet;
