@@ -997,7 +997,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
 
     //  Count number of '.'
     int nDotCount = 0;
-    for (unsigned int i=0; i<strlen(szIpIn); i++)
+    for (unsigned int i=0; szIpIn[i] != '\0'; i++)
     {
         if ('.' == szIpIn[i])
         {
@@ -1023,6 +1023,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
             //  Extract a1...a16 into aIP.
             //  Then convert aAddress to szIpOut.
             unsigned int aIP[16] = {0};
+            unsigned char acIP[16] = {0};
             if (EOF == sscanf(szIpIn, "%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u",
                             &aIP[0], &aIP[1], &aIP[2], &aIP[3], &aIP[4], &aIP[5], &aIP[6], &aIP[7],
                             &aIP[8], &aIP[9], &aIP[10], &aIP[11], &aIP[12], &aIP[13], &aIP[14], &aIP[15]))
@@ -1030,15 +1031,18 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                 RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot sscanf into aIP[]! ipv6\r\n");
                 goto Error;
             }
-
-            if (snprintf(szIpOut, uiIpOutSize,
-                    "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
-                    aIP[0], aIP[1], aIP[2], aIP[3], aIP[4], aIP[5], aIP[6], aIP[7],
-                    aIP[8], aIP[9], aIP[10], aIP[11], aIP[12], aIP[13], aIP[14], aIP[15]) <= 0)
+            //  Convert unsigned int to unsigned char (for inet_ntop)
+            for (int i=0; i<16; i++)
             {
-                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: error with snprintf()!\r\n");
+                acIP[i] = (unsigned char)aIP[i];
+            }
+
+            if (inet_ntop(AF_INET6, (void*)acIP, szIpOut, uiIpOutSize) <= 0)
+            {
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot inet_ntop ipv6\r\n");
                 goto Error;
             }
+
         }
         break;
 
@@ -1069,12 +1073,17 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
 
             if (NULL != szIpOut2 && 0 != uiIpOutSize2)
             {
-                if (snprintf(szIpOut2, uiIpOutSize2,
-                        "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
-                        aIP[4], aIP[5], aIP[6], aIP[7], aIP[8], aIP[9], aIP[10], aIP[11],
-                        aIP[12], aIP[13], aIP[14], aIP[15], aIP[16], aIP[17], aIP[18], aIP[19]) <= 0)
+                unsigned char acIP[16] = {0};
+
+                //  Convert unsigned int to unsigned char (for inet_ntop)
+                for (int i=0; i<16; i++)
                 {
-                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: error with snprintf()! ipv4v6 v6 part\r\n");
+                    acIP[i] = (unsigned char)aIP[i+4];
+                }
+
+                if (inet_ntop(AF_INET6, (void*)acIP, szIpOut2, uiIpOutSize2) <= 0)
+                {
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot inet_ntop ipv4v6\r\n");
                     goto Error;
                 }
             }
@@ -1139,13 +1148,13 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
         {
             //  The response could come back as:
             //  +CGPADDR: <cid>,<PDP_Addr1>,<PDP_Addr2>
-            //  Also, PDP_Addr1 and PDP_Addr2 could be in ipv4, ipv6, or ipv4v6 format.
-            //  String is in dot-separated numeric (0-255) of the form:
+            //  PDP_Addr1 could be in IPv4, or IPv6.  PDP_Addr2 is present only for IPv4v6
+            //  in which case PDP_Addr1 is IPv4 and PDP_Addr2 is IPv6.
             //  a1.a2.a3.a4 (for IPv4)
             //  a1.a2.a3.a4.a5.a6.a7.a8.a9.a10.a11.a12.a13.a14.a15.a16 (for IPv6)
 
-            //  The IPV6 format above is incompatible with Android, so we need to convert
-            //  to an Android-readable IPV6 address format.
+            //  The IPv6 format above is not IPv6 standard address string notation, as
+            //  required by Android, so we need to convert it.
 
             //  Extract original string into szPdpAddr.
             //  Then converted address is in pChannelData->m_szIpAddr.
@@ -2621,7 +2630,6 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
             //  Shouldn't be any data following command
             if (sizeof(sOEM_HOOK_RAW_POWEROFF) == uiDataSize)
             {
-                //  We have to be unregistered to do the change.
                 if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=0\r", sizeof(rReqData.szCmd1)))
                 {
                     RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_POWEROFF - Can't construct szCmd1.\r\n");
@@ -2640,7 +2648,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
             }
             else
             {
-                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not OEM_HOOK_RAW_POWEROFF=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_POWEROFF));
+                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_POWEROFF=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_POWEROFF));
                 goto Error;
             }
         }
@@ -2650,41 +2658,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
         {
             RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
 
-            //  Cast our data into our structure
+            //  Shouldn't be any data following command
             if (sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY) == uiDataSize)
             {
-                sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY sTFD;
-                memset(&sTFD, 0, sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY));
-                memcpy(&sTFD, pDataBytes, sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY));
-
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - bCommand=[0x%02X]\r\n", (unsigned char)sTFD.bCommand);
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - nMode=[%d]\r\n", (int)sTFD.nMode);
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - nFDDDelayTimer=[%d]\r\n", (int)sTFD.nFDDDelayTimer);
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - nSCRITimer=[%d]\r\n", (int)sTFD.nSCRITimer);
-
-                if (0 == sTFD.nFDDDelayTimer)
+                if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=1\r", sizeof(rReqData.szCmd1)))
                 {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDOR=%u\r", sTFD.nMode))
-                    {
-                        RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1. 1\r\n");
-                        goto Error;
-                    }
-                }
-                else if (0 == sTFD.nSCRITimer)
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDOR=%u,%u\r", sTFD.nMode, sTFD.nFDDDelayTimer))
-                    {
-                        RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1. 2\r\n");
-                        goto Error;
-                    }
-                }
-                else
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDOR=%u,%u,%u\r", sTFD.nMode, sTFD.nFDDDelayTimer, sTFD.nSCRITimer))
-                    {
-                        RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1. 3\r\n");
-                        goto Error;
-                    }
+                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1.\r\n");
+                    goto Error;
                 }
             }
             else

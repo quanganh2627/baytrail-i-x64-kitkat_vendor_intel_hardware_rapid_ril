@@ -45,7 +45,7 @@ typedef struct _TAG_OEM_HOOK_RAW_POWEROFF
 //
 //  This command sends AT+CFUN=0 to the modem.
 //
-//  "data" = OEM_HOOK_RAW_POWEROFF
+//  "data" = sOEM_HOOK_RAW_POWEROFF
 //  "response" = NULL
 //
 const BYTE RIL_OEM_HOOK_RAW_POWEROFF = 0xAA;
@@ -54,9 +54,6 @@ const BYTE RIL_OEM_HOOK_RAW_POWEROFF = 0xAA;
 typedef struct _TAG_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
 {
     unsigned char bCommand;  //  Command ID
-    int nMode; // 1,2,3
-    int nFDDDelayTimer; // int from 0-60
-    int nSCRITimer; // int from 1 to 120
 } sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY;
 
 //
@@ -65,7 +62,7 @@ typedef struct _TAG_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
 //
 //  This command sends AT+XFDOR to the modem.
 //
-//  "data" = OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
+//  "data" = sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
 //  "response" = NULL
 //
 const BYTE RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY = 0xBB;
@@ -84,7 +81,7 @@ typedef struct _TAG_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
 //
 //  This command sends AT+XFDORT to the modem.
 //
-//  "data" = OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
+//  "data" = sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
 //  "response" = NULL
 //
 const BYTE RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER = 0xCC;

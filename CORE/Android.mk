@@ -55,25 +55,25 @@ LOCAL_SHARED_LIBRARIES := libcutils libutils
 
 LOCAL_CFLAGS += -DDEBUG
 
-# To disable M2 "Multiple Primary PDP Contexts" feature, remove M2_MULTIPLE_PDP_FEATURE_ENABLED flag
+# Remove comment character to enable M2 "Multiple Primary PDP Contexts" feature
 LOCAL_CFLAGS += -DM2_MULTIPLE_PDP_FEATURE_ENABLED
 
-# To disable M2 "Video Telephony" feature, remove M2_VT_FEATURE_ENABLED flag
+# Remove comment character to enable M2 "Video Telephony" feature
 LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
 
-# To disable M2 "Call Failed Cause Notification" feature, remove M2_CALL_FAILED_CAUSE_FEATURE_ENABLED flag
+# Remove comment character to enable M2 "Call Failed Cause Notification" feature
 LOCAL_CFLAGS += -DM2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
-# To disable M2 "Rx Diversity" feature remove M2_RXDIV_FEATURE_ENABLED flag
+# Remove comment character to enable M2 "Rx Diversity" feature
 #LOCAL_CFLAGS += -DM2_RXDIV_FEATURE_ENABLED
 
-# To disable M2 "Cell Broadcast" feature remove M2_CELL_BROADCAST_FEATURE_ENABLED flag
+# Remove comment character to enable M2 "Cell Broadcast" feature
 LOCAL_CFLAGS += -DM2_CELL_BROADCAST_FEATURE_ENABLED
 
-# To disable M2 "IPv6" feature remove M2_IPV6_FEATURE_ENABLED flag
+# Remove comment character to enable M2 "IPv6" feature
 LOCAL_CFLAGS += -DM2_IPV6_FEATURE_ENABLED
 
-# To disable M2 "PIN retries" feature remove M2_PIN_RETRIES_FEATURE_ENABLED flag
+# Remove comment character to enable M2 "PIN retries" feature
 #LOCAL_CFLAGS += -DM2_PIN_RETRIES_FEATURE_ENABLED
 
 

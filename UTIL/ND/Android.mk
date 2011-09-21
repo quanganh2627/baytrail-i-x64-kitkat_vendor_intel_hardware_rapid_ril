@@ -19,7 +19,7 @@ LOCAL_SHARED_LIBRARIES := \
 
 LOCAL_CFLAGS += -DDEBUG
 
-# To disable M2 "Video Telephony" feature, remove M2_VT_FEATURE_ENABLED flag
+# Remove comment character to enable M2 "Video Telephony" feature
 LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
 
 LOCAL_C_INCLUDES :=  \

@@ -2219,15 +2219,9 @@ RIL_RESULT_CODE CTEBase::CoreDtmf(REQUEST_DATA & rReqData, void * pData, UINT32 
     tone = ((char *)pData)[0];
 
     //  Need to stop any outstanding tone first.
-    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XVTS\r", sizeof(rReqData.szCmd1)))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+VTS=%c\r", tone))
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreDtmf() - ERROR: Unable to write XVTS string to buffer\r\n");
-        goto Error;
-    }
-
-    if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+XVTS=%c\r", tone))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreDtmf() - ERROR: Unable to write XVTS=tone string to buffer\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreDtmf() - ERROR: Unable to write VTS=tone string to buffer\r\n");
         goto Error;
     }
 
@@ -7193,11 +7187,19 @@ RIL_RESULT_CODE CTEBase::CoreSimOpenChannel(REQUEST_DATA & rReqData, void * pDat
     szAID = (char*)pData;
 
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CCHO=\"%s\"\r", szAID))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CCHO=\"%s\"\r", szAID))
     {
-        res = RRIL_RESULT_OK;
+        RIL_LOG_CRITICAL("CTEBase::CoreSimOpenChannel() - ERROR: Cannot create CCHO command\r\n");
+        goto Error;
     }
 
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSimOpenChannel() - ERROR: Cannot create XEER command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSimOpenChannel() - Exit\r\n");
@@ -7212,32 +7214,119 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const BYTE* szRsp = rRspData.szResponse;
     unsigned int nChannelId = 0;
+    int* pnChannelId = NULL;
 
-    int* pnChannelId = (int*)malloc(sizeof(int));
-    if (NULL == pnChannelId)
+    if (NULL == rRspData.szResponse)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - ERROR: Could not allocate memory for an int.\r\n", sizeof(int));
-        goto Error;
-    }
-    memset(pnChannelId, 0, sizeof(int));
-
-    // Parse "<prefix><channelId><postfix>"
-    SkipRspStart(szRsp, g_szNewLine, szRsp);
-
-    //if (!FindAndSkipString(szRsp, "+CCHO: ", szRsp) ||
-    //    !ExtractUInt32(szRsp, nChannelId, szRsp))
-    if (!ExtractUInt32(szRsp, nChannelId, szRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - ERROR: Could not extract the Channel Id.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - ERROR: Response String pointer is NULL.\r\n");
         goto Error;
     }
 
-    *pnChannelId = nChannelId;
+    //  Could have +XEER response here, if AT command returned CME error.
+    if (FindAndSkipString(szRsp, "+XEER: ", szRsp))
+    {
+        unsigned int nCause = 0, nRes1 = 0, nRes2 = 0;
 
-    res = RRIL_RESULT_OK;
+        //  +XEER: "SIM ACCESS", 203, 68, 81 = RIL_E_MISSING_RESOURCE
+        //  +XEER: "SIM ACCESS", 203, 6A, 86 = RIL_E_MISSING_RESOURCE
+        //  +XEER: "SIM ACCESS", 203, 6A, 81 = RIL_E_MISSING_RESOURCE
+        //  +XEER: "SIM ACCESS", 202         = RIL_E_MISSING_RESOURCE
+        //  +XEER: "SIM ACCESS", 203, 6A, 82 = RIL_E_NO_SUCH_ELEMENT
+        //  +XEER: "SIM ACCESS", 200         = RIL_E_INVALID_PARAMETER
+        //  TODO: Add RIL_E_INVALID_PARAMETER in ril.h and Android java framework
+        //  For now, just return RIL_E_GENERIC_FAILURE
 
-    rRspData.pData   = (void*)pnChannelId;
-    rRspData.uiDataSize  = sizeof(int*);
+        //  Parse the "<category>", <cause>, <res1>, <res2>
+
+        //  Skip over the "<category>"
+        if (!FindAndSkipString(szRsp, ",", szRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - ERROR: cannot parse XEER, can't skip <category>\r\n");
+            goto Error;
+        }
+
+        //  Extract <cause>
+        if (!ExtractUInt32(szRsp, nCause, szRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - ERROR: cannot parse XEER, can't extract <cause>\r\n");
+            goto Error;
+        }
+
+        RIL_LOG_INFO("CTEBase::ParseSimOpenChannel() - XEER, nCause=[%d]\r\n", nCause);
+
+        if (202 == nCause)
+        {
+            return RIL_E_MISSING_RESOURCE;
+        }
+        else if (200 == nCause)
+        {
+            //  TODO: add RIL_E_INVALID_PARAMETER to framework
+            return RIL_E_GENERIC_FAILURE;
+        }
+        else if (203 == nCause)
+        {
+            // Extract ,<res1>, <res2>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractHexUInt32(szRsp, nRes1, szRsp) ||
+                !SkipString(szRsp, ",", szRsp) ||
+                !ExtractHexUInt32(szRsp, nRes2, szRsp) )
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - ERROR: cannot parse XEER, can't extract <res1>,<res2>\r\n");
+                goto Error;
+            }
+
+            RIL_LOG_INFO("CTEBase::ParseSimOpenChannel() - XEER, nRes1=[0x%02X], nRes2=[0x%02X]\r\n", nRes1, nRes2);
+
+            if ( (0x68 == nRes1 && 0x81 == nRes2) ||
+                 (0x6A == nRes1 && 0x86 == nRes2) ||
+                 (0x6A == nRes1 && 0x81 == nRes2) )
+            {
+                return RIL_E_MISSING_RESOURCE;
+            }
+            else if (0x6A == nRes1 && 0x82 == nRes2)
+            {
+                return RIL_E_NO_SUCH_ELEMENT;
+            }
+            else
+            {
+                //  None of the above
+                return RIL_E_GENERIC_FAILURE;
+            }
+        }
+        else
+        {
+            //  nCause none of the above
+            return RIL_E_GENERIC_FAILURE;
+        }
+    }
+    else
+    {
+        pnChannelId = (int*)malloc(sizeof(int));
+        if (NULL == pnChannelId)
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - ERROR: Could not allocate memory for an int.\r\n", sizeof(int));
+            goto Error;
+        }
+        memset(pnChannelId, 0, sizeof(int));
+
+        // Parse "<prefix><channelId><postfix>"
+        SkipRspStart(szRsp, g_szNewLine, szRsp);
+
+        //if (!FindAndSkipString(szRsp, "+CCHO: ", szRsp) ||
+        //    !ExtractUInt32(szRsp, nChannelId, szRsp))
+        if (!ExtractUInt32(szRsp, nChannelId, szRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - ERROR: Could not extract the Channel Id.\r\n");
+            goto Error;
+        }
+
+        *pnChannelId = nChannelId;
+
+        res = RRIL_RESULT_OK;
+
+        rRspData.pData   = (void*)pnChannelId;
+        rRspData.uiDataSize  = sizeof(int*);
+    }
 
 Error:
     if (RRIL_RESULT_OK != res)
@@ -7268,9 +7357,16 @@ RIL_RESULT_CODE CTEBase::CoreSimCloseChannel(REQUEST_DATA & rReqData, void * pDa
 
     nChannelId = ((int *)pData)[0];
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CCHC=%u\r", nChannelId))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CCHC=%u\r", nChannelId))
     {
-        res = RRIL_RESULT_OK;
+        RIL_LOG_CRITICAL("CTEBase::CoreSimCloseChannel() - ERROR: Cannot create CCHC command\r\n");
+        goto Error;
+    }
+
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSimCloseChannel() - ERROR: Cannot create XEER command\r\n");
+        goto Error;
     }
 
 Error:
@@ -7281,8 +7377,90 @@ Error:
 RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSimCloseChannel() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const BYTE* szRsp = rRspData.szResponse;
+
+    if (NULL == rRspData.szResponse)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseSimCloseChannel() - ERROR: Response String pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    //  Could have +XEER response here, if AT command returned CME error.
+    if (FindAndSkipString(szRsp, "+XEER: ", szRsp))
+    {
+        unsigned int nCause = 0, nRes1 = 0, nRes2 = 0;
+
+        //  +XEER: "SIM ACCESS", 202         = RIL_E_MISSING_RESOURCE
+        //  +XEER: "SIM ACCESS", 200         = RIL_E_INVALID_PARAMETER
+        //  +XEER: "SIM ACCESS", 203, 68, 81 = RIL_E_INVALID_PARAMETER
+        //  TODO: Add RIL_E_INVALID_PARAMETER in ril.h and Android java framework
+        //  For now, just return RIL_E_GENERIC_FAILURE
+
+        //  Parse the "<category>", <cause>, <res1>, <res2>
+
+        //  Skip over the "<category>"
+        if (!FindAndSkipString(szRsp, ",", szRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseSimCloseChannel() - ERROR: cannot parse XEER, can't skip <category>\r\n");
+            goto Error;
+        }
+
+        //  Extract <cause>
+        if (!ExtractUInt32(szRsp, nCause, szRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseSimCloseChannel() - ERROR: cannot parse XEER, can't extract <cause>\r\n");
+            goto Error;
+        }
+
+        RIL_LOG_INFO("CTEBase::ParseSimCloseChannel() - XEER, nCause=[%d]\r\n", nCause);
+
+        if (202 == nCause)
+        {
+            return RIL_E_MISSING_RESOURCE;
+        }
+        else if (200 == nCause)
+        {
+            //  TODO: add RIL_E_INVALID_PARAMETER to framework
+            return RIL_E_GENERIC_FAILURE;
+        }
+        else if (203 == nCause)
+        {
+            // Extract ,<res1>, <res2>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractHexUInt32(szRsp, nRes1, szRsp) ||
+                !SkipString(szRsp, ",", szRsp) ||
+                !ExtractHexUInt32(szRsp, nRes2, szRsp) )
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseSimCloseChannel() - ERROR: cannot parse XEER, can't extract <res1>,<res2>\r\n");
+                goto Error;
+            }
+
+            RIL_LOG_INFO("CTEBase::ParseSimCloseChannel() - XEER, nRes1=[0x%02X], nRes2=[0x%02X]\r\n", nRes1, nRes2);
+
+            if (0x68 == nRes1 && 0x81 == nRes2)
+            {
+                //  TODO: add RIL_E_INVALID_PARAMETER to framework
+                return RIL_E_GENERIC_FAILURE;
+            }
+            else
+            {
+                //  None of the above
+                return RIL_E_GENERIC_FAILURE;
+            }
+        }
+        else
+        {
+            // nCause none of the above
+            return RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
     RIL_LOG_VERBOSE("CTEBase::ParseSimCloseChannel() - Exit\r\n");
-    return RRIL_RESULT_OK;
+    return res;
 }
 
 
@@ -7377,6 +7555,11 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
         }
     }
 
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() - ERROR: Cannot create XEER command\r\n");
+        goto Error;
+    }
 
     res = RRIL_RESULT_OK;
 
@@ -7390,7 +7573,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitChannel() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char * szRsp = rRspData.szResponse;
 
     UINT32  uiSW1 = 0;
     UINT32  uiSW2 = 0;
@@ -7406,93 +7589,160 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    // Parse "<prefix>+CSIM: <len>,<response><postfix>"
-    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
-
-
-    if (!SkipString(pszRsp, "+CGLA: ", pszRsp))
+    //  Could have +XEER response here, if AT command returned CME error.
+    if (FindAndSkipString(szRsp, "+XEER: ", szRsp))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not skip over \"+CSIM: \".\r\n");
-        goto Error;
-    }
+        unsigned int nCause = 0, nRes1 = 0, nRes2 = 0;
 
-    if (!ExtractUInt32(pszRsp, uiLen, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not extract uiLen value.\r\n");
-        goto Error;
-    }
+        //  +XEER: "SIM ACCESS", 200         = RIL_E_INVALID_PARAMETER
+        //  +XEER: "SIM ACCESS", 203, 68, 81 = RIL_E_INVALID_PARAMETER
+        //  TODO: Add RIL_E_INVALID_PARAMETER in ril.h and Android java framework
+        //  For now, just return RIL_E_GENERIC_FAILURE
 
+        //  Parse the "<category>", <cause>, <res1>, <res2>
 
-    // Parse ","
-    if (SkipString(pszRsp, ",", pszRsp))
-    {
-        // Parse <response>
-        // NOTE: we take ownership of allocated szResponseString
-        if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString, cbResponseString, pszRsp))
+        //  Skip over the "<category>"
+        if (!FindAndSkipString(szRsp, ",", szRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not extract data string.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: cannot parse XEER, can't skip <category>\r\n");
             goto Error;
+        }
+
+        //  Extract <cause>
+        if (!ExtractUInt32(szRsp, nCause, szRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: cannot parse XEER, can't extract <cause>\r\n");
+            goto Error;
+        }
+
+        RIL_LOG_INFO("CTEBase::ParseSimTransmitChannel() - XEER, nCause=[%d]\r\n", nCause);
+
+        if (200 == nCause)
+        {
+            //  TODO: add RIL_E_INVALID_PARAMETER to framework
+            return RIL_E_GENERIC_FAILURE;
+        }
+        else if (203 == nCause)
+        {
+            // Extract ,<res1>, <res2>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractHexUInt32(szRsp, nRes1, szRsp) ||
+                !SkipString(szRsp, ",", szRsp) ||
+                !ExtractHexUInt32(szRsp, nRes2, szRsp) )
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: cannot parse XEER, can't extract <res1>,<res2>\r\n");
+                goto Error;
+            }
+
+            RIL_LOG_INFO("CTEBase::ParseSimTransmitChannel() - XEER, nRes1=[0x%02X], nRes2=[0x%02X]\r\n", nRes1, nRes2);
+
+            if (0x68 == nRes1 && 0x81 == nRes2)
+            {
+                //  TODO: add RIL_E_INVALID_PARAMETER to framework
+                return RIL_E_GENERIC_FAILURE;
+            }
+            else
+            {
+                //  None of the above
+                return RIL_E_GENERIC_FAILURE;
+            }
         }
         else
         {
-            RIL_LOG_INFO("CTEBase::ParseSimTransmitChannel() - Extracted data string: \"%s\" (%u chars)\r\n", szResponseString, cbResponseString);
+            // nCause none of the above
+            return RIL_E_GENERIC_FAILURE;
         }
-
-        if (0 != (cbResponseString - 1) % 2)
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() : ERROR : String was not a multiple of 2.\r\n");
-            goto Error;
-        }
-    }
-
-    // Allocate memory for the response struct PLUS a buffer for the response string
-    // The char* in the RIL_SIM_IO_Response will point to the buffer allocated directly after the RIL_SIM_IO_Response
-    // When the RIL_SIM_IO_Response is deleted, the corresponding response string will be freed as well.
-    pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
-    if (NULL == pResponse)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
-        goto Error;
-    }
-    memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
-
-    //  Response must be 4 chars or longer - cbResponseString includes NULL character
-    if (cbResponseString < 5)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: response length must be 4 or greater.\r\n");
-        goto Error;
-    }
-
-    sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
-    szResponseString[cbResponseString-5] = '\0';
-
-    pResponse->sw1 = uiSW1;
-    pResponse->sw2 = uiSW2;
-
-    if (NULL == szResponseString)
-    {
-        pResponse->simResponse = NULL;
     }
     else
     {
-        pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
-        if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
+        // Parse "<prefix>+CGLA: <len>,<response><postfix>"
+        SkipRspStart(szRsp, g_szNewLine, szRsp);
+
+
+        if (!SkipString(szRsp, "+CGLA: ", szRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Cannot CopyStringNullTerminate szResponseString\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not skip over \"+CSIM: \".\r\n");
             goto Error;
         }
 
-        // Ensure NULL termination!
-        pResponse->simResponse[cbResponseString] = '\0';
+        if (!ExtractUInt32(szRsp, uiLen, szRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not extract uiLen value.\r\n");
+            goto Error;
+        }
+
+
+        // Parse ","
+        if (SkipString(szRsp, ",", szRsp))
+        {
+            // Parse <response>
+            // NOTE: we take ownership of allocated szResponseString
+            if (!ExtractQuotedStringWithAllocatedMemory(szRsp, szResponseString, cbResponseString, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not extract data string.\r\n");
+                goto Error;
+            }
+            else
+            {
+                RIL_LOG_INFO("CTEBase::ParseSimTransmitChannel() - Extracted data string: \"%s\" (%u chars)\r\n", szResponseString, cbResponseString);
+            }
+
+            if (0 != (cbResponseString - 1) % 2)
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() : ERROR : String was not a multiple of 2.\r\n");
+                goto Error;
+            }
+        }
+
+        // Allocate memory for the response struct PLUS a buffer for the response string
+        // The char* in the RIL_SIM_IO_Response will point to the buffer allocated directly after the RIL_SIM_IO_Response
+        // When the RIL_SIM_IO_Response is deleted, the corresponding response string will be freed as well.
+        pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
+        if (NULL == pResponse)
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+            goto Error;
+        }
+        memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
+
+        //  Response must be 4 chars or longer - cbResponseString includes NULL character
+        if (cbResponseString < 5)
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: response length must be 4 or greater.\r\n");
+            goto Error;
+        }
+
+        sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
+        szResponseString[cbResponseString-5] = '\0';
+
+        pResponse->sw1 = uiSW1;
+        pResponse->sw2 = uiSW2;
+
+        if (NULL == szResponseString)
+        {
+            pResponse->simResponse = NULL;
+        }
+        else
+        {
+            pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
+            if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - ERROR: Cannot CopyStringNullTerminate szResponseString\r\n");
+                goto Error;
+            }
+
+            // Ensure NULL termination!
+            pResponse->simResponse[cbResponseString] = '\0';
+        }
+
+        // Parse "<postfix>"
+        SkipRspEnd(szRsp, g_szNewLine, szRsp);
+
+        rRspData.pData   = (void*)pResponse;
+        rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
+
+        res = RRIL_RESULT_OK;
     }
-
-    // Parse "<postfix>"
-    SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
-
-    rRspData.pData   = (void*)pResponse;
-    rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
-
-    res = RRIL_RESULT_OK;
 
 Error:
     if (RRIL_RESULT_OK != res)

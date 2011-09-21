@@ -534,7 +534,26 @@ BOOL CResponse::RetrieveErrorCode(const BYTE*& rszPointer, UINT32 &nCode, const 
         goto Error;
     }
 
-    SetResultCode(RIL_E_GENERIC_FAILURE);
+    switch(nCode)
+    {
+        case 103: // Illegal MS
+        case 106: // Illegal ME
+            SetResultCode(RIL_E_ILLEGAL_SIM_OR_ME);
+            break;
+        case 111: // PLMN not allowed
+            SetResultCode(RIL_E_PLMN_NOT_ALLOWED);
+            break;
+        case 112: // Location area not allowed
+            SetResultCode(RIL_E_LOCATION_AREA_NOT_ALLOWED);
+            break;
+        case 113: // Roaming not allowed in this location area
+            SetResultCode(RIL_E_ROAMING_NOT_ALLOWED_IN_THIS_LA);
+            break;
+        default:
+            SetResultCode(RIL_E_GENERIC_FAILURE);
+            break;
+    }
+
     SetErrorCode(nCode);
     SetUnsolicitedFlag(FALSE);
 

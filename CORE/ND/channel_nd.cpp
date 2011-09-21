@@ -246,13 +246,13 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: Command timed out!\r\n");
         HandleTimedOutError(TRUE);
 
-        //  Send extra AT to possibly abort command in progress
+        //  Send escape character to possibly abort command in progress
         UINT32 uiBytesWritten = 0;
-        BYTE szATCmd[] = "ATE0V1\r";
+        BYTE szATCmd[] = "AT\x1b\r";  //  AT<ESC>\r
         WriteToPort(szATCmd, strlen(szATCmd), uiBytesWritten);
 
         CResponse *pRspTemp = NULL;
-        RIL_RESULT_CODE resTmp = ReadQueue(pRspTemp, 500); //  wait 0.5 seconds for response
+        RIL_RESULT_CODE resTmp = ReadQueue(pRspTemp, 5000); //  wait 5 seconds for response
         delete pRspTemp;
 
         goto Error;
@@ -268,9 +268,21 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         HandleTimedOutError(FALSE);
     }
 
+    //  Send 2nd phase of command
+    //  Only send if response to first command was OK (RIL_E_SUCCESS) OR
+    //  SEEK for Android request returned CME ERROR (need to get error code for custom SEEK response code)
     if ((NULL != rpCmd->GetATCmd2()) &&
         (NULL != rpResponse) &&
-        (RIL_E_SUCCESS == rpResponse->GetResultCode()))
+        //  Success and non-SEEK request OR
+        ( (RIL_E_SUCCESS == rpResponse->GetResultCode() &&
+            (ND_REQ_ID_SIMOPENCHANNEL != rpCmd->GetRequestID() &&
+             ND_REQ_ID_SIMCLOSECHANNEL != rpCmd->GetRequestID() &&
+             ND_REQ_ID_SIMTRANSMITCHANNEL != rpCmd->GetRequestID()) ) ||
+        //  Error and SEEK request
+          (RIL_E_SUCCESS != rpResponse->GetResultCode() &&
+            (ND_REQ_ID_SIMOPENCHANNEL == rpCmd->GetRequestID() ||
+             ND_REQ_ID_SIMCLOSECHANNEL == rpCmd->GetRequestID() ||
+             ND_REQ_ID_SIMTRANSMITCHANNEL == rpCmd->GetRequestID()) ) ) )
     {
         pATCommand = (BYTE *) rpCmd->GetATCmd2();
         UINT32 uiBytesWritten = 0;
@@ -304,24 +316,13 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
             RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: Command's second part timed out!\r\n");
             HandleTimedOutError(TRUE);
 
+            //  Send escape character to possibly abort command in progress
+            UINT32 uiBytesWritten = 0;
+            BYTE szATCmd[] = "AT\x1b\r";  //  AT<ESC>\r
+            WriteToPort(szATCmd, strlen(szATCmd), uiBytesWritten);
 
-            //  Send extra AT to possibly abort command in progress
-            if (ND_REQ_ID_SENDSMS == rpCmd->GetRequestID() ||
-                ND_REQ_ID_SENDSMSEXPECTMORE == rpCmd->GetRequestID())
-            {
-
-                UINT32 uiBytesWritten = 0;
-                BYTE szATCmd[] = "\x1b\r";
-                WriteToPort(szATCmd, strlen(szATCmd), uiBytesWritten);
-            }
-            else
-            {
-                UINT32 uiBytesWritten = 0;
-                BYTE szATCmd[] = "ATE0V1\r";
-                WriteToPort(szATCmd, strlen(szATCmd), uiBytesWritten);
-            }
             CResponse *pRspTemp = NULL;
-            RIL_RESULT_CODE resTmp = ReadQueue(pRspTemp, 500); //  wait 0.5 seconds for response
+            RIL_RESULT_CODE resTmp = ReadQueue(pRspTemp, 5000); //  wait 5 seconds for response
             delete pRspTemp;
 
 
