@@ -122,9 +122,9 @@ BOOL CPort::Init()
             // save current port settings
             tcgetattr(fd,&oldtio);
 
-            if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
+/*            if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
                 perror("fcntl()");
-
+*/
             bzero(&newtio, sizeof(newtio));
             newtio.c_cflag = B115200;
 
