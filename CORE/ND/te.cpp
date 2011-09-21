@@ -3734,53 +3734,6 @@ RIL_RESULT_CODE CTE::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_SET_LOCATION_UPDATES 76
-//
-RIL_RESULT_CODE CTE::RequestSetLocationUpdates(RIL_Token rilToken, void * pData, size_t datalen)
-{
-    RIL_LOG_VERBOSE("CTE::RequestSetLocationUpdates() - Enter\r\n");
-
-    REQUEST_DATA reqData;
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
-
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetLocationUpdates(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
-    {
-        RIL_LOG_CRITICAL("CTE::RequestSetLocationUpdates() - ERROR: Unable to create AT command data\r\n");
-    }
-    else
-    {
-        CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETLOCATIONUPDATES], rilToken, ND_REQ_ID_SETLOCATIONUPDATES, reqData, &CTE::ParseSetLocationUpdates);
-
-        if (pCmd)
-        {
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CTE::RequestSetLocationUpdates() - ERROR: Unable to add command to queue\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE::RequestSetLocationUpdates() - ERROR: Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-        }
-    }
-
-    RIL_LOG_VERBOSE("CTE::RequestSetLocationUpdates() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE::ParseSetLocationUpdates(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseSetLocationUpdates() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseSetLocationUpdates(rRspData);
-}
-
-//
 // RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77
 //
 RIL_RESULT_CODE CTE::RequestCdmaSetSubscription(RIL_Token rilToken, void * pData, size_t datalen)

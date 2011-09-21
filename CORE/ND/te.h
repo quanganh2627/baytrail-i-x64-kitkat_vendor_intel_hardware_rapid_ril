@@ -356,10 +356,6 @@ public:
     RIL_RESULT_CODE RequestGetNeighboringCellIDs(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_SET_LOCATION_UPDATES 76
-    RIL_RESULT_CODE RequestSetLocationUpdates(RIL_Token rilToken, void * pData, size_t datalen);
-    RIL_RESULT_CODE ParseSetLocationUpdates(RESPONSE_DATA & rRspData);
-
     // RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77
     RIL_RESULT_CODE RequestCdmaSetSubscription(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseCdmaSetSubscription(RESPONSE_DATA & rRspData);
