@@ -95,6 +95,7 @@ public:
 
 #if defined(RESET_MGMT)
     BOOL            SendRequestCleanup();
+    BOOL            SendRequestShutdown();
 
     //  This function continues the init in the function InitializeSystem() left
     //  off from InitChannelPorts().  Called when MODEM_UP status is received.

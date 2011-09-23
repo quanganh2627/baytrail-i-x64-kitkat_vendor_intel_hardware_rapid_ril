@@ -36,9 +36,12 @@
 #include "rildmain.h"
 #include "te.h"
 #include "te_base.h"
+#include "reset.h"
+#include <cutils/properties.h>
 
 CTEBase::CTEBase() :
-m_nNetworkRegistrationType(0)
+m_nNetworkRegistrationType(0),
+mShutdown(false)
 {
     memset(m_szManualMCCMNC, 0, MAX_BUFFER_SIZE);
 }
@@ -2159,7 +2162,20 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
     //  Store setting in context.
     rReqData.pContextData = (void*)bTurnRadioOn;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
+    // Retrieve the shutdown property
+    char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL) &&
+                strncmp(szShutdownActionProperty, "0",1) == 0) {
+        RIL_LOG_INFO("CTEBase::CoreRadioPower - Shutdown requested\r\n");
+        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=0\r",
+                                                sizeof(rReqData.szCmd1)))
+        {
+                res = RRIL_RESULT_OK;
+                mShutdown = true;
+        }
+    }
+
+    else if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
                                         "AT+CFUN=1\r" : "AT+CFUN=4\r",
                                         sizeof(rReqData.szCmd1)))
     {
@@ -2183,6 +2199,10 @@ RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
     {
         //  Turning off phone
         g_RadioState.SetRadioState(FALSE);
+        if (mShutdown)
+        {
+           do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
+        }
     }
     else if (1 == nPower)
     {

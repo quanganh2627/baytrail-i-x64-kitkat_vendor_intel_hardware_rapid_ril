@@ -32,6 +32,7 @@
 #include "oemhookids.h"
 #include "channel_data.h"
 #include "te_inf_6260.h"
+#include <cutils/properties.h>
 
 CTE * CTE::m_pTEInstance = NULL;
 
@@ -1178,6 +1179,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
     RIL_RadioState radio_state = g_RadioState.GetRadioState();
+    char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     if (NULL == pData)
     {
@@ -1202,9 +1204,18 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
         bTurnRadioOn = true;
     }
 
+    // Retrieve the shutdown action property to verify if the requested radio state is OFF and a reboot is requested
+    // if so ignore the command
+    if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL) &&
+                strncmp(szShutdownActionProperty, "1",1) == 0) {
+        RIL_LOG_INFO("CTE::RequestRadioPower() - Reboot requested, do nothing\r\n");
+        res = RIL_E_SUCCESS;
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+    }
+
     // check if the required state is the same as the current one
     // if so, ignore command
-    if ((bTurnRadioOn && RADIO_STATE_OFF != radio_state) || (!bTurnRadioOn && RADIO_STATE_OFF == radio_state))
+    else if ((bTurnRadioOn && RADIO_STATE_OFF != radio_state) || (!bTurnRadioOn && RADIO_STATE_OFF == radio_state))
     {
         RIL_LOG_INFO("CTE::RequestRadioPower() - No change in state, spoofing command.\r\n");
         res = RIL_E_SUCCESS;

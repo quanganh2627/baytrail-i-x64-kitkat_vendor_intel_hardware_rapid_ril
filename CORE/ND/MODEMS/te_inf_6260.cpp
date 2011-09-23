@@ -34,7 +34,6 @@
 #include "command.h"
 #include "te_inf_6260.h"
 #include "channel_data.h"
-#include "reset.h"
 #include "rildmain.h"
 #include "callbacks.h"
 #include "oemhookids.h"
@@ -2623,37 +2622,6 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
     switch(bCommand)
     {
-        case RIL_OEM_HOOK_RAW_POWEROFF:
-        {
-            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_POWEROFF Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
-
-            //  Shouldn't be any data following command
-            if (sizeof(sOEM_HOOK_RAW_POWEROFF) == uiDataSize)
-            {
-                if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=0\r", sizeof(rReqData.szCmd1)))
-                {
-                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_POWEROFF - Can't construct szCmd1.\r\n");
-                    goto Error;
-                }
-
-#if defined(RESET_MGMT)
-                //  The modem will be set to off and STMD will detect this.
-                //  so a MODEM_DOWN will be sent to the modem-status socket.
-#else // RESET_MGMT
-                //  NOTE: I am assuming this is the last AT command to be sent to the modem.
-                //  It turns out that this AT command causes TriggerRadioError() to be called.
-                //  The following line will simply return out of the TriggerRadioError() function call.
-                g_bIsTriggerRadioError = TRUE;
-#endif // RESET_MGMT
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_POWEROFF=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_POWEROFF));
-                goto Error;
-            }
-        }
-        break;
-
         case RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY:
         {
             RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
@@ -2756,11 +2724,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 
     switch(uCommand)
     {
-        case RIL_OEM_HOOK_RAW_POWEROFF:
-        {
-            g_RadioState.SetRadioState(FALSE);
-            break;
-        }
         default:
             break;
     }

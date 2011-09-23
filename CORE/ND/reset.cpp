@@ -180,12 +180,25 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const BYTE* lpszF
 
         RIL_LOG_INFO("do_request_clean_up() - eError=[%d], SendRequestCleanup\r\n", eError);
 
-        //  Send "REQUEST_CLEANUP" on CleanupRequest socket
-        if (!CSystemManager::GetInstance().SendRequestCleanup())
+        if (eRadioError_ForceShutdown == eError)
         {
-            RIL_LOG_CRITICAL("do_request_clean_up() - ERROR: ***** CANNOT SEND CLEANUP REQUEST *****\r\n");
-            //  Socket could have been closed by STMD.
-            //  Restart RRIL, drop down to exit.
+            //  Send "REQUEST_SHUTDOWN" on CleanupRequest socket
+            if (!CSystemManager::GetInstance().SendRequestShutdown())
+            {
+                RIL_LOG_CRITICAL("do_request_clean_up() - ERROR: ***** CANNOT SEND SHUTDOWN REQUEST *****\r\n");
+                //  Socket could have been closed by STMD.
+                //  Restart RRIL, drop down to exit.
+            }
+        }
+        else
+        {
+            //  Send "REQUEST_CLEANUP" on CleanupRequest socket
+            if (!CSystemManager::GetInstance().SendRequestCleanup())
+            {
+                RIL_LOG_CRITICAL("do_request_clean_up() - ERROR: ***** CANNOT SEND CLEANUP REQUEST *****\r\n");
+                //  Socket could have been closed by STMD.
+                //  Restart RRIL, drop down to exit.
+            }
         }
 
         RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");

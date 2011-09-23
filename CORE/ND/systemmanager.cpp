@@ -1276,6 +1276,43 @@ Error:
     RIL_LOG_INFO("CSystemManager::SendRequestCleanup() - EXIT\r\n");
     return bRet;
 }
+
+
+//  Send shutdow, request on the socket
+BOOL CSystemManager::SendRequestShutdown()
+{
+    RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - ENTER\r\n");
+    BOOL bRet = FALSE;
+
+    if (m_fdCleanupSocket >= 0)
+    {
+        unsigned int data;
+        int data_size = 0;
+
+        RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - Send request shutdown\r\n");
+        data = REQUEST_SHUTDOWN;
+        data_size = send(m_fdCleanupSocket, &data, sizeof(unsigned int), 0);
+        if (data_size < 0)
+        {
+            RIL_LOG_CRITICAL("CSystemManager::SendRequestShutdown() - Failed to send SHUTDOWN_REQUEST\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - Send request shutdown  SUCCESSFUL\r\n");
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CSystemManager::SendRequestShutdown() - invalid socket fd=[%d]\r\n", m_fdCleanupSocket);
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - EXIT\r\n");
+    return bRet;
+}
 #endif // RESET_MGMT
 
 

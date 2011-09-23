@@ -33,6 +33,7 @@ class CTEBase
 protected:
     int m_nNetworkRegistrationType;  //  0 = automatic, 1 = manual
     char m_szManualMCCMNC[MAX_BUFFER_SIZE];  //  If manual, this holds the MCCMNC string.
+    bool mShutdown;
 
 public:
 

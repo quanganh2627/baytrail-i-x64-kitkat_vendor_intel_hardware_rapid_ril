@@ -30,9 +30,7 @@
 
 enum eRadioError
 {
-#if !defined(RESET_MGMT)
     eRadioError_ForceShutdown,      //  Critical error occured
-#endif // RESET_MGMT
     eRadioError_RequestCleanup,     //  General request clean up
     eRadioError_LowMemory,          //  Couldn't allocate memory
     eRadioError_ChannelDead,        //  Modem non-responsive

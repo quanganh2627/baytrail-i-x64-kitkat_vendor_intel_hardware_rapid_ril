@@ -34,23 +34,6 @@
 //  The first byte of the byte[] is the command.  The data follows.
 
 ///////////////////////////////////////////////////////////////////////////////
-typedef struct _TAG_OEM_HOOK_RAW_POWEROFF
-{
-    unsigned char bCommand;  //  Command ID
-} sOEM_HOOK_RAW_POWEROFF;
-
-//
-//  RIL_OEM_HOOK_RAW_POWEROFF
-//  Command ID = 0xAA
-//
-//  This command sends AT+CFUN=0 to the modem.
-//
-//  "data" = sOEM_HOOK_RAW_POWEROFF
-//  "response" = NULL
-//
-const BYTE RIL_OEM_HOOK_RAW_POWEROFF = 0xAA;
-
-///////////////////////////////////////////////////////////////////////////////
 typedef struct _TAG_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
 {
     unsigned char bCommand;  //  Command ID
