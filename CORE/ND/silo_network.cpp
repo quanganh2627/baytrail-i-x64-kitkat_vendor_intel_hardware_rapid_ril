@@ -617,6 +617,7 @@ BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const BYTE* &rszPointe
         break;
 
         case 6:
+        case 8:
         // registered, HSUPA and HSDPA
         g_uiAccessTechnology = ACT_HSPA;
         break;
