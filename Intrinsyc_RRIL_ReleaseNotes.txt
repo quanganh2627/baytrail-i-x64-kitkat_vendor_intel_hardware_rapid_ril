@@ -1,6 +1,202 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+September 27, 2011 (M5.27 release for Medfield PR2)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR2 devices, Android version 2.3.4 (Gingerbread).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ABSP dated August 12, 2011 (ww33)
+- We are using the HSI interface.
+
+PR2 Setup
+=========
+KBoot: kboot.bin (from ABSP dated August 12,2011 ww33)
+IFWI: IFWI_CRAK_PR2v01.09a_FSTK_227_IA_48b_SCU_C0.12_VH_0.4F_Punit_C0.0C_XML_v01.0A_830_830_0.854.bin
+Misc Module: SIGNED_PNW_C0_FWR_DnX.FD.19.bin
+OS Recovery Module: SIGNED_PNW_C0_OSR_DnX.0E.37.bin
+Modem Firmware: SUNRISE_SMB_REV30_V2_1130.C_signed_MIPI_HSI_USIF_V2.13.fls
+
+
+Release Notes for M5.27
+=======================
+
+1. Bugzilla 10083: Same operators shown twice in the manual network selection list
+   -Integrate patch (R1 and R2)
+
+2. Bugzilla 10468: RIL: Changed open mux channel with blocking mode
+   -Integrate patch (R1 and R2)
+   -NOTE: This was already done by Intel in M5.26.
+
+3. Bugzilla 10016: Radio Interface Layer Daemon (malloc debug)
+   -Integrate patch (R1 and R2)
+
+4. Bugzilla 10276: PR2 doesn't have internet connection through 3G
+   -Integrate patch (R1 and R2)
+   -RIL_REQUEST_SET_LOCATION_UPDATES now returns RIL_E_SUCCESS immediately.
+    No AT commands are sent.
+
+5. Minor change in IPv6 code.  More sanity checking on responses from modem.
+   -(R2 M2_IPV6_FEATURE_ENABLED flag only)
+
+6. Bugzilla 10352: Device shutdown procedure is not correct
+   -Integrate patch (R1 and R2)
+   -Remove RIL_OEM_HOOK_RAW_POWEROFF.  Read property "sys.shutdown.requested".
+   -Add constant REQUEST_SHUTDOWN in stmd.h.
+
+7. Bugzilla 10786: AT command Time out trace display name
+   -Integrate patch (R1 and R2)
+
+8. Bugzilla 10234: new network type HSPA+ in modem: temporary patch
+   -Integrate patch (R1 and R2)
+
+9. Bugzilla 10180: bplog timestamp is not correct
+   -Integrate patch (R1 and R2)
+
+10. Patch for +XSIMSTATE=1 during init.
+    -New modem firmware 1139.B is breaking RIL due to different response from AT+XSIMSTATE=1
+     response.  Response in new firmware returns OK instead of +XSIM and +XLOCK responses.
+     Modify RIL so that +XSIMSTATE response sends notifications to Android with new sim state.
+    -(R1 and R2)
+
+11. Bugzilla 8858: Increase AT command timeouts in repository.txt according to IMC specs.
+   -(R1 and R2, New timeouts for R2 will be released in next drop)
+   -Commands that use ATH to hangup, IMC rec=35 sec.  RIL now uses 40 seconds.
+   -Commands that use AT+COPS? and AT+XCOPS?, IMC rec=90 sec.  RIL now uses 100 seconds.
+   -AT+SATD (SIMTk, set up call from SIM), IMC rec=300 sec.  RIL now uses 330 seconds.
+
+   -Commands that have a network dependant timeout, IMC recommends 90 seconds.
+   -AT+CCFC (call forwarding).  RIL now uses 90 seconds.
+   -AT+CCWA (call waiting).  RIL now uses 90 seconds.
+   -AT+CMMS (SMS, more to send).  RIL still uses 180 seconds.
+   -AT+CUSD (USSD, cancel USSD).  RIL still uses 180 seconds for send, now uses 90 for cancel.
+
+12. New retry scheme for AT commands. (R1 and R2)
+    -If there is AT command timeout, send ABORT command.
+    -Timeout of ABORT command dependent on RIL_REQUEST.
+        -Abortable commands are: (COPS, CCFC, CLIP, CLIR, COLP, CGACT, CGATT)
+        -Other non-abortable commands use 500ms.
+    -TODO: If ABORT timeout, close DLC.  Open DLC.
+    -Upon response from ABORT or ABORT timeout, send AT+CMEE=1\r to "ping" modem to see if still alive.
+    -If modem "ping" passes, RIL assumes modem is alive.
+        -If timeout <= "threshold timeout for retry", DO NOT reset modem and resend command.
+            -If retry attempt and init command, signal clean-up request to STMD.
+        -If timeout > "threshold timeout for retry", then DO NOT reset modem and return
+         RIL_E_GENERIC_FAILURE to Android.
+    -If modem "ping" fails, RIL assumes modem is dead.  Signal clean-up request to STMD.
+
+
+M2 features testing matrix
+==========================
+X = Basic tested (compiles, camp on network, data transfer, voice calls, SMS to self)
+-NOTE: Tested with new reset scheme (RESET_MGMT enabled)
+
+MULTIPLE_PDP | VT | CALL_FAILED_CAUSE | RXDIV | CELL_BROADCAST | IPV6 | PIN_RETRIES | Result
+-------------+----+-------------------+-------+----------------+------+-------------+--------
+             |    |                   |       |                |      |             | PASS
+      X      | X  |         X         |   X   |       X        |  X   |     X       | PASS
+
+
+Testing results:  (tested on mfld_pr2, no M2 features enabled, RESET_MGMT enabled)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 September 20, 2011 (M5.26 release for Medfield PR2)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield

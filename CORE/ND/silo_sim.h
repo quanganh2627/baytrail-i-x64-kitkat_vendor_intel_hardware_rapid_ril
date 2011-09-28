@@ -71,6 +71,7 @@ protected:
     virtual BOOL    ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseXLOCK(CResponse* const pResponse, const BYTE*& rszPointer);
     virtual BOOL    ParseXLEMA(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseXSIMSTATE(CResponse* const pResponse, const BYTE*& rszPointer);
 
     //  Emergency Call Codes list
     char m_szECCList[MAX_BUFFER_SIZE];

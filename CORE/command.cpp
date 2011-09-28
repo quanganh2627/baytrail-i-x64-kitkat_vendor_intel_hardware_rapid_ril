@@ -38,9 +38,9 @@ CCommand::CCommand( UINT32 uiChannel,
     m_pszATCmd2(NULL),
     m_pParseFcn(pParseFcn),
     m_uiTimeout(0),
-    m_uiRetries(0),
     m_fAlwaysParse(FALSE),
     m_fHighPriority(FALSE),
+    m_fIsInitCommand(FALSE),
     m_pContext(NULL),
     m_pContextData(NULL),
     m_cbContextData(0)
@@ -80,9 +80,9 @@ CCommand::CCommand( UINT32 uiChannel,
     m_pszATCmd2(NULL),
     m_pParseFcn(pParseFcn),
     m_uiTimeout(0),
-    m_uiRetries(0),
     m_fAlwaysParse(FALSE),
     m_fHighPriority(FALSE),
+    m_fIsInitCommand(FALSE),
     m_pContext(NULL),
     m_pContextData(NULL),
     m_cbContextData(0)
@@ -133,9 +133,9 @@ CCommand::CCommand( UINT32 uiChannel,
     m_pszATCmd2(NULL),
     m_pParseFcn(pParseFcn),
     m_uiTimeout(reqData.uiTimeout),
-    m_uiRetries(reqData.uiRetries),
     m_fAlwaysParse(reqData.fForceParse),
     m_fHighPriority(FALSE),
+    m_fIsInitCommand(FALSE),
     m_pContext(NULL),
     m_pContextData(reqData.pContextData),
     m_cbContextData(reqData.cbContextData)
@@ -201,12 +201,6 @@ BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd)
         if (0 == rpCmd->GetTimeout())
         {
             rpCmd->SetTimeout(reqInfo.uiTimeout);
-        }
-
-        //  A value of "0" for uiRetries will use the retrieved request info from the registry.
-        if (0 == rpCmd->GetRetries())
-        {
-            rpCmd->SetRetries(reqInfo.uiRetries);
         }
 
         UINT32 nChannel = rpCmd->GetChannel();

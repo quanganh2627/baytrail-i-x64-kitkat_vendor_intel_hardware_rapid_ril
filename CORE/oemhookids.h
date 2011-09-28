@@ -34,7 +34,7 @@
 //  The first byte of the byte[] is the command.  The data follows.
 
 ///////////////////////////////////////////////////////////////////////////////
-typedef struct _TAG_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
+typedef struct TAG_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
 {
     unsigned char bCommand;  //  Command ID
 } sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY;
@@ -52,7 +52,7 @@ const BYTE RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY = 0xBB;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct _TAG_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
+typedef struct TAG_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
 {
     unsigned char bCommand;  //  Command ID
     int nTimerValue; // int from 0-120

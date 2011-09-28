@@ -61,6 +61,9 @@ protected:
     // Give GPRS response thread a chance to handle Rx data in Data mode
     virtual BOOL    ProcessModemData(BYTE *szData, UINT32 uiRead);
 
+    //  Handle the timeout scenario (ABORT command, PING)
+    virtual BOOL    HandleTimeout(CCommand*& rpCmd, CResponse*& rpRsp);
+
 private:
     // Helper functions
     RIL_RESULT_CODE ReadQueue(CResponse*& rpRsp, UINT32 uiTimeout);

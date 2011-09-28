@@ -341,6 +341,8 @@ public:
     virtual RIL_RESULT_CODE CoreGetNeighboringCellIDs(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData);
 
+    // RIL_REQUEST_SET_LOCATION_UPDATES 76
+
     // RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77
     virtual RIL_RESULT_CODE CoreCdmaSetSubscription(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaSetSubscription(RESPONSE_DATA & rRspData);

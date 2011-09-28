@@ -44,8 +44,6 @@ CChannelBase::CChannelBase(UINT32 uiChannel)
     m_pCmdThread(NULL),
     m_pReadThread(NULL),
     m_pBlockReadThreadEvent(NULL),
-    m_uiNumTimeouts(0),
-    m_uiMaxTimeouts(3),
     m_uiLockCommandQueue(0),
     m_uiLockCommandQueueTimeout(0),
     m_prisdModuleInit(NULL)
@@ -548,6 +546,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                 pCmd->SetContext(pContext);
                 pCmd->SetTimeout(g_TimeoutCmdInit);
                 pCmd->SetHighPriority();
+                pCmd->SetInitCommand();
             }
 
             if (!pCmd || !CCommand::AddCmdToQueue(pCmd))
@@ -702,35 +701,6 @@ Done:
     return 0;
 }
 
-
-// Causes a reboot if more than some number of commands in a row fail
-void CChannelBase::HandleTimedOutError(BOOL fCmdTimedOut)
-{
-    RIL_LOG_VERBOSE("CChannelBase::HandleTimedOutError() - Enter\r\n");
-
-    if (fCmdTimedOut)
-    {
-        m_bTimeoutWaitingForResponse = TRUE;
-        ++m_uiNumTimeouts;
-
-        if (m_uiNumTimeouts >= m_uiMaxTimeouts)
-        {
-            RIL_LOG_CRITICAL("CChannelBase::HandleTimedOutError() - ERROR: chnl=[%d] Modem has not responded to multiple commands, restart RIL\r\n", m_uiRilChannel);
-
-#if defined(RESET_MGMT)
-            do_request_clean_up(eRadioError_ChannelDead, __LINE__, __FILE__);
-#else // RESET_MGMT
-            TriggerRadioErrorAsync(eRadioError_ChannelDead, __LINE__, __FILE__);
-#endif // RESET_MGMT
-        }
-    }
-    else
-    {
-        m_uiNumTimeouts=0;
-    }
-
-    RIL_LOG_VERBOSE("CChannelBase::HandleTimedOutError() - Exit\r\n");
-}
 
 //
 //  Set the flags to lock the command queue for uiTimeout ms.

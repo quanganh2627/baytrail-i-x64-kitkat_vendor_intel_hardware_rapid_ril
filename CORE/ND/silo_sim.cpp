@@ -59,6 +59,7 @@ CSilo_SIM::CSilo_SIM(CChannel *pChannel)
         { "+XLOCK: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLOCK },
         { "+XSIM: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIM },
         { "+XLEMA: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLEMA },
+        { "+XSIMSTATE: ", (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIMSTATE },
         { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
     };
 
@@ -1009,4 +1010,95 @@ Error:
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXLEMA() - Exit\r\n");
     return fRet;
 }
+
+
+BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const BYTE*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIMSTATE() - Enter\r\n");
+    BOOL fRet = FALSE;
+    const char* pszEnd = NULL;
+    UINT32 nMode = 0;
+    UINT32 nSIMState = 0;
+    UINT32 nPBReady = 0;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() : ERROR : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    // Look for a "<postfix>" to be sure we got a whole message
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() : ERROR : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Extract "<nMode>"
+    if (!ExtractUInt32(rszPointer, nMode, rszPointer))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - ERROR: Could not parse nMode.\r\n");
+        goto Error;
+    }
+
+    // Extract ",<SIM state>"
+    if (!SkipString(rszPointer, ",", rszPointer) ||
+        !ExtractUInt32(rszPointer, nSIMState, rszPointer))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - ERROR: Could not parse nSIMState.\r\n");
+        goto Error;
+    }
+
+    //  Skip the rest of the parameters (if any)
+    // Look for a "<postfix>" to be sure we got a whole message
+    FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer);
+
+    //  Back up over the "\r\n".
+    rszPointer -= strlen(g_szNewLine);
+
+    /// @TODO: Need to revisit the XSIM and radio state mapping
+    switch (nSIMState)
+    {
+        case 2: // PIN verification not needed - Ready
+        case 3: // PIN verified - Ready
+        case 6: // SIM Error
+        case 8: // SIM Technical problem
+        case 10: // SIM Reactivating
+        case 11: // SIM Reactivated
+            // The SIM is initialized, but modem is still in the process of it.
+            // we can inform Android that SIM is still not ready.
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM NOT READY\r\n");
+            g_RadioState.SetSIMState(RADIO_STATE_SIM_NOT_READY);
+            break;
+        case 7: // ready for attach (+COPS)
+            g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
+            CSystemManager::GetInstance().TriggerSimUnlockedEvent();
+            break;
+        case 0: // SIM not present
+        case 1: // PIN verification needed
+        case 4: // PUK verification needed
+        case 5: // SIM permanently blocked
+        case 9: // SIM Removed
+        default:
+            g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+            break;
+    }
+
+    /*
+     * Instead of triggering the GET_SIM_STATUS and QUERY_FACILITY_LOCK
+     * requests based on RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED,
+     * android telephony stack is triggering those requests based on
+     * RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED.
+     * Might change in the future, so its better to trigger
+     * the RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED
+     */
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
+
+    fRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIMSTATE() - Exit\r\n");
+    return fRet;
+}
+
 

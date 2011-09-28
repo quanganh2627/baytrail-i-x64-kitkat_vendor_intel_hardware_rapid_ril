@@ -30,15 +30,14 @@
 const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;
 const UINT32 TIMEOUT_API_DEFAULT            = 10000;
 const UINT32 TIMEOUT_WAITFORINIT            = 10000;
-const UINT32 DEFAULT_CMD_RETRIES            = 2;
+const UINT32 TIMEOUT_THRESHOLDFORRETRY      = 10000;
 
 
 ///////////////////////////////////////////////////////////////////////////////
 UINT32 g_TimeoutCmdInit = TIMEOUT_INITIALIZATION_COMMAND;
 UINT32 g_TimeoutAPIDefault = TIMEOUT_API_DEFAULT;
 UINT32 g_TimeoutWaitForInit = TIMEOUT_WAITFORINIT;
-UINT32 g_DefaultCmdRetries = DEFAULT_CMD_RETRIES;
-
+UINT32 g_TimeoutThresholdForRetry = TIMEOUT_THRESHOLDFORRETRY;
 
 ///////////////////////////////////////////////////////////////////////////////
 char g_cTerminator = '\r';

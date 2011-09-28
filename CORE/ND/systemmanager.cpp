@@ -295,9 +295,9 @@ BOOL CSystemManager::InitializeSystem()
         g_TimeoutWaitForInit = (UINT32)iTemp;
     }
 
-    if (repository.Read(g_szGroupRILSettings, g_szDefaultCmdRetries, iTemp))
+    if (repository.Read(g_szGroupRILSettings, g_szTimeoutThresholdForRetry, iTemp))
     {
-        g_DefaultCmdRetries = (UINT32)iTemp;
+        g_TimeoutThresholdForRetry = (UINT32)iTemp;
     }
 
 
@@ -1277,8 +1277,7 @@ Error:
     return bRet;
 }
 
-
-//  Send shutdow, request on the socket
+//  Send shutdown request on the socket
 BOOL CSystemManager::SendRequestShutdown()
 {
     RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - ENTER\r\n");
@@ -1294,7 +1293,7 @@ BOOL CSystemManager::SendRequestShutdown()
         data_size = send(m_fdCleanupSocket, &data, sizeof(unsigned int), 0);
         if (data_size < 0)
         {
-            RIL_LOG_CRITICAL("CSystemManager::SendRequestShutdown() - Failed to send SHUTDOWN_REQUEST\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::SendRequestShutdown() - Failed to send CLEANUP_SHUTDOWN\r\n");
             goto Error;
         }
         else

@@ -51,7 +51,6 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO &rReqInfo)
 
     // Set defaults if we can't find the request id
     rReqInfo.uiTimeout       = g_TimeoutAPIDefault;
-    rReqInfo.uiRetries       = g_DefaultCmdRetries;
 
     if (REQ_ID_NONE == requestID)
     {
@@ -82,9 +81,7 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO &rReqInfo)
 
         // Group Strings are constant, while Item Strings are Request-Dependent.
         memset(g_szItemRequestTimeouts, 0, sizeof(g_szItemRequestTimeouts));
-        memset(g_szItemRequestNumRetries, 0, sizeof(g_szItemRequestNumRetries));
         strncpy(g_szItemRequestTimeouts,   g_szRequestNames[requestID], MAX_REQUEST_ITEM_LENGTH-1);
-        strncpy(g_szItemRequestNumRetries, g_szRequestNames[requestID], MAX_REQUEST_ITEM_LENGTH-1);
 
         if (repository.Read(g_szGroupRequestTimeouts, g_szItemRequestTimeouts, iTemp))
         {
@@ -93,15 +90,6 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO &rReqInfo)
         else
         {
             pNewReqInfo->uiTimeout = g_TimeoutAPIDefault;
-        }
-
-        if (repository.Read(g_szGroupRequestNumRetries, g_szItemRequestNumRetries, iTemp))
-        {
-            pNewReqInfo->uiRetries = (UINT32)iTemp;
-        }
-        else
-        {
-            pNewReqInfo->uiRetries = g_DefaultCmdRetries;
         }
 
         // Use WAIT_FOREVER timeout if given time was 0
@@ -121,10 +109,9 @@ Error:
     delete pNewReqInfo;
     pNewReqInfo = NULL;
 
-    RIL_LOG_INFO("CRequestInfoTable::GetRequestInfo() - RequestID 0x%X: Timeout [%d]   Retries [%d]\r\n",
+    RIL_LOG_INFO("CRequestInfoTable::GetRequestInfo() - RequestID 0x%X: Timeout [%d]\r\n",
                    requestID,
-                   rReqInfo.uiTimeout,
-                   rReqInfo.uiRetries);
+                   rReqInfo.uiTimeout);
 
     RIL_LOG_VERBOSE("CRequestInfoTable::GetRequestInfo() - Exit\r\n");
 }

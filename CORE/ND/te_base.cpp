@@ -2165,16 +2165,15 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
     // Retrieve the shutdown property
     char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
     if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL) &&
-                strncmp(szShutdownActionProperty, "0",1) == 0) {
+                ('0' == szShutdownActionProperty[0]) )
+    {
         RIL_LOG_INFO("CTEBase::CoreRadioPower - Shutdown requested\r\n");
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=0\r",
-                                                sizeof(rReqData.szCmd1)))
+        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=0\r", sizeof(rReqData.szCmd1)))
         {
-                res = RRIL_RESULT_OK;
-                mShutdown = true;
+            res = RRIL_RESULT_OK;
+            mShutdown = true;
         }
     }
-
     else if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
                                         "AT+CFUN=1\r" : "AT+CFUN=4\r",
                                         sizeof(rReqData.szCmd1)))
@@ -2201,7 +2200,7 @@ RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
         g_RadioState.SetRadioState(FALSE);
         if (mShutdown)
         {
-           do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
+            do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
         }
     }
     else if (1 == nPower)
@@ -4474,6 +4473,12 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
     UINT32 nValue;
     UINT32 nEntries = 0;
     UINT32 nCurrent = 0;
+    UINT32 numericNameNumber = 0;
+    BOOL find = false;
+    UINT32 i = 0;
+    UINT32 j = 0;
+    UINT32 k = 0;
+
     BYTE tmp[MAX_BUFFER_SIZE];
 
     P_ND_OPINFO_PTRS pOpInfoPtr = NULL;
@@ -4481,6 +4486,12 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
     void * pOpInfoPtrBase = NULL;
     void * pOpInfoDataBase = NULL;
+
+    P_ND_OPINFO_PTRS pOpInfoPtrEnd = NULL;
+    P_ND_OPINFO_DATA pOpInfoDataEnd = NULL;
+
+    void * pOpInfoPtrBaseEnd = NULL;
+    void * pOpInfoDataBaseEnd = NULL;
 
     const BYTE* szRsp = rRspData.szResponse;
     const BYTE* szDummy = NULL;
@@ -4579,7 +4590,6 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
         }
         else
         {
-            //int len = wcslen(tmp);
             int len = strlen(tmp);
             if (0 == len)
             {
@@ -4606,7 +4616,6 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
         }
         else
         {
-            //int len = wcslen(tmp);
             int len = strlen(tmp);
             if (0 == len)
             {
@@ -4633,7 +4642,6 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
         }
         else
         {
-            //int len = wcslen(tmp);
             int len = strlen(tmp);
             if (0 == len)
             {
@@ -4651,7 +4659,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
             RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - Numeric oper: %s\r\n", pOpInfoData[nCurrent].szOpInfoNumeric);
        }
 
-        //Extract ")"
+        // Extract ")"
         if (!FindAndSkipString(szRsp, ")", szRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - ERROR: Did not find closing bracket\r\n");
@@ -4661,11 +4669,106 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
         // Increment the array index
         nCurrent++;
 
-Continue:
         // Extract ","
         if (!FindAndSkipString(szRsp, ",", szRsp))
         {
             RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - INFO: Finished parsing entries\r\n");
+
+            // Suppression of duplication.
+
+            // Detection of the network number
+            if (nCurrent > 0)
+            {
+                for (i=0;i<nCurrent;i++)
+                {
+                    find = false;
+                    for (j=0;j<i;j++)
+                    {
+                        if (strcmp(pOpInfoData[i].szOpInfoNumeric, pOpInfoData[j].szOpInfoNumeric) == 0)
+                        {
+                            find = true;
+                        }
+                    }
+                    if (!find)
+                    {
+                        numericNameNumber++;
+                    }
+                }
+            }
+
+            RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - INFO: There is %d network and %d double.\r\n", numericNameNumber, (nCurrent-numericNameNumber));
+
+            if (numericNameNumber < nCurrent)
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - INFO: a new table is build.\r\n");
+
+                // Declaration of the final table.
+                rRspData.pData = malloc(numericNameNumber * (sizeof(S_ND_OPINFO_PTRS) + sizeof(S_ND_OPINFO_DATA)));
+                if (NULL == rRspData.pData)
+                {
+                    RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - ERROR: Cannot allocate rRspData.pData  size=%d\r\n",
+                                numericNameNumber * (sizeof(S_ND_OPINFO_PTRS) + sizeof(S_ND_OPINFO_DATA)) );
+                    goto Error;
+                }
+                memset(rRspData.pData, 0, numericNameNumber * (sizeof(S_ND_OPINFO_PTRS) + sizeof(S_ND_OPINFO_DATA)));
+                rRspData.uiDataSize = numericNameNumber * sizeof(S_ND_OPINFO_PTRS);
+
+                pOpInfoPtrBaseEnd = rRspData.pData;
+                pOpInfoDataBaseEnd = (void*)((UINT32)rRspData.pData + (numericNameNumber * sizeof(S_ND_OPINFO_PTRS)));
+
+                pOpInfoPtrEnd = (P_ND_OPINFO_PTRS)pOpInfoPtrBaseEnd;
+                pOpInfoDataEnd = (P_ND_OPINFO_DATA)pOpInfoDataBaseEnd;
+
+                // Fill first element of the table.
+                strcpy(pOpInfoDataEnd[0].szOpInfoLong, pOpInfoData[0].szOpInfoLong);
+                strcpy(pOpInfoDataEnd[0].szOpInfoShort, pOpInfoData[0].szOpInfoShort);
+                strcpy(pOpInfoDataEnd[0].szOpInfoNumeric, pOpInfoData[0].szOpInfoNumeric);
+                strcpy(pOpInfoDataEnd[0].szOpInfoStatus, pOpInfoData[0].szOpInfoStatus);
+                pOpInfoPtrEnd[0].pszOpInfoLong = pOpInfoDataEnd[0].szOpInfoLong;
+                pOpInfoPtrEnd[0].pszOpInfoShort = pOpInfoDataEnd[0].szOpInfoShort;
+                pOpInfoPtrEnd[0].pszOpInfoNumeric = pOpInfoDataEnd[0].szOpInfoNumeric;
+                pOpInfoPtrEnd[0].pszOpInfoStatus = pOpInfoDataEnd[0].szOpInfoStatus;
+
+                // Fill the rest of the table.
+                find = false;
+                j = 1;
+                for (i=1;j<numericNameNumber;i++)
+                {
+                    for (k=0;k<j;k++)
+                    {
+                        if (strcmp(pOpInfoDataEnd[k].szOpInfoNumeric, pOpInfoData[i].szOpInfoNumeric) == 0)
+                        {
+                            find = true;
+                        }
+                    }
+                    if (find == false)
+                    {
+                        strcpy(pOpInfoDataEnd[j].szOpInfoLong, pOpInfoData[i].szOpInfoLong);
+                        strcpy(pOpInfoDataEnd[j].szOpInfoShort, pOpInfoData[i].szOpInfoShort);
+                        strcpy(pOpInfoDataEnd[j].szOpInfoNumeric, pOpInfoData[i].szOpInfoNumeric);
+                        strcpy(pOpInfoDataEnd[j].szOpInfoStatus, pOpInfoData[i].szOpInfoStatus);
+                        pOpInfoPtrEnd[j].pszOpInfoLong = pOpInfoDataEnd[j].szOpInfoLong;
+                        pOpInfoPtrEnd[j].pszOpInfoShort = pOpInfoDataEnd[j].szOpInfoShort;
+                        pOpInfoPtrEnd[j].pszOpInfoNumeric = pOpInfoDataEnd[j].szOpInfoNumeric;
+                        pOpInfoPtrEnd[j].pszOpInfoStatus = pOpInfoDataEnd[j].szOpInfoStatus;
+                        j++;
+                    }
+                    find = false;
+                }
+
+                for (i=0;i<numericNameNumber;i++)
+                {
+                    RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - INFO: new table : %s\r\n", pOpInfoDataEnd[i].szOpInfoLong);
+                }
+
+                // Free the old table.
+                free(pOpInfoPtrBase);
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - INFO: a new table is not build.\r\n");
+            }
+
             break;
         }
     }
@@ -5891,6 +5994,10 @@ RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseGetNeighboringCellIDs() - Exit\r\n");
     return res;
 }
+
+//
+// RIL_REQUEST_SET_LOCATION_UPDATES 76
+//
 
 //
 // RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77

@@ -43,10 +43,8 @@
 // Standardized Non-Volatile Memory Access Strings
 
 const char   g_szGroupRequestTimeouts[]        = "RequestTimeouts";
-const char   g_szGroupRequestNumRetries[]      = "RequestNumRetries";
 
 char         g_szItemRequestTimeouts[MAX_REQUEST_ITEM_LENGTH];
-char         g_szItemRequestNumRetries[MAX_REQUEST_ITEM_LENGTH];
 
 //  These strings are used for Request ID Parameters in repository.txt
 //  The strings must be in the same order as the Request IDs defined in request_id.h
@@ -182,8 +180,7 @@ const char   g_szTimeoutWaitForInit[]          = "TimeoutWaitForInit";
 
 const char   g_szGroupRILSettings[]            = "RILSettings";
 
-const char   g_szMaxCommandTimeouts[]          = "MaxCommandTimeouts";
-const char   g_szDefaultCmdRetries[]           = "DefaultCmdRetries";
+const char   g_szTimeoutThresholdForRetry[]    = "TimeoutThresholdForRetry";
 const char   g_szOpenPortRetries[]             = "OpenPortRetries";
 const char   g_szOpenPortInterval[]            = "OpenPortInterval";
 

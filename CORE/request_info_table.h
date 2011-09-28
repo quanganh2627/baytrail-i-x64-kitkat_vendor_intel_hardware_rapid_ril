@@ -29,7 +29,6 @@
 struct REQ_INFO
 {
     UINT32 uiTimeout;
-    UINT32 uiRetries;
 };
 
 class CRequestInfoTable

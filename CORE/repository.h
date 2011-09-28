@@ -39,10 +39,8 @@
 // String Constants used for NVM Access
 
 extern const char   g_szGroupRequestTimeouts[];
-extern const char   g_szGroupRequestNumRetries[];
 
 extern char         g_szItemRequestTimeouts[MAX_REQUEST_ITEM_LENGTH];
-extern char         g_szItemRequestNumRetries[MAX_REQUEST_ITEM_LENGTH];
 
 extern const char * g_szRequestNames[];
 
@@ -58,8 +56,7 @@ extern const char   g_szTimeoutWaitForInit[];
 
 extern const char   g_szGroupRILSettings[];
 
-extern const char   g_szMaxCommandTimeouts[];
-extern const char   g_szDefaultCmdRetries[];
+extern const char   g_szTimeoutThresholdForRetry[];
 extern const char   g_szOpenPortRetries[];
 extern const char   g_szOpenPortInterval[];
 

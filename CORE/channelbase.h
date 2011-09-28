@@ -130,8 +130,6 @@ protected:
     void            SetCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = TRUE; }
     BOOL            WaitForCommand();
 
-    void            HandleTimedOutError(BOOL fCmdTimedOut);
-
 protected:
     //  Member variables
     UINT32                          m_uiRilChannel;
@@ -146,9 +144,6 @@ protected:
     CThread *                       m_pReadThread;
 
     CEvent *                        m_pBlockReadThreadEvent;
-
-    UINT32                          m_uiNumTimeouts;
-    UINT32                          m_uiMaxTimeouts;
 
     UINT32                          m_uiLockCommandQueue;
     UINT32                          m_uiLockCommandQueueTimeout;

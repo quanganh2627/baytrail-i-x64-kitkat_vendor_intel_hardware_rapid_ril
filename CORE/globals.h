@@ -36,12 +36,11 @@
 extern const UINT32 TIMEOUT_INITIALIZATION_COMMAND;
 extern const UINT32 TIMEOUT_API_DEFAULT;
 extern const UINT32 TIMEOUT_WAITFORINIT;
-extern const UINT32 DEFAULT_CMD_RETRIES;
 
 extern UINT32 g_TimeoutCmdInit;
 extern UINT32 g_TimeoutAPIDefault;
 extern UINT32 g_TimeoutWaitForInit;
-extern UINT32 g_DefaultCmdRetries;
+extern UINT32 g_TimeoutThresholdForRetry;
 
 ///////////////////////////////////////////////////////////////////////////////
 extern char g_cTerminator;

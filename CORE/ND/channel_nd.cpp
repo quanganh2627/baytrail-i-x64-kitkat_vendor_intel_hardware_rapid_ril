@@ -24,7 +24,6 @@
 #include "types.h"
 #include "rillog.h"
 #include "thread_ops.h"
-#include "repository.h"
 #include "command.h"
 #include "response.h"
 #include "cmdcontext.h"
@@ -34,23 +33,10 @@
 
 
 CChannel::CChannel(UINT32 uiChannel)
-: CChannelBase(uiChannel)
+: CChannelBase(uiChannel),
+  m_pResponse(NULL)
 {
-    RIL_LOG_VERBOSE("CChannel::CChannel() - Enter\r\n");
-
-    CRepository repository;
-    int iTemp = 0;
-
-    if (repository.Read(g_szGroupRILSettings, g_szMaxCommandTimeouts, iTemp))
-    {
-        m_uiMaxTimeouts = (UINT32)iTemp;
-    }
-    else
-    {
-        m_uiMaxTimeouts = 3;
-    }
-
-    RIL_LOG_VERBOSE("CChannel::CChannel() - Exit\r\n");
+    RIL_LOG_VERBOSE("CChannel::CChannel() - Enter/Exit\r\n");
 }
 
 CChannel::~CChannel()
@@ -64,6 +50,90 @@ CChannel::~CChannel()
 }
 
 //
+// Function to get ABORT timeout (in ms) from RIL request ID
+//
+UINT32 GetAbortTimeout(UINT32 reqID)
+{
+    const UINT32 DEFAULT_ABORT_TIMEOUT = 500;  //  Default ABORT timeout
+    UINT32 timeout = DEFAULT_ABORT_TIMEOUT;
+
+    switch(reqID)
+    {
+        case ND_REQ_ID_QUERYNETWORKSELECTIONMODE:   // Test COPS?
+        case ND_REQ_ID_QUERYAVAILABLENETWORKS:      // Test COPS=?
+            timeout = 22000;
+            break;
+
+        case ND_REQ_ID_OPERATOR:                    // Set XCOPS=
+        case ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC:// Set COPS=
+        case ND_REQ_ID_SETNETWORKSELECTIONMANUAL:   // Set COPS=
+            timeout = 42000;
+            break;
+
+        case ND_REQ_ID_QUERYCALLFORWARDSTATUS:      // Set CCFC=
+        case ND_REQ_ID_SETCALLFORWARD:              // Set CCFC=
+            timeout = 37000;
+            break;
+
+        case ND_REQ_ID_QUERYCLIP:                   // Read CLIP
+            timeout = 37000;
+            break;
+
+        case ND_REQ_ID_GETCLIR:                     // Read CLIR
+        case ND_REQ_ID_SETCLIR:                     // Read CLIR
+            timeout = 37000;
+            break;
+
+        case ND_REQ_ID_PDPCONTEXTLIST:              // Read CGACT
+            timeout = 2000;
+            break;
+
+        case ND_REQ_ID_DEACTIVATEDATACALL:          // Set CGACT
+        case ND_REQ_ID_PDPCONTEXTLIST_UNSOL:        // Set CGACT
+            timeout = 2000;
+            break;
+
+        default:
+            timeout = DEFAULT_ABORT_TIMEOUT;
+            break;
+    }
+
+    return timeout;
+}
+
+//
+// Is request ID an abortable command?
+//
+BOOL IsReqIDAbortable(UINT32 reqID)
+{
+    BOOL bIsAbortable = FALSE;
+
+    switch(reqID)
+    {
+        case ND_REQ_ID_QUERYNETWORKSELECTIONMODE:   // Test COPS?
+        case ND_REQ_ID_QUERYAVAILABLENETWORKS:      // Test COPS=?
+        case ND_REQ_ID_OPERATOR:                    // Set XCOPS=
+        case ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC:// Set COPS=
+        case ND_REQ_ID_SETNETWORKSELECTIONMANUAL:   // Set COPS=
+        case ND_REQ_ID_QUERYCALLFORWARDSTATUS:      // Set CCFC=
+        case ND_REQ_ID_SETCALLFORWARD:              // Set CCFC=
+        case ND_REQ_ID_QUERYCLIP:                   // Read CLIP
+        case ND_REQ_ID_GETCLIR:                     // Read CLIR
+        case ND_REQ_ID_SETCLIR:                     // Read CLIR
+        case ND_REQ_ID_PDPCONTEXTLIST:              // Read CGACT
+        case ND_REQ_ID_DEACTIVATEDATACALL:          // Set CGACT
+        case ND_REQ_ID_PDPCONTEXTLIST_UNSOL:        // Set CGACT
+            bIsAbortable = TRUE;
+            break;
+
+        default:
+            bIsAbortable = FALSE;
+            break;
+    }
+    return bIsAbortable;
+}
+
+//
 // Send an RIL command
 //
 BOOL CChannel::SendCommand(CCommand*& rpCmd)
@@ -71,6 +141,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
     RIL_LOG_VERBOSE("CChannel::SendCommand() - Enter\r\n");
 
     BYTE*           pATCommand = NULL;
+    BYTE*           pATCommand2 = NULL;
     CResponse*      pResponse = NULL;
     RIL_RESULT_CODE resCode = RRIL_E_UNKNOWN_ERROR;
     BOOL            bResult = FALSE;
@@ -108,8 +179,44 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
     else
     {
         // process command here
-        int nNumRetries = (int)rpCmd->GetRetries();
-        while (nNumRetries-- >= 0)
+        int nNumRetries = 0;
+        UINT32 nCommandTimeout = rpCmd->GetTimeout();
+
+        //  Compare command timeout of threshold timeout
+        if (0 == g_TimeoutThresholdForRetry)
+        {
+            //  A threshold value of 0 means no retries.
+            nNumRetries = 0;
+        }
+        else if (nCommandTimeout <= g_TimeoutThresholdForRetry)
+        {
+            //  AT Command timeout is <= threshold time, retry ONCE
+            nNumRetries = 1;
+        }
+        else
+        {
+            //  AT command timeout is > threshold time.  No retries.
+            nNumRetries = 0;
+        }
+
+        pATCommand = (BYTE *) rpCmd->GetATCmd1();
+        pATCommand2 = (BYTE *) rpCmd->GetATCmd2();
+
+        if (NULL == pATCommand2)
+        {
+            RIL_LOG_INFO("CChannel::SendCommand() - chnl=[%d] RILReqID=[%d] retries=[%d] Timeout=[%d] cmd1=[%s]\r\n",
+                m_uiRilChannel, rpCmd->GetRequestID(), nNumRetries, rpCmd->GetTimeout(),
+                CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString() );
+        }
+        else
+        {
+            RIL_LOG_INFO("CChannel::SendCommand() - chnl=[%d] RILReqID=[%d] retries=[%d] Timeout=[%d] cmd1=[%s] cmd2=[%s]\r\n",
+                m_uiRilChannel, rpCmd->GetRequestID(), nNumRetries, rpCmd->GetTimeout(),
+                CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString(),
+                CRLFExpandedString(pATCommand2, strlen(pATCommand2)).GetString() );
+        }
+
+        do
         {
             UINT32 uiBytesWritten = 0;
 
@@ -158,7 +265,9 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
 
             if (!pResponse)
             {
-                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] No response received!\r\n", m_uiRilChannel);
+                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] No response received to TX [%s]\r\n",
+                                m_uiRilChannel,
+                                CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
                 goto Error;
             }
 
@@ -170,9 +279,21 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             else
             {
                 //  Our response timed out, retry
-                RIL_LOG_INFO("CChannel::SendCommand() - Attempting retry  nNumRetries remaining=[%d]\r\n", nNumRetries+1);
+                if (nNumRetries > 0)
+                {
+                    RIL_LOG_INFO("CChannel::SendCommand() - ***** chnl=[%d] Attempting retry  nNumRetries remaining=[%d] *****\r\n", m_uiRilChannel, nNumRetries);
+                }
+
+                //  If this was last attempt and we timed out, and this was an init command,
+                //  then reset modem.  Signal clean up to STMD.
+                if ( (0 == nNumRetries) && (rpCmd->IsInitCommand()) )
+                {
+                    RIL_LOG_CRITICAL("CChannel::SendCommand() - ***** chnl=[%d] Init command timed-out. Reset modem! *****\r\n", m_uiRilChannel);
+
+                    do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+                }
             }
-        }
+        } while (--nNumRetries >= 0);
 
         // call Silo hook - PostSendCommandHook
         if (!PostSendCommandHook(rpCmd, pResponse))
@@ -216,7 +337,7 @@ Error:
 RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
 {
     RIL_RESULT_CODE resCode = RIL_E_GENERIC_FAILURE;
-    BYTE*           pATCommand;
+    BYTE*           pATCommand = NULL;
 
     RIL_LOG_VERBOSE("CChannel::GetResponse() - Enter\r\n");
 
@@ -241,20 +362,22 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
     }
 #endif // 0
 
+    pATCommand = (BYTE *) rpCmd->GetATCmd1();
+
     if (rpResponse && rpResponse->IsTimedOutFlag())
     {
-        RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: Command timed out!\r\n");
-        HandleTimedOutError(TRUE);
+        if (NULL == pATCommand)
+        {
+            RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command timed out chnl=[%d]! timeout=[%d]ms No response to TX [(null)] *****\r\n",
+                            m_uiRilChannel, rpCmd->GetTimeout());
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command timed out chnl=[%d]! timeout=[%d]ms No response to TX [%s] *****\r\n",
+                            m_uiRilChannel, rpCmd->GetTimeout(), CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+        }
 
-        //  Send escape character to possibly abort command in progress
-        UINT32 uiBytesWritten = 0;
-        BYTE szATCmd[] = "AT\x1b\r";  //  AT<ESC>\r
-        WriteToPort(szATCmd, strlen(szATCmd), uiBytesWritten);
-
-        CResponse *pRspTemp = NULL;
-        RIL_RESULT_CODE resTmp = ReadQueue(pRspTemp, 5000); //  wait 5 seconds for response
-        delete pRspTemp;
-
+        HandleTimeout(rpCmd, rpResponse);
         goto Error;
     }
     else if (RIL_E_SUCCESS != resCode)
@@ -264,9 +387,9 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
     }
     else
     {
-        // Didn't time out and we got a response, clear the channel's timeout counter
-        HandleTimedOutError(FALSE);
+        // We got a valid response.
     }
+
 
     //  Send 2nd phase of command
     //  Only send if response to first command was OK (RIL_E_SUCCESS) OR
@@ -313,36 +436,142 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
 
         if (rpResponse && rpResponse->IsTimedOutFlag())
         {
-            RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: Command's second part timed out!\r\n");
-            HandleTimedOutError(TRUE);
+            if (NULL == pATCommand)
+            {
+                RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command2 timed out chnl=[%d] ! timeout=[%d]ms No response to TX [(null)] *****\r\n",
+                                m_uiRilChannel, rpCmd->GetTimeout());
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command2 timed out chnl=[%d] ! timeout=[%d]ms No response to TX [%s] *****\r\n",
+                                m_uiRilChannel, rpCmd->GetTimeout(), CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+            }
 
-            //  Send escape character to possibly abort command in progress
-            UINT32 uiBytesWritten = 0;
-            BYTE szATCmd[] = "AT\x1b\r";  //  AT<ESC>\r
-            WriteToPort(szATCmd, strlen(szATCmd), uiBytesWritten);
-
-            CResponse *pRspTemp = NULL;
-            RIL_RESULT_CODE resTmp = ReadQueue(pRspTemp, 5000); //  wait 5 seconds for response
-            delete pRspTemp;
-
-
+            HandleTimeout(rpCmd, rpResponse);
             goto Error;
         }
         else if (RIL_E_SUCCESS != resCode)
         {
-            RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: Failed read from queue for command's second response\r\n");
+            RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Failed read from queue for command's second response\r\n", m_uiRilChannel);
             goto Error;
         }
         else
         {
-            // Didn't time out and we got a response, clear the channel's timeout counter
-            HandleTimedOutError(FALSE);
+            // We got valid response.
         }
     }
 
 Error:
     return resCode;
 }
+
+//
+//  This function handles the timeout mechanism.
+//  If timeout, send ABORT.  Then send PING.
+BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
+{
+    RIL_LOG_VERBOSE("CChannel::HandleTimeout() - Enter\r\n");
+
+    // New retry mechanism.
+    //
+    //-If there is AT command timeout, send ABORT command.
+    //-Timeout of ABORT command dependent on RIL_REQUEST.
+    //    -Abortable commands are: (COPS, CCFC, CLIP, CLIR, COLP, CGACT, CGATT)
+    //    -Other non-abortable commands use 500ms.
+    //-TODO: If ABORT timeout, close DLC.  Open DLC.
+    //-Upon response from ABORT or ABORT timeout, send AT+CMEE=1\r to "ping" modem to see if still alive.
+    //-If modem "ping" passes, RIL assumes modem is alive.
+    //    -If timeout <= "threshold timeout for retry", DO NOT reset modem and resend command.
+    //        -If retry attempt and init command, signal clean-up request to STMD.
+    //    -If timeout > "threshold timeout for retry", then DO NOT reset modem and return
+    //     RIL_E_GENERIC_FAILURE to Android.
+    //-If modem "ping" fails, RIL assumes modem is dead.  Signal clean-up request to STMD.
+
+
+    const UINT32 PING_TIMEOUT = 3000;  // PING timeout in ms.
+    BYTE szABORTCmd[] = "AT\x1b\r";  //  AT<esc>\r
+    BYTE szPINGCmd[] = "AT+CMEE=1\r";
+
+
+    // Send ABORT command
+    UINT32 uiBytesWritten = 0;
+    UINT32 uiAbortTimeout = GetAbortTimeout(rpCmd->GetRequestID());
+    RIL_LOG_INFO("CChannel::HandleTimeout() - Sending ABORT Command on chnl=[%d], timeout=[%d]ms\r\n", m_uiRilChannel, uiAbortTimeout);
+    WriteToPort(szABORTCmd, strlen(szABORTCmd), uiBytesWritten);
+
+    CResponse *pRspTemp = NULL;
+    RIL_RESULT_CODE resTmp = ReadQueue(pRspTemp, uiAbortTimeout); //  wait for ABORTED response
+
+    //  Did the ABORT command timeout?
+    if (pRspTemp && pRspTemp->IsTimedOutFlag())
+    {
+        //  ABORTED timeout
+
+        //  If command is non-abortable, this is OK.
+        if (IsReqIDAbortable(rpCmd->GetRequestID()))
+        {
+            //  TODO: Close DLC and Open DLC here
+            RIL_LOG_CRITICAL("CChannel::HandleTimeout() - ERROR: chnl=[%d] ABORT command timed out!!\r\n", m_uiRilChannel);
+        }
+        else
+        {
+            //  No response, but this is OK since command is non-abortable
+            RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] ABORT timed out, but non-abortable command.  This is OK.\r\n", m_uiRilChannel);
+        }
+    }
+    else if (RIL_E_SUCCESS != resTmp)
+    {
+        RIL_LOG_CRITICAL("CChannel::HandleTimeout() - ERROR: chnl=[%d] Failed read from queue during ABORTED 1\r\n", m_uiRilChannel);
+        return FALSE;
+    }
+    else
+    {
+        //  Received response to ABORTED
+        RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] Recevied response to ABORT command!!\r\n", m_uiRilChannel);
+    }
+    delete pRspTemp;
+    pRspTemp = NULL;
+
+    //  "ping" modem to see if still alive
+    SetCmdThreadBlockedOnRxQueue();  //  Tell response thread that reponse is pending
+    uiBytesWritten = 0;
+    RIL_LOG_INFO("CChannel::HandleTimeout() - Sending PING Command on chnl=[%d], timeout=[%d]ms\r\n", m_uiRilChannel, PING_TIMEOUT);
+    WriteToPort(szPINGCmd, strlen(szPINGCmd), uiBytesWritten);
+
+    resTmp = ReadQueue(pRspTemp, PING_TIMEOUT);  // Wait for PING response
+
+    //  Did the PING command timeout?
+    if (pRspTemp && pRspTemp->IsTimedOutFlag())
+    {
+        //  PING timeout
+        //  Assume modem is dead!  Signal STMD to request cleanup.
+        RIL_LOG_CRITICAL("CChannel::HandleTimeout() - ERROR: chnl=[%d] PING attempt timed out!!  Assume MODEM IS DEAD!\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel::HandleTimeout() - ERROR: chnl=[%d] request clean up\r\n", m_uiRilChannel);
+
+        do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+    }
+    else if (RIL_E_SUCCESS != resTmp)
+    {
+        RIL_LOG_CRITICAL("CChannel::HandleTimeout() - ERROR: chnl=[%d] Failed read from queue during PING 1\r\n", m_uiRilChannel);
+        return FALSE;
+    }
+    else
+    {
+        //  Received response to PING
+        RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] Recevied response to PING command!!\r\n", m_uiRilChannel);
+
+        //  Modem is alive.  Let calling function handle the retry attempt.
+        delete pRspTemp;
+        pRspTemp = NULL;
+        return FALSE;
+    }
+    delete pRspTemp;
+    pRspTemp = NULL;
+
+    RIL_LOG_VERBOSE("CChannel::HandleTimeout() - Exit\r\n");
+    return TRUE;
+}
+
 
 BOOL CChannel::ProcessNoop(CResponse*& rpResponse)
 {

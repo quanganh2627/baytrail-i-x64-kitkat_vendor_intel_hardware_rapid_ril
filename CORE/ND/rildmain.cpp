@@ -98,7 +98,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
     switch (unsolResponseID)
     {
         case RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED: // 1000
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - UNSOL_RESPONSE_RADIO_STATE_CHANGED\r\n");
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED\r\n");
             break;
 
         case RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED:  // 1001
@@ -1309,7 +1309,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.26 for Android 2.3.4 (Build September 20/2011)";
+    return "Intrinsyc Rapid-RIL M5.27 for Android 2.3.4 (Build September 27/2011)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

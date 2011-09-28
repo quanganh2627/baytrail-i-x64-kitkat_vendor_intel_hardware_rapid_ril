@@ -1204,15 +1204,15 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
         bTurnRadioOn = true;
     }
 
-    // Retrieve the shutdown action property to verify if the requested radio state is OFF and a reboot is requested
+    // Retrieve the shutdown property to verify if the requested radio state is OFF and a reboot is requested
     // if so ignore the command
     if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL) &&
-                strncmp(szShutdownActionProperty, "1",1) == 0) {
+                ('1' == szShutdownActionProperty[0]) )
+    {
         RIL_LOG_INFO("CTE::RequestRadioPower() - Reboot requested, do nothing\r\n");
         res = RIL_E_SUCCESS;
         RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
     }
-
     // check if the required state is the same as the current one
     // if so, ignore command
     else if ((bTurnRadioOn && RADIO_STATE_OFF != radio_state) || (!bTurnRadioOn && RADIO_STATE_OFF == radio_state))
@@ -3743,6 +3743,10 @@ RIL_RESULT_CODE CTE::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData)
 
     return m_pTEBaseInstance->ParseGetNeighboringCellIDs(rRspData);
 }
+
+//
+// RIL_REQUEST_SET_LOCATION_UPDATES 76
+//
 
 //
 // RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77

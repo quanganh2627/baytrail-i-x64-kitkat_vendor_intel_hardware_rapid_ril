@@ -37,6 +37,7 @@ public:
     BOOL    OpenPort();
 
 protected:
+    void    ModemTimeSyncInit();
     BOOL    FinishInit();
     BOOL    AddSilos();
 };

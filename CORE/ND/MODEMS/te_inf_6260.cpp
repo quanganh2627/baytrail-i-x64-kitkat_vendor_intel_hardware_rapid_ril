@@ -986,6 +986,9 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
 {
     RIL_LOG_VERBOSE("ConvertIPAddressToAndroidReadable() - Enter\r\n");
     BOOL bRet = FALSE;
+    const int MAX_AIPV4_INDEX = 4;      // Number of 'a' values read from modem for IPv4 case
+    const int MAX_AIPV6_INDEX = 16;     // Number of 'a' values read from modem for IPv6 case
+    const int MAX_AIPV4V6_INDEX = 20;   // Number of 'a' values read from modem for IPv4v6 case
 
     //  Sanity checks
     if ( (NULL == szIpIn) || (NULL == szIpOut) || (0 == uiIpOutSize))
@@ -1021,8 +1024,8 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
 
             //  Extract a1...a16 into aIP.
             //  Then convert aAddress to szIpOut.
-            unsigned int aIP[16] = {0};
-            unsigned char acIP[16] = {0};
+            unsigned int aIP[MAX_AIPV6_INDEX] = {0};
+            unsigned char acIP[MAX_AIPV6_INDEX] = {0};
             if (EOF == sscanf(szIpIn, "%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u",
                             &aIP[0], &aIP[1], &aIP[2], &aIP[3], &aIP[4], &aIP[5], &aIP[6], &aIP[7],
                             &aIP[8], &aIP[9], &aIP[10], &aIP[11], &aIP[12], &aIP[13], &aIP[14], &aIP[15]))
@@ -1030,10 +1033,23 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                 RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot sscanf into aIP[]! ipv6\r\n");
                 goto Error;
             }
-            //  Convert unsigned int to unsigned char (for inet_ntop)
-            for (int i=0; i<16; i++)
+
+            //  Loop through array, check values from modem is from 0-255.
+            for (int i=0; i<MAX_AIPV6_INDEX; i++)
             {
-                acIP[i] = (unsigned char)aIP[i];
+                if (aIP[i] > 255)
+                {
+                    //  Value is not between 0-255.
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: ipv6 aIP[%d] not in range 0-255. val=%u\r\n", i, aIP[i]);
+                    goto Error;
+                }
+            }
+
+            //  Convert unsigned int to unsigned char (for inet_ntop)
+            //  The value read in should be in range 0-255.
+            for (int i=0; i<MAX_AIPV6_INDEX; i++)
+            {
+                acIP[i] = (unsigned char)(aIP[i]);
             }
 
             if (inet_ntop(AF_INET6, (void*)acIP, szIpOut, uiIpOutSize) <= 0)
@@ -1051,7 +1067,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
             //  Extract a1...a20 into aIP.
             //  Then IPv4 part is extracted into szIpOut.
             //  IPV6 part is extracted into szIpOut2.
-            unsigned int aIP[20] = {0};
+            unsigned int aIP[MAX_AIPV4V6_INDEX] = {0};
             if (EOF == sscanf(szIpIn, "%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u",
                             &aIP[0], &aIP[1], &aIP[2], &aIP[3],
                             &aIP[4], &aIP[5], &aIP[6], &aIP[7], &aIP[8], &aIP[9], &aIP[10], &aIP[11],
@@ -1060,6 +1076,17 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
             {
                 RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot sscanf into aIP[]! ipv4v6\r\n");
                 goto Error;
+            }
+
+            //  Loop through array, check values from modem is from 0-255.
+            for (int i=0; i<MAX_AIPV4V6_INDEX; i++)
+            {
+                if (aIP[i] > 255)
+                {
+                    //  Value is not between 0-255.
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: ipv4v6 aIP[%d] not in range 0-255. val=%u\r\n", i, aIP[i]);
+                    goto Error;
+                }
             }
 
             if (snprintf(szIpOut, uiIpOutSize,
@@ -1072,12 +1099,13 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
 
             if (NULL != szIpOut2 && 0 != uiIpOutSize2)
             {
-                unsigned char acIP[16] = {0};
+                unsigned char acIP[MAX_AIPV6_INDEX] = {0};
 
                 //  Convert unsigned int to unsigned char (for inet_ntop)
-                for (int i=0; i<16; i++)
+                //  The value read in should be in range 0-255, from check done above.
+                for (int i=0; i<MAX_AIPV6_INDEX; i++)
                 {
-                    acIP[i] = (unsigned char)aIP[i+4];
+                    acIP[i] = (unsigned char)(aIP[i+4]);
                 }
 
                 if (inet_ntop(AF_INET6, (void*)acIP, szIpOut2, uiIpOutSize2) <= 0)
