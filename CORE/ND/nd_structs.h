@@ -232,7 +232,9 @@ enum ACCESS_TECHNOLOGY
     ACT_EVDO_1 = 8,
     ACT_HSDPA = 9,
     ACT_HSUPA = 10,
-    ACT_HSPA = 11
+    ACT_HSPA = 11,
+    ACT_EVDO_B = 12,
+    ACT_GSM = 13
 };
 
 typedef struct

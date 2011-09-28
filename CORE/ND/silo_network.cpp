@@ -621,6 +621,11 @@ BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const BYTE* &rszPointe
         g_uiAccessTechnology = ACT_HSPA;
         break;
 
+        case 7:
+        // registered, GSM
+        g_uiAccessTechnology = ACT_GSM;
+        break;
+
         default:
         g_uiAccessTechnology = ACT_UNKNOWN;
         break;
