@@ -988,7 +988,9 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:  // 75
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GET_NEIGHBORING_CELL_IDS\r\n");
-            eRetVal = (RIL_Errno)CTE::GetTE().RequestGetNeighboringCellIDs(hRilToken, pData, datalen);
+            // disable the sending of AT+XCELLINFO? temporary
+            //eRetVal = (RIL_Errno)CTE::GetTE().RequestGetNeighboringCellIDs(hRilToken, pData, datalen);
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
         }
         break;
 
