@@ -187,8 +187,8 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const BYTE* lpszF
             {
                 RIL_LOG_CRITICAL("do_request_clean_up() - ERROR: ***** CANNOT SEND SHUTDOWN REQUEST *****\r\n");
                 //  Socket could have been closed by STMD.
-                //  Restart RRIL, drop down to exit.
             }
+            return;
         }
         else
         {
