@@ -143,7 +143,7 @@ private:
     CEvent *            m_pSimUnlockedEvent;
     CEvent *            m_pModemPowerOnEvent;
     CEvent *            m_pInitStringCompleteEvent;
-
+    CEvent *            m_pSysInitCompleteEvent;
     CMutex *            m_pSystemManagerMutex;
 
 #if !defined(RESET_MGMT)

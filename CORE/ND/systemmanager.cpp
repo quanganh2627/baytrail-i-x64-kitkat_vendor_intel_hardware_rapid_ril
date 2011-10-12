@@ -116,6 +116,7 @@ CSystemManager::CSystemManager()
     m_pSimUnlockedEvent(NULL),
     m_pModemPowerOnEvent(NULL),
     m_pInitStringCompleteEvent(NULL),
+    m_pSysInitCompleteEvent(NULL),
 #if !defined(RESET_MGMT)
     m_pTriggerRadioErrorMutex(NULL),
 #endif // !RESET_MGMT
@@ -219,6 +220,13 @@ CSystemManager::~CSystemManager()
         RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pInitStringCompleteEvent\r\n");
         delete m_pInitStringCompleteEvent;
         m_pInitStringCompleteEvent = NULL;
+    }
+
+    if (m_pSysInitCompleteEvent)
+    {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pSysInitCompleteEvent\r\n");
+        delete m_pSysInitCompleteEvent;
+        m_pSysInitCompleteEvent = NULL;
     }
 
 #if !defined(RESET_MGMT)
@@ -339,6 +347,20 @@ BOOL CSystemManager::InitializeSystem()
         if (!m_pInitStringCompleteEvent)
         {
             RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Could not create Init commands complete Event.\r\n");
+            goto Done;
+        }
+    }
+
+    if (m_pSysInitCompleteEvent)
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pSysInitCompleteEvent was already created!\r\n");
+    }
+    else
+    {
+        m_pSysInitCompleteEvent = new CEvent(NULL, TRUE);
+        if (!m_pSysInitCompleteEvent)
+        {
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Could not create System Init complete Event.\r\n");
             goto Done;
         }
     }
@@ -478,6 +500,12 @@ Done:
             m_pInitStringCompleteEvent = NULL;
         }
 
+        if (m_pSysInitCompleteEvent)
+        {
+            delete m_pSysInitCompleteEvent;
+            m_pSysInitCompleteEvent = NULL;
+        }
+
 #if !defined(RESET_MGMT)
         if (m_pTriggerRadioErrorMutex)
         {
@@ -520,6 +548,12 @@ Done:
 
 
     CMutex::Unlock(m_pSystemManagerMutex);
+
+    if(bRetVal)
+    {
+        CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
+        RIL_LOG_INFO("rapid ril initialization completed\r\n");
+    }
 
     RIL_LOG_INFO("CSystemManager::InitializeSystem() - Exit\r\n");
 
@@ -573,7 +607,9 @@ BOOL CSystemManager::ContinueInit()
     }
 
     bRetVal = TRUE;
-
+    //Signal that we have initialized, so that framework
+    // can start using the rild socket.
+    CEvent::Signal(m_pSysInitCompleteEvent);
 Done:
     if (!bRetVal)
     {
@@ -593,6 +629,12 @@ Done:
         {
             delete m_pInitStringCompleteEvent;
             m_pInitStringCompleteEvent = NULL;
+        }
+
+        if (m_pSysInitCompleteEvent)
+        {
+            delete m_pSysInitCompleteEvent;
+            m_pSysInitCompleteEvent = NULL;
         }
 
         if (m_pDataChannelAccessorMutex)
