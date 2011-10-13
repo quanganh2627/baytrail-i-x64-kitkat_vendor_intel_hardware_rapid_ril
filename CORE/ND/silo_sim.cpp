@@ -166,6 +166,7 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
             case CME_ERROR_SIM_PUK_REQUIRED:
                 RIL_LOG_INFO("CSilo_SIM::ParsePin() - SIM PUK required");
                 rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
+                g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
                 break;
 
             case CME_ERROR_SIM_PUK2_REQUIRED:
@@ -178,9 +179,6 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
                 rpRsp->SetResultCode(RIL_E_GENERIC_FAILURE);
                 break;
         }
-
-        g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
-
 
         rpRsp->FreeData();
         int* pInt = (int *) malloc(sizeof(int));

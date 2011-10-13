@@ -199,7 +199,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
         pCardStatus->gsm_umts_subscription_app_index = 0;
 
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        pCardStatus->applications[0].app_state = RIL_APPSTATE_UNKNOWN;
+        pCardStatus->applications[0].app_state = RIL_APPSTATE_READY;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
         pCardStatus->applications[0].aid_ptr = NULL;
         pCardStatus->applications[0].app_label_ptr = NULL;
@@ -216,7 +216,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
         pCardStatus->gsm_umts_subscription_app_index = 0;
 
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        pCardStatus->applications[0].app_state = RIL_APPSTATE_UNKNOWN;
+        pCardStatus->applications[0].app_state = RIL_APPSTATE_READY;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
         pCardStatus->applications[0].aid_ptr = NULL;
         pCardStatus->applications[0].app_label_ptr = NULL;
