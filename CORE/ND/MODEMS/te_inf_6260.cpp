@@ -33,7 +33,6 @@
 #include "sync_ops.h"
 #include "command.h"
 #include "te_inf_6260.h"
-#include "channel_data.h"
 #include "rildmain.h"
 #include "callbacks.h"
 #include "oemhookids.h"
@@ -292,8 +291,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
 
         if (!PrintStringNullTerminate(rReqData.szCmd1,
             sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,%d\r", uiCID, stPdpData.szPDPType,
-            stPdpData.szApn, uiCID, nXDNSParam))
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,%d;+CGACT=1,%d\r", uiCID, stPdpData.szPDPType,
+            stPdpData.szApn, uiCID, nXDNSParam, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
@@ -360,6 +359,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     int fd = -1;
     int ret = 0;
     CRepository repository;
+    PDP_TYPE eDataConnectionType = PDP_TYPE_IPV4;  //  dummy for now, set to IPv4.
 
     // 1st confirm we got "CONNECT"
     const BYTE* szRsp = rRspData.szResponse;
@@ -526,7 +526,11 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
 
     // invoke netcfg commands
-    if (!DataConfigUp(pDataCallRsp->szNetworkInterfaceName, pChannelData->m_szIpAddr, pChannelData->m_szDNS1, pChannelData->m_szDNS2))
+    //  TODO: At this point we should have received a +CGEV: notification with the type
+    //        of data connection made (IPv4, IPv6, IPv4v6).  Configure the data connection
+    //        based on the type.  Types are defined in CORE/ND/nd_structs.h
+    eDataConnectionType = PDP_TYPE_IPV4;  //  dummy for now, set to IPv4.
+    if (!DataConfigUp(pDataCallRsp->szNetworkInterfaceName, pChannelData, eDataConnectionType))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Unable to set ifconfig\r\n");
         goto Error;
@@ -573,20 +577,22 @@ Error:
     return res;
 }
 
-void init_sockaddr_in(struct sockaddr_in *sin, const char *addr)
+void init_sockaddr_in(struct sockaddr_in *sin, const char *addr, sa_family_t family)
 {
-    sin->sin_family = AF_INET;
+    sin->sin_family = family;
     sin->sin_port = 0;
     sin->sin_addr.s_addr = inet_addr(addr);
 }
 
-BOOL setaddr(int s, struct ifreq *ifr, const char *addr)
+BOOL setaddr(int s, struct ifreq *ifr, const char *addr, sa_family_t family)
 {
-    init_sockaddr_in((struct sockaddr_in *) &ifr->ifr_addr, addr);
+    int ret;
+    init_sockaddr_in((struct sockaddr_in *) &ifr->ifr_addr, addr, family);
     RIL_LOG_INFO("setaddr - calling SIOCSIFADDR\r\n");
-    if(ioctl(s, SIOCSIFADDR, ifr) < 0)
+    ret = ioctl(s, SIOCSIFADDR, ifr);
+    if (ret < 0)
     {
-        RIL_LOG_CRITICAL("setaddr : ERROR: SIOCSIFADDR\r\n");
+        RIL_LOG_CRITICAL("setaddr : ERROR: SIOCSIFADDR : %d\r\n", ret);
         return FALSE;
     }
     return TRUE;
@@ -594,56 +600,21 @@ BOOL setaddr(int s, struct ifreq *ifr, const char *addr)
 
 BOOL setflags(int s, struct ifreq *ifr, int set, int clr)
 {
+    int ret;
     RIL_LOG_INFO("setflags - calling SIOCGIFFLAGS\r\n");
-    if(ioctl(s, SIOCGIFFLAGS, ifr) < 0)
+    ret = ioctl(s, SIOCGIFFLAGS, ifr);
+    if (ret < 0)
     {
-        RIL_LOG_CRITICAL("setflags : ERROR: SIOCGIFFLAGS\r\n");
+        RIL_LOG_CRITICAL("setflags : ERROR: SIOCGIFFLAGS : %d\r\n", ret);
         return FALSE;
     }
 
     ifr->ifr_flags = (ifr->ifr_flags & (~clr)) | set;
     RIL_LOG_INFO("setflags - calling SIOCGIFFLAGS 2\r\n");
-    if(ioctl(s, SIOCSIFFLAGS, ifr) < 0)
+    ret = ioctl(s, SIOCSIFFLAGS, ifr);
+    if (ret < 0)
     {
-        RIL_LOG_CRITICAL("setflags: ERROR: SIOCSIFFLAGS 2\r\n");
-        return FALSE;
-    }
-    return TRUE;
-}
-
-BOOL setnetmask(int s, struct ifreq *ifr, const char *addr)
-{
-    init_sockaddr_in((struct sockaddr_in *) &ifr->ifr_netmask, addr);
-    RIL_LOG_INFO("setnetmask - calling SIOCSIFNETMASK\r\n");
-    if(ioctl(s, SIOCSIFNETMASK, ifr) < 0)
-    {
-        RIL_LOG_CRITICAL("setnetmask: ERROR: SIOCSIFNETMASK\r\n");
-        return FALSE;
-    }
-    return TRUE;
-}
-
-
-static BOOL setmtu(int s, struct ifreq *ifr, int mtu)
-{
-    ifr->ifr_mtu = mtu;
-    RIL_LOG_INFO("setmtu - calling SIOCSIFMTU\r\n");
-    if(ioctl(s, SIOCSIFMTU, ifr) < 0)
-    {
-        RIL_LOG_CRITICAL("setmtu: ERROR: SIOCSIFMTU\r\n");
-        return FALSE;
-    }
-    return TRUE;
-}
-
-
-BOOL setroute(int s, struct rtentry *rt, const char *addr)
-{
-    init_sockaddr_in((struct sockaddr_in *) &rt->rt_gateway, addr);
-    RIL_LOG_INFO("setroute - calling SIOCADDRT\r\n");
-    if(ioctl(s, SIOCADDRT, rt) < 0)
-    {
-        RIL_LOG_CRITICAL("setroute: ERROR: SIOCADDRT\r\n");
+        RIL_LOG_CRITICAL("setflags: ERROR: SIOCSIFFLAGS 2 : %d\r\n", ret);
         return FALSE;
     }
     return TRUE;
@@ -652,17 +623,55 @@ BOOL setroute(int s, struct rtentry *rt, const char *addr)
 //
 //  Call this function whenever data is activated
 //
-BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, char *szDNS2)
+BOOL DataConfigUp(char *szNetworkInterfaceName, CChannel_Data* pChannelData, PDP_TYPE eDataConnectionType)
 {
-    CRepository repository;
+    BOOL bRet = FALSE;
+    RIL_LOG_INFO("DataConfigUp() ENTER\r\n");
+
+    switch(eDataConnectionType)
+    {
+        case PDP_TYPE_IPV4:
+            RIL_LOG_INFO("DataConfigUp() - IPV4 - Calling DataConfigUpIpV4()\r\n");
+            bRet = DataConfigUpIpV4(szNetworkInterfaceName, pChannelData);
+            break;
+
+#if defined(M2_IPV6_FEATURE_ENABLED)
+        case PDP_TYPE_IPV6:
+            RIL_LOG_INFO("DataConfigUp() - IPV6 - Calling DataConfigUpIpV6()\r\n");
+            bRet = DataConfigUpIpV6(szNetworkInterfaceName, pChannelData);
+            break;
+
+        case PDP_TYPE_IPV4V6:
+            RIL_LOG_INFO("DataConfigUp() - IPV4V6 - Calling DataConfigUpIpV4V6()\r\n");
+            bRet = DataConfigUpIpV4V6(szNetworkInterfaceName, pChannelData);
+            break;
+#endif // M2_IPV6_FEATURE_ENABLED
+
+        default:
+            RIL_LOG_CRITICAL("DataConfigUp() - Unknown PDP_TYPE!  eDataConnectionType=[%d]\r\n", eDataConnectionType);
+            bRet = FALSE;
+            break;
+    }
+
+    RIL_LOG_INFO("DataConfigUp() EXIT=%d\r\n", bRet);
+    return bRet;
+}
+
+
+BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
+{
     BOOL bRet = FALSE;
     int s = -1;
     char szPropName[MAX_BUFFER_SIZE] = {0};
     char *defaultGatewayStr = NULL;
 
+    char *szIpAddr = pChannelData->m_szIpAddr;
+    char *szDNS1 = pChannelData->m_szDNS1;
+    char *szDNS2 = pChannelData->m_szDNS2;
 
-    RIL_LOG_INFO("DataConfigUp() ENTER  szNetworkInterfaceName=[%s]  szIpAddr=[%s]\r\n", szNetworkInterfaceName, szIpAddr);
-    RIL_LOG_INFO("DataConfigUp() ENTER  szDNS1=[%s]  szDNS2=[%s]\r\n", szDNS1, szDNS2);
+
+    RIL_LOG_INFO("DataConfigUpIpV4() ENTER  szNetworkInterfaceName=[%s]  szIpAddr=[%s]\r\n", szNetworkInterfaceName, szIpAddr);
+    RIL_LOG_INFO("DataConfigUpIpV4() ENTER  szDNS1=[%s]  szDNS2=[%s]\r\n", szDNS1, szDNS2);
 
 
 
@@ -672,11 +681,11 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, ch
     // IP address and there needs to be one for each context.
 
 
-    //  Open socket for ifconfig and route commands
+    //  Open socket for ifconfig command
     s = socket(AF_INET, SOCK_DGRAM, 0);
     if (s < 0)
     {
-        RIL_LOG_CRITICAL("DataConfigUp() : cannot open control socket\n");
+        RIL_LOG_CRITICAL("DataConfigUpIpV4() : cannot open control socket\n");
         goto Error;
     }
 
@@ -691,59 +700,40 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, ch
         strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
         ifr.ifr_name[IFNAMSIZ-1] = 0;
 
-        RIL_LOG_INFO("DataConfigUp() : Setting addr\r\n");
-        if (!setaddr(s, &ifr, szIpAddr)) // ipaddr
+        RIL_LOG_INFO("DataConfigUpIpV4() : Setting addr\r\n");
+        if (!setaddr(s, &ifr, szIpAddr, AF_INET)) // ipaddr
         {
             //goto Error;
-            RIL_LOG_CRITICAL("DataConfigUp() : Error setting add\r\n");
+            RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting add\r\n");
         }
 
-        RIL_LOG_INFO("DataConfigUp() : Setting flags\r\n");
+        RIL_LOG_INFO("DataConfigUpIpV4() : Setting flags\r\n");
         if (!setflags(s, &ifr, IFF_UP, 0))
         {
             //goto Error;
-            RIL_LOG_CRITICAL("DataConfigUp() : Error setting flags\r\n");
-        }
-
-        RIL_LOG_INFO("DataConfigUp() : Setting netmask\r\n");
-        if (!setnetmask(s, &ifr, "255.255.255.0"))  // the netmask
-        {
-            //goto Error;
-            RIL_LOG_CRITICAL("DataConfigUp() : Error setting netmask\r\n");
-        }
-
-        RIL_LOG_INFO("DataConfigUp() : Setting mtu\r\n");
-        if (!setmtu(s, &ifr, 1460))
-        {
-            //goto Error;
-            RIL_LOG_CRITICAL("DataConfigUp() : Error setting mtu\r\n");
+            RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting flags\r\n");
         }
     }
 
-
-
-   // TODO retrieve gateway from the modem with XDNS?
-
+    // TODO retrieve gateway from the modem with XDNS?
     if (defaultGatewayStr == NULL)
     {
         in_addr_t gw;
         struct in_addr gwaddr;
         in_addr_t addr;
 
-        RIL_LOG_INFO("DataConfigUp() : set default gateway to fake value");
+        RIL_LOG_INFO("DataConfigUpIpV4() : set default gateway to fake value");
         if (inet_pton(AF_INET, szIpAddr, &addr) <= 0)
         {
-            RIL_LOG_INFO("DataConfigUp() : inet_pton() failed for %s!", szIpAddr);
+            RIL_LOG_INFO("DataConfigUpIpV4() : inet_pton() failed for %s!", szIpAddr);
             goto Error;
         }
         gw = ntohl(addr) & 0xFFFFFF00;
         gw |= 1;
-
         gwaddr.s_addr = htonl(gw);
 
         defaultGatewayStr = strdup(inet_ntoa(gwaddr));
     }
-
     if (defaultGatewayStr != NULL)
     {
         struct rtentry rt;
@@ -757,20 +747,14 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, ch
         rt.rt_flags = RTF_UP | RTF_GATEWAY;
         rt.rt_dev = szNetworkInterfaceName;
 
-        if (!setroute(s, &rt, defaultGatewayStr)) // defaultGatewayStr
-        {
-            //goto Error;
-            RIL_LOG_CRITICAL("DataConfigUp() : Error setting gateway\r\n");
-        }
-
         //  Set gateway system property
         if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.gw", szNetworkInterfaceName))
         {
-            RIL_LOG_CRITICAL("DataConfigUp() :cannot create szPropName net.X.gw\r\n");
+            RIL_LOG_CRITICAL("DataConfigUpIpV4() :cannot create szPropName net.X.gw\r\n");
         }
         else
         {
-            RIL_LOG_INFO("DataConfigUp() - setting '%s' to '%s'\r\n", szPropName, defaultGatewayStr);
+            RIL_LOG_INFO("DataConfigUpIpV4() - setting '%s' to '%s'\r\n", szPropName, defaultGatewayStr);
             property_set(szPropName, defaultGatewayStr);
         }
     }
@@ -780,11 +764,11 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, ch
     {
         if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns1", szNetworkInterfaceName))
         {
-            RIL_LOG_CRITICAL("DataConfigUp() :cannot create szPropName net.X.dns1\r\n");
+            RIL_LOG_CRITICAL("DataConfigUpIpV4() :cannot create szPropName net.X.dns1\r\n");
         }
         else
         {
-            RIL_LOG_INFO("DataConfigUp() - setting '%s' to '%s'\r\n", szPropName, szDNS1);
+            RIL_LOG_INFO("DataConfigUpIpV4() - setting '%s' to '%s'\r\n", szPropName, szDNS1);
             property_set(szPropName, szDNS1);
         }
     }
@@ -794,11 +778,11 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, ch
     {
         if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName))
         {
-            RIL_LOG_CRITICAL("DataConfigUp() :cannot create szPropName net.X.dns2\r\n");
+            RIL_LOG_CRITICAL("DataConfigUpIpV4() :cannot create szPropName net.X.dns2\r\n");
         }
         else
         {
-            RIL_LOG_INFO("DataConfigUp() - setting '%s' to '%s'\r\n", szPropName, szDNS2);
+            RIL_LOG_INFO("DataConfigUpIpV4() - setting '%s' to '%s'\r\n", szPropName, szDNS2);
             property_set(szPropName, szDNS2);
         }
     }
@@ -814,11 +798,230 @@ Error:
         close(s);
     }
 
-    RIL_LOG_INFO("DataConfigUp() EXIT  bRet=[%d]\r\n", bRet);
+    RIL_LOG_INFO("DataConfigUpIpV4() EXIT  bRet=[%d]\r\n", bRet);
 
     return bRet;
 }
 
+#if defined(M2_IPV6_FEATURE_ENABLED)
+
+BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
+{
+    BOOL bRet = FALSE;
+    int s = -1;
+    char szPropName[MAX_BUFFER_SIZE] = {0};
+    char *defaultGatewayStr = NULL;
+
+    char *szIpAddr = pChannelData->m_szIpAddr;
+    char *szDNS1 = pChannelData->m_szDNS1;
+    char *szDNS1_2 = pChannelData->m_szDNS1_2;
+    char *szDNS2 = pChannelData->m_szDNS2;
+    char *szDNS2_2 = pChannelData->m_szDNS2_2;
+
+
+    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szNetworkInterfaceName=[%s]  szIpAddr=[%s]\r\n", szNetworkInterfaceName, szIpAddr);
+    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szDNS1=[%s]  szDNS1_2=[%s]\r\n", szDNS1, (szDNS1_2 ? szDNS1_2 : "<null>"));
+    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szDNS2=[%s]  szDNS2_2=[%s]\r\n", szDNS2, (szDNS2_2 ? szDNS2_2 : "<null>"));
+
+
+    // set net. properties
+    // TODO For multiple PDP context support this will have to be updated to be consistent with whatever changes to
+    // the Android framework's use of these properties is made. (Currently there is only one property for the
+    // IP address and there needs to be one for each context.
+
+
+    //  Open socket for ifconfig command (note this is ipv6 socket)
+    s = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (s < 0)
+    {
+        RIL_LOG_CRITICAL("DataConfigUpIpV6() : cannot open control socket\n");
+        goto Error;
+    }
+
+    //  Code in this function is from system/core/toolbox/ifconfig.c
+    //  also from system/core/toolbox/route.c
+
+
+    //  ifconfig ifx02 <ip address> netmask 255.255.255.0
+    {
+        struct ifreq ifr;
+        memset(&ifr, 0, sizeof(struct ifreq));
+        strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
+        ifr.ifr_name[IFNAMSIZ-1] = 0;
+
+        RIL_LOG_INFO("DataConfigUpIpV6() : Setting addr\r\n");
+        //  NOTE HERE: The struct ifreq really needs IPv6 support.  It only supports IPv4.
+        //  So not sure how to set IPv6 with current structure, since ifr->ifr_addr points to
+        //  sockaddr_in, not sockaddr6_in.
+        if (!setaddr(s, &ifr, szIpAddr, AF_INET6)) // ipaddr
+        {
+            //goto Error;
+            RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting addr\r\n");
+        }
+
+        //  Before setting interface UP, need to deactivate DAD on interface.
+        {
+            char file_to_open[100] = {0};
+            FILE * fp;
+
+            //  Open dad_transmits file, write 0<lf>.
+            snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits", szNetworkInterfaceName);
+
+            fp = fopen(file_to_open, "w");
+            if (fp)
+            {
+                char szData[] = "0\n";
+
+                RIL_LOG_INFO("DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
+                if (EOF == fputs(szData, fp))
+                {
+                    RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
+                }
+                else
+                {
+                    RIL_LOG_INFO("DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+                }
+
+                //  Close file handle
+                fclose(fp);
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: Cannot open [%s]\r\n", file_to_open);
+            }
+
+            //  Open accept_dad file, write 0<lf>.
+            snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad", szNetworkInterfaceName);
+
+            fp = fopen(file_to_open, "w");
+            if (fp)
+            {
+                char szData[] = "0\n";
+
+                RIL_LOG_INFO("DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
+                if (EOF == fputs(szData, fp))
+                {
+                    RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
+                }
+                else
+                {
+                    RIL_LOG_INFO("DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+                }
+
+                //  Close file handle.
+                fclose(fp);
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: Cannot open [%s]\r\n", file_to_open);
+            }
+        }
+
+        RIL_LOG_INFO("DataConfigUpIpV6() : Setting flags\r\n");
+        if (!setflags(s, &ifr, IFF_UP, 0))
+        {
+            //goto Error;
+            RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting flags\r\n");
+        }
+    }
+
+    // TODO retrieve gateway from the modem with XDNS?
+    if (defaultGatewayStr == NULL)
+    {
+        in_addr_t gw;
+        struct in_addr gwaddr;
+        in_addr_t addr;
+
+        RIL_LOG_INFO("DataConfigUpIpV6() : set default gateway to fake value");
+        if (inet_pton(AF_INET, szIpAddr, &addr) <= 0)
+        {
+            RIL_LOG_INFO("DataConfigUpIpV6() : inet_pton() failed for %s!", szIpAddr);
+            goto Error;
+        }
+        gw = ntohl(addr) & 0xFFFFFF00;
+        gw |= 1;
+        gwaddr.s_addr = htonl(gw);
+
+        defaultGatewayStr = strdup(inet_ntoa(gwaddr));
+    }
+    if (defaultGatewayStr != NULL)
+    {
+        struct rtentry rt;
+        memset(&rt, 0, sizeof(struct rtentry));
+
+        rt.rt_dst.sa_family = AF_INET;
+        rt.rt_genmask.sa_family = AF_INET;
+        rt.rt_gateway.sa_family = AF_INET;
+
+
+        rt.rt_flags = RTF_UP | RTF_GATEWAY;
+        rt.rt_dev = szNetworkInterfaceName;
+
+        //  Set gateway system property
+        if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.gw", szNetworkInterfaceName))
+        {
+            RIL_LOG_CRITICAL("DataConfigUpIpV6() :cannot create szPropName net.X.gw\r\n");
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigUpIpV6() - setting '%s' to '%s'\r\n", szPropName, defaultGatewayStr);
+            property_set(szPropName, defaultGatewayStr);
+        }
+    }
+
+    //  Set DNS1
+    if (szDNS1)
+    {
+        if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns1", szNetworkInterfaceName))
+        {
+            RIL_LOG_CRITICAL("DataConfigUpIpV6() :cannot create szPropName net.X.dns1\r\n");
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigUpIpV6() - setting '%s' to '%s'\r\n", szPropName, szDNS1);
+            property_set(szPropName, szDNS1);
+        }
+    }
+
+    //  Set DNS2
+    if (szDNS2)
+    {
+        if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName))
+        {
+            RIL_LOG_CRITICAL("DataConfigUpIpV6() :cannot create szPropName net.X.dns2\r\n");
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigUpIpV6() - setting '%s' to '%s'\r\n", szPropName, szDNS2);
+            property_set(szPropName, szDNS2);
+        }
+    }
+
+    bRet = TRUE;
+
+Error:
+    if (defaultGatewayStr != NULL)
+        free(defaultGatewayStr);
+
+    if (s >= 0)
+    {
+        close(s);
+    }
+
+    RIL_LOG_INFO("DataConfigUpIpV6() EXIT  bRet=[%d]\r\n", bRet);
+    return bRet;
+}
+
+BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
+{
+    BOOL bRet = FALSE;
+    RIL_LOG_INFO("DataConfigUpIpV4V6() ENTER\r\n");
+
+    RIL_LOG_INFO("DataConfigUpIpV4V6() EXIT=%d\r\n", bRet);
+    return bRet;
+}
+
+#endif // M2_IPV6_FEATURE_ENABLED
 
 //
 //  Call this whenever data is disconnected
@@ -909,7 +1112,7 @@ BOOL DataConfigDown(int nCID)
     //  Unset DNS2
     if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName))
     {
-        RIL_LOG_CRITICAL("DataConfigUp() :cannot create szPropName net.X.dns2\r\n");
+        RIL_LOG_CRITICAL("DataConfigDown() :cannot create szPropName net.X.dns2\r\n");
     }
     else
     {
@@ -920,7 +1123,7 @@ BOOL DataConfigDown(int nCID)
     //  Unset net.X.gw
     if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.gw", szNetworkInterfaceName))
     {
-        RIL_LOG_CRITICAL("DataConfigUp() :cannot create szPropName net.X.gw\r\n");
+        RIL_LOG_CRITICAL("DataConfigDown() :cannot create szPropName net.X.gw\r\n");
     }
     else
     {
@@ -2702,33 +2905,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
         }
         break;
-#if defined(M2_FEATURE_ENABLED)
 
-        case RIL_OEM_HOOK_RAW_SET_DATACHANNEL:
-        {
-            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_DATACHANNEL Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
-
-            //  Shouldn't be any data following command
-            if (sizeof(sOEM_HOOK_RAW_SET_DATACHANNEL) == uiDataSize)
-            {
-		//TODO:Get the CtrlTid and Tid from Command Datas if exists, default values else
-		int chnlCtrlTid = 2;
-		int chnlTid = 5;
-                //  Creating command. Will return CME Error 3 if one of mux channels is not connected
-                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDATACHANNEL=1,0,\"/mux/%d\",\"/mux/%d\",0\r", chnlCtrlTid, chnlTid ))
-                {
-                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_SET_DATACHANNEL - Can't construct szCmd1.\r\n");
-                    goto Error;
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not OEM_HOOK_RAW_SET_DATACHANNEL=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_DATACHANNEL));
-                goto Error;
-            }
-        }
-        break;
-#endif //M2_FEATURE_ENABLED
 
         default:
             RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: Received unknown command=[0x%02X]\r\n", bCommand);

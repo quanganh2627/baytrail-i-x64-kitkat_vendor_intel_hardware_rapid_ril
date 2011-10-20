@@ -250,5 +250,11 @@ typedef struct
     BYTE szMessage[MAX_BUFFER_SIZE];
 } S_ND_USSD_STATUS, *P_ND_USSD_STATUS;
 
+enum PDP_TYPE
+{
+    PDP_TYPE_IPV4,
+    PDP_TYPE_IPV6,
+    PDP_TYPE_IPV4V6,
+};
 
 #endif

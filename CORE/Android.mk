@@ -55,30 +55,26 @@ LOCAL_SHARED_LIBRARIES := libcutils libutils
 
 LOCAL_CFLAGS += -DDEBUG
 
-# Remove comment character to enable M2 "Multiple Primary PDP Contexts" feature
+# Add comment character to disable M2 "Multiple Primary PDP Contexts" feature
 LOCAL_CFLAGS += -DM2_MULTIPLE_PDP_FEATURE_ENABLED
 
-# Remove comment character to enable M2 "Video Telephony" feature
+# Add comment character to disable M2 "Video Telephony" feature
 LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
 
-# Remove comment character to enable M2 "Call Failed Cause Notification" feature
+# Add comment character to disable M2 "Call Failed Cause Notification" feature
 LOCAL_CFLAGS += -DM2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
-# Remove comment character to enable M2 "Rx Diversity" feature
+# Add comment character to disable M2 "Rx Diversity" feature
 LOCAL_CFLAGS += -DM2_RXDIV_FEATURE_ENABLED
 
-# Remove comment character to enable M2 "Cell Broadcast" feature
+# Add comment character to disable M2 "Cell Broadcast" feature
 LOCAL_CFLAGS += -DM2_CELL_BROADCAST_FEATURE_ENABLED
 
-# Remove comment character to enable M2 "IPv6" feature
+# Add comment character to disable M2 "IPv6" feature
 LOCAL_CFLAGS += -DM2_IPV6_FEATURE_ENABLED
 
 # Remove comment character to enable M2 "PIN retries" feature
 #LOCAL_CFLAGS += -DM2_PIN_RETRIES_FEATURE_ENABLED
-
-
-# Enable new reset management code
-LOCAL_CFLAGS += -DRESET_MGMT
 
 
 LOCAL_C_INCLUDES :=  \

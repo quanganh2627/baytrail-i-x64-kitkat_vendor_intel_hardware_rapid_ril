@@ -412,25 +412,8 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
     RIL_Errno eRetVal = RIL_E_SUCCESS;
     RIL_LOG_INFO("onRequest() - id=%d token: 0x%08x\r\n", requestID, (int) hRilToken);
 
-#if !defined(RESET_MGMT)
-    //  TEMP Jan 6/2011- If modem dead flag is set, then simply return error without going through rest of RRIL.
-    if (g_bIsModemDead)
-    {
-        RIL_LOG_CRITICAL("*********************************************************************\r\n");
-        RIL_LOG_CRITICAL("onRequest() - MODEM DEAD return error to request id=0x%08X, %d   token=0x%08x\r\n", requestID, requestID, (int) hRilToken);
-        RIL_LOG_CRITICAL("*********************************************************************\r\n");
-        RIL_onRequestComplete(hRilToken, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
-        return;
-    }
-    //  TEMP - end Jan 6/2011
-#endif // !RESET_MGMT
-
     //  If we're in the middle of TriggerRadioError(), spoof all commands.
-#if defined(RESET_MGMT)
     if (g_bSpoofCommands)
-#else  // RESET_MGMT
-    if (g_bIsTriggerRadioError || g_bSpoofCommands)
-#endif // RESET_MGMT
     {
         if (RIL_REQUEST_GET_CURRENT_CALLS == requestID)
         {
@@ -1311,7 +1294,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.27 for Android 2.3.4 (Build September 27/2011)";
+    return "Intrinsyc Rapid-RIL M5.28 for Android 2.3.4 (Build October 20/2011)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -43,6 +43,7 @@
 BYTE g_szNITZ[MAX_BUFFER_SIZE];
 BOOL g_bNITZTimerActive = false;
 
+
 //
 //
 CSilo_Network::CSilo_Network(CChannel *pChannel)
@@ -279,6 +280,7 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointe
     strncat(g_szNITZ, szTimeZone, sizeof(g_szNITZ) - strlen(g_szNITZ) - 1);
 
     RIL_LOG_INFO("CSilo_Network::ParseCTZV() - INFO: g_szNITZ: %s\r\n", g_szNITZ);
+
 
     pResponse->SetUnsolicitedFlag(TRUE);
 
@@ -616,9 +618,8 @@ BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const BYTE* &rszPointe
         g_uiAccessTechnology = ACT_HSUPA;
         break;
 
-        case 6:
-        case 8:
-        // registered, HSUPA and HSDPA
+        case 6: // registered, HSUPA and HSDPA
+        case 8: // registered, HSPA+
         g_uiAccessTechnology = ACT_HSPA;
         break;
 

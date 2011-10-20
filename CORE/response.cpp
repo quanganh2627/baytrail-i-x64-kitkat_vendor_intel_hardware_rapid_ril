@@ -489,11 +489,7 @@ BOOL CResponse::SetData(void* pData, const UINT32 nSize, const BOOL fCpyMem)
             if (!m_pData)
             {
                 // Critically low on memory
-#if defined(RESET_MGMT)
                 do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__);
-#else // RESET_MGMT
-                TriggerRadioErrorAsync(eRadioError_LowMemory, __LINE__, __FILE__);
-#endif // RESET_MGMT
                 goto Error;
             }
             memcpy(m_pData, pData, nSize);

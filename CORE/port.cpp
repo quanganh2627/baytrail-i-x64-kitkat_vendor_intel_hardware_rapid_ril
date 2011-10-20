@@ -314,25 +314,8 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
         {
             RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT after %d attempts, issuing critical reboot\r\n", iAttempts);
 
-#if defined(RESET_MGMT)
             //  If we can't open the ports, tell STMD to cleanup.
             do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
-
-#else // RESET_MGMT
-
-            TriggerRadioErrorAsync(eRadioError_OpenPortFailure, __LINE__, __FILE__);
-
-            Sleep(2000);
-
-            while (g_bIsTriggerRadioError)
-            {
-                RIL_LOG_INFO("CPort::OpenPort() - In g_bIsTriggerRadioError\r\n");
-                Sleep(250);
-            }
-
-            RIL_LOG_CRITICAL("CPort::OpenPort() ****CALLING EXIT**********\r\n");
-            exit(0);
-#endif // RESET_MGMT
         }
 
     }

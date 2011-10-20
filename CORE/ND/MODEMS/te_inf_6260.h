@@ -25,6 +25,7 @@
 
 #include "te_base.h"
 #include "rril.h"
+#include "channel_data.h"
 
 class CEvent;
 
@@ -140,7 +141,8 @@ public:
 };
 
 //  Call these functions to set up data and bring down data.
-BOOL DataConfigUp(char *szNetworkInterfaceName, char *szIpAddr, char *szDNS1, char *szDNS2);
+BOOL DataConfigUp(char *szNetworkInterfaceName, CChannel_Data *pChannelData, PDP_TYPE eDataConnectionType);
+BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data *pChannelData);
 BOOL DataConfigDown(int nCID);
 
 #if defined(M2_IPV6_FEATURE_ENABLED)
@@ -161,6 +163,10 @@ BOOL DataConfigDown(int nCID);
 //      XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX (a5-a20) to szIpOut2
 //  If szIpOut2 is NULL, then this parameter is ignored
 BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpOutSize, char *szIpOut2, UINT32 uiIpOut2Size);
+
+//  Call these functions to set up data specifically for IpV6 or IpV4V6 pdp context
+BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data *pChannelData);
+BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName, CChannel_Data *pChannelData);
 #endif // M2_IPV6_FEATURE_ENABLED
 
 #endif

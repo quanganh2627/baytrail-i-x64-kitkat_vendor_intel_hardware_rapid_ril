@@ -75,9 +75,6 @@ public:
 
     //  Get/Set functions.
     static CEvent*  GetCancelEvent()                    { return GetInstance().m_pExitRilEvent;    };
-#if !defined(RESET_MGMT)
-    static CMutex*  GetTriggerRadioErrorMutex()         { return GetInstance().m_pTriggerRadioErrorMutex;   };
-#endif // !RESET_MGMT
     static CMutex*  GetDataChannelAccessorMutex()       { return GetInstance().m_pDataChannelAccessorMutex; };
 
     void            TriggerSimUnlockedEvent() const         { CEvent::Signal(m_pSimUnlockedEvent);      };
@@ -93,14 +90,12 @@ public:
     void            CloseChannelPorts();
     BOOL            OpenChannelPortsOnly();
 
-#if defined(RESET_MGMT)
     BOOL            SendRequestCleanup();
     BOOL            SendRequestShutdown();
 
     //  This function continues the init in the function InitializeSystem() left
     //  off from InitChannelPorts().  Called when MODEM_UP status is received.
     BOOL            ContinueInit();
-#endif // RESET_MGMT
 
 private:
     // Framework Init Functions
@@ -111,14 +106,10 @@ private:
     void            DeleteChannels();
     CChannel*       CreateChannel(UINT32 uiIndex);
 
-#if defined(RESET_MGMT)
     //  Create and initialize the channels, but don't actually open the ports.
     BOOL            InitChannelPorts();
-#endif // RESET_MGMT
 
-#if defined(RESET_MGMT)
     BOOL            OpenCleanupRequestSocket();
-#endif // RESET_MGMT
 
     // Internal Init helper functions
     void            SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
@@ -144,17 +135,13 @@ private:
     CEvent *            m_pModemPowerOnEvent;
     CEvent *            m_pInitStringCompleteEvent;
     CEvent *            m_pSysInitCompleteEvent;
+
     CMutex *            m_pSystemManagerMutex;
 
-#if !defined(RESET_MGMT)
-    CMutex *            m_pTriggerRadioErrorMutex;
-#endif  // !RESET_MGMT
 
     CMutex *            m_pDataChannelAccessorMutex;
 
-#if defined(RESET_MGMT)
     int                 m_fdCleanupSocket;
-#endif // RESET_MGMT
 
     CRequestInfoTable   m_RequestInfoTable;
 

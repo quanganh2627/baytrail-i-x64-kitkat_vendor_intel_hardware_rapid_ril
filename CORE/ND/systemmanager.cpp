@@ -51,13 +51,11 @@
 #include "reset.h"
 #include "systemmanager.h"
 
-#if defined(RESET_MGMT)
 #include <cutils/sockets.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#endif // RESET_MGMT
 
 // Tx Queue
 CRilQueue<CCommand*>* g_pTxQueue[RIL_CHANNEL_MAX];
@@ -117,13 +115,8 @@ CSystemManager::CSystemManager()
     m_pModemPowerOnEvent(NULL),
     m_pInitStringCompleteEvent(NULL),
     m_pSysInitCompleteEvent(NULL),
-#if !defined(RESET_MGMT)
-    m_pTriggerRadioErrorMutex(NULL),
-#endif // !RESET_MGMT
     m_pDataChannelAccessorMutex(NULL),
-#if defined(RESET_MGMT)
     m_fdCleanupSocket(-1),
-#endif // RESET_MGMT
     m_RequestInfoTable(),
     m_bFailedToInitialize(FALSE)
 {
@@ -229,15 +222,6 @@ CSystemManager::~CSystemManager()
         m_pSysInitCompleteEvent = NULL;
     }
 
-#if !defined(RESET_MGMT)
-    if (m_pTriggerRadioErrorMutex)
-    {
-        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pTriggerRadioErrorMutex\r\n");
-        delete m_pTriggerRadioErrorMutex;
-        m_pTriggerRadioErrorMutex = NULL;
-    }
-#endif // !RESET_MGMT
-
     if (m_pDataChannelAccessorMutex)
     {
         RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pDataChannelAccessorMutex\r\n");
@@ -245,14 +229,12 @@ CSystemManager::~CSystemManager()
         m_pDataChannelAccessorMutex = NULL;
     }
 
-#if defined(RESET_MGMT)
     if (m_fdCleanupSocket >= 0)
     {
         shutdown(m_fdCleanupSocket, SHUT_RDWR);
         close(m_fdCleanupSocket);
         m_fdCleanupSocket = -1;
     }
-#endif // RESET_MGMT
 
     if (fLocked)
     {
@@ -360,26 +342,11 @@ BOOL CSystemManager::InitializeSystem()
         m_pSysInitCompleteEvent = new CEvent(NULL, TRUE);
         if (!m_pSysInitCompleteEvent)
         {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Could not create System Init complete Event.\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Could not create System init complete Event.\r\n");
             goto Done;
         }
     }
 
-#if !defined(RESET_MGMT)
-    if (m_pTriggerRadioErrorMutex)
-    {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pTriggerRadioErrorMutex was already created!\r\n");
-    }
-    else
-    {
-        m_pTriggerRadioErrorMutex = new CMutex();
-        if (!m_pTriggerRadioErrorMutex)
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Could not create m_pTriggerRadioErrorMutex.\r\n");
-            goto Done;
-        }
-    }
-#endif // !RESET_MGMT
 
     if (m_pDataChannelAccessorMutex)
     {
@@ -397,7 +364,6 @@ BOOL CSystemManager::InitializeSystem()
 
     ResetSystemState();
 
-#if defined(RESET_MGMT)
     //  Need to open the "clean up request" socket here.
     if (!OpenCleanupRequestSocket())
     {
@@ -418,64 +384,6 @@ BOOL CSystemManager::InitializeSystem()
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: InitChannelPorts() error!\r\n");
         goto Done;
     }
-#else  // RESET_MGMT
-
-
-    // Open the serial ports (and populate g_pRilChannel)
-    if (!OpenChannelPorts())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't open VSPs.\r\n");
-        goto Done;
-    }
-    RIL_LOG_INFO("CSystemManager::InitializeSystem() - VSPs were opened successfully.\r\n");
-
-    m_pExitRilEvent = new CEvent(NULL, TRUE);
-    if (NULL == m_pExitRilEvent)
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Could not create exit event.\r\n");
-        goto Done;
-    }
-
-    // Create the Queues
-    if (!CreateQueues())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Unable to create queues\r\n");
-        goto Done;
-    }
-
-    if (!CThreadManager::Start(RIL_CHANNEL_MAX * 2, m_pExitRilEvent))
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Thread manager failed to start.\r\n");
-    }
-
-    //  Check repository to see if we support the watchdog thread.
-    iTemp = 0;
-    if (!repository.Read(g_szGroupModem, g_szDisableWatchdogThread, iTemp))
-    {
-        iTemp = 0;
-    }
-    if (0 == iTemp)
-    {
-        //  support watchdog thread
-        if (!CreateWatchdogThread())
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't create watchdog thread!\r\n");
-            goto Done;
-        }
-    }
-    else
-    {
-        //  don't support watchdog thread
-        RIL_LOG_CRITICAL("******* CSystemManager::InitializeSystem() - Watchdog thread is DISABLED.\r\n");
-        RIL_LOG_CRITICAL("******* Unsoliticited modem reset detection AND core dump will not function.\r\n");
-    }
-
-    if (!InitializeModem())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - ERROR: Couldn't start Modem initialization!\r\n");
-        goto Done;
-    }
-#endif // RESET_MGMT
 
     bRetVal = TRUE;
 
@@ -506,53 +414,28 @@ Done:
             m_pSysInitCompleteEvent = NULL;
         }
 
-#if !defined(RESET_MGMT)
-        if (m_pTriggerRadioErrorMutex)
-        {
-            delete m_pTriggerRadioErrorMutex;
-            m_pTriggerRadioErrorMutex = NULL;
-        }
-#endif // !RESET_MGMT
-
         if (m_pDataChannelAccessorMutex)
         {
             delete m_pDataChannelAccessorMutex;
             m_pDataChannelAccessorMutex = NULL;
         }
 
-#if defined(RESET_MGMT)
         if (m_fdCleanupSocket >= 0)
         {
             shutdown(m_fdCleanupSocket, SHUT_RDWR);
             close(m_fdCleanupSocket);
             m_fdCleanupSocket = -1;
         }
-#else  // RESET_MGMT
-
-        CThreadManager::Stop();
-
-        if (m_pExitRilEvent)
-        {
-            if (CEvent::Signal(m_pExitRilEvent))
-            {
-                RIL_LOG_INFO("CSystemManager::InitializeSystem() : INFO : Signaled m_pExitRilEvent as we are failing out, sleeping for 1 second\r\n");
-                Sleep(1000);
-                RIL_LOG_INFO("CSystemManager::InitializeSystem() : INFO : Sleep complete\r\n");
-            }
-
-            delete m_pExitRilEvent;
-            m_pExitRilEvent = NULL;
-        }
-#endif // RESET_MGMT
     }
 
 
     CMutex::Unlock(m_pSystemManagerMutex);
 
-    if(bRetVal)
+    if (bRetVal)
     {
+        RIL_LOG_INFO("CSystemManager::InitializeSystem() : Waiting for RIL initialization....\r\n");
         CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
-        RIL_LOG_INFO("rapid ril initialization completed\r\n");
+        RIL_LOG_INFO("CSystemManager::InitializeSystem() : Rapid Ril initialization completed\r\n");
     }
 
     RIL_LOG_INFO("CSystemManager::InitializeSystem() - Exit\r\n");
@@ -561,7 +444,6 @@ Done:
 }
 
 
-#if defined(RESET_MGMT)
 ///////////////////////////////////////////////////////////////////////////////
 //  This function continues the init in the function InitializeSystem() left
 //  off from InitChannelPorts().  Called when MODEM_UP status is received.
@@ -607,9 +489,11 @@ BOOL CSystemManager::ContinueInit()
     }
 
     bRetVal = TRUE;
-    //Signal that we have initialized, so that framework
+
+    // Signal that we have initialized, so that framework
     // can start using the rild socket.
     CEvent::Signal(m_pSysInitCompleteEvent);
+
 Done:
     if (!bRetVal)
     {
@@ -672,7 +556,6 @@ Done:
     return bRetVal;
     RIL_LOG_INFO("CSystemManager::ContinueInit() - EXIT\r\n");
 }
-#endif // RESET_MGMT
 
 ///////////////////////////////////////////////////////////////////////////////
 BOOL CSystemManager::VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex)
@@ -873,7 +756,6 @@ Done:
     return bRet;
 }
 
-#if defined(RESET_MGMT)
 ///////////////////////////////////////////////////////////////////////////////
 //  Create and initialize the channels, but don't actually open the ports.
 BOOL CSystemManager::InitChannelPorts()
@@ -909,7 +791,6 @@ Done:
     RIL_LOG_VERBOSE("CSystemManager::InitChannelPorts() - Exit\r\n");
     return bRet;
 }
-#endif // RESET_MGMT
 
 ///////////////////////////////////////////////////////////////////////////////
 BOOL CSystemManager::OpenChannelPortsOnly()
@@ -1242,7 +1123,6 @@ void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIn
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-#if defined(RESET_MGMT)
 //  This function opens clean-up request socket.
 //  The fd of this socket is stored in the CSystemManager class.
 BOOL CSystemManager::OpenCleanupRequestSocket()
@@ -1354,6 +1234,5 @@ Error:
     RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - EXIT\r\n");
     return bRet;
 }
-#endif // RESET_MGMT
 
 

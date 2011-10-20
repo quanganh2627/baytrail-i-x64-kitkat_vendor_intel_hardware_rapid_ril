@@ -1047,6 +1047,14 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const BYTE*& rszPoint
         goto Error;
     }
 
+    // Extract ",<pbready>"
+    if (!SkipString(rszPointer, ",", rszPointer) ||
+        !ExtractUInt32(rszPointer, nPBReady, rszPointer))
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - ERROR: Could not parse nPBReady.\r\n");
+        goto Error;
+    }
+
     //  Skip the rest of the parameters (if any)
     // Look for a "<postfix>" to be sure we got a whole message
     FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer);
@@ -1077,6 +1085,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const BYTE*& rszPoint
         case 4: // PUK verification needed
         case 5: // SIM permanently blocked
         case 9: // SIM Removed
+        case 99:
         default:
             g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
             break;

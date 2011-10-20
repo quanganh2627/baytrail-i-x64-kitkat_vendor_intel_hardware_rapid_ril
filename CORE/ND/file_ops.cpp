@@ -7,9 +7,7 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#if defined(RESET_MGMT)
 #include <poll.h>
-#endif // RESET_MGMT
 
 // Use to convert our timeout to a timeval in the future
 timeval msFromNowToTimeval(UINT32 msInFuture)
@@ -331,7 +329,6 @@ UINT32 CFile::GetFileAttributes(const char * pszFileName)
     return dwReturn;
 }
 
-#if defined(RESET_MGMT)
 BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
 {
     struct pollfd fds[1] = { {0,0,0} };
@@ -400,59 +397,6 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
     return TRUE;
 }
 
-#else // RESET_MGMT
-BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
-{
-    fd_set readfs, writefs, errorfs;
-    int maxfd = m_file + 1;
-
-    if (m_file < 0)
-    {
-        RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : m_file was not valid");
-        return FALSE;
-    }
-
-    FD_ZERO(&readfs);
-    FD_ZERO(&errorfs);
-
-    rdwFlags = 0;
-
-    FD_SET(m_file, &readfs);
-    FD_SET(m_file, &errorfs);
-
-    if (WAIT_FOREVER == dwTimeoutInMS)
-    {
-        if (-1 == select(maxfd, &readfs, NULL, &errorfs, NULL))
-        {
-            RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : Select returned -1  errorfs=[%d]\r\n", errorfs);
-            return FALSE;
-        }
-    }
-    else
-    {
-        struct timeval Time = msFromNowToTimeval(dwTimeoutInMS);
-
-        if (-1 == select(maxfd, &readfs, NULL, &errorfs, &Time))
-        {
-            RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : Select returned -1  errorfs=[%d]\r\n", errorfs);
-            return FALSE;
-        }
-    }
-
-    if (FD_ISSET(m_file, &readfs))
-    {
-        rdwFlags = FILE_EVENT_RXCHAR;
-    }
-
-    if (FD_ISSET(m_file, &errorfs))
-    {
-        RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : errorfs was set!\r\n");
-        return FALSE;
-    }
-
-    return TRUE;
-}
-#endif // RESET_MGMT
 
 BOOL CFile::Open(CFile * pFile, const char * pszFileName, UINT32 dwAccessFlags, UINT32 dwOpenFlags, UINT32 dwOptFlags, BOOL fIsSocket)
 {

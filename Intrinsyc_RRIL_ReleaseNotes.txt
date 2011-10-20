@@ -1,6 +1,203 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+October 20, 2011 (M5.28 release for Medfield PR2)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR2 devices, Android version 2.3.4 (Gingerbread).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ABSP dated August 12, 2011 (ww33)
+- We are using the HSI interface.
+
+PR2 Setup
+=========
+KBoot: kboot.bin (from ABSP dated August 12,2011 ww33)
+IFWI: IFWI_CRAK_PR2v01.09a_FSTK_227_IA_48b_SCU_C0.12_VH_0.4F_Punit_C0.0C_XML_v01.0A_830_830_0.854.bin
+Misc Module: SIGNED_PNW_C0_FWR_DnX.FD.19.bin
+OS Recovery Module: SIGNED_PNW_C0_OSR_DnX.0E.37.bin
+Modem Firmware: SUNRISE_SMB_REV30_V2_1130.C_signed_MIPI_HSI_USIF_V2.13.fls
+
+
+Release Notes for M5.28
+=======================
+
+1. Bugzilla 10915: Mobile network type "unknown" when registered on GSM network
+   -Integrate patch
+   -RIL handles new +XREG: 7 notification.
+   -This patch was previously merged into M5.27 at Intel.
+
+2. Bugzilla 6687: Adding SMS CB (Pdu Decoding).
+   -Integrate patch (M2_CELL_BROADCAST_FEATURE_ENABLED compilation flag)
+
+3. RIL_REQUEST_GET_CURRENT_CALLS
+   -In the case of zero calls in the call list, RIL should return NULL data with
+    size of zero.
+
+4. Bugzilla 6817: [3GPP conformance] 31.9.2.3: FAIL: USSD MMI input has to be acknowledged 2 times
+   -Integrate patch (original patch modified by Intrinsyc)
+   -Move USSD notification to ATCmd channel from URC channel.
+
+5. Bugzilla 11480: [Workaround] Disable the RIL_REQUEST_GET_NEIGHBORING_CELL_IDS query
+   -Integrate patch.
+   -This patch was previously merged into M5.27 at Intel.
+
+6. Bugzilla 11655: Phone shutdown sequence
+   -Use return (i.e. do not call exit) when shutting down phone.  This allows RIL to handle incoming
+    requests when phone shutdown is in progress.  This also makes the shutdown sequence faster.
+
+7. Bugzilla 9387: Rx Diversity
+   -Previously merged into RIL M5.27 at Intel.
+
+8. Bugzilla 11275: Missing flag in Android.mk
+   -Integrate patch
+   -Previously merged into RIL M5.27 at Intel.
+
+9. Bugzilla 11872: DUT displays "No SIM or SIM card error" after remote party ended the call
+   -Integrate patch
+   -Previously merged into RIL at Intel.
+
+10. Bugzilla 11661: Update license file from Moorstown to Medfield
+   -Add new docx file to drop.
+   -Previously merged into RIL at Intel.
+
+11. Bugzilla 12195: Wrong length when sending AT+CMGW=<length> to modem
+    -Integrate patch (original patch modified by Intrinsyc)
+    -Can use function in RIL Util library to get length of SMSC header.
+
+12. Bugzilla 11894: HSI transfer timeout and stmd try to reset modem, rild crash
+    -Integrate patch
+    -Previously merged into RIL at Intel.
+
+13. Bugzilla 11685: Messy codes displayed in supplementary menu
+    -Integrate patch
+
+14. Remove RESET_MGMT #ifdef blocks as this flag is always set.
+
+15. IPv6: Integrate IPv6 patch from Cyril Roques
+    -#9, #16 on IPv6 task spreadsheet (BZ 9532, BZ 10501)
+
+16. IPv6: Deactivate DAD on interface before setting interface UP
+    -#12 on IPv6 task spreadsheet (BZ 9532, BZ 10501)
+    -Set /proc/sys/net/ipv6/conf/<interface>/dad_transmits=0
+    -Set /proc/sys/net/ipv6/conf/<interface>/accept_dad=0
+
+17. IPv6: Network accepts but returns PDP context with only one type (either Ipv6 or Ipv6)
+    -#19 on IPv6 task spreadsheet (BZ 10350, BZ 11499)
+    -Add new enum values to RIL_LastDataCallActivateFailCause
+    -Add AT+CGACT=1,<cid> to setup data call request.
+    -Add PDP_TYPE enum to classify data call type (IPV4, IPV6, IPV4V6)
+    -TODO: Tie in actual data connection type made to call DataConfigUp(...)
+
+
+M2 features testing matrix
+==========================
+X = Basic tested (compiles, camp on network, data transfer, voice calls, SMS to self)
+
+MULTIPLE_PDP | VT | CALL_FAILED_CAUSE | RXDIV | CELL_BROADCAST | IPV6 | PIN_RETRIES | Result
+-------------+----+-------------------+-------+----------------+------+-------------+--------
+      X      | X  |         X         |   X   |       X        |      |             | PASS
+      X      | X  |         X         |   X   |       X        |  X   |             | PASS
+
+
+Testing results:  (tested on mfld_pr2, all M2 features enabled except PIN_RETRIES)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 September 27, 2011 (M5.27 release for Medfield PR2)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
@@ -82,7 +279,7 @@ Release Notes for M5.27
     -Upon response from ABORT or ABORT timeout, send AT+CMEE=1\r to "ping" modem to see if still alive.
     -If modem "ping" passes, RIL assumes modem is alive.
         -If timeout <= "threshold timeout for retry", DO NOT reset modem and resend command.
-            -If retry attempt and init command, signal clean-up request to STMD.
+            -If retry attempt fails and init command, signal clean-up request to STMD.
         -If timeout > "threshold timeout for retry", then DO NOT reset modem and return
          RIL_E_GENERIC_FAILURE to Android.
     -If modem "ping" fails, RIL assumes modem is dead.  Signal clean-up request to STMD.

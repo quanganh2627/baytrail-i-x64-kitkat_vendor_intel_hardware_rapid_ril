@@ -724,15 +724,19 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPoin
                     goto Error;
                 }
 
-                tmpUssdUcs2 = new unsigned char[(lenUssdAscii/2)+1];
+                tmpUssdUcs2 = new unsigned char[(lenUssdAscii/2)+2];
                 if (NULL == tmpUssdUcs2)
                 {
                     RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot allocate %d bytes for tmpUssdUcs2\r\n", lenUssdAscii/2+1);
                     goto Error;
                 }
+                memset(tmpUssdUcs2, 0, ((lenUssdAscii/2)+2));
 
                 ussdAsciiToHex(tmpUssdAscii, lenUssdAscii, &tmpUssdUcs2);
+
+                memset(pUssdStatus->szMessage, 0, sizeof(pUssdStatus->szMessage));
                 ucs2_to_utf8((unsigned char*)tmpUssdUcs2, lenUssdAscii/2, (unsigned char*)pUssdStatus->szMessage);
+
                 delete []tmpUssdUcs2;
             }
             else

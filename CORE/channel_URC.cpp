@@ -35,9 +35,9 @@ extern BOOL  g_bIsSocket;
 //  All URCs go on this channel.
 INITSTRING_DATA URCBasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+CTZR=1|+XREG=1|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XCSQ=1|+XLEMA=1" };
 #if defined(M2_CELL_BROADCAST_FEATURE_ENABLED)
-INITSTRING_DATA URCUnlockInitString  = { "+CNMI=2,2,2,1|+CRC=1|+CCWA=1|+CUSD=1" };
+INITSTRING_DATA URCUnlockInitString  = { "+CNMI=2,2,2,1|+CRC=1|+CCWA=1" };
 #else // M2_CELL_BROADCAST_FEATURE_ENABLED
-INITSTRING_DATA URCUnlockInitString  = { "+CNMI=2,2,0,1|+CRC=1|+CCWA=1|+CUSD=1" };
+INITSTRING_DATA URCUnlockInitString  = { "+CNMI=2,2,0,1|+CRC=1|+CCWA=1" };
 #endif // M2_CELL_BROADCAST_FEATURE_ENABLED
 INITSTRING_DATA URCPowerOnInitString = { "" };
 INITSTRING_DATA URCReadyInitString   = { "" };
@@ -88,6 +88,7 @@ void CChannel_URC::ModemTimeSyncInit()
 #else
     ptm = localtime(&t);
 #endif
+    memset(URCClockInitString, 0, sizeof(URCClockInitString));
     strftime(URCClockInitString, sizeof(URCClockInitString), "+CCLK=\"%y/%m/%d,%H:%M:%S\"", ptm);
     m_prisdModuleInit[COM_POWER_ON_INIT_INDEX].szCmd = URCClockInitString;
 
