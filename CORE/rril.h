@@ -174,7 +174,7 @@ enum
 #define RRIL_CME_ERROR_INCORRECT_PASSWORD                        16
 #define RRIL_CME_ERROR_SIM_PIN2_REQUIRED                         17
 #define RRIL_CME_ERROR_SIM_PUK2_REQUIRED                         18
-
+#define RRIL_CME_ERROR_NETWORK_PUK_REQUIRED                      41
 
 ///////////////////////////////////////////////////////////////////////////////
 // CMS Error code defines

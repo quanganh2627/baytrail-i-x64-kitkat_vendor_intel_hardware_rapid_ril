@@ -35,10 +35,10 @@
 #define CME_ERROR_SIM_PIN2_REQUIRED                         17
 #define CME_ERROR_SIM_PUK2_REQUIRED                         18
 #define CME_ERROR_SIM_NOT_READY                             515
+#define CME_ERROR_NETWORK_PUK_REQUIRED                      41
 
 // CMS error codes are mapped to 3GPP spec
 #define CMS_ERROR_SIM_NOT_INSERTED                          310
-
 
 
 #endif

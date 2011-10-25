@@ -94,13 +94,14 @@ BOOL CSilo_SIM::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         case ND_REQ_ID_ENTERSIMPUK:
         case ND_REQ_ID_ENTERSIMPIN2:
         case ND_REQ_ID_ENTERSIMPUK2:
-        case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION:
         case ND_REQ_ID_CHANGESIMPIN:
         case ND_REQ_ID_CHANGESIMPIN2:
         case ND_REQ_ID_SETFACILITYLOCK:
             bRetVal = ParsePin(rpCmd, rpRsp);
             break;
-
+        case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION:
+            bRetVal = ParseNetworkPersonalisationPin(rpCmd, rpRsp);
+            break;
         case ND_REQ_ID_SIMIO:
             bRetVal = ParseSimIO(rpCmd, rpRsp);
             break;
@@ -207,6 +208,61 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
 
 Error:
     RIL_LOG_VERBOSE("CSilo_SIM::ParsePin() - Exit\r\n");
+    return bRetVal;
+}
+
+// Helper functions
+BOOL CSilo_SIM::ParseNetworkPersonalisationPin(CCommand*& rpCmd, CResponse*& rpRsp)
+{
+    BOOL bRetVal = FALSE;
+
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseNetworkPersonalisationPin() - Enter\r\n");
+
+    if (RIL_E_SUCCESS != rpRsp->GetResultCode())
+    {
+
+        switch(rpRsp->GetErrorCode())
+        {
+            case CME_ERROR_INCORRECT_PASSWORD:
+                RIL_LOG_INFO("CSilo_SIM::ParseNetworkPersonalisationPin() - Incorrect password");
+                rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
+                break;
+            case CME_ERROR_NETWORK_PUK_REQUIRED:
+                RIL_LOG_INFO("CSilo_SIM::ParseNetworkPersonalisationPin() - NETWORK PUK required");
+                rpRsp->SetResultCode(RIL_E_NETWORK_PUK_REQUIRED);
+                g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+                break;
+            default:
+                RIL_LOG_INFO("CSilo_SIM::ParseNetworkPersonalisationPin() - Unknown error [%d]", rpRsp->GetErrorCode());
+                rpRsp->SetResultCode(RIL_E_GENERIC_FAILURE);
+                break;
+        }
+
+        rpRsp->FreeData();
+        int* pInt = (int *) malloc(sizeof(int));
+
+        if (NULL == pInt)
+        {
+            RIL_LOG_CRITICAL("CSilo_SIM::ParseNetworkPersonalisationPin(): Unable to allocate memory for NET PIN retries\r\n");
+            goto Error;
+        }
+
+        //  (Dec 22/09) I tried entering different values for this, but I don't think it does anything in the UI.
+        *pInt = -1;
+
+        if (!rpRsp->SetData((void*) pInt, sizeof(int*), FALSE))
+        {
+            RIL_LOG_CRITICAL("CSilo_SIM::ParseNetworkPersonalisationPin() : Unable to set data with number of NET PIN retries left\r\n");
+            free(pInt);
+            pInt = NULL;
+            goto Error;
+        }
+    }
+
+    bRetVal = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseNetworkPersonalisationPin() - Exit\r\n");
     return bRetVal;
 }
 
@@ -897,7 +953,8 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const BYTE*& rszPointer)
                         lock_info[i].lock_result);
 
         /// @TODO: Need to revisit the lock state mapping.
-        if (lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1)
+        if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
+           (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
         {
             g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
             pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);

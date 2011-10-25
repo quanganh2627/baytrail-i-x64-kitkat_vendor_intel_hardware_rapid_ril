@@ -190,6 +190,23 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
         pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
         pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
     }
+    else if (0 == strcmp(szSimState, "PH-NET PUK"))
+    {
+        RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_NETWORK_PERSONALIZATION PUK\r\n");
+        //g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
+        pCardStatus->num_applications = 1;
+        pCardStatus->gsm_umts_subscription_app_index = 0;
+
+        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
+        pCardStatus->applications[0].app_state = RIL_APPSTATE_SUBSCRIPTION_PERSO;
+        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_SIM_NETWORK_PUK;
+        pCardStatus->applications[0].aid_ptr = NULL;
+        pCardStatus->applications[0].app_label_ptr = NULL;
+        pCardStatus->applications[0].pin1_replaced = 0;
+        pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
+        pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+    }
     else if (0 == strcmp(szSimState, "SIM PIN2"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PIN2\r\n");
