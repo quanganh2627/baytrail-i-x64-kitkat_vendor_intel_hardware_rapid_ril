@@ -446,7 +446,7 @@ Error:
 }
 
 
-BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Enter\r\n");
     char* pszProactiveCmd = NULL;
@@ -518,7 +518,7 @@ Error:
     return fRet;
 }
 
-BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Enter\r\n");
     char* pszProactiveCmd = NULL;
@@ -663,7 +663,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rsz
                                     //  Read length of tag
                                     strncpy(szFileTagLength, &pszProactiveCmd[uiPos], 2);
                                     //RIL_LOG_INFO("file tag length = %s\r\n", szFileTagLength);
-                                    uiFileTagLength = SemiByteCharsToByte(szFileTagLength[0], szFileTagLength[1]);
+                                    uiFileTagLength = (UINT8)SemiByteCharsToByte(szFileTagLength[0], szFileTagLength[1]);
                                     RIL_LOG_INFO("file tag length = %d\r\n", uiFileTagLength);
                                     uiPos += 2;  //  we read the tag length
                                     uiPos += (uiFileTagLength * 2);
@@ -678,10 +678,10 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rsz
                                         RIL_LOG_INFO("szFileID[%s]\r\n", szFileID);
 
                                         //  Convert hex string to int
-                                        unsigned int i1 = 0, i2 = 0;
-                                        i1 = (unsigned int)SemiByteCharsToByte(szFileID[0], szFileID[1]);
-                                        i2 = (unsigned int)SemiByteCharsToByte(szFileID[2], szFileID[3]);
-                                        pInts[1] = (i1 << 8) + i2;
+                                        UINT32 ui1 = 0, ui2 = 0;
+                                        ui1 = (UINT8)SemiByteCharsToByte(szFileID[0], szFileID[1]);
+                                        ui2 = (UINT8)SemiByteCharsToByte(szFileID[2], szFileID[3]);
+                                        pInts[1] = (ui1 << 8) + ui2;
                                         RIL_LOG_INFO("pInts[1]=[%d],%04X\r\n", pInts[1], pInts[1]);
 
 
@@ -733,7 +733,7 @@ Error:
     return fRet;
 }
 
-BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - Enter\r\n");
     BOOL fRet = FALSE;
@@ -786,7 +786,7 @@ Error:
     return fRet;
 }
 
-BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIM() - Enter\r\n");
     BOOL fRet = FALSE;
@@ -859,7 +859,7 @@ Error:
 }
 
 
-BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXLOCK() - Enter\r\n");
 
@@ -971,7 +971,7 @@ Error:
 }
 
 
-BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXLEMA() - Enter\r\n");
     BOOL fRet = FALSE;
@@ -1067,7 +1067,7 @@ Error:
 }
 
 
-BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIMSTATE() - Enter\r\n");
     BOOL fRet = FALSE;
@@ -1142,7 +1142,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const BYTE*& rszPoint
         case 4: // PUK verification needed
         case 5: // SIM permanently blocked
         case 9: // SIM Removed
-        case 99:
+        case 99: // SIM state unknown
         default:
             g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
             break;

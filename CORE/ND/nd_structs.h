@@ -239,15 +239,15 @@ enum ACCESS_TECHNOLOGY
 
 typedef struct
 {
-    BYTE* pszType;
-    BYTE* pszMessage;
+    char* pszType;
+    char* pszMessage;
 } S_ND_USSD_POINTERS, *P_ND_USSD_POINTERS;
 
 typedef struct
 {
     S_ND_USSD_POINTERS sStatusPointers;
-    BYTE szType[MAX_BUFFER_SIZE];
-    BYTE szMessage[MAX_BUFFER_SIZE];
+    char szType[MAX_BUFFER_SIZE];
+    char szMessage[MAX_BUFFER_SIZE];
 } S_ND_USSD_STATUS, *P_ND_USSD_STATUS;
 
 enum PDP_TYPE

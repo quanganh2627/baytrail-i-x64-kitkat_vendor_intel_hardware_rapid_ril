@@ -80,8 +80,8 @@ struct CHARMAP {
 //
 
 BYTE SemiByteCharsToByte(const char chHigh, const char chLow);
-BOOL GSMHexToGSM(const BYTE* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cbOut, UINT32& rcbUsed);
-BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cbOut, UINT32& rcbUsed);
+BOOL GSMHexToGSM(const char* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cbOut, UINT32& rcbUsed);
+BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, char* sOut, const UINT32 cbOut, UINT32& rcbUsed);
 
 // convert a ucs2 string into a utf8 byte string, assumes 'utf8' NULL or properly sized.
 // returns the number of utf8 bytes
@@ -926,15 +926,15 @@ private:
     CSelfExpandBuffer& operator=(const CSelfExpandBuffer& rhs);  //  Assignment operator
 
 public:
-    BOOL            Append(const BYTE *szIn, UINT32 nLength);
-    const BYTE*     Data() const    { return m_szBuffer; };
+    BOOL            Append(const char *szIn, UINT32 nLength);
+    const char*     Data() const    { return m_szBuffer; };
     UINT32          Size() const    { return m_uiUsed; };
 
 private:
     static const UINT32 m_nChunkSize = 1024;
 
 protected:
-    BYTE*   m_szBuffer;
+    char*   m_szBuffer;
     UINT32  m_uiUsed;
     UINT32  m_nCapacity;
 };

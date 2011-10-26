@@ -29,7 +29,7 @@
 CCommand::CCommand( UINT32 uiChannel,
                     RIL_Token token,
                     UINT32 uiReqId,
-                    const BYTE* pszATCmd,
+                    const char* pszATCmd,
                     PFN_TE_PARSE pParseFcn) :
     m_uiChannel(RIL_CHANNEL_ATCMD),
     m_token(token),
@@ -61,7 +61,7 @@ CCommand::CCommand( UINT32 uiChannel,
     else
     {
         UINT32 uiCmdLen = strlen(pszATCmd) + 1;
-        m_pszATCmd1 = new BYTE[uiCmdLen];
+        m_pszATCmd1 = new char[uiCmdLen];
         memset(m_pszATCmd1, 0, uiCmdLen);
         CopyStringNullTerminate(m_pszATCmd1, pszATCmd, uiCmdLen);
     }
@@ -70,8 +70,8 @@ CCommand::CCommand( UINT32 uiChannel,
 CCommand::CCommand( UINT32 uiChannel,
                     RIL_Token token,
                     UINT32 uiReqId,
-                    const BYTE* pszATCmd1,
-                    const BYTE* pszATCmd2,
+                    const char* pszATCmd1,
+                    const char* pszATCmd2,
                     PFN_TE_PARSE pParseFcn) :
     m_uiChannel(RIL_CHANNEL_ATCMD),
     m_token(token),
@@ -103,7 +103,7 @@ CCommand::CCommand( UINT32 uiChannel,
     else
     {
         UINT32 uiCmdLen = strlen(pszATCmd1) + 1;
-        m_pszATCmd1 = new BYTE[uiCmdLen];
+        m_pszATCmd1 = new char[uiCmdLen];
         memset(m_pszATCmd1, 0, uiCmdLen);
         CopyStringNullTerminate(m_pszATCmd1, pszATCmd1, uiCmdLen);
     }
@@ -115,7 +115,7 @@ CCommand::CCommand( UINT32 uiChannel,
     else
     {
         UINT32 uiCmdLen = strlen(pszATCmd2) + 1;
-        m_pszATCmd2 = new BYTE[uiCmdLen];
+        m_pszATCmd2 = new char[uiCmdLen];
         memset(m_pszATCmd2, 0, uiCmdLen);
         CopyStringNullTerminate(m_pszATCmd2, pszATCmd2, uiCmdLen);
     }
@@ -156,7 +156,7 @@ CCommand::CCommand( UINT32 uiChannel,
     else
     {
         UINT32 uiCmdLen = strlen(reqData.szCmd1) + 1;
-        m_pszATCmd1 = new BYTE[uiCmdLen];
+        m_pszATCmd1 = new char[uiCmdLen];
         memset(m_pszATCmd1, 0, uiCmdLen);
         CopyStringNullTerminate(m_pszATCmd1, reqData.szCmd1, uiCmdLen);
     }
@@ -168,7 +168,7 @@ CCommand::CCommand( UINT32 uiChannel,
     else
     {
         UINT32 uiCmdLen = strlen(reqData.szCmd2) + 1;
-        m_pszATCmd2 = new BYTE[uiCmdLen];
+        m_pszATCmd2 = new char[uiCmdLen];
         memset(m_pszATCmd2, 0, uiCmdLen);
         CopyStringNullTerminate(m_pszATCmd2, reqData.szCmd2, uiCmdLen);
     }
@@ -184,7 +184,7 @@ CCommand::~CCommand()
     m_pContext = NULL;
 }
 
-BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd)
+BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd, BOOL bFront /*=false*/)
 {
     RIL_LOG_VERBOSE("CCommand::AddCmdToQueue() - Enter\r\n");
 
@@ -204,8 +204,8 @@ BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd)
         }
 
         UINT32 nChannel = rpCmd->GetChannel();
-        //RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue ENQUEUE BEGIN  ishighpriority=[%d]\r\n", rpCmd->IsHighPriority());
-        if (g_pTxQueue[nChannel]->Enqueue(rpCmd, (UINT32)(rpCmd->IsHighPriority()) ))
+        //RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue ENQUEUE BEGIN  ishighpriority=[%d] bFront=[%d]\r\n", rpCmd->IsHighPriority(), bFront);
+        if (g_pTxQueue[nChannel]->Enqueue(rpCmd, (UINT32)(rpCmd->IsHighPriority()), bFront ))
         {
             //RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue ENQUEUE END\r\n");
             // signal Tx thread

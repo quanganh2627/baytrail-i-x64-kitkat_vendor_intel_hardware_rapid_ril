@@ -69,9 +69,9 @@ public:
 protected:
     //  Parse notification functions here.
     //virtual BOOL    ParseTriplePlus(CResponse* const pResponse, const char*& rszPointer);
-    virtual BOOL    ParseConnect(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseXCGEDPAGE(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseConnect(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseNoCarrier(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseXCGEDPAGE(CResponse* const pResponse, const char*& rszPointer);
 };
 
 #endif // RRIL_SILO_DATA_H

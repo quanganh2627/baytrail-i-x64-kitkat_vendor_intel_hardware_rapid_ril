@@ -140,8 +140,8 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
 {
     RIL_LOG_VERBOSE("CChannel::SendCommand() - Enter\r\n");
 
-    BYTE*           pATCommand = NULL;
-    BYTE*           pATCommand2 = NULL;
+    char*           pATCommand = NULL;
+    char*           pATCommand2 = NULL;
     CResponse*      pResponse = NULL;
     RIL_RESULT_CODE resCode = RRIL_E_UNKNOWN_ERROR;
     BOOL            bResult = FALSE;
@@ -199,8 +199,8 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             nNumRetries = 0;
         }
 
-        pATCommand = (BYTE *) rpCmd->GetATCmd1();
-        pATCommand2 = (BYTE *) rpCmd->GetATCmd2();
+        pATCommand = (char *) rpCmd->GetATCmd1();
+        pATCommand2 = (char *) rpCmd->GetATCmd2();
 
         if (NULL == pATCommand2)
         {
@@ -220,7 +220,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
         {
             UINT32 uiBytesWritten = 0;
 
-            pATCommand = (BYTE *) rpCmd->GetATCmd1();
+            pATCommand = (char *) rpCmd->GetATCmd1();
 
             // set flag for response thread
             SetCmdThreadBlockedOnRxQueue();
@@ -329,7 +329,7 @@ Error:
 RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
 {
     RIL_RESULT_CODE resCode = RIL_E_GENERIC_FAILURE;
-    BYTE*           pATCommand = NULL;
+    char*           pATCommand = NULL;
 
     RIL_LOG_VERBOSE("CChannel::GetResponse() - Enter\r\n");
 
@@ -350,7 +350,7 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
     }
 #endif // 0
 
-    pATCommand = (BYTE *) rpCmd->GetATCmd1();
+    pATCommand = (char *) rpCmd->GetATCmd1();
 
     if (rpResponse && rpResponse->IsTimedOutFlag())
     {
@@ -393,9 +393,15 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
           (RIL_E_SUCCESS != rpResponse->GetResultCode() &&
             (ND_REQ_ID_SIMOPENCHANNEL == rpCmd->GetRequestID() ||
              ND_REQ_ID_SIMCLOSECHANNEL == rpCmd->GetRequestID() ||
-             ND_REQ_ID_SIMTRANSMITCHANNEL == rpCmd->GetRequestID()) ) ) )
+             ND_REQ_ID_SIMTRANSMITCHANNEL == rpCmd->GetRequestID()) )
+#if defined(M2_VT_FEATURE_ENABLED)
+        //  OR VT_HANGUP request (since we don't care about a possible error)
+        || ND_REQ_ID_HANGUPVT == rpCmd->GetRequestID()
+#endif // M2_VT_FEATURE_ENABLED
+        )
+       )
     {
-        pATCommand = (BYTE *) rpCmd->GetATCmd2();
+        pATCommand = (char *) rpCmd->GetATCmd2();
         UINT32 uiBytesWritten = 0;
 
         // send 2nd phase of command
@@ -478,8 +484,8 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
 
 
     const UINT32 PING_TIMEOUT = 3000;  // PING timeout in ms.
-    BYTE szABORTCmd[] = "AT\x1b\r";  //  AT<esc>\r
-    BYTE szPINGCmd[] = "AT+CMEE=1\r";
+    char szABORTCmd[] = "AT\x1b\r";  //  AT<esc>\r
+    char szPINGCmd[] = "AT+CMEE=1\r";
 
 
     // Send ABORT command
@@ -730,7 +736,7 @@ BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID, RIL_Errno e
 }
 
 
-BOOL CChannel::ProcessModemData(BYTE *szRxBytes, UINT32 uiRxBytesSize)
+BOOL CChannel::ProcessModemData(char *szRxBytes, UINT32 uiRxBytesSize)
 {
     RIL_LOG_VERBOSE("CChannel::ProcessModemData() - Enter\r\n");
     BOOL bResult = FALSE;

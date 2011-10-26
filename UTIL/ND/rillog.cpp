@@ -64,12 +64,12 @@ void CRilLog::Init()
     m_bInitialized = TRUE;
 }
 
-void CRilLog::Verbose(const BYTE* const szFormatString, ...)
+void CRilLog::Verbose(const char* const szFormatString, ...)
 {
     if (m_bInitialized && (m_uiFlags & E_RIL_VERBOSE_LOG))
     {
         va_list argList;
-        BYTE szLogText[m_uiMaxLogBufferSize];
+        char szLogText[m_uiMaxLogBufferSize];
 
         va_start(argList, szFormatString);
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);
@@ -79,12 +79,12 @@ void CRilLog::Verbose(const BYTE* const szFormatString, ...)
     }
 }
 
-void CRilLog::Info(const BYTE* const szFormatString, ...)
+void CRilLog::Info(const char* const szFormatString, ...)
 {
     if (m_bInitialized && (m_uiFlags & E_RIL_INFO_LOG))
     {
         va_list argList;
-        BYTE szLogText[m_uiMaxLogBufferSize];
+        char szLogText[m_uiMaxLogBufferSize];
 
         va_start(argList, szFormatString);
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);
@@ -94,12 +94,12 @@ void CRilLog::Info(const BYTE* const szFormatString, ...)
     }
 }
 
-void CRilLog::Warning(const BYTE* const szFormatString, ...)
+void CRilLog::Warning(const char* const szFormatString, ...)
 {
     if (m_bInitialized && (m_uiFlags & E_RIL_WARNING_LOG))
     {
         va_list argList;
-        BYTE szLogText[m_uiMaxLogBufferSize];
+        char szLogText[m_uiMaxLogBufferSize];
 
         va_start(argList, szFormatString);
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);
@@ -109,12 +109,12 @@ void CRilLog::Warning(const BYTE* const szFormatString, ...)
     }
 }
 
-void CRilLog::Critical(const BYTE* const szFormatString, ...)
+void CRilLog::Critical(const char* const szFormatString, ...)
 {
     if (m_bInitialized && (m_uiFlags & E_RIL_CRITICAL_LOG))
     {
         va_list argList;
-        BYTE szLogText[m_uiMaxLogBufferSize];
+        char szLogText[m_uiMaxLogBufferSize];
 
         va_start(argList, szFormatString);
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);

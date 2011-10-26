@@ -45,7 +45,7 @@ const UINT32 MAX_SILOS = 6;
 //  Structure used for specifying init strings
 struct INITSTRING_DATA
 {
-    const BYTE* szCmd;
+    const char* szCmd;
 };
 
 // Structure to hold silos
@@ -91,7 +91,7 @@ public:
     BOOL            UnblockReadThread() { return CEvent::Signal(m_pBlockReadThreadEvent); }
 
     //  Public interfaces to notify all silos.
-    BOOL            ParseUnsolicitedResponse(CResponse* const pResponse, const BYTE*& rszPointer, BOOL &fGotoError);
+    BOOL            ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL &fGotoError);
 
     //  General public functions
     BOOL            IsCmdThreadBlockedOnRxQueue() const { return m_bCmdThreadBlockedOnRxQueue; };
@@ -106,8 +106,8 @@ protected:
     BOOL            AddSilo(CSilo *pSilo);
 
     // Protected port interface for inside of channel class
-    BOOL            WriteToPort(const BYTE* pData, UINT32 uiBytesToWrite, UINT32& ruiBytesWritten);
-    BOOL            ReadFromPort(BYTE* pszReadBuf, UINT32 uiReadBufSize, UINT32& ruiBytesRead);
+    BOOL            WriteToPort(const char* pData, UINT32 uiBytesToWrite, UINT32& ruiBytesWritten);
+    BOOL            ReadFromPort(char* pszReadBuf, UINT32 uiReadBufSize, UINT32& ruiBytesRead);
     BOOL            IsPortOpen();
     BOOL            WaitForAvailableData(UINT32 uiTimeout);
 
@@ -118,7 +118,7 @@ protected:
 
     // Called at end of ResponseThread()
     // Give GPRS response thread a chance to handle Rx data in Data mode
-    virtual BOOL    ProcessModemData(BYTE *szData, UINT32 uiRead) = 0;
+    virtual BOOL    ProcessModemData(char *szData, UINT32 uiRead) = 0;
 
     //  Interfaces to hooks to notify silos
     BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp);

@@ -28,12 +28,12 @@
 #include "silo_factory.h"
 #include "channel_URC.h"
 
-extern BYTE* g_szURCPort;
+extern char* g_szURCPort;
 extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
 //  All URCs go on this channel.
-INITSTRING_DATA URCBasicInitString   = { "E0V1Q0X4|S0=0|+CMEE=1|+XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+CTZR=1|+XREG=1|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XCSQ=1|+XLEMA=1" };
+INITSTRING_DATA URCBasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0|+XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+CTZR=1|+XREG=1|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XCSQ=1|+XLEMA=1" };
 #if defined(M2_CELL_BROADCAST_FEATURE_ENABLED)
 INITSTRING_DATA URCUnlockInitString  = { "+CNMI=2,2,2,1|+CRC=1|+CCWA=1" };
 #else // M2_CELL_BROADCAST_FEATURE_ENABLED
@@ -41,7 +41,7 @@ INITSTRING_DATA URCUnlockInitString  = { "+CNMI=2,2,0,1|+CRC=1|+CCWA=1" };
 #endif // M2_CELL_BROADCAST_FEATURE_ENABLED
 INITSTRING_DATA URCPowerOnInitString = { "" };
 INITSTRING_DATA URCReadyInitString   = { "" };
-BYTE URCClockInitString[32];
+char URCClockInitString[32];
 
 CChannel_URC::CChannel_URC(UINT32 uiChannel)
 : CChannel(uiChannel)

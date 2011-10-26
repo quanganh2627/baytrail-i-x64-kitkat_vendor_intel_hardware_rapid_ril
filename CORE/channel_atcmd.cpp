@@ -28,7 +28,7 @@
 #include "channel_atcmd.h"
 #include "silo_factory.h"
 
-extern BYTE* g_szCmdPort;
+extern char* g_szCmdPort;
 extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
@@ -40,17 +40,17 @@ extern BOOL  g_bIsSocket;
 #if defined(M2_RXDIV_FEATURE_ENABLED)
 
 #if defined(M2_VT_FEATURE_ENABLED) && defined(M2_VT_XDATACHANNEL_TEST_ENABLED)
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|+XPOW=0,0,0|+XRXDIV=1,1|S0=0|+CMEE=1|+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",2" };
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XRXDIV=1,1|+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",2" };
 #else // M2_VT_FEATURE_ENABLED
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|+XPOW=0,0,0|+XRXDIV=1,1|S0=0|+CMEE=1" };
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XRXDIV=1,1" };
 #endif // M2_VT_FEATURE_ENABLED
 
 #else  // M2_RXDIV_FEATURE_ENABLED
 
 #if defined(M2_VT_FEATURE_ENABLED) && defined(M2_VT_XDATACHANNEL_TEST_ENABLED)
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|+XPOW=0,0,0|+XRXDIV=0,1|S0=0|+CMEE=1|+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",2" };
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XRXDIV=0,1|+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",2" };
 #else // M2_VT_FEATURE_ENABLED
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+XGENDATA|+XPOW=0,0,0|+XRXDIV=0,1|S0=0|+CMEE=1" };
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XRXDIV=0,1" };
 #endif // M2_VT_FEATURE_ENABLED
 
 #endif  // M2_RXDIV_FEATURE_ENABLED

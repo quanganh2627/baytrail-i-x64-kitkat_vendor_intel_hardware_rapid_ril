@@ -428,15 +428,15 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     RIL_LOG_VERBOSE("CChannelBase::SendModemConfigurationCommands() - Enter\r\n");
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : chnl=[%d] index=[%d]\r\n", m_uiRilChannel, eInitIndex);
 
-    BYTE*        szInit;
+    char*        szInit;
     const UINT32 szInitLen = MAX_BUFFER_SIZE;
     BOOL         bRetVal  = FALSE;
     CCommand*    pCmd = NULL;
     BOOL         bLastCmd;
     CRepository  repository;
-    BYTE         szTemp[MAX_BUFFER_SIZE];
+    char         szTemp[MAX_BUFFER_SIZE];
 
-    szInit = new BYTE[szInitLen];
+    szInit = new char[szInitLen];
     if (!szInit)
     {
         RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Out of memory\r\n");
@@ -509,8 +509,8 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : String [%s]\r\n", szInit);
 
     // Now go through the string and break it up into individual commands separated by a '|'
-    BYTE szCmd[MAX_BUFFER_SIZE];
-    BYTE *pszStart, *pszEnd;
+    char szCmd[MAX_BUFFER_SIZE];
+    char *pszStart, *pszEnd;
     pszStart = szInit;
     for (;;)
     {
@@ -518,7 +518,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         pszEnd = strchr(pszStart, '|');
         if (pszEnd)
         {
-            // If we found a termination BYTE, terminate the command there
+            // If we found a termination char, terminate the command there
             *pszEnd = '\0';
             bLastCmd = FALSE;
         }
@@ -591,7 +591,7 @@ UINT32 CChannelBase::ResponseThread()
 {
     RIL_LOG_VERBOSE("CChannelBase::ResponseThread() chnl=[%d] - Enter\r\n", m_uiRilChannel);
     const UINT32 uiRespDataBufSize = 1024;
-    BYTE         szData[uiRespDataBufSize];
+    char         szData[uiRespDataBufSize];
     UINT32       uiRead;
     UINT32       uiReadError = 0;
     const UINT32 uiMAX_READERROR = 3;
@@ -701,7 +701,7 @@ BOOL CChannelBase::LockCommandQueue(UINT32 uiTimeout)
 //
 //  Iterate through each silo in this channel to ParseNotification.
 //
-BOOL CChannelBase::ParseUnsolicitedResponse(CResponse* const pResponse, const BYTE*& rszPointer, BOOL &fGotoError)
+BOOL CChannelBase::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL &fGotoError)
 {
     //RIL_LOG_VERBOSE("CChannelBase::ParseUnsolicitedResponse() - Enter\r\n");
     BOOL bResult = TRUE;
@@ -845,7 +845,7 @@ BOOL CChannelBase::ClosePort()
     return m_Port.Close();
 }
 
-BOOL CChannelBase::WriteToPort(const BYTE* pData, UINT32 uiBytesToWrite, UINT32& ruiBytesWritten)
+BOOL CChannelBase::WriteToPort(const char* pData, UINT32 uiBytesToWrite, UINT32& ruiBytesWritten)
 {
     BOOL bRetVal = FALSE;
 
@@ -865,7 +865,7 @@ BOOL CChannelBase::WriteToPort(const BYTE* pData, UINT32 uiBytesToWrite, UINT32&
     return bRetVal;
 }
 
-BOOL CChannelBase::ReadFromPort(BYTE * pszReadBuf, UINT32 uiReadBufSize, UINT32& ruiBytesRead)
+BOOL CChannelBase::ReadFromPort(char * pszReadBuf, UINT32 uiReadBufSize, UINT32& ruiBytesRead)
 {
     return m_Port.Read(pszReadBuf, uiReadBufSize, ruiBytesRead);
 }

@@ -48,7 +48,7 @@ static const char g_rgchSemiByteToCharMap[16] = { '0', '1', '2', '3', '4', '5', 
 //
 // Convert a semi-byte into its character representation
 //
-BYTE SemiByteToChar(const BYTE bByte, const BOOL fHigh)
+char SemiByteToChar(const BYTE bByte, const BOOL fHigh)
 {
     UINT8 bSemiByte = (fHigh ? (bByte & 0xf0) >> 4 : bByte & 0x0f);
 
@@ -95,10 +95,10 @@ BYTE SemiByteCharsToByte(const char chHigh, const char chLow)
 //
 //
 //
-BOOL GSMHexToGSM(const BYTE* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cbOut, UINT32& rcbUsed)
+BOOL GSMHexToGSM(const char* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cbOut, UINT32& rcbUsed)
 {
-    const BYTE* pchIn = sIn;
-    const BYTE* pchInEnd = sIn + cbIn;
+    const char* pchIn = sIn;
+    const char* pchInEnd = sIn + cbIn;
     BYTE* pchOut = sOut;
     BYTE* pchOutEnd = sOut + cbOut;
     BOOL fRet = FALSE;
@@ -118,12 +118,12 @@ BOOL GSMHexToGSM(const BYTE* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cb
 //
 //
 //
-BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cbOut, UINT32& rcbUsed)
+BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, char* sOut, const UINT32 cbOut, UINT32& rcbUsed)
 {
     const BYTE* pchIn = sIn;
     const BYTE* pchInEnd = sIn + cbIn;
-    BYTE* pchOut = sOut;
-    BYTE* pchOutEnd = sOut + cbOut;
+    char* pchOut = sOut;
+    char* pchOutEnd = sOut + cbOut;
     BOOL fRet = FALSE;
 
     while (pchIn < pchInEnd && pchOut < pchOutEnd - 1)
@@ -207,7 +207,7 @@ CSelfExpandBuffer::~CSelfExpandBuffer()
     m_szBuffer = NULL;
 }
 
-BOOL CSelfExpandBuffer::Append(const BYTE *szIn, UINT32 nLength)
+BOOL CSelfExpandBuffer::Append(const char *szIn, UINT32 nLength)
 {
     BOOL   bRet = FALSE;
     UINT32 nNewSize;
@@ -216,7 +216,7 @@ BOOL CSelfExpandBuffer::Append(const BYTE *szIn, UINT32 nLength)
     {
         if (NULL == m_szBuffer)
         {
-            m_szBuffer = new BYTE[m_nChunkSize];
+            m_szBuffer = new char[m_nChunkSize];
             if (NULL == m_szBuffer)
                 goto Error;
 
@@ -227,7 +227,7 @@ BOOL CSelfExpandBuffer::Append(const BYTE *szIn, UINT32 nLength)
         if (nNewSize != m_nCapacity)
         {
             // allocate more space for the data
-            BYTE* tmp = new BYTE[nNewSize];
+            char* tmp = new char[nNewSize];
             if (NULL == tmp)
                 goto Error;
 

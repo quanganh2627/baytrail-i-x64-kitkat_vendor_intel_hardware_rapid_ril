@@ -29,7 +29,7 @@
 
 // Takes in a string to search for a substring. If found, returns true and rszEnd
 // points to the first character after szSkip.
-BOOL FindAndSkipString(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
+BOOL FindAndSkipString(const char* szStart, const char* szSkip, const char*& rszEnd)
 {
     BOOL fRet = FALSE;
 
@@ -52,7 +52,7 @@ BOOL FindAndSkipString(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rsz
 }
 
 // Moves the pointer past any spaces in the response. Returns TRUE if spaces were skipped.
-BOOL SkipSpaces(const BYTE* szStart, const BYTE*& rszEnd)
+BOOL SkipSpaces(const char* szStart, const char*& rszEnd)
 {
     BOOL fRet = FALSE;
 
@@ -69,7 +69,7 @@ BOOL SkipSpaces(const BYTE* szStart, const BYTE*& rszEnd)
 
 // Takes in a string to compare with a substring. If the substring matches with
 // szStart, the function returns true and rszEnd points to the first character after szSkip.
-BOOL SkipString(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
+BOOL SkipString(const char* szStart, const char* szSkip, const char*& rszEnd)
 {
     BOOL fRet = FALSE;
     UINT32 dwResult;
@@ -94,7 +94,7 @@ BOOL SkipString(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
 
 // Looks for a carriage return/line feed at the start of szStart. If found, returns true
 // and sets rszEnd to the first character after the pattern.
-BOOL SkipRspStart(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
+BOOL SkipRspStart(const char* szStart, const char* szSkip, const char*& rszEnd)
 {
     BOOL fRet = FALSE;
 
@@ -112,7 +112,7 @@ BOOL SkipRspStart(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
 // Looks for a carriage return/line feed at the start of szStart. If found, returns true
 // and sets rszEnd to the first character after the pattern. This is identical to SkipRspStart
 // but is provided in case the modem responds with a different pattern for response ends and beginnings.
-BOOL SkipRspEnd(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
+BOOL SkipRspEnd(const char* szStart, const char* szSkip, const char*& rszEnd)
 {
     BOOL fRet = FALSE;
 
@@ -129,7 +129,7 @@ BOOL SkipRspEnd(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
 
 // Looks for a carriage return/line feed anywhere in szStart. If found, returns true
 // and sets rszEnd to the first character after the pattern.
-BOOL FindAndSkipRspEnd(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rszEnd)
+BOOL FindAndSkipRspEnd(const char* szStart, const char* szSkip, const char*& rszEnd)
 {
     BOOL fRet = FALSE;
 
@@ -146,7 +146,7 @@ BOOL FindAndSkipRspEnd(const BYTE* szStart, const BYTE* szSkip, const BYTE*& rsz
 
 // Takes the digits in szStart and stores them into a UINT32. If a space follows the last
 // digit it will also be consumed. Returns TRUE if at least one digit is found.
-BOOL ExtractUInt32(const BYTE* szStart, UINT32 &rnValue, const BYTE* &rszEnd)
+BOOL ExtractUInt32(const char* szStart, UINT32 &rnValue, const char* &rszEnd)
 {
     BOOL fRet = FALSE;
 
@@ -154,7 +154,7 @@ BOOL ExtractUInt32(const BYTE* szStart, UINT32 &rnValue, const BYTE* &rszEnd)
     SkipSpaces(szStart, szStart);
 
     UINT32 nTemp = 0;
-    const BYTE* szWalk = szStart;
+    const char* szWalk = szStart;
 
     while (('0' <= *szWalk) && ('9' >= *szWalk))
     {
@@ -185,10 +185,10 @@ BOOL ExtractUInt32(const BYTE* szStart, UINT32 &rnValue, const BYTE* &rszEnd)
 
 // Extracts a string enclosed by quotes into a given buffer. Returns TRUE if two quotes are found and
 // the buffer given is large enough to contain the string and a NULL termination character.
-BOOL ExtractQuotedString(const BYTE* szStart, BYTE* szOutput, const UINT32 cbOutput, const BYTE* &rszEnd)
+BOOL ExtractQuotedString(const char* szStart, char* szOutput, const UINT32 cbOutput, const char* &rszEnd)
 {
     BOOL fRet = FALSE;
-    const BYTE* szWalk = NULL;
+    const char* szWalk = NULL;
     UINT32 nLen = 0;
 
     //  Skip over any spaces
@@ -216,7 +216,7 @@ BOOL ExtractQuotedString(const BYTE* szStart, BYTE* szOutput, const UINT32 cbOut
 
 // Extracts a string ended by cDelimiter into a given buffer. Returns TRUE if cDelimiter is found and
 // the buffer given is large enough to contain the string and a NULL termination character.
-BOOL ExtractUnquotedString(const BYTE* szStart, const char cDelimiter, BYTE* szOutput, const UINT32 cbOutput, const BYTE* &rszEnd)
+BOOL ExtractUnquotedString(const char* szStart, const char cDelimiter, char* szOutput, const UINT32 cbOutput, const char* &rszEnd)
 {
     char tmp[2] = {cDelimiter, '\0'};
 
@@ -228,7 +228,7 @@ BOOL ExtractUnquotedString(const BYTE* szStart, const char cDelimiter, BYTE* szO
 
 // Extracts a string ended by szDelimiter into a given buffer. Returns TRUE if szDelimiter is found and
 // the buffer given is large enough to contain the string and a NULL termination character.
-BOOL ExtractUnquotedString(const BYTE* szStart, const BYTE* szDelimiter, BYTE* szOutput, const UINT32 cbOutput, const BYTE* &rszEnd)
+BOOL ExtractUnquotedString(const char* szStart, const char* szDelimiter, char* szOutput, const UINT32 cbOutput, const char* &rszEnd)
 {
     BOOL fRet = FALSE;
     UINT32 nLen = 0;
@@ -255,7 +255,7 @@ BOOL ExtractUnquotedString(const BYTE* szStart, const BYTE* szDelimiter, BYTE* s
 }
 
 // Extracts a UINT32 from hex ascii
-BOOL ExtractHexUInt32(const BYTE* szStart, UINT32 &rdwValue, const BYTE* &rszEnd)
+BOOL ExtractHexUInt32(const char* szStart, UINT32 &rdwValue, const char* &rszEnd)
 {
     BOOL fRet = FALSE;
     UINT32 dwTemp  = 0;
@@ -264,7 +264,7 @@ BOOL ExtractHexUInt32(const BYTE* szStart, UINT32 &rdwValue, const BYTE* &rszEnd
     //  Skip over any spaces
     SkipSpaces(szStart, szStart);
 
-    const BYTE* szWalk = szStart;
+    const char* szWalk = szStart;
 
     while ((('A' <= *szWalk) && (*szWalk <= 'F')) ||
            (('a' <= *szWalk) && (*szWalk <= 'f')) ||
@@ -309,10 +309,10 @@ BOOL ExtractHexUInt32(const BYTE* szStart, UINT32 &rdwValue, const BYTE* &rszEnd
 
 // Allocates memory for the quoted string extracted from the given buffer and returns it. Caller must delete
 // the memory when finished with it.
-BOOL ExtractQuotedStringWithAllocatedMemory(const BYTE* szStart, BYTE* &rszString, UINT32 &rcbString, const BYTE* &rszEnd)
+BOOL ExtractQuotedStringWithAllocatedMemory(const char* szStart, char* &rszString, UINT32 &rcbString, const char* &rszEnd)
 {
     BOOL fRet = FALSE;
-    const BYTE* szWalk = NULL;
+    const char* szWalk = NULL;
     UINT32 nLen = 0;
 
     //  Skip over any spaces
@@ -354,7 +354,7 @@ Error:
 
 // Allocates memory for the unquoted string extrated from the given buffer and returns it. Caller must delete
 // the memory when finished with it.
-BOOL ExtractUnquotedStringWithAllocatedMemory(const BYTE* szStart, const char chDelimiter, BYTE* &rszString, UINT32 &rcbString, const BYTE* &rszEnd)
+BOOL ExtractUnquotedStringWithAllocatedMemory(const char* szStart, const char chDelimiter, char* &rszString, UINT32 &rcbString, const char* &rszEnd)
 {
     BOOL fRet = FALSE;
 
@@ -391,7 +391,7 @@ Error:
 }
 
 // Extracts a decimal number and stores it as a 16.16 fixed point value
-BOOL ExtractFixedPointValue(const BYTE* szStart, UINT32 &rdwFPValue, const BYTE* &rszEnd)
+BOOL ExtractFixedPointValue(const char* szStart, UINT32 &rdwFPValue, const char* &rszEnd)
 {
     BOOL fRet = FALSE;
     UINT32 dwWhole = 0;
@@ -401,8 +401,8 @@ BOOL ExtractFixedPointValue(const BYTE* szStart, UINT32 &rdwFPValue, const BYTE*
     //  Skip over any spaces
     SkipSpaces(szStart, szStart);
 
-    const BYTE* szWalk = szStart;
-    const BYTE* szTemp;
+    const char* szWalk = szStart;
+    const char* szTemp;
 
 
     rszEnd = szStart;
@@ -434,7 +434,7 @@ BOOL ExtractFixedPointValue(const BYTE* szStart, UINT32 &rdwFPValue, const BYTE*
 }
 
 // Extracts a decimal value and returns it as a double
-BOOL ExtractDouble(const BYTE* szStart, double &rdbValue, const BYTE* &rszEnd)
+BOOL ExtractDouble(const char* szStart, double &rdbValue, const char* &rszEnd)
 {
     BOOL fRet = FALSE;
     UINT32 dwWhole = 0;
@@ -444,8 +444,8 @@ BOOL ExtractDouble(const BYTE* szStart, double &rdbValue, const BYTE* &rszEnd)
     //  Skip over any spaces
     SkipSpaces(szStart, szStart);
 
-    const BYTE* szWalk = szStart;
-    const BYTE* szTemp;
+    const char* szWalk = szStart;
+    const char* szTemp;
 
 
     rszEnd = szStart;

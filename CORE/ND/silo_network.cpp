@@ -40,7 +40,7 @@
 #include "te_inf_6260.h"
 #include "cutils/tztime.h"
 
-BYTE g_szNITZ[MAX_BUFFER_SIZE];
+char g_szNITZ[MAX_BUFFER_SIZE];
 BOOL g_bNITZTimerActive = false;
 
 
@@ -148,7 +148,7 @@ void triggerNITZNotification(int sig)
 
     g_bNITZTimerActive = false;
 
-    RIL_onUnsolicitedResponse(RIL_UNSOL_NITZ_TIME_RECEIVED, (void*)g_szNITZ, sizeof(BYTE*));
+    RIL_onUnsolicitedResponse(RIL_UNSOL_NITZ_TIME_RECEIVED, (void*)g_szNITZ, sizeof(char*));
 
     // Reset the global buffer
     memset(g_szNITZ, 0, sizeof(g_szNITZ));
@@ -157,18 +157,18 @@ void triggerNITZNotification(int sig)
 
 //
 //
-BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const BYTE* &rszPointer)
+BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const char* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseCTZV() - Enter\r\n");
-    const BYTE* szDummy;
-    const BYTE* szTemp;
+    const char* szDummy;
+    const char* szTemp;
     BOOL fRet = FALSE;
     UINT32 uiHour, uiMins, uiSecs;
     UINT32 uiMonth, uiDay, uiYear;
     time_t ctime_secs;
     struct tm* pGMT;
     const int TIME_ZONE_SIZE = 5;
-    BYTE szTimeZone[TIME_ZONE_SIZE] = {0};
+    char szTimeZone[TIME_ZONE_SIZE] = {0};
     int nTimeZone = 0;
     int nTimeDiff = 0;
     struct tm lt;
@@ -308,15 +308,15 @@ Error:
 
 //
 //
-BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const BYTE* &rszPointer)
+BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const char* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseCTZDST() - Enter\r\n");
 
     BOOL fRet = FALSE;
-    const BYTE* szDummy;
+    const char* szDummy;
     UINT32 uiDst = 0;
     char szDST[5] = {0};
-    BYTE *pszTimeData = NULL;
+    char *pszTimeData = NULL;
 
     /*
      * Disable the NITZ alarm, as we have received the CTZDST within 1 second of the
@@ -362,22 +362,22 @@ BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const BYTE* &rszPoin
         RIL_LOG_INFO("CSilo_Network::ParseCTZDST() - INFO: g_szNITZ: %s\r\n", g_szNITZ);
 
         //  Copy to dynamic buffer
-        pszTimeData = (BYTE*)malloc(sizeof(BYTE) * MAX_BUFFER_SIZE);
+        pszTimeData = (char*)malloc(sizeof(char) * MAX_BUFFER_SIZE);
         if (NULL == pszTimeData)
         {
             RIL_LOG_CRITICAL("CSilo_Network::ParseCTZDST() - ERROR: Could not allocate memory for pszTimeData.\r\n");
             goto Error;
         }
 
-        memset(pszTimeData, 0, sizeof(BYTE) * MAX_BUFFER_SIZE);
-        strncpy(pszTimeData, g_szNITZ, sizeof(BYTE) * MAX_BUFFER_SIZE);
+        memset(pszTimeData, 0, sizeof(char) * MAX_BUFFER_SIZE);
+        strncpy(pszTimeData, g_szNITZ, sizeof(char) * MAX_BUFFER_SIZE);
 
         // Reset the global buffer
         memset(g_szNITZ, 0, sizeof(g_szNITZ));
 
         pResponse->SetResultCode(RIL_UNSOL_NITZ_TIME_RECEIVED);
 
-        if (!pResponse->SetData((void*)pszTimeData, sizeof(BYTE*), FALSE))
+        if (!pResponse->SetData((void*)pszTimeData, sizeof(char*), FALSE))
         {
             fRet = FALSE;
             goto Error;
@@ -404,14 +404,14 @@ Error:
 // or not it should parse the response (using the number of arguments in the
 //  response) and will proceed appropriately.
 //
-BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BYTE*& rszPointer, BOOL const bGPRS)
+BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const char*& rszPointer, BOOL const bGPRS)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Enter\r\n");
 
-    const BYTE* szDummy;
+    const char* szDummy;
     BOOL   fRet = FALSE, fUnSolicited = TRUE;
     int nNumParams = 1;
-    BYTE* pszCommaBuffer = NULL;  //  Store notification in here.
+    char* pszCommaBuffer = NULL;  //  Store notification in here.
                                   //  Note that cannot loop on rszPointer as it may contain
                                   //  other notifications as well.
 
@@ -428,7 +428,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const BY
         goto Error;
     }
 
-    pszCommaBuffer = new BYTE[szDummy-rszPointer+1];
+    pszCommaBuffer = new char[szDummy-rszPointer+1];
     if (!pszCommaBuffer)
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - cannot allocate pszCommaBuffer\r\n");
@@ -544,7 +544,7 @@ Error:
 
 //
 //
-BOOL CSilo_Network::ParseCREG(CResponse *const pResponse, const BYTE* &rszPointer)
+BOOL CSilo_Network::ParseCREG(CResponse *const pResponse, const char* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseCREG() - Enter / Exit\r\n");
     return ParseRegistrationStatus(pResponse, rszPointer, FALSE);
@@ -552,7 +552,7 @@ BOOL CSilo_Network::ParseCREG(CResponse *const pResponse, const BYTE* &rszPointe
 
 //
 //
-BOOL CSilo_Network::ParseCGREG(CResponse *const pResponse, const BYTE* &rszPointer)
+BOOL CSilo_Network::ParseCGREG(CResponse *const pResponse, const char* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseCGREG() - Enter / Exit\r\n");
     return ParseRegistrationStatus(pResponse, rszPointer, TRUE);
@@ -560,14 +560,14 @@ BOOL CSilo_Network::ParseCGREG(CResponse *const pResponse, const BYTE* &rszPoint
 
 //
 //
-BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const BYTE* &rszPointer)
+BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const char* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXREG() - Enter\r\n");
 
     extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
 
     BOOL bRet = FALSE;
-    const BYTE* szDummy;
+    const char* szDummy;
     UINT32 n = 0, state = 0;
 
     if (NULL == pResponse)
@@ -659,7 +659,7 @@ Error:
 
 //
 //
-BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const BYTE* &rszPointer)
+BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointer)
 {
     RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Enter\r\n");
 
@@ -736,7 +736,7 @@ Error:
 
 //
 //
-BOOL CSilo_Network::ParseXCGEDPAGE(CResponse *const pResponse, const BYTE* &rszPointer)
+BOOL CSilo_Network::ParseXCGEDPAGE(CResponse *const pResponse, const char* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCGEDPAGE() - Enter\r\n");
 
@@ -775,12 +775,12 @@ Error:
 
 //
 //
-BOOL CSilo_Network::ParseXCSQ(CResponse *const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_Network::ParseXCSQ(CResponse *const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCSQ() - Enter\r\n");
 
     BOOL bRet = FALSE;
-    const BYTE* szDummy;
+    const char* szDummy;
     UINT32 uiRSSI = 0, uiBER = 0;
     RIL_SignalStrength* pSigStrData = NULL;
 

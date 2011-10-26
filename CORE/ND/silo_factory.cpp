@@ -32,7 +32,7 @@
 #include "silo_factory.h"
 
 // constants
-static const BYTE* const    szInfineon6260       = "Infineon6260";
+static const char* const    szInfineon6260       = "Infineon6260";
 static const UINT32         uiMaxModemNameLen    = 64;
 
 
@@ -42,7 +42,7 @@ CSilo* CSilo_Factory::GetSiloVoice(CChannel *pChannel)
     CSilo* pSilo = NULL;
 
     CRepository repository;
-    BYTE szModem[uiMaxModemNameLen];
+    char szModem[uiMaxModemNameLen];
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
@@ -66,7 +66,7 @@ CSilo* CSilo_Factory::GetSiloSIM(CChannel *pChannel)
     CSilo* pSilo = NULL;
 
     CRepository repository;
-    BYTE szModem[uiMaxModemNameLen];
+    char szModem[uiMaxModemNameLen];
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
@@ -90,7 +90,7 @@ CSilo* CSilo_Factory::GetSiloSMS(CChannel *pChannel)
     CSilo* pSilo = NULL;
 
     CRepository repository;
-    BYTE szModem[uiMaxModemNameLen];
+    char szModem[uiMaxModemNameLen];
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
@@ -114,7 +114,7 @@ CSilo* CSilo_Factory::GetSiloData(CChannel *pChannel)
     CSilo* pSilo = NULL;
 
     CRepository repository;
-    BYTE szModem[uiMaxModemNameLen];
+    char szModem[uiMaxModemNameLen];
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
@@ -138,7 +138,7 @@ CSilo* CSilo_Factory::GetSiloNetwork(CChannel *pChannel)
     CSilo* pSilo = NULL;
 
     CRepository repository;
-    BYTE szModem[uiMaxModemNameLen];
+    char szModem[uiMaxModemNameLen];
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
@@ -162,7 +162,7 @@ CSilo* CSilo_Factory::GetSiloPhonebook(CChannel *pChannel)
     CSilo* pSilo = NULL;
 
     CRepository repository;
-    BYTE szModem[uiMaxModemNameLen];
+    char szModem[uiMaxModemNameLen];
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {

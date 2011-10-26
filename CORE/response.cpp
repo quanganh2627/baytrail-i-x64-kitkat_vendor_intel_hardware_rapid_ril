@@ -40,14 +40,14 @@
 #include "command.h"
 #include "te.h"
 
-const BYTE* pszOkResponse    = "OK";
-const BYTE* pszErrorResponse = "ERROR";
-const BYTE* pszSMSResponse   = "> ";
-const BYTE* pszCMEError      = "+CME ERROR: ";
-const BYTE* pszCMSError      = "+CMS ERROR: ";
-const BYTE* pszConnectResponse = "CONNECT";
-const BYTE* pszNoCarrierResponse = "NO CARRIER";
-const BYTE* pszAborted       = "ABORTED";
+const char* pszOkResponse    = "OK";
+const char* pszErrorResponse = "ERROR";
+const char* pszSMSResponse   = "> ";
+const char* pszCMEError      = "+CME ERROR: ";
+const char* pszCMSError      = "+CMS ERROR: ";
+const char* pszConnectResponse = "CONNECT";
+const char* pszNoCarrierResponse = "NO CARRIER";
+const char* pszAborted       = "ABORTED";
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -138,7 +138,7 @@ BOOL CResponse::IsUnsolicitedResponse()
 {
     BOOL bRet = FALSE;
     BOOL fDummy = FALSE;
-    const BYTE* szPointer = m_szBuffer;
+    const char* szPointer = m_szBuffer;
 
     RIL_LOG_VERBOSE("CResponse::IsUnsolicitedResponse() : Enter\r\n");
 
@@ -170,10 +170,10 @@ Error:
 //
 //
 //
-BOOL CResponse::IsExtendedError(const BYTE* pszToken)
+BOOL CResponse::IsExtendedError(const char* pszToken)
 {
     BOOL bRet = FALSE;
-    const BYTE* szPointer = m_szBuffer;
+    const char* szPointer = m_szBuffer;
 
     RIL_LOG_VERBOSE("CResponse::IsExtendedError() : Enter\r\n");
 
@@ -224,7 +224,7 @@ Error:
 BOOL CResponse::IsCorruptResponse()
 {
     BOOL bRet = FALSE;
-    const BYTE *szDummy = NULL;
+    const char *szDummy = NULL;
 
     RIL_LOG_VERBOSE("CResponse::IsCorruptResponse() : Enter\r\n");
 
@@ -234,7 +234,7 @@ BOOL CResponse::IsCorruptResponse()
         SetCorruptFlag(FALSE);
 
         // heuristic used is to parse everything up to the first CR.
-        const BYTE* szPointer = m_szBuffer;
+        const char* szPointer = m_szBuffer;
         if (FindAndSkipString(szPointer, "\r", szPointer))
         {
             // if the CR is followed by a LF, then consume that, too.
@@ -264,8 +264,8 @@ BOOL CResponse::IsCorruptResponse()
 //
 BOOL CResponse::IsOkResponse()
 {
-    const BYTE* szPointer = m_szBuffer;
-    BYTE szToken[MAX_BUFFER_SIZE] = {0};
+    const char* szPointer = m_szBuffer;
+    char szToken[MAX_BUFFER_SIZE] = {0};
     BOOL bRet;
 
     RIL_LOG_VERBOSE("CResponse::IsOkResponse() : Enter\r\n");
@@ -307,8 +307,8 @@ Error:
 //
 BOOL CResponse::IsErrorResponse()
 {
-    const BYTE* szPointer = m_szBuffer;
-    BYTE szToken[MAX_BUFFER_SIZE] = {0};
+    const char* szPointer = m_szBuffer;
+    char szToken[MAX_BUFFER_SIZE] = {0};
     BOOL bRet = FALSE;
 
     RIL_LOG_VERBOSE("CResponse::IsErrorResponse() : Enter\r\n");
@@ -338,8 +338,8 @@ Error:
 //
 BOOL CResponse::IsConnectResponse()
 {
-    const BYTE* szPointer = m_szBuffer;
-    BYTE szToken[MAX_BUFFER_SIZE] = {0};
+    const char* szPointer = m_szBuffer;
+    char szToken[MAX_BUFFER_SIZE] = {0};
     BOOL bRet;
 
     RIL_LOG_VERBOSE("CResponse::IsConnectResponse() : Enter\r\n");
@@ -365,8 +365,8 @@ Error:
 //
 BOOL CResponse::IsNoCarrierResponse()
 {
-    const BYTE* szPointer = m_szBuffer;
-    BYTE szToken[MAX_BUFFER_SIZE] = {0};
+    const char* szPointer = m_szBuffer;
+    char szToken[MAX_BUFFER_SIZE] = {0};
     BOOL bRet;
 
     RIL_LOG_VERBOSE("CResponse::IsNoCarrierResponse() : Enter\r\n");
@@ -379,7 +379,7 @@ BOOL CResponse::IsNoCarrierResponse()
     {
         SetUnsolicitedFlag(FALSE);
         m_uiResponseEndMarker = szPointer - m_szBuffer;
-        m_uiResultCode = RIL_E_SUCCESS;
+        m_uiResultCode = RRIL_RESULT_NOCARRIER;
     }
 
 Error:
@@ -393,8 +393,8 @@ Error:
 //
 BOOL CResponse::IsAbortedResponse()
 {
-    const BYTE* szPointer = m_szBuffer;
-    BYTE szToken[MAX_BUFFER_SIZE] = {0};
+    const char* szPointer = m_szBuffer;
+    char szToken[MAX_BUFFER_SIZE] = {0};
     BOOL bRet;
 
     RIL_LOG_VERBOSE("CResponse::IsAbortedResponse() : Enter\r\n");
@@ -509,11 +509,11 @@ Error:
     return bRet;
 }
 
-BOOL CResponse::RetrieveErrorCode(const BYTE*& rszPointer, UINT32 &nCode, const BYTE *pszToken)
+BOOL CResponse::RetrieveErrorCode(const char*& rszPointer, UINT32 &nCode, const char *pszToken)
 {
     RIL_LOG_VERBOSE("CResponse::RetrieveErrorCode() - Enter\r\n");
     RIL_RESULT_CODE resCode = RIL_E_GENERIC_FAILURE;
-    const BYTE* szDummy;
+    const char* szDummy;
     BOOL bRet = FALSE;
 
     // Look for a "<cr>" to make sure we got the whole number

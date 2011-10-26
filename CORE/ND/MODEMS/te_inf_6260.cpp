@@ -268,10 +268,12 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     if (NULL == stPdpData.szPDPType)
     {
         //  hard-code "IPV4V6" (this is the default)
+
+        //  XDNS=3 is not supported by the modem so two commands +XDNS=1 and +XDNS=2 should be sent.
         if (!PrintStringNullTerminate(rReqData.szCmd1,
             sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,3\r", uiCID,
-            stPdpData.szApn, uiCID))
+            "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2;+CGACT=1,%d\r", uiCID,
+            stPdpData.szApn, uiCID, uiCID, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType is NULL\r\n");
             goto Error;
@@ -280,22 +282,40 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     else
     {
         //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
-        //  If not recognized, just use "3" as default.
-        int nXDNSParam = 3;
+        //  If not recognized, just use IPV4V6 as default.
         if (0 == strcasecmp(stPdpData.szPDPType, "IP"))
-            nXDNSParam = 1;
-        else if (0 == strcasecmp(stPdpData.szPDPType, "IPV6"))
-            nXDNSParam = 2;
-        else if (0 == strcasecmp(stPdpData.szPDPType, "IPV4V6"))
-            nXDNSParam = 3;
-
-        if (!PrintStringNullTerminate(rReqData.szCmd1,
-            sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,%d;+CGACT=1,%d\r", uiCID, stPdpData.szPDPType,
-            stPdpData.szApn, uiCID, nXDNSParam, uiCID))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-            goto Error;
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,1;+CGACT=1,%d\r", uiCID, stPdpData.szPDPType,
+                stPdpData.szApn, uiCID, uiCID))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+                goto Error;
+            }
+        }
+        else if (0 == strcasecmp(stPdpData.szPDPType, "IPV6"))
+        {
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,2;+CGACT=1,%d\r", uiCID, stPdpData.szPDPType,
+                stPdpData.szApn, uiCID, uiCID))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+                goto Error;
+            }
+        }
+        else  //  IPV4V6 and default case
+        {
+            //  XDNS=3 is not supported by the modem so two commands +XDNS=1 and +XDNS=2 should be sent.
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2;+CGACT=1,%d\r", uiCID,
+                stPdpData.szApn, uiCID, uiCID, uiCID))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+                goto Error;
+            }
         }
     }
 #else // M2_IPV6_FEATURE_ENABLED
@@ -353,7 +373,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     int nIPAddrTimeout = 5000, nDNSTimeout = 5000, nTotalTimeout = (nIPAddrTimeout + nDNSTimeout);
     BOOL bRet1 = FALSE, bRet2 = FALSE;
     UINT32 uiWaitRes;
-    BYTE szCmd[MAX_BUFFER_SIZE];
+    char szCmd[MAX_BUFFER_SIZE];
     CChannel_Data* pChannelData = NULL;
     UINT32 nCID = 0;
     int fd = -1;
@@ -362,7 +382,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     PDP_TYPE eDataConnectionType = PDP_TYPE_IPV4;  //  dummy for now, set to IPv4.
 
     // 1st confirm we got "CONNECT"
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
 
     if (!FindAndSkipString(szRsp, "CONNECT", szRsp))
     {
@@ -930,10 +950,10 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     {
         in_addr_t gw;
         struct in_addr gwaddr;
-        in_addr_t addr;
+        in_addr_t addr;  //  Note: Does this work with AF_INET6?
 
         RIL_LOG_INFO("DataConfigUpIpV6() : set default gateway to fake value");
-        if (inet_pton(AF_INET, szIpAddr, &addr) <= 0)
+        if (inet_pton(AF_INET6, szIpAddr, &addr) <= 0)
         {
             RIL_LOG_INFO("DataConfigUpIpV6() : inet_pton() failed for %s!", szIpAddr);
             goto Error;
@@ -951,7 +971,7 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
 
         rt.rt_dst.sa_family = AF_INET;
         rt.rt_genmask.sa_family = AF_INET;
-        rt.rt_gateway.sa_family = AF_INET;
+        rt.rt_gateway.sa_family = AF_INET6;  //  TODO: Check the rest of these flags for AF_INET6
 
 
         rt.rt_flags = RTF_UP | RTF_GATEWAY;
@@ -1342,7 +1362,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
     UINT32 nCid;
     UINT32  cbIpAddr = 0;
     CChannel_Data* pChannelData = NULL;
@@ -1389,7 +1409,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
             //  Extract original string into szPdpAddr.
             //  Then converted address is in pChannelData->m_szIpAddr.
             const int MAX_IPADDR_SIZE = 100;
-            BYTE szPdpAddr[MAX_IPADDR_SIZE] = {0};
+            char szPdpAddr[MAX_IPADDR_SIZE] = {0};
 
             //  Extract ,<Pdp_Addr1>
             if (!SkipString(szRsp, ",", szRsp) ||
@@ -1399,13 +1419,13 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
                 goto Error;
             }
 
-            pChannelData->m_szIpAddr = new BYTE[MAX_IPADDR_SIZE];
+            pChannelData->m_szIpAddr = new char[MAX_IPADDR_SIZE];
             if (NULL == pChannelData->m_szIpAddr)
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: cannot allocate m_szIpAddr!\r\n");
                 goto Error;
             }
-            memset(pChannelData->m_szIpAddr, 0, sizeof(BYTE)*MAX_IPADDR_SIZE);
+            memset(pChannelData->m_szIpAddr, 0, sizeof(char)*MAX_IPADDR_SIZE);
 
             //  The AT+CGPADDR command doesn't return IPV4V6 format
             if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr, MAX_IPADDR_SIZE, NULL, 0))
@@ -1429,13 +1449,13 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
                 //  Delete previous szIpAddr2 (if it existed)
                 delete[] pChannelData->m_szIpAddr2;
 
-                pChannelData->m_szIpAddr2 = new BYTE[MAX_IPADDR_SIZE];
+                pChannelData->m_szIpAddr2 = new char[MAX_IPADDR_SIZE];
                 if (NULL == pChannelData->m_szIpAddr2)
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: cannot allocate m_szIpAddr2!\r\n");
                     goto Error;
                 }
-                memset(pChannelData->m_szIpAddr2, 0, sizeof(BYTE)*MAX_IPADDR_SIZE);
+                memset(pChannelData->m_szIpAddr2, 0, sizeof(char)*MAX_IPADDR_SIZE);
 
                 //  The AT+CGPADDR command doesn't return IPV4V6 format.
                 if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr2, MAX_IPADDR_SIZE, NULL, 0))
@@ -1481,7 +1501,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
     UINT32 nCid = 0, nXDNSCid = 0;
     UINT32  cbDns1 = 0;
     UINT32  cbDns2 = 0;
@@ -1533,7 +1553,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                 //  Extract original string into szDNS.
                 //  Then converted address is in pChannelData->m_szDNS1, pChannelData->m_szDNS1_2 (if IPv4v6).
                 const int MAX_IPADDR_SIZE = 100;
-                BYTE szDNS[MAX_IPADDR_SIZE] = {0};
+                char szDNS[MAX_IPADDR_SIZE] = {0};
 
                 // Parse <primary DNS>
                 // Converted address is in m_szDNS1, m_szDNS1_2 (if necessary)
@@ -1545,23 +1565,23 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                         goto Error;
                     }
 
-                    pChannelData->m_szDNS1 = new BYTE[MAX_IPADDR_SIZE];
+                    pChannelData->m_szDNS1 = new char[MAX_IPADDR_SIZE];
                     if (NULL == pChannelData->m_szDNS1)
                     {
                         RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS1!\r\n");
                         goto Error;
                     }
-                    memset(pChannelData->m_szDNS1, 0, sizeof(BYTE)*MAX_IPADDR_SIZE);
+                    memset(pChannelData->m_szDNS1, 0, sizeof(char)*MAX_IPADDR_SIZE);
 
                     //  delete m_szDNS1_2 (if it existed)
                     delete[] pChannelData->m_szDNS1_2;
-                    pChannelData->m_szDNS1_2 = new BYTE[MAX_IPADDR_SIZE];
+                    pChannelData->m_szDNS1_2 = new char[MAX_IPADDR_SIZE];
                     if (NULL == pChannelData->m_szDNS1_2)
                     {
                         RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS1_2!\r\n");
                         goto Error;
                     }
-                    memset(pChannelData->m_szDNS1_2, 0, sizeof(BYTE)*MAX_IPADDR_SIZE);
+                    memset(pChannelData->m_szDNS1_2, 0, sizeof(char)*MAX_IPADDR_SIZE);
 
                     //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
                     if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS1, MAX_IPADDR_SIZE,
@@ -1591,7 +1611,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                         goto Error;
                     }
 
-                    pChannelData->m_szDNS2 = new BYTE[MAX_IPADDR_SIZE];
+                    pChannelData->m_szDNS2 = new char[MAX_IPADDR_SIZE];
                     if (NULL == pChannelData->m_szDNS2)
                     {
                         RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS2!\r\n");
@@ -1600,13 +1620,13 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
 
                     //  delete m_szDNS2_2 (if it existed)
                     delete[] pChannelData->m_szDNS2_2;
-                    pChannelData->m_szDNS2_2 = new BYTE[MAX_IPADDR_SIZE];
+                    pChannelData->m_szDNS2_2 = new char[MAX_IPADDR_SIZE];
                     if (NULL == pChannelData->m_szDNS2_2)
                     {
                         RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS2_2!\r\n");
                         goto Error;
                     }
-                    memset(pChannelData->m_szDNS2_2, 0, sizeof(BYTE)*MAX_IPADDR_SIZE);
+                    memset(pChannelData->m_szDNS2_2, 0, sizeof(char)*MAX_IPADDR_SIZE);
 
                     //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
                     if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS2, MAX_IPADDR_SIZE,
@@ -1678,7 +1698,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryPIN2(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseQueryPIN2() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
 
 
     // Parse "+CPIN2: "
@@ -2096,7 +2116,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
         RIL_LOG_INFO("CTE_INF_6260::CoreSimIo() - PIN2 required\r\n");
 
         CCommand *pCmd1 = NULL;
-        BYTE szCmd1[MAX_BUFFER_SIZE] = {0};
+        char szCmd1[MAX_BUFFER_SIZE] = {0};
         UINT32 uiWaitRes = 0;
         BOOL bEnterPIN2 = FALSE;
         BOOL bPIN2Ready = FALSE;
@@ -2442,7 +2462,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
 
     UINT32  uiSW1 = 0;
     UINT32  uiSW2 = 0;
-    BYTE* szResponseString = NULL;
+    char* szResponseString = NULL;
     UINT32  cbResponseString = 0;
 
     RIL_SIM_IO_Response* pResponse = NULL;
@@ -2565,7 +2585,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
             //  Total size (0-based bytes 2 and 3), File type (0-based byte 6),
             //  Data structure (0-based byte 13), Data record length (0-based byte 14)
             cbResponseString = 31;  //  15 bytes + NULL
-            szResponseString = new BYTE[cbResponseString];
+            szResponseString = new char[cbResponseString];
             if (NULL == szResponseString)
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Cannot create new szResponsestring!\r\n");
@@ -3043,8 +3063,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDa
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    const BYTE* szRsp = rRspData.szResponse;
-    const BYTE* szDummy = NULL;
+    const char* szRsp = rRspData.szResponse;
+    const char* szDummy = NULL;
 
     BOOL automatic = FALSE;
     BOOL euro = FALSE;
@@ -4254,7 +4274,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryTtyMode(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_INFO("CTE_INF_6260::ParseQueryTtyMode() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
     UINT32 uiTtyMode = 0;
 
     int* pnMode = (int*)malloc(sizeof(int));

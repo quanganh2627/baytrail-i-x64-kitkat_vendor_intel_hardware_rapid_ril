@@ -39,13 +39,13 @@ private:
 
 
 public:
-    BOOL Open(const BYTE * pszFileName, BOOL fIsSocket);
+    BOOL Open(const char * pszFileName, BOOL fIsSocket);
     BOOL Init();
 
     BOOL Close();
 
-    BOOL Read(BYTE * pszReadBuf, UINT32 uiReadBufSize, UINT32 & ruiBytesRead);
-    BOOL Write(const BYTE * pszWriteBuf, const UINT32 uiBytesToWrite, UINT32 & ruiBytesWritten);
+    BOOL Read(char * pszReadBuf, UINT32 uiReadBufSize, UINT32 & ruiBytesRead);
+    BOOL Write(const char * pszWriteBuf, const UINT32 uiBytesToWrite, UINT32 & ruiBytesWritten);
 
     BOOL WaitForAvailableData(UINT32 uiTimeout);
 
@@ -54,8 +54,8 @@ public:
     int  GetFD();
 
 private:
-    BOOL OpenPort(const BYTE * pszFileName);
-    BOOL OpenSocket(const BYTE * pszSocketName);
+    BOOL OpenPort(const char * pszFileName);
+    BOOL OpenSocket(const char * pszSocketName);
 
     BOOL        m_fIsPortOpen;
     CFile *     m_pFile;

@@ -64,14 +64,14 @@ public:
 
 protected:
     //  Parse notification functions here.
-    virtual BOOL    ParseIndicationSATI(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseIndicationSATN(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseTermRespConfirm(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseIndicationSATI(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseIndicationSATN(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseTermRespConfirm(CResponse* const pResponse, const char*& rszPointer);
 
-    virtual BOOL    ParseXSIM(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseXLOCK(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseXLEMA(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseXSIMSTATE(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseXSIM(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseXLOCK(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseXLEMA(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPointer);
 
     //  Emergency Call Codes list
     char m_szECCList[MAX_BUFFER_SIZE];

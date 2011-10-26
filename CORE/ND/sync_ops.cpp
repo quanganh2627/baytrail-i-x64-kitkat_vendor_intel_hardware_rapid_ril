@@ -323,7 +323,7 @@ timespec msFromNowToTimespec(UINT32 msInFuture)
     return FutureTime;
 }
 
-CEvent::CEvent(const BYTE * szName, BOOL fManual, BOOL fInitial) : CMutex()
+CEvent::CEvent(const char * szName, BOOL fManual, BOOL fInitial) : CMutex()
 {
     EnterMutex();
 

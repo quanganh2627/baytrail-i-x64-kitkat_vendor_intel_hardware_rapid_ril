@@ -42,14 +42,14 @@ public:
     CCommand(   UINT32 uiChannel,
                 RIL_Token token,
                 UINT32 uiReqId,
-                const BYTE* pszATCmd,
+                const char* pszATCmd,
                 PFN_TE_PARSE pParseFcn = NULL);
 
     CCommand(   UINT32 uiChannel,
                 RIL_Token token,
                 UINT32 uiReqId,
-                const BYTE* pszATCmd1,
-                const BYTE* pszATCmd2,
+                const char* pszATCmd1,
+                const char* pszATCmd2,
                 PFN_TE_PARSE pParseFcn = NULL);
 
     CCommand(   UINT32 uiChannel,
@@ -70,8 +70,8 @@ public:
     UINT32              GetChannel()        { return m_uiChannel;   };
     RIL_Token           GetToken()          { return m_token;       };
     UINT32              GetRequestID()      { return m_uiReqId;     };
-    BYTE*               GetATCmd1()         { return m_pszATCmd1;   };
-    BYTE*               GetATCmd2()         { return m_pszATCmd2;   };
+    char*               GetATCmd1()         { return m_pszATCmd1;   };
+    char*               GetATCmd2()         { return m_pszATCmd2;   };
     PFN_TE_PARSE        GetParseFcn()       { return m_pParseFcn;   };
     UINT32              GetTimeout()        { return m_uiTimeout;   };
     CContext *          GetContext()        { return m_pContext;    };
@@ -90,15 +90,15 @@ public:
     void SetContextData(void *pData)        { m_pContextData = pData; };
     void SetContextDataSize(unsigned int nSize) { m_cbContextData = nSize; };
 
-    static BOOL AddCmdToQueue(CCommand *& pCmd);
+    static BOOL AddCmdToQueue(CCommand *& pCmd, BOOL bFront = false);
 
 private:
 
     UINT32              m_uiChannel;
     RIL_Token           m_token;
     UINT32              m_uiReqId;
-    BYTE*               m_pszATCmd1;
-    BYTE*               m_pszATCmd2;
+    char*               m_pszATCmd1;
+    char*               m_pszATCmd2;
     PFN_TE_PARSE        m_pParseFcn;
     UINT32              m_uiTimeout;
     BOOL                m_fAlwaysParse;

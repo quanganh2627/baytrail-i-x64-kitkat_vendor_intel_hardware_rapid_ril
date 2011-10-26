@@ -44,24 +44,24 @@ static void onRequest(int request, void *data, size_t datalen, RIL_Token t);
 static RIL_RadioState onGetCurrentRadioState();
 static int onSupports(int requestCode);
 static void onCancel(RIL_Token t);
-static const BYTE* getVersion();
+static const char* getVersion();
 
 
 ///////////////////////////////////////////////////////////
 //  GLOBAL VARIABLES
 //
 
-BYTE* g_szCmdPort  = NULL;
+char* g_szCmdPort  = NULL;
 BOOL  g_bIsSocket = FALSE;
-BYTE* g_szDataPort1 = NULL;
-BYTE* g_szDataPort2 = NULL;
-BYTE* g_szDataPort3 = NULL;
-BYTE* g_szDataPort4 = NULL;
-BYTE* g_szDataPort5 = NULL;
-BYTE* g_szDLC2Port = NULL;
-BYTE* g_szDLC6Port = NULL;
-BYTE* g_szDLC8Port = NULL;
-BYTE* g_szURCPort = NULL;
+char* g_szDataPort1 = NULL;
+char* g_szDataPort2 = NULL;
+char* g_szDataPort3 = NULL;
+char* g_szDataPort4 = NULL;
+char* g_szDataPort5 = NULL;
+char* g_szDLC2Port = NULL;
+char* g_szDLC6Port = NULL;
+char* g_szDLC8Port = NULL;
+char* g_szURCPort = NULL;
 
 
 static const RIL_RadioFunctions gs_callbacks =
@@ -1294,7 +1294,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.28 for Android 2.3.4 (Build October 20/2011)";
+    return "Intrinsyc Rapid-RIL M5.29 for Android 2.3.5 (Build October 25/2011)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

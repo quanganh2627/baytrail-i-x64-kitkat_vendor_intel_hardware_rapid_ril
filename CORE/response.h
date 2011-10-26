@@ -87,11 +87,11 @@ private:
     };
 
     BOOL    IsUnsolicitedResponse();
-    BOOL    IsExtendedError(const BYTE* pszToken);
+    BOOL    IsExtendedError(const char* pszToken);
     BOOL    IsCorruptResponse();
     BOOL    IsOkResponse();
     BOOL    IsErrorResponse();
-    BOOL    RetrieveErrorCode(const BYTE*& rszPointer,  UINT32 &nCode, const BYTE* pszToken);
+    BOOL    RetrieveErrorCode(const char*& rszPointer,  UINT32 &nCode, const char* pszToken);
     BOOL    IsConnectResponse();
     BOOL    IsNoCarrierResponse();
     BOOL    IsAbortedResponse();

@@ -70,6 +70,20 @@ typedef struct TAG_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
 const BYTE RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER = 0xCC;
 
 
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_GAN_RIL
+{
+    unsigned char bCommand; //  Command ID
+} sOEM_HOOK_RAW_GAN_RIL;
+
+//
+//  RIL_OEM_HOOK_RAW_GAN_RIL
+//  Command ID = 0x01
+//
+//  This is reserved for future implementation.
+//
+const BYTE RIL_OEM_HOOK_RAW_GAN_RIL = 0x01;
 
 /***********************************************************************/
 

@@ -58,10 +58,10 @@ CTE::~CTE()
 
 CTEBase* CTE::CreateModemTE()
 {
-    const BYTE* szInfineon6260       = "Infineon6260";
+    const char* szInfineon6260       = "Infineon6260";
 
     CRepository repository;
-    BYTE szModem[m_uiMaxModemNameLen];
+    char szModem[m_uiMaxModemNameLen];
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, m_uiMaxModemNameLen))
     {
@@ -570,7 +570,7 @@ RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void * pData, size_t datale
         if (pCmd)
         {
             pCmd->SetHighPriority();
-            if (!CCommand::AddCmdToQueue(pCmd))
+            if (!CCommand::AddCmdToQueue(pCmd,TRUE))
             {
                 RIL_LOG_CRITICAL("CTE::RequestDial() - ERROR: Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
@@ -665,7 +665,7 @@ RIL_RESULT_CODE CTE::RequestHangup(RIL_Token rilToken, void * pData, size_t data
         if (pCmd)
         {
             pCmd->SetHighPriority();
-            if (!CCommand::AddCmdToQueue(pCmd))
+            if (!CCommand::AddCmdToQueue(pCmd,TRUE))
             {
                 RIL_LOG_CRITICAL("CTE::RequestHangup() - ERROR: Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
@@ -713,7 +713,7 @@ RIL_RESULT_CODE CTE::RequestHangupWaitingOrBackground(RIL_Token rilToken, void *
         if (pCmd)
         {
             pCmd->SetHighPriority();
-            if (!CCommand::AddCmdToQueue(pCmd))
+            if (!CCommand::AddCmdToQueue(pCmd,TRUE))
             {
                 RIL_LOG_CRITICAL("CTE::RequestHangupWaitingOrBackground() - ERROR: Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
@@ -761,7 +761,7 @@ RIL_RESULT_CODE CTE::RequestHangupForegroundResumeBackground(RIL_Token rilToken,
         if (pCmd)
         {
             pCmd->SetHighPriority();
-            if (!CCommand::AddCmdToQueue(pCmd))
+            if (!CCommand::AddCmdToQueue(pCmd,TRUE))
             {
                 RIL_LOG_CRITICAL("CTE::RequestHangupForegroundResumeBackground() - ERROR: Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;

@@ -885,8 +885,8 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
     UINT32 nUsed = 0;
     UINT32 nAllocated = 0;
 
-    const BYTE* szRsp = rRspData.szResponse;
-    const BYTE* szDummy = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
+    const char* szDummy = rRspData.szResponse;
     char szAddress[MAX_BUFFER_SIZE];
 
     RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
@@ -1015,7 +1015,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
                     // Parse "<description>"
                     //WCHAR description[MAX_BUFFER_SIZE];
                     //if (!ExtractQuotedUnicodeHexStringToUnicode(szRsp, description, MAX_BUFFER_SIZE, szRsp))
-                    BYTE description[MAX_BUFFER_SIZE];
+                    char description[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(szRsp, description, MAX_BUFFER_SIZE, szRsp))
                     {
                         RIL_LOG_WARNING("CTEBase::ParseGetCurrentCalls() - WARNING: Failed to extract call name\r\n");
@@ -2011,7 +2011,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 // Here this comes as a fall back case, as we request 9/8 always.
                 case 2:
                 {
-                    BYTE tmp[MAX_BUFFER_SIZE];
+                    char tmp[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
                         RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
@@ -2033,7 +2033,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
                 case 1:
                 {
-                    BYTE tmp[MAX_BUFFER_SIZE];
+                    char tmp[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
                         RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Short Format Operator Name.\r\n");
@@ -2059,7 +2059,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 case 6:
                 case 4:
                 {
-                    BYTE tmp[MAX_BUFFER_SIZE];
+                    char tmp[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
                         RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
@@ -2078,7 +2078,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 case 5:
                 case 3:
                 {
-                    BYTE tmp[MAX_BUFFER_SIZE];
+                    char tmp[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
                         RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Short Format Operator Name.\r\n");
@@ -2095,7 +2095,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
                 // Numeric name
                 case 0:
                 {
-                    BYTE tmp[MAX_BUFFER_SIZE];
+                    char tmp[MAX_BUFFER_SIZE];
                     if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
                     {
                         RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
@@ -2802,7 +2802,7 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
 
     UINT32  uiSW1 = 0;
     UINT32  uiSW2 = 0;
-    BYTE* szResponseString = NULL;
+    char* szResponseString = NULL;
     UINT32  cbResponseString = 0;
 
     RIL_SIM_IO_Response* pResponse = NULL;
@@ -3019,7 +3019,7 @@ RIL_RESULT_CODE CTEBase::ParseGetClir(RESPONSE_DATA & rRspData)
     UINT32 nValue;
     CRepository repository;
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
 
     pCLIRBlob = (int *)malloc(sizeof(int) * 2);
 
@@ -3168,7 +3168,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
     P_ND_CALLFWD_DATA pCallFwdBlob = NULL;
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
     UINT32 nEntries = 0;
     UINT32 nCur = 0;
     UINT32 nValue;
@@ -3488,7 +3488,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallWaiting(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int * prgnCallWaiting = NULL;
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
     UINT32 nStatus;
     UINT32 nClass;
     UINT32 dwServiceInfo = 0, dwStatus = 0;
@@ -3714,7 +3714,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
     char * szIMEI = (char*)malloc(MAX_PROP_VALUE);
 
     if (NULL == szIMEI)
@@ -3776,7 +3776,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
     char * szIMEISV = (char*)malloc(MAX_PROP_VALUE);
     char szIMEI[MAX_BUFFER_SIZE] = {0};
     char szSV[MAX_BUFFER_SIZE] = {0};
@@ -4046,7 +4046,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryFacilityLock(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int * pnClass = NULL;
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
     UINT32 dwStatus = 0, dwClass = 0, dwServices = 0;
 
     pnClass = (int*)malloc(sizeof(int));
@@ -4304,7 +4304,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryNetworkSelectionMode(RESPONSE_DATA & rRspData
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int * pnMode = NULL;
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
 
     pnMode = (int*)malloc(sizeof(int));
     if (NULL == pnMode)
@@ -4386,7 +4386,7 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionManual(REQUEST_DATA & rReqData, 
     RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionManual() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    const BYTE* pszNumeric = NULL;
+    const char* pszNumeric = NULL;
     char *pTemp = NULL;
 
     if (sizeof(char *) != uiDataSize)
@@ -4498,7 +4498,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
     UINT32 j = 0;
     UINT32 k = 0;
 
-    BYTE tmp[MAX_BUFFER_SIZE];
+    char tmp[MAX_BUFFER_SIZE];
 
     P_ND_OPINFO_PTRS pOpInfoPtr = NULL;
     P_ND_OPINFO_DATA pOpInfoData = NULL;
@@ -4512,8 +4512,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
     void * pOpInfoPtrBaseEnd = NULL;
     void * pOpInfoDataBaseEnd = NULL;
 
-    const BYTE* szRsp = rRspData.szResponse;
-    const BYTE* szDummy = NULL;
+    const char* szRsp = rRspData.szResponse;
+    const char* szDummy = NULL;
 
     // Skip "<prefix>+COPS: "
     SkipRspStart(szRsp, g_szNewLine, szRsp);
@@ -4563,7 +4563,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
         {
             case 0:
             {
-                const BYTE* szTemp = "unknown";
+                const char* szTemp = "unknown";
                 strcpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp);
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
@@ -4571,7 +4571,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
             case 1:
             {
-                const BYTE* szTemp = "available";
+                const char* szTemp = "available";
                 strcpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp);
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
@@ -4579,7 +4579,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
             case 2:
             {
-                const BYTE* szTemp = "current";
+                const char* szTemp = "current";
                 strcpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp);
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
@@ -4587,7 +4587,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
 
             case 3:
             {
-                const BYTE* szTemp = "forbidden";
+                const char* szTemp = "forbidden";
                 strcpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp);
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
@@ -5691,7 +5691,7 @@ RIL_RESULT_CODE CTEBase::ParseWriteSmsToSim(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseWriteSmsToSim() - Enter\r\n");
 
     int * pIndex = NULL;
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     pIndex = (int*)malloc(sizeof(int));
@@ -6337,9 +6337,9 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
     UINT32 nSelected = 0;
     char szChannels[MAX_BUFFER_SIZE] = {0};
     char szLangs[MAX_BUFFER_SIZE] = {0};
-    const BYTE* szRsp = rRspData.szResponse;
-    const BYTE* pszChannels = NULL;
-    const BYTE* pszLangs = NULL;
+    const char* szRsp = rRspData.szResponse;
+    const char* pszChannels = NULL;
+    const char* pszLangs = NULL;
     P_ND_BROADCASTSMSCONFIGINFO_DATA pBroadcastSmsConfigInfoBlob = NULL;
     UINT32 nCount = 0;
     UINT32 nStructsChannels = 0, nStructsLangs = 0;
@@ -6993,7 +6993,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSmscAddress(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseGetSmscAddress() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
 
     char* szSCAddr = (char*)malloc(MAX_BUFFER_SIZE);
     if (NULL == szSCAddr)
@@ -7227,7 +7227,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
     UINT32  uiSW1 = 0;
     UINT32  uiSW2 = 0;
     UINT32  uiLen = 0;
-    BYTE* szResponseString = NULL;
+    char* szResponseString = NULL;
     UINT32  cbResponseString = 0;
 
     RIL_SIM_IO_Response* pResponse = NULL;
@@ -7389,7 +7389,7 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSimOpenChannel() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
     unsigned int nChannelId = 0;
     int* pnChannelId = NULL;
 
@@ -7437,8 +7437,11 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
         }
         else if (200 == nCause)
         {
-            //  TODO: add RIL_E_INVALID_PARAMETER to framework
+#if defined(M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED)
+            return RIL_E_INVALID_PARAMETER;
+#else
             return RIL_E_GENERIC_FAILURE;
+#endif // M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
         }
         else if (203 == nCause)
         {
@@ -7555,7 +7558,7 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSimCloseChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const BYTE* szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
 
     if (NULL == rRspData.szResponse)
     {
@@ -7598,8 +7601,11 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
         }
         else if (200 == nCause)
         {
-            //  TODO: add RIL_E_INVALID_PARAMETER to framework
+#if defined(M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED)
+            return RIL_E_INVALID_PARAMETER;
+#else
             return RIL_E_GENERIC_FAILURE;
+#endif // M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
         }
         else if (203 == nCause)
         {
@@ -7617,8 +7623,11 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
 
             if (0x68 == nRes1 && 0x81 == nRes2)
             {
-                //  TODO: add RIL_E_INVALID_PARAMETER to framework
+#if defined(M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED)
+                return RIL_E_INVALID_PARAMETER;
+#else
                 return RIL_E_GENERIC_FAILURE;
+#endif // M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
             }
             else
             {
@@ -7755,7 +7764,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
     UINT32  uiSW1 = 0;
     UINT32  uiSW2 = 0;
     UINT32  uiLen = 0;
-    BYTE* szResponseString = NULL;
+    char* szResponseString = NULL;
     UINT32  cbResponseString = 0;
 
     RIL_SIM_IO_Response* pResponse = NULL;
@@ -7796,8 +7805,11 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
 
         if (200 == nCause)
         {
-            //  TODO: add RIL_E_INVALID_PARAMETER to framework
+#if defined(M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED)
+            return RIL_E_INVALID_PARAMETER;
+#else
             return RIL_E_GENERIC_FAILURE;
+#endif // M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
         }
         else if (203 == nCause)
         {
@@ -7815,8 +7827,11 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
 
             if (0x68 == nRes1 && 0x81 == nRes2)
             {
-                //  TODO: add RIL_E_INVALID_PARAMETER to framework
+#if defined(M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED)
+                return RIL_E_INVALID_PARAMETER;
+#else
                 return RIL_E_GENERIC_FAILURE;
+#endif // M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
             }
             else
             {
@@ -7963,10 +7978,18 @@ RIL_RESULT_CODE CTEBase::CoreHangupVT(REQUEST_DATA & rReqData, void * pData, UIN
     RIL_LOG_INFO("CTEBase::CoreHangupVT() - Cause value=[%d]\r\n", nCause);
 
     //  Form AT command string
-    //  TODO: For now use ATH until we know what the real AT command is.
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "ATH\r"))
+    //  Send AT+XSETCAUSE=1,<cause>
+    //  Regardless of error result, then send ATH.
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XSETCAUSE=1,%u\r", nCause))
     {
-        res = RRIL_RESULT_OK;
+        RIL_LOG_CRITICAL("CTEBase::CoreHangupVT() - ERROR: Cannot create XSETCAUSE command\r\n");
+        goto Error;
+    }
+
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "ATH\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreHangupVT() - ERROR: Cannot create ATH command\r\n");
+        goto Error;
     }
 
 Error:

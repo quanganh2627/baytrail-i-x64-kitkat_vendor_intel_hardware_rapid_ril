@@ -24,7 +24,7 @@
 #define __RIL_TYPES_H__
 
 typedef bool                BOOL;
-typedef char                BYTE;
+typedef unsigned char       BYTE;
 typedef unsigned char       UINT8;
 typedef signed char         INT8;
 typedef unsigned short      UINT16;

@@ -60,7 +60,7 @@ CSilo::~CSilo()
 //    TRUE  if response is handled by this hook, then handling still stop.
 //    FALSE if response is not handled by this hook, and handling will continue to other silos, then framework.
 //
-BOOL CSilo::ParseUnsolicitedResponse(CResponse* const pResponse, const BYTE*& szPointer, BOOL& fGotoError)
+BOOL CSilo::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& szPointer, BOOL& fGotoError)
 {
     //RIL_LOG_VERBOSE("CSilo::ParseUnsolicitedResponse() - Enter\r\n");
 
@@ -101,7 +101,7 @@ BOOL CSilo::ParseUnsolicitedResponse(CResponse* const pResponse, const BYTE*& sz
     return fRet;
 }
 
-PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const BYTE*& pszStr)
+PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const char*& pszStr)
 {
     PFN_ATRSP_PARSE fctParser = NULL;
 
@@ -109,7 +109,7 @@ PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const BYTE*& pszStr)
     {
         for (int nRow = 0; ; ++nRow)
         {
-            const BYTE* szATRsp = pRspTable[nRow].szATResponse;
+            const char* szATRsp = pRspTable[nRow].szATResponse;
 
             // Check for a valid pointer
             if (NULL == szATRsp)
@@ -142,14 +142,14 @@ PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const BYTE*& pszStr)
 
 //
 //
-BOOL CSilo::ParseNULL(CResponse *const pResponse, const BYTE* &rszPointer)
+BOOL CSilo::ParseNULL(CResponse *const pResponse, const char* &rszPointer)
 {
     return TRUE;
 }
 
 //
 //
-BOOL CSilo::ParseUnrecognized(CResponse *const pResponse, const BYTE* &rszPointer)
+BOOL CSilo::ParseUnrecognized(CResponse *const pResponse, const char* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo::ParseUnrecognized() - Enter\r\n");
     BOOL fRet = FALSE;

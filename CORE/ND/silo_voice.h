@@ -72,26 +72,25 @@ public:
 protected:
     //  Parse notification functions here.
 
-    virtual BOOL    ParseExtRing(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseConnect(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseCallWaitingInfo(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseUnsolicitedSSInfo(CResponse* const pResponse, const BYTE*& szPointer);
-    virtual BOOL    ParseIntermediateSSInfo(CResponse* const pResponse, const BYTE*& szPointer);
-    virtual BOOL    ParseCallMeter(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseCallProgressInformation(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseUSSDInfo(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseConnLineIdPresentation(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseConnLineIdRestriction(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseDISCONNECT(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseIndicatorEvent(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseXCALLSTAT(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseBusy(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseNoAnswer(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseCTMCall(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseNoCTMCall(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseExtRing(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseConnect(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseCallWaitingInfo(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseUnsolicitedSSInfo(CResponse* const pResponse, const char*& szPointer);
+    virtual BOOL    ParseIntermediateSSInfo(CResponse* const pResponse, const char*& szPointer);
+    virtual BOOL    ParseCallMeter(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseCallProgressInformation(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseUSSDInfo(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseConnLineIdPresentation(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseConnLineIdRestriction(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseDISCONNECT(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseIndicatorEvent(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseBusy(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseNoAnswer(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseCTMCall(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseNoCTMCall(CResponse* const pResponse, const char*& rszPointer);
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
-    virtual BOOL    ParseCallFailedCause(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseCallFailedCause(CResponse* const pResponse, const char*& rszPointer);
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
 };

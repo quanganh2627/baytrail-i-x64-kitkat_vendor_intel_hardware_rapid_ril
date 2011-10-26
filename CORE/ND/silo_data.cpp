@@ -108,11 +108,11 @@ BOOL CSilo_Data::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, B
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
-BOOL CSilo_Data::ParseConnect(CResponse* const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_Data::ParseConnect(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Data::ParseConnect() - Enter\r\n");
 
-    const BYTE* szDummy;
+    const char* szDummy;
     BOOL fRet = FALSE;
     UINT32 uiBaud = 0;
 
@@ -147,11 +147,11 @@ Error:
 //
 //
 //
-BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Enter\r\n");
 
-    const BYTE* szDummy;
+    const char* szDummy;
     BOOL fRet = FALSE;
 
     CChannel_Data* pChannelData = NULL;
@@ -198,7 +198,7 @@ Error:
 
 //
 //
-BOOL CSilo_Data::ParseXCGEDPAGE(CResponse *const pResponse, const BYTE* &rszPointer)
+BOOL CSilo_Data::ParseXCGEDPAGE(CResponse *const pResponse, const char* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Data::ParseXCGEDPAGE() - Enter\r\n");
 

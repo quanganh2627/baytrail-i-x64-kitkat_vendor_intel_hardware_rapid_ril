@@ -68,7 +68,7 @@ int CPort::GetFD()
     return fd;
 }
 
-BOOL CPort::Open(const BYTE * pszFileName, BOOL fIsSocket)
+BOOL CPort::Open(const char * pszFileName, BOOL fIsSocket)
 {
     RIL_LOG_VERBOSE("CPort::Open() - Enter  fIsSocket=[%d]\r\n", fIsSocket);
     BOOL fRet = FALSE;
@@ -195,7 +195,7 @@ BOOL CPort::Close()
     return fRet;
 }
 
-BOOL CPort::Read(BYTE * pszReadBuf, UINT32 uiReadBufSize, UINT32 & ruiBytesRead)
+BOOL CPort::Read(char * pszReadBuf, UINT32 uiReadBufSize, UINT32 & ruiBytesRead)
 {
     RIL_LOG_VERBOSE("CPort::Read() - Enter\r\n");
     BOOL fRet = FALSE;
@@ -222,7 +222,7 @@ BOOL CPort::Read(BYTE * pszReadBuf, UINT32 uiReadBufSize, UINT32 & ruiBytesRead)
     return fRet;
 }
 
-BOOL CPort::Write(const BYTE * pszWriteBuf, const UINT32 uiBytesToWrite, UINT32 & ruiBytesWritten)
+BOOL CPort::Write(const char * pszWriteBuf, const UINT32 uiBytesToWrite, UINT32 & ruiBytesWritten)
 {
     RIL_LOG_VERBOSE("CPort::Write() - Enter\r\n");
     BOOL fRet = FALSE;
@@ -249,7 +249,7 @@ BOOL CPort::Write(const BYTE * pszWriteBuf, const UINT32 uiBytesToWrite, UINT32 
     RIL_LOG_VERBOSE("CPort::Write() - Exit\r\n");
 }
 
-BOOL CPort::OpenPort(const BYTE * pszFileName)
+BOOL CPort::OpenPort(const char * pszFileName)
 {
     RIL_LOG_VERBOSE("CPort::OpenPort() - Enter\r\n");
     BOOL fRet = FALSE;
@@ -324,16 +324,16 @@ BOOL CPort::OpenPort(const BYTE * pszFileName)
     return fRet;
 }
 
-BOOL CPort::OpenSocket(const BYTE * pszSocketName)
+BOOL CPort::OpenSocket(const char * pszSocketName)
 {
     RIL_LOG_VERBOSE("CPort::OpenSocket() - Enter\r\n");
 
     // TODO : Pull this from repository
-    const BYTE szSocketInit[] = "gsm";
+    const char szSocketInit[] = "gsm";
 
     UINT32 uiBytesWritten = 0;
     UINT32 uiBytesRead = 0;
-    BYTE szResponse[10] = {0};
+    char szResponse[10] = {0};
 
     BOOL fRet = FALSE;
 

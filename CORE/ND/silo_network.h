@@ -62,15 +62,15 @@ public:
 
 protected:
     //  Parse notification functions here.
-    virtual BOOL    ParseRegistrationStatus(CResponse* const pResponse, const BYTE*& rszPointer, BOOL const bGPRS);
-    virtual BOOL    ParseCTZV(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseCTZDST(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseCREG(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseCGREG(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseXREG(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseCGEV(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseXCGEDPAGE(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL    ParseXCSQ(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL    ParseRegistrationStatus(CResponse* const pResponse, const char*& rszPointer, BOOL const bGPRS);
+    virtual BOOL    ParseCTZV(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseCTZDST(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseCREG(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseCGREG(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseXREG(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseCGEV(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseXCGEDPAGE(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseXCSQ(CResponse* const pResponse, const char*& rszPointer);
 };
 
 #endif // RRIL_SILO_NETWORK_H

@@ -37,7 +37,7 @@ class CRilQueue
 
     void MakeEmpty( );
     BOOL Dequeue(Object& rObj);
-    BOOL Enqueue(const Object & rObj, UINT32 uiPriority = m_uiMinPriority);
+    BOOL Enqueue(const Object & rObj, UINT32 uiPriority = m_uiMinPriority, BOOL bFront = false);
 
     void GetAllQueuedObjects(Object* &rpObjArray, int &rnNumOfObjects);
     void DequeueByObj(Object &rObj);
@@ -172,7 +172,7 @@ BOOL CRilQueue<Object>::Dequeue(Object& rObj)
 
 // Insert object into the queue.
 template <class Object>
-BOOL CRilQueue<Object>::Enqueue(const Object& rObj, UINT32 uiPriority /*= m_uiMinPriority*/)
+BOOL CRilQueue<Object>::Enqueue(const Object& rObj, UINT32 uiPriority /*= m_uiMinPriority*/, BOOL bFront /*=false*/)
 {
     BOOL bRetVal = false;
     CMutex::Lock(&m_cMutex);
@@ -187,6 +187,18 @@ BOOL CRilQueue<Object>::Enqueue(const Object& rObj, UINT32 uiPriority /*= m_uiMi
         }
         m_pFront = newNode;
         m_pBack = newNode;
+    }
+    else if (bFront)
+    {
+        ListNode * temp = m_pFront;
+        ListNode *newNode = new ListNode(rObj, uiPriority);
+        if (NULL == newNode)
+        {
+            RIL_LOG_CRITICAL("CRilQueue::Enqueue() - Cannot allocate memory new ListNode - front\r\n");
+            goto Error;
+        }
+        newNode->m_pNext = temp;
+        m_pFront = newNode;
     }
     else
     {

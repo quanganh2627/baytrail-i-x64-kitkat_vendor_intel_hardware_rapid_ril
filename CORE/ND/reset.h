@@ -41,7 +41,7 @@ void ModemResetUpdate();
 extern BOOL g_bSpoofCommands;
 
 
-void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const BYTE* lpszFileName);
+void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszFileName);
 extern BOOL CreateModemWatchdogThread();
 
 

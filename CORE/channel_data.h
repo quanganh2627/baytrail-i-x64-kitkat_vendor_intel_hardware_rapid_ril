@@ -64,17 +64,17 @@ public:
 
 
     //  Local storage of IP adress, DNS1, DNS2
-    BYTE*               m_szIpAddr;
-    BYTE*               m_szDNS1;
-    BYTE*               m_szDNS2;
+    char*               m_szIpAddr;
+    char*               m_szDNS1;
+    char*               m_szDNS2;
 
 #if defined(M2_IPV6_FEATURE_ENABLED)
     //  For IPV4V6, there could be 2 IP addresses
-    BYTE*               m_szIpAddr2;
+    char*               m_szIpAddr2;
 
     //  For IPV4V6, there could be 2 DNS addresses for primary and secondary.
-    BYTE*               m_szDNS1_2;
-    BYTE*               m_szDNS2_2;
+    char*               m_szDNS1_2;
+    char*               m_szDNS2_2;
 #endif // M2_IPV6_FEATURE_ENABLED
 
 private:

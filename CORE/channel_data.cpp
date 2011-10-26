@@ -30,16 +30,16 @@
 #include "silo_factory.h"
 #include "channel_data.h"
 
-extern BYTE* g_szDataPort1;
-extern BYTE* g_szDataPort2;
-extern BYTE* g_szDataPort3;
-extern BYTE* g_szDataPort4;
-extern BYTE* g_szDataPort5;
+extern char* g_szDataPort1;
+extern char* g_szDataPort2;
+extern char* g_szDataPort3;
+extern char* g_szDataPort4;
+extern char* g_szDataPort5;
 extern BOOL  g_bIsSocket;
 
 //  Init commands for this channel.
 //  GPRS/UMTS data (1st primary context)
-INITSTRING_DATA DataBasicInitString = { "E0V1Q0X4|S0=0|+CMEE=1" };
+INITSTRING_DATA DataBasicInitString = { "E0V1Q0X4|+CMEE=1|S0=0" };
 INITSTRING_DATA DataUnlockInitString = { "" };
 INITSTRING_DATA DataPowerOnInitString = { "" };
 INITSTRING_DATA DataReadyInitString = { "" };

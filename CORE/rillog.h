@@ -47,10 +47,10 @@ class CRilLog
 {
 public:
     static void Init();
-    static void Verbose(const BYTE* const szFormatString, ...);
-    static void Info(const BYTE* const szFormatString, ...);
-    static void Warning(const BYTE* const szFormatString, ...);
-    static void Critical(const BYTE* const szFormatString, ...);
+    static void Verbose(const char* const szFormatString, ...);
+    static void Info(const char* const szFormatString, ...);
+    static void Warning(const char* const szFormatString, ...);
+    static void Critical(const char* const szFormatString, ...);
 
 private:
     static const UINT32 m_uiMaxLogBufferSize = 1024;

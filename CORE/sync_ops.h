@@ -128,7 +128,7 @@ class CEvent
 {
     public:
 
-        CEvent(const BYTE * szName = NULL, BOOL fManual = FALSE, BOOL fInitial = FALSE);
+        CEvent(const char * szName = NULL, BOOL fManual = FALSE, BOOL fInitial = FALSE);
         ~CEvent();
 
         static BOOL Signal(CEvent * pEvent);
@@ -151,7 +151,7 @@ class CEvent
         friend void CMultipleEvent::AddEvent(int iEventIndex , CEvent* pEvent);
         friend void CMultipleEvent::RemoveEvent(int iEventIndex);
 
-        BYTE *          m_szName;
+        char *          m_szName;
         BOOL            m_fManual;
         mapObserver     m_mObservers;
 

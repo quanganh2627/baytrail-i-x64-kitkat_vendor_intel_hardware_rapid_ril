@@ -30,17 +30,17 @@
 class CThread;
 
 // The device path to use for the AT command channel
-extern BYTE * g_szCmdPort;
+extern char * g_szCmdPort;
 // The device path to use for the data channel1
-extern BYTE * g_szDataPort1;
+extern char * g_szDataPort1;
 // The device path to use for the data channel2
-extern BYTE * g_szDataPort2;
+extern char * g_szDataPort2;
 // The device path to use for the data channel3
-extern BYTE * g_szDataPort3;
+extern char * g_szDataPort3;
 // The device path to use for the data channel4
-extern BYTE * g_szDataPort4;
+extern char * g_szDataPort4;
 // The device path to use for the data channel5
-extern BYTE * g_szDataPort5;
+extern char * g_szDataPort5;
 
 extern BOOL  g_bIsSocket;
 

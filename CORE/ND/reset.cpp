@@ -124,7 +124,7 @@ void ModemResetUpdate()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //  RIL has detected something is wrong with the modem.
 //  Alert STMD to attempt a clean-up.
-void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const BYTE* lpszFileName)
+void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszFileName)
 {
     RIL_LOG_INFO("do_request_clean_up() - ENTER eError=[%d]\r\n", eError);
     RIL_LOG_INFO("do_request_clean_up() - file=[%s], line num=[%d]\r\n", lpszFileName, uiLineNum);

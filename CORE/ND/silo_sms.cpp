@@ -33,8 +33,6 @@
 #include "callbacks.h"
 #include "silo_sms.h"
 
-static const UINT32 uiSMSAckDelayUSec = 100000;
-
 //
 //
 CSilo_SMS::CSilo_SMS(CChannel *pChannel)
@@ -105,7 +103,7 @@ Error:
 
 //
 //
-BOOL CSilo_SMS::ParseMessage(CResponse* const pResponse, const BYTE*& rszPointer, SILO_SMS_MSG_TYPES msgType)
+BOOL CSilo_SMS::ParseMessage(CResponse* const pResponse, const char*& rszPointer, SILO_SMS_MSG_TYPES msgType)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseMessage() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_SMS::ParseMessage() - Exit\r\n");
@@ -115,12 +113,12 @@ BOOL CSilo_SMS::ParseMessage(CResponse* const pResponse, const BYTE*& rszPointer
 //
 //
 //
-BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const BYTE*& rszPointer, SILO_SMS_MSG_TYPES msgType)
+BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const char*& rszPointer, SILO_SMS_MSG_TYPES msgType)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseMessageInSim() - Enter\r\n");
 
     BOOL   fRet = FALSE;
-    const BYTE* szDummy;
+    const char* szDummy;
     UINT32 Location;
     UINT32 Index;
     int * pIndex = NULL;
@@ -178,15 +176,15 @@ Error:
 //
 // SMS-DELIVER notification
 //
-BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCMT() - Enter\r\n");
 
     BOOL   fRet     = FALSE;
     UINT32 uiLength = 0;
-    BYTE*  szPDU    = NULL;
-    BYTE   szAlpha[MAX_BUFFER_SIZE];
-    const BYTE* szDummy;
+    char*  szPDU    = NULL;
+    char   szAlpha[MAX_BUFFER_SIZE];
+    const char* szDummy;
 
     if (NULL == pResponse)
     {
@@ -224,13 +222,13 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const BYTE*& rszPointer)
         RIL_LOG_INFO("CSilo_SMS::ParseCMT() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
-    szPDU = (BYTE*)malloc(sizeof(BYTE) * uiLength);
+    szPDU = (char*)malloc(sizeof(char) * uiLength);
     if (NULL == szPDU)
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - ERROR: Could not allocate memory for szPDU.\r\n");
         goto Error;
     }
-    memset(szPDU, 0, sizeof(BYTE) * uiLength);
+    memset(szPDU, 0, sizeof(char) * uiLength);
 
     if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, uiLength, rszPointer))
     {
@@ -246,13 +244,10 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const BYTE*& rszPointer)
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NEW_SMS);
 
-    if (!pResponse->SetData((void*)szPDU, sizeof(BYTE *), FALSE))
+    if (!pResponse->SetData((void*)szPDU, sizeof(char *), FALSE))
     {
         goto Error;
     }
-
-    //  Here we ack the incoming SMS PDU immediately, otherwise will get CMS error 340.  Have to be quick.
-    //RIL_requestTimedCallback(triggerSMSAck, NULL, 0, uiSMSAckDelayUSec);
 
     fRet = TRUE;
 
@@ -270,15 +265,15 @@ Error:
 //
 //  Incoming cell broadcast.
 //
-BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
 {
    RIL_LOG_VERBOSE("CSilo_SMS::ParseCBM() - Enter\r\n");
 
     BOOL   fRet     = FALSE;
     UINT32   uiLength = 0;
-    BYTE*  szPDU    = NULL;
-    BYTE   szAlpha[MAX_BUFFER_SIZE];
-    const BYTE* szDummy;
+    char*  szPDU    = NULL;
+    char   szAlpha[MAX_BUFFER_SIZE];
+    const char* szDummy;
 
     if (NULL == pResponse)
     {
@@ -313,13 +308,13 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const BYTE*& rszPointer)
         RIL_LOG_INFO("CSilo_SMS::ParseCBM() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
-    szPDU = (BYTE *)malloc(sizeof(BYTE) * uiLength);
+    szPDU = (char *)malloc(sizeof(char) * uiLength);
     if (NULL == szPDU)
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - ERROR: Could not allocate memory for szPDU.\r\n");
         goto Error;
     }
-    memset(szPDU, 0, sizeof(BYTE) * uiLength);
+    memset(szPDU, 0, sizeof(char) * uiLength);
 
     if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, uiLength, rszPointer))
     {
@@ -335,7 +330,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const BYTE*& rszPointer)
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS);
 
-    if (!pResponse->SetData((void*)szPDU, sizeof(BYTE *), FALSE))
+    if (!pResponse->SetData((void*)szPDU, sizeof(char *), FALSE))
     {
         goto Error;
     }
@@ -356,14 +351,14 @@ Error:
 //
 //
 //
-BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCDS() - Enter\r\n");
 
     UINT32  uiLength = 0;
-    const BYTE* szDummy;
-    BYTE* szPDU = NULL;
-    BYTE   szAlpha[MAX_BUFFER_SIZE];
+    const char* szDummy;
+    char* szPDU = NULL;
+    char   szAlpha[MAX_BUFFER_SIZE];
     BOOL  fRet = FALSE;
 
     if (NULL == pResponse)
@@ -400,13 +395,13 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const BYTE*& rszPointer)
         RIL_LOG_INFO("CSilo_SMS::ParseCDS() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
-    szPDU = (BYTE*) malloc(sizeof(BYTE) * uiLength);
+    szPDU = (char*) malloc(sizeof(char) * uiLength);
     if (NULL == szPDU)
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - ERROR: Could not allocate memory for szPDU.\r\n");
         goto Error;
     }
-    memset(szPDU, 0, sizeof(BYTE) * uiLength);
+    memset(szPDU, 0, sizeof(char) * uiLength);
 
     if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, uiLength, rszPointer))
     {
@@ -422,13 +417,10 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const BYTE*& rszPointer)
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT);
 
-    if (!pResponse->SetData((void*) szPDU, sizeof(BYTE *), FALSE))
+    if (!pResponse->SetData((void*) szPDU, sizeof(char *), FALSE))
     {
         goto Error;
     }
-
-    //  Here we ack the incoming SMS PDU immediately, otherwise will get CMS error 340.  Have to be quick.
-    //RIL_requestTimedCallback(triggerSMSAck, NULL, 0, uiSMSAckDelayUSec);
 
     fRet = TRUE;
 
@@ -447,7 +439,7 @@ Error:
 //
 //
 //
-BOOL CSilo_SMS::ParseCMTI(CResponse * const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SMS::ParseCMTI(CResponse * const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCMTI() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCMTI() - Exit\r\n");
@@ -457,7 +449,7 @@ BOOL CSilo_SMS::ParseCMTI(CResponse * const pResponse, const BYTE*& rszPointer)
 //
 //
 //
-BOOL CSilo_SMS::ParseCBMI(CResponse * const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SMS::ParseCBMI(CResponse * const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCBMI() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCBMI() - Exit\r\n");
@@ -467,7 +459,7 @@ BOOL CSilo_SMS::ParseCBMI(CResponse * const pResponse, const BYTE*& rszPointer)
 //
 //
 //
-BOOL CSilo_SMS::ParseCDSI(CResponse * const pResponse, const BYTE*& rszPointer)
+BOOL CSilo_SMS::ParseCDSI(CResponse * const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCDSI() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCDSI() - Exit\r\n");

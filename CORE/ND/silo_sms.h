@@ -73,14 +73,14 @@ protected:
 
 protected:
     //  Parse notification functions here.
-    virtual BOOL ParseMessage(CResponse* const pResponse, const BYTE*& rszPointer, SILO_SMS_MSG_TYPES msgType);
-    virtual BOOL ParseMessageInSim(CResponse* const pResponse, const BYTE*& rszPointer, SILO_SMS_MSG_TYPES msgType);
-    virtual BOOL ParseCMT(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL ParseCBM(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL ParseCDS(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL ParseCMTI(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL ParseCBMI(CResponse* const pResponse, const BYTE*& rszPointer);
-    virtual BOOL ParseCDSI(CResponse* const pResponse, const BYTE*& rszPointer);
+    virtual BOOL ParseMessage(CResponse* const pResponse, const char*& rszPointer, SILO_SMS_MSG_TYPES msgType);
+    virtual BOOL ParseMessageInSim(CResponse* const pResponse, const char*& rszPointer, SILO_SMS_MSG_TYPES msgType);
+    virtual BOOL ParseCMT(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL ParseCBM(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL ParseCDS(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL ParseCMTI(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL ParseCBMI(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL ParseCDSI(CResponse* const pResponse, const char*& rszPointer);
 
 };
 
