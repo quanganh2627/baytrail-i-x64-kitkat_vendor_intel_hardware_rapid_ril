@@ -69,9 +69,8 @@ CSilo_Voice::CSilo_Voice(CChannel *pChannel)
         { "CTM CALL"      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCTMCall },
         { "NO CTM CALL"   , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCTMCall },
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
-        // TODO: When call fail cause URC is defined, set it here.
         // Handle Call failed cause unsolicited notification here
-        { "CALL_FAILED_CAUSE" , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallFailedCause },
+        { "+XCEER: " , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallFailedCause },
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
         { ""              , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNULL }
     };
@@ -230,11 +229,72 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
     char szAddress[MAX_BUFFER_SIZE];
     BOOL fRet = FALSE;
 
+#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
+    const char * szDummy = NULL;
+    UINT32 uiID = 0;
+    UINT32 uiStat = 0;
+#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
+
     if (pResponse == NULL)
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : ERROR : pResponse was NULL\r\n");
         goto Error;
     }
+
+#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
+
+    // Look for a "<postfix>"
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : ERROR : Incomplete notification\r\n");
+        goto Error;
+    }
+
+    //  Extract <id>
+    if (!ExtractUInt32(rszPointer, uiID, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : ERROR : Could not extract uiID\r\n");
+        goto Error;
+    }
+
+    //  Extract ,<stat>
+    if (!SkipString(rszPointer, ",", rszPointer) ||
+        !ExtractUInt32(rszPointer, uiStat, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : ERROR : Could not extract uiStat\r\n");
+        goto Error;
+    }
+
+    //  If <stat> = 6 (6 is disconnected), store in CSystemManager.
+    if (6 == uiStat)
+    {
+        RIL_LOG_INFO("CSilo_Voice::ParseXCALLSTAT() : Received disconnect, uiID=[%d]\r\n", uiID);
+        //  Store last disconnected call ID.
+        CSystemManager::GetInstance().SetLastCallFailedCauseID(uiID);
+
+        //  We need to queue AT+XCEER command
+        //  Let RIL framework handle the +XCEER response as a notification.  No parse function needed here.
+        CCommand *pCmd = NULL;
+        pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_LASTCALLFAILCAUSE], NULL, ND_REQ_ID_LASTCALLFAILCAUSE, "AT+XCEER\r");
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() - ERROR: Unable to queue AT+XCEER command!\r\n");
+                delete pCmd;
+                pCmd = NULL;
+                goto Error;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() - ERROR: Unable to allocate memory for new AT+XCEER command!\r\n");
+            goto Error;
+        }
+    }
+
+#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
+
 
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
@@ -1135,6 +1195,16 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
 
     BOOL fRet = FALSE;
     int *pFailedCauseData = NULL;
+    const char * szDummy = NULL;
+    UINT32 uiCause = 0;
+    UINT32 uiID = 0;
+
+    // Do we have a complete notification?
+    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Incomplete notification\r\n");
+        goto Error;
+    }
 
     pFailedCauseData = (int*)malloc(2 * sizeof(int*));
     if (!pFailedCauseData)
@@ -1144,9 +1214,12 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
     }
     memset(pFailedCauseData, 0, sizeof(2 * sizeof(int*)));
 
-
-    //  TODO: Parse the notification and get call id, and failed cause.
-    //  Until then, just skip over notification.
+    //  Extract <cause>
+    if (!ExtractUInt32(rszPointer, uiCause, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Could not extract uiCause\r\n");
+        goto Error;
+    }
 
     // Skip to the next <postfix>
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
@@ -1158,7 +1231,10 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
     // Walk back over the <CR>
     rszPointer -= strlen(g_szNewLine);
 
+    //  Now we have ID and cause
+    uiID = CSystemManager::GetInstance().GetLastCallFailedCauseID();
     RIL_LOG_INFO("CSilo_Voice::ParseCallFailedCause() : ***** RECEIVED CALL FAILED CAUSE NOTIFICATION *****\r\n");
+    RIL_LOG_INFO("CSilo_Voice::ParseCallFailedCause() : ID=[%u]  cause=[%u]\r\n", uiID, uiCause);
     RIL_LOG_INFO("CSilo_Voice::ParseCallFailedCause() : ***** SENDING NOTIFICATION=[%d] ******\r\n", RIL_UNSOL_CALL_FAILED_CAUSE);
 
     pResponse->SetUnsolicitedFlag(TRUE);
@@ -1167,8 +1243,8 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
     //  TODO: Set call id = pData[0]
     //        Set failed cause = pData[1]
 
-    pFailedCauseData[0] = 1; // call id
-    pFailedCauseData[1] = 2; // failed cause
+    pFailedCauseData[0] = uiID; // call id
+    pFailedCauseData[1] = uiCause; // failed cause
 
     if (!pResponse->SetData((void*)pFailedCauseData, 2 * sizeof(int *), FALSE))
     {

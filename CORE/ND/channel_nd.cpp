@@ -384,19 +384,42 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
     //  SEEK for Android request returned CME ERROR (need to get error code for custom SEEK response code)
     if ((NULL != rpCmd->GetATCmd2()) &&
         (NULL != rpResponse) &&
-        //  Success and non-SEEK request OR
-        ( (RIL_E_SUCCESS == rpResponse->GetResultCode() &&
-            (ND_REQ_ID_SIMOPENCHANNEL != rpCmd->GetRequestID() &&
+        //  Success and non-SEEK, non-network request OR
+        (( (RIL_E_SUCCESS == rpResponse->GetResultCode() &&
+           (ND_REQ_ID_SIMOPENCHANNEL != rpCmd->GetRequestID() &&
              ND_REQ_ID_SIMCLOSECHANNEL != rpCmd->GetRequestID() &&
-             ND_REQ_ID_SIMTRANSMITCHANNEL != rpCmd->GetRequestID()) ) ||
-        //  Error and SEEK request
-          (RIL_E_SUCCESS != rpResponse->GetResultCode() &&
+             ND_REQ_ID_SIMTRANSMITCHANNEL != rpCmd->GetRequestID() &&
+             ND_REQ_ID_SENDUSSD != rpCmd->GetRequestID() &&
+             ND_REQ_ID_GETCLIR != rpCmd->GetRequestID() &&
+             ND_REQ_ID_SETCLIR != rpCmd->GetRequestID() &&
+             ND_REQ_ID_QUERYCALLFORWARDSTATUS != rpCmd->GetRequestID() &&
+             ND_REQ_ID_SETCALLFORWARD != rpCmd->GetRequestID() &&
+             ND_REQ_ID_QUERYCALLWAITING != rpCmd->GetRequestID() &&
+             ND_REQ_ID_SETCALLWAITING != rpCmd->GetRequestID() &&
+             ND_REQ_ID_QUERYFACILITYLOCK != rpCmd->GetRequestID() &&
+             ND_REQ_ID_SETFACILITYLOCK != rpCmd->GetRequestID() &&
+             ND_REQ_ID_CHANGEBARRINGPASSWORD != rpCmd->GetRequestID() &&
+             ND_REQ_ID_QUERYCLIP != rpCmd->GetRequestID()) ) ||
+        //  Error and SEEK, NETWORK request
+            (RIL_E_SUCCESS != rpResponse->GetResultCode() &&
             (ND_REQ_ID_SIMOPENCHANNEL == rpCmd->GetRequestID() ||
              ND_REQ_ID_SIMCLOSECHANNEL == rpCmd->GetRequestID() ||
-             ND_REQ_ID_SIMTRANSMITCHANNEL == rpCmd->GetRequestID()) )
+             ND_REQ_ID_SIMTRANSMITCHANNEL == rpCmd->GetRequestID() ||
+             ND_REQ_ID_SENDUSSD == rpCmd->GetRequestID() ||
+             ND_REQ_ID_GETCLIR == rpCmd->GetRequestID() ||
+             ND_REQ_ID_SETCLIR == rpCmd->GetRequestID() ||
+             ND_REQ_ID_QUERYCALLFORWARDSTATUS == rpCmd->GetRequestID() ||
+             ND_REQ_ID_SETCALLFORWARD == rpCmd->GetRequestID() ||
+             ND_REQ_ID_QUERYCALLWAITING == rpCmd->GetRequestID() ||
+             ND_REQ_ID_SETCALLWAITING == rpCmd->GetRequestID() ||
+             ND_REQ_ID_QUERYFACILITYLOCK == rpCmd->GetRequestID() ||
+             ND_REQ_ID_SETFACILITYLOCK == rpCmd->GetRequestID() ||
+             ND_REQ_ID_CHANGEBARRINGPASSWORD == rpCmd->GetRequestID() ||
+             ND_REQ_ID_QUERYCLIP == rpCmd->GetRequestID()) )
+          )
 #if defined(M2_VT_FEATURE_ENABLED)
         //  OR VT_HANGUP request (since we don't care about a possible error)
-        || ND_REQ_ID_HANGUPVT == rpCmd->GetRequestID()
+        || (ND_REQ_ID_HANGUPVT == rpCmd->GetRequestID())
 #endif // M2_VT_FEATURE_ENABLED
         )
        )

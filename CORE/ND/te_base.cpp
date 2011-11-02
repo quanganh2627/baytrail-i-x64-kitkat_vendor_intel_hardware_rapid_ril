@@ -1416,11 +1416,14 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseLastCallFailCause() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
-
     UINT32      uiCause  = 0;
     int*      pCause   = NULL;
-    char      szDummy[MAX_BUFFER_SIZE];
+
+    if (!ParseCEER(rRspData, uiCause))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseLastCallFailCause() - ERROR: Parsing of CEER failed\r\n");
+        goto Error;
+    }
 
     pCause= (int*) malloc(sizeof(int));
     if (NULL == pCause)
@@ -1429,51 +1432,13 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    // Parse "<prefix>+CEER: <string><value><string><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
-        !SkipString(pszRsp, "+CEER: ", pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseLastCallFailCause() - ERROR: Could not find AT response.\r\n");
-        goto Error;
-    }
-
-    // skip first string
-    // TODO: should check if this is indeed for a call?
-    if (!ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseLastCallFailCause() - ERROR: Could not find first string.\r\n");
-        goto Error;
-    }
-
-    // Get failure cause (if it exists)
-    if (SkipString(pszRsp, ",", pszRsp))
-    {
-        if (!ExtractUInt32(pszRsp, uiCause, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseLastCallFailCause() - ERROR: Could not extract failure cause.\r\n");
-            goto Error;
-        }
-    }
-
-    //  Get verbose description (if it exists)
-    if (SkipString(pszRsp, ",", pszRsp))
-    {
-        if (!ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_WARNING("CTEBase::ParseLastCallFailCause() - WARNING: Could not extract verbose cause.\r\n");
-        }
-        else if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
-        {
-            RIL_LOG_WARNING("CTEBase::ParseLastCallFailCause() - WARNING: Could not extract RspEnd.\r\n");
-        }
-    }
-
     //  Some error cases here are different.
     if (279 == uiCause)
         uiCause = CALL_FAIL_FDN_BLOCKED;
     else if ( (280 == uiCause) || (8 == uiCause) )
         uiCause = CALL_FAIL_CALL_BARRED;
 
+    //@TODO: cause code mapping needs to be revisited
     switch(uiCause)
     {
         case CALL_FAIL_NORMAL:
@@ -2949,6 +2914,12 @@ RIL_RESULT_CODE CTEBase::CoreSendUssd(REQUEST_DATA & rReqData, void * pData, UIN
         goto Error;
     }
 
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSendUssd() - ERROR: Cannot create CEER command\r\n");
+        goto Error;
+    }
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -2961,6 +2932,13 @@ RIL_RESULT_CODE CTEBase::ParseSendUssd(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSendUssd() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        res = (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
+    }
 
     RIL_LOG_VERBOSE("CTEBase::ParseSendUssd() - Exit\r\n");
     return res;
@@ -3001,11 +2979,21 @@ RIL_RESULT_CODE CTEBase::CoreGetClir(REQUEST_DATA & rReqData, void * pData, UINT
     RIL_LOG_VERBOSE("CTEBase::CoreGetClir() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CLIR?\r", sizeof(rReqData.szCmd1)))
+    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CLIR?\r", sizeof(rReqData.szCmd1)))
     {
-        res = RRIL_RESULT_OK;
+        RIL_LOG_CRITICAL("CTEBase::CoreGetClir() - ERROR: Unable to write command to buffer\r\n");
+        goto Error;
     }
 
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreGetClir() - ERROR: Cannot create CEER command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
     RIL_LOG_VERBOSE("CTEBase::CoreGetClir() - Exit\r\n");
     return res;
 }
@@ -3017,9 +3005,15 @@ RIL_RESULT_CODE CTEBase::ParseGetClir(RESPONSE_DATA & rRspData)
     int * pCLIRBlob = NULL;
 
     UINT32 nValue;
-    CRepository repository;
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* szRsp = rRspData.szResponse;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        return (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
+    }
 
     pCLIRBlob = (int *)malloc(sizeof(int) * 2);
 
@@ -3090,10 +3084,19 @@ RIL_RESULT_CODE CTEBase::CoreSetClir(REQUEST_DATA & rReqData, void * pData, UINT
 
     pnClir = (int*)pData;
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CLIR=%u\r", pnClir[0]))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CLIR=%u\r", pnClir[0]))
     {
-        res = RRIL_RESULT_OK;
+        RIL_LOG_CRITICAL("CTEBase::CoreSetClir() - ERROR: Unable to write command to buffer\r\n");
+        goto Error;
     }
+
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSetClir() - ERROR: Cannot create CEER command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSetClir() - Exit\r\n");
@@ -3105,6 +3108,13 @@ RIL_RESULT_CODE CTEBase::ParseSetClir(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSetClir() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        res = (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
+    }
 
     RIL_LOG_VERBOSE("CTEBase::ParseSetClir() - Exit\r\n");
     return res;
@@ -3136,25 +3146,35 @@ RIL_RESULT_CODE CTEBase::CoreQueryCallForwardStatus(REQUEST_DATA & rReqData, voi
     if ((RRIL_INFO_CLASS_NONE == pCallFwdInfo->serviceClass) ||
         ((RRIL_INFO_CLASS_VOICE | RRIL_INFO_CLASS_DATA | RRIL_INFO_CLASS_FAX) == pCallFwdInfo->serviceClass))
     {
-        if (PrintStringNullTerminate(   rReqData.szCmd1,
+        if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
                                         "AT+CCFC=%u,2\r",
                                         pCallFwdInfo->reason))
         {
-            res = RRIL_RESULT_OK;
+            RIL_LOG_CRITICAL("CTEBase::CoreQueryCallForwardStatus() - ERROR: Unable to write command to buffer\r\n");
+            goto Error;
         }
     }
     else
     {
-        if (PrintStringNullTerminate(   rReqData.szCmd1,
+        if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
                                         "AT+CCFC=%u,2,,,%u\r",
                                         pCallFwdInfo->reason,
                                         pCallFwdInfo->serviceClass))
         {
-            res = RRIL_RESULT_OK;
+            RIL_LOG_CRITICAL("CTEBase::CoreQueryCallForwardStatus() - ERROR: Unable to write command to buffer\r\n");
+            goto Error;
         }
     }
+
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryCallForwardStatus() - ERROR: Cannot create CEER command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreQueryCallForwardStatus() - Exit\r\n");
@@ -3172,6 +3192,13 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
     UINT32 nEntries = 0;
     UINT32 nCur = 0;
     UINT32 nValue;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        return (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
+    }
 
     while (FindAndSkipString(szRsp, "+CCFC: ", szRsp))
     {
@@ -3415,6 +3442,12 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
         }
     }
 
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSetCallForward() - ERROR: Cannot create CEER command\r\n");
+        goto Error;
+    }
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -3427,6 +3460,13 @@ RIL_RESULT_CODE CTEBase::ParseSetCallForward(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSetCallForward() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        res = (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
+    }
 
     RIL_LOG_VERBOSE("CTEBase::ParseSetCallForward() - Exit\r\n");
     return res;
@@ -3458,23 +3498,33 @@ RIL_RESULT_CODE CTEBase::CoreQueryCallWaiting(REQUEST_DATA & rReqData, void * pD
     if ((RRIL_INFO_CLASS_NONE == pnInfoClasses[0]) ||
         ((RRIL_INFO_CLASS_VOICE | RRIL_INFO_CLASS_DATA | RRIL_INFO_CLASS_FAX) == pnInfoClasses[0]))
     {
-        if (PrintStringNullTerminate(rReqData.szCmd1,
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
                         sizeof(rReqData.szCmd1),
                         "AT+CCWA=1,2\r"))
         {
-            res = RRIL_RESULT_OK;
+            RIL_LOG_CRITICAL("CTEBase::CoreQueryCallWaiting() - ERROR: Unable to write command to buffer\r\n");
+            goto Error;
         }
     }
     else
     {
-        if (PrintStringNullTerminate(rReqData.szCmd1,
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
                         sizeof(rReqData.szCmd1),
                         "AT+CCWA=1,2,%u\r",
                         pnInfoClasses[0]))
         {
-            res = RRIL_RESULT_OK;
+            RIL_LOG_CRITICAL("CTEBase::CoreQueryCallWaiting() - ERROR: Unable to write command to buffer\r\n");
+            goto Error;
         }
     }
+
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryCallWaiting() - ERROR: Cannot create CEER command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreQueryCallWaiting() - Exit\r\n");
@@ -3492,6 +3542,13 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallWaiting(RESPONSE_DATA & rRspData)
     UINT32 nStatus;
     UINT32 nClass;
     UINT32 dwServiceInfo = 0, dwStatus = 0;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        return (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
+    }
 
     // Parse "+CCWA: "
     while (FindAndSkipString(szRsp, "+CCWA: ", szRsp))
@@ -3600,18 +3657,28 @@ RIL_RESULT_CODE CTEBase::CoreSetCallWaiting(REQUEST_DATA & rReqData, void * pDat
 
     if (RRIL_INFO_CLASS_NONE == nInfoClasses)
     {
-        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CCWA=1,%u\r", nStatus))
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CCWA=1,%u\r", nStatus))
         {
-            res = RRIL_RESULT_OK;
+            RIL_LOG_CRITICAL("CTEBase::CoreSetCallWaiting() - ERROR: Unable to write command to buffer\r\n");
+            goto Error;
         }
     }
     else
     {
-        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CCWA=1,%u,%u\r", nStatus, nInfoClasses))
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CCWA=1,%u,%u\r", nStatus, nInfoClasses))
         {
-            res = RRIL_RESULT_OK;
+            RIL_LOG_CRITICAL("CTEBase::CoreSetCallWaiting() - ERROR: Unable to write command to buffer\r\n");
+            goto Error;
         }
     }
+
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSetCallWaiting() - ERROR: Cannot create CEER command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSetCallWaiting() - Exit\r\n");
@@ -3623,6 +3690,13 @@ RIL_RESULT_CODE CTEBase::ParseSetCallWaiting(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSetCallWaiting() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        res = (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
+    }
 
     RIL_LOG_VERBOSE("CTEBase::ParseSetCallWaiting() - Exit\r\n");
     return res;
@@ -3988,23 +4062,25 @@ RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA & rReqData, void * p
     {
         if (NULL == pszClass || '\0' == pszClass[0])
         {
-            if (PrintStringNullTerminate(   rReqData.szCmd1,
+            if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                             sizeof(rReqData.szCmd1),
                                             "AT+CLCK=\"%s\",2\r",
                                             pszFacility))
             {
-                res = RRIL_RESULT_OK;
+                RIL_LOG_CRITICAL("CTEBase::CoreQueryFacilityLock() - ERROR: Unable to write command to buffer\r\n");
+                goto Error;
             }
         }
         else
         {
-            if (PrintStringNullTerminate(   rReqData.szCmd1,
+            if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                             sizeof(rReqData.szCmd1),
                                             "AT+CLCK=\"%s\",2,,%s\r",
                                             pszFacility,
                                             pszClass))
             {
-                res = RRIL_RESULT_OK;
+                RIL_LOG_CRITICAL("CTEBase::CoreQueryFacilityLock() - ERROR: Unable to write command to buffer\r\n");
+                goto Error;
             }
         }
     }
@@ -4012,28 +4088,51 @@ RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA & rReqData, void * p
     {
         if (NULL == pszClass || '\0' == pszClass[0])
         {
-            if (PrintStringNullTerminate(   rReqData.szCmd1,
+            if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                             sizeof(rReqData.szCmd1),
                                             "AT+CLCK=\"%s\",2,\"%s\"\r",
                                             pszFacility,
                                             pszPassword))
             {
-                res = RRIL_RESULT_OK;
+                RIL_LOG_CRITICAL("CTEBase::CoreQueryFacilityLock() - ERROR: Unable to write command to buffer\r\n");
+                goto Error;
             }
         }
         else
         {
-            if (PrintStringNullTerminate(   rReqData.szCmd1,
+            if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                             sizeof(rReqData.szCmd1),
                                             "AT+CLCK=\"%s\",2,\"%s\",%s\r",
                                             pszFacility,
                                             pszPassword,
                                             pszClass))
             {
-                res = RRIL_RESULT_OK;
+                RIL_LOG_CRITICAL("CTEBase::CoreQueryFacilityLock() - ERROR: Unable to write command to buffer\r\n");
+                goto Error;
             }
         }
     }
+
+    /*
+     * In case of the call barring related lock query failure, query the extended error report.
+     * This is to findout whether the query failed due to fdn check or general failure
+     */
+    if (0 == strcmp(pszFacility, "AO") ||
+            0 == strcmp(pszFacility, "OI") ||
+            0 == strcmp(pszFacility, "OX") ||
+            0 == strcmp(pszFacility, "AI") ||
+            0 == strcmp(pszFacility, "IR") ||
+            0 == strcmp(pszFacility, "AB") ||
+            0 == strcmp(pszFacility, "AG") ||
+            0 == strcmp(pszFacility, "AC")) {
+        if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreQueryFacilityLock() - ERROR: Cannot create CEER command\r\n");
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreQueryFacilityLock() - Exit\r\n");
@@ -4048,6 +4147,13 @@ RIL_RESULT_CODE CTEBase::ParseQueryFacilityLock(RESPONSE_DATA & rRspData)
     int * pnClass = NULL;
     const char* szRsp = rRspData.szResponse;
     UINT32 dwStatus = 0, dwClass = 0, dwServices = 0;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        return (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
+    }
 
     pnClass = (int*)malloc(sizeof(int));
     if (NULL == pnClass)
@@ -4155,30 +4261,32 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     // Facility and Mode provided
     else if (NULL == pszPassword || '\0' == pszPassword[0])
     {
-        if (PrintStringNullTerminate(   rReqData.szCmd1,
+        if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
                                         "AT+CLCK=\"%s\",%s\r",
                                         pszFacility,
                                         pszMode))
         {
-            res = RRIL_RESULT_OK;
+            RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - ERROR: Unable to write command to buffer\r\n");
+            goto Error;
         }
     }
     // Password provided
     else if (NULL == pszClass || '\0' == pszClass[0] || '0' == pszClass[0])
     {
-        if (PrintStringNullTerminate(   rReqData.szCmd1,
+        if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
                                         "AT+CLCK=\"%s\",%s,\"%s\"\r",
                                         pszFacility,
                                         pszMode,
                                         pszPassword))
         {
-            res = RRIL_RESULT_OK;
+            RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - ERROR: Unable to write command to buffer\r\n");
+            goto Error;
         }
     }
     // Class provided
-    else if (PrintStringNullTerminate(  rReqData.szCmd1,
+    else if (!PrintStringNullTerminate( rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
                                         "AT+CLCK=\"%s\",%s,\"%s\",%s\r",
                                         pszFacility,
@@ -4186,8 +4294,30 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
                                         pszPassword,
                                         pszClass))
     {
-        res = RRIL_RESULT_OK;
+        RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - ERROR: Unable to write command to buffer\r\n");
+        goto Error;
     }
+
+    /*
+     * In case of the call barring related lock set failure, query the extended error report.
+     * This is to findout whether the set failed due to fdn check or general failure.
+     */
+    if (0 == strcmp(pszFacility, "AO") ||
+            0 == strcmp(pszFacility, "OI") ||
+            0 == strcmp(pszFacility, "OX") ||
+            0 == strcmp(pszFacility, "AI") ||
+            0 == strcmp(pszFacility, "IR") ||
+            0 == strcmp(pszFacility, "AB") ||
+            0 == strcmp(pszFacility, "AG") ||
+            0 == strcmp(pszFacility, "AC")) {
+        if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - ERROR: Cannot create CEER command\r\n");
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSetFacilityLock() - Exit\r\n");
@@ -4200,6 +4330,13 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        return (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
+    }
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -4255,15 +4392,24 @@ RIL_RESULT_CODE CTEBase::CoreChangeBarringPassword(REQUEST_DATA & rReqData, void
      pszOldPassword = ((const char **)pData)[1];
      pszNewPassword = ((const char **)pData)[2];
 
-    if (PrintStringNullTerminate(   rReqData.szCmd1,
+    if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                     sizeof(rReqData.szCmd1),
                                     "AT+CPWD=\"%s\",\"%s\",\"%s\"\r",
                                     pszFacility,
                                     pszOldPassword,
                                     pszNewPassword))
     {
-        res = RRIL_RESULT_OK;
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeBarringPassword() - ERROR: Unable to write command to buffer\r\n");
+        goto Error;
     }
+
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeBarringPassword() - ERROR: Cannot create CEER command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreChangeBarringPassword() - Exit\r\n");
@@ -4275,6 +4421,13 @@ RIL_RESULT_CODE CTEBase::ParseChangeBarringPassword(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseChangeBarringPassword() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        res = (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
+    }
 
     RIL_LOG_VERBOSE("CTEBase::ParseChangeBarringPassword() - Exit\r\n");
     return res;
@@ -5113,10 +5266,19 @@ RIL_RESULT_CODE CTEBase::CoreQueryClip(REQUEST_DATA & rReqData, void * pData, UI
     RIL_LOG_VERBOSE("CTEBase::CoreQueryClip() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CLIP?\r", sizeof(rReqData.szCmd1)))
+    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CLIP?\r", sizeof(rReqData.szCmd1)))
     {
-        res = RRIL_RESULT_OK;
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryClip() - ERROR: Unable to write command to buffer\r\n");
+        goto Error;
     }
+
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryClip() - ERROR: Cannot create CEER command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreQueryClip() - Exit\r\n");
@@ -5132,6 +5294,13 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
 
     int * pClipVal = NULL;
     UINT32 nValue = 0;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        return (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
+    }
 
     pClipVal = (int*)malloc(sizeof(int));
     if (!pClipVal)
@@ -5211,11 +5380,14 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseLastDataCallFailCause() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
-
     UINT32      uiCause  = 0;
     int*      pCause   = NULL;
-    char      szDummy[MAX_BUFFER_SIZE];
+
+    if (!ParseCEER(rRspData, uiCause))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseLastDataCallFailCause() - ERROR: Parsing of CEER failed\r\n");
+        goto Error;
+    }
 
     pCause= (int*) malloc(sizeof(int));
     if (NULL == pCause)
@@ -5224,48 +5396,7 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    // Parse "<prefix>+CEER: <string><value><string><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
-        !SkipString(pszRsp, "+CEER: ", pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseLastDataCallFailCause() - ERROR: Could not find AT response.\r\n");
-        goto Error;
-    }
-
-    // skip first string
-    // TODO: should check if this is indeed for a call?
-    if (!ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseLastDataCallFailCause() - ERROR: Could not find first string.\r\n");
-        goto Error;
-    }
-
-    if (SkipString(pszRsp, ",", pszRsp))
-    {
-        if (!ExtractUInt32(pszRsp, uiCause, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseLastDataCallFailCause() - ERROR: Could not extract failure cause.\r\n");
-            goto Error;
-        }
-    }
-
-    //  Get verbose description (if it exists)
-    if (SkipString(pszRsp, ",", pszRsp))
-    {
-        if (!ExtractQuotedString(pszRsp, szDummy, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_WARNING("CTEBase::ParseLastDataCallFailCause() - WARNING: Could not extract verbose cause.\r\n");
-        }
-        else if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
-        {
-            RIL_LOG_WARNING("CTEBase::ParseLastDataCallFailCause() - WARNING: Could not extract RspEnd.\r\n");
-        }
-    }
-    else if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
-    {
-        RIL_LOG_WARNING("CTEBase::ParseLastDataCallFailCause() - WARNING: Could not extract RspEnd.\r\n");
-    }
-
+    //@TODO: cause code mapping needs to be revisited
     *pCause= (int) uiCause;
 
     rRspData.pData    = (void*) pCause;
@@ -8357,3 +8488,55 @@ RIL_RESULT_CODE CTEBase::ParseQueryPIN2(RESPONSE_DATA & rRspData)
     return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
 }
 
+//
+// Parse Extended Error Report
+//
+UINT32 CTEBase::ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause)
+{
+    BOOL bRet = FALSE;
+    char      szDummy[MAX_BUFFER_SIZE];
+    const char* szRsp = rRspData.szResponse;
+
+    if (FindAndSkipString(szRsp, "+CEER: ", szRsp))
+    {
+        bRet = TRUE;
+        rUICause = 0;
+
+        // skip first string
+        if (!ExtractQuotedString(szRsp, szDummy, MAX_BUFFER_SIZE, szRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseCEER() - ERROR: Could not find first string.\r\n");
+            goto Error;
+        }
+
+        // Get failure cause (if it exists)
+        if (SkipString(szRsp, ",", szRsp))
+        {
+            if (!ExtractUInt32(szRsp, rUICause, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseCEER() - ERROR: Could not extract failure cause.\r\n");
+                goto Error;
+            }
+        }
+
+        //  Get verbose description (if it exists)
+        if (SkipString(szRsp, ",", szRsp))
+        {
+            if (!ExtractQuotedString(szRsp, szDummy, MAX_BUFFER_SIZE, szRsp))
+            {
+                RIL_LOG_WARNING("CTEBase::ParseCEER() - WARNING: Could not extract verbose cause.\r\n");
+            }
+            else if (!SkipRspEnd(szRsp, g_szNewLine, szRsp))
+            {
+                RIL_LOG_WARNING("CTEBase::ParseCEER() - WARNING: Could not extract RspEnd.\r\n");
+            }
+        }
+        else if (!SkipRspEnd(szRsp, g_szNewLine, szRsp))
+        {
+            RIL_LOG_WARNING("CTEBase::ParseCEER() - WARNING: Could not extract RspEnd.\r\n");
+        }
+    }
+
+Error:
+    return bRet;
+}

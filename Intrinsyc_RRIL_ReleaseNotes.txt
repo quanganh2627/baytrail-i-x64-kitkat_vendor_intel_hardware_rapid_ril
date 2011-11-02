@@ -1,6 +1,159 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+November 1, 2011 (M5.30 release for Medfield PR2)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR2 devices, Android version 2.3.5 (Gingerbread).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ABSP dated October 7, 2011 (ww41)
+- We are using the HSI interface.
+
+PR2 Setup
+=========
+KBoot (OS Image): kboot.bin (from ABSP dated October 7,2011 ww41)
+IFWI: IFWI_CRAK_PR2v01.10_FSTK_227_IA_51a_SCU_C0.19_VH_1.02_Punit_DA.04_XML_v01.11_830_830_0.854.bin
+Misc Module (FW DnX): SIGNED_PNW_C0_FWR_DnX.FD.19.bin
+OS Recovery Module (OS DnX): SIGNED_PNW_C0_OSR_DnX.0D.37.bin
+Modem Firmware: SUNRISE_6260_IMC_MODEM_FIRMWARE_HSI.fls (1138.C)
+
+
+Release Notes for M5.30
+=======================
+
+1. Minor edits to IPv6 code.
+   -Handle default case (when no PDP type passed in) as IPV4V6.
+   -Activate PDP context in same AT command as data activation.
+
+2. Bugzilla 12281: PR2 displayed "call settings error, network or SIM card error"
+                   when touch "call forwarding".
+   -Integrate patch
+   -Supplementary services RIL_REQUEST APIs now return RIL_E_FDN_CHECK_FAILURE if initial
+    AT command returns +CME ERROR, and AT+CEER cause code is FDN error.
+
+3. Bugzilla 11262: More than the maximum accepted attempts can be done trying to
+                   unlock the SIMlock
+   -Integrate patch
+   -RIL now handles +CPIN: PH-NET PUK
+
+4. Bugzilla 8728: Call fail cause URC
+   -Finish implementation with specs from Philippe
+   -Use AT+XEER to get cause code (RIL_REQUEST_LAST_CALL_FAIL_CAUSE)
+   -Send URC with call ID and cause code
+   -Code is defined with compilation flag M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
+
+
+M2 features testing matrix
+==========================
+X = Basic tested (compiles, camp on network, data transfer, voice calls, SMS to self)
+
+MULTIPLE_PDP | VT | CALL_FAILED_CAUSE | RXDIV | CELL_BROADCAST | IPV6 | PIN_RETRIES | Result
+-------------+----+-------------------+-------+----------------+------+-------------+--------
+      X      | X  |                   |   X   |       X        |  X   |             | PASS
+      X      | X  |         X         |   X   |       X        |  X   |             | PASS
+
+
+Testing results:  (tested on mfld_pr2, all M2 features enabled except PIN_RETRIES)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 October 25, 2011 (M5.29 release for Medfield PR2)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
@@ -30,31 +183,31 @@ Release Notes for M5.29
 3. Init commands: send AT+CMEE=1 sooner in sequence.  This allows for '+CME ERROR'
    response in case of error instead of 'ERROR'.
 
-3. Bugzilla 12917: Reserve OEM hook ID for GAN lite integration
+4. Bugzilla 12917: Reserve OEM hook ID for GAN lite integration
    -Integrate patch
    -New Command Id: RIL_OEM_HOOK_RAW_GAN_RIL = 0x01
 
-4. Bugzilla 12715: Ongoing call can't be released immediately after tapping the
+5. Bugzilla 12715: Ongoing call can't be released immediately after tapping the
                    "hold" key many times.
    -Integrate patch
    -Add function to add CCommand to front of priority queue.
 
-5. IPv6: Feedback from Fabien Hubert.
+6. IPv6: Feedback from Fabien Hubert.
    -Use AT+XDNS=<cid>,1 and AT+XDNS=<cid>,2 instead of AT+XDNS=<cid>,3 as modem
     does not support it.
    -DataConfigUpIpV6(): Use AF_INET6 where appropriate.
 
-6. Bugzilla 12822: [AUDIO/FDN] The DUT start to dial a forbidden phone number
+7. Bugzilla 12822: [AUDIO/FDN] The DUT start to dial a forbidden phone number
                    (when FDN activated)
    -Integrate patch with minor modification
    -No need to check for RRIL_RESULT_NOCARRIER, as RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED
     should be sent to Android after any dial command to update call state.  XCALLSTAT
     doesn't appear all the time to trigger this event.
 
-7. Bugzilla 8726: Manage call hang-up reason in RIL_REQUEST_HANGUP_VT
+8. Bugzilla 8726: Manage call hang-up reason in RIL_REQUEST_HANGUP_VT
    -Send AT+XSETCAUSE=1,<cause> before ATH
 
-8. Bugzilla 8741: Update error reporting for RIL_REQUEST_SIM_OPEN_CHANNEL,
+9. Bugzilla 8741: Update error reporting for RIL_REQUEST_SIM_OPEN_CHANNEL,
                   RIL_REQUEST_SIM_TRANSMIT_CHANNEL, RIL_REQUEST_SIM_CLOSE_CHANNEL
    -Create compilation flag M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED in Android.mk
    -When enabled, RIL sends RIL_E_INVALID_PARAMETER as defined in source code comments

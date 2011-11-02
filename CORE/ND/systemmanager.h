@@ -97,6 +97,12 @@ public:
     //  off from InitChannelPorts().  Called when MODEM_UP status is received.
     BOOL            ContinueInit();
 
+#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
+    void            SetLastCallFailedCauseID(UINT32 nID)    { m_uiLastCallFailedCauseID = nID; };
+    UINT32          GetLastCallFailedCauseID() const        { return m_uiLastCallFailedCauseID; };
+#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
+
+
 private:
     // Framework Init Functions
     BOOL            CreateQueues();
@@ -149,6 +155,9 @@ private:
 
     BOOL                m_rgfChannelCompletedInit[RIL_CHANNEL_MAX][COM_MAX_INDEX];
 
+#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
+    UINT32          m_uiLastCallFailedCauseID;
+#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 };
 
 #endif // SYSTEMMANAGER

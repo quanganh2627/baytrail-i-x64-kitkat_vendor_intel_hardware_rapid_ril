@@ -119,6 +119,9 @@ CSystemManager::CSystemManager()
     m_fdCleanupSocket(-1),
     m_RequestInfoTable(),
     m_bFailedToInitialize(FALSE)
+#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
+    ,m_uiLastCallFailedCauseID(0)
+#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 {
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Enter\r\n");
 

@@ -272,8 +272,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         //  XDNS=3 is not supported by the modem so two commands +XDNS=1 and +XDNS=2 should be sent.
         if (!PrintStringNullTerminate(rReqData.szCmd1,
             sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2;+CGACT=1,%d\r", uiCID,
-            stPdpData.szApn, uiCID, uiCID, uiCID))
+            "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
+            stPdpData.szApn, uiCID, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType is NULL\r\n");
             goto Error;
@@ -287,8 +287,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         {
             if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,1;+CGACT=1,%d\r", uiCID, stPdpData.szPDPType,
-                stPdpData.szApn, uiCID, uiCID))
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,1\r", uiCID, stPdpData.szPDPType,
+                stPdpData.szApn, uiCID))
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
                 goto Error;
@@ -298,20 +298,33 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         {
             if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,2;+CGACT=1,%d\r", uiCID, stPdpData.szPDPType,
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,2\r", uiCID, stPdpData.szPDPType,
+                stPdpData.szApn, uiCID))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+                goto Error;
+            }
+        }
+        else if (0 == strcasecmp(stPdpData.szPDPType, "IPV4V6"))
+        {
+            //  XDNS=3 is not supported by the modem so two commands +XDNS=1 and +XDNS=2 should be sent.
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
                 stPdpData.szApn, uiCID, uiCID))
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
                 goto Error;
             }
         }
-        else  //  IPV4V6 and default case
+        else
         {
+            //  Default case, just use IPV4V6
             //  XDNS=3 is not supported by the modem so two commands +XDNS=1 and +XDNS=2 should be sent.
             if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2;+CGACT=1,%d\r", uiCID,
-                stPdpData.szApn, uiCID, uiCID, uiCID))
+                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
+                stPdpData.szApn, uiCID, uiCID))
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
                 goto Error;
@@ -330,12 +343,20 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     }
 #endif // M2_IPV6_FEATURE_ENABLED
 
+
+#if defined(M2_IPV6_FEATURE_ENABLED)
+    if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDATA command\r\n");
+        goto Error;
+    }
+#else // M2_IPV6_FEATURE_ENABLED
     if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGDATA=\"M-RAW_IP\",%d\r", uiCID))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDATA command\r\n");
         goto Error;
     }
-
+#endif // M2_IPV6_FEATURE_ENABLED
 
     //  Store the potential uiCID in the pContext
     rReqData.pContextData = (void*)uiCID;
@@ -834,14 +855,14 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
 
     char *szIpAddr = pChannelData->m_szIpAddr;
     char *szDNS1 = pChannelData->m_szDNS1;
-    char *szDNS1_2 = pChannelData->m_szDNS1_2;
+    char *szDNS1_Secondary = pChannelData->m_szDNS1_Secondary;
     char *szDNS2 = pChannelData->m_szDNS2;
-    char *szDNS2_2 = pChannelData->m_szDNS2_2;
+    char *szDNS2_Secondary = pChannelData->m_szDNS2_Secondary;
 
 
     RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szNetworkInterfaceName=[%s]  szIpAddr=[%s]\r\n", szNetworkInterfaceName, szIpAddr);
-    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szDNS1=[%s]  szDNS1_2=[%s]\r\n", szDNS1, (szDNS1_2 ? szDNS1_2 : "<null>"));
-    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szDNS2=[%s]  szDNS2_2=[%s]\r\n", szDNS2, (szDNS2_2 ? szDNS2_2 : "<null>"));
+    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szDNS1=[%s]  szDNS1_Secondary=[%s]\r\n", szDNS1, (szDNS1_Secondary ? szDNS1_Secondary : "<null>"));
+    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szDNS2=[%s]  szDNS2_Secondary=[%s]\r\n", szDNS2, (szDNS2_Secondary ? szDNS2_Secondary : "<null>"));
 
 
     // set net. properties
@@ -1551,12 +1572,12 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                 //  to an Android-readable IPV6, IPV4 address format.
 
                 //  Extract original string into szDNS.
-                //  Then converted address is in pChannelData->m_szDNS1, pChannelData->m_szDNS1_2 (if IPv4v6).
+                //  Then converted address is in pChannelData->m_szDNS1, pChannelData->m_szDNS1_Secondary (if IPv4v6).
                 const int MAX_IPADDR_SIZE = 100;
                 char szDNS[MAX_IPADDR_SIZE] = {0};
 
                 // Parse <primary DNS>
-                // Converted address is in m_szDNS1, m_szDNS1_2 (if necessary)
+                // Converted address is in m_szDNS1, m_szDNS1_Secondary (if necessary)
                 if (SkipString(szRsp, ",", szRsp))
                 {
                     if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
@@ -1573,36 +1594,36 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                     }
                     memset(pChannelData->m_szDNS1, 0, sizeof(char)*MAX_IPADDR_SIZE);
 
-                    //  delete m_szDNS1_2 (if it existed)
-                    delete[] pChannelData->m_szDNS1_2;
-                    pChannelData->m_szDNS1_2 = new char[MAX_IPADDR_SIZE];
-                    if (NULL == pChannelData->m_szDNS1_2)
+                    //  delete m_szDNS1_Secondary (if it existed)
+                    delete[] pChannelData->m_szDNS1_Secondary;
+                    pChannelData->m_szDNS1_Secondary = new char[MAX_IPADDR_SIZE];
+                    if (NULL == pChannelData->m_szDNS1_Secondary)
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS1_2!\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS1_Secondary!\r\n");
                         goto Error;
                     }
-                    memset(pChannelData->m_szDNS1_2, 0, sizeof(char)*MAX_IPADDR_SIZE);
+                    memset(pChannelData->m_szDNS1_Secondary, 0, sizeof(char)*MAX_IPADDR_SIZE);
 
                     //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
                     if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS1, MAX_IPADDR_SIZE,
-                            pChannelData->m_szDNS1_2, MAX_IPADDR_SIZE))
+                            pChannelData->m_szDNS1_Secondary, MAX_IPADDR_SIZE))
                     {
                         RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szDNS1\r\n");
                         goto Error;
                     }
                     RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1: %s\r\n", pChannelData->m_szDNS1);
-                    if (strlen(pChannelData->m_szDNS1_2) > 0)
+                    if (strlen(pChannelData->m_szDNS1_Secondary) > 0)
                     {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1_2: %s\r\n", pChannelData->m_szDNS1_2);
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1_Secondary: %s\r\n", pChannelData->m_szDNS1_Secondary);
                     }
                     else
                     {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1_2: <NONE>\r\n");
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1_Secondary: <NONE>\r\n");
                     }
                 }
 
                 // Parse <secondary DNS>
-                // Converted address is in m_szDNS2, m_szDNS2_2 (if necessary)
+                // Converted address is in m_szDNS2, m_szDNS2_Secondary (if necessary)
                 if (SkipString(szRsp, ",", szRsp))
                 {
                     if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
@@ -1618,31 +1639,31 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                         goto Error;
                     }
 
-                    //  delete m_szDNS2_2 (if it existed)
-                    delete[] pChannelData->m_szDNS2_2;
-                    pChannelData->m_szDNS2_2 = new char[MAX_IPADDR_SIZE];
-                    if (NULL == pChannelData->m_szDNS2_2)
+                    //  delete m_szDNS2_Secondary (if it existed)
+                    delete[] pChannelData->m_szDNS2_Secondary;
+                    pChannelData->m_szDNS2_Secondary = new char[MAX_IPADDR_SIZE];
+                    if (NULL == pChannelData->m_szDNS2_Secondary)
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS2_2!\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS2_Secondary!\r\n");
                         goto Error;
                     }
-                    memset(pChannelData->m_szDNS2_2, 0, sizeof(char)*MAX_IPADDR_SIZE);
+                    memset(pChannelData->m_szDNS2_Secondary, 0, sizeof(char)*MAX_IPADDR_SIZE);
 
                     //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
                     if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS2, MAX_IPADDR_SIZE,
-                            pChannelData->m_szDNS2_2, MAX_IPADDR_SIZE))
+                            pChannelData->m_szDNS2_Secondary, MAX_IPADDR_SIZE))
                     {
                         RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szDNS2\r\n");
                         goto Error;
                     }
                     RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2: %s\r\n", pChannelData->m_szDNS2);
-                    if (strlen(pChannelData->m_szDNS2_2) > 0)
+                    if (strlen(pChannelData->m_szDNS2_Secondary) > 0)
                     {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2_2: %s\r\n", pChannelData->m_szDNS2_2);
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2_Secondary: %s\r\n", pChannelData->m_szDNS2_Secondary);
                     }
                     else
                     {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2_2: <NONE>\r\n");
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2_Secondary: <NONE>\r\n");
                     }
                 }
             }

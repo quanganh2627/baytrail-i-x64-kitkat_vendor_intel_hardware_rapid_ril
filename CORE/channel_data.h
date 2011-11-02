@@ -73,8 +73,8 @@ public:
     char*               m_szIpAddr2;
 
     //  For IPV4V6, there could be 2 DNS addresses for primary and secondary.
-    char*               m_szDNS1_2;
-    char*               m_szDNS2_2;
+    char*               m_szDNS1_Secondary;
+    char*               m_szDNS2_Secondary;
 #endif // M2_IPV6_FEATURE_ENABLED
 
 private:

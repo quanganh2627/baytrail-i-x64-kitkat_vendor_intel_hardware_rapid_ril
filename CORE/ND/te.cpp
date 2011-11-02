@@ -1667,7 +1667,6 @@ RIL_RESULT_CODE CTE::RequestSetClir(RIL_Token rilToken, void * pData, size_t dat
 {
     RIL_LOG_VERBOSE("CTE::RequestSetClir() - Enter\r\n");
 
-    CRepository repository;
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
