@@ -117,11 +117,11 @@ public:
     virtual RIL_RESULT_CODE CoreSignalStrength(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSignalStrength(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_REGISTRATION_STATE 20
+    // RIL_REQUEST_VOICE_REGISTRATION_STATE 20
     virtual RIL_RESULT_CODE CoreRegistrationState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseRegistrationState(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_GPRS_REGISTRATION_STATE 21
+    // RIL_REQUEST_DATA_REGISTRATION_STATE 21
     virtual RIL_RESULT_CODE CoreGPRSRegistrationState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA & rRspData);
 
@@ -494,9 +494,9 @@ public:
     virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
 
 protected:
-    RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus *& pCardStatus);
+    RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus);
 private:
-    RIL_SignalStrength* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
+    RIL_SignalStrength_v5* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
     UINT32 ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause);
 };
 

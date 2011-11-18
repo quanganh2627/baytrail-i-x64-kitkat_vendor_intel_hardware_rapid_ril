@@ -127,7 +127,7 @@ typedef struct
 
 typedef struct
 {
-    RIL_Data_Call_Response  pPDPData[MAX_PDP_CONTEXTS];
+    RIL_Data_Call_Response_v4  pPDPData[MAX_PDP_CONTEXTS];
     char                    pTypeBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
     char                    pApnBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
     char                    pAddressBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];

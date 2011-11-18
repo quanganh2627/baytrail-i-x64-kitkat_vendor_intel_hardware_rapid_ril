@@ -67,7 +67,7 @@ RIL_RESULT_CODE CTEBase::CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData,
     return res;
 }
 
-RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCardStatus)
+RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& pCardStatus)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSimPin() - Enter\r\n");
 
@@ -80,14 +80,14 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus*& pCar
         goto Error;
     }
 
-    pCardStatus = (RIL_CardStatus*)malloc(sizeof(RIL_CardStatus));
+    pCardStatus = (RIL_CardStatus_v6*)malloc(sizeof(RIL_CardStatus_v6));
     if (NULL == pCardStatus)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - ERROR: Could not allocate memory for RIL_CardStatus.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - ERROR: Could not allocate memory for RIL_CardStatus_v6.\r\n");
         goto Error;
     }
 
-    memset(pCardStatus, 0, sizeof(RIL_CardStatus));
+    memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
 
     // Parse "<prefix>+CPIN: <state><postfix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
@@ -263,7 +263,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseGetSimStatus() - Enter\r\n");
 
     const char * pszRsp = rRspData.szResponse;
-    RIL_CardStatus* pCardStatus = NULL;
+    RIL_CardStatus_v6* pCardStatus = NULL;
     RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus);
     if (res != RRIL_RESULT_OK)
     {
@@ -272,7 +272,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
     }
 
     rRspData.pData   = (void*)pCardStatus;
-    rRspData.uiDataSize  = sizeof(RIL_CardStatus);
+    rRspData.uiDataSize  = sizeof(RIL_CardStatus_v6);
 
 Error:
     if (RRIL_RESULT_OK != res)
@@ -1512,16 +1512,16 @@ RIL_RESULT_CODE CTEBase::ParseSignalStrength(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    RIL_SignalStrength* pSigStrData = ParseQuerySignalStrength(rRspData);
+    RIL_SignalStrength_v5* pSigStrData = ParseQuerySignalStrength(rRspData);
     if (NULL == pSigStrData)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength_v5.\r\n");
         goto Error;
     }
 
 
     rRspData.pData   = (void*)pSigStrData;
-    rRspData.uiDataSize  = sizeof(RIL_SignalStrength);
+    rRspData.uiDataSize  = sizeof(RIL_SignalStrength_v5);
 
     res = RRIL_RESULT_OK;
 
@@ -1531,7 +1531,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_REGISTRATION_STATE 20
+// RIL_REQUEST_VOICE_REGISTRATION_STATE 20
 //
 RIL_RESULT_CODE CTEBase::CoreRegistrationState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -1733,7 +1733,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_GPRS_REGISTRATION_STATE 21
+// RIL_REQUEST_DATA_REGISTRATION_STATE 21
 //
 RIL_RESULT_CODE CTEBase::CoreGPRSRegistrationState(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -2633,7 +2633,7 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_SIM_IO *   pSimIOArgs = NULL;
+    RIL_SIM_IO_v5 *   pSimIOArgs = NULL;
 
     if (NULL == pData)
     {
@@ -2641,14 +2641,14 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
         goto Error;
     }
 
-    if (sizeof(RIL_SIM_IO) != uiDataSize)
+    if (sizeof(RIL_SIM_IO_v5) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     // extract data
-    pSimIOArgs = (RIL_SIM_IO *)pData;
+    pSimIOArgs = (RIL_SIM_IO_v5 *)pData;
 
     RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
     RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
@@ -5556,7 +5556,7 @@ Continue:
     if (count > 0)
     {
         rRspData.pData  = (void*) pPDPListData;
-        rRspData.uiDataSize = count * sizeof(RIL_Data_Call_Response);
+        rRspData.uiDataSize = count * sizeof(RIL_Data_Call_Response_v4);
     }
     else
     {
@@ -7260,7 +7260,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_SIM_IO *   pSimIOArgs = NULL;
+    RIL_SIM_IO_v5 *   pSimIOArgs = NULL;
 
     if (NULL == pData)
     {
@@ -7268,14 +7268,14 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
         goto Error;
     }
 
-    if (sizeof(RIL_SIM_IO) != uiDataSize)
+    if (sizeof(RIL_SIM_IO_v5) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitBasic() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     // extract data
-    pSimIOArgs = (RIL_SIM_IO *)pData;
+    pSimIOArgs = (RIL_SIM_IO_v5 *)pData;
 
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - cla=[0x%08x]  [%d]\r\n", pSimIOArgs->cla, pSimIOArgs->cla);
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
@@ -7789,7 +7789,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_SIM_IO *   pSimIOArgs = NULL;
+    RIL_SIM_IO_v5 *   pSimIOArgs = NULL;
 
     if (NULL == pData)
     {
@@ -7797,14 +7797,14 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
         goto Error;
     }
 
-    if (sizeof(RIL_SIM_IO) != uiDataSize)
+    if (sizeof(RIL_SIM_IO_v5) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     // extract data
-    pSimIOArgs = (RIL_SIM_IO *)pData;
+    pSimIOArgs = (RIL_SIM_IO_v5 *)pData;
 
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - cla=[0x%08x]  [%d]\r\n", pSimIOArgs->cla, pSimIOArgs->cla);
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
@@ -8210,7 +8210,7 @@ RIL_RESULT_CODE CTEBase::ParseDialVT(RESPONSE_DATA & rRspData)
 #endif // M2_VT_FEATURE_ENABLED
 
 
-RIL_SignalStrength* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspData)
+RIL_SignalStrength_v5* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseQuerySignalStrength() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -8218,16 +8218,16 @@ RIL_SignalStrength* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspData)
 
     UINT32 uiRSSI  = 0;
     UINT32 uiBER   = 0;
-    RIL_SignalStrength* pSigStrData;
+    RIL_SignalStrength_v5* pSigStrData;
 
-    pSigStrData = (RIL_SignalStrength*)malloc(sizeof(RIL_SignalStrength));
+    pSigStrData = (RIL_SignalStrength_v5*)malloc(sizeof(RIL_SignalStrength_v5));
     if (NULL == pSigStrData)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength_v5.\r\n");
         goto Error;
     }
 
-    memset(pSigStrData, 0x00, sizeof(RIL_SignalStrength));
+    memset(pSigStrData, 0x00, sizeof(RIL_SignalStrength_v5));
 
     // Parse "<prefix>+CSQ: <rssi>,<ber><postfix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
@@ -8281,16 +8281,16 @@ RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    RIL_SignalStrength* pSigStrData = ParseQuerySignalStrength(rRspData);
+    RIL_SignalStrength_v5* pSigStrData = ParseQuerySignalStrength(rRspData);
     if (NULL == pSigStrData)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseUnsolicitedSignalStrength() - ERROR: Could not allocate memory for RIL_SignalStrength_v5.\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
-    RIL_onUnsolicitedResponse(RIL_UNSOL_SIGNAL_STRENGTH, (void*)pSigStrData, sizeof(RIL_SignalStrength));
+    RIL_onUnsolicitedResponse(RIL_UNSOL_SIGNAL_STRENGTH, (void*)pSigStrData, sizeof(RIL_SignalStrength_v5));
 
 Error:
     free(pSigStrData);
@@ -8437,9 +8437,9 @@ Continue:
     if (count > 0)
     {
         //rRspData.pData  = (void*) pPDPListData;
-        //rRspData.uiDataSize = count * sizeof(RIL_Data_Call_Response);
+        //rRspData.uiDataSize = count * sizeof(RIL_Data_Call_Response_v4);
 
-        RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, (void*)pPDPListData, count * sizeof(RIL_Data_Call_Response));
+        RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, (void*)pPDPListData, count * sizeof(RIL_Data_Call_Response_v4));
     }
     else
     {

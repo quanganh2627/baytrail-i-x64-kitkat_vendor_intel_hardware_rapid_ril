@@ -129,11 +129,11 @@ public:
     RIL_RESULT_CODE RequestSignalStrength(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseSignalStrength(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_REGISTRATION_STATE 20
+    // RIL_REQUEST_VOICE_REGISTRATION_STATE 20
     RIL_RESULT_CODE RequestRegistrationState(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseRegistrationState(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_GPRS_REGISTRATION_STATE 21
+    // RIL_REQUEST_DATA_REGISTRATION_STATE 21
     RIL_RESULT_CODE RequestGPRSRegistrationState(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA & rRspData);
 
@@ -358,7 +358,7 @@ public:
 
     // RIL_REQUEST_SET_LOCATION_UPDATES 76
 
-    // RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77
+    // RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE 77
     RIL_RESULT_CODE RequestCdmaSetSubscription(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseCdmaSetSubscription(RESPONSE_DATA & rRspData);
 

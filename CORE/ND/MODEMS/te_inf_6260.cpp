@@ -119,7 +119,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
     UINT32 nValue;
 
     const char * pszRsp = rRspData.szResponse;
-    RIL_CardStatus* pCardStatus = NULL;
+    RIL_CardStatus_v6* pCardStatus = NULL;
     RIL_RESULT_CODE res = CTEBase::ParseSimPin(pszRsp, pCardStatus);
     if (RRIL_RESULT_OK != res)
     {
@@ -201,7 +201,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
     res = RRIL_RESULT_OK;
 
     rRspData.pData   = (void*)pCardStatus;
-    rRspData.uiDataSize  = sizeof(RIL_CardStatus);
+    rRspData.uiDataSize  = sizeof(RIL_CardStatus_v6);
 
 Error:
     if (RRIL_RESULT_OK != res)
@@ -2085,7 +2085,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_SIM_IO *   pSimIOArgs = NULL;
+    RIL_SIM_IO_v5 *   pSimIOArgs = NULL;
     char szGraphicsPath[] = "3F007F105F50";  // Bugzilla 2822 - SATK icon test failing
     char szImg[] = "img";
     char *pszPath = NULL;
@@ -2096,14 +2096,14 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
         goto Error;
     }
 
-    if (sizeof(RIL_SIM_IO) != uiDataSize)
+    if (sizeof(RIL_SIM_IO_v5) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     // extract data
-    pSimIOArgs = (RIL_SIM_IO *)pData;
+    pSimIOArgs = (RIL_SIM_IO_v5 *)pData;
 
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);

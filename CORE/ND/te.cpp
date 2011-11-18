@@ -1027,7 +1027,7 @@ RIL_RESULT_CODE CTE::ParseSignalStrength(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_REGISTRATION_STATE 20
+// RIL_REQUEST_VOICE_REGISTRATION_STATE 20
 //
 RIL_RESULT_CODE CTE::RequestRegistrationState(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -1074,7 +1074,7 @@ RIL_RESULT_CODE CTE::ParseRegistrationState(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_GPRS_REGISTRATION_STATE 21
+// RIL_REQUEST_DATA_REGISTRATION_STATE 21
 //
 RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -3748,7 +3748,7 @@ RIL_RESULT_CODE CTE::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData)
 //
 
 //
-// RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77
+// RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE 77
 //
 RIL_RESULT_CODE CTE::RequestCdmaSetSubscription(RIL_Token rilToken, void * pData, size_t datalen)
 {

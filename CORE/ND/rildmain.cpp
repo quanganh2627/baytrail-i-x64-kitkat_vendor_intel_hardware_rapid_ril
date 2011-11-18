@@ -105,8 +105,8 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED\r\n");
             break;
 
-        case RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED:  // 1002
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED\r\n");
+        case RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED:  // 1002
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED\r\n");
             break;
 
         case RIL_UNSOL_RESPONSE_NEW_SMS:  // 1003
@@ -158,8 +158,8 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIGNAL_STRENGTH\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_signalStrength=%d\r\n", ((RIL_SignalStrength *)pData)->GW_SignalStrength.signalStrength);
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_bitErrorRate=%d\r\n", ((RIL_SignalStrength *)pData)->GW_SignalStrength.bitErrorRate);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_signalStrength=%d\r\n", ((RIL_SignalStrength_v5 *)pData)->GW_SignalStrength.signalStrength);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_bitErrorRate=%d\r\n", ((RIL_SignalStrength_v5 *)pData)->GW_SignalStrength.bitErrorRate);
             }
             break;
 
@@ -167,35 +167,35 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_DATA_CALL_LIST_CHANGED\r\n");
             if (pData && dataSize)
             {
-                int nDataCallResponseNum = dataSize / sizeof(RIL_Data_Call_Response);
-                RIL_Data_Call_Response *pDCR = (RIL_Data_Call_Response *)pData;
+                int nDataCallResponseNum = dataSize / sizeof(RIL_Data_Call_Response_v4);
+                RIL_Data_Call_Response_v4 *pDCR = (RIL_Data_Call_Response_v4 *)pData;
                 for (int i=0; i<nDataCallResponseNum; i++)
                 {
-                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] cid=%d\r\n", i, pDCR[i].cid);
-                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] active=%d\r\n", i, pDCR[i].active);
+                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] cid=%d\r\n", i, pDCR[i].cid);
+                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] active=%d\r\n", i, pDCR[i].active);
                     if (pDCR->type)
                     {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] type=\"%s\"\r\n", i, pDCR[i].type);
+                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] type=\"%s\"\r\n", i, pDCR[i].type);
                     }
                     else
                     {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] type=NULL\r\n", i);
+                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] type=NULL\r\n", i);
                     }
                     if (pDCR->apn)
                     {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] apn=\"%s\"\r\n", i, pDCR[i].apn);
+                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] apn=\"%s\"\r\n", i, pDCR[i].apn);
                     }
                     else
                     {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] apn=NULL\r\n", i);
+                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] apn=NULL\r\n", i);
                     }
                     if (pDCR->address)
                     {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] address=\"%s\"\r\n", i, pDCR[i].address);
+                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] address=\"%s\"\r\n", i, pDCR[i].address);
                     }
                     else
                     {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response[%d] address=NULL\r\n", i);
+                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] address=NULL\r\n", i);
                     }
                 }
             }
@@ -333,7 +333,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
 
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
 
-        case RIL_UNSOL_CALL_FAILED_CAUSE:  // 1031
+        case RIL_UNSOL_CDMA_SUBSCRIPTION_CHANGED: //RIL_UNSOL_CALL_FAILED_CAUSE:  // 1031
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CALL_FAILED_CAUSE\r\n");
             if (pData && dataSize)
             {
@@ -576,16 +576,16 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_REGISTRATION_STATE:  // 20
+        case RIL_REQUEST_VOICE_REGISTRATION_STATE:  // 20
         {
-            RIL_LOG_INFO("onRequest() - RIL_REQUEST_REGISTRATION_STATE\r\n");
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_VOICE_REGISTRATION_STATE\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestRegistrationState(hRilToken, pData, datalen);
         }
         break;
 
-        case RIL_REQUEST_GPRS_REGISTRATION_STATE:  // 21
+        case RIL_REQUEST_DATA_REGISTRATION_STATE:  // 21
         {
-            RIL_LOG_INFO("onRequest() - RIL_REQUEST_GPRS_REGISTRATION_STATE\r\n");
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_DATA_REGISTRATION_STATE\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGPRSRegistrationState(hRilToken, pData, datalen);
         }
         break;
@@ -984,9 +984,9 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_CDMA_SET_SUBSCRIPTION:  // 77 - CDMA, not supported
+        case RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE:  // 77 - CDMA, not supported
         {
-            RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_SET_SUBSCRIPTION\r\n");
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE\r\n");
             RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
         }
         break;

@@ -131,11 +131,11 @@ public:
     long OEMSignalStrength(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
     long OEMParseSignalStrength(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_REGISTRATION_STATE 20
+    // RIL_REQUEST_VOICE_REGISTRATION_STATE 20
     long OEMRegistrationState(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
     long OEMParseRegistrationState(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_GPRS_REGISTRATION_STATE 21
+    // RIL_REQUEST_DATA_REGISTRATION_STATE 21
     long OEMGPRSRegistrationState(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize);
     long OEMParseGPRSRegistrationState(RESPONSE_DATA & rRspData);
 

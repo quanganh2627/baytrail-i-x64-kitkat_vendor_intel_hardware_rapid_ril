@@ -281,7 +281,7 @@ long CTEOem::OEMParseSignalStrength(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_REGISTRATION_STATE 20
+// RIL_REQUEST_VOICE_REGISTRATION_STATE 20
 //
 long CTEOem::OEMRegistrationState(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize)
 {
@@ -294,7 +294,7 @@ long CTEOem::OEMParseRegistrationState(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_GPRS_REGISTRATION_STATE 21
+// RIL_REQUEST_DATA_REGISTRATION_STATE 21
 //
 long CTEOem::OEMGPRSRegistrationState(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize)
 {
@@ -1022,7 +1022,7 @@ long CTEOem::OEMParseSetLocationUpdates(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77
+// RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE 77
 //
 long CTEOem::OEMCdmaSetSubscription(REQUEST_DATA & rReqData, void * pData, unsigned int uiDataSize)
 {
