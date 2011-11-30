@@ -66,7 +66,7 @@ char* g_szURCPort = NULL;
 
 static const RIL_RadioFunctions gs_callbacks =
 {
-    RIL_VERSION,
+    RAPID_RIL_VERSION,
     onRequest,
     onGetCurrentRadioState,
     onSupports,

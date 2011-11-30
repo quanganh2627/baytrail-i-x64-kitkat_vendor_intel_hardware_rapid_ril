@@ -26,6 +26,7 @@
 #include "types.h"
 #include <telephony/ril.h>
 
+#define RAPID_RIL_VERSION 4
 
 class CThread;
 
