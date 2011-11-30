@@ -1661,7 +1661,7 @@ RIL_RESULT_CODE CTEBase::CoreOperator(REQUEST_DATA & rReqData, void * pData, UIN
     RIL_LOG_VERBOSE("CTEBase::CoreOperator() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCOPS=6;+XCOPS=5;+XCOPS=0\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCOPS=12;+XCOPS=11;+XCOPS=13;+XCOPS=6;+XCOPS=5\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -1677,10 +1677,12 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    UINT32      uiType    = 0;
-    int       i         = 0;
-    int       numericID = 0;
-
+    UINT32 uiType = 0;
+    const int NAME_SIZE = 50;
+    char szFullName[NAME_SIZE] = {0};
+    char szShortName[NAME_SIZE] = {0};
+    BOOL isNitzNameAvailable = FALSE;
+    char szPlmnName[NAME_SIZE] = {0};
     P_ND_OP_NAMES pOpNames = NULL;
 
     pOpNames = (P_ND_OP_NAMES)malloc(sizeof(S_ND_OP_NAMES));
@@ -1691,10 +1693,16 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
     }
     memset(pOpNames, 0, sizeof(S_ND_OP_NAMES));
 
-    // XCOPS follows a fall back mechanism if a requested type is not available.
-    // For requested type 9, fallback types are 6 or 4 or 2 or 0
-    // For requested type 8, fallback types are 5 or 3 or 1 or 0
-    // Other details can be found in the C-AT specifications.
+    /*
+     * XCOPS follows a fall back mechanism if a requested type is not available.
+     * For requested type 6, fallback types are 4 or 2 or 0
+     * For requested type 5, fallback types are 3 or 1 or 0
+     * When registered, requested type 11,12 and 13 will always return the
+     * currently registered PLMN information
+     * Other details can be found in the C-AT specifications.
+     *
+     * Fallback's are ignored as framework already has this information.
+     */
 
     // Parse "<prefix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
@@ -1705,7 +1713,6 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Response: %s\r\n", CRLFExpandedString(pszRsp, strlen(pszRsp)).GetString());
 
-    pOpNames->szOpNameShort[0] = '\0';
     // Skip "+XCOPS: "
     while (SkipString(pszRsp, "+XCOPS: ", pszRsp))
     {
@@ -1722,123 +1729,77 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
             // Based on type get the long/short/numeric network name
             switch (uiType)
             {
-                //“network name”, “additional Unicode network name” for <type> = 1 or 2
-                // Based on NV-RAM
-                // Here this comes as a fall back case, as we request 9/8 always.
-                case 2:
-                {
-                    char tmp[MAX_BUFFER_SIZE];
-                    if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
-                    {
-                        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
-                        goto Error;
-                    }
-                    int i;
-                    for (i = 0; tmp[i]; pOpNames->szOpNameLong[i] = (char) tmp[i], ++i);
-                    pOpNames->szOpNameLong[i] = '\0';
-                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Long oper: %s\r\n", pOpNames->szOpNameLong);
-                    // Getting unicode long name (skip over it)
-                    if (SkipString(pszRsp, ",", pszRsp))
-                    {
-                        //TODO
-                        //  Skip over unicode string (if it exists)
-                        ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp);
-                    }
-                }
-                break;
-
-                case 1:
-                {
-                    char tmp[MAX_BUFFER_SIZE];
-                    if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
-                    {
-                        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Short Format Operator Name.\r\n");
-                        goto Error;
-                    }
-                    int i;
-                    for (i = 0; tmp[i]; pOpNames->szOpNameShort[i] = (char) tmp[i], ++i);
-                    pOpNames->szOpNameShort[i] = '\0';
-                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() -  short oper: %s\r\n", pOpNames->szOpNameShort);
-                    // Getting unicode short name (skip over it)
-                    if (SkipString(pszRsp, ",", pszRsp))
-                    {
-                        //TODO
-                        //  Skip over unicode string (if it exists)
-                        ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp);
-                    }
-                }
-                break;
-
-                //“network name” for <type> = 9, 6 or 4, long name based on EONS, CPHS or NITZ
-                // This could also be a fall back as we always request for type 9
-                case 9:
+                // Long name based on NITZ
                 case 6:
-                case 4:
                 {
-                    char tmp[MAX_BUFFER_SIZE];
-                    if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    if (!ExtractQuotedString(pszRsp, szFullName, NAME_SIZE, pszRsp))
                     {
                         RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
                     }
-                    int i;
-                    for (i = 0; tmp[i]; pOpNames->szOpNameLong[i] = (char) tmp[i], ++i);
-                    pOpNames->szOpNameLong[i] = '\0';
-                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Long oper: %s\r\n", pOpNames->szOpNameLong);
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - NITZ Long name: %s\r\n", szFullName);
+                    isNitzNameAvailable = TRUE;
                 }
                 break;
 
-                //“network name” for <type> = 8, 5 or 3, short name based on EONS, CPHS or NITZ
-                // This could also be a fall back as we always request for type 8
-                case 8:
+                // Short name based on NITZ
                 case 5:
-                case 3:
                 {
-                    char tmp[MAX_BUFFER_SIZE];
-                    if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    if (!ExtractQuotedString(pszRsp, szShortName, NAME_SIZE, pszRsp))
                     {
                         RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Short Format Operator Name.\r\n");
                         goto Error;
                     }
-                    int i;
-                    for (i = 0; tmp[i]; pOpNames->szOpNameShort[i] = (char) tmp[i], ++i);
-                    pOpNames->szOpNameShort[i] = '\0';
-                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Short oper: %s\r\n", pOpNames->szOpNameShort);
-
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - NITZ Short name: %s\r\n", szShortName);
+                    isNitzNameAvailable = TRUE;
                 }
                 break;
 
-                // Numeric name
-                case 0:
+                // Long PLMN name(When PS or CS is registered)
+                case 12:
                 {
-                    char tmp[MAX_BUFFER_SIZE];
-                    if (!ExtractQuotedString(pszRsp, tmp, MAX_BUFFER_SIZE, pszRsp))
+                    if (!ExtractQuotedString(pszRsp, szPlmnName, sizeof(szPlmnName), pszRsp))
                     {
                         RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
                     }
-                    int i;
-                    for (i = 0; tmp[i]; pOpNames->szOpNameNumeric[i] = (char) tmp[i], ++i);
-                    pOpNames->szOpNameNumeric[i] = '\0';
-                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Numeric: %s\r\n", pOpNames->szOpNameNumeric);
+                    strncpy(pOpNames->szOpNameLong, szPlmnName, strlen(szPlmnName));
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Long Name: %s\r\n", pOpNames->szOpNameLong);
+                }
+                break;
+
+                // Short PLMN name(When PS or CS is registered)
+                case 11:
+                {
+                    if (!ExtractQuotedString(pszRsp, szPlmnName, sizeof(szPlmnName), pszRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Short Format Operator Name.\r\n");
+                        goto Error;
+                    }
+                    strncpy(pOpNames->szOpNameShort, szPlmnName, strlen(szPlmnName));
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Short Name: %s\r\n", pOpNames->szOpNameShort);
+                }
+                break;
+
+                // numeric format of network MCC/MNC even in limited service
+                case 13:
+                {
+                    if (!ExtractQuotedString(pszRsp, szPlmnName, sizeof(szPlmnName), pszRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
+                        goto Error;
+                    }
+                    strncpy(pOpNames->szOpNameNumeric, szPlmnName, strlen(szPlmnName));
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Numeric code: %s\r\n", pOpNames->szOpNameNumeric);
                 }
                 break;
 
                 default:
                 {
-                    RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Unknown Format.\r\n");
-                    goto Error;
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Format not handled.\r\n");
+                    break;
                 }
-                break;
             }
-
-            pOpNames->sOpNamePtrs.pszOpNameLong    = pOpNames->szOpNameLong;
-            pOpNames->sOpNamePtrs.pszOpNameShort   = pOpNames->szOpNameShort;
-            pOpNames->sOpNamePtrs.pszOpNameNumeric = pOpNames->szOpNameNumeric;
-
-            RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Long    Name: \"%s\"\r\n", pOpNames->sOpNamePtrs.pszOpNameLong);
-            RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Short   Name: \"%s\"\r\n", pOpNames->sOpNamePtrs.pszOpNameShort);
-            RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Numeric Name: \"%s\"\r\n", pOpNames->sOpNamePtrs.pszOpNameNumeric);
         }
         else
         {
@@ -1849,7 +1810,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
         }
 
         // Extract "<CR><LF>"
-        if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+        if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract response postfix.\r\n");
             goto Error;
@@ -1862,6 +1823,20 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
         RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Response: %s\r\n", CRLFExpandedString(pszRsp, strlen(pszRsp)).GetString());
     }
+
+    if (isNitzNameAvailable)
+    {
+        strncpy(pOpNames->szOpNameLong, szFullName, strlen(szFullName));
+        strncpy(pOpNames->szOpNameShort, szShortName, strlen(szShortName));
+    }
+
+    pOpNames->sOpNamePtrs.pszOpNameLong    = pOpNames->szOpNameLong;
+    pOpNames->sOpNamePtrs.pszOpNameShort   = pOpNames->szOpNameShort;
+    pOpNames->sOpNamePtrs.pszOpNameNumeric = pOpNames->szOpNameNumeric;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Long Name: \"%s\", Short Name: \"%s\", Numeric Name: \"%s\"\r\n",
+                    pOpNames->sOpNamePtrs.pszOpNameLong, pOpNames->sOpNamePtrs.pszOpNameShort,
+                    pOpNames->sOpNamePtrs.pszOpNameNumeric);
 
     // We cheat with the size here.
     // Although we have allocated a S_ND_OP_NAMES struct, we tell
