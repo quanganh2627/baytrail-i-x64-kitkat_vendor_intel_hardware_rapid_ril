@@ -34,6 +34,7 @@ protected:
     int m_nNetworkRegistrationType;  //  0 = automatic, 1 = manual
     char m_szManualMCCMNC[MAX_BUFFER_SIZE];  //  If manual, this holds the MCCMNC string.
     bool mShutdown;
+    int m_nSimAppType;
 
 public:
 
@@ -496,7 +497,7 @@ public:
 protected:
     RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus);
 private:
-    RIL_SignalStrength_v5* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
+    RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
     UINT32 ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause);
 };
 

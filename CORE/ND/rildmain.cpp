@@ -158,8 +158,8 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIGNAL_STRENGTH\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_signalStrength=%d\r\n", ((RIL_SignalStrength_v5 *)pData)->GW_SignalStrength.signalStrength);
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_bitErrorRate=%d\r\n", ((RIL_SignalStrength_v5 *)pData)->GW_SignalStrength.bitErrorRate);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_signalStrength=%d\r\n", ((RIL_SignalStrength_v6 *)pData)->GW_SignalStrength.signalStrength);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_bitErrorRate=%d\r\n", ((RIL_SignalStrength_v6 *)pData)->GW_SignalStrength.bitErrorRate);
             }
             break;
 

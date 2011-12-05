@@ -156,6 +156,9 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
                     pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
                 }
             }
+
+            m_nSimAppType = pCardStatus->applications[0].app_type;
+
             SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
         }
 
@@ -2085,7 +2088,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_SIM_IO_v5 *   pSimIOArgs = NULL;
+    RIL_SIM_IO_v6 *   pSimIOArgs = NULL;
     char szGraphicsPath[] = "3F007F105F50";  // Bugzilla 2822 - SATK icon test failing
     char szImg[] = "img";
     char *pszPath = NULL;
@@ -2096,14 +2099,14 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
         goto Error;
     }
 
-    if (sizeof(RIL_SIM_IO_v5) != uiDataSize)
+    if (sizeof(RIL_SIM_IO_v6) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     // extract data
-    pSimIOArgs = (RIL_SIM_IO_v5 *)pData;
+    pSimIOArgs = (RIL_SIM_IO_v6 *)pData;
 
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
@@ -3718,7 +3721,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
     switch (nNetworkType)
     {
-        case 0: // WCDMA Preferred
+        case PREF_NET_TYPE_GSM_WCDMA: // WCDMA Preferred
 
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=1,2\r", sizeof(rReqData.szCmd1) ))
             {
@@ -3728,7 +3731,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
            break;
 
-        case 1: // GSM Only
+        case PREF_NET_TYPE_GSM_ONLY: // GSM Only
 
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=0\r", sizeof(rReqData.szCmd1) ))
             {
@@ -3738,7 +3741,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
             break;
 
-        case 2: // WCDMA Only
+        case PREF_NET_TYPE_WCDMA: // WCDMA Only
 
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=2\r", sizeof(rReqData.szCmd1) ))
             {
@@ -3846,22 +3849,22 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspD
     {
         case 0:     // GSM Only
         {
-            pRat[0] = 1;
-            m_nCurrentNetworkType = 1;
+            pRat[0] = PREF_NET_TYPE_GSM_ONLY;
+            m_nCurrentNetworkType = PREF_NET_TYPE_GSM_ONLY;
             break;
         }
 
         case 1:     // WCDMA Preferred
         {
-            pRat[0] = 0;
-            m_nCurrentNetworkType = 0;
+            pRat[0] = PREF_NET_TYPE_GSM_WCDMA;
+            m_nCurrentNetworkType = PREF_NET_TYPE_GSM_WCDMA;
             break;
         }
 
         case 2:     // WCDMA only
         {
-            pRat[0] = 2;
-            m_nCurrentNetworkType = 2;
+            pRat[0] = PREF_NET_TYPE_WCDMA;
+            m_nCurrentNetworkType = PREF_NET_TYPE_WCDMA;
             break;
         }
 
