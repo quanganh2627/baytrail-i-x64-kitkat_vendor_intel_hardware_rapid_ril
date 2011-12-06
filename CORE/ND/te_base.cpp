@@ -1359,7 +1359,7 @@ RIL_RESULT_CODE CTEBase::CoreUdub(REQUEST_DATA & rReqData, void * pData, UINT32 
     RIL_LOG_VERBOSE("CTEBase::CoreUdub() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "ATH\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=0\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
