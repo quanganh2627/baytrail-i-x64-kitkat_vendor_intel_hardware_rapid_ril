@@ -50,7 +50,7 @@ private:
 
 
 public:
-    char *& GetString() { return m_pszString; };
+    const char* GetString() { return (NULL != m_pszString) ? m_pszString : "NULL"; };
 
 private:
     char * m_pszString;

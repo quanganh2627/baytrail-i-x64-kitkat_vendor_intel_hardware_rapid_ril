@@ -878,25 +878,11 @@ BOOL CChannelBase::ClosePort()
 
 BOOL CChannelBase::WriteToPort(const char* pData, UINT32 uiBytesToWrite, UINT32& ruiBytesWritten)
 {
-    BOOL bRetVal = FALSE;
-
     RIL_LOG_INFO("CChannelBase::WriteToPort() - INFO: chnl=[%d] TX [%s]\r\n",
                        m_uiRilChannel,
                        CRLFExpandedString(pData,uiBytesToWrite).GetString());
 
-    bRetVal = m_Port.Write(pData, uiBytesToWrite, ruiBytesWritten);
-
-    if (!bRetVal)
-    {
-        char *pExpandedATCmd = NULL;
-#if defined(DEBUG)
-        pExpandedATCmd = CRLFExpandedString(pData,uiBytesToWrite).GetString();
-#endif
-        RIL_LOG_CRITICAL("CChannelBase::WriteToPort() - ERROR: chnl=[%d] Failed to write command: [%s]\r\n",
-                         m_uiRilChannel, pExpandedATCmd ? pExpandedATCmd : "NULL");
-    }
-
-    return bRetVal;
+    return m_Port.Write(pData, uiBytesToWrite, ruiBytesWritten);
 }
 
 BOOL CChannelBase::ReadFromPort(char * pszReadBuf, UINT32 uiReadBufSize, UINT32& ruiBytesRead)

@@ -325,10 +325,10 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
     UINT32 nNewLen = 0;
     UINT32 nOther = 0;
     char * pszNewString = NULL;
+    m_pszString = NULL;
 
     if (NULL == pszIn)
     {
-        RIL_LOG_CRITICAL("CRLFExpandedString::CRLFExpandedString() : ERROR : pszIn was NULL\r\n");
         return;
     }
 
@@ -351,7 +351,6 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
     m_pszString = new char[nNewLen];
     if (NULL == m_pszString)
     {
-        RIL_LOG_CRITICAL("CRLFExpandedString::CRLFExpandedString() : ERROR : Couldn't allocate m_pszString\r\n");
         return;
     }
     memset(m_pszString, 0, nNewLen);
@@ -381,9 +380,11 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
 
 CRLFExpandedString::~CRLFExpandedString()
 {
-    //RIL_LOG_INFO("CRLFExpandedString::~CRLFExpandedString()\r\n");
-    delete [] m_pszString;
-    m_pszString = NULL;
+    if (NULL != m_pszString)
+    {
+        delete [] m_pszString;
+        m_pszString = NULL;
+    }
 }
 
 void Sleep(UINT32 dwTimeInMs)
