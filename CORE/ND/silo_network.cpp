@@ -28,9 +28,6 @@
 #include "cutils/tztime.h"
 #include "te.h"
 
-char g_szNITZ[MAX_BUFFER_SIZE];
-BOOL g_bNITZTimerActive = false;
-
 //
 //
 CSilo_Network::CSilo_Network(CChannel *pChannel)
@@ -46,17 +43,15 @@ CSilo_Network::CSilo_Network(CChannel *pChannel)
         { "+CGREG: "    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGREG        },
         { "+XREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXREG         },
         { "+CGEV: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGEV         },
-        { "+CTZV: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCTZV         },
-        { "+CTZDST: "   , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCTZDST       },
-        { "+XNITZINFO"  , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
+        { "+CTZV: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
+        { "+CTZDST: "   , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
+        { "+XNITZINFO"  , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXNITZINFO    },
         { "+PACSP1"     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
         { "+XCGEDPAGE:" , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCGEDPAGE    },
         { ""            , (PFN_ATRSP_PARSE)&CSilo_Network::ParseNULL         }
     };
 
     m_pATRspTable = pATRspTable;
-
-    memset(g_szNITZ, 0, sizeof(g_szNITZ));
 
     RIL_LOG_VERBOSE("CSilo_Network::CSilo_Network() - Exit\r\n");
 }
@@ -125,252 +120,205 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-//  Callback function when SIGALRM alarm is signalled in CSilo_Network::ParseCTZV().
-void triggerNITZNotification(int sig)
-{
-    RIL_LOG_INFO("triggerNITZNotification, g_bNITZTimerActive: %d", g_bNITZTimerActive);
-
-    if (!g_bNITZTimerActive)
-        return;
-
-    g_bNITZTimerActive = false;
-
-    RIL_onUnsolicitedResponse(RIL_UNSOL_NITZ_TIME_RECEIVED, (void*)g_szNITZ, sizeof(char*));
-
-    // Reset the global buffer
-    memset(g_szNITZ, 0, sizeof(g_szNITZ));
-}
-
-
 //
 //
-BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const char* &rszPointer)
+BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszPointer)
 {
-    RIL_LOG_VERBOSE("CSilo_Network::ParseCTZV() - Enter\r\n");
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXNITZINFO() - Enter\r\n");
     const char* szDummy;
-    const char* szTemp;
     BOOL fRet = FALSE;
+    const int NAME_SIZE = 50;
+    const int TIME_ZONE_SIZE = 5;
+    const int DATE_TIME_SIZE = 20;
+    char szFullName[NAME_SIZE] = {0};
+    char szShortName[NAME_SIZE] = {0};
+    char szTimeZone[TIME_ZONE_SIZE] = {0};
+    char szDateTime[DATE_TIME_SIZE] = {0};
+
+    UINT32 uiDst = 0;
     UINT32 uiHour, uiMins, uiSecs;
     UINT32 uiMonth, uiDay, uiYear;
-    time_t ctime_secs;
-    struct tm* pGMT;
-    const int TIME_ZONE_SIZE = 5;
-    char szTimeZone[TIME_ZONE_SIZE] = {0};
-    int nTimeZone = 0;
-    int nTimeDiff = 0;
-    struct tm lt;
-
+    char *pszTimeData = NULL;
+    BOOL isTimeZoneAvailable = FALSE;
 
     //  The notification could come in as:
-    //  +CTZV: <tz>,"<year>/<month>/<day>,<hr>:<min>:<sec>"<postfix>
+    //  "<fullname>","<shortname>","<tz>","<year>/<month>/<day>,<hr>:<min>:<sec>",<dst><postfix>
+    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - string rszPointer: %s", rszPointer);
 
-    //  Check to see if we have a complete CTZV notification.
+    //  Check to see if we have a complete XNITZINFO notification.
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
-        // This isn't a complete registration notification -- no need to parse it
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: This isn't a complete registration notification -- no need to parse it!\r\n");
         goto Error;
     }
 
-    //  First parse the <tz>,
-    if (!ExtractUnquotedString(rszPointer, ",", szTimeZone, TIME_ZONE_SIZE, rszPointer) ||
+    //  Skip  ":",
+    if (!SkipString(rszPointer,":", rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: Skip :\r\n");
+        goto Error;
+    }
+
+    //  Parse the "<fullname>",
+    if (!ExtractQuotedString(rszPointer, szFullName, NAME_SIZE, rszPointer) ||
         !SkipString(rszPointer, ",", rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to find time zone!\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: Could not extract the Full Format Operator Name.\r\n");
         goto Error;
     }
+    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Long oper: \"%s\"\r\n", szFullName);
 
-    // Extract "<date, time>"
-    memset(g_szNITZ, 0, sizeof(g_szNITZ));
-    if (!ExtractQuotedString(rszPointer, g_szNITZ, sizeof(g_szNITZ), rszPointer))
+    //  Parse the "<Shortname>"
+    if (!ExtractQuotedString(rszPointer, szShortName, NAME_SIZE, rszPointer) ||
+        !SkipString(rszPointer, ",", rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to find date/time string!\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: Could not extract the Short Format Operator Name.\r\n");
         goto Error;
     }
+    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Short oper: \"%s\"\r\n", szShortName);
 
-    // Extract time/date values from quoted string
-    szTemp = g_szNITZ;
-
-    // Extract "yy/mm/dd"
-    if ( (!ExtractUInt32(szTemp, uiYear, szTemp)) ||
-         (!FindAndSkipString(szTemp, "/", szTemp)) ||
-         (!ExtractUInt32(szTemp, uiMonth, szTemp)) ||
-         (!FindAndSkipString(szTemp, "/", szTemp)) ||
-         (!ExtractUInt32(szTemp, uiDay, szTemp)) )
+    //  Parse the <tz>,
+    if (!ExtractQuotedString(rszPointer, szTimeZone, TIME_ZONE_SIZE, rszPointer) ||
+        !SkipString(rszPointer, ",", rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to extract yy/mm/dd!\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: Unable to find time zone!\r\n");
         goto Error;
     }
+    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - szTimeZone: \"%s\"\r\n", szTimeZone);
 
-    // Extract "hh:mm:ss"
-    if ( (!FindAndSkipString(szTemp, ",", szTemp)) ||
-         (!ExtractUInt32(szTemp, uiHour, szTemp)) ||
-         (!FindAndSkipString(szTemp, ":", szTemp)) ||
-         (!ExtractUInt32(szTemp, uiMins, szTemp)) ||
-         (!FindAndSkipString(szTemp, ":", szTemp)) ||
-         (!ExtractUInt32(szTemp, uiSecs, szTemp)) )
+    // Extract "<date,time>"
+    if (!ExtractQuotedString(rszPointer, szDateTime, DATE_TIME_SIZE, rszPointer) ||
+        !SkipString(rszPointer, ",", rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to extract hh:mm:ss!\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: Unable to find date/time string!\r\n");
         goto Error;
     }
-
-    // Fill in broken-down time struct with local time values
-    memset(&lt, 0, sizeof(struct tm));
-    lt.tm_sec = uiSecs;
-    lt.tm_min = uiMins;
-    lt.tm_hour = uiHour;
-    lt.tm_mday = uiDay;
-    lt.tm_mon = uiMonth - 1;    // num months since Jan, range 0 to 11
-    lt.tm_year = uiYear + 100;  // num years since 1900
-    // DO NOT SET tm_isdst, it will cause error in mktime().
-
-    // Convert broken-down time -> calendar time (secs)
-    // use mktime_tz with "UTC" to avoid tz/dst side effects on lt time
-    ctime_secs = mktime_tz(&lt, "UTC");
-
-    if (-1 == ctime_secs)
-    {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: Unable to convert local to calendar time!\r\n");
-        //  Just skip over notification
-        fRet = TRUE;
-        goto Error;
-    }
-
-    //RIL_LOG_INFO("ctime_secs = [%u]\r\n", (UINT32)ctime_secs);
-
-    //  The problem here is that Android expects GMT, but modem gives us local time.
-    //  We need to calculate how many seconds to add/subtract from the mktime() call.
-    //  Also, the szTimeZone from the modem includes DST offset (from my observations).
-    //  BUG fix: On very first boot after flash, Android does not know timezone so
-    //           gmtime() call doesn't convert to from local to GMT.  Fix is add
-    //           offset number of seconds to ctime_secs.
-    nTimeZone = atoi(szTimeZone);
-    //RIL_LOG_INFO("nTimeZone=[%d]\r\n", nTimeZone);
-    nTimeDiff = (60 * 15) * nTimeZone * -1;
-    //RIL_LOG_INFO("nTimeDiff=[%d]\r\n", nTimeDiff);
-    ctime_secs += (time_t)nTimeDiff;
-    //RIL_LOG_INFO("ctime_secs = [%u]\r\n", (UINT32)ctime_secs);
-    pGMT = gmtime(&ctime_secs);
-
-    if (NULL == pGMT)
-    {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseCTZV() - ERROR: pGMT is NULL!\r\n");
-        //  Just skip over notification
-        fRet = TRUE;
-        goto Error;
-    }
-
-    // Format date time as "yy/mm/dd,hh:mm:ss"
-    memset(g_szNITZ, 0, sizeof(g_szNITZ));
-    strftime(g_szNITZ, sizeof(g_szNITZ), "%y/%m/%d,%T", pGMT);
-
-    // Add timezone: "(+/-)tz"
-    strncat(g_szNITZ, szTimeZone, sizeof(g_szNITZ) - strlen(g_szNITZ) - 1);
-
-    RIL_LOG_INFO("CSilo_Network::ParseCTZV() - INFO: g_szNITZ: %s\r\n", g_szNITZ);
-
-    pResponse->SetUnsolicitedFlag(TRUE);
-
-    //  If the NITZ alarm is already active, disable the alarm.
-    if (g_bNITZTimerActive)
-        alarm(0);
-
-    /* CTZDST will be reported only if the network daylight saving time is
-     * received from network as part of the MM information message. So, we
-     * can't wait for CTZDST for updating the NITZ information to android.
-     * If the CTZDST is not received within 1 second of the CTZV receival,
-     * then update the NITZ information to android.
-     */
-    g_bNITZTimerActive = true;
-    signal(SIGALRM, triggerNITZNotification);
-    alarm(1);
-
-    fRet = TRUE;
-Error:
-
-    RIL_LOG_VERBOSE("CSilo_Network::ParseCTZV() - Exit\r\n");
-    return fRet;
-}
-
-
-//
-//
-BOOL CSilo_Network::ParseCTZDST(CResponse *const pResponse, const char* &rszPointer)
-{
-    RIL_LOG_VERBOSE("CSilo_Network::ParseCTZDST() - Enter\r\n");
-
-    BOOL fRet = FALSE;
-    const char* szDummy;
-    UINT32 uiDst = 0;
-    char szDST[5] = {0};
-    char *pszTimeData = NULL;
-
-    /*
-     * Disable the NITZ alarm, as we have received the CTZDST within 1 second of the
-     * CTZV receival.
-     */
-    if (g_bNITZTimerActive)
-    {
-        g_bNITZTimerActive = false;
-        alarm(0);
-    }
-
-
-    //  Check to see if we have a complete CTZDST notification.
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
-    {
-        // This isn't a complete registration notification -- no need to parse it
-        goto Error;
-    }
+    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - szDateTime: \"%s\"\r\n", szDateTime);
 
     //  Extract <dst>
     if (!ExtractUInt32(rszPointer, uiDst, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseCTZDST() - Cannot parse <dst>\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Cannot parse <dst>\r\n");
+        goto Error;
+    }
+    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - uiDst: \"%u\"\r\n", uiDst);
+
+    if (strlen(szTimeZone) > 0)
+    {
+        isTimeZoneAvailable = TRUE;
+    }
+
+    // If the "<date,time>" (szDateTime) is not empty.
+    if (strlen(szDateTime) != 0)
+    {
+        // Scan the Date and the Time in the szDateTime buffer to check the date and time.
+        int num = sscanf(szDateTime, "%2d/%2d/%2d,%2d:%2d:%2d", &uiYear, &uiMonth, &uiDay, &uiHour, &uiMins, &uiSecs);
+
+       // Check the elements number of the date and time.
+        if (num != 6)
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: bad element number in the scan szDateTime\r\n");
+            goto Error;
+        }
+
+        // Check the coherence of the date and time.
+        if ((uiMonth > 12) || (uiDay > 31) || (uiHour > 24) || (uiMins > 59) || (uiSecs > 59))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: bad date time\r\n");
+            goto Error;
+        }
+    }
+    // If the "<date,time>" (szDateTime) is empty.
+    else
+    {
+        /*
+         * If timezone is available, then framework expects the RIL to provide
+         * the time expressed in UTC(or GMT timzone).
+         */
+        if (isTimeZoneAvailable)
+        {
+            time_t ctime_secs;
+            struct tm* pGMT;
+
+            // Read the current time.
+            ctime_secs = time(NULL);
+
+            // Ckeck ctime_secs.
+            if (-1 == ctime_secs)
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: Unable to convert local to calendar time!\r\n");
+                //  Just skip over notification
+                goto Error;
+            }
+
+            pGMT = gmtime(&ctime_secs);
+            // Ckeck pGMT.
+            if (NULL == pGMT)
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: pGMT is NULL!\r\n");
+                //  Just skip over notification
+                goto Error;
+            }
+
+            // Insert the date/time as "yy/mm/dd,hh:mm:ss"
+            strftime(szDateTime, DATE_TIME_SIZE, "%y/%m/%d,%T", pGMT);
+        }
+    }
+
+    // Check the dst.
+    if (uiDst > 2)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: bad dst\r\n");
         goto Error;
     }
 
-    //  Now, if we have g_szNITZ then send the NITZ notification!
-    g_szNITZ[MAX_BUFFER_SIZE - 1] = NULL;  //Klocwork fix
-    if (strlen(g_szNITZ) > 0)
+    /*
+     * As per the 3GPP 24.008 specification, if the local time zone has been
+     * adjusted for Daylight Saving Time, the network shall indicate this by
+     * including the IE Network Daylight Saving Time. This means the DST is
+     * always received along with the TimeZone. So, for the case where only
+     * time is received but not time zone, no need to update the NITZ to framework.
+     */
+    if  (isTimeZoneAvailable)
     {
-        //  Append the ",<dst>" to locally stored NITZ string.
-        if (!PrintStringNullTerminate(szDST, sizeof(szDST), ",%u", uiDst))
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseCTZDST() - Can't make append string - assuming 0\r\n");
-
-            strlcat(&g_szNITZ[0], ",0", MAX_BUFFER_SIZE - strlen(g_szNITZ) - 1);
-        }
-        else
-        {
-            strlcat(&g_szNITZ[0], szDST, MAX_BUFFER_SIZE - strlen(g_szNITZ) - 1);
-        }
-
-        RIL_LOG_INFO("CSilo_Network::ParseCTZDST() - INFO: g_szNITZ: %s\r\n", g_szNITZ);
-
-        //  Copy to dynamic buffer
         pszTimeData = (char*)malloc(sizeof(char) * MAX_BUFFER_SIZE);
         if (NULL == pszTimeData)
         {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseCTZDST() - ERROR: Could not allocate memory for pszTimeData.\r\n");
+            RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: Could not allocate memory for pszTimeData.\r\n");
             goto Error;
         }
-
         memset(pszTimeData, 0, sizeof(char) * MAX_BUFFER_SIZE);
-        strncpy(pszTimeData, g_szNITZ, sizeof(char) * MAX_BUFFER_SIZE);
 
-        // Reset the global buffer
-        memset(g_szNITZ, 0, sizeof(g_szNITZ));
+        // Insert the date/time as "yy/mm/dd,hh:mm:ss".
+        // Add tz: "+-xx", dst: ",x"
+        if (snprintf(pszTimeData, sizeof(char) * MAX_BUFFER_SIZE, "%s%s,%u", szDateTime, szTimeZone, uiDst) == 0)
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: snprintf pszTimeData buffer\r\n");
+            goto Error;
+        }
+        RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - INFO: pszTimeData: %s\r\n", pszTimeData);
 
         pResponse->SetResultCode(RIL_UNSOL_NITZ_TIME_RECEIVED);
-
         if (!pResponse->SetData((void*)pszTimeData, sizeof(char*), FALSE))
         {
-            fRet = FALSE;
             goto Error;
         }
+
+        pResponse->SetUnsolicitedFlag(TRUE);
+    }
+    else
+    {
+        pResponse->SetUnrecognizedFlag(TRUE);
     }
 
-    pResponse->SetUnsolicitedFlag(TRUE);
+    /*
+     * Completing RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED will result in
+     * framework triggering the RIL_REQUEST_OPERATOR request.
+     */
+    if (strlen(szFullName) || strlen(szShortName))
+    {
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
+    }
 
     fRet = TRUE;
 Error:
@@ -380,10 +328,9 @@ Error:
         pszTimeData = NULL;
     }
 
-    RIL_LOG_VERBOSE("CSilo_Network::ParseCTZDST() - Exit\r\n");
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXNITZINFO() - Exit\r\n");
     return fRet;
 }
-
 
 // Note that this function will get called for Solicited and Unsolicited
 // responses that start with "+CGREG: ". The function will determine whether

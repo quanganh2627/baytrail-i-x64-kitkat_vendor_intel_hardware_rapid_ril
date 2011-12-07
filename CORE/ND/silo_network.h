@@ -59,8 +59,7 @@ protected:
     //  Parse notification functions here.
     virtual BOOL    ParseRegistrationStatus(CResponse* const pResponse, const char*& rszPointer,
                                             SILO_NETWORK_REGISTRATION_TYPES regType);
-    virtual BOOL    ParseCTZV(CResponse* const pResponse, const char*& rszPointer);
-    virtual BOOL    ParseCTZDST(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseXNITZINFO(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseCREG(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseCGREG(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseXREG(CResponse* const pResponse, const char*& rszPointer);
