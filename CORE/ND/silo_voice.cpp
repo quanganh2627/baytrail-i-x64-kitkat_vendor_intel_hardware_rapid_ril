@@ -171,6 +171,13 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
 #if defined(M2_VT_FEATURE_ENABLED)
         pResponse->SetUnsolicitedFlag(TRUE);
         pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
+
+        /*
+         * XCALLSTAT received before CRING.
+         * Since the call type is not known via XCALLSTAT URC,
+         * CALL_STATE_CHANGED notification is triggered from here.
+         */
+        notifyChangedCallState(NULL);
 #else
         pResponse->SetUnrecognizedFlag(TRUE);
 
