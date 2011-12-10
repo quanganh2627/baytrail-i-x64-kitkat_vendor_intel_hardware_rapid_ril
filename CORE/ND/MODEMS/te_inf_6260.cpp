@@ -2303,6 +2303,9 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
     char szImg[] = "img";
     char *pszPath = NULL;
 
+    int Efsms = 28476;
+    int nReadCmd = 178;
+
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: Data pointer is NULL.\r\n");
@@ -2325,6 +2328,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
+
 
     //  Replace path of "img" with "3F007F105F50"
     if (pSimIOArgs->path)
@@ -2599,39 +2603,85 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
     {
         //  No PIN2
 
-
         if (NULL == pSimIOArgs->data)
         {
+
             if(NULL == pSimIOArgs->path)
             {
-                if (!PrintStringNullTerminate(rReqData.szCmd1,
-                    sizeof(rReqData.szCmd1),
-                    "AT+CRSM=%d,%d,%d,%d,%d\r",
-                    pSimIOArgs->command,
-                    pSimIOArgs->fileid,
-                    pSimIOArgs->p1,
-                    pSimIOArgs->p2,
-                    pSimIOArgs->p3))
+                if(pSimIOArgs->command == nReadCmd && pSimIOArgs->fileid == Efsms)
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 9\r\n");
-                    goto Error;
-                }
+                     RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - Create CRSM command 1 for reading sms\r\n");
+
+                     if (!PrintStringNullTerminate(rReqData.szCmd1,
+                         sizeof(rReqData.szCmd1),
+                         "AT+CRSM=%d,%d,%d,%d,%d;+CMGR=%d\r",
+                         pSimIOArgs->command,
+                         pSimIOArgs->fileid,
+                         pSimIOArgs->p1,
+                         pSimIOArgs->p2,
+                         pSimIOArgs->p3,
+                         pSimIOArgs->p1))
+                     {
+                         RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - ERROR: cannot create CRSM command 2 for reading sms\r\n");
+                         goto Error;
+                     }
+
+                 }
+                 else
+                 {
+                     if (!PrintStringNullTerminate(rReqData.szCmd1,
+                         sizeof(rReqData.szCmd1),
+                         "AT+CRSM=%d,%d,%d,%d,%d\r",
+                         pSimIOArgs->command,
+                         pSimIOArgs->fileid,
+                         pSimIOArgs->p1,
+                         pSimIOArgs->p2,
+                         pSimIOArgs->p3))
+                     {
+                         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 9\r\n");
+                         goto Error;
+                     }
+                 }
             }
             else
             {
-                if (!PrintStringNullTerminate(rReqData.szCmd1,
-                    sizeof(rReqData.szCmd1),
-                    "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
-                    pSimIOArgs->command,
-                    pSimIOArgs->fileid,
-                    pSimIOArgs->p1,
-                    pSimIOArgs->p2,
-                    pSimIOArgs->p3,
-                    pszPath))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 10\r\n");
-                    goto Error;
-                }
+                 if(pSimIOArgs->command == nReadCmd && pSimIOArgs->fileid == Efsms)
+                 {
+                     RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - Create CRSM command 1 for reading sms\r\n");
+
+                     if (!PrintStringNullTerminate(rReqData.szCmd1,
+                         sizeof(rReqData.szCmd1),
+                         "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\";+CMGR=%d\r",
+                         pSimIOArgs->command,
+                         pSimIOArgs->fileid,
+                         pSimIOArgs->p1,
+                         pSimIOArgs->p2,
+                         pSimIOArgs->p3,
+                         pszPath,
+                         pSimIOArgs->p1))
+                     {
+                         RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - ERROR: cannot create CRSM command 2 for reading sms\r\n");
+                         goto Error;
+                     }
+
+                 }
+                 else
+                 {
+                     if (!PrintStringNullTerminate(rReqData.szCmd1,
+                         sizeof(rReqData.szCmd1),
+                         "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
+                         pSimIOArgs->command,
+                         pSimIOArgs->fileid,
+                         pSimIOArgs->p1,
+                         pSimIOArgs->p2,
+                         pSimIOArgs->p3,
+                         pszPath))
+                    {
+                         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 10\r\n");
+                         goto Error;
+                    }
+
+                 }
             }
         }
         else
