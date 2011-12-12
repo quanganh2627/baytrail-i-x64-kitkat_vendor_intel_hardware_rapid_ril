@@ -10,16 +10,6 @@
 //    facilitate the use of multiple AT channels.
 //    GPRS/UMTS management (GPRS attach/detach), network commands
 //
-// Author:  Dennis Peter
-// Created: 2011-02-08
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Feb 8/11   DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #if !defined(RIL_CHANNEL_DLC2_H)

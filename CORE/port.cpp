@@ -8,16 +8,6 @@
 // Description:
 //    Implements a com port interface
 //
-// Author:  Mike Worth
-// Created: 2009-20-11
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Nov 20/09  MW       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 // system include
@@ -30,7 +20,6 @@
 #include "types.h"
 #include "rril.h"
 #include "sync_ops.h"
-//#include "thread_ops.h"
 #include "util.h"
 #include "rillog.h"
 #include "port.h"

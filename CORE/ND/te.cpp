@@ -9,19 +9,13 @@
 //    Defines the CTE class which handles all overrides to requests and
 //    basic behavior for responses for a specific modem
 //
-// Author:  Mike Worth
-// Created: 2009-09-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Sept 30/09  MW      1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
+#include <wchar.h>
+#include <cutils/properties.h>
+
 #include "../util.h"
+#include "extract.h"
 #include "types.h"
 #include "rillog.h"
 #include "te.h"
@@ -32,14 +26,14 @@
 #include "oemhookids.h"
 #include "channel_data.h"
 #include "te_inf_6260.h"
-#include <cutils/properties.h>
 
 CTE * CTE::m_pTEInstance = NULL;
 
 CTE::CTE() :
-    m_pTEBaseInstance(NULL)
+    m_pTEBaseInstance(NULL),
+    m_bCSStatusCached(FALSE),
+    m_bPSStatusCached(FALSE)
 {
-
     m_pTEBaseInstance = CreateModemTE();
 
     if (NULL == m_pTEBaseInstance)
@@ -47,7 +41,6 @@ CTE::CTE() :
         RIL_LOG_CRITICAL("CTE::CTE() - ERROR: Unable to construct base terminal equipment!!!!!! EXIT!\r\n");
         exit(0);
     }
-
 }
 
 CTE::~CTE()
@@ -127,7 +120,9 @@ RIL_RESULT_CODE CTE::RequestGetSimStatus(RIL_Token rilToken, void * pData, size_
             //  Call when radio is off.
             pCmd->SetHighPriority();
 
-            if (!CCommand::AddCmdToQueue(pCmd))
+            // Setting the request to be placed in front of queue
+            // because SIM IO requests will block this during SIM hot swap use cases.
+            if (!CCommand::AddCmdToQueue(pCmd,TRUE))
             {
                 RIL_LOG_CRITICAL("CTE::RequestGetSimStatus() - ERROR: Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
@@ -570,7 +565,7 @@ RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void * pData, size_t datale
         if (pCmd)
         {
             pCmd->SetHighPriority();
-            if (!CCommand::AddCmdToQueue(pCmd,TRUE))
+            if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestDial() - ERROR: Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
@@ -1036,6 +1031,30 @@ RIL_RESULT_CODE CTE::RequestRegistrationState(RIL_Token rilToken, void * pData, 
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
+    if (m_bCSStatusCached)
+    {
+        P_ND_REG_STATUS pRegStatus = NULL;
+
+        pRegStatus = (P_ND_REG_STATUS)malloc(sizeof(S_ND_REG_STATUS));
+        if (NULL == pRegStatus)
+        {
+            RIL_LOG_CRITICAL("CTE::ParseRegistrationState() - ERROR: Could not allocate memory for S_ND_REG_STATUS struct.\r\n");
+            RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+        }
+        else
+        {
+            CopyCachedRegistrationInfo(pRegStatus, FALSE);
+            /*
+             * cheat with the size here.
+             * Although we have allocated a S_ND_REG_STATUS struct, we tell
+             * Android that we have only allocated a S_ND_REG_STATUS_POINTERS
+             * struct since Android is expecting to receive an array of string pointers.
+             */
+            RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, (void*)pRegStatus, sizeof(S_ND_REG_STATUS_POINTERS));
+        }
+        return RRIL_RESULT_OK;
+    }
+
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreRegistrationState(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
@@ -1079,6 +1098,31 @@ RIL_RESULT_CODE CTE::ParseRegistrationState(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void * pData, size_t datalen)
 {
     RIL_LOG_VERBOSE("CTE::RequestGPRSRegistrationState() - Enter\r\n");
+
+    if (m_bPSStatusCached)
+    {
+        P_ND_GPRS_REG_STATUS pRegStatus = NULL;
+
+        pRegStatus = (P_ND_GPRS_REG_STATUS)malloc(sizeof(S_ND_GPRS_REG_STATUS));
+        if (NULL == pRegStatus)
+        {
+            RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() - ERROR: Could not allocate memory for S_ND_GPRS_REG_STATUS struct.\r\n");
+            RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+        }
+        else
+        {
+            CopyCachedRegistrationInfo(pRegStatus, TRUE);
+            /*
+             * cheat with the size here.
+             * Although we have allocated a S_ND_GPRS_REG_STATUS struct, we tell
+             * Android that we have only allocated a S_ND_GPRS_REG_STATUS_POINTERS
+             * struct since Android is expecting to receive an array of string pointers.
+             */
+            RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, (void*)pRegStatus, sizeof(S_ND_GPRS_REG_STATUS_POINTERS));
+        }
+
+        return RRIL_RESULT_OK;
+    }
 
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
@@ -2681,6 +2725,7 @@ RIL_RESULT_CODE CTE::RequestSetMute(RIL_Token rilToken, void * pData, size_t dat
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestSetMute() - ERROR: Unable to add command to queue\r\n");
@@ -4905,3 +4950,543 @@ RIL_RESULT_CODE CTE::ParseQueryPIN2(RESPONSE_DATA & rRspData)
     return m_pTEBaseInstance->ParseQueryPIN2(rRspData);
 }
 
+UINT32 CTE::MapAccessTechnology(UINT32 uiStdAct)
+{
+    RIL_LOG_VERBOSE("CTE::MapAccessTechnology() - Enter\r\n");
+
+    /*
+     * 20111103: There is no 3GPP standard value defined for GPRS and HSPA+
+     * access technology. So, values 1 and 8 are used in relation with the
+     * IMC proprietary +XREG: <Act> parameter.
+     *
+     * Note: GSM Compact is not supported by IMC modem.
+     */
+    UINT32 uiNDAct;
+
+    //  Check state and set global variable for network technology
+    switch(uiStdAct)
+    {
+        case 0: // GSM
+        uiNDAct = ACT_UNKNOWN; // GSM access technology is not used on android side
+        break;
+
+        case 1: // GSM Compact
+        uiNDAct = ACT_GPRS;
+        break;
+
+        case 2: // UTRAN
+        uiNDAct = ACT_UMTS;
+        break;
+
+        case 3: // GSM w/EGPRS
+        uiNDAct = ACT_EDGE;
+        break;
+
+        case 4: // UTRAN w/HSDPA
+        uiNDAct = ACT_HSDPA;
+        break;
+
+        case 5: // UTRAN w/HSUPA
+        uiNDAct = ACT_HSUPA;
+        break;
+
+        case 6: // UTRAN w/HSDPA and HSUPA
+        uiNDAct = ACT_HSPA;
+        break;
+
+        case 7:
+        uiNDAct = ACT_LTE;
+        break;
+
+        case 8: // Proprietary value introduced for HSPA+
+        /* Will be mapped to ACT_HSPAP when the framework changes are in place. */
+        uiNDAct = ACT_HSPA;
+        break;
+
+        default:
+        uiNDAct = ACT_UNKNOWN;
+        break;
+    }
+
+    RIL_LOG_VERBOSE("CTE::MapAccessTechnology() - Exit\r\n");
+    return uiNDAct;
+}
+
+BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_STATUS& rCSRegStatusInfo)
+{
+    RIL_LOG_VERBOSE("CTE::ParseCREG() - Enter\r\n");
+
+    UINT32 uiNum;
+    UINT32 uiStatus = 0;
+    UINT32 uiLAC = 0;
+    UINT32 uiCID = 0;
+    UINT32 uiAct = 0;
+    BOOL bRet = false;
+
+    if (!bUnSolicited)
+    {
+        // Skip "<prefix>"
+        if (!SkipRspStart(rszPointer, g_szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not skip response prefix.\r\n");
+            goto Error;
+        }
+
+        // Skip "<,prefix> string"
+        if (!SkipString(rszPointer, "+CREG: ", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not skip \"+CREG: \".\r\n");
+            goto Error;
+        }
+
+        // Extract <n> and throw away
+        if (!ExtractUInt32(rszPointer, uiNum, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <n>.\r\n");
+            goto Error;
+        }
+
+        // Skip ","
+        if (!SkipString(rszPointer, ",", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <stat>.\r\n");
+            goto Error;
+        }
+    }
+
+    // "<stat>"
+    if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <stat>.\r\n");
+        goto Error;
+    }
+
+    // Do we have more to parse?
+    if (SkipString(rszPointer, ",", rszPointer))
+    {
+        // Extract "<lac>"
+        SkipString(rszPointer, "\"", rszPointer);
+        if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <lac>.\r\n");
+            goto Error;
+        }
+        SkipString(rszPointer, "\"", rszPointer);
+
+        // Extract ",<cid>"
+        if (!SkipString(rszPointer, ",", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract \",<cid>\".\r\n");
+            goto Error;
+        }
+        SkipString(rszPointer, "\"", rszPointer);
+        if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
+         {
+             RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <cid>.\r\n");
+             goto Error;
+         }
+        SkipString(rszPointer, "\"", rszPointer);
+
+        // Extract ",Act"
+        if (SkipString(rszPointer, ",", rszPointer))
+        {
+            if (!ExtractUInt32(rszPointer, uiAct, rszPointer))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <act>.\r\n");
+                goto Error;
+            }
+
+            /*
+             * Maps the 3GPP standard access technology values to android specific access
+             * technology values.
+             */
+            uiAct = MapAccessTechnology(uiAct);
+        }
+    }
+
+    // Skip "<postfix>"
+    if (!SkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not skip response postfix.\r\n");
+        goto Error;
+    }
+
+    /*
+     * Registration status value of 2,3 or 4 means that there is a cell
+     * around on which emergency calls are possible. Inorder to show
+     * emergency calls only, Android telephony stack expects the registration
+     * status value to be one of 10,12,13,14.
+     */
+    if (2 == uiStatus || 3 == uiStatus || 4 == uiStatus)
+    {
+        uiStatus += 10;
+    }
+
+    snprintf(rCSRegStatusInfo.szStat,        REG_STATUS_LENGTH, "%d", (int)uiStatus);
+    snprintf(rCSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
+    /*
+     * With respect to android telephony framework, LAC and CID should be -1 if unknown or it
+     * should be of length 0.
+     */
+    (uiLAC == 0) ? rCSRegStatusInfo.szLAC[0] = '\0' :
+                    snprintf(rCSRegStatusInfo.szLAC, REG_STATUS_LENGTH, "%x", (int)uiLAC);
+
+    (uiLAC == 0) ? rCSRegStatusInfo.szCID[0] = '\0' :
+                    snprintf(rCSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", (int)uiCID);
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CTE::ParseCREG() - Exit\r\n");
+    return bRet;
+}
+
+BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_REG_STATUS& rPSRegStatusInfo)
+{
+    RIL_LOG_VERBOSE("CTE::ParseCGREG() - Enter\r\n");
+
+    UINT32 uiNum;
+    UINT32 uiStatus = 0;
+    UINT32 uiLAC = 0;
+    UINT32 uiCID = 0;
+    UINT32 uiAct = 0;
+    UINT32 uiRAC = 0;
+    BOOL bRet = false;
+
+    if (!bUnSolicited)
+    {
+        // Skip "<prefix>"
+        if (!SkipRspStart(rszPointer, g_szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not skip response prefix.\r\n");
+            goto Error;
+        }
+
+        // Skip "<,prefix> string"
+        if (!SkipString(rszPointer, "+CGREG: ", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not skip \"+CREG: \".\r\n");
+            goto Error;
+        }
+
+        // Extract <n> and throw away
+        if (!ExtractUInt32(rszPointer, uiNum, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <n>.\r\n");
+            goto Error;
+        }
+
+        // Skip ","
+        if (!SkipString(rszPointer, ",", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <stat>.\r\n");
+            goto Error;
+        }
+    }
+
+    // "<stat>"
+    if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <stat>.\r\n");
+        goto Error;
+    }
+
+    // Do we have more to parse?
+    if (SkipString(rszPointer, ",", rszPointer))
+    {
+        // Extract "<lac>"
+        SkipString(rszPointer, "\"", rszPointer);
+        if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <lac>.\r\n");
+            goto Error;
+        }
+        SkipString(rszPointer, "\"", rszPointer);
+
+        // Extract ",<cid>"
+        if (!SkipString(rszPointer, ",", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract \",<cid>\".\r\n");
+            goto Error;
+        }
+        SkipString(rszPointer, "\"", rszPointer);
+        if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
+         {
+             RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <cid>.\r\n");
+             goto Error;
+         }
+        SkipString(rszPointer, "\"", rszPointer);
+
+        // Extract ",Act"
+        if (SkipString(rszPointer, ",", rszPointer))
+        {
+            if (!ExtractUInt32(rszPointer, uiAct, rszPointer))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <act>.\r\n");
+                goto Error;
+            }
+
+            /*
+             * Maps the 3GPP standard access technology values to android specific access
+             * technology values.
+             */
+            uiAct = MapAccessTechnology(uiAct);
+
+            // Extract ","
+            if (!SkipString(rszPointer, ",", rszPointer))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract ,<rac>.\r\n");
+                goto Error;
+            }
+
+            // Extract "<rac>"
+            SkipString(rszPointer, "\"", rszPointer);
+            if (!ExtractHexUInt32(rszPointer, uiRAC, rszPointer))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract \",<rac>\".\r\n");
+                goto Error;
+            }
+
+            SkipString(rszPointer, "\"", rszPointer);
+        }
+    }
+
+    // Skip "<postfix>"
+    if (!SkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not skip response postfix.\r\n");
+        goto Error;
+    }
+
+    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%d", (int)uiStatus);
+    snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
+    /*
+     * With respect to android telephony framework, LAC and CID should be -1 if unknown or it
+     * should be of length 0.
+     */
+    (uiLAC == 0) ? rPSRegStatusInfo.szLAC[0] = '\0' :
+                    snprintf(rPSRegStatusInfo.szLAC, REG_STATUS_LENGTH, "%x", (int)uiLAC);
+
+    (uiLAC == 0) ? rPSRegStatusInfo.szCID[0] = '\0' :
+                    snprintf(rPSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", (int)uiCID);
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CTE::ParseCGREG() - Exit\r\n");
+    return bRet;
+}
+
+BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_REG_STATUS& rPSRegStatusInfo)
+{
+    RIL_LOG_VERBOSE("CTE::ParseXREG() - Enter\r\n");
+
+    UINT32 uiNum;
+    UINT32 uiStatus = 0;
+    UINT32 uiLAC = 0;
+    UINT32 uiCID = 0;
+    UINT32 uiAct = 0;
+    char szBand[MAX_BUFFER_SIZE] = {0};
+    BOOL bRet = false;
+
+    if (!bUnSolicited)
+    {
+        // Skip "<prefix>"
+        if (!SkipRspStart(rszPointer, g_szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not skip response prefix.\r\n");
+            goto Error;
+        }
+
+        // Skip "<,prefix> string"
+        if (!SkipString(rszPointer, "+XREG: ", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not skip \"+CREG: \".\r\n");
+            goto Error;
+        }
+
+        // Extract <n> and throw away
+        if (!ExtractUInt32(rszPointer, uiNum, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract <n>.\r\n");
+            goto Error;
+        }
+
+        // Skip ","
+        if (!SkipString(rszPointer, ",", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract <stat>.\r\n");
+            goto Error;
+        }
+    }
+
+    // "<stat>"
+    if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract <stat>.\r\n");
+        goto Error;
+    }
+
+    //  Parse <AcT>
+    if (!SkipString(rszPointer, ",", rszPointer) ||
+        !ExtractUInt32(rszPointer, uiAct, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseXREG() - Error: Parsing <AcT>\r\n");
+        goto Error;
+    }
+
+    /*
+     * Maps the 3GPP standard access technology values to android specific access
+     * technology values.
+     */
+    uiAct = CTE::MapAccessTechnology(uiAct);
+
+    //  Extract <Band> and throw away
+    if (!SkipString(rszPointer, ",", rszPointer) ||
+            !ExtractUnquotedString(rszPointer, ",", szBand, MAX_BUFFER_SIZE, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseXREG() - Error: Parsing <Band>\r\n");
+        goto Error;
+    }
+
+    // Do we have more to parse?
+    if (SkipString(rszPointer, ",", rszPointer))
+    {
+        // Extract "<lac>"
+        SkipString(rszPointer, "\"", rszPointer);
+        if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract <lac>.\r\n");
+            goto Error;
+        }
+        SkipString(rszPointer, "\"", rszPointer);
+
+        // Extract ",<cid>"
+        if (!SkipString(rszPointer, ",", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract \",<cid>\".\r\n");
+            goto Error;
+        }
+        SkipString(rszPointer, "\"", rszPointer);
+        if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
+         {
+             RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract <cid>.\r\n");
+             goto Error;
+         }
+        SkipString(rszPointer, "\"", rszPointer);
+    }
+
+    // Skip "<postfix>"
+    if (!SkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not skip response postfix.\r\n");
+        goto Error;
+    }
+
+    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%d", (int)uiStatus);
+    snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
+    /*
+     * With respect to android telephony framework, LAC and CID should be -1 if unknown or it
+     * should be of length 0.
+     */
+    (uiLAC == 0) ? rPSRegStatusInfo.szLAC[0] = '\0' :
+                    snprintf(rPSRegStatusInfo.szLAC, REG_STATUS_LENGTH, "%x", (int)uiLAC);
+
+    (uiLAC == 0) ? rPSRegStatusInfo.szCID[0] = '\0' :
+                    snprintf(rPSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", (int)uiCID);
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CTE::ParseXREG() - Exit\r\n");
+    return bRet;
+}
+
+void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
+{
+    RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Enter\r\n");
+
+    /*
+     * LAC and CID reported as part of the CS and PS registration status changed URCs
+     * are supposed to be the same. But there is nothing wrong in keeping it separately.
+     */
+    if (bPSStatus)
+    {
+        P_ND_GPRS_REG_STATUS psRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
+
+        strncpy(m_sPSStatus.szStat, psRegStatus->szStat, sizeof(psRegStatus->szStat));
+        strncpy(m_sPSStatus.szLAC, psRegStatus->szLAC, sizeof(psRegStatus->szLAC));
+        strncpy(m_sPSStatus.szCID, psRegStatus->szCID, sizeof(psRegStatus->szCID));
+        strncpy(m_sPSStatus.szNetworkType, psRegStatus->szNetworkType, sizeof(psRegStatus->szNetworkType));
+        m_bPSStatusCached = TRUE;
+    }
+    else
+    {
+        P_ND_REG_STATUS csRegStatus = (P_ND_REG_STATUS) pRegStruct;
+
+        strncpy(m_sCSStatus.szStat, csRegStatus->szStat, sizeof(csRegStatus->szStat));
+        strncpy(m_sCSStatus.szLAC, csRegStatus->szLAC, sizeof(csRegStatus->szLAC));
+        strncpy(m_sCSStatus.szCID, csRegStatus->szCID, sizeof(csRegStatus->szCID));
+
+        /*
+         * 20111025: framework doesn't make use of technology information
+         * sent as part of RIL_REQUEST_REGISTRATION_STATE response.
+         */
+        strncpy(m_sCSStatus.szNetworkType, csRegStatus->szNetworkType, sizeof(csRegStatus->szNetworkType));
+        m_bCSStatusCached = TRUE;
+    }
+
+    RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Exit\r\n");
+}
+
+void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
+{
+    RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - Enter\r\n");
+
+    if (bPSStatus)
+    {
+        P_ND_GPRS_REG_STATUS psRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
+
+        memset(psRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
+        strncpy(psRegStatus->szStat, m_sPSStatus.szStat, sizeof(psRegStatus->szStat));
+        strncpy(psRegStatus->szLAC, m_sPSStatus.szLAC, sizeof(psRegStatus->szLAC));
+        strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
+        strncpy(psRegStatus->szNetworkType, m_sPSStatus.szNetworkType, sizeof(psRegStatus->szNetworkType));
+
+        psRegStatus->sStatusPointers.pszStat = psRegStatus->szStat;
+        psRegStatus->sStatusPointers.pszLAC = psRegStatus->szLAC;
+        psRegStatus->sStatusPointers.pszCID = psRegStatus->szCID;
+        psRegStatus->sStatusPointers.pszNetworkType = psRegStatus->szNetworkType;
+    }
+    else
+    {
+        P_ND_REG_STATUS csRegStatus = (P_ND_REG_STATUS) pRegStruct;
+
+        memset(csRegStatus, 0, sizeof(S_ND_REG_STATUS));
+        strncpy(csRegStatus->szStat, m_sCSStatus.szStat, sizeof(csRegStatus->szStat));
+        strncpy(csRegStatus->szLAC, m_sCSStatus.szLAC, sizeof(csRegStatus->szLAC));
+        strncpy(csRegStatus->szCID, m_sCSStatus.szCID, sizeof(csRegStatus->szCID));
+        strncpy(csRegStatus->szNetworkType, m_sCSStatus.szNetworkType, sizeof(csRegStatus->szNetworkType));
+
+        csRegStatus->sStatusPointers.pszStat = csRegStatus->szStat;
+        csRegStatus->sStatusPointers.pszLAC = csRegStatus->szLAC;
+        csRegStatus->sStatusPointers.pszCID = csRegStatus->szCID;
+        csRegStatus->sStatusPointers.pszNetworkType = csRegStatus->szNetworkType;
+        // Note that the remaining fields in the structure have been previously set to NULL (0)
+        // by memset().  They are not used in this RIL.
+    }
+
+    RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - Exit\r\n");
+}
+
+void CTE::ResetRegistrationCache()
+{
+    m_bCSStatusCached = FALSE;
+    m_bPSStatusCached = FALSE;
+}
+
+//
+// ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS (sent internally)
+//
+RIL_RESULT_CODE CTE::ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseQuerySimSmsStoreStatus() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseQuerySimSmsStoreStatus(rRspData);
+}

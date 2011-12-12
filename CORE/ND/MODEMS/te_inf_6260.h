@@ -8,16 +8,6 @@
 // Description:
 //    Overlay for the Infineon 6260 modem
 //
-// Author:  Francesc J. Vilarino Guell
-// Created: 2009-12-11
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date         Who      Ver   Description
-//  ----------  -------  ----  -----------------------------------------------
-//  Sept 11/12   FV      1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_TE_INF_6260_H

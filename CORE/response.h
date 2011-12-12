@@ -9,16 +9,6 @@
 //    Defines classes, constants, and structures used by generic helper
 //    functions used to process modem responses to AT Commands.
 //
-// Author:  Dennis Peter
-// Created: 2007-07-12
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 3/08  DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_RESPONSE_H

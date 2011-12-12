@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// Command.h
+// command.h
 //
 // Copyright 2005-2007 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
@@ -8,16 +8,6 @@
 // Description:
 //    Defines the CCommand class which stores details required to execute
 //    and return the result of a specific RIL API
-//
-// Author:  Mike Worth
-// Created: 2009-11-19
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Nov 19/09  MW       1.00  Established v1.00 based on current code base.
 //
 /////////////////////////////////////////////////////////////////////////////
 
@@ -89,6 +79,8 @@ public:
     void SetContext(CContext*& pContext)    { m_pContext = pContext; pContext = NULL; };
     void SetContextData(void *pData)        { m_pContextData = pData; };
     void SetContextDataSize(unsigned int nSize) { m_cbContextData = nSize; };
+    void FreeATCmd1() { delete[] m_pszATCmd1; m_pszATCmd1 = NULL; };
+    void FreeATCmd2() { delete[] m_pszATCmd2; m_pszATCmd2 = NULL; };
 
     static BOOL AddCmdToQueue(CCommand *& pCmd, BOOL bFront = false);
 

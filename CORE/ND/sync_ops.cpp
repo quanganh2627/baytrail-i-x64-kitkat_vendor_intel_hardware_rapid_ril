@@ -1,25 +1,4 @@
 ////////////////////////////////////////////////////////////////////////////
-// sync_ops.h
-//
-// Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
-// Patents pending in the United States of America and other jurisdictions.
-//
-//
-// Description:
-//    Event related declarations
-//
-// Author:  Mike Worth
-// Created: 2009-06-18
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 18/06  MW       1.00  Established v1.00 based on current code base.
-//
-/////////////////////////////////////////////////////////////////////////////
-
 // sync_ops.cpp
 //
 // Copyright 2005-2007 Intrinsyc Software International, Inc.  All rights reserved.
@@ -28,16 +7,6 @@
 //
 // Description:
 //  Syncronization interfaces
-//
-// Author:  Mike Worth
-// Created: 2009-07-08
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  July 8/09  MW       1.00  Established v1.00 based on current code base.
 //
 /////////////////////////////////////////////////////////////////////////////
 

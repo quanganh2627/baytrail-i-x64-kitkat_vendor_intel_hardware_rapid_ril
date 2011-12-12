@@ -22,9 +22,6 @@
  *    General utilities and system start-up and
  *    shutdown management
  *
- *  Author: Francesc J. Vilarino Guell
- *  Created: 2009-11-06
- *
  */
 
 

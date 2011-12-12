@@ -8,16 +8,6 @@
 // Description:
 //    Defines the request constants.
 //
-// Author:  Mike Worth
-// Created: 2009-06-22
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June  22/09  DP     1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_REQUEST_ID_H
@@ -137,11 +127,12 @@ enum ND_REQ_ID_ID {
     ND_REQ_ID_SIMOPENCHANNEL,                      // 108
     ND_REQ_ID_SIMCLOSECHANNEL,                     // 109
     ND_REQ_ID_SIMTRANSMITCHANNEL,                  // 110
+    ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS,          // 111
 #if defined(M2_VT_FEATURE_ENABLED)
-    ND_REQ_ID_HANGUPVT,                            // 111
-    ND_REQ_ID_DIALVT,                              // 112
+    ND_REQ_ID_HANGUPVT,                            // 112
+    ND_REQ_ID_DIALVT,                              // 113
 #endif // M2_VT_FEATURE_ENABLED
-    ND_REQ_ID_TOTAL                                // 111 or 113
+    ND_REQ_ID_TOTAL                                // 112 or 114
 };
 
 

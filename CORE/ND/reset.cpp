@@ -8,16 +8,6 @@
 // Description:
 //    Implementation of modem reset.
 //
-// Author:  Dennis Peter
-// Created: 2011-08-31
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Aug 31/11  DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -71,11 +61,8 @@ BOOL g_bSpoofCommands = TRUE;
 void ModemResetUpdate()
 {
 
-    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
-    RIL_LOG_CRITICAL("ModemResetUpdate() - \r\n");
-    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
+    RIL_LOG_VERBOSE("ModemResetUpdate() - Enter\r\n");
 
-    RIL_LOG_INFO("ModemResetUpdate() - telling RRIL no more data\r\n");
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
@@ -95,28 +82,21 @@ void ModemResetUpdate()
     }
 
     //  Tell Android no more data connection
-    RIL_LOG_INFO("ModemResetUpdate() - telling Android no more data\r\n");
     RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
 
 
     //  If there was a voice call active, it is disconnected.
     //  This will cause a RIL_REQUEST_GET_CURRENT_CALLS to be sent
-    RIL_LOG_INFO("ModemResetUpdate() - telling Android no more voice calls\r\n");
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 
-    RIL_LOG_INFO("ModemResetUpdate() - telling Android SIM removed - needed for removing stk app\r\n");
     g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
 
-    RIL_LOG_INFO("ModemResetUpdate() - telling Android radio status changed\r\n");
     g_RadioState.SetSIMState(RADIO_STATE_UNAVAILABLE);
 
     //  Delay slightly so Java layer receives replies
     Sleep(10);
 
-    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
-    RIL_LOG_CRITICAL("ModemResetUpdate() - COMPLETE\r\n");
-    RIL_LOG_CRITICAL("**********************************************************************************************\r\n");
-
+    RIL_LOG_VERBOSE("ModemResetUpdate() - Exit\r\n");
 }
 
 
@@ -126,17 +106,15 @@ void ModemResetUpdate()
 //  Alert STMD to attempt a clean-up.
 void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszFileName)
 {
-    RIL_LOG_INFO("do_request_clean_up() - ENTER eError=[%d]\r\n", eError);
-    RIL_LOG_INFO("do_request_clean_up() - file=[%s], line num=[%d]\r\n", lpszFileName, uiLineNum);
+    RIL_LOG_INFO("do_request_clean_up() - eError=[%d], file=[%s], line num=[%d]\r\n",
+            eError, lpszFileName, uiLineNum);
 
     if (g_bSpoofCommands)
     {
-        RIL_LOG_CRITICAL("do_request_clean_up() - pending... g_bSpoofCommands=[%d]\r\n",
-            g_bSpoofCommands);
+        RIL_LOG_INFO("do_request_clean_up() - pending.\r\n");
     }
     else
     {
-        RIL_LOG_CRITICAL("do_request_clean_up() - set g_bSpoofCommands to TRUE\r\n");
         g_bSpoofCommands = TRUE;
 
         //  Doesn't matter what the error is, we are notifying STMD that
@@ -144,7 +122,6 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
         //  a MODEM_UP when things are OK again.
 
         //  Close ports
-        RIL_LOG_INFO("do_request_clean_up() - Closing channel ports\r\n");
         CSystemManager::GetInstance().CloseChannelPorts();
 
         //  Inform Android of new state
@@ -154,44 +131,40 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
 
         if (eRadioError_ForceShutdown == eError)
         {
-            RIL_LOG_INFO("do_request_clean_up() - eError=[%d], SendRequestShutdown\r\n", eError);
+            RIL_LOG_INFO("do_request_clean_up() - SendRequestShutdown\r\n");
 
             //  Send "REQUEST_SHUTDOWN" on CleanupRequest socket
             if (!CSystemManager::GetInstance().SendRequestShutdown())
             {
-                RIL_LOG_CRITICAL("do_request_clean_up() - ERROR: ***** CANNOT SEND SHUTDOWN REQUEST *****\r\n");
+                RIL_LOG_CRITICAL("do_request_clean_up() - CANNOT SEND SHUTDOWN REQUEST\r\n");
                 //  Socket could have been closed by STMD.
             }
-            RIL_LOG_INFO("do_request_clean_up() - EXIT\r\n");
-            return;
         }
         else
         {
-            RIL_LOG_INFO("do_request_clean_up() - eError=[%d], SendRequestCleanup\r\n", eError);
+            RIL_LOG_INFO("do_request_clean_up() - SendRequestCleanup, eError=[%d]\r\n", eError);
 
             //  Send "REQUEST_CLEANUP" on CleanupRequest socket
             if (!CSystemManager::GetInstance().SendRequestCleanup())
             {
-                RIL_LOG_CRITICAL("do_request_clean_up() - ERROR: ***** CANNOT SEND CLEANUP REQUEST *****\r\n");
+                RIL_LOG_CRITICAL("do_request_clean_up() - CANNOT SEND CLEANUP REQUEST\r\n");
                 //  Socket could have been closed by STMD.
                 //  Restart RRIL, drop down to exit.
             }
 
-            RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
-            RIL_LOG_INFO("do_request_clean_up() - ******* Calling exit(0) *******\r\n");
-            RIL_LOG_INFO("do_request_clean_up() - *******************************\r\n");
+            RIL_LOG_INFO("do_request_clean_up() - Calling exit(0)\r\n");
             exit(0);
         }
     }
 
-    RIL_LOG_INFO("do_request_clean_up() - EXIT\r\n");
+    RIL_LOG_VERBOSE("do_request_clean_up() - EXIT\r\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void* ContinueInitThreadProc(void* pVoid)
 {
-    RIL_LOG_INFO("ContinueInitThreadProc() - ENTER\r\n");
+    RIL_LOG_VERBOSE("ContinueInitThreadProc() - Enter\r\n");
 
     //  turn off spoof
     g_bSpoofCommands = FALSE;
@@ -204,10 +177,9 @@ void* ContinueInitThreadProc(void* pVoid)
     else
     {
         RIL_LOG_INFO("ContinueInitThreadProc() - Open ports OK\r\n");
-
     }
 
-    RIL_LOG_INFO("ContinueInitThreadProc() - EXIT\r\n");
+    RIL_LOG_VERBOSE("ContinueInitThreadProc() - EXIT\r\n");
     return NULL;
 }
 
@@ -217,7 +189,7 @@ void* ContinueInitThreadProc(void* pVoid)
 //  from STMD that the modem has reset itself.
 void* ModemWatchdogThreadProc(void* pVoid)
 {
-    RIL_LOG_INFO("ModemWatchdogThreadProc() - Enter\r\n");
+    RIL_LOG_VERBOSE("ModemWatchdogThreadProc() - Enter\r\n");
 
     int fd_ModemStatusSocket = -1;
     int nPollRet = 0;
@@ -243,7 +215,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
 
         if (fd_ModemStatusSocket < 0)
         {
-            RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: Cannot open fd_ModemStatusSocket\r\n");
+            RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - Cannot open fd_ModemStatusSocket\r\n");
             Sleep(SLEEP_MS);
         }
         else
@@ -255,7 +227,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
 
     if (fd_ModemStatusSocket < 0)
     {
-        RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: ***** CANNOT OPEN MODEM STATUS SOCKET *****\r\n");
+        RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - CANNOT OPEN MODEM STATUS SOCKET\r\n");
         //  STMD or the socket is not present, therefore, the modem is not accessible.
         //  In this case, put RRIL in a state where it will spoof responses.
         //  Call do_request_clean_up() here to hopefully wake up STMD
@@ -286,9 +258,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
                     //  It is possible that socket was closed by STMD.
                     //  Restart this thread by cleaning up (by calling exit)
                     //  let's exit, init will restart us
-                    RIL_LOG_CRITICAL("***********************************************************************\r\n");
-                    RIL_LOG_CRITICAL("************ModemWatchdogThreadProc() - CALLING EXIT ******************\r\n");
-                    RIL_LOG_CRITICAL("***********************************************************************\r\n");
+                    RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - CALLING EXIT\r\n");
                     exit(0);
                 }
                 else if (sizeof(unsigned int) != data_size)
@@ -299,12 +269,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
                 else
                 {
                     //  Compare with previous modem status.  Only handle the toggle.
-                    if (data == nPreviousModemState)
-                    {
-                        RIL_LOG_INFO("ModemWatchdogThreadProc() - *** RECEIVED SAME MODEM STATUS=[%d] ***\r\n", data);
-                        RIL_LOG_INFO("ModemWatchdogThreadProc() - *** DO NOTHING ***\r\n");
-                    }
-                    else
+                    if (data != nPreviousModemState)
                     {
                         switch(data)
                         {
@@ -322,11 +287,9 @@ void* ModemWatchdogThreadProc(void* pVoid)
                                 pContinueInitThread = new CThread(ContinueInitThreadProc, NULL, THREAD_FLAGS_JOINABLE, 0);
                                 if (!pContinueInitThread)
                                 {
-                                    RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: Unable to continue init thread\r\n");
+                                    RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - Unable to continue init thread\r\n");
                                     //  let's exit, init will restart us
-                                    RIL_LOG_CRITICAL("***********************************************************************\r\n");
-                                    RIL_LOG_CRITICAL("************ModemWatchdogThreadProc() - CALLING EXIT ******************\r\n");
-                                    RIL_LOG_CRITICAL("***********************************************************************\r\n");
+                                    RIL_LOG_INFO("ModemWatchdogThreadProc() - CALLING EXIT\r\n");
                                     exit(0);
                                 }
 
@@ -352,9 +315,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
                                 ModemResetUpdate();
 
                                 //  let's exit, init will restart us
-                                RIL_LOG_CRITICAL("********************************************************************\r\n");
-                                RIL_LOG_CRITICAL("************ModemWatchdogThreadProc() - CALLING EXIT ******************\r\n");
-                                RIL_LOG_CRITICAL("********************************************************************\r\n");
+                                RIL_LOG_INFO("ModemWatchdogThreadProc() - CALLING EXIT\r\n");
 
                                 exit(0);
 
@@ -371,6 +332,37 @@ void* ModemWatchdogThreadProc(void* pVoid)
                                 //  Do nothing here.
                                 break;
 
+                            case MODEM_COLD_RESET:
+                                RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() received MODEM_COLD_RESET\r\n");
+                                //  RIL is already in modem off state because of previous modem warm reset
+                                //  procedure.  It stores event in local variable (TODO: figure out where)
+                                //  for later check, and send back ACK to STMD.
+
+                                //  Send MODEM_COLD_RESET_ACK on same socket
+                                if (fd_ModemStatusSocket >= 0)
+                                {
+                                    unsigned int data;
+                                    int data_size = 0;
+
+                                    RIL_LOG_INFO("ModemWatchdogThreadProc() - Send MODEM_COLD_RESET_ACK\r\n");
+                                    data = MODEM_COLD_RESET_ACK;
+                                    data_size = send(fd_ModemStatusSocket, &data, sizeof(unsigned int), 0);
+                                    if (data_size < 0)
+                                    {
+                                        RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - Failed to send MODEM_COLD_RESET_ACK\r\n");
+                                    }
+                                    else
+                                    {
+                                        RIL_LOG_INFO("ModemWatchdogThreadProc() - Send MODEM_COLD_RESET_ACK  SUCCESSFUL\r\n");
+                                    }
+                                }
+                                else
+                                {
+                                    RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - invalid socket fd_ModemStatusSocket=[%d]\r\n", fd_ModemStatusSocket);
+                                }
+
+                                break;
+
                             default:
                                 RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() UNKNOWN [%d]\r\n", data);
                                 break;
@@ -380,29 +372,27 @@ void* ModemWatchdogThreadProc(void* pVoid)
             }
             else if (fds[0].revents & POLLHUP)
             {
-                RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: POLLHUP received!\r\n");
+                RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - POLLHUP received!\r\n");
                 //  Reset RIL to recover to a good status
                 //  let's exit, init will restart us
-                RIL_LOG_CRITICAL("***********************************************************************\r\n");
-                RIL_LOG_CRITICAL("************ModemWatchdogThreadProc() - CALLING EXIT ******************\r\n");
-                RIL_LOG_CRITICAL("***********************************************************************\r\n");
+                RIL_LOG_INFO("ModemWatchdogThreadProc() - CALLING EXIT\r\n");
                 exit(0);
             }
             else
             {
-                RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: UNKNOWN event received! [0x%08x]\r\n", fds[0].revents);
+                RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - UNKNOWN event received! [0x%08x]\r\n", fds[0].revents);
                 //  continue polling
             }
         }
         else
         {
-            RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - ERROR: poll() FAILED! nPollRet=[%d]\r\n", nPollRet);
+            RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - poll() FAILED! nPollRet=[%d]\r\n", nPollRet);
         }
 
     }  // end of poll loop
 
 
-    RIL_LOG_INFO("ModemWatchdogThreadProc() - Exit\r\n");
+    RIL_LOG_VERBOSE("ModemWatchdogThreadProc() - Exit\r\n");
     return NULL;
 }
 
@@ -413,14 +403,14 @@ void* ModemWatchdogThreadProc(void* pVoid)
 //
 BOOL CreateModemWatchdogThread()
 {
-    RIL_LOG_INFO("CreateModemWatchdogThread() - Enter\r\n");
+    RIL_LOG_VERBOSE("CreateModemWatchdogThread() - Enter\r\n");
     BOOL bResult = FALSE;
 
     //  launch watchdog thread.
     CThread* pModemWatchdogThread = new CThread(ModemWatchdogThreadProc, NULL, THREAD_FLAGS_JOINABLE, 0);
     if (!pModemWatchdogThread)
     {
-        RIL_LOG_CRITICAL("CreateModemWatchdogThread() - ERROR: Unable to launch modem watchdog thread\r\n");
+        RIL_LOG_CRITICAL("CreateModemWatchdogThread() - Unable to launch modem watchdog thread\r\n");
         goto Error;
     }
 
@@ -430,7 +420,7 @@ Error:
     delete pModemWatchdogThread;
     pModemWatchdogThread = NULL;
 
-    RIL_LOG_INFO("CreateModemWatchdogThread() - Exit\r\n");
+    RIL_LOG_VERBOSE("CreateModemWatchdogThread() - Exit\r\n");
     return bResult;
 }
 

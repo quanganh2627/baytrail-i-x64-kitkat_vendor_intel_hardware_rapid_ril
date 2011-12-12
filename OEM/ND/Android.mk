@@ -11,7 +11,6 @@ LOCAL_SRC_FILES:= te_oem.cpp
 
 
 LOCAL_C_INCLUDES :=  \
-    $(KERNEL_HEADERS) \
     $(LOCAL_PATH)/../../CORE \
     $(LOCAL_PATH)/../../CORE/ND \
     $(LOCAL_PATH)/../../INC \

@@ -8,17 +8,6 @@
 // Description:
 //    Also defines RIL framework constants and structures.
 //
-// Author:  Dennis Peter
-// Created: 2007-07-12
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 3/08  DP       1.00  Established v1.00 based on current code base.
-//  May  9/08  FP       1.00  Factored out from rilhand.h.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_GLOBALS_H
@@ -45,9 +34,6 @@ extern UINT32 g_TimeoutThresholdForRetry;
 ///////////////////////////////////////////////////////////////////////////////
 extern char g_cTerminator;
 extern char g_szNewLine[3];
-
-///////////////////////////////////////////////////////////////////////////////
-extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
 
 ///////////////////////////////////////////////////////////////////////////////
 // This global class instance tracks the radio state and handles notifications

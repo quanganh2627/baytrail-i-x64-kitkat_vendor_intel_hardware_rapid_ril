@@ -1,3 +1,16 @@
+////////////////////////////////////////////////////////////////////////////
+// thread_ops.cpp
+//
+// Copyright 2005-2011 Intrinsyc Software International, Inc.  All rights reserved.
+// Patents pending in the United States of America and other jurisdictions.
+//
+//
+// Description:
+//  Thread handling interfaces
+//
+/////////////////////////////////////////////////////////////////////////////
+
+
 #include <sched.h>
 #include <errno.h>
 #include <stdio.h>

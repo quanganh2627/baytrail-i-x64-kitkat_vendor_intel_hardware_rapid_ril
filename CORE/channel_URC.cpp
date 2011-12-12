@@ -10,16 +10,6 @@
 //    to facilitate the use of multiple AT channels.
 //    All URCs go on this channel.
 //
-// Author:  Dennis Peter
-// Created: 2011-02-08
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Feb 8/11   DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
@@ -33,7 +23,12 @@ extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
 //  All URCs go on this channel.
-INITSTRING_DATA URCBasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0|+XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+CTZR=1|+XREG=1|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XCSQ=1|+XLEMA=1" };
+#if defined(USE_CGREG_FOR_GPRS_REG_STATUS)
+INITSTRING_DATA URCBasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0|+XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+CTZR=1|+CREG=2|+CGREG=2|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XCSQ=1|+XLEMA=1" };
+#else // USE_CGREG_FOR_GPRS_REG_STATUS
+INITSTRING_DATA URCBasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0|+XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+CTZR=1|+CREG=2|+XREG=2|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XCSQ=1|+XLEMA=1" };
+#endif // USE_CGREG_FOR_GPRS_REG_STATUS
+
 #if defined(M2_CELL_BROADCAST_FEATURE_ENABLED)
 INITSTRING_DATA URCUnlockInitString  = { "+CNMI=2,2,2,1|+CRC=1|+CCWA=1" };
 #else // M2_CELL_BROADCAST_FEATURE_ENABLED

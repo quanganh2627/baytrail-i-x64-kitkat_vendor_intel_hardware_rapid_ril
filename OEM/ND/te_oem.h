@@ -8,16 +8,6 @@
 // Description:
 //    Defines the OEM overrides for the CTE class
 //
-// Author:  Mike Worth
-// Created: 2009-09-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Sept 30/09  FV      1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_TE_OEM_H

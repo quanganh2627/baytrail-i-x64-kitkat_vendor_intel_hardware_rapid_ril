@@ -10,16 +10,6 @@
 //    facilitate the use of multiple command channels.
 //    Call control commands, misc commands
 //
-// Author:  Dennis Peter
-// Created: 2007-07-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 3/08  DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #if !defined(RIL_CHANNEL_ATCMD_H)

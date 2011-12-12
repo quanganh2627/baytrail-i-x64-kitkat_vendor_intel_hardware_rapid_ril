@@ -8,7 +8,6 @@ LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES:= \
-    notification.cpp \
     rillog.cpp \
     extract.cpp \
     util.cpp \
@@ -17,13 +16,14 @@ LOCAL_SRC_FILES:= \
 LOCAL_SHARED_LIBRARIES := \
     libutils
 
+ifeq ($(TARGET_BUILD_VARIANT),eng)
 LOCAL_CFLAGS += -DDEBUG
+endif
 
-# remove comment character to enable M2 "Video Telephony" feature
+# Activating this macro enables the optional Video Telephony feature
 #LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
 
 LOCAL_C_INCLUDES :=  \
-    $(KERNEL_HEADERS) \
     $(LOCAL_PATH)/../../INC \
     $(LOCAL_PATH)/../../CORE \
     $(LOCAL_PATH)/../../CORE/ND \

@@ -1,3 +1,16 @@
+////////////////////////////////////////////////////////////////////////////
+// mem_ops.h
+//
+// Copyright 2005-2011 Intrinsyc Software International, Inc.  All rights reserved.
+// Patents pending in the United States of America and other jurisdictions.
+//
+//
+// Description:
+//    Defines memory allocation blobs.
+//
+/////////////////////////////////////////////////////////////////////////////
+
+
 #ifndef __mem_ops_h__
 #define __mem_ops_h__
 

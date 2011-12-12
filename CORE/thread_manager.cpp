@@ -8,16 +8,6 @@
 // Description:
 //      Manages starting and termination of threads for all command queues
 //
-// Author:  Mike Worth
-// Created: 2009-07-16
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  July 16/09  MW       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
@@ -29,7 +19,7 @@
 
 CThreadManager* CThreadManager::m_pInstance = NULL;
 
-BOOL CThreadManager::Start(unsigned int nChannels, CEvent *& pStopThreadsEvent)
+BOOL CThreadManager::Start(unsigned int nChannels)
 {
     BOOL fRet = FALSE;
 
@@ -40,7 +30,7 @@ BOOL CThreadManager::Start(unsigned int nChannels, CEvent *& pStopThreadsEvent)
     }
     else
     {
-        m_pInstance = new CThreadManager(nChannels, pStopThreadsEvent);
+        m_pInstance = new CThreadManager(nChannels);
         if (NULL != m_pInstance)
         {
             fRet = m_pInstance->Initialize();
@@ -70,11 +60,10 @@ BOOL CThreadManager::Stop()
     return fRet;
 }
 
-CThreadManager::CThreadManager(unsigned int nChannels, CEvent *& pStopThreadsEvent) :
+CThreadManager::CThreadManager(unsigned int nChannels) :
     m_nChannelsTotal(nChannels),
     m_nChannelsActive(0),
-    m_pStartupCompleteEvent(NULL),
-    m_pStopThreadsEvent(pStopThreadsEvent)
+    m_pStartupCompleteEvent(NULL)
 {
     RIL_LOG_VERBOSE("CThreadManager::CThreadManager() - Enter\r\n");
 
@@ -109,19 +98,6 @@ BOOL CThreadManager::Initialize()
         goto Error;
     }
 
-    if (NULL == m_pStopThreadsEvent)
-    {
-        RIL_LOG_CRITICAL("CThreadManager::Initialize() : ERROR : Unable to access stop thread event\r\n");
-        goto Error;
-    }
-
-    /*
-    if (!InitializeAndCreateQueues(m_pStopThreadsEvent))
-    {
-        RIL_LOG_CRITICAL("CThreadManager::Initialize() : ERROR : Unable to initialize queues\r\n");
-        goto Error;
-    }
-    */
     if (!StartChannelThreads())
     {
         RIL_LOG_CRITICAL("CThreadManager::Initialize() : ERROR : Failed to launch channel threads\r\n");

@@ -53,27 +53,29 @@ LOCAL_SRC_FILES:= \
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils
 
+ifeq ($(TARGET_BUILD_VARIANT),eng)
 LOCAL_CFLAGS += -DDEBUG
+endif
 
-# Remove comment char to enable M2 "Multiple Primary PDP Contexts" feature
+# Activating this macro enables the optional Multiple PDP Contexts feature
 #LOCAL_CFLAGS += -DM2_MULTIPLE_PDP_FEATURE_ENABLED
 
-# Remove comment char to enable M2 "Video Telephony" feature
+# Activating this macro enables the optional Video Telephony feature
 #LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
 
-# Remove comment char to enable M2 "Call Failed Cause Notification" feature
+# Activating this macro enables the Call Failed Cause Notification feature
 #LOCAL_CFLAGS += -DM2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
-# Add comment character to disable M2 "Rx Diversity" feature
+# Activating this macro enables the Rx Diversity feature
 LOCAL_CFLAGS += -DM2_RXDIV_FEATURE_ENABLED
 
-# Add comment character to disable M2 "Cell Broadcast" feature
+# Activating this macro enables the Cell Broadcast feature
 LOCAL_CFLAGS += -DM2_CELL_BROADCAST_FEATURE_ENABLED
 
-# Remove comment character to enable M2 "IPv6" feature
+# Activating this macro enables the IPv6 feature
 #LOCAL_CFLAGS += -DM2_IPV6_FEATURE_ENABLED
 
-# Remove comment character to enable M2 "PIN retries" feature
+# Activating this macro enables PIN retry count feature
 #LOCAL_CFLAGS += -DM2_PIN_RETRIES_FEATURE_ENABLED
 
 # Remove comment character when SEEK for Android V2.2.2 is complete.
@@ -84,9 +86,11 @@ LOCAL_CFLAGS += -DM2_CELL_BROADCAST_FEATURE_ENABLED
 #LOCAL_CFLAGS += -DM2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
 
 
+# Activating this macro enables the use of CGREG(instead of XREG) for GPRS registration status
+#LOCAL_CFLAGS += -DUSE_CGREG_FOR_GPRS_REG_STATUS
+
+
 LOCAL_C_INCLUDES :=  \
-    $(KERNEL_HEADERS) \
-    hardware/intel/linux-2.6 \
     $(LOCAL_PATH)/ND  \
     $(LOCAL_PATH)/ND/MODEMS  \
     $(LOCAL_PATH)/MODEMS  \

@@ -8,16 +8,6 @@
 // Description:
 //      Stores and provides information regarding a particular request.
 //
-// Author:  Mike Worth
-// Created: 2009-06-22
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 22/09  MW       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_REQUEST_INFO_TABLE_H

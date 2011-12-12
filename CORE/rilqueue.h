@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// RilQueue.h
+// rilqueue.h
 //
 // Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
@@ -7,16 +7,6 @@
 //
 // Description:
 //    A simple priority queue
-//
-// Author:  Francesc J. Vilarino Guell
-// Created: 2009-11-17
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date         Who      Ver   Description
-//  ----------  -------  ----  -----------------------------------------------
-//  2009-11-17   FV       1.00  Established v1.00 based on current code base.
 //
 /////////////////////////////////////////////////////////////////////////////
 

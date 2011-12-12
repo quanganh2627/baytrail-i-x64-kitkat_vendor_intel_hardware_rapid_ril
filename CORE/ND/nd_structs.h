@@ -9,16 +9,6 @@
 //      Defines blobs for use in Android to support expected return structures
 //      of pointer arrays to valid data
 //
-// Author:  Mike Worth
-// Created: 2009-10-19
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Oct 19/09  MW       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef ND_STRUCTS_H
@@ -234,7 +224,9 @@ enum ACCESS_TECHNOLOGY
     ACT_HSUPA = 10,
     ACT_HSPA = 11,
     ACT_EVDO_B = 12,
-    ACT_GSM = 13
+    ACT_LTE = 13,
+    ACT_EHRPD = 14,
+    ACT_HSPAP = 15
 };
 
 typedef struct

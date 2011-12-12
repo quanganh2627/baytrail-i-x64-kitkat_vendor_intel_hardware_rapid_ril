@@ -9,16 +9,6 @@
 //    Defines the CTEBase class which handles all requests and
 //    basic behavior for responses
 //
-// Author:  Mike Worth
-// Created: 2009-09-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Sept 30/09  FV      1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_TE_BASE_H
@@ -494,11 +484,14 @@ public:
     // QUERY PIN2
     virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
 
+    // QUERY SIM SMS STORE STATUS
+    virtual RIL_RESULT_CODE ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus);
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
-    UINT32 ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause);
+    BOOL ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause);
 };
 
 #endif

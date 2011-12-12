@@ -1,3 +1,15 @@
+////////////////////////////////////////////////////////////////////////////
+// com_init_index.h
+//
+// Copyright 2011 Intrinsyc Software International, Inc.  All rights reserved.
+// Patents pending in the United States of America and other jurisdictions.
+//
+//
+// Description:
+//    Defines the init indexes.
+//
+/////////////////////////////////////////////////////////////////////////////
+
 #ifndef RRIL_COMINITINDEX_H
 #define RRIL_COMINITINDEX_H
 

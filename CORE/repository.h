@@ -21,8 +21,6 @@
  * Description:
  *    Class declaration for Non-Volatile storage
  *
- *  Author: Francesc J. Vilarino Guell
- *  Created: 2009-08-17
  *
  */
 

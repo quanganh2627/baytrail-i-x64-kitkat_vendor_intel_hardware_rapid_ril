@@ -10,16 +10,6 @@
 //    to facilitate the use of multiple command channels.
 //    Call control commands, misc commands
 //
-// Author:  Dennis Peter
-// Created: 2007-07-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 3/08  DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
@@ -34,7 +24,6 @@ extern BOOL  g_bIsSocket;
 //  Com init strings for this channel.
 //  Call control commands, misc commands
 
-//  Bugzilla 5079: 3G Rx Diversity
 //  Only send AT+XRXDIV=1,1 when M2 Rx Diversity feature flag is enabled.
 //  Otherwise, send AT+XRXDIV=0,1
 #if defined(M2_RXDIV_FEATURE_ENABLED)

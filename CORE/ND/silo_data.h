@@ -9,19 +9,6 @@
 //    Defines the CSilo_Data class, which provides response handlers and
 //    parsing functions for the data-related RIL components.
 //
-// Author:  Dennis Peter
-// Created: 2007-08-03
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date        Who      Ver   Description
-//  ----------  -------  ----  -----------------------------------------------
-//  June 03/08  DP       1.00  Established v1.00 based on current code base.
-//  May  04/09  CW       1.01  Moved common code to base class, identified
-//                             platform-specific implementations, implemented
-//                             general code clean-up.
-//
 /////////////////////////////////////////////////////////////////////////////
 //
 //  Data silo class.  This class handles all data functionality including:

@@ -8,16 +8,6 @@
 // Description:
 //    Defines the OEM overrides for RILD interface.
 //
-//  Author: Mike Worth
-//  Created: 2009-09-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date        Who      Ver   Description
-//  ----------  -------  ----  -----------------------------------------------
-//  Sep  30/09  MW       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include <telephony/ril.h>

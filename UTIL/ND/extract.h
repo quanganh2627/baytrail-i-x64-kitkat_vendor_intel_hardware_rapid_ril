@@ -9,16 +9,6 @@
 //  Provides helper functions from extracting information elements from response
 //  strings.
 //
-// Author:  Mike Worth
-// Created: 2009-07-08
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  July 8/09  MW       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #pragma once

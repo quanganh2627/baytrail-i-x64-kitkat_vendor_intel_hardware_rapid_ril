@@ -8,18 +8,6 @@
 // Description:
 //    Implements RIL log class.
 //
-// Author:  Chris Whitehead
-// Created: 2009-02-05
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Feb 05/09  CW       1.00  Established v1.00 based on current code base.
-//  Dec 17/09  FV       1.10  Refactor logging by using a class with
-//                            static functions
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"

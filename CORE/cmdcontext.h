@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// cmccontext.cpp
+// cmccontext.h
 //
 // Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
@@ -8,16 +8,6 @@
 // Description:
 //    Interface for command context used to execute command
 //    specific actions
-//
-// Author:  Francesc Vilarino
-// Created: 2009-11-19
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Nov 19/09  FV       1.00  Established v1.00 based on current code base.
 //
 /////////////////////////////////////////////////////////////////////////////
 

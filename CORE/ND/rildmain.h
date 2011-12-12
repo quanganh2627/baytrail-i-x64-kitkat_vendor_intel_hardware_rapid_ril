@@ -8,16 +8,6 @@
 // Description:
 //    Provides implementations for top-level RIL functions.
 //
-// Author:  Denis Londry
-// Created: 2008-11-20
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Nov 20/08  DL       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_RILDMAIN_H

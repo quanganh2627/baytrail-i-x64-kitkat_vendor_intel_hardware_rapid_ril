@@ -1,3 +1,14 @@
+////////////////////////////////////////////////////////////////////////////
+// thread_ops.h
+//
+// Copyright 2005-2011 Intrinsyc Software International, Inc.  All rights reserved.
+// Patents pending in the United States of America and other jurisdictions.
+//
+//
+// Description:
+//      Defines CThread class for handling threads.
+//
+/////////////////////////////////////////////////////////////////////////////
 
 #include <pthread.h>
 typedef void* (*THREAD_PROC_PTR)(void*);

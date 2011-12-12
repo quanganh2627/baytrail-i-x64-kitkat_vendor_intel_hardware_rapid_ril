@@ -9,16 +9,6 @@
 //    Defines the CTE class which handles all overrides to requests and
 //    basic behavior for responses for a specific modem
 //
-// Author:  Mike Worth
-// Created: 2009-09-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Sept 30/09  FV      1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_TE_H
@@ -27,6 +17,7 @@
 #include "te_base.h"
 #include "rril.h"
 #include "sync_ops.h"
+#include "nd_structs.h"
 
 class CTE
 {
@@ -51,6 +42,11 @@ private:
 public:
     static CTE & GetTE();
     static void  DeleteTEObject();
+
+    static BOOL ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_STATUS& pCSRegStruct);
+    static BOOL ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_REG_STATUS& pPSRegStruct);
+    static BOOL ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_REG_STATUS& pPSRegStruct);
+    static UINT32 MapAccessTechnology(UINT32 uiStdAct);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
     RIL_RESULT_CODE RequestGetSimStatus(RIL_Token rilToken, void * pData, size_t datalen);
@@ -506,6 +502,19 @@ public:
 
     // REQ_ID_QUERYPIN2
     RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
+
+    void StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
+    void CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
+    void ResetRegistrationCache();
+
+    // REQ_ID_QUERY_SIM_SMS_STORE_STATUS
+    RIL_RESULT_CODE ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData);
+
+private:
+    BOOL m_bCSStatusCached;
+    BOOL m_bPSStatusCached;
+    S_ND_GPRS_REG_STATUS m_sPSStatus;
+    S_ND_REG_STATUS m_sCSStatus;
 };
 
 #endif

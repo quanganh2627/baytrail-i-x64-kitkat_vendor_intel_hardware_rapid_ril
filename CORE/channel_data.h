@@ -10,16 +10,6 @@
 //    facilitate the use of multiple data channels.
 //    GPRS/UMTS data (1st primary context)
 //
-// Author:  Dennis Peter
-// Created: 2007-09-20
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Jun 3/08   DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #if !defined(RIL_CHANNEL_DATA_H)
@@ -73,8 +63,8 @@ public:
     char*               m_szIpAddr2;
 
     //  For IPV4V6, there could be 2 DNS addresses for primary and secondary.
-    char*               m_szDNS1_Secondary;
-    char*               m_szDNS2_Secondary;
+    char*               m_szIpV6DNS1;
+    char*               m_szIpV6DNS2;
 #endif // M2_IPV6_FEATURE_ENABLED
 
 private:

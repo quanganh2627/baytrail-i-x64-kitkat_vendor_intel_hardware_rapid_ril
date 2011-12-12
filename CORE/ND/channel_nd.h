@@ -8,16 +8,6 @@
 // Description:
 //    Defines channel-related classes, constants, and structures.
 //
-// Author:  Francesc Vilarino
-// Created: 2009-06-18
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 18/06  FV       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -70,6 +60,9 @@ private:
     BOOL            ProcessResponse(CResponse*& rpRsp);
     BOOL            ProcessNoop(CResponse*& rpRsp);
     BOOL            RejectRadioOff(CResponse*& rpRsp);
+
+    //  helper function to close and open the port.
+    void            CloseOpenPort();
 
     //  Go through Tx queue and find identical request IDs.  Send response to IDs that match.
     //  Maybe make this a global function?

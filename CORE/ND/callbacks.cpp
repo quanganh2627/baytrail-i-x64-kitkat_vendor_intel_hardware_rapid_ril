@@ -8,16 +8,6 @@
 // Description:
 //    Implementations for all functions provided to RIL_requestTimedCallback
 //
-// Author:  Mike Worth
-// Created: 2009-10-20
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Oct 20/09  MW       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
@@ -30,6 +20,33 @@
 void notifyChangedCallState(void *param)
 {
     RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
+}
+
+void triggerHangup(UINT32 uiCallId)
+{
+    REQUEST_DATA rReqData;
+
+    memset(&rReqData, 0, sizeof(REQUEST_DATA));
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XSETCAUSE=1,21;+CHLD=1%u\r", uiCallId))
+    {
+        RIL_LOG_CRITICAL("triggerHangup() - ERROR: Unable to create hangup command!\r\n");
+        return;
+    }
+
+    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_HANGUP], NULL, REQ_ID_NONE, rReqData);
+    if (pCmd)
+    {
+        if (!CCommand::AddCmdToQueue(pCmd, TRUE))
+        {
+            RIL_LOG_CRITICAL("triggerHangup() - ERROR: Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("triggerHangup() - ERROR: Unable to allocate memory for new command!\r\n");
+    }
 }
 
 void triggerSignalStrength(void *param)
@@ -67,6 +84,26 @@ void triggerSMSAck(void *param)
     else
     {
         RIL_LOG_CRITICAL("triggerSMSAck() - ERROR: Unable to allocate memory for new command!\r\n");
+    }
+}
+
+void triggerQuerySimSmsStoreStatus(void *param)
+{
+    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS],
+                                   NULL, REQ_ID_NONE, "AT+CPMS?\r", &CTE::ParseQuerySimSmsStoreStatus);
+
+    if (pCmd)
+    {
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("triggerQuerySimSmsStoreStatus() - ERROR: Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("triggerQuerySimSmsStoreStatus() - ERROR: Unable to allocate memory for new command!\r\n");
     }
 }
 

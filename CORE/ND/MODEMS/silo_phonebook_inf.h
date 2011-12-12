@@ -9,16 +9,6 @@
 //    Provides response handlers and parsing functions for the Phonebook-related
 //    RIL components - Infineon family of modems.
 //
-// Author:  Francesc J. Vilarino Guell
-// Created: 2009-12-15
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date         Who      Ver   Description
-//  ----------  -------  ----  -----------------------------------------------
-//  Dec 15/09    FV      1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 

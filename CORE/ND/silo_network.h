@@ -9,19 +9,6 @@
 //    Defines the CSilo_Network class, which provides response handlers and
 //    parsing functions for the network-related RIL components.
 //
-// Author:  Dennis Peter
-// Created: 2007-07-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date        Who      Ver   Description
-//  ----------  -------  ----  -----------------------------------------------
-//  June 03/08  DP       1.00  Established v1.00 based on current code base.
-//  May  04/09  CW       1.01  Moved common code to base class, identified
-//                             platform-specific implementations, implemented
-//                             general code clean-up.
-//
 /////////////////////////////////////////////////////////////////////////////
 //
 //  Network silo class.  This class handles all network functionality including:
@@ -61,8 +48,17 @@ public:
     virtual BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp);
 
 protected:
+    enum SILO_NETWORK_REGISTRATION_TYPES
+        {
+        SILO_NETWORK_CREG,
+        SILO_NETWORK_CGREG,
+        SILO_NETWORK_XREG
+        };
+
+protected:
     //  Parse notification functions here.
-    virtual BOOL    ParseRegistrationStatus(CResponse* const pResponse, const char*& rszPointer, BOOL const bGPRS);
+    virtual BOOL    ParseRegistrationStatus(CResponse* const pResponse, const char*& rszPointer,
+                                            SILO_NETWORK_REGISTRATION_TYPES regType);
     virtual BOOL    ParseCTZV(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseCTZDST(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseCREG(CResponse* const pResponse, const char*& rszPointer);

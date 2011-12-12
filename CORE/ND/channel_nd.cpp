@@ -9,16 +9,6 @@
 //    Implements the CChannel class, which provides the
 //    infrastructure for the various AT Command channels.
 //
-// Author:  Francesc Vilarino
-// Created: 2009-06-18
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 18/06  FV       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
@@ -230,13 +220,20 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             if (NULL != m_pResponse)
                 m_pResponse->FreeData();
 
+            BOOL success = WriteToPort(pATCommand, strlen(pATCommand), uiBytesWritten);
+#if !defined(DEBUG)
+            rpCmd->FreeATCmd1();
+            pATCommand = NULL;
+#endif
+            // Upon success, pATCommand will contain the CRLF Expanded string
+            char* pExpandedATCmd = CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString();
+
             // write the command out to the com port
-            if (!WriteToPort(pATCommand, strlen(pATCommand), uiBytesWritten))
+            if (!success)
             {
                 // write() = -1, error.
                 RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: write() = -1, chnl=[%d] Error writing command: %s\r\n",
-                                m_uiRilChannel,
-                                CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+                                m_uiRilChannel, pExpandedATCmd ? pExpandedATCmd : "NULL");
                 //  wait forever in here.
                 do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
             }
@@ -244,9 +241,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             if (strlen(pATCommand) != uiBytesWritten)
             {
                 RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Only wrote [%d] chars of command to port: %s\r\n",
-                                m_uiRilChannel,
-                                uiBytesWritten,
-                                CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+                                m_uiRilChannel, uiBytesWritten, pExpandedATCmd ? pExpandedATCmd : "NULL");
             }
 
             // retrieve response from modem
@@ -258,8 +253,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             if (!pResponse)
             {
                 RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] No response received to TX [%s]\r\n",
-                                m_uiRilChannel,
-                                CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+                                 m_uiRilChannel, pExpandedATCmd ? pExpandedATCmd : "NULL");
                 goto Error;
             }
 
@@ -430,20 +424,24 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         // send 2nd phase of command
         SetCmdThreadBlockedOnRxQueue();
 
-        if (!WriteToPort(pATCommand, strlen(pATCommand), uiBytesWritten))
+        BOOL success = WriteToPort(pATCommand, strlen(pATCommand), uiBytesWritten);
+#if !defined(DEBUG)
+        rpCmd->FreeATCmd2();
+        pATCommand = NULL;
+#endif
+        // Upon success, pATCommand will contain the CRLF Expanded string
+        char* pExpandedATCmd = CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString();
+        if (!success)
         {
             RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Error sending 2nd command: %s\r\n",
-                          m_uiRilChannel,
-                          CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+                                m_uiRilChannel, pExpandedATCmd ? pExpandedATCmd : "NULL");
             // ignore error and wait for a modem response, or time out
         }
 
         if (strlen(pATCommand) != uiBytesWritten)
         {
             RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Could only write [%d] chars of 2nd command: %s\r\n",
-                m_uiRilChannel,
-                uiBytesWritten,
-                CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+                                m_uiRilChannel, uiBytesWritten, pExpandedATCmd ? pExpandedATCmd : "NULL");
         }
 
         // wait for the secondary response
@@ -461,7 +459,7 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
             else
             {
                 RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command2 timed out chnl=[%d] ! timeout=[%d]ms No response to TX [%s] *****\r\n",
-                                m_uiRilChannel, rpCmd->GetTimeout(), CRLFExpandedString(pATCommand, strlen(pATCommand)).GetString());
+                                m_uiRilChannel, rpCmd->GetTimeout(), pExpandedATCmd ? pExpandedATCmd : "NULL");
             }
 
             HandleTimeout(rpCmd, rpResponse);
@@ -483,6 +481,32 @@ Error:
     return resCode;
 }
 
+//  Helper function to close and open the port
+//  Uses m_pPossibleInvalidFDMutex mutex, since reponse thread may receive data while
+//  port is closed.
+void CChannel::CloseOpenPort()
+{
+    CMutex::Lock(m_pPossibleInvalidFDMutex);
+    m_bPossibleInvalidFD = TRUE;
+    RIL_LOG_INFO("CChannel::CloseOpenPort() - chnl=[%d] m_bPossibleInvalidFD=TRUE\r\n", m_uiRilChannel);
+    CMutex::Unlock(m_pPossibleInvalidFDMutex);
+
+    //  AT command is non-abortable.  Just Close DLC and Open DLC here.
+    RIL_LOG_INFO("CChannel::CloseOpenPort() - chnl=[%d] Closing port\r\n", m_uiRilChannel);
+    g_pRilChannel[m_uiRilChannel]->ClosePort();
+
+    RIL_LOG_INFO("CChannel::CloseOpenPort() - chnl=[%d] Opening port\r\n", m_uiRilChannel);
+    g_pRilChannel[m_uiRilChannel]->OpenPort();
+
+    RIL_LOG_INFO("CChannel::CloseOpenPort() - chnl=[%d] Calling InitPort()\r\n", m_uiRilChannel);
+    g_pRilChannel[m_uiRilChannel]->InitPort();
+
+    CMutex::Lock(m_pPossibleInvalidFDMutex);
+    m_bPossibleInvalidFD = FALSE;
+    RIL_LOG_INFO("CChannel::CloseOpenPort() - chnl=[%d] m_bPossibleInvalidFD=FALSE\r\n", m_uiRilChannel);
+    CMutex::Unlock(m_pPossibleInvalidFDMutex);
+}
+
 //
 //  This function handles the timeout mechanism.
 //  If timeout, send ABORT.  Then send PING.
@@ -492,63 +516,75 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
 
     // New retry mechanism.
     //
-    //-If there is AT command timeout, send ABORT command.
-    //-Timeout of ABORT command dependent on RIL_REQUEST.
-    //    -Abortable commands are: (COPS, CCFC, CLIP, CLIR, COLP, CGACT, CGATT)
-    //    -Other non-abortable commands use 500ms.
-    //-TODO: If ABORT timeout, close DLC.  Open DLC.
-    //-Upon response from ABORT or ABORT timeout, send AT+CMEE=1\r to "ping" modem to see if still alive.
-    //-If modem "ping" passes, RIL assumes modem is alive.
-    //    -If timeout <= "threshold timeout for retry", DO NOT reset modem and resend command.
-    //        -If retry attempt and init command, signal clean-up request to STMD.
-    //    -If timeout > "threshold timeout for retry", then DO NOT reset modem and return
-    //     RIL_E_GENERIC_FAILURE to Android.
-    //-If modem "ping" fails, RIL assumes modem is dead.  Signal clean-up request to STMD.
+    //-If there is AT command timeout, check to see if AT command is abortable or not.
+    //  -If AT command is abortable:
+    //     -Send ABORT command, wait for ABORT response.
+    //     -If ABORT timeout, Close and Open the port.
+    //     -If ABORT response received, assume modem is alive.
+    //   -"Ping" the modem with simple AT command.
+    //     -If "Ping" timeout, assume modem is dead.  Request clean up from STMD.
+    //     -If "Ping" response received, assume modem is alive.  Re-send original AT command.
+    //        -Also must send channel init commands if port was closed and opened.
+    //
+    //  -If AT command is non-abortable:
+    //     -Close and Open the port.
+    //   -"Ping" the modem with simple AT command.
+    //     -If "Ping" timeout, assume modem is dead.  Request clean up from STMD.
+    //     -If "Ping" response received, assume modem is alive.  Re-send original AT command.
+    //        -Also must send channel init commands for this particular channel.
 
 
+    BOOL bRet = TRUE;
     const UINT32 PING_TIMEOUT = 3000;  // PING timeout in ms.
     char szABORTCmd[] = "AT\x1b\r";  //  AT<esc>\r
-    char szPINGCmd[] = "AT+CMEE=1\r";
+    char szPINGCmd[] = "ATE0V1;+CMEE=1\r";
 
-
-    // Send ABORT command
     UINT32 uiBytesWritten = 0;
-    UINT32 uiAbortTimeout = GetAbortTimeout(rpCmd->GetRequestID());
-    RIL_LOG_INFO("CChannel::HandleTimeout() - Sending ABORT Command on chnl=[%d], timeout=[%d]ms\r\n", m_uiRilChannel, uiAbortTimeout);
-    WriteToPort(szABORTCmd, strlen(szABORTCmd), uiBytesWritten);
-
     CResponse *pRspTemp = NULL;
-    RIL_RESULT_CODE resTmp = ReadQueue(pRspTemp, uiAbortTimeout); //  wait for ABORTED response
+    RIL_RESULT_CODE resTmp = RIL_E_SUCCESS;
+    BOOL bCloseOpenPort = FALSE;
 
-    //  Did the ABORT command timeout?
-    if (pRspTemp && pRspTemp->IsTimedOutFlag())
+    //  Is AT command abortable?  If so, send ABORT command.
+    if ( IsReqIDAbortable(rpCmd->GetRequestID()) )
     {
-        //  ABORTED timeout
+        // Send ABORT command
+        UINT32 uiAbortTimeout = GetAbortTimeout(rpCmd->GetRequestID());
+        RIL_LOG_INFO("CChannel::HandleTimeout() - Sending ABORT Command on chnl=[%d], timeout=[%d]ms\r\n", m_uiRilChannel, uiAbortTimeout);
+        WriteToPort(szABORTCmd, strlen(szABORTCmd), uiBytesWritten);
 
-        //  If command is non-abortable, this is OK.
-        if (IsReqIDAbortable(rpCmd->GetRequestID()))
+        resTmp = ReadQueue(pRspTemp, uiAbortTimeout); //  wait for ABORTED response
+
+        //  Did the ABORT command timeout?
+        if (pRspTemp && pRspTemp->IsTimedOutFlag())
         {
-            //  TODO: Close DLC and Open DLC here
+            //  ABORTED timeout
+            //  Close DLC and Open DLC here
             RIL_LOG_CRITICAL("CChannel::HandleTimeout() - ERROR: chnl=[%d] ABORT command timed out!!\r\n", m_uiRilChannel);
+
+            CloseOpenPort();
+            bCloseOpenPort = TRUE;
+        }
+        else if (RIL_E_SUCCESS != resTmp)
+        {
+            RIL_LOG_CRITICAL("CChannel::HandleTimeout() - ERROR: chnl=[%d] Failed read from queue during ABORTED 1\r\n", m_uiRilChannel);
+            return FALSE;
         }
         else
         {
-            //  No response, but this is OK since command is non-abortable
-            RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] ABORT timed out, but non-abortable command.  This is OK.\r\n", m_uiRilChannel);
+            //  Received response to ABORTED
+            RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] Recevied response to ABORT command!!\r\n", m_uiRilChannel);
         }
-    }
-    else if (RIL_E_SUCCESS != resTmp)
-    {
-        RIL_LOG_CRITICAL("CChannel::HandleTimeout() - ERROR: chnl=[%d] Failed read from queue during ABORTED 1\r\n", m_uiRilChannel);
-        return FALSE;
+        delete pRspTemp;
+        pRspTemp = NULL;
     }
     else
     {
-        //  Received response to ABORTED
-        RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] Recevied response to ABORT command!!\r\n", m_uiRilChannel);
+        //  Non-abortable AT command.
+
+        //  Close and open DLC.
+        CloseOpenPort();
+        bCloseOpenPort = TRUE;
     }
-    delete pRspTemp;
-    pRspTemp = NULL;
 
     //  "ping" modem to see if still alive
     SetCmdThreadBlockedOnRxQueue();  //  Tell response thread that reponse is pending
@@ -579,15 +615,25 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
         RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] Recevied response to PING command!!\r\n", m_uiRilChannel);
 
         //  Modem is alive.  Let calling function handle the retry attempt.
-        delete pRspTemp;
-        pRspTemp = NULL;
-        return FALSE;
     }
     delete pRspTemp;
     pRspTemp = NULL;
 
-    RIL_LOG_VERBOSE("CChannel::HandleTimeout() - Exit\r\n");
-    return TRUE;
+    //  If we closed and opened the port, then we need to re-send the init commands for
+    //  this channel.
+    if (bCloseOpenPort)
+    {
+        if (!SendModemConfigurationCommands(COM_BASIC_INIT_INDEX))
+        {
+            RIL_LOG_CRITICAL("CChannel::HandleTimeout() - ERROR: chnl=[%d] Cannot send channel init cmds.  Assume MODEM IS DEAD!\r\n", m_uiRilChannel);
+            RIL_LOG_CRITICAL("CChannel::HandleTimeout() - ERROR: chnl=[%d] request clean up\r\n", m_uiRilChannel);
+
+            do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+        }
+    }
+
+    RIL_LOG_VERBOSE("CChannel::HandleTimeout() - Exit  bRet=[%d]\r\n", bRet);
+    return bRet;
 }
 
 
@@ -696,7 +742,15 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHung
             case ND_REQ_ID_QUERYNETWORKSELECTIONMODE:
                 FindIdenticalRequestsAndSendResponses(uiReqID, (RIL_Errno) rpRsp->GetResultCode(), (void*)pData, uiDataSize);
                 break;
-
+            case ND_REQ_ID_HANGUP:
+            case ND_REQ_ID_HANGUPWAITINGORBACKGROUND:
+            case ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND:
+            case ND_REQ_ID_SWITCHHOLDINGANDACTIVE:
+            case ND_REQ_ID_CONFERENCE:
+                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_DTMF, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
+                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_REQUESTDTMFSTART, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
+                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_REQUESTDTMFSTOP, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
+                break;
             default:
                 break;
         }

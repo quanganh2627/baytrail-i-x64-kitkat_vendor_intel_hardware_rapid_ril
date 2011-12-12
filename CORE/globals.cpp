@@ -8,17 +8,6 @@
 // Description:
 //    Defines some global variables.
 //
-// Author:  Dennis Peter
-// Created: 2007-07-12
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 3/08  DP       1.00  Established v1.00 based on current code base.
-//  May  8/08  FP       1.00  Factored out from rilhand.cpp.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
@@ -42,9 +31,6 @@ UINT32 g_TimeoutThresholdForRetry = TIMEOUT_THRESHOLDFORRETRY;
 ///////////////////////////////////////////////////////////////////////////////
 char g_cTerminator = '\r';
 char g_szNewLine[3] = "\r\n";
-
-///////////////////////////////////////////////////////////////////////////////
-ACCESS_TECHNOLOGY g_uiAccessTechnology = ACT_UNKNOWN;
 
 ///////////////////////////////////////////////////////////////////////////////
 // This global class instance tracks the radio state and handles notifications

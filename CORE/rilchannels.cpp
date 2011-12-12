@@ -8,16 +8,6 @@
 // Description:
 //    Map Android AT command requests to DLC channels.
 //
-// Author:  Dennis Peter
-// Created: 2011-06-15
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Jun 15/11  DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
@@ -138,10 +128,10 @@ UINT32 g_arChannelMapping[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_SIMOPENCHANNEL                       // 108
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_SIMCLOSECHANNEL                      // 109
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_SIMTRANSMITCHANNEL                   // 110
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS           // 111
 #if defined(M2_VT_FEATURE_ENABLED)
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_HANGUPVT                             // 111
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_DIALVT                               // 112
+    RIL_CHANNEL_ATCMD, //ND_REQ_ID_HANGUPVT                             // 112
+    RIL_CHANNEL_ATCMD, //ND_REQ_ID_DIALVT                               // 113
 #endif  // M2_VT_FEATURE_ENABLED
-
 };
 

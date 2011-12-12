@@ -8,16 +8,6 @@
 // Description:
 //    Implements a com port interface
 //
-// Author:  Mike Worth
-// Created: 2009-20-11
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Nov 20/09  MW       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_PORT_H

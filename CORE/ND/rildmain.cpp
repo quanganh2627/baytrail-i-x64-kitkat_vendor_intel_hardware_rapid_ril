@@ -8,16 +8,6 @@
 // Description:
 //    Provides implementations for top-level RIL functions.
 //
-// Author:  Denis Londry
-// Created: 2008-11-20
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Nov 20/08  DL       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include <telephony/ril.h>
@@ -1294,7 +1284,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.30 for Android 2.3.5 (Build November 1/2011)";
+    return "Intrinsyc Rapid-RIL M5.33 for Android 2.3.7 (Build November 29/2011)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

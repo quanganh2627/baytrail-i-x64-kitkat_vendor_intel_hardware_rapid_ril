@@ -9,16 +9,6 @@
 //    Provides implementations for generic helper functions
 //    used to process modem responses to AT Commands.
 //
-// Author:  Dennis Peter
-// Created: 2007-07-12
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 3/08  DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 // system include
@@ -39,6 +29,7 @@
 #include "response.h"
 #include "command.h"
 #include "te.h"
+#include "ril_result.h"
 
 const char* pszOkResponse    = "OK";
 const char* pszErrorResponse = "ERROR";
@@ -532,18 +523,9 @@ BOOL CResponse::RetrieveErrorCode(const char*& rszPointer, UINT32 &nCode, const 
 
     switch(nCode)
     {
-        case 103: // Illegal MS
-        case 106: // Illegal ME
+        case CME_ERROR_ILLEGAL_MS:
+        case CME_ERROR_ILLEGAL_ME:
             SetResultCode(RIL_E_ILLEGAL_SIM_OR_ME);
-            break;
-        case 111: // PLMN not allowed
-            SetResultCode(RIL_E_PLMN_NOT_ALLOWED);
-            break;
-        case 112: // Location area not allowed
-            SetResultCode(RIL_E_LOCATION_AREA_NOT_ALLOWED);
-            break;
-        case 113: // Roaming not allowed in this location area
-            SetResultCode(RIL_E_ROAMING_NOT_ALLOWED_IN_THIS_LA);
             break;
         default:
             SetResultCode(RIL_E_GENERIC_FAILURE);

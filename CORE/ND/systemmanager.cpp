@@ -22,9 +22,6 @@
  *    General utilities and system start-up and
  *    shutdown management
  *
- *  Author: Francesc J. Vilarino Guell
- *  Created: 2009-11-06
- *
  */
 
 
@@ -480,7 +477,7 @@ BOOL CSystemManager::ContinueInit()
         goto Done;
     }
 
-    if (!CThreadManager::Start(RIL_CHANNEL_MAX * 2, m_pExitRilEvent))
+    if (!CThreadManager::Start(RIL_CHANNEL_MAX * 2))
     {
         RIL_LOG_CRITICAL("CSystemManager::ContinueInit() - ERROR: Thread manager failed to start.\r\n");
     }

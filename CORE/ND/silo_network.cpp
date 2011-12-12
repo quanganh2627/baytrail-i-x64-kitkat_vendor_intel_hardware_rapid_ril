@@ -9,19 +9,6 @@
 //    Provides response handlers and parsing functions for the network-related
 //    RIL components.
 //
-// Author:  Dennis Peter
-// Created: 2007-07-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date        Who      Ver   Description
-//  ----------  -------  ----  -----------------------------------------------
-//  June 03/08  DP       1.00  Established v1.00 based on current code base.
-//  May  04/09  CW       1.01  Moved common code to base class, identified
-//                             platform-specific implementations, implemented
-//                             general code clean-up.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>  // for sscanf
@@ -39,10 +26,10 @@
 #include "channel_data.h"
 #include "te_inf_6260.h"
 #include "cutils/tztime.h"
+#include "te.h"
 
 char g_szNITZ[MAX_BUFFER_SIZE];
 BOOL g_bNITZTimerActive = false;
-
 
 //
 //
@@ -281,7 +268,6 @@ BOOL CSilo_Network::ParseCTZV(CResponse *const pResponse, const char* &rszPointe
 
     RIL_LOG_INFO("CSilo_Network::ParseCTZV() - INFO: g_szNITZ: %s\r\n", g_szNITZ);
 
-
     pResponse->SetUnsolicitedFlag(TRUE);
 
     //  If the NITZ alarm is already active, disable the alarm.
@@ -404,7 +390,8 @@ Error:
 // or not it should parse the response (using the number of arguments in the
 //  response) and will proceed appropriately.
 //
-BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const char*& rszPointer, BOOL const bGPRS)
+BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const char*& rszPointer,
+                                            SILO_NETWORK_REGISTRATION_TYPES regType)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Enter\r\n");
 
@@ -415,6 +402,9 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
                                   //  Note that cannot loop on rszPointer as it may contain
                                   //  other notifications as well.
 
+    S_ND_GPRS_REG_STATUS psRegStatus;
+    S_ND_REG_STATUS csRegStatus;
+    void* pRegStatusInfo = NULL;
 
     if (NULL == pResponse)
     {
@@ -441,6 +431,12 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
 
     //RIL_LOG_INFO("pszCommaBuffer=[%s]\r\n", CRLFExpandedString(pszCommaBuffer,szDummy-rszPointer).GetString() );
 
+
+    // Valid XREG notifications can have from one to five parameters, as follows:
+    //       <status>, <AcT>, <Band>                for an unsolicited notification without location data
+    //  <n>, <status>, <AcT>, <Band>                for a command response without location data
+    //       <status>, <AcT>, <Band>, <lac>, <ci>   for an unsolicited notification with location data
+    //  <n>, <status>, <AcT>, <Band>, <lac>, <ci>   for a command response with location data
 
     // Valid CREG notifications can have from one to five parameters, as follows:
     //       <status>                      for an unsolicited notification without location data
@@ -472,7 +468,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     //RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - nNumParams=[%d]\r\n", nNumParams);
 
 
-    if (bGPRS)
+    if (SILO_NETWORK_CGREG == regType)
     {
         //  The +CGREG case
         //  Unsol is 1 and 5
@@ -492,7 +488,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         }
         RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CGREG paramcount=%d  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
     }
-    else
+    else if (SILO_NETWORK_CREG == regType)
     {
         //  The +CREG case
         //  Unsol is 1 and 4
@@ -512,15 +508,51 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         }
         RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CREG paramcount=%d  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
     }
+    else if (SILO_NETWORK_XREG == regType)
+    {
+        //  The +XREG case
+        //  Unsol is 3 and 5
+        if ((3 == nNumParams) || (5 == nNumParams))
+        {
+            fUnSolicited = TRUE;
+        }
+        else if ((4 == nNumParams) || (6 == nNumParams))
+        {
+            //  Sol is 4 and 6
+            fUnSolicited = FALSE;
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - Unknown param count=%d\r\n", nNumParams);
+            fUnSolicited = TRUE;
+        }
+
+        RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - XREG paramcount=%d  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
+    }
 
     if (fUnSolicited)
     {
-        // Look for the postfix
-        if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+        if (SILO_NETWORK_CGREG == regType)
         {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - Cannot find postfix  bGPRS=[%d]\r\n", bGPRS);
-            goto Error;
+            fRet = CTE::ParseCGREG(rszPointer, fUnSolicited, psRegStatus);
+            pRegStatusInfo = (void*) &psRegStatus;
         }
+        else if (SILO_NETWORK_CREG == regType)
+        {
+            fRet = CTE::ParseCREG(rszPointer, fUnSolicited, csRegStatus);
+            pRegStatusInfo = (void*) &csRegStatus;
+        }
+        else if (SILO_NETWORK_XREG == regType)
+        {
+            fRet = CTE::ParseXREG(rszPointer, fUnSolicited, psRegStatus);
+            pRegStatusInfo = (void*) &psRegStatus;
+        }
+
+        if (!fRet)
+            goto Error;
+        else
+            CTE::GetTE().StoreRegistrationInfo(pRegStatusInfo, (SILO_NETWORK_CREG == regType) ? false : true);
+
         rszPointer -= strlen(g_szNewLine);
 
         pResponse->SetUnsolicitedFlag(TRUE);
@@ -547,7 +579,7 @@ Error:
 BOOL CSilo_Network::ParseCREG(CResponse *const pResponse, const char* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseCREG() - Enter / Exit\r\n");
-    return ParseRegistrationStatus(pResponse, rszPointer, FALSE);
+    return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_CREG);
 }
 
 //
@@ -555,106 +587,15 @@ BOOL CSilo_Network::ParseCREG(CResponse *const pResponse, const char* &rszPointe
 BOOL CSilo_Network::ParseCGREG(CResponse *const pResponse, const char* &rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseCGREG() - Enter / Exit\r\n");
-    return ParseRegistrationStatus(pResponse, rszPointer, TRUE);
+    return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_CGREG);
 }
 
 //
 //
 BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const char* &rszPointer)
 {
-    RIL_LOG_VERBOSE("CSilo_Network::ParseXREG() - Enter\r\n");
-
-    extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
-
-    BOOL bRet = FALSE;
-    const char* szDummy;
-    UINT32 n = 0, state = 0;
-
-    if (NULL == pResponse)
-    {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXREG() - Error: pResponse is NULL\r\n");
-        goto Error;
-    }
-
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
-    {
-        // This isn't a complete registration notification -- no need to parse it
-        goto Error;
-    }
-
-    //  Parse <n>,<state>
-    if (!ExtractUInt32(rszPointer, state, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXREG() - Error: Parsing error\r\n");
-        goto Error;
-    }
-
-    //  Check state and set global variable for network technology
-    switch(state)
-    {
-        case 1:
-        // registered, GPRS
-        g_uiAccessTechnology = ACT_GPRS;
-        break;
-
-        case 2:
-        // registered, EDGE
-        g_uiAccessTechnology = ACT_EDGE;
-        break;
-
-        case 3:
-        // registered, WCDMA
-        g_uiAccessTechnology = ACT_UMTS;
-        break;
-
-        case 4:
-        // registered, HSDPA
-        g_uiAccessTechnology = ACT_HSDPA;
-        break;
-
-        case 5:
-        // registered, HSUPA
-        g_uiAccessTechnology = ACT_HSUPA;
-        break;
-
-        case 6: // registered, HSUPA and HSDPA
-        case 8: // registered, HSPA+
-        g_uiAccessTechnology = ACT_HSPA;
-        break;
-
-        case 7:
-        // registered, GSM
-        g_uiAccessTechnology = ACT_GSM;
-        break;
-
-        default:
-        g_uiAccessTechnology = ACT_UNKNOWN;
-        break;
-    }
-
-    //  Skip to end (Medfield fix for XREG)
-
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
-    {
-        // This isn't a complete registration notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo::ParseXREG() chnl=[%d] - ERROR: Failed to find postfix in the response.\r\n", m_pChannel->GetRilChannel());
-        goto Error;
-    }
-
-    //  Back up over the "\r\n".
-    rszPointer -= strlen(g_szNewLine);
-
-
-    pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED);
-
-    bRet = TRUE;
-Error:
-    RIL_LOG_VERBOSE("CSilo_Network::ParseXREG() - Exit\r\n");
-
-    return bRet;
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXREG() - Enter / Exit\r\n");
+    return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_XREG);
 }
 
 //
@@ -664,71 +605,133 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Enter\r\n");
 
     BOOL bRet = FALSE;
-    const char* szDummy = NULL;
+    const char* szStrExtract = NULL;
+    const char* szResponse = NULL;
+    UINT32 nCID = 0;
+    UINT32 nREASON=0;
+
+    szResponse = rszPointer;
 
     if (NULL == pResponse)
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: pResponse is NULL\r\n");
         goto Error;
     }
-
-    szDummy = strstr(rszPointer, "NW DEACT");
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szResponse))
     {
         // This isn't a complete registration notification -- no need to parse it
+        RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: This isn't a complete registration notification -- no need to parse it\r\n");
         goto Error;
     }
 
-
     //  Back up over the "\r\n".
-    rszPointer -= strlen(g_szNewLine);
+    szResponse -= strlen(g_szNewLine);
 
-    if (szDummy != NULL)
+    //  Format is "ME PDN ACT, <cid>[, <reason>]"
+    if (FindAndSkipString(rszPointer, "ME PDN ACT", szStrExtract))
     {
-        //  Now we need to get the CID from the notification
-        UINT32 nCID = 0;
-
-        //  Format is "NW DEACT "IP", "xx.xx.xx.xx",<cid>"
-        if (!FindAndSkipString(szDummy, ",", szDummy) ||
-            !FindAndSkipString(szDummy, ",", szDummy))
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: Couldn't find 2 commas to find cid\r\n");
-        }
-        else
-        {
-            //  Should be at <cid> now.
-            if (!ExtractUInt32(szDummy, nCID, szDummy))
+            if (!ExtractUInt32(szStrExtract, nCID, szStrExtract))
             {
-                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: Couldn't extract cid\r\n");
-                //  Just trigger normal DataCallListChanged - Let Android process
-                RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
-                bRet = TRUE;
                 goto Error;
             }
             else
             {
-                RIL_LOG_INFO("Silo_Network::ParseCGEV() - NE DEACT , extracted cid=[%d]\r\n", nCID);
+                RIL_LOG_INFO(
+                        "Silo_Network::ParseCGEV() - ME PDN ACT , extracted cid=[%d]\r\n",
+                        nCID);
             }
-        }
-        if (nCID > 0)
-        {
-            //  Explicitly deactivate context ID = nCID
-            RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)nCID, 0, 0);
-        }
-        else
-        {
-            //  Just trigger normal DataCallListChanged - Let Android process
-            RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
-        }
+#if defined(M2_IPV6_FEATURE_ENABLED)
+            if (!FindAndSkipString(szStrExtract, ",", szStrExtract))
+            {
+
+            }
+            else
+            {
+                if (!ExtractUInt32(szStrExtract, nREASON, szStrExtract))
+                {
+                    RIL_LOG_CRITICAL(
+                            "CSilo_Network::ParseCGEV() - Error: Couldn't extract reason\r\n");
+                    goto Error;
+                }
+                else
+                {
+                    RIL_LOG_INFO(
+                            "Silo_Network::ParseCGEV() - ME PDN ACT , extracted reason=[%d]\r\n",
+                            nREASON);
+                    pResponse->SetUnsolicitedFlag(TRUE);
+                        // TODO manage reasons in accordance to framework ipv6 when available
+                    // IPV4 only allowed
+                    if (nREASON == 0)
+                        pResponse->SetResultCode(RRIL_RESULT_OK);
+                    // IPV6 only allowed
+                    else if (nREASON == 1)
+                        pResponse->SetResultCode(RRIL_RESULT_OK);
+                    // Single bearrer allowed
+                    else if (nREASON == 2)
+                        pResponse->SetResultCode(RRIL_RESULT_OK);
+                    else
+                    {
+                        RIL_LOG_CRITICAL(
+                            "CSilo_Network::ParseCGEV() - Error: reason unknown\r\n");
+                    goto Error;
+                    }
+                }
+            }
+#endif
     }
     else
     {
-        //  Trigger data call list changed - Let Android process
-        RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
+
+        szStrExtract = strstr(rszPointer, "NW DEACT");
+
+        if (szStrExtract != NULL)
+        {
+            //  Now we need to get the CID from the notification
+            UINT32 nCID = 0;
+
+            //  Format is "NW DEACT "IP", "xx.xx.xx.xx",<cid>"
+            if (!FindAndSkipString(szStrExtract, ",", szStrExtract) ||
+                !FindAndSkipString(szStrExtract, ",", szStrExtract))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: Couldn't find 2 commas to find cid\r\n");
+            }
+            else
+            {
+                //  Should be at <cid> now.
+                if (!ExtractUInt32(szStrExtract, nCID, szStrExtract))
+                {
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Error: Couldn't extract cid\r\n");
+                    //  Just trigger normal DataCallListChanged - Let Android process
+                    RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
+                    bRet = TRUE;
+                    goto Error;
+                }
+                else
+                {
+                    RIL_LOG_INFO("Silo_Network::ParseCGEV() - NE DEACT , extracted cid=[%d]\r\n", nCID);
+                }
+            }
+            if (nCID > 0)
+            {
+                //  Explicitly deactivate context ID = nCID
+                RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)nCID, 0, 0);
+            }
+            else
+            {
+                //  Just trigger normal DataCallListChanged - Let Android process
+                RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
+            }
+        }
+        else
+        {
+            //  Trigger data call list changed - Let Android process
+            RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
+        }
     }
 
     bRet = TRUE;
 Error:
+    rszPointer = szResponse;
     RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Exit\r\n");
     return bRet;
 }

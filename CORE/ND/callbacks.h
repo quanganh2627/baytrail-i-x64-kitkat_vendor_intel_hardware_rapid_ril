@@ -8,16 +8,6 @@
 // Description:
 //    Headers for all functions provided to RIL_requestTimedCallback
 //
-// Author:  Mike Worth
-// Created: 2009-10-20
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Oct 20/09  MW       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef CALLBACKS_H
@@ -35,6 +25,11 @@ static const struct timeval CallStateHyperPoll = {0, 500000};
 void notifyChangedCallState(void *param);
 
 //
+// Callback to trigger hangup request to modem
+//
+void triggerHangup(UINT32 uiCallId);
+
+//
 // Callback to trigger signal strength update
 //
 void triggerSignalStrength(void *param);
@@ -43,6 +38,11 @@ void triggerSignalStrength(void *param);
 // Callback to send incoming SMS acknowledgement
 //
 void triggerSMSAck(void *param);
+
+//
+// Callback to query sim sms store status
+//
+void triggerQuerySimSmsStoreStatus(void *param);
 
 //
 // Callback to send USSD notification

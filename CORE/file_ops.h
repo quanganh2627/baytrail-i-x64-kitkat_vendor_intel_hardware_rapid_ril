@@ -1,3 +1,16 @@
+////////////////////////////////////////////////////////////////////////////
+// file_ops.h
+//
+// Copyright 2005-2011 Intrinsyc Software International, Inc.  All rights reserved.
+// Patents pending in the United States of America and other jurisdictions.
+//
+//
+// Description:
+//    Handles file opening, closing, reading, and writing.
+//
+/////////////////////////////////////////////////////////////////////////////
+
+
 #ifndef __file_ops_h__
 #define __file_ops_h__
 

@@ -1,3 +1,16 @@
+////////////////////////////////////////////////////////////////////////////
+// file_ops.cpp
+//
+// Copyright 2009-2011 Intrinsyc Software International, Inc.  All rights reserved.
+// Patents pending in the United States of America and other jurisdictions.
+//
+//
+// Description:
+//    Handles opening and closing ports. Also handles reading and writing to ports.
+//
+/////////////////////////////////////////////////////////////////////////////
+
+
 #include "types.h"
 #include "rillog.h"
 #include "file_ops.h"
@@ -45,7 +58,7 @@ CFile::~CFile()
     {
         if (0 > close(m_file))
         {
-            RIL_LOG_CRITICAL("CFile::~CFile() : ERROR : Error when closing file\r\n");
+            RIL_LOG_CRITICAL("CFile::~CFile() : Error when closing file\r\n");
         }
 
         m_fInitialized = FALSE;
@@ -56,7 +69,7 @@ BOOL CFile::OpenSocket(const char * pszSocketName)
 {
     if (NULL == pszSocketName)
     {
-        RIL_LOG_CRITICAL("CFile::OpenSocket() : ERROR : pszSocketName was NULL\r\n");
+        RIL_LOG_CRITICAL("CFile::OpenSocket() : pszSocketName is NULL\r\n");
         goto Error;
     }
 
@@ -64,7 +77,7 @@ BOOL CFile::OpenSocket(const char * pszSocketName)
 
     if (m_file < 0)
     {
-        RIL_LOG_CRITICAL("CFile::OpenSocket() : ERROR : Could not open socket\r\n");
+        RIL_LOG_CRITICAL("CFile::OpenSocket() : Could not open socket\r\n");
         goto Error;
     }
 
@@ -80,13 +93,12 @@ BOOL CFile::Open(   const char * pszFileName,
                     UINT32 dwOptFlags,
                     BOOL fIsSocket)
 {
-    RIL_LOG_INFO("CFile::Open() - Enter\r\n");
-    RIL_LOG_INFO("CFile::Open() : pszFileName=[%s]\r\n", (NULL == pszFileName ? "NULL" : pszFileName));
-    RIL_LOG_INFO("CFile::Open() : fIsSocket=[%d]\r\n", fIsSocket);
+    RIL_LOG_INFO("CFile::Open() : pszFileName=[%s] fIsSocket=[%d]",
+            (NULL == pszFileName ? "NULL" : pszFileName), fIsSocket);
 
     if (NULL == pszFileName)
     {
-        RIL_LOG_CRITICAL("CFile::Open() : ERROR : pszFilename is NULL!\r\n");
+        RIL_LOG_CRITICAL("CFile::Open() : pszFilename is NULL!\r\n");
         return FALSE;
     }
 
@@ -97,7 +109,7 @@ BOOL CFile::Open(   const char * pszFileName,
 
     if (m_fInitialized)
     {
-        RIL_LOG_CRITICAL("CFile::Open() : ERROR : File is already open. Close first.\r\n");
+        RIL_LOG_CRITICAL("CFile::Open() : File already opened.\r\n");
         goto Error;
     }
 
@@ -130,13 +142,13 @@ BOOL CFile::Open(   const char * pszFileName,
             case FILE_ACCESS_READ_WRITE:
             {
                 //iAttr = O_RDWR;
-                iAttr = CLOCAL | O_NONBLOCK | O_RDWR;       // Pranav
+                iAttr = O_NONBLOCK | O_RDWR;
                 break;
             }
 
             default:
             {
-                RIL_LOG_CRITICAL("CFile::Open() : ERROR : Invalid access flags given: 0x%X\r\n", dwAccessFlags);
+                RIL_LOG_CRITICAL("CFile::Open() : Invalid access flags: 0x%X\r\n", dwAccessFlags);
                 goto Error;
             }
         }
@@ -146,7 +158,7 @@ BOOL CFile::Open(   const char * pszFileName,
         {
             if (!fExists)
             {
-                RIL_LOG_CRITICAL("CFile::Open() : ERROR : File does not already exist, unable to open\r\n");
+                RIL_LOG_CRITICAL("CFile::Open() : File does not exist.\r\n");
                 goto Error;
             }
         }
@@ -176,17 +188,17 @@ BOOL CFile::Open(   const char * pszFileName,
             iAttr |= O_EXCL;
         }
 
-        m_file = open(pszFileName, iAttr | CLOCAL | O_NONBLOCK);        // Pranav, check if we need these changes
+        m_file = open(pszFileName, iAttr | O_NONBLOCK);
 
         if (m_file < 0)
         {
-            RIL_LOG_CRITICAL("CFile::Open() : ERROR : open failed, m_file=[0x%08x], [%d]\r\n", m_file, m_file);
-            RIL_LOG_CRITICAL("CFile::Open() : ERROR : errno=[%d],[%s]\r\n", errno, strerror(errno));
+            RIL_LOG_CRITICAL("CFile::Open() : Open failed, m_file=[%d], errno=[%d],[%s]\r\n",
+                    m_file, errno, strerror(errno));
             goto Error;
         }
         else
         {
-            RIL_LOG_CRITICAL("**********CFile::Open() : m_file=[%d]\r\n", m_file);
+            RIL_LOG_INFO("CFile::Open() : m_file=[%d]\r\n", m_file);
         }
 
         {
@@ -203,7 +215,7 @@ BOOL CFile::Open(   const char * pszFileName,
     }
 
 Error:
-    RIL_LOG_INFO("CFile::Open() - Exit  m_fInitialized=[%d]\r\n", m_fInitialized);
+    RIL_LOG_VERBOSE("CFile::Open() - Exit m_fInitialized=[%d]\r\n", m_fInitialized);
     return m_fInitialized;
 }
 
@@ -211,14 +223,14 @@ BOOL CFile::Close()
 {
     if (!m_fInitialized)
     {
-        RIL_LOG_CRITICAL("CFile::Close() : ERROR : File is not open! Unable to close\r\n");
+        RIL_LOG_CRITICAL("CFile::Close() : File is not open! Unable to close\r\n");
         return FALSE;
     }
 
-    RIL_LOG_CRITICAL("**********CFile::Close() - Closing %d \r\n", m_file);
+    RIL_LOG_INFO("CFile::Close() - Closing %d\r\n", m_file);
     if (0 > close(m_file))
     {
-        RIL_LOG_CRITICAL("CFile::Close() : ERROR : Error when closing file\r\n");
+        RIL_LOG_CRITICAL("CFile::Close() : Error when closing file\r\n");
         return FALSE;
     }
 
@@ -234,13 +246,13 @@ BOOL CFile::Write(const void * pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesW
 
     if (!m_fInitialized)
     {
-        RIL_LOG_CRITICAL("CFile::Write() : ERROR : File is not open!\r\n");
+        RIL_LOG_CRITICAL("CFile::Write() : File is not open!\r\n");
         return FALSE;
     }
 
     if ((iCount = (write(m_file, pBuffer, dwBytesToWrite))) == -1)
     {
-        RIL_LOG_CRITICAL("CFile::Write() : ERROR : Error during write process!  errno=[%d] [%s]\r\n", errno, strerror(errno));
+        RIL_LOG_CRITICAL("CFile::Write() : Error during write process!  errno=[%d] [%s]\r\n", errno, strerror(errno));
         return FALSE;
     }
 
@@ -256,7 +268,7 @@ BOOL CFile::Read(void * pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
 
     if (!m_fInitialized)
     {
-        RIL_LOG_CRITICAL("CFile::Read() : ERROR : File is not open!\r\n");
+        RIL_LOG_CRITICAL("CFile::Read() : File is not open!\r\n");
         return FALSE;
     }
 
@@ -264,12 +276,8 @@ BOOL CFile::Read(void * pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
     {
         if (errno != EAGAIN)
         {
-            RIL_LOG_CRITICAL("CFile::Read() : ERROR : Error during read process!  errno=[%d] [%s]\r\n", errno, strerror(errno));
+            RIL_LOG_CRITICAL("CFile::Read() : Error during read process!  errno=[%d] [%s]\r\n", errno, strerror(errno));
             return FALSE;
-        }
-        else
-        {
-            //RIL_LOG_CRITICAL("CFile::Read() : ERROR : read() == -1, got errno=EAGAIN\r\n");
         }
 
         rdwBytesRead = 0;
@@ -338,7 +346,7 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
 
     if (m_file < 0)
     {
-        RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : m_file was not valid");
+        RIL_LOG_CRITICAL("CFile::WaitForEvent() : m_file is not valid");
         return FALSE;
     }
 
@@ -347,14 +355,10 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
 
     if (WAIT_FOREVER == dwTimeoutInMS)
     {
-        //RIL_LOG_INFO("CFile::WaitForEvent() : calling poll() on fd=[%d]\r\n", m_file);
-
         nPollVal = poll(fds, 1, -1);
     }
     else
     {
-        //struct timeval Time = msFromNowToTimeval(dwTimeoutInMS);
-
         RIL_LOG_INFO("CFile::WaitForEvent() : calling poll() on fd=[%d]  timeout=[%d]ms\r\n", m_file, dwTimeoutInMS);
 
         nPollVal = poll(fds, 1, dwTimeoutInMS);
@@ -364,8 +368,7 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
     {
         case -1:
             //  Error
-            RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR: poll() returned -1\r\n");
-            RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR: errno=[%d] [%s]\r\n", errno, strerror(errno));
+            RIL_LOG_CRITICAL("CFile::WaitForEvent() : polling error [%d] [%s]\r\n", errno, strerror(errno));
             return FALSE;
 
         case 0:
@@ -382,13 +385,19 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
             }
             else if (fds[0].revents & POLLHUP)
             {
-                RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR: **** RECEIVED POLLHUP on fd=[%d]  ignoring...\r\n", m_file);
+                RIL_LOG_CRITICAL("CFile::WaitForEvent() : **** RECEIVED POLLHUP on fd=[%d]  ignoring...\r\n", m_file);
+                //  ignore, should clean-up when uiRead < 0
+            }
+            else if (fds[0].revents & POLLNVAL)
+            {
+                RIL_LOG_CRITICAL("CFile::WaitForEvent() : **** RECEIVED POLLNVAL on fd=[%d]\r\n", m_file);
+
                 //  ignore, should clean-up when uiRead < 0
             }
             else
             {
                 //  not sure if we will ever get here
-                RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR: unexpected event=[%08x]\r\n", fds[0].revents);
+                RIL_LOG_CRITICAL("CFile::WaitForEvent() : unexpected event=[%08x]\r\n", fds[0].revents);
                 //  ignore
             }
             break;
@@ -406,7 +415,7 @@ BOOL CFile::Open(CFile * pFile, const char * pszFileName, UINT32 dwAccessFlags, 
     }
     else
     {
-        RIL_LOG_CRITICAL("CFile::Open() : ERROR : pFile was NULL!\r\n");
+        RIL_LOG_CRITICAL("CFile::Open() : pFile was NULL!\r\n");
         return FALSE;
     }
 }
@@ -419,7 +428,7 @@ BOOL CFile::Close(CFile * pFile)
     }
     else
     {
-        RIL_LOG_CRITICAL("CFile::Close() : ERROR : pFile was NULL!\r\n");
+        RIL_LOG_CRITICAL("CFile::Close() : pFile was NULL!\r\n");
         return FALSE;
     }
 }
@@ -432,7 +441,7 @@ BOOL CFile::Read(CFile * pFile, void * pBuffer, UINT32 dwBytesToRead, UINT32 &rd
     }
     else
     {
-        RIL_LOG_CRITICAL("CFile::Read() : ERROR : pFile was NULL!\r\n");
+        RIL_LOG_CRITICAL("CFile::Read() : pFile was NULL!\r\n");
         return FALSE;
     }
 }
@@ -445,7 +454,7 @@ BOOL CFile::Write(CFile * pFile, const void * pBuffer, UINT32 dwBytesToWrite, UI
     }
     else
     {
-        RIL_LOG_CRITICAL("CFile::Write() : ERROR : pFile was NULL!\r\n");
+        RIL_LOG_CRITICAL("CFile::Write() : pFile was NULL!\r\n");
         return FALSE;
     }
 }
@@ -458,7 +467,7 @@ BOOL CFile::WaitForEvent(CFile * pFile, UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
     }
     else
     {
-        RIL_LOG_CRITICAL("CFile::WaitForEvent() : ERROR : pFile was NULL!\r\n");
+        RIL_LOG_CRITICAL("CFile::WaitForEvent() : pFile was NULL!\r\n");
         return FALSE;
     }
 }
@@ -471,7 +480,7 @@ int CFile::GetFD(CFile * pFile)
     }
     else
     {
-        RIL_LOG_CRITICAL("CFile::GetFD() : ERROR : pFile was NULL!\r\n");
+        RIL_LOG_CRITICAL("CFile::GetFD() : pFile was NULL!\r\n");
         return -1;
     }
 }

@@ -8,16 +8,6 @@
 // Description:
 //    Overlay for the Infineon 6260 modem
 //
-// Author:  Francesc J. Vilarino Guell
-// Created: 2009-12-11
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date         Who      Ver   Description
-//  ----------  -------  ----  -----------------------------------------------
-//  Sept 11/12   FV      1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include <wchar.h>
@@ -48,9 +38,9 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <linux/route.h>
-#include <linux/if_ether.h> // Pranav
+#include <linux/if_ether.h>
 
+#include <errno.h>
 
 CTE_INF_6260::CTE_INF_6260()
 : m_nCurrentNetworkType(0),
@@ -271,69 +261,51 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     if (NULL == stPdpData.szPDPType)
     {
         //  hard-code "IPV4V6" (this is the default)
+        strncpy(stPdpData.szPDPType, "IPV4V6",sizeof("IPV4V6"));
+    }
 
+    //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
+    //  If not recognized, just use IPV4V6 as default.
+    if (0 == strcmp(stPdpData.szPDPType, "IP"))
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+            sizeof(rReqData.szCmd1),
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,1\r", uiCID, stPdpData.szPDPType,
+            stPdpData.szApn, uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            goto Error;
+        }
+    }
+    else if (0 == strcmp(stPdpData.szPDPType, "IPV6"))
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+            sizeof(rReqData.szCmd1),
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,2\r", uiCID, stPdpData.szPDPType,
+            stPdpData.szApn, uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            goto Error;
+        }
+    }
+    else if (0 == strcmp(stPdpData.szPDPType, "IPV4V6"))
+    {
         //  XDNS=3 is not supported by the modem so two commands +XDNS=1 and +XDNS=2 should be sent.
         if (!PrintStringNullTerminate(rReqData.szCmd1,
             sizeof(rReqData.szCmd1),
             "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
             stPdpData.szApn, uiCID, uiCID))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType is NULL\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
         }
     }
     else
     {
-        //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
-        //  If not recognized, just use IPV4V6 as default.
-        if (0 == strcasecmp(stPdpData.szPDPType, "IP"))
-        {
-            if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,1\r", uiCID, stPdpData.szPDPType,
-                stPdpData.szApn, uiCID))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-                goto Error;
-            }
-        }
-        else if (0 == strcasecmp(stPdpData.szPDPType, "IPV6"))
-        {
-            if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,2\r", uiCID, stPdpData.szPDPType,
-                stPdpData.szApn, uiCID))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-                goto Error;
-            }
-        }
-        else if (0 == strcasecmp(stPdpData.szPDPType, "IPV4V6"))
-        {
-            //  XDNS=3 is not supported by the modem so two commands +XDNS=1 and +XDNS=2 should be sent.
-            if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
-                stPdpData.szApn, uiCID, uiCID))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-                goto Error;
-            }
-        }
-        else
-        {
-            //  Default case, just use IPV4V6
-            //  XDNS=3 is not supported by the modem so two commands +XDNS=1 and +XDNS=2 should be sent.
-            if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
-                stPdpData.szApn, uiCID, uiCID))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-                goto Error;
-            }
-        }
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: Wrong PDP type\r\n");
+        goto Error;
     }
+
 #else // M2_IPV6_FEATURE_ENABLED
     //  just hard-code "IP" as we do not support IPv6
     if (!PrintStringNullTerminate(rReqData.szCmd1,
@@ -347,19 +319,11 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
 #endif // M2_IPV6_FEATURE_ENABLED
 
 
-#if defined(M2_IPV6_FEATURE_ENABLED)
     if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDATA command\r\n");
         goto Error;
     }
-#else // M2_IPV6_FEATURE_ENABLED
-    if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGDATA=\"M-RAW_IP\",%d\r", uiCID))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDATA command\r\n");
-        goto Error;
-    }
-#endif // M2_IPV6_FEATURE_ENABLED
 
     //  Store the potential uiCID in the pContext
     rReqData.pContextData = (void*)uiCID;
@@ -541,11 +505,22 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     {
         case WAIT_EVENT_0_SIGNALED:
             RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() : SetupData event signalled\r\n");
+#if defined(M2_IPV6_FEATURE_ENABLED)
+            // pChannelData->m_szIpAddr and pChannelData->m_szIpAddr2 can not be null because if initialization fails
+            // the connection manager do not call this function but they can be empty
+            if (0 == pChannelData->m_szIpAddr[0] && 0 == pChannelData->m_szIpAddr2[0])
+            {
+                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: IP addresses are null\r\n");
+                 goto Error;
+            }
+#else
             if (NULL == pChannelData->m_szIpAddr)
             {
                  RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: IP address is null\r\n");
                  goto Error;
             }
+#endif
+
             if (NULL == pChannelData->m_szDNS1)
             {
                  RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: DNS1 is null\r\n");
@@ -556,7 +531,18 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
                  RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: DNS2 is null\r\n");
                  goto Error;
             }
+#if defined(M2_IPV6_FEATURE_ENABLED)
+            if (0 == pChannelData->m_szIpAddr[0])
+            {
+                strcpy(szIP, pChannelData->m_szIpAddr2);
+            }
+            else
+            {
+                strcpy(szIP, pChannelData->m_szIpAddr);
+            }
+#else
             strcpy(szIP, pChannelData->m_szIpAddr);
+#endif
             break;
 
         case WAIT_TIMEDOUT:
@@ -570,10 +556,27 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
 
     // invoke netcfg commands
-    //  TODO: At this point we should have received a +CGEV: notification with the type
+    //  At this point we should have received a +CGEV: notification with the type
     //        of data connection made (IPv4, IPv6, IPv4v6).  Configure the data connection
     //        based on the type.  Types are defined in CORE/ND/nd_structs.h
-    eDataConnectionType = PDP_TYPE_IPV4;  //  dummy for now, set to IPv4.
+
+#if defined(M2_IPV6_FEATURE_ENABLED)
+    if(pChannelData->m_szIpAddr2[0] == 0 )
+    {
+        eDataConnectionType =PDP_TYPE_IPV4;
+    }
+    else if (pChannelData->m_szIpAddr[0] == 0 )
+    {
+        eDataConnectionType =PDP_TYPE_IPV6;
+    }
+    else
+    {
+        eDataConnectionType =PDP_TYPE_IPV4V6;
+    }
+#else
+    eDataConnectionType = PDP_TYPE_IPV4;
+#endif // M2_IPV6_FEATURE_ENABLED
+
     if (!DataConfigUp(pDataCallRsp->szNetworkInterfaceName, pChannelData, eDataConnectionType))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Unable to set ifconfig\r\n");
@@ -621,22 +624,48 @@ Error:
     return res;
 }
 
-void init_sockaddr_in(struct sockaddr_in *sin, const char *addr, sa_family_t family)
+void init_sockaddr_in(struct sockaddr_in *sin, const char *addr)
 {
-    sin->sin_family = family;
+    sin->sin_family = AF_INET;
     sin->sin_port = 0;
     sin->sin_addr.s_addr = inet_addr(addr);
 }
 
-BOOL setaddr(int s, struct ifreq *ifr, const char *addr, sa_family_t family)
+BOOL setaddr6(int sockfd6, struct ifreq *ifr, const char *addr)
 {
     int ret;
-    init_sockaddr_in((struct sockaddr_in *) &ifr->ifr_addr, addr, family);
+
+    struct in6_ifreq ifr6;
+    inet_pton(AF_INET6, addr, &ifr6.ifr6_addr);
+
+    ioctl(sockfd6, SIOGIFINDEX, ifr);
+    ifr6.ifr6_ifindex = ifr->ifr_ifindex;
+    ifr6.ifr6_prefixlen = 64; //prefix_len;
+
+    RIL_LOG_INFO("setaddr6() - calling SIOCSIFADDR ADDR:%s INET:%s\r\n",addr,ifr->ifr_name);
+    errno = 0;
+    ret = ioctl(sockfd6, SIOCSIFADDR, &ifr6);
+    if (ret < 0)
+    {
+        RIL_LOG_CRITICAL("setaddr6() : ERROR: SIOCSIFADDR : %s\r\n",
+                strerror(errno));
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+BOOL setaddr(int s, struct ifreq *ifr, const char *addr)
+{
+    int ret;
+    init_sockaddr_in((struct sockaddr_in *) &ifr->ifr_addr, addr);
     RIL_LOG_INFO("setaddr - calling SIOCSIFADDR\r\n");
+    errno = 0; // NOERROR
     ret = ioctl(s, SIOCSIFADDR, ifr);
     if (ret < 0)
     {
-        RIL_LOG_CRITICAL("setaddr : ERROR: SIOCSIFADDR : %d\r\n", ret);
+        RIL_LOG_CRITICAL("setaddr() : ERROR: SIOCSIFADDR : %s\r\n",
+            strerror(errno));
         return FALSE;
     }
     return TRUE;
@@ -745,7 +774,7 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         ifr.ifr_name[IFNAMSIZ-1] = 0;
 
         RIL_LOG_INFO("DataConfigUpIpV4() : Setting addr\r\n");
-        if (!setaddr(s, &ifr, szIpAddr, AF_INET)) // ipaddr
+        if (!setaddr(s, &ifr, szIpAddr)) // ipaddr
         {
             //goto Error;
             RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting add\r\n");
@@ -780,17 +809,6 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     }
     if (defaultGatewayStr != NULL)
     {
-        struct rtentry rt;
-        memset(&rt, 0, sizeof(struct rtentry));
-
-        rt.rt_dst.sa_family = AF_INET;
-        rt.rt_genmask.sa_family = AF_INET;
-        rt.rt_gateway.sa_family = AF_INET;
-
-
-        rt.rt_flags = RTF_UP | RTF_GATEWAY;
-        rt.rt_dev = szNetworkInterfaceName;
-
         //  Set gateway system property
         if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.gw", szNetworkInterfaceName))
         {
@@ -854,18 +872,18 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     BOOL bRet = FALSE;
     int s = -1;
     char szPropName[MAX_BUFFER_SIZE] = {0};
-    char *defaultGatewayStr = NULL;
+    char *szIpAddr = pChannelData->m_szIpAddr2;
+    char *szDNS1 = pChannelData->m_szIpV6DNS1;
+    char *szDNS2 = pChannelData->m_szIpV6DNS2;
 
-    char *szIpAddr = pChannelData->m_szIpAddr;
-    char *szDNS1 = pChannelData->m_szDNS1;
-    char *szDNS1_Secondary = pChannelData->m_szDNS1_Secondary;
-    char *szDNS2 = pChannelData->m_szDNS2;
-    char *szDNS2_Secondary = pChannelData->m_szDNS2_Secondary;
+    char szIpAddrOut[50];
+    struct in6_addr ifIdAddr;
+    struct in6_addr ifPrefixAddr;
+    struct in6_addr ifOutAddr;
 
 
     RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szNetworkInterfaceName=[%s]  szIpAddr=[%s]\r\n", szNetworkInterfaceName, szIpAddr);
-    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szDNS1=[%s]  szDNS1_Secondary=[%s]\r\n", szDNS1, (szDNS1_Secondary ? szDNS1_Secondary : "<null>"));
-    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szDNS2=[%s]  szDNS2_Secondary=[%s]\r\n", szDNS2, (szDNS2_Secondary ? szDNS2_Secondary : "<null>"));
+    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szDNS1=[%s]  szDNS2=[%s]\r\n", szDNS1, szDNS2);
 
 
     // set net. properties
@@ -882,135 +900,91 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         goto Error;
     }
 
-    //  Code in this function is from system/core/toolbox/ifconfig.c
-    //  also from system/core/toolbox/route.c
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(struct ifreq));
+    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
+    ifr.ifr_name[IFNAMSIZ-1] = 0;
+
+    inet_pton(AF_INET6, szIpAddr, &ifIdAddr);
+    inet_pton(AF_INET6, "FE80::", &ifPrefixAddr);
 
 
-    //  ifconfig ifx02 <ip address> netmask 255.255.255.0
+    // Set local prefix from FE80::
+    memcpy(ifOutAddr.s6_addr,ifPrefixAddr.s6_addr,8);
+    // Set interface identifier from address given by network
+    memcpy((ifOutAddr.s6_addr)+8,(ifIdAddr.s6_addr)+8,8);
+
+    inet_ntop(AF_INET6, &ifOutAddr, szIpAddrOut, sizeof(szIpAddrOut));
+    strncpy(szIpAddr,szIpAddrOut,sizeof(szIpAddrOut));
+    RIL_LOG_INFO("DataConfigUpIpV6() : Setting addr :%s\r\n",szIpAddr);
+
+    if (!setaddr6(s, &ifr, szIpAddr))
     {
-        struct ifreq ifr;
-        memset(&ifr, 0, sizeof(struct ifreq));
-        strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
-        ifr.ifr_name[IFNAMSIZ-1] = 0;
-
-        RIL_LOG_INFO("DataConfigUpIpV6() : Setting addr\r\n");
-        //  NOTE HERE: The struct ifreq really needs IPv6 support.  It only supports IPv4.
-        //  So not sure how to set IPv6 with current structure, since ifr->ifr_addr points to
-        //  sockaddr_in, not sockaddr6_in.
-        if (!setaddr(s, &ifr, szIpAddr, AF_INET6)) // ipaddr
-        {
-            //goto Error;
-            RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting addr\r\n");
-        }
-
-        //  Before setting interface UP, need to deactivate DAD on interface.
-        {
-            char file_to_open[100] = {0};
-            FILE * fp;
-
-            //  Open dad_transmits file, write 0<lf>.
-            snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits", szNetworkInterfaceName);
-
-            fp = fopen(file_to_open, "w");
-            if (fp)
-            {
-                char szData[] = "0\n";
-
-                RIL_LOG_INFO("DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
-                if (EOF == fputs(szData, fp))
-                {
-                    RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
-                }
-                else
-                {
-                    RIL_LOG_INFO("DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
-                }
-
-                //  Close file handle
-                fclose(fp);
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: Cannot open [%s]\r\n", file_to_open);
-            }
-
-            //  Open accept_dad file, write 0<lf>.
-            snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad", szNetworkInterfaceName);
-
-            fp = fopen(file_to_open, "w");
-            if (fp)
-            {
-                char szData[] = "0\n";
-
-                RIL_LOG_INFO("DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
-                if (EOF == fputs(szData, fp))
-                {
-                    RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
-                }
-                else
-                {
-                    RIL_LOG_INFO("DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
-                }
-
-                //  Close file handle.
-                fclose(fp);
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: Cannot open [%s]\r\n", file_to_open);
-            }
-        }
-
-        RIL_LOG_INFO("DataConfigUpIpV6() : Setting flags\r\n");
-        if (!setflags(s, &ifr, IFF_UP, 0))
-        {
-            //goto Error;
-            RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting flags\r\n");
-        }
+        //goto Error;
+        RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting addr %s\r\n", szIpAddr);
     }
 
-    // TODO retrieve gateway from the modem with XDNS?
-    if (defaultGatewayStr == NULL)
-    {
-        in_addr_t gw;
-        struct in_addr gwaddr;
-        in_addr_t addr;  //  Note: Does this work with AF_INET6?
+    //  Before setting interface UP, need to deactivate DAD on interface.
+    char file_to_open[100];
+    file_to_open[0]='\0';
+    FILE * fp;
 
-        RIL_LOG_INFO("DataConfigUpIpV6() : set default gateway to fake value");
-        if (inet_pton(AF_INET6, szIpAddr, &addr) <= 0)
+    //  Open dad_transmits file, write 0<lf>.
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits", szNetworkInterfaceName);
+
+    fp = fopen(file_to_open, "w");
+    if (fp)
+    {
+        char szData[] = "0\n";
+
+        RIL_LOG_INFO("DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
+        if (EOF == fputs(szData, fp))
         {
-            RIL_LOG_INFO("DataConfigUpIpV6() : inet_pton() failed for %s!", szIpAddr);
-            goto Error;
+            RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
         }
-        gw = ntohl(addr) & 0xFFFFFF00;
-        gw |= 1;
-        gwaddr.s_addr = htonl(gw);
 
-        defaultGatewayStr = strdup(inet_ntoa(gwaddr));
-    }
-    if (defaultGatewayStr != NULL)
-    {
-        struct rtentry rt;
-        memset(&rt, 0, sizeof(struct rtentry));
-
-        rt.rt_dst.sa_family = AF_INET;
-        rt.rt_genmask.sa_family = AF_INET;
-        rt.rt_gateway.sa_family = AF_INET6;  //  TODO: Check the rest of these flags for AF_INET6
-
-
-        rt.rt_flags = RTF_UP | RTF_GATEWAY;
-        rt.rt_dev = szNetworkInterfaceName;
-
-        //  Set gateway system property
-        if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.gw", szNetworkInterfaceName))
+        else
         {
-            RIL_LOG_CRITICAL("DataConfigUpIpV6() :cannot create szPropName net.X.gw\r\n");
+            RIL_LOG_INFO("DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+        }
+
+        //  Close file handle
+        fclose(fp);
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: Cannot open [%s]\r\n", file_to_open);
+    }
+    //  Open accept_dad file, write 0<lf>.
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad", szNetworkInterfaceName);
+
+    fp = fopen(file_to_open, "w");
+    if (fp)
+    {
+        char szData[] = "0\n";
+
+        RIL_LOG_INFO("DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
+        if (EOF == fputs(szData, fp))
+        {
+            RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
         }
         else
         {
-            RIL_LOG_INFO("DataConfigUpIpV6() - setting '%s' to '%s'\r\n", szPropName, defaultGatewayStr);
-            property_set(szPropName, defaultGatewayStr);
+            RIL_LOG_INFO("DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
         }
+
+        //  Close file handle.
+        fclose(fp);
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: Cannot open [%s]\r\n", file_to_open);
+    }
+    RIL_LOG_INFO("DataConfigUpIpV6() : Setting flags\r\n");
+    if (!setflags(s, &ifr, IFF_UP, 0))
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting flags\r\n");
     }
 
     //  Set DNS1
@@ -1040,6 +1014,250 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
             property_set(szPropName, szDNS2);
         }
     }
+    bRet = TRUE;
+
+Error:
+    if (s >= 0)
+    {
+        close(s);
+    }
+
+    RIL_LOG_INFO("DataConfigUpIpV6() EXIT  bRet=[%d]\r\n", bRet);
+    return bRet;
+}
+
+BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData )
+{
+    CRepository repository;
+    BOOL bRet = FALSE;
+    int s = -1;
+    int s6 =-1;
+    char szPropName[MAX_BUFFER_SIZE] = {0};
+    char *defaultGatewayStr = NULL;
+
+    char szIpAddrOut[50];
+    struct in6_addr ifIdAddr;
+    struct in6_addr ifPrefixAddr;
+    struct in6_addr ifOutAddr;
+
+    char *szIpAddr = pChannelData->m_szIpAddr;
+    char *szDNS1 = pChannelData->m_szDNS1;
+    char *szDNS2 = pChannelData->m_szDNS2;
+    char *szIpAddr2 = pChannelData->m_szIpAddr2;
+    char *szIpV6DNS1 = pChannelData->m_szIpV6DNS1;
+    char *szIpV6DNS2 = pChannelData->m_szIpV6DNS2;
+
+    RIL_LOG_INFO("DataConfigUpIpV4V6() ENTER  szNetworkInterfaceName=[%s]  szIpAddr=[%s] szIpAddr2=[%s]\r\n", szNetworkInterfaceName, szIpAddr, szIpAddr2);
+    RIL_LOG_INFO("DataConfigUpIpV4V6() ENTER  szDNS1=[%s]  szDNS2=[%s] szIpV6DNS1=[%s]  szIpV6DNS2=[%s]\r\n", szDNS1, szDNS2, szIpV6DNS1, szIpV6DNS2);
+
+
+
+    // set net. properties
+    // TODO For multiple PDP context support this will have to be updated to be consistent with whatever changes to
+    // the Android framework's use of these properties is made. (Currently there is only one property for the
+    // IP address and there needs to be one for each context.
+
+
+    //  Open socket for ifconfig and setFlags commands
+    s = socket(AF_INET, SOCK_DGRAM, 0);
+    s6 = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (s < 0 || s6 < 0)
+    {
+        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : cannot open control socket\n");
+        goto Error;
+    }
+
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(struct ifreq));
+    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
+    ifr.ifr_name[IFNAMSIZ-1] = 0;
+
+    RIL_LOG_INFO("DataConfigUpIpV4V6() : Setting addr\r\n");
+    if (!setaddr(s, &ifr, szIpAddr)) // ipaddr
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Error setting add\r\n");
+    }
+
+    memset(&ifr, 0, sizeof(struct ifreq));
+    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
+    ifr.ifr_name[IFNAMSIZ-1] = 0;
+
+    // Set link local address to start the SLAAC process
+    inet_pton(AF_INET6, szIpAddr2, &ifIdAddr);
+    inet_pton(AF_INET6, "FE80::", &ifPrefixAddr);
+
+    // Set local prefix from FE80::
+    memcpy(ifOutAddr.s6_addr,ifPrefixAddr.s6_addr,8);
+    // Set interface identifier from address given by network
+    memcpy((ifOutAddr.s6_addr)+8,(ifIdAddr.s6_addr)+8,8);
+
+    inet_ntop(AF_INET6, &ifOutAddr, szIpAddrOut, sizeof(szIpAddrOut));
+    strncpy(szIpAddr2,szIpAddrOut,sizeof(szIpAddrOut));
+
+
+    if (!setaddr6(s6, &ifr, szIpAddr2)) // ipaddr
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Error setting add\r\n");
+    }
+
+    //  Before setting interface UP, need to deactivate DAD on interface.
+    char file_to_open[100];
+    file_to_open[0]='\0';
+    FILE * fp;
+
+    //  Open dad_transmits file, write 0<lf>.
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits", szNetworkInterfaceName);
+
+    fp = fopen(file_to_open, "w");
+    if (fp)
+    {
+        char szData[] = "0\n";
+
+        RIL_LOG_INFO("DataConfigUpIpV4V6() : Opened file=[%s]\r\n", file_to_open);
+        if (EOF == fputs(szData, fp))
+        {
+            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigUpIpV4V6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+        }
+
+        //  Close file handle
+        fclose(fp);
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : ERROR: Cannot open [%s]\r\n", file_to_open);
+    }
+
+    //  Open accept_dad file, write 0<lf>.
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad", szNetworkInterfaceName);
+
+    fp = fopen(file_to_open, "w");
+    if (fp)
+    {
+        char szData[] = "0\n";
+
+        RIL_LOG_INFO("DataConfigUpIpV4V6() : Opened file=[%s]\r\n", file_to_open);
+        if (EOF == fputs(szData, fp))
+        {
+            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
+
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigUpIpV4V6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+        }
+
+        //  Close file handle.
+        fclose(fp);
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : ERROR: Cannot open [%s]\r\n", file_to_open);
+    }
+
+    RIL_LOG_INFO("DataConfigUpIpV4V6() : Setting flags\r\n");
+    if (!setflags(s, &ifr, IFF_UP, 0))
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Error setting flags\r\n");
+    }
+
+
+    if (defaultGatewayStr == NULL)
+    {
+        in_addr_t gw;
+        struct in_addr gwaddr;
+        in_addr_t addr;
+
+        RIL_LOG_INFO("DataConfigUpIpV4V6() : set default gateway to fake value");
+        if (inet_pton(AF_INET, szIpAddr, &addr) <= 0)
+        {
+            RIL_LOG_INFO("DataConfigUpIpV4V6() : inet_pton() failed for %s!", szIpAddr);
+            goto Error;
+        }
+
+        gw = ntohl(addr) & 0xFFFFFF00;
+        gw |= 1;
+
+        gwaddr.s_addr = htonl(gw);
+
+        defaultGatewayStr = strdup(inet_ntoa(gwaddr));
+    }
+
+    if (defaultGatewayStr != NULL)
+    {
+        //  Set gateway system property
+        if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.gw", szNetworkInterfaceName))
+        {
+            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() :cannot create szPropName net.X.gw\r\n");
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigUpIpV4V6() - setting '%s' to '%s'\r\n", szPropName, defaultGatewayStr);
+            property_set(szPropName, defaultGatewayStr);
+        }
+    }
+
+    //  Set DNS1
+    if (szDNS1)
+    {
+        if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns1", szNetworkInterfaceName))
+        {
+            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() :cannot create szPropName net.X.dns1\r\n");
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigUpIpV4V6() - setting '%s' to '%s'\r\n", szPropName, szDNS1);
+            property_set(szPropName, szDNS1);
+        }
+    }
+
+    //  Set DNS2
+    if (szDNS2)
+    {
+        if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns2", szNetworkInterfaceName))
+        {
+            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() :cannot create szPropName net.X.dns2\r\n");
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigUpIpV4V6() - setting '%s' to '%s'\r\n", szPropName, szDNS2);
+            property_set(szPropName, szDNS2);
+        }
+    }
+
+    //  Set DNS3
+    if (szIpV6DNS1)
+    {
+        if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns3", szNetworkInterfaceName))
+        {
+            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() :cannot create szPropName net.X.dns3\r\n");
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigUpIpV4V6() - setting '%s' to '%s'\r\n", szPropName, szIpV6DNS1);
+            property_set(szPropName, szDNS1);
+        }
+    }
+
+    //  Set DNS4
+    if (szIpV6DNS2)
+    {
+        if (!PrintStringNullTerminate(szPropName, MAX_BUFFER_SIZE, "net.%s.dns4", szNetworkInterfaceName))
+        {
+            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() :cannot create szPropName net.X.dns4\r\n");
+        }
+        else
+        {
+            RIL_LOG_INFO("DataConfigUpIpV4V6() - setting '%s' to '%s'\r\n", szPropName, szIpV6DNS2);
+            property_set(szPropName, szDNS2);
+        }
+    }
 
     bRet = TRUE;
 
@@ -1052,16 +1270,13 @@ Error:
         close(s);
     }
 
-    RIL_LOG_INFO("DataConfigUpIpV6() EXIT  bRet=[%d]\r\n", bRet);
-    return bRet;
-}
+    if (s6 >= 0)
+    {
+        close(s6);
+    }
 
-BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
-{
-    BOOL bRet = FALSE;
-    RIL_LOG_INFO("DataConfigUpIpV4V6() ENTER\r\n");
+    RIL_LOG_INFO("DataConfigUp() EXIT  bRet=[%d]\r\n", bRet);
 
-    RIL_LOG_INFO("DataConfigUpIpV4V6() EXIT=%d\r\n", bRet);
     return bRet;
 }
 
@@ -1175,31 +1390,6 @@ BOOL DataConfigDown(int nCID)
         property_set(szPropName, "");
     }
 
-
-    //  Open socket for ifconfig and route commands
-    s = socket(AF_INET, SOCK_DGRAM, 0);
-    if (s < 0)
-    {
-        RIL_LOG_CRITICAL("DataConfigDown() : cannot open control socket\n");
-        goto Error;
-    }
-
-    //  ifconfig ifx02 down
-    {
-        struct ifreq ifr;
-        memset(&ifr, 0, sizeof(struct ifreq));
-        strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
-        ifr.ifr_name[IFNAMSIZ-1] = 0;
-
-        RIL_LOG_CRITICAL("DataConfigDown() : +++++ InterfaceName = %s\n", ifr.ifr_name);
-
-        RIL_LOG_INFO("DataConfigDown() : Setting flags\r\n");
-        if (!setflags(s, &ifr, 0, IFF_UP))
-        {
-            RIL_LOG_CRITICAL("DataConfigDown() : ERROR: Setting flags\r\n");
-        }
-    }
-
     bRet = TRUE;
 
 Error:
@@ -1213,22 +1403,22 @@ Error:
 }
 
 #if defined(M2_IPV6_FEATURE_ENABLED)
-//  Helper function to convert IP addresses to Android-readable format.
-//  szIpIn [IN] - The IP string to be converted
-//  szIpOut [OUT] - The converted IP address in Android-readable format.
-//  uiIpOutSize [IN] - The size of the szIpOut buffer
-//  szIpOut2 [OUT] - The converted IP address in Android-readable format if szIpIn is IPv4v6 format
-//  uiIpOutSize [IN] - The size of szIpOut2 buffer
+// Helper function to convert IP addresses to Android-readable format.
+// szIpIn [IN] - The IP string to be converted
+// szIpOut [OUT] - The converted IPv4 address in Android-readable format if there is an IPv4 address.
+// uiIpOutSize [IN] - The size of the szIpOut buffer
+// szIpOut2 [OUT] - The converted IPv6 address in Android-readable format if there is an IPv6 address.
+// uiIpOutSize [IN] - The size of szIpOut2 buffer
 //
-//  If IPv4 format a1.a2.a3.a4, then szIpIn is copied to szIpOut.
-//  If Ipv6 format:
-//    Convert a1.a2.a3.a4.a5. ... .a15.a16 to XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX IPv6 format
-//    output is copied to szIpOut
-//  If Ipv4v6 format:
-//    Convert a1.a2.a3.a4.a5. ... .a19.a20 to
-//      a1.a2.a3.a4 to szIpOut
-//      XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX (a5-a20) to szIpOut2
-//  If szIpOut2 is NULL, then this parameter is ignored
+// If IPv4 format a1.a2.a3.a4, then szIpIn is copied to szIpOut.
+// If Ipv6 format:
+// Convert a1.a2.a3.a4.a5. ... .a15.a16 to XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX IPv6 format
+// output is copied to szIpOut2
+// If Ipv4v6 format:
+// Convert a1.a2.a3.a4.a5. ... .a19.a20 to
+// a1.a2.a3.a4 to szIpOut
+// XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX (a5-a20) to szIpOut2
+// If szIpOut2 is NULL, then this parameter is ignored
 BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpOutSize, char *szIpOut2, UINT32 uiIpOutSize2)
 {
     RIL_LOG_VERBOSE("ConvertIPAddressToAndroidReadable() - Enter\r\n");
@@ -1237,12 +1427,21 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
     const int MAX_AIPV6_INDEX = 16;     // Number of 'a' values read from modem for IPv6 case
     const int MAX_AIPV4V6_INDEX = 20;   // Number of 'a' values read from modem for IPv4v6 case
 
+    struct in6_addr ipv6Addr;
+
     //  Sanity checks
     if ( (NULL == szIpIn) || (NULL == szIpOut) || (0 == uiIpOutSize))
     {
         RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() : ERROR: Invalid inputs!\r\n");
         return FALSE;
     }
+
+    szIpOut[0]='\0';
+    if (NULL != szIpOut2)
+    {
+       szIpOut2[0]='\0';
+    }
+
 
     //  Count number of '.'
     int nDotCount = 0;
@@ -1299,10 +1498,14 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                 acIP[i] = (unsigned char)(aIP[i]);
             }
 
-            if (inet_ntop(AF_INET6, (void*)acIP, szIpOut, uiIpOutSize) <= 0)
+            if (NULL != szIpOut2 && 0 != uiIpOutSize2)
             {
-                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot inet_ntop ipv6\r\n");
-                goto Error;
+
+                if (inet_ntop(AF_INET6, (void *)acIP, szIpOut2, uiIpOutSize2) <= 0)
+                {
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot inet_ntop ipv6\r\n");
+                    goto Error;
+                }
             }
 
         }
@@ -1355,7 +1558,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                     acIP[i] = (unsigned char)(aIP[i+4]);
                 }
 
-                if (inet_ntop(AF_INET6, (void*)acIP, szIpOut2, uiIpOutSize2) <= 0)
+                if (inet_ntop(AF_INET6, (void *)acIP, szIpOut2, uiIpOutSize2) <= 0)
                 {
                     RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot inet_ntop ipv4v6\r\n");
                     goto Error;
@@ -1414,9 +1617,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
             goto Error;
         }
 
-        //  Remove previous IP addr (if it existed)
-        delete[] pChannelData->m_szIpAddr;
-        pChannelData->m_szIpAddr = NULL;
 
 #if defined(M2_IPV6_FEATURE_ENABLED)
         {
@@ -1443,22 +1643,24 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
                 goto Error;
             }
 
-            pChannelData->m_szIpAddr = new char[MAX_IPADDR_SIZE];
-            if (NULL == pChannelData->m_szIpAddr)
+            if (pChannelData->m_szIpAddr == NULL)
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: cannot allocate m_szIpAddr!\r\n");
-                goto Error;
+                pChannelData->m_szIpAddr = new char[MAX_IPADDR_SIZE];
             }
-            memset(pChannelData->m_szIpAddr, 0, sizeof(char)*MAX_IPADDR_SIZE);
+
+            if (pChannelData->m_szIpAddr2 == NULL)
+            {
+                pChannelData->m_szIpAddr2 = new char[MAX_IPADDR_SIZE];
+            }
+            //initialisation is made by ConvertIPAddressToAndroidReadable
+
 
             //  The AT+CGPADDR command doesn't return IPV4V6 format
-            if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr, MAX_IPADDR_SIZE, NULL, 0))
+            if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr, MAX_IPADDR_SIZE, pChannelData->m_szIpAddr2, MAX_IPADDR_SIZE))
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed!\r\n");
                 goto Error;
             }
-
-            RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IP1 address: %s\r\n", pChannelData->m_szIpAddr);
 
             //  Extract ,<PDP_Addr2>
             //  Converted address is in pChannelData->m_szIpAddr2.
@@ -1470,28 +1672,23 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
                     goto Error;
                 }
 
-                //  Delete previous szIpAddr2 (if it existed)
-                delete[] pChannelData->m_szIpAddr2;
-
-                pChannelData->m_szIpAddr2 = new char[MAX_IPADDR_SIZE];
-                if (NULL == pChannelData->m_szIpAddr2)
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: cannot allocate m_szIpAddr2!\r\n");
-                    goto Error;
-                }
-                memset(pChannelData->m_szIpAddr2, 0, sizeof(char)*MAX_IPADDR_SIZE);
 
                 //  The AT+CGPADDR command doesn't return IPV4V6 format.
-                if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr2, MAX_IPADDR_SIZE, NULL, 0))
+                if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr, MAX_IPADDR_SIZE, pChannelData->m_szIpAddr2, MAX_IPADDR_SIZE))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
                     goto Error;
                 }
 
-                RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IP2 address: %s\r\n", pChannelData->m_szIpAddr2);
+            RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IPV4 address: %s\r\n", pChannelData->m_szIpAddr);
+            RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IPV6 address: %s\r\n", pChannelData->m_szIpAddr2);
             }
         }
 #else // M2_IPV6_FEATURE_ENABLED
+        //  Remove previous IP addr (if it existed) and set it to NULL to confirm the memory unset memory will be allocated by ExtractQuotedStringWithAllocatedMemory
+        delete[] pChannelData->m_szIpAddr;
+        pChannelData->m_szIpAddr = NULL;
+
         // Take original IPV4 string and copy it into data channel's m_szIpAddr.
         // Parse <PDP_addr>
         if (!SkipString(szRsp, ",", szRsp) ||
@@ -1574,13 +1771,13 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                 //  The IPV6, and IPV4V6 format above is incompatible with Android, so we need to convert
                 //  to an Android-readable IPV6, IPV4 address format.
 
-                //  Extract original string into szDNS.
-                //  Then converted address is in pChannelData->m_szDNS1, pChannelData->m_szDNS1_Secondary (if IPv4v6).
+                //  Extract original string into
+                //  Then converted address is in pChannelData->m_szDNS1, pChannelData->m_szIpV6DNS1 (if IPv4v6).
                 const int MAX_IPADDR_SIZE = 100;
                 char szDNS[MAX_IPADDR_SIZE] = {0};
 
                 // Parse <primary DNS>
-                // Converted address is in m_szDNS1, m_szDNS1_Secondary (if necessary)
+                // Converted address is in m_szDNS1, m_szIpV6DNS1 (if necessary)
                 if (SkipString(szRsp, ",", szRsp))
                 {
                     if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
@@ -1589,44 +1786,59 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                         goto Error;
                     }
 
-                    pChannelData->m_szDNS1 = new char[MAX_IPADDR_SIZE];
+                    if (pChannelData->m_szDNS1== NULL)
+                    {
+                        pChannelData->m_szDNS1 = new char[MAX_IPADDR_SIZE];
+                    }
+
+                    //initialisation is made by ConvertIPAddressToAndroidReadable
                     if (NULL == pChannelData->m_szDNS1)
                     {
                         RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS1!\r\n");
                         goto Error;
                     }
-                    memset(pChannelData->m_szDNS1, 0, sizeof(char)*MAX_IPADDR_SIZE);
-
-                    //  delete m_szDNS1_Secondary (if it existed)
-                    delete[] pChannelData->m_szDNS1_Secondary;
-                    pChannelData->m_szDNS1_Secondary = new char[MAX_IPADDR_SIZE];
-                    if (NULL == pChannelData->m_szDNS1_Secondary)
+                    if (pChannelData->m_szIpV6DNS1== NULL)
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS1_Secondary!\r\n");
+                        pChannelData->m_szIpV6DNS1 = new char[MAX_IPADDR_SIZE];
+                    }
+                    //initialisation is made by ConvertIPAddressToAndroidReadable
+                    if (NULL == pChannelData->m_szIpV6DNS1)
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szIpV6DNS1!\r\n");
                         goto Error;
                     }
-                    memset(pChannelData->m_szDNS1_Secondary, 0, sizeof(char)*MAX_IPADDR_SIZE);
+
 
                     //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
                     if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS1, MAX_IPADDR_SIZE,
-                            pChannelData->m_szDNS1_Secondary, MAX_IPADDR_SIZE))
+                            pChannelData->m_szIpV6DNS1, MAX_IPADDR_SIZE))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szDNS1\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szDNS1\r\n");
                         goto Error;
                     }
                     RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1: %s\r\n", pChannelData->m_szDNS1);
-                    if (strlen(pChannelData->m_szDNS1_Secondary) > 0)
+
+                    if (strlen(pChannelData->m_szIpV6DNS1) > 0)
                     {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1_Secondary: %s\r\n", pChannelData->m_szDNS1_Secondary);
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1_2: %s\r\n", pChannelData->m_szIpV6DNS1);
                     }
                     else
                     {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS1_Secondary: <NONE>\r\n");
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - m_szIpV6DNS1: <NONE>\r\n");
                     }
+                }
+                //initialisation is made by ConvertIPAddressToAndroidReadable
+                if (pChannelData->m_szIpV6DNS2== NULL)
+                {
+                    pChannelData->m_szIpV6DNS2 = new char[MAX_IPADDR_SIZE];
+                }
+                if (pChannelData->m_szDNS2== NULL)
+                {
+                    pChannelData->m_szDNS2 = new char[MAX_IPADDR_SIZE];
                 }
 
                 // Parse <secondary DNS>
-                // Converted address is in m_szDNS2, m_szDNS2_Secondary (if necessary)
+                // Converted address is in m_szDNS2, m_szIpV6DNS2 (if necessary)
                 if (SkipString(szRsp, ",", szRsp))
                 {
                     if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
@@ -1635,38 +1847,36 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                         goto Error;
                     }
 
-                    pChannelData->m_szDNS2 = new char[MAX_IPADDR_SIZE];
+
                     if (NULL == pChannelData->m_szDNS2)
                     {
                         RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS2!\r\n");
                         goto Error;
                     }
 
-                    //  delete m_szDNS2_Secondary (if it existed)
-                    delete[] pChannelData->m_szDNS2_Secondary;
-                    pChannelData->m_szDNS2_Secondary = new char[MAX_IPADDR_SIZE];
-                    if (NULL == pChannelData->m_szDNS2_Secondary)
+                    if (NULL == pChannelData->m_szIpV6DNS2)
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szDNS2_Secondary!\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: cannot allocate m_szIpV6DNS2!\r\n");
                         goto Error;
                     }
-                    memset(pChannelData->m_szDNS2_Secondary, 0, sizeof(char)*MAX_IPADDR_SIZE);
+
 
                     //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
                     if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS2, MAX_IPADDR_SIZE,
-                            pChannelData->m_szDNS2_Secondary, MAX_IPADDR_SIZE))
+                            pChannelData->m_szIpV6DNS2, MAX_IPADDR_SIZE))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szDNS2\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szDNS2\r\n");
                         goto Error;
                     }
                     RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2: %s\r\n", pChannelData->m_szDNS2);
-                    if (strlen(pChannelData->m_szDNS2_Secondary) > 0)
+
+                    if (strlen(pChannelData->m_szIpV6DNS2) > 0)
                     {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2_Secondary: %s\r\n", pChannelData->m_szDNS2_Secondary);
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2_2: %s\r\n", pChannelData->m_szIpV6DNS2);
                     }
                     else
                     {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - DNS2_Secondary: <NONE>\r\n");
+                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - szIpV6DNS2: <NONE>\r\n");
                     }
                 }
             }
@@ -2089,7 +2299,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_SIM_IO_v6 *   pSimIOArgs = NULL;
-    char szGraphicsPath[] = "3F007F105F50";  // Bugzilla 2822 - SATK icon test failing
+    char szGraphicsPath[] = "3F007F105F50";  // substitute actual path instead of string "img"
     char szImg[] = "img";
     char *pszPath = NULL;
 
@@ -2115,9 +2325,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
-    RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
 
-    //  Bugzilla 2822 - SATK Icon test is failing
     //  Replace path of "img" with "3F007F105F50"
     if (pSimIOArgs->path)
     {

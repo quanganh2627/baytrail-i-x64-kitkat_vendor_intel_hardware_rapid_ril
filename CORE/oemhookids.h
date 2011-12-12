@@ -9,16 +9,6 @@
 //    List of enums for specific OEM requests via API
 //    RIL_REQUEST_OEM_HOOK_STRINGS API.
 //
-// Author:  Francesc Vilarino Guell
-// Created: 2009-05-29
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date           Who    Ver   Description
-//  -----------  -------  ----  -----------------------------------------------
-//  March 29/09    FV     1.00  Initial implementation.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 

@@ -9,16 +9,6 @@
 //    Defines the CTEBase class which handles all requests and
 //    basic behavior for responses
 //
-// Author:  Mike Worth
-// Created: 2009-09-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Sept 30/09  FV      1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include <wchar.h>
@@ -424,16 +414,9 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
 
-    /*
-     * Android Telephony framework expects the change in radio state
-     * inorder to trigger the GET_SIM_STATUS and QUERY_FACILITY_LOCK
-     * requests. Based on the value returned by those requests,
-     * sim lock status is updated in the UI
-     */
-    // Bugzilla 7189: Unblock PIN1 dialog stays on screen
-    //  Set radio state to SIM_READY instead of ABSENT_OR_BLOCKED.
-    //  If the response to PUK unlock is OK, then we are unlocked and SIM is ready.
-    g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
+    //  If the response to PUK unlock is OK, then we are unlocked.
+    // rril will get XSIM: <status> which will indicate whether the
+    // SIM is ready or not.
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -1555,14 +1538,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    UINT32      uiNum    = 0;
-    UINT32      uiStat   = 0;
-    UINT32      uiLAC    = 0;
-    UINT32      uiCID    = 0;
-    UINT32      uiAct    = 0;
-
-    extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
-
+    S_ND_REG_STATUS regStatus;
     P_ND_REG_STATUS pRegStatus = NULL;
 
     pRegStatus = (P_ND_REG_STATUS)malloc(sizeof(S_ND_REG_STATUS));
@@ -1573,143 +1549,14 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     }
     memset(pRegStatus, 0, sizeof(S_ND_REG_STATUS));
 
-    // Skip "<prefix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!CTE::ParseCREG(pszRsp, FALSE, regStatus))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not skip response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR in parsing response.\r\n");
         goto Error;
     }
 
-    // Skip "+CREG: "
-    if (!SkipString(pszRsp, "+CREG: ", pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not skip \"+CREG: \".\r\n");
-        goto Error;
-    }
-
-    // Extract <n> and throw away
-    if (!ExtractUInt32(pszRsp, uiNum, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <n>.\r\n");
-        goto Error;
-    }
-
-    // Skip ",<stat>"
-    if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt32(pszRsp, uiStat, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <stat>.\r\n");
-        goto Error;
-    }
-
-    // Do we have more to parse?
-    if (SkipString(pszRsp, ",", pszRsp))
-    {
-        // Extract "<lac>"
-        SkipString(pszRsp, "\"", pszRsp);
-        if (!ExtractHexUInt32(pszRsp, uiLAC, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <lac>.\r\n");
-            goto Error;
-        }
-        SkipString(pszRsp, "\"", pszRsp);
-
-        // Extract ",<cid>"
-        if (!SkipString(pszRsp, ",", pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract \",<cid>\".\r\n");
-            goto Error;
-        }
-        SkipString(pszRsp, "\"", pszRsp);
-        if (!ExtractHexUInt32(pszRsp, uiCID, pszRsp))
-         {
-             RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <cid>.\r\n");
-             goto Error;
-         }
-        SkipString(pszRsp, "\"", pszRsp);
-    }
-
-
-    // Do we have more to parse? (Rel7 add-on)
-    if (SkipString(pszRsp, ",", pszRsp))
-    {
-       // Skip ",<AcT>"
-       if (!ExtractUInt32(pszRsp, uiAct, pszRsp))
-       {
-           RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <AcT>.\r\n");
-           goto Error;
-       }
-    }
-    // Do we have more to parse?
-    if (SkipString(pszRsp, ",", pszRsp))
-    {
-        // Extract <n2> and throw away
-        if (!ExtractUInt32(pszRsp, uiNum, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not extract <n2>.\r\n");
-            goto Error;
-        }
-    }
-
-    // Skip "<postfix>"
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR: Could not skip response postfix.\r\n");
-        goto Error;
-    }
-
-    /*
-     * Registration status value of 2,3 or 4 means that there is a cell
-     * around on which emergency calls are possible. Inorder to show
-     * emergency calls only, Android telephony stack expects the registration
-     * status value to be one of 10,12,13,14.
-     */
-    if (2 == uiStat || 3 == uiStat || 4 == uiStat)
-    {
-        uiStat += 10;
-    }
-
-    snprintf(pRegStatus->szStat,        REG_STATUS_LENGTH, "%d", (int)uiStat);
-    snprintf(pRegStatus->szLAC,         REG_STATUS_LENGTH, "%x", (int)uiLAC);
-    snprintf(pRegStatus->szCID,         REG_STATUS_LENGTH, "%x", (int)uiCID);
-    //if (0 == uiStat)
-    //{
-    //    snprintf(pRegStatus->szNetworkType, REG_STATUS_LENGTH, "%d", 0);
-    //}
-    //else
-    //{
-        snprintf(pRegStatus->szNetworkType, REG_STATUS_LENGTH, "%d", (int)(g_uiAccessTechnology));
-    //}
-
-
-    pRegStatus->sStatusPointers.pszStat = pRegStatus->szStat;
-    if (0 == uiLAC)
-    {
-        pRegStatus->sStatusPointers.pszLAC  = NULL;
-    }
-    else
-    {
-        pRegStatus->sStatusPointers.pszLAC  = pRegStatus->szLAC;
-    }
-    if (0 == uiCID)
-    {
-        pRegStatus->sStatusPointers.pszCID  = NULL;
-    }
-    else
-    {
-        pRegStatus->sStatusPointers.pszCID  = pRegStatus->szCID;
-    }
-    pRegStatus->sStatusPointers.pszNetworkType = pRegStatus->szNetworkType;
-    pRegStatus->sStatusPointers.pszBaseStationID = NULL;
-    pRegStatus->sStatusPointers.pszBaseStationLat = NULL;
-    pRegStatus->sStatusPointers.pszBaseStationLon = NULL;
-    pRegStatus->sStatusPointers.pszConcurrentServices = NULL;
-    pRegStatus->sStatusPointers.pszSystemID = NULL;
-    pRegStatus->sStatusPointers.pszNetworkID = NULL;
-    pRegStatus->sStatusPointers.pszTSB58 = NULL;
-    pRegStatus->sStatusPointers.pszPRL = NULL;
-    pRegStatus->sStatusPointers.pszDefaultRoaming = NULL;
-    pRegStatus->sStatusPointers.pszReasonDenied = NULL;
+    CTE::GetTE().StoreRegistrationInfo(&regStatus, FALSE);
+    CTE::GetTE().CopyCachedRegistrationInfo(pRegStatus, FALSE);
 
     // We cheat with the size here.
     // Although we have allocated a S_ND_REG_STATUS struct, we tell
@@ -1741,7 +1588,11 @@ RIL_RESULT_CODE CTEBase::CoreGPRSRegistrationState(REQUEST_DATA & rReqData, void
     RIL_LOG_VERBOSE("CTEBase::CoreGPRSRegistrationState() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
+#if defined(USE_CGREG_FOR_GPRS_REG_STATUS)
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CGREG=2;+CGREG?;+CGREG=0\r", sizeof(rReqData.szCmd1)))
+#else
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XREG=2;+XREG?;+XREG=0\r", sizeof(rReqData.szCmd1)))
+#endif // USE_CGREG_FOR_GPRS_REG_STATUS
     {
         res = RRIL_RESULT_OK;
     }
@@ -1757,15 +1608,8 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    UINT32 uiNum = 0;
-    UINT32 uiStat = 0;
-    UINT32 uiLAC = 0;
-    UINT32 uiCID = 0;
-    UINT32 uiOther = 0;
-
+    S_ND_GPRS_REG_STATUS psRegStatus;
     P_ND_GPRS_REG_STATUS pGPRSRegStatus = NULL;
-
-    extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
 
     pGPRSRegStatus = (P_ND_GPRS_REG_STATUS)malloc(sizeof(S_ND_GPRS_REG_STATUS));
     if (NULL == pGPRSRegStatus)
@@ -1775,108 +1619,18 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     }
     memset(pGPRSRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
-    // Parse "<prefix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+#if defined(USE_CGREG_FOR_GPRS_REG_STATUS)
+    if (!CTE::ParseCGREG(pszRsp, FALSE, psRegStatus))
+#else
+    if (!CTE::ParseXREG(pszRsp, FALSE, psRegStatus))
+#endif // USE_CGREG_FOR_GPRS_REG_STATUS
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not skip over response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR in parsing response.\r\n");
         goto Error;
     }
 
-    // Parse "+CGREG: "
-    if (!SkipString(pszRsp, "+CGREG: ", pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not skip over \"+CGREG: \".\r\n");
-        goto Error;
-    }
-
-    // Parse <n> and throw away
-    if (!ExtractUInt32(pszRsp, uiNum, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <n>.\r\n");
-        goto Error;
-    }
-
-    // Parse ",<stat>"
-    if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt32(pszRsp, uiStat, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <stat>.\r\n");
-        goto Error;
-    }
-
-    // Do we have more to parse?
-    if (SkipString(pszRsp, ",", pszRsp))
-    {
-        // Parse "<lac>"
-        SkipString(pszRsp, "\"", pszRsp);
-        if (!ExtractHexUInt32(pszRsp, uiLAC, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <lac>.\r\n");
-            goto Error;
-        }
-        SkipString(pszRsp, "\"", pszRsp);
-
-        // Parse ",<cid>"
-        if (!SkipString(pszRsp, ",", pszRsp))
-         {
-             RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <cid>.\r\n");
-             goto Error;
-         }
-         SkipString(pszRsp, "\"", pszRsp);
-         if (!ExtractHexUInt32(pszRsp, uiCID, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <cid>.\r\n");
-            goto Error;
-        }
-        SkipString(pszRsp, "\"", pszRsp);
-    }
-
-    // Do we have more to parse?
-    if (SkipString(pszRsp, ",", pszRsp))
-    {
-        // Extract <n2> and throw away
-        if (!ExtractUInt32(pszRsp, uiNum, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR: Could not extract <n2>.\r\n");
-            goto Error;
-        }
-    }
-
-
-    // Parse "<postfix>"
-    SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
-
-
-    snprintf(pGPRSRegStatus->szStat,        REG_STATUS_LENGTH, "%d", (int)uiStat);
-    snprintf(pGPRSRegStatus->szLAC,         REG_STATUS_LENGTH, "%x", (int)uiLAC);
-    snprintf(pGPRSRegStatus->szCID,         REG_STATUS_LENGTH, "%x", (int)uiCID);
-    //if (0 == uiStat)
-    //{
-    //    snprintf(pGPRSRegStatus->szNetworkType, REG_STATUS_LENGTH, "%d", 0);
-    //}
-    //else
-    //{
-        snprintf(pGPRSRegStatus->szNetworkType, REG_STATUS_LENGTH, "%d", (int)(g_uiAccessTechnology));
-    //}
-
-    pGPRSRegStatus->sStatusPointers.pszStat         = pGPRSRegStatus->szStat;
-    if (0 == uiLAC)
-    {
-        pGPRSRegStatus->sStatusPointers.pszLAC          = NULL;
-    }
-    else
-    {
-        pGPRSRegStatus->sStatusPointers.pszLAC          = pGPRSRegStatus->szLAC;
-    }
-    if (0 == uiCID)
-    {
-        pGPRSRegStatus->sStatusPointers.pszCID          = NULL;
-    }
-    else
-    {
-        pGPRSRegStatus->sStatusPointers.pszCID          = pGPRSRegStatus->szCID;
-    }
-    pGPRSRegStatus->sStatusPointers.pszNetworkType  = pGPRSRegStatus->szNetworkType;
+    CTE::GetTE().StoreRegistrationInfo(&psRegStatus, TRUE);
+    CTE::GetTE().CopyCachedRegistrationInfo(pGPRSRegStatus, TRUE);
 
     // We cheat with the size here.
     // Although we have allocated a S_ND_GPRS_REG_STATUS struct, we tell
@@ -1907,8 +1661,6 @@ RIL_RESULT_CODE CTEBase::CoreOperator(REQUEST_DATA & rReqData, void * pData, UIN
     RIL_LOG_VERBOSE("CTEBase::CoreOperator() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    // Request for 9 (long E-ONS) and 8 (short E-ONS) and numeric network names
-    //  (July 19/2011 - Use XCOPS=6 and XCOPS=5 due to CME ERROR: 100.  Bugzilla 4670)
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCOPS=6;+XCOPS=5;+XCOPS=0\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
@@ -1928,8 +1680,6 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
     UINT32      uiType    = 0;
     int       i         = 0;
     int       numericID = 0;
-
-    extern ACCESS_TECHNOLOGY g_uiAccessTechnology;
 
     P_ND_OP_NAMES pOpNames = NULL;
 
@@ -2096,7 +1846,6 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
             pOpNames->sOpNamePtrs.pszOpNameLong    = NULL;
             pOpNames->sOpNamePtrs.pszOpNameShort   = NULL;
             pOpNames->sOpNamePtrs.pszOpNameNumeric = NULL;
-            //g_uiAccessTechnology = ACT_UNKNOWN;
         }
 
         // Extract "<CR><LF>"
@@ -3177,6 +2926,9 @@ RIL_RESULT_CODE CTEBase::CoreQueryCallForwardStatus(REQUEST_DATA & rReqData, voi
 
     res = RRIL_RESULT_OK;
 
+    //  Store the reason data for the query, which will be used for preparing response
+    rReqData.pContextData = (void*)pCallFwdInfo->reason;
+
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreQueryCallForwardStatus() - Exit\r\n");
     return res;
@@ -3229,6 +2981,9 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
     // Parse "+CCFC: "
     while (FindAndSkipString(szRsp, "+CCFC: ", szRsp))
     {
+        // Stored reason value is updated when we have some data to send
+        pCallFwdBlob->pCallFwdData[nCur].reason = (int)rRspData.pContextData;
+
         // Parse "<status>"
         if (!ExtractUInt32(szRsp, nValue, szRsp))
         {
@@ -3791,6 +3546,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA & rRspData)
 
     const char* szRsp = rRspData.szResponse;
     char * szIMEI = (char*)malloc(MAX_PROP_VALUE);
+    char szProductImeiProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     if (NULL == szIMEI)
     {
@@ -3817,6 +3573,10 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA & rRspData)
     rRspData.pData   = (void*)szIMEI;
     rRspData.uiDataSize  = sizeof(char*);
 
+    // Update IMEI property
+    snprintf(szProductImeiProperty, sizeof(szProductImeiProperty), "%s", szIMEI);
+    property_set("persist.radio.device.imei", szProductImeiProperty);
+
 Error:
     if (RRIL_RESULT_OK != res)
     {
@@ -3836,7 +3596,7 @@ RIL_RESULT_CODE CTEBase::CoreGetImeisv(REQUEST_DATA & rReqData, void * pData, UI
     RIL_LOG_VERBOSE("CTEBase::CoreGetImeisv() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGSN;+CGMR\r"))
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGMR\r"))
     {
         res = RRIL_RESULT_OK;
     }
@@ -3853,7 +3613,6 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
 
     const char* szRsp = rRspData.szResponse;
     char * szIMEISV = (char*)malloc(MAX_PROP_VALUE);
-    char szIMEI[MAX_BUFFER_SIZE] = {0};
     char szSV[MAX_BUFFER_SIZE] = {0};
     char szSVDigits[MAX_BUFFER_SIZE] = {0};
     int nIndex = 0;
@@ -3866,23 +3625,11 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
     memset(szIMEISV, 0, MAX_PROP_VALUE);
 
     //  Skip over <prefix> if there.
-    SkipRspStart(szRsp, g_szNewLine, szRsp);
-
-    //  Skip spaces (if any)
-    SkipSpaces(szRsp, szRsp);
-
-    //  Grab IMEI into szIMEI
-    if (!ExtractUnquotedString(szRsp, g_cTerminator, szIMEI, MAX_BUFFER_SIZE, szRsp))
+    if (!SkipRspStart(szRsp, g_szNewLine, szRsp))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseGetImeisv() - ERROR: Could not find unquoted string szIMEI\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetImeisv() - ERROR: Could not find response start\r\n");
         goto Error;
     }
-
-    //  Skip over <postfix>
-    SkipRspEnd(szRsp, g_szNewLine, szRsp);
-
-    //  Skip over <prefix>
-    SkipRspStart(szRsp, g_szNewLine, szRsp);
 
     //  Skip spaces (if any)
     SkipSpaces(szRsp, szRsp);
@@ -3894,7 +3641,8 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    //  Now only copy the digits into szSVDigits
+    //  The output of CGMR is "Vx.y,d1d2" where d1d2 are the two digits of SV and x.y integers
+    //  Only copy the digits into szSVDigits
     for (UINT32 i=0; i<strlen(szSV) && i<MAX_BUFFER_SIZE; i++)
     {
         if ( ('0' <= szSV[i]) && ('9' >= szSV[i]) )
@@ -3904,15 +3652,15 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
         }
     }
 
-    // Take into account the case where the output of CGMR is "V1.1,nn" where nn are the two digits of SV
+    // Get only the last two digits as SV digits.
     if(nIndex > 2)
     {
         szSVDigits[0] = szSVDigits[nIndex - 2];
         szSVDigits[1] = szSVDigits[nIndex - 1];
     }
 
-    //  Copy IMEI + 2 digit SV into szIMEISV
-    if (!PrintStringNullTerminate(szIMEISV, MAX_PROP_VALUE, "%s%c%c", szIMEI, szSVDigits[0], szSVDigits[1]))
+    //  Copy 2 digits SV into szIMEISV
+    if (!PrintStringNullTerminate(szIMEISV, MAX_PROP_VALUE, "%c%c", szSVDigits[0], szSVDigits[1]))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImeisv() - ERROR: Could not copy string szIMEISV\r\n");
         goto Error;
@@ -4869,11 +4617,11 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
                 }
             }
 
-            RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - INFO: There is %d network and %d double.\r\n", numericNameNumber, (nCurrent-numericNameNumber));
+            RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - There is %d network and %d double.\r\n", numericNameNumber, (nCurrent-numericNameNumber));
 
             if (numericNameNumber < nCurrent)
             {
-                RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() - INFO: a new table is build.\r\n");
+                RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - a new table is build.\r\n");
 
                 // Declaration of the final table.
                 rRspData.pData = malloc(numericNameNumber * (sizeof(S_ND_OPINFO_PTRS) + sizeof(S_ND_OPINFO_DATA)));
@@ -5683,7 +5431,9 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     //  Store setting in context.
     rReqData.pContextData = (void*)nEnable;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, (1 == nEnable) ? "AT+XCSQ=1\r" : "AT+XCSQ=0\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, (1 == nEnable) ?
+                                "AT+CREG=2;+XREG=2;+XCSQ=1;+CGEREP=1,0\r" :
+                                "AT+CREG=0;+XREG=0;+XCSQ=0;+CGEREP=0,0\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -5700,10 +5450,19 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA & rRspData)
     //  Extract screen state from context
     int nScreenState = (int)rRspData.pContextData;
 
-    //  Issue signal strength query only in screen on state
     if (1 == nScreenState)
     {
+        /*
+         * This will result in quite a few traffic between AP and BP when the screen
+         * state is changed frequently.
+         */
         triggerSignalStrength(NULL);
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
+        triggerDataCallListChanged(NULL);
+    }
+    else
+    {
+        CTE::GetTE().ResetRegistrationCache();
     }
 
     RIL_LOG_VERBOSE("CTEBase::ParseScreenState() - Exit\r\n");
@@ -8128,6 +7887,9 @@ RIL_RESULT_CODE CTEBase::CoreHangupVT(REQUEST_DATA & rReqData, void * pData, UIN
         goto Error;
     }
 
+    // All tests are OK.
+    res = RRIL_RESULT_OK;
+
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreHangupVT() - Exit\r\n");
     return res;
@@ -8496,7 +8258,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryPIN2(RESPONSE_DATA & rRspData)
 //
 // Parse Extended Error Report
 //
-UINT32 CTEBase::ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause)
+BOOL CTEBase::ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause)
 {
     BOOL bRet = FALSE;
     char      szDummy[MAX_BUFFER_SIZE];
@@ -8544,4 +8306,76 @@ UINT32 CTEBase::ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause)
 
 Error:
     return bRet;
+}
+
+//
+// QUERY SIM SMS Store Status (sent internally)
+//
+RIL_RESULT_CODE CTEBase::ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseQuerySimSmsStoreStatus() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+    char szMemStore[3];
+    UINT32 uiUsed = 0, uiTotal = 0;
+    int i = 0;
+    //  The number of memory store information returned by AT+CPMS?.
+    const int MAX_MEM_STORE_INFO = 3;
+
+    // Parse "<prefix>+CPMS: <mem1>,<used1>,<total1>,<mem2>,<used2>,<total2>,<mem3>,<used3>,<total3><postfix>"
+    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
+        !SkipString(pszRsp, "+CPMS: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseQuerySimSmsStoreStatus() - ERROR: Could not find AT response.\r\n");
+        goto Error;
+    }
+
+    while (i < MAX_MEM_STORE_INFO)
+    {
+        if (!ExtractQuotedString(pszRsp, szMemStore, sizeof(szMemStore), pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseQuerySimSmsStoreStatus() - ERROR: Could not extract <mem>.\r\n");
+            goto Error;
+        }
+
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiUsed, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseQuerySimSmsStoreStatus() - ERROR: Could not extract uiUsed.\r\n");
+            goto Error;
+        }
+
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiTotal, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseQuerySimSmsStoreStatus() - ERROR: Could not extract uiTotal.\r\n");
+            goto Error;
+        }
+
+        if (0 == strcmp(szMemStore, "SM"))
+        {
+            if (uiUsed == uiTotal)
+            {
+                RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_SMS_STORAGE_FULL, NULL, 0);
+            }
+            break;
+        }
+
+        SkipString(pszRsp, ",", pszRsp);
+
+        i++;
+    }
+
+    if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseQuerySimSmsStoreStatus() - ERROR: Could not extract the response end.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::ParseQuerySimSmsStoreStatus - Exit()\r\n");
+    return res;
 }

@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// Command.cpp
+// command.cpp
 //
 // Copyright 2005-2007 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
@@ -8,16 +8,6 @@
 // Description:
 //    Defines the CCommand class which stores details required to execute
 //    and return the result of a specific RIL API
-//
-// Author:  Mike Worth
-// Created: 2009-11-19
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Nov 19/09  MW       1.00  Established v1.00 based on current code base.
 //
 /////////////////////////////////////////////////////////////////////////////
 

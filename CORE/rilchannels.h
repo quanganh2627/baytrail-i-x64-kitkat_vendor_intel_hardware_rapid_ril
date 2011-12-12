@@ -11,17 +11,6 @@
 //    Also enumerates all of the channels that
 //    can be used when sending AT Commands.
 //
-// Author:  Dennis Peter
-// Created: 2007-07-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 3/08  DP       1.00  Established v1.00 based on current code base.
-//  Oct 27/10  GR       1.01  Re-worked to support variable number of data channels.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #pragma once

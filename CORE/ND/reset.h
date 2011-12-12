@@ -8,16 +8,6 @@
 // Description:
 //    Implementation of modem reset.
 //
-// Author:  Dennis Peter
-// Created: 2011-08-31
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Aug 31/11  DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_RESET_H

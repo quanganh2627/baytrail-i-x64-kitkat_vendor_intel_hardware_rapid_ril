@@ -9,19 +9,6 @@
 //    Provides response handlers and parsing functions for the SIM-related
 //    RIL components.
 //
-// Author:  Dennis Peter
-// Created: 2007-08-01
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date        Who      Ver   Description
-//  ----------  -------  ----  -----------------------------------------------
-//  June 03/08  DP       1.00  Established v1.00 based on current code base.
-//  May  04/09  CW       1.01  Moved common code to base class, identified
-//                             platform-specific implementations, implemented
-//                             general code clean-up.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -135,6 +122,13 @@ BOOL CSilo_SIM::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
             {
                 g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
                 CSystemManager::GetInstance().TriggerSimUnlockedEvent();
+            }
+            break;
+        case ND_REQ_ID_WRITESMSTOSIM:
+            if (RIL_E_SUCCESS != rpRsp->GetResultCode() &&
+                    CMS_ERROR_MEMORY_FULL == rpRsp->GetErrorCode())
+            {
+                RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_SMS_STORAGE_FULL, NULL, 0);
             }
             break;
 
@@ -493,7 +487,7 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
     }
 
     // Ensure NULL termination
-    pszProactiveCmd[uiLength] = '\0';
+    pszProactiveCmd[uiLength-1] = '\0';
 
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Hex String: \"%s\".\r\n", pszProactiveCmd);
 
@@ -575,7 +569,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     }
 
     // Ensure NULL termination
-    pszProactiveCmd[uiLength] = '\0';
+    pszProactiveCmd[uiLength-1] = '\0';
 
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Hex String: \"%s\".\r\n", pszProactiveCmd);
 
@@ -636,8 +630,15 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                     {
                         //  SIM_RESET
                         RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - SIM_RESET\r\n");
-                        pInts[0] = SIM_RESET;
-                        pInts[1] = NULL;  // see ril.h
+                        /*
+                         * Incase of IMC SUNRISE platform, SIM_RESET refresh
+                         * is handled on the modem side. If the Android telephony
+                         * framework is informed of this refresh, then it will
+                         * initiate a RADIO_POWER off which will interfere with
+                         * the SIM RESET procedure on the modem side. So, don't send
+                         * the RIL_UNSOL_SIM_REFRESH for SIM_RESET refresh type.
+                         */
+                        goto event_notify;
                     }
                     else if ( (0 == strncmp(szRefreshType, "01", 2)) )
                     {
@@ -707,6 +708,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     }
 
 
+event_notify:
     //  Normal STK Event notify
     pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);
 
@@ -830,6 +832,9 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
         case 7: // ready for attach (+COPS)
             g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
+            break;
+        case 12: // SIM SMS caching completed
+            triggerQuerySimSmsStoreStatus(NULL);
             break;
         case 0: // SIM not present
         case 1: // PIN verification needed
@@ -1075,6 +1080,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
     UINT32 nMode = 0;
     UINT32 nSIMState = 0;
     UINT32 nPBReady = 0;
+    UINT32 nSIMSMSReady = 0;
 
     if (pResponse == NULL)
     {
@@ -1110,6 +1116,21 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
     {
         RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - ERROR: Could not parse nPBReady.\r\n");
         goto Error;
+    }
+
+    // Extract ",<SMS Ready>"
+    if (SkipString(rszPointer, ",", rszPointer))
+    {
+        if (!ExtractUInt32(rszPointer, nSIMSMSReady, rszPointer))
+        {
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - ERROR: Could not parse <SMS Ready>.\r\n");
+            goto Error;
+        }
+    }
+
+    if (nSIMSMSReady)
+    {
+        triggerQuerySimSmsStoreStatus(NULL);
     }
 
     //  Skip the rest of the parameters (if any)

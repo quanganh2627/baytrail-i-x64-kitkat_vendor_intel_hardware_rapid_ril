@@ -10,18 +10,6 @@
 //    to facilitate the use of multiple data channels.
 //    GPRS/UMTS data (1st primary context)
 //
-// Author:  Dennis Peter
-// Created: 2007-09-20
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Jun 3/08   DP       1.00  Established v1.00 based on current code base.
-//  Sep 18/08  MW       1.01  Renamed class to channel_data as we will use multiple
-//                            instances rather than seperate classes for each channel
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
@@ -52,8 +40,8 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
 #if defined(M2_IPV6_FEATURE_ENABLED)
     ,
     m_szIpAddr2(NULL),
-    m_szDNS1_Secondary(NULL),
-    m_szDNS2_Secondary(NULL)
+    m_szIpV6DNS1(NULL),
+    m_szIpV6DNS2(NULL)
 #endif // M2_IPV6_FEATURE_ENABLED
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
@@ -92,11 +80,11 @@ CChannel_Data::~CChannel_Data()
     delete[] m_szIpAddr2;
     m_szIpAddr2 = NULL;
 
-    delete[] m_szDNS1_Secondary;
-    m_szDNS1_Secondary = NULL;
+    delete[] m_szIpV6DNS1;
+    m_szIpV6DNS1 = NULL;
 
-    delete[] m_szDNS2_Secondary;
-    m_szDNS2_Secondary = NULL;
+    delete[] m_szIpV6DNS2;
+    m_szIpV6DNS2 = NULL;
 #endif // M2_IPV6_FEATURE_ENABLED
 
     RIL_LOG_VERBOSE("CChannel_Data::~CChannel_Data() - Exit\r\n");

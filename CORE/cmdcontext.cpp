@@ -8,16 +8,6 @@
 // Description:
 //    Implementation specific contexts
 //
-// Author:  Francesc Vilarino
-// Created: 2009-11-19
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Nov 19/09  FV       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 // NOTE: the Execute function runs in the context of the RX thread - the

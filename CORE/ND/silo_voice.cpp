@@ -9,19 +9,6 @@
 //    Provides response handlers and parsing functions for the voice-related
 //    RIL components.
 //
-// Author:  Dennis Peter
-// Created: 2007-07-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date        Who      Ver   Description
-//  ----------  -------  ----  -----------------------------------------------
-//  June 03/08  DP       1.00  Established v1.00 based on current code base.
-//  May  04/09  CW       1.01  Moved common code to base class, identified
-//                             platform-specific implementations, implemented
-//                             general code clean-up.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
@@ -41,7 +28,8 @@
 //
 //
 CSilo_Voice::CSilo_Voice(CChannel *pChannel)
-: CSilo(pChannel)
+: CSilo(pChannel),
+  m_uiCallId(0)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::CSilo_Voice() - Enter\r\n");
 
@@ -158,23 +146,45 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
     // Walk back over the <CR>
     rszPointer -= strlen(g_szNewLine);
 
-    pResponse->SetUnsolicitedFlag(TRUE);
+    //  Determine what kind of RING this is.
+    if (0 == strcmp(szType, "VOICE"))
+    {
+        //  Normal case, just send ring notification.
+        RIL_LOG_INFO("CSilo_Voice::ParseExtRing() : Incoming voice call\r\n");
+        pResponse->SetUnsolicitedFlag(TRUE);
+        pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
 
-    //  Normal case, just send ring notification.
-    pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
-
-#if defined(M2_VT_FEATURE_ENABLED)
+        /*
+         * XCALLSTAT received before CRING.
+         * Since the call type is not known via XCALLSTAT URC,
+         * CALL_STATE_CHANGED notification is triggered from here.
+         */
+        notifyChangedCallState(NULL);
+    }
     //  Check to see if incoming video telephony call
-    if (0 == strncmp(szType, "SYNC", 4))
+    else if (0 == strcmp(szType, "SYNC"))
     {
         RIL_LOG_INFO("CSilo_Voice::ParseExtRing() : Incoming video telephony call\r\n");
 
         //  TODO: Send notification for video telephony incoming call
         //        For now, just do normal ring
+#if defined(M2_VT_FEATURE_ENABLED)
+        pResponse->SetUnsolicitedFlag(TRUE);
         pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
-    }
-#endif // M2_VT_FEATURE_ENABLED
+#else
+        pResponse->SetUnrecognizedFlag(TRUE);
 
+        triggerHangup(m_uiCallId);
+#endif // M2_VT_FEATURE_ENABLED
+    }
+
+    else
+    {
+        //  Unknown incoming ring
+        RIL_LOG_INFO("CSilo_Voice::ParseExtRing() : Unknown incoming call type=[%s]\r\n", szType);
+        pResponse->SetUnrecognizedFlag(TRUE);
+        triggerHangup(m_uiCallId);
+    }
     fRet = TRUE;
 
 Error:
@@ -229,19 +239,15 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
     char szAddress[MAX_BUFFER_SIZE];
     BOOL fRet = FALSE;
 
-#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     const char * szDummy = NULL;
     UINT32 uiID = 0;
     UINT32 uiStat = 0;
-#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
     if (pResponse == NULL)
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : ERROR : pResponse was NULL\r\n");
         goto Error;
     }
-
-#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
 
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
@@ -265,6 +271,29 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
         goto Error;
     }
 
+    switch (uiStat)
+    {
+        case E_CALL_STATUS_INCOMING:
+        case E_CALL_STATUS_WAITING:
+            /*
+             * Since the call type is not known, CALL_STATE_CHANGED is postponed
+             * until the call type is known.
+             * For incoming call, +CRING: provides the call type.
+             * For waiting call, +CCWA: provides the call type.
+             */
+            m_uiCallId = uiID;
+            pResponse->SetUnrecognizedFlag(TRUE);
+            break;
+        case E_CALL_STATUS_DISCONNECTED:
+            m_uiCallId = 0;
+            // Fall through
+        default:
+            pResponse->SetUnsolicitedFlag(TRUE);
+            pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+            break;
+    }
+
+#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     //  If <stat> = 6 (6 is disconnected), store in CSystemManager.
     if (6 == uiStat)
     {
@@ -305,9 +334,6 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
 
     // Walk back over the <CR>
     rszPointer -= strlen(g_szNewLine);
-
-    pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
 
     fRet = TRUE;
 
@@ -365,19 +391,61 @@ BOOL CSilo_Voice::ParseCallWaitingInfo(CResponse* const pResponse, const char*& 
     //otherwise this is a response to AT+CCWA= command and need not be processed here.
     if (nNumParams > 2)
     {
-        //  This is a URC
+        const char* pDummy;
+        char number[MAX_BUFFER_SIZE];
+        UINT32 uiType = 0;
+        UINT32 uiClass = 0;
+
         // Look for a "<postfix>"
+        if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pDummy))
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : Incomplete notification\r\n");
+            goto Error;
+        }
+
+        if (!ExtractQuotedString(rszPointer, number, MAX_BUFFER_SIZE, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo : Error Could not extract <number>\r\n");
+            goto Error;
+        }
+
+        //  Extract <type>
+        if (!SkipString(rszPointer, ",", rszPointer) ||
+                !ExtractUInt32(rszPointer, uiType, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : Could not extract <type>\r\n");
+            goto Error;
+        }
+
+        //  Extract ,<class>
+        if (!SkipString(rszPointer, ",", rszPointer) ||
+                !ExtractUInt32(rszPointer, uiClass, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : Could not extract <class>\r\n");
+            goto Error;
+        }
+
         if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
         {
             RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : Could not find response end\r\n");
             goto Error;
         }
 
+        switch (uiClass)
+        {
+            case 1: // Voice
+                pResponse->SetUnsolicitedFlag(TRUE);
+                pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+                break;
+            default:
+                pResponse->SetUnrecognizedFlag(TRUE);
+                triggerHangup(m_uiCallId);
+                break;
+        }
+
         // Walk back over the <CR><LF>
         rszPointer -= strlen(g_szNewLine);
 
-        pResponse->SetUnsolicitedFlag(TRUE);
-        pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
 
         fRet = TRUE;
     }

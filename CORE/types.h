@@ -8,16 +8,6 @@
 // Description:
 //    Basic types for RapidRIL
 //
-// Author:  Francesc Vilarino
-// Created: 2009-11-24
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Nov 24/09  FV       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #if !defined(__RIL_TYPES_H__)

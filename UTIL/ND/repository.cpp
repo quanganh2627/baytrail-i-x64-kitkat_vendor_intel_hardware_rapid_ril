@@ -21,16 +21,12 @@
  * Description:
  *    Implementation of Non-Volatile storage for Android
  *
- *  Author: Francesc J. Vilarino Guell
- *  Created: 2009-08-17
- *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <ctype.h>
-#include <linux/stat.h>
 #include <errno.h>
 
 #include "types.h"
@@ -162,9 +158,10 @@ const char * g_szRequestNames[] =
     "SimOpenChannel",                       // ND_REQ_ID_SIMOPENCHANNEL 108
     "SimCloseChannel",                      // ND_REQ_ID_SIMCLOSECHANNEL 109
     "SimTransmitChannel",                   // ND_REQ_ID_SIMTRANSMITCHANNEL 110
+    "QuerySimSmsStoreStatus",               // ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS 111
 #if defined(M2_VT_FEATURE_ENABLED)
-    "HangupVT",                             // ND_REQ_ID_HANGUPVT 111
-    "DialVT",                               // ND_REQ_ID_DIALVT 112
+    "HangupVT",                             // ND_REQ_ID_HANGUPVT 112
+    "DialVT",                               // ND_REQ_ID_DIALVT 113
 #endif // M2_VT_FEATURE_ENABLED
 };
 

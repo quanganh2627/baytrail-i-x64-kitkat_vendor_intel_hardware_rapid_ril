@@ -10,16 +10,6 @@
 //    to facilitate the use of multiple AT channels.
 //    SIM related functions, SIM toolkit
 //
-// Author:  Dennis Peter
-// Created: 2011-02-08
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Feb 8/11   DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"

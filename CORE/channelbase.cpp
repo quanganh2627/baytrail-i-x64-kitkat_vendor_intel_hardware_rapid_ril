@@ -9,16 +9,6 @@
 //    Implements the CChannelBase class, which provides the
 //    infrastructure for the various AT Command channels.
 //
-// Author:  Dennis Peter
-// Created: 2007-07-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 3/08  DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
@@ -46,7 +36,9 @@ CChannelBase::CChannelBase(UINT32 uiChannel)
     m_pBlockReadThreadEvent(NULL),
     m_uiLockCommandQueue(0),
     m_uiLockCommandQueueTimeout(0),
-    m_prisdModuleInit(NULL)
+    m_prisdModuleInit(NULL),
+    m_bPossibleInvalidFD(FALSE),
+    m_pPossibleInvalidFDMutex(NULL)
 {
     RIL_LOG_VERBOSE("CChannelBase::CChannelBase() - Enter\r\n");
 
@@ -77,6 +69,12 @@ CChannelBase::~CChannelBase()
         m_pBlockReadThreadEvent = NULL;
     }
 
+    if (m_pPossibleInvalidFDMutex)
+    {
+        delete m_pPossibleInvalidFDMutex;
+        m_pPossibleInvalidFDMutex = NULL;
+    }
+
     int count = m_SiloContainer.nSilos;
     for (int i = 0; i < count; ++i)
     {
@@ -99,6 +97,12 @@ BOOL CChannelBase::InitChannel()
     RIL_LOG_VERBOSE("CChannelBase::InitChannel() - Enter\r\n");
     BOOL bResult = FALSE;
 
+    if (RIL_CHANNEL_MAX <= m_uiRilChannel)
+    {
+        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - ERROR: chnl=[%d] Channel is invalid!\r\n", m_uiRilChannel);
+        goto Done;
+    }
+
     m_pBlockReadThreadEvent = new CEvent(NULL, TRUE, TRUE);
     if (!m_pBlockReadThreadEvent)
     {
@@ -106,9 +110,10 @@ BOOL CChannelBase::InitChannel()
         goto Done;
     }
 
-    if (RIL_CHANNEL_MAX <= m_uiRilChannel)
+    m_pPossibleInvalidFDMutex = new CMutex();
+    if (!m_pPossibleInvalidFDMutex)
     {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - ERROR: chnl=[%d] Channel is invalid!\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - ERROR: chnl=[%d] Failed to create m_pPossibleInvalidFDMutex!\r\n", m_uiRilChannel);
         goto Done;
     }
 
@@ -130,6 +135,9 @@ Done:
     {
         delete m_pBlockReadThreadEvent;
         m_pBlockReadThreadEvent = NULL;
+
+        delete m_pPossibleInvalidFDMutex;
+        m_pPossibleInvalidFDMutex = NULL;
     }
     RIL_LOG_VERBOSE("CChannelBase::InitChannel() - Exit\r\n");
     return bResult;
@@ -356,8 +364,10 @@ UINT32 CChannelBase::CommandThread()
         //RIL_LOG_INFO("CChannelBase::CommandThread() : Getting command  DEQUEUE BEGIN\r\n");
         if (!g_pTxQueue[m_uiRilChannel]->Dequeue(pCmd))
         {
-            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : ERROR : chnl=[%d] Get returned RIL_E_CANCELLED\r\n", m_uiRilChannel);
-            goto Done;
+            //  Dequeue() returns false when the queue is empty.
+            //  In this case, log the error, but continue processing other commands.
+            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : ERROR : chnl=[%d] Dequeue TxQueue returned FALSE\r\n", m_uiRilChannel);
+            continue;
         }
         //RIL_LOG_INFO("CChannelBase::CommandThread() : Getting command  DEQUEUE END\r\n");
 
@@ -621,14 +631,25 @@ UINT32 CChannelBase::ResponseThread()
         if (!WaitForAvailableData(WAIT_FOREVER))
         {
             RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR - Waiting for data failed!\r\n", m_uiRilChannel);
-            ++uiReadError;
-
-            // if the port is not open, reboot
-            if (!IsPortOpen())
+            CMutex::Lock(m_pPossibleInvalidFDMutex);
+            BOOL bPossibleInvalidFD = m_bPossibleInvalidFD;
+            CMutex::Unlock(m_pPossibleInvalidFDMutex);
+            if (!bPossibleInvalidFD)
             {
-                RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Port closed, rebooting\r\n", m_uiRilChannel);
-                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
-                break;
+                ++uiReadError;
+
+                // if the port is not open, reboot
+                if (!IsPortOpen())
+                {
+                    RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Port closed, rebooting\r\n", m_uiRilChannel);
+                    do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+                    break;
+                }
+            }
+            else
+            {
+                //  Wait small amount of time for port to be open
+                Sleep(50);
             }
             continue;
         }
@@ -640,11 +661,21 @@ UINT32 CChannelBase::ResponseThread()
             if (!ReadFromPort(szData, uiRespDataBufSize, uiRead))
             {
                 RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Read failed\r\n", m_uiRilChannel);
-                // read() < 0, call do_request_clean_up()
-                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
-                //  exit thread
-                return 0;
-                break;
+
+                if (m_bPossibleInvalidFD)
+                {
+                    //  We could be closing and opening the DLC port. (For AT timeout case)
+                    RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: m_bPossibleInvalidFD = TRUE\r\n");
+                    Sleep(50);
+                    break;
+                }
+                else
+                {
+                    // read() < 0, call do_request_clean_up()
+                    do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+                    //  exit thread
+                    return 0;
+                }
             }
 
             if (!uiRead)
@@ -857,9 +888,12 @@ BOOL CChannelBase::WriteToPort(const char* pData, UINT32 uiBytesToWrite, UINT32&
 
     if (!bRetVal)
     {
+        char *pExpandedATCmd = NULL;
+#if defined(DEBUG)
+        pExpandedATCmd = CRLFExpandedString(pData,uiBytesToWrite).GetString();
+#endif
         RIL_LOG_CRITICAL("CChannelBase::WriteToPort() - ERROR: chnl=[%d] Failed to write command: [%s]\r\n",
-                        m_uiRilChannel,
-                        CRLFExpandedString(pData,uiBytesToWrite).GetString());
+                         m_uiRilChannel, pExpandedATCmd ? pExpandedATCmd : "NULL");
     }
 
     return bRetVal;

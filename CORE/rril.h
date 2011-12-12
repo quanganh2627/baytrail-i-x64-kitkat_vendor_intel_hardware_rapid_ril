@@ -8,16 +8,6 @@
 // Description:
 //    Provides RIL structures and constants.
 //
-// Author:  Filip Petrovic
-// Created: 2009-05-11
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  May 11/09  FP       1.xx  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 #ifndef RRIL_RRIL_H
 #define RRIL_RRIL_H
@@ -71,6 +61,22 @@ enum
     E_REGISTRATION_DENIED,
     E_REGISTRATION_UNKNOWN,
     E_REGISTRATION_REGISTERED_ROAMING
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Call status
+//
+// Check 3GPP 27.007 section 7.18, 6 and 7 are IMC specific
+enum
+{
+    E_CALL_STATUS_ACTIVE =          0,
+    E_CALL_STATUS_HELD =            1,
+    E_CALL_STATUS_DIALING =         2,
+    E_CALL_STATUS_ALERTING =        3,
+    E_CALL_STATUS_INCOMING =        4,
+    E_CALL_STATUS_WAITING =         5,
+    E_CALL_STATUS_DISCONNECTED =    6,
+    E_CALL_STATUS_CONNECTED =       7
 };
 
 ///////////////////////////////////////////////////////////////////////////////

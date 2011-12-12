@@ -8,16 +8,6 @@
 // Description:
 //    Defines channel-related classes, constants, and structures.
 //
-// Author:  Dennis Peter
-// Created: 2007-07-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  June 3/08  DP       1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_CHANNEL_H
@@ -153,6 +143,12 @@ protected:
     SILO_CONTAINER                  m_SiloContainer;
 
     CPort                           m_Port;
+
+    //  When closing and opening the port (in case of AT command timeout),
+    //  need to ignore possible invalid file descriptor errors while port is
+    //  temporarily closed.
+    BOOL                            m_bPossibleInvalidFD;
+    CMutex *                        m_pPossibleInvalidFDMutex;
 };
 
 #endif //RRIL_CHANNEL_H
