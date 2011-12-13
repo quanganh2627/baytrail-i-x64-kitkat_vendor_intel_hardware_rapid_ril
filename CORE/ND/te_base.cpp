@@ -293,7 +293,7 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
-    if (sizeof(char*) != uiDataSize)
+    if (sizeof(char*) > uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin() - ERROR: Request data was of unexpected size!\r\n");
         goto Error;
@@ -371,7 +371,7 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
-    if ((2 * sizeof(char *)) != uiDataSize)
+    if ((2 * sizeof(char *)) > uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk() - ERROR: Invalid data size.\r\n");
         goto Error;
@@ -461,7 +461,7 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin2(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
-    if (sizeof(char*) != uiDataSize)
+    if (sizeof(char*) > uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin2() - ERROR: Request data was of unexpected size!\r\n");
         goto Error;
@@ -539,7 +539,7 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk2(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
-    if ((2 * sizeof(char *)) != uiDataSize)
+    if ((2 * sizeof(char *)) > uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk2() - ERROR: Invalid data size.\r\n");
         goto Error;
@@ -625,7 +625,7 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
-    if ((2 * sizeof(char *)) != uiDataSize)
+    if ((2 * sizeof(char *)) > uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin() - ERROR: Invalid data size.\r\n");
         goto Error;
@@ -703,7 +703,7 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin2(REQUEST_DATA & rReqData, void * pData
         goto Error;
     }
 
-    if ((2 * sizeof(char *)) != uiDataSize)
+    if ((2 * sizeof(char *)) > uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin2() - ERROR: Invalid data size.\r\n");
         goto Error;
@@ -3760,7 +3760,7 @@ RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA & rReqData, void * p
     char * pszPassword = NULL;
     char * pszClass = NULL;
 
-    if ((4 * sizeof(char *)) > uiDataSize)
+    if ((3 * sizeof(char *)) > uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreQueryFacilityLock() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
@@ -3960,7 +3960,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     char * pszPassword = NULL;
     char * pszClass = NULL;
 
-    if ((5 * sizeof(char *)) > uiDataSize)
+    if ((4 * sizeof(char *)) > uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
