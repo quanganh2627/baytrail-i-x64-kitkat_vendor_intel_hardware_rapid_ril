@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 // silo_SMS.cpp
 //
 // Copyright 2005-2007 Intrinsyc Software International, Inc.  All rights reserved.
@@ -229,7 +229,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
     }
 
     // Ensure NULL Termination.
-    szPDU[uiLength] = '\0';
+    szPDU[uiLength-1] = '\0';
 
     RIL_LOG_INFO("CSilo_SMS::ParseCMT() - PDU String: \"%s\".\r\n", szPDU);
 
@@ -402,7 +402,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
     }
 
     // Ensure NULL Termination.
-    szPDU[uiLength] = '\0';
+    szPDU[uiLength-1] = '\0';
 
     RIL_LOG_INFO("CSilo_SMS::ParseCDS() - PDU String: \"%s\".\r\n", szPDU);
 
