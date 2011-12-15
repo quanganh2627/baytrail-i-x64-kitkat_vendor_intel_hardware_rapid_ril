@@ -916,7 +916,7 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
         // Extract "<fac>"
         if (!ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac), rszPointer))
         {
-            RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Unable to find <fac>!\r\n");
+            RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() - Unable to find <fac>!\r\n");
             goto complete;
         }
 
