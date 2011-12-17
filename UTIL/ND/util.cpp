@@ -380,11 +380,8 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
 
 CRLFExpandedString::~CRLFExpandedString()
 {
-    if (NULL != m_pszString)
-    {
-        delete [] m_pszString;
-        m_pszString = NULL;
-    }
+    delete [] m_pszString;
+    m_pszString = NULL;
 }
 
 void Sleep(UINT32 dwTimeInMs)

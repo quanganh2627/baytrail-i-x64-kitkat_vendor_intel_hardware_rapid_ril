@@ -162,7 +162,7 @@ BOOL CPort::Init()
 
 BOOL CPort::Close()
 {
-    RIL_LOG_CRITICAL("CPort::Close() - Enter\r\n");
+    RIL_LOG_VERBOSE("CPort::Close() - Enter\r\n");
     BOOL fRet = FALSE;
 
     if (!m_fIsPortOpen)
@@ -180,7 +180,7 @@ BOOL CPort::Close()
         }
     }
 
-    RIL_LOG_CRITICAL("CPort::Close() - Exit\r\n");
+    RIL_LOG_VERBOSE("CPort::Close() - Exit\r\n");
     return fRet;
 }
 
@@ -382,12 +382,12 @@ BOOL CPort::WaitForAvailableData(UINT32 uiTimeout)
         {
             if (uiMask & FILE_EVENT_ERROR)
             {
-                RIL_LOG_CRITICAL("CPort::WaitForAvailableData() - ERROR: FILE_EVENT_ERROR received on port\r\n");
+                RIL_LOG_CRITICAL("CPort::WaitForAvailableData() - FILE_EVENT_ERROR received on port\r\n");
             }
 
             if (uiMask & FILE_EVENT_BREAK)
             {
-                RIL_LOG_INFO("CPort::WaitForAvailableData() - INFO: FILE_EVENT_BREAK received on port\r\n");
+                RIL_LOG_INFO("CPort::WaitForAvailableData() - FILE_EVENT_BREAK received on port\r\n");
             }
 
             if (uiMask & FILE_EVENT_RXCHAR)
@@ -397,12 +397,12 @@ BOOL CPort::WaitForAvailableData(UINT32 uiTimeout)
         }
         else
         {
-            RIL_LOG_CRITICAL("CPort::WaitForAvailableData() - ERROR: Returning failure\r\n");
+            RIL_LOG_CRITICAL("CPort::WaitForAvailableData() - Returning failure\r\n");
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CPort::WaitForAvailableData() - ERROR: Port is not open!\r\n");
+        RIL_LOG_CRITICAL("CPort::WaitForAvailableData() - Port is not open!\r\n");
     }
 
 Error:

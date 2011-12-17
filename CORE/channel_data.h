@@ -58,14 +58,17 @@ public:
     char*               m_szDNS1;
     char*               m_szDNS2;
 
-#if defined(M2_IPV6_FEATURE_ENABLED)
     //  For IPV4V6, there could be 2 IP addresses
     char*               m_szIpAddr2;
 
     //  For IPV4V6, there could be 2 DNS addresses for primary and secondary.
     char*               m_szIpV6DNS1;
     char*               m_szIpV6DNS2;
-#endif // M2_IPV6_FEATURE_ENABLED
+
+    char*               m_szIpGateways;
+    char*               m_szPdpType;
+    char*               m_szInterfaceName;
+    INT32               m_iStatus;
 
 private:
 

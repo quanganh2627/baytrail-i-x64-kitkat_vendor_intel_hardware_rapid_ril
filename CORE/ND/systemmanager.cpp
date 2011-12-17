@@ -1234,5 +1234,3 @@ Error:
     RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - EXIT\r\n");
     return bRet;
 }
-
-

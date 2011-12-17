@@ -23,6 +23,8 @@ class CTEBase
 protected:
     int m_nNetworkRegistrationType;  //  0 = automatic, 1 = manual
     char m_szManualMCCMNC[MAX_BUFFER_SIZE];  //  If manual, this holds the MCCMNC string.
+    static const int MAX_PIN_SIZE = 100;
+    char m_szPIN[MAX_PIN_SIZE];
     bool mShutdown;
     int m_nSimAppType;
 
@@ -488,7 +490,7 @@ public:
     virtual RIL_RESULT_CODE ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData);
 
 protected:
-    RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus);
+    RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus, bool & bSilentPINEntry);
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
     BOOL ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause);

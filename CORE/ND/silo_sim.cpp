@@ -323,6 +323,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 // Initialize as per reference ril as insufficient documentation currently is available
                 pCardStatus->gsm_umts_subscription_app_index = RIL_CARD_MAX_APPS;
                 pCardStatus->cdma_subscription_app_index = RIL_CARD_MAX_APPS;
+                pCardStatus->ims_subscription_app_index = RIL_CARD_MAX_APPS;
                 pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
                 pCardStatus->card_state = RIL_CARDSTATE_ABSENT;
                 pCardStatus->num_applications = 0;
@@ -355,6 +356,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 // Initialize as per reference ril as insufficient documentation currently is available
                 pCardStatus->gsm_umts_subscription_app_index = 0;
                 pCardStatus->cdma_subscription_app_index = RIL_CARD_MAX_APPS;
+                pCardStatus->ims_subscription_app_index = RIL_CARD_MAX_APPS;
                 pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
                 pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
                 pCardStatus->num_applications = 1;
@@ -412,6 +414,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 // Initialize as per reference ril as insufficient documentation currently is available
                 pCardStatus->gsm_umts_subscription_app_index = 0;
                 pCardStatus->cdma_subscription_app_index = RIL_CARD_MAX_APPS;
+                pCardStatus->ims_subscription_app_index = RIL_CARD_MAX_APPS;
                 pCardStatus->universal_pin_state = RIL_PINSTATE_ENABLED_PERM_BLOCKED;
                 pCardStatus->card_state = RIL_CARDSTATE_ERROR;  //RIL_CARDSTATE_ABSENT
                 pCardStatus->num_applications = 0;
@@ -913,8 +916,8 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
         // Extract "<fac>"
         if (!ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac), rszPointer))
         {
-            RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - ERROR: Unable to find <fac>!\r\n");
-            goto Error;
+            RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Unable to find <fac>!\r\n");
+            goto complete;
         }
 
         // Extract ",<Lock state>"
@@ -938,6 +941,7 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
         i++;
     }
 
+complete:
     // Look for "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {

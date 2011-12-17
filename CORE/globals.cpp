@@ -36,3 +36,8 @@ char g_szNewLine[3] = "\r\n";
 // This global class instance tracks the radio state and handles notifications
 CRadioState g_RadioState;
 
+///////////////////////////////////////////////////////////////////////////////
+// This global flag is used to cancel the pending chld requests in ril when
+// the call is disconnected.
+bool g_clearPendingChlds = false;
+

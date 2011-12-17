@@ -293,6 +293,8 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
             break;
         case E_CALL_STATUS_DISCONNECTED:
             m_uiCallId = 0;
+            // set the flag to clear all pending chld requests
+            g_clearPendingChlds = true;
             // Fall through
         default:
             pResponse->SetUnsolicitedFlag(TRUE);
@@ -755,7 +757,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
             goto Error;
         }
         memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
-        snprintf(pUssdStatus->szType, 2, "%d", (int) uiStatus);
+        snprintf(pUssdStatus->szType, 2, "%u", uiStatus);
         pUssdStatus->sStatusPointers.pszType    = pUssdStatus->szType;
         pUssdStatus->sStatusPointers.pszMessage = NULL;
         uiAllocSize = sizeof(char *);
@@ -801,7 +803,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
             goto Error;
         }
         memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
-        snprintf(pUssdStatus->szType, 2, "%d", (int) uiStatus);
+        snprintf(pUssdStatus->szType, 2, "%u", uiStatus);
 
         // Please see 3GPP 23.038 (section 5) CBS Data Coding Scheme
         if ((nDCS >= 0x40) && (nDCS <= 0x5F))  // binary: 010xxxxx
@@ -924,7 +926,7 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
     UINT32 uiStatusService = 0;
     P_ND_USSD_STATUS pUssdStatus = NULL;
     char* szDataString = NULL;
-    int nTypeCode = 0; // USSD Notify
+    UINT32 uiTypeCode = 0; // USSD Notify
 
     if (pResponse == NULL)
     {
@@ -976,7 +978,7 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
         goto Error;
     }
     memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
-    snprintf(pUssdStatus->szType, 2, "%d", (int) nTypeCode);
+    snprintf(pUssdStatus->szType, 2, "%u", uiTypeCode);
     if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString , MAX_BUFFER_SIZE))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdPresentation() - ERROR: Cannot CopyStringNullTerminate szDataString\r\n");
@@ -1022,7 +1024,7 @@ BOOL CSilo_Voice::ParseConnLineIdRestriction(CResponse* const pResponse, const c
     UINT32 uiStatus = 0;
     P_ND_USSD_STATUS pUssdStatus = NULL;
     char* szDataString = NULL;
-    int nTypeCode = 0; // USSD Notify
+    UINT32 uiTypeCode = 0; // USSD Notify
 
     if (pResponse == NULL)
     {
@@ -1066,7 +1068,7 @@ BOOL CSilo_Voice::ParseConnLineIdRestriction(CResponse* const pResponse, const c
         goto Error;
     }
     memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
-    snprintf(pUssdStatus->szType, 2, "%d", (int) nTypeCode);
+    snprintf(pUssdStatus->szType, 2, "%u", uiTypeCode);
     if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdRestriction() - ERROR: Cannot CopyStringNullTerminate szDataString\r\n");

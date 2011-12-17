@@ -46,7 +46,7 @@ public:
     static BOOL ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_STATUS& pCSRegStruct);
     static BOOL ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_REG_STATUS& pPSRegStruct);
     static BOOL ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_REG_STATUS& pPSRegStruct);
-    static UINT32 MapAccessTechnology(UINT32 uiStdAct);
+    static RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
     RIL_RESULT_CODE RequestGetSimStatus(RIL_Token rilToken, void * pData, size_t datalen);

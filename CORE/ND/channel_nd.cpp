@@ -785,8 +785,18 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHung
             case ND_REQ_ID_HANGUP:
             case ND_REQ_ID_HANGUPWAITINGORBACKGROUND:
             case ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND:
-            case ND_REQ_ID_SWITCHHOLDINGANDACTIVE:
             case ND_REQ_ID_CONFERENCE:
+                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_DTMF, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
+                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_REQUESTDTMFSTART, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
+                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_REQUESTDTMFSTOP, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
+                break;
+            case ND_REQ_ID_SWITCHHOLDINGANDACTIVE:
+                if (g_clearPendingChlds)
+                {
+                    RIL_LOG_VERBOSE("CChannel::ParseResponse() clearing all ND_REQ_ID_SWITCHHOLDINGANDACTIVE\r\n");
+                    g_clearPendingChlds = false;
+                    FindIdenticalRequestsAndSendResponses(ND_REQ_ID_SWITCHHOLDINGANDACTIVE, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
+                }
                 FindIdenticalRequestsAndSendResponses(ND_REQ_ID_DTMF, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
                 FindIdenticalRequestsAndSendResponses(ND_REQ_ID_REQUESTDTMFSTART, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
                 FindIdenticalRequestsAndSendResponses(ND_REQ_ID_REQUESTDTMFSTOP, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);

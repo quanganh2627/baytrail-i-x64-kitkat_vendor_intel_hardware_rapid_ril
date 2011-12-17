@@ -27,6 +27,7 @@
 #include "te.h"
 #include "te_base.h"
 #include "reset.h"
+#include "channel_data.h"
 #include <cutils/properties.h>
 
 CTEBase::CTEBase() :
@@ -35,6 +36,7 @@ mShutdown(false),
 m_nSimAppType(RIL_APPTYPE_UNKNOWN)
 {
     memset(m_szManualMCCMNC, 0, MAX_BUFFER_SIZE);
+    memset(m_szPIN, 0, MAX_PIN_SIZE);
 }
 
 CTEBase::~CTEBase()
@@ -58,7 +60,8 @@ RIL_RESULT_CODE CTEBase::CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData,
     return res;
 }
 
-RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& pCardStatus)
+//  bSilentPINEntry = out variable (true if PIN needs to be silently sent)
+RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& pCardStatus, bool & bSilentPINEntry)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSimPin() - Enter\r\n");
 
@@ -108,6 +111,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& p
     // Initialize as per reference ril as insufficient documentation currently is available
     pCardStatus->gsm_umts_subscription_app_index = RIL_CARD_MAX_APPS;
     pCardStatus->cdma_subscription_app_index = RIL_CARD_MAX_APPS;
+    pCardStatus->ims_subscription_app_index = RIL_CARD_MAX_APPS;
     pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
 
     // Number of apps is 1 (gsm) if SIM present. Set to 0 if absent.
@@ -133,19 +137,45 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& p
     else if (0 == strcmp(szSimState, "SIM PIN"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PIN\r\n");
-        //g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
-        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
-        pCardStatus->num_applications = 1;
-        pCardStatus->gsm_umts_subscription_app_index = 0;
+#if 0
+        //  Were we previously informed about modem cold boot?
+        if (PCache_GetUseCachedPIN())
+        {
+            RIL_LOG_INFO("CTEBase::ParseSimPin() - Use cached PIN\r\n");
+            bSilentPINEntry = true;
 
-        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        pCardStatus->applications[0].app_state = RIL_APPSTATE_PIN;
-        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-        pCardStatus->applications[0].aid_ptr = NULL;
-        pCardStatus->applications[0].app_label_ptr = NULL;
-        pCardStatus->applications[0].pin1_replaced = 0;
-        pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
-        pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+            //  Fake SIM READY for now.
+            //g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
+            pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
+            pCardStatus->num_applications = 1;
+            pCardStatus->gsm_umts_subscription_app_index = 0;
+
+            pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
+            pCardStatus->applications[0].app_state = RIL_APPSTATE_READY;
+            pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_READY;
+            pCardStatus->applications[0].aid_ptr = NULL;
+            pCardStatus->applications[0].app_label_ptr = NULL;
+            pCardStatus->applications[0].pin1_replaced = 0;
+            pCardStatus->applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
+            pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+        }
+        else
+#endif
+  	{
+            //g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+            pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
+            pCardStatus->num_applications = 1;
+            pCardStatus->gsm_umts_subscription_app_index = 0;
+
+            pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
+            pCardStatus->applications[0].app_state = RIL_APPSTATE_PIN;
+            pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+            pCardStatus->applications[0].aid_ptr = NULL;
+            pCardStatus->applications[0].app_label_ptr = NULL;
+            pCardStatus->applications[0].pin1_replaced = 0;
+            pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
+            pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+        }
     }
     else if (0 == strcmp(szSimState, "SIM PUK"))
     {
@@ -255,7 +285,8 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
 
     const char * pszRsp = rRspData.szResponse;
     RIL_CardStatus_v6* pCardStatus = NULL;
-    RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus);
+    bool bSilentPINEntry = false;
+    RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus, bSilentPINEntry);
     if (res != RRIL_RESULT_OK)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetSimStatus() - ERROR: Could not parse Sim Pin.\r\n");
@@ -308,11 +339,14 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\"\r", pszPassword))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\";+CCID\r", pszPassword))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin() - ERROR: Failed to write command to buffer!\r\n");
         goto Error;
     }
+
+    //  Store PIN
+    strncpy(m_szPIN, pszPassword, MAX_PIN_SIZE);
 
     res = RRIL_RESULT_OK;
 
@@ -327,6 +361,8 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
+    const char * pszRsp = rRspData.szResponse;
+    char szUICCID[MAX_PROP_VALUE] = {0};
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -340,6 +376,28 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
+
+    // Parse "<prefix>+CCID: <ICCID><postfix>"
+    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+
+    if (SkipString(pszRsp, "+CCID: ", pszRsp))
+    {
+        if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Cannot parse UICC ID\r\n");
+            szUICCID[0] = '\0';
+        }
+
+        SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+    }
+
+    //  Cache PIN1 value
+    if (ePCache_Code_OK != PCache_Store_PIN(szUICCID, m_szPIN))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot cache the PIN value\r\n");
+    }
+    //  Clear it locally.
+    memset(m_szPIN, 0, MAX_PIN_SIZE);
 
     res = RRIL_RESULT_OK;
 
@@ -414,7 +472,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int *pnRetries = NULL;
 
-    //  If the response to PUK unlock is OK, then we are unlocked.
+    // If the response to PUK unlock is OK, then we are unlocked.
     // rril will get XSIM: <status> which will indicate whether the
     // SIM is ready or not.
 
@@ -640,11 +698,14 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPWD=\"SC\",\"%s\",\"%s\"\r", pszOldPIN, pszNewPIN))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPWD=\"SC\",\"%s\",\"%s\";+CCID\r", pszOldPIN, pszNewPIN))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin() - ERROR: Unable to write command string to buffer\r\n");
         goto Error;
     }
+
+    //  Store PIN
+    strncpy(m_szPIN, pszNewPIN, MAX_PIN_SIZE);
 
     res = RRIL_RESULT_OK;
 
@@ -658,6 +719,8 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseChangeSimPin() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+    char szUICCID[MAX_PROP_VALUE] = {0};
     int *pnRetries = NULL;
 
     pnRetries = (int*)malloc(sizeof(int));
@@ -672,6 +735,28 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
+
+    // Parse "<prefix>+CCID: <ICCID><postfix>"
+    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+
+    if (SkipString(pszRsp, "+CCID: ", pszRsp))
+    {
+        if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot parse UICC ID\r\n");
+            szUICCID[0] = '\0';
+        }
+
+        SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+    }
+
+    //  Cache PIN1 value
+    if (ePCache_Code_OK != PCache_Store_PIN(szUICCID, m_szPIN))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot cache the PIN value\r\n");
+    }
+    //  Clear it locally.
+    memset(m_szPIN, 0, MAX_PIN_SIZE);
 
     res = RRIL_RESULT_OK;
 
@@ -1588,11 +1673,7 @@ RIL_RESULT_CODE CTEBase::CoreGPRSRegistrationState(REQUEST_DATA & rReqData, void
     RIL_LOG_VERBOSE("CTEBase::CoreGPRSRegistrationState() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-#if defined(USE_CGREG_FOR_GPRS_REG_STATUS)
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CGREG=2;+CGREG?;+CGREG=0\r", sizeof(rReqData.szCmd1)))
-#else
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XREG=2;+XREG?;+XREG=0\r", sizeof(rReqData.szCmd1)))
-#endif // USE_CGREG_FOR_GPRS_REG_STATUS
     {
         res = RRIL_RESULT_OK;
     }
@@ -1619,11 +1700,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     }
     memset(pGPRSRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
-#if defined(USE_CGREG_FOR_GPRS_REG_STATUS)
-    if (!CTE::ParseCGREG(pszRsp, FALSE, psRegStatus))
-#else
     if (!CTE::ParseXREG(pszRsp, FALSE, psRegStatus))
-#endif // USE_CGREG_FOR_GPRS_REG_STATUS
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR in parsing response.\r\n");
         goto Error;
@@ -1818,7 +1895,6 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
         // If we have another line to parse, get rid of its prefix now.
         // Note that this will do nothing if we don't have another line to parse.
-
         SkipRspStart(pszRsp, g_szNewLine, pszRsp);
 
         RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Response: %s\r\n", CRLFExpandedString(pszRsp, strlen(pszRsp)).GetString());
@@ -1837,6 +1913,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Long Name: \"%s\", Short Name: \"%s\", Numeric Name: \"%s\"\r\n",
                     pOpNames->sOpNamePtrs.pszOpNameLong, pOpNames->sOpNamePtrs.pszOpNameShort,
                     pOpNames->sOpNamePtrs.pszOpNameNumeric);
+
 
     // We cheat with the size here.
     // Although we have allocated a S_ND_OP_NAMES struct, we tell
@@ -2375,14 +2452,17 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32
     // extract data
     pSimIOArgs = (RIL_SIM_IO_v6 *)pData;
 
-    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
-    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
-    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
+#if defined(DEBUG)
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - command=%d fileid=%04X path=\"%s\" p1=%d p2=%d p3=%d data=\"%s\" pin2=\"%s\" aidPtr=\"%s\"\r\n",
+        pSimIOArgs->command, pSimIOArgs->fileid, pSimIOArgs->path,
+        pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
+        pSimIOArgs->data, pSimIOArgs->pin2, pSimIOArgs->aidPtr);
+#else
+    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - command=%d fileid=%04X path=\"%s\" p1=%d p2=%d p3=%d data=\"%s\" aidPtr=\"%s\"\r\n",
+        pSimIOArgs->command, pSimIOArgs->fileid, pSimIOArgs->path,
+        pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
+        pSimIOArgs->data, pSimIOArgs->aidPtr);
+#endif
 
     //  If PIN2 is required, send out AT+CPIN2 request
     if (pSimIOArgs->pin2)
@@ -4041,6 +4121,19 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
         }
     }
 
+    //  Store PIN
+    if (0 == strcmp(pszFacility, "SC"))
+    {
+        if (0 == strcmp(pszMode, "1"))
+        {
+            strncpy(m_szPIN, pszPassword, MAX_PIN_SIZE);
+        }
+        else
+        {
+            strncpy(m_szPIN, "CLR", MAX_PIN_SIZE);
+        }
+    }
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -4053,6 +4146,8 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSetFacilityLock() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+    char szUICCID[MAX_PROP_VALUE] = {0};
     int *pnRetries = NULL;
     UINT32 uiCause;
 
@@ -4074,6 +4169,37 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
+
+    //  Cache PIN1 value
+    RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - PIN code: %s\r\n", m_szPIN);
+    if (0 == strcmp(m_szPIN, "CLR"))
+    {
+        PCache_Clear();
+        PCache_SetUseCachedPIN(false);
+    }
+    else
+    {
+        // Parse "<prefix>+CCID: <ICCID><postfix>"
+        SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+
+        if (SkipString(pszRsp, "+CCID: ", pszRsp))
+        {
+            if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Cannot parse UICC ID\r\n");
+                szUICCID[0] = '\0';
+            }
+
+            SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+        }
+
+        if (ePCache_Code_OK != PCache_Store_PIN(szUICCID, m_szPIN))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot cache the PIN value\r\n");
+        }
+    }
+    //  Clear it locally.
+    memset(m_szPIN, 0, MAX_PIN_SIZE);
 
     res = RRIL_RESULT_OK;
 
@@ -5172,8 +5298,12 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
     int  count = 0;
     int active[MAX_PDP_CONTEXTS] = {0};
     char szPDPType[MAX_BUFFER_SIZE] = {0};
-    char szAPN[MAX_BUFFER_SIZE] = {0};
     char szIP[MAX_BUFFER_SIZE] = {0};
+    int status[MAX_PDP_CONTEXTS] = {0};
+    int suggestedRetryTime[MAX_PDP_CONTEXTS] = {0};
+    char szAPN[MAX_BUFFER_SIZE] = {0};
+    char szDnses[MAX_BUFFER_SIZE] = {0};
+    char szGateways[MAX_BUFFER_SIZE] = {0};
 
     pPDPListData = (P_ND_PDP_CONTEXT_DATA)malloc(sizeof(S_ND_PDP_CONTEXT_DATA));
     if (NULL == pPDPListData)
@@ -5211,16 +5341,27 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
     count = 0;
     while (FindAndSkipString(pszRsp, "+CGDCONT: ", pszRsp))
     {
+        CChannel_Data *pChannelData = NULL;
+
         // Parse <cid>
         if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract CID.\r\n");
             goto Error;
         }
+        //  Grab the pChannelData for this CID
+        pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
+
         pPDPListData->pPDPData[count].cid = nCID;
 
         // set active flag
         pPDPListData->pPDPData[count].active = active[nCID - 1];
+
+        // set status
+        pPDPListData->pPDPData[count].status = PDP_FAIL_NONE;
+
+        // set suggestedRetryTime
+        pPDPListData->pPDPData[count].suggestedRetryTime = -1;
 
         // Parse ,<PDP_type>
         if (!SkipString(pszRsp, ",", pszRsp) ||
@@ -5232,15 +5373,25 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         strncpy(pPDPListData->pTypeBuffers[count], szPDPType, MAX_BUFFER_SIZE);
         pPDPListData->pPDPData[count].type = pPDPListData->pTypeBuffers[count];
 
-        // Parse ,<APN>
+        // Skip over ,<APN>
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract APN.\r\n");
             goto Error;
         }
-        strncpy(pPDPListData->pApnBuffers[count], szAPN, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].apn = pPDPListData->pApnBuffers[count];
+        //  This is interface name (i.e. rmnet0)
+        if (pChannelData && pChannelData->m_szInterfaceName)
+        {
+            strncpy(pPDPListData->pIfnameBuffers[count], pChannelData->m_szInterfaceName, MAX_BUFFER_SIZE);
+            pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+        }
+        else
+        {
+            //  don't fill
+            strcpy(pPDPListData->pIfnameBuffers[count], "");
+            pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+        }
 
         // Parse ,<PDP_addr>
         if (!SkipString(pszRsp, ",", pszRsp) ||
@@ -5250,7 +5401,66 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
             goto Error;
         }
         strncpy(pPDPListData->pAddressBuffers[count], szIP, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].address = pPDPListData->pAddressBuffers[count];
+        pPDPListData->pPDPData[count].addresses = pPDPListData->pAddressBuffers[count];
+
+#if 0
+        // TODO: THIS DOESN'T WORK!  There is no DNS or GW in the CGDCONT? request. (FW 1146.C)
+        // Parse,<DNSes>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractQuotedString(pszRsp, szDnses, MAX_BUFFER_SIZE, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract dnses.\r\n");
+            goto Error;
+        }
+        strncpy(pPDPListData->pDnsesBuffers[count], szDnses, MAX_BUFFER_SIZE);
+        pPDPListData->pPDPData[count].dnses = pPDPListData->pDnsesBuffers[count];
+
+        // Parse,<GWs>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractQuotedString(pszRsp, szGateways, MAX_BUFFER_SIZE, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract gateways.\r\n");
+            goto Error;
+        }
+        strncpy(pPDPListData->pGatewaysBuffers[count], szGateways, MAX_BUFFER_SIZE);
+        pPDPListData->pPDPData[count].gateways = pPDPListData->pGatewaysBuffers[count];
+#endif
+
+        // Parse <status>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUpperBoundedUInt32(pszRsp, PDP_FAIL_ERROR_UNSPECIFIED, nValue, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Invalid status.\r\n");
+            goto Error;
+        }
+        pPDPListData->pPDPData[count].status = nValue;
+
+        //  Populate DNSs and gateways
+        if (pChannelData)
+        {
+            sprintf(pPDPListData->pDnsesBuffers[count], "%s %s %s %s",
+                (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
+                (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
+                (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
+                (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
+        }
+        else
+        {
+            strcpy(pPDPListData->pDnsesBuffers[count], "");
+        }
+        pPDPListData->pPDPData[count].dnses = pPDPListData->pDnsesBuffers[count];
+
+        if (pChannelData)
+        {
+            strncpy(pPDPListData->pGatewaysBuffers[count],
+                (pChannelData->m_szIpGateways ? pChannelData->m_szIpGateways : ""),
+                MAX_BUFFER_SIZE);
+        }
+        else
+        {
+            strcpy(pPDPListData->pGatewaysBuffers[count], "");
+        }
+        pPDPListData->pPDPData[count].gateways = pPDPListData->pGatewaysBuffers[count];
 
         // Parse ,<data_comp>
         if (!SkipString(pszRsp, ",", pszRsp) ||
@@ -5280,7 +5490,7 @@ Continue:
     if (count > 0)
     {
         rRspData.pData  = (void*) pPDPListData;
-        rRspData.uiDataSize = count * sizeof(RIL_Data_Call_Response_v4);
+        rRspData.uiDataSize = count * sizeof(RIL_Data_Call_Response_v6);
     }
     else
     {
@@ -5292,17 +5502,15 @@ Continue:
     res = RRIL_RESULT_OK;
     RIL_LOG_INFO("CTEBase::ParseDataCallList() - Parse complete, found [%d] contexts.\r\n", count);
 
-#if defined(DEBUG)
     for (int i = 0; i < count; ++i)
     {
-        RIL_LOG_INFO("\t Context %d\r\n", i);
-        RIL_LOG_INFO("\t\t CID:\t\t %d\r\n", pPDPListData->pPDPData[i].cid);
-        RIL_LOG_INFO("\t\t Active:\t %d\r\n", pPDPListData->pPDPData[i].active);
-        RIL_LOG_INFO("\t\t Type:\t\t %s\r\n", pPDPListData->pPDPData[i].type);
-        RIL_LOG_INFO("\t\t APN:\t\t %s\r\n", pPDPListData->pPDPData[i].apn);
-        RIL_LOG_INFO("\t\t Address:\t %s\r\n", pPDPListData->pPDPData[i].address);
+        RIL_LOG_INFO("index=%d  status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
+            i, pPDPListData->pPDPData[i].status, pPDPListData->pPDPData[i].suggestedRetryTime,
+            pPDPListData->pPDPData[i].cid, pPDPListData->pPDPData[i].active,
+            pPDPListData->pPDPData[i].type, pPDPListData->pPDPData[i].ifname,
+            pPDPListData->pPDPData[i].addresses, pPDPListData->pPDPData[i].dnses,
+            pPDPListData->pPDPData[i].gateways);
     }
-#endif  // DEBUG
 
 Error:
     if (RRIL_RESULT_OK != res)
@@ -7014,16 +7222,10 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
     // extract data
     pSimIOArgs = (RIL_SIM_IO_v6 *)pData;
 
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - cla=[0x%08x]  [%d]\r\n", classByte, classByte);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
-    //RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
-    //RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
-    //RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
-
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - cla=%02X command=%d p1=%d p2=%d p3=%d data=\"%s\"\r\n",
+        classByte, pSimIOArgs->command,
+        pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
+        pSimIOArgs->data);
 
     if ((NULL == pSimIOArgs->data) || (strlen(pSimIOArgs->data) == 0))
     {
@@ -7545,16 +7747,10 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
     // extract data
     pSimIOArgs = (RIL_SIM_IO_v6 *)pData;
 
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - cla=[0x%08x]  [%d]\r\n",classByte,classByte);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - command=[0x%08x]  [%d]\r\n", pSimIOArgs->command, pSimIOArgs->command);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - fileid=[0x%08x]  [%d]\r\n", pSimIOArgs->fileid, pSimIOArgs->fileid);
-    //RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - path=[%s]\r\n", (pSimIOArgs->path ? pSimIOArgs->path : "NULL") );
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - p1=[0x%08x]  [%d]\r\n", pSimIOArgs->p1, pSimIOArgs->p1);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - p2=[0x%08x]  [%d]\r\n", pSimIOArgs->p2, pSimIOArgs->p2);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - p3=[0x%08x]  [%d]\r\n", pSimIOArgs->p3, pSimIOArgs->p3);
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - data=[%s]\r\n", (pSimIOArgs->data ? pSimIOArgs->data : "NULL") );
-    //RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - pin2=[%s]\r\n", (pSimIOArgs->pin2 ? pSimIOArgs->pin2 : "NULL") );
-
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - cla=%02X command=%d fileid=%04X p1=%d p2=%d p3=%d data=\"%s\"\r\n",
+        classByte, pSimIOArgs->command, pSimIOArgs->fileid,
+        pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
+        pSimIOArgs->data);
 
     if ((NULL == pSimIOArgs->data) || (strlen(pSimIOArgs->data) == 0))
     {
@@ -8059,8 +8255,12 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
     int  count = 0;
     int active[MAX_PDP_CONTEXTS] = {0};
     char szPDPType[MAX_BUFFER_SIZE] = {0};
-    char szAPN[MAX_BUFFER_SIZE] = {0};
     char szIP[MAX_BUFFER_SIZE] = {0};
+    int status[MAX_PDP_CONTEXTS] = {0};
+    int suggestedRetryTime[MAX_PDP_CONTEXTS] = {0};
+    char szAPN[MAX_BUFFER_SIZE] = {0};
+    char szDnses[MAX_BUFFER_SIZE] = {0};
+    char szGateways[MAX_BUFFER_SIZE] = {0};
 
     pPDPListData = (P_ND_PDP_CONTEXT_DATA)malloc(sizeof(S_ND_PDP_CONTEXT_DATA));
     if (NULL == pPDPListData)
@@ -8096,16 +8296,27 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
     count = 0;
     while (FindAndSkipString(pszRsp, "+CGDCONT: ", pszRsp))
     {
+        CChannel_Data *pChannelData = NULL;
+
         // Parse <cid>
         if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract CID.\r\n");
             goto Error;
         }
+        //  Grab the pChannelData for this CID
+        pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
+
         pPDPListData->pPDPData[count].cid = nCID;
 
         // set active flag
         pPDPListData->pPDPData[count].active = active[nCID - 1];
+
+        // set status
+        pPDPListData->pPDPData[count].status = PDP_FAIL_NONE;
+
+        // set suggestedRetryTime
+        pPDPListData->pPDPData[count].suggestedRetryTime = -1;
 
         // Parse ,<PDP_type>
         if (!SkipString(pszRsp, ",", pszRsp) ||
@@ -8117,15 +8328,25 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         strncpy(pPDPListData->pTypeBuffers[count], szPDPType, MAX_BUFFER_SIZE);
         pPDPListData->pPDPData[count].type = pPDPListData->pTypeBuffers[count];
 
-        // Parse ,<APN>
+        // Skip over ,<APN>
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract APN.\r\n");
             goto Error;
         }
-        strncpy(pPDPListData->pApnBuffers[count], szAPN, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].apn = pPDPListData->pApnBuffers[count];
+        //  This is interface name (i.e. rmnet0)
+        if (pChannelData && pChannelData->m_szInterfaceName)
+        {
+            strncpy(pPDPListData->pIfnameBuffers[count], pChannelData->m_szInterfaceName, MAX_BUFFER_SIZE);
+            pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+        }
+        else
+        {
+            //  don't fill
+            strcpy(pPDPListData->pIfnameBuffers[count], "");
+            pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+        }
 
         // Parse ,<PDP_addr>
         if (!SkipString(pszRsp, ",", pszRsp) ||
@@ -8135,7 +8356,66 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
             goto Error;
         }
         strncpy(pPDPListData->pAddressBuffers[count], szIP, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].address = pPDPListData->pAddressBuffers[count];
+        pPDPListData->pPDPData[count].addresses = pPDPListData->pAddressBuffers[count];
+
+#if 0
+        // TODO: THIS DOESN'T WORK!  There is no DNS or GW in the CGDCONT? request. (FW 1146.C)
+        // Parse,<DNSes>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractQuotedString(pszRsp, szDnses, MAX_BUFFER_SIZE, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract dnses.\r\n");
+            goto Error;
+        }
+        strncpy(pPDPListData->pDnsesBuffers[count], szDnses, MAX_BUFFER_SIZE);
+        pPDPListData->pPDPData[count].dnses = pPDPListData->pDnsesBuffers[count];
+
+        // Parse,<GWs>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractQuotedString(pszRsp, szGateways, MAX_BUFFER_SIZE, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract gateways.\r\n");
+            goto Error;
+        }
+        strncpy(pPDPListData->pGatewaysBuffers[count], szGateways, MAX_BUFFER_SIZE);
+        pPDPListData->pPDPData[count].gateways = pPDPListData->pGatewaysBuffers[count];
+#endif // 0
+
+        // Parse <status>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUpperBoundedUInt32(pszRsp, PDP_FAIL_ERROR_UNSPECIFIED, nValue, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Invalid status.\r\n");
+            goto Error;
+        }
+        pPDPListData->pPDPData[count].status = nValue;
+
+        //  Populate DNSs and gateways
+        if (pChannelData)
+        {
+            sprintf(pPDPListData->pDnsesBuffers[count], "%s %s %s %s",
+                (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
+                (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
+                (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
+                (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
+        }
+        else
+        {
+            strcpy(pPDPListData->pDnsesBuffers[count], "");
+        }
+        pPDPListData->pPDPData[count].dnses = pPDPListData->pDnsesBuffers[count];
+
+        if (pChannelData)
+        {
+            strncpy(pPDPListData->pGatewaysBuffers[count],
+                (pChannelData->m_szIpGateways ? pChannelData->m_szIpGateways : ""),
+                MAX_BUFFER_SIZE);
+        }
+        else
+        {
+            strcpy(pPDPListData->pGatewaysBuffers[count], "");
+        }
+        pPDPListData->pPDPData[count].gateways = pPDPListData->pGatewaysBuffers[count];
 
         // Parse ,<data_comp>
         if (!SkipString(pszRsp, ",", pszRsp) ||
@@ -8167,31 +8447,22 @@ Continue:
 #if defined(DEBUG)
     for (int i = 0; i < count; ++i)
     {
-        RIL_LOG_VERBOSE("\t Context %d\r\n", i);
-        RIL_LOG_VERBOSE("\t\t CID:\t\t %d\r\n", pPDPListData->pPDPData[i].cid);
-        RIL_LOG_VERBOSE("\t\t Active:\t %d\r\n", pPDPListData->pPDPData[i].active);
-        RIL_LOG_VERBOSE("\t\t Type:\t\t %s\r\n", pPDPListData->pPDPData[i].type);
-        RIL_LOG_VERBOSE("\t\t APN:\t\t %s\r\n", pPDPListData->pPDPData[i].apn);
-        RIL_LOG_VERBOSE("\t\t Address:\t %s\r\n", pPDPListData->pPDPData[i].address);
+        RIL_LOG_INFO("index=%d  status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
+            i, pPDPListData->pPDPData[i].status, pPDPListData->pPDPData[i].suggestedRetryTime,
+            pPDPListData->pPDPData[i].cid, pPDPListData->pPDPData[i].active,
+            pPDPListData->pPDPData[i].type, pPDPListData->pPDPData[i].ifname,
+            pPDPListData->pPDPData[i].addresses, pPDPListData->pPDPData[i].dnses,
+            pPDPListData->pPDPData[i].gateways);
     }
 #endif  // DEBUG
 
     if (count > 0)
     {
-        //rRspData.pData  = (void*) pPDPListData;
-        //rRspData.uiDataSize = count * sizeof(RIL_Data_Call_Response_v4);
-
-        RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, (void*)pPDPListData, count * sizeof(RIL_Data_Call_Response_v4));
+        RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, (void*)pPDPListData, count * sizeof(RIL_Data_Call_Response_v6));
     }
     else
     {
-        //free(pPDPListData);
-        //pPDPListData = NULL;
-
         RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
-
-        //rRspData.pData  = NULL;
-        //rRspData.uiDataSize = 0;
     }
 
     res = RRIL_RESULT_OK;

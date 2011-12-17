@@ -338,6 +338,9 @@ void* ModemWatchdogThreadProc(void* pVoid)
                                 //  procedure.  It stores event in local variable (TODO: figure out where)
                                 //  for later check, and send back ACK to STMD.
 
+                                //  Set local flag to use cached PIN next time
+                                PCache_SetUseCachedPIN(true);
+
                                 //  Send MODEM_COLD_RESET_ACK on same socket
                                 if (fd_ModemStatusSocket >= 0)
                                 {
@@ -424,4 +427,181 @@ Error:
     return bResult;
 }
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Ciphers {PIN code, UICC Id} pair and store ciphered object in a local location.
+// Input: UICC Id, PIN code
+// Output: {OK},{NOK}
+//
+ePCache_Code PCache_Store_PIN(char *szUICC, char *szPIN)
+{
+    //  TODO: Change storage location and add encryption
+    if (NULL == szUICC || NULL == szPIN || '\0' == szUICC[0] || '\0' == szPIN[0])
+    {
+        RIL_LOG_CRITICAL("PCache_Store_PIN() - szUICC or szPIN are invalid\r\n");
+        return ePCache_Code_NOK;
+    }
+
+    RIL_LOG_INFO("PCache_Store_PIN() Enter - szUICC=[%s], szPIN=[%s]\r\n", szUICC, szPIN);
+
+    if (0 != property_set(szRIL_cacheduicc, szUICC))
+    {
+        RIL_LOG_CRITICAL("PCache_Store_PIN() - Cannot store uicc\r\n");
+        return ePCache_Code_NOK;
+    }
+
+    if (0 != property_set(szRIL_cachedpin, szPIN))
+    {
+        property_set(szRIL_cacheduicc, "");
+        RIL_LOG_CRITICAL("PCache_Store_PIN() - Cannot store pin\r\n");
+        return ePCache_Code_NOK;
+    }
+
+    return ePCache_Code_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Returns PIN code previously cached and paired with the given UICC Id.
+// Input: UICC Id
+// Output: {NOK, invalid UICC},{NOK, wrong integrity},{NOK, No PIN available},{OK}
+//
+ePCache_Code PCache_Get_PIN(char *szUICC, char *szPINOut)
+{
+    char szUICCCached[MAX_PROP_VALUE];
+    RIL_LOG_INFO("PCache_Get_PIN - Enter\r\n");
+
+    //  TODO: Change storage location and add decryption
+    if (NULL == szUICC || NULL == szPINOut || '\0' == szUICC[0])
+    {
+        RIL_LOG_CRITICAL("PCache_Get_PIN() - szUICC or szPINOut are invalid\r\n");
+        return ePCache_Code_NOK_InvalidUICC;
+    }
+
+    if (!property_get(szRIL_cacheduicc, szUICCCached, ""))
+    {
+        RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached uicc\r\n");
+        return ePCache_Code_NOK_NoPINAvailable;
+    }
+
+    if ('\0' == szUICCCached[0])
+    {
+        RIL_LOG_CRITICAL("PCache_Get_PIN() - szUICCCached is empty!\r\n");
+        return ePCache_Code_NOK_NoPINAvailable;
+    }
+
+    if (0 != strcmp(szUICCCached, szUICC))
+    {
+        RIL_LOG_CRITICAL("PCache_Get_PIN() - bad uicc\r\n");
+        return ePCache_Code_NOK_InvalidUICC;
+    }
+
+    if (!property_get(szRIL_cachedpin, szPINOut, ""))
+    {
+        RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached pin\r\n");
+        return ePCache_Code_NOK_NoPINAvailable;
+    }
+
+    if ('\0' == szPINOut[0])
+    {
+        RIL_LOG_CRITICAL("PCache_Get_PIN() - szPINOut is empty!\r\n");
+        return ePCache_Code_NOK_NoPINAvailable;
+    }
+
+    RIL_LOG_INFO("PCache_Get_PIN - Retrieved PIN=[%s]\r\n", szPINOut);
+
+    return ePCache_Code_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Clear PIN code cache.
+// Input: None
+// Output: {OK},{NOK}
+//
+ePCache_Code PCache_Clear()
+{
+    //  TODO: Change storage location
+    if (0 != property_set(szRIL_cacheduicc, ""))
+    {
+        RIL_LOG_CRITICAL("PCache_Clear() - Cannot clear uicc cache\r\n");
+        return ePCache_Code_NOK;
+    }
+
+    if (0 != property_set(szRIL_cachedpin, ""))
+    {
+        RIL_LOG_CRITICAL("PCache_Clear() - Cannot clear pin cache\r\n");
+        return ePCache_Code_NOK;
+    }
+
+    RIL_LOG_INFO("PCache_Clear() - Cached cleared!\r\n");
+
+    return ePCache_Code_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Set or clear local flag to use cached pin or not.
+// Input: boolean true if use cached pin, false if not.
+// Output: {OK},{NOK}
+//
+ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
+{
+    RIL_LOG_INFO("PCache_SetUseCachedPIN - Enter bFlag=[%d]\r\n", bFlag);
+
+    //  TODO: Change storage location
+    if (bFlag)
+    {
+        if (0 != property_set(szRIL_usecachedpin, "1"))
+        {
+            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set usecachedpin  bFlag=[%d]\r\n", bFlag);
+            return ePCache_Code_NOK;
+        }
+    }
+    else
+    {
+        if (0 != property_set(szRIL_usecachedpin, ""))
+        {
+            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set usecachedpin  bFlag=[%d]\r\n", bFlag);
+            return ePCache_Code_NOK;
+        }
+    }
+
+    return ePCache_Code_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// Get local flag to use cached pin or not.
+// Input:
+// Output: bool - true if flag is set to use cached pin, false if not (or error).
+//
+bool PCache_GetUseCachedPIN()
+{
+    RIL_LOG_INFO("PCache_GetUseCachedPIN - Enter\r\n");
+    bool bRet = false;
+
+    //  TODO: Change storage location
+    char szProp[100] = {0};
+
+    if (!property_get(szRIL_usecachedpin, szProp, ""))
+    {
+        RIL_LOG_CRITICAL("pCache_GetUseCachedPIN - cannot get usecachedpin\r\n");
+        return false;
+    }
+
+    if (0 == strcmp(szProp, "1"))
+    {
+        bRet = true;
+    }
+    else
+    {
+        bRet = false;
+    }
+
+    RIL_LOG_INFO("PCache_GetUseCachedPIN - Exit  bRet=[%d]\r\n", bRet);
+
+    return bRet;
+}
 

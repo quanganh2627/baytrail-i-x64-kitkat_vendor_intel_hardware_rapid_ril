@@ -392,7 +392,8 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
             {
                 RIL_LOG_CRITICAL("CFile::WaitForEvent() : **** RECEIVED POLLNVAL on fd=[%d]\r\n", m_file);
 
-                //  ignore, should clean-up when uiRead < 0
+                //  possible that port has been closed
+                return FALSE;
             }
             else
             {

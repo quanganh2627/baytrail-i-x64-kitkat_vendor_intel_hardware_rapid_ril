@@ -8,16 +8,6 @@
 // Description:
 //    Header providing structs and defines used in the OEM
 //
-// Author:  Mike Worth
-// Created: 2009-09-30
-//
-/////////////////////////////////////////////////////////////////////////////
-//  Modification Log:
-//
-//  Date       Who      Ver   Description
-//  ---------  -------  ----  -----------------------------------------------
-//  Sept 30/09  FV      1.00  Established v1.00 based on current code base.
-//
 /////////////////////////////////////////////////////////////////////////////
 
 #ifndef RRIL_RRIL_OEM_H

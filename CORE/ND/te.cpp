@@ -4950,7 +4950,7 @@ RIL_RESULT_CODE CTE::ParseQueryPIN2(RESPONSE_DATA & rRspData)
     return m_pTEBaseInstance->ParseQueryPIN2(rRspData);
 }
 
-UINT32 CTE::MapAccessTechnology(UINT32 uiStdAct)
+RIL_RadioTechnology CTE::MapAccessTechnology(UINT32 uiStdAct)
 {
     RIL_LOG_VERBOSE("CTE::MapAccessTechnology() - Enter\r\n");
 
@@ -4961,55 +4961,54 @@ UINT32 CTE::MapAccessTechnology(UINT32 uiStdAct)
      *
      * Note: GSM Compact is not supported by IMC modem.
      */
-    UINT32 uiNDAct;
+    RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
 
     //  Check state and set global variable for network technology
     switch(uiStdAct)
     {
         case 0: // GSM
-        uiNDAct = ACT_UNKNOWN; // GSM access technology is not used on android side
+        rtAct = RADIO_TECH_UNKNOWN; // 0 - GSM access technology is not used on android side
         break;
 
         case 1: // GSM Compact
-        uiNDAct = ACT_GPRS;
+        rtAct = RADIO_TECH_GPRS; // 1
         break;
 
         case 2: // UTRAN
-        uiNDAct = ACT_UMTS;
+        rtAct = RADIO_TECH_UMTS; // 3
         break;
 
         case 3: // GSM w/EGPRS
-        uiNDAct = ACT_EDGE;
+        rtAct = RADIO_TECH_EDGE; // 2
         break;
 
         case 4: // UTRAN w/HSDPA
-        uiNDAct = ACT_HSDPA;
+        rtAct = RADIO_TECH_HSDPA; // 9
         break;
 
         case 5: // UTRAN w/HSUPA
-        uiNDAct = ACT_HSUPA;
+        rtAct = RADIO_TECH_HSUPA; // 10
         break;
 
         case 6: // UTRAN w/HSDPA and HSUPA
-        uiNDAct = ACT_HSPA;
+        rtAct = RADIO_TECH_HSPA; // 11
         break;
 
         case 7:
-        uiNDAct = ACT_LTE;
+        rtAct = RADIO_TECH_LTE; // 14
         break;
 
         case 8: // Proprietary value introduced for HSPA+
-        /* Will be mapped to ACT_HSPAP when the framework changes are in place. */
-        uiNDAct = ACT_HSPA;
+        rtAct = RADIO_TECH_HSPAP; // 15
         break;
 
         default:
-        uiNDAct = ACT_UNKNOWN;
+        rtAct = RADIO_TECH_UNKNOWN; // 0
         break;
     }
 
     RIL_LOG_VERBOSE("CTE::MapAccessTechnology() - Exit\r\n");
-    return uiNDAct;
+    return rtAct;
 }
 
 BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_STATUS& rCSRegStatusInfo)
@@ -5021,6 +5020,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
     UINT32 uiLAC = 0;
     UINT32 uiCID = 0;
     UINT32 uiAct = 0;
+    RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
     BOOL bRet = false;
 
     if (!bUnSolicited)
@@ -5100,7 +5100,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
              * Maps the 3GPP standard access technology values to android specific access
              * technology values.
              */
-            uiAct = MapAccessTechnology(uiAct);
+            rtAct = MapAccessTechnology(uiAct);
         }
     }
 
@@ -5122,17 +5122,17 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
         uiStatus += 10;
     }
 
-    snprintf(rCSRegStatusInfo.szStat,        REG_STATUS_LENGTH, "%d", (int)uiStatus);
-    snprintf(rCSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
+    snprintf(rCSRegStatusInfo.szStat,        REG_STATUS_LENGTH, "%u", uiStatus);
+    snprintf(rCSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)rtAct);
     /*
      * With respect to android telephony framework, LAC and CID should be -1 if unknown or it
      * should be of length 0.
      */
     (uiLAC == 0) ? rCSRegStatusInfo.szLAC[0] = '\0' :
-                    snprintf(rCSRegStatusInfo.szLAC, REG_STATUS_LENGTH, "%x", (int)uiLAC);
+                    snprintf(rCSRegStatusInfo.szLAC, REG_STATUS_LENGTH, "%x", uiLAC);
 
     (uiLAC == 0) ? rCSRegStatusInfo.szCID[0] = '\0' :
-                    snprintf(rCSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", (int)uiCID);
+                    snprintf(rCSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", uiCID);
     bRet = TRUE;
 Error:
     RIL_LOG_VERBOSE("CTE::ParseCREG() - Exit\r\n");
@@ -5148,6 +5148,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
     UINT32 uiLAC = 0;
     UINT32 uiCID = 0;
     UINT32 uiAct = 0;
+    RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
     UINT32 uiRAC = 0;
     BOOL bRet = false;
 
@@ -5228,7 +5229,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
              * Maps the 3GPP standard access technology values to android specific access
              * technology values.
              */
-            uiAct = MapAccessTechnology(uiAct);
+            rtAct = MapAccessTechnology(uiAct);
 
             // Extract ","
             if (!SkipString(rszPointer, ",", rszPointer))
@@ -5256,17 +5257,17 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
         goto Error;
     }
 
-    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%d", (int)uiStatus);
-    snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
+    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);
+    snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)rtAct);
     /*
      * With respect to android telephony framework, LAC and CID should be -1 if unknown or it
      * should be of length 0.
      */
     (uiLAC == 0) ? rPSRegStatusInfo.szLAC[0] = '\0' :
-                    snprintf(rPSRegStatusInfo.szLAC, REG_STATUS_LENGTH, "%x", (int)uiLAC);
+                    snprintf(rPSRegStatusInfo.szLAC, REG_STATUS_LENGTH, "%x", uiLAC);
 
     (uiLAC == 0) ? rPSRegStatusInfo.szCID[0] = '\0' :
-                    snprintf(rPSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", (int)uiCID);
+                    snprintf(rPSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", uiCID);
 
     bRet = TRUE;
 Error:
@@ -5298,7 +5299,7 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_
         // Skip "<,prefix> string"
         if (!SkipString(rszPointer, "+XREG: ", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not skip \"+CREG: \".\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not skip \"+XREG: \".\r\n");
             goto Error;
         }
 
@@ -5380,17 +5381,17 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_
         goto Error;
     }
 
-    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%d", (int)uiStatus);
+    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);
     snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
     /*
      * With respect to android telephony framework, LAC and CID should be -1 if unknown or it
      * should be of length 0.
      */
     (uiLAC == 0) ? rPSRegStatusInfo.szLAC[0] = '\0' :
-                    snprintf(rPSRegStatusInfo.szLAC, REG_STATUS_LENGTH, "%x", (int)uiLAC);
+                    snprintf(rPSRegStatusInfo.szLAC, REG_STATUS_LENGTH, "%x", uiLAC);
 
     (uiLAC == 0) ? rPSRegStatusInfo.szCID[0] = '\0' :
-                    snprintf(rPSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", (int)uiCID);
+                    snprintf(rPSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", uiCID);
 
     bRet = TRUE;
 Error:
@@ -5449,10 +5450,15 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
         strncpy(psRegStatus->szNetworkType, m_sPSStatus.szNetworkType, sizeof(psRegStatus->szNetworkType));
 
+        //  Ice Cream Sandwich has new field ((const char **)response)[5] which is
+        //  the maximum number of simultaneous data calls.
+        snprintf(psRegStatus->szNumDataCalls, REG_STATUS_LENGTH, "%d", (RIL_CHANNEL_MAX - RIL_CHANNEL_DATA1));
+
         psRegStatus->sStatusPointers.pszStat = psRegStatus->szStat;
         psRegStatus->sStatusPointers.pszLAC = psRegStatus->szLAC;
         psRegStatus->sStatusPointers.pszCID = psRegStatus->szCID;
         psRegStatus->sStatusPointers.pszNetworkType = psRegStatus->szNetworkType;
+        psRegStatus->sStatusPointers.pszNumDataCalls = psRegStatus->szNumDataCalls; // ICS new field
     }
     else
     {

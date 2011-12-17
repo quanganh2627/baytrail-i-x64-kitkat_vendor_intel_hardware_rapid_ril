@@ -19,11 +19,7 @@
 
 //  List channels here (one per COM port)
 
-#if defined(M2_MULTIPLE_PDP_FEATURE_ENABLED)
 #define RIL_CHANNEL_MAX 10
-#else // M2_MULTIPLE_PDP_FEATURE_ENABLED
-#define RIL_CHANNEL_MAX 6
-#endif // M2_MULTIPLE_PDP_FEATURE_ENABLED
 
 //  Call control commands, misc commands
 #define RIL_CHANNEL_ATCMD 0

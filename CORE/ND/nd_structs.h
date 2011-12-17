@@ -91,24 +91,13 @@ struct PdpData
 //
 typedef struct
 {
-    char* pszCID;
-    char* pszNetworkInterfaceName;
-    char* pszIPAddress;
-    char* pszDNS;       // Ignored prior to Android 3.0
-    char* pszGateway;   // Ignored prior to Android 3.0
-} S_ND_SETUP_DATA_CALL_POINTERS, *P_ND_SETUP_DATA_CALL_POINTERS;
-
-typedef struct
-{
-    S_ND_SETUP_DATA_CALL_POINTERS sSetupDataCallPointers;
-    char szCID[MAX_BUFFER_SIZE];
-    char szNetworkInterfaceName[MAX_BUFFER_SIZE];
-    char szIPAddress[MAX_BUFFER_SIZE];
-    char szDNS[MAX_BUFFER_SIZE];        // Ignored prior to Android 3.0
-    char szGateway[MAX_BUFFER_SIZE];    // Ignored prior to Android 3.0
+    RIL_Data_Call_Response_v6   sPDPData;
+    char                        szPdpType[MAX_BUFFER_SIZE];
+    char                        szNetworkInterfaceName[MAX_BUFFER_SIZE];
+    char                        szIPAddress[MAX_BUFFER_SIZE];
+    char                        szDNS[MAX_BUFFER_SIZE];
+    char                        szGateway[MAX_BUFFER_SIZE];
 } S_ND_SETUP_DATA_CALL, *P_ND_SETUP_DATA_CALL;
-
-
 
 //
 // Struct for reporting PDP Context List to Android
@@ -117,10 +106,12 @@ typedef struct
 
 typedef struct
 {
-    RIL_Data_Call_Response_v4  pPDPData[MAX_PDP_CONTEXTS];
-    char                    pTypeBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
-    char                    pApnBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
-    char                    pAddressBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
+    RIL_Data_Call_Response_v6   pPDPData[MAX_PDP_CONTEXTS];
+    char                        pTypeBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
+    char                        pIfnameBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
+    char                        pAddressBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
+    char                        pDnsesBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
+    char                        pGatewaysBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
 } S_ND_PDP_CONTEXT_DATA, *P_ND_PDP_CONTEXT_DATA;
 
 //
@@ -155,6 +146,7 @@ typedef struct
     char * pszPRL;
     char * pszDefaultRoaming;
     char * pszReasonDenied;
+    char * pszPrimaryScramblingCode;
 } S_ND_REG_STATUS_POINTERS, *P_ND_REG_STATUS_POINTERS;
 
 typedef struct
@@ -174,6 +166,7 @@ typedef struct
     char szPRL[REG_STATUS_LENGTH];
     char szDefaultRoaming[REG_STATUS_LENGTH];
     char szReasonDenied[REG_STATUS_LENGTH];
+    char szPrimaryScramblingCode[REG_STATUS_LENGTH];
 } S_ND_REG_STATUS, *P_ND_REG_STATUS;
 
 typedef struct
@@ -182,6 +175,8 @@ typedef struct
     char * pszLAC;
     char * pszCID;
     char * pszNetworkType;
+    char * pszReasonDenied;
+    char * pszNumDataCalls;
 } S_ND_GPRS_REG_STATUS_POINTERS, *P_ND_GPRS_REG_STATUS_POINTERS;
 
 typedef struct
@@ -191,6 +186,8 @@ typedef struct
     char szLAC[REG_STATUS_LENGTH];
     char szCID[REG_STATUS_LENGTH];
     char szNetworkType[REG_STATUS_LENGTH];
+    char szReasonDenied[REG_STATUS_LENGTH];
+    char szNumDataCalls[REG_STATUS_LENGTH];
 } S_ND_GPRS_REG_STATUS, *P_ND_GPRS_REG_STATUS;
 
 
@@ -208,26 +205,6 @@ typedef struct
     char szOpNameShort[MAX_BUFFER_SIZE];
     char szOpNameNumeric[MAX_BUFFER_SIZE];
 } S_ND_OP_NAMES, *P_ND_OP_NAMES;
-
-enum ACCESS_TECHNOLOGY
-{
-    ACT_UNKNOWN = 0,
-    ACT_GPRS = 1,
-    ACT_EDGE = 2,
-    ACT_UMTS = 3,
-    ACT_IS95A = 4,
-    ACT_IS95B = 5,
-    ACT_1xRTT = 6,
-    ACT_EVDO_0 = 7,
-    ACT_EVDO_1 = 8,
-    ACT_HSDPA = 9,
-    ACT_HSUPA = 10,
-    ACT_HSPA = 11,
-    ACT_EVDO_B = 12,
-    ACT_LTE = 13,
-    ACT_EHRPD = 14,
-    ACT_HSPAP = 15
-};
 
 typedef struct
 {

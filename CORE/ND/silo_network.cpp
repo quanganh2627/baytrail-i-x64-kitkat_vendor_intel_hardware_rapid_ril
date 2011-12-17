@@ -214,7 +214,7 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
         // Scan the Date and the Time in the szDateTime buffer to check the date and time.
         int num = sscanf(szDateTime, "%2d/%2d/%2d,%2d:%2d:%2d", &uiYear, &uiMonth, &uiDay, &uiHour, &uiMins, &uiSecs);
 
-       // Check the elements number of the date and time.
+        // Check the elements number of the date and time.
         if (num != 6)
         {
             RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: bad element number in the scan szDateTime\r\n");
@@ -556,6 +556,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     const char* szResponse = NULL;
     UINT32 nCID = 0;
     UINT32 nREASON=0;
+    CChannel_Data* pChannelData = NULL;
 
     szResponse = rszPointer;
 
@@ -577,54 +578,69 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     //  Format is "ME PDN ACT, <cid>[, <reason>]"
     if (FindAndSkipString(rszPointer, "ME PDN ACT", szStrExtract))
     {
-            if (!ExtractUInt32(szStrExtract, nCID, szStrExtract))
+        if (!ExtractUInt32(szStrExtract, nCID, szStrExtract))
+        {
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO(
+                    "Silo_Network::ParseCGEV() - ME PDN ACT , extracted cid=[%d]\r\n",
+                    nCID);
+        }
+
+        pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
+        if (NULL == pChannelData)
+        {
+            RIL_LOG_CRITICAL("Silo_Network::ParseCGEV() - Invalid CID=[%d], no data channel found!\r\n", nCID);
+            goto Error;
+        }
+        if (!FindAndSkipString(szStrExtract, ",", szStrExtract))
+        {
+            pChannelData->m_iStatus = PDP_FAIL_NONE;
+        }
+        else
+        {
+            if (!ExtractUInt32(szStrExtract, nREASON, szStrExtract))
             {
+                RIL_LOG_CRITICAL(
+                        "CSilo_Network::ParseCGEV() - Error: Couldn't extract reason\r\n");
                 goto Error;
             }
             else
             {
                 RIL_LOG_INFO(
-                        "Silo_Network::ParseCGEV() - ME PDN ACT , extracted cid=[%d]\r\n",
-                        nCID);
-            }
-#if defined(M2_IPV6_FEATURE_ENABLED)
-            if (!FindAndSkipString(szStrExtract, ",", szStrExtract))
-            {
+                        "Silo_Network::ParseCGEV() - ME PDN ACT , extracted reason=[%d]\r\n",
+                        nREASON);
+                pResponse->SetUnsolicitedFlag(TRUE);
 
-            }
-            else
-            {
-                if (!ExtractUInt32(szStrExtract, nREASON, szStrExtract))
+                // IPV4 only allowed
+                if (nREASON == 0)
                 {
-                    RIL_LOG_CRITICAL(
-                            "CSilo_Network::ParseCGEV() - Error: Couldn't extract reason\r\n");
-                    goto Error;
+                    pResponse->SetResultCode(RRIL_RESULT_OK);
+                    pChannelData->m_iStatus = PDP_FAIL_ONLY_IPV4_ALLOWED;
+                }
+                // IPV6 only allowed
+                else if (nREASON == 1)
+                {
+                    pResponse->SetResultCode(RRIL_RESULT_OK);
+                    pChannelData->m_iStatus = PDP_FAIL_ONLY_IPV6_ALLOWED;
+                }
+                // Single bearrer allowed
+                else if (nREASON == 2)
+                {
+                    pResponse->SetResultCode(RRIL_RESULT_OK);
+                    pChannelData->m_iStatus = PDP_FAIL_ONLY_SINGLE_BEARER_ALLOWED;
                 }
                 else
                 {
-                    RIL_LOG_INFO(
-                            "Silo_Network::ParseCGEV() - ME PDN ACT , extracted reason=[%d]\r\n",
-                            nREASON);
-                    pResponse->SetUnsolicitedFlag(TRUE);
-                        // TODO manage reasons in accordance to framework ipv6 when available
-                    // IPV4 only allowed
-                    if (nREASON == 0)
-                        pResponse->SetResultCode(RRIL_RESULT_OK);
-                    // IPV6 only allowed
-                    else if (nREASON == 1)
-                        pResponse->SetResultCode(RRIL_RESULT_OK);
-                    // Single bearrer allowed
-                    else if (nREASON == 2)
-                        pResponse->SetResultCode(RRIL_RESULT_OK);
-                    else
-                    {
-                        RIL_LOG_CRITICAL(
-                            "CSilo_Network::ParseCGEV() - Error: reason unknown\r\n");
+                    RIL_LOG_CRITICAL(
+                        "CSilo_Network::ParseCGEV() - Error: reason unknown\r\n");
+                    pChannelData->m_iStatus = PDP_FAIL_ERROR_UNSPECIFIED;
                     goto Error;
-                    }
                 }
             }
-#endif
+        }
     }
     else
     {

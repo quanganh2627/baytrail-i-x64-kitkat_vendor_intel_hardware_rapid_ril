@@ -616,7 +616,7 @@ UINT32 CChannelBase::ResponseThread()
         // to 3, we trigger a radio error and reboot the modem.
         if (uiReadError >= uiMAX_READERROR)
         {
-            RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - ERROR: chnl=[%d] uiReadError > = %d! Trigger radio error!\r\n", m_uiRilChannel, uiMAX_READERROR);
+            RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - chnl=[%d] uiReadError > = %d! Trigger radio error!\r\n", m_uiRilChannel, uiMAX_READERROR);
             do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
 
 
@@ -630,7 +630,7 @@ UINT32 CChannelBase::ResponseThread()
         RIL_LOG_VERBOSE("CChannelBase::ResponseThread() chnl=[%d] - Waiting for data\r\n", m_uiRilChannel);
         if (!WaitForAvailableData(WAIT_FOREVER))
         {
-            RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR - Waiting for data failed!\r\n", m_uiRilChannel);
+            RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Waiting for data failed!\r\n", m_uiRilChannel);
             CMutex::Lock(m_pPossibleInvalidFDMutex);
             BOOL bPossibleInvalidFD = m_bPossibleInvalidFD;
             CMutex::Unlock(m_pPossibleInvalidFDMutex);
@@ -641,7 +641,7 @@ UINT32 CChannelBase::ResponseThread()
                 // if the port is not open, reboot
                 if (!IsPortOpen())
                 {
-                    RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Port closed, rebooting\r\n", m_uiRilChannel);
+                    RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Port closed, requesting cleanup\r\n", m_uiRilChannel);
                     do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
                     break;
                 }
@@ -660,12 +660,12 @@ UINT32 CChannelBase::ResponseThread()
         {
             if (!ReadFromPort(szData, uiRespDataBufSize, uiRead))
             {
-                RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Read failed\r\n", m_uiRilChannel);
+                RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Read failed\r\n", m_uiRilChannel);
 
                 if (m_bPossibleInvalidFD)
                 {
                     //  We could be closing and opening the DLC port. (For AT timeout case)
-                    RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: m_bPossibleInvalidFD = TRUE\r\n");
+                    RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - m_bPossibleInvalidFD = TRUE\r\n");
                     Sleep(50);
                     break;
                 }
@@ -682,7 +682,7 @@ UINT32 CChannelBase::ResponseThread()
             {
                 if (bFirstRead)
                 {
-                    RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - ERROR: Data available but uiRead is 0!\r\n", m_uiRilChannel);
+                    RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Data available but uiRead is 0!\r\n", m_uiRilChannel);
                     //  ignore, watchdog thread handles this now.
                     Sleep(25);
                 }

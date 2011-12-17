@@ -31,7 +31,7 @@ private:
     CTE_INF_6260(const CTE_INF_6260& rhs);  // Copy Constructor
     CTE_INF_6260& operator=(const CTE_INF_6260& rhs);  //  Assignment operator
 
-    int m_nCurrentNetworkType;
+    RIL_PreferredNetworkType m_currentNetworkType;
 
 protected:
     char m_szNetworkInterfaceNamePrefix[MAX_BUFFER_SIZE];
@@ -135,7 +135,6 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, CChannel_Data *pChannelData, PDP
 BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data *pChannelData);
 BOOL DataConfigDown(int nCID);
 
-#if defined(M2_IPV6_FEATURE_ENABLED)
 //  Helper function to convert IP addresses to Android-readable format.
 //  szIpIn [IN] - The IP string to be converted
 //  szIpOut [OUT] - The converted IP address in Android-readable format.
@@ -157,6 +156,5 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
 //  Call these functions to set up data specifically for IpV6 or IpV4V6 pdp context
 BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data *pChannelData);
 BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName, CChannel_Data *pChannelData);
-#endif // M2_IPV6_FEATURE_ENABLED
 
 #endif

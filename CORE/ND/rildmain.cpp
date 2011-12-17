@@ -56,7 +56,7 @@ char* g_szURCPort = NULL;
 
 static const RIL_RadioFunctions gs_callbacks =
 {
-    RAPID_RIL_VERSION,
+    RIL_VERSION,
     onRequest,
     onGetCurrentRadioState,
     onSupports,
@@ -157,36 +157,19 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_DATA_CALL_LIST_CHANGED\r\n");
             if (pData && dataSize)
             {
-                int nDataCallResponseNum = dataSize / sizeof(RIL_Data_Call_Response_v4);
-                RIL_Data_Call_Response_v4 *pDCR = (RIL_Data_Call_Response_v4 *)pData;
+                int nDataCallResponseNum = dataSize / sizeof(RIL_Data_Call_Response_v6);
+                RIL_Data_Call_Response_v6 *pDCR = (RIL_Data_Call_Response_v6 *)pData;
                 for (int i=0; i<nDataCallResponseNum; i++)
                 {
-                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] cid=%d\r\n", i, pDCR[i].cid);
-                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] active=%d\r\n", i, pDCR[i].active);
-                    if (pDCR->type)
-                    {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] type=\"%s\"\r\n", i, pDCR[i].type);
-                    }
-                    else
-                    {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] type=NULL\r\n", i);
-                    }
-                    if (pDCR->apn)
-                    {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] apn=\"%s\"\r\n", i, pDCR[i].apn);
-                    }
-                    else
-                    {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] apn=NULL\r\n", i);
-                    }
-                    if (pDCR->address)
-                    {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] address=\"%s\"\r\n", i, pDCR[i].address);
-                    }
-                    else
-                    {
-                        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v4[%d] address=NULL\r\n", i);
-                    }
+                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v6[%d] status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
+                        i,
+                        pDCR[i].status,
+                        pDCR[i].suggestedRetryTime,
+                        pDCR[i].cid, pDCR[i].active,
+                        pDCR[i].type, pDCR[i].ifname,
+                        pDCR[i].addresses,
+                        pDCR[i].dnses,
+                        pDCR[i].gateways);
                 }
             }
             break;
@@ -195,18 +178,13 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SUPP_SVC_NOTIFICATION\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - notification type=%d\r\n", ((RIL_SuppSvcNotification *)pData)->notificationType);
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - code=%d\r\n", ((RIL_SuppSvcNotification *)pData)->code);
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - index=%d\r\n", ((RIL_SuppSvcNotification *)pData)->index);
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - type=%d\r\n", ((RIL_SuppSvcNotification *)pData)->type);
-                if (((RIL_SuppSvcNotification *)pData)->number)
-                {
-                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - number=\"%s\"\r\n", ((RIL_SuppSvcNotification *)pData)->number);
-                }
-                else
-                {
-                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - number is NULL\r\n");
-                }
+                RIL_SuppSvcNotification *pSSN = (RIL_SuppSvcNotification*)pData;
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - notification type=%d code=%d index=%d type=%d number=\"%s\"\r\n",
+                    pSSN->notificationType,
+                    pSSN->code,
+                    pSSN->index,
+                    pSSN->type,
+                    pSSN->number);
             }
             break;
 
@@ -321,9 +299,34 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESEND_INCALL_MUTE\r\n");
             break;
 
+        case RIL_UNSOL_CDMA_SUBSCRIPTION_SOURCE_CHANGED:  // 1031 - not supported
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_SUBSCRIPTION_SOURCE_CHANGED\r\n");
+            bSendNotification = false;
+            break;
+
+        case RIL_UNSOL_CDMA_PRL_CHANGED:  // 1032 - not supported
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_PRL_CHANGED\r\n");
+            bSendNotification = false;
+            break;
+
+        case RIL_UNSOL_EXIT_EMERGENCY_CALLBACK_MODE:  // 1033
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_EXIT_EMERGENCY_CALLBACK_MODE\r\n");
+            break;
+
+        case RIL_UNSOL_RIL_CONNECTED:  // 1034
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RIL_CONNECTED\r\n");
+            if (pData && dataSize)
+            {
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RIL_CONNECTED=[%d]\r\n", ((int *)pData)[0]);
+            }
+            break;
+
+
+        //  ************************* END OF REGULAR NOTIFICATIONS *******************************
+
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
 
-        case RIL_UNSOL_CDMA_SUBSCRIPTION_CHANGED: //RIL_UNSOL_CALL_FAILED_CAUSE:  // 1031
+        case RIL_UNSOL_CALL_FAILED_CAUSE:  // 1035
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CALL_FAILED_CAUSE\r\n");
             if (pData && dataSize)
             {
@@ -1061,36 +1064,21 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG:  // 89
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG\r\n");
-#if defined(M2_CELL_BROADCAST_FEATURE_ENABLED)
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGsmGetBroadcastSmsConfig(hRilToken, pData, datalen);
-#else
-            RIL_LOG_CRITICAL("onRequest() - Cell Broadcast not supported RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG\r\n");
-            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
-#endif // M2_CELL_BROADCAST_FEATURE_ENABLED
         }
         break;
 
         case RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG:  // 90
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG\r\n");
-#if defined(M2_CELL_BROADCAST_FEATURE_ENABLED)
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGsmSetBroadcastSmsConfig(hRilToken, pData, datalen);
-#else
-            RIL_LOG_CRITICAL("onRequest() - Cell Broadcast not supported RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG\r\n");
-            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
-#endif // M2_CELL_BROADCAST_FEATURE_ENABLED
         }
         break;
 
         case RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION:  // 91
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION\r\n");
-#if defined(M2_CELL_BROADCAST_FEATURE_ENABLED)
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGsmSmsBroadcastActivation(hRilToken, pData, datalen);
-#else
-            RIL_LOG_CRITICAL("onRequest() - Cell Broadcast not supported RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION\r\n");
-            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
-#endif // M2_CELL_BROADCAST_FEATURE_ENABLED
         }
         break;
 
@@ -1178,28 +1166,44 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 104
+        case RIL_REQUEST_CDMA_GET_SUBSCRIPTION_SOURCE:  // 104 - not supported
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_CDMA_GET_SUBSCRIPTION_SOURCE\r\n");
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+        }
+        break;
+
+        case RIL_REQUEST_ISIM_AUTHENTICATION:  // 105 - not supported
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_ISIM_AUTHENTICATION\r\n");
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+        }
+        break;
+
+        //  ************************* END OF REGULAR REQUESTS *******************************
+
+        case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 106
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_TRANSMIT_BASIC\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSimTransmitBasic(hRilToken, pData, datalen);
         }
         break;
 
-        case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 105
+        case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 107
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_OPEN_CHANNEL\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSimOpenChannel(hRilToken, pData, datalen);
         }
         break;
 
-        case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 106
+        case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 108
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_CLOSE_CHANNEL\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSimCloseChannel(hRilToken, pData, datalen);
         }
         break;
 
-        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 107
+        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 109
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_TRANSMIT_CHANNEL\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSimTransmitChannel(hRilToken, pData, datalen);
@@ -1208,14 +1212,14 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
 
 #if defined(M2_VT_FEATURE_ENABLED)
 
-        case RIL_REQUEST_HANGUP_VT:  // 108
+        case RIL_REQUEST_HANGUP_VT:  // 110
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_HANGUP_VT\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestHangupVT(hRilToken, pData, datalen);
         }
         break;
 
-        case RIL_REQUEST_DIAL_VT:  // 109
+        case RIL_REQUEST_DIAL_VT:  // 111
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_DIAL_VT\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestDialVT(hRilToken, pData, datalen);
@@ -1284,7 +1288,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M5.33 for Android 2.3.7 (Build November 29/2011)";
+    return "Intrinsyc Rapid-RIL M6.01 for Android 4.0.1 (Build December 20/2011)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1342,19 +1346,13 @@ static void usage(char *szProgName)
     fprintf(stderr, "    -c <SIM related, SIM Toolkit AT command port>\n");
     fprintf(stderr, "    -u <Notification channel>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 1>\n");
-#if defined(M2_MULTIPLE_PDP_FEATURE_ENABLED)
     fprintf(stderr, "    -d <PDP Primary Context - data channel 2>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 3>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 4>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 5>\n");
-#endif  // M2_MULTIPLE_PDP_FEATURE_ENABLED
     fprintf(stderr, "\n");
     fprintf(stderr, "Example in init.rc file:\n");
-#if defined(M2_MULTIPLE_PDP_FEATURE_ENABLED)
     fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12 -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1 -d /dev/gsmtty3 -d /dev/gsmtty4 -d /dev/gsmtty15 -d /dev/gsmtty16 -d /dev/gsmtty17\n", szProgName);
-#else  // M2_MULTIPLE_PDP_FEATURE_ENABLED
-    fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12 -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1 -d /dev/gsmtty3\n", szProgName);
-#endif // M2_MULTIPLE_PDP_FEATURE_ENABLED
     fprintf(stderr, "\n");
 }
 
@@ -1407,8 +1405,7 @@ static bool RIL_SetGlobals(int argc, char **argv)
             break;
 
             // This should be the non-emulator case.
-            //  For M2_MULTIPLE_PDP_FEATURE_ENABLED, must choose 5 data ports.
-            //  For non M2_MULTIPLE_PDP_FEATURE_ENABLED, only need 1 data port.
+            //  For multiple PDP contexts (which is default in ICS), must choose 5 data ports.
             case 'd':
                 switch(nDataPortCount)
                 {
@@ -1451,11 +1448,7 @@ static bool RIL_SetGlobals(int argc, char **argv)
     }
 
     //  RIL will not function without all ports defined
-#if defined(M2_MULTIPLE_PDP_FEATURE_ENABLED)
     if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3 || !g_szDataPort4 || !g_szDataPort5)
-#else // M2_MULTIPLE_PDP_FEATURE_ENABLED
-    if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1)
-#endif // M2_MULTIPLE_PDP_FEATURE_ENABLED
     {
         usage(argv[0]);
         return false;

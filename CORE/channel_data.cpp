@@ -36,17 +36,18 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
 :   CChannel(uiChannel),
     m_szIpAddr(NULL),
     m_szDNS1(NULL),
-    m_szDNS2(NULL)
-#if defined(M2_IPV6_FEATURE_ENABLED)
-    ,
+    m_szDNS2(NULL),
     m_szIpAddr2(NULL),
     m_szIpV6DNS1(NULL),
-    m_szIpV6DNS2(NULL)
-#endif // M2_IPV6_FEATURE_ENABLED
+    m_szIpV6DNS2(NULL),
+    m_szIpGateways(NULL),
+    m_szPdpType(NULL),
+    m_szInterfaceName(NULL)
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
 
     m_uiContextID = 0;
+    m_iStatus = 0;
 
     m_pSetupDoneEvent = new CEvent();
     if (!m_pSetupDoneEvent)
@@ -76,7 +77,12 @@ CChannel_Data::~CChannel_Data()
     delete[] m_szDNS2;
     m_szDNS2 = NULL;
 
-#if defined(M2_IPV6_FEATURE_ENABLED)
+    delete[] m_szIpGateways;
+    m_szIpGateways = NULL;
+
+    delete[] m_szPdpType;
+    m_szPdpType = NULL;
+
     delete[] m_szIpAddr2;
     m_szIpAddr2 = NULL;
 
@@ -85,7 +91,6 @@ CChannel_Data::~CChannel_Data()
 
     delete[] m_szIpV6DNS2;
     m_szIpV6DNS2 = NULL;
-#endif // M2_IPV6_FEATURE_ENABLED
 
     RIL_LOG_VERBOSE("CChannel_Data::~CChannel_Data() - Exit\r\n");
 }
@@ -103,7 +108,6 @@ BOOL CChannel_Data::OpenPort()
             bRetVal = m_Port.Open(g_szDataPort1, g_bIsSocket);
             break;
 
-#if defined(M2_MULTIPLE_PDP_FEATURE_ENABLED)
         case RIL_CHANNEL_DATA2:
             RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s...\r\n", g_szDataPort2);
             RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
@@ -127,7 +131,6 @@ BOOL CChannel_Data::OpenPort()
             RIL_LOG_INFO("CChannel_Data::OpenPort() - g_bIsSocket=[%d]...\r\n", g_bIsSocket);
             bRetVal = m_Port.Open(g_szDataPort5, g_bIsSocket);
             break;
-#endif // M2_MULTIPLE_PDP_FEATURE_ENABLED
 
         default:
             RIL_LOG_CRITICAL("CChannel_Data::OpenPort() - ERROR channel does not exist m_uiRilChannel=%d\r\n", m_uiRilChannel);
