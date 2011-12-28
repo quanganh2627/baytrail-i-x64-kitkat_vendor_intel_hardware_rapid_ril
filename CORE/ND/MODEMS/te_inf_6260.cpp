@@ -464,14 +464,16 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     char szIP[PROPERTY_VALUE_MAX] = {0};
     P_ND_SETUP_DATA_CALL pDataCallRsp = NULL;
 
+    /*
+     * For RAW IP, when we get the CONNECT response to AT+CGDATA, we then need
+     * to send AT+CGPADDR (or AT+CGDCONT?) to get the IP address which needs to
+     * be returned in the response to the RIL_REQUEST_SETUP_DATA_CALL.
+     * DNS address of the activated context is got from AT+XDNS?
+     * Response to  RIL_REQUEST_SETUP_DATA_CALL is sent only after the IP
+     * address and DNS address is got.
+     */
 
-
-    // For RAW IP, when we get the CONNECT response to AT+CGDATA, we then need to send AT+CGPADDR (or AT+CGDCONT?)
-    // to get the IP address (which is returned in the response to the RIL_REQUEST_SETUP_DATA_CALL) and finally
-    // AT+XDNS to query for the DNS address of the activated context. We wait until we get DNS response before
-    // sending the reply to RIL_REQUEST_SETUP_DATA_CALL.
-
-// N_GSM related code
+    // N_GSM related code
     struct gsm_config cfg;
     struct gsm_netconfig netconfig;
 
@@ -547,11 +549,11 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     pChannelData->m_szInterfaceName[MAX_BUFFER_SIZE-1] = '\0';
 
 
-// N_GSM related code
+    // N_GSM related code
     netconfig.adaption = 3;
     netconfig.protocol = htons(ETH_P_IP);
     strncpy(netconfig.if_name, pDataCallRsp->szNetworkInterfaceName, IFNAMSIZ);
-// Add IF NAME
+    // Add IF NAME
     fd = pChannelData->GetFD();
     if (fd >= 0)
     {

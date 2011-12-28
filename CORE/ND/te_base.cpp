@@ -448,14 +448,6 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
-#if 0
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\",\"%s\"\r", pszPUK, pszNewPIN))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk() - ERROR: Unable to write command string to buffer\r\n");
-        goto Error;
-    }
-#endif // 0
-
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "ATD**05*%s*%s*%s#\r", pszPUK, pszNewPIN, pszNewPIN))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk() - ERROR: Unable to write command string to buffer\r\n");
@@ -615,14 +607,6 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk2(REQUEST_DATA & rReqData, void * pData,
         RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk2() - ERROR: PUK2 or new PIN2 was NULL!\r\n");
         goto Error;
     }
-
-#if 0
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN2=\"%s\",\"%s\"\r", pszPUK2, pszNewPIN2))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk2() - ERROR: Unable to write command string to buffer\r\n");
-        goto Error;
-    }
-#endif // 0
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "ATD**052*%s*%s*%s#\r", pszPUK2, pszNewPIN2, pszNewPIN2))
     {
@@ -1555,7 +1539,8 @@ RIL_RESULT_CODE CTEBase::CoreSignalStrength(REQUEST_DATA & rReqData, void * pDat
     RIL_LOG_VERBOSE("CTEBase::CoreSignalStrength() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-#if 0   //  NOTE: Uncomment this block to simulate unsolicited modem reset
+#if defined(SIMULATE_MODEM_RESET)
+    //  NOTE: Uncomment this block to simulate unsolicited modem reset
     static int nCount = 0;
     nCount++;
     RIL_LOG_INFO("COUNT = %d\r\n", nCount);
@@ -1568,7 +1553,7 @@ RIL_RESULT_CODE CTEBase::CoreSignalStrength(REQUEST_DATA & rReqData, void * pDat
     }
     else
 
-#endif // 0
+#endif // SIMULATE_MODEM_RESET
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSQ\r", sizeof(rReqData.szCmd1)))
     {
@@ -5407,38 +5392,6 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         strncpy(pPDPListData->pAddressBuffers[count], szIP, MAX_BUFFER_SIZE);
         pPDPListData->pPDPData[count].addresses = pPDPListData->pAddressBuffers[count];
 
-#if 0
-        // TODO: THIS DOESN'T WORK!  There is no DNS or GW in the CGDCONT? request. (FW 1146.C)
-        // Parse,<DNSes>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szDnses, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract dnses.\r\n");
-            goto Error;
-        }
-        strncpy(pPDPListData->pDnsesBuffers[count], szDnses, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].dnses = pPDPListData->pDnsesBuffers[count];
-
-        // Parse,<GWs>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szGateways, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - ERROR: Could not extract gateways.\r\n");
-            goto Error;
-        }
-        strncpy(pPDPListData->pGatewaysBuffers[count], szGateways, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].gateways = pPDPListData->pGatewaysBuffers[count];
-#endif
-
-        // Parse <status>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt32(pszRsp, PDP_FAIL_ERROR_UNSPECIFIED, nValue, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Invalid status.\r\n");
-            goto Error;
-        }
-        pPDPListData->pPDPData[count].status = nValue;
-
         //  Populate DNSs and gateways
         if (pChannelData)
         {
@@ -8361,38 +8314,6 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         }
         strncpy(pPDPListData->pAddressBuffers[count], szIP, MAX_BUFFER_SIZE);
         pPDPListData->pPDPData[count].addresses = pPDPListData->pAddressBuffers[count];
-
-#if 0
-        // TODO: THIS DOESN'T WORK!  There is no DNS or GW in the CGDCONT? request. (FW 1146.C)
-        // Parse,<DNSes>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szDnses, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract dnses.\r\n");
-            goto Error;
-        }
-        strncpy(pPDPListData->pDnsesBuffers[count], szDnses, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].dnses = pPDPListData->pDnsesBuffers[count];
-
-        // Parse,<GWs>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szGateways, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - ERROR: Could not extract gateways.\r\n");
-            goto Error;
-        }
-        strncpy(pPDPListData->pGatewaysBuffers[count], szGateways, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].gateways = pPDPListData->pGatewaysBuffers[count];
-#endif // 0
-
-        // Parse <status>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt32(pszRsp, PDP_FAIL_ERROR_UNSPECIFIED, nValue, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Invalid status.\r\n");
-            goto Error;
-        }
-        pPDPListData->pPDPData[count].status = nValue;
 
         //  Populate DNSs and gateways
         if (pChannelData)
