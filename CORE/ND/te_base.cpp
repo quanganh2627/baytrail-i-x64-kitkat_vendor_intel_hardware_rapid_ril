@@ -109,10 +109,9 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& p
         goto Error;
     }
 
-    // Initialize as per reference ril as insufficient documentation currently is available
-    pCardStatus->gsm_umts_subscription_app_index = RIL_CARD_MAX_APPS;
-    pCardStatus->cdma_subscription_app_index = RIL_CARD_MAX_APPS;
-    pCardStatus->ims_subscription_app_index = RIL_CARD_MAX_APPS;
+    pCardStatus->gsm_umts_subscription_app_index = -1;
+    pCardStatus->cdma_subscription_app_index = -1;
+    pCardStatus->ims_subscription_app_index = -1;
     pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
 
     // Number of apps is 1 (gsm) if SIM present. Set to 0 if absent.

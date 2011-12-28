@@ -320,16 +320,15 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 }
                 memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
 
-                // Initialize as per reference ril as insufficient documentation currently is available
-                pCardStatus->gsm_umts_subscription_app_index = RIL_CARD_MAX_APPS;
-                pCardStatus->cdma_subscription_app_index = RIL_CARD_MAX_APPS;
-                pCardStatus->ims_subscription_app_index = RIL_CARD_MAX_APPS;
+                pCardStatus->gsm_umts_subscription_app_index = -1;
+                pCardStatus->cdma_subscription_app_index = -1;
+                pCardStatus->ims_subscription_app_index = -1;
                 pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
                 pCardStatus->card_state = RIL_CARDSTATE_ABSENT;
                 pCardStatus->num_applications = 0;
 
                 // Don't copy the memory, just pass along the pointer as is.
-                if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus_v6*), FALSE))
+                if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus_v6), FALSE))
                 {
                     RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to set data with sim state\r\n");
                     free(pCardStatus);
@@ -353,10 +352,9 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 }
                 memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
 
-                // Initialize as per reference ril as insufficient documentation currently is available
                 pCardStatus->gsm_umts_subscription_app_index = 0;
-                pCardStatus->cdma_subscription_app_index = RIL_CARD_MAX_APPS;
-                pCardStatus->ims_subscription_app_index = RIL_CARD_MAX_APPS;
+                pCardStatus->cdma_subscription_app_index = -1;
+                pCardStatus->ims_subscription_app_index = -1;
                 pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
                 pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
                 pCardStatus->num_applications = 1;
@@ -377,7 +375,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
 #endif // M2_PIN_RETRIES_FEATURE_ENABLED
 
                 // Don't copy the memory, just pass along the pointer as is.
-                if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus_v6*), FALSE))
+                if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus_v6), FALSE))
                 {
                     RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to set data with sim state\r\n");
                     free(pCardStatus);
@@ -411,16 +409,15 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 }
                 memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
 
-                // Initialize as per reference ril as insufficient documentation currently is available
                 pCardStatus->gsm_umts_subscription_app_index = 0;
-                pCardStatus->cdma_subscription_app_index = RIL_CARD_MAX_APPS;
-                pCardStatus->ims_subscription_app_index = RIL_CARD_MAX_APPS;
+                pCardStatus->cdma_subscription_app_index = -1;
+                pCardStatus->ims_subscription_app_index = -1;
                 pCardStatus->universal_pin_state = RIL_PINSTATE_ENABLED_PERM_BLOCKED;
                 pCardStatus->card_state = RIL_CARDSTATE_ERROR;  //RIL_CARDSTATE_ABSENT
                 pCardStatus->num_applications = 0;
 
                 // Don't copy the memory, just pass along the pointer as is.
-                if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus_v6*), FALSE))
+                if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus_v6), FALSE))
                 {
                     RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to set data with sim state\r\n");
                     free(pCardStatus);
