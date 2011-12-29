@@ -60,8 +60,9 @@ RIL_RESULT_CODE CTEBase::CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData,
     return res;
 }
 
+
 //  bSilentPINEntry = out variable (true if PIN needs to be silently sent)
-RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& pCardStatus, bool & bSilentPINEntry)
+RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& pCardStatus, bool * pbSilentPINEntry)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSimPin() - Enter\r\n");
 
@@ -137,12 +138,13 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& p
     else if (0 == strcmp(szSimState, "SIM PIN"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PIN\r\n");
-#if 0
+
         //  Were we previously informed about modem cold boot?
-        if (PCache_GetUseCachedPIN())
+#if defined(M2_PIN_CACHING_FEATURE_ENABLED)
+        if (pbSilentPINEntry && PCache_GetUseCachedPIN())
         {
             RIL_LOG_INFO("CTEBase::ParseSimPin() - Use cached PIN\r\n");
-            bSilentPINEntry = true;
+            *pbSilentPINEntry = true;
 
             //  Fake SIM READY for now.
             //g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
@@ -161,7 +163,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& p
         }
         else
 #endif
-  	{
+        {
             //g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
             pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
             pCardStatus->num_applications = 1;
@@ -285,8 +287,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
 
     const char * pszRsp = rRspData.szResponse;
     RIL_CardStatus_v6* pCardStatus = NULL;
-    bool bSilentPINEntry = false;
-    RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus, bSilentPINEntry);
+    RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus);
     if (res != RRIL_RESULT_OK)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetSimStatus() - ERROR: Could not parse Sim Pin.\r\n");
@@ -377,27 +378,31 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
 
-    // Parse "<prefix>+CCID: <ICCID><postfix>"
-    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
-
-    if (SkipString(pszRsp, "+CCID: ", pszRsp))
+    // Cache the PIN code only if we are not silently entering it
+    if (!PCache_GetUseCachedPIN() )
     {
-        if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+        // Parse "<prefix>+CCID: <ICCID><postfix>"
+        SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+
+        if (SkipString(pszRsp, "+CCID: ", pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Cannot parse UICC ID\r\n");
-            szUICCID[0] = '\0';
+            if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Cannot parse UICC ID\r\n");
+                szUICCID[0] = '\0';
+            }
+
+            SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
         }
 
-        SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+        //  Cache PIN1 value
+        if (ePCache_Code_OK != PCache_Store_PIN(szUICCID, m_szPIN))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot cache the PIN value\r\n");
+        }
+        //  Clear it locally.
+        memset(m_szPIN, 0, MAX_PIN_SIZE);
     }
-
-    //  Cache PIN1 value
-    if (ePCache_Code_OK != PCache_Store_PIN(szUICCID, m_szPIN))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot cache the PIN value\r\n");
-    }
-    //  Clear it locally.
-    memset(m_szPIN, 0, MAX_PIN_SIZE);
 
     res = RRIL_RESULT_OK;
 
@@ -4067,7 +4072,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     {
         if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
-                                        "AT+CLCK=\"%s\",%s\r",
+                                        "AT+CLCK=\"%s\",%s;+CCID\r",
                                         pszFacility,
                                         pszMode))
         {
@@ -4080,7 +4085,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     {
         if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
-                                        "AT+CLCK=\"%s\",%s,\"%s\"\r",
+                                        "AT+CLCK=\"%s\",%s,\"%s\";+CCID\r",
                                         pszFacility,
                                         pszMode,
                                         pszPassword))
@@ -4092,7 +4097,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     // Class provided
     else if (!PrintStringNullTerminate( rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
-                                        "AT+CLCK=\"%s\",%s,\"%s\",%s\r",
+                                        "AT+CLCK=\"%s\",%s,\"%s\",%s;+CCID\r",
                                         pszFacility,
                                         pszMode,
                                         pszPassword,
@@ -4130,7 +4135,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
         }
         else
         {
-            strncpy(m_szPIN, "CLR", MAX_PIN_SIZE);
+            strcpy(m_szPIN, "CLR");
         }
     }
 
@@ -4186,7 +4191,7 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
         {
             if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Cannot parse UICC ID\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetFacilityLock() - Cannot parse UICC ID\r\n");
                 szUICCID[0] = '\0';
             }
 
@@ -4195,7 +4200,7 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
 
         if (ePCache_Code_OK != PCache_Store_PIN(szUICCID, m_szPIN))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot cache the PIN value\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - Cannot cache the PIN value\r\n");
         }
     }
     //  Clear it locally.

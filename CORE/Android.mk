@@ -77,6 +77,13 @@ LOCAL_CFLAGS += -DM2_RXDIV_FEATURE_ENABLED
 #LOCAL_CFLAGS += -DM2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
 
 
+# Activating this macro enables SEEK for Android (for Ice Cream Sandwich)
+#LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED
+
+# Activating this macro enables PIN caching (for modem cold reboot)
+#LOCAL_CFLAGS += -DM2_PIN_CACHING_FEATURE_ENABLED
+
+
 LOCAL_C_INCLUDES :=  \
     $(LOCAL_PATH)/ND  \
     $(LOCAL_PATH)/ND/MODEMS  \

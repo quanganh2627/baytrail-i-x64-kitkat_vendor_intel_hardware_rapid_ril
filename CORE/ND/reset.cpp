@@ -434,7 +434,7 @@ Error:
 // Input: UICC Id, PIN code
 // Output: {OK},{NOK}
 //
-ePCache_Code PCache_Store_PIN(char *szUICC, char *szPIN)
+ePCache_Code PCache_Store_PIN(const char *szUICC, const char *szPIN)
 {
     //  TODO: Change storage location and add encryption
     if (NULL == szUICC || NULL == szPIN || '\0' == szUICC[0] || '\0' == szPIN[0])
@@ -467,7 +467,7 @@ ePCache_Code PCache_Store_PIN(char *szUICC, char *szPIN)
 // Input: UICC Id
 // Output: {NOK, invalid UICC},{NOK, wrong integrity},{NOK, No PIN available},{OK}
 //
-ePCache_Code PCache_Get_PIN(char *szUICC, char *szPINOut)
+ePCache_Code PCache_Get_PIN(const char *szUICC, char *szPINOut)
 {
     char szUICCCached[MAX_PROP_VALUE];
     RIL_LOG_INFO("PCache_Get_PIN - Enter\r\n");
@@ -583,7 +583,7 @@ bool PCache_GetUseCachedPIN()
     bool bRet = false;
 
     //  TODO: Change storage location
-    char szProp[100] = {0};
+    char szProp[MAX_PROP_VALUE] = {0};
 
     if (!property_get(szRIL_usecachedpin, szProp, ""))
     {

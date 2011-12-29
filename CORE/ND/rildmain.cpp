@@ -1185,28 +1185,44 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 106
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_TRANSMIT_BASIC\r\n");
+#if defined(M2_SEEK_FEATURE_ENABLED)
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSimTransmitBasic(hRilToken, pData, datalen);
+#else
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif
         }
         break;
 
         case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 107
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_OPEN_CHANNEL\r\n");
+#if defined(M2_SEEK_FEATURE_ENABLED)
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSimOpenChannel(hRilToken, pData, datalen);
+#else
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif
         }
         break;
 
         case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 108
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_CLOSE_CHANNEL\r\n");
+#if defined(M2_SEEK_FEATURE_ENABLED)
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSimCloseChannel(hRilToken, pData, datalen);
+#else
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif
         }
         break;
 
         case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 109
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_TRANSMIT_CHANNEL\r\n");
+#if defined(M2_SEEK_FEATURE_ENABLED)
             eRetVal = (RIL_Errno)CTE::GetTE().RequestSimTransmitChannel(hRilToken, pData, datalen);
+#else
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif
         }
         break;
 
@@ -1288,7 +1304,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.01 for Android 4.0.1 (Build December 20/2011)";
+    return "Intrinsyc Rapid-RIL M6.02 for Android 4.0.1 (Build December 28/2011)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

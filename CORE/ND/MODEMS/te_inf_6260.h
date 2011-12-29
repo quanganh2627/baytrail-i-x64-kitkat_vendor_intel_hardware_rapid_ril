@@ -39,6 +39,7 @@ protected:
     //  Locally store CPIN2 query result for SIM_IO
     char m_szCPIN2Result[MAX_BUFFER_SIZE];
 
+    CEvent *m_pSilentPINEntryEvent;
     CEvent *m_pQueryPIN2Event;
 
 public:
@@ -47,6 +48,8 @@ public:
     // RIL_REQUEST_GET_SIM_STATUS 1
     virtual RIL_RESULT_CODE CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetSimStatus(RESPONSE_DATA & rRspData);
+
+    virtual RIL_RESULT_CODE ParseEnterSimPin(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SIGNAL_STRENGTH 19
     //virtual RIL_RESULT_CODE ParseSignalStrength(RESPONSE_DATA & rRspData);
