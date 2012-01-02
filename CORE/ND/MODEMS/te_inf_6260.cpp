@@ -896,6 +896,13 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
         ifr.ifr_name[IFNAMSIZ-1] = 0;
 
+        RIL_LOG_INFO("DataConfigUpIpV4() : Setting flags\r\n");
+        if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
+        {
+            //goto Error;
+            RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting flags\r\n");
+        }
+
         RIL_LOG_INFO("DataConfigUpIpV4() : Setting addr\r\n");
         if (!setaddr(s, &ifr, szIpAddr)) // ipaddr
         {
@@ -903,12 +910,6 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
             RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting add\r\n");
         }
 
-        RIL_LOG_INFO("DataConfigUpIpV4() : Setting flags\r\n");
-        if (!setflags(s, &ifr, IFF_UP, 0))
-        {
-            //goto Error;
-            RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting flags\r\n");
-        }
     }
 
     //  we have to set a fake ipv4 gateway if not android do not setup network correctly
@@ -993,8 +994,15 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
 
     inet_ntop(AF_INET6, &ifOutAddr, szIpAddrOut, sizeof(szIpAddrOut));
     strncpy(szIpAddr,szIpAddrOut,sizeof(szIpAddrOut));
-    RIL_LOG_INFO("DataConfigUpIpV6() : Setting addr :%s\r\n",szIpAddr);
 
+    RIL_LOG_INFO("DataConfigUpIpV6() : Setting flags\r\n");
+    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting flags\r\n");
+    }
+
+    RIL_LOG_INFO("DataConfigUpIpV6() : Setting addr :%s\r\n",szIpAddr);
     if (!setaddr6(s, &ifr, szIpAddr))
     {
         //goto Error;
@@ -1055,12 +1063,6 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     else
     {
         RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: Cannot open [%s]\r\n", file_to_open);
-    }
-    RIL_LOG_INFO("DataConfigUpIpV6() : Setting flags\r\n");
-    if (!setflags(s, &ifr, IFF_UP, 0))
-    {
-        //goto Error;
-        RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting flags\r\n");
     }
 
     if (NULL == pChannelData->m_szIpGateways)
@@ -1146,6 +1148,12 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     inet_ntop(AF_INET6, &ifOutAddr, szIpAddrOut, sizeof(szIpAddrOut));
     strncpy(szIpAddr2,szIpAddrOut,sizeof(szIpAddrOut));
 
+    RIL_LOG_INFO("DataConfigUpIpV4V6() : Setting flags\r\n");
+    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Error setting flags\r\n");
+    }
 
     if (!setaddr6(s6, &ifr, szIpAddr2))
     {
@@ -1209,13 +1217,6 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     else
     {
         RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : ERROR: Cannot open [%s]\r\n", file_to_open);
-    }
-
-    RIL_LOG_INFO("DataConfigUpIpV4V6() : Setting flags\r\n");
-    if (!setflags(s, &ifr, IFF_UP, 0))
-    {
-        //goto Error;
-        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Error setting flags\r\n");
     }
 
     // we have to set a fake ipv4 gateway if not android do not setup network correctly
