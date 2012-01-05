@@ -349,7 +349,8 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
     // Get the response out of the Response Queue
     resCode = ReadQueue(rpResponse, rpCmd->GetTimeout());
 
-#if defined(SIMULATE_MODEM_RESET)    //  This is for testing purposes only. (radio reboot)
+#if defined(SIMULATE_MODEM_RESET)
+    //  This is for testing purposes only. (radio reboot)
     static int nCount = 0;
     if (ND_REQ_ID_SIGNALSTRENGTH == rpCmd->GetRequestID())
     {

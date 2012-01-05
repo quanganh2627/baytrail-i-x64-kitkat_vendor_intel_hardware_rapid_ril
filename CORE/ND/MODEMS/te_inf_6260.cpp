@@ -57,7 +57,7 @@ m_pQueryPIN2Event(NULL)
     //  Grab the network interface name
     if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceNamePrefix, m_szNetworkInterfaceNamePrefix, MAX_BUFFER_SIZE))
     {
-        RIL_LOG_CRITICAL("CCTE_INF_6260::CTE_INF_6260() - Could not read network interface name prefix from repository\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - Could not read network interface name prefix from repository\r\n");
         strcpy(m_szNetworkInterfaceNamePrefix, "");
     }
     else
@@ -83,11 +83,11 @@ m_pQueryPIN2Event(NULL)
 
 CTE_INF_6260::~CTE_INF_6260()
 {
-    delete m_pSilentPINEntryEvent;
-    m_pSilentPINEntryEvent = NULL;
-
     delete m_pQueryPIN2Event;
     m_pQueryPIN2Event = NULL;
+
+    delete m_pSilentPINEntryEvent;
+    m_pSilentPINEntryEvent = NULL;
 }
 
 
@@ -229,7 +229,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
 
             ePCache_Code ret = PCache_Get_PIN(szUICCID, szPIN);
 
-            if (ePCache_Code_OK == ret)
+            if (OK == ret)
             {
                 char szCmd[MAX_BUFFER_SIZE] = {0};
                 CCommand *pCmd1 = NULL;
@@ -249,7 +249,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
                 pCmd1 = new CCommand(g_arChannelMapping[ND_REQ_ID_ENTERSIMPIN], NULL, ND_REQ_ID_ENTERSIMPIN, szCmd);
                 if (pCmd1)
                 {
-                    if (!CCommand::AddCmdToQueue(pCmd1))
+                    if (!CCommand::AddCmdToQueue(pCmd1, TRUE))
                     {
                         RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: Unable to queue AT+CPIN command!\r\n");
                         delete pCmd1;
@@ -469,7 +469,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
      * to send AT+CGPADDR (or AT+CGDCONT?) to get the IP address which needs to
      * be returned in the response to the RIL_REQUEST_SETUP_DATA_CALL.
      * DNS address of the activated context is got from AT+XDNS?
-     * Response to  RIL_REQUEST_SETUP_DATA_CALL is sent only after the IP
+     * Response to RIL_REQUEST_SETUP_DATA_CALL is sent only after the IP
      * address and DNS address is got.
      */
 

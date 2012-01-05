@@ -62,7 +62,7 @@ RIL_RESULT_CODE CTEBase::CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData,
 
 
 //  bSilentPINEntry = out variable (true if PIN needs to be silently sent)
-RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& pCardStatus, bool * pbSilentPINEntry)
+RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus, bool* pbSilentPINEntry)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSimPin() - Enter\r\n");
 
@@ -120,7 +120,6 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6*& p
     if (0 == strcmp(szSimState, "READY"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_READY\r\n");
-        //g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
         pCardStatus->gsm_umts_subscription_app_index = 0;
@@ -395,10 +394,8 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
         }
 
         //  Cache PIN1 value
-        if (ePCache_Code_OK != PCache_Store_PIN(szUICCID, m_szPIN))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot cache the PIN value\r\n");
-        }
+        PCache_Store_PIN(szUICCID, m_szPIN);
+
         //  Clear it locally.
         memset(m_szPIN, 0, MAX_PIN_SIZE);
     }
@@ -739,10 +736,8 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA & rRspData)
     }
 
     //  Cache PIN1 value
-    if (ePCache_Code_OK != PCache_Store_PIN(szUICCID, m_szPIN))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot cache the PIN value\r\n");
-    }
+    PCache_Store_PIN(szUICCID, m_szPIN);
+
     //  Clear it locally.
     memset(m_szPIN, 0, MAX_PIN_SIZE);
 
@@ -1539,7 +1534,7 @@ RIL_RESULT_CODE CTEBase::CoreSignalStrength(REQUEST_DATA & rReqData, void * pDat
     RIL_LOG_VERBOSE("CTEBase::CoreSignalStrength() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-#if defined(SIMULATE_MODEM_RESET)
+#if defined(SIMULATE_UNSOL_MODEM_RESET)
     //  NOTE: Uncomment this block to simulate unsolicited modem reset
     static int nCount = 0;
     nCount++;
@@ -1553,7 +1548,7 @@ RIL_RESULT_CODE CTEBase::CoreSignalStrength(REQUEST_DATA & rReqData, void * pDat
     }
     else
 
-#endif // SIMULATE_MODEM_RESET
+#endif // SIMULATE_UNSOL_MODEM_RESET
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSQ\r", sizeof(rReqData.szCmd1)))
     {
@@ -4115,7 +4110,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     {
         if (0 == strcmp(pszMode, "1"))
         {
-            strncpy(m_szPIN, pszPassword, MAX_PIN_SIZE);
+            strcpy(m_szPIN, pszPassword);
         }
         else
         {
@@ -4182,10 +4177,7 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
             SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
         }
 
-        if (ePCache_Code_OK != PCache_Store_PIN(szUICCID, m_szPIN))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - Cannot cache the PIN value\r\n");
-        }
+        PCache_Store_PIN(szUICCID, m_szPIN);
     }
     //  Clear it locally.
     memset(m_szPIN, 0, MAX_PIN_SIZE);
