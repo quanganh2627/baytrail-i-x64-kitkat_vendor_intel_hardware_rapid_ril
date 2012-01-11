@@ -259,11 +259,12 @@ Error:
 //
 BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
 {
-   RIL_LOG_VERBOSE("CSilo_SMS::ParseCBM() - Enter\r\n");
+    RIL_LOG_VERBOSE("CSilo_SMS::ParseCBM() - Enter\r\n");
 
     BOOL   fRet     = FALSE;
     UINT32   uiLength = 0;
     char*  szPDU    = NULL;
+    unsigned char*  PDUHexa    = NULL;
     char   szAlpha[MAX_BUFFER_SIZE];
     const char* szDummy;
 
@@ -295,34 +296,40 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
     }
     else
     {
-        // Override the given length with the actual length. Don't forget the '\0'.
-        uiLength = ((UINT32)(szDummy - rszPointer)) - strlen(g_szNewLine) + 1;
+        uiLength = (UINT32)(szDummy - rszPointer) - strlen(g_szNewLine);
         RIL_LOG_INFO("CSilo_SMS::ParseCBM() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
-    szPDU = (char *)malloc(sizeof(char) * uiLength);
-    if (NULL == szPDU)
+    // Don't forget the '\0'.
+    szPDU = (char*)malloc(sizeof(char) * (uiLength+1));
+    PDUHexa = (unsigned char*)malloc(sizeof(unsigned char) * (uiLength/2));
+
+    if ((NULL == szPDU) || (NULL == PDUHexa))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - ERROR: Could not allocate memory for szPDU.\r\n");
         goto Error;
     }
-    memset(szPDU, 0, sizeof(char) * uiLength);
 
-    if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, uiLength, rszPointer))
+    memset(szPDU, 0, sizeof(char) * (uiLength+1));
+    memset(PDUHexa, 0, sizeof(unsigned char) * (uiLength/2));
+
+    if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, (uiLength+1), rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - ERROR: Could not parse PDU String.\r\n");
         goto Error;
     }
 
-    // Ensure NULL Termination.
-    szPDU[uiLength-1] = '\0';
-
-    RIL_LOG_INFO("CSilo_SMS::ParseCBM() - PDU String: \"%s\".\r\n", szPDU);
+    // Translate the Hexa String to Hexa value (2 digits -> 1 digits).
+    // Ex : "C04E2D..." to {0xC0, 0x4E, 0x2D}.
+    // The (uiLength-1)/2 first byte (char) of the szPDU buffer are updated.
+    // The last character of the string is not take account.
+    convertStrToHexBuf(szPDU, &PDUHexa);
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS);
 
-    if (!pResponse->SetData((void*)szPDU, sizeof(char *), FALSE))
+    // The (uiLength-1)/2 first byte (char) of the szPDU buffer are returned in the response.
+    if (!pResponse->SetData(PDUHexa, uiLength/2, FALSE))
     {
         goto Error;
     }
@@ -330,10 +337,13 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
     fRet = TRUE;
 
 Error:
+    free(szPDU);
+    szPDU = NULL;
+
     if (!fRet)
     {
-        free(szPDU);
-        szPDU = NULL;
+        free(PDUHexa);
+        PDUHexa = NULL;
     }
 
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCBM() - Exit\r\n");

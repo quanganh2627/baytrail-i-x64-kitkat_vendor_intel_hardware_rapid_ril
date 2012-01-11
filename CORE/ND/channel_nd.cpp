@@ -191,10 +191,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
         pATCommand = (char *) rpCmd->GetATCmd1();
         pATCommand2 = (char *) rpCmd->GetATCmd2();
         UINT32 nCmd1Length = (NULL == pATCommand) ? 0 : strlen(pATCommand);
-
-#if defined(DEBUG)
         UINT32 nCmd2Length = (NULL == pATCommand2) ? 0 : strlen(pATCommand2);
-
         CRLFExpandedString cmd1(pATCommand, nCmd1Length);
         CRLFExpandedString cmd2(pATCommand2, nCmd2Length);
 
@@ -202,12 +199,13 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
         const char* pPrintStr = cmd1.GetString();
         const char* pPrintCmd2Str = cmd2.GetString();
 
-        RIL_LOG_INFO("CChannel::SendCommand() - chnl=[%d] RILReqID=[%d] retries=[%d] Timeout=[%d] cmd1=[%s] cmd2=[%s]\r\n",
-            m_uiRilChannel, rpCmd->GetRequestID(), nNumRetries, rpCmd->GetTimeout(), pPrintStr, pPrintCmd2Str);
-#else
-        RIL_LOG_INFO("CChannel::SendCommand() - chnl=[%d] RILReqID=[%d] retries=[%d] Timeout=[%d]\r\n",
-            m_uiRilChannel, rpCmd->GetRequestID(), nNumRetries, rpCmd->GetTimeout());
-#endif
+        if (CRilLog::IsFullLogBuild())
+            RIL_LOG_INFO("CChannel::SendCommand() - chnl=[%d] RILReqID=[%d] retries=[%d] Timeout=[%d] cmd1=[%s] cmd2=[%s]\r\n",
+                m_uiRilChannel, rpCmd->GetRequestID(), nNumRetries, rpCmd->GetTimeout(), pPrintStr, pPrintCmd2Str);
+        else
+            RIL_LOG_INFO("CChannel::SendCommand() - chnl=[%d] RILReqID=[%d] retries=[%d] Timeout=[%d]\r\n",
+                m_uiRilChannel, rpCmd->GetRequestID(), nNumRetries, rpCmd->GetTimeout());
+
         do
         {
             UINT32 uiBytesWritten = 0;
@@ -229,34 +227,31 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             if (!bSuccess)
             {
                 // write() = -1, error.
-#if defined(DEBUG)
-                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: write() = -1, chnl=[%d] Error writing command: %s\r\n",
-                                m_uiRilChannel, pPrintStr);
-#else
-                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: write() = -1, chnl=[%d] Error writing requestId: %d\r\n",
-                                m_uiRilChannel, rpCmd->GetRequestID());
-#endif
+                if (CRilLog::IsFullLogBuild())
+                    RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: write() = -1, chnl=[%d] Error writing command: %s\r\n",
+                                    m_uiRilChannel, pPrintStr);
+                else
+                    RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: write() = -1, chnl=[%d] Error writing requestId: %d\r\n",
+                                    m_uiRilChannel, rpCmd->GetRequestID());
+
                 do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
             }
 
             if (nCmd1Length != uiBytesWritten)
             {
-#if defined(DEBUG)
-                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Only wrote [%d] chars of command to port: %s\r\n",
-                                m_uiRilChannel, uiBytesWritten, pPrintStr);
-#else
-                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Only wrote [%d] chars of command to port, RequestId=[%d]\r\n",
-                                m_uiRilChannel, uiBytesWritten, rpCmd->GetRequestID());
-#endif
+                if (CRilLog::IsFullLogBuild())
+                    RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Only wrote [%d] chars of command to port: %s\r\n",
+                                    m_uiRilChannel, uiBytesWritten, pPrintStr);
+                else
+                    RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] Only wrote [%d] chars of command to port, RequestId=[%d]\r\n",
+                                    m_uiRilChannel, uiBytesWritten, rpCmd->GetRequestID());
             }
 
-#if !defined(DEBUG)
-            if (0 == nNumRetries)
+            if (!CRilLog::IsFullLogBuild() && 0 == nNumRetries)
             {
                 rpCmd->FreeATCmd1();
                 pATCommand = NULL;
             }
-#endif
 
             // retrieve response from modem
             resCode = GetResponse(rpCmd, pResponse);
@@ -266,13 +261,12 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
 
             if (!pResponse)
             {
-#if defined(DEBUG)
-                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] No response received to TX [%s]\r\n",
-                                 m_uiRilChannel, pPrintStr);
-#else
-                RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] No response received for requestId [%d]\r\n",
-                                 m_uiRilChannel, rpCmd->GetRequestID());
-#endif
+                if (CRilLog::IsFullLogBuild())
+                    RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] No response received to TX [%s]\r\n",
+                                    m_uiRilChannel, pPrintStr);
+                else
+                    RIL_LOG_CRITICAL("CChannel::SendCommand() - ERROR: chnl=[%d] No response received for requestId [%d]\r\n",
+                                    m_uiRilChannel, rpCmd->GetRequestID());
                 goto Error;
             }
 
@@ -375,16 +369,17 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         }
         else
         {
-#if defined(DEBUG)
-            CRLFExpandedString cmd(pATCommand, strlen(pATCommand));
-            const char* pPrintStr = cmd.GetString();
+            if (CRilLog::IsFullLogBuild())
+            {
+                CRLFExpandedString cmd(pATCommand, strlen(pATCommand));
+                const char* pPrintStr = cmd.GetString();
 
-            RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command timed out chnl=[%d]! timeout=[%d]ms No response to TX [%s] *****\r\n",
-                            m_uiRilChannel, rpCmd->GetTimeout(), pPrintStr);
-#else
-            RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command timed out chnl=[%d]! timeout=[%d]ms No response for requestId TX [%d] *****\r\n",
-                            m_uiRilChannel, rpCmd->GetTimeout(), rpCmd->GetRequestID());
-#endif
+                RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command timed out chnl=[%d]! timeout=[%d]ms No response to TX [%s] *****\r\n",
+                                m_uiRilChannel, rpCmd->GetTimeout(), pPrintStr);
+            }
+            else
+                RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command timed out chnl=[%d]! timeout=[%d]ms No response for requestId TX [%d] *****\r\n",
+                                m_uiRilChannel, rpCmd->GetTimeout(), rpCmd->GetRequestID());
         }
 
         HandleTimeout(rpCmd, rpResponse);
@@ -453,40 +448,38 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         SetCmdThreadBlockedOnRxQueue();
 
         UINT32 cmdStrLen = (NULL == pATCommand) ? 0 : strlen(pATCommand);
-#if defined(DEBUG)
         CRLFExpandedString cmd(pATCommand, cmdStrLen);
         const char* pPrintStr = cmd.GetString();
-#endif
 
         BOOL bSuccess = WriteToPort(pATCommand, cmdStrLen, uiBytesWritten);
         if (!bSuccess)
         {
-#if defined(DEBUG)
-            RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Error sending 2nd command: %s\r\n",
-                                m_uiRilChannel, pPrintStr);
-#else
-            RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Error sending 2nd command with request ID=[%d]\r\n",
-                            m_uiRilChannel, rpCmd->GetRequestID());
-#endif
+            if (CRilLog::IsFullLogBuild())
+                RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Error sending 2nd command: %s\r\n",
+                                    m_uiRilChannel, pPrintStr);
+            else
+                RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Error sending 2nd command with request ID=[%d]\r\n",
+                                m_uiRilChannel, rpCmd->GetRequestID());
+
             // ignore error and wait for a modem response, or time out
         }
 
         if (cmdStrLen != uiBytesWritten)
         {
-#if defined(DEBUG)
-            RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Could only write [%d] chars of 2nd command: %s\r\n",
-                                m_uiRilChannel, uiBytesWritten, pPrintStr);
-#else
-            RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Could only write [%d] chars of 2nd command RequestID=[%d]\r\n",
-                                m_uiRilChannel, uiBytesWritten, rpCmd->GetRequestID());
-#endif
+            if (CRilLog::IsFullLogBuild())
+                RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Could only write [%d] chars of 2nd command: %s\r\n",
+                                    m_uiRilChannel, uiBytesWritten, pPrintStr);
+            else
+                RIL_LOG_CRITICAL("CChannel::GetResponse() - ERROR: chnl=[%d] Could only write [%d] chars of 2nd command RequestID=[%d]\r\n",
+                                    m_uiRilChannel, uiBytesWritten, rpCmd->GetRequestID());
         }
 
-#if !defined(DEBUG)
-        // No retry mechanism, free the command buffer
-        rpCmd->FreeATCmd2();
-        pATCommand = NULL;
-#endif
+        if (!CRilLog::IsFullLogBuild())
+        {
+            // No retry mechanism, free the command buffer
+            rpCmd->FreeATCmd2();
+            pATCommand = NULL;
+        }
 
         // wait for the secondary response
         delete rpResponse;
@@ -495,13 +488,12 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
 
         if (rpResponse && rpResponse->IsTimedOutFlag())
         {
-#if defined(DEBUG)
-            RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command2 timed out chnl=[%d] ! timeout=[%d]ms No response to TX [%s] *****\r\n",
-                                m_uiRilChannel, rpCmd->GetTimeout(), pPrintStr);
-#else
-            RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command2 timed out chnl=[%d] ! timeout=[%d]ms No response to requestID [%d] *****\r\n",
-                                m_uiRilChannel, rpCmd->GetTimeout(), rpCmd->GetRequestID());
-#endif
+            if (CRilLog::IsFullLogBuild())
+                RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command2 timed out chnl=[%d] ! timeout=[%d]ms No response to TX [%s] *****\r\n",
+                                    m_uiRilChannel, rpCmd->GetTimeout(), pPrintStr);
+            else
+                RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** ERROR: Command2 timed out chnl=[%d] ! timeout=[%d]ms No response to requestID [%d] *****\r\n",
+                                    m_uiRilChannel, rpCmd->GetTimeout(), rpCmd->GetRequestID());
 
             HandleTimeout(rpCmd, rpResponse);
             goto Error;

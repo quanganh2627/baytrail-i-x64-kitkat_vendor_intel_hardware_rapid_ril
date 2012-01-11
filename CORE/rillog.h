@@ -17,17 +17,9 @@
 
 #include "types.h"
 
-#if defined(DEBUG)
 #define RIL_LOG_VERBOSE(format, ...)    CRilLog::Verbose(format, ## __VA_ARGS__)
 #define RIL_LOG_INFO(format, ...)       CRilLog::Info(format, ## __VA_ARGS__)
 #define RIL_LOG_WARNING(format, ...)    CRilLog::Warning(format, ## __VA_ARGS__)
-#else
-#define RIL_LOG_VERBOSE(format, ...)
-#define RIL_LOG_INFO(format, ...)
-#define RIL_LOG_WARNING(format, ...)
-#endif  // DEBUG
-
-// Critical is always enabled
 #define RIL_LOG_CRITICAL(format, ...)   CRilLog::Critical(format, ## __VA_ARGS__)
 
 class CRilLog
@@ -38,6 +30,8 @@ public:
     static void Info(const char* const szFormatString, ...);
     static void Warning(const char* const szFormatString, ...);
     static void Critical(const char* const szFormatString, ...);
+
+    static inline BOOL IsFullLogBuild() { return m_bFullLogBuild; }
 
 private:
     static const UINT32 m_uiMaxLogBufferSize = 1024;
@@ -51,6 +45,7 @@ private:
 
     static UINT8 m_uiFlags;
     static BOOL  m_bInitialized;
+    static BOOL  m_bFullLogBuild;
 };
 
 #endif // RRIL_LOG_H

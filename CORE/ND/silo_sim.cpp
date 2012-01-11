@@ -320,7 +320,6 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 }
                 memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
 
-                // Initialize as per reference ril as insufficient documentation currently is available
                 pCardStatus->gsm_umts_subscription_app_index = -1;
                 pCardStatus->cdma_subscription_app_index = -1;
                 pCardStatus->ims_subscription_app_index = -1;
@@ -353,7 +352,6 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 }
                 memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
 
-                // Initialize as per reference ril as insufficient documentation currently is available
                 pCardStatus->gsm_umts_subscription_app_index = 0;
                 pCardStatus->cdma_subscription_app_index = -1;
                 pCardStatus->ims_subscription_app_index = -1;
@@ -411,7 +409,6 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 }
                 memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
 
-                // Initialize as per reference ril as insufficient documentation currently is available
                 pCardStatus->gsm_umts_subscription_app_index = 0;
                 pCardStatus->cdma_subscription_app_index = -1;
                 pCardStatus->ims_subscription_app_index = -1;
@@ -916,7 +913,7 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
         // Extract "<fac>"
         if (!ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac), rszPointer))
         {
-            RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Unable to find <fac>!\r\n");
+            RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() - Unable to find <fac>!\r\n");
             goto complete;
         }
 

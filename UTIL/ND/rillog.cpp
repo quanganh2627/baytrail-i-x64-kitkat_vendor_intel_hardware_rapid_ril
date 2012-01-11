@@ -14,15 +14,25 @@
 #include "repository.h"
 #include "rillog.h"
 #include <utils/Log.h>
+#include <cutils/properties.h>
 
 UINT8 CRilLog::m_uiFlags = 0x00;
 BOOL  CRilLog::m_bInitialized = FALSE;
-
+BOOL  CRilLog::m_bFullLogBuild = FALSE;
 
 void CRilLog::Init()
 {
     CRepository repository;
     int         iLogLevel;
+    char        szBuildType[PROPERTY_VALUE_MAX] = {0};
+
+    /*
+     * Check if the build is an engineering build.
+     * If not the case, only CRITICAL level of log will be activated.
+     */
+    property_get("ro.build.type", szBuildType, "");
+    m_bFullLogBuild = (strcmp(szBuildType, "eng") == 0) ||
+            (strcmp(szBuildType, "userdebug") == 0);
 
     if (repository.Read(g_szGroupLogging, g_szLogLevel, iLogLevel))
     {
@@ -30,13 +40,16 @@ void CRilLog::Init()
         switch(iLogLevel)
         {
             case 1: // Verbose
-                m_uiFlags |= E_RIL_VERBOSE_LOG;
+                if (m_bFullLogBuild)
+                    m_uiFlags |= E_RIL_VERBOSE_LOG;
                 // fall through
             case 2: // Info
-                m_uiFlags |= E_RIL_INFO_LOG;
+                if (m_bFullLogBuild)
+                    m_uiFlags |= E_RIL_INFO_LOG;
                 // fall through
             case 3:
-                m_uiFlags |= E_RIL_WARNING_LOG;
+                if (m_bFullLogBuild)
+                    m_uiFlags |= E_RIL_WARNING_LOG;
                 // fall through
             case 4:
             default:

@@ -17,6 +17,7 @@
 #include "types.h"
 #include "rril_OEM.h"
 #include "rril.h"
+#include <utils/Vector.h>
 
 class CTEBase
 {
@@ -26,6 +27,7 @@ protected:
     char m_szPIN[MAX_PIN_SIZE];
     bool mShutdown;
     int m_nSimAppType;
+    android::Vector<RIL_GSM_BroadcastSmsConfigInfo> m_vBroadcastSmsConfigInfo;
 
 public:
 

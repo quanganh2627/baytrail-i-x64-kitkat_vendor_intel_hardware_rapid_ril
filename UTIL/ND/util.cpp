@@ -401,31 +401,32 @@ UINT32 GetTickCount()
     return (t.tv_sec * 1000) + (t.tv_usec / 1000);
 }
 
-//  Add for USSD UCS2 transfer "4E2D..." to {0x4E, 0x2D}
-void ussdAsciiToHex(const unsigned char *inStr, int inLen, unsigned char** outHexStr)
+// Convert a C-string representing hexadecimal buffer ("4E2D...") to an hex buffer {0x4E, 0x2D}
+// inStr: string representing hexadecimals to convert
+// pOutHex: pointer to output buffer (size should be enough to contain the information)
+void convertStrToHexBuf(const char* inStr, unsigned char** pOutHexStr)
 {
-    int i = 0;
-    int hex = 0;
-    unsigned char *tmpHex = NULL;
+    unsigned int i;
+    unsigned int hex = 0;
+    unsigned int len = strlen(inStr)/2;
 
     if (NULL == inStr)
     {
-        RIL_LOG_CRITICAL("ussdAsciiToHex() - ERROR: inStr is NULL\r\n");
+        RIL_LOG_CRITICAL("convertStrToHexBuf() - ERROR: inStr is NULL\r\n");
         return;
     }
 
-    if ((NULL == outHexStr) || (NULL == *outHexStr))
+    if (NULL == pOutHexStr || NULL == *pOutHexStr)
     {
-        RIL_LOG_CRITICAL("ussdAsciiToHex() - ERROR: hexStr is NULL\r\n");
+        RIL_LOG_CRITICAL("convertStrToHexBuf() - ERROR: pOutHexStr is NULL\r\n");
         return;
     }
 
-    tmpHex = *outHexStr;
-
-    for(i=0; i<inLen/2; i++)
+    for(i=0; i<len; i++)
     {
-        sscanf((const char*)inStr, "%2x", &hex);
-        inStr += 2;
-        tmpHex[i] = hex;
+        sscanf(inStr + i*2, "%2x", &hex);
+        (*pOutHexStr)[i] = hex;
     }
 }
+
+

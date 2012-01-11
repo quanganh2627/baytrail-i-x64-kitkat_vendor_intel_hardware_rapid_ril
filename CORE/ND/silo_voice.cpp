@@ -828,7 +828,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
                 // UCS2
                 RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - UCS2 encoding\r\n");
                 unsigned char* tmpUssdUcs2 = NULL;
-                unsigned char tmpUssdAscii[MAX_BUFFER_SIZE] = {0};
+                char tmpUssdAscii[MAX_BUFFER_SIZE] = {0};
                 int lenUssdAscii = 0;
 
                 if (!CopyStringNullTerminate((char*)tmpUssdAscii, szDataString, MAX_BUFFER_SIZE))
@@ -837,7 +837,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
                     goto Error;
                 }
 
-                lenUssdAscii = strlen((char*)tmpUssdAscii);
+                lenUssdAscii = strlen(tmpUssdAscii);
                 if ( (lenUssdAscii % 2) != 0)
                 {
                     RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Illegal string from modem\r\n");
@@ -852,7 +852,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
                 }
                 memset(tmpUssdUcs2, 0, ((lenUssdAscii/2)+2));
 
-                ussdAsciiToHex(tmpUssdAscii, lenUssdAscii, &tmpUssdUcs2);
+                convertStrToHexBuf(tmpUssdAscii, &tmpUssdUcs2);
 
                 memset(pUssdStatus->szMessage, 0, sizeof(pUssdStatus->szMessage));
                 ucs2_to_utf8((unsigned char*)tmpUssdUcs2, lenUssdAscii/2, (unsigned char*)pUssdStatus->szMessage);

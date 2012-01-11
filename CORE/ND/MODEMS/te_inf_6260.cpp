@@ -229,7 +229,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
 
             ePCache_Code ret = PCache_Get_PIN(szUICCID, szPIN);
 
-            if (OK == ret)
+            if (eOK == ret)
             {
                 char szCmd[MAX_BUFFER_SIZE] = {0};
                 CCommand *pCmd1 = NULL;
@@ -907,9 +907,8 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         if (!setaddr(s, &ifr, szIpAddr)) // ipaddr
         {
             //goto Error;
-            RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting add\r\n");
+            RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting addr\r\n");
         }
-
     }
 
     //  we have to set a fake ipv4 gateway if not android do not setup network correctly
@@ -999,7 +998,7 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
     {
         //goto Error;
-        RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting flags\r\n");
+        RIL_LOG_CRITICAL("DataConfigUpIpV6(): Error setting flags\r\n");
     }
 
     RIL_LOG_INFO("DataConfigUpIpV6() : Setting addr :%s\r\n",szIpAddr);

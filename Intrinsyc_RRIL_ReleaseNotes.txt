@@ -1,6 +1,165 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+January 10, 2012 (M6.04 release for Medfield PR2)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR2 devices, Android version 4.0.1 (Ice Cream Sandwich).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external Gingerbread ABSP dated December 9, 2011 (ww50)
+  with some ICS bits for RIL compilation.
+- We are using the HSI interface.
+
+PR2 Setup
+=========
+KBoot: kboot.bin (from ww50 external release)
+IFWI: IFWI_v01.16_CRAK.bin
+Misc Module: SIGNED_PNW_C0_FWR_DnX.FD.19.bin
+OS Recovery Module: SIGNED_PNW_C0_OSR_DnX.0D.37.bin
+Modem Firmware: SUNRISE_SMB_REV30_V2_1146.C_signed_MIPI_HSI_USIF_V2.15.fls
+
+
+Release Notes for M6.04
+=======================
+
+1. By request, enable compilation flag M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED.
+   -This enables use of RIL_E_INVALID_PARAMETER constant introduced in GB 2.3.5.
+   -rapid_ril source code removes compilation flag, but enables functionality.
+   -ril.h, and libril source code removes compilation flag, but enables functionality.
+
+2. Incorporate feedback from RIL M6.03 release.
+
+3. Bugzilla 19003: Remove debug compilation flag dependent on BUILD_VARIANT
+   -Integrate patch 30910 (set 3)
+
+4. Bugzilla 18761: route to mms proxy not found when mms is sent on a second primary
+                   pdp context
+   -Integrate patch 30275 (set 1)
+
+5. Bugzilla 18749: support of M2_PIN_RETRIES_FEATURE is missing in RILC
+   -Added support for marshalling structure members in libril/ril.cpp.
+
+6. Bugzilla 18597: ICS : The modem is configured not correctly for SMS CB reception
+   -Integrate patch 30421 (set 6)
+   -Due to enum name conflict with Vector class dependency (reset.h ePCache_Code "OK" conflicts
+    with anonymous enum "OK" in frameworks/base/include/utils/Errors.h), changed name
+    of enum ePCache_Code values to:
+
+    enum ePCache_Code
+    {
+        eNO_PIN_AVAILABLE = -4,
+        eWRONG_INTEGRITY = -3,
+        eINVALID_UICC = -2,
+        eNOK = -1,
+        eOK = 0
+    };
+
+    This avoids enum name conflicts.
+
+7. Bugzilla 18598: ICS : The SMS CB are not received
+   -Integrate patch 31196 (set 5)
+
+
+Testing results:  (tested on mfld_pr2)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 January 4, 2012 (M6.03 release for Medfield PR2)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield

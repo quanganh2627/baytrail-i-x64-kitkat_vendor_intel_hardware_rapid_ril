@@ -14,11 +14,7 @@ LOCAL_SRC_FILES:= \
     repository.cpp
 
 LOCAL_SHARED_LIBRARIES := \
-    libutils
-
-ifeq ($(TARGET_BUILD_VARIANT),eng)
-LOCAL_CFLAGS += -DDEBUG
-endif
+    libutils libcutils
 
 # Activating this macro enables the optional Video Telephony feature
 #LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED

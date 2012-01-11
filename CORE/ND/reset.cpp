@@ -442,17 +442,17 @@ ePCache_Code PCache_Store_PIN(const char *szUICC, const char *szPIN)
     if (NULL == szUICC || '\0' == szUICC[0] || 0 != property_set(szRIL_cacheduicc, szUICC))
     {
         RIL_LOG_CRITICAL("PCache_Store_PIN() - Cannot store uicc\r\n");
-        return NOK;
+        return eNOK;
     }
 
     if (NULL == szPIN || '\0' == szPIN[0] || 0 != property_set(szRIL_cachedpin, szPIN))
     {
         property_set(szRIL_cacheduicc, "");
         RIL_LOG_CRITICAL("PCache_Store_PIN() - Cannot store pin\r\n");
-        return NOK;
+        return eNOK;
     }
 
-    return OK;
+    return eOK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -470,42 +470,42 @@ ePCache_Code PCache_Get_PIN(const char *szUICC, char *szPIN)
     if (NULL == szUICC || NULL == szPIN || '\0' == szUICC[0])
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - szUICC or szPIN are invalid\r\n");
-        return INVALID_UICC;
+        return eINVALID_UICC;
     }
 
     if (!property_get(szRIL_cacheduicc, szUICCCached, ""))
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached uicc\r\n");
-        return NO_PIN_AVAILABLE;
+        return eNO_PIN_AVAILABLE;
     }
 
     if ('\0' == szUICCCached[0])
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - szUICCCached is empty!\r\n");
-        return NO_PIN_AVAILABLE;
+        return eNO_PIN_AVAILABLE;
     }
 
     if (0 != strcmp(szUICCCached, szUICC))
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - bad uicc\r\n");
-        return INVALID_UICC;
+        return eINVALID_UICC;
     }
 
     if (!property_get(szRIL_cachedpin, szPIN, ""))
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached pin\r\n");
-        return NO_PIN_AVAILABLE;
+        return eNO_PIN_AVAILABLE;
     }
 
     if ('\0' == szPIN[0])
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - szPIN is empty!\r\n");
-        return NO_PIN_AVAILABLE;
+        return eNO_PIN_AVAILABLE;
     }
 
     RIL_LOG_INFO("PCache_Get_PIN - Retrieved PIN=[%s]\r\n", szPIN);
 
-    return OK;
+    return eOK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -520,18 +520,18 @@ ePCache_Code PCache_Clear()
     if (0 != property_set(szRIL_cacheduicc, ""))
     {
         RIL_LOG_CRITICAL("PCache_Clear() - Cannot clear uicc cache\r\n");
-        return NOK;
+        return eNOK;
     }
 
     if (0 != property_set(szRIL_cachedpin, ""))
     {
         RIL_LOG_CRITICAL("PCache_Clear() - Cannot clear pin cache\r\n");
-        return NOK;
+        return eNOK;
     }
 
     RIL_LOG_INFO("PCache_Clear() - Cached cleared!\r\n");
 
-    return OK;
+    return eOK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -550,7 +550,7 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
         if (0 != property_set(szRIL_usecachedpin, "1"))
         {
             RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set usecachedpin  bFlag=[%d]\r\n", bFlag);
-            return NOK;
+            return eNOK;
         }
     }
     else
@@ -558,11 +558,11 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
         if (0 != property_set(szRIL_usecachedpin, ""))
         {
             RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set usecachedpin  bFlag=[%d]\r\n", bFlag);
-            return NOK;
+            return eNOK;
         }
     }
 
-    return OK;
+    return eOK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

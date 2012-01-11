@@ -53,9 +53,6 @@ LOCAL_SRC_FILES:= \
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils
 
-ifeq ($(TARGET_BUILD_VARIANT),eng)
-LOCAL_CFLAGS += -DDEBUG
-endif
 
 # Activating this macro enables the optional Video Telephony feature
 #LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
@@ -68,14 +65,6 @@ LOCAL_CFLAGS += -DM2_RXDIV_FEATURE_ENABLED
 
 # Activating this macro enables PIN retry count feature
 #LOCAL_CFLAGS += -DM2_PIN_RETRIES_FEATURE_ENABLED
-
-# Remove comment character when SEEK for Android V2.2.2 is complete.
-# This adds the RIL_E_INVALID_PARAMETER = 22 in ril.h
-# Normally this is = 18 in the original SEEK V2.2.2 implementation.
-# To be aligned with Android java framework, align these codes with:
-# frameworks/base/telephony/java/com/android/internal/telephony/RILConstants.java
-#LOCAL_CFLAGS += -DM2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
-
 
 # Activating this macro enables SEEK for Android (for Ice Cream Sandwich)
 #LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED

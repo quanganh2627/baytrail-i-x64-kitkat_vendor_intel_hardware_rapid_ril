@@ -30,6 +30,7 @@
 #include "channel_data.h"
 #include <cutils/properties.h>
 
+
 CTEBase::CTEBase() :
 m_nNetworkRegistrationType(0),
 mShutdown(false),
@@ -5451,14 +5452,17 @@ Continue:
     res = RRIL_RESULT_OK;
     RIL_LOG_INFO("CTEBase::ParseDataCallList() - Parse complete, found [%d] contexts.\r\n", count);
 
-    for (int i = 0; i < count; ++i)
+    if (CRilLog::IsFullLogBuild())
     {
-        RIL_LOG_INFO("index=%d  status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
-            i, pPDPListData->pPDPData[i].status, pPDPListData->pPDPData[i].suggestedRetryTime,
-            pPDPListData->pPDPData[i].cid, pPDPListData->pPDPData[i].active,
-            pPDPListData->pPDPData[i].type, pPDPListData->pPDPData[i].ifname,
-            pPDPListData->pPDPData[i].addresses, pPDPListData->pPDPData[i].dnses,
-            pPDPListData->pPDPData[i].gateways);
+        for (int i = 0; i < count; ++i)
+        {
+            RIL_LOG_INFO("i=%d  status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
+                i, pPDPListData->pPDPData[i].status, pPDPListData->pPDPData[i].suggestedRetryTime,
+                pPDPListData->pPDPData[i].cid, pPDPListData->pPDPData[i].active,
+                pPDPListData->pPDPData[i].type, pPDPListData->pPDPData[i].ifname,
+                pPDPListData->pPDPData[i].addresses, pPDPListData->pPDPData[i].dnses,
+                pPDPListData->pPDPData[i].gateways);
+        }
     }
 
 Error:
@@ -6533,22 +6537,13 @@ Error:
 //
 RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
+    int nConfigInfos = 0;
+
     RIL_LOG_VERBOSE("CTEBase::CoreGsmSetBroadcastSmsConfig() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    char szChannels[MAX_BUFFER_SIZE] = {0};
-    char szLangs[MAX_BUFFER_SIZE] = {0};
-    char szChannelsInt[MAX_BUFFER_SIZE] = {0};
-    char szLangsInt[MAX_BUFFER_SIZE] = {0};
-    UINT32 nSelected = 0;
-    const RIL_GSM_BroadcastSmsConfigInfo **   ppBroadcastSmsConfigInfo;
-    UINT32 nNumOfConfigInfos = 0;
-    UINT32 nChannelToAccept = 0;
-    UINT32 i = 0;
-    int fromServiceIdMem = 0xFFFF;
-    int toServiceIdMem = 0xFFFF;
-    int fromCodeSchemeMem = 0xFFFF;
-    int toCodeSchemeMem = 0xFFFF;
+    RIL_GSM_BroadcastSmsConfigInfo** ppConfigInfo = (RIL_GSM_BroadcastSmsConfigInfo**)pData;
+    m_vBroadcastSmsConfigInfo.clear();
 
     if ( (0 == uiDataSize) || (0 != (uiDataSize % sizeof(RIL_GSM_BroadcastSmsConfigInfo *))) )
     {
@@ -6562,193 +6557,20 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA & rReqData, v
         goto Error;
     }
 
-    ppBroadcastSmsConfigInfo = (const RIL_GSM_BroadcastSmsConfigInfo **)pData;
-    nNumOfConfigInfos = uiDataSize / sizeof(RIL_GSM_BroadcastSmsConfigInfo *);
+    nConfigInfos = uiDataSize / sizeof(RIL_GSM_BroadcastSmsConfigInfo *);
+    RIL_LOG_INFO("CTEBase::CoreGsmSetBroadcastSmsConfig() - nConfigInfos = %d.\r\n", nConfigInfos);
 
-
-    //  Loop through each RIL_GSM_BroadcastSmsConfigInfo structure.
-    //  Make string szChannels our list of channels to add.
-    nSelected = 1;
-    for (i = 0; i < nNumOfConfigInfos; i++)
+    for (int i=0; i<nConfigInfos; i++)
     {
-        const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[i];
-        if (NULL == pConfigInfo)
-        {
-            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (channels)\r\n", i);
-            goto Error;
-        }
-
-        // Default Value. If no channel selected the mode must at the not accepted value (1).
-        if (pConfigInfo->selected == true)
-        {
-            nSelected = 0;
-            nChannelToAccept++;
-        }
+        m_vBroadcastSmsConfigInfo.push_back(*(ppConfigInfo[i]));
     }
 
-    if (nChannelToAccept > 0)
+    if (m_vBroadcastSmsConfigInfo.empty())
     {
-        //  Loop through each RIL_GSM_BroadcastSmsConfigInfo structure.
-        //  Make string szChannels our list of channels to add.
-        nChannelToAccept = 0;
-        for (i = 0; i < nNumOfConfigInfos; i++)
-        {
-            const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[i];
-            if (NULL == pConfigInfo)
-            {
-                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (channels)\r\n", i);
-                goto Error;
-            }
-
-            if (pConfigInfo->selected == true)
-            {
-
-                if (nChannelToAccept == 0)
-                {
-                    if (pConfigInfo->fromServiceId == pConfigInfo->toServiceId)
-                    {
-                        if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u", pConfigInfo->fromServiceId))
-                        {
-                            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                            goto Error;
-                        }
-                    }
-                    else
-                    {
-                        if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u-%u", pConfigInfo->fromServiceId, pConfigInfo->toServiceId))
-                        {
-                            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                            goto Error;
-                        }
-                    }
-                    nChannelToAccept++;
-                }
-                else
-                {
-                    if ((fromServiceIdMem != pConfigInfo->fromServiceId) && (toServiceIdMem != pConfigInfo->toServiceId))
-                    {
-                        if (pConfigInfo->fromServiceId == pConfigInfo->toServiceId)
-                        {
-                            if (!PrintStringNullTerminate(szChannelsInt, MAX_BUFFER_SIZE - strlen(szChannelsInt), ",%u", pConfigInfo->fromServiceId))
-                            {
-                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                                goto Error;
-                            }
-                            if (!ConcatenateStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
-                            {
-                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                                goto Error;
-                            }
-                        }
-                        else
-                        {
-                            if (!PrintStringNullTerminate(szChannelsInt, MAX_BUFFER_SIZE - strlen(szChannelsInt), ",%u-%u", pConfigInfo->fromServiceId, pConfigInfo->toServiceId))
-                            {
-                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                                goto Error;
-                            }
-                            if (!ConcatenateStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
-                            {
-                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print to service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                                goto Error;
-                            }
-                        }
-                        nChannelToAccept++;
-                    }
-                    fromServiceIdMem = pConfigInfo->fromServiceId;
-                    toServiceIdMem = pConfigInfo->toServiceId;
-                }
-            }
-        }
-
-        //  Loop through each RIL_GSM_BroadcastSmsConfigInfo structure.
-        //  Make string szLangs our list of languages to add.
-        nChannelToAccept = 0;
-        for (i = 0; i < nNumOfConfigInfos; i++)
-        {
-            const RIL_GSM_BroadcastSmsConfigInfo *pConfigInfo = ppBroadcastSmsConfigInfo[i];
-            if (NULL == pConfigInfo)
-            {
-                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: ppBroadcastSmsConfigInfo[%d] is NULL. (langs)\r\n", i);
-                goto Error;
-            }
-
-            if (pConfigInfo->selected == true)
-            {
-
-                if (nChannelToAccept == 0)
-                {
-                    if (pConfigInfo->fromCodeScheme == pConfigInfo->toCodeScheme)
-                    {
-                        if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u", pConfigInfo->fromCodeScheme))
-                        {
-                            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                            goto Error;
-                        }
-                    }
-                    else
-                    {
-                        if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u-%u", pConfigInfo->fromCodeScheme, pConfigInfo->toCodeScheme))
-                        {
-                            RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from from-to code scheme of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                            goto Error;
-                        }
-                    }
-                    nChannelToAccept++;
-                }
-                else
-                {
-                    if ((fromCodeSchemeMem != pConfigInfo->fromCodeScheme) && (toCodeSchemeMem != pConfigInfo->toCodeScheme))
-                    {
-                        if (pConfigInfo->fromCodeScheme == pConfigInfo->toCodeScheme)
-                        {
-                            if (!PrintStringNullTerminate(szLangsInt, MAX_BUFFER_SIZE - strlen(szLangsInt), ",%u", pConfigInfo->fromCodeScheme))
-                            {
-                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                                goto Error;
-                            }
-                            if (!ConcatenateStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
-                            {
-                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                                goto Error;
-                            }
-                        }
-                        else
-                        {
-                            if (!PrintStringNullTerminate(szLangsInt, MAX_BUFFER_SIZE - strlen(szLangsInt), ",%u-%u", pConfigInfo->fromCodeScheme, pConfigInfo->toCodeScheme))
-                            {
-                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from from-to code scheme of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                                goto Error;
-                            }
-                            if (!ConcatenateStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
-                            {
-                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - ERROR: Unable to print from service id of ppBroadcastSmsConfigInfo[%d]\r\n", i);
-                                goto Error;
-                            }
-                        }
-                        nChannelToAccept++;
-                    }
-                }
-                fromCodeSchemeMem = pConfigInfo->fromCodeScheme;
-                toCodeSchemeMem = pConfigInfo->toCodeScheme;
-            }
-        }
-
-        //  Make the final string.
-        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CSCB=%u,\"%s\",\"%s\"\r", nSelected, szChannels, szLangs))
-        {
-            res = RRIL_RESULT_OK;
-        }
-
+        RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() - m_vBroadcastSmsConfigInfo empty.\r\n");
     }
-    else
-    {
-        //  Make the final string.
-        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CSCB=0,\"\",\"\"\r"))
-        {
-            res = RRIL_RESULT_OK;
-        }
-    }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreGsmSetBroadcastSmsConfig() - Exit\r\n");
@@ -6773,40 +6595,231 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA & rReqData, 
     RIL_LOG_VERBOSE("CTEBase::CoreGsmSmsBroadcastActivation() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    int nFlag = 0;
-
-    if (sizeof(int*) != uiDataSize)
+    if (m_vBroadcastSmsConfigInfo.empty())
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
-        goto Error;
-    }
+        int fBcActivate = 0;
 
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Passed data pointer was NULL\r\n");
-        goto Error;
-    }
-
-    nFlag = ((int*)pData)[0];
-    RIL_LOG_INFO("CTEBase::CoreGsmSmsBroadcastActivation() - nFlag=[%u]\r\n", nFlag);
-
-    //  According to ril.h, 0 = activate, 1 = disable
-    if (0 == nFlag)
-    {
-        //  activate
-        // This command activates all channels with all code schemes.
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSCB=1\r", sizeof(rReqData.szCmd1)))
+        if (sizeof(int*) != uiDataSize)
         {
-            res = RRIL_RESULT_OK;
+            RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+            goto Error;
+        }
+
+        if (NULL == pData)
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Passed data pointer was NULL\r\n");
+            goto Error;
+        }
+
+        fBcActivate = ((int*)pData)[0];
+        RIL_LOG_INFO("CTEBase::CoreGsmSmsBroadcastActivation() - fBcActivate=[%u]\r\n", fBcActivate);
+
+        //  According to ril.h, 0 = activate, 1 = disable
+        if (0 == fBcActivate)
+        {
+            //  activate
+            // This command activates all channels with all code schemes.
+            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSCB=1\r", sizeof(rReqData.szCmd1)))
+            {
+                res = RRIL_RESULT_OK;
+            }
+        }
+        else
+        {
+            //  disable
+            // This command deactivates all channels with all code schemes.
+            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSCB=0\r", sizeof(rReqData.szCmd1)))
+            {
+                res = RRIL_RESULT_OK;
+            }
         }
     }
     else
     {
-        //  disable
-        // This command deactivates all channels with all code schemes.
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSCB=0\r", sizeof(rReqData.szCmd1)))
+        char szChannels[MAX_BUFFER_SIZE] = {0};
+        char szLangs[MAX_BUFFER_SIZE] = {0};
+        char szChannelsInt[MAX_BUFFER_SIZE] = {0};
+        char szLangsInt[MAX_BUFFER_SIZE] = {0};
+        int isSelected = 1;
+        int nChannelToAccept = 0;
+        int fromServiceIdMem = 0xFFFF;
+        int toServiceIdMem = 0xFFFF;
+        int fromCodeSchemeMem = 0xFFFF;
+        int toCodeSchemeMem = 0xFFFF;
+        RIL_GSM_BroadcastSmsConfigInfo _tConfigInfo;
+        int i;
+
+        RIL_LOG_INFO("CTEBase::CoreGsmSmsBroadcastActivation() - m_vBroadcastSmsConfigInfo.size() = %d.\r\n", m_vBroadcastSmsConfigInfo.size());
+
+        //  Loop through each RIL_GSM_BroadcastSmsConfigInfo structure.
+        //  Make string szChannels our list of channels to add.
+        for (i = 0; i < (int)m_vBroadcastSmsConfigInfo.size(); i++)
         {
-            res = RRIL_RESULT_OK;
+            _tConfigInfo = m_vBroadcastSmsConfigInfo[i];
+
+            // Default Value. If no channel selected the mode must at the not accepted value (1).
+            if (_tConfigInfo.selected == true)
+            {
+                isSelected = 0;
+                nChannelToAccept++;
+            }
+        }
+
+        RIL_LOG_INFO("CTEBase::CoreGsmSmsBroadcastActivation() - nChannelToAccept = %d.\r\n", nChannelToAccept);
+
+
+        if (nChannelToAccept > 0)
+        {
+            //  Loop through each RIL_GSM_BroadcastSmsConfigInfo structure.
+            //  Make string szChannels our list of channels to add.
+            nChannelToAccept = 0;
+            for (i = 0; i < (int)m_vBroadcastSmsConfigInfo.size(); i++)
+            {
+                _tConfigInfo = m_vBroadcastSmsConfigInfo[i];
+
+                if (_tConfigInfo.selected == true)
+                {
+
+                    if (nChannelToAccept == 0)
+                    {
+                        if (_tConfigInfo.fromServiceId == _tConfigInfo.toServiceId)
+                        {
+                            if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u", _tConfigInfo.fromServiceId))
+                            {
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print from service id of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                        }
+                        else
+                        {
+                            if (!PrintStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), "%u-%u", _tConfigInfo.fromServiceId, _tConfigInfo.toServiceId))
+                            {
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print to service id of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                        }
+                        nChannelToAccept++;
+                    }
+                    else
+                    {
+                        if ((fromServiceIdMem != _tConfigInfo.fromServiceId) && (toServiceIdMem != _tConfigInfo.toServiceId))
+                        {
+                            if (_tConfigInfo.fromServiceId == _tConfigInfo.toServiceId)
+                            {
+                                if (!PrintStringNullTerminate(szChannelsInt, MAX_BUFFER_SIZE - strlen(szChannelsInt), ",%u", _tConfigInfo.fromServiceId))
+                                {
+                                    RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print from service id of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                    goto Error;
+                                }
+                                if (!ConcatenateStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
+                                {
+                                    RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print from service id of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                    goto Error;
+                                }
+                            }
+                            else
+                            {
+                                if (!PrintStringNullTerminate(szChannelsInt, MAX_BUFFER_SIZE - strlen(szChannelsInt), ",%u-%u", _tConfigInfo.fromServiceId, _tConfigInfo.toServiceId))
+                                {
+                                    RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print to service id of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                    goto Error;
+                                }
+                                if (!ConcatenateStringNullTerminate(szChannels, MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
+                                {
+                                    RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print to service id of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                    goto Error;
+                                }
+                            }
+                            nChannelToAccept++;
+                        }
+                        fromServiceIdMem = _tConfigInfo.fromServiceId;
+                        toServiceIdMem = _tConfigInfo.toServiceId;
+                    }
+                }
+            }
+
+            //  Loop through each RIL_GSM_BroadcastSmsConfigInfo structure.
+            //  Make string szLangs our list of languages to add.
+            nChannelToAccept = 0;
+            for (i = 0; i < (int)m_vBroadcastSmsConfigInfo.size(); i++)
+            {
+                _tConfigInfo = m_vBroadcastSmsConfigInfo[i];
+
+                if (_tConfigInfo.selected == true)
+                {
+
+                    if (nChannelToAccept == 0)
+                    {
+                        if (_tConfigInfo.fromCodeScheme == _tConfigInfo.toCodeScheme)
+                        {
+                            if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u", _tConfigInfo.fromCodeScheme))
+                            {
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print from service id of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                        }
+                        else
+                        {
+                            if (!PrintStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szLangs), "%u-%u", _tConfigInfo.fromCodeScheme, _tConfigInfo.toCodeScheme))
+                            {
+                                RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print from from-to code scheme of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                goto Error;
+                            }
+                        }
+                        nChannelToAccept++;
+                    }
+                    else
+                    {
+                        if ((fromCodeSchemeMem != _tConfigInfo.fromCodeScheme) && (toCodeSchemeMem != _tConfigInfo.toCodeScheme))
+                        {
+                            if (_tConfigInfo.fromCodeScheme == _tConfigInfo.toCodeScheme)
+                            {
+                                if (!PrintStringNullTerminate(szLangsInt, MAX_BUFFER_SIZE - strlen(szLangsInt), ",%u", _tConfigInfo.fromCodeScheme))
+                                {
+                                    RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print from service id of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                    goto Error;
+                                }
+                                if (!ConcatenateStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
+                                {
+                                    RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print from service id of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                    goto Error;
+                                }
+                            }
+                            else
+                            {
+                                if (!PrintStringNullTerminate(szLangsInt, MAX_BUFFER_SIZE - strlen(szLangsInt), ",%u-%u", _tConfigInfo.fromCodeScheme, _tConfigInfo.toCodeScheme))
+                                {
+                                    RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print from from-to code scheme of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                    goto Error;
+                                }
+                                if (!ConcatenateStringNullTerminate(szLangs, MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
+                                {
+                                    RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() - ERROR: Unable to print from service id of m_vBroadcastSmsConfigInfo[%d]\r\n", i);
+                                    goto Error;
+                                }
+                            }
+                            nChannelToAccept++;
+                        }
+                    }
+                    fromCodeSchemeMem = _tConfigInfo.fromCodeScheme;
+                    toCodeSchemeMem = _tConfigInfo.toCodeScheme;
+                }
+            }
+
+            //  Make the final string.
+            if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CSCB=%u,\"%s\",\"%s\"\r", isSelected, szChannels, szLangs))
+            {
+                res = RRIL_RESULT_OK;
+            }
+
+        }
+        else
+        {
+            //  Make the final string.
+            if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CSCB=0,\"\",\"\"\r"))
+            {
+                res = RRIL_RESULT_OK;
+            }
         }
     }
 
@@ -7456,11 +7469,7 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
         }
         else if (200 == nCause)
         {
-#if defined(M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED)
             return RIL_E_INVALID_PARAMETER;
-#else
-            return RIL_E_GENERIC_FAILURE;
-#endif // M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
         }
         else if (203 == nCause)
         {
@@ -7620,11 +7629,7 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
         }
         else if (200 == nCause)
         {
-#if defined(M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED)
             return RIL_E_INVALID_PARAMETER;
-#else
-            return RIL_E_GENERIC_FAILURE;
-#endif // M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
         }
         else if (203 == nCause)
         {
@@ -7642,11 +7647,7 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
 
             if (0x68 == nRes1 && 0x81 == nRes2)
             {
-#if defined(M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED)
                 return RIL_E_INVALID_PARAMETER;
-#else
-                return RIL_E_GENERIC_FAILURE;
-#endif // M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
             }
             else
             {
@@ -7820,11 +7821,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
 
         if (200 == nCause)
         {
-#if defined(M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED)
             return RIL_E_INVALID_PARAMETER;
-#else
-            return RIL_E_GENERIC_FAILURE;
-#endif // M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
         }
         else if (203 == nCause)
         {
@@ -7842,11 +7839,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
 
             if (0x68 == nRes1 && 0x81 == nRes2)
             {
-#if defined(M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED)
                 return RIL_E_INVALID_PARAMETER;
-#else
-                return RIL_E_GENERIC_FAILURE;
-#endif // M2_SEEK_INVALID_PARAMETER_FEATURE_ENABLED
             }
             else
             {
@@ -8361,17 +8354,18 @@ Continue:
 
     RIL_LOG_INFO("CTEBase::ParseDataCallListChanged() - Parse complete, found [%d] contexts.\r\n", count);
 
-#if defined(DEBUG)
-    for (int i = 0; i < count; ++i)
+    if (CRilLog::IsFullLogBuild())
     {
-        RIL_LOG_INFO("index=%d  status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
-            i, pPDPListData->pPDPData[i].status, pPDPListData->pPDPData[i].suggestedRetryTime,
-            pPDPListData->pPDPData[i].cid, pPDPListData->pPDPData[i].active,
-            pPDPListData->pPDPData[i].type, pPDPListData->pPDPData[i].ifname,
-            pPDPListData->pPDPData[i].addresses, pPDPListData->pPDPData[i].dnses,
-            pPDPListData->pPDPData[i].gateways);
+        for (int i = 0; i < count; ++i)
+        {
+            RIL_LOG_INFO("i=%d  status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
+                i, pPDPListData->pPDPData[i].status, pPDPListData->pPDPData[i].suggestedRetryTime,
+                pPDPListData->pPDPData[i].cid, pPDPListData->pPDPData[i].active,
+                pPDPListData->pPDPData[i].type, pPDPListData->pPDPData[i].ifname,
+                pPDPListData->pPDPData[i].addresses, pPDPListData->pPDPData[i].dnses,
+                pPDPListData->pPDPData[i].gateways);
+        }
     }
-#endif  // DEBUG
 
     if (count > 0)
     {
