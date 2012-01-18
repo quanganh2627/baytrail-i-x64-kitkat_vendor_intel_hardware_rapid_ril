@@ -1,6 +1,162 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+
+January 17, 2012 (M6.05 release for Medfield PR2)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR2 devices, Android version 4.0.1 (Ice Cream Sandwich).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external Gingerbread ABSP dated December 9, 2011 (ww50)
+  with some ICS bits for RIL compilation.
+- We are using the HSI interface.
+
+PR2 Setup
+=========
+KBoot: kboot.bin (from ww50 external release)
+IFWI: IFWI_v01.16_CRAK.bin
+Misc Module: SIGNED_PNW_C0_FWR_DnX.FD.19.bin
+OS Recovery Module: SIGNED_PNW_C0_OSR_DnX.0D.37.bin
+Modem Firmware: SUNRISE_SMB_REV30_V2_1146.C_signed_MIPI_HSI_USIF_V2.15.fls
+
+
+Release Notes for M6.05
+=======================
+
+1. Bugzilla 19594: Add encryption for the code PIN caching
+   -Add PIN encryption and decryption using XXTEA algorithm
+
+2. Bugzilla 17804: RIL new Klocwork Criticals after Klocwork upgrade
+   -Fix KW errors in the report.
+
+3. Incorporate feedback from M6.04 release.
+   -Adjust RIL_Errno and RIL_REQUEST IDs
+   -Modify enum ePCache_Code to use PIN_* for members
+   -Add new request IDs:
+     RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU 106
+     RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+     -Both new IDs will return RIL_E_NOT_SUPPORTED
+
+4. Bugzilla 20024: OEM Hook Commands for Dual SIM 1S1S
+   -Add OEM Hook functions for RIL_REQUEST_OEM_HOOK_RAW API.
+    RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM = 0xD0
+    RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM = 0xD1
+   -Functionality is wrapped in compilation flag: (disabled by default)
+    M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+
+5. Update RilOemHookTest application to incorporate latest commands.  To invoke:
+   adb shell
+   In shell, type:
+   am start -n com.android.RILTest/com.android.RILTest.RilOemHookTest &
+
+   Please refer to test application source code to make integrating RIL OEM Hook APIs
+   easier.  Test application source code is found at:
+   rapid_ril/TEST/src/com/android/settings/RilOemHookTest.java
+
+   The RIL side of OEM Hook functions are handled and parsed at:
+   rapid_ril/CORE/ND/MODEMS/te_inf_6260.cpp
+   Functions: CTE_INF_6260::CoreHookRaw() and CTE_INF_6260::ParseHookRaw().
+
+
+Testing results:  (tested on mfld_pr2)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 January 10, 2012 (M6.04 release for Medfield PR2)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield

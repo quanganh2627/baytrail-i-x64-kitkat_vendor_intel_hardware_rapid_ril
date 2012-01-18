@@ -291,11 +291,12 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
 
         // Insert the date/time as "yy/mm/dd,hh:mm:ss".
         // Add tz: "+-xx", dst: ",x"
-        if (snprintf(pszTimeData, sizeof(char) * MAX_BUFFER_SIZE, "%s%s,%u", szDateTime, szTimeZone, uiDst) == 0)
+        if (snprintf(pszTimeData, MAX_BUFFER_SIZE-1, "%s%s,%u", szDateTime, szTimeZone, uiDst) == 0)
         {
             RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - ERROR: snprintf pszTimeData buffer\r\n");
             goto Error;
         }
+        pszTimeData[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
         RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - INFO: pszTimeData: %s\r\n", pszTimeData);
 
         pResponse->SetResultCode(RIL_UNSOL_NITZ_TIME_RECEIVED);
@@ -708,7 +709,8 @@ BOOL CSilo_Network::ParseXCGEDPAGE(CResponse *const pResponse, const char* &rszP
 
     BOOL bRet = FALSE;
 
-    char szTemp[20] = {0};
+    const int nBufLen = 20;
+    char szTemp[nBufLen] = {0};
 
 
     if (NULL == pResponse)
@@ -718,7 +720,8 @@ BOOL CSilo_Network::ParseXCGEDPAGE(CResponse *const pResponse, const char* &rszP
     }
 
     // Look for a "<postfix>OK<postfix>"
-    sprintf(szTemp, "%sOK%s", g_szNewLine, g_szNewLine);
+    snprintf(szTemp, nBufLen-1, "%sOK%s", g_szNewLine, g_szNewLine);
+    szTemp[nBufLen-1] = '\0';  //  KW fix
     if (!FindAndSkipRspEnd(rszPointer, szTemp, rszPointer))
     {
         // This isn't a complete registration notification -- no need to parse it

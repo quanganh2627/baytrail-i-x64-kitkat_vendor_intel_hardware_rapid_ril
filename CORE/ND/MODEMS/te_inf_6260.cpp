@@ -229,7 +229,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
 
             ePCache_Code ret = PCache_Get_PIN(szUICCID, szPIN);
 
-            if (eOK == ret)
+            if (PIN_OK == ret)
             {
                 char szCmd[MAX_BUFFER_SIZE] = {0};
                 CCommand *pCmd1 = NULL;
@@ -345,6 +345,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    char szIPV4V6[] = "IPV4V6";
     PdpData stPdpData;
     memset(&stPdpData, 0, sizeof(PdpData));
 
@@ -392,7 +393,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     if (NULL == stPdpData.szPDPType)
     {
         //  hard-code "IPV4V6" (this is the default)
-        strncpy(stPdpData.szPDPType, "IPV4V6",sizeof("IPV4V6"));
+        stPdpData.szPDPType = szIPV4V6;
     }
 
     //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
@@ -545,14 +546,16 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not allocate interface name for Data Channel chnl=[%d] fd=[%d].\r\n", rRspData.uiChannel, fd);
         goto Error;
     }
-    strncpy(pChannelData->m_szInterfaceName, pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE);
-    pChannelData->m_szInterfaceName[MAX_BUFFER_SIZE-1] = '\0';
+    strncpy(pChannelData->m_szInterfaceName, pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE-1);
+    pChannelData->m_szInterfaceName[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
 
 
     // N_GSM related code
     netconfig.adaption = 3;
     netconfig.protocol = htons(ETH_P_IP);
-    strncpy(netconfig.if_name, pDataCallRsp->szNetworkInterfaceName, IFNAMSIZ);
+    strncpy(netconfig.if_name, pDataCallRsp->szNetworkInterfaceName, IFNAMSIZ-1);
+    netconfig.if_name[IFNAMSIZ-1] = '\0';  //  KW fix
+
     // Add IF NAME
     fd = pChannelData->GetFD();
     if (fd >= 0)
@@ -669,11 +672,13 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
             if (0 == pChannelData->m_szIpAddr[0])
             {
-                strcpy(szIP, pChannelData->m_szIpAddr2);
+                strncpy(szIP, pChannelData->m_szIpAddr2, PROPERTY_VALUE_MAX-1);
+                szIP[PROPERTY_VALUE_MAX-1] = '\0';  //  KW fix
             }
             else
             {
-                strcpy(szIP, pChannelData->m_szIpAddr);
+                strncpy(szIP, pChannelData->m_szIpAddr, PROPERTY_VALUE_MAX-1);
+                szIP[PROPERTY_VALUE_MAX-1] = '\0';  //  KW fix
             }
 
             if (pChannelData->m_szIpAddr2[0] == 0)
@@ -709,20 +714,22 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    sprintf(pDataCallRsp->szDNS, "%s %s %s %s",
+    snprintf(pDataCallRsp->szDNS, MAX_BUFFER_SIZE-1, "%s %s %s %s",
         (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
         (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
         (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
         (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
+    pDataCallRsp->szDNS[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
 
-    sprintf(pDataCallRsp->szIPAddress, "%s %s",
+    snprintf(pDataCallRsp->szIPAddress, MAX_BUFFER_SIZE-1, "%s %s",
         (pChannelData->m_szIpAddr ? pChannelData->m_szIpAddr : ""),
         (pChannelData->m_szIpAddr2 ? pChannelData->m_szIpAddr2 : ""));
+    pDataCallRsp->szIPAddress[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
 
-    strncpy(pDataCallRsp->szGateway, pChannelData->m_szIpGateways, MAX_BUFFER_SIZE);
-    pDataCallRsp->szGateway[MAX_BUFFER_SIZE-1] = '\0';
-    strncpy(pDataCallRsp->szPdpType, pChannelData->m_szPdpType, MAX_BUFFER_SIZE);
-    pDataCallRsp->szPdpType[MAX_BUFFER_SIZE-1] = '\0';
+    strncpy(pDataCallRsp->szGateway, pChannelData->m_szIpGateways, MAX_BUFFER_SIZE-1);
+    pDataCallRsp->szGateway[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+    strncpy(pDataCallRsp->szPdpType, pChannelData->m_szPdpType, MAX_BUFFER_SIZE-1);
+    pDataCallRsp->szPdpType[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
 
     pDataCallRsp->sPDPData.status = pChannelData->m_iStatus;
     pDataCallRsp->sPDPData.suggestedRetryTime = -1;
@@ -893,8 +900,8 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     {
         struct ifreq ifr;
         memset(&ifr, 0, sizeof(struct ifreq));
-        strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
-        ifr.ifr_name[IFNAMSIZ-1] = 0;
+        strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
+        ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
         RIL_LOG_INFO("DataConfigUpIpV4() : Setting flags\r\n");
         if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
@@ -979,8 +986,8 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
 
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(struct ifreq));
-    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
-    ifr.ifr_name[IFNAMSIZ-1] = 0;
+    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
+    ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
     inet_pton(AF_INET6, szIpAddr, &ifIdAddr);
     inet_pton(AF_INET6, "FE80::", &ifPrefixAddr);
@@ -1121,8 +1128,8 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
 
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(struct ifreq));
-    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
-    ifr.ifr_name[IFNAMSIZ-1] = 0;
+    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
+    ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
     RIL_LOG_INFO("DataConfigUpIpV4V6() : Setting addr\r\n");
     if (!setaddr(s, &ifr, szIpAddr))
@@ -1132,8 +1139,8 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     }
 
     memset(&ifr, 0, sizeof(struct ifreq));
-    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ);
-    ifr.ifr_name[IFNAMSIZ-1] = 0;
+    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
+    ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
     // Set link local address to start the SLAAC process
     inet_pton(AF_INET6, szIpAddr2, &ifIdAddr);
@@ -2992,60 +2999,114 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
     {
         case RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY:
         {
-            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
 
             //  Shouldn't be any data following command
-            if (sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY) == uiDataSize)
+            if (uiDataSize == sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY))
             {
                 if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=1\r", sizeof(rReqData.szCmd1)))
                 {
-                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1.\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1.\r\n");
                     goto Error;
                 }
             }
             else
             {
-                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY));
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY));
                 goto Error;
             }
-
         }
         break;
 
         case RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER:
         {
-            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
 
             //  Cast our data into our structure
-            if (sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER) == uiDataSize)
+            if (uiDataSize == sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER))
             {
                 sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER sFDT;
                 memset(&sFDT, 0, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
                 memcpy(&sFDT, pDataBytes, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
 
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - bCommand=[0x%02X]\r\n", (unsigned char)sFDT.bCommand);
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - nTimerValue=[%d]\r\n", (int)sFDT.nTimerValue);
-
+                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - bCommand=[0x%02X]\r\n", (unsigned char)sFDT.bCommand);
+                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - nTimerValue=[%d]\r\n", (int)sFDT.nTimerValue);
 
                 if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDORT=%u\r", sFDT.nTimerValue))
                 {
-                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER - Can't construct szCmd1.\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER - Can't construct szCmd1.\r\n");
                     goto Error;
                 }
-
             }
             else
             {
-                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
                 goto Error;
             }
-
         }
         break;
 
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+
+        case RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM:
+        {
+            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+
+            //  Cast our data into our structure
+            if (uiDataSize == sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM))
+            {
+                sOEM_HOOK_RAW_SET_ACTIVE_SIM sSAS;
+                memset(&sSAS, 0, sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM));
+                memcpy(&sSAS, pDataBytes, sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM));
+
+                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - bCommand=[0x%02X]\r\n", (unsigned char)sSAS.bCommand);
+                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - sim_id=[%d]\r\n", sSAS.sim_id);
+
+                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XSIM=%d\r", sSAS.sim_id))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM - Can't construct szCmd1.\r\n");
+                    goto Error;
+                }
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_SET_ACTIVE_SIM=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM));
+                goto Error;
+            }
+        }
+        break;
+
+        case RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM:
+        {
+            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+
+            //  Cast our data into our structure
+            if (uiDataSize == sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM))
+            {
+                sOEM_HOOK_RAW_GET_ACTIVE_SIM sGAS;
+                memset(&sGAS, 0, sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM));
+                memcpy(&sGAS, pDataBytes, sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM));
+
+                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - bCommand=[0x%02X]\r\n", (unsigned char)sGAS.bCommand);
+
+                if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XSIM?\r", sizeof(rReqData.szCmd1)))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM - Can't construct szCmd1.\r\n");
+                    goto Error;
+                }
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_GET_ACTIVE_SIM=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM));
+                goto Error;
+            }
+        }
+        break;
+
+#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
 
         default:
-            RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: Received unknown command=[0x%02X]\r\n", bCommand);
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: Received unknown command=[0x%02X]\r\n", bCommand);
             goto Error;
             break;
     }
@@ -3062,14 +3123,70 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Enter\r\n");
 
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* szRsp = rRspData.szResponse;
     UINT32 uCommand = (UINT32)rRspData.pContextData;
+    BYTE bCommand = (BYTE)uCommand;
 
-    switch(uCommand)
+    //  Populate these below (if applicable)
+    void* pData = NULL;
+    UINT32 uiDataSize = 0;
+
+
+    switch(bCommand)
     {
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+
+        case RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM:
+        {
+            UINT32 nSim_id = 0;
+            int *pIntData = NULL;
+
+            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+
+            // Skip "+XSIM: "
+            if (!FindAndSkipString(szRsp, "+XSIM: ", szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Could not skip \"+XSIM: \".\r\n");
+                goto Error;
+            }
+
+            if (!ExtractUInt32(szRsp, nSim_id, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Could not extract sim_id\r\n");
+                goto Error;
+            }
+
+            pIntData = (int*)malloc(sizeof(int));
+            if (NULL == pIntData)
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM cannot allocate int\r\n");
+                goto Error;
+            }
+
+            pIntData[0] = (int)nSim_id;
+            pData = (void*)pIntData;
+            uiDataSize = sizeof(int);
+        }
+        break;
+
+#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+
         default:
             break;
     }
 
+    res = RRIL_RESULT_OK;
+
+    rRspData.pData   = pData;
+    rRspData.uiDataSize  = uiDataSize;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pData);
+        pData = NULL;
+    }
     RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Exit\r\n");
     return RRIL_RESULT_OK;
 }

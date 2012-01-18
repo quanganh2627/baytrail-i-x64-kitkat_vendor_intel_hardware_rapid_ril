@@ -427,6 +427,326 @@ Error:
     return bResult;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  XXTEA encryption / decryption algorithm.
+//  Code source is from http://en.wikipedia.org/wiki/XXTEA
+
+#define DELTA 0x9e3779b9
+#define MX (((z>>5^y<<2) + (y>>3^z<<4)) ^ ((sum^y) + (key[(p&3)^e] ^ z)))
+
+//  btea: Encrypt or decrypt int array v of length n with 4-integer array key
+//
+//  Parameters:
+//  unsigned int array v [in/out] : unsigned int array to be encrypted or decrypted
+//  int n [in] : Number of integers in array v.  If n is negative, then decrypt.
+//  unsigned int array key [in] : unsigned int array of size 4 that contains key to encrypt or decrypt
+//
+//  Return values:
+//  None
+void btea(unsigned int *v, int n, unsigned int const key[4])
+{
+    unsigned int y, z, sum;
+    unsigned int rounds, e;
+    int p;
+
+    if (n > 1)
+    {
+        // Coding Part
+        rounds = 6 + 52/n;
+        sum = 0;
+        z = v[n-1];
+        do
+        {
+            sum += DELTA;
+            e = (sum >> 2) & 3;
+            for (p=0; p<n-1; p++)
+            {
+                y = v[p+1];
+                z = v[p] += MX;
+            }
+            y = v[0];
+            z = v[n-1] += MX;
+        } while (--rounds);
+    }
+    else if (n < -1)
+    {
+        // Decoding Part
+        n = -n;
+        rounds = 6 + 52/n;
+        sum = rounds*DELTA;
+        y = v[0];
+        do
+        {
+            e = (sum >> 2) & 3;
+            for (p=n-1; p>0; p--)
+            {
+                z = v[p-1];
+                y = v[p] -= MX;
+            }
+            z = v[n-1];
+            y = v[0] -= MX;
+        } while ((sum -= DELTA) != 0);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  This function is a helper for the btea() function.  It converts a string to an 4-integer array
+//  to be passed in as the key to the btea() function.
+//
+//  Parameters:
+//  string szKey [in] : string to be converted to 4-integer array
+//  unsigned int array pKey [out] : 4-integer array of szKey (to be passed into btea function)
+//                                  Array must be allocated by caller.
+//
+//  Return values:
+//  PIN_INVALID_UICC if error with szKey
+//  PIN_NOK if any other error
+//  PIN_OK if operation is successful
+ePCache_Code ConvertKeyToInt4(const char *szKey, unsigned int *pKey)
+{
+    //  Check inputs
+    if ( (NULL == szKey) || (strlen(szKey) > 32))
+    {
+        RIL_LOG_CRITICAL("ConvertKeyToInt4() - szKey invalid\r\n");
+        return PIN_INVALID_UICC;
+    }
+
+    if (NULL == pKey)
+    {
+        RIL_LOG_CRITICAL("ConvertKeyToInt4() - pKey invalid\r\n");
+        return PIN_NOK;
+    }
+
+    //  Algorithm:
+    //  Take szKey, and prepend '0's to make 32 character string
+    char szBuf[33] = {0};
+
+    int len = (int)strlen(szKey);
+    int diff = 32 - len;
+
+    //  Front-fill buffer
+    for (int i=0; i<diff; i++)
+    {
+        szBuf[i] = '0';
+    }
+
+    strncat(szBuf, szKey, 32-strlen(szBuf));
+    szBuf[32] = '\0';  //  KW fix
+    //RIL_LOG_INFO("**********%s\r\n", szBuf);
+
+    //  Now we have szBuf in format "0000.... <UICC>" which is exactly 32 characters.
+    //  Take chunks of 8 characters, use atoi on it.  Store atoi value in pKey.
+
+    for (int i=0; i<4; i++)
+    {
+        char szChunk[9] = {0};
+        strncpy(szChunk, &szBuf[i*8], 8);
+        pKey[i] = atoi(szChunk);
+    }
+
+    //  Print key
+    //RIL_LOG_INFO("key:\r\n");
+    //for (int i=0; i<4; i++)
+    //{
+    //    RIL_LOG_INFO("    key[%d]=0x%08X\r\n", i, pKey[i]);
+    //}
+
+    return PIN_OK;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  This function is a wrapper for the btea() function.  Encrypt szInput string, with key szKey.
+//  Store the encrypted string as HEX-ASCII in storage location.
+//
+//  Parameters:
+//  string szInput [in] : string to be encrypted
+//  int nInputLen [in] : number of characters to encrypt
+//  string szKey [in] : key to encrypt szInput with
+//
+//  Return values:
+//  PIN_NOK if error
+//  PIN_OK if operation successful
+ePCache_Code encrypt(const char *szInput, const int nInputLen, const char *szKey)
+{
+    //  Check inputs
+    if ( (NULL == szInput) || ('\0' == szInput[0]) || (0 == nInputLen) || (NULL == szKey) )
+    {
+        RIL_LOG_CRITICAL("encrypt() - Inputs are invalid!\r\n");
+        return PIN_NOK;
+    }
+
+    //RIL_LOG_INFO("encrypt() - szInput=[%s] nInputLen=[%d] szKey=[%s]\r\n", szInput, nInputLen, szKey);
+
+    const int BUF_LEN = 9;
+    unsigned int buf[BUF_LEN] = {0};
+
+    //  generate random salt
+    srand((unsigned int) time(NULL));
+
+    //  Front-fill the 9 int buffer with random salt (first 8 bits of int is FF so we can identify later)
+    for (int i=0; i < BUF_LEN-nInputLen; i++)
+    {
+        int nRand = rand();
+        nRand = (nRand << 16);
+        nRand = (nRand + rand());
+        nRand = (nRand | 0xFF000000);
+        buf[i] = (unsigned int)nRand;
+    }
+
+    //  Copy the ASCII values after the random salt in the buffer.
+    for (int i=0; i < nInputLen; i++)
+    {
+        buf[i+(BUF_LEN-nInputLen)] = (unsigned int)szInput[i];
+    }
+
+    //  Print what we have
+    //RIL_LOG_INFO("Buffer before encryption:\r\n");
+    //for (int i=0; i<BUF_LEN; i++)
+    //{
+    //    RIL_LOG_INFO("    buf[%d]=0x%08X\r\n", i, buf[i]);
+    //}
+
+    // Convert the UICC to format suitable for btea
+    unsigned int key[4] = {0};
+    if (PIN_OK != ConvertKeyToInt4(szKey, key))
+    {
+        RIL_LOG_CRITICAL("encrypt() - ConvertKeyToInt4() failed!\r\n");
+        return PIN_NOK;
+    }
+
+    //  Actual encryption
+    btea(buf, BUF_LEN, key);
+
+    //RIL_LOG_INFO("after encrypt:\r\n");
+    //for (int i = 0; i < BUF_LEN; i++)
+    //{
+    //    RIL_LOG_INFO("    buf[%d]=0x%08X\r\n", i, buf[i]);
+    //}
+
+    //  Now write pInput somewhere....
+    char szEncryptedBuf[MAX_PROP_VALUE] = {0};
+    for (int i = 0; i < BUF_LEN; i++)
+    {
+        char szPrint[9] = {0};
+        snprintf(szPrint, 9, "%08X", buf[i]);  //  9 includes terminating NULL character
+        szPrint[8] = '\0';  //  KW fix
+        //RIL_LOG_INFO("szPrint[%d]=%s\r\n", i, szPrint);
+
+        strncat(szEncryptedBuf, szPrint, (MAX_PROP_VALUE-1) - strlen(szEncryptedBuf));
+        szEncryptedBuf[MAX_PROP_VALUE-1] = '\0';  //  KW fix
+    }
+
+    //RIL_LOG_INFO("szEncryptedBuf = %s\r\n", szEncryptedBuf);
+
+    //  Store in property
+    if (0 != property_set(szRIL_cachedpin, szEncryptedBuf))
+    {
+        property_set(szRIL_cachedpin, "");
+        RIL_LOG_CRITICAL("encrypt() - Cannot store szEncryptedBuf\r\n");
+        return PIN_NOK;
+    }
+
+    return PIN_OK;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  This function is a wrapper for the btea() function.  Decrypt szInput string from storage location,
+//  with string szKey.
+//
+//  Parameters:
+//  string szOut [out] : the decrypted string.  It is up to caller to allocate szOut and make sure
+//                       szOut is buffer size is large enough.
+//  string szKey [in] : key to decrypt the encrypted string from storage location with.
+//
+//  Return values:
+//  PIN_WRONG_INTEGRITY if decrypted text doesn't pass integrity checks
+//  PIN_NOK if inputs are invalid
+//  PIN_OK if operation successful
+ePCache_Code decrypt(char *szOut, const char *szKey)
+{
+    if ( (NULL == szOut) || (NULL == szKey) )
+    {
+        RIL_LOG_CRITICAL("decrypt() - invalid inputs\r\n");
+        return PIN_NOK;
+    }
+
+    //RIL_LOG_INFO("decrypt() - szKey=[%s]\r\n", szKey);
+
+    // Convert the UICC to format suitable for btea
+    unsigned int key[4] = {0};
+    if (PIN_OK != ConvertKeyToInt4(szKey, key))
+    {
+        RIL_LOG_CRITICAL("decrypt() - ConvertKeyToInt4() error!\r\n");
+        return PIN_NOK;
+    }
+
+    const int BUF_LEN = 9;
+    unsigned int buf[BUF_LEN] = {0};
+
+    //  Get encrypted string from property...
+    char szEncryptedBuf[MAX_PROP_VALUE] = {0};
+    if (!property_get(szRIL_cachedpin, szEncryptedBuf, ""))
+    {
+        RIL_LOG_CRITICAL("decrypt() - cannot retrieve cached uicc\r\n");
+        return PIN_NO_PIN_AVAILABLE;
+    }
+
+    //RIL_LOG_INFO("decrypt() - szEncryptedBuf = %s\r\n", szEncryptedBuf);
+    for (int i = 0; i < BUF_LEN; i++)
+    {
+        char szPrint[9] = {0};
+        strncpy(szPrint, &szEncryptedBuf[i*8], 8);
+        sscanf(szPrint, "%08X", &(buf[i]));
+    }
+
+    //RIL_LOG_INFO("Buffer before decryption:\r\n");
+    //for (int i = 0; i < BUF_LEN; i++)
+    //{
+    //    RIL_LOG_INFO("    buf[%d]=0x%08X\r\n", i, buf[i]);
+    //}
+
+    //  Actual decryption
+    btea(buf, (-1 * BUF_LEN), key);
+
+    //  Print decrypted buffer
+    //RIL_LOG_INFO("Buffer after decryption:\r\n");
+    //for (int i=0; i<BUF_LEN; i++)
+    //{
+    //    RIL_LOG_INFO("    buf[%d]=0x%08X\r\n", i, buf[i]);
+    //}
+
+    char *pChar = &(szOut[0]);
+
+    // We have our decrypted buffer.  Figure out if it was successful and
+    //  throw away the random salt.
+    for (int i=0; i<BUF_LEN; i++)
+    {
+        if (0xFF000000 == (buf[i] & 0xFF000000))
+        {
+            // it was random salt, discard
+            continue;
+        }
+        else if (buf[i] >= '0' && buf[i] <= '9')
+        {
+            //  valid ASCII numeric character
+            *pChar = (char)buf[i];
+            pChar++;
+        }
+        else
+        {
+            //  bad decoding
+            RIL_LOG_CRITICAL("decrypt() - integrity failed! i=%d\r\n", i);
+            return PIN_WRONG_INTEGRITY;
+        }
+    }
+
+    return PIN_OK;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -436,23 +756,24 @@ Error:
 //
 ePCache_Code PCache_Store_PIN(const char *szUICC, const char *szPIN)
 {
-    //  TODO: Change storage location and add encryption
+    //  TODO: Remove this log statement when complete
     RIL_LOG_INFO("PCache_Store_PIN() Enter - szUICC=[%s], szPIN=[%s]\r\n", szUICC, szPIN);
 
     if (NULL == szUICC || '\0' == szUICC[0] || 0 != property_set(szRIL_cacheduicc, szUICC))
     {
         RIL_LOG_CRITICAL("PCache_Store_PIN() - Cannot store uicc\r\n");
-        return eNOK;
+        return PIN_NOK;
     }
 
-    if (NULL == szPIN || '\0' == szPIN[0] || 0 != property_set(szRIL_cachedpin, szPIN))
+    if (NULL == szPIN || '\0' == szPIN[0])
     {
         property_set(szRIL_cacheduicc, "");
         RIL_LOG_CRITICAL("PCache_Store_PIN() - Cannot store pin\r\n");
-        return eNOK;
+        return PIN_NOK;
     }
 
-    return eOK;
+    //  Encrypt PIN, store in Android system property
+    return encrypt(szPIN, strlen(szPIN), szUICC);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -466,46 +787,47 @@ ePCache_Code PCache_Get_PIN(const char *szUICC, char *szPIN)
     char szUICCCached[MAX_PROP_VALUE];
     RIL_LOG_INFO("PCache_Get_PIN - Enter\r\n");
 
-    //  TODO: Change storage location and add decryption
     if (NULL == szUICC || NULL == szPIN || '\0' == szUICC[0])
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - szUICC or szPIN are invalid\r\n");
-        return eINVALID_UICC;
+        return PIN_INVALID_UICC;
     }
 
     if (!property_get(szRIL_cacheduicc, szUICCCached, ""))
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached uicc\r\n");
-        return eNO_PIN_AVAILABLE;
+        return PIN_NO_PIN_AVAILABLE;
     }
 
     if ('\0' == szUICCCached[0])
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - szUICCCached is empty!\r\n");
-        return eNO_PIN_AVAILABLE;
+        return PIN_NO_PIN_AVAILABLE;
     }
 
     if (0 != strcmp(szUICCCached, szUICC))
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - bad uicc\r\n");
-        return eINVALID_UICC;
+        return PIN_INVALID_UICC;
     }
 
-    if (!property_get(szRIL_cachedpin, szPIN, ""))
-    {
-        RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached pin\r\n");
-        return eNO_PIN_AVAILABLE;
-    }
+    //  Retrieve encrypted PIN from Android property, and decrypt it.
+    ePCache_Code ret = decrypt(szPIN, szUICC);
 
     if ('\0' == szPIN[0])
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - szPIN is empty!\r\n");
-        return eNO_PIN_AVAILABLE;
+        return PIN_NO_PIN_AVAILABLE;
     }
-
-    RIL_LOG_INFO("PCache_Get_PIN - Retrieved PIN=[%s]\r\n", szPIN);
-
-    return eOK;
+    else if (PIN_OK != ret)
+    {
+        RIL_LOG_CRITICAL("PCache_Get_PIN() - decrypt() error = %d\r\n", ret);
+    }
+    else
+    {
+        RIL_LOG_INFO("PCache_Get_PIN - Retrieved PIN=[%s]\r\n", szPIN);
+    }
+    return ret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -520,18 +842,18 @@ ePCache_Code PCache_Clear()
     if (0 != property_set(szRIL_cacheduicc, ""))
     {
         RIL_LOG_CRITICAL("PCache_Clear() - Cannot clear uicc cache\r\n");
-        return eNOK;
+        return PIN_NOK;
     }
 
     if (0 != property_set(szRIL_cachedpin, ""))
     {
         RIL_LOG_CRITICAL("PCache_Clear() - Cannot clear pin cache\r\n");
-        return eNOK;
+        return PIN_NOK;
     }
 
     RIL_LOG_INFO("PCache_Clear() - Cached cleared!\r\n");
 
-    return eOK;
+    return PIN_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -544,13 +866,12 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
 {
     RIL_LOG_INFO("PCache_SetUseCachedPIN - Enter bFlag=[%d]\r\n", bFlag);
 
-    //  TODO: Change storage location
     if (bFlag)
     {
         if (0 != property_set(szRIL_usecachedpin, "1"))
         {
             RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set usecachedpin  bFlag=[%d]\r\n", bFlag);
-            return eNOK;
+            return PIN_NOK;
         }
     }
     else
@@ -558,11 +879,11 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
         if (0 != property_set(szRIL_usecachedpin, ""))
         {
             RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set usecachedpin  bFlag=[%d]\r\n", bFlag);
-            return eNOK;
+            return PIN_NOK;
         }
     }
 
-    return eOK;
+    return PIN_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

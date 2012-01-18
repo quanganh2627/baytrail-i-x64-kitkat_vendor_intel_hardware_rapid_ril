@@ -89,27 +89,17 @@ public class RilOemHookTest extends Activity
         switch(idButtonChecked)
         {
             case R.id.radio_api1:
-                // Power off
-                //  AT+CFUN=0
-                oemhook = new byte[1];
-                oemhook[0] = (byte)0xAA;  // Command ID
-
-                break;
-
-            case R.id.radio_api2:
-                // Trigger Fast Dormancy Timer
+                // RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
                 //  AT+XFDOR=1
-
                 oemhook = new byte[1];
                 oemhook[0] = (byte)0xBB;  // Command ID
 
                 break;
 
-            case R.id.radio_api3:
-                //  Set Fast Dormancy Timer
-                //  AT+XFDORT=timer_value
+            case R.id.radio_api2:
+                // RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
+                //  AT+XFDORT=<timer_value>
 
-                //  TODO: Get parameter value from UI.
                 oemhook = new byte[8];
                 oemhook[0] = (byte)0xCC;  // Command ID
                 oemhook[1] = (byte)0x00;  // padding
@@ -122,6 +112,34 @@ public class RilOemHookTest extends Activity
                 oemhook[7] = (byte)0x00;
 
                 break;
+
+            case R.id.radio_api3:
+                //  RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM
+                //  AT+XSIM=sim_id
+
+                oemhook = new byte[8];
+                oemhook[0] = (byte)0xD0;  // Command ID
+                oemhook[1] = (byte)0x00;  // padding
+                oemhook[2] = (byte)0x00;
+                oemhook[3] = (byte)0x00;
+
+                oemhook[4] = (byte)0x00;  // Sim_id (int, low byte to high byte)
+                oemhook[5] = (byte)0x00;  //  e.g. 0x0F 0x0A 0x07 0x03 = 0x03070A0F, 50792975.
+                oemhook[6] = (byte)0x00;
+                oemhook[7] = (byte)0x00;
+
+                break;
+
+            case R.id.radio_api4:
+                //  RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM
+                //  AT+XSIM=?
+
+                oemhook = new byte[1];
+                oemhook[0] = (byte)0xD1;  // Command ID
+
+                break;
+
+
 
             default:
                 log("unknown button selected");
@@ -162,7 +180,7 @@ public class RilOemHookTest extends Activity
                 for (int i=0; i<size; i++)
                 {
                     byte myByte = oemResponse[i];
-                    int myInt = (int)(myByte & 0xFF);
+                    int myInt = (int)(myByte & 0x000000FF);
                     log("oemResponse[" + Integer.toString(i) + "]=[0x" + Integer.toString(myInt,16) + "]");
                     str += "oemResponse[" + Integer.toString(i) + "]=[0x" + Integer.toString(myInt,16) + "]" + "\n";
                 }

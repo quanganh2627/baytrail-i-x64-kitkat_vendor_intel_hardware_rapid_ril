@@ -262,13 +262,15 @@ BOOL CResponse::IsOkResponse()
     RIL_LOG_VERBOSE("CResponse::IsOkResponse() : Enter\r\n");
 
     // look for "OK" in response data
-    sprintf(szToken, "%s%s%s", g_szNewLine, pszOkResponse, g_szNewLine);
+    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", g_szNewLine, pszOkResponse, g_szNewLine);
+    szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
     if (!bRet)
     {
         //  Maybe we have just OK<cr><lf> due to modem missing a character
-        sprintf(szToken, "%s%s", pszOkResponse, g_szNewLine);
+        snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s", pszOkResponse, g_szNewLine);
+        szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
         bRet = FindAndSkipString(szPointer, szToken, szPointer);
     }
 
@@ -305,7 +307,8 @@ BOOL CResponse::IsErrorResponse()
     RIL_LOG_VERBOSE("CResponse::IsErrorResponse() : Enter\r\n");
 
     // look for "ERROR" in response data
-    sprintf(szToken, "%s%s%s", g_szNewLine, pszErrorResponse, g_szNewLine);
+    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", g_szNewLine, pszErrorResponse, g_szNewLine);
+    szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
     if (bRet)
@@ -336,7 +339,8 @@ BOOL CResponse::IsConnectResponse()
     RIL_LOG_VERBOSE("CResponse::IsConnectResponse() : Enter\r\n");
 
     // look for "CONNECT" in response data
-    sprintf(szToken, "%s%s%s", g_szNewLine, pszConnectResponse, g_szNewLine);
+    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", g_szNewLine, pszConnectResponse, g_szNewLine);
+    szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
     if (bRet)
@@ -363,7 +367,8 @@ BOOL CResponse::IsNoCarrierResponse()
     RIL_LOG_VERBOSE("CResponse::IsNoCarrierResponse() : Enter\r\n");
 
     // look for "NO CARRIER" in response data
-    sprintf(szToken, "%s%s%s", g_szNewLine, pszNoCarrierResponse, g_szNewLine);
+    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", g_szNewLine, pszNoCarrierResponse, g_szNewLine);
+    szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
     if (bRet)
@@ -391,7 +396,8 @@ BOOL CResponse::IsAbortedResponse()
     RIL_LOG_VERBOSE("CResponse::IsAbortedResponse() : Enter\r\n");
 
     // look for "ABORTED" in response data
-    sprintf(szToken, "%s%s%s", g_szNewLine, pszAborted, g_szNewLine);
+    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", g_szNewLine, pszAborted, g_szNewLine);
+    szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
     if (bRet)

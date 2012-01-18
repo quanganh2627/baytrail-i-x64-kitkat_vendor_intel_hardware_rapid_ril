@@ -59,7 +59,6 @@ typedef struct TAG_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
 //
 const BYTE RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER = 0xCC;
 
-
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct TAG_OEM_HOOK_RAW_GAN_RIL
@@ -74,6 +73,51 @@ typedef struct TAG_OEM_HOOK_RAW_GAN_RIL
 //  This is reserved for future implementation.
 //
 const BYTE RIL_OEM_HOOK_RAW_GAN_RIL = 0x01;
+
+///////////////////////////////////////////////////////////////////////////////
+
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+
+typedef struct TAG_OEM_HOOK_RAW_SET_ACTIVE_SIM
+{
+    unsigned char bCommand; //  Command ID
+    int sim_id;
+} sOEM_HOOK_RAW_SET_ACTIVE_SIM;
+
+//
+//  RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM
+//  Command ID = 0xD0
+//
+//  This command selects which SIM is active between two inserted cards.
+//  To be mapped to:
+//      AT+XSIM=<sim_id>
+//
+//  "data" = sOEM_HOOK_RAW_SET_ACTIVE_SIM
+//  "response" = NULL
+//
+const BYTE RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM = 0xD0;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_GET_ACTIVE_SIM
+{
+    unsigned char bCommand; //  Command ID
+} sOEM_HOOK_RAW_GET_ACTIVE_SIM;
+
+//
+//  RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM
+//  Command ID = 0xD1
+//
+//  This command gets which SIM is active between two inserted cards.
+//  To be mapped to:
+//      AT+XSIM=?
+//
+//  "data" = sOEM_HOOK_RAW_GET_ACTIVE_SIM
+//  "response" = int sim_id
+//
+const BYTE RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM = 0xD1;
+
+#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
 
 /***********************************************************************/
 

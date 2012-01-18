@@ -36,11 +36,11 @@ extern BOOL CreateModemWatchdogThread();
 
 enum ePCache_Code
 {
-    eNO_PIN_AVAILABLE = -4,
-    eWRONG_INTEGRITY = -3,
-    eINVALID_UICC = -2,
-    eNOK = -1,
-    eOK = 0
+    PIN_NO_PIN_AVAILABLE = -4,
+    PIN_WRONG_INTEGRITY = -3,
+    PIN_INVALID_UICC = -2,
+    PIN_NOK = -1,
+    PIN_OK = 0
 };
 
 ePCache_Code PCache_Store_PIN(const char *szUICC, const char *szPIN);

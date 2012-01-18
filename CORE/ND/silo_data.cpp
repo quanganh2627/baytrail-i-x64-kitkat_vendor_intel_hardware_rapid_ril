@@ -191,7 +191,8 @@ BOOL CSilo_Data::ParseXCGEDPAGE(CResponse *const pResponse, const char* &rszPoin
 
     BOOL bRet = FALSE;
 
-    char szTemp[20] = {0};
+    const int nBufLen = 20;
+    char szTemp[nBufLen] = {0};
 
 
     if (NULL == pResponse)
@@ -201,7 +202,8 @@ BOOL CSilo_Data::ParseXCGEDPAGE(CResponse *const pResponse, const char* &rszPoin
     }
 
     // Look for a "<postfix>OK<postfix>"
-    sprintf(szTemp, "%sOK%s", g_szNewLine, g_szNewLine);
+    snprintf(szTemp, nBufLen-1, "%sOK%s", g_szNewLine, g_szNewLine);
+    szTemp[nBufLen-1] = '\0';  //  KW fix
     if (!FindAndSkipRspEnd(rszPointer, szTemp, rszPointer))
     {
         // This isn't a complete registration notification -- no need to parse it

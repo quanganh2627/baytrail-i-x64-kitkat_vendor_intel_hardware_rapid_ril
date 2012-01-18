@@ -1182,7 +1182,21 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
 
         //  ************************* END OF REGULAR REQUESTS *******************************
 
-        case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 106
+        case RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU:  // 106 - not supported
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU\r\n");
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+        }
+        break;
+
+        case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:  // 107 - not supported
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS\r\n");
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+        }
+        break;
+
+        case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 108
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_TRANSMIT_BASIC\r\n");
 #if defined(M2_SEEK_FEATURE_ENABLED)
@@ -1193,7 +1207,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 107
+        case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 109
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_OPEN_CHANNEL\r\n");
 #if defined(M2_SEEK_FEATURE_ENABLED)
@@ -1204,7 +1218,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 108
+        case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 110
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_CLOSE_CHANNEL\r\n");
 #if defined(M2_SEEK_FEATURE_ENABLED)
@@ -1215,7 +1229,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 109
+        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 111
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_TRANSMIT_CHANNEL\r\n");
 #if defined(M2_SEEK_FEATURE_ENABLED)
@@ -1228,14 +1242,14 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
 
 #if defined(M2_VT_FEATURE_ENABLED)
 
-        case RIL_REQUEST_HANGUP_VT:  // 110
+        case RIL_REQUEST_HANGUP_VT:  // 112
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_HANGUP_VT\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestHangupVT(hRilToken, pData, datalen);
         }
         break;
 
-        case RIL_REQUEST_DIAL_VT:  // 111
+        case RIL_REQUEST_DIAL_VT:  // 113
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_DIAL_VT\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestDialVT(hRilToken, pData, datalen);
@@ -1304,7 +1318,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.04 for Android 4.0.1 (Build January 10/2012)";
+    return "Intrinsyc Rapid-RIL M6.05 for Android 4.0.1 (Build January 17/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

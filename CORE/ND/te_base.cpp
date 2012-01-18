@@ -346,7 +346,8 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin(REQUEST_DATA & rReqData, void * pData, 
     }
 
     //  Store PIN
-    strncpy(m_szPIN, pszPassword, MAX_PIN_SIZE);
+    strncpy(m_szPIN, pszPassword, MAX_PIN_SIZE-1);
+    m_szPIN[MAX_PIN_SIZE-1] = '\0';  //  KW fix
 
     res = RRIL_RESULT_OK;
 
@@ -691,7 +692,8 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin(REQUEST_DATA & rReqData, void * pData,
     }
 
     //  Store PIN
-    strncpy(m_szPIN, pszNewPIN, MAX_PIN_SIZE);
+    strncpy(m_szPIN, pszNewPIN, MAX_PIN_SIZE-1);
+    m_szPIN[MAX_PIN_SIZE-1] = '\0';  //  KW fix
 
     res = RRIL_RESULT_OK;
 
@@ -3132,7 +3134,8 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     UINT32 nValue = 0;
     RIL_CallForwardInfo* pCallFwdInfo = NULL;
-    char szNumber[255] = {0};
+    const int nNumberBufLen = 255;
+    char szNumber[nNumberBufLen] = {0};
 
     if (sizeof(RIL_CallForwardInfo) != uiDataSize)
     {
@@ -3157,7 +3160,8 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
                         pCallFwdInfo->number,
                         pCallFwdInfo->toa,
                         pCallFwdInfo->timeSeconds);
-        strncpy(szNumber, pCallFwdInfo->number, 255);
+        strncpy(szNumber, pCallFwdInfo->number, nNumberBufLen-1);
+        szNumber[nNumberBufLen-1] = '\0';  //  KW fix
     }
     else
     {
@@ -3168,7 +3172,7 @@ RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA & rReqData, void * pDat
                         "NULL",
                         pCallFwdInfo->toa,
                         pCallFwdInfo->timeSeconds);
-        strncpy(szNumber, "", 255);
+        strncpy(szNumber, "", nNumberBufLen-1);
     }
 
     if (pCallFwdInfo->serviceClass)
@@ -4111,7 +4115,8 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     {
         if (0 == strcmp(pszMode, "1"))
         {
-            strcpy(m_szPIN, pszPassword);
+            strncpy(m_szPIN, pszPassword, MAX_PIN_SIZE-1);
+            m_szPIN[MAX_PIN_SIZE-1] = '\0';  //  KW fix
         }
         else
         {
@@ -4483,7 +4488,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
     UINT32 j = 0;
     UINT32 k = 0;
 
-    char tmp[MAX_BUFFER_SIZE];
+    char tmp[MAX_BUFFER_SIZE] = {0};
 
     P_ND_OPINFO_PTRS pOpInfoPtr = NULL;
     P_ND_OPINFO_DATA pOpInfoData = NULL;
@@ -4549,7 +4554,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
             case 0:
             {
                 const char* szTemp = "unknown";
-                strcpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp);
+                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_BUFFER_SIZE-1);
+                pOpInfoData[nCurrent].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
             }
@@ -4557,7 +4563,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
             case 1:
             {
                 const char* szTemp = "available";
-                strcpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp);
+                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_BUFFER_SIZE-1);
+                pOpInfoData[nCurrent].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
             }
@@ -4565,7 +4572,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
             case 2:
             {
                 const char* szTemp = "current";
-                strcpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp);
+                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_BUFFER_SIZE-1);
+                pOpInfoData[nCurrent].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
             }
@@ -4573,7 +4581,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
             case 3:
             {
                 const char* szTemp = "forbidden";
-                strcpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp);
+                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_BUFFER_SIZE-1);
+                pOpInfoData[nCurrent].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
             }
@@ -4724,10 +4733,14 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
                 pOpInfoDataEnd = (P_ND_OPINFO_DATA)pOpInfoDataBaseEnd;
 
                 // Fill first element of the table.
-                strcpy(pOpInfoDataEnd[0].szOpInfoLong, pOpInfoData[0].szOpInfoLong);
-                strcpy(pOpInfoDataEnd[0].szOpInfoShort, pOpInfoData[0].szOpInfoShort);
-                strcpy(pOpInfoDataEnd[0].szOpInfoNumeric, pOpInfoData[0].szOpInfoNumeric);
-                strcpy(pOpInfoDataEnd[0].szOpInfoStatus, pOpInfoData[0].szOpInfoStatus);
+                strncpy(pOpInfoDataEnd[0].szOpInfoLong, pOpInfoData[0].szOpInfoLong, MAX_BUFFER_SIZE-1);
+                pOpInfoDataEnd[0].szOpInfoLong[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                strncpy(pOpInfoDataEnd[0].szOpInfoShort, pOpInfoData[0].szOpInfoShort, MAX_BUFFER_SIZE-1);
+                pOpInfoDataEnd[0].szOpInfoShort[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                strncpy(pOpInfoDataEnd[0].szOpInfoNumeric, pOpInfoData[0].szOpInfoNumeric, MAX_BUFFER_SIZE-1);
+                pOpInfoDataEnd[0].szOpInfoNumeric[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                strncpy(pOpInfoDataEnd[0].szOpInfoStatus, pOpInfoData[0].szOpInfoStatus, MAX_BUFFER_SIZE-1);
+                pOpInfoDataEnd[0].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
                 pOpInfoPtrEnd[0].pszOpInfoLong = pOpInfoDataEnd[0].szOpInfoLong;
                 pOpInfoPtrEnd[0].pszOpInfoShort = pOpInfoDataEnd[0].szOpInfoShort;
                 pOpInfoPtrEnd[0].pszOpInfoNumeric = pOpInfoDataEnd[0].szOpInfoNumeric;
@@ -4747,10 +4760,14 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
                     }
                     if (find == false)
                     {
-                        strcpy(pOpInfoDataEnd[j].szOpInfoLong, pOpInfoData[i].szOpInfoLong);
-                        strcpy(pOpInfoDataEnd[j].szOpInfoShort, pOpInfoData[i].szOpInfoShort);
-                        strcpy(pOpInfoDataEnd[j].szOpInfoNumeric, pOpInfoData[i].szOpInfoNumeric);
-                        strcpy(pOpInfoDataEnd[j].szOpInfoStatus, pOpInfoData[i].szOpInfoStatus);
+                        strncpy(pOpInfoDataEnd[j].szOpInfoLong, pOpInfoData[i].szOpInfoLong, MAX_BUFFER_SIZE-1);
+                        pOpInfoDataEnd[j].szOpInfoLong[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                        strncpy(pOpInfoDataEnd[j].szOpInfoShort, pOpInfoData[i].szOpInfoShort, MAX_BUFFER_SIZE-1);
+                        pOpInfoDataEnd[j].szOpInfoShort[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                        strncpy(pOpInfoDataEnd[j].szOpInfoNumeric, pOpInfoData[i].szOpInfoNumeric, MAX_BUFFER_SIZE-1);
+                        pOpInfoDataEnd[j].szOpInfoNumeric[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                        strncpy(pOpInfoDataEnd[j].szOpInfoStatus, pOpInfoData[i].szOpInfoStatus, MAX_BUFFER_SIZE-1);
+                        pOpInfoDataEnd[j].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
                         pOpInfoPtrEnd[j].pszOpInfoLong = pOpInfoDataEnd[j].szOpInfoLong;
                         pOpInfoPtrEnd[j].pszOpInfoShort = pOpInfoDataEnd[j].szOpInfoShort;
                         pOpInfoPtrEnd[j].pszOpInfoNumeric = pOpInfoDataEnd[j].szOpInfoNumeric;
@@ -5388,11 +5405,12 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         //  Populate DNSs and gateways
         if (pChannelData)
         {
-            sprintf(pPDPListData->pDnsesBuffers[count], "%s %s %s %s",
+            snprintf(pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s %s %s",
                 (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
                 (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
                 (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
                 (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
+            pPDPListData->pDnsesBuffers[count][MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
         }
         else
         {
@@ -8303,11 +8321,12 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         //  Populate DNSs and gateways
         if (pChannelData)
         {
-            sprintf(pPDPListData->pDnsesBuffers[count], "%s %s %s %s",
+            snprintf(pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s %s %s",
                 (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
                 (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
                 (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
                 (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
+            pPDPListData->pDnsesBuffers[count][MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
         }
         else
         {
