@@ -7156,8 +7156,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_SIM_IO_v6 *   pSimIOArgs = NULL;
-    // ETSI TS 102 221 Section "Coding of Class Byte"
-    int classByte = (RIL_APPTYPE_USIM == m_nSimAppType) ? 0x80 : 0xA0;
+    int classByte;
 
     if (NULL == pData)
     {
@@ -7173,7 +7172,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
 
     // extract data
     pSimIOArgs = (RIL_SIM_IO_v6 *)pData;
-
+    classByte = pSimIOArgs->cla;
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - cla=%02X command=%d p1=%d p2=%d p3=%d data=\"%s\"\r\n",
         classByte, pSimIOArgs->command,
         pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
@@ -7669,8 +7668,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_SIM_IO_v6 *   pSimIOArgs = NULL;
-    // ETSI TS 102 221 Section "Coding of Class Byte"
-    int classByte = (RIL_APPTYPE_USIM == m_nSimAppType) ? 0x80 : 0xA0;
+    int classByte;
 
     if (NULL == pData)
     {
@@ -7686,7 +7684,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
 
     // extract data
     pSimIOArgs = (RIL_SIM_IO_v6 *)pData;
-
+    classByte = pSimIOArgs->cla;
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - cla=%02X command=%d fileid=%04X p1=%d p2=%d p3=%d data=\"%s\"\r\n",
         classByte, pSimIOArgs->command, pSimIOArgs->fileid,
         pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,

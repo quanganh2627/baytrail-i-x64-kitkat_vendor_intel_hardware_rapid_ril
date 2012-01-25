@@ -66,7 +66,7 @@ LOCAL_SHARED_LIBRARIES := libcutils libutils
 #LOCAL_CFLAGS += -DM2_PIN_RETRIES_FEATURE_ENABLED
 
 # Activating this macro enables SEEK for Android (for Ice Cream Sandwich)
-#LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED
+LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED
 
 # Activating this macro enables PIN caching (for modem cold reboot)
 #LOCAL_CFLAGS += -DM2_PIN_CACHING_FEATURE_ENABLED
