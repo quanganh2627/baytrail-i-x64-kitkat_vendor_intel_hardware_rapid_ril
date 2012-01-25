@@ -3046,6 +3046,73 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
         }
         break;
 
+        case RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR:
+        {
+            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+
+            //  Cast our data into our structure
+            if (sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR) == uiDataSize)
+            {
+                sOEM_HOOK_RAW_THERMAL_GET_SENSOR sTGS;
+                memset(&sTGS, 0, sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR));
+                memcpy(&sTGS, pDataBytes, sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR));
+
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - nSensorId=[%d]\r\n", ntohl(sTGS.nSensorId));
+
+                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,9,%u\r", ntohl(sTGS.nSensorId)))
+                {
+                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR - Can't construct szCmd1.\r\n");
+                    goto Error;
+                }
+
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_THERMAL_GET_SENSOR=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR));
+                goto Error;
+            }
+        }
+        break;
+
+        case RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD:
+        {
+            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+
+            //  Cast our data into our structure
+            if (sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD) == uiDataSize)
+            {
+                sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD sTST;
+                memset(&sTST, 0, sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD));
+                memcpy(&sTST, pDataBytes, sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD));
+
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - enable=[%d]\r\n", sTST.bEnable);
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - sensor Id=[%d]\r\n", ntohl(sTST.nSensorId));
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - Low Threshold=[%d]\r\n", ntohl(sTST.nMinThreshold));
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - Max Threshold=[%d]\r\n", ntohl(sTST.nMaxThreshold));
+
+                if (sTST.bEnable)
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,14,%u,%d,%d\r", ntohl(sTST.nSensorId), ntohl(sTST.nMinThreshold), ntohl(sTST.nMaxThreshold)))
+                    {
+                        RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD - Can't construct szCmd1.\r\n");
+                        goto Error;
+                    }
+                }
+                else if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,14,%u\r", ntohl(sTST.nSensorId)))
+                {
+                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD - Can't construct szCmd1.\r\n");
+                    goto Error;
+                }
+
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD));
+                goto Error;
+            }
+        }
+        break;
+
 #if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
 
         case RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM:
@@ -3135,6 +3202,137 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 
     switch(bCommand)
     {
+        case RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR:
+        {
+            unsigned char *pbData = NULL;
+            UINT32 nIpcChrGrp;
+            UINT32 nIpcChrTempGet;
+            UINT32 nXdrvResult;
+            UINT32 nTempSensorId;
+            UINT32 nFilteredTemp;
+            UINT32 nRawTemp;
+
+            // Parse prefix
+            if (!FindAndSkipString(szRsp, "+XDRV: ", szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse \"+XDRV\" prefix.!\r\n");
+                goto Error;
+            }
+
+            // Parse <IPC_CHR_GRP>
+            if (!ExtractUInt32(szRsp, nIpcChrGrp, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <IPC_CHR_GRP>!\r\n");
+                goto Error;
+            }
+
+            // Parse <IPC_CHR_TEMP_GET>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractUInt32(szRsp, nIpcChrTempGet, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <IPC_CHR_TEMP_GET>!\r\n");
+                goto Error;
+            }
+
+            // Parse <xdrv_result>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractUInt32(szRsp, nXdrvResult, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <result>!\r\n");
+                goto Error;
+            }
+
+            // Parse <temp_sensor_id>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractUInt32(szRsp, nTempSensorId, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <temp_sensor_id>!\r\n");
+                goto Error;
+            }
+
+            // Parse <filtered_temp>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractUInt32(szRsp, nFilteredTemp, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <filtered_temp>!\r\n");
+                goto Error;
+            }
+
+            // Parse <raw_temp>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractUInt32(szRsp, nRawTemp, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <raw_temp>!\r\n");
+                goto Error;
+            }
+
+            RIL_LOG_INFO(" IPC_CHR_GRP: %u, IPC_CHR_TEMP_GET: %u, xdrv_result: %u\r\n", nIpcChrGrp, nIpcChrTempGet, nXdrvResult);
+            RIL_LOG_INFO(" temp_sensor_id: %u, filtered_temp: %u, raw_temp: %u\r\n", nTempSensorId, nFilteredTemp, nRawTemp);
+
+            // XDRV Result should be XDRV_RESULT_OK (0) otherwise this is an error
+            if (nXdrvResult) goto Error;
+
+            pbData = (unsigned char*)malloc(sizeof(int) * 2);
+            if (NULL == pbData)
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Could not allocate memory for response.\r\n");
+                goto Error;
+            }
+            memset(pbData, 0, sizeof(int) * 2);
+
+            convertIntToByteArray(pbData, nFilteredTemp);
+            convertIntToByteArrayAt(pbData, nRawTemp, sizeof(int));
+
+            pData  = (void*)pbData;
+            uiDataSize = sizeof(int) * 2;
+        }
+        break;
+
+        case RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD:
+        {
+            UINT32 nIpcChrGrp;
+            UINT32 nIpcChrTempThresholdSet;
+            UINT32 nXdrvResult;
+
+            // Parse prefix
+            if (!FindAndSkipString(szRsp, "+XDRV: ", szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse \"+XDRV\" prefix.!\r\n");
+                goto Error;
+            }
+
+            // Parse <IPC_CHR_GRP>
+            if (!ExtractUInt32(szRsp, nIpcChrGrp, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <IPC_CHR_GRP>!\r\n");
+                goto Error;
+            }
+
+            // Parse <IPC_CHR_TEMP_THRESHOLD_SET>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractUInt32(szRsp, nIpcChrTempThresholdSet, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <IPC_CHR_TEMP_THRESHOLD_SET>!\r\n");
+                goto Error;
+            }
+
+            // Parse <xdrv_result>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractUInt32(szRsp, nXdrvResult, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <result>!\r\n");
+                goto Error;
+            }
+
+            RIL_LOG_INFO(" IPC_CHR_GRP: %u, IPC_CHR_TEMP_THRESHOLD_SET: %u, xdrv_result: %u\r\n", nIpcChrGrp, nIpcChrTempThresholdSet, nXdrvResult);
+
+            // XDRV Result should be XDRV_RESULT_OK (0) otherwise this is an error
+            if (nXdrvResult) goto Error;
+
+        }
+        break;
+
+
 #if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
 
         case RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM:

@@ -114,12 +114,13 @@ BOOL CChannel_ATCmd::AddSilos()
     RIL_LOG_VERBOSE("CChannel_ATCmd::AddSilos() - Enter\r\n");
     BOOL bRet = FALSE;
 
-    //  ATCmd channel contains 5 silos:
+    //  ATCmd channel contains 6 silos:
     //     Voice Silo
     //     Network Silo
     //     SMS Silo
     //     Phonebook Silo
     //     SIM Silo
+    //     MISC Silo
     CSilo *pSilo = NULL;
 
 
@@ -158,6 +159,12 @@ BOOL CChannel_ATCmd::AddSilos()
         goto Error;
     }
 
+    pSilo = CSilo_Factory::GetSiloMISC(this);
+    if (!pSilo || !AddSilo(pSilo))
+    {
+        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_MISC\r\n", m_uiRilChannel);
+        goto Error;
+    }
 
     bRet = TRUE;
 Error:

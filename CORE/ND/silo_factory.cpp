@@ -17,6 +17,7 @@
 #include "silo_data_inf.h"
 #include "silo_network_inf.h"
 #include "silo_phonebook_inf.h"
+#include "silo_misc_inf.h"
 #include "rillog.h"
 #include "repository.h"
 #include "silo_factory.h"
@@ -170,4 +171,27 @@ CSilo* CSilo_Factory::GetSiloPhonebook(CChannel *pChannel)
     return pSilo;
 }
 
+CSilo* CSilo_Factory::GetSiloMISC(CChannel *pChannel)
+{
+    RIL_LOG_VERBOSE("CSilo_Factory::GetSiloMISC() - Enter\r\n");
+    CSilo* pSilo = NULL;
+
+    CRepository repository;
+    char szModem[uiMaxModemNameLen];
+
+    if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
+    {
+        if (0 == strcmp(szModem, szInfineon6260))
+            pSilo = new CSilo_MISC_INF(pChannel);
+    }
+
+    if (NULL == pSilo)
+    {
+        // return default silo misc
+        pSilo = new CSilo_MISC(pChannel);
+    }
+
+    RIL_LOG_VERBOSE("CSilo_Factory::GetSiloMISC() - Exit\r\n");
+    return pSilo;
+}
 

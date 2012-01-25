@@ -17,6 +17,7 @@
 
 #include <wchar.h>
 #include <sys/select.h>
+#include <arpa/inet.h>
 
 #ifdef assert
 #undef assert
@@ -426,6 +427,21 @@ void convertStrToHexBuf(const char* inStr, unsigned char** pOutHexStr)
     {
         sscanf(inStr + i*2, "%2x", &hex);
         (*pOutHexStr)[i] = hex;
+    }
+}
+
+// convert an Integer into a byte array in Big Endian format
+void convertIntToByteArray(unsigned char* byteArray, int value)
+{
+    convertIntToByteArrayAt(byteArray, value, 0);
+}
+
+// convert an Integer into a byte array in Big Endian format starting at 'pos'
+void convertIntToByteArrayAt(unsigned char* byteArray, int value, int pos)
+{
+    for (unsigned int i = 0; i < sizeof(int); i++)
+    {
+        byteArray[i + pos] = (unsigned char) ((htonl(value) >> (i*8)) & 0xFF);
     }
 }
 

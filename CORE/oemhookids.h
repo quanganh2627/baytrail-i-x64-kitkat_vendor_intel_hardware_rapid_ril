@@ -61,6 +61,66 @@ const BYTE RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER = 0xCC;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#pragma pack(1)
+
+typedef struct TAG_OEM_HOOK_RAW_THERMAL_GET_SENSOR
+{
+    unsigned char bCommand; //  Command ID
+    int nSensorId; // sensor id
+} sOEM_HOOK_RAW_THERMAL_GET_SENSOR;
+
+//
+//  TAG_OEM_HOOK_RAW_THERMAL_GET_SENSOR
+//  Command ID = 0xA2
+//
+//  "data" = sOEM_HOOK_RAW_GET_SENSOR_VALUE
+//  "response" = NULL
+//
+const BYTE RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR = 0xA2;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_SET_SENSOR_THRESHOLD
+{
+    unsigned char bCommand; //  Command ID
+    bool bEnable; // enable or disable
+    int nSensorId; // sensor id
+    int nMinThreshold; // min Threshold
+    int nMaxThreshold; // max Threshold
+} sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD;
+
+//
+//  TAG_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD
+//  Command ID = 0xA3
+//
+//  "data" = sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD
+//  "response" = NULL
+//
+const BYTE RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD = 0xA3;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
+{
+    unsigned char bCommand; //  Command ID
+    int nResultCode; // result code
+    int nSensorId; // sensor id
+    int nTemp; // temperature
+} sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND;
+
+//
+//  TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
+//  Command ID = 0xD0
+//
+//  "data" = sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
+//  "response" = NULL
+//
+const BYTE RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND = 0xD0;
+
+#pragma pack()
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_GAN_RIL
 {
     unsigned char bCommand; //  Command ID

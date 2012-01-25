@@ -932,4 +932,9 @@ protected:
 // Convert a C-string representing hexadecimal buffer ("4E2D...") to an hex buffer {0x4E, 0x2D}
 void convertStrToHexBuf(const char* inStr, unsigned char** pOutHexStr);
 
+// convert an Integer into a byte array in Big Endian format
+void convertIntToByteArray(unsigned char* outByteArray, int value);
+
+// convert an Integer into a byte array in Big Endian format starting at 'position'
+void convertIntToByteArrayAt(unsigned char* outByteArray, int value, int position);
 

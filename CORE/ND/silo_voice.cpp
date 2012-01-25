@@ -147,7 +147,7 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
     rszPointer -= strlen(g_szNewLine);
 
     //  Determine what kind of RING this is.
-    if (0 == strcmp(szType, "VOICE"))
+    if (0 == strcmp(szType, "VOICE") || 0 == strcmp(szType, "CTM"))
     {
         //  Normal case, just send ring notification.
         RIL_LOG_INFO("CSilo_Voice::ParseExtRing() : Incoming voice call\r\n");
@@ -1273,6 +1273,7 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
     BOOL fRet = FALSE;
     int *pFailedCauseData = NULL;
     const char * szDummy = NULL;
+    UINT32 uiDummy = 0;
     UINT32 uiCause = 0;
     UINT32 uiID = 0;
 
@@ -1289,10 +1290,18 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
         RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Could not allocate data\r\n");
         goto Error;
     }
-    memset(pFailedCauseData, 0, sizeof(2 * sizeof(int*)));
+    memset(pFailedCauseData, 0, 2 * sizeof(int*));
+
+    //  Extract <report>
+    if (!ExtractUInt32(rszPointer, uiDummy, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Could not extract <report>\r\n");
+        goto Error;
+    }
 
     //  Extract <cause>
-    if (!ExtractUInt32(rszPointer, uiCause, rszPointer))
+    if (!SkipString(rszPointer, ",", rszPointer) ||
+        !ExtractUInt32(rszPointer, uiCause, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Could not extract uiCause\r\n");
         goto Error;
