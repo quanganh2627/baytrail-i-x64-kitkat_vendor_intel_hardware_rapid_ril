@@ -39,7 +39,7 @@ CPort::~CPort()
     {
         if (!Close())
         {
-            RIL_LOG_CRITICAL("CPort::~CPort() - ERROR: Failed to close port!\r\n");
+            RIL_LOG_CRITICAL("CPort::~CPort() - Failed to close port!\r\n");
         }
     }
 
@@ -64,7 +64,7 @@ BOOL CPort::Open(const char * pszFileName, BOOL fIsSocket)
 
     if (NULL == pszFileName)
     {
-        RIL_LOG_CRITICAL("CPort::Open() - ERROR: pszFileName is NULL!\r\n");
+        RIL_LOG_CRITICAL("CPort::Open() - pszFileName is NULL!\r\n");
         return FALSE;
     }
 
@@ -86,7 +86,7 @@ BOOL CPort::Open(const char * pszFileName, BOOL fIsSocket)
     }
     else
     {
-        RIL_LOG_CRITICAL("CPort::Open() - ERROR: Port is already open!\r\n");
+        RIL_LOG_CRITICAL("CPort::Open() - Port is already open!\r\n");
     }
 
     RIL_LOG_VERBOSE("CPort::Open() - Exit\r\n");
@@ -137,7 +137,7 @@ BOOL CPort::Init()
             /*
             if(ioctl(fd, TIOCMBIS, &bit))
             {
-                RIL_LOG_CRITICAL("CPort::Init() - ERROR: ioctl(%d, 0x%x, 0x%x) failed with error= %d\r\n", errno);
+                RIL_LOG_CRITICAL("CPort::Init() - ioctl(%d, 0x%x, 0x%x) failed with error= %d\r\n", errno);
             }
             else
             {
@@ -148,12 +148,12 @@ BOOL CPort::Init()
         }
         else
         {
-            RIL_LOG_CRITICAL("CPort::Init() - ERROR: File descriptor was negative!\r\n");
+            RIL_LOG_CRITICAL("CPort::Init() - File descriptor was negative!\r\n");
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CPort::Init() - ERROR: Port is not open!\r\n");
+        RIL_LOG_CRITICAL("CPort::Init() - Port is not open!\r\n");
     }
 
     RIL_LOG_VERBOSE("CPort::Init() - Exit\r\n");
@@ -167,7 +167,7 @@ BOOL CPort::Close()
 
     if (!m_fIsPortOpen)
     {
-        RIL_LOG_CRITICAL("CPort::Close() - ERROR: Port is already closed!\r\n");
+        RIL_LOG_CRITICAL("CPort::Close() - Port is already closed!\r\n");
     }
     else
     {
@@ -176,7 +176,7 @@ BOOL CPort::Close()
 
         if (!fRet)
         {
-            RIL_LOG_CRITICAL("CPort::Close() - ERROR: Unable to properly close port!\r\n");
+            RIL_LOG_CRITICAL("CPort::Close() - Unable to properly close port!\r\n");
         }
     }
 
@@ -199,12 +199,12 @@ BOOL CPort::Read(char * pszReadBuf, UINT32 uiReadBufSize, UINT32 & ruiBytesRead)
         }
         else
         {
-            RIL_LOG_CRITICAL("CPort::Read() - ERROR: Unable to read from port\r\n");
+            RIL_LOG_CRITICAL("CPort::Read() - Unable to read from port\r\n");
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CPort::Read() - ERROR: Port is not open!\r\n");
+        RIL_LOG_CRITICAL("CPort::Read() - Port is not open!\r\n");
     }
 
     RIL_LOG_VERBOSE("CPort::Read() - Exit\r\n");
@@ -226,12 +226,12 @@ BOOL CPort::Write(const char * pszWriteBuf, const UINT32 uiBytesToWrite, UINT32 
         }
         else
         {
-            RIL_LOG_CRITICAL("CPort::Write() - ERROR: Unable to write to port\r\n");
+            RIL_LOG_CRITICAL("CPort::Write() - Unable to write to port\r\n");
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CPort::Write() - ERROR: Port is not open!\r\n");
+        RIL_LOG_CRITICAL("CPort::Write() - Port is not open!\r\n");
     }
 
     return fRet;
@@ -353,13 +353,13 @@ BOOL CPort::OpenSocket(const char * pszSocketName)
             }
             else
             {
-                RIL_LOG_CRITICAL("CPort::OpenSocket() - ERROR: Unable to read response from socket\r\n");
+                RIL_LOG_CRITICAL("CPort::OpenSocket() - Unable to read response from socket\r\n");
                 fRet = FALSE;
             }
         }
         else
         {
-            RIL_LOG_CRITICAL("CPort::OpenSocket() - ERROR: Unable to write \"%s\" to socket\r\n", szSocketInit);
+            RIL_LOG_CRITICAL("CPort::OpenSocket() - Unable to write \"%s\" to socket\r\n", szSocketInit);
             fRet = FALSE;
         }
     }

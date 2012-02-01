@@ -77,6 +77,11 @@ extern const char   g_szCoreDumpTimeout[];
 extern const char   g_szDisableWatchdogThread[];
 extern const char   g_szRadioResetDelay[];
 extern const char   g_szRadioResetStartStmdDelay[];
+extern const char   g_szEnableCellInfo[];
+extern const char   g_szRxDiversity3GEnable[];
+extern const char   g_szRxDiversity2GDARP[];
+extern const char   g_szFDDelayTimer[];
+extern const char   g_szSCRITimer[];
 
 //////////////////////////////////////////////////////////////////////////
 

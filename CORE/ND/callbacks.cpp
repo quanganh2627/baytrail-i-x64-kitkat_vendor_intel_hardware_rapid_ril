@@ -29,7 +29,7 @@ void triggerHangup(UINT32 uiCallId)
     memset(&rReqData, 0, sizeof(REQUEST_DATA));
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XSETCAUSE=1,21;+CHLD=1%u\r", uiCallId))
     {
-        RIL_LOG_CRITICAL("triggerHangup() - ERROR: Unable to create hangup command!\r\n");
+        RIL_LOG_CRITICAL("triggerHangup() - Unable to create hangup command!\r\n");
         return;
     }
 
@@ -38,14 +38,14 @@ void triggerHangup(UINT32 uiCallId)
     {
         if (!CCommand::AddCmdToQueue(pCmd, TRUE))
         {
-            RIL_LOG_CRITICAL("triggerHangup() - ERROR: Unable to queue command!\r\n");
+            RIL_LOG_CRITICAL("triggerHangup() - Unable to queue command!\r\n");
             delete pCmd;
             pCmd = NULL;
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("triggerHangup() - ERROR: Unable to allocate memory for new command!\r\n");
+        RIL_LOG_CRITICAL("triggerHangup() - Unable to allocate memory for new command!\r\n");
     }
 }
 
@@ -57,14 +57,14 @@ void triggerSignalStrength(void *param)
     {
         if (!CCommand::AddCmdToQueue(pCmd))
         {
-            RIL_LOG_CRITICAL("triggerSignalStrength() - ERROR: Unable to queue command!\r\n");
+            RIL_LOG_CRITICAL("triggerSignalStrength() - Unable to queue command!\r\n");
             delete pCmd;
             pCmd = NULL;
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("triggerSignalStrength() - ERROR: Unable to allocate memory for new command!\r\n");
+        RIL_LOG_CRITICAL("triggerSignalStrength() - Unable to allocate memory for new command!\r\n");
     }
 }
 
@@ -76,14 +76,14 @@ void triggerSMSAck(void *param)
     {
         if (!CCommand::AddCmdToQueue(pCmd))
         {
-            RIL_LOG_CRITICAL("triggerSMSAck() - ERROR: Unable to queue command!\r\n");
+            RIL_LOG_CRITICAL("triggerSMSAck() - Unable to queue command!\r\n");
             delete pCmd;
             pCmd = NULL;
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("triggerSMSAck() - ERROR: Unable to allocate memory for new command!\r\n");
+        RIL_LOG_CRITICAL("triggerSMSAck() - Unable to allocate memory for new command!\r\n");
     }
 }
 
@@ -96,14 +96,14 @@ void triggerQuerySimSmsStoreStatus(void *param)
     {
         if (!CCommand::AddCmdToQueue(pCmd))
         {
-            RIL_LOG_CRITICAL("triggerQuerySimSmsStoreStatus() - ERROR: Unable to queue command!\r\n");
+            RIL_LOG_CRITICAL("triggerQuerySimSmsStoreStatus() - Unable to queue command!\r\n");
             delete pCmd;
             pCmd = NULL;
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("triggerQuerySimSmsStoreStatus() - ERROR: Unable to allocate memory for new command!\r\n");
+        RIL_LOG_CRITICAL("triggerQuerySimSmsStoreStatus() - Unable to allocate memory for new command!\r\n");
     }
 }
 
@@ -124,14 +124,14 @@ void triggerDataCallListChanged(void *param)
     {
         if (!CCommand::AddCmdToQueue(pCmd))
         {
-            RIL_LOG_CRITICAL("triggerDataCallListChanged() - ERROR: Unable to queue command!\r\n");
+            RIL_LOG_CRITICAL("triggerDataCallListChanged() - Unable to queue command!\r\n");
             delete pCmd;
             pCmd = NULL;
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("triggerDataCallListChanged() - ERROR: Unable to allocate memory for new command!\r\n");
+        RIL_LOG_CRITICAL("triggerDataCallListChanged() - Unable to allocate memory for new command!\r\n");
     }
 }
 
@@ -150,7 +150,7 @@ void triggerDeactivateDataCall(void *param)
     memset(&rReqData, 0, sizeof(REQUEST_DATA));
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%d\r", nCID))
     {
-        RIL_LOG_CRITICAL("triggerDeactivateDataCall() - ERROR: Unable to create CGACT command!\r\n");
+        RIL_LOG_CRITICAL("triggerDeactivateDataCall() - Unable to create CGACT command!\r\n");
         return;
     }
     rReqData.pContextData = param;
@@ -160,14 +160,14 @@ void triggerDeactivateDataCall(void *param)
     {
         if (!CCommand::AddCmdToQueue(pCmd))
         {
-            RIL_LOG_CRITICAL("triggerDeactivateDataCall() - ERROR: Unable to queue command!\r\n");
+            RIL_LOG_CRITICAL("triggerDeactivateDataCall() - Unable to queue command!\r\n");
             delete pCmd;
             pCmd = NULL;
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("triggerDeactivateDataCall() - ERROR: Unable to allocate memory for new command!\r\n");
+        RIL_LOG_CRITICAL("triggerDeactivateDataCall() - Unable to allocate memory for new command!\r\n");
     }
 
 }

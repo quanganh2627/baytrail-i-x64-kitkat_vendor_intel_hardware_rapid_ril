@@ -79,7 +79,7 @@ void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
 
         if (!bRes)
         {
-            RIL_LOG_CRITICAL("CContextInitString::Execute() - ERROR: Shutting Down!\r\n");
+            RIL_LOG_CRITICAL("CContextInitString::Execute() - Shutting Down!\r\n");
             CSystemManager::GetInstance().SetInitializationUnsuccessful();
             do_request_clean_up(eRadioError_InitFailure, __LINE__, __FILE__);
         }

@@ -38,7 +38,7 @@ void * ThreadProcStartStop(void * pVoid)
 
     if (NULL == pVoid)
     {
-        RIL_LOG_CRITICAL("ThreadProcStartStop() - ERROR: pVoid was NULL!\r\n");
+        RIL_LOG_CRITICAL("ThreadProcStartStop() - pVoid was NULL!\r\n");
         goto Error;
     }
 
@@ -65,7 +65,7 @@ void * ThreadWaitProc(void * pVoid)
 
     if (NULL == pVoid)
     {
-        RIL_LOG_CRITICAL("ThreadWaitProc() - ERROR: pVoid was NULL!\r\n");
+        RIL_LOG_CRITICAL("ThreadWaitProc() - pVoid was NULL!\r\n");
         return NULL;
     }
 
@@ -85,19 +85,19 @@ void * ThreadWaitProc(void * pVoid)
     }
     else if (ESRCH == nRet)
     {
-        RIL_LOG_CRITICAL("ThreadWaitProc() - ERROR: Given thread is not initialized!\r\n");
+        RIL_LOG_CRITICAL("ThreadWaitProc() - Given thread is not initialized!\r\n");
     }
     else if (EINVAL == nRet)
     {
-        RIL_LOG_CRITICAL("ThreadWaitProc() - ERROR: Given thread is not joinable!\r\n");
+        RIL_LOG_CRITICAL("ThreadWaitProc() - Given thread is not joinable!\r\n");
     }
     else if (EDEADLK == nRet)
     {
-        RIL_LOG_CRITICAL("ThreadWaitProc() - ERROR: Deadlock detected, pthread_join bailed out!\r\n");
+        RIL_LOG_CRITICAL("ThreadWaitProc() - Deadlock detected, pthread_join bailed out!\r\n");
     }
     else
     {
-        RIL_LOG_CRITICAL("ThreadWaitProc() - ERROR: Error code returned: 0x%X\r\n", nRet);
+        RIL_LOG_CRITICAL("ThreadWaitProc() - Error code returned: 0x%X\r\n", nRet);
     }
 
     return NULL;
@@ -149,7 +149,7 @@ CThread::CThread(THREAD_PROC_PTR pvThreadProc, void * pvDataObj, UINT32 dwFlags,
         errno = iResult;
         perror("pthread_create");
 
-        RIL_LOG_CRITICAL("CThread::CThread() - ERROR: Failed to create thread!\r\n");
+        RIL_LOG_CRITICAL("CThread::CThread() - Failed to create thread!\r\n");
     }
     else
     {
@@ -160,7 +160,7 @@ CThread::CThread(THREAD_PROC_PTR pvThreadProc, void * pvDataObj, UINT32 dwFlags,
 
         if (!SetPriority(THREAD_PRIORITY_LEVEL_NORMAL))
         {
-            //RIL_LOG_CRITICAL("CThread::CThread() - ERROR: Failed to set priority to THREAD_PRIORITY_LEVEL_NORMAL\r\n");
+            //RIL_LOG_CRITICAL("CThread::CThread() - Failed to set priority to THREAD_PRIORITY_LEVEL_NORMAL\r\n");
         }
     }
 }
@@ -183,7 +183,7 @@ void CThread::Kill()
     }
     else
     {
-        RIL_LOG_CRITICAL("CThread::Kill() - ERROR: Unable to kill thread as it is not running!\r\n");
+        RIL_LOG_CRITICAL("CThread::Kill() - Unable to kill thread as it is not running!\r\n");
     }
 }
 
@@ -244,18 +244,18 @@ BOOL CThread::SetPriority(UINT32 dwPriority)
             {
                 fRet = FALSE;
                 //perror("pthread_setschedparam");
-                //RIL_LOG_CRITICAL("CThread::SetPriority() - ERROR: pthread_setschedparam returned failed response: %d\r\n", nRes);
-                //RIL_LOG_CRITICAL("CThread::SetPriority() - ERROR: errno=[%d],[%s]\r\n", errno, strerror(errno));
+                //RIL_LOG_CRITICAL("CThread::SetPriority() - pthread_setschedparam returned failed response: %d\r\n", nRes);
+                //RIL_LOG_CRITICAL("CThread::SetPriority() - errno=[%d],[%s]\r\n", errno, strerror(errno));
             }
         }
         else
         {
-            RIL_LOG_CRITICAL("CThread::SetPriority() - ERROR: Given priority out of range: %d\r\n", dwPriority);
+            RIL_LOG_CRITICAL("CThread::SetPriority() - Given priority out of range: %d\r\n", dwPriority);
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CThread::SetPriority() - ERROR: Thread is not initialized!\r\n");
+        RIL_LOG_CRITICAL("CThread::SetPriority() - Thread is not initialized!\r\n");
     }
 
     return fRet;
@@ -273,12 +273,12 @@ UINT32 CThread::Wait(UINT32 dwTimeout)
 
     if (!m_fJoinable)
     {
-        RIL_LOG_CRITICAL("CThread::Wait() - ERROR: Unable to wait for non-joinable thread!\r\n");
+        RIL_LOG_CRITICAL("CThread::Wait() - Unable to wait for non-joinable thread!\r\n");
         return THREAD_WAIT_NOT_JOINABLE;
     }
     else if (!m_fInitialized)
     {
-        RIL_LOG_CRITICAL("CThread::Wait() - ERROR: Unable to wait for non-intialized thread!\r\n");
+        RIL_LOG_CRITICAL("CThread::Wait() - Unable to wait for non-intialized thread!\r\n");
         return THREAD_WAIT_NOT_INITIALIZED;
     }
 
@@ -291,7 +291,7 @@ UINT32 CThread::Wait(UINT32 dwTimeout)
     CEvent * pEvent = new CEvent();
     if (NULL == pEvent)
     {
-        RIL_LOG_CRITICAL("CThread::Wait() - ERROR: Failed to create event!\r\n");
+        RIL_LOG_CRITICAL("CThread::Wait() - Failed to create event!\r\n");
         goto Error;
     }
 
@@ -310,7 +310,7 @@ UINT32 CThread::Wait(UINT32 dwTimeout)
         errno = iResult;
         perror("pthread_create");
 
-        RIL_LOG_CRITICAL("CThread::Wait() - ERROR: Failed to create thread!\r\n");
+        RIL_LOG_CRITICAL("CThread::Wait() - Failed to create thread!\r\n");
     }
 
     switch(CEvent::Wait(pEvent, dwTimeout))
@@ -348,7 +348,7 @@ BOOL CThread::SetPriority(CThread * pThread, UINT32 dwPriority)
     }
     else
     {
-        RIL_LOG_CRITICAL("CThread::SetPriority() - ERROR: Unable to call as pThread was NULL\r\n");
+        RIL_LOG_CRITICAL("CThread::SetPriority() - Unable to call as pThread was NULL\r\n");
     }
 
     return fRet;
@@ -362,7 +362,7 @@ UINT32 CThread::GetPriority(CThread * pThread)
     }
     else
     {
-        RIL_LOG_CRITICAL("CThread::GetPriority() - ERROR: Unable to call as pThread was NULL\r\n");
+        RIL_LOG_CRITICAL("CThread::GetPriority() - Unable to call as pThread was NULL\r\n");
         return THREAD_PRIORITY_LEVEL_UNKNOWN;
     }
 }
@@ -375,7 +375,7 @@ UINT32 CThread::Wait(CThread * pThread, UINT32 dwTimeoutInMS)
     }
     else
     {
-        RIL_LOG_CRITICAL("CThread::Wait() - ERROR: Unable to call as pThread was NULL\r\n");
+        RIL_LOG_CRITICAL("CThread::Wait() - Unable to call as pThread was NULL\r\n");
         return THREAD_WAIT_GEN_FAILURE;
     }
 }
@@ -388,7 +388,7 @@ BOOL CThread::IsRunning(CThread * pThread)
     }
     else
     {
-        RIL_LOG_CRITICAL("CThread::IsRunning() - ERROR: Unable to call as pThread was NULL\r\n");
+        RIL_LOG_CRITICAL("CThread::IsRunning() - Unable to call as pThread was NULL\r\n");
         return FALSE;
     }
 }
@@ -401,7 +401,7 @@ BOOL CThread::IsInitialized(CThread * pThread)
     }
     else
     {
-        RIL_LOG_CRITICAL("CThread::IsInitialized() - ERROR: Unable to call as pThread was NULL\r\n");
+        RIL_LOG_CRITICAL("CThread::IsInitialized() - Unable to call as pThread was NULL\r\n");
         return FALSE;
     }
 }

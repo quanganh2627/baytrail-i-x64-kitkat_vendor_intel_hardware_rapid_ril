@@ -24,25 +24,11 @@ extern BOOL  g_bIsSocket;
 //  Com init strings for this channel.
 //  Call control commands, misc commands
 
-//  Only send AT+XRXDIV=1,1 when M2 Rx Diversity feature flag is enabled.
-//  Otherwise, send AT+XRXDIV=0,1
-#if defined(M2_RXDIV_FEATURE_ENABLED)
-
 #if defined(M2_VT_FEATURE_ENABLED) && defined(M2_VT_XDATACHANNEL_TEST_ENABLED)
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XRXDIV=1,1|+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",2" };
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",2" };
 #else // M2_VT_FEATURE_ENABLED
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XRXDIV=1,1" };
+INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0" };
 #endif // M2_VT_FEATURE_ENABLED
-
-#else  // M2_RXDIV_FEATURE_ENABLED
-
-#if defined(M2_VT_FEATURE_ENABLED) && defined(M2_VT_XDATACHANNEL_TEST_ENABLED)
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XRXDIV=0,1|+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",2" };
-#else // M2_VT_FEATURE_ENABLED
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XRXDIV=0,1" };
-#endif // M2_VT_FEATURE_ENABLED
-
-#endif  // M2_RXDIV_FEATURE_ENABLED
 
 INITSTRING_DATA ATCmdUnlockInitString   = { "" };
 INITSTRING_DATA ATCmdPowerOnInitString  = { "" };
@@ -127,42 +113,42 @@ BOOL CChannel_ATCmd::AddSilos()
     pSilo = CSilo_Factory::GetSiloVoice(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_Voice\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_Voice\r\n", m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloNetwork(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_Network\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_Network\r\n", m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloSMS(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_SMS\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_SMS\r\n", m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloSIM(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_SIM\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_SIM\r\n", m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloPhonebook(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloMISC(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_MISC\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_MISC\r\n", m_uiRilChannel);
         goto Error;
     }
 

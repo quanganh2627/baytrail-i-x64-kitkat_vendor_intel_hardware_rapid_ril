@@ -38,7 +38,7 @@ CTE::CTE() :
 
     if (NULL == m_pTEBaseInstance)
     {
-        RIL_LOG_CRITICAL("CTE::CTE() - ERROR: Unable to construct base terminal equipment!!!!!! EXIT!\r\n");
+        RIL_LOG_CRITICAL("CTE::CTE() - Unable to construct base terminal equipment!!!!!! EXIT!\r\n");
         exit(0);
     }
 }
@@ -82,7 +82,7 @@ CTE& CTE::GetTE()
         m_pTEInstance = new CTE;
         if (NULL == m_pTEInstance)
         {
-            RIL_LOG_CRITICAL("CTE::GetTE() - ERROR: Unable to construct terminal equipment!!!!!! EXIT!\r\n");
+            RIL_LOG_CRITICAL("CTE::GetTE() - Unable to construct terminal equipment!!!!!! EXIT!\r\n");
             exit(0);
         }
     }
@@ -109,7 +109,7 @@ RIL_RESULT_CODE CTE::RequestGetSimStatus(RIL_Token rilToken, void * pData, size_
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetSimStatus(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGetSimStatus() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGetSimStatus() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -124,7 +124,7 @@ RIL_RESULT_CODE CTE::RequestGetSimStatus(RIL_Token rilToken, void * pData, size_
             // because SIM IO requests will block this during SIM hot swap use cases.
             if (!CCommand::AddCmdToQueue(pCmd,TRUE))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGetSimStatus() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGetSimStatus() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -132,7 +132,7 @@ RIL_RESULT_CODE CTE::RequestGetSimStatus(RIL_Token rilToken, void * pData, size_
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetSimStatus() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGetSimStatus() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -161,7 +161,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin(RIL_Token rilToken, void * pData, size_t
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreEnterSimPin(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestEnterSimPin() : ERROR : Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestEnterSimPin() : Unable to create AT command data\r\n");
     }
     else
     {
@@ -173,7 +173,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin(RIL_Token rilToken, void * pData, size_t
 
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestEnterSimPin() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestEnterSimPin() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -181,7 +181,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin(RIL_Token rilToken, void * pData, size_t
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestEnterSimPin() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestEnterSimPin() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -210,7 +210,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk(RIL_Token rilToken, void * pData, size_t
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreEnterSimPuk(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -222,7 +222,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk(RIL_Token rilToken, void * pData, size_t
 
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -230,7 +230,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk(RIL_Token rilToken, void * pData, size_t
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -259,7 +259,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin2(RIL_Token rilToken, void * pData, size_
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreEnterSimPin2(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestEnterSimPin2() : ERROR : Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestEnterSimPin2() : Unable to create AT command data\r\n");
     }
     else
     {
@@ -271,7 +271,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin2(RIL_Token rilToken, void * pData, size_
 
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestEnterSimPin2() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestEnterSimPin2() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -279,7 +279,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin2(RIL_Token rilToken, void * pData, size_
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestEnterSimPin2() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestEnterSimPin2() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -308,7 +308,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk2(RIL_Token rilToken, void * pData, size_
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreEnterSimPuk2(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk2() : ERROR : Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk2() : Unable to create AT command data\r\n");
     }
     else
     {
@@ -320,7 +320,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk2(RIL_Token rilToken, void * pData, size_
 
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk2() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk2() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -328,7 +328,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk2(RIL_Token rilToken, void * pData, size_
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk2() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestEnterSimPuk2() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -357,7 +357,7 @@ RIL_RESULT_CODE CTE::RequestChangeSimPin(RIL_Token rilToken, void * pData, size_
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreChangeSimPin(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestChangeSimPin() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestChangeSimPin() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -370,7 +370,7 @@ RIL_RESULT_CODE CTE::RequestChangeSimPin(RIL_Token rilToken, void * pData, size_
 
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestChangeSimPin() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestChangeSimPin() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -378,7 +378,7 @@ RIL_RESULT_CODE CTE::RequestChangeSimPin(RIL_Token rilToken, void * pData, size_
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestChangeSimPin() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestChangeSimPin() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -407,7 +407,7 @@ RIL_RESULT_CODE CTE::RequestChangeSimPin2(RIL_Token rilToken, void * pData, size
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreChangeSimPin2(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestChangeSimPin2() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestChangeSimPin2() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -420,7 +420,7 @@ RIL_RESULT_CODE CTE::RequestChangeSimPin2(RIL_Token rilToken, void * pData, size
 
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestChangeSimPin2() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestChangeSimPin2() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -428,7 +428,7 @@ RIL_RESULT_CODE CTE::RequestChangeSimPin2(RIL_Token rilToken, void * pData, size
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestChangeSimPin2() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestChangeSimPin2() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -457,7 +457,7 @@ RIL_RESULT_CODE CTE::RequestEnterNetworkDepersonalization(RIL_Token rilToken, vo
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreEnterNetworkDepersonalization(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestEnterNetworkDepersonalization() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestEnterNetworkDepersonalization() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -470,7 +470,7 @@ RIL_RESULT_CODE CTE::RequestEnterNetworkDepersonalization(RIL_Token rilToken, vo
 
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestEnterNetworkDepersonalization() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestEnterNetworkDepersonalization() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -478,7 +478,7 @@ RIL_RESULT_CODE CTE::RequestEnterNetworkDepersonalization(RIL_Token rilToken, vo
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestEnterNetworkDepersonalization() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestEnterNetworkDepersonalization() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -507,7 +507,7 @@ RIL_RESULT_CODE CTE::RequestGetCurrentCalls(RIL_Token rilToken, void * pData, si
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetCurrentCalls(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGetCurrentCalls() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGetCurrentCalls() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -518,7 +518,7 @@ RIL_RESULT_CODE CTE::RequestGetCurrentCalls(RIL_Token rilToken, void * pData, si
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGetCurrentCalls() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGetCurrentCalls() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -526,7 +526,7 @@ RIL_RESULT_CODE CTE::RequestGetCurrentCalls(RIL_Token rilToken, void * pData, si
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetCurrentCalls() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGetCurrentCalls() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -556,7 +556,7 @@ RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void * pData, size_t datale
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDial(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestDial() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestDial() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -567,7 +567,7 @@ RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void * pData, size_t datale
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestDial() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestDial() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -575,7 +575,7 @@ RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void * pData, size_t datale
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestDial() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestDial() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -604,7 +604,7 @@ RIL_RESULT_CODE CTE::RequestGetImsi(RIL_Token rilToken, void * pData, size_t dat
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetImsi(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGetImsi() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGetImsi() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -614,7 +614,7 @@ RIL_RESULT_CODE CTE::RequestGetImsi(RIL_Token rilToken, void * pData, size_t dat
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGetImsi() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGetImsi() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -622,7 +622,7 @@ RIL_RESULT_CODE CTE::RequestGetImsi(RIL_Token rilToken, void * pData, size_t dat
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetImsi() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGetImsi() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -651,7 +651,7 @@ RIL_RESULT_CODE CTE::RequestHangup(RIL_Token rilToken, void * pData, size_t data
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHangup(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestHangup() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestHangup() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -662,7 +662,7 @@ RIL_RESULT_CODE CTE::RequestHangup(RIL_Token rilToken, void * pData, size_t data
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd,TRUE))
             {
-                RIL_LOG_CRITICAL("CTE::RequestHangup() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestHangup() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -670,7 +670,7 @@ RIL_RESULT_CODE CTE::RequestHangup(RIL_Token rilToken, void * pData, size_t data
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestHangup() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestHangup() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -699,7 +699,7 @@ RIL_RESULT_CODE CTE::RequestHangupWaitingOrBackground(RIL_Token rilToken, void *
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHangupWaitingOrBackground(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestHangupWaitingOrBackground() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestHangupWaitingOrBackground() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -710,7 +710,7 @@ RIL_RESULT_CODE CTE::RequestHangupWaitingOrBackground(RIL_Token rilToken, void *
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd,TRUE))
             {
-                RIL_LOG_CRITICAL("CTE::RequestHangupWaitingOrBackground() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestHangupWaitingOrBackground() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -718,7 +718,7 @@ RIL_RESULT_CODE CTE::RequestHangupWaitingOrBackground(RIL_Token rilToken, void *
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestHangupWaitingOrBackground() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestHangupWaitingOrBackground() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -747,7 +747,7 @@ RIL_RESULT_CODE CTE::RequestHangupForegroundResumeBackground(RIL_Token rilToken,
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHangupForegroundResumeBackground(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestHangupForegroundResumeBackground() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestHangupForegroundResumeBackground() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -758,7 +758,7 @@ RIL_RESULT_CODE CTE::RequestHangupForegroundResumeBackground(RIL_Token rilToken,
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd,TRUE))
             {
-                RIL_LOG_CRITICAL("CTE::RequestHangupForegroundResumeBackground() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestHangupForegroundResumeBackground() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -766,7 +766,7 @@ RIL_RESULT_CODE CTE::RequestHangupForegroundResumeBackground(RIL_Token rilToken,
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestHangupForegroundResumeBackground() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestHangupForegroundResumeBackground() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -796,7 +796,7 @@ RIL_RESULT_CODE CTE::RequestSwitchHoldingAndActive(RIL_Token rilToken, void * pD
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSwitchHoldingAndActive(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSwitchHoldingAndActive() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSwitchHoldingAndActive() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -807,7 +807,7 @@ RIL_RESULT_CODE CTE::RequestSwitchHoldingAndActive(RIL_Token rilToken, void * pD
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSwitchHoldingAndActive() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSwitchHoldingAndActive() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -815,7 +815,7 @@ RIL_RESULT_CODE CTE::RequestSwitchHoldingAndActive(RIL_Token rilToken, void * pD
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSwitchHoldingAndActive() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSwitchHoldingAndActive() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -844,7 +844,7 @@ RIL_RESULT_CODE CTE::RequestConference(RIL_Token rilToken, void * pData, size_t 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreConference(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestConference() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestConference() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -855,7 +855,7 @@ RIL_RESULT_CODE CTE::RequestConference(RIL_Token rilToken, void * pData, size_t 
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestConference() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestConference() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -863,7 +863,7 @@ RIL_RESULT_CODE CTE::RequestConference(RIL_Token rilToken, void * pData, size_t 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestConference() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestConference() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -892,7 +892,7 @@ RIL_RESULT_CODE CTE::RequestUdub(RIL_Token rilToken, void * pData, size_t datale
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreUdub(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestUdub() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestUdub() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -903,7 +903,7 @@ RIL_RESULT_CODE CTE::RequestUdub(RIL_Token rilToken, void * pData, size_t datale
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestUdub() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestUdub() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -911,7 +911,7 @@ RIL_RESULT_CODE CTE::RequestUdub(RIL_Token rilToken, void * pData, size_t datale
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestUdub() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestUdub() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -940,7 +940,7 @@ RIL_RESULT_CODE CTE::RequestLastCallFailCause(RIL_Token rilToken, void * pData, 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreLastCallFailCause(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestLastCallFailCause() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestLastCallFailCause() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -950,7 +950,7 @@ RIL_RESULT_CODE CTE::RequestLastCallFailCause(RIL_Token rilToken, void * pData, 
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestLastCallFailCause() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestLastCallFailCause() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -958,7 +958,7 @@ RIL_RESULT_CODE CTE::RequestLastCallFailCause(RIL_Token rilToken, void * pData, 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestLastCallFailCause() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestLastCallFailCause() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -987,7 +987,7 @@ RIL_RESULT_CODE CTE::RequestSignalStrength(RIL_Token rilToken, void * pData, siz
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSignalStrength(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSignalStrength() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSignalStrength() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -997,7 +997,7 @@ RIL_RESULT_CODE CTE::RequestSignalStrength(RIL_Token rilToken, void * pData, siz
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSignalStrength() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSignalStrength() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1005,7 +1005,7 @@ RIL_RESULT_CODE CTE::RequestSignalStrength(RIL_Token rilToken, void * pData, siz
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSignalStrength() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSignalStrength() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1038,7 +1038,7 @@ RIL_RESULT_CODE CTE::RequestRegistrationState(RIL_Token rilToken, void * pData, 
         pRegStatus = (P_ND_REG_STATUS)malloc(sizeof(S_ND_REG_STATUS));
         if (NULL == pRegStatus)
         {
-            RIL_LOG_CRITICAL("CTE::ParseRegistrationState() - ERROR: Could not allocate memory for S_ND_REG_STATUS struct.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseRegistrationState() - Could not allocate memory for S_ND_REG_STATUS struct.\r\n");
             RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
         }
         else
@@ -1058,7 +1058,7 @@ RIL_RESULT_CODE CTE::RequestRegistrationState(RIL_Token rilToken, void * pData, 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreRegistrationState(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestRegistrationState() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestRegistrationState() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1068,7 +1068,7 @@ RIL_RESULT_CODE CTE::RequestRegistrationState(RIL_Token rilToken, void * pData, 
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestRegistrationState() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestRegistrationState() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1076,7 +1076,7 @@ RIL_RESULT_CODE CTE::RequestRegistrationState(RIL_Token rilToken, void * pData, 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestRegistrationState() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestRegistrationState() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1106,7 +1106,7 @@ RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void * pDa
         pRegStatus = (P_ND_GPRS_REG_STATUS)malloc(sizeof(S_ND_GPRS_REG_STATUS));
         if (NULL == pRegStatus)
         {
-            RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() - ERROR: Could not allocate memory for S_ND_GPRS_REG_STATUS struct.\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() - Could not allocate memory for S_ND_GPRS_REG_STATUS struct.\r\n");
             RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
         }
         else
@@ -1130,7 +1130,7 @@ RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void * pDa
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGPRSRegistrationState(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1140,7 +1140,7 @@ RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void * pDa
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1148,7 +1148,7 @@ RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void * pDa
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1177,7 +1177,7 @@ RIL_RESULT_CODE CTE::RequestOperator(RIL_Token rilToken, void * pData, size_t da
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreOperator(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestOperator() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestOperator() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1187,7 +1187,7 @@ RIL_RESULT_CODE CTE::RequestOperator(RIL_Token rilToken, void * pData, size_t da
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestOperator() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestOperator() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1195,7 +1195,7 @@ RIL_RESULT_CODE CTE::RequestOperator(RIL_Token rilToken, void * pData, size_t da
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestOperator() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestOperator() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1227,13 +1227,13 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE::RequestRadioPower() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestRadioPower() - Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (sizeof(int) != datalen)
     {
-        RIL_LOG_CRITICAL("CTE::RequestRadioPower() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestRadioPower() - Invalid data size.\r\n");
         goto Error;
     }
 
@@ -1270,7 +1270,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
         RIL_RESULT_CODE res = m_pTEBaseInstance->CoreRadioPower(reqData, pData, datalen);
         if (RRIL_RESULT_OK != res)
         {
-            RIL_LOG_CRITICAL("CTE::RequestRadioPower() : ERROR : Unable to create AT command data\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestRadioPower() : Unable to create AT command data\r\n");
         }
         else
         {
@@ -1282,7 +1282,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
 
                 if (!CCommand::AddCmdToQueue(pCmd))
                 {
-                    RIL_LOG_CRITICAL("CTE::RequestRadioPower() : ERROR : Unable to add command to queue\r\n");
+                    RIL_LOG_CRITICAL("CTE::RequestRadioPower() : Unable to add command to queue\r\n");
                     res = RIL_E_GENERIC_FAILURE;
                     delete pCmd;
                     pCmd = NULL;
@@ -1290,7 +1290,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
             }
             else
             {
-                RIL_LOG_CRITICAL("CTE::RequestRadioPower() - ERROR: Unable to allocate memory for command\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestRadioPower() - Unable to allocate memory for command\r\n");
                 res = RIL_E_GENERIC_FAILURE;
             }
         }
@@ -1322,7 +1322,7 @@ RIL_RESULT_CODE CTE::RequestDtmf(RIL_Token rilToken, void * pData, size_t datale
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDtmf(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestDtmf() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestDtmf() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1332,7 +1332,7 @@ RIL_RESULT_CODE CTE::RequestDtmf(RIL_Token rilToken, void * pData, size_t datale
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestDtmf() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestDtmf() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1340,7 +1340,7 @@ RIL_RESULT_CODE CTE::RequestDtmf(RIL_Token rilToken, void * pData, size_t datale
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestDtmf() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestDtmf() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1369,7 +1369,7 @@ RIL_RESULT_CODE CTE::RequestSendSms(RIL_Token rilToken, void * pData, size_t dat
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSendSms(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSendSms() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSendSms() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1379,7 +1379,7 @@ RIL_RESULT_CODE CTE::RequestSendSms(RIL_Token rilToken, void * pData, size_t dat
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSendSms() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSendSms() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1387,7 +1387,7 @@ RIL_RESULT_CODE CTE::RequestSendSms(RIL_Token rilToken, void * pData, size_t dat
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSendSms() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSendSms() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1416,7 +1416,7 @@ RIL_RESULT_CODE CTE::RequestSendSmsExpectMore(RIL_Token rilToken, void * pData, 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSendSmsExpectMore(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSendSmsExpectMore() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSendSmsExpectMore() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1426,7 +1426,7 @@ RIL_RESULT_CODE CTE::RequestSendSmsExpectMore(RIL_Token rilToken, void * pData, 
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSendSmsExpectMore() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSendSmsExpectMore() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1434,7 +1434,7 @@ RIL_RESULT_CODE CTE::RequestSendSmsExpectMore(RIL_Token rilToken, void * pData, 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSendSmsExpectMore() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSendSmsExpectMore() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1467,7 +1467,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
     CChannel_Data* pChannelData = CChannel_Data::GetFreeChnl(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ****** ERROR: No free data channels available ******\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ****** No free data channels available ******\r\n");
         res = RIL_E_GENERIC_FAILURE;
         goto Error;
     }
@@ -1475,7 +1475,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
     res = m_pTEBaseInstance->CoreSetupDataCall(reqData, pData, datalen, uiCID);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - Unable to create AT command data\r\n");
         goto Error;
     }
 
@@ -1487,7 +1487,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1495,7 +1495,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1526,7 +1526,7 @@ RIL_RESULT_CODE CTE::RequestSimIo(RIL_Token rilToken, void * pData, size_t datal
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSimIo(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSimIo() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSimIo() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1539,7 +1539,7 @@ RIL_RESULT_CODE CTE::RequestSimIo(RIL_Token rilToken, void * pData, size_t datal
 
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSimIo() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSimIo() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1547,7 +1547,7 @@ RIL_RESULT_CODE CTE::RequestSimIo(RIL_Token rilToken, void * pData, size_t datal
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSimIo() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSimIo() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1576,7 +1576,7 @@ RIL_RESULT_CODE CTE::RequestSendUssd(RIL_Token rilToken, void * pData, size_t da
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSendUssd(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSendUssd() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSendUssd() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1586,7 +1586,7 @@ RIL_RESULT_CODE CTE::RequestSendUssd(RIL_Token rilToken, void * pData, size_t da
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSendUssd() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSendUssd() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1594,7 +1594,7 @@ RIL_RESULT_CODE CTE::RequestSendUssd(RIL_Token rilToken, void * pData, size_t da
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSendUssd() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSendUssd() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1623,7 +1623,7 @@ RIL_RESULT_CODE CTE::RequestCancelUssd(RIL_Token rilToken, void * pData, size_t 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreCancelUssd(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestCancelUssd() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestCancelUssd() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1633,7 +1633,7 @@ RIL_RESULT_CODE CTE::RequestCancelUssd(RIL_Token rilToken, void * pData, size_t 
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestCancelUssd() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestCancelUssd() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1641,7 +1641,7 @@ RIL_RESULT_CODE CTE::RequestCancelUssd(RIL_Token rilToken, void * pData, size_t 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestCancelUssd() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestCancelUssd() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1670,7 +1670,7 @@ RIL_RESULT_CODE CTE::RequestGetClir(RIL_Token rilToken, void * pData, size_t dat
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetClir(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGetClir() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGetClir() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1680,7 +1680,7 @@ RIL_RESULT_CODE CTE::RequestGetClir(RIL_Token rilToken, void * pData, size_t dat
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGetClir() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGetClir() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1688,7 +1688,7 @@ RIL_RESULT_CODE CTE::RequestGetClir(RIL_Token rilToken, void * pData, size_t dat
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetClir() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGetClir() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1717,7 +1717,7 @@ RIL_RESULT_CODE CTE::RequestSetClir(RIL_Token rilToken, void * pData, size_t dat
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetClir(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetClir() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetClir() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1727,7 +1727,7 @@ RIL_RESULT_CODE CTE::RequestSetClir(RIL_Token rilToken, void * pData, size_t dat
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetClir() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetClir() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1735,7 +1735,7 @@ RIL_RESULT_CODE CTE::RequestSetClir(RIL_Token rilToken, void * pData, size_t dat
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetClir() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetClir() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1764,7 +1764,7 @@ RIL_RESULT_CODE CTE::RequestQueryCallForwardStatus(RIL_Token rilToken, void * pD
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreQueryCallForwardStatus(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestQueryCallForwardStatus() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestQueryCallForwardStatus() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1774,7 +1774,7 @@ RIL_RESULT_CODE CTE::RequestQueryCallForwardStatus(RIL_Token rilToken, void * pD
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestQueryCallForwardStatus() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestQueryCallForwardStatus() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1782,7 +1782,7 @@ RIL_RESULT_CODE CTE::RequestQueryCallForwardStatus(RIL_Token rilToken, void * pD
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestQueryCallForwardStatus() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestQueryCallForwardStatus() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1811,7 +1811,7 @@ RIL_RESULT_CODE CTE::RequestSetCallForward(RIL_Token rilToken, void * pData, siz
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetCallForward(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetCallForward() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetCallForward() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1821,7 +1821,7 @@ RIL_RESULT_CODE CTE::RequestSetCallForward(RIL_Token rilToken, void * pData, siz
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetCallForward() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetCallForward() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1829,7 +1829,7 @@ RIL_RESULT_CODE CTE::RequestSetCallForward(RIL_Token rilToken, void * pData, siz
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetCallForward() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetCallForward() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1858,7 +1858,7 @@ RIL_RESULT_CODE CTE::RequestQueryCallWaiting(RIL_Token rilToken, void * pData, s
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreQueryCallWaiting(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestQueryCallWaiting() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestQueryCallWaiting() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1868,7 +1868,7 @@ RIL_RESULT_CODE CTE::RequestQueryCallWaiting(RIL_Token rilToken, void * pData, s
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestQueryCallWaiting() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestQueryCallWaiting() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1876,7 +1876,7 @@ RIL_RESULT_CODE CTE::RequestQueryCallWaiting(RIL_Token rilToken, void * pData, s
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestQueryCallWaiting() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestQueryCallWaiting() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1905,7 +1905,7 @@ RIL_RESULT_CODE CTE::RequestSetCallWaiting(RIL_Token rilToken, void * pData, siz
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetCallWaiting(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetCallWaiting() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetCallWaiting() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1915,7 +1915,7 @@ RIL_RESULT_CODE CTE::RequestSetCallWaiting(RIL_Token rilToken, void * pData, siz
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetCallWaiting() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetCallWaiting() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1923,7 +1923,7 @@ RIL_RESULT_CODE CTE::RequestSetCallWaiting(RIL_Token rilToken, void * pData, siz
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetCallWaiting() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetCallWaiting() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1952,7 +1952,7 @@ RIL_RESULT_CODE CTE::RequestSmsAcknowledge(RIL_Token rilToken, void * pData, siz
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSmsAcknowledge(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSmsAcknowledge() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSmsAcknowledge() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -1962,7 +1962,7 @@ RIL_RESULT_CODE CTE::RequestSmsAcknowledge(RIL_Token rilToken, void * pData, siz
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSmsAcknowledge() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSmsAcknowledge() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -1970,7 +1970,7 @@ RIL_RESULT_CODE CTE::RequestSmsAcknowledge(RIL_Token rilToken, void * pData, siz
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSmsAcknowledge() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSmsAcknowledge() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -1999,7 +1999,7 @@ RIL_RESULT_CODE CTE::RequestGetImei(RIL_Token rilToken, void * pData, size_t dat
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetImei(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGetImei() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGetImei() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2009,7 +2009,7 @@ RIL_RESULT_CODE CTE::RequestGetImei(RIL_Token rilToken, void * pData, size_t dat
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGetImei() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGetImei() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2017,7 +2017,7 @@ RIL_RESULT_CODE CTE::RequestGetImei(RIL_Token rilToken, void * pData, size_t dat
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetImei() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGetImei() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2046,7 +2046,7 @@ RIL_RESULT_CODE CTE::RequestGetImeisv(RIL_Token rilToken, void * pData, size_t d
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetImeisv(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGetImeisv() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGetImeisv() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2056,7 +2056,7 @@ RIL_RESULT_CODE CTE::RequestGetImeisv(RIL_Token rilToken, void * pData, size_t d
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGetImeisv() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGetImeisv() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2064,7 +2064,7 @@ RIL_RESULT_CODE CTE::RequestGetImeisv(RIL_Token rilToken, void * pData, size_t d
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetImeisv() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGetImeisv() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2094,7 +2094,7 @@ RIL_RESULT_CODE CTE::RequestAnswer(RIL_Token rilToken, void * pData, size_t data
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreAnswer(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestAnswer() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestAnswer() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2105,7 +2105,7 @@ RIL_RESULT_CODE CTE::RequestAnswer(RIL_Token rilToken, void * pData, size_t data
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestAnswer() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestAnswer() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2113,7 +2113,7 @@ RIL_RESULT_CODE CTE::RequestAnswer(RIL_Token rilToken, void * pData, size_t data
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestAnswer() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestAnswer() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2142,7 +2142,7 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void * pData,
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDeactivateDataCall(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestDeactivateDataCall() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestDeactivateDataCall() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2156,7 +2156,7 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void * pData,
 
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestDeactivateDataCall() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestDeactivateDataCall() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2164,7 +2164,7 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void * pData,
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestDeactivateDataCall() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestDeactivateDataCall() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2193,7 +2193,7 @@ RIL_RESULT_CODE CTE::RequestQueryFacilityLock(RIL_Token rilToken, void * pData, 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreQueryFacilityLock(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestQueryFacilityLock() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestQueryFacilityLock() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2206,7 +2206,7 @@ RIL_RESULT_CODE CTE::RequestQueryFacilityLock(RIL_Token rilToken, void * pData, 
 
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestQueryFacilityLock() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestQueryFacilityLock() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2214,7 +2214,7 @@ RIL_RESULT_CODE CTE::RequestQueryFacilityLock(RIL_Token rilToken, void * pData, 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestQueryFacilityLock() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestQueryFacilityLock() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2243,7 +2243,7 @@ RIL_RESULT_CODE CTE::RequestSetFacilityLock(RIL_Token rilToken, void * pData, si
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetFacilityLock(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetFacilityLock() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetFacilityLock() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2256,7 +2256,7 @@ RIL_RESULT_CODE CTE::RequestSetFacilityLock(RIL_Token rilToken, void * pData, si
 
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetFacilityLock() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetFacilityLock() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2264,7 +2264,7 @@ RIL_RESULT_CODE CTE::RequestSetFacilityLock(RIL_Token rilToken, void * pData, si
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetFacilityLock() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetFacilityLock() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2293,7 +2293,7 @@ RIL_RESULT_CODE CTE::RequestChangeBarringPassword(RIL_Token rilToken, void * pDa
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreChangeBarringPassword(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestChangeBarringPassword() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestChangeBarringPassword() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2303,7 +2303,7 @@ RIL_RESULT_CODE CTE::RequestChangeBarringPassword(RIL_Token rilToken, void * pDa
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestChangeBarringPassword() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestChangeBarringPassword() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2311,7 +2311,7 @@ RIL_RESULT_CODE CTE::RequestChangeBarringPassword(RIL_Token rilToken, void * pDa
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestChangeBarringPassword() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestChangeBarringPassword() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2340,7 +2340,7 @@ RIL_RESULT_CODE CTE::RequestQueryNetworkSelectionMode(RIL_Token rilToken, void *
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreQueryNetworkSelectionMode(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestQueryNetworkSelectionMode() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestQueryNetworkSelectionMode() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2350,7 +2350,7 @@ RIL_RESULT_CODE CTE::RequestQueryNetworkSelectionMode(RIL_Token rilToken, void *
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestQueryNetworkSelectionMode() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestQueryNetworkSelectionMode() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2358,7 +2358,7 @@ RIL_RESULT_CODE CTE::RequestQueryNetworkSelectionMode(RIL_Token rilToken, void *
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestQueryNetworkSelectionMode() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestQueryNetworkSelectionMode() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2387,7 +2387,7 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionAutomatic(RIL_Token rilToken, voi
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetNetworkSelectionAutomatic(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionAutomatic() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionAutomatic() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2397,7 +2397,7 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionAutomatic(RIL_Token rilToken, voi
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionAutomatic() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionAutomatic() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2405,7 +2405,7 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionAutomatic(RIL_Token rilToken, voi
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionAutomatic() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionAutomatic() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2434,7 +2434,7 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionManual(RIL_Token rilToken, void *
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetNetworkSelectionManual(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionManual() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionManual() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2444,7 +2444,7 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionManual(RIL_Token rilToken, void *
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionManual() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionManual() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2452,7 +2452,7 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionManual(RIL_Token rilToken, void *
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionManual() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionManual() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2481,7 +2481,7 @@ RIL_RESULT_CODE CTE::RequestQueryAvailableNetworks(RIL_Token rilToken, void * pD
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreQueryAvailableNetworks(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestQueryAvailableNetworks() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestQueryAvailableNetworks() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2491,7 +2491,7 @@ RIL_RESULT_CODE CTE::RequestQueryAvailableNetworks(RIL_Token rilToken, void * pD
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestQueryAvailableNetworks() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestQueryAvailableNetworks() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2499,7 +2499,7 @@ RIL_RESULT_CODE CTE::RequestQueryAvailableNetworks(RIL_Token rilToken, void * pD
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestQueryAvailableNetworks() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestQueryAvailableNetworks() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2528,7 +2528,7 @@ RIL_RESULT_CODE CTE::RequestDtmfStart(RIL_Token rilToken, void * pData, size_t d
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDtmfStart(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestDtmfStart() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestDtmfStart() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2538,7 +2538,7 @@ RIL_RESULT_CODE CTE::RequestDtmfStart(RIL_Token rilToken, void * pData, size_t d
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestDtmfStart() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestDtmfStart() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2546,7 +2546,7 @@ RIL_RESULT_CODE CTE::RequestDtmfStart(RIL_Token rilToken, void * pData, size_t d
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestDtmfStart() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestDtmfStart() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2575,7 +2575,7 @@ RIL_RESULT_CODE CTE::RequestDtmfStop(RIL_Token rilToken, void * pData, size_t da
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDtmfStop(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestDtmfStop() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestDtmfStop() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2585,7 +2585,7 @@ RIL_RESULT_CODE CTE::RequestDtmfStop(RIL_Token rilToken, void * pData, size_t da
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestDtmfStop() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestDtmfStop() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2593,7 +2593,7 @@ RIL_RESULT_CODE CTE::RequestDtmfStop(RIL_Token rilToken, void * pData, size_t da
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestDtmfStop() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestDtmfStop() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2622,7 +2622,7 @@ RIL_RESULT_CODE CTE::RequestBasebandVersion(RIL_Token rilToken, void * pData, si
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreBasebandVersion(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestBasebandVersion() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestBasebandVersion() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2632,7 +2632,7 @@ RIL_RESULT_CODE CTE::RequestBasebandVersion(RIL_Token rilToken, void * pData, si
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestBasebandVersion() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestBasebandVersion() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2640,7 +2640,7 @@ RIL_RESULT_CODE CTE::RequestBasebandVersion(RIL_Token rilToken, void * pData, si
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestBasebandVersion() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestBasebandVersion() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2669,7 +2669,7 @@ RIL_RESULT_CODE CTE::RequestSeparateConnection(RIL_Token rilToken, void * pData,
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSeparateConnection(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSeparateConnection() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSeparateConnection() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2680,7 +2680,7 @@ RIL_RESULT_CODE CTE::RequestSeparateConnection(RIL_Token rilToken, void * pData,
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSeparateConnection() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSeparateConnection() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2688,7 +2688,7 @@ RIL_RESULT_CODE CTE::RequestSeparateConnection(RIL_Token rilToken, void * pData,
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSeparateConnection() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSeparateConnection() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2717,7 +2717,7 @@ RIL_RESULT_CODE CTE::RequestSetMute(RIL_Token rilToken, void * pData, size_t dat
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetMute(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetMute() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetMute() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2728,7 +2728,7 @@ RIL_RESULT_CODE CTE::RequestSetMute(RIL_Token rilToken, void * pData, size_t dat
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetMute() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetMute() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2736,7 +2736,7 @@ RIL_RESULT_CODE CTE::RequestSetMute(RIL_Token rilToken, void * pData, size_t dat
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetMute() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetMute() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2765,7 +2765,7 @@ RIL_RESULT_CODE CTE::RequestGetMute(RIL_Token rilToken, void * pData, size_t dat
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetMute(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGetMute() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGetMute() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2775,7 +2775,7 @@ RIL_RESULT_CODE CTE::RequestGetMute(RIL_Token rilToken, void * pData, size_t dat
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGetMute() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGetMute() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2783,7 +2783,7 @@ RIL_RESULT_CODE CTE::RequestGetMute(RIL_Token rilToken, void * pData, size_t dat
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetMute() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGetMute() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2812,7 +2812,7 @@ RIL_RESULT_CODE CTE::RequestQueryClip(RIL_Token rilToken, void * pData, size_t d
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreQueryClip(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestQueryClip() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestQueryClip() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2822,7 +2822,7 @@ RIL_RESULT_CODE CTE::RequestQueryClip(RIL_Token rilToken, void * pData, size_t d
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestQueryClip() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestQueryClip() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2830,7 +2830,7 @@ RIL_RESULT_CODE CTE::RequestQueryClip(RIL_Token rilToken, void * pData, size_t d
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestQueryClip() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestQueryClip() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2859,7 +2859,7 @@ RIL_RESULT_CODE CTE::RequestLastDataCallFailCause(RIL_Token rilToken, void * pDa
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreLastDataCallFailCause(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestLastDataCallFailCause() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestLastDataCallFailCause() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2869,7 +2869,7 @@ RIL_RESULT_CODE CTE::RequestLastDataCallFailCause(RIL_Token rilToken, void * pDa
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestLastDataCallFailCause() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestLastDataCallFailCause() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2877,7 +2877,7 @@ RIL_RESULT_CODE CTE::RequestLastDataCallFailCause(RIL_Token rilToken, void * pDa
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestLastDataCallFailCause() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestLastDataCallFailCause() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2906,7 +2906,7 @@ RIL_RESULT_CODE CTE::RequestDataCallList(RIL_Token rilToken, void * pData, size_
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDataCallList(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestDataCallList() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestDataCallList() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2916,7 +2916,7 @@ RIL_RESULT_CODE CTE::RequestDataCallList(RIL_Token rilToken, void * pData, size_
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestDataCallList() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestDataCallList() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2924,7 +2924,7 @@ RIL_RESULT_CODE CTE::RequestDataCallList(RIL_Token rilToken, void * pData, size_
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestDataCallList() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestDataCallList() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -2953,7 +2953,7 @@ RIL_RESULT_CODE CTE::RequestResetRadio(RIL_Token rilToken, void * pData, size_t 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreResetRadio(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestResetRadio() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestResetRadio() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -2963,7 +2963,7 @@ RIL_RESULT_CODE CTE::RequestResetRadio(RIL_Token rilToken, void * pData, size_t 
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestResetRadio() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestResetRadio() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -2971,7 +2971,7 @@ RIL_RESULT_CODE CTE::RequestResetRadio(RIL_Token rilToken, void * pData, size_t 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestResetRadio() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestResetRadio() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3000,7 +3000,7 @@ RIL_RESULT_CODE CTE::RequestHookRaw(RIL_Token rilToken, void * pData, size_t dat
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHookRaw(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestHookRaw() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestHookRaw() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3010,7 +3010,7 @@ RIL_RESULT_CODE CTE::RequestHookRaw(RIL_Token rilToken, void * pData, size_t dat
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestHookRaw() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestHookRaw() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3018,7 +3018,7 @@ RIL_RESULT_CODE CTE::RequestHookRaw(RIL_Token rilToken, void * pData, size_t dat
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestHookRaw() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestHookRaw() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3047,7 +3047,7 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void * pData, size_t
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHookStrings(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestHookStrings() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestHookStrings() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3057,7 +3057,7 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void * pData, size_t
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestHookStrings() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestHookStrings() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3065,7 +3065,7 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void * pData, size_t
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestHookStrings() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestHookStrings() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3095,7 +3095,7 @@ RIL_RESULT_CODE CTE::RequestScreenState(RIL_Token rilToken, void * pData, size_t
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreScreenState(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestScreenState() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestScreenState() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3105,7 +3105,7 @@ RIL_RESULT_CODE CTE::RequestScreenState(RIL_Token rilToken, void * pData, size_t
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestScreenState() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestScreenState() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3113,7 +3113,7 @@ RIL_RESULT_CODE CTE::RequestScreenState(RIL_Token rilToken, void * pData, size_t
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestScreenState() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestScreenState() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3142,7 +3142,7 @@ RIL_RESULT_CODE CTE::RequestSetSuppSvcNotification(RIL_Token rilToken, void * pD
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetSuppSvcNotification(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetSuppSvcNotification() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetSuppSvcNotification() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3152,7 +3152,7 @@ RIL_RESULT_CODE CTE::RequestSetSuppSvcNotification(RIL_Token rilToken, void * pD
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetSuppSvcNotification() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetSuppSvcNotification() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3160,7 +3160,7 @@ RIL_RESULT_CODE CTE::RequestSetSuppSvcNotification(RIL_Token rilToken, void * pD
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetSuppSvcNotification() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetSuppSvcNotification() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3189,7 +3189,7 @@ RIL_RESULT_CODE CTE::RequestWriteSmsToSim(RIL_Token rilToken, void * pData, size
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreWriteSmsToSim(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestWriteSmsToSim() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestWriteSmsToSim() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3199,7 +3199,7 @@ RIL_RESULT_CODE CTE::RequestWriteSmsToSim(RIL_Token rilToken, void * pData, size
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestWriteSmsToSim() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestWriteSmsToSim() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3207,7 +3207,7 @@ RIL_RESULT_CODE CTE::RequestWriteSmsToSim(RIL_Token rilToken, void * pData, size
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestWriteSmsToSim() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestWriteSmsToSim() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3236,7 +3236,7 @@ RIL_RESULT_CODE CTE::RequestDeleteSmsOnSim(RIL_Token rilToken, void * pData, siz
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDeleteSmsOnSim(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestDeleteSmsOnSim() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestDeleteSmsOnSim() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3246,7 +3246,7 @@ RIL_RESULT_CODE CTE::RequestDeleteSmsOnSim(RIL_Token rilToken, void * pData, siz
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestDeleteSmsOnSim() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestDeleteSmsOnSim() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3254,7 +3254,7 @@ RIL_RESULT_CODE CTE::RequestDeleteSmsOnSim(RIL_Token rilToken, void * pData, siz
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestDeleteSmsOnSim() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestDeleteSmsOnSim() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3283,7 +3283,7 @@ RIL_RESULT_CODE CTE::RequestSetBandMode(RIL_Token rilToken, void * pData, size_t
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetBandMode(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetBandMode() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetBandMode() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3293,7 +3293,7 @@ RIL_RESULT_CODE CTE::RequestSetBandMode(RIL_Token rilToken, void * pData, size_t
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetBandMode() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetBandMode() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3301,7 +3301,7 @@ RIL_RESULT_CODE CTE::RequestSetBandMode(RIL_Token rilToken, void * pData, size_t
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetBandMode() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetBandMode() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3330,7 +3330,7 @@ RIL_RESULT_CODE CTE::RequestQueryAvailableBandMode(RIL_Token rilToken, void * pD
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreQueryAvailableBandMode(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestQueryAvailableBandMode() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestQueryAvailableBandMode() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3340,7 +3340,7 @@ RIL_RESULT_CODE CTE::RequestQueryAvailableBandMode(RIL_Token rilToken, void * pD
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestQueryAvailableBandMode() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestQueryAvailableBandMode() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3348,7 +3348,7 @@ RIL_RESULT_CODE CTE::RequestQueryAvailableBandMode(RIL_Token rilToken, void * pD
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestQueryAvailableBandMode() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestQueryAvailableBandMode() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3377,7 +3377,7 @@ RIL_RESULT_CODE CTE::RequestStkGetProfile(RIL_Token rilToken, void * pData, size
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreStkGetProfile(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestStkGetProfile() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestStkGetProfile() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3387,7 +3387,7 @@ RIL_RESULT_CODE CTE::RequestStkGetProfile(RIL_Token rilToken, void * pData, size
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestStkGetProfile() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestStkGetProfile() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3395,7 +3395,7 @@ RIL_RESULT_CODE CTE::RequestStkGetProfile(RIL_Token rilToken, void * pData, size
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestStkGetProfile() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestStkGetProfile() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3424,7 +3424,7 @@ RIL_RESULT_CODE CTE::RequestStkSetProfile(RIL_Token rilToken, void * pData, size
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreStkSetProfile(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestStkSetProfile() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestStkSetProfile() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3434,7 +3434,7 @@ RIL_RESULT_CODE CTE::RequestStkSetProfile(RIL_Token rilToken, void * pData, size
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestStkSetProfile() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestStkSetProfile() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3442,7 +3442,7 @@ RIL_RESULT_CODE CTE::RequestStkSetProfile(RIL_Token rilToken, void * pData, size
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestStkSetProfile() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestStkSetProfile() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3471,7 +3471,7 @@ RIL_RESULT_CODE CTE::RequestStkSendEnvelopeCommand(RIL_Token rilToken, void * pD
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreStkSendEnvelopeCommand(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestStkSendEnvelopeCommand() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestStkSendEnvelopeCommand() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3481,7 +3481,7 @@ RIL_RESULT_CODE CTE::RequestStkSendEnvelopeCommand(RIL_Token rilToken, void * pD
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestStkSendEnvelopeCommand() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestStkSendEnvelopeCommand() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3489,7 +3489,7 @@ RIL_RESULT_CODE CTE::RequestStkSendEnvelopeCommand(RIL_Token rilToken, void * pD
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestStkSendEnvelopeCommand() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestStkSendEnvelopeCommand() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3518,7 +3518,7 @@ RIL_RESULT_CODE CTE::RequestStkSendTerminalResponse(RIL_Token rilToken, void * p
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreStkSendTerminalResponse(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestStkSendTerminalResponse() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestStkSendTerminalResponse() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3528,7 +3528,7 @@ RIL_RESULT_CODE CTE::RequestStkSendTerminalResponse(RIL_Token rilToken, void * p
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestStkSendTerminalResponse() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestStkSendTerminalResponse() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3536,7 +3536,7 @@ RIL_RESULT_CODE CTE::RequestStkSendTerminalResponse(RIL_Token rilToken, void * p
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestStkSendTerminalResponse() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestStkSendTerminalResponse() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3565,7 +3565,7 @@ RIL_RESULT_CODE CTE::RequestStkHandleCallSetupRequestedFromSim(RIL_Token rilToke
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreStkHandleCallSetupRequestedFromSim(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestStkHandleCallSetupRequestedFromSim() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestStkHandleCallSetupRequestedFromSim() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3575,7 +3575,7 @@ RIL_RESULT_CODE CTE::RequestStkHandleCallSetupRequestedFromSim(RIL_Token rilToke
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestStkHandleCallSetupRequestedFromSim() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestStkHandleCallSetupRequestedFromSim() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3583,7 +3583,7 @@ RIL_RESULT_CODE CTE::RequestStkHandleCallSetupRequestedFromSim(RIL_Token rilToke
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestStkHandleCallSetupRequestedFromSim() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestStkHandleCallSetupRequestedFromSim() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3612,7 +3612,7 @@ RIL_RESULT_CODE CTE::RequestExplicitCallTransfer(RIL_Token rilToken, void * pDat
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreExplicitCallTransfer(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestExplicitCallTransfer() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestExplicitCallTransfer() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3623,7 +3623,7 @@ RIL_RESULT_CODE CTE::RequestExplicitCallTransfer(RIL_Token rilToken, void * pDat
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestExplicitCallTransfer() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestExplicitCallTransfer() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3631,7 +3631,7 @@ RIL_RESULT_CODE CTE::RequestExplicitCallTransfer(RIL_Token rilToken, void * pDat
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestExplicitCallTransfer() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestExplicitCallTransfer() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3660,7 +3660,7 @@ RIL_RESULT_CODE CTE::RequestSetPreferredNetworkType(RIL_Token rilToken, void * p
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetPreferredNetworkType(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetPreferredNetworkType() : ERROR : Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetPreferredNetworkType() : Unable to create AT command data\r\n");
     }
     else
     {
@@ -3670,7 +3670,7 @@ RIL_RESULT_CODE CTE::RequestSetPreferredNetworkType(RIL_Token rilToken, void * p
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetPreferredNetworkType() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetPreferredNetworkType() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3678,7 +3678,7 @@ RIL_RESULT_CODE CTE::RequestSetPreferredNetworkType(RIL_Token rilToken, void * p
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetPreferredNetworkType() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetPreferredNetworkType() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3707,7 +3707,7 @@ RIL_RESULT_CODE CTE::RequestGetPreferredNetworkType(RIL_Token rilToken, void * p
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetPreferredNetworkType(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGetPreferredNetworkType() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGetPreferredNetworkType() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3717,7 +3717,7 @@ RIL_RESULT_CODE CTE::RequestGetPreferredNetworkType(RIL_Token rilToken, void * p
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGetPreferredNetworkType() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGetPreferredNetworkType() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3725,7 +3725,7 @@ RIL_RESULT_CODE CTE::RequestGetPreferredNetworkType(RIL_Token rilToken, void * p
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetPreferredNetworkType() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGetPreferredNetworkType() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3754,7 +3754,7 @@ RIL_RESULT_CODE CTE::RequestGetNeighboringCellIDs(RIL_Token rilToken, void * pDa
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetNeighboringCellIDs(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGetNeighboringCellIDs() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGetNeighboringCellIDs() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3764,7 +3764,7 @@ RIL_RESULT_CODE CTE::RequestGetNeighboringCellIDs(RIL_Token rilToken, void * pDa
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGetNeighboringCellIDs() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGetNeighboringCellIDs() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3772,7 +3772,7 @@ RIL_RESULT_CODE CTE::RequestGetNeighboringCellIDs(RIL_Token rilToken, void * pDa
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetNeighboringCellIDs() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGetNeighboringCellIDs() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3805,7 +3805,7 @@ RIL_RESULT_CODE CTE::RequestCdmaSetSubscription(RIL_Token rilToken, void * pData
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreCdmaSetSubscription(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestCdmaSetSubscription() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestCdmaSetSubscription() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3815,7 +3815,7 @@ RIL_RESULT_CODE CTE::RequestCdmaSetSubscription(RIL_Token rilToken, void * pData
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestCdmaSetSubscription() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestCdmaSetSubscription() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3823,7 +3823,7 @@ RIL_RESULT_CODE CTE::RequestCdmaSetSubscription(RIL_Token rilToken, void * pData
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestCdmaSetSubscription() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestCdmaSetSubscription() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3852,7 +3852,7 @@ RIL_RESULT_CODE CTE::RequestCdmaSetRoamingPreference(RIL_Token rilToken, void * 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreCdmaSetRoamingPreference(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestCdmaSetRoamingPreference() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestCdmaSetRoamingPreference() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3862,7 +3862,7 @@ RIL_RESULT_CODE CTE::RequestCdmaSetRoamingPreference(RIL_Token rilToken, void * 
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestCdmaSetRoamingPreference() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestCdmaSetRoamingPreference() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3870,7 +3870,7 @@ RIL_RESULT_CODE CTE::RequestCdmaSetRoamingPreference(RIL_Token rilToken, void * 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestCdmaSetRoamingPreference() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestCdmaSetRoamingPreference() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3899,7 +3899,7 @@ RIL_RESULT_CODE CTE::RequestCdmaQueryRoamingPreference(RIL_Token rilToken, void 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreCdmaQueryRoamingPreference(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestCdmaQueryRoamingPreference() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestCdmaQueryRoamingPreference() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3909,7 +3909,7 @@ RIL_RESULT_CODE CTE::RequestCdmaQueryRoamingPreference(RIL_Token rilToken, void 
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestCdmaQueryRoamingPreference() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestCdmaQueryRoamingPreference() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3917,7 +3917,7 @@ RIL_RESULT_CODE CTE::RequestCdmaQueryRoamingPreference(RIL_Token rilToken, void 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestCdmaQueryRoamingPreference() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestCdmaQueryRoamingPreference() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3946,7 +3946,7 @@ RIL_RESULT_CODE CTE::RequestSetTtyMode(RIL_Token rilToken, void * pData, size_t 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetTtyMode(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetTtyMode() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetTtyMode() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -3956,7 +3956,7 @@ RIL_RESULT_CODE CTE::RequestSetTtyMode(RIL_Token rilToken, void * pData, size_t 
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetTtyMode() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetTtyMode() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -3964,7 +3964,7 @@ RIL_RESULT_CODE CTE::RequestSetTtyMode(RIL_Token rilToken, void * pData, size_t 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetTtyMode() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetTtyMode() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -3993,7 +3993,7 @@ RIL_RESULT_CODE CTE::RequestQueryTtyMode(RIL_Token rilToken, void * pData, size_
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreQueryTtyMode(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestQueryTtyMode() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestQueryTtyMode() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4003,7 +4003,7 @@ RIL_RESULT_CODE CTE::RequestQueryTtyMode(RIL_Token rilToken, void * pData, size_
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestQueryTtyMode() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestQueryTtyMode() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4011,7 +4011,7 @@ RIL_RESULT_CODE CTE::RequestQueryTtyMode(RIL_Token rilToken, void * pData, size_
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestQueryTtyMode() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestQueryTtyMode() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4159,7 +4159,7 @@ RIL_RESULT_CODE CTE::RequestGsmGetBroadcastSmsConfig(RIL_Token rilToken, void * 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGsmGetBroadcastSmsConfig(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGsmGetBroadcastSmsConfig() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGsmGetBroadcastSmsConfig() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4169,7 +4169,7 @@ RIL_RESULT_CODE CTE::RequestGsmGetBroadcastSmsConfig(RIL_Token rilToken, void * 
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGsmGetBroadcastSmsConfig() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGsmGetBroadcastSmsConfig() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4177,7 +4177,7 @@ RIL_RESULT_CODE CTE::RequestGsmGetBroadcastSmsConfig(RIL_Token rilToken, void * 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGsmGetBroadcastSmsConfig() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGsmGetBroadcastSmsConfig() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4206,7 +4206,7 @@ RIL_RESULT_CODE CTE::RequestGsmSetBroadcastSmsConfig(RIL_Token rilToken, void * 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGsmSetBroadcastSmsConfig(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGsmSetBroadcastSmsConfig() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGsmSetBroadcastSmsConfig() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4216,7 +4216,7 @@ RIL_RESULT_CODE CTE::RequestGsmSetBroadcastSmsConfig(RIL_Token rilToken, void * 
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGsmSetBroadcastSmsConfig() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGsmSetBroadcastSmsConfig() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4224,7 +4224,7 @@ RIL_RESULT_CODE CTE::RequestGsmSetBroadcastSmsConfig(RIL_Token rilToken, void * 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGsmSetBroadcastSmsConfig() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGsmSetBroadcastSmsConfig() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4253,7 +4253,7 @@ RIL_RESULT_CODE CTE::RequestGsmSmsBroadcastActivation(RIL_Token rilToken, void *
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGsmSmsBroadcastActivation(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4263,7 +4263,7 @@ RIL_RESULT_CODE CTE::RequestGsmSmsBroadcastActivation(RIL_Token rilToken, void *
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4271,7 +4271,7 @@ RIL_RESULT_CODE CTE::RequestGsmSmsBroadcastActivation(RIL_Token rilToken, void *
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4436,7 +4436,7 @@ RIL_RESULT_CODE CTE::RequestGetSmscAddress(RIL_Token rilToken, void * pData, siz
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetSmscAddress(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGetSmscAddress() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestGetSmscAddress() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4446,7 +4446,7 @@ RIL_RESULT_CODE CTE::RequestGetSmscAddress(RIL_Token rilToken, void * pData, siz
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestGetSmscAddress() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestGetSmscAddress() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4454,7 +4454,7 @@ RIL_RESULT_CODE CTE::RequestGetSmscAddress(RIL_Token rilToken, void * pData, siz
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetSmscAddress() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestGetSmscAddress() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4483,7 +4483,7 @@ RIL_RESULT_CODE CTE::RequestSetSmscAddress(RIL_Token rilToken, void * pData, siz
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetSmscAddress(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetSmscAddress() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSetSmscAddress() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4493,7 +4493,7 @@ RIL_RESULT_CODE CTE::RequestSetSmscAddress(RIL_Token rilToken, void * pData, siz
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSetSmscAddress() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSetSmscAddress() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4501,7 +4501,7 @@ RIL_RESULT_CODE CTE::RequestSetSmscAddress(RIL_Token rilToken, void * pData, siz
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetSmscAddress() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSetSmscAddress() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4531,7 +4531,7 @@ RIL_RESULT_CODE CTE::RequestReportSmsMemoryStatus(RIL_Token rilToken, void * pDa
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreReportSmsMemoryStatus(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestReportSmsMemoryStatus() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestReportSmsMemoryStatus() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4541,7 +4541,7 @@ RIL_RESULT_CODE CTE::RequestReportSmsMemoryStatus(RIL_Token rilToken, void * pDa
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestReportSmsMemoryStatus() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestReportSmsMemoryStatus() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4549,7 +4549,7 @@ RIL_RESULT_CODE CTE::RequestReportSmsMemoryStatus(RIL_Token rilToken, void * pDa
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestReportSmsMemoryStatus() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestReportSmsMemoryStatus() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4578,7 +4578,7 @@ RIL_RESULT_CODE CTE::RequestReportStkServiceRunning(RIL_Token rilToken, void * p
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreReportStkServiceRunning(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestReportStkServiceRunning() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestReportStkServiceRunning() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4588,7 +4588,7 @@ RIL_RESULT_CODE CTE::RequestReportStkServiceRunning(RIL_Token rilToken, void * p
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestReportStkServiceRunning() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestReportStkServiceRunning() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4596,7 +4596,7 @@ RIL_RESULT_CODE CTE::RequestReportStkServiceRunning(RIL_Token rilToken, void * p
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestReportStkServiceRunning() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestReportStkServiceRunning() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4625,7 +4625,7 @@ RIL_RESULT_CODE CTE::RequestSimTransmitBasic(RIL_Token rilToken, void * pData, s
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSimTransmitBasic(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSimTransmitBasic() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSimTransmitBasic() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4635,7 +4635,7 @@ RIL_RESULT_CODE CTE::RequestSimTransmitBasic(RIL_Token rilToken, void * pData, s
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSimTransmitBasic() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSimTransmitBasic() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4643,7 +4643,7 @@ RIL_RESULT_CODE CTE::RequestSimTransmitBasic(RIL_Token rilToken, void * pData, s
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSimTransmitBasic() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSimTransmitBasic() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4672,7 +4672,7 @@ RIL_RESULT_CODE CTE::RequestSimOpenChannel(RIL_Token rilToken, void * pData, siz
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSimOpenChannel(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSimOpenChannel() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSimOpenChannel() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4682,7 +4682,7 @@ RIL_RESULT_CODE CTE::RequestSimOpenChannel(RIL_Token rilToken, void * pData, siz
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSimOpenChannel() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSimOpenChannel() -Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4690,7 +4690,7 @@ RIL_RESULT_CODE CTE::RequestSimOpenChannel(RIL_Token rilToken, void * pData, siz
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSimOpenChannel() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSimOpenChannel() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4719,7 +4719,7 @@ RIL_RESULT_CODE CTE::RequestSimCloseChannel(RIL_Token rilToken, void * pData, si
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSimCloseChannel(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSimCloseChannel() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSimCloseChannel() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4729,7 +4729,7 @@ RIL_RESULT_CODE CTE::RequestSimCloseChannel(RIL_Token rilToken, void * pData, si
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSimCloseChannel() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSimCloseChannel() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4737,7 +4737,7 @@ RIL_RESULT_CODE CTE::RequestSimCloseChannel(RIL_Token rilToken, void * pData, si
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSimCloseChannel() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSimCloseChannel() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4766,7 +4766,7 @@ RIL_RESULT_CODE CTE::RequestSimTransmitChannel(RIL_Token rilToken, void * pData,
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSimTransmitChannel(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSimTransmitChannel() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSimTransmitChannel() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4776,7 +4776,7 @@ RIL_RESULT_CODE CTE::RequestSimTransmitChannel(RIL_Token rilToken, void * pData,
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSimTransmitChannel() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestSimTransmitChannel() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4784,7 +4784,7 @@ RIL_RESULT_CODE CTE::RequestSimTransmitChannel(RIL_Token rilToken, void * pData,
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSimTransmitChannel() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestSimTransmitChannel() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4815,7 +4815,7 @@ RIL_RESULT_CODE CTE::RequestHangupVT(RIL_Token rilToken, void * pData, size_t da
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHangupVT(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestHangupVT() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestHangupVT() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4826,7 +4826,7 @@ RIL_RESULT_CODE CTE::RequestHangupVT(RIL_Token rilToken, void * pData, size_t da
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestHangupVT() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestHangupVT() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4834,7 +4834,7 @@ RIL_RESULT_CODE CTE::RequestHangupVT(RIL_Token rilToken, void * pData, size_t da
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestHangupVT() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestHangupVT() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -4864,7 +4864,7 @@ RIL_RESULT_CODE CTE::RequestDialVT(RIL_Token rilToken, void * pData, size_t data
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDialVT(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestDialVT() - ERROR: Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestDialVT() - Unable to create AT command data\r\n");
     }
     else
     {
@@ -4875,7 +4875,7 @@ RIL_RESULT_CODE CTE::RequestDialVT(RIL_Token rilToken, void * pData, size_t data
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestDialVT() - ERROR: Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestDialVT() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -4883,7 +4883,7 @@ RIL_RESULT_CODE CTE::RequestDialVT(RIL_Token rilToken, void * pData, size_t data
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestDialVT() - ERROR: Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE::RequestDialVT() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
@@ -5028,28 +5028,28 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
         // Skip "<prefix>"
         if (!SkipRspStart(rszPointer, g_szNewLine, rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not skip response prefix.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not skip response prefix.\r\n");
             goto Error;
         }
 
         // Skip "<,prefix> string"
         if (!SkipString(rszPointer, "+CREG: ", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not skip \"+CREG: \".\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not skip \"+CREG: \".\r\n");
             goto Error;
         }
 
         // Extract <n> and throw away
         if (!ExtractUInt32(rszPointer, uiNum, rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <n>.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract <n>.\r\n");
             goto Error;
         }
 
         // Skip ","
         if (!SkipString(rszPointer, ",", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <stat>.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract <stat>.\r\n");
             goto Error;
         }
     }
@@ -5057,7 +5057,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
     // "<stat>"
     if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
     {
-        RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <stat>.\r\n");
+        RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract <stat>.\r\n");
         goto Error;
     }
 
@@ -5068,7 +5068,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
         SkipString(rszPointer, "\"", rszPointer);
         if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <lac>.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract <lac>.\r\n");
             goto Error;
         }
         SkipString(rszPointer, "\"", rszPointer);
@@ -5076,13 +5076,13 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
         // Extract ",<cid>"
         if (!SkipString(rszPointer, ",", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract \",<cid>\".\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract \",<cid>\".\r\n");
             goto Error;
         }
         SkipString(rszPointer, "\"", rszPointer);
         if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
          {
-             RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <cid>.\r\n");
+             RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract <cid>.\r\n");
              goto Error;
          }
         SkipString(rszPointer, "\"", rszPointer);
@@ -5092,7 +5092,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
         {
             if (!ExtractUInt32(rszPointer, uiAct, rszPointer))
             {
-                RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not extract <act>.\r\n");
+                RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract <act>.\r\n");
                 goto Error;
             }
 
@@ -5107,7 +5107,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
     // Skip "<postfix>"
     if (!SkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CTE::ParseCREG() - ERROR: Could not skip response postfix.\r\n");
+        RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not skip response postfix.\r\n");
         goto Error;
     }
 
@@ -5157,28 +5157,28 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
         // Skip "<prefix>"
         if (!SkipRspStart(rszPointer, g_szNewLine, rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not skip response prefix.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not skip response prefix.\r\n");
             goto Error;
         }
 
         // Skip "<,prefix> string"
         if (!SkipString(rszPointer, "+CGREG: ", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not skip \"+CREG: \".\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not skip \"+CREG: \".\r\n");
             goto Error;
         }
 
         // Extract <n> and throw away
         if (!ExtractUInt32(rszPointer, uiNum, rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <n>.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not extract <n>.\r\n");
             goto Error;
         }
 
         // Skip ","
         if (!SkipString(rszPointer, ",", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <stat>.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not extract <stat>.\r\n");
             goto Error;
         }
     }
@@ -5186,7 +5186,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
     // "<stat>"
     if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
     {
-        RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <stat>.\r\n");
+        RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not extract <stat>.\r\n");
         goto Error;
     }
 
@@ -5197,7 +5197,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
         SkipString(rszPointer, "\"", rszPointer);
         if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <lac>.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not extract <lac>.\r\n");
             goto Error;
         }
         SkipString(rszPointer, "\"", rszPointer);
@@ -5205,13 +5205,13 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
         // Extract ",<cid>"
         if (!SkipString(rszPointer, ",", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract \",<cid>\".\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not extract \",<cid>\".\r\n");
             goto Error;
         }
         SkipString(rszPointer, "\"", rszPointer);
         if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
          {
-             RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <cid>.\r\n");
+             RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not extract <cid>.\r\n");
              goto Error;
          }
         SkipString(rszPointer, "\"", rszPointer);
@@ -5221,7 +5221,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
         {
             if (!ExtractUInt32(rszPointer, uiAct, rszPointer))
             {
-                RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract <act>.\r\n");
+                RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not extract <act>.\r\n");
                 goto Error;
             }
 
@@ -5234,7 +5234,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
             // Extract ","
             if (!SkipString(rszPointer, ",", rszPointer))
             {
-                RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract ,<rac>.\r\n");
+                RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not extract ,<rac>.\r\n");
                 goto Error;
             }
 
@@ -5242,7 +5242,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
             SkipString(rszPointer, "\"", rszPointer);
             if (!ExtractHexUInt32(rszPointer, uiRAC, rszPointer))
             {
-                RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not extract \",<rac>\".\r\n");
+                RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not extract \",<rac>\".\r\n");
                 goto Error;
             }
 
@@ -5253,7 +5253,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
     // Skip "<postfix>"
     if (!SkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CTE::ParseCGREG() - ERROR: Could not skip response postfix.\r\n");
+        RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not skip response postfix.\r\n");
         goto Error;
     }
 
@@ -5292,28 +5292,28 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_
         // Skip "<prefix>"
         if (!SkipRspStart(rszPointer, g_szNewLine, rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not skip response prefix.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not skip response prefix.\r\n");
             goto Error;
         }
 
         // Skip "<,prefix> string"
         if (!SkipString(rszPointer, "+XREG: ", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not skip \"+XREG: \".\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not skip \"+XREG: \".\r\n");
             goto Error;
         }
 
         // Extract <n> and throw away
         if (!ExtractUInt32(rszPointer, uiNum, rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract <n>.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not extract <n>.\r\n");
             goto Error;
         }
 
         // Skip ","
         if (!SkipString(rszPointer, ",", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract <stat>.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not extract <stat>.\r\n");
             goto Error;
         }
     }
@@ -5321,7 +5321,7 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_
     // "<stat>"
     if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
     {
-        RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract <stat>.\r\n");
+        RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not extract <stat>.\r\n");
         goto Error;
     }
 
@@ -5354,7 +5354,7 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_
         SkipString(rszPointer, "\"", rszPointer);
         if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract <lac>.\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not extract <lac>.\r\n");
             goto Error;
         }
         SkipString(rszPointer, "\"", rszPointer);
@@ -5362,13 +5362,13 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_
         // Extract ",<cid>"
         if (!SkipString(rszPointer, ",", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract \",<cid>\".\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not extract \",<cid>\".\r\n");
             goto Error;
         }
         SkipString(rszPointer, "\"", rszPointer);
         if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
          {
-             RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not extract <cid>.\r\n");
+             RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not extract <cid>.\r\n");
              goto Error;
          }
         SkipString(rszPointer, "\"", rszPointer);
@@ -5377,7 +5377,7 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_
     // Skip "<postfix>"
     if (!SkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CTE::ParseXREG() - ERROR: Could not skip response postfix.\r\n");
+        RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not skip response postfix.\r\n");
         goto Error;
     }
 

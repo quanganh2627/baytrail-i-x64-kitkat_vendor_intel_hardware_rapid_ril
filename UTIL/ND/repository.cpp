@@ -213,6 +213,11 @@ const char   g_szCoreDumpTimeout[]              = "CoreDumpTimeout";
 const char   g_szDisableWatchdogThread[]        = "DisableWatchdogThread";
 const char   g_szRadioResetDelay[]              = "RadioResetDelay";
 const char   g_szRadioResetStartStmdDelay[]     = "RadioResetStartStmdDelay";
+const char   g_szEnableCellInfo[]               = "EnableCellInfo";
+const char   g_szRxDiversity3GEnable[]          = "RxDiversity3GEnable";
+const char   g_szRxDiversity2GDARP[]            = "RxDiversity2GDARP";
+const char   g_szFDDelayTimer[]                 = "FDDelayTimer";
+const char   g_szSCRITimer[]                    = "SCRITimer";
 
 /////////////////////////////////////////////////
 
@@ -306,7 +311,7 @@ BOOL CRepository::OpenRepositoryFile()
     if (m_iFd < 0)
     {
         int iErrCode = errno;
-        RIL_LOG_CRITICAL("CRepository::OpenRepositoryFile() - ERROR: Could not open file \"%s\" - %s\r\n", REPO_FILE, strerror(iErrCode));
+        RIL_LOG_CRITICAL("CRepository::OpenRepositoryFile() - Could not open file \"%s\" - %s\r\n", REPO_FILE, strerror(iErrCode));
         goto Error;
     }
 
@@ -354,7 +359,7 @@ BOOL CRepository::Read(const char *szGroup, const char* szKey, char* szRes, int 
 
     if (!m_bInitialized)
     {
-        RIL_LOG_CRITICAL("CRepository::Read() - ERROR: Repository has not been initialized.\r\n");
+        RIL_LOG_CRITICAL("CRepository::Read() - Repository has not been initialized.\r\n");
         goto Error;
     }
 
@@ -363,7 +368,7 @@ BOOL CRepository::Read(const char *szGroup, const char* szKey, char* szRes, int 
 
     if (!OpenRepositoryFile())
     {
-        RIL_LOG_CRITICAL("CRepository::Read() - ERROR: Could not open the Repository file.\r\n");
+        RIL_LOG_CRITICAL("CRepository::Read() - Could not open the Repository file.\r\n");
         goto Error;
     }
 

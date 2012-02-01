@@ -450,7 +450,7 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
 
     if (pResponse == NULL)
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() : pResponse was NULL\r\n");
         goto Error;
     }
 
@@ -458,7 +458,7 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
     {
         // incomplete message notification
-        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() : Could not find response end\r\n");
         goto Error;
     }
     else
@@ -474,7 +474,7 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
     pszProactiveCmd = (char*)malloc(sizeof(char) * uiLength);
     if (NULL == pszProactiveCmd)
     {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() - ERROR: Could not alloc mem for command.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() - Could not alloc mem for command.\r\n");
         goto Error;
     }
     memset(pszProactiveCmd, 0, sizeof(char) * uiLength);
@@ -482,7 +482,7 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
     // Parse <"hex_string">
     if (!ExtractQuotedString(rszPointer, pszProactiveCmd, uiLength, rszPointer))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - ERROR: Could not parse hex String.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() - Could not parse hex String.\r\n");
         goto Error;
     }
 
@@ -532,7 +532,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
 
     if (pResponse == NULL)
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() : pResponse was NULL\r\n");
         goto Error;
     }
 
@@ -540,7 +540,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
     {
         // incomplete message notification
-        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() : Could not find response end\r\n");
         goto Error;
     }
     else
@@ -556,7 +556,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     pszProactiveCmd = (char*)malloc(sizeof(char) * uiLength);
     if (NULL == pszProactiveCmd)
     {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() - ERROR: Could not alloc mem for command.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() - Could not alloc mem for command.\r\n");
         goto Error;
     }
     memset(pszProactiveCmd, 0, sizeof(char) * uiLength);
@@ -564,7 +564,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     // Parse <"hex_string">
     if (!ExtractQuotedString(rszPointer, pszProactiveCmd, uiLength, rszPointer))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - ERROR: Could not parse hex String.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() - Could not parse hex String.\r\n");
         goto Error;
     }
 
@@ -700,7 +700,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                 }
                 else
                 {
-                    RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() - ERROR: cannot allocate pInts\r\n");
+                    RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() - cannot allocate pInts\r\n");
                 }
 
             }
@@ -745,21 +745,21 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const char*& rs
 
     if (pResponse == NULL)
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseTermRespConfirm() : pResponse was NULL\r\n");
         goto Error;
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseTermRespConfirm() : Could not find response end\r\n");
         goto Error;
     }
 
     // Extract "<sw1>"
     if (!ExtractUInt32(rszPointer, uiStatus1, rszPointer))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - ERROR: Could not parse sw1.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseTermRespConfirm() - Could not parse sw1.\r\n");
         goto Error;
     }
 
@@ -769,7 +769,7 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const char*& rs
     if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
          (!ExtractUInt32(rszPointer, uiStatus2, rszPointer)))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - ERROR: Could not parse sw2.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseTermRespConfirm() - Could not parse sw2.\r\n");
         goto Error;
     }
 
@@ -797,21 +797,21 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
 
     if (pResponse == NULL)
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXSIM() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIM() : pResponse was NULL\r\n");
         goto Error;
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXSIM() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIM() : Could not find response end\r\n");
         goto Error;
     }
 
     // Extract "<SIM state>"
     if (!ExtractUInt32(rszPointer, nSIMState, rszPointer))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - ERROR: Could not parse nSIMState.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIM() - Could not parse nSIMState.\r\n");
         goto Error;
     }
 
@@ -892,14 +892,14 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
 
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() : pResponse was NULL\r\n");
         goto Error;
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() : ERROR: Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() : Could not find response end\r\n");
         goto Error;
     }
 
@@ -913,7 +913,7 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
         // Extract "<fac>"
         if (!ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac), rszPointer))
         {
-            RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() - Unable to find <fac>!\r\n");
+            RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Unable to find <fac>!\r\n");
             goto complete;
         }
 
@@ -921,7 +921,7 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
         if (!SkipString(rszPointer, ",", rszPointer) ||
             !ExtractUInt32(rszPointer, lock_info[i].lock_state, rszPointer))
         {
-            RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() - ERROR: Could not parse <lock state>.\r\n");
+            RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Could not parse <lock state>.\r\n");
             goto Error;
         }
 
@@ -929,7 +929,7 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
         if (!SkipString(rszPointer, ",", rszPointer) ||
             !ExtractUInt32(rszPointer, lock_info[i].lock_result, rszPointer))
         {
-            RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() - ERROR: Could not parse <lock result>.\r\n");
+            RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Could not parse <lock result>.\r\n");
             goto Error;
         }
 
@@ -942,7 +942,7 @@ complete:
     // Look for "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - ERROR: Could not extract response postfix.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Could not extract response postfix.\r\n");
         goto Error;
     }
 
@@ -989,21 +989,21 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
 
     if (pResponse == NULL)
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLEMA() : pResponse was NULL\r\n");
         goto Error;
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLEMA() : Could not find response end\r\n");
         goto Error;
     }
 
     // Extract "<index>"
     if (!ExtractUInt32(rszPointer, uiIndex, rszPointer))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - ERROR: Could not parse uiIndex.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLEMA() - Could not parse uiIndex.\r\n");
         goto Error;
     }
 
@@ -1011,14 +1011,14 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractUInt32(rszPointer, uiTotalCnt, rszPointer) )
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - ERROR: Could not parse uiTotalCnt.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLEMA() - Could not parse uiTotalCnt.\r\n");
         goto Error;
     }
 
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractQuotedString(rszPointer, szECCItem, MAX_BUFFER_SIZE, rszPointer))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - ERROR: Could not parse szECCItem.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLEMA() - Could not parse szECCItem.\r\n");
         goto Error;
     }
 
@@ -1039,7 +1039,7 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
         RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - First index, clear master ECC list, store code=[%s]\r\n", szECCItem);
         if (!PrintStringNullTerminate(m_szECCList, MAX_BUFFER_SIZE, "%s", szECCItem))
         {
-            RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - ERROR: Could not create m_szCCList\r\n");
+            RIL_LOG_CRITICAL("CSilo_SIM::ParseXLEMA() - Could not create m_szCCList\r\n");
             goto Error;
         }
     }
@@ -1085,21 +1085,21 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
 
     if (pResponse == NULL)
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() : pResponse was NULL\r\n");
         goto Error;
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() : Could not find response end\r\n");
         goto Error;
     }
 
     // Extract "<nMode>"
     if (!ExtractUInt32(rszPointer, nMode, rszPointer))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - ERROR: Could not parse nMode.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() - Could not parse nMode.\r\n");
         goto Error;
     }
 
@@ -1107,7 +1107,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractUInt32(rszPointer, nSIMState, rszPointer))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - ERROR: Could not parse nSIMState.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() - Could not parse nSIMState.\r\n");
         goto Error;
     }
 
@@ -1115,7 +1115,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractUInt32(rszPointer, nPBReady, rszPointer))
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - ERROR: Could not parse nPBReady.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() - Could not parse nPBReady.\r\n");
         goto Error;
     }
 
@@ -1124,7 +1124,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
     {
         if (!ExtractUInt32(rszPointer, nSIMSMSReady, rszPointer))
         {
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - ERROR: Could not parse <SMS Ready>.\r\n");
+            RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() - Could not parse <SMS Ready>.\r\n");
             goto Error;
         }
     }

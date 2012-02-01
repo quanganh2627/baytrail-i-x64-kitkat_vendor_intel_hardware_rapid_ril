@@ -117,14 +117,14 @@ BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const char*& rszPo
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseMessageInSim() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseMessageInSim() : pResponse was NULL\r\n");
         goto Error;
     }
 
     pIndex = (int*)malloc(sizeof(int));
     if (NULL == pIndex)
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseMessageInSim() - ERROR: Could not alloc mem for int.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseMessageInSim() - Could not alloc mem for int.\r\n");
         goto Error;
     }
 
@@ -180,7 +180,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
 
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - ERROR: pResponse is NULL.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - pResponse is NULL.\r\n");
         goto Error;
     }
 
@@ -192,7 +192,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
         !ExtractUInt32(rszPointer, uiLength, rszPointer) ||
         !SkipString(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - ERROR: Could not parse PDU Length.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - Could not parse PDU Length.\r\n");
         goto Error;
     }
 
@@ -204,7 +204,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
     if (!FindAndSkipString(rszPointer, g_szNewLine, szDummy))
     {
         // This isn't a complete message notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - ERROR: Could not find postfix; assuming this is an incomplete response.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - Could not find postfix; assuming this is an incomplete response.\r\n");
         goto Error;
     }
     else
@@ -217,14 +217,14 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
     szPDU = (char*)malloc(sizeof(char) * uiLength);
     if (NULL == szPDU)
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - ERROR: Could not allocate memory for szPDU.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - Could not allocate memory for szPDU.\r\n");
         goto Error;
     }
     memset(szPDU, 0, sizeof(char) * uiLength);
 
     if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, uiLength, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - ERROR: Could not parse PDU String.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - Could not parse PDU String.\r\n");
         goto Error;
     }
 
@@ -270,7 +270,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
 
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - ERROR: pResponse is NULL.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - pResponse is NULL.\r\n");
         goto Error;
     }
 
@@ -281,7 +281,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
     if (!ExtractUInt32(rszPointer, uiLength, rszPointer) ||
         !SkipString(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - ERROR: Could not parse PDU Length.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - Could not parse PDU Length.\r\n");
         goto Error;
     }
 
@@ -291,7 +291,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
     if (!FindAndSkipString(rszPointer, g_szNewLine, szDummy))
     {
         // This isn't a complete message notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - ERROR: Could not find postfix; assuming this is an incomplete response.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - Could not find postfix; assuming this is an incomplete response.\r\n");
         goto Error;
     }
     else
@@ -306,7 +306,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
 
     if ((NULL == szPDU) || (NULL == PDUHexa))
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - ERROR: Could not allocate memory for szPDU.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - Could not allocate memory for szPDU.\r\n");
         goto Error;
     }
 
@@ -315,7 +315,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
 
     if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, (uiLength+1), rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - ERROR: Could not parse PDU String.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - Could not parse PDU String.\r\n");
         goto Error;
     }
 
@@ -365,7 +365,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
 
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - ERROR: pResponse is NULL.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - pResponse is NULL.\r\n");
         goto Error;
     }
 
@@ -376,7 +376,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
     if (!ExtractUInt32(rszPointer, uiLength, rszPointer) ||
         !SkipString(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - ERROR: Could not parse PDU Length.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - Could not parse PDU Length.\r\n");
         goto Error;
     }
 
@@ -387,7 +387,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
     if (!FindAndSkipString(rszPointer, g_szNewLine, szDummy))
     {
         // This isn't a complete message notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - ERROR: Could not find postfix; assuming this is an incomplete response.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - Could not find postfix; assuming this is an incomplete response.\r\n");
         goto Error;
     }
     else
@@ -400,14 +400,14 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
     szPDU = (char*) malloc(sizeof(char) * uiLength);
     if (NULL == szPDU)
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - ERROR: Could not allocate memory for szPDU.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - Could not allocate memory for szPDU.\r\n");
         goto Error;
     }
     memset(szPDU, 0, sizeof(char) * uiLength);
 
     if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, uiLength, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - ERROR: Could not parse PDU String.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - Could not parse PDU String.\r\n");
         goto Error;
     }
 

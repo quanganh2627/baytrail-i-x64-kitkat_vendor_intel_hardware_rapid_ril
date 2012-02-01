@@ -44,7 +44,7 @@ char SemiByteToChar(const BYTE bByte, const BOOL fHigh)
 
     if (0x10 <= bSemiByte)
     {
-        RIL_LOG_CRITICAL("SemiByteToChar() : ERROR : Invalid bByte argument: bByte: 0x%X fHigh: %s\r\n", bByte, fHigh ? "TRUE" : "FALSE");
+        RIL_LOG_CRITICAL("SemiByteToChar() : Invalid bByte argument: bByte: 0x%X fHigh: %s\r\n", bByte, fHigh ? "TRUE" : "FALSE");
         return g_rgchSemiByteToCharMap[0];
     }
     else
@@ -413,13 +413,13 @@ void convertStrToHexBuf(const char* inStr, unsigned char** pOutHexStr)
 
     if (NULL == inStr)
     {
-        RIL_LOG_CRITICAL("convertStrToHexBuf() - ERROR: inStr is NULL\r\n");
+        RIL_LOG_CRITICAL("convertStrToHexBuf() - inStr is NULL\r\n");
         return;
     }
 
     if (NULL == pOutHexStr || NULL == *pOutHexStr)
     {
-        RIL_LOG_CRITICAL("convertStrToHexBuf() - ERROR: pOutHexStr is NULL\r\n");
+        RIL_LOG_CRITICAL("convertStrToHexBuf() - pOutHexStr is NULL\r\n");
         return;
     }
 

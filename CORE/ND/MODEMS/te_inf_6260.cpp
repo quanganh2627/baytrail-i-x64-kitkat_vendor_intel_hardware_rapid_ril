@@ -69,14 +69,14 @@ m_pQueryPIN2Event(NULL)
     m_pSilentPINEntryEvent = new CEvent();
     if (!m_pSilentPINEntryEvent)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - ERROR: Could not create new SilentPINEntryEvent!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - Could not create new SilentPINEntryEvent!\r\n");
     }
 
     //  Create PIN2 query event
     m_pQueryPIN2Event = new CEvent();
     if (!m_pQueryPIN2Event)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - ERROR: Could not create new QueryPIN2Event!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - Could not create new QueryPIN2Event!\r\n");
     }
 
 }
@@ -128,7 +128,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = CTEBase::ParseSimPin(pszRsp, pCardStatus, &bSilentPINEntry);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: Could not parse Sim Pin.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Could not parse Sim Pin.\r\n");
         goto Error;
     }
 
@@ -141,7 +141,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
         {
             if (!ExtractUpperBoundedUInt32(pszRsp, 2, nValue, pszRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: Invalid SIM type.\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Invalid SIM type.\r\n");
                 pCardStatus->applications[0].app_type = RIL_APPTYPE_UNKNOWN;
             }
             else
@@ -183,7 +183,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
                 !SkipString(pszRsp, ",", pszRsp) ||
                 !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: Cannot parse XPINCNT\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Cannot parse XPINCNT\r\n");
                 //  Set pin retries to -1 (unknown)
                 pCardStatus->applications[0].pin1_num_retries = -1;
                 pCardStatus->applications[0].puk1_num_retries = -1;
@@ -242,7 +242,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
                 //  Queue AT+CPIN=<PIN> command
                 if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CPIN=\"%s\"\r", szPIN))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: cannot create silent AT+CPIN=<PIN> command\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - cannot create silent AT+CPIN=<PIN> command\r\n");
                     goto SilentPINError;
                 }
 
@@ -251,7 +251,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
                 {
                     if (!CCommand::AddCmdToQueue(pCmd1, TRUE))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: Unable to queue AT+CPIN command!\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Unable to queue AT+CPIN command!\r\n");
                         delete pCmd1;
                         pCmd1 = NULL;
                         bPINCodeIsOk = false;
@@ -260,7 +260,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
                 }
                 else
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - ERROR: Unable to allocate memory for new silent AT+CPIN=<PIN> command!\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Unable to allocate memory for new silent AT+CPIN=<PIN> command!\r\n");
                     bPINCodeIsOk = false;
                     goto SilentPINError;
                 }
@@ -351,13 +351,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize < (6 * sizeof(char*)))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: Invalid data size. Was given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - Invalid data size. Was given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
@@ -405,7 +405,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
             "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,1\r", uiCID, stPdpData.szPDPType,
             stPdpData.szApn, uiCID))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
         }
     }
@@ -416,7 +416,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
             "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,2\r", uiCID, stPdpData.szPDPType,
             stPdpData.szApn, uiCID))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
         }
     }
@@ -428,20 +428,20 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
             "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
             stPdpData.szApn, uiCID, uiCID))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: Wrong PDP type\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - Wrong PDP type\r\n");
         goto Error;
     }
 
 
     if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - ERROR: cannot create CGDATA command\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - cannot create CGDATA command\r\n");
         goto Error;
     }
 
@@ -496,14 +496,14 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     if (!FindAndSkipString(szRsp, "CONNECT", szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Did not get \"CONNECT\" response.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Did not get \"CONNECT\" response.\r\n");
         goto Error;
     }
 
     pChannelData = CChannel_Data::GetChnlFromRilChannelNumber(rRspData.uiChannel);
     if (!pChannelData)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel for RIL channel number %d.\r\n", rRspData.uiChannel);
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Could not get Data Channel for RIL channel number %d.\r\n", rRspData.uiChannel);
         goto Error;
     }
 
@@ -520,7 +520,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     pDataCallRsp = (P_ND_SETUP_DATA_CALL)malloc(sizeof(S_ND_SETUP_DATA_CALL));
     if (NULL == pDataCallRsp)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Cannot allocate pDataCallRsp  size=[%d]\r\n", sizeof(S_ND_SETUP_DATA_CALL));
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot allocate pDataCallRsp  size=[%d]\r\n", sizeof(S_ND_SETUP_DATA_CALL));
         goto Error;
     }
     memset(pDataCallRsp, 0, sizeof(S_ND_SETUP_DATA_CALL));
@@ -529,7 +529,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     pDataCallRsp->sPDPData.cid = nCID;
     if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, nCID-1))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Cannot set network interface name\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot set network interface name\r\n");
         goto Error;
     }
     else
@@ -543,7 +543,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     pChannelData->m_szInterfaceName = new char[MAX_BUFFER_SIZE];
     if (NULL == pChannelData->m_szInterfaceName)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not allocate interface name for Data Channel chnl=[%d] fd=[%d].\r\n", rRspData.uiChannel, fd);
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Could not allocate interface name for Data Channel chnl=[%d] fd=[%d].\r\n", rRspData.uiChannel, fd);
         goto Error;
     }
     strncpy(pChannelData->m_szInterfaceName, pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE-1);
@@ -570,7 +570,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     else
     {
         //  No FD.
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel chnl=[%d] fd=[%d].\r\n", rRspData.uiChannel, fd);
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Could not get Data Channel chnl=[%d] fd=[%d].\r\n", rRspData.uiChannel, fd);
         goto Error;
     }
 
@@ -581,7 +581,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CGPADDR=%d\r", nCID))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: cannot create CGPADDR command\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - cannot create CGPADDR command\r\n");
         goto Error;
     }
 
@@ -590,7 +590,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     {
         if (!CCommand::AddCmdToQueue(pCmd1))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Unable to queue AT+CGPADDR command!\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to queue AT+CGPADDR command!\r\n");
             delete pCmd1;
             pCmd1 = NULL;
             goto Error;
@@ -598,18 +598,24 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
     else
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Unable to allocate memory for new AT+CGPADDR command!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to allocate memory for new AT+CGPADDR command!\r\n");
         goto Error;
     }
 
-    pCmd2 = new CCommand(g_arChannelMapping[ND_REQ_ID_GETDNS], NULL, ND_REQ_ID_GETDNS, "AT+XDNS?\r", &CTE::ParseDns);
+    if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+XDNS?;+XDNS=%d,0\r", nCID))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot create XDNS command\r\n");
+        goto Error;
+    }
+
+    pCmd2 = new CCommand(g_arChannelMapping[ND_REQ_ID_GETDNS], NULL, ND_REQ_ID_GETDNS, szCmd, &CTE::ParseDns);
     if (pCmd2)
     {
         //  Need to send context ID to parse function so set contextData for this command
         pCmd2->SetContextData(rRspData.pContextData);
         if (!CCommand::AddCmdToQueue(pCmd2))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Unable to queue AT+XDNS? command!\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to queue AT+XDNS? command!\r\n");
             delete pCmd2;
             pCmd2 = NULL;
             goto Error;
@@ -617,7 +623,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
     else
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Unable to allocate memory for new AT+XDNS? command!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to allocate memory for new AT+XDNS? command!\r\n");
         goto Error;
     }
 
@@ -632,7 +638,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
     else
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: bRet1=[%d] bRet2=[%d]  nTotalTimeout=[%d]\r\n",
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - bRet1=[%d] bRet2=[%d]  nTotalTimeout=[%d]\r\n",
                         bRet1, bRet2, nTotalTimeout);
     }
 
@@ -646,18 +652,18 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
             // the connection manager do not call this function but they can be empty
             if (0 == pChannelData->m_szIpAddr[0] && 0 == pChannelData->m_szIpAddr2[0])
             {
-                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: IP addresses are null\r\n");
+                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - IP addresses are null\r\n");
                  goto Error;
             }
 
             if (NULL == pChannelData->m_szDNS1)
             {
-                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: DNS1 is null\r\n");
+                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - DNS1 is null\r\n");
                  goto Error;
             }
             if (NULL == pChannelData->m_szDNS2)
             {
-                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: DNS2 is null\r\n");
+                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - DNS2 is null\r\n");
                  goto Error;
             }
             if (NULL == pChannelData->m_szPdpType)
@@ -710,7 +716,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     // set interface address(es) and bring up interface
     if (!DataConfigUp(pDataCallRsp->szNetworkInterfaceName, pChannelData, eDataConnectionType))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Unable to set ifconfig\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to set ifconfig\r\n");
         goto Error;
     }
 
@@ -789,7 +795,7 @@ BOOL setaddr6(int sockfd6, struct ifreq *ifr, const char *addr)
     ret = ioctl(sockfd6, SIOCSIFADDR, &ifr6);
     if (ret < 0)
     {
-        RIL_LOG_CRITICAL("setaddr6() : ERROR: SIOCSIFADDR : %s\r\n",
+        RIL_LOG_CRITICAL("setaddr6() : SIOCSIFADDR : %s\r\n",
                 strerror(errno));
         return FALSE;
     }
@@ -806,7 +812,7 @@ BOOL setaddr(int s, struct ifreq *ifr, const char *addr)
     ret = ioctl(s, SIOCSIFADDR, ifr);
     if (ret < 0)
     {
-        RIL_LOG_CRITICAL("setaddr() : ERROR: SIOCSIFADDR : %s\r\n",
+        RIL_LOG_CRITICAL("setaddr() : SIOCSIFADDR : %s\r\n",
             strerror(errno));
         return FALSE;
     }
@@ -820,7 +826,7 @@ BOOL setflags(int s, struct ifreq *ifr, int set, int clr)
     ret = ioctl(s, SIOCGIFFLAGS, ifr);
     if (ret < 0)
     {
-        RIL_LOG_CRITICAL("setflags : ERROR: SIOCGIFFLAGS : %s\r\n", strerror(errno));
+        RIL_LOG_CRITICAL("setflags : SIOCGIFFLAGS : %s\r\n", strerror(errno));
         return FALSE;
     }
 
@@ -829,7 +835,7 @@ BOOL setflags(int s, struct ifreq *ifr, int set, int clr)
     ret = ioctl(s, SIOCSIFFLAGS, ifr);
     if (ret < 0)
     {
-        RIL_LOG_CRITICAL("setflags: ERROR: SIOCSIFFLAGS 2 : %s\r\n", strerror(errno));
+        RIL_LOG_CRITICAL("setflags: SIOCSIFFLAGS 2 : %s\r\n", strerror(errno));
         return FALSE;
     }
     return TRUE;
@@ -1031,7 +1037,7 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         RIL_LOG_INFO("DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
         if (EOF == fputs(szData, fp))
         {
-            RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
+            RIL_LOG_CRITICAL("DataConfigUpIpV6() : file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
         }
         else
         {
@@ -1043,7 +1049,7 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     }
     else
     {
-        RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: Cannot open [%s]\r\n", file_to_open);
+        RIL_LOG_CRITICAL("DataConfigUpIpV6() : Cannot open [%s]\r\n", file_to_open);
     }
     //  Open accept_dad file, write 0<lf>.
     snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad", szNetworkInterfaceName);
@@ -1056,7 +1062,7 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         RIL_LOG_INFO("DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
         if (EOF == fputs(szData, fp))
         {
-            RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
+            RIL_LOG_CRITICAL("DataConfigUpIpV6() : file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
         }
         else
         {
@@ -1068,7 +1074,7 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     }
     else
     {
-        RIL_LOG_CRITICAL("DataConfigUpIpV6() : ERROR: Cannot open [%s]\r\n", file_to_open);
+        RIL_LOG_CRITICAL("DataConfigUpIpV6() : Cannot open [%s]\r\n", file_to_open);
     }
 
     if (NULL == pChannelData->m_szIpGateways)
@@ -1183,7 +1189,7 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
         RIL_LOG_INFO("DataConfigUpIpV4V6() : Opened file=[%s]\r\n", file_to_open);
         if (EOF == fputs(szData, fp))
         {
-            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
+            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
         }
         else
         {
@@ -1195,7 +1201,7 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     }
     else
     {
-        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : ERROR: Cannot open [%s]\r\n", file_to_open);
+        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Cannot open [%s]\r\n", file_to_open);
     }
 
     //  Open accept_dad file, write 0<lf>.
@@ -1209,7 +1215,7 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
         RIL_LOG_INFO("DataConfigUpIpV4V6() : Opened file=[%s]\r\n", file_to_open);
         if (EOF == fputs(szData, fp))
         {
-            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : ERROR: file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
+            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
 
         }
         else
@@ -1222,7 +1228,7 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     }
     else
     {
-        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : ERROR: Cannot open [%s]\r\n", file_to_open);
+        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Cannot open [%s]\r\n", file_to_open);
     }
 
     // we have to set a fake ipv4 gateway if not android do not setup network correctly
@@ -1375,7 +1381,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
     //  Sanity checks
     if ( (NULL == szIpIn) || (NULL == szIpOut) || (0 == uiIpOutSize))
     {
-        RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() : ERROR: Invalid inputs!\r\n");
+        RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() : Invalid inputs!\r\n");
         return FALSE;
     }
 
@@ -1412,7 +1418,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                             &aIP[0], &aIP[1], &aIP[2], &aIP[3], &aIP[4], &aIP[5], &aIP[6], &aIP[7],
                             &aIP[8], &aIP[9], &aIP[10], &aIP[11], &aIP[12], &aIP[13], &aIP[14], &aIP[15]))
             {
-                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot sscanf into aIP[]! ipv6\r\n");
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - cannot sscanf into aIP[]! ipv6\r\n");
                 goto Error;
             }
 
@@ -1422,7 +1428,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                 if (aIP[i] > 255)
                 {
                     //  Value is not between 0-255.
-                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: ipv6 aIP[%d] not in range 0-255. val=%u\r\n", i, aIP[i]);
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ipv6 aIP[%d] not in range 0-255. val=%u\r\n", i, aIP[i]);
                     goto Error;
                 }
             }
@@ -1439,7 +1445,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
 
                 if (inet_ntop(AF_INET6, (void *)acIP, szIpOut2, uiIpOutSize2) <= 0)
                 {
-                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot inet_ntop ipv6\r\n");
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - cannot inet_ntop ipv6\r\n");
                     goto Error;
                 }
             }
@@ -1460,7 +1466,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                             &aIP[12], &aIP[13], &aIP[14], &aIP[15], &aIP[16], &aIP[17], &aIP[18], &aIP[19]
                             ))
             {
-                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot sscanf into aIP[]! ipv4v6\r\n");
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - cannot sscanf into aIP[]! ipv4v6\r\n");
                 goto Error;
             }
 
@@ -1470,7 +1476,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                 if (aIP[i] > 255)
                 {
                     //  Value is not between 0-255.
-                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: ipv4v6 aIP[%d] not in range 0-255. val=%u\r\n", i, aIP[i]);
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ipv4v6 aIP[%d] not in range 0-255. val=%u\r\n", i, aIP[i]);
                     goto Error;
                 }
             }
@@ -1479,7 +1485,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                     "%u.%u.%u.%u",
                     aIP[0], aIP[1], aIP[2], aIP[3]) <= 0)
             {
-                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: error with snprintf()! ipv4v6 v4 part\r\n");
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - error with snprintf()! ipv4v6 v4 part\r\n");
                 goto Error;
             }
 
@@ -1496,7 +1502,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
 
                 if (inet_ntop(AF_INET6, (void *)acIP, szIpOut2, uiIpOutSize2) <= 0)
                 {
-                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: cannot inet_ntop ipv4v6\r\n");
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - cannot inet_ntop ipv4v6\r\n");
                     goto Error;
                 }
             }
@@ -1504,7 +1510,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
         break;
 
         default:
-            RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ERROR: Unknown address format nDotCount=[%d]\r\n", nDotCount);
+            RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - Unknown address format nDotCount=[%d]\r\n", nDotCount);
             goto Error;
     }
 
@@ -1532,14 +1538,14 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
     // Parse prefix
     if (!FindAndSkipString(szRsp, "+CGPADDR: ", szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Unable to parse \"+CGPADDR\" prefix.!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - Unable to parse \"+CGPADDR\" prefix.!\r\n");
         goto Error;
     }
 
     // Parse <cid>
     if (!ExtractUInt32(szRsp, nCid, szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Unable to parse <cid>!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - Unable to parse <cid>!\r\n");
         goto Error;
     }
 
@@ -1548,7 +1554,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
         pChannelData = CChannel_Data::GetChnlFromContextID(nCid);
         if (!pChannelData)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nCid);
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - Could not get Data Channel for Context ID %d.\r\n", nCid);
             goto Error;
         }
 
@@ -1573,7 +1579,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
             if (!SkipString(szRsp, ",", szRsp) ||
                 !ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Unable to parse <PDP_addr1>!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - Unable to parse <PDP_addr1>!\r\n");
                 goto Error;
             }
 
@@ -1593,7 +1599,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
             //  The AT+CGPADDR command doesn't return IPV4V6 format
             if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr, MAX_IPADDR_SIZE, pChannelData->m_szIpAddr2, MAX_IPADDR_SIZE))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ConvertIPAddressToAndroidReadable failed!\r\n");
                 goto Error;
             }
 
@@ -1603,7 +1609,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
             {
                 if (!ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: Unable to parse <PDP_addr2>!\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - Unable to parse <PDP_addr2>!\r\n");
                     goto Error;
                 }
 
@@ -1611,7 +1617,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
                 //  The AT+CGPADDR command doesn't return IPV4V6 format.
                 if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr, MAX_IPADDR_SIZE, pChannelData->m_szIpAddr2, MAX_IPADDR_SIZE))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
                     goto Error;
                 }
 
@@ -1658,7 +1664,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
         // Parse <cid>
         if (!ExtractUInt32(szRsp, nXDNSCid, szRsp))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Unable to parse <cid>!\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Unable to parse <cid>!\r\n");
             goto Error;
         }
 
@@ -1668,7 +1674,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
             pChannelData = CChannel_Data::GetChnlFromContextID(nCid);
             if (!pChannelData)
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Could not get Data Channel for Context ID %d.\r\n", nXDNSCid);
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Could not get Data Channel for Context ID %d.\r\n", nXDNSCid);
                 goto Error;
             }
 
@@ -1695,7 +1701,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                 {
                     if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Unable to extact szDNS 1!\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Unable to extact szDNS 1!\r\n");
                         goto Error;
                     }
 
@@ -1704,7 +1710,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                         pChannelData->m_szDNS1 = new char[MAX_IPADDR_SIZE];
                         if (NULL == pChannelData->m_szDNS1)
                         {
-                            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Cannot allocate m_szDNS1\r\n");
+                            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Cannot allocate m_szDNS1\r\n");
                             goto Error;
                         }
                         pChannelData->m_szDNS1[0] = '\0';
@@ -1715,7 +1721,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                         pChannelData->m_szIpV6DNS1 = new char[MAX_IPADDR_SIZE];
                         if (NULL == pChannelData->m_szIpV6DNS1)
                         {
-                            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Cannot allocate m_szIpV6DNS1\r\n");
+                            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Cannot allocate m_szIpV6DNS1\r\n");
                             goto Error;
                         }
                         pChannelData->m_szIpV6DNS1[0] = '\0';
@@ -1725,7 +1731,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                     if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS1, MAX_IPADDR_SIZE,
                             pChannelData->m_szIpV6DNS1, MAX_IPADDR_SIZE))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szDNS1\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ConvertIPAddressToAndroidReadable failed! m_szDNS1\r\n");
                         goto Error;
                     }
                     RIL_LOG_INFO("CTE_INF_6260::ParseDns() - m_szDNS1: %s\r\n", pChannelData->m_szDNS1);
@@ -1745,7 +1751,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                     pChannelData->m_szIpV6DNS2 = new char[MAX_IPADDR_SIZE];
                     if (NULL == pChannelData->m_szIpV6DNS2)
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Cannot allocate m_szIpV6DNS2\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Cannot allocate m_szIpV6DNS2\r\n");
                         goto Error;
                     }
                     pChannelData->m_szIpV6DNS2[0] = '\0';
@@ -1755,7 +1761,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                     pChannelData->m_szDNS2 = new char[MAX_IPADDR_SIZE];
                     if (NULL == pChannelData->m_szDNS2)
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Cannot allocate m_szDNS2\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Cannot allocate m_szDNS2\r\n");
                         goto Error;
                     }
                     pChannelData->m_szDNS2[0] = '\0';
@@ -1767,7 +1773,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                 {
                     if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Unable to extact szDNS 2!\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Unable to extact szDNS 2!\r\n");
                         goto Error;
                     }
 
@@ -1776,7 +1782,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
                     if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS2, MAX_IPADDR_SIZE,
                             pChannelData->m_szIpV6DNS2, MAX_IPADDR_SIZE))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: ConvertIPAddressToAndroidReadable failed! m_szDNS2\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ConvertIPAddressToAndroidReadable failed! m_szDNS2\r\n");
                         goto Error;
                     }
                     RIL_LOG_INFO("CTE_INF_6260::ParseDns() - m_szDNS2: %s\r\n", pChannelData->m_szDNS2);
@@ -1800,7 +1806,7 @@ Error:
     if (RRIL_RESULT_ERROR == res)
     {
         //  We didn't parse correctly or didn't find context ID in this response
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ERROR: Didn't find context ID=[%d] in response\r\n", nCid);
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Didn't find context ID=[%d] in response\r\n", nCid);
     }
 
     // Signal completion of setting up data
@@ -1825,14 +1831,14 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryPIN2(RESPONSE_DATA & rRspData)
     // Parse "+CPIN2: "
     if (!FindAndSkipString(szRsp, "+CPIN2: ", szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryPIN2() - ERROR: Unable to parse \"+CPIN2\" prefix.!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryPIN2() - Unable to parse \"+CPIN2\" prefix.!\r\n");
         goto Error;
     }
 
     //  Extract <code>
     if (!ExtractUnquotedString(szRsp, g_cTerminator, m_szCPIN2Result, MAX_BUFFER_SIZE, szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryPIN2() - ERROR: Unable to parse \"+CPIN2\" prefix.!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryPIN2() - Unable to parse \"+CPIN2\" prefix.!\r\n");
         goto Error;
     }
 
@@ -1987,14 +1993,14 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
         0 == cbResponse ||
         NULL == sUSIM)
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: Input parameters\r\n");
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Input parameters\r\n");
         goto Error;
     }
 
     // Need at least 2 bytes for response data FCP (file control parameters)
     if (2 > cbResponse)
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: Need at least 2 bytes for response data\r\n");
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Need at least 2 bytes for response data\r\n");
         goto Error;
     }
 
@@ -2002,13 +2008,13 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
     tlvFcp.Parse(sResponse, cbResponse);
     if (FCP_TAG != tlvFcp.GetTag())
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: First tag is not FCP.  Tag=[0x%02X]\r\n", tlvFcp.GetTag());
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - First tag is not FCP.  Tag=[0x%02X]\r\n", tlvFcp.GetTag());
         goto Error;
     }
 
     if (cbResponse != tlvFcp.GetTotalSize())
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: cbResponse=[%d] not equal to total size=[%d]\r\n", cbResponse, tlvFcp.GetTotalSize());
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - cbResponse=[%d] not equal to total size=[%d]\r\n", cbResponse, tlvFcp.GetTotalSize());
         goto Error;
     }
     pbFcpData = tlvFcp.GetValue();
@@ -2018,14 +2024,14 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
     tlvFileDescriptor.Parse(pbFcpData, cbFcpDataSize);
     if (FILE_DESCRIPTOR_TAG != tlvFileDescriptor.GetTag())
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: File descriptor tag is not FCP.  Tag=[0x%02X]\r\n", tlvFileDescriptor.GetTag());
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - File descriptor tag is not FCP.  Tag=[0x%02X]\r\n", tlvFileDescriptor.GetTag());
         goto Error;
     }
 
     cbDataUsed = tlvFileDescriptor.GetTotalSize();
     if (cbDataUsed > cbFcpDataSize)
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: cbDataUsed=[%d] is greater than cbFcpDataSize=[%d]\r\n", cbDataUsed, cbFcpDataSize);
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - cbDataUsed=[%d] is greater than cbFcpDataSize=[%d]\r\n", cbDataUsed, cbFcpDataSize);
         goto Error;
     }
 
@@ -2034,13 +2040,13 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
     // File descriptors should only be 2 or 5 bytes long.
     if((2 != cbFileDescDataSize) && (5 != cbFileDescDataSize))
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: File descriptor can only be 2 or 5 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - File descriptor can only be 2 or 5 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
         goto Error;
 
     }
     if (2 > cbFileDescDataSize)
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: File descriptor less than 2 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - File descriptor less than 2 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
         goto Error;
     }
 
@@ -2081,7 +2087,7 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
             // Need at least 5 bytes
             if (5 > cbFileDescDataSize)
             {
-                RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: File descriptor less than 5 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
+                RIL_LOG_CRITICAL("ParseUSIMRecordStatus - File descriptor less than 5 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
                 goto Error;
             }
 
@@ -2103,7 +2109,7 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
                     pbFcpData + cbDataUsed,
                     cbFcpDataSize - cbDataUsed))
                 {
-                    RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: Couldn't parse TRANSPARENT\r\n");
+                    RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Couldn't parse TRANSPARENT\r\n");
                     goto Error;
                 }
 
@@ -2115,7 +2121,7 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
 
                     if (2 > tlvCurrent.GetLength())
                     {
-                        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: TRANSPARENT length must be at least 2\r\n");
+                        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - TRANSPARENT length must be at least 2\r\n");
                         goto Error;
                     }
 
@@ -2144,13 +2150,13 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
 
         if (FILE_ID_TAG != tlvFileId.GetTag())
         {
-            RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: UNKNOWN tag not equal to FILE_ID_TAG\r\n");
+            RIL_LOG_CRITICAL("ParseUSIMRecordStatus - UNKNOWN tag not equal to FILE_ID_TAG\r\n");
             goto Error;
         }
 
         if (2 != tlvFileId.GetLength())
         {
-            RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: UNKNOWN length not equal to 2\r\n");
+            RIL_LOG_CRITICAL("ParseUSIMRecordStatus - UNKNOWN length not equal to 2\r\n");
             goto Error;
         }
 
@@ -2159,7 +2165,7 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
 
         if (MASTER_FILE_ID != uFileId)
         {
-            RIL_LOG_CRITICAL("ParseUSIMRecordStatus - Error: UNKNOWN file ID not equal to MASTER_FILE_ID\r\n");
+            RIL_LOG_CRITICAL("ParseUSIMRecordStatus - UNKNOWN file ID not equal to MASTER_FILE_ID\r\n");
             goto Error;
         }
 
@@ -2192,13 +2198,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (sizeof(RIL_SIM_IO_v6) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: Invalid data size. Given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
@@ -2251,7 +2257,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                      "AT+CPIN2?\r",
                      sizeof(szCmd1)))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: Cannot CopyStringNullTerminate CPIN2?\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - Cannot CopyStringNullTerminate CPIN2?\r\n");
             goto Error;
         }
 
@@ -2260,7 +2266,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
         {
             if (!CCommand::AddCmdToQueue(pCmd1))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: Unable to queue AT+CPIN2 command!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - Unable to queue AT+CPIN2 command!\r\n");
                 delete pCmd1;
                 pCmd1 = NULL;
                 goto Error;
@@ -2268,7 +2274,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: Unable to allocate memory for new AT+CPIN2 command!\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - Unable to allocate memory for new AT+CPIN2 command!\r\n");
             goto Error;
         }
 
@@ -2321,7 +2327,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                     "AT+CPIN2=\"%s\"\r",
                     pSimIOArgs->pin2))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CPIN2 command\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CPIN2 command\r\n");
                     goto Error;
                 }
             }
@@ -2333,7 +2339,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                     pSimIOArgs->pin2,
                     pSimIOArgs->pin2))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CPWD command\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CPWD command\r\n");
                     goto Error;
                 }
             }
@@ -2351,7 +2357,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                         pSimIOArgs->p2,
                         pSimIOArgs->p3))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 1\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 1\r\n");
                         goto Error;
                     }
                 }
@@ -2367,7 +2373,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                                   pSimIOArgs->p3,
                                   pszPath))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 2\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 2\r\n");
                         goto Error;
                     }
                 }
@@ -2386,7 +2392,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                         pSimIOArgs->p3,
                         pSimIOArgs->data))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 3\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 3\r\n");
                         goto Error;
                     }
                 }
@@ -2403,7 +2409,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                         pSimIOArgs->data,
                         pszPath))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 4\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 4\r\n");
                         goto Error;
                     }
                 }
@@ -2426,7 +2432,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                         pSimIOArgs->p2,
                         pSimIOArgs->p3))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 5\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 5\r\n");
                         goto Error;
                     }
                 }
@@ -2442,7 +2448,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                         pSimIOArgs->p3,
                         pszPath))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 6\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 6\r\n");
                         goto Error;
                     }
                 }
@@ -2461,7 +2467,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                         pSimIOArgs->p3,
                         pSimIOArgs->data))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 7\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 7\r\n");
                         goto Error;
                     }
                 }
@@ -2478,7 +2484,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                         pSimIOArgs->data,
                         pszPath))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 8\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 8\r\n");
                         goto Error;
                     }
                 }
@@ -2505,7 +2511,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                     pSimIOArgs->p2,
                     pSimIOArgs->p3))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 9\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 9\r\n");
                     goto Error;
                 }
             }
@@ -2521,7 +2527,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                     pSimIOArgs->p3,
                     pszPath))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 10\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 10\r\n");
                     goto Error;
                 }
             }
@@ -2540,7 +2546,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                     pSimIOArgs->p3,
                     pSimIOArgs->data))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 11\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 11\r\n");
                     goto Error;
                 }
             }
@@ -2557,7 +2563,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
                     pSimIOArgs->data,
                     pszPath))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - ERROR: cannot create CRSM command 12\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 12\r\n");
                     goto Error;
                 }
             }
@@ -2594,33 +2600,33 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
 
     if (NULL == rRspData.szResponse)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Response String pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Response String pointer is NULL.\r\n");
         goto Error;
     }
 
     // Parse "<prefix>+CRSM: <sw1>,<sw2>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Could not skip over response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Could not skip over response prefix.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, "+CRSM: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Could not skip over \"+CRSM: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Could not skip over \"+CRSM: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt32(pszRsp, uiSW1, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Could not extract SW1 value.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Could not extract SW1 value.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt32(pszRsp, uiSW2, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Could not extract SW2 value.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Could not extract SW2 value.\r\n");
         goto Error;
     }
 
@@ -2633,7 +2639,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
         // NOTE: we take ownership of allocated szResponseString
         if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString, cbResponseString, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Could not extract data string.\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Could not extract data string.\r\n");
             goto Error;
         }
         else
@@ -2643,7 +2649,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
 
         if (0 != (cbResponseString - 1) % 2)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() : ERROR : String was not a multiple of 2.\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() : String was not a multiple of 2.\r\n");
             goto Error;
         }
 
@@ -2665,7 +2671,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
             sNewString = new BYTE[cbNewString];
             if (NULL == sNewString)
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Cannot create new string!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Cannot create new string!\r\n");
                 goto Error;
             }
             memset(sNewString, 0, cbNewString);
@@ -2673,7 +2679,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
             UINT32 cbUsed = 0;
             if (!GSMHexToGSM(szResponseString, cbResponseString, sNewString, cbNewString, cbUsed))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Cannot cconvert szResponseString to GSMHex.\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Cannot cconvert szResponseString to GSMHex.\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 cbNewString = 0;
@@ -2683,7 +2689,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
             //  OK, now parse!
             if (!ParseUSIMRecordStatus((UINT8*)sNewString, cbNewString, &sUSIM))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Cannot parse USIM record status\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Cannot parse USIM record status\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 cbNewString = 0;
@@ -2712,14 +2718,14 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
             szResponseString = new char[cbResponseString];
             if (NULL == szResponseString)
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Cannot create new szResponsestring!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Cannot create new szResponsestring!\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 goto Error;
             }
             if (!CopyStringNullTerminate(szResponseString, "000000000000000000000000000000", cbResponseString))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Cannot CopyStringNullTerminate szResponsestring!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Cannot CopyStringNullTerminate szResponsestring!\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 goto Error;
@@ -2728,7 +2734,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
             //  Extract info, put into new response string
             if (!PrintStringNullTerminate(szTemp, 5, "%04X", sUSIM.dwTotalSize))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Cannot PrintStringNullTerminate sUSIM.dwTotalSize!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Cannot PrintStringNullTerminate sUSIM.dwTotalSize!\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 goto Error;
@@ -2737,7 +2743,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
 
             if (!PrintStringNullTerminate(szTemp, 3, "%02X", sUSIM.dwRecordSize))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Cannot PrintStringNullTerminate sUSIM.dwRecordSize!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Cannot PrintStringNullTerminate sUSIM.dwRecordSize!\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 goto Error;
@@ -2747,7 +2753,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
             if (RIL_SIMRECORDTYPE_UNKNOWN == sUSIM.dwRecordType)
             {
                 //  bad parse.
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: sUSIM.dwRecordType is unknown!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - sUSIM.dwRecordType is unknown!\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 goto Error;
@@ -2794,7 +2800,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
     pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
         goto Error;
     }
     memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
@@ -2811,7 +2817,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
         pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
         if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - ERROR: Cannot CopyStringNullTerminate szResponseString\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Cannot CopyStringNullTerminate szResponseString\r\n");
             goto Error;
         }
 
@@ -2860,13 +2866,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
 
     if (uiDataSize < (1 * sizeof(char *)))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -2875,7 +2881,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
     pszCid = ((char**)pData)[0];
     if (pszCid == NULL || '\0' == pszCid[0])
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: pszCid was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - pszCid was NULL\r\n");
         goto Error;
     }
 
@@ -2886,7 +2892,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
         pszReason = ((char**)pData)[1];
         if (pszReason == NULL || '\0' == pszReason[0])
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: pszReason was NULL\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - pszReason was NULL\r\n");
             goto Error;
         }
         RIL_LOG_INFO("CTE_INF_6260::CoreDeactivateDataCall() - pszReason=[%s]\r\n", pszReason);
@@ -2907,7 +2913,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
         if (sscanf(pszCid, "%d", &nCid) == EOF)
         {
             // Error
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: cannot convert %s to int\r\n", pszCid);
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - cannot convert %s to int\r\n", pszCid);
             goto Error;
         }
 
@@ -2946,7 +2952,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
         }
         if (!DataConfigDown(nCID))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDeactivateDataCall() - ERROR : Couldn't DataConfigDown chnl=[%d] nCID=[%d]\r\n", rRspData.uiChannel, nCID);
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDeactivateDataCall() - Couldn't DataConfigDown chnl=[%d] nCID=[%d]\r\n", rRspData.uiChannel, nCID);
         }
     }
 
@@ -2976,43 +2982,43 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    BYTE bCommand = 0;
+    int nCommand = 0;
 
-    //  uiDataSize MUST be 1 or greater.
-    if (0 == uiDataSize)
+    //  uiDataSize MUST be 4 or greater.
+    if (4 > uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - Passed data pointer was NULL\r\n");
         goto Error;
     }
 
+    memcpy(&nCommand, &(pDataBytes[0]), sizeof(int));
+    nCommand = ntohl(nCommand);  //  This is the command.
+    rReqData.pContextData = (void*)nCommand;
 
-    bCommand = (BYTE)pDataBytes[0];  //  This is the command.
-    rReqData.pContextData = (void*)(UINT32)bCommand;
-
-    switch(bCommand)
+    switch(nCommand)
     {
         case RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY:
         {
-            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY Command=[0x%08X] received OK\r\n", nCommand);
 
             //  Shouldn't be any data following command
-            if (uiDataSize == sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY))
+            if (sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY) == uiDataSize)
             {
                 if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=1\r", sizeof(rReqData.szCmd1)))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1.\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1.\r\n");
                     goto Error;
                 }
             }
             else
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY));
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY));
                 goto Error;
             }
         }
@@ -3020,7 +3026,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
         case RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER:
         {
-            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER Command=[0x%08X] received OK\r\n", nCommand);
 
             //  Cast our data into our structure
             if (uiDataSize == sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER))
@@ -3029,18 +3035,17 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
                 memset(&sFDT, 0, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
                 memcpy(&sFDT, pDataBytes, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
 
-                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - bCommand=[0x%02X]\r\n", (unsigned char)sFDT.bCommand);
-                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - nTimerValue=[%d]\r\n", (int)sFDT.nTimerValue);
+                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - nTimerValue=[%d]\r\n", ntohl(sFDT.nTimerValue));
 
-                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDORT=%u\r", sFDT.nTimerValue))
+                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDORT=%u\r", ntohl(sFDT.nTimerValue)))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER - Can't construct szCmd1.\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER - Can't construct szCmd1.\r\n");
                     goto Error;
                 }
             }
             else
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
                 goto Error;
             }
         }
@@ -3048,10 +3053,10 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
         case RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR:
         {
-            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR Command=[0x%08X] received OK\r\n", nCommand);
 
             //  Cast our data into our structure
-            if (sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR) == uiDataSize)
+            if (uiDataSize == sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR))
             {
                 sOEM_HOOK_RAW_THERMAL_GET_SENSOR sTGS;
                 memset(&sTGS, 0, sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR));
@@ -3061,14 +3066,14 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
                 if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,9,%u\r", ntohl(sTGS.nSensorId)))
                 {
-                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR - Can't construct szCmd1.\r\n");
+                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR - Can't construct szCmd1.\r\n");
                     goto Error;
                 }
 
             }
             else
             {
-                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_THERMAL_GET_SENSOR=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR));
+                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_THERMAL_GET_SENSOR=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR));
                 goto Error;
             }
         }
@@ -3076,38 +3081,38 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
         case RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD:
         {
-            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD Command=[0x%08X] received OK\r\n", nCommand);
 
             //  Cast our data into our structure
-            if (sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD) == uiDataSize)
+            if (uiDataSize == sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD))
             {
                 sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD sTST;
                 memset(&sTST, 0, sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD));
                 memcpy(&sTST, pDataBytes, sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD));
 
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - enable=[%d]\r\n", sTST.bEnable);
+                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - enable=[%d]\r\n", ntohl(sTST.nEnable));
                 RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - sensor Id=[%d]\r\n", ntohl(sTST.nSensorId));
                 RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - Low Threshold=[%d]\r\n", ntohl(sTST.nMinThreshold));
                 RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - Max Threshold=[%d]\r\n", ntohl(sTST.nMaxThreshold));
 
-                if (sTST.bEnable)
+                if (sTST.nEnable)
                 {
                     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,14,%u,%d,%d\r", ntohl(sTST.nSensorId), ntohl(sTST.nMinThreshold), ntohl(sTST.nMaxThreshold)))
                     {
-                        RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD - Can't construct szCmd1.\r\n");
+                        RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD - Can't construct szCmd1.\r\n");
                         goto Error;
                     }
                 }
                 else if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,14,%u\r", ntohl(sTST.nSensorId)))
                 {
-                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD - Can't construct szCmd1.\r\n");
+                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD - Can't construct szCmd1.\r\n");
                     goto Error;
                 }
 
             }
             else
             {
-                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD));
+                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD));
                 goto Error;
             }
         }
@@ -3117,7 +3122,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
         case RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM:
         {
-            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM Command=[0x%08X] received OK\r\n", nCommand);
 
             //  Cast our data into our structure
             if (uiDataSize == sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM))
@@ -3126,18 +3131,23 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
                 memset(&sSAS, 0, sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM));
                 memcpy(&sSAS, pDataBytes, sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM));
 
-                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - bCommand=[0x%02X]\r\n", (unsigned char)sSAS.bCommand);
-                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - sim_id=[%d]\r\n", sSAS.sim_id);
+                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - sim_id=[%d]\r\n", ntohl(sSAS.sim_id));
 
-                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XSIM=%d\r", sSAS.sim_id))
+                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT@nvm:fix_uicc.ext_mux_misc_config=%d\r", ntohl(sSAS.sim_id)))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM - Can't construct szCmd1.\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM - Can't construct szCmd1.\r\n");
+                    goto Error;
+                }
+                //  Second AT command will be sent if first AT command is OK.
+                if (!CopyStringNullTerminate(rReqData.szCmd2, "AT@nvm:store_nvm_sync(fix_uicc)\r", sizeof(rReqData.szCmd2)))
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM - Can't construct szCmd2.\r\n");
                     goto Error;
                 }
             }
             else
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_SET_ACTIVE_SIM=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM));
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_SET_ACTIVE_SIM=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM));
                 goto Error;
             }
         }
@@ -3145,7 +3155,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
         case RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM:
         {
-            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Command=[0x%08X] received OK\r\n", nCommand);
 
             //  Cast our data into our structure
             if (uiDataSize == sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM))
@@ -3154,17 +3164,15 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
                 memset(&sGAS, 0, sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM));
                 memcpy(&sGAS, pDataBytes, sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM));
 
-                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - bCommand=[0x%02X]\r\n", (unsigned char)sGAS.bCommand);
-
-                if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XSIM?\r", sizeof(rReqData.szCmd1)))
+                if (!CopyStringNullTerminate(rReqData.szCmd1, "AT@nvm:fix_uicc.ext_mux_misc_config?\r", sizeof(rReqData.szCmd1)))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM - Can't construct szCmd1.\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM - Can't construct szCmd1.\r\n");
                     goto Error;
                 }
             }
             else
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : ERROR : uiDataSize=%d not sOEM_HOOK_RAW_GET_ACTIVE_SIM=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM));
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_GET_ACTIVE_SIM=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM));
                 goto Error;
             }
         }
@@ -3173,7 +3181,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 #endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
 
         default:
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - ERROR: Received unknown command=[0x%02X]\r\n", bCommand);
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - Received unknown command=[0x%08X]\r\n", nCommand);
             goto Error;
             break;
     }
@@ -3192,15 +3200,14 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* szRsp = rRspData.szResponse;
-    UINT32 uCommand = (UINT32)rRspData.pContextData;
-    BYTE bCommand = (BYTE)uCommand;
+    int nCommand = (int)rRspData.pContextData;
 
     //  Populate these below (if applicable)
     void* pData = NULL;
     UINT32 uiDataSize = 0;
 
 
-    switch(bCommand)
+    switch(nCommand)
     {
         case RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR:
         {
@@ -3215,14 +3222,14 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
             // Parse prefix
             if (!FindAndSkipString(szRsp, "+XDRV: ", szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse \"+XDRV\" prefix.!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse \"+XDRV\" prefix.!\r\n");
                 goto Error;
             }
 
             // Parse <IPC_CHR_GRP>
             if (!ExtractUInt32(szRsp, nIpcChrGrp, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <IPC_CHR_GRP>!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <IPC_CHR_GRP>!\r\n");
                 goto Error;
             }
 
@@ -3230,7 +3237,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
             if (!SkipString(szRsp, ",", szRsp) ||
                 !ExtractUInt32(szRsp, nIpcChrTempGet, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <IPC_CHR_TEMP_GET>!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <IPC_CHR_TEMP_GET>!\r\n");
                 goto Error;
             }
 
@@ -3238,7 +3245,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
             if (!SkipString(szRsp, ",", szRsp) ||
                 !ExtractUInt32(szRsp, nXdrvResult, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <result>!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <result>!\r\n");
                 goto Error;
             }
 
@@ -3246,7 +3253,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
             if (!SkipString(szRsp, ",", szRsp) ||
                 !ExtractUInt32(szRsp, nTempSensorId, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <temp_sensor_id>!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <temp_sensor_id>!\r\n");
                 goto Error;
             }
 
@@ -3254,7 +3261,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
             if (!SkipString(szRsp, ",", szRsp) ||
                 !ExtractUInt32(szRsp, nFilteredTemp, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <filtered_temp>!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <filtered_temp>!\r\n");
                 goto Error;
             }
 
@@ -3262,7 +3269,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
             if (!SkipString(szRsp, ",", szRsp) ||
                 !ExtractUInt32(szRsp, nRawTemp, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <raw_temp>!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <raw_temp>!\r\n");
                 goto Error;
             }
 
@@ -3275,7 +3282,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
             pbData = (unsigned char*)malloc(sizeof(int) * 2);
             if (NULL == pbData)
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Could not allocate memory for response.\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Could not allocate memory for response.\r\n");
                 goto Error;
             }
             memset(pbData, 0, sizeof(int) * 2);
@@ -3297,14 +3304,14 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
             // Parse prefix
             if (!FindAndSkipString(szRsp, "+XDRV: ", szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse \"+XDRV\" prefix.!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse \"+XDRV\" prefix.!\r\n");
                 goto Error;
             }
 
             // Parse <IPC_CHR_GRP>
             if (!ExtractUInt32(szRsp, nIpcChrGrp, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <IPC_CHR_GRP>!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <IPC_CHR_GRP>!\r\n");
                 goto Error;
             }
 
@@ -3312,7 +3319,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
             if (!SkipString(szRsp, ",", szRsp) ||
                 !ExtractUInt32(szRsp, nIpcChrTempThresholdSet, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <IPC_CHR_TEMP_THRESHOLD_SET>!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <IPC_CHR_TEMP_THRESHOLD_SET>!\r\n");
                 goto Error;
             }
 
@@ -3320,7 +3327,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
             if (!SkipString(szRsp, ",", szRsp) ||
                 !ExtractUInt32(szRsp, nXdrvResult, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - ERROR: Unable to parse <result>!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <result>!\r\n");
                 goto Error;
             }
 
@@ -3335,35 +3342,45 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 
 #if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
 
+        case RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM:
+        {
+            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM Command=[0x%08X] received OK\r\n", nCommand);
+            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Resetting modem.  Signalling warm boot.\r\n");
+
+            do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+
+            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Signal warm boot complete.\r\n");
+        }
+        break;
+
         case RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM:
         {
             UINT32 nSim_id = 0;
-            int *pIntData = NULL;
+            unsigned char *pbIntData = NULL;
 
-            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Command=[0x%02X] received OK\r\n", (unsigned char)bCommand);
+            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Command=[0x%08X] received OK\r\n", nCommand);
 
-            // Skip "+XSIM: "
-            if (!FindAndSkipString(szRsp, "+XSIM: ", szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Could not skip \"+XSIM: \".\r\n");
-                goto Error;
-            }
+            //  Skip over \r\n if available
+            SkipRspStart(szRsp, g_szNewLine, szRsp);
 
+            //  Extract <sim_id>
             if (!ExtractUInt32(szRsp, nSim_id, szRsp))
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Could not extract sim_id\r\n");
                 goto Error;
             }
+            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM sim_id=%d\r\n", nSim_id);
 
-            pIntData = (int*)malloc(sizeof(int));
-            if (NULL == pIntData)
+            pbIntData = (unsigned char*)malloc(sizeof(int));
+            if (NULL == pbIntData)
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM cannot allocate int\r\n");
                 goto Error;
             }
 
-            pIntData[0] = (int)nSim_id;
-            pData = (void*)pIntData;
+            convertIntToByteArray(pbIntData, nSim_id);
+
+            pData = (void*)pbIntData;
             uiDataSize = sizeof(int);
         }
         break;
@@ -3403,13 +3420,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetBandMode(REQUEST_DATA & rReqData, void * pD
 
     if (sizeof(int*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetBandMode() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetBandMode() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetBandMode() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetBandMode() - Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -3439,7 +3456,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetBandMode(REQUEST_DATA & rReqData, void * pD
         break;
 
     case 3:
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetBandMode() - ERROR: Japan region is not supported!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetBandMode() - Japan region is not supported!\r\n");
         res = RIL_E_GENERIC_FAILURE;
         break;
 
@@ -3452,7 +3469,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetBandMode(REQUEST_DATA & rReqData, void * pD
         break;
 
     default:
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetBandMode() - ERROR: Undefined region code: %d\r\n", *pnBandMode);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetBandMode() - Undefined region code: %d\r\n", *pnBandMode);
         res = RIL_E_GENERIC_FAILURE;
         break;
     }
@@ -3511,7 +3528,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDa
     // Skip "+XBANDSEL: "
     if (!FindAndSkipString(szRsp, "+XBANDSEL: ", szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryAvailableBandMode() - ERROR: Could not skip \"+XBANDSEL: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryAvailableBandMode() - Could not skip \"+XBANDSEL: \".\r\n");
         goto Error;
     }
 
@@ -3630,7 +3647,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDa
 
     if (0 == count)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryAvailableBandMode() - ERROR: Cannot have a count of zero.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryAvailableBandMode() - Cannot have a count of zero.\r\n");
         goto Error;
     }
 
@@ -3638,7 +3655,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDa
     pModes = (int*)malloc( (1 + count) * sizeof(int));
     if (NULL == pModes)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryAvailableBandMode() - ERROR: Could not allocate memory for response.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryAvailableBandMode() - Could not allocate memory for response.\r\n");
         goto Error;
     }
     memset(pModes, 0, (1 + count) * sizeof(int));
@@ -3729,14 +3746,14 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkGetProfile(RESPONSE_DATA & rRspData)
 
     if (NULL == pszRsp)
     {
-        RIL_LOG_INFO("CTE_INF_6260::ParseStkGetProfile() - ERROR: Response string is NULL!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkGetProfile() - Response string is NULL!\r\n");
         goto Error;
     }
 
     pszTermProfile = (char*)malloc(MAX_BUFFER_SIZE);
     if (NULL == pszTermProfile)
     {
-        RIL_LOG_INFO("CTE_INF_6260::ParseStkGetProfile() - ERROR: Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkGetProfile() - Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
         goto Error;
     }
 
@@ -3745,19 +3762,19 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkGetProfile(RESPONSE_DATA & rRspData)
     // Parse "<prefix>+STKPROF: <length>,<data><postfix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_INFO("CTE_INF_6260::ParseStkGetProfile() - ERROR: Could not skip response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkGetProfile() - Could not skip response prefix.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, "+STKPROF: ", pszRsp))
     {
-        RIL_LOG_INFO("CTE_INF_6260::ParseStkGetProfile() - ERROR: Could not skip \"+STKPROF: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkGetProfile() - Could not skip \"+STKPROF: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt32(pszRsp, uiLength, pszRsp))
     {
-        RIL_LOG_INFO("CTE_INF_6260::ParseStkGetProfile() - ERROR: Could not extract length value.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkGetProfile() - Could not extract length value.\r\n");
         goto Error;
     }
 
@@ -3765,14 +3782,14 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkGetProfile(RESPONSE_DATA & rRspData)
     {
         if (!ExtractQuotedString(pszRsp, pszTermProfile, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_INFO("CTE_INF_6260::ParseStkGetProfile() - ERROR: Could not extract the terminal profile.\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkGetProfile() - Could not extract the terminal profile.\r\n");
             goto Error;
         }
     }
 
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_INFO("CTE_INF_6260::ParseStkGetProfile() - ERROR: Could not extract the response end.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkGetProfile() - Could not extract the response end.\r\n");
         goto Error;
     }
 
@@ -3803,13 +3820,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreStkSetProfile(REQUEST_DATA & rReqData, void * 
 
     if (0 == uiDataSize)
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreStkSetProfile() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkSetProfile() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreStkSetProfile() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkSetProfile() - Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -3818,7 +3835,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreStkSetProfile(REQUEST_DATA & rReqData, void * 
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+STKPROF=%u,\"%s\"\r", uiDataSize, pszTermProfile))
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreStkSetProfile() - ERROR: Could not form string.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkSetProfile() - Could not form string.\r\n");
         goto Error;
     }
 
@@ -3850,13 +3867,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreStkSendEnvelopeCommand(REQUEST_DATA & rReqData
 
     if (sizeof(char*) != uiDataSize)
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreStkSendEnvelopeCommand() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkSendEnvelopeCommand() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreStkSendEnvelopeCommand() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkSendEnvelopeCommand() - Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -3865,7 +3882,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreStkSendEnvelopeCommand(REQUEST_DATA & rReqData
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATE=\"%s\"\r", pszEnvCommand))
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreStkSendEnvelopeCommand() - ERROR: Could not form string.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkSendEnvelopeCommand() - Could not form string.\r\n");
         goto Error;
     }
 
@@ -3889,28 +3906,28 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
     const char* pszRsp = rRspData.szResponse;
     if (NULL == pszRsp)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Response string is NULL!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Response string is NULL!\r\n");
         goto Error;
     }
 
     // Parse "<prefix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not skip over response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not skip over response prefix.\r\n");
         goto Error;
     }
 
     // Parse "+SATE: "
     if (!SkipString(pszRsp, "+SATE: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not skip over \"+SATE: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not skip over \"+SATE: \".\r\n");
         goto Error;
     }
 
     // Parse "<sw1>"
     if (!ExtractUInt32(pszRsp, uiSw1, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not extract sw1.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not extract sw1.\r\n");
         goto Error;
     }
 
@@ -3918,7 +3935,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt32(pszRsp, uiSw2, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not extract sw2.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not extract sw2.\r\n");
         goto Error;
     }
 
@@ -3926,7 +3943,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt32(pszRsp, uiEventType, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not extract event type.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not extract event type.\r\n");
         goto Error;
     }
 
@@ -3934,7 +3951,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt32(pszRsp, uiEnvelopeType, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not extract envelope type.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not extract envelope type.\r\n");
         goto Error;
     }
 
@@ -3948,7 +3965,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
         pszRespData = (char*)malloc(MAX_BUFFER_SIZE);
         if (NULL == pszRespData)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not alloc mem for command.\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not alloc mem for command.\r\n");
             goto Error;
         }
 
@@ -3957,7 +3974,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
         // Parse ",<response_data>"
         if (!ExtractUnquotedString(pszRsp, g_cTerminator, pszRespData, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_INFO("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not parse response data.\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not parse response data.\r\n");
             goto Error;
         }
 
@@ -3971,7 +3988,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
     // Parse "<postfix>"
     if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - ERROR: Could not extract the response end.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not extract the response end.\r\n");
         goto Error;
     }
 
@@ -4002,13 +4019,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreStkSendTerminalResponse(REQUEST_DATA & rReqDat
 
     if (NULL == pData)
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreStkSendTerminalResponse() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkSendTerminalResponse() - Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize != sizeof(char *))
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreStkSendTerminalResponse() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkSendTerminalResponse() - Invalid data size.\r\n");
         goto Error;
     }
 
@@ -4018,7 +4035,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreStkSendTerminalResponse(REQUEST_DATA & rReqDat
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATR=\"%s\"\r", pszTermResponse))
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreStkSendTerminalResponse() - ERROR: Could not form string.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkSendTerminalResponse() - Could not form string.\r\n");
         goto Error;
     }
 
@@ -4050,13 +4067,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DAT
 
     if (NULL == pData)
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkHandleCallSetupRequestedFromSim() - Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize != sizeof(int *))
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkHandleCallSetupRequestedFromSim() - Invalid data size.\r\n");
         goto Error;
     }
 
@@ -4065,7 +4082,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DAT
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATD=0\r"))
         {
-            RIL_LOG_INFO("CTE_INF_6260::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Could not form string.\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkHandleCallSetupRequestedFromSim() - Could not form string.\r\n");
             goto Error;
         }
     }
@@ -4073,7 +4090,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DAT
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATD=1\r"))
         {
-            RIL_LOG_INFO("CTE_INF_6260::CoreStkHandleCallSetupRequestedFromSim() - ERROR: Could not form string.\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreStkHandleCallSetupRequestedFromSim() - Could not form string.\r\n");
             goto Error;
         }
     }
@@ -4106,13 +4123,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - ERROR: Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize != sizeof(RIL_PreferredNetworkType *))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - ERROR: Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Invalid data size.\r\n");
         goto Error;
     }
 
@@ -4133,7 +4150,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=1,2\r", sizeof(rReqData.szCmd1) ))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd1 networkType=%d\r\n", networkType);
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
@@ -4143,7 +4160,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=0\r", sizeof(rReqData.szCmd1) ))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd1 networkType=%d\r\n", networkType);
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
@@ -4153,14 +4170,14 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=2\r", sizeof(rReqData.szCmd1) ))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - ERROR: Can't construct szCmd1 networkType=%d\r\n", networkType);
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
             break;
 
         default:
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - ERROR: Undefined rat code: %d\r\n", networkType);
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Undefined rat code: %d\r\n", networkType);
             res = RIL_E_GENERIC_FAILURE;
             goto Error;
             break;
@@ -4220,27 +4237,27 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspD
     int * pRat = (int*)malloc(sizeof(int));
     if (NULL == pRat)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - ERROR: Could not allocate memory for response.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not allocate memory for response.\r\n");
         goto Error;
     }
 
     // Skip "<prefix>"
     if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - ERROR: Could not skip response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not skip response prefix.\r\n");
         goto Error;
     }
 
     // Skip "+XRAT: "
     if (!SkipString(pszRsp, "+XRAT: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - ERROR: Could not skip \"+XRAT: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not skip \"+XRAT: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt32(pszRsp, rat, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - ERROR: Could not extract rat value.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not extract rat value.\r\n");
         goto Error;
     }
 
@@ -4248,7 +4265,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspD
     {
         if (!ExtractUInt32(pszRsp, pref, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - ERROR: Could not find and skip pref value even though it was expected.\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not find and skip pref value even though it was expected.\r\n");
             goto Error;
         }
     }
@@ -4278,7 +4295,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspD
 
         default:
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - ERROR: Unexpected rat found: %d. Failing out.\r\n", rat);
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Unexpected rat found: %d. Failing out.\r\n", rat);
             goto Error;
         }
     }
@@ -4355,7 +4372,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
     pCellData = (P_ND_N_CELL_DATA)malloc(sizeof(S_ND_N_CELL_DATA));
     if (NULL == pCellData)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Could not allocate memory for a S_ND_N_CELL_DATA struct.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - Could not allocate memory for a S_ND_N_CELL_DATA struct.\r\n");
         goto Error;
     }
     memset(pCellData, 0, sizeof(S_ND_N_CELL_DATA));
@@ -4369,14 +4386,14 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
         if (RRIL_MAX_CELL_ID_COUNT == nTotal)
         {
             //  We're full.
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Exceeded max count = %d\r\n", RRIL_MAX_CELL_ID_COUNT);
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - Exceeded max count = %d\r\n", RRIL_MAX_CELL_ID_COUNT);
             goto Error;
         }
 
         //  Get <mode>
         if (!ExtractUInt32(pszRsp, nMode, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: cannot extract <mode>\r\n");
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - cannot extract <mode>\r\n");
             goto Error;
         }
 
@@ -4391,28 +4408,28 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                     !FindAndSkipString(pszRsp, ",", pszRsp) ||
                     !FindAndSkipString(pszRsp, ",", pszRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 0, cannot skip to LAC and CI\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 0, cannot skip to LAC and CI\r\n");
                     goto Error;
                 }
 
                 //  Read <LAC> and <CI>
                 if (!ExtractUInt32(pszRsp, nLAC, pszRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 0, could not extract LAC\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 0, could not extract LAC\r\n");
                     goto Error;
                 }
                 //  Read <CI>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
                     (!ExtractUInt32(pszRsp, nCI, pszRsp)))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 0, could not extract CI value\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 0, could not extract CI value\r\n");
                     goto Error;
                 }
                 //  Read <RxLev>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
                     (!ExtractUInt32(pszRsp, nRSSI, pszRsp)))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 0, could not extract RSSI value\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 0, could not extract RSSI value\r\n");
                     goto Error;
                 }
 
@@ -4443,21 +4460,21 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                 if (!SkipString(pszRsp, ",", pszRsp) ||
                     !ExtractUInt32(pszRsp, nLAC, pszRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 1, could not extract LAC\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 1, could not extract LAC\r\n");
                     goto Error;
                 }
                 //  Read <CI>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
                     (!ExtractUInt32(pszRsp, nCI, pszRsp)))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 1, could not extract CI value\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 1, could not extract CI value\r\n");
                     goto Error;
                 }
                 //  Read <RxLev>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
                     (!ExtractUInt32(pszRsp, nRSSI, pszRsp)))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 1, could not extract RSSI value\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 1, could not extract RSSI value\r\n");
                     goto Error;
                 }
 
@@ -4490,7 +4507,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                 UINT32 nCommaCount = 0;
                 if (!ExtractUnquotedString(pszRsp, g_cTerminator, szBuf, MAX_BUFFER_SIZE, szDummy))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 2, could not extract temp buf\r\n");
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 2, could not extract temp buf\r\n");
                     goto Error;
                 }
                 for (UINT32 n=0; n<strlen(szBuf); n++)
@@ -4510,12 +4527,12 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                         !FindAndSkipString(pszRsp, ",", pszRsp) ||
                         !FindAndSkipString(pszRsp, ",", pszRsp))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 2, could not skip to scrambling code\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 2, could not skip to scrambling code\r\n");
                         goto Error;
                     }
                     if (!ExtractUInt32(pszRsp, nScramblingCode, pszRsp))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode 2, could not extract scrambling code\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 2, could not extract scrambling code\r\n");
                         goto Error;
                     }
                     //  Cannot get <rscp> as it does not exist.
@@ -4549,7 +4566,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
                     (!ExtractUInt32(pszRsp, nScramblingCode, pszRsp)))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode %d, could not extract scrambling code\r\n", nMode);
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode %d, could not extract scrambling code\r\n", nMode);
                     goto Error;
                 }
 
@@ -4558,13 +4575,13 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                     !FindAndSkipString(pszRsp, ",", pszRsp) ||
                     !FindAndSkipString(pszRsp, ",", pszRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode %d, could not skip to rscp\r\n", nMode);
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode %d, could not skip to rscp\r\n", nMode);
                     goto Error;
                 }
                 //  read <rscp>
                 if (!ExtractUInt32(pszRsp, nRSSI, pszRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: mode %d, could not extract rscp\r\n", nMode);
+                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode %d, could not extract rscp\r\n", nMode);
                     goto Error;
                 }
 
@@ -4584,7 +4601,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
 
             default:
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - ERROR: Invalid nMode=[%d]\r\n", nMode);
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - Invalid nMode=[%d]\r\n", nMode);
                 goto Error;
             }
             break;
@@ -4636,13 +4653,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pDa
 
     if (sizeof(int*) != uiDataSize)
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreSetTtyMode() - ERROR: Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetTtyMode() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreSetTtyMode() - ERROR: Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetTtyMode() - Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -4654,7 +4671,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pDa
     // check for invalid value
     if ((nTtyMode < 0) || (nTtyMode > 3))
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreSetTtyMode() - ERROR: Undefined CTM/TTY mode: %d\r\n", nTtyMode);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetTtyMode() - Undefined CTM/TTY mode: %d\r\n", nTtyMode);
         res = RIL_E_GENERIC_FAILURE;
         goto Error;
     }
@@ -4667,7 +4684,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pDa
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XCTMS=%d\r", nTtyMode))
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreSetTtyMode() - ERROR: Could not form string.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetTtyMode() - Could not form string.\r\n");
         goto Error;
     }
 
@@ -4712,21 +4729,21 @@ RIL_RESULT_CODE CTE_INF_6260::ParseQueryTtyMode(RESPONSE_DATA & rRspData)
     int* pnMode = (int*)malloc(sizeof(int));
     if (NULL == pnMode)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryTtyMode() - ERROR: Could not allocate memory for response.\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryTtyMode() - Could not allocate memory for response.\r\n");
         goto Error;
     }
 
     // Parse prefix
     if (!FindAndSkipString(szRsp, "+XCTMS: ", szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryTtyMode() - ERROR: Unable to parse \"CTM/TTY mode: \" prefix.!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryTtyMode() - Unable to parse \"CTM/TTY mode: \" prefix.!\r\n");
         goto Error;
     }
 
     // Parse <mode>
     if (!ExtractUInt32(szRsp, uiTtyMode, szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryTtyMode() - ERROR: Unable to parse <mode>!\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryTtyMode() - Unable to parse <mode>!\r\n");
         goto Error;
     }
 
@@ -4767,7 +4784,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreReportSmsMemoryStatus(REQUEST_DATA & rReqData,
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreReportSmsMemoryStatus() - ERROR: Data pointer is NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreReportSmsMemoryStatus() - Data pointer is NULL\r\n");
         goto Error;
     }
 

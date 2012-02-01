@@ -145,14 +145,14 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const char*& rszPoin
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() : pResponse was NULL\r\n");
         goto Error;
     }
 
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
-        RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() : Could not find response end\r\n");
         goto Error;
     }
 

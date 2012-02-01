@@ -133,7 +133,7 @@ BOOL CChannel_Data::OpenPort()
             break;
 
         default:
-            RIL_LOG_CRITICAL("CChannel_Data::OpenPort() - ERROR channel does not exist m_uiRilChannel=%d\r\n", m_uiRilChannel);
+            RIL_LOG_CRITICAL("CChannel_Data::OpenPort() - channel does not exist m_uiRilChannel=%d\r\n", m_uiRilChannel);
             bRetVal = FALSE;
             break;
     }
@@ -154,7 +154,7 @@ BOOL CChannel_Data::FinishInit()
     m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
     if (!m_prisdModuleInit)
     {
-        RIL_LOG_CRITICAL("CChannel_Data::FinishInit() : ERROR : chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_Data::FinishInit() : chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -186,14 +186,14 @@ BOOL CChannel_Data::AddSilos()
     pSilo = CSilo_Factory::GetSiloData(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_Data\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : chnl=[%d] Could not add CSilo_Data\r\n", m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloPhonebook(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : ERROR : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -279,7 +279,7 @@ Error:
     if (NULL == pChannelData)
     {
         // Error, all channels full!
-        RIL_LOG_CRITICAL("CChannel_Data::GetFreeChnl() - ERROR: All channels full!!\r\n");
+        RIL_LOG_CRITICAL("CChannel_Data::GetFreeChnl() - All channels full!!\r\n");
         outCID = 0;
     }
 

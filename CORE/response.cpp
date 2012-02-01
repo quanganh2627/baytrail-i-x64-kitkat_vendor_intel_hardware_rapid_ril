@@ -142,7 +142,7 @@ BOOL CResponse::IsUnsolicitedResponse()
         // string contains cr-lf
         if (!SkipRspEnd(szPointer, g_szNewLine, szPointer))
         {
-            RIL_LOG_CRITICAL("CResponse::IsUnsolicitedResponse() - ERROR: chnl=[%d] no CRLF at end of response: \"%s\"\r\n",
+            RIL_LOG_CRITICAL("CResponse::IsUnsolicitedResponse() - chnl=[%d] no CRLF at end of response: \"%s\"\r\n",
                             m_pChannel->GetRilChannel(),
                             CRLFExpandedString(szPointer, strlen(szPointer)).GetString());
             goto Error;
@@ -176,7 +176,7 @@ BOOL CResponse::IsExtendedError(const char* pszToken)
         UINT32 nCode;
         if (!RetrieveErrorCode(szPointer, nCode, pszToken))
         {
-            RIL_LOG_CRITICAL("CResponse::IsExtendedError() - ERROR: chnl=[%d] could not extract error code\r\n", m_pChannel->GetRilChannel());
+            RIL_LOG_CRITICAL("CResponse::IsExtendedError() - chnl=[%d] could not extract error code\r\n", m_pChannel->GetRilChannel());
             // treat as unrecognized - discard everything until the CR LF or end of buffer
             if (!SkipRspEnd(szPointer, g_szNewLine, szPointer))
             {
@@ -194,7 +194,7 @@ BOOL CResponse::IsExtendedError(const char* pszToken)
 
         if (!SkipRspEnd(szPointer, g_szNewLine, szPointer))
         {
-            RIL_LOG_CRITICAL("CResponse::IsExtendedError() - ERROR: chnl=[%d] no CRLF at end of response: \"%s\"\r\n",
+            RIL_LOG_CRITICAL("CResponse::IsExtendedError() - chnl=[%d] no CRLF at end of response: \"%s\"\r\n",
                             m_pChannel->GetRilChannel(),
                             CRLFExpandedString(szPointer, strlen(szPointer)).GetString());
             goto Error;
@@ -428,7 +428,7 @@ BOOL CResponse::TransferData(CResponse*& rpRspIn, CResponse*& rpRspOut)
     // rpRspIn must be NOT NULL, rpRspOut must be NULL
     if (NULL == rpRspIn || NULL != rpRspOut || 0 == rpRspIn->m_uiUsed || 0 == rpRspIn->m_uiResponseEndMarker)
     {
-        RIL_LOG_CRITICAL("CResponse::TransferData() : ERROR : Invalid parameters\r\n");
+        RIL_LOG_CRITICAL("CResponse::TransferData() : Invalid parameters\r\n");
         goto Error;
     }
 
@@ -436,7 +436,7 @@ BOOL CResponse::TransferData(CResponse*& rpRspIn, CResponse*& rpRspOut)
     rpRspIn = new CResponse(pRspTmp->m_pChannel);
     if (!rpRspIn)
     {
-        RIL_LOG_CRITICAL("CResponse::TransferData() : ERROR : Out of memory\r\n");
+        RIL_LOG_CRITICAL("CResponse::TransferData() : Out of memory\r\n");
         rpRspIn = pRspTmp;
         goto Error;
     }
@@ -476,7 +476,7 @@ BOOL CResponse::SetData(void* pData, const UINT32 nSize, const BOOL fCpyMem)
     {
         if (NULL == pData)
         {
-            RIL_LOG_CRITICAL("CResponse::SetData() : ERROR : pData was NULL  nSize=[%d]\r\n", nSize);
+            RIL_LOG_CRITICAL("CResponse::SetData() : pData was NULL  nSize=[%d]\r\n", nSize);
             goto Error;
         }
 
@@ -583,7 +583,7 @@ BOOL CResponse::ParseResponse(CCommand*& rpCmd)
 
         if (RIL_E_SUCCESS != resCode)
         {
-            RIL_LOG_CRITICAL("CResponse::ParseResponse() - ERROR: chnl=[%d] Error parsing response: \"%s\"; resCode = 0x%x\r\n",
+            RIL_LOG_CRITICAL("CResponse::ParseResponse() - chnl=[%d] Error parsing response: \"%s\"; resCode = 0x%x\r\n",
                             m_pChannel->GetRilChannel(),
                             CRLFExpandedString(m_szBuffer, strlen(m_szBuffer)).GetString(),
                             resCode);

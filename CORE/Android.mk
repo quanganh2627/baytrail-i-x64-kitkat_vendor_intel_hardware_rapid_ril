@@ -62,9 +62,6 @@ LOCAL_SHARED_LIBRARIES := libcutils libutils
 # Activating this macro enables the Call Failed Cause Notification feature
 #LOCAL_CFLAGS += -DM2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
-# Activating this macro enables the Rx Diversity feature
-LOCAL_CFLAGS += -DM2_RXDIV_FEATURE_ENABLED
-
 # Activating this macro enables PIN retry count feature
 #LOCAL_CFLAGS += -DM2_PIN_RETRIES_FEATURE_ENABLED
 

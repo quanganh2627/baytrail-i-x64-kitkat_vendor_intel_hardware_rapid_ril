@@ -41,7 +41,7 @@ CCommand::CCommand( UINT32 uiChannel,
     }
     else
     {
-        RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", uiChannel);
+        RIL_LOG_CRITICAL("CCommand::CCommand() - Using default channel as given argument is invalid [%d]\r\n", uiChannel);
     }
 
     if ((NULL == pszATCmd) || ('\0' == pszATCmd[0]))
@@ -83,7 +83,7 @@ CCommand::CCommand( UINT32 uiChannel,
     }
     else
     {
-        RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", uiChannel);
+        RIL_LOG_CRITICAL("CCommand::CCommand() - Using default channel as given argument is invalid [%d]\r\n", uiChannel);
     }
 
     if ((NULL == pszATCmd1) || ('\0' == pszATCmd1[0]))
@@ -136,7 +136,7 @@ CCommand::CCommand( UINT32 uiChannel,
     }
     else
     {
-        RIL_LOG_CRITICAL("CCommand::CCommand() - ERROR: Using default channel as given argument is invalid [%d]\r\n", uiChannel);
+        RIL_LOG_CRITICAL("CCommand::CCommand() - Using default channel as given argument is invalid [%d]\r\n", uiChannel);
     }
 
     if ('\0' == reqData.szCmd1[0])
@@ -212,12 +212,12 @@ BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd, BOOL bFront /*=false*/)
         }
         else
         {
-            RIL_LOG_CRITICAL("CCommand::AddCmdToQueue() - ERROR: Unable to queue command on channel [%d]\r\n", rpCmd->m_uiChannel);
+            RIL_LOG_CRITICAL("CCommand::AddCmdToQueue() - Unable to queue command on channel [%d]\r\n", rpCmd->m_uiChannel);
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CCommand::AddCmdToQueue() - ERROR: Command pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CCommand::AddCmdToQueue() - Command pointer was NULL\r\n");
     }
 
     RIL_LOG_VERBOSE("CCommand::AddCmdToQueue() - Exit\r\n");

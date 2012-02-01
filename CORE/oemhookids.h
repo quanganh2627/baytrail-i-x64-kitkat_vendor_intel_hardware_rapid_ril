@@ -16,74 +16,95 @@
 
 #include "types.h"
 
+#pragma pack(1)
+
 /**
  * This enum details the additional requests (OEM) to pass to the RIL
  * via the RIL_REQUEST_OEM_HOOK_RAW API
  */
 
-//  The first byte of the byte[] is the command.  The data follows.
+//  The first int (4 bytes) of the byte[] is the command ID.  The data follows.
+//
+// The command id allocation is the following:
+//      0x00000001 -> 0x0000009F : Product Specific
+//      0x000000A0 -> 0x000000CF : Platform Requests
+//      0x000000D0 -> 0x000000FF : Platform Unsolicited
+//
 
 ///////////////////////////////////////////////////////////////////////////////
+typedef struct TAG_OEM_HOOK_RAW_GAN_RIL
+{
+    int nCommand; //  Command ID
+} sOEM_HOOK_RAW_GAN_RIL;
+
+//
+//  RIL_OEM_HOOK_RAW_GAN_RIL
+//  Command ID = 0x00000001
+//
+//  This is reserved for future implementation.
+//
+const int RIL_OEM_HOOK_RAW_GAN_RIL = 0x00000001;
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
 {
-    unsigned char bCommand;  //  Command ID
+    int nCommandID;  //  Command ID
 } sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY;
 
 //
 //  RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
-//  Command ID = 0xBB
+//  Command ID = 0x000000A0
 //
 //  This command sends AT+XFDOR to the modem.
 //
 //  "data" = sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
 //  "response" = NULL
 //
-const BYTE RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY = 0xBB;
+const int RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY = 0x000000A0;
 
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct TAG_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
 {
-    unsigned char bCommand;  //  Command ID
+    int nCommandID;  //  Command ID
     int nTimerValue; // int from 0-120
 } sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER;
 
 //
 //  RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
-//  Command ID = 0xCC
+//  Command ID = 0x000000A1
 //
 //  This command sends AT+XFDORT to the modem.
 //
 //  "data" = sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
 //  "response" = NULL
 //
-const BYTE RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER = 0xCC;
+const int RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER = 0x000000A1;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#pragma pack(1)
-
 typedef struct TAG_OEM_HOOK_RAW_THERMAL_GET_SENSOR
 {
-    unsigned char bCommand; //  Command ID
+    int nCommand; //  Command ID
     int nSensorId; // sensor id
 } sOEM_HOOK_RAW_THERMAL_GET_SENSOR;
 
 //
 //  TAG_OEM_HOOK_RAW_THERMAL_GET_SENSOR
-//  Command ID = 0xA2
+//  Command ID = 0x000000A2
 //
 //  "data" = sOEM_HOOK_RAW_GET_SENSOR_VALUE
 //  "response" = NULL
 //
-const BYTE RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR = 0xA2;
+const int RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR = 0x000000A2;
 
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct TAG_OEM_HOOK_RAW_SET_SENSOR_THRESHOLD
 {
-    unsigned char bCommand; //  Command ID
-    bool bEnable; // enable or disable
+    int nCommand; //  Command ID
+    int nEnable; // enable=1 or disable=0
     int nSensorId; // sensor id
     int nMinThreshold; // min Threshold
     int nMaxThreshold; // max Threshold
@@ -91,48 +112,12 @@ typedef struct TAG_OEM_HOOK_RAW_SET_SENSOR_THRESHOLD
 
 //
 //  TAG_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD
-//  Command ID = 0xA3
+//  Command ID = 0x000000A3
 //
 //  "data" = sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD
 //  "response" = NULL
 //
-const BYTE RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD = 0xA3;
-
-///////////////////////////////////////////////////////////////////////////////
-
-typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
-{
-    unsigned char bCommand; //  Command ID
-    int nResultCode; // result code
-    int nSensorId; // sensor id
-    int nTemp; // temperature
-} sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND;
-
-//
-//  TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
-//  Command ID = 0xD0
-//
-//  "data" = sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
-//  "response" = NULL
-//
-const BYTE RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND = 0xD0;
-
-#pragma pack()
-
-///////////////////////////////////////////////////////////////////////////////
-
-typedef struct TAG_OEM_HOOK_RAW_GAN_RIL
-{
-    unsigned char bCommand; //  Command ID
-} sOEM_HOOK_RAW_GAN_RIL;
-
-//
-//  RIL_OEM_HOOK_RAW_GAN_RIL
-//  Command ID = 0x01
-//
-//  This is reserved for future implementation.
-//
-const BYTE RIL_OEM_HOOK_RAW_GAN_RIL = 0x01;
+const int RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD = 0x000000A3;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -140,44 +125,80 @@ const BYTE RIL_OEM_HOOK_RAW_GAN_RIL = 0x01;
 
 typedef struct TAG_OEM_HOOK_RAW_SET_ACTIVE_SIM
 {
-    unsigned char bCommand; //  Command ID
+    int nCommand; //  Command ID
     int sim_id;
 } sOEM_HOOK_RAW_SET_ACTIVE_SIM;
 
 //
 //  RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM
-//  Command ID = 0xD0
+//  Command ID = 0x000000B0
 //
 //  This command selects which SIM is active between two inserted cards.
 //  To be mapped to:
-//      AT+XSIM=<sim_id>
+//      AT@nvm:fix_uicc.ext_mux_misc_config=<sim_id>
+//      AT@nvm:store_nvm_sync(fix_uicc)
+//  In addition, this command should trigger a modem warm reset after
+//  AT@nvm command has been sent.
+//
+//  Preconditions:
+//      The modem has been previously put in flight mode by Android Framework
+//      (Radio Off).
+//  Post Conditions:
+//      The modem is started in flight mode; Android framework will trigger
+//      exit from Flight Mode.
 //
 //  "data" = sOEM_HOOK_RAW_SET_ACTIVE_SIM
 //  "response" = NULL
 //
-const BYTE RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM = 0xD0;
+const int RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM = 0x000000B0;
 
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct TAG_OEM_HOOK_RAW_GET_ACTIVE_SIM
 {
-    unsigned char bCommand; //  Command ID
+    int nCommand; //  Command ID
 } sOEM_HOOK_RAW_GET_ACTIVE_SIM;
 
 //
 //  RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM
-//  Command ID = 0xD1
+//  Command ID = 0x000000B1
 //
 //  This command gets which SIM is active between two inserted cards.
 //  To be mapped to:
-//      AT+XSIM=?
+//      AT@nvm:fix_uicc.ext_mux_misc_config?
+//
+//  Response:
+//      <sim_id>
+//      OK
 //
 //  "data" = sOEM_HOOK_RAW_GET_ACTIVE_SIM
 //  "response" = int sim_id
 //
-const BYTE RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM = 0xD1;
+const int RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM = 0x000000B1;
 
 #endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
+{
+    int nCommand; //  Command ID
+    int nResultCode; // result code
+    int nSensorId; // sensor id
+    int nTemp; // temperature
+} sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND;
+
+//
+//  TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
+//  Command ID = 0x000000D0
+//
+//  "data" = sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
+//  "response" = NULL
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND = 0x000000D0;
+
+
+#pragma pack()
 
 /***********************************************************************/
 

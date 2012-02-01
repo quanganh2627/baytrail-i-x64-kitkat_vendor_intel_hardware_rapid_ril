@@ -17,6 +17,7 @@ import android.os.Handler;
 import android.os.AsyncResult;
 import android.util.Log;
 import android.app.AlertDialog;
+import java.nio.ByteBuffer;
 
 
 
@@ -89,57 +90,87 @@ public class RilOemHookTest extends Activity
         switch(idButtonChecked)
         {
             case R.id.radio_api1:
+            {
                 // RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
                 //  AT+XFDOR=1
-                oemhook = new byte[1];
-                oemhook[0] = (byte)0xBB;  // Command ID
+                ByteBuffer myBuf = ByteBuffer.allocate(4);
+                myBuf.putInt(0xA0);  //  Command ID
 
-                break;
+                oemhook = myBuf.array();
+            }
+            break;
 
             case R.id.radio_api2:
+            {
                 // RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
                 //  AT+XFDORT=<timer_value>
+                ByteBuffer myBuf = ByteBuffer.allocate(8);
+                myBuf.putInt(0xA1);  //  Command ID
+                myBuf.putInt(0x00);  //  <timer_value>
 
-                oemhook = new byte[8];
-                oemhook[0] = (byte)0xCC;  // Command ID
-                oemhook[1] = (byte)0x00;  // padding
-                oemhook[2] = (byte)0x00;
-                oemhook[3] = (byte)0x00;
-
-                oemhook[4] = (byte)0x00;  // TimerValue (int, low byte to high byte)
-                oemhook[5] = (byte)0x00;  //  e.g. 0x0F 0x0A 0x07 0x03 = 0x03070A0F, 50792975.
-                oemhook[6] = (byte)0x00;
-                oemhook[7] = (byte)0x00;
-
-                break;
+                oemhook = myBuf.array();
+            }
+            break;
 
             case R.id.radio_api3:
-                //  RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM
-                //  AT+XSIM=sim_id
+            {
+                // RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR
+                //  AT+XDRV=5,9,<sensor_id>
+                ByteBuffer myBuf = ByteBuffer.allocate(8);
+                myBuf.putInt(0xA2);  //  Command ID
+                myBuf.putInt(0x00);  //  <sensor_id>
 
-                oemhook = new byte[8];
-                oemhook[0] = (byte)0xD0;  // Command ID
-                oemhook[1] = (byte)0x00;  // padding
-                oemhook[2] = (byte)0x00;
-                oemhook[3] = (byte)0x00;
-
-                oemhook[4] = (byte)0x00;  // Sim_id (int, low byte to high byte)
-                oemhook[5] = (byte)0x00;  //  e.g. 0x0F 0x0A 0x07 0x03 = 0x03070A0F, 50792975.
-                oemhook[6] = (byte)0x00;
-                oemhook[7] = (byte)0x00;
-
-                break;
+                oemhook = myBuf.array();
+            }
+            break;
 
             case R.id.radio_api4:
+            {
+                // RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD
+                //  AT+XDRV=5,14,<sensor_id>,<min_threshold>,<max_threshold>
+                ByteBuffer myBuf = ByteBuffer.allocate(16);
+                myBuf.putInt(0xA3);  //  Command ID
+                myBuf.putInt(0x00);  //  <sensor_id>
+                myBuf.putInt(0x00);  //  <min_threshold>
+                myBuf.putInt(0x00);  //  <max_threshold>
+
+                oemhook = myBuf.array();
+            }
+            break;
+
+            case R.id.radio_api100:
+            {
+                //  RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM
+                //  AT@nvm:fix_uicc.ext_mux_misc_config=<sim_id>
+                //  AT@nvm:store_nvm_sync(fix_uicc)
+                //
+                //  RIL then triggers warm modem reset
+
+                ByteBuffer myBuf = ByteBuffer.allocate(8);
+                myBuf.putInt(0xB0);  //  Command ID
+                myBuf.putInt(0x00);  //  <sim_id>
+
+                oemhook = myBuf.array();
+            }
+            break;
+
+            case R.id.radio_api101:
+            {
                 //  RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM
-                //  AT+XSIM=?
+                //  AT@nvm:fix_uicc.ext_mux_misc_config?
+                //
+                //  Response:
+                //  <sim_id>
+                //  OK
+                //
+                //  <sim_id> = int
 
-                oemhook = new byte[1];
-                oemhook[0] = (byte)0xD1;  // Command ID
+                ByteBuffer myBuf = ByteBuffer.allocate(4);
+                myBuf.putInt(0xB1);  //  Command ID
 
-                break;
-
-
+                oemhook = myBuf.array();
+            }
+            break;
 
             default:
                 log("unknown button selected");
@@ -149,8 +180,6 @@ public class RilOemHookTest extends Activity
 
         Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_COMMAND_COMPLETE);
         mPhone.invokeOemRilRequestRaw(oemhook, msg);
-
-
 
     }
 

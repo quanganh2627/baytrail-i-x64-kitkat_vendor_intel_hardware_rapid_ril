@@ -94,19 +94,19 @@ BOOL CThreadManager::Initialize()
 
     if (NULL == m_pStartupCompleteEvent)
     {
-        RIL_LOG_CRITICAL("CThreadManager::Initialize() : ERROR : Unable to create complete event\r\n");
+        RIL_LOG_CRITICAL("CThreadManager::Initialize() : Unable to create complete event\r\n");
         goto Error;
     }
 
     if (!StartChannelThreads())
     {
-        RIL_LOG_CRITICAL("CThreadManager::Initialize() : ERROR : Failed to launch channel threads\r\n");
+        RIL_LOG_CRITICAL("CThreadManager::Initialize() : Failed to launch channel threads\r\n");
         goto Error;
     }
 
     if (WAIT_EVENT_0_SIGNALED != CEvent::Wait(m_pStartupCompleteEvent, g_TimeoutWaitForInit))
     {
-        RIL_LOG_CRITICAL("CThreadManager::Initialize() : ERROR : Timed out waiting for threads to register\r\n");
+        RIL_LOG_CRITICAL("CThreadManager::Initialize() : Timed out waiting for threads to register\r\n");
         goto Error;
     }
 

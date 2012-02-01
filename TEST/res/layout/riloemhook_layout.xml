@@ -18,6 +18,10 @@
 
         <RadioButton android:id="@+id/radio_api4" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/radio_api4"/>
 
+        <RadioButton android:id="@+id/radio_api100" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/radio_api100"/>
+
+        <RadioButton android:id="@+id/radio_api101" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/radio_api101"/>
+
     </RadioGroup>
 
 

@@ -57,7 +57,7 @@ BOOL CSilo::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& sz
 
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CSilo::ParseUnsolicitedResponse() chnl=[%d] - ERROR: pResponse is NULL\r\n", m_pChannel->GetRilChannel());
+        RIL_LOG_CRITICAL("CSilo::ParseUnsolicitedResponse() chnl=[%d] - pResponse is NULL\r\n", m_pChannel->GetRilChannel());
         fGotoError = TRUE;
     }
     else
@@ -145,7 +145,7 @@ BOOL CSilo::ParseUnrecognized(CResponse *const pResponse, const char* &rszPointe
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
         // This isn't a complete registration notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo::ParseUnrecognized() chnl=[%d] - ERROR: Failed to find postfix in the response.\r\n", m_pChannel->GetRilChannel());
+        RIL_LOG_CRITICAL("CSilo::ParseUnrecognized() chnl=[%d] - Failed to find postfix in the response.\r\n", m_pChannel->GetRilChannel());
         goto Error;
     }
 

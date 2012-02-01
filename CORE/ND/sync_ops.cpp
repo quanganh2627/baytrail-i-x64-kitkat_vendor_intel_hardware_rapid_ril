@@ -35,11 +35,11 @@ CMutex::CMutex() :
         switch (rc)
         {
             case ENOMEM:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutexattr_init ENOMEM code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_init ENOMEM code returned\r\n");
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutexattr_init [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_init [%d] code returned\r\n", rc);
                 break;
         }
     }
@@ -53,11 +53,11 @@ CMutex::CMutex() :
         switch (rc)
         {
             case EINVAL:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutexattr_settype EINVAL code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_settype EINVAL code returned\r\n");
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutexattr_settype [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_settype [%d] code returned\r\n", rc);
                 break;
         }
     }
@@ -71,27 +71,27 @@ CMutex::CMutex() :
         switch (rc)
         {
             case EAGAIN:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutex_init EAGAIN code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutex_init EAGAIN code returned\r\n");
                 break;
 
             case EINVAL:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutex_init EINVAL code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutex_init EINVAL code returned\r\n");
                 break;
 
             case ENOMEM:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutex_init ENOMEM code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutex_init ENOMEM code returned\r\n");
                 break;
 
             case EPERM:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutex_init EPERM code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutex_init EPERM code returned\r\n");
                 break;
 
             case EBUSY:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutex_init EBUSY code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutex_init EBUSY code returned\r\n");
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutex_init [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutex_init [%d] code returned\r\n", rc);
                 break;
         }
     }
@@ -105,11 +105,11 @@ CMutex::CMutex() :
         switch (rc)
         {
             case EINVAL:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutexattr_destroy EINVAL code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_destroy EINVAL code returned\r\n");
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - ERROR: pthread_mutexattr_destroy [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_destroy [%d] code returned\r\n", rc);
                 break;
         }
     }
@@ -126,15 +126,15 @@ CMutex::~CMutex()
         switch (rc)
         {
             case EINVAL:
-                RIL_LOG_CRITICAL("CMutex::~CMutex() - ERROR: pthread_mutex_destroy EINVAL code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::~CMutex() - pthread_mutex_destroy EINVAL code returned\r\n");
                 break;
 
             case EBUSY:
-                RIL_LOG_CRITICAL("CMutex::~CMutex() - ERROR: pthread_mutex_destroy EBUSY code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::~CMutex() - pthread_mutex_destroy EBUSY code returned\r\n");
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::~CMutex() - ERROR: pthread_mutex_destroy [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::~CMutex() - pthread_mutex_destroy [%d] code returned\r\n", rc);
                 break;
         }
     }
@@ -161,15 +161,15 @@ BOOL CMutex::EnterMutex(BOOL fTryLock)
         switch (rc)
         {
             case EINVAL:
-                RIL_LOG_CRITICAL("CMutex::EnterMutex() - ERROR: EINVAL code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::EnterMutex() - EINVAL code returned\r\n");
                 break;
 
             case EBUSY:
-                RIL_LOG_CRITICAL("CMutex::EnterMutex() - ERROR: EBUSY code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::EnterMutex() - EBUSY code returned\r\n");
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::EnterMutex() - ERROR: [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::EnterMutex() - [%d] code returned\r\n", rc);
                 break;
         }
     }
@@ -193,19 +193,19 @@ void CMutex::LeaveMutex()
         switch (rc)
         {
             case EINVAL:
-                RIL_LOG_CRITICAL("CMutex::LeaveMutex() - ERROR: EINVAL code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::LeaveMutex() - EINVAL code returned\r\n");
                 break;
 
             case EAGAIN:
-                RIL_LOG_CRITICAL("CMutex::LeaveMutex() - ERROR: EAGAIN code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::LeaveMutex() - EAGAIN code returned\r\n");
                 break;
 
             case EPERM:
-                RIL_LOG_CRITICAL("CMutex::LeaveMutex() - ERROR: EPERM code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::LeaveMutex() - EPERM code returned\r\n");
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::LeaveMutex() - ERROR: [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::LeaveMutex() - [%d] code returned\r\n", rc);
                 break;
         }
     }
@@ -223,7 +223,7 @@ void CMutex::Lock(CMutex* pMutex)
     }
     else
     {
-        RIL_LOG_CRITICAL("CMutex::Lock() : ERROR : Unable to lock mutex as it is NULL!\r\n");
+        RIL_LOG_CRITICAL("CMutex::Lock() : Unable to lock mutex as it is NULL!\r\n");
     }
 }
 
@@ -235,7 +235,7 @@ BOOL CMutex::TryLock(CMutex* pMutex)
     }
     else
     {
-        RIL_LOG_CRITICAL("CMutex::TryLock() : ERROR : Unable to lock mutex as it is NULL!\r\n");
+        RIL_LOG_CRITICAL("CMutex::TryLock() : Unable to lock mutex as it is NULL!\r\n");
     }
 
     return FALSE;
@@ -249,7 +249,7 @@ void CMutex::Unlock(CMutex* pMutex)
     }
     else
     {
-        RIL_LOG_CRITICAL("CMutex::Unlock() : ERROR : Unable to unlock mutex as it is NULL!\r\n");
+        RIL_LOG_CRITICAL("CMutex::Unlock() : Unable to unlock mutex as it is NULL!\r\n");
     }
 }
 
@@ -261,7 +261,7 @@ int CMutex::GetLockValue(CMutex* pMutex)
     }
     else
     {
-        RIL_LOG_CRITICAL("CMutex::GetLockValue() - ERROR: Unable to get lock value as mutex pointer is NULL\r\n");
+        RIL_LOG_CRITICAL("CMutex::GetLockValue() - Unable to get lock value as mutex pointer is NULL\r\n");
         return -1;
     }
 }
@@ -428,7 +428,7 @@ int CEvent::Wait(UINT32 uiTimeout)
             {
                 if (rc != ETIMEDOUT)
                 {
-                    RIL_LOG_CRITICAL("CEvent::Wait() : ERROR : pthread_cond_timedwait(): returned %d\r\n", rc);
+                    RIL_LOG_CRITICAL("CEvent::Wait() : pthread_cond_timedwait(): returned %d\r\n", rc);
                 }
             }
         }
@@ -463,7 +463,7 @@ BOOL CEvent::Signal(CEvent * pEvent)
     }
     else
     {
-        RIL_LOG_CRITICAL("CEvent::Signal() : ERROR : Unable to signal event as pointer was NULL!\r\n");
+        RIL_LOG_CRITICAL("CEvent::Signal() : Unable to signal event as pointer was NULL!\r\n");
         return FALSE;
     }
 }
@@ -476,7 +476,7 @@ BOOL CEvent::Reset(CEvent * pEvent)
     }
     else
     {
-        RIL_LOG_CRITICAL("CEvent::Reset() : ERROR : Unable to reset event as pointer was NULL!\r\n");
+        RIL_LOG_CRITICAL("CEvent::Reset() : Unable to reset event as pointer was NULL!\r\n");
         return FALSE;
     }
 }
@@ -489,7 +489,7 @@ UINT32 CEvent::Wait(CEvent * pEvent, UINT32 uiTimeoutInMS)
     }
     else
     {
-        RIL_LOG_CRITICAL("CEvent::Wait() : ERROR : Unable to wait on event as pointer was NULL!\r\n");
+        RIL_LOG_CRITICAL("CEvent::Wait() : Unable to wait on event as pointer was NULL!\r\n");
         return WAIT_OBJ_NULL;
     }
 }
@@ -523,7 +523,7 @@ UINT32 CEvent::WaitForAnyEvent(UINT32 nEvents, CEvent ** rgpEvents, UINT32 uiTim
         }
         else
         {
-            RIL_LOG_CRITICAL("CEvent::WaitForAnyEvent() : ERROR : Item %d was NULL\r\n", index);
+            RIL_LOG_CRITICAL("CEvent::WaitForAnyEvent() : Item %d was NULL\r\n", index);
         }
     }
 
@@ -657,7 +657,7 @@ int CMultipleEvent::Wait(UINT32 uiTimeout)
         {
             if (rc != ETIMEDOUT)
             {
-                RIL_LOG_CRITICAL("CMultipleEvent::Wait() : ERROR : pthread_cond_timedwait(): returned %d\r\n", rc);
+                RIL_LOG_CRITICAL("CMultipleEvent::Wait() : pthread_cond_timedwait(): returned %d\r\n", rc);
 
                 // TODO Deal with these errors
                 rc = ETIMEDOUT;

@@ -1,6 +1,191 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+January 31, 2012 (M6.07 release for Medfield PR2)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR2 devices, Android version 4.0.1 (Ice Cream Sandwich).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ICS ABSP dated December 30, 2011 (ww53).
+- We are using the HSI interface.
+
+PR2 Setup
+=========
+FW DnX: dnx_firmware_pr2.bin (from ww53 release)
+IFWI: ifwi_firmware_pr2.bin (from ww53 release)
+OS DnX: dnx_osrecovery_pr2.bin (from ww53 release)
+OS Image: kboot.bin (from ww53 release)
+Modem Firmware: radio_firmware.bin (from ww53 release - 1150.C)
+
+
+Release Notes for M6.07
+=======================
+
+1. Bugzilla 20957: Clean the OEM HOOK RAW handling
+   -Modify the way RIL unpackages the byte[] array from the java layer.  Input and output
+    parameters will be aligned on 4-byte boundary.  Parameters will be int or char*.
+   -Edit command IDs:
+       0x01 -> 0x9F => Product Team
+       0xA0 -> 0xCF => PSI REQUEST
+       0xD0 -> 0xFF => PSI UNSOL
+   -NOTE: Need to co-ordinate this with java framework layer so packaging / unpackaging
+          isn't broken
+
+2. Bugzilla 20990: Re-enable the usage of RIL_REQUEST_GET_NEIGHBORING_CELL_IDS
+   -Add "EnableCellInfo" flag in repository.txt.  The default for this setting is
+    "1" in the repository.
+        EnableCellInfo - Enable support for reporting of serving and neighbour cell info
+            If set to "1", RIL_REQUEST_GET_NEIGHBORING_CELL_IDS request is supported
+            If set to "0", RIL_REQUEST_GET_NEIGHBORING_CELL_IDS request is not supported
+            If missing, the default value will be "1" and cell info will be supported.
+
+3. Bugzilla 21236: Read Rx Diversity settings from repository
+   -Add "RxDiversity3GEnable" and "RxDiversity2GDARP" parameters to repository.txt.  These
+    parameters are used when the command to set the 3G Rx Diversity mode is sent during
+    modem init.  The default for both settings is "1" (enabled, DARP phase 1) in the repository.
+        RxDiversity3GEnable
+            If set to "1", enable 3G Rx Diversity, else if "0", disable.
+            If missing, ignore Rx Diversity settings.
+        RxDiversity2GDARP
+            If "0", 2G DARP not supported
+            If "1", DARP phase 1
+            If "2", DARP phase 2 "traffic only"
+            If "3", DARP phase 2 "always on"
+            If missing, default value will be "1": DARP phase 1.
+            If "-1", ignore parameter.
+
+4. Bugzilla 20024: OEM Hook commands for Dual SIM 1S1S
+   -Modify the AT command for RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM, RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM
+   -Changes are still wrapped in M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED compilation flag
+
+5. Update RIL OEM HOOK Test Harness to support new OEM Hook commands and parameters.
+   -To invoke:
+   adb install out/target/product/mfld_pr2/system/app/RILTest.apk
+   adb shell
+   am start -n com.android.RILTest/com.android.RILTest.RilOemHookTest &
+
+6. Bugzilla 17439: Bad Behavior at PDP context creation after XDNS=0
+   -Integrate patch 32675 (set 2)
+
+7. Bugzilla 15254: Remove all "ERROR" strings in RIL_LOG_CRITICAL messages
+
+8. Bugzilla 20159: SMS could not be received if user set SMS storage to SIM
+   -Integrate patch 33088 (set 1)
+
+9. Bugzilla 21231: Read Fast Dormancy Timers from configuration file
+   -Add values "FDDelayTimer" and "SCRITimer" to repository.txt.
+    "FDDelayTimer" = integer value in range of 1 to 60 (seconds)
+    "SCRITimer" = integer value in range of 1 to 120 (seconds)
+
+  Command will be sent upon device init.
+  If values are missing, then default modem values are used (values of 0).
+
+
+New failures:
+=============
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    **FAIL** Incoming call is hung up, not rejected properly.
+
+
+Testing results:  (tested on mfld_pr2)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    **FAIL** Incoming call is hung up, not rejected properly.
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 January 24, 2012 (M6.06 release for Medfield PR2)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield

@@ -15,8 +15,10 @@
     <string name="choose_ril_oem_api">Choose a RIL OEM Hook API to test:</string>
     <string name="radio_api1">Trigger Fast Dormancy  (AT+XFDOR=1)</string>
     <string name="radio_api2">Set Fast Dormancy Timer  (AT+XFDORT=timer_value)</string>
-    <string name="radio_api3">Set Active SIM  (AT+XSIM=sim_id)</string>
-    <string name="radio_api4">Get Active SIM  (AT+XSIM?)</string>
+    <string name="radio_api3">Thermal Get Sensor  (AT+XDRV=5,9,sensor_id)</string>
+    <string name="radio_api4">Thermal Set Threshold  (AT+XDRV=5,14,sensor_id,min_threshold,max_threshold)</string>
+    <string name="radio_api100">1S1S Set Active SIM  (AT@nvm:fix_uicc.ext_mux_misc_config=sim_id)</string>
+    <string name="radio_api101">1S1S Get Active SIM  (AT@nvm:fix_uicc.ext_mux_misc_config?)</string>
     <string name="radio_run">RUN</string>
 
 </resources>

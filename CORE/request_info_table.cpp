@@ -49,7 +49,7 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO &rReqInfo)
     }
     else if ((requestID >= REQ_ID_TOTAL) || (requestID < 0))
     {
-        RIL_LOG_CRITICAL("CRequestInfoTable::GetRequestInfo() - ERROR: Invalid request ID [0x%X]\r\n", requestID);
+        RIL_LOG_CRITICAL("CRequestInfoTable::GetRequestInfo() - Invalid request ID [0x%X]\r\n", requestID);
         goto Error;
     }
 

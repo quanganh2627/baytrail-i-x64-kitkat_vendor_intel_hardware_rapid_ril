@@ -126,21 +126,21 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
     // Make sure this is a complete notification
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : ERROR : incomplete notification\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : incomplete notification\r\n");
         goto Error;
     }
 
     //  Extract <type>
     if (!ExtractUnquotedString(rszPointer, g_cTerminator, szType, MAX_BUFFER_SIZE, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : ERROR : cannot extract <type>\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : cannot extract <type>\r\n");
         goto Error;
     }
 
     // Skip to end
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : ERROR : Couldn't find end of notification\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : Couldn't find end of notification\r\n");
         goto Error;
     }
     // Walk back over the <CR>
@@ -212,14 +212,14 @@ BOOL CSilo_Voice::ParseConnect(CResponse* const pResponse, const char*& rszPoint
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnect() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnect() : pResponse was NULL\r\n");
         goto Error;
     }
 
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnect() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnect() : Could not find response end\r\n");
         goto Error;
     }
 
@@ -252,21 +252,21 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : pResponse was NULL\r\n");
         goto Error;
     }
 
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : ERROR : Incomplete notification\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : Incomplete notification\r\n");
         goto Error;
     }
 
     //  Extract <id>
     if (!ExtractUInt32(rszPointer, uiID, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : ERROR : Could not extract uiID\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : Could not extract uiID\r\n");
         goto Error;
     }
 
@@ -274,7 +274,7 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractUInt32(rszPointer, uiStat, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : ERROR : Could not extract uiStat\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : Could not extract uiStat\r\n");
         goto Error;
     }
 
@@ -318,7 +318,7 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() - ERROR: Unable to queue AT+XCEER command!\r\n");
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() - Unable to queue AT+XCEER command!\r\n");
                 delete pCmd;
                 pCmd = NULL;
                 goto Error;
@@ -326,7 +326,7 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
         }
         else
         {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() - ERROR: Unable to allocate memory for new AT+XCEER command!\r\n");
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() - Unable to allocate memory for new AT+XCEER command!\r\n");
             goto Error;
         }
     }
@@ -337,7 +337,7 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : Could not find response end\r\n");
         goto Error;
     }
 
@@ -367,14 +367,14 @@ BOOL CSilo_Voice::ParseCallWaitingInfo(CResponse* const pResponse, const char*& 
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : pResponse was NULL\r\n");
         goto Error;
     }
 
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : Could not find response end\r\n");
         goto Error;
     }
 
@@ -408,7 +408,7 @@ BOOL CSilo_Voice::ParseCallWaitingInfo(CResponse* const pResponse, const char*& 
         // Look for a "<postfix>"
         if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pDummy))
         {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : Incomplete notification\r\n");
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : Incomplete notification\r\n");
             goto Error;
         }
 
@@ -422,7 +422,7 @@ BOOL CSilo_Voice::ParseCallWaitingInfo(CResponse* const pResponse, const char*& 
         if (!SkipString(rszPointer, ",", rszPointer) ||
                 !ExtractUInt32(rszPointer, uiType, rszPointer))
         {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : Could not extract <type>\r\n");
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : Could not extract <type>\r\n");
             goto Error;
         }
 
@@ -430,13 +430,13 @@ BOOL CSilo_Voice::ParseCallWaitingInfo(CResponse* const pResponse, const char*& 
         if (!SkipString(rszPointer, ",", rszPointer) ||
                 !ExtractUInt32(rszPointer, uiClass, rszPointer))
         {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : Could not extract <class>\r\n");
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : Could not extract <class>\r\n");
             goto Error;
         }
 
         if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
         {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : ERROR : Could not find response end\r\n");
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() : Could not find response end\r\n");
             goto Error;
         }
 
@@ -489,7 +489,7 @@ BOOL CSilo_Voice::ParseUnsolicitedSSInfo(CResponse* const pResponse, const char*
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseUnsolicitedSSInfo() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseUnsolicitedSSInfo() : pResponse was NULL\r\n");
         goto Error;
     }
 
@@ -625,14 +625,14 @@ BOOL CSilo_Voice::ParseIntermediateSSInfo(CResponse* const pResponse, const char
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseIntermediateSSInfo() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseIntermediateSSInfo() : pResponse was NULL\r\n");
         goto Error;
     }
 
     prssn = (RIL_SuppSvcNotification*)malloc(sizeof(RIL_SuppSvcNotification));
     if (NULL == prssn)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseIntermediateSSInfo() : ERROR : cannot allocate prssn=[%d] bytes\r\n", sizeof(RIL_SuppSvcNotification));
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseIntermediateSSInfo() : cannot allocate prssn=[%d] bytes\r\n", sizeof(RIL_SuppSvcNotification));
         goto Error;
     }
     memset(prssn, 0, sizeof(RIL_SuppSvcNotification));
@@ -640,7 +640,7 @@ BOOL CSilo_Voice::ParseIntermediateSSInfo(CResponse* const pResponse, const char
     if (!FindAndSkipRspEnd(szPointer, g_szNewLine, szPostfix))
     {
         // This isn't a complete Supplementary services notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseIntermediateSSInfo() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseIntermediateSSInfo() : Could not find response end\r\n");
         goto Error;
     }
 
@@ -650,7 +650,7 @@ BOOL CSilo_Voice::ParseIntermediateSSInfo(CResponse* const pResponse, const char
     // Extract <code1>
     if (!ExtractUInt32(szPointer, nValue, szPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseIntermediateSSInfo() : ERROR : Can't extract <code1>\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseIntermediateSSInfo() : Can't extract <code1>\r\n");
         goto Error;
     }
 
@@ -729,7 +729,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : pResponse was NULL\r\n");
         goto Error;
     }
 
@@ -743,7 +743,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
     // Extract "<status>"
     if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : ERROR : Couldn't extract status\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : Couldn't extract status\r\n");
         goto Error;
     }
 
@@ -768,7 +768,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
         // NOTE: we take ownership of allocated szDataString
         if (!ExtractQuotedStringWithAllocatedMemory(rszPointer, szDataString, uiDataString, rszPointer))
         {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : ERROR : Couldn't extract ExtractQuotedStringWithAllocatedMemory\r\n");
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : Couldn't extract ExtractQuotedStringWithAllocatedMemory\r\n");
             goto Error;
         }
         if (!SkipString(rszPointer, ",", rszPointer) ||
@@ -799,7 +799,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
         pUssdStatus = (P_ND_USSD_STATUS) malloc(sizeof(S_ND_USSD_STATUS));
         if (!pUssdStatus)
         {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: malloc failed\r\n");
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - malloc failed\r\n");
             goto Error;
         }
         memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
@@ -813,14 +813,14 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
             {
                 // GSM 7-bit
                 //  TODO: Implement this (if necessary)
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: GSM 7-bit not supported!\r\n");
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - GSM 7-bit not supported!\r\n");
                 goto Error;
             }
             else if (0x01 == charset)
             {
                 // 8-bit
                 //  TODO: Implement this (if necessary)
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: 8-bit not supported!\r\n");
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - 8-bit not supported!\r\n");
                 goto Error;
             }
             else if (0x02 == charset)
@@ -833,21 +833,21 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
 
                 if (!CopyStringNullTerminate((char*)tmpUssdAscii, szDataString, MAX_BUFFER_SIZE))
                 {
-                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot CopyStringNullTerminate szDataString to tmpUssdAscii\r\n");
+                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Cannot CopyStringNullTerminate szDataString to tmpUssdAscii\r\n");
                     goto Error;
                 }
 
                 lenUssdAscii = strlen(tmpUssdAscii);
                 if ( (lenUssdAscii % 2) != 0)
                 {
-                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Illegal string from modem\r\n");
+                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Illegal string from modem\r\n");
                     goto Error;
                 }
 
                 tmpUssdUcs2 = new unsigned char[(lenUssdAscii/2)+2];
                 if (NULL == tmpUssdUcs2)
                 {
-                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot allocate %d bytes for tmpUssdUcs2\r\n", lenUssdAscii/2+1);
+                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Cannot allocate %d bytes for tmpUssdUcs2\r\n", lenUssdAscii/2+1);
                     goto Error;
                 }
                 memset(tmpUssdUcs2, 0, ((lenUssdAscii/2)+2));
@@ -862,7 +862,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
             else
             {
                 // reserved value
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: reserved value not supported!\r\n");
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - reserved value not supported!\r\n");
                 goto Error;
             }
         }
@@ -872,7 +872,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
             RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - default encoding\r\n");
             if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE))
             {
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: Cannot CopyStringNullTerminate szDataString\r\n");
+                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Cannot CopyStringNullTerminate szDataString\r\n");
                 goto Error;
             }
         }
@@ -880,7 +880,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
         {
             //  dcs not supported
             //  TODO: Implement more dcs encodings
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - ERROR: dcs value of [%d, 0x%02X] not supported\r\n", nDCS, nDCS);
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - dcs value of [%d, 0x%02X] not supported\r\n", nDCS, nDCS);
             goto Error;
         }
 
@@ -930,7 +930,7 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdPresentation() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdPresentation() : pResponse was NULL\r\n");
         goto Error;
     }
 
@@ -938,14 +938,14 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
         // This isn't a complete USSD notification -- no need to parse it
-        RIL_LOG_INFO("CSilo_Voice::ParseConnLineIdPresentation() : ERROR : Couldn't find response end\r\n");
+        RIL_LOG_INFO("CSilo_Voice::ParseConnLineIdPresentation() : Couldn't find response end\r\n");
         goto Error;
     }
 
     // Extract "<n>"
     if (!ExtractUInt32(rszPointer, uiStatusPresentation, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdPresentation() : ERROR : Couldn't extract presentation status\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdPresentation() : Couldn't extract presentation status\r\n");
         goto Error;
     }
 
@@ -953,7 +953,7 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
     if ( (!FindAndSkipString(rszPointer, ",", rszPointer))     ||
          (!ExtractUInt32(rszPointer, uiStatusService, rszPointer)))
     {
-        RIL_LOG_INFO("CSilo_Voice::ParseConnLineIdPresentation() - ERROR: Couldn't extract service status\r\n");
+        RIL_LOG_INFO("CSilo_Voice::ParseConnLineIdPresentation() - Couldn't extract service status\r\n");
         goto Error;
     }
 
@@ -974,14 +974,14 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
     pUssdStatus = (P_ND_USSD_STATUS) malloc(sizeof(S_ND_USSD_STATUS));
     if (!pUssdStatus)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdPresentation() - ERROR: malloc failed\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdPresentation() - malloc failed\r\n");
         goto Error;
     }
     memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
     snprintf(pUssdStatus->szType, 2, "%u", uiTypeCode);
     if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString , MAX_BUFFER_SIZE))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdPresentation() - ERROR: Cannot CopyStringNullTerminate szDataString\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdPresentation() - Cannot CopyStringNullTerminate szDataString\r\n");
         goto Error;
     }
 
@@ -1028,7 +1028,7 @@ BOOL CSilo_Voice::ParseConnLineIdRestriction(CResponse* const pResponse, const c
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdRestriction() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdRestriction() : pResponse was NULL\r\n");
         goto Error;
     }
 
@@ -1036,14 +1036,14 @@ BOOL CSilo_Voice::ParseConnLineIdRestriction(CResponse* const pResponse, const c
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
         // This isn't a complete USSD notification -- no need to parse it
-        RIL_LOG_INFO("CSilo_Voice::ParseConnLineIdRestriction() : ERROR : Couldn't find response end\r\n");
+        RIL_LOG_INFO("CSilo_Voice::ParseConnLineIdRestriction() : Couldn't find response end\r\n");
         goto Error;
     }
 
     // Extract "<status>"
     if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdRestriction() : ERROR : Couldn't extract status\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdRestriction() : Couldn't extract status\r\n");
         goto Error;
     }
 
@@ -1064,14 +1064,14 @@ BOOL CSilo_Voice::ParseConnLineIdRestriction(CResponse* const pResponse, const c
     pUssdStatus = (P_ND_USSD_STATUS) malloc(sizeof(S_ND_USSD_STATUS));
     if (!pUssdStatus)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdRestriction() - ERROR: malloc failed\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdRestriction() - malloc failed\r\n");
         goto Error;
     }
     memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
     snprintf(pUssdStatus->szType, 2, "%u", uiTypeCode);
     if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdRestriction() - ERROR: Cannot CopyStringNullTerminate szDataString\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdRestriction() - Cannot CopyStringNullTerminate szDataString\r\n");
         goto Error;
     }
 
@@ -1137,14 +1137,14 @@ BOOL CSilo_Voice::ParseDISCONNECT(CResponse *const pResponse, const char* &rszPo
 
     if (pResponse == NULL)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseDISCONNECT() : ERROR : pResponse was NULL\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseDISCONNECT() : pResponse was NULL\r\n");
         goto Error;
     }
 
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseDISCONNECT() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseDISCONNECT() : Could not find response end\r\n");
         goto Error;
     }
 
@@ -1171,7 +1171,7 @@ BOOL CSilo_Voice::ParseBusy(CResponse* const pResponse, const char*& rszPointer)
     // Skip to the next <postfix>
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseBusy() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseBusy() : Could not find response end\r\n");
         goto Error;
     }
 
@@ -1196,7 +1196,7 @@ BOOL CSilo_Voice::ParseNoAnswer(CResponse* const pResponse, const char*& rszPoin
     // Skip to the next <postfix>
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoAnswer() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoAnswer() : Could not find response end\r\n");
         goto Error;
     }
 
@@ -1222,7 +1222,7 @@ BOOL CSilo_Voice::ParseCTMCall(CResponse* const pResponse, const char*& rszPoint
     // Skip to the next <postfix>
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCTMCall() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCTMCall() : Could not find response end\r\n");
         goto Error;
     }
 
@@ -1247,7 +1247,7 @@ BOOL CSilo_Voice::ParseNoCTMCall(CResponse* const pResponse, const char*& rszPoi
     // Skip to the next <postfix>
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoCTMCall() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoCTMCall() : Could not find response end\r\n");
         goto Error;
     }
 
@@ -1280,14 +1280,14 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
     // Do we have a complete notification?
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Incomplete notification\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : Incomplete notification\r\n");
         goto Error;
     }
 
     pFailedCauseData = (int*)malloc(2 * sizeof(int*));
     if (!pFailedCauseData)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Could not allocate data\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : Could not allocate data\r\n");
         goto Error;
     }
     memset(pFailedCauseData, 0, 2 * sizeof(int*));
@@ -1295,7 +1295,7 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
     //  Extract <report>
     if (!ExtractUInt32(rszPointer, uiDummy, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Could not extract <report>\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : Could not extract <report>\r\n");
         goto Error;
     }
 
@@ -1303,14 +1303,14 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractUInt32(rszPointer, uiCause, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Could not extract uiCause\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : Could not extract uiCause\r\n");
         goto Error;
     }
 
     // Skip to the next <postfix>
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : Could not find response end\r\n");
         goto Error;
     }
 

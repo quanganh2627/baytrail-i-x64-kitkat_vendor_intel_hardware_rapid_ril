@@ -99,33 +99,33 @@ BOOL CChannelBase::InitChannel()
 
     if (RIL_CHANNEL_MAX <= m_uiRilChannel)
     {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - ERROR: chnl=[%d] Channel is invalid!\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] Channel is invalid!\r\n", m_uiRilChannel);
         goto Done;
     }
 
     m_pBlockReadThreadEvent = new CEvent(NULL, TRUE, TRUE);
     if (!m_pBlockReadThreadEvent)
     {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - ERROR: chnl=[%d] Failed to create block read thread event!\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] Failed to create block read thread event!\r\n", m_uiRilChannel);
         goto Done;
     }
 
     m_pPossibleInvalidFDMutex = new CMutex();
     if (!m_pPossibleInvalidFDMutex)
     {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - ERROR: chnl=[%d] Failed to create m_pPossibleInvalidFDMutex!\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] Failed to create m_pPossibleInvalidFDMutex!\r\n", m_uiRilChannel);
         goto Done;
     }
 
     if (!FinishInit())
     {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - ERROR: chnl=[%d] this->FinishInit() failed!\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] this->FinishInit() failed!\r\n", m_uiRilChannel);
         goto Done;
     }
 
     if (!AddSilos())
     {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - ERROR: chnl=[%d] this->RegisterSilos() failed!\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] this->RegisterSilos() failed!\r\n", m_uiRilChannel);
         goto Done;
     }
 
@@ -163,7 +163,7 @@ BOOL CChannelBase::AddSilo(CSilo *pSilo)
     }
     else
     {
-        RIL_LOG_CRITICAL("CChannelBase::AddSilo() : ERROR : Unable to add silo as container is full\r\n");
+        RIL_LOG_CRITICAL("CChannelBase::AddSilo() : Unable to add silo as container is full\r\n");
         goto Done;
     }
 
@@ -184,7 +184,7 @@ void * ChannelCommandThreadStart(void * pVoid)
 
     if (NULL == pVoid)
     {
-        RIL_LOG_CRITICAL("ChannelCommandThreadStart() : ERROR : lpParameter was NULL\r\n");
+        RIL_LOG_CRITICAL("ChannelCommandThreadStart() : lpParameter was NULL\r\n");
         return NULL;
     }
 
@@ -210,7 +210,7 @@ void * ChannelResponseThreadStart(void * pVoid)
 
     if (NULL == pVoid)
     {
-        RIL_LOG_CRITICAL("ChannelResponseThreadStart() : ERROR : pVoid was NULL\r\n");
+        RIL_LOG_CRITICAL("ChannelResponseThreadStart() : pVoid was NULL\r\n");
         return NULL;
     }
 
@@ -236,7 +236,7 @@ BOOL CChannelBase::StartChannelThreads()
     m_pCmdThread = new CThread(ChannelCommandThreadStart, (void*)this, THREAD_FLAGS_JOINABLE, 0);
     if (!m_pCmdThread)
     {
-        RIL_LOG_CRITICAL("CChannelBase::StartChannelThreads() - ERROR: Unable to launch command thread\r\n");
+        RIL_LOG_CRITICAL("CChannelBase::StartChannelThreads() - Unable to launch command thread\r\n");
         goto Done;
     }
 
@@ -244,7 +244,7 @@ BOOL CChannelBase::StartChannelThreads()
     m_pReadThread = new CThread(ChannelResponseThreadStart, (void*)this, THREAD_FLAGS_JOINABLE, 0);
     if (!m_pReadThread)
     {
-        RIL_LOG_CRITICAL("CChannelBase::StartChannelThreads() - ERROR: Unable to launch response thread\r\n");
+        RIL_LOG_CRITICAL("CChannelBase::StartChannelThreads() - Unable to launch response thread\r\n");
         goto Done;
     }
 
@@ -293,7 +293,7 @@ BOOL CChannelBase::StopChannelThreads()
     // Wait for auxiliary threads to terminate
     if (THREAD_WAIT_TIMEOUT == CThread::Wait(m_pCmdThread, uiThreadTime))
     {
-        RIL_LOG_CRITICAL("CChannelBase::StopChannelThreads() : ERROR : We timed out waiting on command thread!\r\n");
+        RIL_LOG_CRITICAL("CChannelBase::StopChannelThreads() : We timed out waiting on command thread!\r\n");
         bResult = FALSE;
     }
     else
@@ -305,7 +305,7 @@ BOOL CChannelBase::StopChannelThreads()
 
     if (THREAD_WAIT_TIMEOUT == CThread::Wait(m_pReadThread, uiThreadTime))
     {
-        RIL_LOG_CRITICAL("CChannelBase::StopChannelThreads() : ERROR : We timed out waiting on response thread!\r\n");
+        RIL_LOG_CRITICAL("CChannelBase::StopChannelThreads() : We timed out waiting on response thread!\r\n");
         bResult = FALSE;
     }
     else
@@ -343,7 +343,7 @@ UINT32 CChannelBase::CommandThread()
     //  Double-check our channel is valid.
     if (m_uiRilChannel >= RIL_CHANNEL_MAX)
     {
-        RIL_LOG_CRITICAL("CChannelBase::CommandThread() - ERROR: Invalid channel value: %d\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannelBase::CommandThread() - Invalid channel value: %d\r\n", m_uiRilChannel);
         return NULL;
     }
 
@@ -366,14 +366,14 @@ UINT32 CChannelBase::CommandThread()
         {
             //  Dequeue() returns false when the queue is empty.
             //  In this case, log the error, but continue processing other commands.
-            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : ERROR : chnl=[%d] Dequeue TxQueue returned FALSE\r\n", m_uiRilChannel);
+            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : chnl=[%d] Dequeue TxQueue returned FALSE\r\n", m_uiRilChannel);
             continue;
         }
         //RIL_LOG_INFO("CChannelBase::CommandThread() : Getting command  DEQUEUE END\r\n");
 
         if (!CSystemManager::GetInstance().IsInitializationSuccessful())
         {
-            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : ERROR : chnl=[%d] Failed init, returning RIL_E_GENERIC_FAILURE\r\n", m_uiRilChannel);
+            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : chnl=[%d] Failed init, returning RIL_E_GENERIC_FAILURE\r\n", m_uiRilChannel);
 
             if ( (NULL != pCmd) && (0 != pCmd->GetToken()) )
             {
@@ -385,7 +385,7 @@ UINT32 CChannelBase::CommandThread()
 
         if (!SendCommand(pCmd))
         {
-            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : ERROR : chnl=[%d] Unable to send command!\r\n", m_uiRilChannel);
+            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : chnl=[%d] Unable to send command!\r\n", m_uiRilChannel);
 
             // Need to return a failed response to the upper layers and deallocate the memory
             RIL_onRequestComplete(pCmd->GetToken(), RIL_E_GENERIC_FAILURE, NULL, 0);
@@ -397,7 +397,7 @@ UINT32 CChannelBase::CommandThread()
 
         if (NULL != pCmd)
         {
-            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : ERROR : chnl=[%d] pCmd was not NULL following SendCommand()\r\n");
+            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : chnl=[%d] pCmd was not NULL following SendCommand()\r\n");
             goto Done;
         }
 
@@ -445,6 +445,21 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     BOOL         bLastCmd;
     CRepository  repository;
     char         szTemp[MAX_BUFFER_SIZE];
+
+    //  Data for RxDiversity
+    char szRxDiversityCmdString[MAX_BUFFER_SIZE] = {0};
+    const int RXDIVERSITY_EN_DEFAULT = 0;
+    const int RXDIVERSITY_DARP_DEFAULT = 1;
+    int nRxDiversity3GEnable = RXDIVERSITY_EN_DEFAULT;
+    int nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
+    BOOL bIgnoreDARPParam = FALSE;
+
+    //  Data for Fast Dormancy Timers
+    char szFDCmdString[MAX_BUFFER_SIZE] = {0};
+    const int FDDELAYTIMER_DEFAULT = 0;
+    const int SCRITIMER_DEFAULT = 0;
+    int nFDDelayTimer = FDDELAYTIMER_DEFAULT;
+    int nSCRITimer = SCRITIMER_DEFAULT;
 
     szInit = new char[szInitLen];
     if (!szInit)
@@ -516,6 +531,99 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         }
     }
 
+    // Add any post-init commands that depend on parameters in the repository
+
+    //  Only send "Fast Dormancy Timer" and "RxDiversity" commands on AT command channel
+    //  and in first init index.
+    if ((COM_BASIC_INIT_INDEX == eInitIndex) && (RIL_CHANNEL_ATCMD == m_uiRilChannel))
+    {
+        // Read Fast Dormancy Timers from repository
+        //  Send command regardless of values in repository.
+        if (!repository.Read(g_szGroupModem, g_szFDDelayTimer, nFDDelayTimer))
+        {
+            nFDDelayTimer = FDDELAYTIMER_DEFAULT;
+        }
+        if (!repository.Read(g_szGroupModem, g_szFDDelayTimer, nSCRITimer))
+        {
+            nSCRITimer = SCRITIMER_DEFAULT;
+        }
+        if (!PrintStringNullTerminate(szFDCmdString,
+                                      sizeof(szFDCmdString),
+                                      "+XFDORT=%u,%u",
+                                      nFDDelayTimer, nSCRITimer))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
+            goto Done;
+        }
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
+            goto Done;
+        }
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szFDCmdString))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szFDCmdString failed\r\n");
+            goto Done;
+        }
+
+        // Read 3G Rx Diversity mode setting from repository
+        if (repository.Read(g_szGroupModem, g_szRxDiversity3GEnable, nRxDiversity3GEnable))
+        {
+            if (nRxDiversity3GEnable)
+            {
+                // Read 2G DARP mode setting from repository
+                if (repository.Read(g_szGroupModem, g_szRxDiversity2GDARP, nRxDiversity2GDARP))
+                {
+                    // no parameter
+                    if (-1 == nRxDiversity2GDARP)
+                    {
+                        bIgnoreDARPParam = TRUE;
+                    }
+                }
+                else
+                {
+                    // 2G DARP parameter is missing, set to default value
+                    nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
+                }
+            }
+
+            if (bIgnoreDARPParam)
+            {
+                if (!PrintStringNullTerminate(szRxDiversityCmdString,
+                                              sizeof(szRxDiversityCmdString),
+                                              "+XRXDIV=%d",
+                                              nRxDiversity3GEnable))
+                {
+                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XRXDIV command\r\n");
+                    goto Done;
+                }
+            }
+            else
+            {
+                if (!PrintStringNullTerminate(szRxDiversityCmdString,
+                                              sizeof(szRxDiversityCmdString),
+                                              "+XRXDIV=%d,%d",
+                                              nRxDiversity3GEnable,
+                                              nRxDiversity2GDARP))
+                {
+                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XRXDIV command\r\n");
+                    goto Done;
+                }
+            }
+
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
+                goto Done;
+            }
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szRxDiversityCmdString))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szRxDiversityString failed\r\n");
+                goto Done;
+            }
+        }
+    }
+
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : String [%s]\r\n", szInit);
 
     // Now go through the string and break it up into individual commands separated by a '|'
@@ -542,7 +650,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             // Send the command
             if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT%s\r", pszStart))
             {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() - ERROR: Could not make command.\r\n");
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() - Could not make command.\r\n");
                 goto Done;
             }
             pCmd = new CCommand(m_uiRilChannel,
@@ -561,7 +669,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 
             if (!pCmd || !CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() - ERROR: Could not queue command.\r\n");
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() - Could not queue command.\r\n");
                 goto Done;
             }
         }
@@ -695,7 +803,7 @@ UINT32 CChannelBase::ResponseThread()
 
             if (!ProcessModemData(szData, uiRead))
             {
-                RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - ERROR: chnl=[%d] ProcessModemData failed?!\r\n", m_uiRilChannel);
+                RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - chnl=[%d] ProcessModemData failed?!\r\n", m_uiRilChannel);
                 break;
             }
 

@@ -77,21 +77,21 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse * const pResponse, const char*& rszPointer
 
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - ERROR: pResponse is NULL.\r\n");
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - pResponse is NULL.\r\n");
         goto Error;
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
     {
-        RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() : ERROR : Could not find response end\r\n");
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() : Could not find response end\r\n");
         goto Error;
     }
 
     // Extract "<IPC_CHR_GRP>"
     if (!ExtractUInt32(rszPointer, nIpcChrGrp, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - ERROR: Could not parse nIpcChrGrp.\r\n");
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - Could not parse nIpcChrGrp.\r\n");
         goto Error;
     }
 
@@ -99,7 +99,7 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse * const pResponse, const char*& rszPointer
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractUInt32(rszPointer, nIpcChrTempThresholdInd, rszPointer))
     {
-         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - ERROR: Unable to parse <IPC_CHR_TEMP_THRESHOLD_IND>!\r\n");
+         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - Unable to parse <IPC_CHR_TEMP_THRESHOLD_IND>!\r\n");
          goto Error;
     }
 
@@ -107,7 +107,7 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse * const pResponse, const char*& rszPointer
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractUInt32(rszPointer, nXdrvResult, rszPointer))
     {
-         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - ERROR: Unable to parse <xdrv_result>!\r\n");
+         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - Unable to parse <xdrv_result>!\r\n");
          goto Error;
     }
 
@@ -115,7 +115,7 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse * const pResponse, const char*& rszPointer
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractUInt32(rszPointer, nSensorId, rszPointer))
     {
-         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - ERROR: Unable to parse <temp_sensor_id>!\r\n");
+         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - Unable to parse <temp_sensor_id>!\r\n");
          goto Error;
     }
 
@@ -123,7 +123,7 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse * const pResponse, const char*& rszPointer
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractUInt32(rszPointer, nTemp, rszPointer))
     {
-         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - ERROR: Unable to parse <temp>!\r\n");
+         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - Unable to parse <temp>!\r\n");
          goto Error;
     }
 
@@ -133,7 +133,7 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse * const pResponse, const char*& rszPointer
     pszData = (unsigned char *)malloc(sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND));
     if (NULL == pszData)
     {
-        RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - ERROR: Could not allocate memory for pszData.\r\n");
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - Could not allocate memory for pszData.\r\n");
         goto Error;
     }
     memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND));

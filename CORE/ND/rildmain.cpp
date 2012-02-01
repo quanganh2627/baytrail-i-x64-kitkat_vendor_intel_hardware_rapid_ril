@@ -964,9 +964,24 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:  // 75
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GET_NEIGHBORING_CELL_IDS\r\n");
-            // disable the sending of AT+XCELLINFO? temporary
-            //eRetVal = (RIL_Errno)CTE::GetTE().RequestGetNeighboringCellIDs(hRilToken, pData, datalen);
-            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+
+            CRepository repository;
+            const int CELLINFO_EN_DEFAULT = 1;
+            int nEnableCellInfo = CELLINFO_EN_DEFAULT;
+
+            if (!repository.Read(g_szGroupModem, g_szEnableCellInfo, nEnableCellInfo))
+            {
+                nEnableCellInfo = CELLINFO_EN_DEFAULT;
+            }
+
+            if (nEnableCellInfo)
+            {
+                eRetVal = (RIL_Errno)CTE::GetTE().RequestGetNeighboringCellIDs(hRilToken, pData, datalen);
+            }
+            else
+            {
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+            }
         }
         break;
 
@@ -1318,7 +1333,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.06 for Android 4.0.1 (Build January 24/2012)";
+    return "Intrinsyc Rapid-RIL M6.07 for Android 4.0.1 (Build January 31/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1332,7 +1347,7 @@ static void* mainLoop(void *param)
     // Make sure we can access Non-Volatile Memory
     if (!CRepository::Init())
     {
-        //RIL_LOG_CRITICAL("mainLoop() - ERROR: Could not initialize non-volatile memory access.\r\n");
+        //RIL_LOG_CRITICAL("mainLoop() - Could not initialize non-volatile memory access.\r\n");
 
         dwRet = 0;
         goto Error;
@@ -1345,7 +1360,7 @@ static void* mainLoop(void *param)
     // Create and start system manager
     if (!CSystemManager::GetInstance().InitializeSystem())
     {
-        RIL_LOG_CRITICAL("mainLoop() - ERROR: RIL InitializeSystem() FAILED\r\n");
+        RIL_LOG_CRITICAL("mainLoop() - RIL InitializeSystem() FAILED\r\n");
 
         dwRet = 0;
         goto Error;
@@ -1356,7 +1371,7 @@ static void* mainLoop(void *param)
 Error:
     if (!dwRet)
     {
-        RIL_LOG_CRITICAL("mainLoop() - ERROR: RIL Initialization FAILED\r\n");
+        RIL_LOG_CRITICAL("mainLoop() - RIL Initialization FAILED\r\n");
 
         CSystemManager::Destroy();
     }
