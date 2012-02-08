@@ -130,6 +130,7 @@ public class RilOemHookTest extends Activity
                 //  AT+XDRV=5,14,<sensor_id>,<min_threshold>,<max_threshold>
                 ByteBuffer myBuf = ByteBuffer.allocate(16);
                 myBuf.putInt(0xA3);  //  Command ID
+                myBuf.putInt(0x01);  //  <enable>
                 myBuf.putInt(0x00);  //  <sensor_id>
                 myBuf.putInt(0x00);  //  <min_threshold>
                 myBuf.putInt(0x00);  //  <max_threshold>

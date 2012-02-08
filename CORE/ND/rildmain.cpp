@@ -198,6 +198,12 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             {
                 RIL_LOG_INFO("RIL_onUnsolicitedResponse() - data=\"%s\"\r\n", (char *)pData);
             }
+            else
+            {
+                // If there is no data, this unsolicited command will generate a JAVA CRASH
+                // So ignore it if we are in this case
+                bSendNotification = false;
+            }
             break;
 
         case RIL_UNSOL_STK_EVENT_NOTIFY:  // 1014
@@ -1333,7 +1339,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.07 for Android 4.0.1 (Build January 31/2012)";
+    return "Intrinsyc Rapid-RIL M6.08 for Android 4.0.1 (Build February 07/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

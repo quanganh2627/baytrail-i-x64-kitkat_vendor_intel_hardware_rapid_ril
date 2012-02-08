@@ -790,6 +790,17 @@ BOOL CSilo_Network::ParseXCSQ(CResponse *const pResponse, const char*& rszPointe
     pSigStrData->GW_SignalStrength.signalStrength = (int) uiRSSI;
     pSigStrData->GW_SignalStrength.bitErrorRate   = (int) uiBER;
 
+    pSigStrData->CDMA_SignalStrength.dbm=-1;
+    pSigStrData->CDMA_SignalStrength.ecio=-1;
+    pSigStrData->EVDO_SignalStrength.dbm=-1;
+    pSigStrData->EVDO_SignalStrength.ecio=-1;
+    pSigStrData->EVDO_SignalStrength.signalNoiseRatio=-1;
+    pSigStrData->LTE_SignalStrength.signalStrength=-1;
+    pSigStrData->LTE_SignalStrength.rsrp=-1;
+    pSigStrData->LTE_SignalStrength.rsrq=-1;
+    pSigStrData->LTE_SignalStrength.rssnr=-1;
+    pSigStrData->LTE_SignalStrength.cqi=-1;
+
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_SIGNAL_STRENGTH);
 

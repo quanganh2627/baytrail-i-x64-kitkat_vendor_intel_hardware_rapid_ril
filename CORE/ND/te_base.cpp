@@ -1504,6 +1504,10 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
         case CALL_FAIL_FDN_BLOCKED:
         case CALL_FAIL_IMSI_UNKNOWN_IN_VLR:
         case CALL_FAIL_IMEI_NOT_ACCEPTED:
+        case CALL_FAIL_RESSOURCES_UNAVAILABLE:
+        case CALL_FAIL_BEARER_CAPABILITY_NOT_AUTHORIZED:
+        case CALL_FAIL_BEARER_CAPABILITY_NOT_AVAILABLE:
+        case CALL_FAIL_INCOMPATIBLE_DESTINATION:
             *pCause = (int) uiCause;
             break;
 
@@ -5614,10 +5618,8 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA & rRspData)
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
         triggerDataCallListChanged(NULL);
     }
-    else
-    {
-        CTE::GetTE().ResetRegistrationCache();
-    }
+
+    CTE::GetTE().ResetRegistrationCache();
 
     RIL_LOG_VERBOSE("CTEBase::ParseScreenState() - Exit\r\n");
     return RRIL_RESULT_OK;
@@ -7173,6 +7175,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pD
     // extract data
     pSimIOArgs = (RIL_SIM_IO_v6 *)pData;
     classByte = pSimIOArgs->cla;
+
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - cla=%02X command=%d p1=%d p2=%d p3=%d data=\"%s\"\r\n",
         classByte, pSimIOArgs->command,
         pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
@@ -7685,6 +7688,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * 
     // extract data
     pSimIOArgs = (RIL_SIM_IO_v6 *)pData;
     classByte = pSimIOArgs->cla;
+
     RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - cla=%02X command=%d fileid=%04X p1=%d p2=%d p3=%d data=\"%s\"\r\n",
         classByte, pSimIOArgs->command, pSimIOArgs->fileid,
         pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
@@ -8126,6 +8130,17 @@ RIL_SignalStrength_v6* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspDat
 
     pSigStrData->GW_SignalStrength.signalStrength = (int) uiRSSI;
     pSigStrData->GW_SignalStrength.bitErrorRate   = (int) uiBER;
+
+    pSigStrData->CDMA_SignalStrength.dbm=-1;
+    pSigStrData->CDMA_SignalStrength.ecio=-1;
+    pSigStrData->EVDO_SignalStrength.dbm=-1;
+    pSigStrData->EVDO_SignalStrength.ecio=-1;
+    pSigStrData->EVDO_SignalStrength.signalNoiseRatio=-1;
+    pSigStrData->LTE_SignalStrength.signalStrength=-1;
+    pSigStrData->LTE_SignalStrength.rsrp=-1;
+    pSigStrData->LTE_SignalStrength.rsrq=-1;
+    pSigStrData->LTE_SignalStrength.rssnr=-1;
+    pSigStrData->LTE_SignalStrength.cqi=-1;
 
     res = RRIL_RESULT_OK;
 
