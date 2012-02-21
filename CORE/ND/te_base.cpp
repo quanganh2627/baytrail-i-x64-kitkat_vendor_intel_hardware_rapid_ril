@@ -4407,7 +4407,6 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionAutomatic(REQUEST_DATA & rReqDat
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionAutomatic() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS=0\r"))
     {
         res = RRIL_RESULT_OK;

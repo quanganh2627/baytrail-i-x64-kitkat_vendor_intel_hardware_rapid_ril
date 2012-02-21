@@ -4423,6 +4423,17 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
     networkType = ((RIL_PreferredNetworkType *)pData)[0];
 
+#if defined(BOARD_HAVE_IFX7060)
+    /**
+     * TODO: #if defined needs to be removed and right command will be issued
+     * aftergetting right information from IMC. Added for time being.
+     */
+    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=3,1\r", sizeof(rReqData.szCmd1) ))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+        goto Error;
+    }
+#else
     // if network type already set, NO-OP this command
     if (m_currentNetworkType == networkType)
     {
@@ -4471,6 +4482,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
             break;
     }
 
+#endif
     //  Set the context of this command to the network type we're attempting to set
     rReqData.pContextData = (void*)networkType;  // Store this as an int.
 
