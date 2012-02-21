@@ -44,4 +44,9 @@ extern CRadioState g_RadioState;
 // the call is disconnected.
 extern bool g_clearPendingChlds;
 
+///////////////////////////////////////////////////////////////////////////////
+// This global variable stores the initial value of the
+// Modem Autonomous Fast Dormancy (MAFD) mode in the repository.
+extern int g_nFastDormancyMode;
+
 #endif // RRIL_GLOBALS_H

@@ -4613,7 +4613,7 @@ RIL_RESULT_CODE CTE::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_TRANSMIT_BASIC 104
+// RIL_REQUEST_SIM_TRANSMIT_BASIC 108
 //
 RIL_RESULT_CODE CTE::RequestSimTransmitBasic(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -4660,7 +4660,7 @@ RIL_RESULT_CODE CTE::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_OPEN_CHANNEL 105
+// RIL_REQUEST_SIM_OPEN_CHANNEL 109
 //
 RIL_RESULT_CODE CTE::RequestSimOpenChannel(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -4707,7 +4707,7 @@ RIL_RESULT_CODE CTE::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_CLOSE_CHANNEL 106
+// RIL_REQUEST_SIM_CLOSE_CHANNEL 110
 //
 RIL_RESULT_CODE CTE::RequestSimCloseChannel(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -4754,7 +4754,7 @@ RIL_RESULT_CODE CTE::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 107
+// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 111
 //
 RIL_RESULT_CODE CTE::RequestSimTransmitChannel(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -4803,7 +4803,7 @@ RIL_RESULT_CODE CTE::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //
-// RIL_REQUEST_HANGUP_VT 108
+// RIL_REQUEST_HANGUP_VT 112
 //
 RIL_RESULT_CODE CTE::RequestHangupVT(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -4852,7 +4852,7 @@ RIL_RESULT_CODE CTE::ParseHangupVT(RESPONSE_DATA & rRspData)
 
 
 //
-// RIL_REQUEST_DIAL_VT 109
+// RIL_REQUEST_DIAL_VT 113
 //
 RIL_RESULT_CODE CTE::RequestDialVT(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -4899,6 +4899,57 @@ RIL_RESULT_CODE CTE::ParseDialVT(RESPONSE_DATA & rRspData)
     return m_pTEBaseInstance->ParseDialVT(rRspData);
 }
 #endif // M2_VT_FEATURE_ENABLED
+
+
+#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
+//
+// RIL_REQUEST_GET_SIM_SMS_STORAGE 114
+//
+RIL_RESULT_CODE CTE::RequestGetSimSmsStorage(RIL_Token rilToken, void * pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestGetSimSmsStorage() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetSimSmsStorage(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestGetSimSmsStorage() - Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS], rilToken, ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS, reqData, &CTE::ParseGetSimSmsStorage);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestGetSimSmsStorage() - Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestGetSimSmsStorage() - Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestGetSimSmsStorage() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseGetSimSmsStorage(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseGetSimSmsStorage() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseGetSimSmsStorage(rRspData);
+}
+#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
+
 
 //
 // RIL_UNSOL_SIGNAL_STRENGTH  1009

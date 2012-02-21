@@ -1279,6 +1279,17 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
 
 #endif // M2_VT_FEATURE_ENABLED
 
+#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
+
+        case RIL_REQUEST_GET_SIM_SMS_STORAGE:  // 114
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_GET_SIM_SMS_STORAGE\r\n");
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestGetSimSmsStorage(hRilToken, pData, datalen);
+        }
+        break;
+
+#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
+
         default:
         {
             RIL_LOG_INFO("onRequest() - Unknown Request ID id=0x%08X, %d\r\n", requestID, requestID);
@@ -1339,7 +1350,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.08 for Android 4.0.1 (Build February 07/2012)";
+    return "Intrinsyc Rapid-RIL M6.09 for Android 4.0.3 (Build February 15/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

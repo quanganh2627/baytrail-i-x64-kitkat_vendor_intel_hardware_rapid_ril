@@ -5589,12 +5589,30 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     //  Store setting in context.
     rReqData.pContextData = (void*)nEnable;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, (1 == nEnable) ?
+    if (!CopyStringNullTerminate(rReqData.szCmd1, (1 == nEnable) ?
                                 "AT+CREG=2;+XREG=2;+XCSQ=1;+CGEREP=1,0\r" :
                                 "AT+CREG=0;+XREG=0;+XCSQ=0;+CGEREP=0,0\r", sizeof(rReqData.szCmd1)))
     {
-        res = RRIL_RESULT_OK;
+        RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
+        goto Error;
     }
+
+    // if Modem Fast Dormancy mode is 2: "Display Driven"
+    if (2 == g_nFastDormancyMode)
+    {
+        // disable MAFD when "Screen On", enable MAFD when "Screen Off"
+        //      XFDOR=2: switch ON MAFD
+        //      XFDOR=3: switch OFF MAFD
+        int nFDEnable = nEnable ?  3 : 2;
+
+        if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+XFDOR=%u\r", nFDEnable))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create XFDOR command\r\n");
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreScreenState() - Exit\r\n");
@@ -7151,7 +7169,7 @@ RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_TRANSMIT_BASIC 104
+// RIL_REQUEST_SIM_TRANSMIT_BASIC 108
 //
 RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -7365,7 +7383,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SIM_OPEN_CHANNEL 105
+// RIL_REQUEST_SIM_OPEN_CHANNEL 109
 //
 RIL_RESULT_CODE CTEBase::CoreSimOpenChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -7541,7 +7559,7 @@ Error:
 
 
 //
-// RIL_REQUEST_SIM_CLOSE_CHANNEL 106
+// RIL_REQUEST_SIM_CLOSE_CHANNEL 110
 //
 RIL_RESULT_CODE CTEBase::CoreSimCloseChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -7664,7 +7682,7 @@ Error:
 
 
 //
-// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 107
+// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 111
 //
 RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -7953,7 +7971,7 @@ Error:
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //
-// RIL_REQUEST_HANGUP_VT 108
+// RIL_REQUEST_HANGUP_VT 112
 //
 RIL_RESULT_CODE CTEBase::CoreHangupVT(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -8010,7 +8028,7 @@ RIL_RESULT_CODE CTEBase::ParseHangupVT(RESPONSE_DATA & rRspData)
 
 
 //
-// RIL_REQUEST_DIAL_VT 109
+// RIL_REQUEST_DIAL_VT 113
 //
 RIL_RESULT_CODE CTEBase::CoreDialVT(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -8081,6 +8099,108 @@ RIL_RESULT_CODE CTEBase::ParseDialVT(RESPONSE_DATA & rRspData)
 }
 #endif // M2_VT_FEATURE_ENABLED
 
+#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
+//
+// RIL_REQUEST_GET_SIM_SMS_STORAGE 114
+//
+RIL_RESULT_CODE CTEBase::CoreGetSimSmsStorage(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreGetSimSmsStorage() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CPMS?\r", sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::CoreGetSimSmsStorage() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseGetSimSmsStorage(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseGetSimSmsStorage() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+    char szMemStore[3];
+    UINT32 uiUsed = 0, uiTotal = 0;
+    int i = 0;
+    S_ND_SIM_SMS_STORAGE* pStorage = NULL;
+
+    //  The number of memory store information returned by AT+CPMS?.
+    const int MAX_MEM_STORE_INFO = 3;
+
+    pStorage = (S_ND_SIM_SMS_STORAGE *)malloc(sizeof(S_ND_SIM_SMS_STORAGE));
+    if (!pStorage)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseGetSimSmsStorage() - Could not allocate memory for S_ND_SIM_SMS_STORAGE struct.\r\n");
+        goto Error;
+    }
+    memset(pStorage, 0, sizeof(S_ND_SIM_SMS_STORAGE));
+
+    // Parse "<prefix>+CPMS: <mem1>,<used1>,<total1>,<mem2>,<used2>,<total2>,<mem3>,<used3>,<total3><postfix>"
+    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
+        !SkipString(pszRsp, "+CPMS: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseGetSimSmsStorage() - Could not find AT response.\r\n");
+        goto Error;
+    }
+
+    while (i < MAX_MEM_STORE_INFO)
+    {
+        if (!ExtractQuotedString(pszRsp, szMemStore, sizeof(szMemStore), pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseGetSimSmsStorage() - Could not extract <mem>.\r\n");
+            goto Error;
+        }
+
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiUsed, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseGetSimSmsStorage() - Could not extract uiUsed.\r\n");
+            goto Error;
+        }
+
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiTotal, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseGetSimSmsStorage() - Could not extract uiTotal.\r\n");
+            goto Error;
+        }
+
+        if (0 == strcmp(szMemStore, "SM"))
+        {
+            pStorage->nUsed = uiUsed;
+            pStorage->nTotal = uiTotal;
+            break;
+        }
+
+        SkipString(pszRsp, ",", pszRsp);
+
+        i++;
+    }
+
+    if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseGetSimSmsStorage() - Could not extract the response end.\r\n");
+        goto Error;
+    }
+
+    rRspData.pData    = (void*)pStorage;
+    rRspData.uiDataSize   = sizeof(S_ND_SIM_SMS_STORAGE);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pStorage);
+        pStorage = NULL;
+    }
+    RIL_LOG_VERBOSE("CTEBase::ParseGetSimSmsStorage() - Exit\r\n");
+    return res;
+}
+#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
 
 RIL_SignalStrength_v6* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspData)
 {

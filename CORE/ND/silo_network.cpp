@@ -84,8 +84,7 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         rpRsp->SetResultCode(RRIL_RESULT_OK);
     }
     else if ((ND_REQ_ID_PDPCONTEXTLIST_UNSOL == rpCmd->GetRequestID()) &&
-             (RRIL_RESULT_ERROR == rpRsp->GetResultCode()) &&
-             (10 == rpRsp->GetErrorCode()))  // CME ERROR: 10 = SIM absent
+             (RRIL_RESULT_ERROR == rpRsp->GetResultCode()))
     {
         RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - INFO: Override REQUEST PDP CONTEXT LIST error with OK as SIM is locked or absent\r\n");
         rpRsp->SetResultCode(RRIL_RESULT_OK);

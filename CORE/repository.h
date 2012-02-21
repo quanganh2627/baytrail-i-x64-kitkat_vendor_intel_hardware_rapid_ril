@@ -82,6 +82,7 @@ extern const char   g_szRxDiversity3GEnable[];
 extern const char   g_szRxDiversity2GDARP[];
 extern const char   g_szFDDelayTimer[];
 extern const char   g_szSCRITimer[];
+extern const char   g_szFDMode[];
 
 //////////////////////////////////////////////////////////////////////////
 

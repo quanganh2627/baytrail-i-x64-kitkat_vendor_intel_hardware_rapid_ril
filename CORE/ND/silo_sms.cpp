@@ -62,13 +62,15 @@ BOOL CSilo_SMS::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
     RIL_LOG_VERBOSE("CSilo_SMS::PreParseResponseHook() - Enter\r\n");
     BOOL bRetVal = TRUE;
 
-    if ( (ND_REQ_ID_SENDSMS == rpCmd->GetRequestID() || ND_REQ_ID_SENDSMSEXPECTMORE == rpCmd->GetRequestID()) &&
-         (RIL_E_GENERIC_FAILURE == rpRsp->GetResultCode()) )
+    if ( (ND_REQ_ID_SENDSMS == rpCmd->GetRequestID() ||
+          ND_REQ_ID_SENDSMSEXPECTMORE == rpCmd->GetRequestID()) &&
+         (RIL_E_SUCCESS != rpRsp->GetResultCode()))
     {
-        if (332 == rpRsp->GetErrorCode())
+        if (RRIL_CMS_ERROR_OPERATION_NOT_ALLOWED == rpRsp->GetErrorCode() ||
+            RRIL_CMS_ERROR_SIM_BUSY == rpRsp->GetErrorCode() ||
+            RRIL_CMS_ERROR_NETWORK_TIMEOUT == rpRsp->GetErrorCode())
         {
-            //  Tried sending SMS, network timeout
-            RIL_LOG_INFO("CSilo_SMS::PreParseResponseHook() - Send SMS failed, network timeout\r\n");
+            RIL_LOG_INFO("CSilo_SMS::PreParseResponseHook() - Send SMS failed, retry case\r\n");
             rpRsp->SetResultCode(RIL_E_SMS_SEND_FAIL_RETRY);
         }
         else if (545 == rpRsp->GetErrorCode())

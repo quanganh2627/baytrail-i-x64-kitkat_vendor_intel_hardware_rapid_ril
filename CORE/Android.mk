@@ -74,6 +74,9 @@ LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED
 # Activating this macro enables Dual SIM 1S1S commands in RIL_REQUEST_OEM_HOOK_RAW
 #LOCAL_CFLAGS += -DM2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
 
+# Activating this macro enables the Get SIM SMS Storage feature
+#LOCAL_CFLAGS += -DM2_GET_SIM_SMS_STORAGE_ENABLED
+
 
 LOCAL_C_INCLUDES :=  \
     $(LOCAL_PATH)/ND  \

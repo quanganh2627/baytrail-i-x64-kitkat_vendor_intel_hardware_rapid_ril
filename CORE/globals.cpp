@@ -41,3 +41,8 @@ CRadioState g_RadioState;
 // the call is disconnected.
 bool g_clearPendingChlds = false;
 
+///////////////////////////////////////////////////////////////////////////////
+// This global variable stores the initial value of the
+// Modem Autonomous Fast Dormancy (MAFD) mode in the repository.
+const int FAST_DORMANCY_MODE_DEFAULT = 2;
+int g_nFastDormancyMode = FAST_DORMANCY_MODE_DEFAULT;

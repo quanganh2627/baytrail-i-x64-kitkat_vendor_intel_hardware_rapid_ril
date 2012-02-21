@@ -121,6 +121,24 @@ const int RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD = 0x000000A3;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+typedef struct TAG_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
+{
+    int nCommand; //  Command ID
+    int nEnable; // enable=1 or disable=0
+    int nDelayTimer; // int from 0-60
+} sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY;
+
+//
+//  TAG_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
+//  Command ID = 0x000000A4
+//
+//  "data" = sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
+//  "response" = NULL
+//
+const int OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY = 0x000000A4;
+
+///////////////////////////////////////////////////////////////////////////////
+
 #if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
 
 typedef struct TAG_OEM_HOOK_RAW_SET_ACTIVE_SIM

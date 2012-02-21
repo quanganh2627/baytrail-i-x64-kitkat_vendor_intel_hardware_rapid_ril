@@ -461,6 +461,9 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     int nFDDelayTimer = FDDELAYTIMER_DEFAULT;
     int nSCRITimer = SCRITIMER_DEFAULT;
 
+    // Data for Fast Dormancy Mode
+    char szFDModeString[MAX_BUFFER_SIZE] = {0};
+
     szInit = new char[szInitLen];
     if (!szInit)
     {
@@ -564,6 +567,26 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         {
             RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szFDCmdString failed\r\n");
             goto Done;
+        }
+
+        // if Modem Fast Dormancy mode is 3: "Always on"
+        if (3 == g_nFastDormancyMode)
+        {
+            if (!CopyStringNullTerminate(szFDModeString, "+XFDOR=2\r", sizeof(szFDModeString)))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create cmd to enable Fast Dormancy\r\n");
+                goto Done;
+            }
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
+                goto Done;
+            }
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szFDModeString))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szFDCmdString failed\r\n");
+                goto Done;
+            }
         }
 
         // Read 3G Rx Diversity mode setting from repository

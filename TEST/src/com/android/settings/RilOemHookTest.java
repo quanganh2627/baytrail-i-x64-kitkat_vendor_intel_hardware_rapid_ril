@@ -128,12 +128,25 @@ public class RilOemHookTest extends Activity
             {
                 // RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD
                 //  AT+XDRV=5,14,<sensor_id>,<min_threshold>,<max_threshold>
-                ByteBuffer myBuf = ByteBuffer.allocate(16);
+                ByteBuffer myBuf = ByteBuffer.allocate(20);
                 myBuf.putInt(0xA3);  //  Command ID
                 myBuf.putInt(0x01);  //  <enable>
                 myBuf.putInt(0x00);  //  <sensor_id>
                 myBuf.putInt(0x00);  //  <min_threshold>
                 myBuf.putInt(0x00);  //  <max_threshold>
+
+                oemhook = myBuf.array();
+            }
+            break;
+
+            case R.id.radio_api5:
+            {
+                // OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
+                //  AT+XFDOR=<enable>, <delay_timer>
+                ByteBuffer myBuf = ByteBuffer.allocate(12);
+                myBuf.putInt(0xA4);  //  Command ID
+                myBuf.putInt(0x01);  //  <enable>
+                myBuf.putInt(0x00);  //  <delay_timer>
 
                 oemhook = myBuf.array();
             }

@@ -187,7 +187,10 @@ enum
 ///////////////////////////////////////////////////////////////////////////////
 // CMS Error code defines
 //
+#define RRIL_CMS_ERROR_OPERATION_NOT_ALLOWED        302
 #define RRIL_CMS_ERROR_SIM_ABSENT                   310
+#define RRIL_CMS_ERROR_SIM_BUSY                     314
+#define RRIL_CMS_ERROR_NETWORK_TIMEOUT              332
 
 #endif // RRIL_RRIL_H
 

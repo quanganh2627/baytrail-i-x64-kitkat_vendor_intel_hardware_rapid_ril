@@ -1,6 +1,152 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+February 15, 2012 (M6.09 release for Medfield PR2)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR2 devices, Android version 4.0.3 (Ice Cream Sandwich).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ICS ABSP dated January 18, 2012 (ww3).
+- We are using the HSI interface.
+
+PR2 Setup
+=========
+FW DnX: dnx_firmware_pr2.bin (from ww3 release)
+IFWI: ifwi_firmware_pr2.bin (from ww3 release)
+OS DnX: dnx_osrecovery_pr2.bin (from ww3 release)
+OS Image: kboot.bin (from ww3 release)
+Modem Firmware: radio_firmware.bin (from ww3 release - 1150.F)
+
+
+Release Notes for M6.09
+=======================
+
+1. Bugzilla 21627: New proprietary RIL API: RIL_REQUEST_GET_SIM_SMS_STORAGE
+   -Add new RIL API.
+    Assigned request ID (not specified, set to the following):
+        RIL_REQUEST_GET_SIM_SMS_STORAGE 114.
+
+2. Bugzilla 212299 - Add new modes for Modem Autonomous Fast Dormancy.
+   -Add "FDMode" parameter to repository.txt.  The default for this setting is
+    "2" in the repository.
+    Fast Dormancy mode - Set Modem Autonomous Fast Dormancy (MAFD) mode
+      If set to "1", "OEM Managed": MAFD is off by default;  It can be
+          enabled/disabled by OEM middleware SW through OEM Hook command.
+      If set to "2", "Display Driven": MAFD is enabled by RIL_REQUEST_SCREEN_STATE(off)
+          and disabled by RIL_REQUEST_SCREEN_STATE(on).
+      If set to "3", "Always on": MAFD is enabled at boot time and remains on
+          during device power cycle.
+      If value is missing, default mode is "2": "Display Driven".
+   -Add new OEM Hook function for OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY API.
+    OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY = 0xA4
+   -Update OEM Hook test app to support new structure.
+
+3. Bugzilla 23549 - Clean PDP channel when SIM is removed
+   -Integrate patch 35300 (set 1)
+
+4. Bugzilla 22238 - Fix issue in error handling of send sms
+   -Integrate patch 34939 (set 2)
+
+Testing results:  (tested on mfld_pr2)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 February 07, 2012 (M6.08 release for Medfield PR2)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield

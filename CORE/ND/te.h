@@ -462,31 +462,37 @@ public:
     RIL_RESULT_CODE RequestReportStkServiceRunning(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_BASIC 104
+    // RIL_REQUEST_SIM_TRANSMIT_BASIC 108
     RIL_RESULT_CODE RequestSimTransmitBasic(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitBasic(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_SIM_OPEN_CHANNEL 105
+    // RIL_REQUEST_SIM_OPEN_CHANNEL 109
     RIL_RESULT_CODE RequestSimOpenChannel(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_SIM_CLOSE_CHANNEL 106
+    // RIL_REQUEST_SIM_CLOSE_CHANNEL 110
     RIL_RESULT_CODE RequestSimCloseChannel(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 107
+    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 111
     RIL_RESULT_CODE RequestSimTransmitChannel(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA & rRspData);
 
 #if defined(M2_VT_FEATURE_ENABLED)
-    // RIL_REQUEST_HANGUP_VT 108
+    // RIL_REQUEST_HANGUP_VT 112
     RIL_RESULT_CODE RequestHangupVT(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseHangupVT(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_DIAL_VT 109
+    // RIL_REQUEST_DIAL_VT 113
     RIL_RESULT_CODE RequestDialVT(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseDialVT(RESPONSE_DATA & rRspData);
 #endif // M2_VT_FEATURE_ENABLED
+
+#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
+    // RIL_REQUEST_GET_SIM_SMS_STORAGE 114
+    RIL_RESULT_CODE RequestGetSimSmsStorage(RIL_Token rilToken, void * pData, size_t datalen);
+    RIL_RESULT_CODE ParseGetSimSmsStorage(RESPONSE_DATA & rRspData);
+#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
 
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData);

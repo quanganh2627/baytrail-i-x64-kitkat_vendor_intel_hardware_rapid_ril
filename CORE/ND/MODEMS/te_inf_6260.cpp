@@ -2898,6 +2898,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
         RIL_LOG_INFO("CTE_INF_6260::CoreDeactivateDataCall() - pszReason=[%s]\r\n", pszReason);
     }
 
+    //  Get CID as int.
+    if (sscanf(pszCid, "%d", &nCid) == EOF)
+    {
+        // Error
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: cannot convert %s to int\r\n", pszCid);
+        goto Error;
+    }
 
     //  May 18,2011 - Don't call AT+CGACT=0,X if SIM was removed since context is already deactivated.
     if (RADIO_STATE_SIM_LOCKED_OR_ABSENT == g_RadioState.GetRadioState())
@@ -2906,17 +2913,11 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
         rReqData.szCmd1[0] = '\0';
         res = RRIL_RESULT_OK;
         rReqData.pContextData = (void*)((int)0);
+
+        DataConfigDown(nCid);
     }
     else
     {
-        //  Get CID as int.
-        if (sscanf(pszCid, "%d", &nCid) == EOF)
-        {
-            // Error
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - cannot convert %s to int\r\n", pszCid);
-            goto Error;
-        }
-
         if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%s\r", pszCid))
         {
             res = RRIL_RESULT_OK;
@@ -3046,6 +3047,59 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
             else
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
+                goto Error;
+            }
+        }
+        break;
+
+        case OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY:
+        {
+            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY Command=[0x%08X] received OK\r\n", nCommand);
+
+            //  Copy data into our structure
+            if (uiDataSize == sizeof(sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY))
+            {
+                sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY sMAFD;
+                memset(&sMAFD, 0, sizeof(sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY));
+                memcpy(&sMAFD, pDataBytes, sizeof(sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY));
+
+                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - Enable=[%d], TimerValue=[%d]\r\n", ntohl(sMAFD.nEnable), ntohl(sMAFD.nDelayTimer));
+
+                int nFDEnable = ntohl(sMAFD.nEnable);
+                int nDelayTimer = ntohl(sMAFD.nDelayTimer);
+
+                if (1 == nFDEnable)
+                {
+                    if (0 == nDelayTimer)
+                    {
+                        // use modem default timer value
+                        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=2\r", sizeof(rReqData.szCmd1)))
+                        {
+                            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 1\r\n");
+                            goto Error;
+                        }
+                    }
+                    else
+                    {
+                        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDOR=2,%u\r", ntohl(sMAFD.nDelayTimer)))
+                        {
+                            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 2\r\n");
+                            goto Error;
+                        }
+                    }
+                }
+                else
+                {
+                    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=3\r", sizeof(rReqData.szCmd1)))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 3\r\n");
+                        goto Error;
+                    }
+                }
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY));
                 goto Error;
             }
         }

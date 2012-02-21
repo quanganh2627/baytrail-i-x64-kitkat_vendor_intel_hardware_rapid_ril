@@ -226,4 +226,10 @@ enum PDP_TYPE
     PDP_TYPE_IPV4V6,
 };
 
+typedef struct
+{
+    int nUsed;
+    int nTotal;
+} S_ND_SIM_SMS_STORAGE, *P_ND_SIM_SMS_STORAGE;
+
 #endif

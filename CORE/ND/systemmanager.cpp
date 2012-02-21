@@ -290,6 +290,11 @@ BOOL CSystemManager::InitializeSystem()
         g_TimeoutThresholdForRetry = (UINT32)iTemp;
     }
 
+    // store initial value of Fast Dormancy Mode
+    if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
+    {
+        g_nFastDormancyMode = (UINT32)iTemp;
+    }
 
     if (m_pSimUnlockedEvent)
     {
