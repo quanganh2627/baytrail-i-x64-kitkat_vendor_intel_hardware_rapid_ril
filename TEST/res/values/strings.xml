@@ -17,6 +17,7 @@
     <string name="radio_api2">Set Fast Dormancy Timer  (AT+XFDORT=timer_value)</string>
     <string name="radio_api3">Thermal Get Sensor  (AT+XDRV=5,9,sensor_id)</string>
     <string name="radio_api4">Thermal Set Threshold  (AT+XDRV=5,14,sensor_id,min_threshold,max_threshold)</string>
+    <string name="radio_api5">Auto Fast Dormancy  (AT+XFDOR=enable,delay_timer)</string>
     <string name="radio_api100">1S1S Set Active SIM  (AT@nvm:fix_uicc.ext_mux_misc_config=sim_id)</string>
     <string name="radio_api101">1S1S Get Active SIM  (AT@nvm:fix_uicc.ext_mux_misc_config?)</string>
     <string name="radio_run">RUN</string>

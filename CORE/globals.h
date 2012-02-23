@@ -17,6 +17,7 @@
 #include "sync_ops.h"
 #include "radio_state.h"
 #include "nd_structs.h"
+#include <cutils/properties.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // Timeouts (in milliseconds)
@@ -48,5 +49,9 @@ extern bool g_clearPendingChlds;
 // This global variable stores the initial value of the
 // Modem Autonomous Fast Dormancy (MAFD) mode in the repository.
 extern int g_nFastDormancyMode;
+
+///////////////////////////////////////////////////////////////////////////////
+// Globals used for DSDS
+extern char g_szDualSim[PROPERTY_VALUE_MAX];
 
 #endif // RRIL_GLOBALS_H

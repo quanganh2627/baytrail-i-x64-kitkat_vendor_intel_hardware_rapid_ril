@@ -21,6 +21,14 @@ class CThread;
 
 // The device path to use for the AT command channel
 extern char * g_szCmdPort;
+// The device path to use for the AT command channel
+extern char * g_szDLC2Port;
+// The device path to use for the AT command channel
+extern char * g_szDLC6Port;
+// The device path to use for the AT command channel
+extern char * g_szDLC8Port;
+// The device path to use for the AT command channel
+extern char * g_szURCPort;
 // The device path to use for the data channel1
 extern char * g_szDataPort1;
 // The device path to use for the data channel2
@@ -31,6 +39,9 @@ extern char * g_szDataPort3;
 extern char * g_szDataPort4;
 // The device path to use for the data channel5
 extern char * g_szDataPort5;
+
+// SIM ID value
+extern char * g_szSIMID;
 
 extern BOOL  g_bIsSocket;
 

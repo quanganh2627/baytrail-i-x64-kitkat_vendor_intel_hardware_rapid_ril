@@ -190,10 +190,7 @@ BOOL CSilo_Data::ParseXCGEDPAGE(CResponse *const pResponse, const char* &rszPoin
     RIL_LOG_VERBOSE("CSilo_Data::ParseXCGEDPAGE() - Enter\r\n");
 
     BOOL bRet = FALSE;
-
-    const int nBufLen = 20;
-    char szTemp[nBufLen] = {0};
-
+    char szTemp[20] = {0};
 
     if (NULL == pResponse)
     {
@@ -202,21 +199,19 @@ BOOL CSilo_Data::ParseXCGEDPAGE(CResponse *const pResponse, const char* &rszPoin
     }
 
     // Look for a "<postfix>OK<postfix>"
-    snprintf(szTemp, nBufLen-1, "%sOK%s", g_szNewLine, g_szNewLine);
-    szTemp[nBufLen-1] = '\0';  //  KW fix
+    snprintf(szTemp, sizeof(szTemp)-1, "%sOK%s", g_szNewLine, g_szNewLine);
+    szTemp[sizeof(szTemp)-1] = '\0';  //  redundant: KW fix
     if (!FindAndSkipRspEnd(rszPointer, szTemp, rszPointer))
     {
         // This isn't a complete registration notification -- no need to parse it
         goto Error;
     }
 
-
     //  Back up over the "\r\n".
     rszPointer -= strlen(g_szNewLine);
 
     //  Flag as unrecognized.
     //pResponse->SetUnrecognizedFlag(TRUE);
-
 
     bRet = TRUE;
 Error:

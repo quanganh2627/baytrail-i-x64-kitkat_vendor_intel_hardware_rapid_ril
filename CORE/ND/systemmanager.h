@@ -130,6 +130,10 @@ private:
     static void*    StartModemInitializationThreadWrapper(void *pArg);
     void            StartModemInitializationThread();
 
+    // DSDS 2230 Mode
+    BOOL            IsDSDS_2230_Mode();
+    BOOL            IsChannelUndefined(int channel);
+
 private:
     static CSystemManager* m_pInstance;
 

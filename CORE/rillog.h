@@ -15,6 +15,10 @@
 
 #define LOG_TAG "RILR"
 
+#define LOG_TAG_MAX_LENGTH 6
+#define SIMID_MAX_LENGTH 6
+#define SIMID_DEFAULT_VALUE "none"
+
 #include "types.h"
 
 #define RIL_LOG_VERBOSE(format, ...)    CRilLog::Verbose(format, ## __VA_ARGS__)
@@ -25,7 +29,7 @@
 class CRilLog
 {
 public:
-    static void Init();
+    static void Init(char * szSIMID);
     static void Verbose(const char* const szFormatString, ...);
     static void Info(const char* const szFormatString, ...);
     static void Warning(const char* const szFormatString, ...);
@@ -46,6 +50,7 @@ private:
     static UINT8 m_uiFlags;
     static BOOL  m_bInitialized;
     static BOOL  m_bFullLogBuild;
+    static char  m_szSIMID[SIMID_MAX_LENGTH];
 };
 
 #endif // RRIL_LOG_H

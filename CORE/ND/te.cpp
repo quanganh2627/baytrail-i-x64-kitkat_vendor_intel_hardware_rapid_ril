@@ -5547,3 +5547,17 @@ RIL_RESULT_CODE CTE::ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData)
 
     return m_pTEBaseInstance->ParseQuerySimSmsStoreStatus(rRspData);
 }
+
+void CTE::SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus)
+{
+    RIL_LOG_VERBOSE("CTE::SetIncomingCallStatus() - Enter / Exit\r\n");
+
+    m_pTEBaseInstance->SetIncomingCallStatus(uiCallId, uiStatus);
+}
+
+UINT32 CTE::GetIncomingCallId()
+{
+    RIL_LOG_VERBOSE("CTE::GetIncomingCallId() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->GetIncomingCallId();
+}

@@ -23,7 +23,7 @@
 #include "repository.h"
 #include "rildmain.h"
 #include "reset.h"
-
+#include <cutils/properties.h>
 
 
 ///////////////////////////////////////////////////////////
@@ -52,7 +52,7 @@ char* g_szDLC2Port = NULL;
 char* g_szDLC6Port = NULL;
 char* g_szDLC8Port = NULL;
 char* g_szURCPort = NULL;
-
+char* g_szSIMID = NULL;
 
 static const RIL_RadioFunctions gs_callbacks =
 {
@@ -1350,7 +1350,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.09 for Android 4.0.3 (Build February 15/2012)";
+    return "Intrinsyc Rapid-RIL M6.10 for Android 4.0.3 (Build February 22/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1371,8 +1371,7 @@ static void* mainLoop(void *param)
     }
 
     // Initialize logging class
-    CRilLog::Init();
-
+    CRilLog::Init(g_szSIMID);
 
     // Create and start system manager
     if (!CSystemManager::GetInstance().InitializeSystem())
@@ -1412,6 +1411,7 @@ static void usage(char *szProgName)
     fprintf(stderr, "    -d <PDP Primary Context - data channel 3>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 4>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 5>\n");
+    fprintf(stderr, "    [-i <SIM ID for DSDS>]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Example in init.rc file:\n");
     fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12 -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1 -d /dev/gsmtty3 -d /dev/gsmtty4 -d /dev/gsmtty15 -d /dev/gsmtty16 -d /dev/gsmtty17\n", szProgName);
@@ -1425,7 +1425,19 @@ static bool RIL_SetGlobals(int argc, char **argv)
     int opt;
     int nDataPortCount = 0;
 
-    while (-1 != (opt = getopt(argc, argv, "d:s:a:n:m:c:u:")))
+    property_get("persist.dual_sim", g_szDualSim, "none");
+    if (strncmp(g_szDualSim, "dsds_2230", 9) == 0)
+    {
+        g_dRilChannelCurMax = RIL_CHANNEL_DATA2 + 1;
+        g_arChannelMapping = g_arChannelMapping2230;
+    }
+    else
+    {
+        g_dRilChannelCurMax = RIL_CHANNEL_MAX;
+        g_arChannelMapping = g_arChannelMappingDefault;
+    }
+
+    while (-1 != (opt = getopt(argc, argv, "d:s:a:n:m:c:u:i:")))
     {
         switch (opt)
         {
@@ -1464,6 +1476,12 @@ static bool RIL_SetGlobals(int argc, char **argv)
             case 'u':
                 g_szURCPort = optarg;
                 RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for URC channel chnl=[%d] -u\r\n", g_szURCPort, RIL_CHANNEL_URC);
+            break;
+
+            // This should be the non-emulator case.
+            case 'i':
+                g_szSIMID = optarg;
+                RIL_LOG_INFO("RIL_SetGlobals() - Using SIMID \"%s\" for all channels\r\n", g_szSIMID);
             break;
 
             // This should be the non-emulator case.
@@ -1509,12 +1527,20 @@ static bool RIL_SetGlobals(int argc, char **argv)
         }
     }
 
-    //  RIL will not function without all ports defined
-    if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3 || !g_szDataPort4 || !g_szDataPort5)
+    if (strncmp(g_szDualSim, "dsds_2230", 9) == 0)
+    {
+        if (!g_szCmdPort || !g_szDataPort1 || !g_szDataPort2)
+        {
+            usage(argv[0]);
+            return false;
+        }
+    }
+    else if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3 || !g_szDataPort4 || !g_szDataPort5)
     {
         usage(argv[0]);
         return false;
     }
+
     return true;
 }
 

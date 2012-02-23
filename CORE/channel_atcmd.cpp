@@ -24,13 +24,18 @@ extern BOOL  g_bIsSocket;
 //  Com init strings for this channel.
 //  Call control commands, misc commands
 
-#if defined(M2_VT_FEATURE_ENABLED) && defined(M2_VT_XDATACHANNEL_TEST_ENABLED)
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",2" };
+INITSTRING_DATA* ATCmdBasicInitString;
+#if defined(M2_VT_FEATURE_ENABLED)
+INITSTRING_DATA ATCmdDefBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",2" };
+INITSTRING_DATA ATCmd2230BasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+XNITZINFO=1|+CREG=2|+CGREG=2|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XCSQ=1|+XLEMA=1|+CMGF=0|+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",2" };
 #else // M2_VT_FEATURE_ENABLED
-INITSTRING_DATA ATCmdBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0" };
+INITSTRING_DATA ATCmdDefBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0" };
+INITSTRING_DATA ATCmd2230BasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XPOW=0,0,0|+XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+XNITZINFO=1|+CREG=2|+CGREG=2|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XCSQ=1|+XLEMA=1|+CMGF=0" };
 #endif // M2_VT_FEATURE_ENABLED
 
-INITSTRING_DATA ATCmdUnlockInitString   = { "" };
+INITSTRING_DATA* ATCmdUnlockInitString;
+INITSTRING_DATA ATCmdDefUnlockInitString   = { "" };
+INITSTRING_DATA ATCmd2230UnlockInitString  = { "+CNMI=2,2,2,1|+CRC=1|+CCWA=1|+CSMS=1|+CGSMS=3|+CUSD=1" };
 INITSTRING_DATA ATCmdPowerOnInitString  = { "" };
 INITSTRING_DATA ATCmdReadyInitString    = { "" };
 
@@ -79,8 +84,19 @@ BOOL CChannel_ATCmd::FinishInit()
         goto Error;
     }
 
-    m_prisdModuleInit[COM_BASIC_INIT_INDEX]     = ATCmdBasicInitString;
-    m_prisdModuleInit[COM_UNLOCK_INIT_INDEX]    = ATCmdUnlockInitString;
+    if(g_dRilChannelCurMax != RIL_CHANNEL_MAX)
+    {
+        ATCmdBasicInitString  = &ATCmd2230BasicInitString;
+        ATCmdUnlockInitString = &ATCmd2230UnlockInitString;
+    }
+    else
+    {
+        ATCmdBasicInitString  = &ATCmdDefBasicInitString;
+        ATCmdUnlockInitString = &ATCmdDefUnlockInitString;
+    }
+
+    m_prisdModuleInit[COM_BASIC_INIT_INDEX]     = *ATCmdBasicInitString;
+    m_prisdModuleInit[COM_UNLOCK_INIT_INDEX]    = *ATCmdUnlockInitString;
     m_prisdModuleInit[COM_POWER_ON_INIT_INDEX]  = ATCmdPowerOnInitString;
     m_prisdModuleInit[COM_READY_INIT_INDEX]     = ATCmdReadyInitString;
 

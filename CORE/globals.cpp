@@ -46,3 +46,6 @@ bool g_clearPendingChlds = false;
 // Modem Autonomous Fast Dormancy (MAFD) mode in the repository.
 const int FAST_DORMANCY_MODE_DEFAULT = 2;
 int g_nFastDormancyMode = FAST_DORMANCY_MODE_DEFAULT;
+
+// Globals used for DSDS
+char g_szDualSim[PROPERTY_VALUE_MAX];

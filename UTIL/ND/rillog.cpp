@@ -19,12 +19,23 @@
 UINT8 CRilLog::m_uiFlags = 0x00;
 BOOL  CRilLog::m_bInitialized = FALSE;
 BOOL  CRilLog::m_bFullLogBuild = FALSE;
+char  CRilLog::m_szSIMID[SIMID_MAX_LENGTH];
 
-void CRilLog::Init()
+void CRilLog::Init(char * szSIMID)
 {
     CRepository repository;
     int         iLogLevel;
     char        szBuildType[PROPERTY_VALUE_MAX] = {0};
+
+    if (szSIMID != NULL)
+    {
+        LOG(LOG_ERROR, "RILR", "SIM ID value : %s", szSIMID);
+        strncpy(m_szSIMID, szSIMID, SIMID_MAX_LENGTH);
+    }
+    else
+    {
+        strncpy(m_szSIMID, SIMID_DEFAULT_VALUE, SIMID_MAX_LENGTH);
+    }
 
     /*
      * Check if the build is an engineering build.
@@ -71,12 +82,21 @@ void CRilLog::Verbose(const char* const szFormatString, ...)
     {
         va_list argList;
         char szLogText[m_uiMaxLogBufferSize];
+        char szNewTag[LOG_TAG_MAX_LENGTH];
 
         va_start(argList, szFormatString);
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);
         va_end(argList);
 
-        LOGD("%s", szLogText);
+        if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
+        {
+            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
+            LOG(LOG_DEBUG, szNewTag, "%s", szLogText);
+        }
+        else
+        {
+            LOGD("%s", szLogText);
+        }
     }
 }
 
@@ -86,12 +106,21 @@ void CRilLog::Info(const char* const szFormatString, ...)
     {
         va_list argList;
         char szLogText[m_uiMaxLogBufferSize];
+        char szNewTag[LOG_TAG_MAX_LENGTH];
 
         va_start(argList, szFormatString);
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);
         va_end(argList);
 
-        LOGI("%s", szLogText);
+        if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
+        {
+            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
+            LOG(LOG_INFO, szNewTag, "%s", szLogText);
+        }
+        else
+        {
+            LOGI("%s", szLogText);
+        }
     }
 }
 
@@ -101,12 +130,21 @@ void CRilLog::Warning(const char* const szFormatString, ...)
     {
         va_list argList;
         char szLogText[m_uiMaxLogBufferSize];
+        char szNewTag[LOG_TAG_MAX_LENGTH];
 
         va_start(argList, szFormatString);
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);
         va_end(argList);
 
-        LOGW("%s", szLogText);
+        if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
+        {
+            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
+            LOG(LOG_WARN, szNewTag, "%s", szLogText);
+        }
+        else
+        {
+            LOGW("%s", szLogText);
+        }
     }
 }
 
@@ -116,12 +154,21 @@ void CRilLog::Critical(const char* const szFormatString, ...)
     {
         va_list argList;
         char szLogText[m_uiMaxLogBufferSize];
+        char szNewTag[LOG_TAG_MAX_LENGTH];
 
         va_start(argList, szFormatString);
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);
         va_end(argList);
 
-        LOGE("%s", szLogText);
+        if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
+        {
+            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
+            LOG(LOG_ERROR, szNewTag, "%s", szLogText);
+        }
+        else
+        {
+            LOGE("%s", szLogText);
+        }
     }
 }
 

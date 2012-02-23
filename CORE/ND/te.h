@@ -516,6 +516,9 @@ public:
     // REQ_ID_QUERY_SIM_SMS_STORE_STATUS
     RIL_RESULT_CODE ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData);
 
+    void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
+    UINT32 GetIncomingCallId();
+
 private:
     BOOL m_bCSStatusCached;
     BOOL m_bPSStatusCached;

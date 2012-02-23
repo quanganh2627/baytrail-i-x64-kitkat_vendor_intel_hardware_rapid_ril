@@ -21,6 +21,7 @@
 #include "rildmain.h"
 #include "silo_voice.h"
 #include "callbacks.h"
+#include "te.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -281,6 +282,7 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
     switch (uiStat)
     {
         case E_CALL_STATUS_INCOMING:
+            CTE::GetTE().SetIncomingCallStatus(uiID, uiStat);
         case E_CALL_STATUS_WAITING:
             /*
              * Since the call type is not known, CALL_STATE_CHANGED is postponed
@@ -291,8 +293,25 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
             m_uiCallId = uiID;
             pResponse->SetUnrecognizedFlag(TRUE);
             break;
+
+        case E_CALL_STATUS_ACTIVE:
+        case E_CALL_STATUS_CONNECTED:
+            /*
+             * If the status change is for an incoming call, then update
+             * that the ANSWER request is successfully completed by network.
+             */
+            if (CTE::GetTE().GetIncomingCallId() == uiID)
+            {
+                CTE::GetTE().SetIncomingCallStatus(uiID, uiStat);
+            }
+
+            pResponse->SetUnsolicitedFlag(TRUE);
+            pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+            break;
+
         case E_CALL_STATUS_DISCONNECTED:
             m_uiCallId = 0;
+            CTE::GetTE().SetIncomingCallStatus(0, uiStat);
             // set the flag to clear all pending chld requests
             g_clearPendingChlds = true;
             // Fall through

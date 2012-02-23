@@ -73,12 +73,13 @@ BOOL CSilo_SMS::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
             RIL_LOG_INFO("CSilo_SMS::PreParseResponseHook() - Send SMS failed, retry case\r\n");
             rpRsp->SetResultCode(RIL_E_SMS_SEND_FAIL_RETRY);
         }
-        else if (545 == rpRsp->GetErrorCode())
+        else if (RRIL_CMS_ERROR_FDN_CHECK_FAILED == rpRsp->GetErrorCode() ||
+                 RRIL_CMS_ERROR_SCA_FDN_FAILED == rpRsp->GetErrorCode() ||
+                 RRIL_CMS_ERROR_DA_FDN_FAILED == rpRsp->GetErrorCode())
         {
             //  tried sending SMS, not in FDN list
-            //  NOTE: I tested this, it doesn't work with messaging app.
-            //RIL_LOG_INFO("CSilo_SMS::PreParseResponseHook() - Send SMS failed, not in FDN list\r\n");
-            //rpRsp->SetResultCode(RIL_E_FDN_CHECK_FAILURE);
+            RIL_LOG_INFO("CSilo_SMS::PreParseResponseHook() - Send SMS failed, not in FDN list\r\n");
+            rpRsp->SetResultCode(RIL_E_FDN_CHECK_FAILURE);
         }
     }
 

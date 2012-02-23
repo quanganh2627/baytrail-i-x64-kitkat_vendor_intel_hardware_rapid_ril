@@ -595,6 +595,16 @@ void CSystemManager::SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eIn
 ///////////////////////////////////////////////////////////////////////////////
 BOOL CSystemManager::IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex)
 {
+    // DSDS 2230 mode
+    if (IsDSDS_2230_Mode() &&
+        (uiChannel != RIL_CHANNEL_ATCMD) &&
+        (uiChannel != RIL_CHANNEL_DATA1) &&
+        (uiChannel != RIL_CHANNEL_DATA2))
+    {
+        return true;
+    }
+
+    // Normal case
     if ((uiChannel < RIL_CHANNEL_MAX) && (eInitIndex < COM_MAX_INDEX))
     {
         return m_rgfChannelCompletedInit[uiChannel][eInitIndex];
@@ -604,6 +614,68 @@ BOOL CSystemManager::IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eIni
         RIL_LOG_CRITICAL("CSystemManager::IsChannelCompletedInit() - Invalid channel [%d] or init index [%d]\r\n", uiChannel, eInitIndex);
         return FALSE;
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Check if Dual Sim Dual Standby is used with a XM2230 Board
+BOOL CSystemManager::IsDSDS_2230_Mode()
+{
+    if (strncmp(g_szDualSim, "dsds_2230", 9) == 0)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+///////////////////////////////////////////////////////////////////////////////
+// Check for a channel type if port is correctly assigned
+BOOL CSystemManager::IsChannelUndefined(int channel)
+{
+    switch(channel) {
+        case RIL_CHANNEL_ATCMD:
+            if (!g_szCmdPort)
+                return true;
+            break;
+        case RIL_CHANNEL_DLC2:
+            if (!g_szDLC2Port)
+                return true;
+            break;
+        case RIL_CHANNEL_DLC6:
+            if (!g_szDLC6Port)
+                return true;
+            break;
+        case RIL_CHANNEL_DLC8:
+            if (!g_szDLC8Port)
+                return true;
+            break;
+        case RIL_CHANNEL_URC:
+            if (!g_szURCPort)
+                return true;
+            break;
+        case RIL_CHANNEL_DATA1:
+            if (!g_szDataPort1)
+                return true;
+            break;
+        case RIL_CHANNEL_DATA2:
+            if (!g_szDataPort2)
+                return true;
+            break;
+        case RIL_CHANNEL_DATA3:
+            if (!g_szDataPort3)
+                return true;
+        case RIL_CHANNEL_DATA4:
+            if (!g_szDataPort4)
+                return true;
+            break;
+        case RIL_CHANNEL_DATA5:
+            if (!g_szDataPort5)
+                return true;
+            break;
+        default: return false;
+    }
+    return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -727,6 +799,9 @@ BOOL CSystemManager::OpenChannelPorts()
         if (i == RIL_CHANNEL_RESERVED)
             continue;
 
+        if (IsChannelUndefined(i))
+            continue;
+
         g_pRilChannel[i] = CreateChannel(i);
         if (!g_pRilChannel[i] || !g_pRilChannel[i]->InitChannel())
         {
@@ -775,6 +850,9 @@ BOOL CSystemManager::InitChannelPorts()
         if (i == RIL_CHANNEL_RESERVED)
             continue;
 
+        if (IsChannelUndefined(i))
+            continue;
+
         g_pRilChannel[i] = CreateChannel(i);
         if (!g_pRilChannel[i] || !g_pRilChannel[i]->InitChannel())
         {
@@ -810,6 +888,9 @@ BOOL CSystemManager::OpenChannelPortsOnly()
         if (i == RIL_CHANNEL_RESERVED)
             continue;
 
+        if (IsChannelUndefined(i))
+            continue;
+
         if (!g_pRilChannel[i]->OpenPort())
         {
             RIL_LOG_CRITICAL("CSystemManager::OpenChannelPortsOnly() : Channel[%d] OpenPort() failed\r\n", i);
@@ -843,7 +924,7 @@ void CSystemManager::CloseChannelPorts()
 {
     RIL_LOG_VERBOSE("CSystemManager::CloseChannelPorts() - Enter\r\n");
 
-    for (int i=0; i<RIL_CHANNEL_MAX; i++)
+    for (int i = 0; i < RIL_CHANNEL_MAX; i++)
     {
         if (g_pRilChannel[i])
         {
@@ -860,7 +941,7 @@ void CSystemManager::DeleteChannels()
 {
     RIL_LOG_VERBOSE("CSystemManager::DeleteChannels() - Enter\r\n");
 
-    for (int i=0; i<RIL_CHANNEL_MAX; i++)
+    for (int i = 0; i < RIL_CHANNEL_MAX; i++)
     {
         if (g_pRilChannel[i])
         {

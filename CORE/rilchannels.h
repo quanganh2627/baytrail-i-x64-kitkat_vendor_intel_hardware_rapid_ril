@@ -20,6 +20,7 @@
 //  List channels here (one per COM port)
 
 #define RIL_CHANNEL_MAX 10
+extern int g_dRilChannelCurMax;
 
 //  Call control commands, misc commands
 #define RIL_CHANNEL_ATCMD 0
@@ -57,5 +58,7 @@
 
 
 //  Channel mapping array
-extern UINT32 g_arChannelMapping[REQ_ID_TOTAL];
+extern UINT32* g_arChannelMapping;
+extern UINT32 g_arChannelMapping2230[REQ_ID_TOTAL];
+extern UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL];
 

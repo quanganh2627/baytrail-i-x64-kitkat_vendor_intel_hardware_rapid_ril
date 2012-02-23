@@ -38,6 +38,7 @@ m_nSimAppType(RIL_APPTYPE_UNKNOWN)
 {
     memset(m_szManualMCCMNC, 0, MAX_BUFFER_SIZE);
     memset(m_szPIN, 0, MAX_PIN_SIZE);
+    memset(&m_IncomingCallInfo, 0, sizeof(m_IncomingCallInfo));
 }
 
 CTEBase::~CTEBase()
@@ -1430,9 +1431,25 @@ RIL_RESULT_CODE CTEBase::CoreUdub(REQUEST_DATA & rReqData, void * pData, UINT32 
     RIL_LOG_VERBOSE("CTEBase::CoreUdub() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=0\r", sizeof(rReqData.szCmd1)))
+    /*
+     * This is ugly fix to provide a way to end the call which is answered from the UI
+     * perspective but connection not establised due to the missing network conformance.
+     */
+    if (m_IncomingCallInfo.callId && m_IncomingCallInfo.isAnswerReqSent &&
+                                        m_IncomingCallInfo.status == E_CALL_STATUS_INCOMING)
     {
-        res = RRIL_RESULT_OK;
+        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CHLD=1%u\r",
+                                                                    m_IncomingCallInfo.callId))
+        {
+            res = RRIL_RESULT_OK;
+        }
+    }
+    else
+    {
+        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=0\r", sizeof(rReqData.szCmd1)))
+        {
+            res = RRIL_RESULT_OK;
+        }
     }
 
     RIL_LOG_VERBOSE("CTEBase::CoreUdub() - Exit\r\n");
@@ -1729,7 +1746,7 @@ RIL_RESULT_CODE CTEBase::CoreOperator(REQUEST_DATA & rReqData, void * pData, UIN
     RIL_LOG_VERBOSE("CTEBase::CoreOperator() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCOPS=12;+XCOPS=11;+XCOPS=13;+XCOPS=6;+XCOPS=5\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCOPS=12;+XCOPS=11;+XCOPS=13;+XCOPS=9;+XCOPS=8\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -1747,10 +1764,13 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
     UINT32 uiType = 0;
     const int NAME_SIZE = 50;
+    char szEONSFullName[NAME_SIZE] = {0};
+    char szEONSShortName[NAME_SIZE] = {0};
     char szFullName[NAME_SIZE] = {0};
     char szShortName[NAME_SIZE] = {0};
     BOOL isNitzNameAvailable = FALSE;
     char szPlmnName[NAME_SIZE] = {0};
+    BOOL isEONSAvailable = FALSE;
     P_ND_OP_NAMES pOpNames = NULL;
 
     pOpNames = (P_ND_OP_NAMES)malloc(sizeof(S_ND_OP_NAMES));
@@ -1763,8 +1783,8 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
     /*
      * XCOPS follows a fall back mechanism if a requested type is not available.
-     * For requested type 6, fallback types are 4 or 2 or 0
-     * For requested type 5, fallback types are 3 or 1 or 0
+     * For requested type 9, fallback types are 6 or 4 or 2 or 0
+     * For requested type 8, fallback types are 5 or 3 or 1 or 0
      * When registered, requested type 11,12 and 13 will always return the
      * currently registered PLMN information
      * Other details can be found in the C-AT specifications.
@@ -1797,6 +1817,32 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
             // Based on type get the long/short/numeric network name
             switch (uiType)
             {
+                // EONS long operator name from EF-PNN
+                case 9:
+                {
+                    if (!ExtractQuotedString(pszRsp, szEONSFullName, NAME_SIZE, pszRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Long Format Operator Name.\r\n");
+                        goto Error;
+                    }
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - EONS Long name: %s\r\n", szEONSFullName);
+                    isEONSAvailable = TRUE;
+                }
+                break;
+
+                // EONS Short name from EF-PNN
+                case 8:
+                {
+                    if (!ExtractQuotedString(pszRsp, szEONSShortName, NAME_SIZE, pszRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTEBase::ParseOperator() - ERROR: Could not extract the Short Format Operator Name.\r\n");
+                        goto Error;
+                    }
+                    RIL_LOG_VERBOSE("CTEBase::ParseOperator() - EONS Short name: %s\r\n", szEONSShortName);
+                    isEONSAvailable = TRUE;
+                }
+                break;
+
                 // Long name based on NITZ
                 case 6:
                 {
@@ -1891,7 +1937,18 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
         RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Response: %s\r\n", CRLFExpandedString(pszRsp, strlen(pszRsp)).GetString());
     }
 
-    if (isNitzNameAvailable)
+    if (isEONSAvailable || isNitzNameAvailable)
+    {
+        memset(pOpNames->szOpNameLong, 0, sizeof(pOpNames->szOpNameLong));
+        memset(pOpNames->szOpNameShort, 0, sizeof(pOpNames->szOpNameShort));
+    }
+
+    if (isEONSAvailable)
+    {
+        strncpy(pOpNames->szOpNameLong, szEONSFullName, strlen(szEONSFullName));
+        strncpy(pOpNames->szOpNameShort, szEONSShortName, strlen(szEONSShortName));
+    }
+    else if (isNitzNameAvailable)
     {
         strncpy(pOpNames->szOpNameLong, szFullName, strlen(szFullName));
         strncpy(pOpNames->szOpNameShort, szShortName, strlen(szShortName));
@@ -3753,6 +3810,8 @@ RIL_RESULT_CODE CTEBase::ParseAnswer(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseAnswer() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    m_IncomingCallInfo.isAnswerReqSent = true;
 
     RIL_LOG_VERBOSE("CTEBase::ParseAnswer() - Exit\r\n");
     return res;
@@ -8659,4 +8718,33 @@ RIL_RESULT_CODE CTEBase::ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData)
 Error:
     RIL_LOG_VERBOSE("CTEBase::ParseQuerySimSmsStoreStatus - Exit()\r\n");
     return res;
+}
+
+void CTEBase::SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus)
+{
+    RIL_LOG_VERBOSE("CTEBase::SetIncomingCallStatus - Enter\r\n");
+
+    m_IncomingCallInfo.callId = uiCallId;
+    m_IncomingCallInfo.status = uiStatus;
+
+    /*
+     * If the status is ACTIVE/CONNECTED, then the Answer request is processed successfully
+     * by the network.
+     *
+     * If the status is DISCONNECTED, either the user terminated the call or the
+     * network terminated the call which means that ANSWER request is not valid anymore.
+     */
+    if (uiStatus == E_CALL_STATUS_ACTIVE || uiStatus == E_CALL_STATUS_CONNECTED ||
+            uiStatus == E_CALL_STATUS_DISCONNECTED)
+    {
+        m_IncomingCallInfo.isAnswerReqSent = false;
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::SetIncomingCallStatus - Exit()\r\n");
+}
+
+UINT32 CTEBase::GetIncomingCallId()
+{
+    RIL_LOG_VERBOSE("CTEBase::GetIncomingCallId - Enter/Exit \r\n");
+    return m_IncomingCallInfo.callId;
 }
