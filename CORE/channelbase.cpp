@@ -553,6 +553,8 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     //  and in first init index.
     if ((COM_BASIC_INIT_INDEX == eInitIndex) && (RIL_CHANNEL_ATCMD == m_uiRilChannel))
     {
+// These commands are not supported by IFX7060
+#ifndef BOARD_HAVE_IFX7060
         //These commands are not supported by 2230 modem
         if (!CSystemManager::GetInstance().IsDSDS_2230_Mode())
         {
@@ -662,6 +664,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                 }
             }
         }
+#endif
     }
 
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : String [%s]\r\n", szInit);
@@ -1023,6 +1026,26 @@ BOOL CChannelBase::ClosePort()
 {
     return m_Port.Close();
 }
+
+#ifdef BOARD_HAVE_IFX7060
+UINT32 CChannelBase::GetDLCID(){
+
+    RIL_LOG_VERBOSE("CChannelBase::GetDLCID enter\r\n");
+
+    const char * name = GetFileName();
+
+    if (strstr(name,"/dev/gsmtty"))
+    {
+        int DLC = atoi(&name[strlen("/dev/gsmtty")]);
+        RIL_LOG_INFO("CChannelBase::GetDLCID DLC=%d \r\n", DLC);
+        RIL_LOG_INFO("CChannelBase::GetDLCID exit\r\n");
+    }
+
+    RIL_LOG_CRITICAL("CChannelBase::GetDLCID Cannot find DLC ID\r\n");
+    RIL_LOG_INFO("CChannelBase::GetDLCID exit\r\n");
+    return 0;
+}
+#endif
 
 BOOL CChannelBase::WriteToPort(const char* pData, UINT32 uiBytesToWrite, UINT32& ruiBytesWritten)
 {

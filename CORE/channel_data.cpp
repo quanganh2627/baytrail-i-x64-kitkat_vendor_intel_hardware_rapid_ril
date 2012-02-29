@@ -289,6 +289,55 @@ Error:
     return pChannelData;
 }
 
+#ifdef BOARD_HAVE_IFX7060
+int CChannel_Data::GetFreeHSIChnl(UINT32 uiCID)
+{
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChnl() - Enter\r\n");
+
+    extern UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX];
+
+    for (int i = 0; i < RIL_HSI_CHANNEL_MAX; i++)
+    {
+        if (g_uiHSIChannel[i] == 0)
+        {
+            g_uiHSIChannel[i] = uiCID ;
+            RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChnl() - Exit\r\n");
+            CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+            return i;
+        }
+    }
+    RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChnl() - Exit\r\n");
+    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    return -1;
+}
+
+bool CChannel_Data::FreeHSIChnl(UINT32 uiCID){
+
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChnl() - Enter\r\n");
+
+    extern UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX];
+
+    for (int i = 0; i < RIL_HSI_CHANNEL_MAX; i++)
+    {
+        if (g_uiHSIChannel[i] == uiCID)
+        {
+            g_uiHSIChannel[i] = 0 ;
+            RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChnl() - Exit\r\n");
+            CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+            return true;
+        }
+    }
+    RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChnl() - Exit\r\n");
+    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    return false;
+}
+#endif
+
+
 //
 //  Returns the Data Channel for the specified RIL channel number
 //

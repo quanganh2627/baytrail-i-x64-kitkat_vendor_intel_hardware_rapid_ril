@@ -77,6 +77,9 @@ LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED
 # Activating this macro enables the Get SIM SMS Storage feature
 #LOCAL_CFLAGS += -DM2_GET_SIM_SMS_STORAGE_ENABLED
 
+ifeq ($(strip $(BOARD_HAVE_IFX7060)),true)
+LOCAL_CFLAGS += -DBOARD_HAVE_IFX7060
+endif
 
 LOCAL_C_INCLUDES :=  \
     $(LOCAL_PATH)/ND  \

@@ -323,6 +323,15 @@ Error:
     return res;
 }
 
+#ifdef BOARD_HAVE_IFX7060
+//FIXME handle properly
+bool isHSIModeAPN(const char * szString)
+{
+    //return strstr(szString,"default") != 0;
+    return true;
+}
+#endif
+
 RIL_RESULT_CODE CTE_INF_6260::ParseEnterSimPin(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseEnterSimPin() - Enter\r\n");
@@ -348,6 +357,12 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     char szIPV4V6[] = "IPV4V6";
     PdpData stPdpData;
     memset(&stPdpData, 0, sizeof(PdpData));
+
+#ifdef BOARD_HAVE_IFX7060
+    PdpNetworkPath * networkPath = (PdpNetworkPath *) malloc(sizeof(PdpNetworkPath));
+    networkPath->bTurnHSIOn = false;
+    networkPath->uiCID = uiCID;
+#endif
 
     if (NULL == pData)
     {
@@ -379,6 +394,10 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n", stPdpData.szPassword);
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n", stPdpData.szPAPCHAP);
 
+#ifdef BOARD_HAVE_IFX7060
+    networkPath->bTurnHSIOn = isHSIModeAPN(stPdpData.szRILDataProfile);
+    RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - networkPath->bTurnHSIOn=[%d]\r\n", networkPath->bTurnHSIOn);
+#endif
 
     if (RIL_VERSION >= 4 && (uiDataSize >= (7 * sizeof(char*))))
     {
@@ -438,6 +457,40 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         goto Error;
     }
 
+#ifdef BOARD_HAVE_IFX7060
+    if (!networkPath->bTurnHSIOn && !PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() -  cannot create CGDATA command\r\n");
+        goto Error;
+    }
+
+    if (networkPath->bTurnHSIOn)
+    {
+        int iHSIChannnel = CChannel_Data::GetFreeHSIChnl(uiCID);
+        networkPath->uiHSIChannel =  iHSIChannnel;
+        if (iHSIChannnel < 0)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - No free HSI Channel \r\n");
+            goto Error;
+        }
+
+        CChannel_Data * cdDataChannel = CChannel_Data::GetChnlFromContextID(uiCID);
+        if (!cdDataChannel)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() -  no data channel CGDATA command\r\n");
+            goto Error;
+        }
+
+        int DLC =  cdDataChannel->GetDLCID();
+
+        if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/3\",\"/mipi_ipc/%d\",0;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, networkPath->uiHSIChannel+2, uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() -  cannot create CGDATA command\r\n");
+            goto Error;
+        }
+    }
+
+#else
 
     if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
     {
@@ -445,9 +498,14 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         goto Error;
     }
 
-    //  Store the potential uiCID in the pContext
-    rReqData.pContextData = (void*)uiCID;
+#endif
 
+    //  Store the potential uiCID in the pContext
+#ifdef BOARD_HAVE_IFX7060
+    rReqData.pContextData = (void*)networkPath;
+#else
+    rReqData.pContextData = (void*)uiCID;
+#endif
     res = RRIL_RESULT_OK;
 
 Error:
@@ -464,7 +522,9 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     char szIP[PROPERTY_VALUE_MAX] = {0};
     P_ND_SETUP_DATA_CALL pDataCallRsp = NULL;
-
+#ifdef BOARD_HAVE_IFX7060
+    PdpNetworkPath * networkPath = (PdpNetworkPath *) rRspData.pContextData;
+#endif
     /*
      * For RAW IP, when we get the CONNECT response to AT+CGDATA, we then need
      * to send AT+CGPADDR (or AT+CGDCONT?) to get the IP address which needs to
@@ -491,15 +551,32 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     CRepository repository;
     PDP_TYPE eDataConnectionType = PDP_TYPE_IPV4;  //  dummy for now, set to IPv4.
 
+#ifdef BOARD_HAVE_IFX7060
+    int networkInterfaceID = 0;
+#endif
     // 1st confirm we got "CONNECT"
     const char* szRsp = rRspData.szResponse;
 
+#ifdef BOARD_HAVE_IFX7060
+    if (!networkPath->bTurnHSIOn && !FindAndSkipString(szRsp, "CONNECT", szRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() -  Did not get \"CONNECT\" response.\r\n");
+        goto Error;
+    }
+
+    if (networkPath->bTurnHSIOn && !FindAndSkipString(szRsp, "OK", szRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() -  Did not get \"OK\" response.\r\n");
+        goto Error;
+    }
+#else
     if (!FindAndSkipString(szRsp, "CONNECT", szRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Did not get \"CONNECT\" response.\r\n");
         goto Error;
     }
 
+#endif
     pChannelData = CChannel_Data::GetChnlFromRilChannelNumber(rRspData.uiChannel);
     if (!pChannelData)
     {
@@ -508,7 +585,11 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
 
     //  Set CID
+#ifdef BOARD_HAVE_IFX7060
+    nCID = (UINT32)networkPath->uiCID;
+#else
     nCID = (UINT32)rRspData.pContextData;
+#endif
     if (nCID == 0)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - CID must be >= 1!! CID=[%d]\r\n", nCID);
@@ -527,7 +608,29 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     //  Populate pDataCallRsp
     pDataCallRsp->sPDPData.cid = nCID;
+
+#ifdef BOARD_HAVE_IFX7060
+ /*rmnet0 HSI
+           1 HSI
+           2 HSI
+             MUX
+ */
+
+    if (!networkPath->bTurnHSIOn)
+    {
+        networkInterfaceID = nCID+3;
+    }
+    else
+    {
+        networkInterfaceID = networkPath->uiHSIChannel;
+    }
+
+    if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, networkInterfaceID))
+#else
     if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, nCID-1))
+#endif
+
+
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot set network interface name\r\n");
         goto Error;
@@ -549,7 +652,10 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     strncpy(pChannelData->m_szInterfaceName, pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE-1);
     pChannelData->m_szInterfaceName[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
 
-
+#ifdef BOARD_HAVE_IFX7060
+    if (!networkPath->bTurnHSIOn)
+    {
+#endif
     // N_GSM related code
     netconfig.adaption = 3;
     netconfig.protocol = htons(ETH_P_IP);
@@ -573,7 +679,9 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Could not get Data Channel chnl=[%d] fd=[%d].\r\n", rRspData.uiChannel, fd);
         goto Error;
     }
-
+#ifdef BOARD_HAVE_IFX7060
+    }
+#endif
 
     // Send AT+CGPADDR and AT+XDNS? commands to query for assigned IP Address and DNS and wait for responses
 
@@ -752,6 +860,9 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     res = RRIL_RESULT_OK;
 
 Error:
+#ifdef BOARD_HAVE_IFX7060
+    free(networkPath);
+#endif
     if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Error cleanup\r\n");
@@ -1333,8 +1444,16 @@ BOOL DataConfigDown(int nCID)
 
     // Reset ContextID to 0, to free up the channel for future use
     RIL_LOG_INFO("DataConfigDown() - ****** Setting chnl=[%d] to CID=[0] ******\r\n", pChannelData->GetRilChannel());
+
+#ifdef BOARD_HAVE_IFX7060
+    //TODO?:Find if it's HSI cid or not
+#endif
     pChannelData->SetContextID(0);
     fd = pChannelData->GetFD();
+#ifdef BOARD_HAVE_IFX7060
+    if (!CChannel_Data::FreeHSIChnl(nCID))
+    {
+#endif
 
     //  Put the channel back into AT command mode
     netconfig.adaption = 3;
@@ -1345,7 +1464,9 @@ BOOL DataConfigDown(int nCID)
         RIL_LOG_INFO("DataConfigDown() - ***** PUTTING channel=[%d] in AT COMMAND MODE *****\r\n", pChannelData->GetRilChannel());
         ret = ioctl( fd, GSMIOC_DISABLE_NET, &netconfig );
     }
-
+#ifdef BOARD_HAVE_IFX7060
+    }
+#endif
     bRet = TRUE;
 
 Error:
@@ -1646,7 +1767,9 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseDns() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
+#ifdef BOARD_HAVE_IFX7060
+    PdpNetworkPath * networkPath = (PdpNetworkPath *) rRspData.pContextData;
+#endif
     const char* szRsp = rRspData.szResponse;
     UINT32 nCid = 0, nXDNSCid = 0;
     UINT32  cbDns1 = 0;
@@ -1655,7 +1778,11 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
     const int MAX_IPADDR_SIZE = 100;
 
     //  Get Context ID from context data (passed in from ParseSetupDataCall)
+#ifdef BOARD_HAVE_IFX7060
+    nCid = (UINT32)networkPath->uiCID;
+#else
     nCid = (UINT32)rRspData.pContextData;
+#endif
     RIL_LOG_INFO("CTE_INF_6260::ParseDns() - looking for cid=[%d]\r\n", nCid);
 
     // Parse "+XDNS: "
@@ -2902,7 +3029,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
     if (sscanf(pszCid, "%d", &nCid) == EOF)
     {
         // Error
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() - ERROR: cannot convert %s to int\r\n", pszCid);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() -  cannot convert %s to int\r\n", pszCid);
         goto Error;
     }
 
