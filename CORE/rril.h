@@ -185,6 +185,14 @@ enum
 #define RRIL_CME_ERROR_NETWORK_PUK_REQUIRED                      41
 
 ///////////////////////////////////////////////////////////////////////////////
+// CEER Error code defines
+//
+#define RRIL_CEER_CAUSE_OPTION_NOT_SUPPORTED                    132
+#define RRIL_CEER_CAUSE_OPTION_NOT_SUBSCRIBED                   133
+#define RRIL_CEER_CAUSE_OPTION_TEMP_OUT_OF_ORDER                134
+#define RRIL_CEER_CAUSE_PDP_AUTHENTICATION_FAILURE              149
+
+///////////////////////////////////////////////////////////////////////////////
 // CMS Error code defines
 //
 #define RRIL_CMS_ERROR_OPERATION_NOT_ALLOWED        302

@@ -5287,6 +5287,25 @@ Error:
     return res;
 }
 
+UINT32 CTEBase::MapExtendedErrorCodeToRilCause(UINT32 uiCause)
+{
+    RIL_LOG_VERBOSE("CTEBase::MapExtendedErrorCodeToRilCause() - Enter\r\n");
+
+    switch (uiCause)
+    {
+        case RRIL_CEER_CAUSE_OPTION_NOT_SUPPORTED:
+            return PDP_FAIL_SERVICE_OPTION_NOT_SUPPORTED;
+        case RRIL_CEER_CAUSE_OPTION_NOT_SUBSCRIBED:
+            return PDP_FAIL_SERVICE_OPTION_NOT_SUBSCRIBED;
+        case RRIL_CEER_CAUSE_OPTION_TEMP_OUT_OF_ORDER:
+            return PDP_FAIL_SERVICE_OPTION_OUT_OF_ORDER;
+        case RRIL_CEER_CAUSE_PDP_AUTHENTICATION_FAILURE:
+            return PDP_FAIL_USER_AUTHENTICATION;
+        default:
+            return uiCause;
+    }
+}
+
 RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseLastDataCallFailCause() - Enter\r\n");
@@ -5309,7 +5328,7 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
     }
 
     //@TODO: cause code mapping needs to be revisited
-    *pCause= (int) uiCause;
+    *pCause = MapExtendedErrorCodeToRilCause(uiCause);
 
     rRspData.pData    = (void*) pCause;
     rRspData.uiDataSize   = sizeof(int*);

@@ -503,6 +503,7 @@ protected:
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
     BOOL ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause);
+    UINT32 MapExtendedErrorCodeToRilCause(UINT32 uiCause);
 
     typedef struct
     {

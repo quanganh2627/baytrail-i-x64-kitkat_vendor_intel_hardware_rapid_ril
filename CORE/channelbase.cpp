@@ -554,7 +554,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     if ((COM_BASIC_INIT_INDEX == eInitIndex) && (RIL_CHANNEL_ATCMD == m_uiRilChannel))
     {
         //These commands are not supported by 2230 modem
-        if (strncmp(g_szDualSim, "dsds_2230", 9) != 0)
+        if (!CSystemManager::GetInstance().IsDSDS_2230_Mode())
         {
             // Read Fast Dormancy Timers from repository
             //  Send command regardless of values in repository.

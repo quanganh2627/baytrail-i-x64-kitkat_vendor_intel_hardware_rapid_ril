@@ -644,52 +644,10 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     }
     else
     {
-
-        szStrExtract = strstr(rszPointer, "NW DEACT");
-
-        if (szStrExtract != NULL)
-        {
-            //  Now we need to get the CID from the notification
-            UINT32 nCID = 0;
-
-            //  Format is "NW DEACT "IP", "xx.xx.xx.xx",<cid>"
-            if (!FindAndSkipString(szStrExtract, ",", szStrExtract) ||
-                !FindAndSkipString(szStrExtract, ",", szStrExtract))
-            {
-                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Couldn't find 2 commas to find cid\r\n");
-            }
-            else
-            {
-                //  Should be at <cid> now.
-                if (!ExtractUInt32(szStrExtract, nCID, szStrExtract))
-                {
-                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Couldn't extract cid\r\n");
-                    //  Just trigger normal DataCallListChanged - Let Android process
-                    RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
-                    bRet = TRUE;
-                    goto Error;
-                }
-                else
-                {
-                    RIL_LOG_INFO("Silo_Network::ParseCGEV() - NE DEACT , extracted cid=[%d]\r\n", nCID);
-                }
-            }
-            if (nCID > 0)
-            {
-                //  Explicitly deactivate context ID = nCID
-                RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)nCID, 0, 0);
-            }
-            else
-            {
-                //  Just trigger normal DataCallListChanged - Let Android process
-                RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
-            }
-        }
-        else
-        {
-            //  Trigger data call list changed - Let Android process
-            RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
-        }
+        // For the NW DEACT case, Android will perform a DEACTIVATE
+        // DATA CALL itself, so no need for us to do it here.
+        // Simply trigger data call list changed and let Android process
+        RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
     }
 
     bRet = TRUE;

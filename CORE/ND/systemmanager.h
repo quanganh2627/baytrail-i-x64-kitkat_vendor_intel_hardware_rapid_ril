@@ -99,6 +99,8 @@ public:
     UINT32          GetLastCallFailedCauseID() const        { return m_uiLastCallFailedCauseID; };
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
+    // DSDS 2230 Mode
+    BOOL            IsDSDS_2230_Mode();
 
 private:
     // Framework Init Functions
@@ -130,8 +132,6 @@ private:
     static void*    StartModemInitializationThreadWrapper(void *pArg);
     void            StartModemInitializationThread();
 
-    // DSDS 2230 Mode
-    BOOL            IsDSDS_2230_Mode();
     BOOL            IsChannelUndefined(int channel);
 
 private:
