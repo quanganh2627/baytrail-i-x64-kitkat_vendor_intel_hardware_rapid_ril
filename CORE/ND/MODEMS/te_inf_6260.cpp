@@ -3457,10 +3457,117 @@ Error:
         pData = NULL;
     }
     RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Exit\r\n");
-    return RRIL_RESULT_OK;
+    return res;
 }
 
 
+//
+// RIL_REQUEST_OEM_HOOK_STRINGS 60
+//
+RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CoreHookStrings() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    char * pszRequest = NULL;
+    int nCommand = 0;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (uiDataSize < (1 * sizeof(char *)))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings() - uiDataSize=[%d]\r\n", uiDataSize);
+
+    pszRequest = ((char**)pData)[0];
+    if (pszRequest == NULL || '\0' == pszRequest[0])
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - pszRequest was NULL\r\n");
+        goto Error;
+    }
+
+     RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings() - pszRequest=[%s]\r\n", pszRequest);
+
+    //  Get command as int.
+    if (sscanf(pszRequest, "%d", &nCommand) == EOF)
+    {
+        // Error
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - cannot convert %s to int\r\n", pszRequest);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings(), nCommand: %d", nCommand);
+
+    switch(nCommand)
+    {
+    case RIL_OEM_HOOK_STRING_GET_ATR:
+        rReqData.pContextData = (void*)(UINT32)nCommand;
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XGATR\r"))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - ERROR: RIL_OEM_HOOK_STRINGS_GET_ATR - Can't construct szCmd1.\r\n");
+            goto Error;
+        }
+        break;
+
+    default:
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - ERROR: Received unknown command=[0x%X]\r\n", nCommand);
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::CoreHookStrings() - Exit\r\n");
+    return res;
+}
+
+
+RIL_RESULT_CODE CTE_INF_6260::ParseHookStrings(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseHookStrings() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+    UINT32 uCommand = (UINT32)rRspData.pContextData;
+
+    if (NULL == pszRsp)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookStrings() - Response string is NULL!\r\n");
+        goto Error;
+    }
+
+    // Skip "<prefix>"
+    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookStrings() - Could not skip response prefix.\r\n");
+        goto Error;
+    }
+
+    switch(uCommand)
+    {
+        case RIL_OEM_HOOK_STRING_GET_ATR:
+            res = ParseXGATR(pszRsp, rRspData);
+            break;
+
+        default:
+            break;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseHookStrings() - Exit\r\n");
+    return res;
+}
 
 
 //
@@ -4889,4 +4996,55 @@ RIL_RESULT_CODE CTE_INF_6260::ParseReportStkServiceRunning(RESPONSE_DATA & rRspD
     return res;
 }
 
+RIL_RESULT_CODE CTE_INF_6260::ParseXGATR(const char * pszRsp, RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseXGATR() - Enter\r\n");
 
+    P_ND_GET_ATR pResponse = NULL;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    pResponse = (P_ND_GET_ATR) malloc(sizeof(S_ND_GET_ATR));
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseXGATR() - Could not allocate memory for response");
+        goto Error;
+    }
+    memset(pResponse, 0, sizeof(S_ND_GET_ATR));
+
+    // Skip "+XGATR: "
+    if (!SkipString(pszRsp, "+XGATR: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseXGATR() - Could not skip \"+XGATR: \".\r\n");
+        goto Error;
+    }
+
+    if (!ExtractQuotedString(pszRsp, pResponse->szATR, sizeof( pResponse->szATR), pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseXGATR() - Could not extract ATR value.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_INF_6260::ParseXGATR() - szATR: %s\r\n", pResponse->szATR);
+
+    // Parse "<postfix>"
+    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    {
+        goto Error;
+    }
+
+    pResponse->sResponsePointer.pszATR = pResponse->szATR;
+
+    rRspData.pData   = (void*)pResponse;
+    rRspData.uiDataSize  = sizeof(S_ND_GET_ATR_POINTER);
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseXGATR() - Exit\r\n");
+    return res;
+}

@@ -139,6 +139,19 @@ const int OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY = 0x000000A4;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_GET_ATR
+//  Command ID = 0x000000A5
+//
+//  This command sends AT+XGATR to the modem.
+//
+//  "data" = NULL
+//  "response" = Answer to Reset
+//
+const int RIL_OEM_HOOK_STRING_GET_ATR = 0x000000A5;
+
+///////////////////////////////////////////////////////////////////////////////
+
 #if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
 
 typedef struct TAG_OEM_HOOK_RAW_SET_ACTIVE_SIM

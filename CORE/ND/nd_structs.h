@@ -232,4 +232,17 @@ typedef struct
     int nTotal;
 } S_ND_SIM_SMS_STORAGE, *P_ND_SIM_SMS_STORAGE;
 
+const UINT32 MAX_ATR_SIZE = 80;
+
+typedef struct
+{
+    char* pszATR;
+} S_ND_GET_ATR_POINTER, *P_ND_GET_ATR_POINTER;
+
+typedef struct
+{
+    S_ND_GET_ATR_POINTER sResponsePointer;
+    char szATR[MAX_ATR_SIZE];
+} S_ND_GET_ATR, *P_ND_GET_ATR;
+
 #endif
