@@ -1,6 +1,108 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+March 7, 2012 (updated M6.12 release for Medfield PR3)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR3 devices, Android version 4.0.3 (Ice Cream Sandwich).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ICS ABSP dated February 3, 2012 (ww5).
+- We are using the HSI interface.
+
+PR3 Setup
+=========
+FW DnX: SIGNED_PNW_C0_D0_FWR_DnX.FD.24.bin (from ww5 PR31 release)
+IFWI: IFWI_v02.16_CRAK.bin (from ww5 PR31 release)
+OS DnX: SIGNED_PNW_C0_OSR_DnX.0D.37.bin (from ww5 PR31 release)
+OS Image: kboot.bin (from ww5 PR31 release)
+Modem Firmware: radio_firmware.bin (from ww5 PR31 release - 1150.F)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch mfld_pr2-eng
+make mfld_pr2 -j2
+
+
+Release Notes for updated M6.12
+===============================
+
+1. Bugzilla 23691: Add support for getting SIM card's ATR
+   -Integrate patch 36988 (set 6)
+
+
+Testing results:  (tested on Medfield PR3)
+================
+
+NOTE: Due to problems with the two PR3 devices we have, we are unable to
+      run the basic smoke tests we normally run before shipping this release.
+      Please perform some smoke tests on this release and report any problems.
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+March 6, 2012 (M6.12 release for Medfield PR3)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR3 devices, Android version 4.0.3 (Ice Cream Sandwich).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ICS ABSP dated February 3, 2012 (ww5).
+- We are using the HSI interface.
+
+PR3 Setup
+=========
+FW DnX: SIGNED_PNW_C0_D0_FWR_DnX.FD.24.bin (from ww5 PR31 release)
+IFWI: IFWI_v02.16_CRAK.bin (from ww5 PR31 release)
+OS DnX: SIGNED_PNW_C0_OSR_DnX.0D.37.bin (from ww5 PR31 release)
+OS Image: kboot.bin (from ww5 PR31 release)
+Modem Firmware: radio_firmware.bin (from ww5 PR31 release - 1150.F)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch mfld_pr2-eng
+make mfld_pr2 -j2
+
+
+Release Notes for M6.12
+=======================
+
+1. Bugzilla 24624: Add +XACT for setting preferred network type
+   -Integrate patch 36116 (set 8) (Gilligan's Island)
+
+2. Bugzilla 21919: RRIL Change for eDLP data path
+   -Integrate patch 36033 (set 9) (Gillian's Island)
+
+3. Bugzilla 23095: Klocwork errors in RRIL
+   -Fix Klocwork error in /UTIL/ND/rillog.cpp (line 33) related to
+    strncpy (function 'strncopy' may incorrectly check buffer
+    boundaries).
+
+4. Bugzilla 24439: Fix potential race condition in CEvent class
+   due to non-atomic operations in the wait and signal functions.
+
+5. Bugzilla 26109: Fast dormancy timer initialization
+   -Fix incorrect repository variable name when reading SCRITimer
+    value from repository.
+
+
+Testing results:  (tested on Medfield PR3)
+================
+
+NOTE: Due to problems with the two PR3 devices we have, we are unable to
+      run the basic smoke tests we normally run before shipping this release.
+      Please perform some smoke tests on this release and report any problems.
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 February 28, 2012 (M6.11 release for Medfield PR3)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
@@ -138,10 +240,6 @@ Testing results:  (tested on Medfield PR3)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-Intrinsyc RapidRIL for Google Android Release Notes
-===================================================
 
 February 22, 2012 (updated M6.10 release for Medfield PR3)
 

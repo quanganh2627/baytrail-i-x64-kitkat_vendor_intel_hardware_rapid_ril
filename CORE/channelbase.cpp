@@ -564,7 +564,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             {
                 nFDDelayTimer = FDDELAYTIMER_DEFAULT;
             }
-            if (!repository.Read(g_szGroupModem, g_szFDDelayTimer, nSCRITimer))
+            if (!repository.Read(g_szGroupModem, g_szSCRITimer, nSCRITimer))
             {
                 nSCRITimer = SCRITIMER_DEFAULT;
             }

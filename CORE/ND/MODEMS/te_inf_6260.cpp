@@ -629,8 +629,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 #else
     if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, nCID-1))
 #endif
-
-
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot set network interface name\r\n");
         goto Error;
@@ -3587,7 +3585,6 @@ Error:
     return res;
 }
 
-
 //
 // RIL_REQUEST_OEM_HOOK_STRINGS 60
 //
@@ -3625,7 +3622,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA & rReqData, void * pD
         goto Error;
     }
 
-     RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings() - pszRequest=[%s]\r\n", pszRequest);
+    RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings() - pszRequest=[%s]\r\n", pszRequest);
 
     //  Get command as int.
     if (sscanf(pszRequest, "%d", &nCommand) == EOF)
@@ -3658,7 +3655,6 @@ Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreHookStrings() - Exit\r\n");
     return res;
 }
-
 
 RIL_RESULT_CODE CTE_INF_6260::ParseHookStrings(RESPONSE_DATA & rRspData)
 {
@@ -3695,7 +3691,6 @@ Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseHookStrings() - Exit\r\n");
     return res;
 }
-
 
 //
 // RIL_REQUEST_SET_BAND_MODE 65
@@ -4485,7 +4480,6 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 #endif
     //  Set the context of this command to the network type we're attempting to set
     rReqData.pContextData = (void*)networkType;  // Store this as an int.
-
 
     res = RRIL_RESULT_OK;
 

@@ -373,15 +373,11 @@ BOOL CEvent::Signal(void)
 {
     EnterMutex();
 
+    m_fSignaled = TRUE;
+
     pthread_cond_broadcast(&m_EventCond);
 
     BOOL fHandled = SignalMultipleEventObject();
-
-    // If no one is waiting for this signal or the event is manual reset, keep it set to TRUE
-    if (m_fManual || !fHandled)
-    {
-        m_fSignaled = TRUE;
-    }
 
     LeaveMutex();
 
@@ -497,7 +493,6 @@ UINT32 CEvent::Wait(CEvent * pEvent, UINT32 uiTimeoutInMS)
 UINT32 CEvent::WaitForAnyEvent(UINT32 nEvents, CEvent ** rgpEvents, UINT32 uiTimeoutInMS)
 {
     CMultipleEvent* pMultipleEvents = new CMultipleEvent(nEvents);
-    BOOL fHaveAtLeastOne = FALSE;
     UINT32 uiRet = WAIT_TIMEDOUT;
 
     // load the events into the MultipleEvent object
@@ -507,19 +502,17 @@ UINT32 CEvent::WaitForAnyEvent(UINT32 nEvents, CEvent ** rgpEvents, UINT32 uiTim
 
         if (pEvent != NULL)
         {
+            // synchronize with CEvent::Signal()
+            pEvent->EnterMutex();
+
             pMultipleEvents->AddEvent(index, pEvent);
 
-            if (rgpEvents[index]->m_fSignaled && !fHaveAtLeastOne)
+            if(pEvent->m_fSignaled)
             {
-                // set uiRet and update status as required
-                uiRet = index;
-                fHaveAtLeastOne = TRUE;
-
-                if (!rgpEvents[index]->m_fManual)
-                {
-                    rgpEvents[index]->Reset();
-                }
+                pMultipleEvents->Update(index);
             }
+
+            pEvent->LeaveMutex();
         }
         else
         {
@@ -527,9 +520,12 @@ UINT32 CEvent::WaitForAnyEvent(UINT32 nEvents, CEvent ** rgpEvents, UINT32 uiTim
         }
     }
 
-    if (!fHaveAtLeastOne)
+    uiRet = pMultipleEvents->Wait(uiTimeoutInMS);
+
+    // Reset non-manual reset event after a successful wait, if any.
+    if(uiRet < nEvents && !rgpEvents[uiRet]->m_fManual)
     {
-        uiRet = pMultipleEvents->Wait(uiTimeoutInMS);
+        Reset(rgpEvents[uiRet]);
     }
 
     for (UINT32 index = 0; index < nEvents; index++)
@@ -616,6 +612,10 @@ BOOL CMultipleEvent::Update(int iEventIndex)
 {
     BOOL fHandled = FALSE;
 
+    // synchronize with the wait() function to make update() and wait()
+    // both atomic operations
+    EnterMutex();
+
     if (!m_fSignaled)
     {
         m_nLastSignaledEvent = iEventIndex;
@@ -625,6 +625,7 @@ BOOL CMultipleEvent::Update(int iEventIndex)
         pthread_cond_signal(&m_MultipleEventCond);
     }
 
+    LeaveMutex();
     return fHandled;
 }
 
@@ -665,6 +666,9 @@ int CMultipleEvent::Wait(UINT32 uiTimeout)
             }
         }
     }
+
+    // CMultipleEvent is always auto-reset after wait()
+    m_fSignaled = FALSE;
 
     if (rc == ETIMEDOUT)
     {

@@ -30,11 +30,14 @@ void CRilLog::Init(char * szSIMID)
     if (szSIMID != NULL)
     {
         LOG(LOG_ERROR, "RILR", "SIM ID value : %s", szSIMID);
-        strncpy(m_szSIMID, szSIMID, SIMID_MAX_LENGTH);
+        strncpy(m_szSIMID, szSIMID, sizeof(m_szSIMID)-1);
+        m_szSIMID[sizeof(m_szSIMID)-1] = '\0';
     }
     else
     {
-        strncpy(m_szSIMID, SIMID_DEFAULT_VALUE, SIMID_MAX_LENGTH);
+        const char szSimIdDef[] = SIMID_DEFAULT_VALUE;
+        strncpy(m_szSIMID, szSimIdDef, sizeof(m_szSIMID)-1);
+        m_szSIMID[sizeof(m_szSIMID)-1] = '\0';
     }
 
     /*

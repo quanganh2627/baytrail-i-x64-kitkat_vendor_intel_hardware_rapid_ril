@@ -20,7 +20,7 @@
 
 /**
  * This enum details the additional requests (OEM) to pass to the RIL
- * via the RIL_REQUEST_OEM_HOOK_RAW API
+ * via the RIL_REQUEST_OEM_HOOK_RAW, RIL_REQUEST_OEM_HOOK_STRINGS APIs.
  */
 
 //  The first int (4 bytes) of the byte[] is the command ID.  The data follows.

@@ -227,19 +227,6 @@ typedef struct
     char szMessage[MAX_BUFFER_SIZE];
 } S_ND_USSD_STATUS, *P_ND_USSD_STATUS;
 
-enum PDP_TYPE
-{
-    PDP_TYPE_IPV4,
-    PDP_TYPE_IPV6,
-    PDP_TYPE_IPV4V6,
-};
-
-typedef struct
-{
-    int nUsed;
-    int nTotal;
-} S_ND_SIM_SMS_STORAGE, *P_ND_SIM_SMS_STORAGE;
-
 const UINT32 MAX_ATR_SIZE = 80;
 
 typedef struct
@@ -252,5 +239,18 @@ typedef struct
     S_ND_GET_ATR_POINTER sResponsePointer;
     char szATR[MAX_ATR_SIZE];
 } S_ND_GET_ATR, *P_ND_GET_ATR;
+
+enum PDP_TYPE
+{
+    PDP_TYPE_IPV4,
+    PDP_TYPE_IPV6,
+    PDP_TYPE_IPV4V6,
+};
+
+typedef struct
+{
+    int nUsed;
+    int nTotal;
+} S_ND_SIM_SMS_STORAGE, *P_ND_SIM_SMS_STORAGE;
 
 #endif
