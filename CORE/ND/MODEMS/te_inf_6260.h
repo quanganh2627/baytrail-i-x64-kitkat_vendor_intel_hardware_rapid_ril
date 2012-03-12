@@ -71,8 +71,8 @@ public:
     virtual RIL_RESULT_CODE ParseHookRaw(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_OEM_HOOK_STRINGS 60
-    virtual RIL_RESULT_CODE CoreHookStrings(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseHookStrings(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreHookStrings(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseHookStrings(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SET_BAND_MODE 65
     virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
@@ -136,7 +136,14 @@ public:
     virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
 
 private:
-    RIL_RESULT_CODE ParseXGATR(const char * pszRsp, RESPONSE_DATA & rRspData);
+    RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
+                                                    const char** pszRequest,
+                                                    const UINT32 uiDataSize);
+    RIL_RESULT_CODE CreateActivateThermalSensorInd(REQUEST_DATA& rReqData,
+                                                    const char** pszRequest,
+                                                    const UINT32 uiDataSize);
+    RIL_RESULT_CODE ParseXGATR(const char* pszRsp, RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseXDRV(const char* pszRsp, RESPONSE_DATA& rRspData);
 };
 
 //  Call these functions to set up data and bring down data.

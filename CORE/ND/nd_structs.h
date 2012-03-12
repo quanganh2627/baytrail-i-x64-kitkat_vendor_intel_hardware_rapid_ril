@@ -253,4 +253,20 @@ typedef struct
     int nTotal;
 } S_ND_SIM_SMS_STORAGE, *P_ND_SIM_SMS_STORAGE;
 
+const UINT32 MAX_TEMP_SIZE = 50;
+
+//
+// Structs for getting the available operator list to Android
+//
+typedef struct
+{
+    char* pszTemperature;
+}  S_ND_THERMAL_SENSOR_VALUE_PTR, *P_ND_THERMAL_SENSOR_VALUE_PTR;
+
+typedef struct
+{
+    S_ND_THERMAL_SENSOR_VALUE_PTR sResponsePointer;
+    char pszTemperature[MAX_TEMP_SIZE];
+} S_ND_THERMAL_SENSOR_VALUE, *P_ND_THERMAL_SENSOR_VALUE;
+
 #endif

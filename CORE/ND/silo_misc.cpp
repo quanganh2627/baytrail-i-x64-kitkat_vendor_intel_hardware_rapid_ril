@@ -138,9 +138,7 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse * const pResponse, const char*& rszPointer
     }
     memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND));
 
-    pszData[pos] = RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND;
-    pos++;
-    convertIntToByteArrayAt(pszData, nXdrvResult, pos);
+    convertIntToByteArrayAt(pszData, RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND, pos);
     pos += sizeof(int);
     convertIntToByteArrayAt(pszData, nSensorId, pos);
     pos += sizeof(int);

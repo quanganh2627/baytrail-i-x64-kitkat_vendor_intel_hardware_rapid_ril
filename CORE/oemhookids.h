@@ -46,41 +46,43 @@ typedef struct TAG_OEM_HOOK_RAW_GAN_RIL
 const int RIL_OEM_HOOK_RAW_GAN_RIL = 0x00000001;
 
 ///////////////////////////////////////////////////////////////////////////////
-
-typedef struct TAG_OEM_HOOK_RAW_THERMAL_GET_SENSOR
-{
-    int nCommand; //  Command ID
-    int nSensorId; // sensor id
-} sOEM_HOOK_RAW_THERMAL_GET_SENSOR;
-
 //
-//  TAG_OEM_HOOK_RAW_THERMAL_GET_SENSOR
+//  RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR
 //  Command ID = 0x000000A2
 //
-//  "data" = sOEM_HOOK_RAW_GET_SENSOR_VALUE
-//  "response" = NULL
+// "data" - Sensor Id
+//              “0” = RF temperature sensor.
+//              “1” = Baseband chip temperature sensor.
+//              “3” = PCB temperature sensor.
+// "response" - String containg the temperatures separated by space
+//              "Filtered temperature Raw Temperature". Both temperature
+//              are formated as a 4 digits number: "2300" = 23.00 celcius
+//              degrees  (two digits after dot).
 //
-const int RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR = 0x000000A2;
+const int RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR = 0x000000A2;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct TAG_OEM_HOOK_RAW_SET_SENSOR_THRESHOLD
-{
-    int nCommand; //  Command ID
-    int nEnable; // enable=1 or disable=0
-    int nSensorId; // sensor id
-    int nMinThreshold; // min Threshold
-    int nMaxThreshold; // max Threshold
-} sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD;
-
 //
-//  TAG_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD
+//  TAG_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD
 //  Command ID = 0x000000A3
 //
-//  "data" = sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD
+// "data" - String containing the following values separated by a space
+//          boolean activate
+//                    true - Activates the threshold notification
+//                    false - Deactivates the threshold notification
+//          int sensorId
+//                    “0” = RF temperature sensor.
+//                    “1” = Baseband chip temperature sensor.
+//                    “3” = PCB temperature sensor.
+//          int minTemperature
+//                    Temperature formated as a 4 digit number.
+//                    "2300" = 23.00 celcius degrees  (two digits after dot)
+//          int maxTemperature: Same as minTemperature
+//
 //  "response" = NULL
 //
-const int RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD = 0x000000A3;
+const int RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD = 0x000000A3;
 
 ///////////////////////////////////////////////////////////////////////////////
 

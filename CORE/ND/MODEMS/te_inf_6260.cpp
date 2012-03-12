@@ -3197,73 +3197,6 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
         }
         break;
 
-        case RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR:
-        {
-            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR Command=[0x%08X] received OK\r\n", nCommand);
-
-            //  Cast our data into our structure
-            if (uiDataSize == sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR))
-            {
-                sOEM_HOOK_RAW_THERMAL_GET_SENSOR sTGS;
-                memset(&sTGS, 0, sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR));
-                memcpy(&sTGS, pDataBytes, sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR));
-
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - nSensorId=[%d]\r\n", ntohl(sTGS.nSensorId));
-
-                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,9,%u\r", ntohl(sTGS.nSensorId)))
-                {
-                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR - Can't construct szCmd1.\r\n");
-                    goto Error;
-                }
-
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_THERMAL_GET_SENSOR=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_THERMAL_GET_SENSOR));
-                goto Error;
-            }
-        }
-        break;
-
-        case RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD:
-        {
-            RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD Command=[0x%08X] received OK\r\n", nCommand);
-
-            //  Cast our data into our structure
-            if (uiDataSize == sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD))
-            {
-                sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD sTST;
-                memset(&sTST, 0, sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD));
-                memcpy(&sTST, pDataBytes, sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD));
-
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - enable=[%d]\r\n", ntohl(sTST.nEnable));
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - sensor Id=[%d]\r\n", ntohl(sTST.nSensorId));
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - Low Threshold=[%d]\r\n", ntohl(sTST.nMinThreshold));
-                RIL_LOG_INFO("TE_INF_6260::CoreHookRaw() - Max Threshold=[%d]\r\n", ntohl(sTST.nMaxThreshold));
-
-                if (sTST.nEnable)
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,14,%u,%d,%d\r", ntohl(sTST.nSensorId), ntohl(sTST.nMinThreshold), ntohl(sTST.nMaxThreshold)))
-                    {
-                        RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD - Can't construct szCmd1.\r\n");
-                        goto Error;
-                    }
-                }
-                else if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,14,%u\r", ntohl(sTST.nSensorId)))
-                {
-                    RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD - Can't construct szCmd1.\r\n");
-                    goto Error;
-                }
-
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("TE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_THERMAL_SET_THRESHOLD));
-                goto Error;
-            }
-        }
-        break;
-
 #if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
 
         case RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM:
@@ -3355,137 +3288,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 
     switch(nCommand)
     {
-        case RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR:
-        {
-            unsigned char *pbData = NULL;
-            UINT32 nIpcChrGrp;
-            UINT32 nIpcChrTempGet;
-            UINT32 nXdrvResult;
-            UINT32 nTempSensorId;
-            UINT32 nFilteredTemp;
-            UINT32 nRawTemp;
-
-            // Parse prefix
-            if (!FindAndSkipString(szRsp, "+XDRV: ", szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse \"+XDRV\" prefix.!\r\n");
-                goto Error;
-            }
-
-            // Parse <IPC_CHR_GRP>
-            if (!ExtractUInt32(szRsp, nIpcChrGrp, szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <IPC_CHR_GRP>!\r\n");
-                goto Error;
-            }
-
-            // Parse <IPC_CHR_TEMP_GET>
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractUInt32(szRsp, nIpcChrTempGet, szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <IPC_CHR_TEMP_GET>!\r\n");
-                goto Error;
-            }
-
-            // Parse <xdrv_result>
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractUInt32(szRsp, nXdrvResult, szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <result>!\r\n");
-                goto Error;
-            }
-
-            // Parse <temp_sensor_id>
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractUInt32(szRsp, nTempSensorId, szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <temp_sensor_id>!\r\n");
-                goto Error;
-            }
-
-            // Parse <filtered_temp>
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractUInt32(szRsp, nFilteredTemp, szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <filtered_temp>!\r\n");
-                goto Error;
-            }
-
-            // Parse <raw_temp>
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractUInt32(szRsp, nRawTemp, szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <raw_temp>!\r\n");
-                goto Error;
-            }
-
-            RIL_LOG_INFO(" IPC_CHR_GRP: %u, IPC_CHR_TEMP_GET: %u, xdrv_result: %u\r\n", nIpcChrGrp, nIpcChrTempGet, nXdrvResult);
-            RIL_LOG_INFO(" temp_sensor_id: %u, filtered_temp: %u, raw_temp: %u\r\n", nTempSensorId, nFilteredTemp, nRawTemp);
-
-            // XDRV Result should be XDRV_RESULT_OK (0) otherwise this is an error
-            if (nXdrvResult) goto Error;
-
-            pbData = (unsigned char*)malloc(sizeof(int) * 2);
-            if (NULL == pbData)
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Could not allocate memory for response.\r\n");
-                goto Error;
-            }
-            memset(pbData, 0, sizeof(int) * 2);
-
-            convertIntToByteArray(pbData, nFilteredTemp);
-            convertIntToByteArrayAt(pbData, nRawTemp, sizeof(int));
-
-            pData  = (void*)pbData;
-            uiDataSize = sizeof(int) * 2;
-        }
-        break;
-
-        case RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD:
-        {
-            UINT32 nIpcChrGrp;
-            UINT32 nIpcChrTempThresholdSet;
-            UINT32 nXdrvResult;
-
-            // Parse prefix
-            if (!FindAndSkipString(szRsp, "+XDRV: ", szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse \"+XDRV\" prefix.!\r\n");
-                goto Error;
-            }
-
-            // Parse <IPC_CHR_GRP>
-            if (!ExtractUInt32(szRsp, nIpcChrGrp, szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <IPC_CHR_GRP>!\r\n");
-                goto Error;
-            }
-
-            // Parse <IPC_CHR_TEMP_THRESHOLD_SET>
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractUInt32(szRsp, nIpcChrTempThresholdSet, szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <IPC_CHR_TEMP_THRESHOLD_SET>!\r\n");
-                goto Error;
-            }
-
-            // Parse <xdrv_result>
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractUInt32(szRsp, nXdrvResult, szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - Unable to parse <result>!\r\n");
-                goto Error;
-            }
-
-            RIL_LOG_INFO(" IPC_CHR_GRP: %u, IPC_CHR_TEMP_THRESHOLD_SET: %u, xdrv_result: %u\r\n", nIpcChrGrp, nIpcChrTempThresholdSet, nXdrvResult);
-
-            // XDRV Result should be XDRV_RESULT_OK (0) otherwise this is an error
-            if (nXdrvResult) goto Error;
-
-        }
-        break;
-
-
 #if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
 
         case RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM:
@@ -3555,12 +3357,12 @@ Error:
 //
 // RIL_REQUEST_OEM_HOOK_STRINGS 60
 //
-RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreHookStrings() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    char * pszRequest = NULL;
-    int nCommand = 0;
+    char** pszRequest = NULL;
+    UINT32 uiCommand = 0;
 
     if (NULL == pData)
     {
@@ -3582,7 +3384,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA & rReqData, void * pD
 
     RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings() - uiDataSize=[%d]\r\n", uiDataSize);
 
-    pszRequest = ((char**)pData)[0];
+    pszRequest = ((char**)pData);
     if (pszRequest == NULL || '\0' == pszRequest[0])
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - pszRequest was NULL\r\n");
@@ -3592,32 +3394,47 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA & rReqData, void * pD
     RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings() - pszRequest=[%s]\r\n", pszRequest);
 
     //  Get command as int.
-    if (sscanf(pszRequest, "%d", &nCommand) == EOF)
+    if (sscanf(pszRequest[0], "%u", &uiCommand) == EOF)
     {
-        // Error
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - cannot convert %s to int\r\n", pszRequest);
         goto Error;
     }
 
-    RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings(), nCommand: %d", nCommand);
+    RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings(), uiCommand: %u", uiCommand);
 
-    switch(nCommand)
+    switch(uiCommand)
     {
-    case RIL_OEM_HOOK_STRING_GET_ATR:
-        rReqData.pContextData = (void*)(UINT32)nCommand;
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XGATR\r"))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - ERROR: RIL_OEM_HOOK_STRINGS_GET_ATR - Can't construct szCmd1.\r\n");
-            goto Error;
-        }
+        case RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR");
+            res = CreateGetThermalSensorValuesReq(rReqData, (const char**) pszRequest, uiDataSize);
         break;
 
-    default:
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - ERROR: Received unknown command=[0x%X]\r\n", nCommand);
+        case RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD\r\n");
+            res = CreateActivateThermalSensorInd(rReqData, (const char**) pszRequest, uiDataSize);
+        break;
+
+        case RIL_OEM_HOOK_STRING_GET_ATR:
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XGATR\r"))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - ERROR: RIL_OEM_HOOK_STRINGS_GET_ATR - Can't construct szCmd1.\r\n");
+                goto Error;
+            }
+            res = RRIL_RESULT_OK;
+        break;
+
+        default:
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - ERROR: Received unknown uiCommand=[0x%X]\r\n", uiCommand);
+            goto Error;
+    }
+
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() : Can't create OEM HOOK String request uiCommand: 0x%X", uiCommand);
         goto Error;
     }
 
-    res = RRIL_RESULT_OK;
+    rReqData.pContextData = (void*)uiCommand;
 Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreHookStrings() - Exit\r\n");
     return res;
@@ -3628,8 +3445,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookStrings(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseHookStrings() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
-    UINT32 uCommand = (UINT32)rRspData.pContextData;
+    const char* pszRsp = rRspData.szResponse;
+    UINT32 uiCommand = (UINT32)rRspData.pContextData;
 
     if (NULL == pszRsp)
     {
@@ -3644,13 +3461,19 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    switch(uCommand)
+    switch(uiCommand)
     {
         case RIL_OEM_HOOK_STRING_GET_ATR:
             res = ParseXGATR(pszRsp, rRspData);
             break;
 
+        case RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR:
+        case RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD:
+            res = ParseXDRV(pszRsp, rRspData);
+            break;
         default:
+            RIL_LOG_INFO("CTE_INF_6260::ParseHookStrings() - Parsing not implemented for uiCommand: %u\r\n",
+                         uiCommand);
             break;
     }
 
@@ -5096,7 +4919,111 @@ RIL_RESULT_CODE CTE_INF_6260::ParseReportStkServiceRunning(RESPONSE_DATA & rRspD
     return res;
 }
 
-RIL_RESULT_CODE CTE_INF_6260::ParseXGATR(const char * pszRsp, RESPONSE_DATA & rRspData)
+RIL_RESULT_CODE CTE_INF_6260::CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
+                                                    const char** pszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateGetThermalSensorValuesReq() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int sensorId;
+
+    if (pszRequest == NULL || '\0' == pszRequest[0])
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateGetThermalSensorValuesReq() - pszRequest was NULL\r\n");
+        goto Error;
+    }
+
+    if (uiDataSize < (2 * sizeof(char *)))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateGetThermalSensorValuesReq() : received_size < required_size\r\n");
+        goto Error;
+    }
+
+    if (sscanf(pszRequest[1], "%d", &sensorId) == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateGetThermalSensorReq() - cannot convert %s to int\r\n", pszRequest);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_INF_6260::CreateGetThermalSensorValuesReq() - sensorId=[%d]\r\n", sensorId);
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,9,%d\r", sensorId))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateGetThermalSensorValuesReq() - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateGetThermalSensorValuesReq() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_6260::CreateActivateThermalSensorInd(REQUEST_DATA& rReqData,
+                                                        const char** pszRequest,
+                                                        const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateActivateThermalSensorInd() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int sensorId = 0;
+    int minThersholdTemp = 0;
+    int maxThersholdTemp = 0;
+    char szActivate[10] = {0};
+    int noOfVariablesFilled = 0;
+    const int MAX_NUM_OF_INPUT_DATA = 4;
+
+    if (pszRequest == NULL || '\0' == pszRequest[0])
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateActivateThermalSensorInd() - pszRequest was NULL\r\n");
+        goto Error;
+    }
+
+    if (uiDataSize < (2 * sizeof(char *)))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateActivateThermalSensorInd() : received data size is not enough to process the request\r\n");
+        goto Error;
+    }
+
+    noOfVariablesFilled = sscanf(pszRequest[1], "%s %d %d %d", szActivate, &sensorId, &minThersholdTemp, &maxThersholdTemp);
+    if (noOfVariablesFilled < MAX_NUM_OF_INPUT_DATA || noOfVariablesFilled == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateActivateThermalSensorInd() - Issue with received input data: %d\r\n", noOfVariablesFilled);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_INF_6260::CreateActivateThermalSensorInd() - szActivate=[%s]\r\n", szActivate);
+    RIL_LOG_INFO("CTE_INF_6260::CreateActivateThermalSensorInd() - sensor Id=[%d]\r\n", sensorId);
+    RIL_LOG_INFO("CTE_INF_6260::CreateActivateThermalSensorInd() - Low Threshold=[%d]\r\n", minThersholdTemp);
+    RIL_LOG_INFO("CTE_INF_6260::CreateActivateThermalSensorInd() - Max Threshold=[%d]\r\n", maxThersholdTemp );
+
+    /*
+     * For activating the thermal sensor threshold reached indication, threshold
+     * temperatures(minimum,maximum) needs to be sent as part of the set command.
+     */
+    if (strcmp(szActivate, "true") == 0)
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,14,%d,%d,%d\r",
+                                      sensorId, minThersholdTemp, maxThersholdTemp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CreateActivateThermalSensorInd() - Can't construct szCmd1.\r\n");
+            goto Error;
+        }
+    }
+    else
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,14,%d\r", sensorId))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CreateActivateThermalSensorInd() - Can't construct szCmd1.\r\n");
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateActivateThermalSensorInd() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_6260::ParseXGATR(const char* pszRsp, RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseXGATR() - Enter\r\n");
 
@@ -5146,5 +5073,110 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseXGATR() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_6260::ParseXDRV(const char* pszRsp, RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseXDRV() - Enter\r\n");
+    UINT32 uiIpcChrGrp;
+    UINT32 uiIpcChrTempGet;
+    UINT32 uiXdrvResult;
+    UINT32 uiTempSensorId;
+    UINT32 uiFilteredTemp;
+    UINT32 uiRawTemp;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const UINT32 GET_THERMAL_SENSOR = 9;
+    P_ND_THERMAL_SENSOR_VALUE pResponse = NULL;
+
+    // Parse prefix
+    if (!FindAndSkipString(pszRsp, "+XDRV: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseXDRV() - Unable to parse \"+XDRV\" prefix.!\r\n");
+        goto Error;
+    }
+
+    // Parse <IPC_CHR_GRP>
+    if (!ExtractUInt32(pszRsp, uiIpcChrGrp, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseXDRV() - Unable to parse <IPC_CHR_GRP>!\r\n");
+        goto Error;
+    }
+
+    // Parse <IPC_CHR_TEMP_GET>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, uiIpcChrTempGet, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseXDRV() - Unable to parse <IPC_CHR_TEMP_GET>!\r\n");
+        goto Error;
+    }
+
+    // Parse <xdrv_result>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, uiXdrvResult, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseXDRV() - Unable to parse <result>!\r\n");
+        goto Error;
+    }
+
+    // XDRV Result should be XDRV_RESULT_OK (0) otherwise this is an error
+    if (uiXdrvResult) goto Error;
+
+    if (GET_THERMAL_SENSOR == uiIpcChrTempGet)
+    {
+        // Parse <temp_sensor_id>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiTempSensorId, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseXDRV() - Unable to parse <temp_sensor_id>!\r\n");
+            goto Error;
+        }
+
+        // Parse <filtered_temp>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiFilteredTemp, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseXDRV() - Unable to parse <filtered_temp>!\r\n");
+            goto Error;
+        }
+
+        // Parse <raw_temp>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiRawTemp, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseXDRV() - Unable to parse <raw_temp>!\r\n");
+            goto Error;
+        }
+
+        pResponse = (P_ND_THERMAL_SENSOR_VALUE) malloc(sizeof(S_ND_THERMAL_SENSOR_VALUE));
+        if (NULL == pResponse)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseXDRV() - Could not allocate memory for response");
+            goto Error;
+        }
+        memset(pResponse, 0, sizeof(S_ND_THERMAL_SENSOR_VALUE));
+
+        RIL_LOG_INFO("IPC_CHR_GRP: %u, IPC_CHR_TEMP_GET: %u, xdrv_result: %u, temp_sensor_id: %u "
+                    "filtered_temp: %u, raw_temp: %u\r\n", uiIpcChrGrp, uiIpcChrTempGet,
+                    uiXdrvResult, uiTempSensorId, uiFilteredTemp, uiRawTemp);
+
+        snprintf(pResponse->pszTemperature, MAX_TEMP_SIZE, "%u %u", uiFilteredTemp, uiRawTemp);
+
+        pResponse->sResponsePointer.pszTemperature = pResponse->pszTemperature;
+
+        rRspData.pData   = (void*)pResponse;
+        rRspData.uiDataSize  = sizeof(S_ND_THERMAL_SENSOR_VALUE_PTR);
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseXDRV() - Exit\r\n");
     return res;
 }
