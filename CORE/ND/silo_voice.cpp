@@ -839,83 +839,23 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
         memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
         snprintf(pUssdStatus->szType, 2, "%u", uiStatus);
 
-        // Please see 3GPP 23.038 (section 5) CBS Data Coding Scheme
-        if ((nDCS >= 0x40) && (nDCS <= 0x5F))  // binary: 010xxxxx
+        // For more information on DCS bits, refer 3GPP TS 23.038 section 5
+        int codingGroupBits = nDCS >> 4;
+        if (codingGroupBits != 0x03 && codingGroupBits != 0x08 &&
+                (codingGroupBits < 0x0A || codingGroupBits > 0x0E))
         {
-            unsigned char charset = ( (nDCS >> 2) & 0x03 ); // take bit 2 and bit3
-            if (0x00 == charset)
-            {
-                // GSM 7-bit
-                //  TODO: Implement this (if necessary)
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - GSM 7-bit not supported!\r\n");
-                goto Error;
-            }
-            else if (0x01 == charset)
-            {
-                // 8-bit
-                //  TODO: Implement this (if necessary)
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - 8-bit not supported!\r\n");
-                goto Error;
-            }
-            else if (0x02 == charset)
-            {
-                // UCS2
-                RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - UCS2 encoding\r\n");
-                unsigned char* tmpUssdUcs2 = NULL;
-                char tmpUssdAscii[MAX_BUFFER_SIZE] = {0};
-                int lenUssdAscii = 0;
-
-                if (!CopyStringNullTerminate((char*)tmpUssdAscii, szDataString, MAX_BUFFER_SIZE))
-                {
-                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Cannot CopyStringNullTerminate szDataString to tmpUssdAscii\r\n");
-                    goto Error;
-                }
-
-                lenUssdAscii = strlen(tmpUssdAscii);
-                if ( (lenUssdAscii % 2) != 0)
-                {
-                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Illegal string from modem\r\n");
-                    goto Error;
-                }
-
-                tmpUssdUcs2 = new unsigned char[(lenUssdAscii/2)+2];
-                if (NULL == tmpUssdUcs2)
-                {
-                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Cannot allocate %d bytes for tmpUssdUcs2\r\n", lenUssdAscii/2+1);
-                    goto Error;
-                }
-                memset(tmpUssdUcs2, 0, ((lenUssdAscii/2)+2));
-
-                convertStrToHexBuf(tmpUssdAscii, &tmpUssdUcs2);
-
-                memset(pUssdStatus->szMessage, 0, sizeof(pUssdStatus->szMessage));
-                ucs2_to_utf8((unsigned char*)tmpUssdUcs2, lenUssdAscii/2, (unsigned char*)pUssdStatus->szMessage);
-
-                delete []tmpUssdUcs2;
-            }
-            else
-            {
-                // reserved value
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - reserved value not supported!\r\n");
-                goto Error;
-            }
-        }
-        else if (nDCS <= 0x0F)  // binary: 0000xxxx
-        {
-            //  default encoding, just copy string from response directly.
-            RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - default encoding\r\n");
-            if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE))
-            {
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Cannot CopyStringNullTerminate szDataString\r\n");
-                goto Error;
-            }
+            /*
+             * Note: Character set is set to UCS2. When changing the TE character set
+             * to anything other than UCS2, conversion functions needs to be added.
+             */
+            char* pUtf8Buffer = ConvertUCS2ToUTF8(szDataString, uiDataString - 1);
+            CopyStringNullTerminate(pUssdStatus->szMessage, pUtf8Buffer, MAX_BUFFER_SIZE);
+            delete[] pUtf8Buffer;
+            pUtf8Buffer = NULL;
         }
         else
         {
-            //  dcs not supported
-            //  TODO: Implement more dcs encodings
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - dcs value of [%d, 0x%02X] not supported\r\n", nDCS, nDCS);
-            goto Error;
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Unhandled codingGroupBits: 0x%x \r\n", codingGroupBits);
         }
 
         RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - %s\r\n", pUssdStatus->szMessage);

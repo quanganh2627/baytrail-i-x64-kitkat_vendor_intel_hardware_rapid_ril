@@ -69,13 +69,11 @@ struct CHARMAP {
 // Function declarations
 //
 
+// conversion functions
 BYTE SemiByteCharsToByte(const char chHigh, const char chLow);
 BOOL GSMHexToGSM(const char* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cbOut, UINT32& rcbUsed);
 BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, char* sOut, const UINT32 cbOut, UINT32& rcbUsed);
-
-// convert a ucs2 string into a utf8 byte string, assumes 'utf8' NULL or properly sized.
-// returns the number of utf8 bytes
-int      ucs2_to_utf8( const unsigned char*  ucs2, int  ucs2len, unsigned char*  utf8 );
+char* ConvertUCS2ToUTF8(const char* pHexBuffer, const UINT32 hexBufferLength);
 
 BOOL IsElementarySimFile(UINT32 dwFileID);
 

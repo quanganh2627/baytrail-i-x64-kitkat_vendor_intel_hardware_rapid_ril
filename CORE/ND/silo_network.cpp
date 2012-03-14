@@ -129,13 +129,16 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
     RIL_LOG_VERBOSE("CSilo_Network::ParseXNITZINFO() - Enter\r\n");
     const char* szDummy;
     BOOL fRet = FALSE;
-    const int NAME_SIZE = 50;
     const int TIME_ZONE_SIZE = 5;
     const int DATE_TIME_SIZE = 20;
-    char szFullName[NAME_SIZE] = {0};
-    char szShortName[NAME_SIZE] = {0};
     char szTimeZone[TIME_ZONE_SIZE] = {0};
     char szDateTime[DATE_TIME_SIZE] = {0};
+    char* pFullName = NULL;
+    UINT32 uiFullNameLength = 0;
+    char* pShortName = NULL;
+    UINT32 uiShortNameLength = 0;
+    char* pUtf8FullName = NULL;
+    char* pUtf8ShortName = NULL;
 
     UINT32 uiDst = 0;
     UINT32 uiHour, uiMins, uiSecs;
@@ -162,22 +165,26 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
     }
 
     //  Parse the "<fullname>",
-    if (!ExtractQuotedString(rszPointer, szFullName, NAME_SIZE, rszPointer) ||
+    if (!ExtractQuotedStringWithAllocatedMemory(rszPointer, pFullName, uiFullNameLength, rszPointer) ||
         !SkipString(rszPointer, ",", rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Could not extract the Full Format Operator Name.\r\n");
         goto Error;
     }
-    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Long oper: \"%s\"\r\n", szFullName);
+
+    pUtf8FullName = ConvertUCS2ToUTF8(pFullName, uiFullNameLength - 1);
+    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Long oper: \"%s\"\r\n", pUtf8FullName ? pUtf8FullName : "NULL");
 
     //  Parse the "<Shortname>"
-    if (!ExtractQuotedString(rszPointer, szShortName, NAME_SIZE, rszPointer) ||
+    if (!ExtractQuotedStringWithAllocatedMemory(rszPointer, pShortName, uiShortNameLength, rszPointer) ||
         !SkipString(rszPointer, ",", rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Could not extract the Short Format Operator Name.\r\n");
         goto Error;
     }
-    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Short oper: \"%s\"\r\n", szShortName);
+
+    pUtf8ShortName = ConvertUCS2ToUTF8(pShortName, uiShortNameLength - 1);
+    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Short oper: \"%s\"\r\n", pUtf8ShortName ? pUtf8ShortName: "NULL");
 
     //  Parse the <tz>,
     if (!ExtractQuotedString(rszPointer, szTimeZone, TIME_ZONE_SIZE, rszPointer) ||
@@ -339,7 +346,8 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
      * Completing RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED will result in
      * framework triggering the RIL_REQUEST_OPERATOR request.
      */
-    if (strlen(szFullName) || strlen(szShortName))
+    if ((NULL != pUtf8FullName && 0 < strlen(pUtf8FullName)) ||
+                                (NULL != pUtf8ShortName && 0 < strlen(pUtf8ShortName)))
     {
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
     }
@@ -351,6 +359,18 @@ Error:
         free(pszTimeData);
         pszTimeData = NULL;
     }
+
+    delete[] pUtf8FullName;
+    pUtf8FullName = NULL;
+
+    delete[] pUtf8ShortName;
+    pUtf8ShortName = NULL;
+
+    delete[] pFullName;
+    pFullName = NULL;
+
+    delete[] pShortName;
+    pShortName = NULL;
 
     RIL_LOG_VERBOSE("CSilo_Network::ParseXNITZINFO() - Exit\r\n");
     return fRet;

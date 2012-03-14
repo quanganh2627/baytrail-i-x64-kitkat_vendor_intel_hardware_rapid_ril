@@ -2801,7 +2801,8 @@ RIL_RESULT_CODE CTEBase::CoreSendUssd(REQUEST_DATA & rReqData, void * pData, UIN
     // extract data
     szUssdString = (char *)pData;
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CUSD=1,\"%s\"\r", szUssdString))
+    // @todo: DCS is not sent. Need to confirm that this is not causing any issues.
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CUSD=0,\"%s\"\r", szUssdString))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSendUssd() - cannot create CUSD command\r\n");
         goto Error;

@@ -402,32 +402,59 @@ UINT32 GetTickCount()
     return (t.tv_sec * 1000) + (t.tv_usec / 1000);
 }
 
-// Convert a C-string representing hexadecimal buffer ("4E2D...") to an hex buffer {0x4E, 0x2D}
-// inStr: string representing hexadecimals to convert
-// pOutHex: pointer to output buffer (size should be enough to contain the information)
-void convertStrToHexBuf(const char* inStr, unsigned char** pOutHexStr)
+char* ConvertUCS2ToUTF8(const char* pHexBuffer, const UINT32 hexBufferLength)
 {
-    unsigned int i;
-    unsigned int hex = 0;
-    unsigned int len = strlen(inStr)/2;
+    BYTE* pByteBuffer = NULL;
+    UINT32 byteBufferUsed = 0;
+    char *pUtf8Buffer = NULL;
+    int utf8Count = 0;
 
-    if (NULL == inStr)
+    if (NULL == pHexBuffer || 0 >= hexBufferLength)
     {
-        RIL_LOG_CRITICAL("convertStrToHexBuf() - inStr is NULL\r\n");
-        return;
+        RIL_LOG_INFO("ConvertUCS2ToUTF8 - Invalid argument\r\n");
+        return NULL;
     }
 
-    if (NULL == pOutHexStr || NULL == *pOutHexStr)
+    if (0 != hexBufferLength % 2)
     {
-        RIL_LOG_CRITICAL("convertStrToHexBuf() - pOutHexStr is NULL\r\n");
-        return;
+        RIL_LOG_CRITICAL("ConvertUCS2ToUTF8 - String was not a multiple of 2.\r\n");
+        return NULL;
     }
 
-    for(i=0; i<len; i++)
+    pByteBuffer = new BYTE[(hexBufferLength / 2) + 1];
+    if (NULL == pByteBuffer)
     {
-        sscanf(inStr + i*2, "%2x", &hex);
-        (*pOutHexStr)[i] = hex;
+        RIL_LOG_CRITICAL("ConvertUCS2ToUTF8 - Cannot allocate %d bytes for pByteBuffer\r\n", (hexBufferLength / 2) + 1);
+        goto Error;
     }
+    memset(pByteBuffer, 0, ((hexBufferLength / 2) + 1));
+
+    if (!GSMHexToGSM(pHexBuffer, hexBufferLength, pByteBuffer,
+                                (hexBufferLength / 2 ) + 1, byteBufferUsed))
+    {
+        RIL_LOG_CRITICAL("ConvertUCS2ToUTF8 - GSMHexToGSM conversion failed\r\n");
+        goto Error;
+    }
+
+    pByteBuffer[byteBufferUsed] = '\0';
+
+    utf8Count = ucs2_to_utf8(pByteBuffer, byteBufferUsed / 2, NULL);
+
+    pUtf8Buffer = new char[utf8Count + 1];
+    if (NULL == pUtf8Buffer)
+    {
+        RIL_LOG_CRITICAL("ConvertUCS2ToUTF8 - Cannot allocate %d bytes for pUtf8Buffer", utf8Count + 1);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("ConvertUCS2ToUTF8 - utf8Count: %d\r\n", utf8Count);
+    ucs2_to_utf8(pByteBuffer, byteBufferUsed / 2, (unsigned char*) pUtf8Buffer);
+
+    pUtf8Buffer[utf8Count] = '\0';
+
+Error:
+    delete[] pByteBuffer;
+    return pUtf8Buffer;
 }
 
 // convert an Integer into a byte array in Big Endian format
