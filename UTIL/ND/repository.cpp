@@ -216,8 +216,6 @@ const char   g_szRadioResetStartStmdDelay[]     = "RadioResetStartStmdDelay";
 const char   g_szEnableCellInfo[]               = "EnableCellInfo";
 const char   g_szRxDiversity3GEnable[]          = "RxDiversity3GEnable";
 const char   g_szRxDiversity2GDARP[]            = "RxDiversity2GDARP";
-const char   g_szFDDelayTimer[]                 = "FDDelayTimer";
-const char   g_szSCRITimer[]                    = "SCRITimer";
 const char   g_szFDMode[]                       = "FDMode";
 
 /////////////////////////////////////////////////

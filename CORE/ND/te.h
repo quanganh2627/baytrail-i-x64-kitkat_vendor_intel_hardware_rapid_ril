@@ -524,6 +524,10 @@ private:
     BOOL m_bPSStatusCached;
     S_ND_GPRS_REG_STATUS m_sPSStatus;
     S_ND_REG_STATUS m_sCSStatus;
+
+    const char* PrintRegistrationInfo(char *szRegInfo) const;
+    const char* PrintGPRSRegistrationInfo(char *szGPRSInfo) const;
+    const char* PrintRAT(char *szRAT) const;
 };
 
 #endif

@@ -72,14 +72,12 @@ public:
     BOOL            ClosePort();
     int             GetFD() { return m_Port.GetFD(); };
 
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
     const char *    GetFileName() { return m_Port.GetFileName(); };
+    UINT32          GetDlcId();
 #endif
     UINT32          GetRilChannel() const { return m_uiRilChannel; };
 
-#ifdef BOARD_HAVE_IFX7060
-    UINT32          GetDLCID();
-#endif
     //  Public framework functions
     void            ClearCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = FALSE; };
 

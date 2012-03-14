@@ -1350,7 +1350,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.12 for Android 4.0.3 (Build March 6/2012)";
+    return "Intrinsyc Rapid-RIL M6.13 for Android 4.0.3 (Build March 13/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1382,7 +1382,7 @@ static void* mainLoop(void *param)
         goto Error;
     }
 
-    RIL_LOG_INFO("mainLoop() - RIL Initialization completed successfully.\r\n");
+    RIL_LOG_INFO("[RIL STATE] RIL INIT COMPLETED\r\n");
 
 Error:
     if (!dwRet)

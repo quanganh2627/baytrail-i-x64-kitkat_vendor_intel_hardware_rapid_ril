@@ -460,13 +460,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     int nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
     BOOL bIgnoreDARPParam = FALSE;
 
-    //  Data for Fast Dormancy Timers
-    char szFDCmdString[MAX_BUFFER_SIZE] = {0};
-    const int FDDELAYTIMER_DEFAULT = 0;
-    const int SCRITIMER_DEFAULT = 0;
-    int nFDDelayTimer = FDDELAYTIMER_DEFAULT;
-    int nSCRITimer = SCRITIMER_DEFAULT;
-
     // Data for Fast Dormancy Mode
     char szFDModeString[MAX_BUFFER_SIZE] = {0};
 
@@ -525,8 +518,8 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 
         if (eInitIndex == COM_BASIC_INIT_INDEX && g_szSIMID != NULL)
         {
-            RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : Concat XSIM id=%s,  eInitIndex=[%d]r\n", g_szSIMID, eInitIndex);
-            PrintStringNullTerminate(szTemp, MAX_BUFFER_SIZE, "|+XSIM=%s", g_szSIMID);
+            RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : Concat XSIMSEL id=%s,  eInitIndex=[%d]r\n", g_szSIMID, eInitIndex);
+            PrintStringNullTerminate(szTemp, MAX_BUFFER_SIZE, "|+XSIMSEL=%s", g_szSIMID);
             ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp);
         }
     }
@@ -554,41 +547,12 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     if ((COM_BASIC_INIT_INDEX == eInitIndex) && (RIL_CHANNEL_ATCMD == m_uiRilChannel))
     {
 // These commands are not supported by IFX7060
-#ifndef BOARD_HAVE_IFX7060
+#if !defined(BOARD_HAVE_IFX7060)
         //These commands are not supported by 2230 modem
         if (!CSystemManager::GetInstance().IsDSDS_2230_Mode())
         {
-            // Read Fast Dormancy Timers from repository
-            //  Send command regardless of values in repository.
-            if (!repository.Read(g_szGroupModem, g_szFDDelayTimer, nFDDelayTimer))
-            {
-                nFDDelayTimer = FDDELAYTIMER_DEFAULT;
-            }
-            if (!repository.Read(g_szGroupModem, g_szSCRITimer, nSCRITimer))
-            {
-                nSCRITimer = SCRITIMER_DEFAULT;
-            }
-            if (!PrintStringNullTerminate(szFDCmdString,
-                                          sizeof(szFDCmdString),
-                                          "+XFDORT=%u,%u",
-                                          nFDDelayTimer, nSCRITimer))
-            {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
-                goto Done;
-            }
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
-            {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
-                goto Done;
-            }
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szFDCmdString))
-            {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szFDCmdString failed\r\n");
-                goto Done;
-            }
-
-            // if Modem Fast Dormancy mode is 3: "Always on"
-            if (3 == g_nFastDormancyMode)
+            // if Modem Fast Dormancy mode is "Always on"
+            if (E_FD_MODE_ALWAYS_ON == g_nFastDormancyMode)
             {
                 if (!CopyStringNullTerminate(szFDModeString, "+XFDOR=2\r", sizeof(szFDModeString)))
                 {
@@ -1027,23 +991,22 @@ BOOL CChannelBase::ClosePort()
     return m_Port.Close();
 }
 
-#ifdef BOARD_HAVE_IFX7060
-UINT32 CChannelBase::GetDLCID(){
+#if defined(BOARD_HAVE_IFX7060)
+UINT32 CChannelBase::GetDlcId(){
 
-    RIL_LOG_VERBOSE("CChannelBase::GetDLCID enter\r\n");
+    RIL_LOG_VERBOSE("CChannelBase::GetDlcId enter\r\n");
 
-    const char * name = GetFileName();
+    const char* name = GetFileName();
 
     if (strstr(name,"/dev/gsmtty"))
     {
         int DLC = atoi(&name[strlen("/dev/gsmtty")]);
-        RIL_LOG_INFO("CChannelBase::GetDLCID DLC=%d \r\n", DLC);
-        RIL_LOG_INFO("CChannelBase::GetDLCID exit\r\n");
+        RIL_LOG_VERBOSE("CChannelBase::GetDlcId exit, DLC=%d \r\n", DLC);
+        return DLC;
     }
 
-    RIL_LOG_CRITICAL("CChannelBase::GetDLCID Cannot find DLC ID\r\n");
-    RIL_LOG_INFO("CChannelBase::GetDLCID exit\r\n");
-    return 0;
+    RIL_LOG_CRITICAL("CChannelBase::GetDlcId exit, Cannot find DLC ID\r\n");
+    return -1;
 }
 #endif
 

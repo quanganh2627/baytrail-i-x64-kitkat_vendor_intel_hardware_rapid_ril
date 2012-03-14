@@ -28,7 +28,6 @@
 #include "oemhookids.h"
 #include "repository.h"
 #include "reset.h"
-#include "../../../../linux-2.6/include/linux/gsmmux.h"
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
 
@@ -40,6 +39,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
+#include <linux/gsmmux.h>
 
 #include <errno.h>
 
@@ -323,11 +323,11 @@ Error:
     return res;
 }
 
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
 //FIXME handle properly
-bool isHSIModeAPN(const char * szString)
+bool isHSIModeAPN(const char* szDataProfile)
 {
-    //return strstr(szString,"default") != 0;
+    //return strstr(szDataProfile,"default") != 0;
     return true;
 }
 #endif
@@ -358,8 +358,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     PdpData stPdpData;
     memset(&stPdpData, 0, sizeof(PdpData));
 
-#ifdef BOARD_HAVE_IFX7060
-    PdpNetworkPath * networkPath = (PdpNetworkPath *) malloc(sizeof(PdpNetworkPath));
+#if defined(BOARD_HAVE_IFX7060)
+    PdpNetworkPath* networkPath = (PdpNetworkPath *) malloc(sizeof(PdpNetworkPath));
     networkPath->bTurnHSIOn = false;
     networkPath->uiCID = uiCID;
 #endif
@@ -394,7 +394,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n", stPdpData.szPassword);
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n", stPdpData.szPAPCHAP);
 
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
     networkPath->bTurnHSIOn = isHSIModeAPN(stPdpData.szRILDataProfile);
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - networkPath->bTurnHSIOn=[%d]\r\n", networkPath->bTurnHSIOn);
 #endif
@@ -457,51 +457,55 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         goto Error;
     }
 
-#ifdef BOARD_HAVE_IFX7060
-    if (!networkPath->bTurnHSIOn && !PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
+#if defined(BOARD_HAVE_IFX7060)
+    if (!networkPath->bTurnHSIOn)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() -  cannot create CGDATA command\r\n");
-        goto Error;
+        if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2),
+            "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() -  cannot create CGDATA command\r\n");
+            goto Error;
+        }
     }
-
-    if (networkPath->bTurnHSIOn)
+    else
     {
-        int iHSIChannnel = CChannel_Data::GetFreeHSIChnl(uiCID);
-        networkPath->uiHSIChannel =  iHSIChannnel;
+        int iHSIChannnel = CChannel_Data::GetFreeHSIChannel(uiCID);
+        networkPath->uiHSIChannel = iHSIChannnel;
         if (iHSIChannnel < 0)
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - No free HSI Channel \r\n");
             goto Error;
         }
 
-        CChannel_Data * cdDataChannel = CChannel_Data::GetChnlFromContextID(uiCID);
+        CChannel_Data* cdDataChannel = CChannel_Data::GetChnlFromContextID(uiCID);
         if (!cdDataChannel)
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() -  no data channel CGDATA command\r\n");
             goto Error;
         }
 
-        int DLC =  cdDataChannel->GetDLCID();
+        //TODO: Not used. Should be used in place of hardcoded "/mux/3" below.
+        int DLC = cdDataChannel->GetDlcId();
 
-        if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/3\",\"/mipi_ipc/%d\",0;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, networkPath->uiHSIChannel+2, uiCID))
+        if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2),
+            "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/3\",\"/mipi_ipc/%d\",0;+CGDATA=\"M-RAW_IP\",%d\r",
+            uiCID, networkPath->uiHSIChannel+2, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() -  cannot create CGDATA command\r\n");
             goto Error;
         }
     }
-
 #else
-
-    if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
+    if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2),
+        "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - cannot create CGDATA command\r\n");
         goto Error;
     }
-
 #endif
 
     //  Store the potential uiCID in the pContext
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
     rReqData.pContextData = (void*)networkPath;
 #else
     rReqData.pContextData = (void*)uiCID;
@@ -522,8 +526,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     char szIP[PROPERTY_VALUE_MAX] = {0};
     P_ND_SETUP_DATA_CALL pDataCallRsp = NULL;
-#ifdef BOARD_HAVE_IFX7060
-    PdpNetworkPath * networkPath = (PdpNetworkPath *) rRspData.pContextData;
+#if defined(BOARD_HAVE_IFX7060)
+    PdpNetworkPath* networkPath = (PdpNetworkPath *) rRspData.pContextData;
 #endif
     /*
      * For RAW IP, when we get the CONNECT response to AT+CGDATA, we then need
@@ -551,23 +555,28 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     CRepository repository;
     PDP_TYPE eDataConnectionType = PDP_TYPE_IPV4;  //  dummy for now, set to IPv4.
 
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
     int networkInterfaceID = 0;
 #endif
     // 1st confirm we got "CONNECT"
     const char* szRsp = rRspData.szResponse;
 
-#ifdef BOARD_HAVE_IFX7060
-    if (!networkPath->bTurnHSIOn && !FindAndSkipString(szRsp, "CONNECT", szRsp))
+#if defined(BOARD_HAVE_IFX7060)
+    if (!networkPath->bTurnHSIOn)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() -  Did not get \"CONNECT\" response.\r\n");
-        goto Error;
+        if (!FindAndSkipString(szRsp, "CONNECT", szRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() -  Did not get \"CONNECT\" response.\r\n");
+            goto Error;
+        }
     }
-
-    if (networkPath->bTurnHSIOn && !FindAndSkipString(szRsp, "OK", szRsp))
+    else
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() -  Did not get \"OK\" response.\r\n");
-        goto Error;
+        if (!FindAndSkipString(szRsp, "OK", szRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() -  Did not get \"OK\" response.\r\n");
+            goto Error;
+        }
     }
 #else
     if (!FindAndSkipString(szRsp, "CONNECT", szRsp))
@@ -575,8 +584,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Did not get \"CONNECT\" response.\r\n");
         goto Error;
     }
-
 #endif
+
     pChannelData = CChannel_Data::GetChnlFromRilChannelNumber(rRspData.uiChannel);
     if (!pChannelData)
     {
@@ -585,7 +594,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
 
     //  Set CID
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
     nCID = (UINT32)networkPath->uiCID;
 #else
     nCID = (UINT32)rRspData.pContextData;
@@ -609,16 +618,17 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     //  Populate pDataCallRsp
     pDataCallRsp->sPDPData.cid = nCID;
 
-#ifdef BOARD_HAVE_IFX7060
- /*rmnet0 HSI
+#if defined(BOARD_HAVE_IFX7060)
+/*
+    rmnet0 HSI
            1 HSI
            2 HSI
              MUX
- */
+*/
 
     if (!networkPath->bTurnHSIOn)
     {
-        networkInterfaceID = nCID+3;
+        networkInterfaceID = nCID + 3;
     }
     else
     {
@@ -650,7 +660,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     strncpy(pChannelData->m_szInterfaceName, pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE-1);
     pChannelData->m_szInterfaceName[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
 
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
     if (!networkPath->bTurnHSIOn)
     {
 #endif
@@ -677,7 +687,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Could not get Data Channel chnl=[%d] fd=[%d].\r\n", rRspData.uiChannel, fd);
         goto Error;
     }
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
     }
 #endif
 
@@ -857,8 +867,11 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     res = RRIL_RESULT_OK;
 
+    RIL_LOG_INFO("[RIL STATE] PDP CONTEXT ACTIVATION chnl=%d ContextID=%d\r\n",
+        pChannelData->GetRilChannel(), pChannelData->GetContextID());
+
 Error:
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
     free(networkPath);
 #endif
     if (RRIL_RESULT_OK != res)
@@ -1443,13 +1456,13 @@ BOOL DataConfigDown(int nCID)
     // Reset ContextID to 0, to free up the channel for future use
     RIL_LOG_INFO("DataConfigDown() - ****** Setting chnl=[%d] to CID=[0] ******\r\n", pChannelData->GetRilChannel());
 
-#ifdef BOARD_HAVE_IFX7060
-    //TODO?:Find if it's HSI cid or not
+#if defined(BOARD_HAVE_IFX7060)
+    // TODO: Find if it's HSI cid or not
 #endif
     pChannelData->SetContextID(0);
     fd = pChannelData->GetFD();
-#ifdef BOARD_HAVE_IFX7060
-    if (!CChannel_Data::FreeHSIChnl(nCID))
+#if defined(BOARD_HAVE_IFX7060)
+    if (!CChannel_Data::FreeHSIChannel(nCID))
     {
 #endif
 
@@ -1462,10 +1475,12 @@ BOOL DataConfigDown(int nCID)
         RIL_LOG_INFO("DataConfigDown() - ***** PUTTING channel=[%d] in AT COMMAND MODE *****\r\n", pChannelData->GetRilChannel());
         ret = ioctl( fd, GSMIOC_DISABLE_NET, &netconfig );
     }
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
     }
 #endif
     bRet = TRUE;
+
+    RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%d\r\n", pChannelData->GetRilChannel());
 
 Error:
 
@@ -1765,8 +1780,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseDns() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-#ifdef BOARD_HAVE_IFX7060
-    PdpNetworkPath * networkPath = (PdpNetworkPath *) rRspData.pContextData;
+#if defined(BOARD_HAVE_IFX7060)
+    PdpNetworkPath* networkPath = (PdpNetworkPath *) rRspData.pContextData;
 #endif
     const char* szRsp = rRspData.szResponse;
     UINT32 nCid = 0, nXDNSCid = 0;
@@ -1776,7 +1791,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
     const int MAX_IPADDR_SIZE = 100;
 
     //  Get Context ID from context data (passed in from ParseSetupDataCall)
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
     nCid = (UINT32)networkPath->uiCID;
 #else
     nCid = (UINT32)rRspData.pContextData;
@@ -3129,57 +3144,9 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
     switch(nCommand)
     {
-        case RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY:
+        case RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY:
         {
-            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY Command=[0x%08X] received OK\r\n", nCommand);
-
-            //  Shouldn't be any data following command
-            if (sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY) == uiDataSize)
-            {
-                if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=1\r", sizeof(rReqData.szCmd1)))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY - Can't construct szCmd1.\r\n");
-                    goto Error;
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY));
-                goto Error;
-            }
-        }
-        break;
-
-        case RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER:
-        {
-            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER Command=[0x%08X] received OK\r\n", nCommand);
-
-            //  Cast our data into our structure
-            if (uiDataSize == sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER))
-            {
-                sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER sFDT;
-                memset(&sFDT, 0, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
-                memcpy(&sFDT, pDataBytes, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
-
-                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - nTimerValue=[%d]\r\n", ntohl(sFDT.nTimerValue));
-
-                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDORT=%u\r", ntohl(sFDT.nTimerValue)))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER - Can't construct szCmd1.\r\n");
-                    goto Error;
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER));
-                goto Error;
-            }
-        }
-        break;
-
-        case OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY:
-        {
-            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY Command=[0x%08X] received OK\r\n", nCommand);
+            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY Command=[0x%08X] received OK\r\n", nCommand);
 
             //  Copy data into our structure
             if (uiDataSize == sizeof(sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY))
@@ -3200,7 +3167,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
                         // use modem default timer value
                         if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=2\r", sizeof(rReqData.szCmd1)))
                         {
-                            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 1\r\n");
+                            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 1\r\n");
                             goto Error;
                         }
                     }
@@ -3208,7 +3175,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
                     {
                         if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDOR=2,%u\r", ntohl(sMAFD.nDelayTimer)))
                         {
-                            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 2\r\n");
+                            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 2\r\n");
                             goto Error;
                         }
                     }
@@ -3217,14 +3184,14 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
                 {
                     if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=3\r", sizeof(rReqData.szCmd1)))
                     {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 3\r\n");
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 3\r\n");
                         goto Error;
                     }
                 }
             }
             else
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY));
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY));
                 goto Error;
             }
         }

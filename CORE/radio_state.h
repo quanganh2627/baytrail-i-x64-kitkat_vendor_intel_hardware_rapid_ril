@@ -20,6 +20,8 @@ private:
     RIL_RadioState m_eSIMState;
     BOOL m_bIsRadioOn;
 
+    const char* PrintRadioState(RIL_RadioState eSIMState) const;
+
 public:
     CRadioState();
     ~CRadioState();

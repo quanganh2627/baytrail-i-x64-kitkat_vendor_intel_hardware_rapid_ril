@@ -43,8 +43,8 @@ public:
 
     int  GetFD();
 
-#ifdef BOARD_HAVE_IFX7060
-    const char * GetFileName() { return CFile::GetFileName(m_pFile); };
+#if defined(BOARD_HAVE_IFX7060)
+    const char* GetFileName() { return CFile::GetFileName(m_pFile); };
 #endif
 
 private:

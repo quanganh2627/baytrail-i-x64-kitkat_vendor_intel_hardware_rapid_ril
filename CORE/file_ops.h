@@ -63,7 +63,7 @@ public:
 
     static int GetFD(CFile * pFile);
 
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
     static const char * GetFileName(CFile * pFile);
 #endif
 
@@ -83,8 +83,8 @@ private:
 
     int    m_file;
 
-#ifdef BOARD_HAVE_IFX7060
-    const char * msz_fileName;
+#if defined(BOARD_HAVE_IFX7060)
+    const char* msz_fileName;
 #endif
 
     BOOL   m_fInitialized;

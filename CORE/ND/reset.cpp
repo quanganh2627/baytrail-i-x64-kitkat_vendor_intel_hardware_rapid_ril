@@ -106,7 +106,7 @@ void ModemResetUpdate()
 //  Alert STMD to attempt a clean-up.
 void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszFileName)
 {
-    RIL_LOG_INFO("do_request_clean_up() - eError=[%d], file=[%s], line num=[%d]\r\n",
+    RIL_LOG_INFO("[RIL STATE] REQUEST RESET (RIL -> STMD) eError=[%d], file=[%s], line num=[%d]\r\n",
             eError, lpszFileName, uiLineNum);
 
     if (g_bSpoofCommands)
@@ -274,7 +274,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
                         switch(data)
                         {
                             case MODEM_UP:
-                                RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() received MODEM_UP\r\n");
+                                RIL_LOG_INFO("[RIL STATE] (RIL <- STMD) MODEM_UP\r\n");
 
                                 nPreviousModemState = data;
 
@@ -299,7 +299,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
                                 break;
 
                             case MODEM_DOWN:
-                                RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() received MODEM_DOWN\r\n");
+                                RIL_LOG_INFO("[RIL STATE] (RIL <- STMD) MODEM_DOWN\r\n");
 
                                 nPreviousModemState = data;
 
@@ -326,14 +326,14 @@ void* ModemWatchdogThreadProc(void* pVoid)
                                 break;
 
                             case PLATFORM_SHUTDOWN:
-                                RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() received PLATFORM_SHUTDOWN\r\n");
+                                RIL_LOG_INFO("[RIL STATE] (RIL <- STMD) PLATFORM_SHUTDOWN\r\n");
                                 //  RIL should already be preparing for a platform shutdown through
                                 //  RIL_REQUEST_RADIO_POWER.
                                 //  Do nothing here.
                                 break;
 
                             case MODEM_COLD_RESET:
-                                RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() received MODEM_COLD_RESET\r\n");
+                                RIL_LOG_INFO("[RIL STATE] (RIL <- STMD) MODEM_COLD_RESET\r\n");
                                 //  RIL is already in modem off state because of previous modem warm reset
                                 //  procedure.  It stores event in local variable (TODO: figure out where)
                                 //  for later check, and send back ACK to STMD.
@@ -356,7 +356,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
                                     }
                                     else
                                     {
-                                        RIL_LOG_INFO("ModemWatchdogThreadProc() - Send MODEM_COLD_RESET_ACK  SUCCESSFUL\r\n");
+                                        RIL_LOG_INFO("[RIL STATE] (RIL -> STMD) MODEM_COLD_RESET_ACK\r\n");
                                     }
                                 }
                                 else
@@ -367,7 +367,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
                                 break;
 
                             default:
-                                RIL_LOG_INFO("ModemWatchdogThreadProc() - poll() UNKNOWN [%d]\r\n", data);
+                                RIL_LOG_INFO("[RIL STATE] (RIL <- STMD) UNKNOWN [%d]\r\n", data);
                                 break;
                         }
                     }
@@ -375,7 +375,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
             }
             else if (fds[0].revents & POLLHUP)
             {
-                RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - POLLHUP received!\r\n");
+                RIL_LOG_CRITICAL("[RIL STATE] (RIL <- STMD) POLLHUP\r\n");
                 //  Reset RIL to recover to a good status
                 //  let's exit, init will restart us
                 RIL_LOG_INFO("ModemWatchdogThreadProc() - CALLING EXIT\r\n");
@@ -383,7 +383,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
             }
             else
             {
-                RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - UNKNOWN event received! [0x%08x]\r\n", fds[0].revents);
+                RIL_LOG_CRITICAL("[RIL STATE] (RIL <- STMD) UNKNOWN event [0x%08x]\r\n", fds[0].revents);
                 //  continue polling
             }
         }

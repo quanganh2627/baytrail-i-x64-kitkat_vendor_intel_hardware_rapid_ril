@@ -289,12 +289,12 @@ Error:
     return pChannelData;
 }
 
-#ifdef BOARD_HAVE_IFX7060
-int CChannel_Data::GetFreeHSIChnl(UINT32 uiCID)
+#if defined(BOARD_HAVE_IFX7060)
+int CChannel_Data::GetFreeHSIChannel(UINT32 uiCID)
 {
     CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
-    RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChnl() - Enter\r\n");
+    RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Enter\r\n");
 
     extern UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX];
 
@@ -303,21 +303,21 @@ int CChannel_Data::GetFreeHSIChnl(UINT32 uiCID)
         if (g_uiHSIChannel[i] == 0)
         {
             g_uiHSIChannel[i] = uiCID ;
-            RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChnl() - Exit\r\n");
+            RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Exit\r\n");
             CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
             return i;
         }
     }
-    RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChnl() - Exit\r\n");
+    RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Exit\r\n");
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
     return -1;
 }
 
-bool CChannel_Data::FreeHSIChnl(UINT32 uiCID){
+bool CChannel_Data::FreeHSIChannel(UINT32 uiCID){
 
     CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
-    RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChnl() - Enter\r\n");
+    RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChannel() - Enter\r\n");
 
     extern UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX];
 
@@ -326,12 +326,12 @@ bool CChannel_Data::FreeHSIChnl(UINT32 uiCID){
         if (g_uiHSIChannel[i] == uiCID)
         {
             g_uiHSIChannel[i] = 0 ;
-            RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChnl() - Exit\r\n");
+            RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChannel() - Exit\r\n");
             CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
             return true;
         }
     }
-    RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChnl() - Exit\r\n");
+    RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Exit\r\n");
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
     return false;
 }

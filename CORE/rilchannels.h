@@ -22,7 +22,7 @@
 #define RIL_CHANNEL_MAX 10
 extern int g_dRilChannelCurMax;
 
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
 #define RIL_HSI_CHANNEL_MAX 4
 #endif
 

@@ -5462,6 +5462,10 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
     {
         P_ND_GPRS_REG_STATUS psRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
 
+        RIL_LOG_INFO("[RIL STATE] GPRS REG STATUS = %s  RAT = %s\r\n",
+            PrintGPRSRegistrationInfo(psRegStatus->szStat),
+            PrintRAT(psRegStatus->szNetworkType));
+
         strncpy(m_sPSStatus.szStat, psRegStatus->szStat, sizeof(psRegStatus->szStat));
         strncpy(m_sPSStatus.szLAC, psRegStatus->szLAC, sizeof(psRegStatus->szLAC));
         strncpy(m_sPSStatus.szCID, psRegStatus->szCID, sizeof(psRegStatus->szCID));
@@ -5471,6 +5475,8 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
     else
     {
         P_ND_REG_STATUS csRegStatus = (P_ND_REG_STATUS) pRegStruct;
+
+        RIL_LOG_INFO("[RIL STATE] REG STATUS = %s\r\n", PrintRegistrationInfo(csRegStatus->szStat));
 
         strncpy(m_sCSStatus.szStat, csRegStatus->szStat, sizeof(csRegStatus->szStat));
         strncpy(m_sCSStatus.szLAC, csRegStatus->szLAC, sizeof(csRegStatus->szLAC));
@@ -5537,6 +5543,65 @@ void CTE::ResetRegistrationCache()
     m_bCSStatusCached = FALSE;
     m_bPSStatusCached = FALSE;
 }
+
+const char* CTE::PrintRegistrationInfo(char *szRegInfo) const
+{
+    int nRegInfo = atoi(szRegInfo);
+
+    switch (nRegInfo)
+    {
+        case 0: return "NOT REGISTERED, NOT SEARCHING";
+        case 1: return "REGISTERED, HOME NETWORK";
+        case 2: return "NOT REGISTERED, SEARCHING";
+        case 3: return "REGISTRATION DENIED";
+        case 4: return "UNKNOWN";
+        case 5: return "REGISTERED, IN ROAMING";
+        default: return "UNKNOWN REG STATUS";
+    }
+}
+
+const char* CTE::PrintGPRSRegistrationInfo(char *szGPRSInfo) const
+{
+    int nGPRSInfo = atoi(szGPRSInfo);
+
+    switch (nGPRSInfo)
+    {
+        case 0: return "NOT REGISTERED, HOME NETWORK";
+        case 1: return "REGISTERED, HOME NETWORK";
+        case 2: return "NOT REGISTERED, SEARCHING";
+        case 3: return "REGISTRATION DENIED";
+        case 4: return "UNKNOWN";
+        case 5: return "REGISTERED, IN ROAMING";
+        default: return "UNKNOWN REG STATUS";
+    }
+}
+
+const char* CTE::PrintRAT(char* szRAT) const
+{
+    int nRAT = atoi(szRAT);
+
+    switch(nRAT)
+    {
+        case RADIO_TECH_UNKNOWN: return "RADIO_TECH_UNKNOWN";
+        case RADIO_TECH_GPRS: return "RADIO_TECH_GPRS";
+        case RADIO_TECH_EDGE: return "RADIO_TECH_EDGE";
+        case RADIO_TECH_UMTS: return "RADIO_TECH_UMTS";
+        case RADIO_TECH_IS95A: return "RADIO_TECH_IS95A";
+        case RADIO_TECH_IS95B: return "RADIO_TECH_IS95B";
+        case RADIO_TECH_1xRTT: return "RADIO_TECH_1xRTT";
+        case RADIO_TECH_EVDO_0: return "RADIO_TECH_EVDO_0";
+        case RADIO_TECH_EVDO_A: return "RADIO_TECH_EVDO_A";
+        case RADIO_TECH_HSDPA: return "RADIO_TECH_HSDPA";
+        case RADIO_TECH_HSUPA: return "RADIO_TECH_HSUPA";
+        case RADIO_TECH_HSPA: return "RADIO_TECH_HSPA";
+        case RADIO_TECH_EVDO_B: return "RADIO_TECH_EVDO_B";
+        case RADIO_TECH_EHRPD: return "RADIO_TECH_EHRPD";
+        case RADIO_TECH_LTE: return "RADIO_TECH_LTE";
+        case RADIO_TECH_HSPAP: return "RADIO_TECH_HSPAP";
+        default: return "UNKNOWN RAT";
+    }
+}
+
 
 //
 // ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS (sent internally)

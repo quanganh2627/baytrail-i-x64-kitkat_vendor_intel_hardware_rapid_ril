@@ -47,43 +47,6 @@ const int RIL_OEM_HOOK_RAW_GAN_RIL = 0x00000001;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct TAG_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
-{
-    int nCommandID;  //  Command ID
-} sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY;
-
-//
-//  RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
-//  Command ID = 0x000000A0
-//
-//  This command sends AT+XFDOR to the modem.
-//
-//  "data" = sOEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
-//  "response" = NULL
-//
-const int RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY = 0x000000A0;
-
-///////////////////////////////////////////////////////////////////////////////
-
-typedef struct TAG_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
-{
-    int nCommandID;  //  Command ID
-    int nTimerValue; // int from 0-120
-} sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER;
-
-//
-//  RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
-//  Command ID = 0x000000A1
-//
-//  This command sends AT+XFDORT to the modem.
-//
-//  "data" = sOEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
-//  "response" = NULL
-//
-const int RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER = 0x000000A1;
-
-///////////////////////////////////////////////////////////////////////////////
-
 typedef struct TAG_OEM_HOOK_RAW_THERMAL_GET_SENSOR
 {
     int nCommand; //  Command ID
@@ -135,7 +98,7 @@ typedef struct TAG_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
 //  "data" = sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
 //  "response" = NULL
 //
-const int OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY = 0x000000A4;
+const int RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY = 0x000000A4;
 
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -65,7 +65,7 @@ CEvent* g_RxQueueEvent[RIL_CHANNEL_MAX];
 //  Array of CChannels
 CChannel* g_pRilChannel[RIL_CHANNEL_MAX] = { NULL };
 
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
 UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX] = { NULL, NULL, NULL };
 #endif
 

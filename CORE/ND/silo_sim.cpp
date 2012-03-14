@@ -308,7 +308,7 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
         {
             case RRIL_CME_ERROR_SIM_NOT_INSERTED:
             {
-                RIL_LOG_INFO("CSilo_SIM::ParseSimStatus() : SIM Card is absent!\r\n");
+                RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : SIM Card is absent!\r\n");
                 rpRsp->FreeData();
                 rpRsp->SetResultCode(RIL_E_SUCCESS);
 
@@ -834,6 +834,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
         case 12: // SIM SMS caching completed
+            RIL_LOG_INFO("[RIL STATE] SIM SMS CACHING COMPLETED\r\n");
             triggerQuerySimSmsStoreStatus(NULL);
             break;
         case 0: // SIM not present

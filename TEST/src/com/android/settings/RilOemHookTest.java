@@ -91,10 +91,11 @@ public class RilOemHookTest extends Activity
         {
             case R.id.radio_api1:
             {
-                // RIL_OEM_HOOK_RAW_TRIGGER_FAST_DORMANCY
-                //  AT+XFDOR=1
-                ByteBuffer myBuf = ByteBuffer.allocate(4);
+                // RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR
+                //  AT+XDRV=5,9,<sensor_id>
+                ByteBuffer myBuf = ByteBuffer.allocate(8);
                 myBuf.putInt(0xA0);  //  Command ID
+                myBuf.putInt(0x00);  //  <sensor_id>
 
                 oemhook = myBuf.array();
             }
@@ -102,34 +103,10 @@ public class RilOemHookTest extends Activity
 
             case R.id.radio_api2:
             {
-                // RIL_OEM_HOOK_RAW_SET_FAST_DORMANCY_TIMER
-                //  AT+XFDORT=<timer_value>
-                ByteBuffer myBuf = ByteBuffer.allocate(8);
-                myBuf.putInt(0xA1);  //  Command ID
-                myBuf.putInt(0x00);  //  <timer_value>
-
-                oemhook = myBuf.array();
-            }
-            break;
-
-            case R.id.radio_api3:
-            {
-                // RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR
-                //  AT+XDRV=5,9,<sensor_id>
-                ByteBuffer myBuf = ByteBuffer.allocate(8);
-                myBuf.putInt(0xA2);  //  Command ID
-                myBuf.putInt(0x00);  //  <sensor_id>
-
-                oemhook = myBuf.array();
-            }
-            break;
-
-            case R.id.radio_api4:
-            {
                 // RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD
                 //  AT+XDRV=5,14,<sensor_id>,<min_threshold>,<max_threshold>
                 ByteBuffer myBuf = ByteBuffer.allocate(20);
-                myBuf.putInt(0xA3);  //  Command ID
+                myBuf.putInt(0xA1);  //  Command ID
                 myBuf.putInt(0x01);  //  <enable>
                 myBuf.putInt(0x00);  //  <sensor_id>
                 myBuf.putInt(0x00);  //  <min_threshold>
@@ -139,12 +116,12 @@ public class RilOemHookTest extends Activity
             }
             break;
 
-            case R.id.radio_api5:
+            case R.id.radio_api3:
             {
-                // OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
+                // RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
                 //  AT+XFDOR=<enable>, <delay_timer>
                 ByteBuffer myBuf = ByteBuffer.allocate(12);
-                myBuf.putInt(0xA4);  //  Command ID
+                myBuf.putInt(0xA2);  //  Command ID
                 myBuf.putInt(0x01);  //  <enable>
                 myBuf.putInt(0x00);  //  <delay_timer>
 

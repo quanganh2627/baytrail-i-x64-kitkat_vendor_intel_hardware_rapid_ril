@@ -44,9 +44,9 @@ public:
     //
     static CChannel_Data* GetChnlFromContextID(UINT32 dwContextID);
     static CChannel_Data* GetChnlFromRilChannelNumber(UINT32 index);
-#ifdef BOARD_HAVE_IFX7060
-    static int GetFreeHSIChnl(UINT32 uiCID);
-    static bool FreeHSIChnl(UINT32 uiCID);
+#if defined(BOARD_HAVE_IFX7060)
+    static int GetFreeHSIChannel(UINT32 uiCID);
+    static bool FreeHSIChannel(UINT32 uiCID);
 #endif
 
     //  This function returns the next free data channel.  Also, populates the

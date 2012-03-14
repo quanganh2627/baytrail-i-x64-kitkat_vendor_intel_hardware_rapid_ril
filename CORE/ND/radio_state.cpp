@@ -55,6 +55,8 @@ void CRadioState::TriggerStatusChange()
         m_eRadioState = RADIO_STATE_OFF;
     }
 
+    RIL_LOG_INFO("[RIL STATE] RADIO STATE = %s\r\n", PrintRadioState(m_eRadioState));
+
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
 }
 
@@ -91,5 +93,35 @@ void CRadioState::SetSIMState(RIL_RadioState eSIMState)
     m_eSIMState = eSIMState;
 
     TriggerStatusChange();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+const char* CRadioState::PrintRadioState(RIL_RadioState eSIMState) const
+{
+    switch(eSIMState)
+    {
+        case RADIO_STATE_OFF:
+            return "RADIO_STATE_OFF";
+        case RADIO_STATE_UNAVAILABLE:
+            return "RADIO_STATE_UNAVAILABLE";
+        case RADIO_STATE_SIM_NOT_READY:
+            return "RADIO_STATE_SIM_NOT_READY";
+        case RADIO_STATE_SIM_LOCKED_OR_ABSENT:
+            return "RADIO_STATE_SIM_LOCKED_OR_ABSENT";
+        case RADIO_STATE_SIM_READY:
+            return "RADIO_STATE_SIM_READY";
+        case RADIO_STATE_RUIM_NOT_READY:
+            return "RADIO_STATE_RUIM_NOT_READY";
+        case RADIO_STATE_RUIM_READY:
+            return "RADIO_STATE_RUIM_READY";
+        case RADIO_STATE_RUIM_LOCKED_OR_ABSENT:
+            return "RADIO_STATE_RUIM_LOCKED_OR_ABSENT";
+        case RADIO_STATE_NV_NOT_READY:
+            return "RADIO_STATE_NV_NOT_READY";
+        case RADIO_STATE_NV_READY:
+            return "RADIO_STATE_NV_READY";
+        default:
+            return "UNKNOWN";
+    }
 }
 

@@ -4407,6 +4407,7 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionAutomatic(REQUEST_DATA & rReqDat
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionAutomatic() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS=0\r"))
     {
         res = RRIL_RESULT_OK;
@@ -5674,8 +5675,8 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
-    // if Modem Fast Dormancy mode is 2: "Display Driven"
-    if (2 == g_nFastDormancyMode)
+    // if Modem Fast Dormancy mode is "Display Driven"
+    if (E_FD_MODE_DISPLAY_DRIVEN == g_nFastDormancyMode)
     {
         // disable MAFD when "Screen On", enable MAFD when "Screen Off"
         //      XFDOR=2: switch ON MAFD

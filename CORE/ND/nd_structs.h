@@ -85,7 +85,7 @@ struct PdpData
     char* szPDPType;
 };
 
-#ifdef BOARD_HAVE_IFX7060
+#if defined(BOARD_HAVE_IFX7060)
 struct PdpNetworkPath
 {
     UINT32 uiCID;
