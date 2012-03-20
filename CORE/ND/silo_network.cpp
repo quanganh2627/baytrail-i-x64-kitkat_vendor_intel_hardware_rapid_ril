@@ -186,6 +186,25 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
         RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Unable to find time zone!\r\n");
         goto Error;
     }
+#if defined(BOARD_HAVE_IFX7060)
+    // WORAROUND : BZ28102.
+    // TZ = -1h : szTimeZone = "0-4" -> "-04"
+    // TZ = -4h : szTimeZone = "-16" -> "-16"
+    // TZ = +1h : szTimeZone = "004" -> "+04"
+    // TZ = +4h : szTimeZone = "016" -> "+16"
+    if (strlen(szTimeZone) > 0)
+    {
+        if ((szTimeZone[0] == '0') && ((szTimeZone[1] == '-')))
+        {
+            szTimeZone[0] = '-';
+            szTimeZone[1] = '0';
+        }
+        else if ((szTimeZone[0] == '0') && ((szTimeZone[1] != '-')))
+        {
+            szTimeZone[0] = '+';
+        }
+    }
+#endif
     RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - szTimeZone: \"%s\"\r\n", szTimeZone);
 
     // Extract "<date,time>"
