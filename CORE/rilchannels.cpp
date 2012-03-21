@@ -61,8 +61,8 @@ UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_GETIMEISV,                           // 38
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_ANSWER,                              // 39
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_DEACTIVATEDATACALL,                  // 40
-    RIL_CHANNEL_DLC8,  //ND_REQ_ID_QUERYFACILITYLOCK,                   // 41
-    RIL_CHANNEL_DLC8,  //ND_REQ_ID_SETFACILITYLOCK,                     // 42
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_QUERYFACILITYLOCK,                   // 41
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_SETFACILITYLOCK,                     // 42
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_CHANGEBARRINGPASSWORD,               // 43
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_QUERYNETWORKSELECTIONMODE,           // 44
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC,        // 45
