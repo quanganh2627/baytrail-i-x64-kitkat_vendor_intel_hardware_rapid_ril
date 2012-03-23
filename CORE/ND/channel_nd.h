@@ -54,6 +54,9 @@ protected:
     //  Handle the timeout scenario (ABORT command, PING)
     virtual BOOL    HandleTimeout(CCommand*& rpCmd, CResponse*& rpRsp);
 
+    //  Helper function to determine whether to send phase 2 of a command
+    bool SendCommandPhase2(const UINT32 uiResCode, const UINT32 uiReqID) const;
+
 private:
     // Helper functions
     RIL_RESULT_CODE ReadQueue(CResponse*& rpRsp, UINT32 uiTimeout);

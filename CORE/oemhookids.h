@@ -46,6 +46,7 @@ typedef struct TAG_OEM_HOOK_RAW_GAN_RIL
 const int RIL_OEM_HOOK_RAW_GAN_RIL = 0x00000001;
 
 ///////////////////////////////////////////////////////////////////////////////
+
 //
 //  RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR
 //  Command ID = 0x000000A2
@@ -64,7 +65,7 @@ const int RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR = 0x000000A2;
 ///////////////////////////////////////////////////////////////////////////////
 
 //
-//  TAG_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD
+//  RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD
 //  Command ID = 0x000000A3
 //
 // "data" - String containing the following values separated by a space
@@ -94,7 +95,7 @@ typedef struct TAG_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
 } sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY;
 
 //
-//  TAG_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
+//  RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
 //  Command ID = 0x000000A4
 //
 //  "data" = sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
@@ -185,7 +186,7 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 } sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND;
 
 //
-//  TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
+//  RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 //  Command ID = 0x000000D0
 //
 //  "data" = sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND

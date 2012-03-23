@@ -67,6 +67,8 @@ public:
     CContext *          GetContext()        { return m_pContext;    };
     void*               GetContextData()    { return m_pContextData;};
     unsigned int        GetContextDataSize(){ return m_cbContextData;};
+    void*               GetContextData2()    { return m_pContextData2;};
+    unsigned int        GetContextDataSize2(){ return m_cbContextData2;};
 
     BOOL                IsAlwaysParse()     { return m_fAlwaysParse; };
     BOOL                IsHighPriority()    { return m_fHighPriority; };
@@ -79,6 +81,8 @@ public:
     void SetContext(CContext*& pContext)    { m_pContext = pContext; pContext = NULL; };
     void SetContextData(void *pData)        { m_pContextData = pData; };
     void SetContextDataSize(unsigned int nSize) { m_cbContextData = nSize; };
+    void SetContextData2(void *pData)       { m_pContextData2 = pData; };
+    void SetContextDataSize2(unsigned int nSize){ m_cbContextData2 = nSize; };
     void FreeATCmd1() { delete[] m_pszATCmd1; m_pszATCmd1 = NULL; };
     void FreeATCmd2() { delete[] m_pszATCmd2; m_pszATCmd2 = NULL; };
 
@@ -99,6 +103,8 @@ private:
     CContext *          m_pContext;
     void*               m_pContextData;
     unsigned int        m_cbContextData;
+    void*               m_pContextData2;
+    unsigned int        m_cbContextData2;
 };
 
 #endif

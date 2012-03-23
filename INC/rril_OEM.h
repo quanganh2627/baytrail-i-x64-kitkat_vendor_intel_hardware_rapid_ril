@@ -27,6 +27,13 @@ typedef struct s_request_data
                                 // Can be left NULL if not required
 
     unsigned int cbContextData;  // Size in bytes of the context data object
+
+    void * pContextData2;       // Additional Context Data pointer
+                                // Point it to any object you will need during
+                                // the parsing process that otherwise is not available.
+                                // Can be left NULL if not required
+
+    unsigned int cbContextData2; // Size in bytes of the context data object
 } REQUEST_DATA;
 
 typedef struct s_response_data
@@ -43,6 +50,12 @@ typedef struct s_response_data
                                 // if not supplied
 
     unsigned int cbContextData; // Size in bytes of the context data object
+
+    void * pContextData2;       // Additional Context Data pointer
+                                // Points to object given in request phase or NULL
+                                // if not supplied
+
+    unsigned int cbContextData2;// Size in bytes of the context data object
 
 } RESPONSE_DATA;
 

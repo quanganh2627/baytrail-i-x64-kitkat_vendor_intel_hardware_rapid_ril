@@ -32,7 +32,8 @@ public class RilOemHookTest extends Activity
 
     private Phone mPhone = null;
 
-    private static final int EVENT_RIL_OEM_HOOK_COMMAND_COMPLETE = 1300;
+    private static final int EVENT_RIL_OEM_HOOK_RAW_COMPLETE = 1300;
+    private static final int EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE = 1310;
     private static final int EVENT_UNSOL_RIL_OEM_HOOK_RAW = 500;
 
     @Override
@@ -91,41 +92,56 @@ public class RilOemHookTest extends Activity
         {
             case R.id.radio_api1:
             {
-                // RIL_OEM_HOOK_RAW_THERMAL_GET_SENSOR
+                // RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR
                 //  AT+XDRV=5,9,<sensor_id>
-                ByteBuffer myBuf = ByteBuffer.allocate(8);
-                myBuf.putInt(0xA0);  //  Command ID
-                myBuf.putInt(0x00);  //  <sensor_id>
 
-                oemhook = myBuf.array();
+                // data: <command id>, <sensor id>
+                String[] data = { "162", "3" };
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
+                mPhone.invokeOemRilRequestStrings(data, msg);
             }
             break;
 
             case R.id.radio_api2:
             {
-                // RIL_OEM_HOOK_RAW_THERMAL_SET_THRESHOLD
-                //  AT+XDRV=5,14,<sensor_id>,<min_threshold>,<max_threshold>
-                ByteBuffer myBuf = ByteBuffer.allocate(20);
-                myBuf.putInt(0xA1);  //  Command ID
-                myBuf.putInt(0x01);  //  <enable>
-                myBuf.putInt(0x00);  //  <sensor_id>
-                myBuf.putInt(0x00);  //  <min_threshold>
-                myBuf.putInt(0x00);  //  <max_threshold>
+                // RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD
+                //  AT+XDRV=5,14,<activate>,<sensor_id>,<min_threshold>,<max_threshold>
 
-                oemhook = myBuf.array();
+                // data: <command id>, <activate>, <sensor_id>, <minThersholdTemp>, <maxThersholdTemp>
+                String[] data = { "163", "true 3 2300 2300" };
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
+                mPhone.invokeOemRilRequestStrings(data, msg);
             }
             break;
 
             case R.id.radio_api3:
             {
                 // RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
-                //  AT+XFDOR=<enable>, <delay_timer>
+                //  AT+XFDOR=<enable>,<delay_timer>
                 ByteBuffer myBuf = ByteBuffer.allocate(12);
-                myBuf.putInt(0xA2);  //  Command ID
+                myBuf.putInt(0xA4);  //  Command ID
                 myBuf.putInt(0x01);  //  <enable>
                 myBuf.putInt(0x00);  //  <delay_timer>
 
                 oemhook = myBuf.array();
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_RAW_COMPLETE);
+                mPhone.invokeOemRilRequestRaw(oemhook, msg);
+            }
+            break;
+
+            case R.id.radio_api4:
+            {
+                // RIL_OEM_HOOK_STRING_GET_ATR
+                // AT+XGATR
+
+                // data: <command id>
+                String[] data = { "165" };
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
+                mPhone.invokeOemRilRequestStrings(data, msg);
             }
             break;
 
@@ -142,6 +158,9 @@ public class RilOemHookTest extends Activity
                 myBuf.putInt(0x00);  //  <sim_id>
 
                 oemhook = myBuf.array();
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_RAW_COMPLETE);
+                mPhone.invokeOemRilRequestRaw(oemhook, msg);
             }
             break;
 
@@ -160,6 +179,9 @@ public class RilOemHookTest extends Activity
                 myBuf.putInt(0xB1);  //  Command ID
 
                 oemhook = myBuf.array();
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_RAW_COMPLETE);
+                mPhone.invokeOemRilRequestRaw(oemhook, msg);
             }
             break;
 
@@ -169,14 +191,14 @@ public class RilOemHookTest extends Activity
         }
 
 
-        Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_COMMAND_COMPLETE);
-        mPhone.invokeOemRilRequestRaw(oemhook, msg);
+//        Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_COMMAND_COMPLETE);
+//        mPhone.invokeOemRilRequestRaw(oemhook, msg);
 
     }
 
-    private void logRilOemHookResponse(AsyncResult ar)
+    private void logRilOemHookRawResponse(AsyncResult ar)
     {
-        log("received oem hook response");
+        log("received oem hook raw response");
 
         String str = new String("");
 
@@ -208,8 +230,8 @@ public class RilOemHookTest extends Activity
         }
         else
         {
-            log("received NULL oem hook response");
-            str += "received NULL oem hook response";
+            log("received NULL oem hook raw response");
+            str += "received NULL oem hook raw response";
         }
 
 
@@ -221,8 +243,53 @@ public class RilOemHookTest extends Activity
 
         AlertDialog alert = builder.create();
         alert.show();
+    }
+
+    private void logRilOemHookStringsResponse(AsyncResult ar)
+    {
+        log("received oem hook strings response");
+
+        String str = new String("");
 
 
+        if (ar.exception != null)
+        {
+            log("Exception:" + ar.exception);
+            str += "Exception:" + ar.exception + "\n\n";
+        }
+
+        if (ar.result != null)
+        {
+            String[] oemResponse = (String[])ar.result;
+            int size = oemResponse.length;
+
+            log("oemResponse length=[" + Integer.toString(size) + "]");
+            str += "oemResponse length=[" + Integer.toString(size) + "]" + "\n";
+
+            if (size > 0)
+            {
+                for (int i=0; i<size; i++)
+                {
+                    log("oemResponse[" + Integer.toString(i) + "]=[" + oemResponse[i] + "]");
+                    str += "oemResponse[" + Integer.toString(i) + "]=[" + oemResponse[i] + "]" + "\n";
+                }
+            }
+        }
+        else
+        {
+            log("received NULL oem hook strings response");
+            str += "received NULL oem hook strings response";
+        }
+
+
+        //  Display message box
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        builder.setMessage(str);
+        builder.setPositiveButton("OK", null);
+
+        AlertDialog alert = builder.create();
+        alert.show();
     }
 
     private void log(String msg)
@@ -237,14 +304,17 @@ public class RilOemHookTest extends Activity
             AsyncResult ar;
             switch (msg.what)
             {
-                case EVENT_RIL_OEM_HOOK_COMMAND_COMPLETE:
+                case EVENT_RIL_OEM_HOOK_RAW_COMPLETE:
                     ar = (AsyncResult) msg.obj;
+                    logRilOemHookRawResponse(ar);
+                    break;
 
-                    logRilOemHookResponse(ar);
+                case EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE:
+                    ar = (AsyncResult) msg.obj;
+                    logRilOemHookStringsResponse(ar);
                     break;
 
                 case EVENT_UNSOL_RIL_OEM_HOOK_RAW:
-
                     break;
             }
         }

@@ -401,45 +401,7 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
     //  SEEK for Android request returned CME ERROR (need to get error code for custom SEEK response code)
     if ((NULL != rpCmd->GetATCmd2()) &&
         (NULL != rpResponse) &&
-        //  Success and non-SEEK, non-network request OR
-        (( (RIL_E_SUCCESS == rpResponse->GetResultCode() &&
-           (ND_REQ_ID_SIMOPENCHANNEL != rpCmd->GetRequestID() &&
-             ND_REQ_ID_SIMCLOSECHANNEL != rpCmd->GetRequestID() &&
-             ND_REQ_ID_SIMTRANSMITCHANNEL != rpCmd->GetRequestID() &&
-             ND_REQ_ID_SENDUSSD != rpCmd->GetRequestID() &&
-             ND_REQ_ID_GETCLIR != rpCmd->GetRequestID() &&
-             ND_REQ_ID_SETCLIR != rpCmd->GetRequestID() &&
-             ND_REQ_ID_QUERYCALLFORWARDSTATUS != rpCmd->GetRequestID() &&
-             ND_REQ_ID_SETCALLFORWARD != rpCmd->GetRequestID() &&
-             ND_REQ_ID_QUERYCALLWAITING != rpCmd->GetRequestID() &&
-             ND_REQ_ID_SETCALLWAITING != rpCmd->GetRequestID() &&
-             ND_REQ_ID_QUERYFACILITYLOCK != rpCmd->GetRequestID() &&
-             ND_REQ_ID_SETFACILITYLOCK != rpCmd->GetRequestID() &&
-             ND_REQ_ID_CHANGEBARRINGPASSWORD != rpCmd->GetRequestID() &&
-             ND_REQ_ID_QUERYCLIP != rpCmd->GetRequestID()) ) ||
-        //  Error and SEEK, NETWORK request
-            (RIL_E_SUCCESS != rpResponse->GetResultCode() &&
-            (ND_REQ_ID_SIMOPENCHANNEL == rpCmd->GetRequestID() ||
-             ND_REQ_ID_SIMCLOSECHANNEL == rpCmd->GetRequestID() ||
-             ND_REQ_ID_SIMTRANSMITCHANNEL == rpCmd->GetRequestID() ||
-             ND_REQ_ID_SENDUSSD == rpCmd->GetRequestID() ||
-             ND_REQ_ID_GETCLIR == rpCmd->GetRequestID() ||
-             ND_REQ_ID_SETCLIR == rpCmd->GetRequestID() ||
-             ND_REQ_ID_QUERYCALLFORWARDSTATUS == rpCmd->GetRequestID() ||
-             ND_REQ_ID_SETCALLFORWARD == rpCmd->GetRequestID() ||
-             ND_REQ_ID_QUERYCALLWAITING == rpCmd->GetRequestID() ||
-             ND_REQ_ID_SETCALLWAITING == rpCmd->GetRequestID() ||
-             ND_REQ_ID_QUERYFACILITYLOCK == rpCmd->GetRequestID() ||
-             ND_REQ_ID_SETFACILITYLOCK == rpCmd->GetRequestID() ||
-             ND_REQ_ID_CHANGEBARRINGPASSWORD == rpCmd->GetRequestID() ||
-             ND_REQ_ID_QUERYCLIP == rpCmd->GetRequestID()) )
-          )
-#if defined(M2_VT_FEATURE_ENABLED)
-        //  OR VT_HANGUP request (since we don't care about a possible error)
-        || (ND_REQ_ID_HANGUPVT == rpCmd->GetRequestID())
-#endif // M2_VT_FEATURE_ENABLED
-        )
-       )
+        (SendCommandPhase2(rpResponse->GetResultCode(), rpCmd->GetRequestID())))
     {
         pATCommand = (char *) rpCmd->GetATCmd2();
         UINT32 uiBytesWritten = 0;
@@ -512,6 +474,50 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
 Error:
     RIL_LOG_VERBOSE("CChannel::GetResponse() - Exit  resCode=[%d]\r\n", resCode);
     return resCode;
+}
+
+//  Helper function to determine whether to send phase 2 of a command
+bool CChannel::SendCommandPhase2(const UINT32 uiResCode, const UINT32 uiReqID) const
+{
+    bool bSendPhase2 = true;
+
+#if defined(M2_VT_FEATURE_ENABLED)
+    //  VT_HANGUP request (since we don't care about a possible error)
+    if (ND_REQ_ID_HANGUPVT == uiReqID)
+        return true;
+#endif // M2_VT_FEATURE_ENABLED
+
+    //  Is our request ID in the special list?
+    switch (uiReqID)
+    {
+        case ND_REQ_ID_SIMOPENCHANNEL:
+        case ND_REQ_ID_SIMCLOSECHANNEL:
+        case ND_REQ_ID_SIMTRANSMITCHANNEL:
+        case ND_REQ_ID_SENDUSSD:
+        case ND_REQ_ID_GETCLIR:
+        case ND_REQ_ID_SETCLIR:
+        case ND_REQ_ID_QUERYCALLFORWARDSTATUS:
+        case ND_REQ_ID_SETCALLFORWARD:
+        case ND_REQ_ID_QUERYCALLWAITING:
+        case ND_REQ_ID_SETCALLWAITING:
+        case ND_REQ_ID_QUERYFACILITYLOCK:
+        case ND_REQ_ID_SETFACILITYLOCK:
+        case ND_REQ_ID_CHANGEBARRINGPASSWORD:
+        case ND_REQ_ID_QUERYCLIP:
+            if (RIL_E_SUCCESS == uiResCode)
+                bSendPhase2 = false;
+            else
+                bSendPhase2 = true;
+            break;
+        default:
+            if (RIL_E_SUCCESS == uiResCode)
+                bSendPhase2 = true;
+            else
+                bSendPhase2 = false;
+            break;
+    }
+
+    return bSendPhase2;
 }
 
 //  Helper function to close and open the port
@@ -784,7 +790,7 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHung
                 FindIdenticalRequestsAndSendResponses(ND_REQ_ID_REQUESTDTMFSTOP, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
                 break;
             case ND_REQ_ID_SWITCHHOLDINGANDACTIVE:
-                if (g_clearPendingChlds)
+                if (g_clearPendingChlds || RRIL_RESULT_OK != rpRsp->GetResultCode())
                 {
                     RIL_LOG_VERBOSE("CChannel::ParseResponse() clearing all ND_REQ_ID_SWITCHHOLDINGANDACTIVE\r\n");
                     g_clearPendingChlds = false;
@@ -936,7 +942,7 @@ BOOL CChannel::ProcessResponse(CResponse*& rpResponse)
     else if (rpResponse->IsUnsolicitedFlag())
     {
         // unsolicited notification -> broadcast to all clients
-        if ((0 != rpResponse->GetResultCode()))
+        if ((RRIL_RESULT_OK != rpResponse->GetResultCode()))
         {
             void*   pData;
             UINT32  uiDataSize;

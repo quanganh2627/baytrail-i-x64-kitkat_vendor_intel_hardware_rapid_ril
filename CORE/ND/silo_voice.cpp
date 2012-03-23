@@ -37,6 +37,7 @@ CSilo_Voice::CSilo_Voice(CChannel *pChannel)
     // AT Response Table
     static ATRSPTABLE pATRspTable[] =
     {
+        { "NO CARRIER"  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCarrier },
         { "+CRING: "      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseExtRing },
         { "DISCONNECT"  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseDISCONNECT },
         { "+XCALLSTAT: "  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseXCALLSTAT },
@@ -84,24 +85,9 @@ CSilo_Voice::~CSilo_Voice()
 
 BOOL CSilo_Voice::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
 {
-    if (ND_REQ_ID_HANGUP == rpCmd->GetRequestID())
-    {
-        // If this is a hangup command and we got a NO CARRIER response, turn it into OK
-        if (RRIL_RESULT_NOCARRIER == rpRsp->GetResultCode())
-        {
-            rpRsp->FreeData();
-            rpRsp->SetResultCode(RRIL_RESULT_OK);
-        }
-    }
-
-    /*
-     * Android framework queries the call status upon completion of each call operation or
-     * upon the receival of RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED event.  Due to this, on some
-     * use cases, wrong call UI is shown to the user.  Android framework has been modified to
-     * query the call status only upon receival of RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED
-     * event.  In case of dial rejected due to FDN failure, only NO CARRIER will be sent by modem.
-     * So, RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED needs to be triggered upon the dial failure.
-     */
+    // This is needed to push the dialer state machine.
+    // When calling a number, sometimes XCALLSTAT notification never appears and
+    // never triggers to query the call state.
     if (ND_REQ_ID_DIAL == rpCmd->GetRequestID()
 #if defined(M2_VT_FEATURE_ENABLED)
         || ND_REQ_ID_DIALVT == rpCmd->GetRequestID()
@@ -112,6 +98,36 @@ BOOL CSilo_Voice::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
     }
 
     return TRUE;
+}
+//
+//
+//
+BOOL CSilo_Voice::ParseNoCarrier(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseNoCarrier() - Enter\r\n");
+    const char* szDummy;
+    BOOL fRet = FALSE;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoCarrier() : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    // Look for a "<postfix>"
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoCarrier() : Could not find response end\r\n");
+        goto Error;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+
+    fRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseNoCarrier() - Exit\r\n");
+    return fRet;
 }
 
 //

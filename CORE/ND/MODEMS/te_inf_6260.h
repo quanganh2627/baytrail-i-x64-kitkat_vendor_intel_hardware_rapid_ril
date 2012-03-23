@@ -67,11 +67,11 @@ public:
     virtual RIL_RESULT_CODE ParseDeactivateDataCall(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_OEM_HOOK_RAW 59
-    virtual RIL_RESULT_CODE CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 & uiRilChannel);
     virtual RIL_RESULT_CODE ParseHookRaw(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_OEM_HOOK_STRINGS 60
-    virtual RIL_RESULT_CODE CoreHookStrings(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CoreHookStrings(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize, UINT32 & uiRilChannel);
     virtual RIL_RESULT_CODE ParseHookStrings(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SET_BAND_MODE 65

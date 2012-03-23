@@ -3108,7 +3108,13 @@ Error:
 //
 // RIL_REQUEST_OEM_HOOK_RAW 59
 //
-RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+// [out] UINT32 uiRilChannel - Set this value to the RIL channel that the command will be sent on
+//                             e.g. RIL_CHANNEL_DLC2  (as defined in rilchannels.h)
+//                             Default value is RIL_CHANNEL_ATCMD
+//
+// Note: Use REQUEST_DATA's pContextData2 to pass custom data to the parse function.
+//       RIL Framework uses pContextData, and is reserved in this function.
+RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 & uiRilChannel)
 {
     RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - Enter\r\n");
 
@@ -3357,7 +3363,13 @@ Error:
 //
 // RIL_REQUEST_OEM_HOOK_STRINGS 60
 //
-RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
+// [out] UINT32 uiRilChannel - Set this value to the RIL channel that the command will be sent on
+//                             e.g. RIL_CHANNEL_DLC2  (as defined in rilchannels.h)
+//                             Default value is RIL_CHANNEL_ATCMD
+//
+// Note: Use REQUEST_DATA's pContextData2 to pass custom data to the parse function.
+//       RIL Framework uses pContextData, and is reserved in this function.
+RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize, UINT32 & uiRilChannel)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreHookStrings() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -3407,12 +3419,12 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
         case RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR");
             res = CreateGetThermalSensorValuesReq(rReqData, (const char**) pszRequest, uiDataSize);
-        break;
+            break;
 
         case RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD\r\n");
             res = CreateActivateThermalSensorInd(rReqData, (const char**) pszRequest, uiDataSize);
-        break;
+            break;
 
         case RIL_OEM_HOOK_STRING_GET_ATR:
             if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XGATR\r"))
@@ -3421,7 +3433,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
                 goto Error;
             }
             res = RRIL_RESULT_OK;
-        break;
+            break;
 
         default:
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - ERROR: Received unknown uiCommand=[0x%X]\r\n", uiCommand);
@@ -3471,6 +3483,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD:
             res = ParseXDRV(pszRsp, rRspData);
             break;
+
         default:
             RIL_LOG_INFO("CTE_INF_6260::ParseHookStrings() - Parsing not implemented for uiCommand: %u\r\n",
                          uiCommand);

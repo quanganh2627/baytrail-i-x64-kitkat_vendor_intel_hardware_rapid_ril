@@ -83,7 +83,6 @@ private:
     BOOL    IsErrorResponse();
     BOOL    RetrieveErrorCode(const char*& rszPointer,  UINT32 &nCode, const char* pszToken);
     BOOL    IsConnectResponse();
-    BOOL    IsNoCarrierResponse();
     BOOL    IsAbortedResponse();
 
     UINT32    m_uiResultCode;

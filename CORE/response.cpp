@@ -34,8 +34,8 @@
 const char* pszOkResponse    = "OK";
 const char* pszErrorResponse = "ERROR";
 const char* pszSMSResponse   = "> ";
-const char* pszCMEError      = "+CME ERROR: ";
-const char* pszCMSError      = "+CMS ERROR: ";
+const char* pszCMEError      = "+CME ERROR:";
+const char* pszCMSError      = "+CMS ERROR:";
 const char* pszConnectResponse = "CONNECT";
 const char* pszNoCarrierResponse = "NO CARRIER";
 const char* pszAborted       = "ABORTED";
@@ -43,7 +43,7 @@ const char* pszAborted       = "ABORTED";
 
 ///////////////////////////////////////////////////////////////////////////////
 CResponse::CResponse(CChannel* pChannel)
-: m_uiResultCode(0),
+: m_uiResultCode(RRIL_RESULT_OK),
 m_uiErrorCode(0),
 m_pData(NULL),
 m_uiDataSize(0),
@@ -100,10 +100,6 @@ BOOL CResponse::IsCompleteResponse()
             bRet = TRUE;
         }
         else if (IsConnectResponse())
-        {
-            bRet = TRUE;
-        }
-        else if (IsNoCarrierResponse())
         {
             bRet = TRUE;
         }
@@ -358,35 +354,6 @@ Error:
 //
 //
 //
-BOOL CResponse::IsNoCarrierResponse()
-{
-    const char* szPointer = m_szBuffer;
-    char szToken[MAX_BUFFER_SIZE] = {0};
-    BOOL bRet;
-
-    RIL_LOG_VERBOSE("CResponse::IsNoCarrierResponse() : Enter\r\n");
-
-    // look for "NO CARRIER" in response data
-    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", g_szNewLine, pszNoCarrierResponse, g_szNewLine);
-    szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
-    bRet = FindAndSkipString(szPointer, szToken, szPointer);
-
-    if (bRet)
-    {
-        SetUnsolicitedFlag(FALSE);
-        m_uiResponseEndMarker = szPointer - m_szBuffer;
-        m_uiResultCode = RRIL_RESULT_NOCARRIER;
-    }
-
-Error:
-    RIL_LOG_VERBOSE("CResponse::IsNoCarrierResponse() : Exit [%d]\r\n", bRet);
-    return bRet;
-}
-
-
-//
-//
-//
 BOOL CResponse::IsAbortedResponse()
 {
     const char* szPointer = m_szBuffer;
@@ -573,6 +540,9 @@ BOOL CResponse::ParseResponse(CCommand*& rpCmd)
 
         rspData.pContextData = rpCmd->GetContextData();
         rspData.cbContextData = rpCmd->GetContextDataSize();
+
+        rspData.pContextData2 = rpCmd->GetContextData2();
+        rspData.cbContextData2 = rpCmd->GetContextDataSize2();
 
 
         RIL_LOG_VERBOSE("CResponse::ParseResponse() : chnl=[%d] Calling Parsing Function\r\n", m_pChannel->GetRilChannel() );

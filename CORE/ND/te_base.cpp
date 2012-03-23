@@ -5601,7 +5601,7 @@ RIL_RESULT_CODE CTEBase::ParseResetRadio(RESPONSE_DATA & rRspData)
 //
 // RIL_REQUEST_OEM_HOOK_RAW 59
 //
-RIL_RESULT_CODE CTEBase::CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTEBase::CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 & uiRilChannel)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreHookRaw() - Enter\r\n");
     RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
@@ -5623,7 +5623,7 @@ RIL_RESULT_CODE CTEBase::ParseHookRaw(RESPONSE_DATA & rRspData)
 //
 // RIL_REQUEST_OEM_HOOK_STRINGS 60
 //
-RIL_RESULT_CODE CTEBase::CoreHookStrings(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTEBase::CoreHookStrings(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 & uiRilChannel)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreHookStrings() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;

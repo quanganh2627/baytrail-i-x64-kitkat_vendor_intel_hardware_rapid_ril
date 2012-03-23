@@ -2997,14 +2997,19 @@ RIL_RESULT_CODE CTE::RequestHookRaw(RIL_Token rilToken, void * pData, size_t dat
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHookRaw(reqData, pData, datalen);
+    //  CoreHookRaw API chooses what RIL Channel to send command on.
+    //  Channel is passed back through uiChannel parameter.
+    //  Default is value defined in rilchannels.cpp.
+    UINT32 uiRilChannel = g_arChannelMapping[ND_REQ_ID_OEMHOOKRAW];
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHookRaw(reqData, pData, datalen, uiRilChannel);
     if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestHookRaw() - Unable to create AT command data\r\n");
     }
     else
     {
-        CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_OEMHOOKRAW], rilToken, ND_REQ_ID_OEMHOOKRAW, reqData, &CTE::ParseHookRaw);
+        CCommand * pCmd = new CCommand(uiRilChannel, rilToken, ND_REQ_ID_OEMHOOKRAW, reqData, &CTE::ParseHookRaw);
 
         if (pCmd)
         {
@@ -3044,14 +3049,19 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void * pData, size_t
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHookStrings(reqData, pData, datalen);
+    //  CoreHookStrings API chooses what RIL Channel to send command on.
+    //  Channel is passed back through uiChannel parameter.
+    //  Default is value defined in rilchannels.cpp.
+    UINT32 uiRilChannel = g_arChannelMapping[ND_REQ_ID_OEMHOOKSTRINGS];
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHookStrings(reqData, pData, datalen, uiRilChannel);
     if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestHookStrings() - Unable to create AT command data\r\n");
     }
     else
     {
-        CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_OEMHOOKSTRINGS], rilToken, ND_REQ_ID_OEMHOOKSTRINGS, reqData, &CTE::ParseHookStrings);
+        CCommand * pCmd = new CCommand(uiRilChannel, rilToken, ND_REQ_ID_OEMHOOKSTRINGS, reqData, &CTE::ParseHookStrings);
 
         if (pCmd)
         {
