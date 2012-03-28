@@ -41,11 +41,13 @@ CRadioState g_RadioState;
 // the call is disconnected.
 bool g_clearPendingChlds = false;
 
+#if !defined(BOARD_HAVE_IFX7060)
 ///////////////////////////////////////////////////////////////////////////////
 // This global variable stores the initial value of the
 // Modem Autonomous Fast Dormancy (MAFD) mode in the repository.
 const int FAST_DORMANCY_MODE_DEFAULT = 2;
 int g_nFastDormancyMode = FAST_DORMANCY_MODE_DEFAULT;
+#endif // BOARD_HAVE_IFX7060
 
 // Globals used for DSDS
 char g_szDualSim[PROPERTY_VALUE_MAX];

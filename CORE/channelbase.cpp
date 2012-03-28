@@ -460,8 +460,12 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     int nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
     BOOL bIgnoreDARPParam = FALSE;
 
+#if !defined(BOARD_HAVE_IFX7060)
     // Data for Fast Dormancy Mode
-    char szFDModeString[MAX_BUFFER_SIZE] = {0};
+    char szFDCmdString[MAX_BUFFER_SIZE] = {0};
+    char szFDDelayTimer[MAX_BUFFER_SIZE] = {0};
+    char szSCRITimer[MAX_BUFFER_SIZE] = {0};
+#endif // BOARD_HAVE_IFX7060
 
     szInit = new char[szInitLen];
     if (!szInit)
@@ -551,24 +555,46 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         //These commands are not supported by 2230 modem
         if (!CSystemManager::GetInstance().IsDSDS_2230_Mode())
         {
-            // if Modem Fast Dormancy mode is "Always on"
-            if (E_FD_MODE_ALWAYS_ON == g_nFastDormancyMode)
+            // Read Fast Dormancy Timers from repository
+            repository.ReadFDParam(g_szGroupModem, g_szFDDelayTimer, szFDDelayTimer, MAX_BUFFER_SIZE, MIN_FDDELAY_TIMER, MAX_FDDELAY_TIMER);
+            repository.ReadFDParam(g_szGroupModem, g_szSCRITimer, szSCRITimer, MAX_BUFFER_SIZE, MIN_SCRI_TIMER, MAX_SCRI_TIMER);
+
+            // define XFDOR command according to FD mode
+            switch (g_nFastDormancyMode)
             {
-                if (!CopyStringNullTerminate(szFDModeString, "+XFDOR=2\r", sizeof(szFDModeString)))
-                {
-                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create cmd to enable Fast Dormancy\r\n");
-                    goto Done;
-                }
-                if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
-                {
-                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
-                    goto Done;
-                }
-                if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szFDModeString))
-                {
-                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szFDCmdString failed\r\n");
-                    goto Done;
-                }
+                case E_FD_MODE_ALWAYS_ON :
+                    if (!PrintStringNullTerminate(szFDCmdString,
+                                          sizeof(szFDCmdString),
+                                          "+XFDOR=2,%s,%s",
+                                          szFDDelayTimer, szSCRITimer))
+                    {
+                            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
+                            goto Done;
+                    }
+                    break;
+                 case E_FD_MODE_OEM_MANAGED :
+                 case E_FD_MODE_DISPLAY_DRIVEN :
+                 default :
+                    if (!PrintStringNullTerminate(szFDCmdString,
+                                          sizeof(szFDCmdString),
+                                          "+XFDOR=3"))
+                    {
+                            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
+                            goto Done;
+                    }
+                    break;
+            }
+
+            // Add FD command to init string
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
+                goto Done;
+            }
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szFDCmdString))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szFDCmdString failed\r\n");
+                goto Done;
             }
 
             // Read 3G Rx Diversity mode setting from repository
@@ -628,7 +654,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                 }
             }
         }
-#endif
+#endif // BOARD_HAVE_IFX7060
     }
 
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : String [%s]\r\n", szInit);

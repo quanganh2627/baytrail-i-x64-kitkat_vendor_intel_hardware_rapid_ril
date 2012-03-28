@@ -144,6 +144,11 @@ private:
                                                     const UINT32 uiDataSize);
     RIL_RESULT_CODE ParseXGATR(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseXDRV(const char* pszRsp, RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseCGED(const char* pszRsp, RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseXCGEDPAGE(const char* pszRsp, RESPONSE_DATA& rRspData);
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+    RIL_RESULT_CODE ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRspData);
+#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
 };
 
 //  Call these functions to set up data and bring down data.

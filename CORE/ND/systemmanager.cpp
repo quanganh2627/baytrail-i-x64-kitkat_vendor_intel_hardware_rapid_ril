@@ -41,6 +41,7 @@
 #include "channel_DLC6.h"
 #include "channel_DLC8.h"
 #include "channel_URC.h"
+#include "channel_OEM.h"
 #include "response.h"
 #include "repository.h"
 #include "te.h"
@@ -293,11 +294,13 @@ BOOL CSystemManager::InitializeSystem()
         g_TimeoutThresholdForRetry = (UINT32)iTemp;
     }
 
+#if !defined(BOARD_HAVE_IFX7060)
     // store initial value of Fast Dormancy Mode
     if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
     {
         g_nFastDormancyMode = (UINT32)iTemp;
     }
+#endif // BOARD_HAVE_IFX7060
 
     if (m_pSimUnlockedEvent)
     {
@@ -657,6 +660,10 @@ BOOL CSystemManager::IsChannelUndefined(int channel)
             if (!g_szURCPort)
                 return true;
             break;
+        case RIL_CHANNEL_OEM:
+            if (!g_szOEMPort)
+                return true;
+            break;
         case RIL_CHANNEL_DATA1:
             if (!g_szDataPort1)
                 return true;
@@ -776,6 +783,10 @@ CChannel* CSystemManager::CreateChannel(UINT32 eIndex)
 
         case RIL_CHANNEL_URC:
             pChannel = new CChannel_URC(eIndex);
+            break;
+
+        case RIL_CHANNEL_OEM:
+            pChannel = new CChannel_OEM(eIndex);
             break;
 
         default:

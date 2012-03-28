@@ -216,7 +216,10 @@ const char   g_szRadioResetStartStmdDelay[]     = "RadioResetStartStmdDelay";
 const char   g_szEnableCellInfo[]               = "EnableCellInfo";
 const char   g_szRxDiversity3GEnable[]          = "RxDiversity3GEnable";
 const char   g_szRxDiversity2GDARP[]            = "RxDiversity2GDARP";
+const char   g_szFDDelayTimer[]                 = "FDDelayTimer";
+const char   g_szSCRITimer[]                    = "SCRITimer";
 const char   g_szFDMode[]                       = "FDMode";
+const char   g_szTempOoSNotificationEnable[]    = "TempOoSNotificationEnable";
 
 /////////////////////////////////////////////////
 
@@ -398,6 +401,31 @@ Error:
     return (E_OK == iRetVal);
 }
 
+// Read Fast Dormancy parameters from repository
+// check parameter consistency according to modem range
+// if value in undefined or out of range, parameter is replaced by empty string meaning "use value stored in modem NVRAM"
+BOOL CRepository::ReadFDParam(const char *szGroup, const char* szKey, char* szRes, int iMaxLen, int iMinVal, int iMaxVal)
+{
+    int param = 0;
+    if (Read(szGroup, szKey, szRes, iMaxLen))
+    {
+        // Check param consistency
+        sscanf(szRes, "%d", &param);
+        // Replace szRes by empty string in case of value out of range
+        if (param < iMinVal || param > iMaxVal)
+        {
+            szRes[0] = 0;
+            RIL_LOG_WARNING("CRepository::ReadFDParam() - FD Parameter \"%s\" out of range, use NVRAM modem value.\r\n", szKey);
+        }
+    }
+    else
+    {
+        szRes[0] = 0;
+        RIL_LOG_WARNING("CRepository::ReadFDParam() - FD Parameter \"%s\" not found, use NVRAM modem value.\r\n", szKey);
+    }
+
+    return (E_OK);
+}
 
 int CRepository::DumpLines(int iFd, int iFrom, int iTo)
 {

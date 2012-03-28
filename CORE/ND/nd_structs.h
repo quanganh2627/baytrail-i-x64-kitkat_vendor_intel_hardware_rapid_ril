@@ -269,4 +269,29 @@ typedef struct
     char pszTemperature[MAX_TEMP_SIZE];
 } S_ND_THERMAL_SENSOR_VALUE, *P_ND_THERMAL_SENSOR_VALUE;
 
+//
+// Structs for OEM diagnostic commands
+//
+typedef struct
+{
+    char* pszGprsCellEnv;
+}  S_ND_GPRS_CELL_ENV_PTR, *P_ND_GPRS_CELL_ENV_PTR;
+
+typedef struct
+{
+    S_ND_GPRS_CELL_ENV_PTR sResponsePointer;
+    char pszGprsCellEnv[MAX_BUFFER_SIZE*2];
+} S_ND_GPRS_CELL_ENV, *P_ND_GPRS_CELL_ENV;
+
+typedef struct
+{
+    char* pszDebugScreen;
+}  S_ND_DEBUG_SCREEN_PTR, *P_ND_DEBUG_SCREEN_PTR;
+
+typedef struct
+{
+    S_ND_DEBUG_SCREEN_PTR sResponsePointer;
+    char pszDebugScreen[MAX_BUFFER_SIZE*2];
+} S_ND_DEBUG_SCREEN, *P_ND_DEBUG_SCREEN;
+
 #endif

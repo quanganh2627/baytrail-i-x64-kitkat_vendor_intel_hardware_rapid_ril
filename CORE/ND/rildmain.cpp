@@ -52,6 +52,7 @@ char* g_szDLC2Port = NULL;
 char* g_szDLC6Port = NULL;
 char* g_szDLC8Port = NULL;
 char* g_szURCPort = NULL;
+char* g_szOEMPort = NULL;
 char* g_szSIMID = NULL;
 
 static const RIL_RadioFunctions gs_callbacks =
@@ -1350,7 +1351,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.14 for Android 4.0.3 (Build March 20/2012)";
+    return "Intrinsyc Rapid-RIL M6.15 for Android 4.0.3 (Build April 02/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1406,6 +1407,7 @@ static void usage(char *szProgName)
     fprintf(stderr, "    -m <SMS, Supp Service, Call Setting AT command port>\n");
     fprintf(stderr, "    -c <SIM related, SIM Toolkit AT command port>\n");
     fprintf(stderr, "    -u <Notification channel>\n");
+    fprintf(stderr, "    -o <OEM Hook channel>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 1>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 2>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 3>\n");
@@ -1414,7 +1416,7 @@ static void usage(char *szProgName)
     fprintf(stderr, "    [-i <SIM ID for DSDS>]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Example in init.rc file:\n");
-    fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12 -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1 -d /dev/gsmtty3 -d /dev/gsmtty4 -d /dev/gsmtty15 -d /dev/gsmtty16 -d /dev/gsmtty17\n", szProgName);
+    fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12 -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1 -o /dev/gsmtty9 -d /dev/gsmtty3 -d /dev/gsmtty4 -d /dev/gsmtty15 -d /dev/gsmtty16 -d /dev/gsmtty17\n", szProgName);
     fprintf(stderr, "\n");
 }
 
@@ -1437,7 +1439,7 @@ static bool RIL_SetGlobals(int argc, char **argv)
         g_arChannelMapping = g_arChannelMappingDefault;
     }
 
-    while (-1 != (opt = getopt(argc, argv, "d:s:a:n:m:c:u:i:")))
+    while (-1 != (opt = getopt(argc, argv, "d:s:a:n:m:c:u:o:i:")))
     {
         switch (opt)
         {
@@ -1476,6 +1478,12 @@ static bool RIL_SetGlobals(int argc, char **argv)
             case 'u':
                 g_szURCPort = optarg;
                 RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for URC channel chnl=[%d] -u\r\n", g_szURCPort, RIL_CHANNEL_URC);
+            break;
+
+            // This should be the non-emulator case.
+            case 'o':
+                g_szOEMPort = optarg;
+                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for OEM channel chnl=[%d] -u\r\n", g_szOEMPort, RIL_CHANNEL_OEM);
             break;
 
             // This should be the non-emulator case.
@@ -1535,7 +1543,7 @@ static bool RIL_SetGlobals(int argc, char **argv)
             return false;
         }
     }
-    else if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3 || !g_szDataPort4 || !g_szDataPort5)
+    else if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szOEMPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3 || !g_szDataPort4 || !g_szDataPort5)
     {
         usage(argv[0]);
         return false;

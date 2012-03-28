@@ -40,7 +40,6 @@
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
 #include <linux/gsmmux.h>
-
 #include <errno.h>
 
 
@@ -3375,26 +3374,13 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char** pszRequest = NULL;
     UINT32 uiCommand = 0;
+    int nNumStrings = 0;
 
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - Data pointer is NULL.\r\n");
         goto Error;
     }
-
-    if (uiDataSize < (1 * sizeof(char *)))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
-        goto Error;
-    }
-
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - Passed data pointer was NULL\r\n");
-        goto Error;
-    }
-
-    RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings() - uiDataSize=[%d]\r\n", uiDataSize);
 
     pszRequest = ((char**)pData);
     if (pszRequest == NULL || '\0' == pszRequest[0])
@@ -3403,7 +3389,19 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
         goto Error;
     }
 
-    RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings() - pszRequest=[%s]\r\n", pszRequest);
+    if ( (uiDataSize < (1 * sizeof(char *))) || (0 != (uiDataSize % sizeof(char*))) )
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    //  Loop through input strings and print them
+    nNumStrings = uiDataSize / sizeof(char*);
+    RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings() - uiDataSize=[%d], numStrings=[%d]\r\n", uiDataSize, nNumStrings);
+    for (int i=0; i<nNumStrings; i++)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::CoreHookStrings() - pszRequest[%d]=[%s]\r\n", i, pszRequest[i]);
+    }
 
     //  Get command as int.
     if (sscanf(pszRequest[0], "%u", &uiCommand) == EOF)
@@ -3434,6 +3432,42 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
             }
             res = RRIL_RESULT_OK;
             break;
+
+        case RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV");
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGED=0\r"))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV - Can't construct szCmd1.\r\n");
+                goto Error;
+            }
+            //  Send this command on OEM channel.
+            uiRilChannel = RIL_CHANNEL_OEM;
+            res = RRIL_RESULT_OK;
+            break;
+
+        case RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND");
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XCGEDPAGE=0\r"))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND - Can't construct szCmd1.\r\n");
+                goto Error;
+            }
+            //  Send this command on OEM channel.
+            uiRilChannel = RIL_CHANNEL_OEM;
+            res = RRIL_RESULT_OK;
+            break;
+
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+        case RIL_OEM_HOOK_STRING_SWAP_PS:
+            RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_SWAP_PS");
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XRAT=8\r"))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_SWAP_PS - Can't construct szCmd1.\r\n");
+                goto Error;
+            }
+            res = RRIL_RESULT_OK;
+            break;
+#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
 
         default:
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - ERROR: Received unknown uiCommand=[0x%X]\r\n", uiCommand);
@@ -3483,6 +3517,20 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD:
             res = ParseXDRV(pszRsp, rRspData);
             break;
+
+        case RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV:
+            res = ParseCGED(pszRsp, rRspData);
+            break;
+
+        case RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND:
+            res = ParseXCGEDPAGE(pszRsp, rRspData);
+            break;
+
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+        case RIL_OEM_HOOK_STRING_SWAP_PS:
+            res = ParseSwapPS(pszRsp, rRspData);
+            break;
+#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
 
         default:
             RIL_LOG_INFO("CTE_INF_6260::ParseHookStrings() - Parsing not implemented for uiCommand: %u\r\n",
@@ -5003,10 +5051,9 @@ RIL_RESULT_CODE CTE_INF_6260::CreateActivateThermalSensorInd(REQUEST_DATA& rReqD
         goto Error;
     }
 
-    RIL_LOG_INFO("CTE_INF_6260::CreateActivateThermalSensorInd() - szActivate=[%s]\r\n", szActivate);
-    RIL_LOG_INFO("CTE_INF_6260::CreateActivateThermalSensorInd() - sensor Id=[%d]\r\n", sensorId);
-    RIL_LOG_INFO("CTE_INF_6260::CreateActivateThermalSensorInd() - Low Threshold=[%d]\r\n", minThersholdTemp);
-    RIL_LOG_INFO("CTE_INF_6260::CreateActivateThermalSensorInd() - Max Threshold=[%d]\r\n", maxThersholdTemp );
+    RIL_LOG_INFO("CTE_INF_6260::CreateActivateThermalSensorInd() - szActivate=[%s],"
+                 " sensor Id=[%d], Low Threshold=[%d], Max Threshold=[%d]\r\n",
+                 szActivate, sensorId, minThersholdTemp, maxThersholdTemp);
 
     /*
      * For activating the thermal sensor threshold reached indication, threshold
@@ -5173,7 +5220,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseXDRV(const char* pszRsp, RESPONSE_DATA& rRspD
                     "filtered_temp: %u, raw_temp: %u\r\n", uiIpcChrGrp, uiIpcChrTempGet,
                     uiXdrvResult, uiTempSensorId, uiFilteredTemp, uiRawTemp);
 
-        snprintf(pResponse->pszTemperature, MAX_TEMP_SIZE, "%u %u", uiFilteredTemp, uiRawTemp);
+        snprintf(pResponse->pszTemperature, sizeof(pResponse->pszTemperature) - 1,
+                 "%u %u", uiFilteredTemp, uiRawTemp);
 
         pResponse->sResponsePointer.pszTemperature = pResponse->pszTemperature;
 
@@ -5193,3 +5241,91 @@ Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseXDRV() - Exit\r\n");
     return res;
 }
+
+
+RIL_RESULT_CODE CTE_INF_6260::ParseCGED(const char* pszRsp, RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseCGED() - Enter\r\n");
+
+    P_ND_GPRS_CELL_ENV pResponse = NULL;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    pResponse = (P_ND_GPRS_CELL_ENV) malloc(sizeof(S_ND_GPRS_CELL_ENV));
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseCGED() - Could not allocate memory for response");
+        goto Error;
+    }
+    memset(pResponse, 0, sizeof(S_ND_GPRS_CELL_ENV));
+
+    //  Copy entire response verbatim to response.
+    strncpy(pResponse->pszGprsCellEnv, pszRsp, (MAX_BUFFER_SIZE*2)-1);
+    pResponse->pszGprsCellEnv[(MAX_BUFFER_SIZE*2)-1] = '\0';
+
+    pResponse->sResponsePointer.pszGprsCellEnv = pResponse->pszGprsCellEnv;
+
+    rRspData.pData   = (void*)pResponse;
+    rRspData.uiDataSize  = sizeof(S_ND_GPRS_CELL_ENV_PTR);
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseCGED() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_6260::ParseXCGEDPAGE(const char* pszRsp, RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseXCGEDPAGE() - Enter\r\n");
+
+    P_ND_DEBUG_SCREEN pResponse = NULL;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    pResponse = (P_ND_DEBUG_SCREEN) malloc(sizeof(S_ND_DEBUG_SCREEN));
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseXCGEDPAGE() - Could not allocate memory for response");
+        goto Error;
+    }
+    memset(pResponse, 0, sizeof(S_ND_DEBUG_SCREEN));
+
+    //  Copy entire response verbatim to response.
+    strncpy(pResponse->pszDebugScreen, pszRsp, (MAX_BUFFER_SIZE*2)-1);
+    pResponse->pszDebugScreen[(MAX_BUFFER_SIZE*2)-1] = '\0';
+
+    pResponse->sResponsePointer.pszDebugScreen = pResponse->pszDebugScreen;
+
+    rRspData.pData   = (void*)pResponse;
+    rRspData.uiDataSize  = sizeof(S_ND_DEBUG_SCREEN_PTR);
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseXCGEDPAGE() - Exit\r\n");
+    return res;
+}
+
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+RIL_RESULT_CODE CTE_INF_6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseSwapPS() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    //  Todo: Handle error here.
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseSwapPS() - Exit\r\n");
+    return res;
+}
+#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+

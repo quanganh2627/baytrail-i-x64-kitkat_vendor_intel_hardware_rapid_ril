@@ -19,7 +19,7 @@
 
 //  List channels here (one per COM port)
 
-#define RIL_CHANNEL_MAX 10
+#define RIL_CHANNEL_MAX 11
 extern int g_dRilChannelCurMax;
 
 #if defined(BOARD_HAVE_IFX7060)
@@ -41,20 +41,23 @@ extern int g_dRilChannelCurMax;
 //  URC channel
 #define RIL_CHANNEL_URC 4
 
+//  OEM channel (diagnostic commands)
+#define RIL_CHANNEL_OEM 5
+
 //  GPRS/UMTS data (1st primary context)
-#define RIL_CHANNEL_DATA1 5
+#define RIL_CHANNEL_DATA1 6
 
 //  GPRS/UMTS data (2nd primary context)
-#define RIL_CHANNEL_DATA2 6
+#define RIL_CHANNEL_DATA2 7
 
 //  GPRS/UMTS data (3rd primary context)
-#define RIL_CHANNEL_DATA3 7
+#define RIL_CHANNEL_DATA3 8
 
 //  GPRS/UMTS data (4th primary context)
-#define RIL_CHANNEL_DATA4 8
+#define RIL_CHANNEL_DATA4 9
 
 //  GPRS/UMTS data (5th primary context)
-#define RIL_CHANNEL_DATA5 9
+#define RIL_CHANNEL_DATA5 10
 
 // TODO - currently allow up to one reserved channel (e.g., for direct audio use).
 // Set this to -1 or a number greater than RIL_CHANNEL_MAX if there is no reserved channel

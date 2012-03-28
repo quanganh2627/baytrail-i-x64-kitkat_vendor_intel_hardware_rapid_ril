@@ -5655,6 +5655,14 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     //        info on screen. For now, just return OK and keep throwing updates.
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int nEnable = 0;
+#if !defined(BOARD_HAVE_IFX7060)
+    CRepository  repository;
+
+    // Data for fast dormancy
+    static char szFDDelayTimer[MAX_BUFFER_SIZE] = {0};
+    static char szSCRITimer[MAX_BUFFER_SIZE] = {0};
+    static BOOL FDParamReady = FALSE;
+#endif // BOARD_HAVE_IFX7060
 
     if (NULL == pData)
     {
@@ -5675,20 +5683,32 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
+#if !defined(BOARD_HAVE_IFX7060)
     // if Modem Fast Dormancy mode is "Display Driven"
     if (E_FD_MODE_DISPLAY_DRIVEN == g_nFastDormancyMode)
     {
         // disable MAFD when "Screen On", enable MAFD when "Screen Off"
         //      XFDOR=2: switch ON MAFD
         //      XFDOR=3: switch OFF MAFD
-        int nFDEnable = nEnable ?  3 : 2;
+        // Read Fast Dormancy Timers from repository if screen is off
+        if (0 == nEnable && FDParamReady == FALSE)
+        {
+            repository.ReadFDParam(g_szGroupModem, g_szFDDelayTimer, szFDDelayTimer,
+                                MAX_BUFFER_SIZE, MIN_FDDELAY_TIMER, MAX_FDDELAY_TIMER);
+            repository.ReadFDParam(g_szGroupModem, g_szSCRITimer, szSCRITimer,
+                                MAX_BUFFER_SIZE, MIN_SCRI_TIMER, MAX_SCRI_TIMER);
+            FDParamReady = TRUE;
+        }
 
-        if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "AT+XFDOR=%u\r", nFDEnable))
+        if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), (1 == nEnable) ?
+                                "AT+XFDOR=3\r" :
+                                "AT+XFDOR=2,%s,%s\r", szFDDelayTimer, szSCRITimer))
         {
             RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create XFDOR command\r\n");
             goto Error;
         }
     }
+#endif // BOARD_HAVE_IFX7060
 
     res = RRIL_RESULT_OK;
 

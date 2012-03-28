@@ -1,6 +1,195 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+April 2, 2012 (M6.15 release for Medfield PR3)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR3 devices, Android version 4.0.3 (Ice Cream Sandwich).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ICS ABSP dated March 1, 2012 (ww9).
+- We are using the HSI interface.
+
+PR3 Setup
+=========
+FW DnX: SIGNED_PNW_D1_FWR_DnX.FD.03.bin (from ww9 PR3.3 release)
+IFWI: IFWI_v05.20_CRAK_DEV.bin (from ww9 PR3.3 release)
+OS DnX: SIGNED_PNW_D1_OSR_DnX.0D.02.bin (from ww9 PR3.3 release)
+OS Image: recovery.img.POS.bin (from ww9 PR3.3 release)
+Modem Firmware: radio_firmware.bin (from ww9 PR3.3 release - 1207.A)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch mfld_pr2-eng
+make mfld_pr2 -j8
+
+
+Release Notes for M6.15
+========================
+
+1. Bugzilla 28398: Change channel used for Query/Set Faciliy lock requests
+   -Integrate patch 39952 (set 1)
+
+2. Incorporate feedback from M6.14 release
+   -Combine multiple RIL_LOG_INFO calls into one log message.
+
+3. Bugzilla 28433: Change channel used for Get/Set SMS Service Center requests
+   -Integrate patch 39976 (set 1)
+
+4. Fix Klocwork error in RRL
+   -Fix Klocwork error in /CORE/ND/MODEMS/te_inf_6260.cpp (line 5163) related to
+    snprintf (function 'snprintf' may incorrectly check buffer
+    boundaries and may overflow buffer 'pResponse->pszTemperature' of fixed
+    size (50)).
+
+5. Bugzilla 21259: Technical feasibility to map AT+CGED and AT+XCGEDPAGE to
+                   new OEM Hook commands
+   -Add CChannel_DLC9 class to use /dev/gsmtty9
+   -Modify init.mfld_pr2.rc file to use /dev/gsmtty9 mux channel.  Using -o flag
+    for "OEM".
+   -Added 2 new OEM Hook flags:
+    RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV =     0x000000A6  (AT+CGED=0)
+    RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND =  0x000000A7  (AT+XCGEDPAGE=0)
+   -Response is string[], string[0] contains the entire response from modem verbatim.
+   -Updated RIL OEM Hook test script.  To invoke:
+    Install app:
+        adb install out/target/product/mfld_pr2/system/app/RILTest.apk
+    Open shell:
+        adb shell
+    In shell:
+        am start -n com.android.RILTest/com.android.RILTest.RilOemHookTest &
+
+6. Bugzilla 28468: Fast Out of Service notification support
+   -Functionality is wrapped in compilation flag: (disabled by default)
+    M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+   -Add "TempOoSNotificationEnable" flag in repository.txt.  The default for this
+    setting is "1" (enable support) in the repository.
+    Temporary Out of Service (OoS) Notifications - Enable/disable support for
+      Temporary OoS notications.
+      If set to "0", Temporary OoS notifcations will not be supported
+      If set to "1", Temporary OoS notification will be supported
+      If missing, the default value will be "1" and notifications will be
+        supported
+   -Added 2 new OEM Hook flags (unsolicited):
+    RIL_OEM_HOOK_RAW_UNSOL_FAST_OOS_IND = 0x000000D1
+    RIL_OEM_HOOK_RAW_UNSOL_IN_SERVICE_IND = 0x000000D2
+   -The data returned for these unsolicited OEM hooks is a byte containing
+    the command id.
+
+7. Bugzilla 26799: Activate modem Autonomous Fast Dormancy
+   -Integrate patch 39761 (set 4), patch 37717 (set 3)
+
+8. Bugzilla 28470: OEM Hook to swap protocol stacks configs
+   -Added RIL_OEM_HOOK_STRING_SWAP_PS id, (0x000000B2)
+   -Sends AT+XRAT=8 to modem.
+   -TODO: Implement returning error code as response.
+
+9. Bugzilla 23371: [Noohill][TMC][Carrier Certification]USSD_MT_char_default_table,
+                   modem delivers less characters than expected
+   -Integrate patch 39090 (set 5)
+   -Note: Using dialer to send USSD will cause the dialer to hang.
+
+
+Testing results:  (tested on Medfield PR3)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 March 20, 2012 (M6.14 release for Medfield PR3)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
@@ -111,7 +300,7 @@ Testing results:  (tested on Medfield PR3)
 9. MT Voice call.  Answer call. Remote Hangup.
    PASS
 
-10. MT voice call, reject.  Caller should be sent to voice mail.
+10. MT voice call, reject.  Caller should be sent to voiceszFdmodestring mail.
     PASS
 
 11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
@@ -978,7 +1167,7 @@ Testing results:  (tested on mfld_pr2)
 
 23. Send 2 SMSs to self.  (less than 160 characters)
     PASS
-
+message
 24. Send 2 multipart SMSs to self (more than 160 characters)
     PASS
 

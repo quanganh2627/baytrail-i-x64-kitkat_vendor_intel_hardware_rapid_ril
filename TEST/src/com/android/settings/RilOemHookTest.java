@@ -145,6 +145,32 @@ public class RilOemHookTest extends Activity
             }
             break;
 
+            case R.id.radio_api5:
+            {
+                // RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV
+                // AT+CGED=0
+
+                // data: <command id>
+                String[] data = { "166" };
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
+                mPhone.invokeOemRilRequestStrings(data, msg);
+            }
+            break;
+
+            case R.id.radio_api6:
+            {
+                // RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND
+                // AT+XCGEDPAGE=0
+
+                // data: <command id>
+                String[] data = { "167" };
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
+                mPhone.invokeOemRilRequestStrings(data, msg);
+            }
+            break;
+
             case R.id.radio_api100:
             {
                 //  RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM

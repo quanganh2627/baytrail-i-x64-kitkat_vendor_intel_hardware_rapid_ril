@@ -27,6 +27,10 @@
 #include "te_inf_6260.h"
 #include "cutils/tztime.h"
 #include "te.h"
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+#include "oemhookids.h"
+#include "repository.h"
+#endif
 
 //
 //
@@ -47,7 +51,6 @@ CSilo_Network::CSilo_Network(CChannel *pChannel)
         { "+CTZDST: "   , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
         { "+XNITZINFO"  , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXNITZINFO    },
         { "+PACSP1"     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
-        { "+XCGEDPAGE:" , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCGEDPAGE    },
         { ""            , (PFN_ATRSP_PARSE)&CSilo_Network::ParseNULL         }
     };
 
@@ -380,6 +383,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
 
 
     // Valid XREG notifications can have from one to five parameters, as follows:
+    //       <status>                               for an unsolicited notification without location data
     //       <status>, <AcT>, <Band>                for an unsolicited notification without location data
     //  <n>, <status>, <AcT>, <Band>                for a command response without location data
     //       <status>, <AcT>, <Band>, <lac>, <ci>   for an unsolicited notification with location data
@@ -463,6 +467,36 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         {
             fUnSolicited = TRUE;
         }
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+        else if (1 == nNumParams)
+        {
+            CRepository repository;
+            const int TEMP_OUT_OF_SERVICE_EN_DEFAULT = 1;
+            int nEnableTempOoSNotif = TEMP_OUT_OF_SERVICE_EN_DEFAULT;
+
+            if (!repository.Read(g_szGroupModem, g_szTempOoSNotificationEnable, nEnableTempOoSNotif))
+            {
+                nEnableTempOoSNotif = TEMP_OUT_OF_SERVICE_EN_DEFAULT;
+            }
+
+            if (nEnableTempOoSNotif)
+            {
+                // handle special case for Temporary Out of Service Notification
+                fRet = ParseXREGFastOoS(pResponse, rszPointer);
+            }
+            else
+            {
+                // Temporary Out of Service Notifications not supported
+                fRet = ParseUnrecognized(pResponse, rszPointer);
+            }
+
+            delete[] pszCommaBuffer;
+            pszCommaBuffer = NULL;
+
+            RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Exit\r\n");
+            return fRet;
+        }
+#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
         else if ((4 == nNumParams) || (6 == nNumParams))
         {
             //  Sol is 4 and 6
@@ -660,42 +694,6 @@ Error:
 
 //
 //
-BOOL CSilo_Network::ParseXCGEDPAGE(CResponse *const pResponse, const char* &rszPointer)
-{
-    RIL_LOG_VERBOSE("CSilo_Network::ParseXCGEDPAGE() - Enter\r\n");
-
-    BOOL bRet = FALSE;
-    char szTemp[20] = {0};
-
-    if (NULL == pResponse)
-    {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXCGEDPAGE() - pResponse is NULL\r\n");
-        goto Error;
-    }
-
-    // Look for a "<postfix>OK<postfix>"
-    snprintf(szTemp, sizeof(szTemp)-1, "%sOK%s", g_szNewLine, g_szNewLine);
-    szTemp[sizeof(szTemp)-1] = '\0';  //  redundant: KW fix
-    if (!FindAndSkipRspEnd(rszPointer, szTemp, rszPointer))
-    {
-        // This isn't a complete registration notification -- no need to parse it
-        goto Error;
-    }
-
-    //  Back up over the "\r\n".
-    rszPointer -= strlen(g_szNewLine);
-
-    //  Flag as unrecognized.
-    //pResponse->SetUnrecognizedFlag(TRUE);
-
-    bRet = TRUE;
-Error:
-    RIL_LOG_VERBOSE("CSilo_Network::ParseXCGEDPAGE() - Exit\r\n");
-    return bRet;
-}
-
-//
-//
 BOOL CSilo_Network::ParseXCSQ(CResponse *const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCSQ() - Enter\r\n");
@@ -773,3 +771,53 @@ Error:
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCSQ() - Exit\r\n");
     return bRet;
 }
+
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+// Special parse function to handle Fast Out of Service Notifications
+BOOL CSilo_Network::ParseXREGFastOoS(CResponse *const pResponse, const char* &rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXREGFastOoS() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    UINT32 uiState = 0;
+    BYTE commandId[1] = {0};
+
+    const UINT32 NETWORK_REG_STATUS_FAST_OOS = 20;
+    const UINT32 NETWORK_REG_STATUS_IN_SERVICE = 21;
+
+    // Extract "<state>"
+    if (!ExtractUInt32(rszPointer, uiState, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseXREGFastOoS() - Could not extract <state>.\r\n");
+        goto Error;
+    }
+
+    if (NETWORK_REG_STATUS_FAST_OOS == uiState)
+    {
+        commandId[0] = (BYTE) RIL_OEM_HOOK_RAW_UNSOL_FAST_OOS_IND;
+    }
+    else if (NETWORK_REG_STATUS_IN_SERVICE == uiState)
+    {
+        commandId[0] = (BYTE) RIL_OEM_HOOK_RAW_UNSOL_IN_SERVICE_IND;
+    }
+    else // unsupported state
+    {
+         RIL_LOG_CRITICAL("CSilo_MISC::ParseXREGFastOoS() - Unrecognized network reg state\r\n");
+         goto Error;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+
+    if (!pResponse->SetData((void*)commandId, sizeof(BYTE), FALSE))
+    {
+        goto Error;
+    }
+
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXREGFastOoS() - Exit\r\n");
+    return bRet;
+}
+#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED

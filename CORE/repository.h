@@ -32,6 +32,11 @@
 
 #define MAX_REQUEST_ITEM_LENGTH    64
 
+// define max FD timers
+#define MIN_FDDELAY_TIMER          1
+#define MIN_SCRI_TIMER             1
+#define MAX_FDDELAY_TIMER          60
+#define MAX_SCRI_TIMER             120
 
 //////////////////////////////////////////////////////////////////////////
 // String Constants used for NVM Access
@@ -80,7 +85,10 @@ extern const char   g_szRadioResetStartStmdDelay[];
 extern const char   g_szEnableCellInfo[];
 extern const char   g_szRxDiversity3GEnable[];
 extern const char   g_szRxDiversity2GDARP[];
+extern const char   g_szFDDelayTimer[];
+extern const char   g_szSCRITimer[];
 extern const char   g_szFDMode[];
+extern const char   g_szTempOoSNotificationEnable[];
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -110,6 +118,7 @@ public:
     // otherwise return -1
     BOOL Read(const char *szGroup, const char* szKey, int& iRes);
     BOOL Read(const char *szGroup, const char* szKey, char* szRes, int iMaxLen);
+    BOOL ReadFDParam(const char *szGroup, const char* szKey, char* szRes, int iMaxLen, int iMinVal, int iMaxVal);
 
 private:
     // file access and manipulation

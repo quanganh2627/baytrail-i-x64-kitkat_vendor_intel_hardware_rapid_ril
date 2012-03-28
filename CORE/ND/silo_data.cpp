@@ -40,7 +40,6 @@ CSilo_Data::CSilo_Data(CChannel *pChannel)
         { "+XCIEV: "      , (PFN_ATRSP_PARSE)&CSilo_Data::ParseUnrecognized },
         { "+XCIEV:"      , (PFN_ATRSP_PARSE)&CSilo_Data::ParseUnrecognized },
         { "RING"         , (PFN_ATRSP_PARSE)&CSilo_Data::ParseUnrecognized },
-        { "+XCGEDPAGE:" , (PFN_ATRSP_PARSE)&CSilo_Data::ParseXCGEDPAGE    },
         { ""         , (PFN_ATRSP_PARSE)&CSilo_Data::ParseNULL         }
     };
 
@@ -183,39 +182,4 @@ Error:
     return fRet;
 }
 
-//
-//
-BOOL CSilo_Data::ParseXCGEDPAGE(CResponse *const pResponse, const char* &rszPointer)
-{
-    RIL_LOG_VERBOSE("CSilo_Data::ParseXCGEDPAGE() - Enter\r\n");
-
-    BOOL bRet = FALSE;
-    char szTemp[20] = {0};
-
-    if (NULL == pResponse)
-    {
-        RIL_LOG_CRITICAL("CSilo_Data::ParseXCGEDPAGE() - Error: pResponse is NULL\r\n");
-        goto Error;
-    }
-
-    // Look for a "<postfix>OK<postfix>"
-    snprintf(szTemp, sizeof(szTemp)-1, "%sOK%s", g_szNewLine, g_szNewLine);
-    szTemp[sizeof(szTemp)-1] = '\0';  //  redundant: KW fix
-    if (!FindAndSkipRspEnd(rszPointer, szTemp, rszPointer))
-    {
-        // This isn't a complete registration notification -- no need to parse it
-        goto Error;
-    }
-
-    //  Back up over the "\r\n".
-    rszPointer -= strlen(g_szNewLine);
-
-    //  Flag as unrecognized.
-    //pResponse->SetUnrecognizedFlag(TRUE);
-
-    bRet = TRUE;
-Error:
-    RIL_LOG_VERBOSE("CSilo_Data::ParseXCGEDPAGE() - Exit\r\n");
-    return bRet;
-}
 

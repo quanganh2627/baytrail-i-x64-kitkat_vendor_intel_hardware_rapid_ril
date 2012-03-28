@@ -118,6 +118,32 @@ const int RIL_OEM_HOOK_STRING_GET_ATR = 0x000000A5;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV
+//  Command ID = 0x000000A6
+//
+//  This command sends AT+CGED to the modem.
+//
+//  "data" = NULL
+//  "response" = string containing dump of GPRS cell environment
+//
+const int RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV = 0x000000A6;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND
+//  Command ID = 0x000000A7
+//
+//  This command sends AT+XCGEDPAGE to the modem.
+//
+//  "data" = NULL
+//  "response" = string containing dump of the cell environment debug screen
+//
+const int RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND = 0x000000A7;
+
+///////////////////////////////////////////////////////////////////////////////
+
 #if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
 
 typedef struct TAG_OEM_HOOK_RAW_SET_ACTIVE_SIM
@@ -173,6 +199,19 @@ typedef struct TAG_OEM_HOOK_RAW_GET_ACTIVE_SIM
 //
 const int RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM = 0x000000B1;
 
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_SWAP_PS
+//  Command ID = 0x000000B2
+//
+//  This command sends AT+XRAT=8 to the modem.
+//
+//  "data" = NULL
+//  "response" = Error code returned by AT command
+//
+const int RIL_OEM_HOOK_STRING_SWAP_PS = 0x000000B2;
+
 #endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -193,6 +232,32 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 //  "response" = NULL
 //
 const int RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND = 0x000000D0;
+
+///////////////////////////////////////////////////////////////////////////////
+
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+
+//
+//  OEM_HOOK_RAW_UNSOL_FAST_OOS_IND
+//  Command ID = 0x000000D1
+//
+//  "data" is a byte[] containing the command id
+//  data[0] = command id
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_FAST_OOS_IND = 0x000000D1;
+
+//
+//  OEM_HOOK_RAW_UNSOL_IN_SERVICE_IND
+//  Command ID = 0x000000D2
+//
+//  "data" is a byte[] containing the command id
+//  data[0] = command id
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_IN_SERVICE_IND = 0x000000D2;
+
+///////////////////////////////////////////////////////////////////////////////
+
+#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
 
 
 #pragma pack()

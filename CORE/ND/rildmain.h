@@ -21,14 +21,16 @@ class CThread;
 
 // The device path to use for the AT command channel
 extern char * g_szCmdPort;
-// The device path to use for the AT command channel
+// The device path to use for the GPRS attach/detatch, network channel
 extern char * g_szDLC2Port;
-// The device path to use for the AT command channel
+// The device path to use for the SMS, Supplementary services channel
 extern char * g_szDLC6Port;
-// The device path to use for the AT command channel
+// The device path to use for the SIM / SIM Toolkit channel
 extern char * g_szDLC8Port;
-// The device path to use for the AT command channel
+// The device path to use for the notification channel
 extern char * g_szURCPort;
+// The device path to use for the OEM channel
+extern char * g_szOEMPort;
 // The device path to use for the data channel1
 extern char * g_szDataPort1;
 // The device path to use for the data channel2

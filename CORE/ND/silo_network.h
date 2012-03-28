@@ -64,8 +64,12 @@ protected:
     virtual BOOL    ParseCGREG(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseXREG(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseCGEV(CResponse* const pResponse, const char*& rszPointer);
-    virtual BOOL    ParseXCGEDPAGE(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseXCSQ(CResponse* const pResponse, const char*& rszPointer);
+
+private:
+#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+    BOOL ParseXREGFastOoS(CResponse *const pResponse, const char* &rszPointer);
+#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
 };
 
 #endif // RRIL_SILO_NETWORK_H
