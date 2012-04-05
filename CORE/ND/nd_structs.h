@@ -256,7 +256,7 @@ typedef struct
 const UINT32 MAX_TEMP_SIZE = 50;
 
 //
-// Structs for getting the available operator list to Android
+// Structs for reporting thermal sensor temperatures to Android
 //
 typedef struct
 {

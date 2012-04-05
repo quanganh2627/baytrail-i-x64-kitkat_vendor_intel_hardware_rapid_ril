@@ -29,6 +29,9 @@
 //      0x00000001 -> 0x0000009F : Product Specific
 //      0x000000A0 -> 0x000000CF : Platform Requests
 //      0x000000D0 -> 0x000000FF : Platform Unsolicited
+//      0x00050000 -> 0x000500FF : ENZO specific
+//      0x00080000 -> 0x000800FF : ENZO specific
+//      0x000A0000 -> 0x000A00FF : ENZO specific
 //
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -87,21 +90,21 @@ const int RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD = 0x000000A3;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct TAG_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
-{
-    int nCommand; //  Command ID
-    int nEnable; // enable=1 or disable=0
-    int nDelayTimer; // int from 0-60
-} sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY;
-
 //
-//  RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
+//  RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY
 //  Command ID = 0x000000A4
 //
-//  "data" = sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
+// "data" - String containing the following values separated by a space
+//          boolean FDEnable
+//                    true - Activates the autonomous fast dormancy
+//                    false - Deactivates the autonomous fast dormancy
+//          int delayTimer
+//                    integer value in range of 1 to 60 (seconds)
+//          int SCRI Timer
+//                    integer value in range of 1 to 120 (seconds)
 //  "response" = NULL
 //
-const int RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY = 0x000000A4;
+const int RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY = 0x000000A4;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -145,61 +148,6 @@ const int RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND = 0x000000A7;
 ///////////////////////////////////////////////////////////////////////////////
 
 #if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
-
-typedef struct TAG_OEM_HOOK_RAW_SET_ACTIVE_SIM
-{
-    int nCommand; //  Command ID
-    int sim_id;
-} sOEM_HOOK_RAW_SET_ACTIVE_SIM;
-
-//
-//  RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM
-//  Command ID = 0x000000B0
-//
-//  This command selects which SIM is active between two inserted cards.
-//  To be mapped to:
-//      AT@nvm:fix_uicc.ext_mux_misc_config=<sim_id>
-//      AT@nvm:store_nvm_sync(fix_uicc)
-//  In addition, this command should trigger a modem warm reset after
-//  AT@nvm command has been sent.
-//
-//  Preconditions:
-//      The modem has been previously put in flight mode by Android Framework
-//      (Radio Off).
-//  Post Conditions:
-//      The modem is started in flight mode; Android framework will trigger
-//      exit from Flight Mode.
-//
-//  "data" = sOEM_HOOK_RAW_SET_ACTIVE_SIM
-//  "response" = NULL
-//
-const int RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM = 0x000000B0;
-
-///////////////////////////////////////////////////////////////////////////////
-
-typedef struct TAG_OEM_HOOK_RAW_GET_ACTIVE_SIM
-{
-    int nCommand; //  Command ID
-} sOEM_HOOK_RAW_GET_ACTIVE_SIM;
-
-//
-//  RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM
-//  Command ID = 0x000000B1
-//
-//  This command gets which SIM is active between two inserted cards.
-//  To be mapped to:
-//      AT@nvm:fix_uicc.ext_mux_misc_config?
-//
-//  Response:
-//      <sim_id>
-//      OK
-//
-//  "data" = sOEM_HOOK_RAW_GET_ACTIVE_SIM
-//  "response" = int sim_id
-//
-const int RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM = 0x000000B1;
-
-///////////////////////////////////////////////////////////////////////////////
 
 //
 //  RIL_OEM_HOOK_STRING_SWAP_PS

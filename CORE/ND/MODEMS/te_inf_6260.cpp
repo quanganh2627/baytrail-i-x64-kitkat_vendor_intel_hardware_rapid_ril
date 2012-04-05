@@ -3059,7 +3059,10 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
         res = RRIL_RESULT_OK;
         rReqData.pContextData = (void*)((int)0);
 
-        DataConfigDown(nCid);
+        if (nCid > 0 && nCid <= MAX_PDP_CONTEXTS)
+        {
+            DataConfigDown(nCid);
+        }
     }
     else
     {
@@ -3155,127 +3158,11 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData,
 
     switch(nCommand)
     {
-        case RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY:
-        {
-            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY Command=[0x%08X] received OK\r\n", nCommand);
-
-            //  Copy data into our structure
-            if (uiDataSize == sizeof(sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY))
-            {
-                sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY sMAFD;
-                memset(&sMAFD, 0, sizeof(sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY));
-                memcpy(&sMAFD, pDataBytes, sizeof(sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY));
-
-                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - Enable=[%d], TimerValue=[%d]\r\n", ntohl(sMAFD.nEnable), ntohl(sMAFD.nDelayTimer));
-
-                int nFDEnable = ntohl(sMAFD.nEnable);
-                int nDelayTimer = ntohl(sMAFD.nDelayTimer);
-
-                if (1 == nFDEnable)
-                {
-                    if (0 == nDelayTimer)
-                    {
-                        // use modem default timer value
-                        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=2\r", sizeof(rReqData.szCmd1)))
-                        {
-                            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 1\r\n");
-                            goto Error;
-                        }
-                    }
-                    else
-                    {
-                        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDOR=2,%u\r", ntohl(sMAFD.nDelayTimer)))
-                        {
-                            RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 2\r\n");
-                            goto Error;
-                        }
-                    }
-                }
-                else
-                {
-                    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=3\r", sizeof(rReqData.szCmd1)))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY - Can't construct szCmd1. 3\r\n");
-                        goto Error;
-                    }
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY));
-                goto Error;
-            }
-        }
-        break;
-
-#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
-
-        case RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM:
-        {
-            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM Command=[0x%08X] received OK\r\n", nCommand);
-
-            //  Cast our data into our structure
-            if (uiDataSize == sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM))
-            {
-                sOEM_HOOK_RAW_SET_ACTIVE_SIM sSAS;
-                memset(&sSAS, 0, sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM));
-                memcpy(&sSAS, pDataBytes, sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM));
-
-                RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - sim_id=[%d]\r\n", ntohl(sSAS.sim_id));
-
-                if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT@nvm:fix_uicc.ext_mux_misc_config=%d\r", ntohl(sSAS.sim_id)))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM - Can't construct szCmd1.\r\n");
-                    goto Error;
-                }
-                //  Second AT command will be sent if first AT command is OK.
-                if (!CopyStringNullTerminate(rReqData.szCmd2, "AT@nvm:store_nvm_sync(fix_uicc)\r", sizeof(rReqData.szCmd2)))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM - Can't construct szCmd2.\r\n");
-                    goto Error;
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_SET_ACTIVE_SIM=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_SET_ACTIVE_SIM));
-                goto Error;
-            }
-        }
-        break;
-
-        case RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM:
-        {
-            RIL_LOG_INFO("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Command=[0x%08X] received OK\r\n", nCommand);
-
-            //  Cast our data into our structure
-            if (uiDataSize == sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM))
-            {
-                sOEM_HOOK_RAW_GET_ACTIVE_SIM sGAS;
-                memset(&sGAS, 0, sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM));
-                memcpy(&sGAS, pDataBytes, sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM));
-
-                if (!CopyStringNullTerminate(rReqData.szCmd1, "AT@nvm:fix_uicc.ext_mux_misc_config?\r", sizeof(rReqData.szCmd1)))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM - Can't construct szCmd1.\r\n");
-                    goto Error;
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() : uiDataSize=%d not sOEM_HOOK_RAW_GET_ACTIVE_SIM=%d\r\n", uiDataSize, sizeof(sOEM_HOOK_RAW_GET_ACTIVE_SIM));
-                goto Error;
-            }
-        }
-        break;
-
-#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
-
         default:
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookRaw() - Received unknown command=[0x%08X]\r\n", nCommand);
             goto Error;
             break;
     }
-
 
     res = RRIL_RESULT_OK;
 Error:
@@ -3296,71 +3183,11 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookRaw(RESPONSE_DATA & rRspData)
     void* pData = NULL;
     UINT32 uiDataSize = 0;
 
-
-    switch(nCommand)
-    {
-#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
-
-        case RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM:
-        {
-            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM Command=[0x%08X] received OK\r\n", nCommand);
-            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Resetting modem.  Signalling warm boot.\r\n");
-
-            do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
-
-            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Signal warm boot complete.\r\n");
-        }
-        break;
-
-        case RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM:
-        {
-            UINT32 nSim_id = 0;
-            unsigned char *pbIntData = NULL;
-
-            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Command=[0x%08X] received OK\r\n", nCommand);
-
-            //  Skip over \r\n if available
-            SkipRspStart(szRsp, g_szNewLine, szRsp);
-
-            //  Extract <sim_id>
-            if (!ExtractUInt32(szRsp, nSim_id, szRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM Could not extract sim_id\r\n");
-                goto Error;
-            }
-            RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM sim_id=%d\r\n", nSim_id);
-
-            pbIntData = (unsigned char*)malloc(sizeof(int));
-            if (NULL == pbIntData)
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookRaw() - RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM cannot allocate int\r\n");
-                goto Error;
-            }
-
-            convertIntToByteArray(pbIntData, nSim_id);
-
-            pData = (void*)pbIntData;
-            uiDataSize = sizeof(int);
-        }
-        break;
-
-#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
-
-        default:
-            break;
-    }
-
     res = RRIL_RESULT_OK;
 
     rRspData.pData   = pData;
     rRspData.uiDataSize  = uiDataSize;
 
-Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pData);
-        pData = NULL;
-    }
     RIL_LOG_INFO("CTE_INF_6260::ParseHookRaw() - Exit\r\n");
     return res;
 }
@@ -3437,6 +3264,11 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
                 goto Error;
             }
             res = RRIL_RESULT_OK;
+            break;
+
+        case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY");
+            res = CreateAutonomousFDReq(rReqData, (const char**) pszRequest, uiDataSize);
             break;
 
         case RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV:
@@ -3530,6 +3362,11 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookStrings(RESPONSE_DATA & rRspData)
 
         case RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND:
             res = ParseXCGEDPAGE(pszRsp, rRspData);
+            break;
+
+        case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
+            // no need for a parse function as this AT command only returns "OK"
+            res = RRIL_RESULT_OK;
             break;
 
 #if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
@@ -5086,6 +4923,69 @@ RIL_RESULT_CODE CTE_INF_6260::CreateActivateThermalSensorInd(REQUEST_DATA& rReqD
     res = RRIL_RESULT_OK;
 Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::CreateActivateThermalSensorInd() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_6260::CreateAutonomousFDReq(REQUEST_DATA& rReqData,
+                                                        const char** pszRequest,
+                                                        const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateAutonomousFDReq() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int noOfVariablesFilled = 0;
+    const int MAX_NUM_OF_INPUT_DATA = 3;
+    char szFDEnable[10] = {0};
+    char szDelayTimer[3] = {0};
+    char szSCRITimer[3] = {0};
+
+    if (pszRequest == NULL || '\0' == pszRequest[0])
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateAutonomousFDReq() - pszRequest was NULL\r\n");
+        goto Error;
+    }
+
+    if (uiDataSize < (2 * sizeof(char *)))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateAutonomousFDReq() : received data size is not enough to process the request\r\n");
+        goto Error;
+    }
+
+    noOfVariablesFilled = sscanf(pszRequest[1], "%s %s %s", szFDEnable, szDelayTimer, szSCRITimer);
+    if (noOfVariablesFilled < MAX_NUM_OF_INPUT_DATA || noOfVariablesFilled == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateAutonomousFDReq() - Issue with received input data: %d\r\n", noOfVariablesFilled);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_INF_6260::CreateAutonomousFDReq() - Activate=[%s], Delay Timer = [%s], SCRI Timer = [%s]\r\n",
+                szFDEnable,
+                szDelayTimer,
+                szSCRITimer);
+
+    if (strcmp(szDelayTimer, "0") == 0) strcpy(szDelayTimer, "");
+    if (strcmp(szSCRITimer, "0") == 0) strcpy(szSCRITimer, "");
+
+    if (strcmp(szFDEnable, "true") == 0)
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDOR=2,%s,%s\r", szDelayTimer, szSCRITimer))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CreateAutonomousFDReq - Can't construct szCmd1. 2\r\n");
+            goto Error;
+        }
+
+    }
+    else
+    {
+        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=3\r", sizeof(rReqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CreateAutonomousFDReq - Can't construct szCmd1. 3\r\n");
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateAutonomousFDReq() - Exit\r\n");
     return res;
 }
 

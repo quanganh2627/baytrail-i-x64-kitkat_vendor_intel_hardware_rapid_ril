@@ -96,7 +96,7 @@ public class RilOemHookTest extends Activity
                 //  AT+XDRV=5,9,<sensor_id>
 
                 // data: <command id>, <sensor id>
-                String[] data = { "162", "3" };
+                String[] data = { "162", "2" };
 
                 Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
                 mPhone.invokeOemRilRequestStrings(data, msg);
@@ -109,7 +109,7 @@ public class RilOemHookTest extends Activity
                 //  AT+XDRV=5,14,<activate>,<sensor_id>,<min_threshold>,<max_threshold>
 
                 // data: <command id>, <activate>, <sensor_id>, <minThersholdTemp>, <maxThersholdTemp>
-                String[] data = { "163", "true 3 2300 2300" };
+                String[] data = { "163", "true 2 2000 5000" };
 
                 Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
                 mPhone.invokeOemRilRequestStrings(data, msg);
@@ -118,17 +118,14 @@ public class RilOemHookTest extends Activity
 
             case R.id.radio_api3:
             {
-                // RIL_OEM_HOOK_RAW_SET_MODEM_AUTO_FAST_DORMANCY
+                // RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY
                 //  AT+XFDOR=<enable>,<delay_timer>
-                ByteBuffer myBuf = ByteBuffer.allocate(12);
-                myBuf.putInt(0xA4);  //  Command ID
-                myBuf.putInt(0x01);  //  <enable>
-                myBuf.putInt(0x00);  //  <delay_timer>
 
-                oemhook = myBuf.array();
+                // data: <command id>, <activate>, <delay_timer>
+                String[] data = { "164", "true 20 20" };
 
-                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_RAW_COMPLETE);
-                mPhone.invokeOemRilRequestRaw(oemhook, msg);
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
+                mPhone.invokeOemRilRequestStrings(data, msg);
             }
             break;
 
@@ -171,45 +168,6 @@ public class RilOemHookTest extends Activity
             }
             break;
 
-            case R.id.radio_api100:
-            {
-                //  RIL_OEM_HOOK_RAW_SET_ACTIVE_SIM
-                //  AT@nvm:fix_uicc.ext_mux_misc_config=<sim_id>
-                //  AT@nvm:store_nvm_sync(fix_uicc)
-                //
-                //  RIL then triggers warm modem reset
-
-                ByteBuffer myBuf = ByteBuffer.allocate(8);
-                myBuf.putInt(0xB0);  //  Command ID
-                myBuf.putInt(0x00);  //  <sim_id>
-
-                oemhook = myBuf.array();
-
-                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_RAW_COMPLETE);
-                mPhone.invokeOemRilRequestRaw(oemhook, msg);
-            }
-            break;
-
-            case R.id.radio_api101:
-            {
-                //  RIL_OEM_HOOK_RAW_GET_ACTIVE_SIM
-                //  AT@nvm:fix_uicc.ext_mux_misc_config?
-                //
-                //  Response:
-                //  <sim_id>
-                //  OK
-                //
-                //  <sim_id> = int
-
-                ByteBuffer myBuf = ByteBuffer.allocate(4);
-                myBuf.putInt(0xB1);  //  Command ID
-
-                oemhook = myBuf.array();
-
-                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_RAW_COMPLETE);
-                mPhone.invokeOemRilRequestRaw(oemhook, msg);
-            }
-            break;
 
             default:
                 log("unknown button selected");

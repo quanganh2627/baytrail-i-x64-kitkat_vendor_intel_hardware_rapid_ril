@@ -643,10 +643,23 @@ ePCache_Code encrypt(const char *szInput, const int nInputLen, const char *szKey
     //RIL_LOG_INFO("szEncryptedBuf = %s\r\n", szEncryptedBuf);
 
     //  Store in property
-    if (0 != property_set(szRIL_cachedpin, szEncryptedBuf))
+    char szCachedPinProp[MAX_PROP_VALUE] = {0};
+    //  If sim id == 0 or if sim id is not provided by RILD, then continue
+    //  to use "ril.cachedpin" property name.
+    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        property_set(szRIL_cachedpin, "");
-        RIL_LOG_CRITICAL("encrypt() - Cannot store szEncryptedBuf\r\n");
+        strncpy(szCachedPinProp, szRIL_cachedpin, MAX_PROP_VALUE-1);
+        szCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+    }
+    else
+    {
+        snprintf(szCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_cachedpin, g_szSIMID);
+    }
+
+    if (0 != property_set(szCachedPinProp, szEncryptedBuf))
+    {
+        property_set(szCachedPinProp, "");
+        RIL_LOG_CRITICAL("encrypt() - Cannot store property %s szEncryptedBuf\r\n", szCachedPinProp);
         return PIN_NOK;
     }
 
@@ -690,7 +703,20 @@ ePCache_Code decrypt(char *szOut, const char *szKey)
 
     //  Get encrypted string from property...
     char szEncryptedBuf[MAX_PROP_VALUE] = {0};
-    if (!property_get(szRIL_cachedpin, szEncryptedBuf, ""))
+
+    char szCachedPinProp[MAX_PROP_VALUE] = {0};
+    //  If sim id == 0 or if sim id is not provided by RILD, then continue
+    //  to use "ril.cachedpin" property name.
+    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
+    {
+        strncpy(szCachedPinProp, szRIL_cachedpin, MAX_PROP_VALUE-1);
+        szCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+    }
+    else
+    {
+        snprintf(szCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_cachedpin, g_szSIMID);
+    }
+    if (!property_get(szCachedPinProp, szEncryptedBuf, ""))
     {
         RIL_LOG_CRITICAL("decrypt() - cannot retrieve cached uicc\r\n");
         return PIN_NO_PIN_AVAILABLE;
@@ -759,7 +785,20 @@ ePCache_Code PCache_Store_PIN(const char *szUICC, const char *szPIN)
     //  TODO: Remove this log statement when complete
     RIL_LOG_INFO("PCache_Store_PIN() Enter - szUICC=[%s], szPIN=[%s]\r\n", szUICC, szPIN);
 
-    if (NULL == szUICC || '\0' == szUICC[0] || 0 != property_set(szRIL_cacheduicc, szUICC))
+    char szCachedUiccProp[MAX_PROP_VALUE] = {0};
+    //  If sim id == 0 or if sim id is not provided by RILD, then continue
+    //  to use "ril.cacheduicc" property name.
+    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
+    {
+        strncpy(szCachedUiccProp, szRIL_cacheduicc, MAX_PROP_VALUE-1);
+        szCachedUiccProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+    }
+    else
+    {
+        snprintf(szCachedUiccProp, MAX_PROP_VALUE, "%s%s", szRIL_cacheduicc, g_szSIMID);
+    }
+
+    if (NULL == szUICC || '\0' == szUICC[0] || 0 != property_set(szCachedUiccProp, szUICC))
     {
         RIL_LOG_CRITICAL("PCache_Store_PIN() - Cannot store uicc\r\n");
         return PIN_NOK;
@@ -767,7 +806,7 @@ ePCache_Code PCache_Store_PIN(const char *szUICC, const char *szPIN)
 
     if (NULL == szPIN || '\0' == szPIN[0])
     {
-        property_set(szRIL_cacheduicc, "");
+        property_set(szCachedUiccProp, "");
         RIL_LOG_CRITICAL("PCache_Store_PIN() - Cannot store pin\r\n");
         return PIN_NOK;
     }
@@ -793,9 +832,22 @@ ePCache_Code PCache_Get_PIN(const char *szUICC, char *szPIN)
         return PIN_INVALID_UICC;
     }
 
-    if (!property_get(szRIL_cacheduicc, szUICCCached, ""))
+    char szCachedUiccProp[MAX_PROP_VALUE] = {0};
+    //  If sim id == 0 or if sim id is not provided by RILD, then continue
+    //  to use "ril.cacheduicc" property name.
+    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached uicc\r\n");
+        strncpy(szCachedUiccProp, szRIL_cacheduicc, MAX_PROP_VALUE-1);
+        szCachedUiccProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+    }
+    else
+    {
+        snprintf(szCachedUiccProp, MAX_PROP_VALUE, "%s%s", szRIL_cacheduicc, g_szSIMID);
+    }
+
+    if (!property_get(szCachedUiccProp, szUICCCached, ""))
+    {
+        RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached uicc prop %s\r\n", szCachedUiccProp);
         return PIN_NO_PIN_AVAILABLE;
     }
 
@@ -838,14 +890,29 @@ ePCache_Code PCache_Get_PIN(const char *szUICC, char *szPIN)
 //
 ePCache_Code PCache_Clear()
 {
-    //  TODO: Change storage location
-    if (0 != property_set(szRIL_cacheduicc, ""))
+    char szCachedPinProp[MAX_PROP_VALUE] = {0};
+    char szCachedUiccProp[MAX_PROP_VALUE] = {0};
+    //  If sim id == 0 or if sim id is not provided by RILD, then continue
+    //  to use "ril.cachedpin", "ril.cacheduicc" property name.
+    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
+    {
+        strncpy(szCachedPinProp, szRIL_cachedpin, MAX_PROP_VALUE-1);
+        szCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szCachedUiccProp, szRIL_cacheduicc, MAX_PROP_VALUE-1);
+        szCachedUiccProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+    }
+    else
+    {
+        snprintf(szCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_cachedpin, g_szSIMID);
+        snprintf(szCachedUiccProp, MAX_PROP_VALUE, "%s%s", szRIL_cacheduicc, g_szSIMID);
+    }
+    if (0 != property_set(szCachedUiccProp, ""))
     {
         RIL_LOG_CRITICAL("PCache_Clear() - Cannot clear uicc cache\r\n");
         return PIN_NOK;
     }
 
-    if (0 != property_set(szRIL_cachedpin, ""))
+    if (0 != property_set(szCachedPinProp, ""))
     {
         RIL_LOG_CRITICAL("PCache_Clear() - Cannot clear pin cache\r\n");
         return PIN_NOK;
@@ -866,19 +933,32 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
 {
     RIL_LOG_INFO("PCache_SetUseCachedPIN - Enter bFlag=[%d]\r\n", bFlag);
 
+    char szUseCachedPinProp[MAX_PROP_VALUE] = {0};
+    //  If sim id == 0 or if sim id is not provided by RILD, then continue
+    //  to use "ril.usecachedpin" property name.
+    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
+    {
+        strncpy(szUseCachedPinProp, szRIL_usecachedpin, MAX_PROP_VALUE-1);
+        szUseCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+    }
+    else
+    {
+        snprintf(szUseCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_usecachedpin, g_szSIMID);
+    }
+
     if (bFlag)
     {
-        if (0 != property_set(szRIL_usecachedpin, "1"))
+        if (0 != property_set(szUseCachedPinProp, "1"))
         {
-            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set usecachedpin  bFlag=[%d]\r\n", bFlag);
+            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n", szUseCachedPinProp, bFlag);
             return PIN_NOK;
         }
     }
     else
     {
-        if (0 != property_set(szRIL_usecachedpin, ""))
+        if (0 != property_set(szUseCachedPinProp, ""))
         {
-            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set usecachedpin  bFlag=[%d]\r\n", bFlag);
+            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n", szUseCachedPinProp, bFlag);
             return PIN_NOK;
         }
     }
@@ -897,12 +977,24 @@ bool PCache_GetUseCachedPIN()
     RIL_LOG_INFO("PCache_GetUseCachedPIN - Enter\r\n");
     bool bRet = false;
 
-    //  TODO: Change storage location
+    char szUseCachedPinProp[MAX_PROP_VALUE] = {0};
+    //  If sim id == 0 or if sim id is not provided by RILD, then continue
+    //  to use "ril.usecachedpin" property name.
+    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
+    {
+        strncpy(szUseCachedPinProp, szRIL_usecachedpin, MAX_PROP_VALUE-1);
+        szUseCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+    }
+    else
+    {
+        snprintf(szUseCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_usecachedpin, g_szSIMID);
+    }
+
     char szProp[MAX_PROP_VALUE] = {0};
 
-    if (!property_get(szRIL_usecachedpin, szProp, ""))
+    if (!property_get(szUseCachedPinProp, szProp, ""))
     {
-        RIL_LOG_CRITICAL("pCache_GetUseCachedPIN - cannot get usecachedpin\r\n");
+        RIL_LOG_CRITICAL("pCache_GetUseCachedPIN - cannot get %s\r\n", szUseCachedPinProp);
         return false;
     }
 

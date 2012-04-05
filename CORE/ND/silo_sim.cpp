@@ -986,6 +986,7 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
     unsigned int uiIndex = 0;
     unsigned int uiTotalCnt = 0;
     char szECCItem[MAX_BUFFER_SIZE] = {0};
+    const char szRIL_ECCLIST[] = "ril.ecclist";
 
 
     if (pResponse == NULL)
@@ -1059,9 +1060,23 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
     //  In that case, set property!
     if (uiIndex == uiTotalCnt)
     {
+        char szEccListProp[MAX_PROP_VALUE] = {0};
+
+        //  If sim id == 0 or if sim id is not provided by RILD, then continue
+        //  to use "ril.ecclist" property name.
+        if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
+        {
+            strncpy(szEccListProp, szRIL_ECCLIST, MAX_PROP_VALUE-1);
+            szEccListProp[MAX_PROP_VALUE-1] = '\0';
+        }
+        else
+        {
+            snprintf(szEccListProp, MAX_PROP_VALUE, "%s%s", szRIL_ECCLIST, g_szSIMID);
+        }
+
         RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - uiIndex == uiTotalCnt == %d\r\n", uiTotalCnt);
-        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - setting ril.ecclist = [%s]\r\n", m_szECCList);
-        property_set("ril.ecclist", m_szECCList);
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - setting %s = [%s]\r\n", szEccListProp, m_szECCList);
+        property_set(szEccListProp, m_szECCList);
     }
 
     //  Flag as unrecognized.

@@ -1351,14 +1351,14 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.15 for Android 4.0.3 (Build April 02/2012)";
+    return "Intrinsyc Rapid-RIL M6.16 for Android 4.0.3 (Build April 3/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static void* mainLoop(void *param)
 {
-    RIL_LOG_INFO("mainLoop() - Enter\r\n");
+    LOGI("mainLoop() - Enter\r\n");
 
     UINT32 dwRet = 1;
 
@@ -1447,49 +1447,49 @@ static bool RIL_SetGlobals(int argc, char **argv)
             case 's':
                 g_szCmdPort  = optarg;
                 g_bIsSocket = TRUE;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using socket \"%s\"\r\n", g_szCmdPort);
+                LOGI("RIL_SetGlobals() - Using socket \"%s\"\r\n", g_szCmdPort);
             break;
 
             // This should be the non-emulator case.
             case 'a':
                 g_szCmdPort = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for AT channel chnl=[%d] -a\r\n", g_szCmdPort, RIL_CHANNEL_ATCMD);
+                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for AT channel chnl=[%d] -a\r\n", g_szCmdPort, RIL_CHANNEL_ATCMD);
             break;
 
             // This should be the non-emulator case.
             case 'n':
                 g_szDLC2Port = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Network channel chnl=[%d] -n\r\n", g_szDLC2Port, RIL_CHANNEL_DLC2);
+                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Network channel chnl=[%d] -n\r\n", g_szDLC2Port, RIL_CHANNEL_DLC2);
             break;
 
             // This should be the non-emulator case.
             case 'm':
                 g_szDLC6Port = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Messaging channel chnl=[%d] -m\r\n", g_szDLC6Port, RIL_CHANNEL_DLC6);
+                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Messaging channel chnl=[%d] -m\r\n", g_szDLC6Port, RIL_CHANNEL_DLC6);
             break;
 
             // This should be the non-emulator case.
             case 'c':
                 g_szDLC8Port = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for SIM/USIM Card channel chnl=[%d] -c\r\n", g_szDLC8Port, RIL_CHANNEL_DLC8);
+                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for SIM/USIM Card channel chnl=[%d] -c\r\n", g_szDLC8Port, RIL_CHANNEL_DLC8);
             break;
 
             // This should be the non-emulator case.
             case 'u':
                 g_szURCPort = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for URC channel chnl=[%d] -u\r\n", g_szURCPort, RIL_CHANNEL_URC);
+                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for URC channel chnl=[%d] -u\r\n", g_szURCPort, RIL_CHANNEL_URC);
             break;
 
             // This should be the non-emulator case.
             case 'o':
                 g_szOEMPort = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for OEM channel chnl=[%d] -u\r\n", g_szOEMPort, RIL_CHANNEL_OEM);
+                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for OEM channel chnl=[%d] -u\r\n", g_szOEMPort, RIL_CHANNEL_OEM);
             break;
 
             // This should be the non-emulator case.
             case 'i':
                 g_szSIMID = optarg;
-                RIL_LOG_INFO("RIL_SetGlobals() - Using SIMID \"%s\" for all channels\r\n", g_szSIMID);
+                LOGI("RIL_SetGlobals() - Using SIMID \"%s\" for all channels\r\n", g_szSIMID);
             break;
 
             // This should be the non-emulator case.
@@ -1499,27 +1499,27 @@ static bool RIL_SetGlobals(int argc, char **argv)
                 {
                     case 0:
                         g_szDataPort1 = optarg;
-                        RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort1, RIL_CHANNEL_DATA1);
+                        LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort1, RIL_CHANNEL_DATA1);
                         break;
 
                     case 1:
                         g_szDataPort2 = optarg;
-                        RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort2, RIL_CHANNEL_DATA2);
+                        LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort2, RIL_CHANNEL_DATA2);
                         break;
 
                     case 2:
                         g_szDataPort3 = optarg;
-                        RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort3, RIL_CHANNEL_DATA3);
+                        LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort3, RIL_CHANNEL_DATA3);
                         break;
 
                     case 3:
                         g_szDataPort4 = optarg;
-                        RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort4, RIL_CHANNEL_DATA4);
+                        LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort4, RIL_CHANNEL_DATA4);
                         break;
 
                     case 4:
                         g_szDataPort5 = optarg;
-                        RIL_LOG_INFO("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort5, RIL_CHANNEL_DATA5);
+                        LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort5, RIL_CHANNEL_DATA5);
                         break;
 
                     default:
