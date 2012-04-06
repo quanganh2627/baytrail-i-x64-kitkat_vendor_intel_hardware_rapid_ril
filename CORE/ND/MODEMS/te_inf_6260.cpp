@@ -1474,6 +1474,11 @@ BOOL DataConfigDown(int nCID)
         RIL_LOG_INFO("DataConfigDown() - ***** PUTTING channel=[%d] in AT COMMAND MODE *****\r\n", pChannelData->GetRilChannel());
         ret = ioctl( fd, GSMIOC_DISABLE_NET, &netconfig );
     }
+
+    // Flush the response buffer to restart from scratch.
+    // Any data received by the RRIL during the DATA MODE should be trashed
+    pChannelData->FlushResponse();
+
 #if defined(BOARD_HAVE_IFX7060)
     }
 #endif
