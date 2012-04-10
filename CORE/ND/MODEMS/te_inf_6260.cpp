@@ -678,6 +678,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         if (ret < 0)
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to create interface %s : %s \r\n",netconfig.if_name,strerror(errno));
+            goto Error;
         }
     }
     else
