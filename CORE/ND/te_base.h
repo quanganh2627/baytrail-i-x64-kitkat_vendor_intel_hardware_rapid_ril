@@ -22,6 +22,7 @@
 class CTEBase
 {
 protected:
+    char m_szNetworkInterfaceNamePrefix[MAX_BUFFER_SIZE];
     int m_nNetworkRegistrationType;  //  0 = automatic, 1 = manual
     char m_szManualMCCMNC[MAX_BUFFER_SIZE];  //  If manual, this holds the MCCMNC string.
     char m_szPIN[MAX_PIN_SIZE];

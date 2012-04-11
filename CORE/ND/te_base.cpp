@@ -36,6 +36,19 @@ m_nNetworkRegistrationType(0),
 mShutdown(false),
 m_nSimAppType(RIL_APPTYPE_UNKNOWN)
 {
+    CRepository repository;
+    strcpy(m_szNetworkInterfaceNamePrefix, "");
+
+    //  Grab the network interface name
+    if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceNamePrefix, m_szNetworkInterfaceNamePrefix, MAX_BUFFER_SIZE))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CTEBase() - Could not read network interface name prefix from repository\r\n");
+        strcpy(m_szNetworkInterfaceNamePrefix, "");
+    }
+    else
+    {
+        RIL_LOG_INFO("CTEBase::CTEBase() - m_szNetworkInterfaceNamePrefix=[%s]\r\n", m_szNetworkInterfaceNamePrefix);
+    }
     memset(m_szManualMCCMNC, 0, MAX_BUFFER_SIZE);
     memset(m_szPIN, 0, MAX_PIN_SIZE);
     memset(&m_IncomingCallInfo, 0, sizeof(m_IncomingCallInfo));
@@ -5461,7 +5474,9 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Could not extract APN.\r\n");
             goto Error;
         }
+
         //  This is interface name (i.e. rmnet0)
+        //  If interface name is <blank>, then java layer throws exception.
         if (pChannelData && pChannelData->m_szInterfaceName)
         {
             strncpy(pPDPListData->pIfnameBuffers[count], pChannelData->m_szInterfaceName, MAX_BUFFER_SIZE);
@@ -5469,14 +5484,24 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         }
         else
         {
-            //  don't fill
-            strcpy(pPDPListData->pIfnameBuffers[count], "");
-            pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+            //  The pChannelData may not be found due to the CID being set to 0 from
+            //  context deactivation.
+            //  Fill interface name based on CID
+            if (nCID > 0)
+            {
+                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, nCID-1);
+                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+            }
+            else
+            {
+                //  Just assume context ID of 1
+                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0", m_szNetworkInterfaceNamePrefix);
+                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+            }
         }
 
         // Parse ,<PDP_addr>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
+        if (!SkipString(pszRsp, ",", pszRsp) || !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Could not extract APN.\r\n");
             goto Error;
@@ -8498,7 +8523,9 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Could not extract APN.\r\n");
             goto Error;
         }
+
         //  This is interface name (i.e. rmnet0)
+        //  If interface name is <blank>, then java layer throws exception.
         if (pChannelData && pChannelData->m_szInterfaceName)
         {
             strncpy(pPDPListData->pIfnameBuffers[count], pChannelData->m_szInterfaceName, MAX_BUFFER_SIZE);
@@ -8506,14 +8533,24 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         }
         else
         {
-            //  don't fill
-            strcpy(pPDPListData->pIfnameBuffers[count], "");
-            pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+            //  The pChannelData may not be found due to the CID being set to 0 from
+            //  context deactivation.
+            //  Fill interface name based on CID
+            if (nCID > 0)
+            {
+                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, nCID-1);
+                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+            }
+            else
+            {
+                //  Just assume context ID of 1
+                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0", m_szNetworkInterfaceNamePrefix);
+                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+            }
         }
 
         // Parse ,<PDP_addr>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
+        if (!SkipString(pszRsp, ",", pszRsp) || !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Could not extract APN.\r\n");
             goto Error;
@@ -8524,11 +8561,11 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         //  Populate DNSs and gateways
         if (pChannelData)
         {
-            snprintf(pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s %s %s",
-                (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
-                (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
-                (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
-                (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
+            snprintf(pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s %s %s", 
+                    (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
+                    (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
+                    (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
+                    (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
             pPDPListData->pDnsesBuffers[count][MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
         }
         else

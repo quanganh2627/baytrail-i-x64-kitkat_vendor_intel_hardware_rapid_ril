@@ -40,6 +40,7 @@
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
 #include <linux/gsmmux.h>
+
 #include <errno.h>
 
 
@@ -48,21 +49,7 @@ CTE_INF_6260::CTE_INF_6260()
 m_pSilentPINEntryEvent(NULL),
 m_pQueryPIN2Event(NULL)
 {
-    strcpy(m_szNetworkInterfaceNamePrefix, "");
     strcpy(m_szCPIN2Result, "");
-
-    CRepository repository;
-
-    //  Grab the network interface name
-    if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceNamePrefix, m_szNetworkInterfaceNamePrefix, MAX_BUFFER_SIZE))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - Could not read network interface name prefix from repository\r\n");
-        strcpy(m_szNetworkInterfaceNamePrefix, "");
-    }
-    else
-    {
-        RIL_LOG_INFO("CTE_INF_6260::CTE_INF_6260() - m_szNetworkInterfaceNamePrefix=[%s]\r\n", m_szNetworkInterfaceNamePrefix);
-    }
 
     //  Create Silent PIN entry event
     m_pSilentPINEntryEvent = new CEvent();

@@ -171,8 +171,8 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
     RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Long oper: \"%s\"\r\n", szFullName);
 
     //  Parse the "<Shortname>"
-    if (!ExtractQuotedString(rszPointer, szShortName, NAME_SIZE, rszPointer) ||
-        !SkipString(rszPointer, ",", rszPointer))
+   if (!ExtractQuotedString(rszPointer, szShortName, NAME_SIZE, rszPointer) ||
+       !SkipString(rszPointer, ",", rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Could not extract the Short Format Operator Name.\r\n");
         goto Error;

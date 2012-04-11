@@ -34,8 +34,6 @@ private:
     RIL_PreferredNetworkType m_currentNetworkType;
 
 protected:
-    char m_szNetworkInterfaceNamePrefix[MAX_BUFFER_SIZE];
-
     //  Locally store CPIN2 query result for SIM_IO
     char m_szCPIN2Result[MAX_BUFFER_SIZE];
 
