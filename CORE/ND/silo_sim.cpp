@@ -382,16 +382,6 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                     pCardStatus = NULL;
                     goto Error;
                 }
-
-                g_RadioState.SetSIMState(RADIO_STATE_SIM_NOT_READY);
-
-                /*
-                 * Currently, framework relies on the state information sent as part
-                 * of the RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED UNSOL message.
-                 * This might change in the future, so its better to trigger
-                 * the RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED as well.
-                 */
-                RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
             }
             break;
 
