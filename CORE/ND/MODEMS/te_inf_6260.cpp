@@ -950,6 +950,18 @@ BOOL setflags(int s, struct ifreq *ifr, int set, int clr)
     return TRUE;
 }
 
+static BOOL setmtu(int s, struct ifreq *ifr, int mtu)
+{
+    ifr->ifr_mtu = mtu;
+    RIL_LOG_INFO("setmtu - calling SIOCSIFMTU\r\n");
+    if(ioctl(s, SIOCSIFMTU, ifr) < 0)
+    {
+        RIL_LOG_CRITICAL("setmtu: ERROR: SIOCSIFMTU\r\n");
+        return FALSE;
+    }
+    return TRUE;
+}
+
 //
 //  Call this function whenever data is activated
 //
@@ -1031,6 +1043,14 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
             //goto Error;
             RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting addr\r\n");
         }
+
+        RIL_LOG_INFO("DataConfigUp() : Setting mtu\r\n");
+        if (!setmtu(s, &ifr, 1460))
+        {
+            //goto Error;
+            RIL_LOG_CRITICAL("DataConfigUp() : Error setting mtu\r\n");
+        }
+
     }
 
     //  we have to set a fake ipv4 gateway if not android do not setup network correctly
@@ -1128,6 +1148,13 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     {
         //goto Error;
         RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting addr %s\r\n", szIpAddr);
+    }
+
+    RIL_LOG_INFO("DataConfigUpV6() : Setting mtu\r\n");
+    if (!setmtu(s, &ifr, 1460))
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("DataConfigUpV6() : Error setting mtu\r\n");
     }
 
     //  Before setting interface UP, need to deactivate DAD on interface.
@@ -1280,6 +1307,13 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     {
         //goto Error;
         RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Error setting add\r\n");
+    }
+
+    RIL_LOG_INFO("DataConfigUpV4V6() : Setting mtu\r\n");
+    if (!setmtu(s, &ifr, 1460))
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("DataConfigUpV4V6() : Error setting mtu\r\n");
     }
 
     //  Before setting interface UP, need to deactivate DAD on interface.
