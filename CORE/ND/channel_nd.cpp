@@ -1082,3 +1082,8 @@ Error:
     return resCode;
 }
 
+void CChannel::FlushResponse()
+{
+    delete m_pResponse;
+    m_pResponse = NULL;
+}

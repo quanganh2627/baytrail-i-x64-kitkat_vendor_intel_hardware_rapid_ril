@@ -35,7 +35,7 @@ public:
     virtual UINT32  CommandThread()  { return CChannelBase::CommandThread(); }
     virtual UINT32  ResponseThread() { return CChannelBase::ResponseThread(); }
 
-    virtual void FlushResponse() { delete m_pResponse; m_pResponse = NULL; }
+    virtual void FlushResponse();
 
 protected:
     //  Init functions

@@ -5489,19 +5489,22 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
             //  Fill interface name based on CID
             if (nCID > 0)
             {
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, nCID-1);
+                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d",
+                    m_szNetworkInterfaceNamePrefix, nCID-1);
                 pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
             }
             else
             {
                 //  Just assume context ID of 1
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0", m_szNetworkInterfaceNamePrefix);
+                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0",
+                    m_szNetworkInterfaceNamePrefix);
                 pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
             }
         }
 
         // Parse ,<PDP_addr>
-        if (!SkipString(pszRsp, ",", pszRsp) || !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Could not extract APN.\r\n");
             goto Error;
@@ -7608,9 +7611,9 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
         {
             // Extract ,<res1>, <res2>
             if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractHexUInt32(szRsp, nRes1, szRsp) ||
+                !ExtractUInt32(szRsp, nRes1, szRsp) ||
                 !SkipString(szRsp, ",", szRsp) ||
-                !ExtractHexUInt32(szRsp, nRes2, szRsp) )
+                !ExtractUInt32(szRsp, nRes2, szRsp) )
             {
                 RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() - cannot parse XEER, can't extract <res1>,<res2>\r\n");
                 goto Error;
@@ -7768,9 +7771,9 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
         {
             // Extract ,<res1>, <res2>
             if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractHexUInt32(szRsp, nRes1, szRsp) ||
+                !ExtractUInt32(szRsp, nRes1, szRsp) ||
                 !SkipString(szRsp, ",", szRsp) ||
-                !ExtractHexUInt32(szRsp, nRes2, szRsp) )
+                !ExtractUInt32(szRsp, nRes2, szRsp) )
             {
                 RIL_LOG_CRITICAL("CTEBase::ParseSimCloseChannel() - cannot parse XEER, can't extract <res1>,<res2>\r\n");
                 goto Error;
@@ -7960,9 +7963,9 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
         {
             // Extract ,<res1>, <res2>
             if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractHexUInt32(szRsp, nRes1, szRsp) ||
+                !ExtractUInt32(szRsp, nRes1, szRsp) ||
                 !SkipString(szRsp, ",", szRsp) ||
-                !ExtractHexUInt32(szRsp, nRes2, szRsp) )
+                !ExtractUInt32(szRsp, nRes2, szRsp) )
             {
                 RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() - cannot parse XEER, can't extract <res1>,<res2>\r\n");
                 goto Error;
@@ -8538,19 +8541,22 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
             //  Fill interface name based on CID
             if (nCID > 0)
             {
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, nCID-1);
+                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d",
+                    m_szNetworkInterfaceNamePrefix, nCID-1);
                 pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
             }
             else
             {
                 //  Just assume context ID of 1
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0", m_szNetworkInterfaceNamePrefix);
+                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0",
+                    m_szNetworkInterfaceNamePrefix);
                 pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
             }
         }
 
         // Parse ,<PDP_addr>
-        if (!SkipString(pszRsp, ",", pszRsp) || !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Could not extract APN.\r\n");
             goto Error;
@@ -8561,11 +8567,11 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         //  Populate DNSs and gateways
         if (pChannelData)
         {
-            snprintf(pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s %s %s", 
-                    (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
-                    (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
-                    (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
-                    (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
+            snprintf(pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s %s %s",
+                (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
+                (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
+                (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
+                (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
             pPDPListData->pDnsesBuffers[count][MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
         }
         else

@@ -171,8 +171,8 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
     RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Long oper: \"%s\"\r\n", szFullName);
 
     //  Parse the "<Shortname>"
-   if (!ExtractQuotedString(rszPointer, szShortName, NAME_SIZE, rszPointer) ||
-       !SkipString(rszPointer, ",", rszPointer))
+    if (!ExtractQuotedString(rszPointer, szShortName, NAME_SIZE, rszPointer) ||
+        !SkipString(rszPointer, ",", rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Could not extract the Short Format Operator Name.\r\n");
         goto Error;
@@ -626,12 +626,14 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
         pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
         if (NULL == pChannelData)
         {
+            //  This may occur using AT proxy during 3GPP conformance testing.
+            //  Let normal processing occur.
             RIL_LOG_CRITICAL("Silo_Network::ParseCGEV() - Invalid CID=[%d], no data channel found!\r\n", nCID);
-            goto Error;
         }
         if (!FindAndSkipString(szStrExtract, ",", szStrExtract))
         {
-            pChannelData->m_iStatus = PDP_FAIL_NONE;
+            if (pChannelData)
+                pChannelData->m_iStatus = PDP_FAIL_NONE;
         }
         else
         {
@@ -652,25 +654,29 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
                 if (nREASON == 0)
                 {
                     pResponse->SetResultCode(RRIL_RESULT_OK);
-                    pChannelData->m_iStatus = PDP_FAIL_ONLY_IPV4_ALLOWED;
+                    if (pChannelData)
+                        pChannelData->m_iStatus = PDP_FAIL_ONLY_IPV4_ALLOWED;
                 }
                 // IPV6 only allowed
                 else if (nREASON == 1)
                 {
                     pResponse->SetResultCode(RRIL_RESULT_OK);
-                    pChannelData->m_iStatus = PDP_FAIL_ONLY_IPV6_ALLOWED;
+                    if (pChannelData)
+                        pChannelData->m_iStatus = PDP_FAIL_ONLY_IPV6_ALLOWED;
                 }
                 // Single bearrer allowed
                 else if (nREASON == 2)
                 {
                     pResponse->SetResultCode(RRIL_RESULT_OK);
-                    pChannelData->m_iStatus = PDP_FAIL_ONLY_SINGLE_BEARER_ALLOWED;
+                    if (pChannelData)
+                        pChannelData->m_iStatus = PDP_FAIL_ONLY_SINGLE_BEARER_ALLOWED;
                 }
                 else
                 {
                     RIL_LOG_CRITICAL(
                         "CSilo_Network::ParseCGEV() - reason unknown\r\n");
-                    pChannelData->m_iStatus = PDP_FAIL_ERROR_UNSPECIFIED;
+                    if (pChannelData)
+                        pChannelData->m_iStatus = PDP_FAIL_ERROR_UNSPECIFIED;
                     goto Error;
                 }
             }

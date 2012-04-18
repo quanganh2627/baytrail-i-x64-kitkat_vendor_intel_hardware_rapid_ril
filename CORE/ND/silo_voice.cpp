@@ -864,27 +864,33 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
                 unsigned char* tmpUssdUcs2 = NULL;
                 char tmpUssdAscii[MAX_BUFFER_SIZE] = {0};
                 int lenUssdAscii = 0;
+
                 if (!CopyStringNullTerminate((char*)tmpUssdAscii, szDataString, MAX_BUFFER_SIZE))
                 {
                     RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Cannot CopyStringNullTerminate szDataString to tmpUssdAscii\r\n");
                     goto Error;
                 }
+
                 lenUssdAscii = strlen(tmpUssdAscii);
                 if ( (lenUssdAscii % 2) != 0)
                 {
                     RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Illegal string from modem\r\n");
                     goto Error;
                 }
+
                 tmpUssdUcs2 = new unsigned char[(lenUssdAscii/2)+2];
                 if (NULL == tmpUssdUcs2)
                 {
-                     RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Cannot allocate %d bytes for tmpUssdUcs2\r\n", lenUssdAscii/2+1);
-                     goto Error;
+                    RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Cannot allocate %d bytes for tmpUssdUcs2\r\n", lenUssdAscii/2+1);
+                    goto Error;
                 }
                 memset(tmpUssdUcs2, 0, ((lenUssdAscii/2)+2));
+
                 convertStrToHexBuf(tmpUssdAscii, &tmpUssdUcs2);
+
                 memset(pUssdStatus->szMessage, 0, sizeof(pUssdStatus->szMessage));
                 ucs2_to_utf8((unsigned char*)tmpUssdUcs2, lenUssdAscii/2, (unsigned char*)pUssdStatus->szMessage);
+
                 delete []tmpUssdUcs2;
             }
             else
@@ -908,7 +914,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
         {
             //  dcs not supported
             //  TODO: Implement more dcs encodings
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - dcs value of [%d, 0x%02X] not supported \r\n", nDCS, nDCS);
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - dcs value of [%d, 0x%02X] not supported\r\n", nDCS, nDCS);
             goto Error;
         }
 

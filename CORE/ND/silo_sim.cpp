@@ -1057,7 +1057,7 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
         if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
         {
             strncpy(szEccListProp, szRIL_ECCLIST, MAX_PROP_VALUE-1);
-            szEccListProp[MAX_PROP_VALUE-1] = '\0';
+            szEccListProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
         }
         else
         {
