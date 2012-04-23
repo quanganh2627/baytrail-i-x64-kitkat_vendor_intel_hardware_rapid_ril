@@ -572,14 +572,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
 #endif
 
-    pChannelData = CChannel_Data::GetChnlFromRilChannelNumber(rRspData.uiChannel);
-    if (!pChannelData)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Could not get Data Channel for RIL channel number %d.\r\n", rRspData.uiChannel);
-        goto Error;
-    }
-
-    //  Set CID
+    //  Get CID
 #if defined(BOARD_HAVE_IFX7060)
     nCID = (UINT32)networkPath->uiCID;
 #else
@@ -591,8 +584,16 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-// Following code-block is moved up here from the end of this function to get if_name needed for netconfig (N_GSM)
-// But the IP address is filled in end of function.
+    // Get Channel Data according to CID
+    pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
+    if (!pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel for RIL channel number %d.\r\n", rRspData.uiChannel);
+        goto Error;
+    }
+
+    // Following code-block is moved up here from the end of this function to get if_name needed for netconfig (N_GSM)
+    // But the IP address is filled in end of function.
     pDataCallRsp = (P_ND_SETUP_DATA_CALL)malloc(sizeof(S_ND_SETUP_DATA_CALL));
     if (NULL == pDataCallRsp)
     {
