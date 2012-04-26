@@ -58,6 +58,10 @@ protected:
     //virtual BOOL    ParseTriplePlus(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseConnect(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseNoCarrier(CResponse* const pResponse, const char*& rszPointer);
+
+private:
+    // helper functions
+    BOOL ParseDataCallFailCause(CResponse*& rpRsp, int nCid);
 };
 
 #endif // RRIL_SILO_DATA_H

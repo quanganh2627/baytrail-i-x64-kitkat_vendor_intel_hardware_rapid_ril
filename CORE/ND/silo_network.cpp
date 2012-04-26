@@ -27,7 +27,7 @@
 #include "te_inf_6260.h"
 #include "cutils/tztime.h"
 #include "te.h"
-#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+#if defined(M2_DUALSIM_FEATURE_ENABLED)
 #include "oemhookids.h"
 #include "repository.h"
 #endif
@@ -95,7 +95,7 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         //  Bring down all data contexts internally.
         CChannel_Data* pChannelData = NULL;
 
-        for (int i = RIL_CHANNEL_DATA1; i < RIL_CHANNEL_MAX; i++)
+        for (unsigned int i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
         {
             if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
                 continue;
@@ -186,6 +186,7 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
         RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Unable to find time zone!\r\n");
         goto Error;
     }
+
 #if defined(BOARD_HAVE_IFX7060)
     // WORAROUND : BZ28102.
     // TZ = -1h : szTimeZone = "0-4" -> "-04"
@@ -204,7 +205,8 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
             szTimeZone[0] = '+';
         }
     }
-#endif
+#endif // BOARD_HAVE_IFX7060
+
     RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - szTimeZone: \"%s\"\r\n", szTimeZone);
 
     // Extract "<date,time>"
@@ -486,7 +488,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         {
             fUnSolicited = TRUE;
         }
-#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+#if defined(M2_DUALSIM_FEATURE_ENABLED)
         else if (1 == nNumParams)
         {
             CRepository repository;
@@ -515,7 +517,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
             RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Exit\r\n");
             return fRet;
         }
-#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+#endif // M2_DUALSIM_FEATURE_ENABLED
         else if ((4 == nNumParams) || (6 == nNumParams))
         {
             //  Sol is 4 and 6
@@ -797,7 +799,7 @@ Error:
     return bRet;
 }
 
-#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+#if defined(M2_DUALSIM_FEATURE_ENABLED)
 // Special parse function to handle Fast Out of Service Notifications
 BOOL CSilo_Network::ParseXREGFastOoS(CResponse *const pResponse, const char* &rszPointer)
 {
@@ -845,4 +847,4 @@ Error:
     RIL_LOG_VERBOSE("CSilo_Network::ParseXREGFastOoS() - Exit\r\n");
     return bRet;
 }
-#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+#endif // M2_DUALSIM_FEATURE_ENABLED

@@ -5519,7 +5519,7 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
 
         //  Ice Cream Sandwich has new field ((const char **)response)[5] which is
         //  the maximum number of simultaneous data calls.
-        snprintf(psRegStatus->szNumDataCalls, REG_STATUS_LENGTH, "%d", (RIL_CHANNEL_MAX - RIL_CHANNEL_DATA1));
+        snprintf(psRegStatus->szNumDataCalls, REG_STATUS_LENGTH, "%d", (g_uiRilChannelCurMax - RIL_CHANNEL_DATA1));
 
         psRegStatus->sStatusPointers.pszStat = psRegStatus->szStat;
         psRegStatus->sStatusPointers.pszLAC = psRegStatus->szLAC;

@@ -98,7 +98,7 @@ BOOL CChannelBase::InitChannel()
     RIL_LOG_VERBOSE("CChannelBase::InitChannel() - Enter\r\n");
     BOOL bResult = FALSE;
 
-    if (RIL_CHANNEL_MAX <= m_uiRilChannel)
+    if (m_uiRilChannel >= g_uiRilChannelCurMax)
     {
         RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] Channel is invalid!\r\n", m_uiRilChannel);
         goto Done;
@@ -342,7 +342,7 @@ UINT32 CChannelBase::CommandThread()
     RIL_RESULT_CODE resCode;
 
     //  Double-check our channel is valid.
-    if (m_uiRilChannel >= RIL_CHANNEL_MAX)
+    if (m_uiRilChannel >= g_uiRilChannelCurMax)
     {
         RIL_LOG_CRITICAL("CChannelBase::CommandThread() - Invalid channel value: %d\r\n", m_uiRilChannel);
         return NULL;

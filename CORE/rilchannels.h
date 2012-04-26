@@ -20,7 +20,12 @@
 //  List channels here (one per COM port)
 
 #define RIL_CHANNEL_MAX 11
-extern int g_dRilChannelCurMax;
+
+// Upper limit on number of RIL channels to create
+extern UINT32 g_uiRilChannelUpperLimit;
+
+// Current RIL channel index maximum (depends on number of data channels created)
+extern UINT32 g_uiRilChannelCurMax;
 
 #if defined(BOARD_HAVE_IFX7060)
 #define RIL_HSI_CHANNEL_MAX 4

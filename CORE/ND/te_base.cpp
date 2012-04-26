@@ -2021,11 +2021,59 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
             mShutdown = true;
         }
     }
-    else if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
-                                        "AT+CFUN=1\r" : "AT+CFUN=4\r",
-                                        sizeof(rReqData.szCmd1)))
+    else
     {
-        res = RRIL_RESULT_OK;
+        // Power On
+        if (true == bTurnRadioOn)
+        {
+            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=1\r", sizeof(rReqData.szCmd1)))
+            {
+                res = RRIL_RESULT_OK;
+            }
+        }
+        else // Flight mode
+        {
+#if !defined(M2_DUALSIM_FEATURE_ENABLED)
+            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=4\r", sizeof(rReqData.szCmd1)))
+            {
+                res = RRIL_RESULT_OK;
+            }
+#else
+            char szSimManagerSetOffSimPropName[MAX_PROP_VALUE] = {0};
+
+            // use SIM-specific property, depending on RIL instance
+            if ('0' == g_szSIMID[0])
+            {
+                snprintf(szSimManagerSetOffSimPropName, MAX_PROP_VALUE, "sys.simmanager.set_off_sim%d", 1);
+            }
+            else if ('1' == g_szSIMID[0])
+            {
+                snprintf(szSimManagerSetOffSimPropName, MAX_PROP_VALUE, "sys.simmanager.set_off_sim%d", 2);
+            }
+
+            // check if flight mode with SIM powered off
+            char szSimOffPropValue[PROPERTY_VALUE_MAX] = {'\0'};
+
+            if (property_get(szSimManagerSetOffSimPropName, szSimOffPropValue, ""))
+            {
+                if (strcmp(szSimOffPropValue, "true") == 0)
+                {
+                    // flight mode with SIM powered off
+                    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=21\r", sizeof(rReqData.szCmd1)))
+                    {
+                        res = RRIL_RESULT_OK;
+                    }
+                }
+                else
+                {
+                    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=4\r", sizeof(rReqData.szCmd1)))
+                    {
+                        res = RRIL_RESULT_OK;
+                    }
+                }
+            }
+#endif // M2_DUALSIM_FEATURE_ENABLED
+        }
     }
 
     RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Exit\r\n");
@@ -4391,11 +4439,13 @@ RIL_RESULT_CODE CTEBase::ParseQueryNetworkSelectionMode(RESPONSE_DATA & rRspData
         goto Error;
     }
 
-    //  If we have a +COPS: 2, then just default to automatic.
-    //if (*pnMode >= 2)
-    //{
-    //    *pnMode = 0; // automatic
-    //}
+    //  If we have a +COPS value that's not 0 or 1, then return RIL_E_GENERIC_FAILURE.
+    //  This API is only supposed to return 0 or 1.
+    if (*pnMode >= 2)
+    {
+        res = RIL_E_GENERIC_FAILURE;
+        goto Error;
+    }
 
     res = RRIL_RESULT_OK;
 

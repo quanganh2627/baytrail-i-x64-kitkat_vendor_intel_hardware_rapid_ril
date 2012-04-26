@@ -1351,7 +1351,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.18 for Android 4.0.3 (Build April 17/2012)";
+    return "Intrinsyc Rapid-RIL M6.19 for Android 4.0.3 (Build April 24/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1409,10 +1409,10 @@ static void usage(char *szProgName)
     fprintf(stderr, "    -u <Notification channel>\n");
     fprintf(stderr, "    -o <OEM Hook channel>\n");
     fprintf(stderr, "    -d <PDP Primary Context - data channel 1>\n");
-    fprintf(stderr, "    -d <PDP Primary Context - data channel 2>\n");
-    fprintf(stderr, "    -d <PDP Primary Context - data channel 3>\n");
-    fprintf(stderr, "    -d <PDP Primary Context - data channel 4>\n");
-    fprintf(stderr, "    -d <PDP Primary Context - data channel 5>\n");
+    fprintf(stderr, "    [-d <PDP Primary Context - data channel 2>]\n");
+    fprintf(stderr, "    [-d <PDP Primary Context - data channel 3>]\n");
+    fprintf(stderr, "    [-d <PDP Primary Context - data channel 4>]\n");
+    fprintf(stderr, "    [-d <PDP Primary Context - data channel 5>]\n");
     fprintf(stderr, "    [-i <SIM ID for DSDS>]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Example in init.rc file:\n");
@@ -1425,17 +1425,17 @@ static void usage(char *szProgName)
 static bool RIL_SetGlobals(int argc, char **argv)
 {
     int opt;
-    int nDataPortCount = 0;
+    unsigned int uiDataPortIndex = RIL_CHANNEL_DATA1;
 
     property_get("persist.dual_sim", g_szDualSim, "none");
     if (strncmp(g_szDualSim, "dsds_2230", 9) == 0)
     {
-        g_dRilChannelCurMax = RIL_CHANNEL_DATA2 + 1;
+        g_uiRilChannelUpperLimit = RIL_CHANNEL_DATA2 + 1;
         g_arChannelMapping = g_arChannelMapping2230;
     }
     else
     {
-        g_dRilChannelCurMax = RIL_CHANNEL_MAX;
+        g_uiRilChannelUpperLimit = RIL_CHANNEL_MAX;
         g_arChannelMapping = g_arChannelMappingDefault;
     }
 
@@ -1493,40 +1493,50 @@ static bool RIL_SetGlobals(int argc, char **argv)
             break;
 
             // This should be the non-emulator case.
-            //  For multiple PDP contexts (which is default in ICS), must choose 5 data ports.
+            //  For multiple PDP contexts (which is default in ICS), must choose more than 1 data port.
+            //  Also note that 1 data port is the minimum.
             case 'd':
-                switch(nDataPortCount)
+                if (uiDataPortIndex >= g_uiRilChannelUpperLimit)
                 {
-                    case 0:
-                        g_szDataPort1 = optarg;
-                        LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort1, RIL_CHANNEL_DATA1);
-                        break;
-
-                    case 1:
-                        g_szDataPort2 = optarg;
-                        LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort2, RIL_CHANNEL_DATA2);
-                        break;
-
-                    case 2:
-                        g_szDataPort3 = optarg;
-                        LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort3, RIL_CHANNEL_DATA3);
-                        break;
-
-                    case 3:
-                        g_szDataPort4 = optarg;
-                        LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort4, RIL_CHANNEL_DATA4);
-                        break;
-
-                    case 4:
-                        g_szDataPort5 = optarg;
-                        LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort5, RIL_CHANNEL_DATA5);
-                        break;
-
-                    default:
-                        usage(argv[0]);
-                        return false;
+                    LOGI("RIL_SetGlobals() - Too many RIL data channels!  uiDataPortIndex=%d, Upper Limit=%d\r\n", uiDataPortIndex, g_uiRilChannelUpperLimit);
+                    usage(argv[0]);
+                    return false;
                 }
-                nDataPortCount++;
+                else
+                {
+                    switch(uiDataPortIndex)
+                    {
+                        case RIL_CHANNEL_DATA1:
+                            g_szDataPort1 = optarg;
+                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort1, RIL_CHANNEL_DATA1);
+                            break;
+
+                        case RIL_CHANNEL_DATA2:
+                            g_szDataPort2 = optarg;
+                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort2, RIL_CHANNEL_DATA2);
+                            break;
+
+                        case RIL_CHANNEL_DATA3:
+                            g_szDataPort3 = optarg;
+                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort3, RIL_CHANNEL_DATA3);
+                            break;
+
+                        case RIL_CHANNEL_DATA4:
+                            g_szDataPort4 = optarg;
+                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort4, RIL_CHANNEL_DATA4);
+                            break;
+
+                        case RIL_CHANNEL_DATA5:
+                            g_szDataPort5 = optarg;
+                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort5, RIL_CHANNEL_DATA5);
+                            break;
+
+                        default:
+                            usage(argv[0]);
+                            return false;
+                    }
+                    uiDataPortIndex++;
+                }
             break;
 
             default:
@@ -1534,6 +1544,10 @@ static bool RIL_SetGlobals(int argc, char **argv)
                 return false;
         }
     }
+
+    g_uiRilChannelCurMax = uiDataPortIndex;
+    LOGI("RIL_SetGlobals() - g_uiRilChannelCurMax = %d  g_uiRilChannelUpperLimit = %d\r\n",
+        g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
 
     if (strncmp(g_szDualSim, "dsds_2230", 9) == 0)
     {
@@ -1543,12 +1557,11 @@ static bool RIL_SetGlobals(int argc, char **argv)
             return false;
         }
     }
-    else if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szOEMPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3 || !g_szDataPort4 || !g_szDataPort5)
+    else if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szOEMPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3)
     {
         usage(argv[0]);
         return false;
     }
-
     return true;
 }
 

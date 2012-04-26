@@ -100,7 +100,7 @@ BOOL CChannel_ATCmd::FinishInit()
         goto Error;
     }
 
-    if(g_dRilChannelCurMax != RIL_CHANNEL_MAX)
+    if (CSystemManager::GetInstance().IsDSDS_2230_Mode())
     {
         ATCmdBasicInitString  = &ATCmd2230BasicInitString;
         ATCmdUnlockInitString = &ATCmd2230UnlockInitString;

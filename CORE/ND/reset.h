@@ -27,6 +27,8 @@ enum eRadioError
 
 };
 
+const char* Print_eRadioError(eRadioError e);
+
 void ModemResetUpdate();
 extern BOOL g_bSpoofCommands;
 

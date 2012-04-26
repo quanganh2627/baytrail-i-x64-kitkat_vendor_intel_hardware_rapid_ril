@@ -168,6 +168,18 @@ public class RilOemHookTest extends Activity
             }
             break;
 
+            case R.id.radio_api7:
+            {
+                // RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS
+                // AT+CHLD=8
+
+                // data: <command id>
+                String[] data = { "168" };
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
+                mPhone.invokeOemRilRequestStrings(data, msg);
+            }
+            break;
 
             default:
                 log("unknown button selected");

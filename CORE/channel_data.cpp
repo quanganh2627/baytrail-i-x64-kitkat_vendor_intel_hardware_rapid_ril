@@ -216,7 +216,7 @@ CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 uiContextID)
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
-    for (int i = RIL_CHANNEL_DATA1; i < g_dRilChannelCurMax; i++)
+    for (unsigned int i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
     {
         if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
             continue;
@@ -257,7 +257,7 @@ CChannel_Data* CChannel_Data::GetFreeChnl(UINT32& outCID)
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
-    for (int i = RIL_CHANNEL_DATA1; i < g_dRilChannelCurMax; i++)
+    for (unsigned int i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
     {
         if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
             continue;
@@ -350,7 +350,7 @@ CChannel_Data* CChannel_Data::GetChnlFromRilChannelNumber(UINT32 index)
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
-    for (int i = RIL_CHANNEL_DATA1; i < g_dRilChannelCurMax; i++)
+    for (unsigned int i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
     {
         if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
             continue;

@@ -147,7 +147,20 @@ const int RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND = 0x000000A7;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+//
+//  RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS
+//  Command ID = 0x000000A8
+//
+//  This command sends AT+CHLD=8 to the modem.
+//
+//  "data" = NULL
+//  "response" = NULL
+//
+const int RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS = 0x000000A8;
+
+///////////////////////////////////////////////////////////////////////////////
+
+#if defined(M2_DUALSIM_FEATURE_ENABLED)
 
 //
 //  RIL_OEM_HOOK_STRING_SWAP_PS
@@ -160,7 +173,7 @@ const int RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND = 0x000000A7;
 //
 const int RIL_OEM_HOOK_STRING_SWAP_PS = 0x000000B2;
 
-#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+#endif // M2_DUALSIM_FEATURE_ENABLED
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -183,7 +196,7 @@ const int RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND = 0x000000D0;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+#if defined(M2_DUALSIM_FEATURE_ENABLED)
 
 //
 //  OEM_HOOK_RAW_UNSOL_FAST_OOS_IND
@@ -205,7 +218,7 @@ const int RIL_OEM_HOOK_RAW_UNSOL_IN_SERVICE_IND = 0x000000D2;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+#endif // M2_DUALSIM_FEATURE_ENABLED
 
 
 #pragma pack()

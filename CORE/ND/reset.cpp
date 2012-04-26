@@ -54,6 +54,36 @@ BOOL g_bSpoofCommands = TRUE;
 ///////////////////////////////////////////////////////////
 // FUNCTION DEFINITIONS
 //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  Helper function to print the error code for cleanup
+const char* Print_eRadioError(eRadioError e)
+{
+    switch(e)
+    {
+        case eRadioError_ForceShutdown:
+            return "eRadioError_ForceShutdown";
+            break;
+        case eRadioError_RequestCleanup:
+            return "eRadioError_RequestCleanup";
+            break;
+        case eRadioError_LowMemory:
+            return "eRadioError_LowMemory";
+            break;
+        case eRadioError_ChannelDead:
+            return "eRadioError_ChannelDead";
+            break;
+        case eRadioError_InitFailure:
+            return "eRadioError_InitFailure";
+            break;
+        case eRadioError_OpenPortFailure:
+            return "eRadioError_OpenPortFailure";
+            break;
+        default:
+            return "unknown eRadioError value";
+            break;
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -66,7 +96,7 @@ void ModemResetUpdate()
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
-    for (int i = RIL_CHANNEL_DATA1; i < g_dRilChannelCurMax; i++)
+    for (unsigned int i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
     {
         if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
             continue;
@@ -106,8 +136,8 @@ void ModemResetUpdate()
 //  Alert STMD to attempt a clean-up.
 void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszFileName)
 {
-    RIL_LOG_INFO("[RIL STATE] REQUEST RESET (RIL -> STMD) eError=[%d], file=[%s], line num=[%d]\r\n",
-            eError, lpszFileName, uiLineNum);
+    RIL_LOG_INFO("[RIL STATE] REQUEST RESET (RIL -> STMD) eError=[%s], file=[%s], line num=[%d]\r\n",
+            Print_eRadioError(eError), lpszFileName, uiLineNum);
 
     if (g_bSpoofCommands)
     {

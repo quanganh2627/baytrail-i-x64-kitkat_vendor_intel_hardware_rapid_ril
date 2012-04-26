@@ -19,7 +19,7 @@
 
 CThreadManager* CThreadManager::m_pInstance = NULL;
 
-BOOL CThreadManager::Start(unsigned int nChannels)
+BOOL CThreadManager::Start(UINT32 nChannels)
 {
     BOOL fRet = FALSE;
 
@@ -60,7 +60,7 @@ BOOL CThreadManager::Stop()
     return fRet;
 }
 
-CThreadManager::CThreadManager(unsigned int nChannels) :
+CThreadManager::CThreadManager(UINT32 nChannels) :
     m_nChannelsTotal(nChannels),
     m_nChannelsActive(0),
     m_pStartupCompleteEvent(NULL)
@@ -130,7 +130,7 @@ BOOL CThreadManager::StopThreads()
     BOOL fRet = TRUE;
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
 
-    for (int i=0; i<RIL_CHANNEL_MAX; i++)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (g_pRilChannel[i])
         {
@@ -198,7 +198,7 @@ BOOL CThreadManager::StartChannelThreads()
     BOOL fRet = FALSE;
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
 
-    for (int i = 0; i < RIL_CHANNEL_MAX; ++i)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax; ++i)
     {
         if (g_pRilChannel[i])
         {

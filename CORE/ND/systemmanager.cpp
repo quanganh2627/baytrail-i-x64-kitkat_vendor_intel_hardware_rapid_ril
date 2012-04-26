@@ -488,7 +488,7 @@ BOOL CSystemManager::ContinueInit()
         goto Done;
     }
 
-    if (!CThreadManager::Start(RIL_CHANNEL_MAX * 2))
+    if (!CThreadManager::Start(g_uiRilChannelCurMax * 2))
     {
         RIL_LOG_CRITICAL("CSystemManager::ContinueInit() - Thread manager failed to start.\r\n");
     }
@@ -573,7 +573,7 @@ BOOL CSystemManager::VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex)
 {
     BOOL bRetVal = TRUE;
 
-    for (int i=0; i < RIL_CHANNEL_MAX; i++)
+    for (unsigned int i=0; i < g_uiRilChannelCurMax; i++)
     {
         if (!IsChannelCompletedInit(i, eInitIndex))
         {
@@ -588,7 +588,7 @@ BOOL CSystemManager::VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex)
 ///////////////////////////////////////////////////////////////////////////////
 void CSystemManager::SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex)
 {
-    if ((uiChannel < RIL_CHANNEL_MAX) && (eInitIndex < COM_MAX_INDEX))
+    if ((uiChannel < g_uiRilChannelCurMax) && (eInitIndex < COM_MAX_INDEX))
     {
         m_rgfChannelCompletedInit[uiChannel][eInitIndex] = TRUE;
     }
@@ -611,7 +611,7 @@ BOOL CSystemManager::IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eIni
     }
 
     // Normal case
-    if ((uiChannel < RIL_CHANNEL_MAX) && (eInitIndex < COM_MAX_INDEX))
+    if ((uiChannel < g_uiRilChannelCurMax) && (eInitIndex < COM_MAX_INDEX))
     {
         return m_rgfChannelCompletedInit[uiChannel][eInitIndex];
     }
@@ -675,6 +675,7 @@ BOOL CSystemManager::IsChannelUndefined(int channel)
         case RIL_CHANNEL_DATA3:
             if (!g_szDataPort3)
                 return true;
+            break;
         case RIL_CHANNEL_DATA4:
             if (!g_szDataPort4)
                 return true;
@@ -711,7 +712,7 @@ BOOL CSystemManager::CreateQueues()
     BOOL bRet = FALSE;
 
     // Create command and response queues
-    for (int i = 0; i < RIL_CHANNEL_MAX; ++i)
+    for (unsigned int i = 0; i < g_uiRilChannelCurMax; ++i)
     {
         if (NULL == (g_TxQueueEvent[i] = new CEvent(NULL, FALSE))     ||
             NULL == (g_pTxQueue[i] = new CRilQueue<CCommand*>(true)) ||
@@ -740,7 +741,7 @@ void CSystemManager::DeleteQueues()
 {
     RIL_LOG_VERBOSE("CSystemManager::DeleteQueues() - Enter\r\n");
 
-    for (int i = 0; i < RIL_CHANNEL_MAX; ++i)
+    for (unsigned int i = 0; i < g_uiRilChannelCurMax; ++i)
     {
         delete g_TxQueueEvent[i];
         g_TxQueueEvent[i] = NULL;
@@ -808,7 +809,7 @@ BOOL CSystemManager::OpenChannelPorts()
     BOOL bRet = FALSE;
 
     //  Init our array of global CChannel pointers.
-    for (int i = 0; i < RIL_CHANNEL_MAX; i++)
+    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (i == RIL_CHANNEL_RESERVED)
             continue;
@@ -859,7 +860,7 @@ BOOL CSystemManager::InitChannelPorts()
     BOOL bRet = FALSE;
 
     //  Init our array of global CChannel pointers.
-    for (int i = 0; i < RIL_CHANNEL_MAX; i++)
+    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (i == RIL_CHANNEL_RESERVED)
             continue;
@@ -897,7 +898,7 @@ BOOL CSystemManager::OpenChannelPortsOnly()
     BOOL bRet = FALSE;
 
     //  Init our array of global CChannel pointers.
-    for (int i = 0; i < RIL_CHANNEL_MAX; i++)
+    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (i == RIL_CHANNEL_RESERVED)
             continue;
@@ -938,7 +939,7 @@ void CSystemManager::CloseChannelPorts()
 {
     RIL_LOG_VERBOSE("CSystemManager::CloseChannelPorts() - Enter\r\n");
 
-    for (int i = 0; i < RIL_CHANNEL_MAX; i++)
+    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (g_pRilChannel[i])
         {
@@ -955,7 +956,7 @@ void CSystemManager::DeleteChannels()
 {
     RIL_LOG_VERBOSE("CSystemManager::DeleteChannels() - Enter\r\n");
 
-    for (int i = 0; i < RIL_CHANNEL_MAX; i++)
+    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (g_pRilChannel[i])
         {
@@ -1176,7 +1177,7 @@ BOOL CSystemManager::SendModemInitCommands(eComInitIndex eInitIndex)
 {
     RIL_LOG_VERBOSE("CSystemManager::SendModemInitCommands() - Enter\r\n");
 
-    for (int i = 0; i < RIL_CHANNEL_MAX; i++)
+    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
     {
         extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
 

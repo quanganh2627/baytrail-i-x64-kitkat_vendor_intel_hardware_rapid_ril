@@ -3317,7 +3317,17 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
             res = RRIL_RESULT_OK;
             break;
 
-#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+        case RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS");
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CHLD=8\r"))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS - Can't construct szCmd1.\r\n");
+                goto Error;
+            }
+            res = RRIL_RESULT_OK;
+            break;
+
+#if defined(M2_DUALSIM_FEATURE_ENABLED)
         case RIL_OEM_HOOK_STRING_SWAP_PS:
             RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_SWAP_PS");
             if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XRAT=8\r"))
@@ -3327,7 +3337,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
             }
             res = RRIL_RESULT_OK;
             break;
-#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+#endif // M2_DUALSIM_FEATURE_ENABLED
 
         default:
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - ERROR: Received unknown uiCommand=[0x%X]\r\n", uiCommand);
@@ -3387,15 +3397,16 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookStrings(RESPONSE_DATA & rRspData)
             break;
 
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
+        case RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
             break;
 
-#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+#if defined(M2_DUALSIM_FEATURE_ENABLED)
         case RIL_OEM_HOOK_STRING_SWAP_PS:
             res = ParseSwapPS(pszRsp, rRspData);
             break;
-#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+#endif // M2_DUALSIM_FEATURE_ENABLED
 
         default:
             RIL_LOG_INFO("CTE_INF_6260::ParseHookStrings() - Parsing not implemented for uiCommand: %u\r\n",
@@ -5243,7 +5254,7 @@ Error:
     return res;
 }
 
-#if defined(M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED)
+#if defined(M2_DUALSIM_FEATURE_ENABLED)
 RIL_RESULT_CODE CTE_INF_6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseSwapPS() - Enter\r\n");
@@ -5255,5 +5266,5 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRs
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseSwapPS() - Exit\r\n");
     return res;
 }
-#endif // M2_DUALSIM_1S1S_CMDS_FEATURE_ENABLED
+#endif // M2_DUALSIM_FEATURE_ENABLED
 

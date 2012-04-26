@@ -13,7 +13,11 @@
 #include "types.h"
 #include "rilchannels.h"
 
-int g_dRilChannelCurMax = RIL_CHANNEL_MAX;
+// Upper limit on number of RIL channels to create
+UINT32 g_uiRilChannelUpperLimit = RIL_CHANNEL_MAX;
+
+// Current RIL channel index maximum (depends on number of data channels created)
+UINT32 g_uiRilChannelCurMax = 0;
 
 //  Channel mapping array
 UINT32* g_arChannelMapping;
