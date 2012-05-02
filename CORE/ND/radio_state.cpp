@@ -18,9 +18,8 @@
 
 
 ///////////////////////////////////////////////////////////////////////////////
-CRadioState::CRadioState() : m_eRadioState(RADIO_STATE_UNAVAILABLE),
-                            m_eSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT),
-                            m_bIsRadioOn(FALSE)
+CRadioState::CRadioState() : m_eRadioState(RRIL_RADIO_STATE_UNAVAILABLE),
+                            m_eSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT)
 {
     RIL_LOG_VERBOSE("CRadioState::CRadioState() - Enter / Exit\r\n");
 }
@@ -34,71 +33,88 @@ CRadioState::~CRadioState()
 ///////////////////////////////////////////////////////////////////////////////
 RIL_RadioState CRadioState::GetRadioState()
 {
-    return m_eRadioState;
+    RIL_RadioState radioState;
+    switch (m_eRadioState)
+    {
+    case RRIL_RADIO_STATE_UNAVAILABLE:
+        radioState =  RADIO_STATE_UNAVAILABLE;
+        break;
+    case RRIL_RADIO_STATE_OFF:
+        radioState = RADIO_STATE_OFF;
+        break;
+    case RRIL_RADIO_STATE_ON:
+        switch (m_eSIMState)
+        {
+        case RRIL_SIM_STATE_LOCKED_OR_ABSENT:
+            radioState = RADIO_STATE_SIM_LOCKED_OR_ABSENT;
+            break;
+        case RRIL_SIM_STATE_READY:
+            radioState = RADIO_STATE_SIM_READY;
+            break;
+        case RRIL_SIM_STATE_NOT_READY:
+            radioState = RADIO_STATE_SIM_NOT_READY;
+            break;
+        default:
+            radioState = RADIO_STATE_OFF;
+        }
+        break;
+    default:
+        radioState =  RADIO_STATE_UNAVAILABLE;
+    }
+
+    RIL_LOG_INFO("[RIL STATE] RADIO STATE = %s\r\n", PrintState(radioState));
+
+    return radioState;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 RIL_RadioState CRadioState::GetSIMState()
 {
-    return m_eSIMState;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void CRadioState::TriggerStatusChange()
-{
-    if (TRUE == m_bIsRadioOn)
+    RIL_RadioState simState;
+    switch (m_eSIMState)
     {
-        m_eRadioState = m_eSIMState;
+    case RRIL_SIM_STATE_NOT_READY:
+        simState = RADIO_STATE_SIM_NOT_READY;
+        break;
+    case RRIL_SIM_STATE_LOCKED_OR_ABSENT:
+        simState = RADIO_STATE_SIM_LOCKED_OR_ABSENT;
+        break;
+    case RRIL_SIM_STATE_READY:
+        simState = RADIO_STATE_SIM_READY;
+        break;
+    default:
+        simState = RADIO_STATE_SIM_LOCKED_OR_ABSENT;
     }
-    else
-    {
-        m_eRadioState = RADIO_STATE_OFF;
-    }
+    RIL_LOG_INFO("[RIL STATE] SIM STATE = %s\r\n", PrintState(simState));
 
-    RIL_LOG_INFO("[RIL STATE] RADIO STATE = %s\r\n", PrintRadioState(m_eRadioState));
-
-    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
+    return simState;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void CRadioState::SetRadioState(BOOL bIsRadioOn)
+void CRadioState::SetRadioState(const RRIL_Radio_State eRadioState)
 {
-    m_bIsRadioOn = bIsRadioOn;
-
-    TriggerStatusChange();
+    if (m_eRadioState != eRadioState) {
+        m_eRadioState = eRadioState;
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void CRadioState::SetSIMState(RIL_RadioState eSIMState)
+void CRadioState::SetSIMState(const RRIL_SIM_State eSIMState)
 {
     RIL_LOG_INFO("CRadioState::SetSIMState  m_eSIMState: %d, eSIMState: %d, m_eRadioState: %d\r\n",
                 m_eSIMState, eSIMState, m_eRadioState);
 
-    /**
-     * Incase of NO_SIM => LOCKED SIM INSERTED, we need to
-     * somehow force the upper layer to query the SIM status.
-     * Currently, upper layer is not responding to the SIM status
-     * change at all.
-     * This is because SimCard functionality in the Android telephony
-     * framework registers only for sim_locked_or_absent event which
-     * is triggered whenever there is a radio state change.
-     * Since the previous radio state and current state for the
-     * SIM ABSENT => SIM LOCKED case is same
-     * (RADIO_STATE_SIM_LOCKED_OR_ABSENT), sim_locked_or_absent status
-     * is not triggered at resulting in GET_SIM_STATUS and
-     * QUERY_FACILITY_LOCK requests not triggered. Fix has been done in
-     * Telephony framework to not check for previous and current state
-     * before triggering the SIM state changes.
-     */
-    m_eSIMState = eSIMState;
-
-    TriggerStatusChange();
+    if (m_eSIMState != eSIMState) {
+        m_eSIMState = eSIMState;
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const char* CRadioState::PrintRadioState(RIL_RadioState eSIMState) const
+const char* CRadioState::PrintState(const RIL_RadioState eState)
 {
-    switch(eSIMState)
+    switch (eState)
     {
         case RADIO_STATE_OFF:
             return "RADIO_STATE_OFF";

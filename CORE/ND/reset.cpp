@@ -119,9 +119,9 @@ void ModemResetUpdate()
     //  This will cause a RIL_REQUEST_GET_CURRENT_CALLS to be sent
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 
-    g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+    g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
 
-    g_RadioState.SetSIMState(RADIO_STATE_UNAVAILABLE);
+    g_RadioState.SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
 
     //  Delay slightly so Java layer receives replies
     Sleep(10);

@@ -120,7 +120,7 @@ BOOL CSilo_SIM::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION:
             if (RIL_E_SUCCESS == rpRsp->GetResultCode())
             {
-                g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
+                g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
                 CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             }
             break;
@@ -161,7 +161,7 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
             case CME_ERROR_SIM_PUK_REQUIRED:
                 RIL_LOG_INFO("CSilo_SIM::ParsePin() - SIM PUK required");
                 rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-                g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+                g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
                 break;
 
             case CME_ERROR_SIM_PUK2_REQUIRED:
@@ -224,7 +224,7 @@ BOOL CSilo_SIM::ParseNetworkPersonalisationPin(CCommand*& rpCmd, CResponse*& rpR
             case CME_ERROR_NETWORK_PUK_REQUIRED:
                 RIL_LOG_INFO("CSilo_SIM::ParseNetworkPersonalisationPin() - NETWORK PUK required");
                 rpRsp->SetResultCode(RIL_E_NETWORK_PUK_REQUIRED);
-                g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+                g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
                 break;
             default:
                 RIL_LOG_INFO("CSilo_SIM::ParseNetworkPersonalisationPin() - Unknown error [%d]", rpRsp->GetErrorCode());
@@ -817,10 +817,10 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM NOT READY\r\n");
-            g_RadioState.SetSIMState(RADIO_STATE_SIM_NOT_READY);
+            g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
             break;
         case 7: // ready for attach (+COPS)
-            g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
+            g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
         case 12: // SIM SMS caching completed
@@ -833,7 +833,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
         case 5: // SIM permanently blocked
         case 9: // SIM Removed
         default:
-            g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+            g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
             break;
     }
 
@@ -953,7 +953,7 @@ complete:
         if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
            (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
         {
-            g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+            g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
             pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
             break;
         }
@@ -1159,10 +1159,10 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
             RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM NOT READY\r\n");
-            g_RadioState.SetSIMState(RADIO_STATE_SIM_NOT_READY);
+            g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
             break;
         case 7: // ready for attach (+COPS)
-            g_RadioState.SetSIMState(RADIO_STATE_SIM_READY);
+            g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
         case 0: // SIM not present
@@ -1172,7 +1172,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
         case 9: // SIM Removed
         case 99: // SIM state unknown
         default:
-            g_RadioState.SetSIMState(RADIO_STATE_SIM_LOCKED_OR_ABSENT);
+            g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
             break;
     }
 

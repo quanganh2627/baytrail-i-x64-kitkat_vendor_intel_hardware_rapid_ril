@@ -13,15 +13,21 @@
 #ifndef RRIL_RADIO_STATE_H
 #define RRIL_RADIO_STATE_H
 
+typedef enum {
+        RRIL_RADIO_STATE_UNAVAILABLE = 0,
+        RRIL_RADIO_STATE_OFF = 1,
+        RRIL_RADIO_STATE_ON = 2
+} RRIL_Radio_State;
+
+typedef enum {
+        RRIL_SIM_STATE_NOT_READY = 0,
+        RRIL_SIM_STATE_LOCKED_OR_ABSENT = 1,
+        RRIL_SIM_STATE_READY = 2
+} RRIL_SIM_State;
+
+
 class CRadioState
 {
-private:
-    RIL_RadioState m_eRadioState;
-    RIL_RadioState m_eSIMState;
-    BOOL m_bIsRadioOn;
-
-    const char* PrintRadioState(RIL_RadioState eSIMState) const;
-
 public:
     CRadioState();
     ~CRadioState();
@@ -29,11 +35,15 @@ public:
     RIL_RadioState GetRadioState();
     RIL_RadioState GetSIMState();
 
-    void SetRadioState(BOOL bIsRadioOnState);
-    void SetSIMState(RIL_RadioState state);
+    void SetRadioState(const RRIL_Radio_State eRadioState);
+    void SetSIMState(const RRIL_SIM_State eSIMState);
 
 private:
-    void TriggerStatusChange();
+    RRIL_Radio_State m_eRadioState;
+    RRIL_SIM_State m_eSIMState;
+
+    const char* PrintState(const RIL_RadioState eState);
+
 };
 
 #endif // RRIL_RADIO_STATE_H
