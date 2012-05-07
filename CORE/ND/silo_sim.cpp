@@ -31,7 +31,8 @@
 //
 //
 CSilo_SIM::CSilo_SIM(CChannel *pChannel)
-: CSilo(pChannel)
+: CSilo(pChannel),
+m_IsReadyForAttach(FALSE)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::CSilo_SIM() - Enter\r\n");
 
@@ -808,18 +809,53 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
     /// @TODO: Need to revisit the XSIM and radio state mapping
     switch (nSIMState)
     {
-        case 2: // PIN verification not needed - Ready
+        /*
+         * XSIM: 3 will be received upon PIN related operations.
+         *
+         * For PIN related operation occuring after the SIM initialisation,
+         * no XSIM: 7 will be sent by modem. So, trigger the radio state
+         * change with SIM ready upon XSIM: 3.
+         *
+         * For PIN related operation occuring during the boot or before
+         * the SIM initialisation, then XSIM: 7 will be sent by modem. In this
+         * case, radio state  change with SIM ready will be sent upon the
+         * receival of XSIM: 7 event.
+         */
         case 3: // PIN verified - Ready
+            if (m_IsReadyForAttach) {
+                RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
+                g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
+            }
+            break;
+        /*
+         * XSIM: 10 and XSIM: 11 will be received when the SIM driver has
+         * lost contact of SIM and re-established the contact respectively.
+         * After XSIM: 10, either XSIM: 9 or XSIM: 11 will be received.
+         * So, no need to trigger SIM_NOT_READY on XSIM: 10. Incase of
+         * XSIM: 11, network registration will be restored by the modem
+         * itself.
+         */
+        case 10: // SIM Reactivating
+            break;
+        case 11: // SIM Reactivated
+            g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
+            break;
+        /*
+         * XSIM: 2 means PIN verification not needed but not ready for attach.
+         * SIM_READY should be triggered only when the modem is ready
+         * to attach.(XSIM: 7 or XSIM: 3(in some specific case))
+         */
+        case 2:
         case 6: // SIM Error
         case 8: // SIM Technical problem
-        case 10: // SIM Reactivating
-        case 11: // SIM Reactivated
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM NOT READY\r\n");
             g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
             break;
         case 7: // ready for attach (+COPS)
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
+            m_IsReadyForAttach = TRUE;
             g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
@@ -828,10 +864,13 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             triggerQuerySimSmsStoreStatus(NULL);
             break;
         case 0: // SIM not present
+        case 9: // SIM Removed
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM REMOVED/NOT PRESENT\r\n");
+            m_IsReadyForAttach = FALSE;
+            // Fall through to notify Radio and Sim status
         case 1: // PIN verification needed
         case 4: // PUK verification needed
         case 5: // SIM permanently blocked
-        case 9: // SIM Removed
         default:
             g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
             break;
@@ -1150,26 +1189,64 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
     /// @TODO: Need to revisit the XSIM and radio state mapping
     switch (nSIMState)
     {
-        case 2: // PIN verification not needed - Ready
+        /*
+         * XSIM: 3 will be received upon PIN related operations.
+         *
+         * For PIN related operation occuring after the SIM initialisation,
+         * no XSIM: 7 will be sent by modem. So, trigger the radio state
+         * change with SIM ready upon XSIM: 3.
+         *
+         * For PIN related operation occuring during the boot or before
+         * the SIM initialisation, then XSIM: 7 will be sent by modem. In this
+         * case, radio state  change with SIM ready will be sent upon the
+         * receival of XSIM: 7 event.
+         */
         case 3: // PIN verified - Ready
+            if (m_IsReadyForAttach) {
+                RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
+                g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
+            }
+            break;
+        /*
+         * XSIM: 10 and XSIM: 11 will be received when the SIM driver has
+         * lost contact of SIM and re-established the contact respectively.
+         * After XSIM: 10, either XSIM: 9 or XSIM: 11 will be received.
+         * So, no need to trigger SIM_NOT_READY on XSIM: 10. Incase of
+         * XSIM: 11, network registration will be restored by the modem
+         * itself.
+         */
+        case 10: // SIM Reactivating
+            break;
+        case 11: // SIM Reactivated
+            g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
+            break;
+        /*
+         * XSIM: 2 means PIN verification not needed but not ready for attach.
+         * SIM_READY should be triggered only when the modem is ready
+         * to attach.(XSIM: 7 or XSIM: 3(in some specific case))
+         */
+        case 2:
         case 6: // SIM Error
         case 8: // SIM Technical problem
-        case 10: // SIM Reactivating
-        case 11: // SIM Reactivated
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
             RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM NOT READY\r\n");
             g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
             break;
         case 7: // ready for attach (+COPS)
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
+            m_IsReadyForAttach = TRUE;
             g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
         case 0: // SIM not present
+        case 9: // SIM Removed
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM REMOVED/NOT PRESENT\r\n");
+            m_IsReadyForAttach = FALSE;
+            // Fall through to notify Radio and Sim status
         case 1: // PIN verification needed
         case 4: // PUK verification needed
         case 5: // SIM permanently blocked
-        case 9: // SIM Removed
         case 99: // SIM state unknown
         default:
             g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);

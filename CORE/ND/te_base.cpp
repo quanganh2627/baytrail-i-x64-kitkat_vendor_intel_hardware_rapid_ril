@@ -2023,59 +2023,38 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
     }
     else
     {
-        // Power On
-        if (true == bTurnRadioOn)
-        {
-            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=1\r", sizeof(rReqData.szCmd1)))
-            {
-                res = RRIL_RESULT_OK;
-            }
-        }
-        else // Flight mode
-        {
 #if !defined(M2_DUALSIM_FEATURE_ENABLED)
-            if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=4\r", sizeof(rReqData.szCmd1)))
-            {
-                res = RRIL_RESULT_OK;
-            }
-#else
-            char szSimManagerSetOffSimPropName[MAX_PROP_VALUE] = {0};
-
-            // use SIM-specific property, depending on RIL instance
-            if ('0' == g_szSIMID[0])
-            {
-                snprintf(szSimManagerSetOffSimPropName, MAX_PROP_VALUE, "sys.simmanager.set_off_sim%d", 1);
-            }
-            else if ('1' == g_szSIMID[0])
-            {
-                snprintf(szSimManagerSetOffSimPropName, MAX_PROP_VALUE, "sys.simmanager.set_off_sim%d", 2);
-            }
-
-            // check if flight mode with SIM powered off
-            char szSimOffPropValue[PROPERTY_VALUE_MAX] = {'\0'};
-
-            if (property_get(szSimManagerSetOffSimPropName, szSimOffPropValue, ""))
-            {
-                if (strcmp(szSimOffPropValue, "true") == 0)
-                {
-                    // flight mode with SIM powered off
-                    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=21\r", sizeof(rReqData.szCmd1)))
-                    {
-                        res = RRIL_RESULT_OK;
-                    }
-                }
-                else
-                {
-                    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=4\r", sizeof(rReqData.szCmd1)))
-                    {
-                        res = RRIL_RESULT_OK;
-                    }
-                }
-            }
-#endif // M2_DUALSIM_FEATURE_ENABLED
+        if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
+                                            "AT+CFUN=1\r" : "AT+CFUN=4\r",
+                                            sizeof(rReqData.szCmd1)))
+        {
+            res = RRIL_RESULT_OK;
         }
+#else
+        // use SIM-specific property, depending on RIL instance
+        char szSimPowerOffStatePropName[MAX_PROP_VALUE] = {0};
+        snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
+                    "sys.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+
+        // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
+        char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
+        property_get(szSimPowerOffStatePropName, szSimPowerOffState, "");
+        UINT32 nSimPoweredOff = (strcmp(szSimPowerOffState, "true") == 0) ? 1 : 0;
+
+        // Power On (20) or flight mode (21)
+        UINT32 nFunMode = bTurnRadioOn ? 20 : 21;
+
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CFUN=%u,%u\r", nFunMode, nSimPoweredOff))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - Cannot create CFUN command\r\n");
+            goto Error;
+        }
+
+        res = RRIL_RESULT_OK;
+#endif // M2_DUALSIM_FEATURE_ENABLED
     }
 
+Error:
     RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Exit\r\n");
     return res;
 }

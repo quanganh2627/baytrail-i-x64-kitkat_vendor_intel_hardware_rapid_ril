@@ -310,11 +310,21 @@ Error:
 }
 
 #if defined(BOARD_HAVE_IFX7060)
-//FIXME handle properly
-bool isHSIModeAPN(const char* szDataProfile)
+bool isDataDirectlyOverHSI(const char* szDataProfile)
 {
-    //return strstr(szDataProfile,"default") != 0;
-    return true;
+    int dataProfile = 0;
+    if (szDataProfile == NULL) return false;
+    dataProfile = atoi(szDataProfile);
+    if (dataProfile == RIL_DATA_PROFILE_DEFAULT || dataProfile == RIL_DATA_PROFILE_TETHERED || dataProfile == RIL_DATA_PROFILE_IMS)
+    {
+        RIL_LOG_INFO("isDataDirectlyOverHSI() - HSI\r\n");
+        return true;
+    }
+    else
+    {
+        RIL_LOG_INFO("isDataDirectlyOverHSI() - MUX\r\n");
+        return false;
+    }
 }
 #endif
 
@@ -348,6 +358,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     PdpNetworkPath* networkPath = (PdpNetworkPath *) malloc(sizeof(PdpNetworkPath));
     networkPath->bTurnHSIOn = false;
     networkPath->uiCID = uiCID;
+    int muxControlChannel = MUX_DATA_CONTROL_CHANNEL_FOR_PDP_DIRECTLY_OVER_HSI;
 #endif
 
     if (NULL == pData)
@@ -367,7 +378,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
 
     // extract data
     stPdpData.szRadioTechnology = ((char **)pData)[0];  // not used
-    stPdpData.szRILDataProfile  = ((char **)pData)[1];  // not used
+    stPdpData.szRILDataProfile  = ((char **)pData)[1];
     stPdpData.szApn             = ((char **)pData)[2];
     stPdpData.szUserName        = ((char **)pData)[3];  // not used
     stPdpData.szPassword        = ((char **)pData)[4];  // not used
@@ -381,7 +392,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n", stPdpData.szPAPCHAP);
 
 #if defined(BOARD_HAVE_IFX7060)
-    networkPath->bTurnHSIOn = isHSIModeAPN(stPdpData.szRILDataProfile);
+    networkPath->bTurnHSIOn = isDataDirectlyOverHSI(stPdpData.szRILDataProfile);
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - networkPath->bTurnHSIOn=[%d]\r\n", networkPath->bTurnHSIOn);
 #endif
 
@@ -444,6 +455,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     }
 
 #if defined(BOARD_HAVE_IFX7060)
+    networkPath->uiDataProfile = atoi(stPdpData.szRILDataProfile);
     if (!networkPath->bTurnHSIOn)
     {
         if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2),
@@ -455,27 +467,34 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     }
     else
     {
-        int iHSIChannnel = CChannel_Data::GetFreeHSIChannel(uiCID);
-        networkPath->uiHSIChannel = iHSIChannnel;
-        if (iHSIChannnel < 0)
+        int hsiChannnel = CChannel_Data::GetFreeHSIChannel(uiCID);
+        networkPath->uiHSIChannel = hsiChannnel;
+        if (hsiChannnel < 0)
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - No free HSI Channel \r\n");
             goto Error;
         }
 
-        CChannel_Data* cdDataChannel = CChannel_Data::GetChnlFromContextID(uiCID);
-        if (!cdDataChannel)
+        int hsiNetworkPath = 0;
+        switch (hsiChannnel)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() -  no data channel CGDATA command\r\n");
-            goto Error;
+            case 0:
+                hsiNetworkPath = RIL_HSI_CHANNEL1;
+                break;
+            case 1:
+                hsiNetworkPath = RIL_HSI_CHANNEL2;
+                break;
+            case 2:
+                hsiNetworkPath = RIL_HSI_CHANNEL3;
+                break;
+            default:
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - Unknown HSI Channel [%d] \r\n", hsiChannnel);
+                goto Error;
         }
 
-        //TODO: Not used. Should be used in place of hardcoded "/mux/3" below.
-        int DLC = cdDataChannel->GetDlcId();
-
         if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2),
-            "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/3\",\"/mipi_ipc/%d\",0;+CGDATA=\"M-RAW_IP\",%d\r",
-            uiCID, networkPath->uiHSIChannel+2, uiCID))
+            "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/%d\",\"/mipi_ipc/%d\",0;+CGDATA=\"M-RAW_IP\",%d\r",
+            uiCID, muxControlChannel, hsiNetworkPath, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() -  cannot create CGDATA command\r\n");
             goto Error;
@@ -606,22 +625,37 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     pDataCallRsp->sPDPData.cid = nCID;
 
 #if defined(BOARD_HAVE_IFX7060)
-/*
-    rmnet0 HSI
-           1 HSI
-           2 HSI
-             MUX
-*/
-
-    if (!networkPath->bTurnHSIOn)
+    RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - uiDataProfile =[%d]\r\n", networkPath->uiDataProfile);
+    switch (networkPath->uiDataProfile)
     {
-        networkInterfaceID = nCID + 3;
+        case RIL_DATA_PROFILE_DEFAULT:
+            networkInterfaceID = NETWORK_INTERFACE_ID0;
+            break;
+        case RIL_DATA_PROFILE_TETHERED:
+            networkInterfaceID = NETWORK_INTERFACE_ID1;
+            break;
+        case RIL_DATA_PROFILE_IMS:
+            networkInterfaceID = NETWORK_INTERFACE_ID2;
+            break;
+        case RIL_DATA_PROFILE_MMS:
+            networkInterfaceID = NETWORK_INTERFACE_ID3;
+            break;
+        case RIL_DATA_PROFILE_CBS:
+            networkInterfaceID = NETWORK_INTERFACE_ID4;
+            break;
+        case RIL_DATA_PROFILE_FOTA:
+            networkInterfaceID = NETWORK_INTERFACE_ID5;
+            break;
+        case RIL_DATA_PROFILE_SUPL:
+            networkInterfaceID = NETWORK_INTERFACE_ID6;
+            break;
+        case RIL_DATA_PROFILE_HIPRI:
+            networkInterfaceID = NETWORK_INTERFACE_ID7;
+            break;
+        default:
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unknown Data Profile [%d] \r\n", networkPath->uiDataProfile);
+            goto Error;
     }
-    else
-    {
-        networkInterfaceID = networkPath->uiHSIChannel;
-    }
-
     if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, networkInterfaceID))
 #else
     if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, nCID-1))

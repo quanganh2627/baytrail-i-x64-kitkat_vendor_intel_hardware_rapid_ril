@@ -69,6 +69,7 @@ private:
     BOOL ParseNetworkPersonalisationPin(CCommand*& rpCmd, CResponse*& rpRsp);
     BOOL ParseSimIO(CCommand*& rpCmd, CResponse*& rpRsp);
     BOOL ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp);
+    BOOL m_IsReadyForAttach;
 };
 
 #endif // RRIL_SILO_SIM_H

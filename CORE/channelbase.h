@@ -72,10 +72,6 @@ public:
     BOOL            ClosePort();
     int             GetFD() { return m_Port.GetFD(); };
 
-#if defined(BOARD_HAVE_IFX7060)
-    const char *    GetFileName() { return m_Port.GetFileName(); };
-    UINT32          GetDlcId();
-#endif
     UINT32          GetRilChannel() const { return m_uiRilChannel; };
 
     //  Public framework functions

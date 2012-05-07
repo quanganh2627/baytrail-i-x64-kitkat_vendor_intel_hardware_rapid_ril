@@ -1017,25 +1017,6 @@ BOOL CChannelBase::ClosePort()
     return m_Port.Close();
 }
 
-#if defined(BOARD_HAVE_IFX7060)
-UINT32 CChannelBase::GetDlcId(){
-
-    RIL_LOG_VERBOSE("CChannelBase::GetDlcId enter\r\n");
-
-    const char* name = GetFileName();
-
-    if (strstr(name,"/dev/gsmtty"))
-    {
-        int DLC = atoi(&name[strlen("/dev/gsmtty")]);
-        RIL_LOG_VERBOSE("CChannelBase::GetDlcId exit, DLC=%d \r\n", DLC);
-        return DLC;
-    }
-
-    RIL_LOG_CRITICAL("CChannelBase::GetDlcId exit, Cannot find DLC ID\r\n");
-    return -1;
-}
-#endif
-
 BOOL CChannelBase::WriteToPort(const char* pData, UINT32 uiBytesToWrite, UINT32& ruiBytesWritten)
 {
     RIL_LOG_INFO("CChannelBase::WriteToPort() - INFO: chnl=[%d] TX [%s]\r\n",
