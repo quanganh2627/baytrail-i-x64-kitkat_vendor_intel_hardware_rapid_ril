@@ -44,6 +44,7 @@ LOCAL_SRC_FILES:= \
     request_info_table.cpp \
     thread_manager.cpp \
     ND/silo_factory.cpp \
+    ND/MODEMS/data_util.cpp \
     ND/MODEMS/te_inf_6260.cpp \
     ND/MODEMS/silo_voice_inf.cpp \
     ND/MODEMS/silo_sim_inf.cpp \

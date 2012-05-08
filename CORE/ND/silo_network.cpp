@@ -24,7 +24,7 @@
 #include "rildmain.h"
 #include "silo_network.h"
 #include "channel_data.h"
-#include "te_inf_6260.h"
+#include "data_util.h"
 #include "cutils/tztime.h"
 #include "te.h"
 #if defined(M2_DUALSIM_FEATURE_ENABLED)

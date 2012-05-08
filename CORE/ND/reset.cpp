@@ -24,7 +24,7 @@
 #include "rildmain.h"
 #include "reset.h"
 #include "channel_data.h"
-#include "te_inf_6260.h" // For DataConfigDown
+#include "data_util.h" // For DataConfigDown
 
 #include <sys/ioctl.h>
 #include <cutils/properties.h>
