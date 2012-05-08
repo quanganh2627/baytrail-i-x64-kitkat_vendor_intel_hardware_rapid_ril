@@ -415,5 +415,10 @@ BOOL CChannel_Data::SetContextID(UINT32 dwContextID)
     return TRUE;
 }
 
-
-
+//
+//  Free's the context Id by setting it to 0
+//
+void CChannel_Data::FreeContextID()
+{
+    SetContextID(0);
+}

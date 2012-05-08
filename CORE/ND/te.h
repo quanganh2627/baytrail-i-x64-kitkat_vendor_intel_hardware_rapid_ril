@@ -509,6 +509,9 @@ public:
     // REQ_ID_QUERYPIN2
     RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
 
+    // REQ_ID_LASTPDPFAILCAUSE
+    RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
+
     void StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
     void CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
     void ResetRegistrationCache();

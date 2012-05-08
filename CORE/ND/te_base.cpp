@@ -5353,7 +5353,7 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA & rRspData)
     }
 
     //@TODO: cause code mapping needs to be revisited
-    *pCause = MapExtendedErrorCodeToRilCause(uiCause);
+    *pCause = MapErrorCodeToRilDataFailCause(uiCause);
 
     rRspData.pData    = (void*) pCause;
     rRspData.uiDataSize   = sizeof(int*);
@@ -8715,9 +8715,17 @@ RIL_RESULT_CODE CTEBase::ParseQueryPIN2(RESPONSE_DATA & rRspData)
 }
 
 //
+// QUERY DATA FAIL CAUSE (sent internally)
+//
+RIL_RESULT_CODE CTEBase::ParseDataCallFailCause(RESPONSE_DATA& rRspData)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
+}
+
+//
 // Parse Extended Error Report
 //
-BOOL CTEBase::ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause)
+BOOL CTEBase::ParseCEER(RESPONSE_DATA& rRspData, UINT32& rUICause)
 {
     BOOL bRet = FALSE;
     char      szDummy[MAX_BUFFER_SIZE];

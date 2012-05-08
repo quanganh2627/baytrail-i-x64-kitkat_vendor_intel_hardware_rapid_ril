@@ -196,9 +196,17 @@ enum
 ///////////////////////////////////////////////////////////////////////////////
 // CEER Error code defines
 //
+#define RRIL_CEER_CAUSE_OPERATOR_DETERMINED_BARRING             8
+#define RRIL_CEER_CAUSE_INSUFFICIENT_RESOURCES                  126
+#define RRIL_CEER_CAUSE_MISSING_UNKNOWN_APN                     127
+#define RRIL_CEER_CAUSE_UNKNOWN_PDP_ADDRESS_TYPE                128
+#define RRIL_CEER_CAUSE_USER_AUTHENTICATION_FAILED              129
+#define RRIL_CEER_CAUSE_ACTIVATION_REJECTED_BY_GGSN             130
+#define RRIL_CEER_CAUSE_ACTIVATION_REJECT_UNSPECIFIED           131
 #define RRIL_CEER_CAUSE_OPTION_NOT_SUPPORTED                    132
 #define RRIL_CEER_CAUSE_OPTION_NOT_SUBSCRIBED                   133
 #define RRIL_CEER_CAUSE_OPTION_TEMP_OUT_OF_ORDER                134
+#define RRIL_CEER_CAUSE_NSPAI_ALREADY_USED                      135
 #define RRIL_CEER_CAUSE_PDP_AUTHENTICATION_FAILURE              149
 
 ///////////////////////////////////////////////////////////////////////////////

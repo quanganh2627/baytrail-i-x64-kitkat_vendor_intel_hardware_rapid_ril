@@ -15,7 +15,7 @@
 
 class CChannel_Data;
 
-UINT32 MapExtendedErrorCodeToRilCause(UINT32 uiCause);
+int MapErrorCodeToRilDataFailCause(UINT32 uiCause);
 
 //  Call these functions to set up data and bring down data.
 BOOL DataConfigUp(char *szNetworkInterfaceName, CChannel_Data* pChannelData, PDP_TYPE eDataConnectionType);

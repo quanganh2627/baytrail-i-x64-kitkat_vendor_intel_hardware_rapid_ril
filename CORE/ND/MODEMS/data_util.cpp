@@ -31,22 +31,38 @@
 #include "extract.h"
 #include "util.h"
 
-UINT32 MapExtendedErrorCodeToRilCause(UINT32 uiCause)
+int MapErrorCodeToRilDataFailCause(UINT32 uiCause)
 {
-    RIL_LOG_VERBOSE("MapExtendedErrorCodeToRilCause() - Enter\r\n");
+    RIL_LOG_VERBOSE("MapErrorCodeToRilDataFailCause() - Enter\r\n");
 
     switch (uiCause)
     {
+        case RRIL_CEER_CAUSE_OPERATOR_DETERMINED_BARRING:
+            return PDP_FAIL_OPERATOR_BARRED;
+        case RRIL_CEER_CAUSE_INSUFFICIENT_RESOURCES:
+            return PDP_FAIL_INSUFFICIENT_RESOURCES;
+        case RRIL_CEER_CAUSE_MISSING_UNKNOWN_APN:
+            return PDP_FAIL_MISSING_UKNOWN_APN;
+        case RRIL_CEER_CAUSE_UNKNOWN_PDP_ADDRESS_TYPE:
+            return PDP_FAIL_UNKNOWN_PDP_ADDRESS_TYPE;
+        case RRIL_CEER_CAUSE_USER_AUTHENTICATION_FAILED:
+            return PDP_FAIL_USER_AUTHENTICATION;
+        case RRIL_CEER_CAUSE_ACTIVATION_REJECTED_BY_GGSN:
+            return PDP_FAIL_ACTIVATION_REJECT_GGSN;
+        case RRIL_CEER_CAUSE_ACTIVATION_REJECT_UNSPECIFIED:
+            return PDP_FAIL_ACTIVATION_REJECT_UNSPECIFIED;
         case RRIL_CEER_CAUSE_OPTION_NOT_SUPPORTED:
             return PDP_FAIL_SERVICE_OPTION_NOT_SUPPORTED;
         case RRIL_CEER_CAUSE_OPTION_NOT_SUBSCRIBED:
             return PDP_FAIL_SERVICE_OPTION_NOT_SUBSCRIBED;
         case RRIL_CEER_CAUSE_OPTION_TEMP_OUT_OF_ORDER:
             return PDP_FAIL_SERVICE_OPTION_OUT_OF_ORDER;
+        case RRIL_CEER_CAUSE_NSPAI_ALREADY_USED:
+            return PDP_FAIL_NSAPI_IN_USE;
         case RRIL_CEER_CAUSE_PDP_AUTHENTICATION_FAILURE:
             return PDP_FAIL_USER_AUTHENTICATION;
         default:
-            return uiCause;
+            return PDP_FAIL_ERROR_UNSPECIFIED;
     }
 }
 
@@ -211,11 +227,11 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
             RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting addr\r\n");
         }
 
-        RIL_LOG_INFO("DataConfigUp() : Setting mtu\r\n");
+        RIL_LOG_INFO("DataConfigUpIpV4() : Setting mtu\r\n");
         if (!setmtu(s, &ifr, 1460))
         {
             //goto Error;
-            RIL_LOG_CRITICAL("DataConfigUp() : Error setting mtu\r\n");
+            RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting mtu\r\n");
         }
 
     }
@@ -641,7 +657,7 @@ BOOL DataConfigDown(UINT32 uiCID)
 #if defined(BOARD_HAVE_IFX7060)
     // TODO: Find if it's HSI cid or not
 #endif
-    pChannelData->SetContextID(0);
+    pChannelData->FreeContextID();
     fd = pChannelData->GetFD();
 #if defined(BOARD_HAVE_IFX7060)
     if (!CChannel_Data::FreeHSIChannel(uiCID))

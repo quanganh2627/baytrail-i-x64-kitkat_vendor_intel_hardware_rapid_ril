@@ -493,17 +493,21 @@ public:
     // QUERY PIN2
     virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
 
+    // Parse Data Fail Cause
+    virtual RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
+
     // QUERY SIM SMS STORE STATUS
     virtual RIL_RESULT_CODE ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData);
 
     virtual void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
     virtual UINT32 GetIncomingCallId();
 
+    virtual BOOL ParseCEER(RESPONSE_DATA& rRspData, UINT32& rUICause);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus, bool* pbSilentPINEntry = NULL);
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
-    BOOL ParseCEER(RESPONSE_DATA & rRspData, UINT32& rUICause);
 
     typedef struct
     {

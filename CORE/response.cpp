@@ -551,14 +551,13 @@ BOOL CResponse::ParseResponse(CCommand*& rpCmd)
         m_pData = rspData.pData;
         m_uiDataSize = rspData.uiDataSize;
 
+        SetResultCode(resCode);
         if (RIL_E_SUCCESS != resCode)
         {
             RIL_LOG_CRITICAL("CResponse::ParseResponse() - chnl=[%d] Error parsing response: \"%s\"; resCode = 0x%x\r\n",
                             m_pChannel->GetRilChannel(),
                             CRLFExpandedString(m_szBuffer, strlen(m_szBuffer)).GetString(),
                             resCode);
-
-            SetResultCode(resCode);
             SetUnsolicitedFlag(FALSE);
         }
     }

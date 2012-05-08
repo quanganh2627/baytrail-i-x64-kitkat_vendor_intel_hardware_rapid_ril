@@ -39,6 +39,8 @@ protected:
 
     CEvent *m_pSilentPINEntryEvent;
     CEvent *m_pQueryPIN2Event;
+    CEvent* m_pQueryDataCallFailCauseEvent;
+    int m_dataCallFailCause;
 
 public:
     // modem overrides
@@ -132,8 +134,11 @@ public:
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
     virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
 
 private:
+    RIL_RESULT_CODE QueryDataCallFailCause();
+
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
                                                     const char** pszRequest,
                                                     const UINT32 uiDataSize);

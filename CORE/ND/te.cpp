@@ -1487,6 +1487,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
 
         if (pCmd)
         {
+            pCmd->SetAlwaysParse();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - Unable to add command to queue\r\n");
@@ -1504,6 +1505,11 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
 
 
 Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        if (pChannelData)
+            pChannelData->FreeContextID();
+    }
     RIL_LOG_VERBOSE("CTE::RequestSetupDataCall() - Exit\r\n");
     return res;
 }
@@ -5011,6 +5017,16 @@ RIL_RESULT_CODE CTE::ParseQueryPIN2(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTE::ParseQueryPIN2() - Enter / Exit\r\n");
 
     return m_pTEBaseInstance->ParseQueryPIN2(rRspData);
+}
+
+//
+// QueryDataCallFailCause (sent internally)
+//
+RIL_RESULT_CODE CTE::ParseDataCallFailCause(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseDataCallFailCause() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseDataCallFailCause(rRspData);
 }
 
 RIL_RadioTechnology CTE::MapAccessTechnology(UINT32 uiStdAct)

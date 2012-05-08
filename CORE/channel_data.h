@@ -37,7 +37,7 @@ public:
     UINT32 GetContextID() const;
 
     BOOL SetContextID( UINT32 dwContextID );
-
+    void FreeContextID();
 
     //
     // helper functions to convert ContextID, Dlci and Channel

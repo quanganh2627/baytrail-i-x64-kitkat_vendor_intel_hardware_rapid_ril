@@ -43,7 +43,9 @@
 CTE_INF_6260::CTE_INF_6260()
 : m_currentNetworkType(PREF_NET_TYPE_GSM_WCDMA),
 m_pSilentPINEntryEvent(NULL),
-m_pQueryPIN2Event(NULL)
+m_pQueryPIN2Event(NULL),
+m_pQueryDataCallFailCauseEvent(NULL),
+m_dataCallFailCause(PDP_FAIL_ERROR_UNSPECIFIED)
 {
     strcpy(m_szCPIN2Result, "");
 
@@ -61,10 +63,19 @@ m_pQueryPIN2Event(NULL)
         RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - Could not create new QueryPIN2Event!\r\n");
     }
 
+    //  Create Data call Fail cause query event
+    m_pQueryDataCallFailCauseEvent = new CEvent();
+    if (!m_pQueryDataCallFailCauseEvent)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - Could not create new QueryDataCallFailCauseEvent!\r\n");
+    }
 }
 
 CTE_INF_6260::~CTE_INF_6260()
 {
+    delete m_pQueryDataCallFailCauseEvent;
+    m_pQueryDataCallFailCauseEvent = NULL;
+
     delete m_pQueryPIN2Event;
     m_pQueryPIN2Event = NULL;
 
@@ -518,6 +529,84 @@ Error:
     return res;
 }
 
+RIL_RESULT_CODE CTE_INF_6260::QueryDataCallFailCause()
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::QueryDataCallFailCause() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    CCommand *pCmd1 = NULL;
+    char szCmd1[MAX_BUFFER_SIZE] = {0};
+    UINT32 uiWaitRes = 0;
+
+    CEvent::Reset(m_pQueryDataCallFailCauseEvent);
+
+    if (!CopyStringNullTerminate(szCmd1, "AT+CEER\r", sizeof(szCmd1)))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::QueryDataCallFailCause() - Cannot CopyStringNullTerminate CEER\r\n");
+        goto Error;
+    }
+
+    pCmd1 = new CCommand(g_arChannelMapping[ND_REQ_ID_LASTPDPFAILCAUSE], NULL,
+                                ND_REQ_ID_LASTPDPFAILCAUSE, szCmd1, &CTE::ParseDataCallFailCause);
+    if (pCmd1)
+    {
+        if (!CCommand::AddCmdToQueue(pCmd1))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::QueryDataCallFailCause() - Unable to queue AT+CEER command!\r\n");
+            delete pCmd1;
+            pCmd1 = NULL;
+            goto Error;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::QueryDataCallFailCause() - Unable to allocate memory for new AT+CEER command!\r\n");
+        goto Error;
+    }
+
+    //  Wait here for response
+    uiWaitRes = CEvent::Wait(m_pQueryDataCallFailCauseEvent, g_TimeoutAPIDefault);
+    switch (uiWaitRes)
+    {
+        case WAIT_EVENT_0_SIGNALED:
+            RIL_LOG_INFO("CTE_INF_6260::QueryDataCallFailCause() : CEER event signalled\r\n");
+            break;
+
+        case WAIT_TIMEDOUT:
+            RIL_LOG_CRITICAL("CTE_INF_6260::QueryDataCallFailCause() - Timed out waiting for CEER result!! \r\n");
+            goto Error;
+
+        default:
+            RIL_LOG_CRITICAL("CTE_INF_6260::QueryDataCallFailCause() - Unexpected event result on Wait for CEER, res: %d\r\n", uiWaitRes);
+            goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::QueryDataCallFailCause() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_6260::ParseDataCallFailCause(RESPONSE_DATA& rRspData)
+{
+    UINT32 uiCause;
+
+    if (CTEBase::ParseCEER(rRspData, uiCause))
+    {
+        m_dataCallFailCause = MapErrorCodeToRilDataFailCause(uiCause);
+    }
+    else
+    {
+        m_dataCallFailCause = PDP_FAIL_ERROR_UNSPECIFIED;
+    }
+
+    if (m_pQueryDataCallFailCauseEvent)
+    {
+        CEvent::Signal(m_pQueryDataCallFailCauseEvent);
+    }
+
+    return RRIL_RESULT_OK;
+}
 
 RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 {
@@ -539,8 +628,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
      * address and DNS address is got.
      */
 
-    // N_GSM related code
-    struct gsm_config cfg;
     struct gsm_netconfig netconfig;
 
     CCommand * pCmd1 = NULL;
@@ -550,7 +637,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     UINT32 uiWaitRes;
     char szCmd[MAX_BUFFER_SIZE];
     CChannel_Data* pChannelData = NULL;
-    UINT32 nCID = 0;
+    UINT32 uiCID = 0;
     int fd = -1;
     int ret = 0;
     CRepository repository;
@@ -559,9 +646,47 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 #if defined(BOARD_HAVE_IFX7060)
     int networkInterfaceID = 0;
 #endif
-    // 1st confirm we got "CONNECT"
     const char* szRsp = rRspData.szResponse;
 
+    pDataCallRsp = (P_ND_SETUP_DATA_CALL)malloc(sizeof(S_ND_SETUP_DATA_CALL));
+    if (NULL == pDataCallRsp)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot allocate pDataCallRsp  size=[%d]\r\n", sizeof(S_ND_SETUP_DATA_CALL));
+        goto Error;
+    }
+    memset(pDataCallRsp, 0, sizeof(S_ND_SETUP_DATA_CALL));
+
+    //  Get CID
+#if defined(BOARD_HAVE_IFX7060)
+    uiCID = (UINT32)networkPath->uiCID;
+#else
+    uiCID = (UINT32)rRspData.pContextData;
+#endif
+    if (uiCID == 0)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - CID must be >= 1!! CID=[%u]\r\n", uiCID);
+        goto Error;
+    }
+
+    // Get Channel Data according to CID
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (!pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel for RIL channel number %d.\r\n", rRspData.uiChannel);
+        goto Error;
+    }
+
+    m_dataCallFailCause = PDP_FAIL_ERROR_UNSPECIFIED;
+    if (FindAndSkipString(szRsp, "ERROR", szRsp) ||
+        FindAndSkipString(szRsp, "+CME ERROR:", szRsp))
+    {
+        QueryDataCallFailCause();
+
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR/CME ERROR occured\r\n");
+        goto Error;
+    }
+
+    // 1st confirm we got "CONNECT"
 #if defined(BOARD_HAVE_IFX7060)
     if (!networkPath->bTurnHSIOn)
     {
@@ -587,38 +712,12 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
 #endif
 
-    //  Get CID
-#if defined(BOARD_HAVE_IFX7060)
-    nCID = (UINT32)networkPath->uiCID;
-#else
-    nCID = (UINT32)rRspData.pContextData;
-#endif
-    if (nCID == 0)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - CID must be >= 1!! CID=[%d]\r\n", nCID);
-        goto Error;
-    }
-
-    // Get Channel Data according to CID
-    pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
-    if (!pChannelData)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel for RIL channel number %d.\r\n", rRspData.uiChannel);
-        goto Error;
-    }
 
     // Following code-block is moved up here from the end of this function to get if_name needed for netconfig (N_GSM)
     // But the IP address is filled in end of function.
-    pDataCallRsp = (P_ND_SETUP_DATA_CALL)malloc(sizeof(S_ND_SETUP_DATA_CALL));
-    if (NULL == pDataCallRsp)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot allocate pDataCallRsp  size=[%d]\r\n", sizeof(S_ND_SETUP_DATA_CALL));
-        goto Error;
-    }
-    memset(pDataCallRsp, 0, sizeof(S_ND_SETUP_DATA_CALL));
 
     //  Populate pDataCallRsp
-    pDataCallRsp->sPDPData.cid = nCID;
+    pDataCallRsp->sPDPData.cid = uiCID;
 
 #if defined(BOARD_HAVE_IFX7060)
     RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - uiDataProfile =[%d]\r\n", networkPath->uiDataProfile);
@@ -652,9 +751,10 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
             RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unknown Data Profile [%d] \r\n", networkPath->uiDataProfile);
             goto Error;
     }
+
     if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, networkInterfaceID))
 #else
-    if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, nCID-1))
+    if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%u", m_szNetworkInterfaceNamePrefix, uiCID-1))
 #endif
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot set network interface name\r\n");
@@ -662,7 +762,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
     else
     {
-        RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - szNetworkInterfaceName=[%s], CID=[%d]\r\n", pDataCallRsp->szNetworkInterfaceName, nCID);
+        RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - szNetworkInterfaceName=[%s], CID=[%u]\r\n", pDataCallRsp->szNetworkInterfaceName, uiCID);
     }
 
     pDataCallRsp->sPDPData.ifname = pDataCallRsp->szNetworkInterfaceName;
@@ -713,7 +813,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     CEvent::Reset(pChannelData->m_pSetupIntermediateEvent);
 
-    if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CGPADDR=%d\r", nCID))
+    if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CGPADDR=%u\r", uiCID))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - cannot create CGPADDR command\r\n");
         goto Error;
@@ -782,7 +882,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     CEvent::Reset(pChannelData->m_pSetupDoneEvent);
 
-    if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+XDNS?;+XDNS=%d,0\r", nCID))
+    if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+XDNS?;+XDNS=%u,0\r", uiCID))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot create XDNS command\r\n");
         goto Error;
@@ -914,9 +1014,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     pDataCallRsp->sPDPData.dnses = pDataCallRsp->szDNS;
     pDataCallRsp->sPDPData.gateways = pDataCallRsp->szGateway;
 
-    rRspData.pData = (void*)pDataCallRsp;
-    rRspData.uiDataSize = sizeof(RIL_Data_Call_Response_v6);
-
     res = RRIL_RESULT_OK;
 
     RIL_LOG_INFO("[RIL STATE] PDP CONTEXT ACTIVATION chnl=%d ContextID=%d\r\n",
@@ -931,17 +1028,36 @@ Error:
         RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Error cleanup\r\n");
         if (pChannelData)
         {
-            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", rRspData.uiChannel, nCID);
+            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Calling DataConfigDown  chnl=[%d], cid=[%u]\r\n", rRspData.uiChannel, uiCID);
 
-            //  Explicitly deactivate context ID = nCID
-            //  This will call DataConfigDown(nCID) and convert channel to AT mode.
+            //  Explicitly deactivate context ID = uiCID
+            //  This will call DataConfigDown(uiCID) and convert channel to AT mode.
             //  Otherwise the data channel hangs and is unresponsive.
-            RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)nCID, 0, 0);
+            if (!DataConfigDown(pChannelData->GetContextID()))
+            {
+                RIL_LOG_CRITICAL("CSilo_Data::ParseSetupDataCall - DataConfigDown FAILED cid=[%d]\r\n", pChannelData->GetContextID());
+            }
         }
 
-        free(pDataCallRsp);
-        pDataCallRsp = NULL;
+        if (pDataCallRsp)
+        {
+            // If pDataCallRsp, then cause can be sent in status field.
+            res = RRIL_RESULT_OK;
+            pDataCallRsp->sPDPData.status = m_dataCallFailCause;
+            pDataCallRsp->sPDPData.cid = uiCID;
+        }
+        else
+        {
+            res = RIL_E_GENERIC_FAILURE;
+        }
     }
+
+    if (pDataCallRsp)
+    {
+        rRspData.pData = (void*)pDataCallRsp;
+        rRspData.uiDataSize = sizeof(RIL_Data_Call_Response_v6);
+    }
+
     RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Exit\r\n");
     return res;
 }
