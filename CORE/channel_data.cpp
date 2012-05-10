@@ -49,6 +49,12 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
     m_uiContextID = 0;
     m_iStatus = 0;
 
+    m_pSetupIntermediateEvent = new CEvent();
+    if (!m_pSetupIntermediateEvent)
+    {
+        RIL_LOG_CRITICAL("CChannel_Data::CChannel_Data() - Could not create m_pSetupIntermediateEvent\r\n");
+    }
+
     m_pSetupDoneEvent = new CEvent();
     if (!m_pSetupDoneEvent)
     {
@@ -64,6 +70,9 @@ CChannel_Data::~CChannel_Data()
 
     delete []m_prisdModuleInit;
     m_prisdModuleInit = NULL;
+
+    delete m_pSetupIntermediateEvent;
+    m_pSetupIntermediateEvent = NULL;
 
     delete m_pSetupDoneEvent;
     m_pSetupDoneEvent = NULL;
@@ -216,7 +225,7 @@ CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 uiContextID)
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
-    for (unsigned int i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
     {
         if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
             continue;
@@ -257,7 +266,7 @@ CChannel_Data* CChannel_Data::GetFreeChnl(UINT32& outCID)
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
-    for (unsigned int i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
     {
         if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
             continue;
@@ -350,7 +359,7 @@ CChannel_Data* CChannel_Data::GetChnlFromRilChannelNumber(UINT32 index)
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
-    for (unsigned int i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
     {
         if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
             continue;

@@ -549,8 +549,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     CCommand * pCmd1 = NULL;
     CCommand * pCmd2 = NULL;
-    int nIPAddrTimeout = 5000, nDNSTimeout = 5000, nTotalTimeout = (nIPAddrTimeout + nDNSTimeout);
-    BOOL bRet1 = FALSE, bRet2 = FALSE;
+    const int nIPADDR_TIMEOUT_DEFAULT = 5000, nDNS_TIMEOUT_DEFAULT = 5000;
+    int nCommandTimeout = 5000;
     UINT32 uiWaitRes;
     char szCmd[MAX_BUFFER_SIZE];
     CChannel_Data* pChannelData = NULL;
@@ -715,7 +715,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     // Send AT+CGPADDR and AT+XDNS? commands to query for assigned IP Address and DNS and wait for responses
 
-    CEvent::Reset(pChannelData->m_pSetupDoneEvent);
+    CEvent::Reset(pChannelData->m_pSetupIntermediateEvent);
 
     if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CGPADDR=%d\r", nCID))
     {
@@ -739,6 +739,52 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to allocate memory for new AT+CGPADDR command!\r\n");
         goto Error;
     }
+
+    //  Now wait for the intermediate command to complete.
+    //  Get nCommandTimeout
+    if (!repository.Read(g_szGroupRequestTimeouts, g_szRequestNames[ND_REQ_ID_GETIPADDRESS], nCommandTimeout))
+    {
+        nCommandTimeout = nIPADDR_TIMEOUT_DEFAULT;
+    }
+
+    RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Wait for intermediate response, nCommandTimeout=[%d]\r\n",
+                    nCommandTimeout);
+    uiWaitRes = CEvent::Wait(pChannelData->m_pSetupIntermediateEvent, nCommandTimeout);
+    switch(uiWaitRes)
+    {
+        case WAIT_EVENT_0_SIGNALED:
+            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() : SetupData intermediate event signaled\r\n");
+            RIL_LOG_INFO("m_szIpAddr = [%s]    m_szIpAddr2 = [%s]\r\n",
+                pChannelData->m_szIpAddr, pChannelData->m_szIpAddr2);
+
+            //  If the IP address command timed-out, then the data channel's IP addr
+            //  buffers will be NULL.
+            if (NULL == pChannelData->m_szIpAddr || NULL == pChannelData->m_szIpAddr2)
+            {
+                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - IP addresses are null\r\n");
+                 goto Error;
+            }
+
+            // pChannelData->m_szIpAddr and pChannelData->m_szIpAddr2 can not be null because if initialization fails
+            // the connection manager do not call this function but they can be empty
+            if (0 == pChannelData->m_szIpAddr[0] && 0 == pChannelData->m_szIpAddr2[0])
+            {
+                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - IP addresses are empty\r\n");
+                 goto Error;
+            }
+            break;
+
+        case WAIT_TIMEDOUT:
+             RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Timed out waiting for IP Address\r\n");
+             goto Error;
+
+        default:
+             RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unexpected event result on Wait for IP Address, res: %d\r\n", uiWaitRes);
+             goto Error;
+
+    }
+
+    CEvent::Reset(pChannelData->m_pSetupDoneEvent);
 
     if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+XDNS?;+XDNS=%d,0\r", nCID))
     {
@@ -765,34 +811,22 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    //  Read the 2 AT command timeouts from repository.  Sum them.
-    bRet1 = repository.Read(g_szGroupRequestTimeouts, g_szRequestNames[ND_REQ_ID_GETIPADDRESS], nIPAddrTimeout);
-    bRet2 = repository.Read(g_szGroupRequestTimeouts, g_szRequestNames[ND_REQ_ID_GETDNS], nDNSTimeout);
-    if (bRet1 && bRet2)
+    //  Get nCommentTimeout
+    //  Wait for DNS command (m_pSetupDoneEvent)
+    if (!repository.Read(g_szGroupRequestTimeouts, g_szRequestNames[ND_REQ_ID_GETDNS], nCommandTimeout))
     {
-        nTotalTimeout = nIPAddrTimeout + nDNSTimeout;
-        RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - nIPAddrTimeout=[%d] + nDNSTimeout=[%d] = nTotalTimeout=[%d]\r\n",
-                        nIPAddrTimeout, nDNSTimeout, nTotalTimeout);
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - bRet1=[%d] bRet2=[%d]  nTotalTimeout=[%d]\r\n",
-                        bRet1, bRet2, nTotalTimeout);
+        nCommandTimeout = nDNS_TIMEOUT_DEFAULT;
     }
 
-
-    uiWaitRes = CEvent::Wait(pChannelData->m_pSetupDoneEvent, nTotalTimeout);
+    RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Wait for DNS response, nCommandTimeout=[%d]\r\n",
+                    nCommandTimeout);
+    uiWaitRes = CEvent::Wait(pChannelData->m_pSetupDoneEvent, nCommandTimeout);
     switch (uiWaitRes)
     {
         case WAIT_EVENT_0_SIGNALED:
             RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() : SetupData event signalled\r\n");
-            // pChannelData->m_szIpAddr and pChannelData->m_szIpAddr2 can not be null because if initialization fails
-            // the connection manager do not call this function but they can be empty
-            if (0 == pChannelData->m_szIpAddr[0] && 0 == pChannelData->m_szIpAddr2[0])
-            {
-                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - IP addresses are null\r\n");
-                 goto Error;
-            }
+            RIL_LOG_INFO("m_szDNS1 = [%s]    m_szDNS2 = [%s]\r\n",
+                pChannelData->m_szDNS1, pChannelData->m_szDNS2);
 
             if (NULL == pChannelData->m_szDNS1)
             {
@@ -1460,14 +1494,12 @@ Error:
 //
 //  Call this whenever data is disconnected
 //
-BOOL DataConfigDown(int nCID)
+BOOL DataConfigDown(UINT32 uiCID)
 {
-    //  First check to see if nCID is valid
-    //  This could happen if there is an existing data channel and no PDP active
-    //  for that channel.
-    if (nCID <= 0)
+    //  First check to see if uiCID is valid
+    if (uiCID > MAX_PDP_CONTEXTS)
     {
-        RIL_LOG_CRITICAL("DataConfigDown() - Invalid nCID = [%d]\r\n", nCID);
+        RIL_LOG_CRITICAL("DataConfigDown() - Invalid CID = [%d]\r\n", uiCID);
         return FALSE;
     }
 
@@ -1481,10 +1513,10 @@ BOOL DataConfigDown(int nCID)
     int ret =-1;
 
     //  See if CID passed in is valid
-    pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("DataConfigDown() - Invalid CID=[%d], no data channel found!\r\n", nCID);
+        RIL_LOG_CRITICAL("DataConfigDown() - Invalid CID=[%d], no data channel found!\r\n", uiCID);
         return FALSE;
     }
 
@@ -1495,9 +1527,9 @@ BOOL DataConfigDown(int nCID)
         strcpy(szNetworkInterfaceName, "");
         goto Error;
     }
-    RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName prefix=[%s]  CID=[%d]\r\n", szNetworkInterfaceName, nCID);
+    RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName prefix=[%s]  CID=[%d]\r\n", szNetworkInterfaceName, uiCID);
     //  Don't forget to append the Context ID!
-    if (!PrintStringNullTerminate(szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", szNetworkInterfaceName, nCID-1))
+    if (!PrintStringNullTerminate(szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", szNetworkInterfaceName, uiCID-1))
     {
         RIL_LOG_CRITICAL("DataConfigDown() - Could not create network interface name\r\n");
         strcpy(szNetworkInterfaceName, "");
@@ -1505,7 +1537,7 @@ BOOL DataConfigDown(int nCID)
     }
     else
     {
-        RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName=[%s]  CID=[%d]\r\n", szNetworkInterfaceName, nCID);
+        RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName=[%s]  CID=[%d]\r\n", szNetworkInterfaceName, uiCID);
     }
 
 
@@ -1518,7 +1550,7 @@ BOOL DataConfigDown(int nCID)
     pChannelData->SetContextID(0);
     fd = pChannelData->GetFD();
 #if defined(BOARD_HAVE_IFX7060)
-    if (!CChannel_Data::FreeHSIChannel(nCID))
+    if (!CChannel_Data::FreeHSIChannel(uiCID))
     {
 #endif
 
@@ -1582,7 +1614,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
 
     //  Count number of '.'
     int nDotCount = 0;
-    for (unsigned int i=0; szIpIn[i] != '\0'; i++)
+    for (UINT32 i=0; szIpIn[i] != '\0'; i++)
     {
         if ('.' == szIpIn[i])
         {
@@ -1607,7 +1639,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
 
             //  Extract a1...a16 into aIP.
             //  Then convert aAddress to szIpOut.
-            unsigned int aIP[MAX_AIPV6_INDEX] = {0};
+            UINT32 aIP[MAX_AIPV6_INDEX] = {0};
             unsigned char acIP[MAX_AIPV6_INDEX] = {0};
             if (EOF == sscanf(szIpIn, "%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u",
                             &aIP[0], &aIP[1], &aIP[2], &aIP[3], &aIP[4], &aIP[5], &aIP[6], &aIP[7],
@@ -1654,7 +1686,7 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
             //  Extract a1...a20 into aIP.
             //  Then IPv4 part is extracted into szIpOut.
             //  IPV6 part is extracted into szIpOut2.
-            unsigned int aIP[MAX_AIPV4V6_INDEX] = {0};
+            UINT32 aIP[MAX_AIPV4V6_INDEX] = {0};
             if (EOF == sscanf(szIpIn, "%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u",
                             &aIP[0], &aIP[1], &aIP[2], &aIP[3],
                             &aIP[4], &aIP[5], &aIP[6], &aIP[7], &aIP[8], &aIP[9], &aIP[10], &aIP[11],
@@ -1829,6 +1861,10 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
     }
 
 Error:
+    // Signal completion of setting up data
+    if (pChannelData)
+        CEvent::Signal(pChannelData->m_pSetupIntermediateEvent);
+
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseIpAddress() - Exit\r\n");
     return res;
 }
@@ -3063,7 +3099,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
 
     char * pszCid = NULL;
     char * pszReason = NULL;
-    int nCid = 0;
+    UINT32 uiCid = 0;
 
     if (uiDataSize < (1 * sizeof(char *)))
     {
@@ -3099,8 +3135,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
         RIL_LOG_INFO("CTE_INF_6260::CoreDeactivateDataCall() - pszReason=[%s]\r\n", pszReason);
     }
 
-    //  Get CID as int.
-    if (sscanf(pszCid, "%d", &nCid) == EOF)
+    //  Get CID as UINT32.
+    if (sscanf(pszCid, "%u", &uiCid) == EOF)
     {
         // Error
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() -  cannot convert %s to int\r\n", pszCid);
@@ -3113,11 +3149,11 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
         RIL_LOG_INFO("CTE_INF_6260::CoreDeactivateDataCall() - SIM LOCKED OR ABSENT!! no-op this command\r\n");
         rReqData.szCmd1[0] = '\0';
         res = RRIL_RESULT_OK;
-        rReqData.pContextData = (void*)((int)0);
+        rReqData.pContextData = (void*)((UINT32)0);
 
-        if (nCid > 0 && nCid <= MAX_PDP_CONTEXTS)
+        if (uiCid > 0 && uiCid <= MAX_PDP_CONTEXTS)
         {
-            DataConfigDown(nCid);
+            DataConfigDown(uiCid);
         }
     }
     else
@@ -3128,7 +3164,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
         }
 
         //  Set the context of this command to the CID (for multiple context support).
-        rReqData.pContextData = (void*)nCid;  // Store this as an int.
+        rReqData.pContextData = (void*)uiCid;  // Store this as an UINT32.
     }
 
 Error:
@@ -3144,20 +3180,20 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     //  Set CID to 0 for this data channel
-    UINT32 nCID = 0;
-    nCID = (UINT32)rRspData.pContextData;
+    UINT32 uiCID = 0;
+    uiCID = (UINT32)rRspData.pContextData;
 
-    if (nCID > 0)
+    if (uiCID > 0)
     {
         CChannel_Data* pChannelData = NULL;
-        pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
+        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
         if (pChannelData)
         {
-            RIL_LOG_INFO("CTE_INF_6260::ParseDeactivateDataCall() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", pChannelData->GetRilChannel(), nCID);
+            RIL_LOG_INFO("CTE_INF_6260::ParseDeactivateDataCall() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", pChannelData->GetRilChannel(), uiCID);
         }
-        if (!DataConfigDown(nCID))
+        if (!DataConfigDown(uiCID))
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDeactivateDataCall() - Couldn't DataConfigDown chnl=[%d] nCID=[%d]\r\n", rRspData.uiChannel, nCID);
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDeactivateDataCall() - Couldn't DataConfigDown chnl=[%d] CID=[%d]\r\n", rRspData.uiChannel, uiCID);
         }
     }
 
@@ -4180,14 +4216,52 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
     networkType = ((RIL_PreferredNetworkType *)pData)[0];
 
 #if defined(BOARD_HAVE_IFX7060)
-    /**
-     * TODO: #if defined needs to be removed and right command will be issued
-     * aftergetting right information from IMC. Added for time being.
-     */
-    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=3,1\r", sizeof(rReqData.szCmd1) ))
+    // if network type already set, NO-OP this command
+    if (m_currentNetworkType == networkType)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+        rReqData.szCmd1[0] = '\0';
+        res = RRIL_RESULT_OK;
+        RIL_LOG_INFO("CTE_INF_6260::CoreSetPreferredNetworkType() - Network type {%d} already set.\r\n", networkType);
         goto Error;
+    }
+
+    switch (networkType)
+    {
+        case PREF_NET_TYPE_GSM_WCDMA: // WCDMA Preferred
+
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=3,1\r", sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                goto Error;
+            }
+
+           break;
+
+        case PREF_NET_TYPE_GSM_ONLY: // GSM Only
+
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=0\r", sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                goto Error;
+            }
+
+            break;
+
+        case PREF_NET_TYPE_WCDMA: // WCDMA Only
+
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=1\r", sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                goto Error;
+            }
+
+            break;
+
+        default:
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Undefined rat code: %d\r\n", networkType);
+            res = RIL_E_GENERIC_FAILURE;
+            goto Error;
+
     }
 #else
     // if network type already set, NO-OP this command

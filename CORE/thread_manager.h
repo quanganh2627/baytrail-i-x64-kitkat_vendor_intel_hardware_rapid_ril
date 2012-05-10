@@ -15,16 +15,17 @@
 
 #include "rril.h"
 #include "sync_ops.h"
+#include "types.h"
 
 class CThreadManager
 {
 public:
-    static BOOL Start(unsigned int nChannels);
+    static BOOL Start(UINT32 nChannels);
     static BOOL Stop();
     static void RegisterThread();
 
 private:
-    CThreadManager(unsigned int nChannels);
+    CThreadManager(UINT32 nChannels);
     ~CThreadManager();
 
     //  Prevent assignment: Declared but not implemented.
@@ -39,10 +40,10 @@ private:
 
     static CThreadManager* m_pInstance;
 
-    unsigned int    m_nChannelsTotal;
-    unsigned int    m_nChannelsActive;
-    CMutex *        m_pTManMutex;
-    CEvent *        m_pStartupCompleteEvent;
+    UINT32    m_nChannelsTotal;
+    UINT32    m_nChannelsActive;
+    CMutex *  m_pTManMutex;
+    CEvent *  m_pStartupCompleteEvent;
 };
 
 #endif // RRIL_THREAD_MANAGER_H

@@ -5473,6 +5473,13 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Could not extract CID.\r\n");
             goto Error;
         }
+
+        // If entry is not active forget it
+        if (active[nCID - 1] == 0)
+        {
+            continue;
+        }
+
         //  Grab the pChannelData for this CID
         pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
 
@@ -5511,6 +5518,12 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
         {
             strncpy(pPDPListData->pIfnameBuffers[count], pChannelData->m_szInterfaceName, MAX_BUFFER_SIZE);
             pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+
+            // If ifname is empty forget the entry
+            if (pChannelData->m_szInterfaceName[0] == '\0')
+            {
+                continue;
+            }
         }
         else
         {
@@ -5734,8 +5747,8 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     rReqData.pContextData = (void*)nEnable;
 
     if (!CopyStringNullTerminate(rReqData.szCmd1, (1 == nEnable) ?
-                                "AT+CREG=2;+XREG=2;+XCSQ=1;+CGEREP=1,0\r" :
-                                "AT+CREG=0;+XREG=0;+XCSQ=0;+CGEREP=0,0\r", sizeof(rReqData.szCmd1)))
+                                "AT+CREG=2;+XREG=2;+XCSQ=1\r" :
+                                "AT+CREG=0;+XREG=0;+XCSQ=0\r", sizeof(rReqData.szCmd1)))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
         goto Error;
@@ -5790,7 +5803,6 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA & rRspData)
          */
         triggerSignalStrength(NULL);
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
-        triggerDataCallListChanged(NULL);
     }
 
     CTE::GetTE().ResetRegistrationCache();
@@ -7588,7 +7600,7 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* szRsp = rRspData.szResponse;
-    unsigned int nChannelId = 0;
+    UINT32 nChannelId = 0;
     int* pnChannelId = NULL;
 
     if (NULL == rRspData.szResponse)
@@ -7600,7 +7612,7 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
     //  Could have +XEER response here, if AT command returned CME error.
     if (FindAndSkipString(szRsp, "+XEER: ", szRsp))
     {
-        unsigned int nCause = 0, nRes1 = 0, nRes2 = 0;
+        UINT32 nCause = 0, nRes1 = 0, nRes2 = 0;
 
         //  +XEER: "SIM ACCESS", 203, 68, 81 = RIL_E_MISSING_RESOURCE
         //  +XEER: "SIM ACCESS", 203, 6A, 86 = RIL_E_MISSING_RESOURCE
@@ -7763,7 +7775,7 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
     //  Could have +XEER response here, if AT command returned CME error.
     if (FindAndSkipString(szRsp, "+XEER: ", szRsp))
     {
-        unsigned int nCause = 0, nRes1 = 0, nRes2 = 0;
+        UINT32 nCause = 0, nRes1 = 0, nRes2 = 0;
 
         //  +XEER: "SIM ACCESS", 202         = RIL_E_MISSING_RESOURCE
         //  +XEER: "SIM ACCESS", 200         = RIL_E_INVALID_PARAMETER
@@ -7960,7 +7972,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
     //  Could have +XEER response here, if AT command returned CME error.
     if (FindAndSkipString(szRsp, "+XEER: ", szRsp))
     {
-        unsigned int nCause = 0, nRes1 = 0, nRes2 = 0;
+        UINT32 nCause = 0, nRes1 = 0, nRes2 = 0;
 
         //  +XEER: "SIM ACCESS", 200         = RIL_E_INVALID_PARAMETER
         //  +XEER: "SIM ACCESS", 203, 68, 81 = RIL_E_INVALID_PARAMETER
@@ -8525,6 +8537,13 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
             RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Could not extract CID.\r\n");
             goto Error;
         }
+
+        // If entry is not active forget it
+        if (active[nCID - 1] == 0)
+        {
+            continue;
+        }
+
         //  Grab the pChannelData for this CID
         pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
 
@@ -8563,6 +8582,12 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
         {
             strncpy(pPDPListData->pIfnameBuffers[count], pChannelData->m_szInterfaceName, MAX_BUFFER_SIZE);
             pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+
+            // If ifname is empty forget the entry
+            if (pChannelData->m_szInterfaceName[0] == '\0')
+            {
+                continue;
+            }
         }
         else
         {

@@ -14,6 +14,7 @@
 #include "types.h"
 #include "rillog.h"
 #include "file_ops.h"
+#include "util.h"
 #include <fcntl.h>
 #include <cutils/sockets.h>
 #include <termios.h>
@@ -253,7 +254,10 @@ BOOL CFile::Close()
 
 BOOL CFile::Write(const void * pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesWritten)
 {
-    int iCount = 0;
+    int bytesWritten = 0;
+    int writeAttempt = 0;
+    const int MAX_WRITE_ATTEMPT = 5;
+    const int TIME_BEFORE_RETRY_IN_MS = 100;
     rdwBytesWritten = 0;
 
     if (!m_fInitialized)
@@ -262,13 +266,40 @@ BOOL CFile::Write(const void * pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesW
         return FALSE;
     }
 
-    if ((iCount = (write(m_file, pBuffer, dwBytesToWrite))) == -1)
+    while ((bytesWritten = (write(m_file, pBuffer, dwBytesToWrite))) == -1)
     {
-        RIL_LOG_CRITICAL("CFile::Write() : Error during write process!  errno=[%d] [%s]\r\n", errno, strerror(errno));
-        return FALSE;
+        switch (errno)
+        {
+            case EAGAIN:
+            {
+                // Channel is still in opening state, wait and retry the write
+                writeAttempt++;
+                if (writeAttempt > MAX_WRITE_ATTEMPT)
+                {
+                    RIL_LOG_CRITICAL("CFile::Write() : Write failed - Channel still not open\r\n");
+                    return FALSE;
+                }
+                Sleep(TIME_BEFORE_RETRY_IN_MS);
+            }
+            break;
+
+            case ENXIO:
+            {
+                // Channel was closed internally by the MUX driver (modem self reset) when the RRIL
+                // perform the write. In this case, we return TRUE and let the RRIL be informed of
+                // the modem self reset by the standard way (means by STMD).
+                RIL_LOG_CRITICAL("CFile::Write() : Write failed - Channel close by MUX\r\n");
+                return TRUE;
+            }
+            break;
+
+            default:
+                RIL_LOG_CRITICAL("CFile::Write() : Error during write process!  errno=[%d] [%s]\r\n", errno, strerror(errno));
+                return FALSE;
+        }
     }
 
-    rdwBytesWritten = (UINT32)iCount;
+    rdwBytesWritten = (UINT32)bytesWritten;
 
     return TRUE;
 }

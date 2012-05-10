@@ -1351,7 +1351,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.20 for Android 4.0.3 (Build May 1/2012)";
+    return "Intrinsyc Rapid-RIL M6.21 for Android 4.0.3 (Build May 8/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1425,7 +1425,7 @@ static void usage(char *szProgName)
 static bool RIL_SetGlobals(int argc, char **argv)
 {
     int opt;
-    unsigned int uiDataPortIndex = RIL_CHANNEL_DATA1;
+    UINT32 uiDataPortIndex = RIL_CHANNEL_DATA1;
 
     property_get("persist.dual_sim", g_szDualSim, "none");
     if (strncmp(g_szDualSim, "dsds_2230", 9) == 0)

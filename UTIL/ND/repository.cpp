@@ -689,7 +689,7 @@ Done:
     return iRetVal;
 }
 
-int CRepository::ExtractValue(char* szIn, char* szRes, unsigned int iMaxLen)
+int CRepository::ExtractValue(char* szIn, char* szRes, UINT32 iMaxLen)
 {
     // skip key
     szIn = SkipSpace(szIn);

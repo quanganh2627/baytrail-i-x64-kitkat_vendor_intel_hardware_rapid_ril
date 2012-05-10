@@ -466,7 +466,7 @@ void convertIntToByteArray(unsigned char* byteArray, int value)
 // convert an Integer into a byte array in Big Endian format starting at 'pos'
 void convertIntToByteArrayAt(unsigned char* byteArray, int value, int pos)
 {
-    for (unsigned int i = 0; i < sizeof(int); i++)
+    for (UINT32 i = 0; i < sizeof(int); i++)
     {
         byteArray[i + pos] = (unsigned char) ((htonl(value) >> (i*8)) & 0xFF);
     }

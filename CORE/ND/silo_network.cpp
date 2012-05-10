@@ -95,7 +95,7 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         //  Bring down all data contexts internally.
         CChannel_Data* pChannelData = NULL;
 
-        for (unsigned int i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
+        for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
         {
             if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
                 continue;

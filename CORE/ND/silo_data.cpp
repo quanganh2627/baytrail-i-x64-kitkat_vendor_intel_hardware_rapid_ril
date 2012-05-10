@@ -75,19 +75,19 @@ BOOL CSilo_Data::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, B
         CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[uiChannel]);
         if (pChannelData)
         {
-            int nCid = pChannelData->GetContextID();
+            UINT32 uiCid = pChannelData->GetContextID();
 
             //  Reset the CID on this data channel to 0.  Free up channel for future use.
             //  This is done by DataConfigDown() function.
             //  Release network interface
-            RIL_LOG_INFO("CSilo_Data::PostParseResponseHook - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", uiChannel, pChannelData->GetContextID());
-            if (!DataConfigDown(nCid))
+            RIL_LOG_INFO("CSilo_Data::PostParseResponseHook - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", uiChannel, uiCid);
+            if (!DataConfigDown(uiCid))
             {
-                RIL_LOG_CRITICAL("CSilo_Data::PostParseResponseHook - DataConfigDown FAILED chnl=[%d], cid=[%d]\r\n", uiChannel, pChannelData->GetContextID());
+                RIL_LOG_CRITICAL("CSilo_Data::PostParseResponseHook - DataConfigDown FAILED chnl=[%d], cid=[%d]\r\n", uiChannel, uiCid);
             }
 
             // get last data call fail cause
-            fRet = ParseDataCallFailCause(rpRsp, nCid);
+            fRet = ParseDataCallFailCause(rpRsp, uiCid);
         }
     }
 
@@ -189,7 +189,7 @@ Error:
 
 // helper functions
 
-BOOL CSilo_Data::ParseDataCallFailCause(CResponse*& rpRsp, int nCid)
+BOOL CSilo_Data::ParseDataCallFailCause(CResponse*& rpRsp, UINT32 uiCid)
 {
     RIL_LOG_VERBOSE("CSilo_Data::ParseDataCallFailCause() - Enter\r\n");
 
@@ -240,7 +240,7 @@ BOOL CSilo_Data::ParseDataCallFailCause(CResponse*& rpRsp, int nCid)
     }
 
     pDataCallResp->suggestedRetryTime = -1;
-    pDataCallResp->cid = nCid;
+    pDataCallResp->cid = (int)uiCid;
     pDataCallResp->active = 0;
     pDataCallResp->type = NULL;
     pDataCallResp->ifname = NULL;

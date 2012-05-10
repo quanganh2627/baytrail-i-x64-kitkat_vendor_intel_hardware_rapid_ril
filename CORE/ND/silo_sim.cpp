@@ -27,6 +27,8 @@
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
 
+// for SIM technical problem (XSIM or XSIMSTATE: 8), report as cardstate error
+BOOL g_bReportCardStateError = FALSE;
 
 //
 //
@@ -357,7 +359,17 @@ BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
                 pCardStatus->cdma_subscription_app_index = -1;
                 pCardStatus->ims_subscription_app_index = -1;
                 pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
-                pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
+
+                // for XSIM 8 (SIM technical problem), report cardstate error
+                if (g_bReportCardStateError)
+                {
+                    pCardStatus->card_state = RIL_CARDSTATE_ERROR;
+                }
+                else
+                {
+                    pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
+                }
+
                 pCardStatus->num_applications = 1;
 
                 pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
@@ -806,6 +818,10 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
         goto Error;
     }
 
+    // Here we assume we don't have card error.
+    // This variable will be changed in case we received XSIM=8.
+    g_bReportCardStateError = FALSE;
+
     /// @TODO: Need to revisit the XSIM and radio state mapping
     switch (nSIMState)
     {
@@ -847,11 +863,15 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
          */
         case 2:
         case 6: // SIM Error
-        case 8: // SIM Technical problem
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM NOT READY\r\n");
             g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+            break;
+        case 8: // SIM Technical problem
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM TECHNICAL PROBLEM\r\n");
+            g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+            g_bReportCardStateError = TRUE;
             break;
         case 7: // ready for attach (+COPS)
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
@@ -1012,8 +1032,8 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXLEMA() - Enter\r\n");
     BOOL fRet = FALSE;
     const char* pszEnd = NULL;
-    unsigned int uiIndex = 0;
-    unsigned int uiTotalCnt = 0;
+    UINT32 uiIndex = 0;
+    UINT32 uiTotalCnt = 0;
     char szECCItem[MAX_BUFFER_SIZE] = {0};
     const char szRIL_ECCLIST[] = "ril.ecclist";
 
@@ -1186,6 +1206,10 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
     //  Back up over the "\r\n".
     rszPointer -= strlen(g_szNewLine);
 
+    // Here we assume we don't have card error.
+    // This variable will be changed in case we received XSIM=8.
+    g_bReportCardStateError = FALSE;
+
     /// @TODO: Need to revisit the XSIM and radio state mapping
     switch (nSIMState)
     {
@@ -1227,11 +1251,15 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
          */
         case 2:
         case 6: // SIM Error
-        case 8: // SIM Technical problem
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
             RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM NOT READY\r\n");
             g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+            break;
+        case 8: // SIM Technical problem
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
+            g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+            g_bReportCardStateError = TRUE;
             break;
         case 7: // ready for attach (+COPS)
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");

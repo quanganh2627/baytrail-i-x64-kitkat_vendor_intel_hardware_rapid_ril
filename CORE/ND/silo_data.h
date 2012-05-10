@@ -61,7 +61,7 @@ protected:
 
 private:
     // helper functions
-    BOOL ParseDataCallFailCause(CResponse*& rpRsp, int nCid);
+    BOOL ParseDataCallFailCause(CResponse*& rpRsp, UINT32 uiCid);
 };
 
 #endif // RRIL_SILO_DATA_H

@@ -28,6 +28,7 @@
 #define RRIL_REPOSITORY_H
 
 #include <pthread.h>
+#include "types.h"
 
 
 #define MAX_REQUEST_ITEM_LENGTH    64
@@ -136,7 +137,7 @@ private:
     // marker location utilities
     int LocateGroup(const char* szGroup);
     int LocateKey(const char* szKey, char* szOut = NULL);
-    int ExtractValue(char* szIn, char* szRes, unsigned int iMaxLen);
+    int ExtractValue(char* szIn, char* szRes, UINT32 iMaxLen);
 
     // locking/unlocking access to the NVM file
     int ReaderLock();
@@ -147,8 +148,8 @@ private:
     {
         pthread_mutex_t stLock;         // master lock
         pthread_cond_t  stRead;         // lock for reader threads
-        unsigned int    iReaders;       // # reader threads accessing the file
-        unsigned int    iReadWaiters;   // # reader threads waiting to access the file
+        UINT32          iReaders;       // # reader threads accessing the file
+        UINT32          iReadWaiters;   // # reader threads waiting to access the file
     };
 
     static struct CRepLock m_stLock;

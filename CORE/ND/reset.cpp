@@ -96,7 +96,7 @@ void ModemResetUpdate()
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
-    for (unsigned int i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
     {
         if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
             continue;
@@ -224,7 +224,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
     int fd_ModemStatusSocket = -1;
     int nPollRet = 0;
     int data_size = 0;
-    unsigned int data;
+    UINT32 data;
     struct pollfd fds[1] = { {0,0,0} };
     CThread* pContinueInitThread = NULL;
 
@@ -233,7 +233,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
 
     //  Store the previous modem's state.  Only handle the toggle of the modem state.
     //  Initialize to MODEM_DOWN.
-    unsigned int nPreviousModemState = MODEM_DOWN;
+    UINT32 nPreviousModemState = MODEM_DOWN;
 
     //  Let's connect to the modem status socket
     for (int i = 0; i < NUM_LOOPS; i++)
@@ -281,7 +281,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
         {
             if (fds[0].revents & POLLIN)
             {
-                data_size = recv(fd_ModemStatusSocket, &data, sizeof(unsigned int), 0);
+                data_size = recv(fd_ModemStatusSocket, &data, sizeof(UINT32), 0);
                 if (data_size <= 0)
                 {
                     RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - recv failed data_size=[%d]\r\n", data_size);
@@ -291,7 +291,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
                     RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - CALLING EXIT\r\n");
                     exit(0);
                 }
-                else if (sizeof(unsigned int) != data_size)
+                else if (sizeof(UINT32) != data_size)
                 {
                     RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - recv size mismatch!  data_size=[%d]\r\n", data_size);
                     //  loop again
@@ -374,12 +374,12 @@ void* ModemWatchdogThreadProc(void* pVoid)
                                 //  Send MODEM_COLD_RESET_ACK on same socket
                                 if (fd_ModemStatusSocket >= 0)
                                 {
-                                    unsigned int data;
+                                    UINT32 data;
                                     int data_size = 0;
 
                                     RIL_LOG_INFO("ModemWatchdogThreadProc() - Send MODEM_COLD_RESET_ACK\r\n");
                                     data = MODEM_COLD_RESET_ACK;
-                                    data_size = send(fd_ModemStatusSocket, &data, sizeof(unsigned int), 0);
+                                    data_size = send(fd_ModemStatusSocket, &data, sizeof(UINT32), 0);
                                     if (data_size < 0)
                                     {
                                         RIL_LOG_CRITICAL("ModemWatchdogThreadProc() - Failed to send MODEM_COLD_RESET_ACK\r\n");
@@ -468,16 +468,16 @@ Error:
 //  btea: Encrypt or decrypt int array v of length n with 4-integer array key
 //
 //  Parameters:
-//  unsigned int array v [in/out] : unsigned int array to be encrypted or decrypted
+//  UINT32 array v [in/out] : UINT32 array to be encrypted or decrypted
 //  int n [in] : Number of integers in array v.  If n is negative, then decrypt.
-//  unsigned int array key [in] : unsigned int array of size 4 that contains key to encrypt or decrypt
+//  UINT32 array key [in] : UINT32 array of size 4 that contains key to encrypt or decrypt
 //
 //  Return values:
 //  None
-void btea(unsigned int *v, int n, unsigned int const key[4])
+void btea(UINT32 *v, int n, UINT32 const key[4])
 {
-    unsigned int y, z, sum;
-    unsigned int rounds, e;
+    UINT32 y, z, sum;
+    UINT32 rounds, e;
     int p;
 
     if (n > 1)
@@ -527,14 +527,14 @@ void btea(unsigned int *v, int n, unsigned int const key[4])
 //
 //  Parameters:
 //  string szKey [in] : string to be converted to 4-integer array
-//  unsigned int array pKey [out] : 4-integer array of szKey (to be passed into btea function)
+//  UINT32 array pKey [out] : 4-integer array of szKey (to be passed into btea function)
 //                                  Array must be allocated by caller.
 //
 //  Return values:
 //  PIN_INVALID_UICC if error with szKey
 //  PIN_NOK if any other error
 //  PIN_OK if operation is successful
-ePCache_Code ConvertKeyToInt4(const char *szKey, unsigned int *pKey)
+ePCache_Code ConvertKeyToInt4(const char *szKey, UINT32 *pKey)
 {
     //  Check inputs
     if ( (NULL == szKey) || (strlen(szKey) > 32))
@@ -612,10 +612,10 @@ ePCache_Code encrypt(const char *szInput, const int nInputLen, const char *szKey
     //RIL_LOG_INFO("encrypt() - szInput=[%s] nInputLen=[%d] szKey=[%s]\r\n", szInput, nInputLen, szKey);
 
     const int BUF_LEN = 9;
-    unsigned int buf[BUF_LEN] = {0};
+    UINT32 buf[BUF_LEN] = {0};
 
     //  generate random salt
-    srand((unsigned int) time(NULL));
+    srand((UINT32) time(NULL));
 
     //  Front-fill the 9 int buffer with random salt (first 8 bits of int is FF so we can identify later)
     for (int i=0; i < BUF_LEN-nInputLen; i++)
@@ -624,13 +624,13 @@ ePCache_Code encrypt(const char *szInput, const int nInputLen, const char *szKey
         nRand = (nRand << 16);
         nRand = (nRand + rand());
         nRand = (nRand | 0xFF000000);
-        buf[i] = (unsigned int)nRand;
+        buf[i] = (UINT32)nRand;
     }
 
     //  Copy the ASCII values after the random salt in the buffer.
     for (int i=0; i < nInputLen; i++)
     {
-        buf[i+(BUF_LEN-nInputLen)] = (unsigned int)szInput[i];
+        buf[i+(BUF_LEN-nInputLen)] = (UINT32)szInput[i];
     }
 
     //  Print what we have
@@ -641,7 +641,7 @@ ePCache_Code encrypt(const char *szInput, const int nInputLen, const char *szKey
     //}
 
     // Convert the UICC to format suitable for btea
-    unsigned int key[4] = {0};
+    UINT32 key[4] = {0};
     if (PIN_OK != ConvertKeyToInt4(szKey, key))
     {
         RIL_LOG_CRITICAL("encrypt() - ConvertKeyToInt4() failed!\r\n");
@@ -721,7 +721,7 @@ ePCache_Code decrypt(char *szOut, const char *szKey)
     //RIL_LOG_INFO("decrypt() - szKey=[%s]\r\n", szKey);
 
     // Convert the UICC to format suitable for btea
-    unsigned int key[4] = {0};
+    UINT32 key[4] = {0};
     if (PIN_OK != ConvertKeyToInt4(szKey, key))
     {
         RIL_LOG_CRITICAL("decrypt() - ConvertKeyToInt4() error!\r\n");
@@ -729,7 +729,7 @@ ePCache_Code decrypt(char *szOut, const char *szKey)
     }
 
     const int BUF_LEN = 9;
-    unsigned int buf[BUF_LEN] = {0};
+    UINT32 buf[BUF_LEN] = {0};
 
     //  Get encrypted string from property...
     char szEncryptedBuf[MAX_PROP_VALUE] = {0};

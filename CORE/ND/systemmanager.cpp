@@ -573,7 +573,7 @@ BOOL CSystemManager::VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex)
 {
     BOOL bRetVal = TRUE;
 
-    for (unsigned int i=0; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (!IsChannelCompletedInit(i, eInitIndex))
         {
@@ -712,7 +712,7 @@ BOOL CSystemManager::CreateQueues()
     BOOL bRet = FALSE;
 
     // Create command and response queues
-    for (unsigned int i = 0; i < g_uiRilChannelCurMax; ++i)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax; ++i)
     {
         if (NULL == (g_TxQueueEvent[i] = new CEvent(NULL, FALSE))     ||
             NULL == (g_pTxQueue[i] = new CRilQueue<CCommand*>(true)) ||
@@ -741,7 +741,7 @@ void CSystemManager::DeleteQueues()
 {
     RIL_LOG_VERBOSE("CSystemManager::DeleteQueues() - Enter\r\n");
 
-    for (unsigned int i = 0; i < g_uiRilChannelCurMax; ++i)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax; ++i)
     {
         delete g_TxQueueEvent[i];
         g_TxQueueEvent[i] = NULL;
@@ -809,7 +809,7 @@ BOOL CSystemManager::OpenChannelPorts()
     BOOL bRet = FALSE;
 
     //  Init our array of global CChannel pointers.
-    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (i == RIL_CHANNEL_RESERVED)
             continue;
@@ -860,7 +860,7 @@ BOOL CSystemManager::InitChannelPorts()
     BOOL bRet = FALSE;
 
     //  Init our array of global CChannel pointers.
-    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (i == RIL_CHANNEL_RESERVED)
             continue;
@@ -898,7 +898,7 @@ BOOL CSystemManager::OpenChannelPortsOnly()
     BOOL bRet = FALSE;
 
     //  Init our array of global CChannel pointers.
-    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (i == RIL_CHANNEL_RESERVED)
             continue;
@@ -939,7 +939,7 @@ void CSystemManager::CloseChannelPorts()
 {
     RIL_LOG_VERBOSE("CSystemManager::CloseChannelPorts() - Enter\r\n");
 
-    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (g_pRilChannel[i])
         {
@@ -956,7 +956,7 @@ void CSystemManager::DeleteChannels()
 {
     RIL_LOG_VERBOSE("CSystemManager::DeleteChannels() - Enter\r\n");
 
-    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax; i++)
     {
         if (g_pRilChannel[i])
         {
@@ -1177,7 +1177,7 @@ BOOL CSystemManager::SendModemInitCommands(eComInitIndex eInitIndex)
 {
     RIL_LOG_VERBOSE("CSystemManager::SendModemInitCommands() - Enter\r\n");
 
-    for (unsigned int i = 0; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax; i++)
     {
         extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
 
@@ -1272,12 +1272,12 @@ BOOL CSystemManager::SendRequestCleanup()
 
     if (m_fdCleanupSocket >= 0)
     {
-        unsigned int data;
+        UINT32 data;
         int data_size = 0;
 
         RIL_LOG_INFO("CSystemManager::SendRequestCleanup() - Send request clean up\r\n");
         data = REQUEST_CLEANUP;
-        data_size = send(m_fdCleanupSocket, &data, sizeof(unsigned int), 0);
+        data_size = send(m_fdCleanupSocket, &data, sizeof(UINT32), 0);
         if (data_size < 0)
         {
             RIL_LOG_CRITICAL("CSystemManager::SendRequestCleanup() - Failed to send CLEANUP_REQUEST\r\n");
@@ -1308,12 +1308,12 @@ BOOL CSystemManager::SendRequestShutdown()
 
     if (m_fdCleanupSocket >= 0)
     {
-        unsigned int data;
+        UINT32 data;
         int data_size = 0;
 
         RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - Send request shutdown\r\n");
         data = REQUEST_SHUTDOWN;
-        data_size = send(m_fdCleanupSocket, &data, sizeof(unsigned int), 0);
+        data_size = send(m_fdCleanupSocket, &data, sizeof(UINT32), 0);
         if (data_size < 0)
         {
             RIL_LOG_CRITICAL("CSystemManager::SendRequestShutdown() - Failed to send CLEANUP_SHUTDOWN\r\n");

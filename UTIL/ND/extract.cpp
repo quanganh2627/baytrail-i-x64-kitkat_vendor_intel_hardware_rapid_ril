@@ -46,7 +46,7 @@ BOOL SkipSpaces(const char* szStart, const char*& rszEnd)
 {
     BOOL fRet = FALSE;
 
-    unsigned int nSize = strspn(szStart, " ");
+    UINT32 nSize = strspn(szStart, " ");
 
     if (nSize > 0)
     {

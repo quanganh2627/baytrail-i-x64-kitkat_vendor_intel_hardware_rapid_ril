@@ -155,7 +155,7 @@ private:
 //  Call these functions to set up data and bring down data.
 BOOL DataConfigUp(char *szNetworkInterfaceName, CChannel_Data *pChannelData, PDP_TYPE eDataConnectionType);
 BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data *pChannelData);
-BOOL DataConfigDown(int nCID);
+BOOL DataConfigDown(UINT32 uiCID);
 
 //  Helper function to convert IP addresses to Android-readable format.
 //  szIpIn [IN] - The IP string to be converted

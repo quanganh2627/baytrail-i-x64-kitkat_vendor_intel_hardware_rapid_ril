@@ -54,6 +54,7 @@ public:
     //  If error, then NULL is returned.
     static CChannel_Data* GetFreeChnl(UINT32& outCID);
 
+    CEvent *            m_pSetupIntermediateEvent;
     CEvent *            m_pSetupDoneEvent;
 
 
