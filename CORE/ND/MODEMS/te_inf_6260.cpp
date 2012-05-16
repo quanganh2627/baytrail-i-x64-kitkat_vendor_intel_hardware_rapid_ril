@@ -39,7 +39,6 @@
 #include <linux/if_ether.h>
 #include <linux/gsmmux.h>
 
-
 CTE_INF_6260::CTE_INF_6260()
 : m_currentNetworkType(PREF_NET_TYPE_GSM_WCDMA),
 m_pSilentPINEntryEvent(NULL),
@@ -712,7 +711,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
 #endif
 
-
     // Following code-block is moved up here from the end of this function to get if_name needed for netconfig (N_GSM)
     // But the IP address is filled in end of function.
 
@@ -849,7 +847,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     switch(uiWaitRes)
     {
         case WAIT_EVENT_0_SIGNALED:
-            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() : SetupData intermediate event signaled\r\n");
+            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() : SetupData intermediate event signalled\r\n");
             RIL_LOG_INFO("m_szIpAddr = [%s]    m_szIpAddr2 = [%s]\r\n",
                 pChannelData->m_szIpAddr, pChannelData->m_szIpAddr2);
 
@@ -1747,6 +1745,9 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
     char szImg[] = "img";
     char *pszPath = NULL;
 
+    int Efsms = 28476;
+    int readCmd = 178;
+
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - Data pointer is NULL.\r\n");
@@ -2047,39 +2048,82 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
     else
     {
         //  No PIN2
-
-
         if (NULL == pSimIOArgs->data)
         {
+
             if(NULL == pSimIOArgs->path)
             {
-                if (!PrintStringNullTerminate(rReqData.szCmd1,
-                    sizeof(rReqData.szCmd1),
-                    "AT+CRSM=%d,%d,%d,%d,%d\r",
-                    pSimIOArgs->command,
-                    pSimIOArgs->fileid,
-                    pSimIOArgs->p1,
-                    pSimIOArgs->p2,
-                    pSimIOArgs->p3))
+                if(pSimIOArgs->command == readCmd && pSimIOArgs->fileid == Efsms)
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 9\r\n");
-                    goto Error;
+                    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - Create CRSM command 1 for reading sms\r\n");
+
+                    if (!PrintStringNullTerminate(rReqData.szCmd1,
+                        sizeof(rReqData.szCmd1),
+                        "AT+CRSM=%d,%d,%d,%d,%d;+CMGR=%d\r",
+                        pSimIOArgs->command,
+                        pSimIOArgs->fileid,
+                        pSimIOArgs->p1,
+                        pSimIOArgs->p2,
+                        pSimIOArgs->p3,
+                        pSimIOArgs->p1))
+                    {
+                        RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - cannot create CRSM command 2 for reading sms\r\n");
+                        goto Error;
+                    }
+
+                }
+                else
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd1,
+                         sizeof(rReqData.szCmd1),
+                         "AT+CRSM=%d,%d,%d,%d,%d\r",
+                         pSimIOArgs->command,
+                         pSimIOArgs->fileid,
+                         pSimIOArgs->p1,
+                         pSimIOArgs->p2,
+                         pSimIOArgs->p3))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 9\r\n");
+                        goto Error;
+                    }
                 }
             }
             else
             {
-                if (!PrintStringNullTerminate(rReqData.szCmd1,
-                    sizeof(rReqData.szCmd1),
-                    "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
-                    pSimIOArgs->command,
-                    pSimIOArgs->fileid,
-                    pSimIOArgs->p1,
-                    pSimIOArgs->p2,
-                    pSimIOArgs->p3,
-                    pszPath))
+                if(pSimIOArgs->command == readCmd && pSimIOArgs->fileid == Efsms)
                 {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 10\r\n");
-                    goto Error;
+                    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - Create CRSM command 1 for reading sms\r\n");
+
+                    if (!PrintStringNullTerminate(rReqData.szCmd1,
+                        sizeof(rReqData.szCmd1),
+                        "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\";+CMGR=%d\r",
+                        pSimIOArgs->command,
+                        pSimIOArgs->fileid,
+                        pSimIOArgs->p1,
+                        pSimIOArgs->p2,
+                        pSimIOArgs->p3,
+                        pszPath,
+                        pSimIOArgs->p1))
+                    {
+                        RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - cannot create CRSM command 2 for reading sms\r\n");
+                        goto Error;
+                    }
+                }
+                else
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd1,
+                        sizeof(rReqData.szCmd1),
+                        "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
+                        pSimIOArgs->command,
+                        pSimIOArgs->fileid,
+                        pSimIOArgs->p1,
+                        pSimIOArgs->p2,
+                        pSimIOArgs->p3,
+                        pszPath))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 10\r\n");
+                        goto Error;
+                    }
                 }
             }
         }
@@ -2691,14 +2735,9 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
 
         case RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND");
-            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XCGEDPAGE=0\r"))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND - Can't construct szCmd1.\r\n");
-                goto Error;
-            }
+            res = CreateDebugScreenReq(rReqData, (const char**) pszRequest, uiDataSize);
             //  Send this command on OEM channel.
             uiRilChannel = RIL_CHANNEL_OEM;
-            res = RRIL_RESULT_OK;
             break;
 
         case RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS:
@@ -4299,7 +4338,7 @@ RIL_RESULT_CODE CTE_INF_6260::CreateGetThermalSensorValuesReq(REQUEST_DATA& rReq
 
     if (sscanf(pszRequest[1], "%d", &sensorId) == EOF)
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CreateGetThermalSensorReq() - cannot convert %s to int\r\n", pszRequest);
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateGetThermalSensorReq() - cannot convert %s to int\r\n", pszRequest[1]);
         goto Error;
     }
 
@@ -4443,6 +4482,46 @@ Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::CreateAutonomousFDReq() - Exit\r\n");
     return res;
 }
+
+RIL_RESULT_CODE CTE_INF_6260::CreateDebugScreenReq(REQUEST_DATA& rReqData,
+                                                    const char** pszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateDebugScreenReq() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int page_nr;
+
+    if (pszRequest == NULL || '\0' == pszRequest[0])
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - pszRequest was NULL\r\n");
+        goto Error;
+    }
+
+    if (uiDataSize < (2 * sizeof(char *)))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() : received_size < required_size\r\n");
+        goto Error;
+    }
+
+    if (sscanf(pszRequest[1], "%d", &page_nr) == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - cannot convert %s to int\r\n", pszRequest[1]);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_INF_6260::CreateDebugScreenReq() - page_nr=[%d]\r\n", page_nr);
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XCGEDPAGE=0,%d\r", page_nr))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateDebugScreenReq() - Exit\r\n");
+    return res;
+}
+
 
 RIL_RESULT_CODE CTE_INF_6260::ParseXGATR(const char* pszRsp, RESPONSE_DATA& rRspData)
 {

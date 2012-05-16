@@ -32,7 +32,7 @@ extern UINT32 g_uiRilChannelCurMax;
 #define RIL_HSI_CHANNEL_MAX 4
 
 /*Mux channel for connection control of pdp context which goes directly over HSI */
-#define MUX_DATA_CONTROL_CHANNEL_FOR_PDP_DIRECTLY_OVER_HSI 3;
+#define MUX_DATA_CONTROL_CHANNEL_FOR_PDP_DIRECTLY_OVER_HSI 3
 
 //Store the value of the first hsi channel for data directly over HSI
 #define RIL_HSI_CHANNEL1 2

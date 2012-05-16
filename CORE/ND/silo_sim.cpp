@@ -822,6 +822,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
     // This variable will be changed in case we received XSIM=8.
     g_bReportCardStateError = FALSE;
 
+
     /// @TODO: Need to revisit the XSIM and radio state mapping
     switch (nSIMState)
     {

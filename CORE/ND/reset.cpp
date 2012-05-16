@@ -96,7 +96,7 @@ void ModemResetUpdate()
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
 
-    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
     {
         if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
             continue;

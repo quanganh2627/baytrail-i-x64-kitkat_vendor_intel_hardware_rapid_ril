@@ -5048,6 +5048,12 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
+    if (strlen(szBasebandVersion) <= 0)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() - Invalid baseband version string.\r\n");
+        goto Error;
+    }
+
     RIL_LOG_INFO("CTEBase::ParseBasebandVersion() - szBasebandVersion=[%s]\r\n", szBasebandVersion);
 
     rRspData.pData   = (void*)szBasebandVersion;

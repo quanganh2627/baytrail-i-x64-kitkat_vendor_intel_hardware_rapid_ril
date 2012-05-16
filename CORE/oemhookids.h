@@ -140,7 +140,9 @@ const int RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV = 0x000000A6;
 //
 //  This command sends AT+XCGEDPAGE to the modem.
 //
-//  "data" = NULL
+//  "data" = String containing:
+//           int pageNumber
+//                    integer representing the number of response page
 //  "response" = string containing dump of the cell environment debug screen
 //
 const int RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND = 0x000000A7;

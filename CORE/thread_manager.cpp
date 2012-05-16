@@ -130,7 +130,7 @@ BOOL CThreadManager::StopThreads()
     BOOL fRet = TRUE;
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
 
-    for (UINT32 i = 0; i < g_uiRilChannelCurMax; i++)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
     {
         if (g_pRilChannel[i])
         {
@@ -198,7 +198,7 @@ BOOL CThreadManager::StartChannelThreads()
     BOOL fRet = FALSE;
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
 
-    for (UINT32 i = 0; i < g_uiRilChannelCurMax; ++i)
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; ++i)
     {
         if (g_pRilChannel[i])
         {

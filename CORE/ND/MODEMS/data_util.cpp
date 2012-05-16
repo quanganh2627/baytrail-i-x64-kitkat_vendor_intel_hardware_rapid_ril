@@ -857,4 +857,3 @@ Error:
     RIL_LOG_VERBOSE("ConvertIPAddressToAndroidReadable() - Exit\r\n");
     return bRet;
 }
-

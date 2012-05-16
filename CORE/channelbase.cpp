@@ -487,6 +487,14 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         goto Done;
     }
 
+    // send xsimsel command first
+
+    if (eInitIndex == COM_BASIC_INIT_INDEX && g_szSIMID != NULL)
+    {
+        RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : Concat XSIMSEL id=%s,  eInitIndex=[%d]r\n", g_szSIMID, eInitIndex);
+        PrintStringNullTerminate(szTemp, MAX_BUFFER_SIZE, "+XSIMSEL=%s|", g_szSIMID);
+        ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp);
+    }
 
     // Get any pre-init commands from non-volatile memory
 
@@ -518,13 +526,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         {
             RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szCmd failed  eInitIndex=[%d]r\n", eInitIndex);
             goto Done;
-        }
-
-        if (eInitIndex == COM_BASIC_INIT_INDEX && g_szSIMID != NULL)
-        {
-            RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : Concat XSIMSEL id=%s,  eInitIndex=[%d]r\n", g_szSIMID, eInitIndex);
-            PrintStringNullTerminate(szTemp, MAX_BUFFER_SIZE, "|+XSIMSEL=%s", g_szSIMID);
-            ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp);
         }
     }
 
