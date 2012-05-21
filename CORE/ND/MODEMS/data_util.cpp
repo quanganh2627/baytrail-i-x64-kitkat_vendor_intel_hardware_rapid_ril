@@ -608,7 +608,7 @@ Error:
 BOOL DataConfigDown(UINT32 uiCID)
 {
     //  First check to see if uiCID is valid
-    if (uiCID > MAX_PDP_CONTEXTS)
+    if (uiCID > MAX_PDP_CONTEXTS || uiCID == 0)
     {
         RIL_LOG_CRITICAL("DataConfigDown() - Invalid CID = [%u]\r\n", uiCID);
         return FALSE;
