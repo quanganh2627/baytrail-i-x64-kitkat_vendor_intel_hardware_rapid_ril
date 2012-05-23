@@ -304,4 +304,17 @@ typedef struct
     char pszDebugScreen[MAX_BUFFER_SIZE*2];
 } S_ND_DEBUG_SCREEN, *P_ND_DEBUG_SCREEN;
 
+const UINT32 MAX_SMS_TRANSPORT_MODE_SIZE = 5;
+
+typedef struct
+{
+    char* pszService;
+}  S_ND_SMS_TRANSPORT_MODE_PTR, *P_ND_SMS_TRANSPORT_MODE_PTR;
+
+typedef struct
+{
+    S_ND_SMS_TRANSPORT_MODE_PTR sResponsePointer;
+    char szService[MAX_SMS_TRANSPORT_MODE_SIZE];
+} S_ND_SMS_TRANSPORT_MODE, *P_ND_SMS_TRANSPORT_MODE;
+
 #endif
