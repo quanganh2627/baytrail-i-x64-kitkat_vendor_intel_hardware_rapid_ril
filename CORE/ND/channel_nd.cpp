@@ -277,19 +277,23 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             }
             else
             {
-                //  Our response timed out, retry
+                //  Our response timed out, retry if we can
                 if (nNumRetries > 0)
                 {
                     RIL_LOG_INFO("CChannel::SendCommand() - ***** chnl=[%d] Attempting retry  nNumRetries remaining=[%d] *****\r\n", m_uiRilChannel, nNumRetries);
                 }
-
-                //  If this was last attempt and we timed out, and this was an init command,
-                //  then reset modem.  Signal clean up to STMD.
-                if ( (0 == nNumRetries) && (rpCmd->IsInitCommand()) )
+                else
                 {
-                    RIL_LOG_CRITICAL("CChannel::SendCommand() - ***** chnl=[%d] Init command timed-out. Reset modem! *****\r\n", m_uiRilChannel);
+                    //  If this was last attempt and we timed out, and this was an init command,
+                    //  then reset modem.  Signal clean up to STMD.
+                    if (rpCmd->IsInitCommand())
+                    {
+                        RIL_LOG_CRITICAL("CChannel::SendCommand() - ***** chnl=[%d] Init command timed-out. Reset modem! *****\r\n", m_uiRilChannel);
 
-                    do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+                        do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+                    }
+
+                    goto Error;
                 }
             }
         } while (--nNumRetries >= 0);
@@ -302,7 +306,6 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
         }
 
     }
-
 
     // Handle the response
     // TODO: fix these dummies
