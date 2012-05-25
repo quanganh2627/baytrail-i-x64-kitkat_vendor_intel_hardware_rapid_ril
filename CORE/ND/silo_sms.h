@@ -69,6 +69,8 @@ protected:
     virtual BOOL ParseCBMI(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL ParseCDSI(CResponse* const pResponse, const char*& rszPointer);
 
+private:
+    BOOL isRetryPossible(UINT32 uiErrorCode);
 };
 
 #endif // RRIL_SILO_SMS_H

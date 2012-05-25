@@ -56,6 +56,20 @@ CSilo_SMS::~CSilo_SMS()
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
+BOOL CSilo_SMS::isRetryPossible(UINT32 uiErrorCode)
+{
+    switch(uiErrorCode)
+    {
+    case RRIL_CMS_ERROR_NO_ROUTE_TO_DESTINATION:
+    case RRIL_CMS_ERROR_ACM_MAX:
+    case RRIL_CMS_ERROR_CALLED_PARTY_BLACKLISTED:
+    case RRIL_CMS_ERROR_NUMBER_INCORRECT:
+    case RRIL_CMS_ERROR_SIM_ABSENT:
+        return false;
+    default:
+        return true;
+    }
+}
 
 BOOL CSilo_SMS::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
 {
@@ -66,20 +80,19 @@ BOOL CSilo_SMS::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
           ND_REQ_ID_SENDSMSEXPECTMORE == rpCmd->GetRequestID()) &&
          (RIL_E_SUCCESS != rpRsp->GetResultCode()))
     {
-        if (RRIL_CMS_ERROR_OPERATION_NOT_ALLOWED == rpRsp->GetErrorCode() ||
-            RRIL_CMS_ERROR_SIM_BUSY == rpRsp->GetErrorCode() ||
-            RRIL_CMS_ERROR_NETWORK_TIMEOUT == rpRsp->GetErrorCode())
-        {
-            RIL_LOG_INFO("CSilo_SMS::PreParseResponseHook() - Send SMS failed, retry case\r\n");
-            rpRsp->SetResultCode(RIL_E_SMS_SEND_FAIL_RETRY);
-        }
-        else if (RRIL_CMS_ERROR_FDN_CHECK_FAILED == rpRsp->GetErrorCode() ||
-                 RRIL_CMS_ERROR_SCA_FDN_FAILED == rpRsp->GetErrorCode() ||
-                 RRIL_CMS_ERROR_DA_FDN_FAILED == rpRsp->GetErrorCode())
+        UINT32 uiErrorCode = rpRsp->GetErrorCode();
+        if (RRIL_CMS_ERROR_FDN_CHECK_FAILED == uiErrorCode ||
+                 RRIL_CMS_ERROR_SCA_FDN_FAILED == uiErrorCode ||
+                 RRIL_CMS_ERROR_DA_FDN_FAILED == uiErrorCode)
         {
             //  tried sending SMS, not in FDN list
             RIL_LOG_INFO("CSilo_SMS::PreParseResponseHook() - Send SMS failed, not in FDN list\r\n");
             rpRsp->SetResultCode(RIL_E_FDN_CHECK_FAILURE);
+        }
+        else if (isRetryPossible(uiErrorCode))
+        {
+            RIL_LOG_INFO("CSilo_SMS::PreParseResponseHook() - Send SMS failed, retry case\r\n");
+            rpRsp->SetResultCode(RIL_E_SMS_SEND_FAIL_RETRY);
         }
     }
 
