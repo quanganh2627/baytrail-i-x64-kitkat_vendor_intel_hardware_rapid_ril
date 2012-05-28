@@ -45,6 +45,9 @@ extern CRadioState g_RadioState;
 // the call is disconnected.
 extern bool g_clearPendingChlds;
 
+// This global flag is used to store the manual network search status
+extern bool g_bIsManualNetworkSearchOngoing;
+
 #if !defined(BOARD_HAVE_IFX7060)
 ///////////////////////////////////////////////////////////////////////////////
 // This global variable stores the initial value of the

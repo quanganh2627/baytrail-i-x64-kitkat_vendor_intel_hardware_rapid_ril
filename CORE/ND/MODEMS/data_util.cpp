@@ -691,6 +691,27 @@ Error:
     return bRet;
 }
 
+void CleanupAllDataConnections()
+{
+    //  Bring down all data contexts internally.
+    CChannel_Data* pChannelData = NULL;
+
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
+    {
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
+
+        CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+        //  We are taking down all data connections here, so we are looping over each data channel.
+        //  Don't call DataConfigDown with invalid CID.
+        if (pChannelData && pChannelData->GetContextID() > 0)
+        {
+            RIL_LOG_INFO("CleanupAllDataConnections() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", i, pChannelData->GetContextID());
+            DataConfigDown(pChannelData->GetContextID());
+        }
+    }
+}
+
 // Helper function to convert IP addresses to Android-readable format.
 // szIpIn [IN] - The IP string to be converted
 // szIpOut [OUT] - The converted IPv4 address in Android-readable format if there is an IPv4 address.

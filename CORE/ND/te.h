@@ -512,6 +512,8 @@ public:
     // REQ_ID_LASTPDPFAILCAUSE
     RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
 
+    RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
+
     void StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
     void CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
     void ResetRegistrationCache();

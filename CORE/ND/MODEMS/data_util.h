@@ -23,6 +23,7 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
 BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData);
 BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData );
 BOOL DataConfigDown(UINT32 uiCID);
+void CleanupAllDataConnections();
 
 // Helper function to convert IP addresses to Android-readable format.
 // szIpIn [IN] - The IP string to be converted

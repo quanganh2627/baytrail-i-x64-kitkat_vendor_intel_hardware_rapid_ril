@@ -291,8 +291,8 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
                         RIL_LOG_CRITICAL("CChannel::SendCommand() - ***** chnl=[%d] Init command timed-out. Reset modem! *****\r\n", m_uiRilChannel);
 
                         do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+                        goto Error;
                     }
-                    goto Error;
                 }
             }
         } while (--nNumRetries >= 0);
@@ -303,6 +303,18 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             RIL_LOG_CRITICAL("CChannel::SendCommand() - chnl=[%d] SendRILCmdParseResponsePostSend returned FALSE\r\n", m_uiRilChannel);
             goto Error;
         }
+    }
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CChannel::SendCommand() : No response\r\n");
+        goto Error;
+    }
+
+    if (pResponse->IsTimedOutFlag())
+    {
+        RIL_LOG_CRITICAL("CChannel::SendCommand() - Command Timedout\r\n");
+        goto Error;
     }
 
     // Handle the response

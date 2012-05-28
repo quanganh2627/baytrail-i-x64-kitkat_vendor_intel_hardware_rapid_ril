@@ -499,6 +499,8 @@ public:
     // QUERY SIM SMS STORE STATUS
     virtual RIL_RESULT_CODE ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData);
 
+    virtual RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
+
     virtual void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
     virtual UINT32 GetIncomingCallId();
 
@@ -508,6 +510,7 @@ protected:
     RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus, bool* pbSilentPINEntry = NULL);
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
+    void DeactivateAllDataCalls();
 
     typedef struct
     {

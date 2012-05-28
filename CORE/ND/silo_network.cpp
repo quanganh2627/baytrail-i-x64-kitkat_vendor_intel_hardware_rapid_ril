@@ -69,8 +69,26 @@ CSilo_Network::~CSilo_Network()
 
 //  Called in CChannel::SendRILCmdHandleRsp() after AT command is physically sent and
 //  a response has been received (or timed out).
-BOOL CSilo_Network::PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp /*, BOOL& rfHungUp, BOOL& rfTimedOut*/)
+BOOL CSilo_Network::PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp)
 {
+    RIL_LOG_VERBOSE("CSilo_Network::PostSendCommandHook() - Enter\r\n");
+    if (ND_REQ_ID_QUERYAVAILABLENETWORKS == rpCmd->GetRequestID() &&
+            NULL != rpRsp && rpRsp->IsTimedOutFlag())
+    {
+        RIL_LOG_INFO("CSilo_Network::PostSendCommandHook() - Manual network search timed out\r\n");
+        g_bIsManualNetworkSearchOngoing = false;
+    }
+
+    RIL_LOG_VERBOSE("CSilo_Network::PostSendCommandHook() - Exit\r\n");
+    return TRUE;
+}
+
+BOOL CSilo_Network::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
+{
+    if (ND_REQ_ID_QUERYAVAILABLENETWORKS == rpCmd->GetRequestID())
+    {
+        g_bIsManualNetworkSearchOngoing = false;
+    }
 
     return TRUE;
 }

@@ -26,6 +26,7 @@
 #include "oemhookids.h"
 #include "channel_data.h"
 #include "te_inf_6260.h"
+#include "data_util.h"
 
 CTE * CTE::m_pTEInstance = NULL;
 
@@ -1460,10 +1461,21 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
     RIL_LOG_VERBOSE("CTE::RequestSetupDataCall() - Enter\r\n");
 
     REQUEST_DATA reqData;
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
-
     RIL_RESULT_CODE res;
     UINT32 uiCID = 0;
+
+    if (g_bIsManualNetworkSearchOngoing)
+    {
+        RIL_Data_Call_Response_v6 dataCallResp;
+        memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
+        dataCallResp.status = PDP_FAIL_ERROR_UNSPECIFIED;
+        dataCallResp.suggestedRetryTime = 10000; // 10 seconds
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, &dataCallResp, sizeof(RIL_Data_Call_Response_v6));
+
+        return RRIL_RESULT_OK;
+    }
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     //  Find free channel, and get the context ID that was set.
     CChannel_Data* pChannelData = CChannel_Data::GetFreeChnl(uiCID);
@@ -2145,9 +2157,16 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void * pData,
     RIL_LOG_VERBOSE("CTE::RequestDeactivateDataCall() - Enter\r\n");
 
     REQUEST_DATA reqData;
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
+    RIL_RESULT_CODE res;
 
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDeactivateDataCall(reqData, pData, datalen);
+    if (g_bIsManualNetworkSearchOngoing)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+        return RRIL_RESULT_OK;
+    }
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+    res = m_pTEBaseInstance->CoreDeactivateDataCall(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestDeactivateDataCall() - Unable to create AT command data\r\n");
@@ -2497,6 +2516,7 @@ RIL_RESULT_CODE CTE::RequestQueryAvailableNetworks(RIL_Token rilToken, void * pD
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestQueryAvailableNetworks() - Unable to add command to queue\r\n");
@@ -2510,6 +2530,15 @@ RIL_RESULT_CODE CTE::RequestQueryAvailableNetworks(RIL_Token rilToken, void * pD
             RIL_LOG_CRITICAL("CTE::RequestQueryAvailableNetworks() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
+    }
+
+    if (RRIL_RESULT_OK == res)
+    {
+        g_bIsManualNetworkSearchOngoing = true;
+    }
+    else
+    {
+        g_bIsManualNetworkSearchOngoing = false;
     }
 
     RIL_LOG_VERBOSE("CTE::RequestQueryAvailableNetworks() - Exit\r\n");
@@ -5639,6 +5668,13 @@ RIL_RESULT_CODE CTE::ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTE::ParseQuerySimSmsStoreStatus() - Enter / Exit\r\n");
 
     return m_pTEBaseInstance->ParseQuerySimSmsStoreStatus(rRspData);
+}
+
+RIL_RESULT_CODE CTE::ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseDeactivateAllDataCalls() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseDeactivateAllDataCalls(rRspData);
 }
 
 void CTE::SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus)

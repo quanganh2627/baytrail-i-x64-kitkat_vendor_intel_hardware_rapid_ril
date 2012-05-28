@@ -430,22 +430,11 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         else if (RIL_REQUEST_SETUP_DATA_CALL == requestID)
         {
             RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_SETUP_DATA_CALL *********************\r\n");
-            RIL_Data_Call_Response_v6* pDataCallResp =
-                                (RIL_Data_Call_Response_v6*) malloc(sizeof(RIL_Data_Call_Response_v6));
-            if (NULL == pDataCallResp)
-            {
-                RIL_LOG_CRITICAL("onRequest(): Unable to allocate memory for RIL_Data_Call_Response_v6\r\n");
-                RIL_onRequestComplete(hRilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
-            }
-            else
-            {
-                memset(pDataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
-                pDataCallResp->status = PDP_FAIL_SIGNAL_LOST;
-                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, pDataCallResp, sizeof(RIL_Data_Call_Response_v6));
-                free(pDataCallResp);
-                pDataCallResp = NULL;
-            }
-
+            RIL_Data_Call_Response_v6 dataCallResp;
+            memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
+            dataCallResp.status = PDP_FAIL_SIGNAL_LOST;
+            dataCallResp.suggestedRetryTime = -1;
+            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &dataCallResp, sizeof(RIL_Data_Call_Response_v6));
             return;
         }
         else
