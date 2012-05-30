@@ -832,6 +832,12 @@ UINT32 CChannelBase::ResponseThread()
                 if (bFirstRead)
                 {
                     RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Data available but uiRead is 0!\r\n", m_uiRilChannel);
+                    if (g_bSpoofCommands)
+                    {
+                        // If we are in "spoof" mode this means that a call to do_request_clean_up
+                        // was done. In this case, we must exit the thread to end the RRIL.
+                        return 0;
+                    }
                     //  ignore, watchdog thread handles this now.
                     Sleep(25);
                 }
