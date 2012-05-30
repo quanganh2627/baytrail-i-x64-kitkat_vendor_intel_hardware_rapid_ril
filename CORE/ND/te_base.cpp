@@ -2043,7 +2043,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
         // use SIM-specific property, depending on RIL instance
         char szSimPowerOffStatePropName[MAX_PROP_VALUE] = {0};
         snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
-                    "sys.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+                    "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
 
         // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
         char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
