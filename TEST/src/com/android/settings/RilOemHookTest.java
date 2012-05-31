@@ -181,32 +181,6 @@ public class RilOemHookTest extends Activity
             }
             break;
 
-            case R.id.radio_api8:
-            {
-                // RIL_OEM_HOOK_STRING_GET_SMS_TRANSPORT_MODE
-                // AT+CGSMS?
-
-                // data: <command id>
-                String[] data = { "169" };
-
-                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
-                mPhone.invokeOemRilRequestStrings(data, msg);
-            }
-            break;
-
-            case R.id.radio_api9:
-            {
-                // RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE
-                // AT+CGSMS=<service>
-
-                // data: <command id>, <service>
-                String[] data = { "170", "2" };
-
-                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
-                mPhone.invokeOemRilRequestStrings(data, msg);
-            }
-            break;
-
             default:
                 log("unknown button selected");
                 break;

@@ -354,18 +354,11 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\"\r", pszPassword))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\";+CCID\r", pszPassword))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin() - Failed to write command to buffer!\r\n");
         goto Error;
     }
-
-    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CCID;+XPINCNT\r", sizeof(rReqData.szCmd2)))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin() - Failed to write command 2 to buffer!\r\n");
-        goto Error;
-    }
-
 
     //  Store PIN
     strncpy(m_szPIN, pszPassword, MAX_PIN_SIZE-1);
@@ -401,7 +394,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
     rRspData.uiDataSize   = sizeof(int*);
 
     // Cache the PIN code only if we are not silently entering it
-    if (!PCache_GetUseCachedPIN() && RIL_E_SUCCESS == rRspData.uiIntermediateResultCode)
+    if (!PCache_GetUseCachedPIN() )
     {
         // Parse "<prefix>+CCID: <ICCID><postfix>"
         SkipRspStart(pszRsp, g_szNewLine, pszRsp);
@@ -410,7 +403,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
         {
             if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
             {
-                RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot parse UICC ID\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Cannot parse UICC ID\r\n");
                 szUICCID[0] = '\0';
             }
 
@@ -422,34 +415,6 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
 
         //  Clear it locally.
         memset(m_szPIN, 0, MAX_PIN_SIZE);
-    }
-
-    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
-    {
-        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
-
-        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot parse XPINCNT\r\n");
-            //  Set pin retries to -1 (unknown)
-            *pnRetries = (int)-1;
-        }
-        else
-        {
-            RIL_LOG_INFO("CTEBase::ParseEnterSimPin() - retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
-                uiPin1, uiPin2, uiPuk1, uiPuk2);
-
-            *pnRetries = (int)uiPin1;
-        }
-        RIL_LOG_INFO("CTEBase::ParseEnterSimPin() - Setting data (int*) to %d\r\n", *pnRetries);
-
-        return rRspData.uiIntermediateResultCode;
     }
 
     res = RRIL_RESULT_OK;
@@ -503,12 +468,6 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
-    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XPINCNT\r", sizeof(rReqData.szCmd2)))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk() - Failed to write command 2 to buffer!\r\n");
-        goto Error;
-    }
-
     res = RRIL_RESULT_OK;
 
 Error:
@@ -521,7 +480,6 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPuk() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
     int *pnRetries = NULL;
 
     // If the response to PUK unlock is OK, then we are unlocked.
@@ -540,34 +498,6 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
-
-    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
-    {
-        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
-
-        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPuk() - Cannot parse XPINCNT\r\n");
-            //  Set pin retries to -1 (unknown)
-            *pnRetries = (int)-1;
-        }
-        else
-        {
-            RIL_LOG_INFO("CTEBase::ParseEnterSimPuk() - retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
-                uiPin1, uiPin2, uiPuk1, uiPuk2);
-
-            *pnRetries = (int)uiPuk1;
-        }
-        RIL_LOG_INFO("CTEBase::ParseEnterSimPuk() - Setting data (int*) to %d\r\n", *pnRetries);
-
-        return rRspData.uiIntermediateResultCode;
-    }
 
     res = RRIL_RESULT_OK;
 
@@ -620,12 +550,6 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin2(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
-    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XPINCNT\r", sizeof(rReqData.szCmd2)))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin2() - Failed to write command 2 to buffer!\r\n");
-        goto Error;
-    }
-
     res = RRIL_RESULT_OK;
 
 Error:
@@ -638,7 +562,6 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin2(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPin2() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
     int *pnRetries = NULL;
 
     pnRetries = (int*)malloc(sizeof(int));
@@ -653,34 +576,6 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin2(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
-
-    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
-    {
-        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
-
-        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin2() - Cannot parse XPINCNT\r\n");
-            //  Set pin retries to -1 (unknown)
-            *pnRetries = (int)-1;
-        }
-        else
-        {
-            RIL_LOG_INFO("CTEBase::ParseEnterSimPin2() - retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
-                uiPin1, uiPin2, uiPuk1, uiPuk2);
-
-            *pnRetries = (int)uiPin2;
-        }
-        RIL_LOG_INFO("CTEBase::ParseEnterSimPin2() - Setting data (int*) to %d\r\n", *pnRetries);
-
-        return rRspData.uiIntermediateResultCode;
-    }
 
     res = RRIL_RESULT_OK;
 
@@ -733,12 +628,6 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk2(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
-    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XPINCNT\r", sizeof(rReqData.szCmd2)))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk2() - Failed to write command 2 to buffer!\r\n");
-        goto Error;
-    }
-
     res = RRIL_RESULT_OK;
 
 Error:
@@ -751,7 +640,6 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk2(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPuk2() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
     int *pnRetries = NULL;
 
     pnRetries = (int*)malloc(sizeof(int));
@@ -766,34 +654,6 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk2(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
-
-    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
-    {
-        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
-
-        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPuk2() - Cannot parse XPINCNT\r\n");
-            //  Set pin retries to -1 (unknown)
-            *pnRetries = (int)-1;
-        }
-        else
-        {
-            RIL_LOG_INFO("CTEBase::ParseEnterSimPuk2() - retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
-                uiPin1, uiPin2, uiPuk1, uiPuk2);
-
-            *pnRetries = (int)uiPuk2;
-        }
-        RIL_LOG_INFO("CTEBase::ParseEnterSimPuk2() - Setting data (int*) to %d\r\n", *pnRetries);
-
-        return rRspData.uiIntermediateResultCode;
-    }
 
     res = RRIL_RESULT_OK;
 
@@ -840,15 +700,9 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPWD=\"SC\",\"%s\",\"%s\"\r", pszOldPIN, pszNewPIN))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPWD=\"SC\",\"%s\",\"%s\";+CCID\r", pszOldPIN, pszNewPIN))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin() - Unable to write command string to buffer\r\n");
-        goto Error;
-    }
-
-    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CCID;+XPINCNT\r", sizeof(rReqData.szCmd2)))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin() - Failed to write command 2 to buffer!\r\n");
         goto Error;
     }
 
@@ -885,56 +739,25 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA & rRspData)
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
 
-    if (RIL_E_SUCCESS == rRspData.uiIntermediateResultCode)
+    // Parse "<prefix>+CCID: <ICCID><postfix>"
+    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+
+    if (SkipString(pszRsp, "+CCID: ", pszRsp))
     {
-        // Parse "<prefix>+CCID: <ICCID><postfix>"
-        SkipRspStart(pszRsp, g_szNewLine, pszRsp);
-
-        if (SkipString(pszRsp, "+CCID: ", pszRsp))
+        if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
         {
-            if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot parse UICC ID\r\n");
-                szUICCID[0] = '\0';
-            }
-
-            SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+            RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot parse UICC ID\r\n");
+            szUICCID[0] = '\0';
         }
 
-        //  Cache PIN1 value
-        PCache_Store_PIN(szUICCID, m_szPIN);
-
-        //  Clear it locally.
-        memset(m_szPIN, 0, MAX_PIN_SIZE);
+        SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
     }
 
-    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
-    {
-        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
+    //  Cache PIN1 value
+    PCache_Store_PIN(szUICCID, m_szPIN);
 
-        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot parse XPINCNT\r\n");
-            //  Set pin retries to -1 (unknown)
-            *pnRetries = (int)-1;
-        }
-        else
-        {
-            RIL_LOG_INFO("CTEBase::ParseChangeSimPin() - retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
-                uiPin1, uiPin2, uiPuk1, uiPuk2);
-
-            *pnRetries = (int)uiPin1;
-        }
-        RIL_LOG_INFO("CTEBase::ParseChangeSimPin() - Setting data (int*) to %d\r\n", *pnRetries);
-
-        return rRspData.uiIntermediateResultCode;
-    }
+    //  Clear it locally.
+    memset(m_szPIN, 0, MAX_PIN_SIZE);
 
     res = RRIL_RESULT_OK;
 
@@ -987,12 +810,6 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin2(REQUEST_DATA & rReqData, void * pData
         goto Error;
     }
 
-    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XPINCNT\r", sizeof(rReqData.szCmd2)))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin2() - Failed to write command 2 to buffer!\r\n");
-        goto Error;
-    }
-
     res = RRIL_RESULT_OK;
 
 Error:
@@ -1005,7 +822,6 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin2(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseChangeSimPin2() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
     int *pnRetries = NULL;
 
     pnRetries = (int*)malloc(sizeof(int));
@@ -1020,34 +836,6 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin2(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
-
-    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
-    {
-        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
-
-        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin2() - Cannot parse XPINCNT\r\n");
-            //  Set pin retries to -1 (unknown)
-            *pnRetries = (int)-1;
-        }
-        else
-        {
-            RIL_LOG_INFO("CTEBase::ParseChangeSimPin2() - retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
-                uiPin1, uiPin2, uiPuk1, uiPuk2);
-
-            *pnRetries = (int)uiPin2;
-        }
-        RIL_LOG_INFO("CTEBase::ParseChangeSimPin2() - Setting data (int*) to %d\r\n", *pnRetries);
-
-        return rRspData.uiIntermediateResultCode;
-    }
 
     res = RRIL_RESULT_OK;
 

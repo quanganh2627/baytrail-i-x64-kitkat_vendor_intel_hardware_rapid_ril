@@ -20,8 +20,6 @@
     <string name="radio_api5">Get GPRS Cell Env (AT+CGED=0)</string>
     <string name="radio_api6">Get Debug Screen (AT+XCGEDPAGE=0)</string>
     <string name="radio_api7">Release All Calls</string>
-    <string name="radio_api8">Get SMS Transport Mode</string>
-    <string name="radio_api9">Set SMS Transport Mode</string>
     <string name="radio_run">RUN</string>
 
 </resources>

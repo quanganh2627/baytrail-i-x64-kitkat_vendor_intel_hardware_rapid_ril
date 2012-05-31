@@ -39,8 +39,6 @@
 #include <linux/if_ether.h>
 #include <linux/gsmmux.h>
 
-
-
 CTE_INF_6260::CTE_INF_6260()
 : m_currentNetworkType(PREF_NET_TYPE_GSM_WCDMA),
 m_pSilentPINEntryEvent(NULL),
@@ -240,10 +238,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
                     goto SilentPINError;
                 }
 
-                // We can't use the ND_REQ_ID_ENTERSIMPIN channel here because we are handling an
-                // answer on this channel. If we do that, the command will be blocked till the
-                // end of the current function. Reason why we use the RADIOPOWER channel here.
-                pCmd1 = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER], NULL, ND_REQ_ID_ENTERSIMPIN, szCmd, &CTE::ParseEnterSimPin);
+                pCmd1 = new CCommand(g_arChannelMapping[ND_REQ_ID_ENTERSIMPIN], NULL, ND_REQ_ID_ENTERSIMPIN, szCmd);
                 if (pCmd1)
                 {
                     if (!CCommand::AddCmdToQueue(pCmd1, TRUE))
@@ -754,6 +749,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
             RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unknown Data Profile [%d] \r\n", networkPath->uiDataProfile);
             goto Error;
     }
+
     if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, networkInterfaceID))
 #else
     if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%u", m_szNetworkInterfaceNamePrefix, uiCID-1))
@@ -2754,25 +2750,6 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
             res = RRIL_RESULT_OK;
             break;
 
-        case RIL_OEM_HOOK_STRING_GET_SMS_TRANSPORT_MODE:
-            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_SMS_TRANSPORT_MODE");
-            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGSMS?\r"))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_GET_SMS_TRANSPORT_MODE - Can't construct szCmd1.\r\n");
-                goto Error;
-            }
-            //  Send this command on SMS channel.
-            uiRilChannel = RIL_CHANNEL_DLC6;
-            res = RRIL_RESULT_OK;
-            break;
-
-        case RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE:
-            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE");
-            //  Send this command on SMS channel.
-            uiRilChannel = RIL_CHANNEL_DLC6;
-            res = CreateSetSMSTransportModeReq(rReqData, (const char**) pszRequest, uiDataSize);
-            break;
-
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
         case RIL_OEM_HOOK_STRING_SWAP_PS:
             RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_SWAP_PS");
@@ -2842,13 +2819,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookStrings(RESPONSE_DATA & rRspData)
             res = ParseXCGEDPAGE(pszRsp, rRspData);
             break;
 
-        case RIL_OEM_HOOK_STRING_GET_SMS_TRANSPORT_MODE:
-            res = ParseCGSMS(pszRsp, rRspData);
-            break;
-
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
         case RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS:
-        case RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
             break;
@@ -4550,50 +4522,6 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTE_INF_6260::CreateSetSMSTransportModeReq(REQUEST_DATA& rReqData,
-                                                    const char** pszRequest, const UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("CTE_INF_6260::CreateSetSMSTransportModeReq() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int service;
-
-    if (pszRequest == NULL || '\0' == pszRequest[0])
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CreateSetSMSTransportModeReq() - pszRequest was NULL\r\n");
-        goto Error;
-    }
-
-    if (uiDataSize < (2 * sizeof(char *)))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CreateSetSMSTransportModeReq() : received_size < required_size\r\n");
-        goto Error;
-    }
-
-    if (sscanf(pszRequest[1], "%d", &service) == EOF)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CreateSetSMSTransportModeReq() - cannot convert %s to int\r\n", pszRequest);
-        goto Error;
-    }
-
-    if ((service < 0) || (service > 3))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CreateSetSMSTransportModeReq() - service %s out of boundaries\r\n", service);
-        goto Error;
-    }
-
-    RIL_LOG_INFO("CTE_INF_6260::CreateSetSMSTransportModeReq() - service=[%d]\r\n", service);
-
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGSMS=%d\r", service))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CreateSetSMSTransportModeReq() - Can't construct szCmd1.\r\n");
-        goto Error;
-    }
-
-    res = RRIL_RESULT_OK;
-Error:
-    RIL_LOG_VERBOSE("CTE_INF_6260::CreateSetSMSTransportModeReq() - Exit\r\n");
-    return res;
-}
 
 RIL_RESULT_CODE CTE_INF_6260::ParseXGATR(const char* pszRsp, RESPONSE_DATA& rRspData)
 {
@@ -4824,60 +4752,6 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseXCGEDPAGE() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE_INF_6260::ParseCGSMS(const char* pszRsp, RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE_INF_6260::ParseCGSMS() - Enter\r\n");
-    UINT32 uiService;
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    P_ND_SMS_TRANSPORT_MODE pResponse = NULL;
-
-    // Parse prefix
-    if (!FindAndSkipString(pszRsp, "+CGSMS: ", pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseCGSMS() - Unable to parse \"+CGSMS\" prefix.!\r\n");
-        goto Error;
-    }
-
-    // Parse <service>
-    if (!ExtractUInt32(pszRsp, uiService, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseCGSMS() - Unable to parse <service>!\r\n");
-        goto Error;
-    }
-
-    // Check the upper boundary of the service
-    if (uiService > 3) goto Error;
-
-    pResponse = (P_ND_SMS_TRANSPORT_MODE) malloc(sizeof(S_ND_SMS_TRANSPORT_MODE));
-    if (NULL == pResponse)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseCGSMS() - Could not allocate memory for response");
-        goto Error;
-    }
-    memset(pResponse, 0, sizeof(S_ND_SMS_TRANSPORT_MODE));
-
-    RIL_LOG_INFO("SMS Transport Mode: %u\r\n", uiService);
-
-    snprintf(pResponse->szService, sizeof(pResponse->szService) - 1, "%u", uiService);
-
-    pResponse->sResponsePointer.pszService = pResponse->szService;
-
-    rRspData.pData   = (void*)pResponse;
-    rRspData.uiDataSize  = sizeof(S_ND_SMS_TRANSPORT_MODE_PTR);
-
-    res = RRIL_RESULT_OK;
-
-Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pResponse);
-        pResponse = NULL;
-    }
-
-    RIL_LOG_VERBOSE("CTE_INF_6260::ParseCGSMS() - Exit\r\n");
     return res;
 }
 
