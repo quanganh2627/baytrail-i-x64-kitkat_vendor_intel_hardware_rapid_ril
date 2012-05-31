@@ -1271,6 +1271,14 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
                     pCallListData->pCallData[nUsed].number = pCallListData->pCallNumberBuffers[nUsed];
                     strncpy(pCallListData->pCallNumberBuffers[nUsed], szAddress, MAX_BUFFER_SIZE);
 
+                    // if address string empty, private number
+                    if (szAddress[0] == '\0')
+                    {
+                        // restrict name & number presentation
+                        pCallListData->pCallData[nUsed].numberPresentation = 1;
+                        pCallListData->pCallData[nUsed].namePresentation = 1;
+                    }
+
                     if (!SkipString(szRsp, ",", szRsp) ||
                         !ExtractUpperBoundedUInt32(szRsp, 0x100, nValue, szRsp))
                     {
@@ -5926,6 +5934,7 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     //        info on screen. For now, just return OK and keep throwing updates.
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int nEnable = 0;
+    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
 #if !defined(BOARD_HAVE_IFX7060)
     CRepository  repository;
 
@@ -5955,8 +5964,12 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     }
 
 #if !defined(BOARD_HAVE_IFX7060)
+    // Read the "conformance" property and disable FD if it is set to "true"
+    property_get("persist.conformance", szConformanceProperty, NULL);
+
     // if Modem Fast Dormancy mode is "Display Driven"
-    if (E_FD_MODE_DISPLAY_DRIVEN == g_nFastDormancyMode)
+    if (E_FD_MODE_DISPLAY_DRIVEN == g_nFastDormancyMode
+        && strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
     {
         // disable MAFD when "Screen On", enable MAFD when "Screen Off"
         //      XFDOR=2: switch ON MAFD

@@ -556,34 +556,41 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         //These commands are not supported by 2230 modem
         if (!CSystemManager::GetInstance().IsDSDS_2230_Mode())
         {
-            // Read Fast Dormancy Timers from repository
-            repository.ReadFDParam(g_szGroupModem, g_szFDDelayTimer, szFDDelayTimer, MAX_BUFFER_SIZE, MIN_FDDELAY_TIMER, MAX_FDDELAY_TIMER);
-            repository.ReadFDParam(g_szGroupModem, g_szSCRITimer, szSCRITimer, MAX_BUFFER_SIZE, MIN_SCRI_TIMER, MAX_SCRI_TIMER);
+            // Read the "conformance" property and disable FD if it is set to "true"
+            char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+            property_get("persist.conformance", szConformanceProperty, NULL);
 
-            // define XFDOR command according to FD mode
-            switch (g_nFastDormancyMode)
+            if (strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
             {
-                case E_FD_MODE_ALWAYS_ON :
-                    if (!PrintStringNullTerminate(szFDCmdString,
-                                          sizeof(szFDCmdString),
-                                          "+XFDOR=2,%s,%s",
-                                          szFDDelayTimer, szSCRITimer))
-                    {
-                            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
-                            goto Done;
-                    }
-                    break;
-                 case E_FD_MODE_OEM_MANAGED :
-                 case E_FD_MODE_DISPLAY_DRIVEN :
-                 default :
-                    if (!PrintStringNullTerminate(szFDCmdString,
-                                          sizeof(szFDCmdString),
-                                          "+XFDOR=3"))
-                    {
-                            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
-                            goto Done;
-                    }
-                    break;
+                // Read Fast Dormancy Timers from repository
+                repository.ReadFDParam(g_szGroupModem, g_szFDDelayTimer, szFDDelayTimer, MAX_BUFFER_SIZE, MIN_FDDELAY_TIMER, MAX_FDDELAY_TIMER);
+                repository.ReadFDParam(g_szGroupModem, g_szSCRITimer, szSCRITimer, MAX_BUFFER_SIZE, MIN_SCRI_TIMER, MAX_SCRI_TIMER);
+
+               // define XFDOR command according to FD mode
+                switch (g_nFastDormancyMode)
+                {
+                    case E_FD_MODE_ALWAYS_ON :
+                        if (!PrintStringNullTerminate(szFDCmdString,
+                                              sizeof(szFDCmdString),
+                                              "+XFDOR=2,%s,%s",
+                                              szFDDelayTimer, szSCRITimer))
+                        {
+                                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
+                                goto Done;
+                        }
+                        break;
+                     case E_FD_MODE_OEM_MANAGED :
+                     case E_FD_MODE_DISPLAY_DRIVEN :
+                     default :
+                        if (!PrintStringNullTerminate(szFDCmdString,
+                                              sizeof(szFDCmdString),
+                                              "+XFDOR=3"))
+                        {
+                                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
+                                goto Done;
+                        }
+                        break;
+                }
             }
 
             // Add FD command to init string
@@ -834,7 +841,6 @@ UINT32 CChannelBase::ResponseThread()
             {
                 uiReadError = 0;
             }
-
             if (!ProcessModemData(szData, uiRead))
             {
                 RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - chnl=[%d] ProcessModemData failed?!\r\n", m_uiRilChannel);
@@ -874,7 +880,7 @@ BOOL CChannelBase::LockCommandQueue(UINT32 uiTimeout)
 //
 //  Iterate through each silo in this channel to ParseNotification.
 //
-BOOL CChannelBase::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL &fGotoError)
+BOOL CChannelBase::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError, BOOL& fPendingSolicitedResponse)
 {
     //RIL_LOG_VERBOSE("CChannelBase::ParseUnsolicitedResponse() - Enter\r\n");
     BOOL bResult = TRUE;
@@ -887,7 +893,7 @@ BOOL CChannelBase::ParseUnsolicitedResponse(CResponse* const pResponse, const ch
 
         if (pSilo)
         {
-            if (pSilo->ParseUnsolicitedResponse(pResponse, rszPointer, fGotoError))
+            if (pSilo->ParseUnsolicitedResponse(pResponse, rszPointer, fGotoError, fPendingSolicitedResponse))
             {
                 //  we're done.
                 goto Done;

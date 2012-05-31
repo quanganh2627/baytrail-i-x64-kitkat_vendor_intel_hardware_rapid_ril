@@ -292,7 +292,6 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
 
                         do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
                     }
-
                     goto Error;
                 }
             }
@@ -304,7 +303,6 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             RIL_LOG_CRITICAL("CChannel::SendCommand() - chnl=[%d] SendRILCmdParseResponsePostSend returned FALSE\r\n", m_uiRilChannel);
             goto Error;
         }
-
     }
 
     // Handle the response

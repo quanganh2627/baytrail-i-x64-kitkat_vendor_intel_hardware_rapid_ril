@@ -44,7 +44,8 @@ public:
     BOOL    SetData(void* pData, const UINT32 nSize, const BOOL fCpyMem = TRUE);
     void    GetData(void*& rpData, UINT32& rnDataSize) const  { rpData = m_pData; rnDataSize = m_uiDataSize; };
     void    GetData(RESPONSE_DATA& responseData) const        { responseData.pData = m_pData; responseData.uiDataSize = m_uiDataSize; };
-    void    FreeData()                                        { free(m_pData); m_pData = NULL; m_uiDataSize = 0; m_uiResponseEndMarker = 0;};
+    void    FreeData()                                        { free(m_pData); m_pData = NULL; m_uiDataSize = 0; m_uiResponseEndMarker = 0; m_uiResponseBeginMarker = 0; };
+    void    SetBeginMarker(const UINT32 uiBeginMarker)         { m_uiResponseBeginMarker = uiBeginMarker; };
 
     BOOL    IsCompleteResponse();
     BOOL    ParseResponse(CCommand*&rpCmd);
@@ -73,6 +74,8 @@ public:
     BOOL    IsTimedOutFlag() const                          { return ( (m_uiFlags & E_RSP_FLAG_TIMEDOUT) ? TRUE : FALSE); };
     void    SetTimedOutFlag(const BOOL bTimedOut)           { (bTimedOut ? (m_uiFlags |= E_RSP_FLAG_TIMEDOUT) : (m_uiFlags &= ~E_RSP_FLAG_TIMEDOUT)); };
 
+    BOOL    IsPendingSolicitedResponse() const                           { return m_bIsPendingSolicitedResponse; };
+    void    SetPendingSolicitedResponse(const BOOL bPendingSolicitedResponse)    { m_bIsPendingSolicitedResponse = bPendingSolicitedResponse; };
 private:
     enum
     {
@@ -99,9 +102,14 @@ private:
     UINT32    m_uiDataSize;
     CChannel* m_pChannel;
     UINT32    m_uiResponseEndMarker;
+    UINT32    m_uiResponseBeginMarker;
 
     //  internal flags.
     UINT32     m_uiFlags;
+    // check if URC is appended in middle of solicited response, if it is,
+    // we shall extract the URC to process and leave remained solicited response part
+    // for the next process.
+    BOOL   m_bIsPendingSolicitedResponse;
 };
 
 #endif //RRIL_RESPONSE_H

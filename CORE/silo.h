@@ -45,7 +45,7 @@ public:
     //  Return values:
     //  TRUE if response is handled by this hook, then handling still stop.
     //  FALSE if response is not handled by this hook, and handling will continue to other silos, then framework.
-    virtual BOOL ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError);
+    virtual BOOL ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError, BOOL& fPendingSolicitedResponse);
 
     //  Called at the beginning of CChannel::SendCommand() before AT command is
     //  physically sent and before any CCommand checking.
@@ -77,7 +77,10 @@ protected:
 
 private:
     // helper functions
-    PFN_ATRSP_PARSE FindParser(ATRSPTABLE* pRspTable, const char*& pszStr);
+    // fPendingSolicitedResponse is used to indicate if there is pending unprocessed
+    // solicited response ahead of the Unsolicited response
+
+    PFN_ATRSP_PARSE FindParser(ATRSPTABLE* pRspTable, const char*& pszStr, BOOL& fPendingSolicitedResponse, UINT32& uiSizeOfATRes);
 };
 
 #endif // RRIL_SILO_H

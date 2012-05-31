@@ -1030,15 +1030,12 @@ Error:
         RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Error cleanup\r\n");
         if (pChannelData)
         {
-            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Calling DataConfigDown  chnl=[%d], cid=[%u]\r\n", rRspData.uiChannel, uiCID);
+            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Calling triggerDeactivateDataCall chnl=[%d], cid=[%d]\r\n", rRspData.uiChannel, uiCID);
 
             //  Explicitly deactivate context ID = uiCID
             //  This will call DataConfigDown(uiCID) and convert channel to AT mode.
             //  Otherwise the data channel hangs and is unresponsive.
-            if (!DataConfigDown(pChannelData->GetContextID()))
-            {
-                RIL_LOG_CRITICAL("CSilo_Data::ParseSetupDataCall - DataConfigDown FAILED cid=[%d]\r\n", pChannelData->GetContextID());
-            }
+            RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)uiCID, 0, 0);
         }
 
         if (pDataCallRsp)
@@ -3576,6 +3573,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkHandleCallSetupRequestedFromSim(RESPONSE_D
 //
 // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
 //
+#if defined(BOARD_HAVE_IFX7060)
 RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetPreferredNetworkType() - Enter\r\n");
@@ -3596,7 +3594,6 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
     networkType = ((RIL_PreferredNetworkType *)pData)[0];
 
-#if defined(BOARD_HAVE_IFX7060)
     // if network type already set, NO-OP this command
     if (m_currentNetworkType == networkType)
     {
@@ -3608,6 +3605,16 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
     switch (networkType)
     {
+        case PREF_NET_TYPE_LTE_GSM_WCDMA: // Triple LTE/WCDMA/GSM with LTE prefered
+
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=6,2,1\r", sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                goto Error;
+            }
+
+            break;
+
         case PREF_NET_TYPE_GSM_WCDMA: // WCDMA Preferred
 
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=3,1\r", sizeof(rReqData.szCmd1)))
@@ -3638,13 +3645,53 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
             break;
 
+        case PREF_NET_TYPE_LTE_ONLY: // LTE Only
+
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=2\r", sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                goto Error;
+            }
+
+            break;
+
         default:
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Undefined rat code: %d\r\n", networkType);
             res = RIL_E_GENERIC_FAILURE;
             goto Error;
 
     }
+
+    //  Set the context of this command to the network type we're attempting to set
+    rReqData.pContextData = (void*)networkType;  // Store this as an int.
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetPreferredNetworkType() - Exit\r\n");
+    return res;
+}
 #else
+RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetPreferredNetworkType() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_PreferredNetworkType networkType = PREF_NET_TYPE_GSM_WCDMA; // 0
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (uiDataSize != sizeof(RIL_PreferredNetworkType *))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Invalid data size.\r\n");
+        goto Error;
+    }
+
+    networkType = ((RIL_PreferredNetworkType *)pData)[0];
+
     // if network type already set, NO-OP this command
     if (m_currentNetworkType == networkType)
     {
@@ -3693,7 +3740,6 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
             break;
     }
 
-#endif
     //  Set the context of this command to the network type we're attempting to set
     rReqData.pContextData = (void*)networkType;  // Store this as an int.
 
@@ -3703,6 +3749,7 @@ Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetPreferredNetworkType() - Exit\r\n");
     return res;
 }
+#endif
 
 RIL_RESULT_CODE CTE_INF_6260::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspData)
 {
@@ -3720,6 +3767,21 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspD
 //
 // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
 //
+#if defined(BOARD_HAVE_IFX7060)
+RIL_RESULT_CODE CTE_INF_6260::CoreGetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CoreGetPreferredNetworkType() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT?\r", sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::CoreGetPreferredNetworkType() - Exit\r\n");
+    return res;
+}
+#else
 RIL_RESULT_CODE CTE_INF_6260::CoreGetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreGetPreferredNetworkType() - Enter\r\n");
@@ -3733,7 +3795,115 @@ RIL_RESULT_CODE CTE_INF_6260::CoreGetPreferredNetworkType(REQUEST_DATA & rReqDat
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreGetPreferredNetworkType() - Exit\r\n");
     return res;
 }
+#endif
+#if defined(BOARD_HAVE_IFX7060)
+RIL_RESULT_CODE CTE_INF_6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseGetPreferredNetworkType() - Enter\r\n");
 
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+
+    UINT32 rat = 0;
+    UINT32 pref = 0;
+
+    int * pRat = (int*)malloc(sizeof(int));
+    if (NULL == pRat)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not allocate memory for response.\r\n");
+        goto Error;
+    }
+
+    // Skip "<prefix>"
+    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not skip response prefix.\r\n");
+        goto Error;
+    }
+
+    // Skip "+XACT: "
+    if (!SkipString(pszRsp, "+XACT: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not skip \"+XACT: \".\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt32(pszRsp, rat, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not extract rat value.\r\n");
+        goto Error;
+    }
+
+    if (FindAndSkipString(pszRsp, ",", pszRsp))
+    {
+        if (!ExtractUInt32(pszRsp, pref, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not find and skip pref value even though it was expected.\r\n");
+            goto Error;
+        }
+    }
+
+    switch(rat)
+    {
+        case 0:     // GSM Only
+        {
+            pRat[0] = PREF_NET_TYPE_GSM_ONLY;
+            m_currentNetworkType = PREF_NET_TYPE_GSM_ONLY;
+            break;
+        }
+
+        case 1:     // WCDMA Only
+        {
+            pRat[0] = PREF_NET_TYPE_WCDMA;
+            m_currentNetworkType = PREF_NET_TYPE_WCDMA;
+            break;
+        }
+
+        case 2:     // LTE Only
+        {
+            pRat[0] = PREF_NET_TYPE_LTE_ONLY;
+            m_currentNetworkType = PREF_NET_TYPE_LTE_ONLY;
+            break;
+        }
+
+        case 3:     // Dual WCDMA/GSM with WCDMA prefered
+        {
+            pRat[0] = PREF_NET_TYPE_GSM_WCDMA;
+            m_currentNetworkType = PREF_NET_TYPE_GSM_WCDMA;
+            break;
+        }
+
+        case 6:     // Triple LTE/WCDMA/GSM with LTE prefered
+        {
+            pRat[0] = PREF_NET_TYPE_LTE_GSM_WCDMA;
+            m_currentNetworkType = PREF_NET_TYPE_LTE_GSM_WCDMA;
+            break;
+        }
+
+        default:
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Unexpected rat found: %d. Failing out.\r\n", rat);
+            goto Error;
+        }
+    }
+
+    rRspData.pData  = (void*)pRat;
+    rRspData.uiDataSize = sizeof(int*);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pRat);
+        pRat = NULL;
+    }
+
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseGetPreferredNetworkType() - Exit\r\n");
+    return res;
+}
+#else
 RIL_RESULT_CODE CTE_INF_6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseGetPreferredNetworkType() - Enter\r\n");
@@ -3822,10 +3992,10 @@ Error:
         pRat = NULL;
     }
 
-
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseGetPreferredNetworkType() - Exit\r\n");
     return res;
 }
+#endif
 
 //
 // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
