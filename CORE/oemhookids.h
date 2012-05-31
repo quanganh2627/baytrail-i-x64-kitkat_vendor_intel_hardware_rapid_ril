@@ -162,41 +162,6 @@ const int RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS = 0x000000A8;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-//
-//  RIL_OEM_HOOK_STRING_GET_SMS_TRANSPORT_MODE
-//  Command ID = 0x000000A9
-//
-//  This command retrieves the current SMS transport mode.
-//
-//  "data" = NULL
-//  "response" - String containing the value of the service according to the
-//               27.007 10.1.21
-//               “0” = Packet Domain.
-//               “1” = Circuit Switched.
-//               “2” = Packet Domain Preferred.
-//               “3” = Circuit Switched Preferred.
-//
-const int RIL_OEM_HOOK_STRING_GET_SMS_TRANSPORT_MODE = 0x000000A9;
-
-///////////////////////////////////////////////////////////////////////////////
-
-//
-//  RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE
-//  Command ID = 0x000000AA
-//
-//  This command sets the SMS transport mode.
-//
-// "data" - int service
-//                    “0” = Packet Domain.
-//                    “1” = Circuit Switched.
-//                    “2” = Packet Domain Preferred.
-//                    “3” = Circuit Switched Preferred.
-//  "response" = NULL
-//
-const int RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE = 0x000000AA;
-
-///////////////////////////////////////////////////////////////////////////////
-
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
 
 //

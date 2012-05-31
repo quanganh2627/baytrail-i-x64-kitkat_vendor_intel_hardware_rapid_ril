@@ -1366,7 +1366,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.23 for Android 4.0.3 (Build May 22/2012)";
+    return "Intrinsyc Rapid-RIL M6.22 for Android 4.0.3 (Build May 15/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1561,16 +1561,8 @@ static bool RIL_SetGlobals(int argc, char **argv)
     }
 
     g_uiRilChannelCurMax = uiDataPortIndex;
-    if (g_uiRilChannelCurMax > g_uiRilChannelUpperLimit)
-    {
-        LOGE("RIL_SetGlobals() - g_uiRilChannelCurMax = %d higher than g_uiRilChannelUpperLimit = %d\r\n", g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
-        usage(argv[0]);
-        return false;
-    }
-    else
-    {
-        LOGI("RIL_SetGlobals() - g_uiRilChannelCurMax = %d  g_uiRilChannelUpperLimit = %d\r\n", g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
-    }
+    LOGI("RIL_SetGlobals() - g_uiRilChannelCurMax = %d  g_uiRilChannelUpperLimit = %d\r\n",
+        g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
 
     if (strncmp(g_szDualSim, "dsds_2230", 9) == 0)
     {
