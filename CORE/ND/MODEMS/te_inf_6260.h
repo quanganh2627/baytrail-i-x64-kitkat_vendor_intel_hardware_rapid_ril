@@ -31,7 +31,7 @@ private:
     CTE_INF_6260(const CTE_INF_6260& rhs);  // Copy Constructor
     CTE_INF_6260& operator=(const CTE_INF_6260& rhs);  //  Assignment operator
 
-    RIL_PreferredNetworkType m_currentNetworkType;
+    int m_currentNetworkType;
 
 protected:
     //  Locally store CPIN2 query result for SIM_IO

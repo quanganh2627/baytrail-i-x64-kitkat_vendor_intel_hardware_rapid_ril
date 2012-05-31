@@ -42,7 +42,7 @@
 
 
 CTE_INF_6260::CTE_INF_6260()
-: m_currentNetworkType(PREF_NET_TYPE_GSM_WCDMA),
+: m_currentNetworkType(-1),
 m_pSilentPINEntryEvent(NULL),
 m_pQueryPIN2Event(NULL),
 m_pQueryDataCallFailCauseEvent(NULL),
