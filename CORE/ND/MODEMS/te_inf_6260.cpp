@@ -1044,6 +1044,7 @@ Error:
             res = RRIL_RESULT_OK;
             pDataCallRsp->sPDPData.status = m_dataCallFailCause;
             pDataCallRsp->sPDPData.cid = uiCID;
+            pDataCallRsp->sPDPData.suggestedRetryTime = -1; // The value < 0 means no value is suggested
         }
         else
         {
