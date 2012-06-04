@@ -47,7 +47,7 @@ protected:
     //  Framework functions
     virtual BOOL            SendCommand(CCommand*& rpCmd);
     virtual RIL_RESULT_CODE GetResponse(CCommand*& rpCmd, CResponse*& rpRsp);
-    virtual BOOL            ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHungUp, BOOL& rfRadioOff*/);
+    virtual BOOL            ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp);
 
     // Called at end of ResponseThread()
     // Give GPRS response thread a chance to handle Rx data in Data mode

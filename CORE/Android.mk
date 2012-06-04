@@ -71,7 +71,7 @@ LOCAL_SHARED_LIBRARIES := libcutils libutils
 LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED
 
 # Activating this macro enables PIN caching (for modem cold reboot)
-#LOCAL_CFLAGS += -DM2_PIN_CACHING_FEATURE_ENABLED
+LOCAL_CFLAGS += -DM2_PIN_CACHING_FEATURE_ENABLED
 
 # Activating this macro enables Dual SIM 1S1S commands in RIL_REQUEST_OEM_HOOK_RAW
 #LOCAL_CFLAGS += -DM2_DUALSIM_FEATURE_ENABLED
