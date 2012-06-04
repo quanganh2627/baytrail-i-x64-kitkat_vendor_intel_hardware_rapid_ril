@@ -57,9 +57,6 @@ typedef struct s_response_data
 
     unsigned int cbContextData2;// Size in bytes of the context data object
 
-    unsigned int uiIntermediateResultCode; // If 2 part command, this is the intermediate result code
-    unsigned int uiIntermediateErrorCode;  // If 2 part command, this is the intermediate error code
-
 } RESPONSE_DATA;
 
 #endif

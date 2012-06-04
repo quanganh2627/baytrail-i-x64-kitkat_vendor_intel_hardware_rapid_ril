@@ -56,15 +56,8 @@ public:
     UINT32   GetErrorCode() const                            { return m_uiErrorCode; };
     void    SetErrorCode(const UINT32 uiErrorCode)           { m_uiErrorCode = uiErrorCode; };
 
-    UINT32   GetIntermediateResultCode() const                   { return m_uiIntermediateResultCode; };
-    void    SetIntermediateResultCode(const UINT32 uiResultCode)  { m_uiIntermediateResultCode = uiResultCode; };
-
-    UINT32   GetIntermediateErrorCode() const                   { return m_uiIntermediateErrorCode; };
-    void    SetIntermediateErrorCode(const UINT32 uiErrorCode)   { m_uiIntermediateErrorCode = uiErrorCode; };
-
     BOOL    IsUnsolicitedFlag() const                       { return ( (m_uiFlags & E_RSP_FLAG_UNSOLICITED) ? TRUE : FALSE); };
     void    SetUnsolicitedFlag(const BOOL bUnsolicited)     { (bUnsolicited ? (m_uiFlags |= E_RSP_FLAG_UNSOLICITED) : (m_uiFlags &= ~E_RSP_FLAG_UNSOLICITED)); };
-
     BOOL    IsUnrecognizedFlag() const                      { return ( (m_uiFlags & E_RSP_FLAG_UNRECOGNIZED) ? TRUE : FALSE); };
     void    SetUnrecognizedFlag(const BOOL bUnrecognized)   { (bUnrecognized ? (m_uiFlags |= E_RSP_FLAG_UNRECOGNIZED) : (m_uiFlags &= ~E_RSP_FLAG_UNRECOGNIZED)); };
 
@@ -96,8 +89,6 @@ private:
 
     UINT32    m_uiResultCode;
     UINT32    m_uiErrorCode;
-    UINT32    m_uiIntermediateResultCode;
-    UINT32    m_uiIntermediateErrorCode;
     void*     m_pData;
     UINT32    m_uiDataSize;
     CChannel* m_pChannel;

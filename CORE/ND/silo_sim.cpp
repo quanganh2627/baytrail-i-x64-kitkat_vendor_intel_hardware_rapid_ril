@@ -80,8 +80,14 @@ BOOL CSilo_SIM::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
 
     switch(rpCmd->GetRequestID())
     {
+        case ND_REQ_ID_ENTERSIMPIN:
+        case ND_REQ_ID_ENTERSIMPUK:
+        case ND_REQ_ID_ENTERSIMPIN2:
+        case ND_REQ_ID_ENTERSIMPUK2:
+        case ND_REQ_ID_CHANGESIMPIN:
+        case ND_REQ_ID_CHANGESIMPIN2:
         case ND_REQ_ID_SETFACILITYLOCK:
-            bRetVal = ParseFacilityLock(rpCmd, rpRsp);
+            bRetVal = ParsePin(rpCmd, rpRsp);
             break;
         case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION:
             bRetVal = ParseNetworkPersonalisationPin(rpCmd, rpRsp);
@@ -89,6 +95,11 @@ BOOL CSilo_SIM::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         case ND_REQ_ID_SIMIO:
             bRetVal = ParseSimIO(rpCmd, rpRsp);
             break;
+
+        //case ND_REQ_ID_GETSIMSTATUS:
+        //    bRetVal = ParseSimStatus(rpCmd, rpRsp);
+        //    break;
+
         default:
             break;
     }
@@ -107,15 +118,6 @@ BOOL CSilo_SIM::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
     {
         case ND_REQ_ID_GETSIMSTATUS:
             bRetVal = ParseSimStatus(rpCmd, rpRsp);
-            break;
-
-        case ND_REQ_ID_ENTERSIMPIN:
-        case ND_REQ_ID_ENTERSIMPUK:
-        case ND_REQ_ID_ENTERSIMPIN2:
-        case ND_REQ_ID_ENTERSIMPUK2:
-        case ND_REQ_ID_CHANGESIMPIN:
-        case ND_REQ_ID_CHANGESIMPIN2:
-            bRetVal = ParsePin(rpCmd, rpRsp);
             break;
 
         case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION:
@@ -148,12 +150,10 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
     BOOL bRetVal = FALSE;
 
     RIL_LOG_VERBOSE("CSilo_SIM::ParsePin() - Enter\r\n");
-    RIL_LOG_VERBOSE("CSilo_SIM::ParsePin() - int rsp res %u  error %u\r\n",
-        rpRsp->GetIntermediateResultCode(), rpRsp->GetIntermediateErrorCode());
 
-    if (RIL_E_SUCCESS != rpRsp->GetIntermediateResultCode())
+    if (RIL_E_SUCCESS != rpRsp->GetResultCode())
     {
-        switch(rpRsp->GetIntermediateErrorCode())
+        switch(rpRsp->GetErrorCode())
         {
             case CME_ERROR_INCORRECT_PASSWORD:
                 RIL_LOG_INFO("CSilo_SIM::ParsePin() - Incorrect password");
@@ -202,67 +202,6 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
 
 Error:
     RIL_LOG_VERBOSE("CSilo_SIM::ParsePin() - Exit\r\n");
-    return bRetVal;
-}
-
-BOOL CSilo_SIM::ParseFacilityLock(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    BOOL bRetVal = FALSE;
-
-    RIL_LOG_INFO("CSilo_SIM::ParseFacilityLock() - Enter\r\n");
-
-    if (RIL_E_SUCCESS != rpRsp->GetResultCode())
-    {
-
-        switch(rpRsp->GetErrorCode())
-        {
-            case CME_ERROR_INCORRECT_PASSWORD:
-                RIL_LOG_INFO("CSilo_SIM::ParseFacilityLock() - Incorrect password");
-                rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-                break;
-
-            case CME_ERROR_SIM_PUK_REQUIRED:
-                RIL_LOG_INFO("CSilo_SIM::ParseFacilityLock() - SIM PUK required");
-                rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-                g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
-                break;
-
-            case CME_ERROR_SIM_PUK2_REQUIRED:
-                RIL_LOG_INFO("CSilo_SIM::ParseFacilityLock() - SIM PUK2 required");
-                rpRsp->SetResultCode(RIL_E_SIM_PUK2);
-                break;
-
-            default:
-                RIL_LOG_INFO("CSilo_SIM::ParseFacilityLock() - Unknown error [%d]", rpRsp->GetErrorCode());
-                rpRsp->SetResultCode(RIL_E_GENERIC_FAILURE);
-                break;
-        }
-
-        rpRsp->FreeData();
-        int* pInt = (int *) malloc(sizeof(int));
-
-        if (NULL == pInt)
-        {
-            RIL_LOG_CRITICAL("CSilo_SIM::ParseFacilityLock() : Unable to allocate memory for SIM unlock retries\r\n");
-            goto Error;
-        }
-
-        //  (Dec 22/09) I tried entering different values for this, but I don't think it does anything in the UI.
-        *pInt = -1;
-
-        if (!rpRsp->SetData((void*) pInt, sizeof(int*), FALSE))
-        {
-            RIL_LOG_CRITICAL("CSilo_SIM::ParseFacilityLock() : Unable to set data with number of SIM unlock retries left\r\n");
-            free(pInt);
-            pInt = NULL;
-            goto Error;
-        }
-    }
-
-    bRetVal = TRUE;
-
-Error:
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseFacilityLock() - Exit\r\n");
     return bRetVal;
 }
 
