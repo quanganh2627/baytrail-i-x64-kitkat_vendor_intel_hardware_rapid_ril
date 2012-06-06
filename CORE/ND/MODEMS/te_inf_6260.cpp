@@ -2718,11 +2718,21 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
             res = RRIL_RESULT_OK;
             break;
 
+#if !defined(BOARD_HAVE_IFX7060)
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY");
-            res = CreateAutonomousFDReq(rReqData, (const char**) pszRequest, uiDataSize);
+            // Check if Fast Dormancy mode allows OEM Hook
+            if (g_nFastDormancyMode == E_FD_MODE_OEM_MANAGED)
+            {
+                res = CreateAutonomousFDReq(rReqData, (const char**) pszRequest, uiDataSize);
+            }
+            else
+            {
+                RIL_LOG_INFO("RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY - FD Mode is not OEM Managed.\r\n");
+                goto Error;
+            }
             break;
-
+#endif
         case RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV");
             if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGED=0\r"))
