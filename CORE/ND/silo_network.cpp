@@ -98,7 +98,13 @@ BOOL CSilo_Network::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
 //  CCommand::SendResponse() is called.
 BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
 {
-    if ((ND_REQ_ID_GETCURRENTCALLS == rpCmd->GetRequestID()) &&
+    if ((ND_REQ_ID_OPERATOR == rpCmd->GetRequestID()) &&
+        (RRIL_RESULT_OK != rpRsp->GetResultCode()) &&
+        (RRIL_CME_ERROR_NO_NETWORK_SERVICE == rpRsp->GetErrorCode()))
+    {
+        rpRsp->SetResultCode(RIL_E_OP_NOT_ALLOWED_BEFORE_REG_TO_NW);
+    }
+    else if ((ND_REQ_ID_GETCURRENTCALLS == rpCmd->GetRequestID()) &&
         (RRIL_RESULT_ERROR == rpRsp->GetResultCode()) &&
         (RADIO_STATE_SIM_LOCKED_OR_ABSENT == g_RadioState.GetRadioState()))
     {

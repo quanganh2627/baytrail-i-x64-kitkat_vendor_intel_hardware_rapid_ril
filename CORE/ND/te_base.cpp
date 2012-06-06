@@ -4428,11 +4428,11 @@ RIL_RESULT_CODE CTEBase::ParseQueryNetworkSelectionMode(RESPONSE_DATA & rRspData
         goto Error;
     }
 
-    //  If we have a +COPS value that's not 0 or 1, then return RIL_E_GENERIC_FAILURE.
+    //  If we have a +COPS value that's not 0 or 1, then return RIL_E_OP_NOT_ALLOWED_BEFORE_REG_TO_NW.
     //  This API is only supposed to return 0 or 1.
     if (*pnMode >= 2)
     {
-        res = RIL_E_GENERIC_FAILURE;
+        res = RIL_E_OP_NOT_ALLOWED_BEFORE_REG_TO_NW;
         goto Error;
     }
 
