@@ -207,12 +207,7 @@ const char   g_szGroupModem[]                   = "Modem";
 
 const char   g_szSupportedModem[]               = "SupportedModem";
 const char   g_szNetworkInterfaceNamePrefix[]   = "NetworkInterfaceNamePrefix";
-const char   g_szDisableModemReset[]            = "DisableModemReset";
-const char   g_szDisableCoreDump[]              = "DisableCoreDump";
-const char   g_szCoreDumpTimeout[]              = "CoreDumpTimeout";
-const char   g_szDisableWatchdogThread[]        = "DisableWatchdogThread";
-const char   g_szRadioResetDelay[]              = "RadioResetDelay";
-const char   g_szRadioResetStartStmdDelay[]     = "RadioResetStartStmdDelay";
+const char   g_szMTU[]                          = "MTU";
 const char   g_szEnableCellInfo[]               = "EnableCellInfo";
 const char   g_szRxDiversity3GEnable[]          = "RxDiversity3GEnable";
 const char   g_szRxDiversity2GDARP[]            = "RxDiversity2GDARP";

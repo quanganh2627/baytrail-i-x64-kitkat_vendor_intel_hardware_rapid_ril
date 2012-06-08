@@ -135,9 +135,9 @@ BOOL setflags(int s, struct ifreq *ifr, int set, int clr)
     return TRUE;
 }
 
-static BOOL setmtu(int s, struct ifreq *ifr, int mtu)
+static BOOL setmtu(int s, struct ifreq *ifr)
 {
-    ifr->ifr_mtu = mtu;
+    ifr->ifr_mtu = g_MTU;
     RIL_LOG_INFO("setmtu - calling SIOCSIFMTU\r\n");
     if(ioctl(s, SIOCSIFMTU, ifr) < 0)
     {
@@ -228,7 +228,7 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         }
 
         RIL_LOG_INFO("DataConfigUpIpV4() : Setting mtu\r\n");
-        if (!setmtu(s, &ifr, 1460))
+        if (!setmtu(s, &ifr))
         {
             //goto Error;
             RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting mtu\r\n");
@@ -333,7 +333,7 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     }
 
     RIL_LOG_INFO("DataConfigUpV6() : Setting mtu\r\n");
-    if (!setmtu(s, &ifr, 1460))
+    if (!setmtu(s, &ifr))
     {
         //goto Error;
         RIL_LOG_CRITICAL("DataConfigUpV6() : Error setting mtu\r\n");
@@ -490,7 +490,7 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     }
 
     RIL_LOG_INFO("DataConfigUpV4V6() : Setting mtu\r\n");
-    if (!setmtu(s, &ifr, 1460))
+    if (!setmtu(s, &ifr))
     {
         //goto Error;
         RIL_LOG_CRITICAL("DataConfigUpV4V6() : Error setting mtu\r\n");

@@ -294,6 +294,11 @@ BOOL CSystemManager::InitializeSystem()
         g_TimeoutThresholdForRetry = (UINT32)iTemp;
     }
 
+    if (repository.Read(g_szGroupModem, g_szMTU, iTemp))
+    {
+        g_MTU = (UINT32)iTemp;
+    }
+
 #if !defined(BOARD_HAVE_IFX7060)
     // store initial value of Fast Dormancy Mode
     if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
