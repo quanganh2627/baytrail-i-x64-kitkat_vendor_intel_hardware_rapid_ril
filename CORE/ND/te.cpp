@@ -1475,6 +1475,17 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
         return RRIL_RESULT_OK;
     }
 
+    if (g_bIsDataSuspended)
+    {
+        RIL_Data_Call_Response_v6 dataCallResp;
+        memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
+        dataCallResp.status = PDP_FAIL_ERROR_UNSPECIFIED;
+        dataCallResp.suggestedRetryTime = 3000; // 3 second
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, &dataCallResp, sizeof(RIL_Data_Call_Response_v6));
+
+        return RRIL_RESULT_OK;
+    }
+
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     //  Find free channel, and get the context ID that was set.

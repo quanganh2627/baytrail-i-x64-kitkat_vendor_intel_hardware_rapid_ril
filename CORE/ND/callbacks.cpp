@@ -16,10 +16,37 @@
 #include "rillog.h"
 #include "te.h"
 #include "../util.h"
+#include "oemhookids.h"
 
 void notifyChangedCallState(void *param)
 {
     RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
+}
+
+void triggerDataSuspendInd(void* param)
+{
+    if (!g_bIsDataSuspended)
+        return;
+
+    unsigned char* pszData = NULL;
+    int pos = 0;
+
+    pszData = (unsigned char*) malloc(sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+    if (NULL == pszData)
+    {
+        RIL_LOG_CRITICAL("triggerDataSuspendInd() - Could not allocate memory for pszData.\r\n");
+        return;
+    }
+
+    memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+
+    convertIntToByteArrayAt(pszData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
+    pos += sizeof(int);
+    convertIntToByteArrayAt(pszData, 0/* SUSPENDED */, pos);
+
+    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, pszData, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+
+    free(pszData);
 }
 
 void triggerHangup(UINT32 uiCallId)

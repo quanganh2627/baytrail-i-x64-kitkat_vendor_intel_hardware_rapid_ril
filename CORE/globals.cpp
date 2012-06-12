@@ -48,6 +48,9 @@ bool g_bIsManualNetworkSearchOngoing = false;
 // recommended in 3GPP 23.060 for both support of IPV4 and IPV6 traffic.
 UINT32 g_MTU = 1358;
 
+// This global flag is used to store the data suspend/resume status
+bool g_bIsDataSuspended = false;
+
 #if !defined(BOARD_HAVE_IFX7060)
 ///////////////////////////////////////////////////////////////////////////////
 // This global variable stores the initial value of the

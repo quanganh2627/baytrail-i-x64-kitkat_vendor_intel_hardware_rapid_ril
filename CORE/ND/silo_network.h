@@ -65,6 +65,7 @@ protected:
     virtual BOOL    ParseXREG(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseCGEV(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseXCSQ(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseXDATASTAT(CResponse* const pResponse, const char* &rszPointer);
 
 private:
 #if defined(M2_DUALSIM_FEATURE_ENABLED)

@@ -27,8 +27,8 @@
 #include "data_util.h"
 #include "cutils/tztime.h"
 #include "te.h"
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
 #include "oemhookids.h"
+#if defined(M2_DUALSIM_FEATURE_ENABLED)
 #include "repository.h"
 #endif
 
@@ -47,6 +47,7 @@ CSilo_Network::CSilo_Network(CChannel *pChannel)
         { "+CGREG: "    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGREG        },
         { "+XREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXREG         },
         { "+CGEV: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGEV         },
+        { "+XDATASTAT: ", (PFN_ATRSP_PARSE)&CSilo_Network::ParseXDATASTAT    },
         { "+CTZV: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
         { "+CTZDST: "   , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
         { "+XNITZINFO"  , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXNITZINFO    },
@@ -650,6 +651,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     UINT32 nCID = 0;
     UINT32 nREASON=0;
     CChannel_Data* pChannelData = NULL;
+    unsigned char* pszData = NULL;
 
     szResponse = rszPointer;
 
@@ -678,7 +680,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
         else
         {
             RIL_LOG_INFO(
-                    "Silo_Network::ParseCGEV() - ME PDN ACT , extracted cid=[%d]\r\n",
+                    "CSilo_Network::ParseCGEV() - ME PDN ACT , extracted cid=[%d]\r\n",
                     nCID);
         }
 
@@ -687,7 +689,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
         {
             //  This may occur using AT proxy during 3GPP conformance testing.
             //  Let normal processing occur.
-            RIL_LOG_CRITICAL("Silo_Network::ParseCGEV() - Invalid CID=[%d], no data channel found!\r\n", nCID);
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%d], no data channel found!\r\n", nCID);
         }
         if (!FindAndSkipString(szStrExtract, ",", szStrExtract))
         {
@@ -705,7 +707,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
             else
             {
                 RIL_LOG_INFO(
-                        "Silo_Network::ParseCGEV() - ME PDN ACT , extracted reason=[%d]\r\n",
+                        "CSilo_Network::ParseCGEV() - ME PDN ACT , extracted reason=[%d]\r\n",
                         nREASON);
                 pResponse->SetUnsolicitedFlag(TRUE);
 
@@ -741,8 +743,88 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
             }
         }
     }
+    else if (FindAndSkipString(rszPointer, "NW CLASS", szStrExtract) ||
+            FindAndSkipString(rszPointer, "ME CLASS", szStrExtract))
+    {
+        int pos = 0;
+        int mt_class = 0;
+
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW CLASS/ME CLASS\r\n");
+
+        if (FindAndSkipString(rszPointer, "NW CLASS A", rszPointer) ||
+            FindAndSkipString(rszPointer, "ME CLASS A", rszPointer))
+        {
+            mt_class = E_MT_CLASS_A;
+        }
+        else if (FindAndSkipString(rszPointer, "NW CLASS B", rszPointer) ||
+                FindAndSkipString(rszPointer, "ME CLASS B", rszPointer))
+        {
+            mt_class = E_MT_CLASS_B;
+        }
+        else if (FindAndSkipString(rszPointer, "NW CLASS CG", rszPointer) ||
+                FindAndSkipString(rszPointer, "ME CLASS CG", rszPointer))
+        {
+            mt_class = E_MT_CLASS_CG;
+        }
+        else if (FindAndSkipString(rszPointer, "NW CLASS CC", rszPointer) ||
+                FindAndSkipString(rszPointer, "ME CLASS CC", rszPointer))
+        {
+            mt_class = E_MT_CLASS_CC;
+        }
+
+        pszData = (unsigned char *)malloc(sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND));
+        if (NULL == pszData)
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Could not allocate memory for pszData.\r\n");
+            goto Error;
+        }
+        memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND));
+
+        convertIntToByteArrayAt(pszData, RIL_OEM_HOOK_RAW_UNSOL_MT_CLASS_IND, pos);
+        pos += sizeof(int);
+        convertIntToByteArrayAt(pszData, mt_class, pos);
+
+        pResponse->SetUnsolicitedFlag(TRUE);
+        pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+
+        if (!pResponse->SetData((void*)pszData, sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND), FALSE))
+        {
+            goto Error;
+        }
+    }
     else
     {
+        if (FindAndSkipString(rszPointer, "NW DETACH", rszPointer) ||
+               FindAndSkipString(rszPointer, "ME DETACH", rszPointer))
+        {
+            if (!g_bIsDataSuspended)
+            {
+                int pos = 0;
+                g_bIsDataSuspended = false;
+                pszData = (unsigned char*) malloc(sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+                if (NULL == pszData)
+                {
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Could not allocate memory for pszData.\r\n");
+                    goto Error;
+                }
+                memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+
+                convertIntToByteArrayAt(pszData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
+                pos += sizeof(int);
+                convertIntToByteArrayAt(pszData, g_bIsDataSuspended, pos);
+
+                pResponse->SetUnsolicitedFlag(TRUE);
+                pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+
+                if (!pResponse->SetData((void*)pszData, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND), FALSE))
+                {
+                    goto Error;
+                }
+
+                return true;
+            }
+        }
+
         // For the NW DEACT case, Android will perform a DEACTIVATE
         // DATA CALL itself, so no need for us to do it here.
         // Simply trigger data call list changed and let Android process
@@ -751,11 +833,96 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
 
     bRet = TRUE;
 Error:
+    if (!bRet)
+    {
+        free(pszData);
+        pszData = NULL;
+    }
+
     rszPointer = szResponse;
     RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Exit\r\n");
     return bRet;
 }
 
+//
+//
+BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char* &rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXDATASTAT() - Enter\r\n");
+    const char* szResponse = NULL;
+    BOOL bRet = FALSE;
+    UINT32 uiDataStatus = 0;
+    unsigned char* pszData = NULL;
+    int pos = 0;
+    BOOL bIsDataSuspended  = 0;
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXDATASTAT() - pResponse is NULL\r\n");
+        goto Error;
+    }
+
+    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szResponse))
+    {
+        // This isn't a complete notification -- no need to parse it
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXDATASTAT: Failed to find rsp end!\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt32(rszPointer, uiDataStatus, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXDATASTAT() - Could not extract data status.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CSilo_Network::ParseXDATASTAT() - Data State: %s\r\n",
+                                    (0 == uiDataStatus) ? "SUSPENDED" : "RESUMED");
+
+    bIsDataSuspended = (0 == uiDataStatus) ? true : false;
+    if (bIsDataSuspended != g_bIsDataSuspended)
+    {
+        g_bIsDataSuspended = bIsDataSuspended;
+
+        if (!g_bIsDataSuspended)
+        {
+            pszData = (unsigned char*) malloc(sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+            if (NULL == pszData)
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXDATASTAT() - Could not allocate memory for pszData.\r\n");
+                goto Error;
+            }
+            memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+
+            convertIntToByteArrayAt(pszData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
+            pos += sizeof(int);
+            convertIntToByteArrayAt(pszData, uiDataStatus, pos);
+
+            pResponse->SetUnsolicitedFlag(TRUE);
+            pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+
+            if (!pResponse->SetData((void*)pszData, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND), FALSE))
+            {
+                goto Error;
+            }
+        }
+        else
+        {
+            // Delay notifying the SUSPENDED status by 3seconds to avoid icon toggling in send/receive SMS
+            RIL_requestTimedCallback(triggerDataSuspendInd, NULL, 3, 0);
+        }
+    }
+
+    bRet = TRUE;
+Error:
+    if (!bRet)
+    {
+        free(pszData);
+        pszData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXDATASTAT() - Exit\r\n");
+    return bRet;
+}
 
 //
 //

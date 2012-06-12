@@ -25,6 +25,11 @@ static const struct timeval CallStateHyperPoll = {0, 500000};
 void notifyChangedCallState(void *param);
 
 //
+// Callback to trigger data suspended notification
+//
+void triggerDataSuspendInd(void* param);
+
+//
 // Callback to trigger hangup request to modem
 //
 void triggerHangup(UINT32 uiCallId);

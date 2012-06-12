@@ -257,6 +257,35 @@ const int RIL_OEM_HOOK_RAW_UNSOL_IN_SERVICE_IND = 0x000000D2;
 
 #endif // M2_DUALSIM_FEATURE_ENABLED
 
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND
+{
+    int command; //  Command ID
+    int status; // result code
+} sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND;
+
+//
+//  OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND
+//  Command ID = 0x000000D3
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND = 0x000000D3;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_MT_CLASS_IND
+{
+    int command; //  Command ID
+    int mt_class; // result code
+} sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND;
+
+//
+//  OEM_HOOK_RAW_UNSOL_MT_CLASS_IND
+//  Command ID = 0x000000D4
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_MT_CLASS_IND = 0x000000D4;
 
 #pragma pack()
 

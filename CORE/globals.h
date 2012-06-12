@@ -51,6 +51,9 @@ extern bool g_bIsManualNetworkSearchOngoing;
 // This global variable is used to store the MTU size
 extern UINT32 g_MTU;
 
+// This global flag is used to store the data suspend/resume status
+extern bool g_bIsDataSuspended;
+
 #if !defined(BOARD_HAVE_IFX7060)
 ///////////////////////////////////////////////////////////////////////////////
 // This global variable stores the initial value of the
