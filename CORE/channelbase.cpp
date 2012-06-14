@@ -663,6 +663,42 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             }
         }
 #endif // BOARD_HAVE_IFX7060
+
+#if defined(M2_VT_FEATURE_ENABLED)
+        // for Video Telephony, set the the data path, depending on RIL instance
+        //  If sim id == 0 or if sim id is not provided by RILD
+        if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) ) // RILD1
+        {
+            if (!CopyStringNullTerminate(szTemp,
+                                         "+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",1",
+                                         sizeof(szTemp)))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XDATACHANNEL command\r\n");
+                goto Done;
+            }
+        }
+        else // RILD2
+        {
+            if (!CopyStringNullTerminate(szTemp,
+                                         "+XDATACHANNEL=1,0,\"/mux/24\",\"/mux/5\",1",
+                                         sizeof(szTemp)))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XDATACHANNEL command\r\n");
+                goto Done;
+            }
+        }
+
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
+            goto Done;
+        }
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat DataPath failed\r\n");
+            goto Done;
+        }
+#endif // M2_VT_FEATURE_ENABLED
     }
 
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : String [%s]\r\n", szInit);
