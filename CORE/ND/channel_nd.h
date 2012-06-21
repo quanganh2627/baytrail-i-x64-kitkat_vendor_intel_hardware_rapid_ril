@@ -42,9 +42,9 @@ public:
      * ril request with the provided result code and response.
      */
     virtual BOOL FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
-                                                UINT32 uiResultCode,
-                                                void* pResponse,
-                                                size_t responseLen);
+                                                        UINT32 uiResultCode,
+                                                        void* pResponse,
+                                                        size_t responseLen);
 
 protected:
     //  Init functions
@@ -77,7 +77,6 @@ private:
 
     //  helper function to close and open the port.
     void            CloseOpenPort();
-    void CompletePendingDtmfRequests();
 
 protected:
     CResponse*      m_pResponse;

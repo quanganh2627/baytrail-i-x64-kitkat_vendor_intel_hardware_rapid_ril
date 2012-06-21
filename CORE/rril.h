@@ -189,55 +189,5 @@ enum
 #define RRIL_CLIR_INVOCATION                        (0x00000001)
 #define RRIL_CLIR_SUPPRESSION                       (0x00000002)
 
-///////////////////////////////////////////////////////////////////////////////
-// CME Error code defines
-//
-#define RRIL_CME_ERROR_OPERATION_NOT_SUPPORTED                   4
-#define RRIL_CME_ERROR_SIM_NOT_INSERTED                          10
-#define RRIL_CME_ERROR_SIM_PIN_REQUIRED                          11
-#define RRIL_CME_ERROR_SIM_PUK_REQUIRED                          12
-#define RRIL_CME_ERROR_SIM_FAILURE                               13
-#define RRIL_CME_ERROR_SIM_NOT_READY                             14
-#define RRIL_CME_ERROR_SIM_WRONG                                 15
-#define RRIL_CME_ERROR_INCORRECT_PASSWORD                        16
-#define RRIL_CME_ERROR_SIM_PIN2_REQUIRED                         17
-#define RRIL_CME_ERROR_SIM_PUK2_REQUIRED                         18
-#define RRIL_CME_ERROR_NO_NETWORK_SERVICE                        30
-#define RRIL_CME_ERROR_NETWORK_PUK_REQUIRED                      41
-#define RRIL_CME_ERROR_PLMN_NOT_ALLOWED                          111
-#define RRIL_CME_ERROR_LOCATION_NOT_ALLOWED                      112
-#define RRIL_CME_ERROR_ROAMING_NOT_ALLOWED                       113
-
-///////////////////////////////////////////////////////////////////////////////
-// CEER Error code defines
-//
-#define RRIL_CEER_CAUSE_OPERATOR_DETERMINED_BARRING             8
-#define RRIL_CEER_CAUSE_INSUFFICIENT_RESOURCES                  126
-#define RRIL_CEER_CAUSE_MISSING_UNKNOWN_APN                     127
-#define RRIL_CEER_CAUSE_UNKNOWN_PDP_ADDRESS_TYPE                128
-#define RRIL_CEER_CAUSE_USER_AUTHENTICATION_FAILED              129
-#define RRIL_CEER_CAUSE_ACTIVATION_REJECTED_BY_GGSN             130
-#define RRIL_CEER_CAUSE_ACTIVATION_REJECT_UNSPECIFIED           131
-#define RRIL_CEER_CAUSE_OPTION_NOT_SUPPORTED                    132
-#define RRIL_CEER_CAUSE_OPTION_NOT_SUBSCRIBED                   133
-#define RRIL_CEER_CAUSE_OPTION_TEMP_OUT_OF_ORDER                134
-#define RRIL_CEER_CAUSE_NSPAI_ALREADY_USED                      135
-#define RRIL_CEER_CAUSE_PDP_AUTHENTICATION_FAILURE              149
-
-///////////////////////////////////////////////////////////////////////////////
-// CMS Error code defines
-//
-#define RRIL_CMS_ERROR_NETWORK_FAILURE                          17
-#define RRIL_CMS_ERROR_SIM_ABSENT                               310
-#define RRIL_CMS_ERROR_MO_SMS_REJECTED_BY_SIM_MO_SMS_CONTROL    540
-#define RRIL_CMS_ERROR_FDN_CHECK_FAILED                         543
-#define RRIL_CMS_ERROR_SCA_FDN_FAILED                           544
-#define RRIL_CMS_ERROR_DA_FDN_FAILED                            545
-#define RRIL_CMS_ERROR_NO_ROUTE_TO_DESTINATION                  548
-#define RRIL_CMS_ERROR_ACM_MAX                                  564
-#define RRIL_CMS_ERROR_CALLED_PARTY_BLACKLISTED                 581
-#define RRIL_CMS_ERROR_CM_SERVICE_REJECT_FROM_NETWORK           623
-#define RRIL_CMS_ERROR_IMSI_DETACH_INITIATED                    626
-#define RRIL_CMS_ERROR_NUMBER_INCORRECT                         680
 #endif // RRIL_RRIL_H
 

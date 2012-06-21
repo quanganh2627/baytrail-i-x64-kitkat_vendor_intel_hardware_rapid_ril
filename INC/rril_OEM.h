@@ -57,9 +57,32 @@ typedef struct s_response_data
 
     unsigned int cbContextData2;// Size in bytes of the context data object
 
-    unsigned int uiIntermediateResultCode; // If 2 part command, this is the intermediate result code
-    unsigned int uiIntermediateErrorCode;  // If 2 part command, this is the intermediate error code
+    unsigned int uiResultCode;  // Result code for the AT command sent
 
+    unsigned int uiErrorCode;   // CME/CMS error codes returned for the AT command sent or general error code.
 } RESPONSE_DATA;
+
+typedef struct s_post_cmd_handler_data
+{
+    unsigned int uiChannel;         // Channel the command was sent on
+
+    void* pRilToken;                // Pointer to the RIL request token
+
+    void* pContextData;             // Points to object given in request phase or NULL
+                                    // if not supplied
+
+    unsigned int uiContextDataSize; // Size in bytes of the context data object
+
+    unsigned int uiRequestId;       // Corresponding RIL request ID
+
+    unsigned int uiResultCode;      // Result code for the AT command sent
+
+    unsigned int uiErrorCode;       // CME/CMS error codes returned for the AT command sent or general error code.
+
+    void* pData;                    // Point to blob of memory containing response expected by
+                                    // upper layers
+
+    unsigned int uiDataSize;        // Size of response blob
+} POST_CMD_HANDLER_DATA;
 
 #endif

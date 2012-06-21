@@ -37,18 +37,9 @@ extern char g_cTerminator;
 extern char g_szNewLine[3];
 
 ///////////////////////////////////////////////////////////////////////////////
-// This global flag is used to cancel the pending chld requests in ril when
-// the call is disconnected.
-extern bool g_clearPendingChlds;
-
-// This global flag is used to store the manual network search status
-extern bool g_bIsManualNetworkSearchOngoing;
 
 // This global variable is used to store the MTU size
 extern UINT32 g_MTU;
-
-// This global flag is used to store the data suspend/resume status
-extern bool g_bIsDataSuspended;
 
 ///////////////////////////////////////////////////////////////////////////////
 // This global variable stores the initial value of the

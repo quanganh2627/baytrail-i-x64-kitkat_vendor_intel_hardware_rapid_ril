@@ -27,21 +27,6 @@ public:
     CSilo_Phonebook(CChannel *pChannel);
     virtual ~CSilo_Phonebook();
 
-    //  Called at the beginning of CChannel::SendRILCmdHandleRsp() before AT command is
-    //  physically sent and before any CCommand checking.
-    virtual BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
-
-    //  Called in CChannel::SendRILCmdHandleRsp() after AT command is physically sent and
-    //  a response has been received (or timed out).
-    virtual BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
-
-    //  Called in CChannel::HandleRsp() before CResponse::ParseOKData() is called.
-    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
-
-    //  Called in CChannel::HandleRsp() after CResponse::ParseOKData() is called, and before
-    //  CCommand::SendResponse() is called.
-    virtual BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
-
 protected:
     //  Parse notification functions here.
 };

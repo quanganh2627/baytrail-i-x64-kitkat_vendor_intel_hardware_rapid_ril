@@ -34,22 +34,6 @@ public:
     CSilo_SMS(CChannel *pChannel);
     virtual ~CSilo_SMS();
 
-    //  Called at the beginning of CChannel::SendCommand() before AT command is
-    //  physically sent and before any CCommand checking.
-    virtual BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
-
-    //  Called in CChannel::SendCommand() after AT command is physically sent and
-    //  a response has been received (or timed out).
-    virtual BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
-
-    //  Called in CChannel::ParseResponse() before CResponse::ParseResponse() is called.
-    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp);
-
-
-    //  Called in CChannel::ParseResponse() after CResponse::ParseResponse() is called, and before
-    //  CCommand::SendResponse() is called.
-    virtual BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
-
 protected:
     enum SILO_SMS_MSG_TYPES
         {
@@ -68,9 +52,6 @@ protected:
     virtual BOOL ParseCMTI(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL ParseCBMI(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL ParseCDSI(CResponse* const pResponse, const char*& rszPointer);
-
-private:
-    BOOL isRetryPossible(UINT32 uiErrorCode);
 };
 
 #endif // RRIL_SILO_SMS_H

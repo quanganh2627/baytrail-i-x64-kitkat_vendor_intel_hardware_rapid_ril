@@ -68,95 +68,6 @@ CSilo_Network::~CSilo_Network()
     RIL_LOG_VERBOSE("CSilo_Network::~CSilo_Network() - Exit\r\n");
 }
 
-//  Called in CChannel::SendRILCmdHandleRsp() after AT command is physically sent and
-//  a response has been received (or timed out).
-BOOL CSilo_Network::PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    RIL_LOG_VERBOSE("CSilo_Network::PostSendCommandHook() - Enter\r\n");
-    if (ND_REQ_ID_QUERYAVAILABLENETWORKS == rpCmd->GetRequestID() &&
-            NULL != rpRsp && rpRsp->IsTimedOutFlag())
-    {
-        RIL_LOG_INFO("CSilo_Network::PostSendCommandHook() - Manual network search timed out\r\n");
-        g_bIsManualNetworkSearchOngoing = false;
-    }
-
-    RIL_LOG_VERBOSE("CSilo_Network::PostSendCommandHook() - Exit\r\n");
-    return TRUE;
-}
-
-BOOL CSilo_Network::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    if (ND_REQ_ID_QUERYAVAILABLENETWORKS == rpCmd->GetRequestID())
-    {
-        g_bIsManualNetworkSearchOngoing = false;
-    }
-
-    return TRUE;
-}
-
-//  Called in CChannel::ParseResponse() after CResponse::ParseResponse() is called, and before
-//  CCommand::SendResponse() is called.
-BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    if ((ND_REQ_ID_OPERATOR == rpCmd->GetRequestID()) &&
-        (RRIL_RESULT_OK != rpRsp->GetResultCode()) &&
-        (RRIL_CME_ERROR_NO_NETWORK_SERVICE == rpRsp->GetErrorCode()))
-    {
-        rpRsp->SetResultCode(RIL_E_OP_NOT_ALLOWED_BEFORE_REG_TO_NW);
-    }
-    else if ((ND_REQ_ID_GETCURRENTCALLS == rpCmd->GetRequestID()) &&
-        (RRIL_RESULT_ERROR == rpRsp->GetResultCode()) &&
-        (RRIL_SIM_STATE_NOT_READY == CTE::GetTE().GetSIMState()))
-    {
-        RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - INFO: Override GET CURRENT CALLS error with OK as SIM is locked or absent\r\n");
-        rpRsp->SetResultCode(RRIL_RESULT_OK);
-    }
-    else if ((ND_REQ_ID_PDPCONTEXTLIST_UNSOL == rpCmd->GetRequestID()) &&
-             (RRIL_RESULT_ERROR == rpRsp->GetResultCode()))
-    {
-        RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - INFO: Override REQUEST PDP CONTEXT LIST error with OK as SIM is locked or absent\r\n");
-        rpRsp->SetResultCode(RRIL_RESULT_OK);
-
-        //  Bring down all data contexts internally.
-        CChannel_Data* pChannelData = NULL;
-
-        for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
-        {
-            if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
-                continue;
-
-            CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
-            //  We are taking down all data connections here, so we are looping over each data channel.
-            //  Don't call DataConfigDown with invalid CID.
-            if (pChannelData && pChannelData->GetContextID() > 0)
-            {
-                RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", i, pChannelData->GetContextID());
-                DataConfigDown(pChannelData->GetContextID());
-            }
-        }
-
-        RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
-
-    }
-    else if ((ND_REQ_ID_SETNETWORKSELECTIONMANUAL == rpCmd->GetRequestID()) &&
-             (RRIL_RESULT_OK != rpRsp->GetResultCode()))
-    {
-        switch (rpRsp->GetErrorCode())
-        {
-            case RRIL_CME_ERROR_PLMN_NOT_ALLOWED:
-            case RRIL_CME_ERROR_LOCATION_NOT_ALLOWED:
-            case RRIL_CME_ERROR_ROAMING_NOT_ALLOWED:
-                rpRsp->SetResultCode(RIL_E_ILLEGAL_SIM_OR_ME);
-                break;
-            default:
-                /* do not change result code */
-                break;
-        }
-    }
-
-    return TRUE;
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //  Parse functions here
@@ -905,11 +816,11 @@ BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char* &rszP
                                     (0 == uiDataStatus) ? "SUSPENDED" : "RESUMED");
 
     bIsDataSuspended = (0 == uiDataStatus) ? true : false;
-    if (bIsDataSuspended != g_bIsDataSuspended)
+    if (bIsDataSuspended != CTE::GetTE().IsDataSuspended())
     {
-        g_bIsDataSuspended = bIsDataSuspended;
+        CTE::GetTE().SetDataSuspended(bIsDataSuspended);
 
-        if (!g_bIsDataSuspended)
+        if (!bIsDataSuspended)
         {
             pszData = (unsigned char*) malloc(sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
             if (NULL == pszData)

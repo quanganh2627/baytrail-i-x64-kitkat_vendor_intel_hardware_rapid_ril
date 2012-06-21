@@ -47,21 +47,6 @@ public:
     //  FALSE if response is not handled by this hook, and handling will continue to other silos, then framework.
     virtual BOOL ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError);
 
-    //  Called at the beginning of CChannel::SendCommand() before AT command is
-    //  physically sent and before any CCommand checking.
-    virtual BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) = 0;
-
-    //  Called in CChannel::SendCommand() after AT command is physically sent and
-    //  a response has been received (or timed out).
-    virtual BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) = 0;
-
-    //  Called in CChannel::ParseResponse() before CResponse::ParseResponse() is called.
-    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) = 0;
-
-    //  Called in CChannel::ParseResponse() after CResponse::ParseResponse() is called, and before
-    //  CCommand::SendResponse() is called.
-    virtual BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) = 0;
-
 protected:
     CChannel *m_pChannel;
 

@@ -24,7 +24,7 @@ class CContext;
 class CTE;
 
 typedef RIL_RESULT_CODE (CTE::*PFN_TE_PARSE) (RESPONSE_DATA & rRspData);
-
+typedef void (CTE::*PFN_TE_POSTCMDHANDLER) (POST_CMD_HANDLER_DATA& rRspData);
 
 class CCommand
 {
@@ -33,20 +33,23 @@ public:
                 RIL_Token token,
                 UINT32 uiReqId,
                 const char* pszATCmd,
-                PFN_TE_PARSE pParseFcn = NULL);
+                PFN_TE_PARSE pParseFcn = NULL,
+                PFN_TE_POSTCMDHANDLER pHandlerFcn = NULL);
 
     CCommand(   UINT32 uiChannel,
                 RIL_Token token,
                 UINT32 uiReqId,
                 const char* pszATCmd1,
                 const char* pszATCmd2,
-                PFN_TE_PARSE pParseFcn = NULL);
+                PFN_TE_PARSE pParseFcn = NULL,
+                PFN_TE_POSTCMDHANDLER pHandlerFcn = NULL);
 
     CCommand(   UINT32 uiChannel,
                 RIL_Token token,
                 UINT32 uiReqId,
                 REQUEST_DATA reqData,
-                PFN_TE_PARSE pParseFcn = NULL);
+                PFN_TE_PARSE pParseFcn = NULL,
+                PFN_TE_POSTCMDHANDLER pHandlerFcn = NULL);
 
     ~CCommand();
 
@@ -63,6 +66,8 @@ public:
     char*               GetATCmd1()         { return m_pszATCmd1;   };
     char*               GetATCmd2()         { return m_pszATCmd2;   };
     PFN_TE_PARSE        GetParseFcn()       { return m_pParseFcn;   };
+    PFN_TE_POSTCMDHANDLER  GetPostCmdHandlerFcn() { return m_pPostCmdHandlerFcn; };
+
     UINT32              GetTimeout()        { return m_uiTimeout;   };
     CContext *          GetContext()        { return m_pContext;    };
     void*               GetContextData()    { return m_pContextData;};
@@ -96,6 +101,7 @@ private:
     char*               m_pszATCmd1;
     char*               m_pszATCmd2;
     PFN_TE_PARSE        m_pParseFcn;
+    PFN_TE_POSTCMDHANDLER  m_pPostCmdHandlerFcn;
     UINT32              m_uiTimeout;
     BOOL                m_fAlwaysParse;
     BOOL                m_fHighPriority;

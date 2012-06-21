@@ -24,11 +24,9 @@
 #include "silo_sim.h"
 #include "callbacks.h"
 #include "te.h"
+
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
-
-// for SIM technical problem (XSIM or XSIMSTATE: 8), report as cardstate error
-BOOL g_bReportCardStateError = FALSE;
 
 //
 //
@@ -72,449 +70,6 @@ CSilo_SIM::~CSilo_SIM()
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL CSilo_SIM::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    RIL_LOG_VERBOSE("CSilo_SIM::PreParseResponseHook() - Enter\r\n");
-    BOOL bRetVal = TRUE;
-
-    switch(rpCmd->GetRequestID())
-    {
-        case ND_REQ_ID_SETFACILITYLOCK:
-            bRetVal = ParseFacilityLock(rpCmd, rpRsp);
-            break;
-        case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION:
-            bRetVal = ParseNetworkPersonalisationPin(rpCmd, rpRsp);
-            break;
-        case ND_REQ_ID_SIMIO:
-            bRetVal = ParseSimIO(rpCmd, rpRsp);
-            break;
-        default:
-            break;
-    }
-
-Error:
-    RIL_LOG_VERBOSE("CSilo_SIM::PreParseResponseHook() - Exit\r\n");
-    return bRetVal;
-}
-
-BOOL CSilo_SIM::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    RIL_LOG_VERBOSE("CSilo_SIM::PostParseResponseHook() - Enter\r\n");
-    BOOL bRetVal = TRUE;
-
-    switch(rpCmd->GetRequestID())
-    {
-        case ND_REQ_ID_GETSIMSTATUS:
-            bRetVal = ParseSimStatus(rpCmd, rpRsp);
-            break;
-
-        case ND_REQ_ID_ENTERSIMPIN:
-        case ND_REQ_ID_ENTERSIMPUK:
-        case ND_REQ_ID_ENTERSIMPIN2:
-        case ND_REQ_ID_ENTERSIMPUK2:
-        case ND_REQ_ID_CHANGESIMPIN:
-        case ND_REQ_ID_CHANGESIMPIN2:
-        case ND_REQ_ID_SETFACILITYLOCK:
-            bRetVal = ParsePin(rpCmd, rpRsp);
-            break;
-
-        case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION:
-            if (RIL_E_SUCCESS == rpRsp->GetResultCode())
-            {
-                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
-                CSystemManager::GetInstance().TriggerSimUnlockedEvent();
-            }
-            break;
-
-        case ND_REQ_ID_WRITESMSTOSIM:
-            if (RIL_E_SUCCESS != rpRsp->GetResultCode() &&
-                    CMS_ERROR_MEMORY_FULL == rpRsp->GetErrorCode())
-            {
-                RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_SMS_STORAGE_FULL, NULL, 0);
-            }
-            break;
-
-        default:
-            break;
-    }
-
-Error:
-    RIL_LOG_VERBOSE("CSilo_SIM::PostParseResponseHook() - Exit\r\n");
-    return bRetVal;
-}
-
-// Helper functions
-BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    RIL_LOG_VERBOSE("CSilo_SIM::ParsePin() - Enter\r\n");
-
-    BOOL bRetVal = FALSE;
-
-    // The intermediate error/result codes are only used when getting the
-    // sim pin retry count (entering the sim pin, setting facility lock, etc)
-    UINT32 uiErrorCode = rpRsp->GetIntermediateErrorCode();
-    UINT32 uiResultCode = rpRsp->GetIntermediateResultCode();
-
-    // for SetFacilityLock there are special cases to check
-    if (ND_REQ_ID_SETFACILITYLOCK == rpCmd->GetRequestID())
-    {
-        // get facility from context data
-        char* pszFacility = (char*)rpCmd->GetContextData();
-        if (pszFacility)
-        {
-            // For facilities where getting sim pin retry count is not supported
-            // don't map error/result codes since already done in ParseFacilityLock()
-            if (0 != strcmp(pszFacility, "SC") &&
-                0 != strcmp(pszFacility, "FD"))
-            {
-                free(pszFacility);
-                pszFacility = NULL;
-                return TRUE;
-            }
-        }
-        free(pszFacility);
-        pszFacility = NULL;
-
-        // handle case where there is no second command Cmd2 (eg. only facility
-        // and mode are provided, no password). In this case, no need to check the
-        // intermediate error/result code
-        if (NULL == rpCmd->GetATCmd2())
-        {
-            uiErrorCode = rpRsp->GetErrorCode();
-            uiResultCode = rpRsp->GetResultCode();
-        }
-        else
-        {
-            RIL_LOG_INFO("CSilo_SIM::ParsePin() - SetFacilityLock - intermediate rsp: result %u, error %u\r\n",
-                uiResultCode, uiErrorCode);
-        }
-    }
-    else
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParsePin() - intermediate rsp: result %u, error %u\r\n",
-            uiResultCode, uiErrorCode);
-    }
-
-    if (RIL_E_SUCCESS != uiResultCode)
-    {
-        switch (uiErrorCode)
-        {
-            case CME_ERROR_INCORRECT_PASSWORD:
-                RIL_LOG_INFO("CSilo_SIM::ParsePin() - Incorrect password");
-                rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-                break;
-
-            case CME_ERROR_SIM_PUK_REQUIRED:
-                RIL_LOG_INFO("CSilo_SIM::ParsePin() - SIM PUK required");
-                rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
-                break;
-
-            case CME_ERROR_SIM_PUK2_REQUIRED:
-                RIL_LOG_INFO("CSilo_SIM::ParsePin() - SIM PUK2 required");
-                rpRsp->SetResultCode(RIL_E_SIM_PUK2);
-                break;
-
-            default:
-                RIL_LOG_INFO("CSilo_SIM::ParsePin() - Unknown error [%d]", rpRsp->GetErrorCode());
-                rpRsp->SetResultCode(RIL_E_GENERIC_FAILURE);
-                break;
-        }
-    }
-
-    bRetVal = TRUE;
-
-Error:
-    RIL_LOG_VERBOSE("CSilo_SIM::ParsePin() - Exit\r\n");
-    return bRetVal;
-}
-
-BOOL CSilo_SIM::ParseFacilityLock(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseFacilityLock() - Enter\r\n");
-
-    BOOL bRetVal = FALSE;
-
-    // get facility from context data
-    char* pszFacility = (char*)rpCmd->GetContextData();
-    if (pszFacility)
-    {
-        // Exclude facilities which don't support the return of the sim pin retry count
-        // (non-sim/fixed dialing) before mapping any error code from the response
-        // of +CLCK to result code.
-        if (0 != strcmp(pszFacility, "SC") &&
-            0 != strcmp(pszFacility, "FD"))
-        {
-            if (RIL_E_SUCCESS != rpRsp->GetResultCode())
-            {
-                switch(rpRsp->GetErrorCode())
-                {
-                    case CME_ERROR_INCORRECT_PASSWORD:
-                        RIL_LOG_INFO("CSilo_SIM::ParseFacilityLock() - Incorrect password");
-                        rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-                        break;
-
-                    case CME_ERROR_SIM_PUK_REQUIRED:
-                        RIL_LOG_INFO("CSilo_SIM::ParseFacilityLock() - SIM PUK required");
-                        rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-                        CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
-                        break;
-
-                    case CME_ERROR_SIM_PUK2_REQUIRED:
-                        RIL_LOG_INFO("CSilo_SIM::ParseFacilityLock() - SIM PUK2 required");
-                        rpRsp->SetResultCode(RIL_E_SIM_PUK2);
-                        break;
-
-                    default:
-                        RIL_LOG_INFO("CSilo_SIM::ParseFacilityLock() - Unknown error [%d]", rpRsp->GetErrorCode());
-                        rpRsp->SetResultCode(RIL_E_GENERIC_FAILURE);
-                        break;
-                }
-            }
-        }
-    }
-
-    bRetVal = TRUE;
-
-Error:
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseFacilityLock() - Exit\r\n");
-    return bRetVal;
-}
-
-// Helper functions
-BOOL CSilo_SIM::ParseNetworkPersonalisationPin(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    BOOL bRetVal = FALSE;
-
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseNetworkPersonalisationPin() - Enter\r\n");
-
-    if (RIL_E_SUCCESS != rpRsp->GetResultCode())
-    {
-        switch(rpRsp->GetErrorCode())
-        {
-            case CME_ERROR_INCORRECT_PASSWORD:
-                RIL_LOG_INFO("CSilo_SIM::ParseNetworkPersonalisationPin() - Incorrect password");
-                rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-                break;
-            case CME_ERROR_NETWORK_PUK_REQUIRED:
-                RIL_LOG_INFO("CSilo_SIM::ParseNetworkPersonalisationPin() - NETWORK PUK required");
-                rpRsp->SetResultCode(RIL_E_NETWORK_PUK_REQUIRED);
-                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
-                break;
-            default:
-                RIL_LOG_INFO("CSilo_SIM::ParseNetworkPersonalisationPin() - Unknown error [%d]", rpRsp->GetErrorCode());
-                rpRsp->SetResultCode(RIL_E_GENERIC_FAILURE);
-                break;
-        }
-
-        rpRsp->FreeData();
-        int* pInt = (int *) malloc(sizeof(int));
-
-        if (NULL == pInt)
-        {
-            RIL_LOG_CRITICAL("CSilo_SIM::ParseNetworkPersonalisationPin(): Unable to allocate memory for NET PIN retries\r\n");
-            goto Error;
-        }
-
-        //  (Dec 22/09) I tried entering different values for this, but I don't think it does anything in the UI.
-        *pInt = -1;
-
-        if (!rpRsp->SetData((void*) pInt, sizeof(int), FALSE))
-        {
-            RIL_LOG_CRITICAL("CSilo_SIM::ParseNetworkPersonalisationPin() : Unable to set data with number of NET PIN retries left\r\n");
-            free(pInt);
-            pInt = NULL;
-            goto Error;
-        }
-    }
-
-    bRetVal = TRUE;
-
-Error:
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseNetworkPersonalisationPin() - Exit\r\n");
-    return bRetVal;
-}
-
-BOOL CSilo_SIM::ParseSimIO(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    BOOL bRetVal = FALSE;
-
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseSimIO() - Enter\r\n");
-
-    if (RIL_E_SUCCESS != rpRsp->GetResultCode())
-    {
-        switch(rpRsp->GetErrorCode())
-        {
-            case CME_ERROR_SIM_PIN2_REQUIRED:
-            case CME_ERROR_INCORRECT_PASSWORD:
-                RIL_LOG_INFO("CSilo_SIM::ParseSimIO() - SIM PIN2 required");
-                rpRsp->SetResultCode(RIL_E_SIM_PIN2);
-                break;
-
-            case CME_ERROR_SIM_PUK2_REQUIRED:
-                RIL_LOG_INFO("CSilo_SIM::ParseSimIO() - SIM PUK2 required");
-                rpRsp->SetResultCode(RIL_E_SIM_PUK2);
-                break;
-
-            default:
-                RIL_LOG_INFO("CSilo_SIM::ParseSimIO() - Unknown error [%d]", rpRsp->GetErrorCode());
-                rpRsp->SetResultCode(RIL_E_GENERIC_FAILURE);
-                break;
-        }
-    }
-
-    bRetVal = TRUE;
-
-Error:
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseSimIO() - Exit\r\n");
-    return bRetVal;
-}
-
-BOOL CSilo_SIM::ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseSimStatus() - Enter\r\n");
-
-    BOOL bRetVal = FALSE;
-    if (RIL_E_SUCCESS != rpRsp->GetResultCode())
-    {
-        RIL_LOG_INFO("CSilo_SIM::ParseSimStatus() : Found CME Error on AT+CPIN? request.\r\n");
-
-        switch (rpRsp->GetErrorCode())
-        {
-            case RRIL_CME_ERROR_SIM_NOT_INSERTED:
-            {
-                RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : SIM Card is absent!\r\n");
-                rpRsp->FreeData();
-                rpRsp->SetResultCode(RIL_E_SUCCESS);
-
-                RIL_CardStatus_v6* pCardStatus = (RIL_CardStatus_v6 *) malloc(sizeof(RIL_CardStatus_v6));
-                if (NULL == pCardStatus)
-                {
-                    RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to allocate memory for RIL_CardStatus_v6\r\n");
-                    goto Error;
-                }
-                memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
-
-                pCardStatus->gsm_umts_subscription_app_index = -1;
-                pCardStatus->cdma_subscription_app_index = -1;
-                pCardStatus->ims_subscription_app_index = -1;
-                pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
-                pCardStatus->card_state = RIL_CARDSTATE_ABSENT;
-                pCardStatus->num_applications = 0;
-
-                // Don't copy the memory, just pass along the pointer as is.
-                if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus_v6), FALSE))
-                {
-                    RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to set data with sim state\r\n");
-                    free(pCardStatus);
-                    pCardStatus = NULL;
-                    goto Error;
-                }
-            }
-            break;
-
-            case RRIL_CME_ERROR_SIM_NOT_READY:
-            {
-                RIL_LOG_INFO("CSilo_SIM::ParseSimStatus() : SIM Card is not ready!\r\n");
-                rpRsp->FreeData();
-                rpRsp->SetResultCode(RIL_E_SUCCESS);
-
-                RIL_CardStatus_v6* pCardStatus = (RIL_CardStatus_v6*) malloc(sizeof(RIL_CardStatus_v6));
-                if (NULL == pCardStatus)
-                {
-                    RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to allocate memory for RIL_CardStatus_v6\r\n");
-                    goto Error;
-                }
-                memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
-
-                pCardStatus->gsm_umts_subscription_app_index = 0;
-                pCardStatus->cdma_subscription_app_index = -1;
-                pCardStatus->ims_subscription_app_index = -1;
-                pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
-
-                // for XSIM 8 (SIM technical problem), report cardstate error
-                if (g_bReportCardStateError)
-                {
-                    pCardStatus->card_state = RIL_CARDSTATE_ERROR;
-                }
-                else
-                {
-                    pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
-                }
-
-                pCardStatus->num_applications = 1;
-
-                pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-                pCardStatus->applications[0].app_state = RIL_APPSTATE_DETECTED;
-                pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-                pCardStatus->applications[0].aid_ptr = NULL;
-                pCardStatus->applications[0].app_label_ptr = NULL;
-                pCardStatus->applications[0].pin1_replaced = 0;
-                pCardStatus->applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
-                pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
-#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
-                pCardStatus->applications[0].pin1_num_retries = -1;
-                pCardStatus->applications[0].puk1_num_retries = -1;
-                pCardStatus->applications[0].pin2_num_retries = -1;
-                pCardStatus->applications[0].puk2_num_retries = -1;
-#endif // M2_PIN_RETRIES_FEATURE_ENABLED
-
-                // Don't copy the memory, just pass along the pointer as is.
-                if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus_v6), FALSE))
-                {
-                    RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to set data with sim state\r\n");
-                    free(pCardStatus);
-                    pCardStatus = NULL;
-                    goto Error;
-                }
-            }
-            break;
-
-            case RRIL_CME_ERROR_SIM_WRONG:
-            {
-                RIL_LOG_INFO("CSilo_SIM::ParseSimStatus() : WRONG SIM Card!\r\n");
-                rpRsp->FreeData();
-                rpRsp->SetResultCode(RIL_E_SUCCESS);
-
-                RIL_CardStatus_v6* pCardStatus = (RIL_CardStatus_v6*) malloc(sizeof(RIL_CardStatus_v6));
-                if (NULL == pCardStatus)
-                {
-                    RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to allocate memory for RIL_CardStatus_v6\r\n");
-                    goto Error;
-                }
-                memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
-
-                pCardStatus->gsm_umts_subscription_app_index = 0;
-                pCardStatus->cdma_subscription_app_index = -1;
-                pCardStatus->ims_subscription_app_index = -1;
-                pCardStatus->universal_pin_state = RIL_PINSTATE_ENABLED_PERM_BLOCKED;
-                pCardStatus->card_state = RIL_CARDSTATE_ERROR;  //RIL_CARDSTATE_ABSENT
-                pCardStatus->num_applications = 0;
-
-                // Don't copy the memory, just pass along the pointer as is.
-                if (!rpRsp->SetData((void*) pCardStatus, sizeof(RIL_CardStatus_v6), FALSE))
-                {
-                    RIL_LOG_CRITICAL("CSilo_SIM::ParseSimStatus() : Unable to set data with sim state\r\n");
-                    free(pCardStatus);
-                    pCardStatus = NULL;
-                    goto Error;
-                }
-            }
-            break;
-
-            default:
-                break;
-        }
-    }
-
-    bRetVal = TRUE;
-Error:
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseSimStatus() - Exit\r\n");
-
-    return bRetVal;
-}
-
 
 BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rszPointer)
 {
@@ -892,9 +447,8 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
     }
 
     // Here we assume we don't have card error.
-    // This variable will be changed in case we received XSIM=8.
-    g_bReportCardStateError = FALSE;
-
+    // This will be changed in case we received XSIM=8.
+    CTE::GetTE().SetSimTechnicalProblem(FALSE);
 
     /// @TODO: Need to revisit the XSIM and radio state mapping
     switch (nSIMState)
@@ -945,7 +499,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
         case 8: // SIM Technical problem
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM TECHNICAL PROBLEM\r\n");
             CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
-            g_bReportCardStateError = TRUE;
+            CTE::GetTE().SetSimTechnicalProblem(TRUE);
             break;
         case 7: // ready for attach (+COPS)
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
@@ -1281,8 +835,8 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
     rszPointer -= strlen(g_szNewLine);
 
     // Here we assume we don't have card error.
-    // This variable will be changed in case we received XSIM=8.
-    g_bReportCardStateError = FALSE;
+    // This will be changed in case of nSIMState is 8.
+    CTE::GetTE().SetSimTechnicalProblem(FALSE);
 
     /// @TODO: Need to revisit the XSIM and radio state mapping
     switch (nSIMState)
@@ -1333,7 +887,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
         case 8: // SIM Technical problem
             RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
             CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
-            g_bReportCardStateError = TRUE;
+            CTE::GetTE().SetSimTechnicalProblem(TRUE);
             break;
         case 7: // ready for attach (+COPS)
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");

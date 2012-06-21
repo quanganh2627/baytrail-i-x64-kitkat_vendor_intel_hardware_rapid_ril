@@ -15,7 +15,7 @@
 #include "rildmain.h"
 #include "rillog.h"
 #include "te.h"
-#include "../util.h"
+#include "util.h"
 #include "oemhookids.h"
 
 void notifyChangedCallState(void *param)
@@ -25,7 +25,7 @@ void notifyChangedCallState(void *param)
 
 void triggerDataSuspendInd(void* param)
 {
-    if (!g_bIsDataSuspended)
+    if (!CTE::GetTE().IsDataSuspended())
         return;
 
     unsigned char* pszData = NULL;

@@ -32,21 +32,6 @@ public:
     CSilo_Network(CChannel *pChannel);
     virtual ~CSilo_Network();
 
-    //  Called at the beginning of CChannel::SendRILCmdHandleRsp() before AT command is
-    //  physically sent and before any CCommand checking.
-    virtual BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
-
-    //  Called in CChannel::SendCommand() after AT command is physically sent and
-    //  a response has been received (or timed out).
-    virtual BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp);
-
-    //  Called in CChannel::ParseResponse() before CResponse::ParseResponse() is called.
-    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp);
-
-    //  Called in CChannel::ParseResponse() after CResponse::ParseResponse() is called, and before
-    //  CCommand::SendResponse() is called.
-    virtual BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp);
-
 protected:
     enum SILO_NETWORK_REGISTRATION_TYPES
         {

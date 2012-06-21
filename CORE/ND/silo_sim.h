@@ -34,21 +34,6 @@ public:
     CSilo_SIM(CChannel *pChannel);
     virtual ~CSilo_SIM();
 
-    //  Called at the beginning of CChannel::SendRILCmdHandleRsp() before AT command is
-    //  physically sent and before any CCommand checking.
-    virtual BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp /*, BOOL& rfHungUp, BOOL& rfTimedOut*/) { return TRUE; };
-
-    //  Called in CChannel::SendRILCmdHandleRsp() after AT command is physically sent and
-    //  a response has been received (or timed out).
-    virtual BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp /*, BOOL& rfHungUp, BOOL& rfTimedOut*/) { return TRUE; };
-
-    //  Called in CChannel::HandleRsp() before CResponse::ParseOKData() is called.
-    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, BOOL& rfHungUp, BOOL& rfRadioOff*/);
-
-    //  Called in CChannel::HandleRsp() after CResponse::ParseOKData() is called, and before
-    //  CCommand::SendResponse() is called.
-    virtual BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, BOOL& rfHungUp, BOOL& rfRadioOff*/);
-
 protected:
     //  Parse notification functions here.
     virtual BOOL    ParseIndicationSATI(CResponse* const pResponse, const char*& rszPointer);
@@ -64,12 +49,6 @@ protected:
     char m_szECCList[MAX_BUFFER_SIZE];
 
 private:
-    // helper functions
-    BOOL ParsePin(CCommand*& rpCmd, CResponse*& rpRsp);
-    BOOL ParseFacilityLock(CCommand*& rpCmd, CResponse*& rpRsp);
-    BOOL ParseNetworkPersonalisationPin(CCommand*& rpCmd, CResponse*& rpRsp);
-    BOOL ParseSimIO(CCommand*& rpCmd, CResponse*& rpRsp);
-    BOOL ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp);
     BOOL m_IsReadyForAttach;
 };
 

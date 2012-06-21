@@ -57,49 +57,6 @@ CSilo_Data::~CSilo_Data()
     RIL_LOG_VERBOSE("CSilo_Data::~CSilo_Data() - Exit\r\n");
 }
 
-//  Called in CChannel::SendRILCmdHandleRsp() after AT command is physically sent and
-//  a response has been received (or timed out).
-BOOL CSilo_Data::PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    RIL_LOG_VERBOSE("CSilo_Data::PostSendCommandHook() - Enter\r\n");
-    if (ND_REQ_ID_SETUPDEFAULTPDP == rpCmd->GetRequestID() &&
-            NULL != rpRsp && rpRsp->IsTimedOutFlag())
-    {
-        RIL_LOG_INFO("CSilo_Data::PostSendCommandHook() - Setup data call timed out\r\n");
-        CTE::GetTE().SetupDataCallOngoing(false);
-    }
-
-    RIL_LOG_VERBOSE("CSilo_Data::PostSendCommandHook() - Exit\r\n");
-    return TRUE;
-}
-
-BOOL CSilo_Data::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    if (ND_REQ_ID_SETUPDEFAULTPDP == rpCmd->GetRequestID())
-    {
-        CTE::GetTE().SetupDataCallOngoing(false);
-    }
-
-    return TRUE;
-}
-
-//
-//
-BOOL CSilo_Data::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp /*, BOOL& rfHungUp, BOOL& rfTimedOut*/)
-{
-    BOOL fRet = TRUE;
-
-    RIL_LOG_VERBOSE("CSilo_Data::PostParseResponseHook rpRsp->GetResultCode() = %d\r\n", rpRsp->GetResultCode());
-
-    if ((ND_REQ_ID_SETUPDEFAULTPDP == rpCmd->GetRequestID()) && (RRIL_RESULT_OK == rpRsp->GetResultCode()))
-    {
-        rpRsp->SetUnsolicitedFlag(FALSE);
-    }
-
-    return fRet;
-}
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //  Parse functions here

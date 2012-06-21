@@ -33,19 +33,10 @@ char g_cTerminator = '\r';
 char g_szNewLine[3] = "\r\n";
 
 ///////////////////////////////////////////////////////////////////////////////
-// This global flag is used to cancel the pending chld requests in ril when
-// the call is disconnected.
-bool g_clearPendingChlds = false;
-
-// This global flag is used to store the manual network search status
-bool g_bIsManualNetworkSearchOngoing = false;
 
 // This global variable is used to store the MTU size. 1358 is the value
 // recommended in 3GPP 23.060 for both support of IPV4 and IPV6 traffic.
 UINT32 g_MTU = 1358;
-
-// This global flag is used to store the data suspend/resume status
-bool g_bIsDataSuspended = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 // This global variable stores the initial value of the

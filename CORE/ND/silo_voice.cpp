@@ -84,22 +84,6 @@ CSilo_Voice::~CSilo_Voice()
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL CSilo_Voice::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
-{
-    // This is needed to push the dialer state machine.
-    // When calling a number, sometimes XCALLSTAT notification never appears and
-    // never triggers to query the call state.
-    if (ND_REQ_ID_DIAL == rpCmd->GetRequestID()
-#if defined(M2_VT_FEATURE_ENABLED)
-        || ND_REQ_ID_DIALVT == rpCmd->GetRequestID()
-#endif // M2_VT_FEATURE_ENABLED
-    )
-    {
-        notifyChangedCallState(NULL);
-    }
-
-    return TRUE;
-}
 //
 //
 //
@@ -336,7 +320,7 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
             m_uiCallId = 0;
             CTE::GetTE().SetIncomingCallStatus(0, uiStat);
             // set the flag to clear all pending chld requests
-            g_clearPendingChlds = true;
+            CTE::GetTE().SetClearPendingCHLDs(TRUE);
             // Fall through
         default:
             pResponse->SetUnsolicitedFlag(TRUE);

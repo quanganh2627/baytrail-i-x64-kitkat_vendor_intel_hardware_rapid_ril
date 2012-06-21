@@ -537,17 +537,199 @@ public:
     void SetRadioState(const RRIL_Radio_State eRadioState);
     void SetSIMState(const RRIL_SIM_State eRadioState);
 
+    void SetSimTechnicalProblem(BOOL bIsTechnicalProblem) { m_bIsSimTechnicalProblem = bIsTechnicalProblem; };
+    BOOL IsSimTechnicalProblem() { return m_bIsSimTechnicalProblem; };
+
+    void SetManualNetworkSearchOn(BOOL bIsManualSearchOn) { m_bIsManualNetworkSearchOn = bIsManualSearchOn; };
+    BOOL IsManualNetworkSearchOn() { return m_bIsManualNetworkSearchOn; };
+
+    void SetDataSuspended(BOOL bIsSuspended) { m_bIsDataSuspended = bIsSuspended; };
+    BOOL IsDataSuspended() { return m_bIsDataSuspended; };
+
+    void SetClearPendingCHLDs(BOOL bIsClearPendingCHLDs) { m_bIsClearPendingCHLD = bIsClearPendingCHLDs; };
+    BOOL IsClearPendingCHLD() { return m_bIsClearPendingCHLD; };
+
+    BOOL IsSetupDataCallAllowed(int& retryTime);
+
+    /*
+     * Post Command handler function for valid ril requests and also for internal requests.
+     * This function only completes the ril requests upon valid ril token. No cleanup done
+     * for any specific request.
+     */
+    void PostCmdHandlerCompleteRequest(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for Get SIM status request.
+     *
+     * Upon Success, request is completed
+     *
+     * Upon Failure, RIL_CardStatus_v6 filled with values based
+     * on the error codes. Also sets the result code to SUCCESS as
+     * expected by android telephony framework.
+     *
+     */
+    void PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for the SIM PIN/PIN2/PUK/PUK2/Facility
+     * lock requests.
+     *
+     * Upon success, completes the request
+     * Upon failure, error codes are mapped to the RIL error codes and completes the request.
+     */
+    void PostSimPinCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION
+     *
+     * Upon success, completes the request and also triggers the SIM UNLOCKED event.
+     * Upon failure, error codes are mapped to the RIL error codes and completes the request.
+     */
+    void PostNtwkPersonalizationCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_GET_CURRENT_CALLS
+     *
+     * Upon success/failure, completes the request. If the failure is due to
+     * SIM LOCKED OR ABSENT, then completes the request as SUCCESS
+     */
+    void PostGetCurrentCallsCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_DIAL and RIL_REQUEST_DIAL_VT
+     *
+     * Upon success/failure, completes the request and also completes
+     * RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED.
+     */
+    void PostDialCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_HANGUP,
+     * RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND, RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND,
+     * and RIL_REQUEST_HANGUP_VT.
+     *
+     * Upon success/failure, completes pending DTMF requests with RIL_E_GENERIC_FAILURE error.
+     */
+    void PostHangupCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE,
+     * RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE.
+     *
+     * Upon Success, completes the request and also completes pending DTMF requests with
+     * RIL_E_GENERIC_FAILURE error.
+     * Upon Failure, completes the request and also completes pending switch, DTMF requests with
+     * RIL_E_GENERIC_FAILURE error.
+     */
+    void PostSwitchHoldingAndActiveCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_CONFERENCE
+     *
+     * Upon success/failure, completes pending DTMF requests with RIL_E_GENERIC_FAILURE error.
+     */
+    void PostConferenceCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_VOICE_REGISTRATION_STATE,
+     * RIL_REQUEST_DATA_REGISTRATION_STATE, RIL_REQUEST_OPERATOR and
+     * RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE request.
+     *
+     * Upon success/failure, completes the request and also completes identical requests
+     * in the command queue.
+     */
+    void PostNetworkInfoCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_OPERATOR.
+     *
+     * Upon success, completes the request
+     * Upon failure, error codes are mapped to the RIL error codes and completes the request.
+     */
+    void PostOperator(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_SEND_SMS and
+     * RIL_REQUEST_SEND_SMS_EXPECT_MORE request.
+     *
+     * Upon success, completes the request
+     * Upon failure, error codes are mapped to the RIL error codes and completes the request.
+     */
+    void PostSendSmsCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler functions for the RIL_REQUEST_SETUP_DATA_CALL
+     * ril request.
+     */
+    void PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_SIM_IO
+     *
+     * Upon success, completes the request
+     * Upon failure, error codes are mapped to the RIL error codes and completes the request.
+     */
+    void PostSimIOCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    // Sets the g_bIsManualNetworkSearchOngoing to false
+    void PostQueryAvailableNetworksCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for the RIL_REQUEST_WRITE_SMS_TO_SIM request.
+     *
+     * Upon success/failure, completes the request
+     * If the failure is due to memory full, RIL_UNSOL_SIM_SMS_STORAGE_FULL is completed
+     */
+    void PostWriteSmsToSimCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
 private:
     BOOL m_bCSStatusCached;
     BOOL m_bPSStatusCached;
     S_ND_GPRS_REG_STATUS m_sPSStatus;
     S_ND_REG_STATUS m_sCSStatus;
 
+    // Flag used to store setup data call status
+    BOOL m_bIsSetupDataCallOngoing;
+
+    /*
+     * Flag is used to store sim technical problem.
+     * If TRUE, card_state will be reported as error.
+     */
+    BOOL m_bIsSimTechnicalProblem;
+
+    /*
+     * Flag is used to store the manual network search status
+     * If TRUE, RIL_REQUEST_SETUP_DATA_CALL will be rejected with
+     * suggestedRetryTime set to 10seconds.
+     */
+    BOOL m_bIsManualNetworkSearchOn;
+
+    /*
+     * Flag is used to store the Data SUSPENDED/RESUME status.
+     * Upon incoming WAP PUSH SMS, MMS applications requests for MMS
+     * connection establishment. Since the data is in suspended
+     * state on modem side due to SMS acknowledgment, RIL_REQUEST_SETUP_DATA_CALL
+     * for MMS connection is not processed. So, when there is a
+     * RIL_REQUEST_SETUP_DATA_CALL on data SUSPENDED state, reject
+     * RIL_REQUEST_SETUP_DATA_CALL with suggestedRetryTime set to 3seconds.
+     */
+    BOOL m_bIsDataSuspended;
+
+    /*
+     * Flag is used to cancel the pending CHLD requests in ril when
+     * the call is disconnected.
+     */
+    BOOL m_bIsClearPendingCHLD;
+
+    // Resets all the internal states to default values
+    void ResetInternalStates();
+
     const char* PrintRegistrationInfo(char *szRegInfo) const;
     const char* PrintGPRSRegistrationInfo(char *szGPRSInfo) const;
     const char* PrintRAT(char *szRAT) const;
 
-    BOOL m_bIsSetupDataCallOngoing;
+    // Function to determine whether the error code falls under SMS retry case
+    BOOL isRetryPossible(UINT32 uiErrorCode);
 };
 
 #endif

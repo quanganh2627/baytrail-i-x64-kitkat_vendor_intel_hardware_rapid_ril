@@ -20,6 +20,8 @@
 #include "rildmain.h"
 #include "reset.h"
 #include "channel_nd.h"
+#include "te.h"
+#include "rril_OEM.h"
 
 CChannel::CChannel(UINT32 uiChannel)
 : CChannelBase(uiChannel),
@@ -134,21 +136,19 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
     CResponse*      pResponse = NULL;
     RIL_RESULT_CODE resCode = RRIL_E_UNKNOWN_ERROR;
     BOOL            bResult = FALSE;
+    PFN_TE_POSTCMDHANDLER postCmdHandler = NULL;
+    POST_CMD_HANDLER_DATA data;
 
     if (NULL == rpCmd)
     {
         RIL_LOG_CRITICAL("CChannel::SendCommand() - chnl=[%d] NULL params\r\n", m_uiRilChannel);
-        goto Error;
+        // command null case should not happen.
+        delete pResponse;
+        pResponse = NULL;
+        return FALSE;
     }
 
     RIL_LOG_VERBOSE("CChannel::SendCommand() - DEBUG: chnl=[%d] Executing command with ID=[0x%08X,%d]\r\n", m_uiRilChannel, rpCmd->GetRequestID(), (int)rpCmd->GetRequestID());
-
-    // call Silo hook - PreSendCommandHook
-    if (!PreSendCommandHook(rpCmd, pResponse))
-    {
-        RIL_LOG_CRITICAL("CChannel::SendCommand() - chnl=[%d] PreSendCommandHook returned FALSE\r\n", m_uiRilChannel);
-        goto Error;
-    }
 
     if (NULL == rpCmd->GetATCmd1())
     {
@@ -296,13 +296,6 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
                 }
             }
         } while (--nNumRetries >= 0);
-
-        // call Silo hook - PostSendCommandHook
-        if (!PostSendCommandHook(rpCmd, pResponse))
-        {
-            RIL_LOG_CRITICAL("CChannel::SendCommand() - chnl=[%d] SendRILCmdParseResponsePostSend returned FALSE\r\n", m_uiRilChannel);
-            goto Error;
-        }
     }
 
     if (NULL == pResponse)
@@ -326,13 +319,58 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
     bResult = TRUE;
 
 Error:
+    postCmdHandler = rpCmd->GetPostCmdHandlerFcn();
+    memset(&data, 0, sizeof(POST_CMD_HANDLER_DATA));
+
+    if (postCmdHandler)
+    {
+        data.uiChannel = rpCmd->GetChannel();
+        data.pRilToken = rpCmd->GetToken();
+        data.pContextData = rpCmd->GetContextData();
+        data.uiContextDataSize = rpCmd->GetContextDataSize();
+        data.uiRequestId = rpCmd->GetRequestID();
+        data.uiResultCode = RRIL_RESULT_ERROR;
+
+        if (NULL != pResponse)
+        {
+             data.uiErrorCode = pResponse->GetErrorCode();
+             data.uiResultCode = pResponse->GetResultCode();
+             pResponse->GetData(data.pData, data.uiDataSize);
+        }
+
+        /*
+         * Call the Post command handler function which will either complete
+         * the RIL request after doing Post command cleanup or send another
+         * command.
+         */
+        (CTE::GetTE().*postCmdHandler)(data);
+    }
+    else
+    {
+        data.uiChannel = rpCmd->GetChannel();
+        data.pRilToken = rpCmd->GetToken();
+        data.pContextData = rpCmd->GetContextData();
+        data.uiContextDataSize = rpCmd->GetContextDataSize();
+        data.uiRequestId = rpCmd->GetRequestID();
+        data.uiResultCode = RRIL_RESULT_ERROR;
+
+        if (NULL != pResponse)
+        {
+             data.uiErrorCode = pResponse->GetErrorCode();
+             data.uiResultCode = pResponse->GetResultCode();
+             pResponse->GetData(data.pData, data.uiDataSize);
+        }
+
+        /*
+         * This function will only complete the RIL request. Use this in case
+         * of no cleanup required.
+         */
+        CTE::GetTE().PostCmdHandlerCompleteRequest(data);
+    }
+
     if (!bResult)
     {
         RIL_LOG_CRITICAL("CChannel::SendCommand() Failed");
-
-        // Need to return a failed response to the upper layers and deallocate the memory
-        if (NULL != rpCmd && NULL != rpCmd->GetToken())
-            RIL_onRequestComplete(rpCmd->GetToken(), RIL_E_GENERIC_FAILURE, NULL, 0);
     }
 
     delete rpCmd;
@@ -421,19 +459,6 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         pATCommand = (char *) rpCmd->GetATCmd2();
         UINT32 uiBytesWritten = 0;
 
-        // For Set Faciliy Lock request, no need to get extended error report for call
-        // barring related facilities if Cmd1 succeeded.
-        // Note: +CEER is only sent for call barring related facilities in CoreSetFacilityLock()
-        if (ND_REQ_ID_SETFACILITYLOCK == rpCmd->GetRequestID())
-        {
-            if ( (0 == strcmp(pATCommand, "AT+CEER\r")) &&
-                 (RIL_E_SUCCESS == rpResponse->GetResultCode()) )
-            {
-                RIL_LOG_INFO("CChannel::GetResponse() - SetFacilityLock for Call barring facility succeeded\r\n");
-                return RIL_E_SUCCESS;
-            }
-        }
-
         // send 2nd phase of command
         SetCmdThreadBlockedOnRxQueue();
 
@@ -471,20 +496,10 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
             pATCommand = NULL;
         }
 
-        //  Store the previous error and result code
-        UINT32 uiPreviousErrorCode = rpResponse->GetErrorCode();
-        UINT32 uiPreviousResultCode = rpResponse->GetResultCode();
-
         // wait for the secondary response
         delete rpResponse;
         rpResponse = NULL;
         resCode = ReadQueue(rpResponse, rpCmd->GetTimeout());
-
-        if (rpResponse)
-        {
-            rpResponse->SetIntermediateErrorCode(uiPreviousErrorCode);
-            rpResponse->SetIntermediateResultCode(uiPreviousResultCode);
-        }
 
         if (rpResponse && rpResponse->IsTimedOutFlag())
         {
@@ -528,15 +543,6 @@ bool CChannel::SendCommandPhase2(const UINT32 uiResCode, const UINT32 uiReqID) c
     //  Is our request ID in the special list?
     switch (uiReqID)
     {
-        case ND_REQ_ID_ENTERSIMPIN:
-        case ND_REQ_ID_ENTERSIMPUK:
-        case ND_REQ_ID_ENTERSIMPIN2:
-        case ND_REQ_ID_ENTERSIMPUK2:
-        case ND_REQ_ID_CHANGESIMPIN:
-        case ND_REQ_ID_CHANGESIMPIN2:
-        case ND_REQ_ID_SETFACILITYLOCK:
-            return true;  // Special case because we need to get PIN retry count
-
         case ND_REQ_ID_SIMOPENCHANNEL:
         case ND_REQ_ID_SIMCLOSECHANNEL:
         case ND_REQ_ID_SIMTRANSMITCHANNEL:
@@ -548,6 +554,7 @@ bool CChannel::SendCommandPhase2(const UINT32 uiResCode, const UINT32 uiReqID) c
         case ND_REQ_ID_QUERYCALLWAITING:
         case ND_REQ_ID_SETCALLWAITING:
         case ND_REQ_ID_QUERYFACILITYLOCK:
+        case ND_REQ_ID_SETFACILITYLOCK:
         case ND_REQ_ID_CHANGEBARRINGPASSWORD:
         case ND_REQ_ID_QUERYCLIP:
             if (RIL_E_SUCCESS == uiResCode)
@@ -768,21 +775,11 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp)
 {
     RIL_LOG_VERBOSE("CChannel::ParseResponse() - Enter\r\n");
 
-    void* pData = NULL;
-    UINT32 uiDataSize = 0;
-    RIL_RESULT_CODE resCode;
     BOOL bResult = FALSE;
 
     if ((NULL == rpCmd) || (NULL == rpRsp))
     {
         RIL_LOG_CRITICAL("CChannel::ParseResponse() : Invalid arguments\r\n");
-        goto Error;
-    }
-
-    //  Call our hook
-    if (!PreParseResponseHook(rpCmd, rpRsp))
-    {
-        RIL_LOG_CRITICAL("CChannel::ParseResponse() - chnl=[%d] PreParseResponseHook FAILED!\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -798,79 +795,11 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp)
         rpCmd->GetContext()->Execute(RIL_E_SUCCESS == rpRsp->GetResultCode(), rpRsp->GetErrorCode());
     }
 
-
-    // Forward the response we got to the handle that sent the command
-    //  Call our hook
-    RIL_LOG_VERBOSE("CChannel::ParseResponse() - chnl=[%d] calling PostParseResponseHook\r\n", m_uiRilChannel);
-    bResult = PostParseResponseHook(rpCmd, rpRsp);
-    if (!bResult)
-        goto Error;
-
-    // Forward the response we got to the handle that sent the command
-    rpRsp->GetData(pData, uiDataSize);
-    if (0 != rpCmd->GetToken())
-    {
-        UINT32 uiReqID = rpCmd->GetRequestID();
-        RIL_LOG_INFO("CChannel::ParseResponse() - Complete for token 0x%08x, resultcode: %d, errno: %d, reqID=[%d]\r\n", rpCmd->GetToken(), rpRsp->GetResultCode(), rpRsp->GetErrorCode(), uiReqID);
-        RIL_onRequestComplete(rpCmd->GetToken(), (RIL_Errno) rpRsp->GetResultCode(), (void*)pData, uiDataSize);
-
-
-        //  Check for identical request IDs.
-        switch(uiReqID)
-        {
-            case ND_REQ_ID_REGISTRATIONSTATE:
-            case ND_REQ_ID_GPRSREGISTRATIONSTATE:
-            case ND_REQ_ID_OPERATOR:
-            case ND_REQ_ID_QUERYNETWORKSELECTIONMODE:
-                CSystemManager::CompleteIdenticalRequests(uiReqID,
-                                                    rpRsp->GetResultCode(),
-                                                    (void*)pData, uiDataSize);
-                break;
-            case ND_REQ_ID_HANGUP:
-            case ND_REQ_ID_HANGUPWAITINGORBACKGROUND:
-            case ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND:
-            case ND_REQ_ID_CONFERENCE:
-                CompletePendingDtmfRequests();
-                break;
-            case ND_REQ_ID_SWITCHHOLDINGANDACTIVE:
-                if (g_clearPendingChlds || RRIL_RESULT_OK != rpRsp->GetResultCode())
-                {
-                    RIL_LOG_VERBOSE("CChannel::ParseResponse() clearing all ND_REQ_ID_SWITCHHOLDINGANDACTIVE\r\n");
-                    g_clearPendingChlds = false;
-                    FindIdenticalRequestsAndSendResponses(
-                                            ND_REQ_ID_SWITCHHOLDINGANDACTIVE,
-                                            RIL_E_GENERIC_FAILURE, NULL, 0);
-                }
-                CompletePendingDtmfRequests();
-                break;
-            default:
-                break;
-        }
-    }
-    else
-    {
-        RIL_LOG_INFO("CChannel::ParseResponse() - Complete for token 0x%08x, resultcode: %d, errno: %d\r\n", rpCmd->GetToken(), rpRsp->GetResultCode(), rpRsp->GetErrorCode());
-    }
-
-    rpRsp->FreeData();
-    pData  = NULL;
-    uiDataSize = 0;
-
     bResult = TRUE;
 
 Error:
     RIL_LOG_VERBOSE("CChannel::ParseResponse() - Exit\r\n");
     return bResult;
-}
-
-void CChannel::CompletePendingDtmfRequests()
-{
-    CSystemManager::CompleteIdenticalRequests(ND_REQ_ID_REQUESTDTMFSTART,
-                                                RIL_E_GENERIC_FAILURE,
-                                                NULL, 0);
-    CSystemManager::CompleteIdenticalRequests(ND_REQ_ID_REQUESTDTMFSTOP,
-                                                RIL_E_GENERIC_FAILURE,
-                                                NULL, 0);
 }
 
 BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,

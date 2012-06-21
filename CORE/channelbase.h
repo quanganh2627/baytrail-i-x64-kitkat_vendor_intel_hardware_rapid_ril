@@ -118,12 +118,6 @@ protected:
     // Give GPRS response thread a chance to handle Rx data in Data mode
     virtual BOOL    ProcessModemData(char *szData, UINT32 uiRead) = 0;
 
-    //  Interfaces to hooks to notify silos
-    BOOL PreSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp);
-    BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp);
-    BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp);
-    BOOL PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp);
-
     //  Framework helper functions
     void            SetCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = TRUE; }
     BOOL            WaitForCommand();
