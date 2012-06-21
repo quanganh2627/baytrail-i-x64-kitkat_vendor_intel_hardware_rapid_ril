@@ -534,7 +534,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
             fUnSolicited = TRUE;
         }
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
-        else if (1 == nNumParams)
+        else if (4 == nNumParams)
         {
             CRepository repository;
             const int TEMP_OUT_OF_SERVICE_EN_DEFAULT = 1;
@@ -562,10 +562,11 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
             RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Exit\r\n");
             return fRet;
         }
+        else if ((6 == nNumParams)) //  Sol is 6
+#else
+        else if ((4 == nNumParams) || (6 == nNumParams)) //  Sol is 4 and 6
 #endif // M2_DUALSIM_FEATURE_ENABLED
-        else if ((4 == nNumParams) || (6 == nNumParams))
         {
-            //  Sol is 4 and 6
             fUnSolicited = FALSE;
         }
         else
@@ -1018,36 +1019,57 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse *const pResponse, const char* &rs
 
     BOOL bRet = FALSE;
     UINT32 uiState = 0;
-    BYTE commandId[1] = {0};
+    UINT32 commandId = 0;
+    BYTE* pData = NULL;
+    BYTE i = 0;
 
     const UINT32 NETWORK_REG_STATUS_FAST_OOS = 20;
     const UINT32 NETWORK_REG_STATUS_IN_SERVICE = 21;
+    const BYTE MAX_NUM_EMPTY_VALUES = 3;
+
+    pData = (BYTE*) malloc(sizeof(UINT32));
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - Could not allocate memory for pData.\r\n");
+        goto Error;
+    }
 
     // Extract "<state>"
     if (!ExtractUInt32(rszPointer, uiState, rszPointer))
     {
-        RIL_LOG_CRITICAL("CTE::ParseXREGFastOoS() - Could not extract <state>.\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - Could not extract <state>.\r\n");
         goto Error;
     }
 
+    do
+    {
+        /* skip empty response values */
+        FindAndSkipString(rszPointer, ",", rszPointer);
+        i++;
+    } while (i < MAX_NUM_EMPTY_VALUES);
+
     if (NETWORK_REG_STATUS_FAST_OOS == uiState)
     {
-        commandId[0] = (BYTE) RIL_OEM_HOOK_RAW_UNSOL_FAST_OOS_IND;
+        commandId = RIL_OEM_HOOK_RAW_UNSOL_FAST_OOS_IND;
     }
     else if (NETWORK_REG_STATUS_IN_SERVICE == uiState)
     {
-        commandId[0] = (BYTE) RIL_OEM_HOOK_RAW_UNSOL_IN_SERVICE_IND;
+        commandId = RIL_OEM_HOOK_RAW_UNSOL_IN_SERVICE_IND;
     }
     else // unsupported state
     {
-         RIL_LOG_CRITICAL("CSilo_MISC::ParseXREGFastOoS() - Unrecognized network reg state\r\n");
+         RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - Unrecognized network reg state\r\n");
          goto Error;
     }
+
+    memset(pData, 0, sizeof(UINT32));
+
+    convertIntToByteArrayAt(pData, commandId, 0);
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
-    if (!pResponse->SetData((void*)commandId, sizeof(BYTE), FALSE))
+    if (!pResponse->SetData((void*)pData, sizeof(UINT32), FALSE))
     {
         goto Error;
     }
@@ -1055,7 +1077,13 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse *const pResponse, const char* &rs
     bRet = TRUE;
 
 Error:
-    RIL_LOG_VERBOSE("CSilo_Network::ParseXREGFastOoS() - Exit\r\n");
+    if (!bRet)
+    {
+        free(pData);
+        pData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXREGFastOoS() - Exit[%d]\r\n", bRet);
     return bRet;
 }
 #endif // M2_DUALSIM_FEATURE_ENABLED
