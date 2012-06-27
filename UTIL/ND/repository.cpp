@@ -209,7 +209,6 @@ const char   g_szSupportedModem[]               = "SupportedModem";
 const char   g_szNetworkInterfaceNamePrefix[]   = "NetworkInterfaceNamePrefix";
 const char   g_szMTU[]                          = "MTU";
 const char   g_szEnableCellInfo[]               = "EnableCellInfo";
-const char   g_szRxDiversity3GEnable[]          = "RxDiversity3GEnable";
 const char   g_szRxDiversity2GDARP[]            = "RxDiversity2GDARP";
 const char   g_szFDDelayTimer[]                 = "FDDelayTimer";
 const char   g_szSCRITimer[]                    = "SCRITimer";

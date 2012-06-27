@@ -457,6 +457,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     int nRxDiversity3GEnable = RXDIVERSITY_EN_DEFAULT;
     int nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
     BOOL bIgnoreDARPParam = FALSE;
+    char szRxDivProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     // Data for Fast Dormancy Mode
     char szFDCmdString[MAX_BUFFER_SIZE] = {0};
@@ -599,61 +600,61 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                 goto Done;
             }
 
-            // Read 3G Rx Diversity mode setting from repository
-            if (repository.Read(g_szGroupModem, g_szRxDiversity3GEnable, nRxDiversity3GEnable))
-            {
-                if (nRxDiversity3GEnable)
-                {
-                    // Read 2G DARP mode setting from repository
-                    if (repository.Read(g_szGroupModem, g_szRxDiversity2GDARP, nRxDiversity2GDARP))
-                    {
-                        // no parameter
-                        if (-1 == nRxDiversity2GDARP)
-                        {
-                            bIgnoreDARPParam = TRUE;
-                        }
-                    }
-                    else
-                    {
-                        // 2G DARP parameter is missing, set to default value
-                        nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
-                    }
-                }
+            // Read the RX DIV property
+            property_get("ro.spid.telephony.rxdiv", szRxDivProperty, "0");
+            nRxDiversity3GEnable = (szRxDivProperty[0] == '1') ? 1 : 0;
 
-                if (bIgnoreDARPParam)
+            if (nRxDiversity3GEnable)
+            {
+                // Read 2G DARP mode setting from repository
+                if (repository.Read(g_szGroupModem, g_szRxDiversity2GDARP, nRxDiversity2GDARP))
                 {
-                    if (!PrintStringNullTerminate(szRxDiversityCmdString,
-                                                  sizeof(szRxDiversityCmdString),
-                                                  "+XRXDIV=%d",
-                                                  nRxDiversity3GEnable))
+                    // no parameter
+                    if (-1 == nRxDiversity2GDARP)
                     {
-                        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XRXDIV command\r\n");
-                        goto Done;
+                        bIgnoreDARPParam = TRUE;
                     }
                 }
                 else
                 {
-                    if (!PrintStringNullTerminate(szRxDiversityCmdString,
-                                                  sizeof(szRxDiversityCmdString),
-                                                  "+XRXDIV=%d,%d",
-                                                  nRxDiversity3GEnable,
-                                                  nRxDiversity2GDARP))
-                    {
-                        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XRXDIV command\r\n");
-                        goto Done;
-                    }
+                    // 2G DARP parameter is missing, set to default value
+                    nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
                 }
+            }
 
-                if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+            if (bIgnoreDARPParam)
+            {
+                if (!PrintStringNullTerminate(szRxDiversityCmdString,
+                                              sizeof(szRxDiversityCmdString),
+                                              "+XRXDIV=%d",
+                                              nRxDiversity3GEnable))
                 {
-                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
+                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XRXDIV command\r\n");
                     goto Done;
                 }
-                if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szRxDiversityCmdString))
+            }
+            else
+            {
+                if (!PrintStringNullTerminate(szRxDiversityCmdString,
+                                              sizeof(szRxDiversityCmdString),
+                                              "+XRXDIV=%d,%d",
+                                              nRxDiversity3GEnable,
+                                              nRxDiversity2GDARP))
                 {
-                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szRxDiversityString failed\r\n");
+                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XRXDIV command\r\n");
                     goto Done;
                 }
+            }
+
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
+                goto Done;
+            }
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szRxDiversityCmdString))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szRxDiversityString failed\r\n");
+                goto Done;
             }
         }
 
