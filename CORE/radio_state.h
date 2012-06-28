@@ -37,6 +37,7 @@ public:
 
     void SetRadioState(const RRIL_Radio_State eRadioState);
     void SetSIMState(const RRIL_SIM_State eSIMState);
+    void SetToUnavailable();
 
 private:
     RRIL_Radio_State m_eRadioState;

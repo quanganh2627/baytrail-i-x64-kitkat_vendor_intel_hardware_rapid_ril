@@ -2733,6 +2733,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
             }
             break;
 #endif
+
         case RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV");
             if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGED=0\r"))
@@ -2783,14 +2784,35 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
 
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
         case RIL_OEM_HOOK_STRING_SWAP_PS:
-            RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_SWAP_PS");
-            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XRAT=8\r"))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_SWAP_PS - Can't construct szCmd1.\r\n");
-                goto Error;
+                int param;
+                RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_SWAP_PS");
+                if (sscanf(pszRequest[1], "%u", &param) == EOF)
+                {
+                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - cannot convert %s to int\r\n", pszRequest);
+                    goto Error;
+                }
+                rReqData.pContextData = (void *) param;
+                if (param & 1)
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XRAT=8\r"))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_SWAP_PS - Can't construct szCmd1.\r\n");
+                        goto Error;
+                    }
+                    rReqData.uiTimeout = 60000;
+                }
+                else
+                {
+                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT\r"))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_SWAP_PS - Can't construct szCmd1.\r\n");
+                        goto Error;
+                    }
+                }
+                res = RRIL_RESULT_OK;
+                break;
             }
-            res = RRIL_RESULT_OK;
-            break;
 #endif // M2_DUALSIM_FEATURE_ENABLED
 
         default:
@@ -5069,6 +5091,10 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRs
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
+    if ((int)rRspData.pContextData & 2)
+    {
+        g_RadioState.SetToUnavailable();
+    }
     //  Todo: Handle error here.
 
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseSwapPS() - Exit\r\n");

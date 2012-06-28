@@ -31,6 +31,13 @@ CRadioState::~CRadioState()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+void CRadioState::SetToUnavailable()
+{
+    m_eRadioState = RRIL_RADIO_STATE_UNAVAILABLE;
+    m_eSIMState = RRIL_SIM_STATE_LOCKED_OR_ABSENT;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 RIL_RadioState CRadioState::GetRadioState()
 {
     RIL_RadioState radioState;

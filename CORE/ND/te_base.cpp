@@ -2053,7 +2053,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
         // Power On (20) or flight mode (21)
         UINT32 nFunMode = bTurnRadioOn ? 20 : 21;
 
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CFUN=%u,%u\r", nFunMode, nSimPoweredOff))
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CFUN=%u,%u%s\r", nFunMode, nSimPoweredOff, (nFunMode == 20 && nSimPoweredOff == 0) ? ";+XSIMSTATE?" : ""))
         {
             RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - Cannot create CFUN command\r\n");
             goto Error;
