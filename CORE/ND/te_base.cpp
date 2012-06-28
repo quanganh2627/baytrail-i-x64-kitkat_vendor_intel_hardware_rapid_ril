@@ -77,8 +77,7 @@ RIL_RESULT_CODE CTEBase::CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData,
 }
 
 
-//  bSilentPINEntry = out variable (true if PIN needs to be silently sent)
-RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus, bool* pbSilentPINEntry)
+RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSimPin() - Enter\r\n");
 
@@ -89,6 +88,11 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - Response string is NULL!\r\n");
         goto Error;
+    }
+
+    if (NULL != pCardStatus)
+    {
+        free(pCardStatus);
     }
 
     pCardStatus = (RIL_CardStatus_v6*)malloc(sizeof(RIL_CardStatus_v6));
@@ -155,54 +159,22 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
     else if (0 == strcmp(szSimState, "SIM PIN"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PIN\r\n");
+        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
+        pCardStatus->num_applications = 1;
+        pCardStatus->gsm_umts_subscription_app_index = 0;
 
-        //  Were we previously informed about modem cold boot?
-#if defined(M2_PIN_CACHING_FEATURE_ENABLED)
-        if (pbSilentPINEntry && PCache_GetUseCachedPIN())
-        {
-            RIL_LOG_INFO("CTEBase::ParseSimPin() - Use cached PIN\r\n");
-            *pbSilentPINEntry = true;
-
-            //  Fake SIM READY for now.
-            //g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
-            pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
-            pCardStatus->num_applications = 1;
-            pCardStatus->gsm_umts_subscription_app_index = 0;
-
-            pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-            pCardStatus->applications[0].app_state =
-              (RRIL_SIM_STATE_READY == GetSIMState()) ?
-                RIL_APPSTATE_READY :
-                RIL_APPSTATE_DETECTED;
-            pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_READY;
-            pCardStatus->applications[0].aid_ptr = NULL;
-            pCardStatus->applications[0].app_label_ptr = NULL;
-            pCardStatus->applications[0].pin1_replaced = 0;
-            pCardStatus->applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
-            pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
-        }
-        else
-#endif
-        {
-            //g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
-            pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
-            pCardStatus->num_applications = 1;
-            pCardStatus->gsm_umts_subscription_app_index = 0;
-
-            pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-            pCardStatus->applications[0].app_state = RIL_APPSTATE_PIN;
-            pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-            pCardStatus->applications[0].aid_ptr = NULL;
-            pCardStatus->applications[0].app_label_ptr = NULL;
-            pCardStatus->applications[0].pin1_replaced = 0;
-            pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
-            pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
-        }
+        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
+        pCardStatus->applications[0].app_state = RIL_APPSTATE_PIN;
+        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+        pCardStatus->applications[0].aid_ptr = NULL;
+        pCardStatus->applications[0].app_label_ptr = NULL;
+        pCardStatus->applications[0].pin1_replaced = 0;
+        pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
+        pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
     }
     else if (0 == strcmp(szSimState, "SIM PUK"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PUK\r\n");
-        //g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
         pCardStatus->gsm_umts_subscription_app_index = 0;
@@ -219,7 +191,6 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
     else if (0 == strcmp(szSimState, "PH-NET PIN"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_NETWORK_PERSONALIZATION\r\n");
-        //g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
         pCardStatus->gsm_umts_subscription_app_index = 0;
@@ -236,7 +207,6 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
     else if (0 == strcmp(szSimState, "PH-NET PUK"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_NETWORK_PERSONALIZATION PUK\r\n");
-        //g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
         pCardStatus->gsm_umts_subscription_app_index = 0;
@@ -253,7 +223,6 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
     else if (0 == strcmp(szSimState, "SIM PIN2"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PIN2\r\n");
-        //g_RadioState.SetRadioSIMLocked();
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
         pCardStatus->gsm_umts_subscription_app_index = 0;
@@ -273,7 +242,6 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
     else if (0 == strcmp(szSimState, "SIM PUK2"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PUK2\r\n");
-        //g_RadioState.SetRadioSIMLocked();
         pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
         pCardStatus->num_applications = 1;
         pCardStatus->gsm_umts_subscription_app_index = 0;
@@ -294,7 +262,6 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
     {
         // Anything not covered above gets treated as NO SIM
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_ABSENT\r\n");
-        //g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
         pCardStatus->card_state = RIL_CARDSTATE_ABSENT;
         pCardStatus->num_applications = 0;
     }
@@ -9003,4 +8970,45 @@ void CTEBase::SetSIMState(const RRIL_SIM_State eSIMState)
     RIL_LOG_VERBOSE("CTEBase::SetSIMState() - Enter / Exit\r\n");
 
     m_SIMState.SetSIMState(eSIMState);
+}
+
+BOOL CTEBase::IsPinEnabled(RIL_CardStatus_v6* pCardStatus)
+{
+    RIL_LOG_VERBOSE("CTEBase::IsPinEnabled - Enter()\r\n");
+
+    BOOL bPinEnabled = FALSE;
+
+    if (NULL != pCardStatus)
+    {
+        for (int i = 0; i < pCardStatus->num_applications; i++)
+        {
+            if (RIL_PINSTATE_ENABLED_NOT_VERIFIED ==
+                                        pCardStatus->applications[i].pin1 &&
+                    RIL_APPSTATE_PIN == pCardStatus->applications[i].app_state)
+            {
+                RIL_LOG_INFO("CTEBase::IsPinEnabled - PIN Enabled\r\n");
+                bPinEnabled = TRUE;
+                break;
+            }
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::IsPinEnabled - Exit()\r\n");
+    return bPinEnabled;
+}
+
+BOOL CTEBase::HandleSilentPINEntry(void* /*pRilToken*/, void* /*pContextData*/,
+                                                            int /*dataSize*/)
+{
+    RIL_LOG_VERBOSE("CTEBase::HandleSilentPINEntry - Enter/Exit \r\n");
+    return FALSE; // only suported at modem level
+}
+
+//
+// Silent Pin Entry (sent internally)
+//
+RIL_RESULT_CODE CTEBase::ParseSilentPinEntry(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseSilentPinEntry - Enter/Exit \r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
 }

@@ -34,6 +34,7 @@
 #include "ril_result.h"
 #include "callbacks.h"
 #include "globals.h"
+#include "reset.h"
 
 CTE * CTE::m_pTEInstance = NULL;
 
@@ -5907,6 +5908,14 @@ BOOL CTE::isRetryPossible(UINT32 uiErrorCode)
     }
 }
 
+//
+// Silent PIN Entry (sent internally)
+//
+RIL_RESULT_CODE CTE::ParseSilentPinEntry(RESPONSE_DATA& rRspData)
+{
+    return m_pTEBaseInstance->ParseSilentPinEntry(rRspData);
+}
+
 void CTE::PostCmdHandlerCompleteRequest(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostCmdHandlerCompleteRequest() Enter\r\n");
@@ -5927,6 +5936,7 @@ void CTE::PostCmdHandlerCompleteRequest(POST_CMD_HANDLER_DATA& rData)
 void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostGetSimStatusCmdHandler() Enter\r\n");
+    RIL_CardStatus_v6 cardStatus;
 
     if (NULL == rData.pRilToken)
     {
@@ -5934,18 +5944,36 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
         return;
     }
 
+    // Fill in the default values
+    cardStatus.gsm_umts_subscription_app_index = -1;
+    cardStatus.cdma_subscription_app_index = -1;
+    cardStatus.ims_subscription_app_index = -1;
+    cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
+    cardStatus.card_state = RIL_CARDSTATE_PRESENT;
+    cardStatus.num_applications = 1;
+    cardStatus.applications[0].app_state = RIL_APPSTATE_DETECTED;
+    cardStatus.applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+    cardStatus.applications[0].aid_ptr = NULL;
+    cardStatus.applications[0].app_label_ptr = NULL;
+    cardStatus.applications[0].pin1_replaced = 0;
+    cardStatus.applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
+    cardStatus.applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+    cardStatus.applications[0].pin1_num_retries = -1;
+    cardStatus.applications[0].puk1_num_retries = -1;
+    cardStatus.applications[0].pin2_num_retries = -1;
+    cardStatus.applications[0].puk2_num_retries = -1;
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+
     if (RIL_E_SUCCESS != rData.uiResultCode)
     {
         RIL_LOG_INFO("CTE::PostGetSimStatusCmdHandler() : Found CME Error on AT+CPIN? request.\r\n");
-
-        RIL_CardStatus_v6 cardStatus;
 
         switch (rData.uiErrorCode)
         {
             case CME_ERROR_SIM_NOT_INSERTED:
             {
                 RIL_LOG_INFO("CTE::PostGetSimStatusCmdHandler() : SIM Card is absent!\r\n");
-                rData.uiResultCode = RIL_E_SUCCESS;
 
                 cardStatus.gsm_umts_subscription_app_index = -1;
                 cardStatus.cdma_subscription_app_index = -1;
@@ -5959,7 +5987,6 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
             case CME_ERROR_SIM_NOT_READY:
             {
                 RIL_LOG_INFO("CTE::PostGetSimStatusCmdHandler() : SIM Card is not ready!\r\n");
-                rData.uiResultCode = RIL_E_SUCCESS;
 
                 cardStatus.gsm_umts_subscription_app_index = 0;
                 cardStatus.cdma_subscription_app_index = -1;
@@ -5999,38 +6026,52 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
             case CME_ERROR_SIM_WRONG:
             {
                 RIL_LOG_INFO("CTE::PostGetSimStatusCmdHandler() : WRONG SIM Card!\r\n");
-                rData.uiResultCode = RIL_E_SUCCESS;
 
                 cardStatus.gsm_umts_subscription_app_index = 0;
                 cardStatus.cdma_subscription_app_index = -1;
                 cardStatus.ims_subscription_app_index = -1;
                 cardStatus.universal_pin_state =
                                             RIL_PINSTATE_ENABLED_PERM_BLOCKED;
-                cardStatus.card_state = RIL_CARDSTATE_ERROR;
+                cardStatus.card_state = RIL_CARDSTATE_PRESENT;
                 cardStatus.num_applications = 0;
             }
             break;
 
             default:
-            {
-                // Anything not covered above gets treated as NO SIM
-                rData.uiResultCode = RIL_E_SUCCESS;
-                cardStatus.gsm_umts_subscription_app_index = -1;
-                cardStatus.cdma_subscription_app_index = -1;
-                cardStatus.ims_subscription_app_index = -1;
-                cardStatus.card_state = RIL_CARDSTATE_ERROR;
-                cardStatus.num_applications = 0;
-            }
             break;
         }
-        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
-                                (void*) &cardStatus, sizeof(RIL_CardStatus_v6));
     }
     else
     {
-        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
-                                                rData.pData, rData.uiDataSize);
+        // Upon success, check for silent PIN entry case
+        if (NULL != rData.pData && sizeof(RIL_CardStatus_v6) == rData.uiDataSize)
+        {
+            RIL_CardStatus_v6* pCardStatus = (RIL_CardStatus_v6*) rData.pData;
+            if (m_pTEBaseInstance->IsPinEnabled(pCardStatus) && PCache_GetUseCachedPIN())
+            {
+                BOOL bRet = m_pTEBaseInstance->HandleSilentPINEntry(rData.pRilToken, NULL, 0);
+                if (bRet)
+                {
+                    /*
+                     * Incase of silent pin entry success/failure,
+                     * RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED will be completed in
+                     * PostSilentPinRetryCmdHandler. This will force the framework to query
+                     * sim status again. So, complete SIM app status as RIL_APPSTATE_DETECTED
+                     * in silent pin entry case.
+                     */
+                    pCardStatus->applications[0].app_state = RIL_APPSTATE_DETECTED;
+                    pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+                    pCardStatus->applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
+
+                    RIL_LOG_INFO("CTE::PostGetSimStatusCmdHandler() - HandleSilentPINEntry case\r\n");
+                }
+            }
+            // On Success and response valid, copy the response to cardStatus.
+            memcpy(&cardStatus, pCardStatus, sizeof(RIL_CardStatus_v6));
+        }
     }
+
+    RIL_onRequestComplete(rData.pRilToken, RIL_E_SUCCESS, (void*) &cardStatus, sizeof(RIL_CardStatus_v6));
 
     RIL_LOG_VERBOSE("CTE::PostGetSimStatusCmdHandler() Exit\r\n");
 }
@@ -6451,4 +6492,23 @@ void CTE::PostWriteSmsToSimCmdHandler(POST_CMD_HANDLER_DATA& rData)
     }
 
     RIL_LOG_VERBOSE("CTE::PostWriteSmsToSimCmdHandler() Exit\r\n");
+}
+
+void CTE::PostSilentPinRetryCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostSilentPinRetryCmdHandler() Enter\r\n");
+
+    /* Clear PIN code caching on error */
+    if (RRIL_RESULT_OK != rData.uiResultCode)
+    {
+        PCache_Clear();
+    }
+
+    //  Don't use PIN next time. This will be set to TRUE only on modem issue.
+    PCache_SetUseCachedPIN(false);
+
+    // This will make the framework to trigger GET_SIM_STATUS and QUERY_FACILITY_LOCK requests
+    RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+
+    RIL_LOG_VERBOSE("CTE::PostSilentPinRetryCmdHandler() Exit\r\n");
 }

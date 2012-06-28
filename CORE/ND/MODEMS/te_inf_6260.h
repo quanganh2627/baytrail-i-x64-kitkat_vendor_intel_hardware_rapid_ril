@@ -37,10 +37,10 @@ protected:
     //  Locally store CPIN2 query result for SIM_IO
     char m_szCPIN2Result[MAX_BUFFER_SIZE];
 
-    CEvent *m_pSilentPINEntryEvent;
     CEvent *m_pQueryPIN2Event;
     CEvent* m_pQueryDataCallFailCauseEvent;
     int m_dataCallFailCause;
+    char m_szUICCID[MAX_PROP_VALUE];
 
 public:
     // modem overrides
@@ -136,6 +136,10 @@ public:
     virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
     virtual RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE QueryDataCallFailCause();
+
+    // Silent Pin Entry request and response handler
+    virtual BOOL HandleSilentPINEntry(void* pRilToken, void* pContextData, int dataSize);
+    virtual RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
 
 private:
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,

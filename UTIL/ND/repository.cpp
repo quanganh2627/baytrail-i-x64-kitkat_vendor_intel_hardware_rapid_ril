@@ -160,9 +160,10 @@ const char * g_szRequestNames[] =
     "SimTransmitChannel",                   // ND_REQ_ID_SIMTRANSMITCHANNEL 110
     "QuerySimSmsStoreStatus",               // ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS 111
     "VoiceRadioTech",                       // ND_REQ_ID_VOICERADIOTECH 112
+    "SilentPinEntry",                       // ND_REQ_ID_SILENT_PIN_ENTRY 113
 #if defined(M2_VT_FEATURE_ENABLED)
-    "HangupVT",                             // ND_REQ_ID_HANGUPVT 113
-    "DialVT",                               // ND_REQ_ID_DIALVT 114
+    "HangupVT",                             // ND_REQ_ID_HANGUPVT 114
+    "DialVT",                               // ND_REQ_ID_DIALVT 115
 #endif // M2_VT_FEATURE_ENABLED
 };
 

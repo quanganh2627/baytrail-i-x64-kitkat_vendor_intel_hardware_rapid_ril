@@ -519,6 +519,8 @@ public:
 
     RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
 
+    RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
+
     void StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
     void CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
     void ResetRegistrationCache();
@@ -681,6 +683,15 @@ public:
      * If the failure is due to memory full, RIL_UNSOL_SIM_SMS_STORAGE_FULL is completed
      */
     void PostWriteSmsToSimCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for the Silent PIN Entry request.
+     *
+     * Clears the cached pin on error, usecachedpin flag and
+     * also notifies SIM status change to framework by completing
+     * RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED.
+     */
+    void PostSilentPinRetryCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
 private:
     BOOL m_bCSStatusCached;

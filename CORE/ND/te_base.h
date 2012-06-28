@@ -518,8 +518,15 @@ public:
     virtual void SetRadioState(const RRIL_Radio_State eRadioState);
     virtual void SetSIMState(const RRIL_SIM_State eSIMState);
 
+    // Returns true on PIN entry required
+    virtual BOOL IsPinEnabled(RIL_CardStatus_v6* pCardStatus);
+
+    // Silent Pin Entry request and response handler
+    virtual BOOL HandleSilentPINEntry(void* pRilToken, void* pContextData, int dataSize);
+    virtual RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
+
 protected:
-    RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus, bool* pbSilentPINEntry = NULL);
+    RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus);
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
     void DeactivateAllDataCalls();

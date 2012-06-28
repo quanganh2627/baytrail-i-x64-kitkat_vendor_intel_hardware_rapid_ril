@@ -43,19 +43,11 @@
 
 CTE_INF_6260::CTE_INF_6260()
 : m_currentNetworkType(-1),
-m_pSilentPINEntryEvent(NULL),
 m_pQueryPIN2Event(NULL),
 m_pQueryDataCallFailCauseEvent(NULL),
 m_dataCallFailCause(PDP_FAIL_ERROR_UNSPECIFIED)
 {
     strcpy(m_szCPIN2Result, "");
-
-    //  Create Silent PIN entry event
-    m_pSilentPINEntryEvent = new CEvent();
-    if (!m_pSilentPINEntryEvent)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - Could not create new SilentPINEntryEvent!\r\n");
-    }
 
     //  Create PIN2 query event
     m_pQueryPIN2Event = new CEvent();
@@ -70,6 +62,8 @@ m_dataCallFailCause(PDP_FAIL_ERROR_UNSPECIFIED)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - Could not create new QueryDataCallFailCauseEvent!\r\n");
     }
+
+    m_szUICCID[0] = '\0';
 }
 
 CTE_INF_6260::~CTE_INF_6260()
@@ -79,9 +73,6 @@ CTE_INF_6260::~CTE_INF_6260()
 
     delete m_pQueryPIN2Event;
     m_pQueryPIN2Event = NULL;
-
-    delete m_pSilentPINEntryEvent;
-    m_pSilentPINEntryEvent = NULL;
 }
 
 
@@ -115,11 +106,10 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
 
     UINT32 nValue;
 
-    const char * pszRsp = rRspData.szResponse;
     RIL_CardStatus_v6* pCardStatus = NULL;
-    char szUICCID[MAX_PROP_VALUE] = {0};
-    bool bSilentPINEntry = false;
-    RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus, &bSilentPINEntry);
+    const char* pszRsp = rRspData.szResponse;
+
+    RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus);
     if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Could not parse Sim Pin.\r\n");
@@ -204,103 +194,13 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
 
         if (SkipString(pszRsp, "+CCID: ", pszRsp))
         {
-            if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+            if (!ExtractUnquotedString(pszRsp, g_cTerminator, m_szUICCID, MAX_PROP_VALUE, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Cannot parse UICC ID\r\n");
-                szUICCID[0] = '\0';
+                m_szUICCID[0] = '\0';
             }
 
             SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
-        }
-
-        //  Send cached PIN
-        if (bSilentPINEntry)
-        {
-            RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() - Attempting silent PIN entry\r\n");
-
-            char szPIN[MAX_PIN_SIZE] = {0};
-            bool bPINCodeIsOk = false;
-
-            ePCache_Code ret = PCache_Get_PIN(szUICCID, szPIN);
-
-            if (PIN_OK == ret)
-            {
-                char szCmd[MAX_BUFFER_SIZE] = {0};
-                CCommand *pCmd1 = NULL;
-                UINT32 uiWaitRes = 0;
-                int nPINEntryTimeout = 5000;
-                CRepository repository;
-
-                CEvent::Reset(m_pSilentPINEntryEvent);
-
-                //  Queue AT+CPIN=<PIN> command
-                if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CPIN=\"%s\"\r", szPIN))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - cannot create silent AT+CPIN=<PIN> command\r\n");
-                    goto SilentPINError;
-                }
-
-                // We can't use the ND_REQ_ID_ENTERSIMPIN channel here because we are handling an
-                // answer on this channel. If we do that, the command will be blocked till the
-                // end of the current function. Reason why we use the RADIOPOWER channel here.
-                pCmd1 = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER], NULL, ND_REQ_ID_ENTERSIMPIN, szCmd, &CTE::ParseEnterSimPin);
-                if (pCmd1)
-                {
-                    if (!CCommand::AddCmdToQueue(pCmd1, TRUE))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Unable to queue AT+CPIN command!\r\n");
-                        delete pCmd1;
-                        pCmd1 = NULL;
-                        bPINCodeIsOk = false;
-                        goto SilentPINError;
-                    }
-                }
-                else
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Unable to allocate memory for new silent AT+CPIN=<PIN> command!\r\n");
-                    bPINCodeIsOk = false;
-                    goto SilentPINError;
-                }
-
-                //  Read the AT command timeout from repository.
-                repository.Read(g_szGroupRequestTimeouts, g_szRequestNames[ND_REQ_ID_ENTERSIMPIN], nPINEntryTimeout);
-
-                //  Wait here for response
-                uiWaitRes = CEvent::Wait(m_pSilentPINEntryEvent, nPINEntryTimeout);
-                switch(uiWaitRes)
-                {
-                    case WAIT_EVENT_0_SIGNALED:
-                        RIL_LOG_INFO("CTE_INF_6260::ParseGetSimStatus() : Silent PIN entry event signalled\r\n");
-                        bPINCodeIsOk = true;
-                        break;
-
-                    case WAIT_TIMEDOUT:
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Timed out waiting for Silent PIN entry result!\r\n");
-                        bPINCodeIsOk = false;
-                        break;
-
-                    default:
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Unexpected event result on Wait for Silent PIN Entry, res: %d\r\n", uiWaitRes);
-                        bPINCodeIsOk = false;
-                        break;
-                }
-            }
-SilentPINError:
-            if (!bPINCodeIsOk)
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Problem retrieving PIN, error=[%d]\r\n", ret);
-
-                /* Clear PIN code caching */
-                PCache_Clear();
-
-                /* Ask user to enter the PIN code */
-                pCardStatus->applications[0].app_state = RIL_APPSTATE_PIN;
-                pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-                pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
-            }
-
-            //  Don't use PIN next time
-            PCache_SetUseCachedPIN(false);
         }
     }
 
@@ -324,16 +224,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseEnterSimPin(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseEnterSimPin() - Enter\r\n");
 
-    RIL_RESULT_CODE res = CTEBase::ParseEnterSimPin(rRspData);
-
-    // Signal completion PIN entry if needed
-    if (PCache_GetUseCachedPIN() && m_pSilentPINEntryEvent)
-    {
-        RIL_LOG_INFO("CTE_INF_6260::ParseEnterSimPin() - signal PIN entry event\r\n");
-        CEvent::Signal(m_pSilentPINEntryEvent);
-    }
-
-    return res;
+    return CTEBase::ParseEnterSimPin(rRspData);
 }
 
 
@@ -4744,3 +4635,64 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRs
 }
 #endif // M2_DUALSIM_FEATURE_ENABLED
 
+BOOL CTE_INF_6260::HandleSilentPINEntry(void* pRilToken, void* /*pContextData*/, int /*size*/)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::HandleSilentPINEntry() - Enter\r\n");
+
+    char szPIN[MAX_PIN_SIZE] = {0};
+    BOOL bPINCodeIsOk = FALSE;
+    BOOL bRet = FALSE;
+
+    ePCache_Code ret = PCache_Get_PIN(m_szUICCID, szPIN);
+    if (PIN_OK == ret)
+    {
+        char szCmd[MAX_BUFFER_SIZE] = {0};
+        CCommand* pCmd = NULL;
+
+        bPINCodeIsOk = TRUE;
+
+        //  Queue AT+CPIN=<PIN> command
+        if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CPIN=\"%s\"\r", szPIN))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::HandleSilentPINEntry() - cannot create silent AT+CPIN=<PIN> command\r\n");
+            goto Error;
+        }
+
+        pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SILENT_PIN_ENTRY], pRilToken,
+                            ND_REQ_ID_SILENT_PIN_ENTRY, szCmd, &CTE::ParseSilentPinEntry,
+                            &CTE::PostSilentPinRetryCmdHandler);
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd, TRUE))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::HandleSilentPINEntry() - Unable to queue AT+CPIN command!\r\n");
+                delete pCmd;
+                pCmd = NULL;
+                goto Error;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::HandleSilentPINEntry() - Unable to allocate memory for new silent AT+CPIN=<PIN> command!\r\n");
+            goto Error;
+        }
+
+        bRet = TRUE;
+    }
+
+Error:
+    m_szUICCID[0] = '\0';
+    RIL_LOG_VERBOSE("CTE_INF_6260::HandleSilentPINEntry() - Exit\r\n");
+    return bRet;
+}
+
+//
+//  Response to Silent PIN Entry
+//
+RIL_RESULT_CODE CTE_INF_6260::ParseSilentPinEntry(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseSilentPinEntry() - Enter\r\n");
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseSilentPinEntry() - Exit\r\n");
+    return RRIL_RESULT_OK;
+}
