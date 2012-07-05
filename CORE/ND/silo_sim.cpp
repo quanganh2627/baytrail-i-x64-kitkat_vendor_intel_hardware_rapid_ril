@@ -127,6 +127,7 @@ BOOL CSilo_SIM::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
                 CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             }
             break;
+
         case ND_REQ_ID_WRITESMSTOSIM:
             if (RIL_E_SUCCESS != rpRsp->GetResultCode() &&
                     CMS_ERROR_MEMORY_FULL == rpRsp->GetErrorCode())
@@ -189,7 +190,7 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
         //  (Dec 22/09) I tried entering different values for this, but I don't think it does anything in the UI.
         *pInt = -1;
 
-        if (!rpRsp->SetData((void*) pInt, sizeof(int*), FALSE))
+        if (!rpRsp->SetData((void*) pInt, sizeof(int), FALSE))
         {
             RIL_LOG_CRITICAL("CSilo_SIM::ParsePin() : Unable to set data with number of SIM unlock retries left\r\n");
             free(pInt);
@@ -243,7 +244,7 @@ BOOL CSilo_SIM::ParseNetworkPersonalisationPin(CCommand*& rpCmd, CResponse*& rpR
         //  (Dec 22/09) I tried entering different values for this, but I don't think it does anything in the UI.
         *pInt = -1;
 
-        if (!rpRsp->SetData((void*) pInt, sizeof(int*), FALSE))
+        if (!rpRsp->SetData((void*) pInt, sizeof(int), FALSE))
         {
             RIL_LOG_CRITICAL("CSilo_SIM::ParseNetworkPersonalisationPin() : Unable to set data with number of NET PIN retries left\r\n");
             free(pInt);
@@ -493,7 +494,7 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_STK_PROACTIVE_COMMAND);
 
-    if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char *), FALSE))
+    if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char) * uiLength, FALSE))
     {
         goto Error;
     }
@@ -711,7 +712,7 @@ event_notify:
     //  Normal STK Event notify
     pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);
 
-    if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char *), FALSE))
+    if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char) * uiLength, FALSE))
     {
         goto Error;
     }

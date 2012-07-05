@@ -561,7 +561,7 @@ BOOL CResponse::ParseResponse(CCommand*& rpCmd)
 
         RESPONSE_DATA rspData;
         memset(&rspData, 0, sizeof(RESPONSE_DATA));
-        //GetData(rspData);
+
         rspData.szResponse = m_szBuffer;
         rspData.uiChannel = m_pChannel->GetRilChannel();
 

@@ -155,6 +155,12 @@ BOOL CSilo::ParseUnrecognized(CResponse *const pResponse, const char* &rszPointe
     RIL_LOG_VERBOSE("CSilo::ParseUnrecognized() - Enter\r\n");
     BOOL fRet = FALSE;
 
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo::ParseUnrecognized() pResponse is NULL\r\n");
+        goto Error;
+    }
+
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {

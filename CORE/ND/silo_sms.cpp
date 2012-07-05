@@ -162,7 +162,7 @@ BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const char*& rszPo
 
     *pIndex = Index;
 
-    if (!pResponse->SetData((void*)pIndex, sizeof(int*), FALSE))
+    if (!pResponse->SetData((void*)pIndex, sizeof(int), FALSE))
     {
         goto Error;
     }
@@ -252,7 +252,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NEW_SMS);
 
-    if (!pResponse->SetData((void*)szPDU, sizeof(char *), FALSE))
+    if (!pResponse->SetData((void*)szPDU, sizeof(char) * uiLength, FALSE))
     {
         goto Error;
     }
@@ -437,7 +437,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT);
 
-    if (!pResponse->SetData((void*) szPDU, sizeof(char *), FALSE))
+    if (!pResponse->SetData((void*) szPDU, sizeof(char) * uiLength, FALSE))
     {
         goto Error;
     }

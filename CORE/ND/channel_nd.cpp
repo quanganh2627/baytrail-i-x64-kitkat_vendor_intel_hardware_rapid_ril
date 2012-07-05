@@ -318,8 +318,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
     }
 
     // Handle the response
-    // TODO: fix these dummies
-    if (!ParseResponse(rpCmd, pResponse/*, dummy1, dummy2*/))
+    if (!ParseResponse(rpCmd, pResponse))
     {
         goto Error;
     }
@@ -731,14 +730,13 @@ BOOL CChannel::RejectRadioOff(CResponse*& rpResponse)
 //
 // Handle response to an AT command
 //
-BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHungUp, BOOL& rfRadioOff*/)
+BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp)
 {
     RIL_LOG_VERBOSE("CChannel::ParseResponse() - Enter\r\n");
 
     void* pData = NULL;
     UINT32 uiDataSize = 0;
     RIL_RESULT_CODE resCode;
-    //CNotificationData* pnd = NULL;
     BOOL bResult = FALSE;
 
     if ((NULL == rpCmd) || (NULL == rpRsp))
@@ -746,8 +744,6 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp/*, BOOL& rfHung
         RIL_LOG_CRITICAL("CChannel::ParseResponse() : Invalid arguments\r\n");
         goto Error;
     }
-
-    //rfHungUp = FALSE;
 
     //  Call our hook
     if (!PreParseResponseHook(rpCmd, rpRsp))

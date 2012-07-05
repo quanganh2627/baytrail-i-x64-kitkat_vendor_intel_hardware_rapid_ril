@@ -175,6 +175,12 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
     //  "<fullname>","<shortname>","<tz>","<year>/<month>/<day>,<hr>:<min>:<sec>",<dst><postfix>
     RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - string rszPointer: %s", rszPointer);
 
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - pResponse is NULL\r\n");
+        goto Error;
+    }
+
     //  Check to see if we have a complete XNITZINFO notification.
     if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
@@ -355,7 +361,7 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
         RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - INFO: pszTimeData: %s\r\n", pszTimeData);
 
         pResponse->SetResultCode(RIL_UNSOL_NITZ_TIME_RECEIVED);
-        if (!pResponse->SetData((void*)pszTimeData, sizeof(char*), FALSE))
+        if (!pResponse->SetData((void*)pszTimeData, sizeof(char) * MAX_BUFFER_SIZE, FALSE))
         {
             goto Error;
         }
@@ -655,8 +661,10 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     BOOL bRet = FALSE;
     const char* szStrExtract = NULL;
     const char* szResponse = NULL;
+    char* pszCommaBuffer = NULL;
     UINT32 nCID = 0;
-    UINT32 nREASON=0;
+    UINT32 nREASON = 0;
+    UINT32 uiLength = 0;
     CChannel_Data* pChannelData = NULL;
     unsigned char* pszData = NULL;
 
@@ -677,8 +685,23 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     //  Back up over the "\r\n".
     szResponse -= strlen(g_szNewLine);
 
+    // Allocate +CGEV string buffer
+    uiLength = szResponse - rszPointer;
+    pszCommaBuffer = new char[uiLength + 1];
+    if (!pszCommaBuffer)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - cannot allocate pszCommaBuffer\r\n");
+        goto Error;
+    }
+
+    // Extract +CGEV string buffer
+    memset(pszCommaBuffer, 0, uiLength + 1);
+    strncpy(pszCommaBuffer, rszPointer, uiLength);
+    pszCommaBuffer[uiLength] = '\0'; // Klockworks fix
+
+    szStrExtract = pszCommaBuffer;
     //  Format is "ME PDN ACT, <cid>[, <reason>]"
-    if (FindAndSkipString(rszPointer, "ME PDN ACT", szStrExtract))
+    if (FindAndSkipString(szStrExtract, "ME PDN ACT", szStrExtract))
     {
         if (!ExtractUInt32(szStrExtract, nCID, szStrExtract))
         {
@@ -847,6 +870,8 @@ Error:
     }
 
     rszPointer = szResponse;
+    delete[] pszCommaBuffer;
+    pszCommaBuffer = NULL;
     RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Exit\r\n");
     return bRet;
 }
@@ -1031,6 +1056,12 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse *const pResponse, const char* &rs
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - Could not allocate memory for pData.\r\n");
+        goto Error;
+    }
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - pResponse is NULL\r\n");
         goto Error;
     }
 

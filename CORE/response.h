@@ -58,6 +58,7 @@ public:
 
     BOOL    IsUnsolicitedFlag() const                       { return ( (m_uiFlags & E_RSP_FLAG_UNSOLICITED) ? TRUE : FALSE); };
     void    SetUnsolicitedFlag(const BOOL bUnsolicited)     { (bUnsolicited ? (m_uiFlags |= E_RSP_FLAG_UNSOLICITED) : (m_uiFlags &= ~E_RSP_FLAG_UNSOLICITED)); };
+
     BOOL    IsUnrecognizedFlag() const                      { return ( (m_uiFlags & E_RSP_FLAG_UNRECOGNIZED) ? TRUE : FALSE); };
     void    SetUnrecognizedFlag(const BOOL bUnrecognized)   { (bUnrecognized ? (m_uiFlags |= E_RSP_FLAG_UNRECOGNIZED) : (m_uiFlags &= ~E_RSP_FLAG_UNRECOGNIZED)); };
 

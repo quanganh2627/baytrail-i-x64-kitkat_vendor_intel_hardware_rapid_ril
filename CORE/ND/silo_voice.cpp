@@ -58,6 +58,7 @@ CSilo_Voice::CSilo_Voice(CChannel *pChannel)
         { "NO ANSWER"     , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoAnswer },
         { "CTM CALL"      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCTMCall },
         { "NO CTM CALL"   , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCTMCall },
+        { "WAITING CALL CTM" , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseWaitingCallCTM },
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
         // Handle Call failed cause unsolicited notification here
         { "+XCEER: " , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallFailedCause },
@@ -139,6 +140,12 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
     BOOL fRet = FALSE;
     const char* szDummy = NULL;
     char szType[MAX_BUFFER_SIZE] = {0};
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : pResponse was NULL\r\n");
+        goto Error;
+    }
 
     // Make sure this is a complete notification
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
@@ -1142,6 +1149,12 @@ BOOL CSilo_Voice::ParseBusy(CResponse* const pResponse, const char*& rszPointer)
 
     BOOL fRet = FALSE;
 
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseBusy() : pResponse was NULL\r\n");
+        goto Error;
+    }
+
     // Skip to the next <postfix>
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
@@ -1166,6 +1179,12 @@ BOOL CSilo_Voice::ParseNoAnswer(CResponse* const pResponse, const char*& rszPoin
     RIL_LOG_VERBOSE("CSilo_Voice::ParseNoAnswer() - Enter\r\n");
 
     BOOL fRet = FALSE;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoAnswer() : pResponse was NULL\r\n");
+        goto Error;
+    }
 
     // Skip to the next <postfix>
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
@@ -1193,6 +1212,12 @@ BOOL CSilo_Voice::ParseCTMCall(CResponse* const pResponse, const char*& rszPoint
 
     BOOL fRet = FALSE;
 
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCTMCall() : pResponse was NULL\r\n");
+        goto Error;
+    }
+
     // Skip to the next <postfix>
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
@@ -1218,6 +1243,12 @@ BOOL CSilo_Voice::ParseNoCTMCall(CResponse* const pResponse, const char*& rszPoi
 
     BOOL fRet = FALSE;
 
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoCTMCall() : pResponse was NULL\r\n");
+        goto Error;
+    }
+
     // Skip to the next <postfix>
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
     {
@@ -1237,6 +1268,36 @@ Error:
     return fRet;
 }
 
+BOOL CSilo_Voice::ParseWaitingCallCTM(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseWaitingCallCTM() - Enter\r\n");
+
+    BOOL fRet = FALSE;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseWaitingCallCTM() : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    // Skip to the next <postfix>
+    if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseWaitingCallCTM() : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Walk back over the <CR>
+    rszPointer -= strlen(g_szNewLine);
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseWaitingCallCTM() - Exit\r\n");
+    return fRet;
+}
 
 #if defined (M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
 
@@ -1251,6 +1312,12 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
     UINT32 uiCause = 0;
     UINT32 uiID = 0;
 
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : pResponse was NULL\r\n");
+        goto Error;
+    }
+
     // Do we have a complete notification?
     if(!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
     {
@@ -1258,13 +1325,13 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
         goto Error;
     }
 
-    pFailedCauseData = (int*)malloc(2 * sizeof(int*));
+    pFailedCauseData = (int*)malloc(2 * sizeof(int));
     if (!pFailedCauseData)
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : Could not allocate data\r\n");
         goto Error;
     }
-    memset(pFailedCauseData, 0, 2 * sizeof(int*));
+    memset(pFailedCauseData, 0, 2 * sizeof(int));
 
     //  Extract <report>
     if (!ExtractUInt32(rszPointer, uiDummy, rszPointer))
@@ -1306,7 +1373,7 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
     pFailedCauseData[0] = uiID; // call id
     pFailedCauseData[1] = uiCause; // failed cause
 
-    if (!pResponse->SetData((void*)pFailedCauseData, 2 * sizeof(int *), FALSE))
+    if (!pResponse->SetData((void*)pFailedCauseData, 2 * sizeof(int), FALSE))
     {
         goto Error;
     }

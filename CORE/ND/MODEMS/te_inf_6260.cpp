@@ -362,6 +362,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char szIPV4V6[] = "IPV4V6";
+    int nPapChap;
     PdpData stPdpData;
     memset(&stPdpData, 0, sizeof(PdpData));
 
@@ -391,9 +392,9 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     stPdpData.szRadioTechnology = ((char **)pData)[0];  // not used
     stPdpData.szRILDataProfile  = ((char **)pData)[1];
     stPdpData.szApn             = ((char **)pData)[2];
-    stPdpData.szUserName        = ((char **)pData)[3];  // not used
-    stPdpData.szPassword        = ((char **)pData)[4];  // not used
-    stPdpData.szPAPCHAP         = ((char **)pData)[5];  // not used
+    stPdpData.szUserName        = ((char **)pData)[3];
+    stPdpData.szPassword        = ((char **)pData)[4];
+    stPdpData.szPAPCHAP         = ((char **)pData)[5];
 
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szRadioTechnology=[%s]\r\n", stPdpData.szRadioTechnology);
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szRILDataProfile=[%s]\r\n", stPdpData.szRILDataProfile);
@@ -401,6 +402,25 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szUserName=[%s]\r\n", stPdpData.szUserName);
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n", stPdpData.szPassword);
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n", stPdpData.szPAPCHAP);
+
+    // PAP/CHAP auth type 3 (PAP or CHAP) is not supported. In this case if a
+    // a username is defined we will use PAP and no no authentication otherwise.
+    // Note: due to an issue in the Android/Fw (missing check of the username
+    // length), if the authentication is not defined, it's the value 3 (PAP or
+    // CHAP) who is sent to the RRIL by default.
+    nPapChap = atoi(stPdpData.szPAPCHAP);
+    if (nPapChap == 3)
+    {
+        if (stPdpData.szUserName != NULL && strlen(stPdpData.szUserName) != 0)
+        {
+            nPapChap = 1;    // PAP authentication
+        }
+        else
+        {
+            nPapChap = 0;    // No authentication
+        }
+        RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - New PAP/CHAP=[%d]\r\n", nPapChap);
+    }
 
 #if defined(BOARD_HAVE_IFX7060)
     networkPath->bTurnHSIOn = isDataDirectlyOverHSI(stPdpData.szRILDataProfile);
@@ -429,8 +449,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1,
             sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,1\r", uiCID, stPdpData.szPDPType,
-            stPdpData.szApn, uiCID))
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,1\r", uiCID, stPdpData.szPDPType,
+            stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
@@ -440,8 +460,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1,
             sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,2\r", uiCID, stPdpData.szPDPType,
-            stPdpData.szApn, uiCID))
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,2\r", uiCID, stPdpData.szPDPType,
+            stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
@@ -452,8 +472,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         //  XDNS=3 is not supported by the modem so two commands +XDNS=1 and +XDNS=2 should be sent.
         if (!PrintStringNullTerminate(rReqData.szCmd1,
             sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
-            stPdpData.szApn, uiCID, uiCID))
+            "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XGAUTH=%u,%d,\"%s\",\"%s\";+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
+            stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword, uiCID, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
