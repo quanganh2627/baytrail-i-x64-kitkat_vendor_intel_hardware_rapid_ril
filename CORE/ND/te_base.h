@@ -36,6 +36,8 @@ protected:
     // This class tracks the SIM state and handles notifications
     CSimState m_SIMState;
 
+    S_PIN_RETRY_COUNT m_PinRetryCount;
+
 public:
 
     CTEBase();
@@ -524,6 +526,16 @@ public:
     // Silent Pin Entry request and response handler
     virtual BOOL HandleSilentPINEntry(void* pRilToken, void* pContextData, int dataSize);
     virtual RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
+
+    // PIN retry count request and response handler
+    virtual RIL_RESULT_CODE QueryPinRetryCount(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
+
+    // Get functions returning number of retry counts left for respective locks
+    virtual int GetPinRetryCount() { return m_PinRetryCount.pin; };
+    virtual int GetPin2RetryCount() { return m_PinRetryCount.pin2; };
+    virtual int GetPukRetryCount() { return m_PinRetryCount.puk; };
+    virtual int GetPuk2RetryCount() { return m_PinRetryCount.puk2; };
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus);

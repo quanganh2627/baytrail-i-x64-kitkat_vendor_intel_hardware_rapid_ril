@@ -4696,3 +4696,60 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSilentPinEntry(RESPONSE_DATA& rRspData)
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseSilentPinEntry() - Exit\r\n");
     return RRIL_RESULT_OK;
 }
+
+RIL_RESULT_CODE CTE_INF_6260::QueryPinRetryCount(REQUEST_DATA& rReqData, void* /*pData*/, UINT32 /*uiDataSize*/)
+{
+    RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XPINCNT\r"))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::QueryPinRetryCount() - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::QueryPinRetryCount() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_6260::ParseSimPinRetryCount(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseSimPinRetryCount() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+
+    // +XPINCNT: <PIN attempts>, <PIN2 attempts>, <PUK attempts>, <PUK2 attempts>
+    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
+    {
+        UINT32 uiRetryCount[4];
+
+        if (!ExtractUInt32(pszRsp, uiRetryCount[0], pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiRetryCount[1], pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiRetryCount[2], pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiRetryCount[3], pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimPinRetryCount() - Cannot parse XPINCNT\r\n");
+        }
+        else
+        {
+            RIL_LOG_INFO("CTE_INF_6260::ParseSimPinRetryCount() - retries pin:%d pin2:%d puk:%d puk2:%d\r\n",
+                uiRetryCount[0], uiRetryCount[1], uiRetryCount[2], uiRetryCount[3]);
+            m_PinRetryCount.pin = uiRetryCount[0];
+            m_PinRetryCount.pin2 = uiRetryCount[1];
+            m_PinRetryCount.puk = uiRetryCount[2];
+            m_PinRetryCount.puk2 = uiRetryCount[3];
+            res = RRIL_RESULT_OK;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseSimPinRetryCount() - Exit\r\n");
+
+    return res;
+}
+

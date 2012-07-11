@@ -165,12 +165,8 @@ RIL_RESULT_CODE CTE::RequestGetSimStatus(RIL_Token rilToken, void * pData, size_
 
         if (pCmd)
         {
-            //  Call when radio is off.
             pCmd->SetHighPriority();
-
-            // Setting the request to be placed in front of queue
-            // because SIM IO requests will block this during SIM hot swap use cases.
-            if (!CCommand::AddCmdToQueue(pCmd,TRUE))
+            if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestGetSimStatus() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
@@ -1669,9 +1665,6 @@ RIL_RESULT_CODE CTE::RequestSimIo(RIL_Token rilToken, void * pData, size_t datal
 
         if (pCmd)
         {
-            //  Call when radio is off.
-            pCmd->SetHighPriority();
-
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestSimIo() - Unable to add command to queue\r\n");
@@ -2380,6 +2373,7 @@ RIL_RESULT_CODE CTE::RequestSetFacilityLock(RIL_Token rilToken, void * pData, si
     RIL_LOG_VERBOSE("CTE::RequestSetFacilityLock() - Enter\r\n");
 
     REQUEST_DATA reqData;
+    CCommand* pCmd = NULL;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetFacilityLock(reqData, pData, datalen);
@@ -2389,21 +2383,19 @@ RIL_RESULT_CODE CTE::RequestSetFacilityLock(RIL_Token rilToken, void * pData, si
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETFACILITYLOCK], rilToken,
+        pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETFACILITYLOCK], rilToken,
                                         ND_REQ_ID_SETFACILITYLOCK, reqData,
-                                        &CTE::ParseSetFacilityLock, &CTE::PostSimPinCmdHandler);
+                                        &CTE::ParseSetFacilityLock,
+                                        &CTE::PostSetFacilityLockCmdHandler);
 
         if (pCmd)
         {
             //  Call when radio is off.
             pCmd->SetHighPriority();
-
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestSetFacilityLock() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
             }
         }
         else
@@ -2411,6 +2403,12 @@ RIL_RESULT_CODE CTE::RequestSetFacilityLock(RIL_Token rilToken, void * pData, si
             RIL_LOG_CRITICAL("CTE::RequestSetFacilityLock() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
+    }
+
+    if (RRIL_RESULT_OK != res)
+    {
+        CleanRequestData(reqData);
+        delete pCmd;
     }
 
     RIL_LOG_VERBOSE("CTE::RequestSetFacilityLock() - Exit\r\n");
@@ -5908,6 +5906,15 @@ BOOL CTE::isRetryPossible(UINT32 uiErrorCode)
     }
 }
 
+void CTE::CleanRequestData(REQUEST_DATA& rReqData)
+{
+    free(rReqData.pContextData);
+    rReqData.pContextData = NULL;
+
+    free(rReqData.pContextData2);
+    rReqData.pContextData2 = NULL;
+}
+
 //
 // Silent PIN Entry (sent internally)
 //
@@ -6088,8 +6095,6 @@ void CTE::PostSimPinCmdHandler(POST_CMD_HANDLER_DATA& rData)
 
     if (RIL_E_SUCCESS != rData.uiResultCode)
     {
-        int noOfRetries = -1;
-
         switch (rData.uiErrorCode)
         {
             case CME_ERROR_INCORRECT_PASSWORD:
@@ -6114,16 +6119,46 @@ void CTE::PostSimPinCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 rData.uiResultCode = RIL_E_GENERIC_FAILURE;
                 break;
         }
+    }
 
-        /// @TODO: Query the XPINCNT
-        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
-                                    (void*) &noOfRetries, sizeof(noOfRetries));
+    /*
+     * Currently, ril documentation is not clear on whether the valid number of retries
+     * should be sent on success or failure or on both. Following code requests PIN retry
+     * count on both success and failure. If there is some issue in adding the PIN retry
+     * request to queue, then the actual ril request will be completed with noOfRetries
+     * set to -1(means unknown value).
+     */
+    int noOfRetries = -1; // -1 means unknown value
+    UINT32* pResultCode = (UINT32*)malloc(sizeof(UINT32));
+    if (NULL == pResultCode)
+    {
+        RIL_LOG_CRITICAL("CTE::PostSimPinCmdHandler() - Could not allocate memory for pResultCode\r\n");
     }
     else
     {
-        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
-                                                rData.pData, rData.uiDataSize);
+        /*
+         * Pass the result code as context data to Retry count request.
+         * Incase of no error in adding retry count request to command queue, pResultCode
+         * will be/has to be deleted in the PostSimPinRetryCount function.
+         */
+        *pResultCode = rData.uiResultCode;
+        RIL_RESULT_CODE res = RequestSimPinRetryCount(rData.pRilToken,
+                                                    (void*) pResultCode,
+                                                    sizeof(UINT32),
+                                                    rData.uiRequestId,
+                                                    &CTE::PostSimPinRetryCount);
+        if (RRIL_RESULT_OK == res)
+        {
+            RIL_LOG_INFO("CTE::PostSimPinCmdHandler() - PinRetryCount case\r\n");
+            return;
+        }
     }
+
+Error:
+    free(pResultCode);
+
+    RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                                (void*) &noOfRetries, sizeof(noOfRetries));
 
     RIL_LOG_VERBOSE("CTE::PostSimPinCmdHandler() Exit\r\n");
 }
@@ -6141,7 +6176,7 @@ void CTE::PostNtwkPersonalizationCmdHandler(POST_CMD_HANDLER_DATA& rData)
 
     if (RIL_E_SUCCESS != rData.uiResultCode)
     {
-        int noOfRetries = -1;
+        int noOfRetries = -1; // -1 means unknown value
 
         switch (rData.uiErrorCode)
         {
@@ -6167,7 +6202,8 @@ void CTE::PostNtwkPersonalizationCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 rData.uiResultCode = RIL_E_GENERIC_FAILURE;
                 break;
         }
-        /// @TODO: Query the XPINCNT
+
+        // Number of retry count not available for Network personalization locks
         RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                                     (void*) &noOfRetries, sizeof(noOfRetries));
     }
@@ -6440,6 +6476,92 @@ void CTE::PostSimIOCmdHandler(POST_CMD_HANDLER_DATA& rData)
     RIL_LOG_VERBOSE("CTE::PostSimIOCmdHandler() Exit\r\n");
 }
 
+void CTE::PostSetFacilityLockCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostSetFacilityLockCmdHandler() Enter\r\n");
+
+    if (RIL_E_SUCCESS != rData.uiResultCode)
+    {
+        switch (rData.uiErrorCode)
+        {
+            case CME_ERROR_INCORRECT_PASSWORD:
+                RIL_LOG_INFO("CTE::PostSetFacilityLockCmdHandler() - Incorrect password");
+                rData.uiResultCode = RIL_E_PASSWORD_INCORRECT;
+                break;
+
+            case CME_ERROR_SIM_PUK_REQUIRED:
+                RIL_LOG_INFO("CTE::PostSetFacilityLockCmdHandler() - SIM PUK required");
+                rData.uiResultCode = RIL_E_PASSWORD_INCORRECT;
+                SetSIMState(RRIL_SIM_STATE_NOT_READY);
+                break;
+
+            case CME_ERROR_SIM_PUK2_REQUIRED:
+                RIL_LOG_INFO("CTE::PostSetFacilityLockCmdHandler() - SIM PUK2 required");
+                rData.uiResultCode = RIL_E_SIM_PUK2;
+                break;
+
+            default:
+                RIL_LOG_INFO("CTE::PostSetFacilityLockCmdHandler() - Unknown error [%d]", rData.uiErrorCode);
+                rData.uiResultCode = RIL_E_GENERIC_FAILURE;
+                break;
+        }
+    }
+
+    int noOfRetries = -1; // -1 means unknown value
+    if (NULL == rData.pContextData ||
+                    rData.uiContextDataSize != sizeof(S_SET_FACILITY_LOCK_CONTEXT_DATA))
+    {
+        RIL_LOG_INFO("CTE::PostSetFacilityLockCmdHandler() - pin retry count not available case\r\n");
+    }
+    else
+    {
+        RIL_LOG_INFO("CTE::PostSetFacilityLockCmdHandler() - Fetch pin retry count\r\n");
+
+        /*
+         * Context Data will be set only for SC(SIM CARD) and FD(Fixed Dialing) locks.
+         * This is because modem only supports retry count information for SC and FD
+         * locks via XPINCNT.
+         *
+         * Note: No point in calling this on success but ril documentation not clear
+         */
+        S_SET_FACILITY_LOCK_CONTEXT_DATA* pContextData =
+                                (S_SET_FACILITY_LOCK_CONTEXT_DATA*) rData.pContextData;
+
+        pContextData->uiResultCode = rData.uiResultCode;
+
+        RIL_RESULT_CODE res = RequestSimPinRetryCount(rData.pRilToken, pContextData,
+                                                sizeof(S_SET_FACILITY_LOCK_CONTEXT_DATA),
+                                                rData.uiRequestId,
+                                                &CTE::PostFacilityLockRetryCount);
+        if (RRIL_RESULT_OK == res)
+        {
+            RIL_LOG_CRITICAL("CTE::PostSetFacilityLockCmdHandler - PinRetryCount case\r\n");
+            return;
+        }
+    }
+
+    /*
+     * Incase of SIM Card and FD Lock, context data will be a pointer to
+     * S_SET_FACILITY_LOCK_CONTEXT_DATA. Free it before completing the request.
+     * For other fac's, this won't create any issues as free called with NULL
+     * is safe.
+     */
+    free(rData.pContextData);
+    rData.pContextData = NULL;
+
+    if (NULL == rData.pRilToken)
+    {
+        RIL_LOG_CRITICAL("CTE::PostSetFacilityLockCmdHandler() rData.pRilToken NULL!\r\n");
+    }
+    else
+    {
+        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                                    (void*) &noOfRetries, sizeof(noOfRetries));
+    }
+
+    RIL_LOG_VERBOSE("CTE::PostSetFacilityLockCmdHandler() Exit\r\n");
+}
+
 void CTE::PostQueryAvailableNetworksCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostQueryAvailableNetworksCmdHandler() Enter\r\n");
@@ -6511,4 +6633,169 @@ void CTE::PostSilentPinRetryCmdHandler(POST_CMD_HANDLER_DATA& rData)
     RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
 
     RIL_LOG_VERBOSE("CTE::PostSilentPinRetryCmdHandler() Exit\r\n");
+}
+
+RIL_RESULT_CODE CTE::RequestSimPinRetryCount(RIL_Token rilToken, void* pData, size_t datalen,
+                                    UINT32 uiReqId, PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn)
+{
+    RIL_LOG_VERBOSE("CTE::RequestSimPinRetryCount() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
+
+    if (0 == uiReqId)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSimPinRetryCount() - reqId is 0\r\n");
+        return res;
+    }
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+    res = m_pTEBaseInstance->QueryPinRetryCount(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSimPinRetryCount() - Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(g_arChannelMapping[uiReqId], rilToken, uiReqId, reqData,
+                                        &CTE::ParseSimPinRetryCount, pPostCmdHandlerFcn);
+
+        if (NULL != pCmd)
+        {
+            pCmd->SetHighPriority();
+            pCmd->SetContextData(pData);
+            pCmd->SetContextDataSize(datalen);
+            if (!CCommand::AddCmdToQueue(pCmd, TRUE))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestSimPinRetryCount() - Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestSimPinRetryCount() - Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestSimPinRetryCount() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseSimPinRetryCount(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseSimPinRetryCount() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseSimPinRetryCount(rRspData);
+}
+
+void CTE::PostSimPinRetryCount(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostSimPinRetryCount() Enter\r\n");
+
+    int noOfRetries = -1; // -1 means unknown value
+    UINT32 uiResultCode;
+
+    if (NULL == rData.pContextData || sizeof(UINT32) < rData.uiContextDataSize)
+    {
+        RIL_LOG_INFO("CTE::PostSimPinRetryCount() - No Context data\r\n");
+        uiResultCode = RIL_E_GENERIC_FAILURE;
+    }
+    else
+    {
+        uiResultCode = *((UINT32*) rData.pContextData);
+    }
+
+    if (RIL_E_SUCCESS == rData.uiResultCode)
+    {
+        switch (rData.uiRequestId)
+        {
+            case ND_REQ_ID_ENTERSIMPIN:
+            case ND_REQ_ID_CHANGESIMPIN:
+                noOfRetries = m_pTEBaseInstance->GetPinRetryCount();
+                break;
+            case ND_REQ_ID_ENTERSIMPIN2:
+            case ND_REQ_ID_CHANGESIMPIN2:
+                noOfRetries = m_pTEBaseInstance->GetPin2RetryCount();
+                break;
+            case ND_REQ_ID_ENTERSIMPUK:
+                noOfRetries = m_pTEBaseInstance->GetPukRetryCount();
+                break;
+            case ND_REQ_ID_ENTERSIMPUK2:
+                noOfRetries = m_pTEBaseInstance->GetPuk2RetryCount();
+                break;
+            default:
+                noOfRetries = -1; // -1 means unknown value
+                break;
+        }
+    }
+
+    /*
+     * In case of retry count request, actual pin/puk/pin2/puk2 request's result code is
+     * passed as contextData.
+     */
+    free(rData.pContextData);
+    rData.pContextData = NULL;
+
+    if (NULL == rData.pRilToken)
+    {
+        RIL_LOG_CRITICAL("CTE::PostSimPinRetryCount() rData.pRilToken NULL!\r\n");
+    }
+    else
+    {
+        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) uiResultCode,
+                                (void*) &noOfRetries, sizeof(noOfRetries));
+    }
+
+    RIL_LOG_VERBOSE("CTE::PostSimPinRetryCount() Exit\r\n");
+}
+
+void CTE::PostFacilityLockRetryCount(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostFacilityLockRetryCount() Enter\r\n");
+
+    int noOfRetries = -1; // -1 means unknown value
+    UINT32 uiResultCode = RIL_E_GENERIC_FAILURE;
+
+    if (NULL != rData.pContextData &&
+                    rData.uiContextDataSize == sizeof(S_SET_FACILITY_LOCK_CONTEXT_DATA))
+    {
+        RIL_LOG_INFO("CTE::PostFacilityLockRetryCount() Valid context data\r\n");
+
+        S_SET_FACILITY_LOCK_CONTEXT_DATA* pContextData =
+                                (S_SET_FACILITY_LOCK_CONTEXT_DATA*) rData.pContextData;
+        uiResultCode = pContextData->uiResultCode;
+
+        if (RIL_E_SUCCESS == rData.uiResultCode)
+        {
+            if (0 == strncmp(pContextData->szFacilityLock, "SC", 2))
+            {
+                noOfRetries = m_pTEBaseInstance->GetPinRetryCount();
+            }
+            else if (0 == strncmp(pContextData->szFacilityLock, "FD", 2))
+            {
+                noOfRetries = m_pTEBaseInstance->GetPin2RetryCount();
+            }
+        }
+    }
+
+    /*
+     * In case of facility lock retry count, actual pin/puk/pin2/puk2 request's result code is
+     * passed as contextData.
+     */
+    free(rData.pContextData);
+    rData.pContextData = NULL;
+
+    if (NULL == rData.pRilToken)
+    {
+        RIL_LOG_CRITICAL("CTE::PostFacilityLockRetryCount() rData.pRilToken NULL!\r\n");
+    }
+    else
+    {
+        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) uiResultCode,
+                                (void*) &noOfRetries, sizeof(noOfRetries));
+    }
+    RIL_LOG_VERBOSE("CTE::PostFacilityLockRetryCount() Exit\r\n");
 }

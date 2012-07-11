@@ -141,6 +141,11 @@ public:
     virtual BOOL HandleSilentPINEntry(void* pRilToken, void* pContextData, int dataSize);
     virtual RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
 
+    // PIN retry count request and response handler
+    virtual RIL_RESULT_CODE QueryPinRetryCount(REQUEST_DATA& rReqData,
+                                                            void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
+
 private:
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
                                                     const char** pszRequest,

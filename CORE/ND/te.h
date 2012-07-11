@@ -20,6 +20,7 @@
 #include "radio_state.h"
 #include "sim_state.h"
 #include "types.h"
+#include "command.h"
 
 class CTEBase;
 
@@ -553,6 +554,11 @@ public:
 
     BOOL IsSetupDataCallAllowed(int& retryTime);
 
+    RIL_RESULT_CODE RequestSimPinRetryCount(RIL_Token rilToken, void* pData, size_t datalen,
+                                            UINT32 uiReqId = 0,
+                                            PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn = NULL);
+    RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
+
     /*
      * Post Command handler function for valid ril requests and also for internal requests.
      * This function only completes the ril requests upon valid ril token. No cleanup done
@@ -576,8 +582,8 @@ public:
      * Post Command handler function for the SIM PIN/PIN2/PUK/PUK2/Facility
      * lock requests.
      *
-     * Upon success, completes the request
-     * Upon failure, error codes are mapped to the RIL error codes and completes the request.
+     * Upon success or failure, pin retry count is requested from modem
+     * Upon failure, error codes are mapped to the RIL error codes
      */
     void PostSimPinCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
@@ -673,6 +679,14 @@ public:
      */
     void PostSimIOCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
+    /*
+     * Post Command handler function for RIL_REQUEST_SET_FACILITY_LOCK
+     *
+     * Upon success or failure, pin retry count is requested from modem for SC and FD locks
+     * Upon failure, error codes are mapped to the RIL error codes.
+     */
+    void PostSetFacilityLockCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
     // Sets the g_bIsManualNetworkSearchOngoing to false
     void PostQueryAvailableNetworksCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
@@ -692,6 +706,25 @@ public:
      * RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED.
      */
     void PostSilentPinRetryCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for the requests which require
+     * lock retry count as response.
+     *
+     * Upon success, corresponding request is completed with the number of retries.
+     * Upon failure, request is completed with number of retries set to -1
+     */
+    void PostSimPinRetryCount(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for the RIL_REQUEST_SET_FACILITY_LOCK request.
+     *
+     * Upon success, request is completed with the number of retries set to the fetched
+     *               retry count for SC and FD locks. For rest of the locks, number of
+     *               retries set to -1
+     * Upon failure, request is completed with number of retries set to -1
+     */
+    void PostFacilityLockRetryCount(POST_CMD_HANDLER_DATA& rData);
 
 private:
     BOOL m_bCSStatusCached;
@@ -741,6 +774,9 @@ private:
 
     // Function to determine whether the error code falls under SMS retry case
     BOOL isRetryPossible(UINT32 uiErrorCode);
+
+    // Function to cleanup the request data
+    void CleanRequestData(REQUEST_DATA& rReqData);
 };
 
 #endif

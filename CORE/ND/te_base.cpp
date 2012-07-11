@@ -53,6 +53,7 @@ m_nSimAppType(RIL_APPTYPE_UNKNOWN)
     memset(m_szManualMCCMNC, 0, MAX_BUFFER_SIZE);
     memset(m_szPIN, 0, MAX_PIN_SIZE);
     memset(&m_IncomingCallInfo, 0, sizeof(m_IncomingCallInfo));
+    memset(&m_PinRetryCount, -1, sizeof(m_PinRetryCount));
 }
 
 CTEBase::~CTEBase()
@@ -4139,6 +4140,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     char * pszMode = NULL;
     char * pszPassword = NULL;
     char * pszClass = NULL;
+    S_SET_FACILITY_LOCK_CONTEXT_DATA* pContextData = NULL;
 
     if ((4 * sizeof(char *)) > uiDataSize)
     {
@@ -4207,7 +4209,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
 
     /*
      * In case of the call barring related lock set failure, query the extended error report.
-     * This is to findout whether the set failed due to fdn check or general failure.
+     * This is to find out whether the set failed due to fdn check or general failure.
      */
     if (0 == strcmp(pszFacility, "AO") ||
             0 == strcmp(pszFacility, "OI") ||
@@ -4235,6 +4237,35 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
         else
         {
             strcpy(m_szPIN, "CLR");
+        }
+    }
+
+    /*
+     * Upon any failure in adding the request, pContextData will be freed in te.cpp.
+     * If not set to NULL, then free(pContextData) will result in crash. So, better
+     * to set it to NULL.
+     */
+    rReqData.pContextData = NULL;
+
+    /*
+     * Store the lock code which is required for determining the number of
+     * retry counts left based on the lock requested.
+     */
+    if (0 == strncmp(pszFacility, "SC", 2) ||
+            0 == strncmp(pszFacility, "FD", 2))
+    {
+        pContextData =
+                (S_SET_FACILITY_LOCK_CONTEXT_DATA*)malloc(sizeof(S_SET_FACILITY_LOCK_CONTEXT_DATA));
+        if (NULL == pContextData)
+        {
+            RIL_LOG_INFO("CTEBase::CoreSetFacilityLock() - Not able to allocate context data\r\n");
+        }
+        else
+        {
+            strncpy(pContextData->szFacilityLock, pszFacility, MAX_FACILITY_CODE - 1);
+            pContextData->szFacilityLock[MAX_FACILITY_CODE-1] = '\0';
+            rReqData.pContextData = pContextData;
+            rReqData.cbContextData = sizeof(S_SET_FACILITY_LOCK_CONTEXT_DATA);
         }
     }
 
@@ -9010,5 +9041,18 @@ BOOL CTEBase::HandleSilentPINEntry(void* /*pRilToken*/, void* /*pContextData*/,
 RIL_RESULT_CODE CTEBase::ParseSilentPinEntry(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSilentPinEntry - Enter/Exit \r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::QueryPinRetryCount(REQUEST_DATA& /*rReqData*/, void* /*pData*/, UINT32 /*uiDataSize*/)
+{
+    RIL_LOG_VERBOSE("CTEBase::QueryPinRetryCount() - Enter / Exit\r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::ParseSimPinRetryCount(RESPONSE_DATA& /*rRspData*/)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseSimPinRetryCount() - Enter / Exit\r\n");
+
     return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
 }

@@ -49,6 +49,28 @@ typedef long                RIL_RESULT_CODE;
 #define MAX_BUFFER_SIZE     (1024)
 #define MAX_PROP_VALUE      (81)
 #define MAX_PIN_SIZE        (10)
+#define MAX_FACILITY_CODE   (5)
+
+///////////////////////////////////////////////////////////////////////////////
+// Retry count information
+//
+typedef struct
+{
+    int pin;
+    int pin2;
+    int puk;
+    int puk2;
+} S_PIN_RETRY_COUNT;
+
+///////////////////////////////////////////////////////////////////////////////
+// Facility Lock Context data
+//
+typedef struct
+{
+    UINT32 uiResultCode;
+    char szFacilityLock[MAX_FACILITY_CODE];
+} S_SET_FACILITY_LOCK_CONTEXT_DATA;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Registration States
