@@ -28,11 +28,6 @@ typedef long                RIL_RESULT_CODE;
 
 #define WAIT_FOREVER            (0xFFFFFFFF)
 
-
-
-
-
-
 ///////////////////////////////////////////////////////////////////////////////
 // Number of Calls to Track
 //
@@ -50,6 +45,22 @@ typedef long                RIL_RESULT_CODE;
 #define MAX_PROP_VALUE      (81)
 #define MAX_PIN_SIZE        (10)
 #define MAX_FACILITY_CODE   (5)
+
+///////////////////////////////////////////////////////////////////////////////
+// SIM related constants
+//
+
+const int EF_FDN = 0x6F3B;
+const int EF_EXT2 = 0x6F4B;
+
+const int SIM_COMMAND_READ_BINARY = 176;
+const int SIM_COMMAND_READ_RECORD = 178;
+const int SIM_COMMAND_GET_RESPONSE = 192;
+const int SIM_COMMAND_UPDATE_BINARY = 214;
+const int SIM_COMMAND_UPDATE_RECORD = 220;
+const int SIM_COMMAND_STATUS = 242;
+const int SIM_COMMAND_RETRIEVE_DATA = 203;
+const int SIM_COMMAND_SET_DATA = 219;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Retry count information
@@ -70,6 +81,15 @@ typedef struct
     UINT32 uiResultCode;
     char szFacilityLock[MAX_FACILITY_CODE];
 } S_SET_FACILITY_LOCK_CONTEXT_DATA;
+
+///////////////////////////////////////////////////////////////////////////////
+// Facility Lock Context data
+//
+typedef struct
+{
+    int command;
+    int fileId;
+} S_SIM_IO_CONTEXT_DATA;
 
 
 ///////////////////////////////////////////////////////////////////////////////

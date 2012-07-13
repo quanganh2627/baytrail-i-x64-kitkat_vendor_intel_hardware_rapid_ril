@@ -43,19 +43,9 @@
 
 CTE_INF_6260::CTE_INF_6260()
 : m_currentNetworkType(-1),
-m_pQueryPIN2Event(NULL),
 m_pQueryDataCallFailCauseEvent(NULL),
 m_dataCallFailCause(PDP_FAIL_ERROR_UNSPECIFIED)
 {
-    strcpy(m_szCPIN2Result, "");
-
-    //  Create PIN2 query event
-    m_pQueryPIN2Event = new CEvent();
-    if (!m_pQueryPIN2Event)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - Could not create new QueryPIN2Event!\r\n");
-    }
-
     //  Create Data call Fail cause query event
     m_pQueryDataCallFailCauseEvent = new CEvent();
     if (!m_pQueryDataCallFailCauseEvent)
@@ -70,9 +60,6 @@ CTE_INF_6260::~CTE_INF_6260()
 {
     delete m_pQueryDataCallFailCauseEvent;
     m_pQueryDataCallFailCauseEvent = NULL;
-
-    delete m_pQueryPIN2Event;
-    m_pQueryPIN2Event = NULL;
 }
 
 
@@ -1125,44 +1112,6 @@ Error:
     return res;
 }
 
-//
-//  Response to AT+CPIN2?
-//
-RIL_RESULT_CODE CTE_INF_6260::ParseQueryPIN2(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTE_INF_6260::ParseQueryPIN2() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char* szRsp = rRspData.szResponse;
-
-
-    // Parse "+CPIN2: "
-    if (!FindAndSkipString(szRsp, "+CPIN2: ", szRsp))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryPIN2() - Unable to parse \"+CPIN2\" prefix.!\r\n");
-        goto Error;
-    }
-
-    //  Extract <code>
-    if (!ExtractUnquotedString(szRsp, g_cTerminator, m_szCPIN2Result, MAX_BUFFER_SIZE, szRsp))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseQueryPIN2() - Unable to parse \"+CPIN2\" prefix.!\r\n");
-        goto Error;
-    }
-
-
-    res = RRIL_RESULT_OK;
-Error:
-    if (m_pQueryPIN2Event)
-    {
-        CEvent::Signal(m_pQueryPIN2Event);
-    }
-
-    RIL_LOG_VERBOSE("CTE_INF_6260::ParseQueryPIN2() - Exit\r\n");
-    return res;
-}
-
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 class BerTlv
 {
@@ -1491,6 +1440,131 @@ Error:
     return bRet;
 }
 
+RIL_RESULT_CODE CTE_INF_6260::HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs, REQUEST_DATA& rReqData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::HandlePin2RelatedSIMIO() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    char szSimIoCmd[MAX_BUFFER_SIZE] = {0};
+
+    //  If PIN2 is required, send out AT+CPIN2 request
+    if (NULL == pSimIOArgs->pin2 && SIM_COMMAND_UPDATE_RECORD == pSimIOArgs->command)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::HandlePin2RelatedSIMIO() - PIN 2 required but not provided!\r\n");
+        res = RIL_E_SIM_PIN2;
+        goto Error;
+    }
+
+    if (RIL_PINSTATE_ENABLED_BLOCKED == m_ePin2State)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::HandlePin2RelatedSIMIO() - RIL_PINSTATE_ENABLED_BLOCKED\r\n");
+        res = RIL_E_SIM_PUK2;
+        goto Error;
+    }
+    else if (RIL_PINSTATE_ENABLED_PERM_BLOCKED == m_ePin2State)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::HandlePin2RelatedSIMIO() - RIL_PINSTATE_ENABLED_PERM_BLOCKED\r\n");
+        res = RIL_E_GENERIC_FAILURE;
+        goto Error;
+    }
+
+    if (NULL == pSimIOArgs->data)
+    {
+        if(NULL == pSimIOArgs->path)
+        {
+            if (!PrintStringNullTerminate(szSimIoCmd, sizeof(szSimIoCmd),
+                "+CRSM=%d,%d,%d,%d,%d\r",
+                pSimIOArgs->command,
+                pSimIOArgs->fileid,
+                pSimIOArgs->p1,
+                pSimIOArgs->p2,
+                pSimIOArgs->p3))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::HandlePin2RelatedSIMIO() - cannot create CRSM command!\r\n");
+                goto Error;
+            }
+        }
+        else // (NULL != pSimIOArgs->path)
+        {
+            if (!PrintStringNullTerminate(szSimIoCmd, sizeof(szSimIoCmd),
+                          "+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
+                          pSimIOArgs->command,
+                          pSimIOArgs->fileid,
+                          pSimIOArgs->p1,
+                          pSimIOArgs->p2,
+                          pSimIOArgs->p3,
+                          pSimIOArgs->path))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::HandlePin2RelatedSIMIO() - cannot create CRSM command!\r\n");
+                goto Error;
+            }
+        }
+    }
+    else // (NULL != pSimIOArgs->data)
+    {
+        if(NULL == pSimIOArgs->path)
+        {
+            if (!PrintStringNullTerminate(szSimIoCmd, sizeof(szSimIoCmd),
+                "+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
+                pSimIOArgs->command,
+                pSimIOArgs->fileid,
+                pSimIOArgs->p1,
+                pSimIOArgs->p2,
+                pSimIOArgs->p3,
+                pSimIOArgs->data))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::HandlePin2RelatedSIMIO() - cannot create CRSM command!\r\n");
+                goto Error;
+            }
+        }
+        else // (NULL != pSimIOArgs->path)
+        {
+            if (!PrintStringNullTerminate(szSimIoCmd, sizeof(szSimIoCmd),
+                "+CRSM=%d,%d,%d,%d,%d,\"%s\",\"%s\"\r",
+                pSimIOArgs->command,
+                pSimIOArgs->fileid,
+                pSimIOArgs->p1,
+                pSimIOArgs->p2,
+                pSimIOArgs->p3,
+                pSimIOArgs->data,
+                pSimIOArgs->path))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::HandlePin2RelatedSIMIO() - cannot create CRSM command!\r\n");
+                goto Error;
+            }
+        }
+    }
+
+    if (RIL_PINSTATE_ENABLED_NOT_VERIFIED == m_ePin2State ||
+                    RIL_PINSTATE_UNKNOWN == m_ePin2State)
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+            sizeof(rReqData.szCmd1),
+            "AT+CPIN2=\"%s\";%s\r",
+            pSimIOArgs->pin2, szSimIoCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::HandlePin2RelatedSIMIO() - cannot create CPIN2 command!\r\n");
+            goto Error;
+        }
+    }
+    else if (RIL_PINSTATE_ENABLED_VERIFIED == m_ePin2State)
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+            sizeof(rReqData.szCmd1),
+            "AT+CPWD=\"P2\",\"%s\",\"%s\";%s\r",
+            pSimIOArgs->pin2,
+            pSimIOArgs->pin2, szSimIoCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::HandlePin2RelatedSIMIO() - cannot create CPWD command!\r\n");
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::HandlePin2RelatedSIMIO() - Exit\r\n");
+    return res;
+}
 
 //
 // RIL_REQUEST_SIM_IO 28
@@ -1500,12 +1574,11 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_SIM_IO_v6 *   pSimIOArgs = NULL;
-    char szGraphicsPath[] = "3F007F105F50";  // substitute actual path instead of string "img"
+    // substitute actual path instead of string "img"
+    char szGraphicsPath[] = "3F007F105F50";
     char szImg[] = "img";
     char *pszPath = NULL;
-
-    int Efsms = 28476;
-    int readCmd = 178;
+    S_SIM_IO_CONTEXT_DATA* pContextData = NULL;
 
     if (NULL == pData)
     {
@@ -1534,6 +1607,31 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
         pSimIOArgs->data, pSimIOArgs->aidPtr);
 #endif
 
+    rReqData.pContextData = NULL;
+
+    pContextData = (S_SIM_IO_CONTEXT_DATA*) malloc(sizeof(S_SIM_IO_CONTEXT_DATA));
+    if (NULL != pContextData)
+    {
+        pContextData->fileId = pSimIOArgs->fileid;
+        pContextData->command = pSimIOArgs->command;
+        rReqData.pContextData = pContextData;
+        rReqData.cbContextData = sizeof(S_SIM_IO_CONTEXT_DATA);
+    }
+
+    switch (pSimIOArgs->fileid)
+    {
+        case EF_FDN:
+        case EF_EXT2:
+            if (EF_FDN == pSimIOArgs->fileid &&
+                        SIM_COMMAND_UPDATE_RECORD == pSimIOArgs->command)
+            {
+                return HandlePin2RelatedSIMIO(pSimIOArgs, rReqData);
+            }
+        break;
+
+        default:
+        break;
+    }
 
     //  Replace path of "img" with "3F007F105F50"
     if (pSimIOArgs->path)
@@ -1551,385 +1649,78 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
         }
     }
 
-    //  If PIN2 is required, send out AT+CPIN2 request
-    if (pSimIOArgs->pin2)
+    if (NULL == pSimIOArgs->data)
     {
-        RIL_LOG_INFO("CTE_INF_6260::CoreSimIo() - PIN2 required\r\n");
-
-        CCommand *pCmd1 = NULL;
-        char szCmd1[MAX_BUFFER_SIZE] = {0};
-        UINT32 uiWaitRes = 0;
-        BOOL bEnterPIN2 = FALSE;
-        BOOL bPIN2Ready = FALSE;
-
-        CEvent::Reset(m_pQueryPIN2Event);
-
-        if (!CopyStringNullTerminate(szCmd1,
-                     "AT+CPIN2?\r",
-                     sizeof(szCmd1)))
+        if(NULL == pSimIOArgs->path)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - Cannot CopyStringNullTerminate CPIN2?\r\n");
-            goto Error;
-        }
-
-        pCmd1 = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYPIN2], NULL, ND_REQ_ID_QUERYPIN2, szCmd1, &CTE::ParseQueryPIN2);
-        if (pCmd1)
-        {
-            if (!CCommand::AddCmdToQueue(pCmd1))
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CRSM=%d,%d,%d,%d,%d\r",
+                pSimIOArgs->command,
+                pSimIOArgs->fileid,
+                pSimIOArgs->p1,
+                pSimIOArgs->p2,
+                pSimIOArgs->p3))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - Unable to queue AT+CPIN2 command!\r\n");
-                delete pCmd1;
-                pCmd1 = NULL;
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command\r\n");
                 goto Error;
             }
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - Unable to allocate memory for new AT+CPIN2 command!\r\n");
-            goto Error;
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
+                pSimIOArgs->command,
+                pSimIOArgs->fileid,
+                pSimIOArgs->p1,
+                pSimIOArgs->p2,
+                pSimIOArgs->p3,
+                pszPath))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command\r\n");
+                goto Error;
+            }
         }
-
-
-        //  Wait here for response
-        uiWaitRes = CEvent::Wait(m_pQueryPIN2Event, g_TimeoutAPIDefault);
-        switch (uiWaitRes)
-        {
-            case WAIT_EVENT_0_SIGNALED:
-                RIL_LOG_INFO("CTE_INF_6260::CoreSimIo() : CPIN2 event signalled\r\n");
-                if (0 == strcmp("READY", m_szCPIN2Result))
-                {
-                    //  Found READY, send AT+CPWD="P2","<PIN2>","<PIN2>" to validate PIN2
-                    bEnterPIN2 = TRUE;
-                    bPIN2Ready = TRUE;
-                }
-                else if (0 == strcmp("SIM PIN2", m_szCPIN2Result))
-                {
-                    //  Found SIM PIN2, enter CPIN2
-                    bEnterPIN2 = TRUE;
-                }
-                else if (0 == strcmp("SIM PUK2", m_szCPIN2Result))
-                {
-                    //  Found SIM PUK2, return PUK2 error
-                    res = RIL_E_SIM_PUK2;
-                    goto Error;
-                }
-                else
-                {
-                    //  Found something unrecognized
-                    goto Error;
-                }
-                break;
-
-            case WAIT_TIMEDOUT:
-                 RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - Timed out waiting for CPIN2 result!! \r\n");
-                 goto Error;
-
-            default:
-                 RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - Unexpected event result on Wait for CPIN2, res: %d\r\n", uiWaitRes);
-                 goto Error;
-        }
-
-        if (bEnterPIN2)
-        {
-            if (!bPIN2Ready)
-            {
-                if (!PrintStringNullTerminate(rReqData.szCmd1,
-                    sizeof(rReqData.szCmd1),
-                    "AT+CPIN2=\"%s\"\r",
-                    pSimIOArgs->pin2))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CPIN2 command\r\n");
-                    goto Error;
-                }
-            }
-            else
-            {
-                if (!PrintStringNullTerminate(rReqData.szCmd1,
-                    sizeof(rReqData.szCmd1),
-                    "AT+CPWD=\"P2\",\"%s\",\"%s\"\r",
-                    pSimIOArgs->pin2,
-                    pSimIOArgs->pin2))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CPWD command\r\n");
-                    goto Error;
-                }
-            }
-
-            if (NULL == pSimIOArgs->data)
-            {
-                if(NULL == pSimIOArgs->path)
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd2,
-                        sizeof(rReqData.szCmd2),
-                        "AT+CRSM=%d,%d,%d,%d,%d\r",
-                        pSimIOArgs->command,
-                        pSimIOArgs->fileid,
-                        pSimIOArgs->p1,
-                        pSimIOArgs->p2,
-                        pSimIOArgs->p3))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 1\r\n");
-                        goto Error;
-                    }
-                }
-                else
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd2,
-                                  sizeof(rReqData.szCmd2),
-                                  "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
-                                  pSimIOArgs->command,
-                                  pSimIOArgs->fileid,
-                                  pSimIOArgs->p1,
-                                  pSimIOArgs->p2,
-                                  pSimIOArgs->p3,
-                                  pszPath))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 2\r\n");
-                        goto Error;
-                    }
-                }
-            }
-            else
-            {
-                if(NULL == pSimIOArgs->path)
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd2,
-                        sizeof(rReqData.szCmd2),
-                        "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
-                        pSimIOArgs->command,
-                        pSimIOArgs->fileid,
-                        pSimIOArgs->p1,
-                        pSimIOArgs->p2,
-                        pSimIOArgs->p3,
-                        pSimIOArgs->data))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 3\r\n");
-                        goto Error;
-                    }
-                }
-                else
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd2,
-                        sizeof(rReqData.szCmd2),
-                        "AT+CRSM=%d,%d,%d,%d,%d,\"%s\",\"%s\"\r",
-                        pSimIOArgs->command,
-                        pSimIOArgs->fileid,
-                        pSimIOArgs->p1,
-                        pSimIOArgs->p2,
-                        pSimIOArgs->p3,
-                        pSimIOArgs->data,
-                        pszPath))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 4\r\n");
-                        goto Error;
-                    }
-                }
-            }
-
-        }
-        else
-        {
-            //  Didn't have to enter PIN2
-            if (NULL == pSimIOArgs->data)
-            {
-                if(NULL == pSimIOArgs->path)
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1,
-                        sizeof(rReqData.szCmd1),
-                        "AT+CRSM=%d,%d,%d,%d,%d\r",
-                        pSimIOArgs->command,
-                        pSimIOArgs->fileid,
-                        pSimIOArgs->p1,
-                        pSimIOArgs->p2,
-                        pSimIOArgs->p3))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 5\r\n");
-                        goto Error;
-                    }
-                }
-                else
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1,
-                        sizeof(rReqData.szCmd1),
-                        "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
-                        pSimIOArgs->command,
-                        pSimIOArgs->fileid,
-                        pSimIOArgs->p1,
-                        pSimIOArgs->p2,
-                        pSimIOArgs->p3,
-                        pszPath))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 6\r\n");
-                        goto Error;
-                    }
-                }
-            }
-            else
-            {
-                if(NULL == pSimIOArgs->path)
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1,
-                        sizeof(rReqData.szCmd1),
-                        "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
-                        pSimIOArgs->command,
-                        pSimIOArgs->fileid,
-                        pSimIOArgs->p1,
-                        pSimIOArgs->p2,
-                        pSimIOArgs->p3,
-                        pSimIOArgs->data))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 7\r\n");
-                        goto Error;
-                    }
-                }
-                else
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1,
-                        sizeof(rReqData.szCmd1),
-                        "AT+CRSM=%d,%d,%d,%d,%d,\"%s\",\"%s\"\r",
-                        pSimIOArgs->command,
-                        pSimIOArgs->fileid,
-                        pSimIOArgs->p1,
-                        pSimIOArgs->p2,
-                        pSimIOArgs->p3,
-                        pSimIOArgs->data,
-                        pszPath))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 8\r\n");
-                        goto Error;
-                    }
-                }
-            }
-
-        }
-
     }
     else
     {
-        //  No PIN2
-        if (NULL == pSimIOArgs->data)
+        if(NULL == pSimIOArgs->path)
         {
-
-            if(NULL == pSimIOArgs->path)
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
+                pSimIOArgs->command,
+                pSimIOArgs->fileid,
+                pSimIOArgs->p1,
+                pSimIOArgs->p2,
+                pSimIOArgs->p3,
+                pSimIOArgs->data))
             {
-                if(pSimIOArgs->command == readCmd && pSimIOArgs->fileid == Efsms)
-                {
-                    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - Create CRSM command 1 for reading sms\r\n");
-
-                    if (!PrintStringNullTerminate(rReqData.szCmd1,
-                        sizeof(rReqData.szCmd1),
-                        "AT+CRSM=%d,%d,%d,%d,%d;+CMGR=%d\r",
-                        pSimIOArgs->command,
-                        pSimIOArgs->fileid,
-                        pSimIOArgs->p1,
-                        pSimIOArgs->p2,
-                        pSimIOArgs->p3,
-                        pSimIOArgs->p1))
-                    {
-                        RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - cannot create CRSM command 2 for reading sms\r\n");
-                        goto Error;
-                    }
-
-                }
-                else
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1,
-                         sizeof(rReqData.szCmd1),
-                         "AT+CRSM=%d,%d,%d,%d,%d\r",
-                         pSimIOArgs->command,
-                         pSimIOArgs->fileid,
-                         pSimIOArgs->p1,
-                         pSimIOArgs->p2,
-                         pSimIOArgs->p3))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 9\r\n");
-                        goto Error;
-                    }
-                }
-            }
-            else
-            {
-                if(pSimIOArgs->command == readCmd && pSimIOArgs->fileid == Efsms)
-                {
-                    RIL_LOG_VERBOSE("CTEBase::CoreSimIo() - Create CRSM command 1 for reading sms\r\n");
-
-                    if (!PrintStringNullTerminate(rReqData.szCmd1,
-                        sizeof(rReqData.szCmd1),
-                        "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\";+CMGR=%d\r",
-                        pSimIOArgs->command,
-                        pSimIOArgs->fileid,
-                        pSimIOArgs->p1,
-                        pSimIOArgs->p2,
-                        pSimIOArgs->p3,
-                        pszPath,
-                        pSimIOArgs->p1))
-                    {
-                        RIL_LOG_CRITICAL("CTEBase::CoreSimIo() - cannot create CRSM command 2 for reading sms\r\n");
-                        goto Error;
-                    }
-                }
-                else
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1,
-                        sizeof(rReqData.szCmd1),
-                        "AT+CRSM=%d,%d,%d,%d,%d,,\"%s\"\r",
-                        pSimIOArgs->command,
-                        pSimIOArgs->fileid,
-                        pSimIOArgs->p1,
-                        pSimIOArgs->p2,
-                        pSimIOArgs->p3,
-                        pszPath))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 10\r\n");
-                        goto Error;
-                    }
-                }
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command\r\n");
+                goto Error;
             }
         }
         else
         {
-            if(NULL == pSimIOArgs->path)
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CRSM=%d,%d,%d,%d,%d,\"%s\",\"%s\"\r",
+                pSimIOArgs->command,
+                pSimIOArgs->fileid,
+                pSimIOArgs->p1,
+                pSimIOArgs->p2,
+                pSimIOArgs->p3,
+                pSimIOArgs->data,
+                pszPath))
             {
-                if (!PrintStringNullTerminate(rReqData.szCmd1,
-                    sizeof(rReqData.szCmd1),
-                    "AT+CRSM=%d,%d,%d,%d,%d,\"%s\"\r",
-                    pSimIOArgs->command,
-                    pSimIOArgs->fileid,
-                    pSimIOArgs->p1,
-                    pSimIOArgs->p2,
-                    pSimIOArgs->p3,
-                    pSimIOArgs->data))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 11\r\n");
-                    goto Error;
-                }
-            }
-            else
-            {
-                if (!PrintStringNullTerminate(rReqData.szCmd1,
-                    sizeof(rReqData.szCmd1),
-                    "AT+CRSM=%d,%d,%d,%d,%d,\"%s\",\"%s\"\r",
-                    pSimIOArgs->command,
-                    pSimIOArgs->fileid,
-                    pSimIOArgs->p1,
-                    pSimIOArgs->p2,
-                    pSimIOArgs->p3,
-                    pSimIOArgs->data,
-                    pszPath))
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command 12\r\n");
-                    goto Error;
-                }
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - cannot create CRSM command\r\n");
+                goto Error;
             }
         }
     }
 
-    //  Set the context of this command to the SIM_IO command-type.
-    rReqData.pContextData = (void*)pSimIOArgs->command;
-
-
     res = RRIL_RESULT_OK;
-
 Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSimIo() - Exit\r\n");
     return res;
@@ -1948,9 +1739,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
     UINT32  uiSW2 = 0;
     char* szResponseString = NULL;
     UINT32  cbResponseString = 0;
-
     RIL_SIM_IO_Response* pResponse = NULL;
-
 
     if (NULL == rRspData.szResponse)
     {
@@ -1989,6 +1778,9 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
     // Parse ","
     if (SkipString(pszRsp, ",", pszRsp))
     {
+        int nCRSMCommand = 0;
+        S_SIM_IO_CONTEXT_DATA* pContextData = NULL;
+
         // Parse <response>
         // NOTE: we take ownership of allocated szResponseString
         if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString, cbResponseString, pszRsp))
@@ -2008,7 +1800,15 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
         }
 
         // Check for USIM GET_RESPONSE response
-        int nCRSMCommand = (int)rRspData.pContextData;
+        if (NULL == rRspData.pContextData ||
+                    rRspData.cbContextData != sizeof(S_SIM_IO_CONTEXT_DATA))
+        {
+            goto Error;
+        }
+
+        pContextData = (S_SIM_IO_CONTEXT_DATA*) rRspData.pContextData;
+        nCRSMCommand = pContextData->command;
+
         if ((192 == nCRSMCommand) && ('6' == szResponseString[0]) && ('2' == szResponseString[1]))
         {
             //  USIM GET_RESPONSE response

@@ -512,9 +512,6 @@ public:
     // REQ_ID_GETDNS
     RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
 
-    // REQ_ID_QUERYPIN2
-    RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
-
     // REQ_ID_LASTPDPFAILCAUSE
     RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
 
@@ -586,6 +583,14 @@ public:
      * Upon failure, error codes are mapped to the RIL error codes
      */
     void PostSimPinCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for the PIN2/PUK2 lock requests.
+     *
+     * Upon success, completes the request
+     * Upon failure, error codes are mapped to the RIL error codes and completes the request.
+     */
+    void PostSimPin2CmdHandler(POST_CMD_HANDLER_DATA& rData);
 
     /*
      * Post Command handler function for RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION
@@ -777,6 +782,9 @@ private:
 
     // Function to cleanup the request data
     void CleanRequestData(REQUEST_DATA& rReqData);
+
+    // Function to determine whether the SIMIO request is for FDN related SIM files
+    BOOL isFDNRequest(int fileId);
 };
 
 #endif

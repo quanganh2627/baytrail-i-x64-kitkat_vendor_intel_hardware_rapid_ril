@@ -31,13 +31,8 @@ private:
     CTE_INF_6260(const CTE_INF_6260& rhs);  // Copy Constructor
     CTE_INF_6260& operator=(const CTE_INF_6260& rhs);  //  Assignment operator
 
-    int m_currentNetworkType;
-
 protected:
-    //  Locally store CPIN2 query result for SIM_IO
-    char m_szCPIN2Result[MAX_BUFFER_SIZE];
-
-    CEvent *m_pQueryPIN2Event;
+    int m_currentNetworkType;
     CEvent* m_pQueryDataCallFailCauseEvent;
     int m_dataCallFailCause;
     char m_szUICCID[MAX_PROP_VALUE];
@@ -133,7 +128,6 @@ public:
     // internal response handlers
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
-    virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
     virtual RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE QueryDataCallFailCause();
 
@@ -145,6 +139,10 @@ public:
     virtual RIL_RESULT_CODE QueryPinRetryCount(REQUEST_DATA& rReqData,
                                                             void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
+
+    // Handles the PIN2 provided SIM IO requests
+    RIL_RESULT_CODE HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs,
+                                           REQUEST_DATA& rReqData);
 
 private:
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,

@@ -313,7 +313,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin2(RIL_Token rilToken, void * pData, size_
     {
         CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_ENTERSIMPIN2], rilToken,
                                             ND_REQ_ID_ENTERSIMPIN2, reqData, &CTE::ParseEnterSimPin2,
-                                            &CTE::PostSimPinCmdHandler);
+                                            &CTE::PostSimPin2CmdHandler);
 
         if (pCmd)
         {
@@ -364,7 +364,7 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk2(RIL_Token rilToken, void * pData, size_
     {
         CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_ENTERSIMPUK2], rilToken,
                                         ND_REQ_ID_ENTERSIMPUK2, reqData, &CTE::ParseEnterSimPuk2,
-                                            &CTE::PostSimPinCmdHandler);
+                                            &CTE::PostSimPin2CmdHandler);
 
         if (pCmd)
         {
@@ -467,7 +467,7 @@ RIL_RESULT_CODE CTE::RequestChangeSimPin2(RIL_Token rilToken, void * pData, size
     {
         CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_CHANGESIMPIN2], rilToken,
                                         ND_REQ_ID_CHANGESIMPIN2, reqData, &CTE::ParseChangeSimPin2,
-                                        &CTE::PostSimPinCmdHandler);
+                                        &CTE::PostSimPin2CmdHandler);
 
         if (pCmd)
         {
@@ -1651,6 +1651,7 @@ RIL_RESULT_CODE CTE::RequestSimIo(RIL_Token rilToken, void * pData, size_t datal
 
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
+    CCommand* pCmd = NULL;
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSimIo(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
@@ -1659,7 +1660,7 @@ RIL_RESULT_CODE CTE::RequestSimIo(RIL_Token rilToken, void * pData, size_t datal
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIMIO], rilToken,
+        pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIMIO], rilToken,
                                         ND_REQ_ID_SIMIO, reqData, &CTE::ParseSimIo,
                                         &CTE::PostSimIOCmdHandler);
 
@@ -1669,8 +1670,6 @@ RIL_RESULT_CODE CTE::RequestSimIo(RIL_Token rilToken, void * pData, size_t datal
             {
                 RIL_LOG_CRITICAL("CTE::RequestSimIo() - Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
             }
         }
         else
@@ -1678,6 +1677,12 @@ RIL_RESULT_CODE CTE::RequestSimIo(RIL_Token rilToken, void * pData, size_t datal
             RIL_LOG_CRITICAL("CTE::RequestSimIo() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
+    }
+
+    if (RRIL_RESULT_OK != res)
+    {
+        free(reqData.pContextData);
+        delete pCmd;
     }
 
     RIL_LOG_VERBOSE("CTE::RequestSimIo() - Exit\r\n");
@@ -5174,16 +5179,6 @@ RIL_RESULT_CODE CTE::ParseDns(RESPONSE_DATA & rRspData)
 }
 
 //
-// QUERYPIN2 (sent internally)
-//
-RIL_RESULT_CODE CTE::ParseQueryPIN2(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseQueryPIN2() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseQueryPIN2(rRspData);
-}
-
-//
 // QueryDataCallFailCause (sent internally)
 //
 RIL_RESULT_CODE CTE::ParseDataCallFailCause(RESPONSE_DATA& rRspData)
@@ -5915,6 +5910,18 @@ void CTE::CleanRequestData(REQUEST_DATA& rReqData)
     rReqData.pContextData2 = NULL;
 }
 
+BOOL CTE::isFDNRequest(int fileId)
+{
+    switch (fileId)
+    {
+        case EF_FDN:
+        case EF_EXT2:
+            return TRUE;
+        default:
+            return FALSE;
+    }
+}
+
 //
 // Silent PIN Entry (sent internally)
 //
@@ -6108,9 +6115,16 @@ void CTE::PostSimPinCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 SetSIMState(RRIL_SIM_STATE_NOT_READY);
                 break;
 
+            case CME_ERROR_SIM_PIN2_REQUIRED:
+                RIL_LOG_INFO("CTE::PostSimPinCmdHandler() - SIM PIN2 required");
+                rData.uiResultCode = RIL_E_SIM_PIN2;
+                m_pTEBaseInstance->SetPin2State(RIL_PINSTATE_ENABLED_NOT_VERIFIED);
+                break;
+
             case CME_ERROR_SIM_PUK2_REQUIRED:
                 RIL_LOG_INFO("CTE::PostSimPinCmdHandler() - SIM PUK2 required");
                 rData.uiResultCode = RIL_E_SIM_PUK2;
+                m_pTEBaseInstance->SetPin2State(RIL_PINSTATE_ENABLED_BLOCKED);
                 break;
 
             default:
@@ -6163,6 +6177,19 @@ Error:
     RIL_LOG_VERBOSE("CTE::PostSimPinCmdHandler() Exit\r\n");
 }
 
+void CTE::PostSimPin2CmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostSimPin2CmdHandler() Enter\r\n");
+
+    if (RIL_E_SUCCESS == rData.uiResultCode)
+    {
+        m_pTEBaseInstance->SetPin2State(RIL_PINSTATE_ENABLED_VERIFIED);
+    }
+
+    PostSimPinCmdHandler(rData);
+
+    RIL_LOG_VERBOSE("CTE::PostSimPin2CmdHandler() Exit\r\n");
+}
 
 void CTE::PostNtwkPersonalizationCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
@@ -6441,25 +6468,25 @@ void CTE::PostSimIOCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostSimIOCmdHandler() Enter\r\n");
 
-    if (NULL == rData.pRilToken)
-    {
-        RIL_LOG_CRITICAL("CTE::PostSimIOCmdHandler() rData.pRilToken NULL!\r\n");
-        return;
-    }
-
     if (RIL_E_SUCCESS != rData.uiResultCode)
     {
         switch (rData.uiErrorCode)
         {
             case CME_ERROR_SIM_PIN2_REQUIRED:
-            case CME_ERROR_INCORRECT_PASSWORD:
                 RIL_LOG_INFO("CTE::PostSimIOCmdHandler() - SIM PIN2 required");
                 rData.uiResultCode = RIL_E_SIM_PIN2;
+                m_pTEBaseInstance->SetPin2State(RIL_PINSTATE_ENABLED_NOT_VERIFIED);
+                break;
+
+            case CME_ERROR_INCORRECT_PASSWORD:
+                RIL_LOG_INFO("CTE::PostSimIOCmdHandler() - Incorrect Password");
+                rData.uiResultCode = RIL_E_PASSWORD_INCORRECT;
                 break;
 
             case CME_ERROR_SIM_PUK2_REQUIRED:
                 RIL_LOG_INFO("CTE::PostSimIOCmdHandler() - SIM PUK2 required");
                 rData.uiResultCode = RIL_E_SIM_PUK2;
+                m_pTEBaseInstance->SetPin2State(RIL_PINSTATE_ENABLED_BLOCKED);
                 break;
 
             default:
@@ -6469,9 +6496,33 @@ void CTE::PostSimIOCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 break;
         }
     }
+    else // Success case
+    {
+        if (NULL != rData.pContextData &&
+                    rData.uiContextDataSize == sizeof(S_SIM_IO_CONTEXT_DATA))
+        {
+            S_SIM_IO_CONTEXT_DATA* pContextData =
+                        (S_SIM_IO_CONTEXT_DATA*) rData.pContextData;
+            if (isFDNRequest(pContextData->fileId) &&
+                        SIM_COMMAND_UPDATE_RECORD == pContextData->command)
+            {
+                m_pTEBaseInstance->SetPin2State(RIL_PINSTATE_ENABLED_VERIFIED);
+            }
+        }
+    }
 
-    RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+    free(rData.pContextData);
+    rData.pContextData = NULL;
+
+    if (NULL == rData.pRilToken)
+    {
+        RIL_LOG_CRITICAL("CTE::PostSimIOCmdHandler() rData.pRilToken NULL!!!\r\n");
+    }
+    else
+    {
+        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                                                 rData.pData, rData.uiDataSize);
+    }
 
     RIL_LOG_VERBOSE("CTE::PostSimIOCmdHandler() Exit\r\n");
 }
@@ -6498,6 +6549,7 @@ void CTE::PostSetFacilityLockCmdHandler(POST_CMD_HANDLER_DATA& rData)
             case CME_ERROR_SIM_PUK2_REQUIRED:
                 RIL_LOG_INFO("CTE::PostSetFacilityLockCmdHandler() - SIM PUK2 required");
                 rData.uiResultCode = RIL_E_SIM_PUK2;
+                m_pTEBaseInstance->SetPin2State(RIL_PINSTATE_ENABLED_BLOCKED);
                 break;
 
             default:

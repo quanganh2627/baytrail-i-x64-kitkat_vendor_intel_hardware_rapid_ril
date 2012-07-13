@@ -35,7 +35,8 @@
 CTEBase::CTEBase() :
 m_nNetworkRegistrationType(0),
 mShutdown(false),
-m_nSimAppType(RIL_APPTYPE_UNKNOWN)
+m_nSimAppType(RIL_APPTYPE_UNKNOWN),
+m_ePin2State(RIL_PINSTATE_UNKNOWN)
 {
     CRepository repository;
     strcpy(m_szNetworkInterfaceNamePrefix, "");
@@ -8760,14 +8761,6 @@ RIL_RESULT_CODE CTEBase::ParseIpAddress(RESPONSE_DATA & rRspData)
 // GET DNS (sent internally)
 //
 RIL_RESULT_CODE CTEBase::ParseDns(RESPONSE_DATA & rRspData)
-{
-    return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
-}
-
-//
-// QUERY PIN2 (sent internally)
-//
-RIL_RESULT_CODE CTEBase::ParseQueryPIN2(RESPONSE_DATA & rRspData)
 {
     return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
 }

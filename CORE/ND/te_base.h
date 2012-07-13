@@ -37,6 +37,7 @@ protected:
     CSimState m_SIMState;
 
     S_PIN_RETRY_COUNT m_PinRetryCount;
+    RIL_PinState m_ePin2State;
 
 public:
 
@@ -498,9 +499,6 @@ public:
     // GET DNS
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
 
-    // QUERY PIN2
-    virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
-
     // Parse Data Fail Cause
     virtual RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
 
@@ -536,6 +534,10 @@ public:
     virtual int GetPin2RetryCount() { return m_PinRetryCount.pin2; };
     virtual int GetPukRetryCount() { return m_PinRetryCount.puk; };
     virtual int GetPuk2RetryCount() { return m_PinRetryCount.puk2; };
+
+    // Setter and getter functions for PIN2 state
+    virtual void SetPin2State(RIL_PinState ePin2State) { m_ePin2State = ePin2State; };
+    virtual RIL_PinState GetPin2State() { return m_ePin2State; };
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus);
