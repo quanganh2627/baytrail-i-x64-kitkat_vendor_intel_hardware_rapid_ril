@@ -2822,17 +2822,31 @@ RIL_RESULT_CODE CTEBase::CoreSendUssd(REQUEST_DATA & rReqData, void * pData, UIN
     // extract data
     szUssdString = (char *)pData;
 
-    // @todo: DCS is not sent. Need to confirm that this is not causing any issues.
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CUSD=0,\"%s\"\r", szUssdString))
+    /*
+     * According to Android ril.h , CUSD messages are allways sent as utf8,
+     * but the dcs field does not have an entry for this.
+     * The nearest "most correct" would be 15 = unspecified,
+     * not adding the dcs would result in the default "0" meaning German,
+     * and some networks are not happy with this.
+     */
+    if (szUssdString[0] == '\0')
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreSendUssd() - cannot create CUSD command\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSendUssd() - USSD String empty, don't forward to the Modem\r\n");
         goto Error;
     }
-
-    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    else
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreSendUssd() - Cannot create CEER command\r\n");
-        goto Error;
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CUSD=0,\"%s\",15\r", szUssdString))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreSendUssd() - cannot create CUSD command\r\n");
+            goto Error;
+        }
+
+        if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreSendUssd() - Cannot create CEER command\r\n");
+            goto Error;
+        }
     }
 
     res = RRIL_RESULT_OK;
@@ -5746,14 +5760,12 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int nEnable = 0;
     char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
-#if !defined(BOARD_HAVE_IFX7060)
     CRepository  repository;
 
     // Data for fast dormancy
     static char szFDDelayTimer[MAX_BUFFER_SIZE] = {0};
     static char szSCRITimer[MAX_BUFFER_SIZE] = {0};
     static BOOL FDParamReady = FALSE;
-#endif // BOARD_HAVE_IFX7060
 
     if (NULL == pData)
     {
@@ -5774,7 +5786,6 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
-#if !defined(BOARD_HAVE_IFX7060)
     // Read the "conformance" property and disable FD if it is set to "true"
     property_get("persist.conformance", szConformanceProperty, NULL);
 
@@ -5803,7 +5814,6 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
             goto Error;
         }
     }
-#endif // BOARD_HAVE_IFX7060
 
     res = RRIL_RESULT_OK;
 

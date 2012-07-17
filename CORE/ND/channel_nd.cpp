@@ -323,20 +323,23 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
         goto Error;
     }
 
-    if ((NULL != rpCmd) || (NULL != pResponse))
-    {
-        RIL_LOG_CRITICAL("CChannel::SendCommand() : rpCmd or pResponse was not NULL\r\n");
-        goto Error;
-    }
-
     bResult = TRUE;
 
 Error:
     if (!bResult)
     {
-        delete pResponse;
-        pResponse = NULL;
+        RIL_LOG_CRITICAL("CChannel::SendCommand() Failed");
+
+        // Need to return a failed response to the upper layers and deallocate the memory
+        if (NULL != rpCmd && NULL != rpCmd->GetToken())
+            RIL_onRequestComplete(rpCmd->GetToken(), RIL_E_GENERIC_FAILURE, NULL, 0);
     }
+
+    delete rpCmd;
+    rpCmd = NULL;
+
+    delete pResponse;
+    pResponse = NULL;
 
     RIL_LOG_VERBOSE("CChannel::SendCommand() - Exit\r\n");
     return bResult;
@@ -825,12 +828,6 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp)
     bResult = TRUE;
 
 Error:
-    //delete pnd;
-    delete rpCmd;
-    delete rpRsp;
-    rpCmd = NULL;
-    rpRsp = NULL;
-
     RIL_LOG_VERBOSE("CChannel::ParseResponse() - Exit\r\n");
     return bResult;
 }

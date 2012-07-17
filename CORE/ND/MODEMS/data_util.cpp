@@ -676,7 +676,7 @@ BOOL DataConfigDown(UINT32 uiCID)
 
     // Flush the response buffer to restart from scratch.
     // Any data received by the RRIL during the DATA MODE should be trashed
-    pChannelData->FlushResponse();
+    //pChannelData->FlushResponse();
 
 #if defined(BOARD_HAVE_IFX7060)
     }

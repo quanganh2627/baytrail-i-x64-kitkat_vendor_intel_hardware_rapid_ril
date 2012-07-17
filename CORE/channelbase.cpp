@@ -388,8 +388,6 @@ UINT32 CChannelBase::CommandThread()
         {
             RIL_LOG_CRITICAL("CChannelBase::CommandThread() : chnl=[%d] Unable to send command!\r\n", m_uiRilChannel);
 
-            // Need to return a failed response to the upper layers and deallocate the memory
-            RIL_onRequestComplete(pCmd->GetToken(), RIL_E_GENERIC_FAILURE, NULL, 0);
             delete pCmd;
             pCmd = NULL;
 
@@ -460,12 +458,10 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     int nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
     BOOL bIgnoreDARPParam = FALSE;
 
-#if !defined(BOARD_HAVE_IFX7060)
     // Data for Fast Dormancy Mode
     char szFDCmdString[MAX_BUFFER_SIZE] = {0};
     char szFDDelayTimer[MAX_BUFFER_SIZE] = {0};
     char szSCRITimer[MAX_BUFFER_SIZE] = {0};
-#endif // BOARD_HAVE_IFX7060
 
     szInit = new char[szInitLen];
     if (!szInit)
@@ -551,8 +547,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     //  and in first init index.
     if ((COM_BASIC_INIT_INDEX == eInitIndex) && (RIL_CHANNEL_ATCMD == m_uiRilChannel))
     {
-// These commands are not supported by IFX7060
-#if !defined(BOARD_HAVE_IFX7060)
         //These commands are not supported by 2230 modem
         if (!CSystemManager::GetInstance().IsDSDS_2230_Mode())
         {
@@ -662,7 +656,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                 }
             }
         }
-#endif // BOARD_HAVE_IFX7060
 
 #if defined(M2_VT_FEATURE_ENABLED)
         // for Video Telephony, set the the data path, depending on RIL instance
@@ -922,7 +915,7 @@ BOOL CChannelBase::LockCommandQueue(UINT32 uiTimeout)
 //
 //  Iterate through each silo in this channel to ParseNotification.
 //
-BOOL CChannelBase::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError, BOOL& fPendingSolicitedResponse)
+BOOL CChannelBase::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError)
 {
     //RIL_LOG_VERBOSE("CChannelBase::ParseUnsolicitedResponse() - Enter\r\n");
     BOOL bResult = TRUE;
@@ -935,7 +928,7 @@ BOOL CChannelBase::ParseUnsolicitedResponse(CResponse* const pResponse, const ch
 
         if (pSilo)
         {
-            if (pSilo->ParseUnsolicitedResponse(pResponse, rszPointer, fGotoError, fPendingSolicitedResponse))
+            if (pSilo->ParseUnsolicitedResponse(pResponse, rszPointer, fGotoError))
             {
                 //  we're done.
                 goto Done;

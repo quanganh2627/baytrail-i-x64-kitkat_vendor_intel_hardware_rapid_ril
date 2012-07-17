@@ -126,7 +126,7 @@ UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_GETSMSCADDRESS,                      // 99
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_SETSMSCADDRESS,                      // 100
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_REPORTSMSMEMORYSTATUS,               // 101
-    RIL_CHANNEL_DLC8,  //ND_REQ_ID_REPORTSTKSERVICEISRUNNING,           // 102
+    RIL_CHANNEL_URC,   //ND_REQ_ID_REPORTSTKSERVICEISRUNNING,           // 102
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_GETIPADDRESS,                        // 103
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_GETDNS,                              // 104
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_QUERYPIN2,                           // 105
