@@ -2718,7 +2718,6 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
             res = RRIL_RESULT_OK;
             break;
 
-#if !defined(BOARD_HAVE_IFX7060)
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY");
             // Check if Fast Dormancy mode allows OEM Hook
@@ -2732,7 +2731,6 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
                 goto Error;
             }
             break;
-#endif
 
         case RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV");

@@ -81,9 +81,7 @@ public:
     BOOL            UnblockReadThread() { return CEvent::Signal(m_pBlockReadThreadEvent); }
 
     //  Public interfaces to notify all silos.
-    //  fPendingSolicitedResponse is used to indicate if there is pending unprocessed
-    //  solicited response ahead of the Unsolicited response
-    BOOL            ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError, BOOL& fPendingSolicitedResponse);
+    BOOL            ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError);
 
     //  General public functions
     BOOL            IsCmdThreadBlockedOnRxQueue() const { return m_bCmdThreadBlockedOnRxQueue; };
