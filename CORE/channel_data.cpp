@@ -294,6 +294,7 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
                     {
                         RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() - No hsi channel for a data profile class 1.\r\n");
                         pChannelData->SetContextID(0);
+                        pChannelData = NULL;
                         goto Error;
                     }
                     hsiDirect = TRUE;

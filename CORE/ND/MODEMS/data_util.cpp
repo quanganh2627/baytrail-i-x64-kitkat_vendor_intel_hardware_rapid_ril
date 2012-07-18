@@ -688,13 +688,12 @@ BOOL DataConfigDown(UINT32 uiCID)
         }
     }
 
-    pChannelData->FreeContextID();
     bRet = TRUE;
 
     RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%d\r\n", pChannelData->GetRilChannel());
 
 Error:
-
+    pChannelData->FreeContextID();
     RIL_LOG_INFO("DataConfigDown() EXIT  bRet=[%d]\r\n", bRet);
     return bRet;
 }
