@@ -14,6 +14,7 @@
 #include <stdio.h>  // for sscanf
 #include <signal.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "types.h"
 #include "rillog.h"
@@ -25,7 +26,6 @@
 #include "silo_network.h"
 #include "channel_data.h"
 #include "data_util.h"
-#include "cutils/tztime.h"
 #include "te.h"
 #include "oemhookids.h"
 #if defined(M2_DUALSIM_FEATURE_ENABLED)

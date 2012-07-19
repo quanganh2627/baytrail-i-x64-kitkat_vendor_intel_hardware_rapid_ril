@@ -29,7 +29,7 @@ void CRilLog::Init(char * szSIMID)
 
     if (szSIMID != NULL)
     {
-        LOG(LOG_ERROR, "RILR", "SIM ID value : %s", szSIMID);
+        ALOG(LOG_ERROR, "RILR", "SIM ID value : %s", szSIMID);
         strncpy(m_szSIMID, szSIMID, sizeof(m_szSIMID)-1);
         m_szSIMID[sizeof(m_szSIMID)-1] = '\0';  // KW fix
     }
@@ -94,7 +94,7 @@ void CRilLog::Verbose(const char* const szFormatString, ...)
         if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
         {
             snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
-            LOG(LOG_DEBUG, szNewTag, "%s", szLogText);
+            ALOG(LOG_DEBUG, szNewTag, "%s", szLogText);
         }
         else
         {
@@ -118,7 +118,7 @@ void CRilLog::Info(const char* const szFormatString, ...)
         if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
         {
             snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
-            LOG(LOG_INFO, szNewTag, "%s", szLogText);
+            ALOG(LOG_INFO, szNewTag, "%s", szLogText);
         }
         else
         {
@@ -142,7 +142,7 @@ void CRilLog::Warning(const char* const szFormatString, ...)
         if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
         {
             snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
-            LOG(LOG_WARN, szNewTag, "%s", szLogText);
+            ALOG(LOG_WARN, szNewTag, "%s", szLogText);
         }
         else
         {
@@ -166,7 +166,7 @@ void CRilLog::Critical(const char* const szFormatString, ...)
         if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
         {
             snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
-            LOG(LOG_ERROR, szNewTag, "%s", szLogText);
+            ALOG(LOG_ERROR, szNewTag, "%s", szLogText);
         }
         else
         {
