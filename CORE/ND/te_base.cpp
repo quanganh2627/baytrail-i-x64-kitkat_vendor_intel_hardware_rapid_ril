@@ -2312,6 +2312,9 @@ RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
      */
     CleanupAllDataConnections();
 
+    g_bIsManualNetworkSearchOngoing = false;
+    CTE::GetTE().SetupDataCallOngoing(false);
+
     //  Extract power setting from context
     int nPower = (int)rRspData.pContextData;
 

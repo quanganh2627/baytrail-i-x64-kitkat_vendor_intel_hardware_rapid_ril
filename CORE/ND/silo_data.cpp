@@ -23,6 +23,7 @@
 #include "data_util.h"
 #include "rildmain.h"
 #include "callbacks.h"
+#include "te.h"
 
 //
 //
@@ -54,6 +55,32 @@ CSilo_Data::~CSilo_Data()
 {
     RIL_LOG_VERBOSE("CSilo_Data::~CSilo_Data() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_Data::~CSilo_Data() - Exit\r\n");
+}
+
+//  Called in CChannel::SendRILCmdHandleRsp() after AT command is physically sent and
+//  a response has been received (or timed out).
+BOOL CSilo_Data::PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp)
+{
+    RIL_LOG_VERBOSE("CSilo_Data::PostSendCommandHook() - Enter\r\n");
+    if (ND_REQ_ID_SETUPDEFAULTPDP == rpCmd->GetRequestID() &&
+            NULL != rpRsp && rpRsp->IsTimedOutFlag())
+    {
+        RIL_LOG_INFO("CSilo_Data::PostSendCommandHook() - Setup data call timed out\r\n");
+        CTE::GetTE().SetupDataCallOngoing(false);
+    }
+
+    RIL_LOG_VERBOSE("CSilo_Data::PostSendCommandHook() - Exit\r\n");
+    return TRUE;
+}
+
+BOOL CSilo_Data::PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
+{
+    if (ND_REQ_ID_SETUPDEFAULTPDP == rpCmd->GetRequestID())
+    {
+        CTE::GetTE().SetupDataCallOngoing(false);
+    }
+
+    return TRUE;
 }
 
 //

@@ -28,13 +28,15 @@
 #include "te_inf_6260.h"
 #include "data_util.h"
 #include "te_inf_7x60.h"
+#include "callbacks.h"
 
 CTE * CTE::m_pTEInstance = NULL;
 
 CTE::CTE() :
     m_pTEBaseInstance(NULL),
     m_bCSStatusCached(FALSE),
-    m_bPSStatusCached(FALSE)
+    m_bPSStatusCached(FALSE),
+    m_bIsSetupDataCallOngoing(FALSE)
 {
     m_pTEBaseInstance = CreateModemTE();
 
@@ -1563,8 +1565,13 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
 Error:
     if (RRIL_RESULT_OK != res)
     {
+        m_bIsSetupDataCallOngoing = false;
         if (pChannelData)
             pChannelData->FreeContextID();
+    }
+    else
+    {
+        m_bIsSetupDataCallOngoing = true;
     }
     RIL_LOG_VERBOSE("CTE::RequestSetupDataCall() - Exit\r\n");
     return res;
@@ -2548,6 +2555,13 @@ RIL_RESULT_CODE CTE::RequestQueryAvailableNetworks(RIL_Token rilToken, void * pD
 
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    // If a setup data call is ongoing, delay the handling of this query (1 second)
+    if (m_bIsSetupDataCallOngoing)
+    {
+        RIL_requestTimedCallback(triggerManualNetworkSearch, (void*)rilToken, 1, 0);
+        return RRIL_RESULT_OK;
+    }
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreQueryAvailableNetworks(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
@@ -5734,3 +5748,16 @@ UINT32 CTE::GetIncomingCallId()
 
     return m_pTEBaseInstance->GetIncomingCallId();
 }
+
+void CTE::SetupDataCallOngoing(BOOL bStatus)
+{
+    RIL_LOG_VERBOSE("CTE::SetupDataCallOngoing() - Enter / Exit\r\n");
+    m_bIsSetupDataCallOngoing = bStatus;
+};
+
+BOOL CTE::IsSetupDataCallOnGoing()
+{
+    RIL_LOG_VERBOSE("CTE::IsSetupDataCallOnGoing() - Enter / Exit\r\n");
+    return m_bIsSetupDataCallOngoing;
+};
+

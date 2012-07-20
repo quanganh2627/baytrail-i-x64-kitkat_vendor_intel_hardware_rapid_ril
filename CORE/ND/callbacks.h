@@ -64,4 +64,9 @@ void triggerDataCallListChanged(void *param);
 //
 void triggerDeactivateDataCall(void *param);
 
+//
+// Callback to trigger manual network search
+//
+void triggerManualNetworkSearch(void* param);
+
 #endif

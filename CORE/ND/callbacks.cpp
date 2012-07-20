@@ -198,3 +198,16 @@ void triggerDeactivateDataCall(void *param)
     }
 
 }
+
+
+// [in] param = RIL token
+void triggerManualNetworkSearch(void* param)
+{
+    RIL_RESULT_CODE res = CTE::GetTE().RequestQueryAvailableNetworks((RIL_Token)param, NULL, 0);
+
+    if (res != RRIL_RESULT_OK)
+    {
+        RIL_onRequestComplete((RIL_Token)param, RIL_E_GENERIC_FAILURE, NULL, 0);
+    }
+}
+

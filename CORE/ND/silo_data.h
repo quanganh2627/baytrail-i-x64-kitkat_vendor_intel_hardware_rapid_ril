@@ -44,10 +44,10 @@ public:
 
     //  Called in CChannel::SendRILCmdHandleRsp() after AT command is physically sent and
     //  a response has been received (or timed out).
-    virtual BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
+    virtual BOOL PostSendCommandHook(CCommand*& rpCmd, CResponse*& rpRsp);
 
     //  Called in CChannel::HandleRsp() before CResponse::ParseOKData() is called.
-    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp) { return TRUE; };
+    virtual BOOL PreParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp);
 
     //  Called in CChannel::HandleRsp() after CResponse::ParseOKData() is called, and before
     //  CCommand::SendResponse() is called.

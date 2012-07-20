@@ -524,6 +524,9 @@ public:
     void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
     UINT32 GetIncomingCallId();
 
+    void SetupDataCallOngoing(BOOL bStatus);
+    BOOL IsSetupDataCallOnGoing();
+
 private:
     BOOL m_bCSStatusCached;
     BOOL m_bPSStatusCached;
@@ -533,6 +536,8 @@ private:
     const char* PrintRegistrationInfo(char *szRegInfo) const;
     const char* PrintGPRSRegistrationInfo(char *szGPRSInfo) const;
     const char* PrintRAT(char *szRAT) const;
+
+    BOOL m_bIsSetupDataCallOngoing;
 };
 
 #endif
