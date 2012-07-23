@@ -54,10 +54,12 @@ extern UINT32 g_MTU;
 // This global flag is used to store the data suspend/resume status
 extern bool g_bIsDataSuspended;
 
+#if !defined(BOARD_HAVE_IFX7060)
 ///////////////////////////////////////////////////////////////////////////////
 // This global variable stores the initial value of the
 // Modem Autonomous Fast Dormancy (MAFD) mode in the repository.
 extern int g_nFastDormancyMode;
+#endif // BOARD_HAVE_IFX7060
 
 ///////////////////////////////////////////////////////////////////////////////
 // Globals used for DSDS

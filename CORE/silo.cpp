@@ -47,11 +47,13 @@ CSilo::~CSilo()
 //    TRUE  if response is handled by this hook, then handling still stop.
 //    FALSE if response is not handled by this hook, and handling will continue to other silos, then framework.
 //
-BOOL CSilo::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& szPointer, BOOL& fGotoError)
+BOOL CSilo::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& szPointer, BOOL& fGotoError, BOOL& fPendingSolicitedResponse)
 {
     //RIL_LOG_VERBOSE("CSilo::ParseUnsolicitedResponse() - Enter\r\n");
 
     BOOL            fRet = FALSE;
+    UINT32          nRow = 0;
+    UINT32          uiSizeOfATRes = 0;
     PFN_ATRSP_PARSE fctParser = NULL;
 
     if (NULL == pResponse)
@@ -61,15 +63,21 @@ BOOL CSilo::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& sz
     }
     else
     {
-        fctParser = FindParser(m_pATRspTable, szPointer);
+        fctParser = FindParser(m_pATRspTable, szPointer, fPendingSolicitedResponse, uiSizeOfATRes);
         if (NULL == fctParser)
         {
-            fctParser = FindParser(m_pATRspTableExt, szPointer);
+            fctParser = FindParser(m_pATRspTableExt, szPointer, fPendingSolicitedResponse, uiSizeOfATRes);
         }
     }
 
     if (NULL != fctParser)
     {
+        if (fPendingSolicitedResponse)
+        {
+            // If there is Pending unprocessed Solicited AT ahead of
+            // URC, calculate the beginning location of the URC, begin with <cr><lf>
+            pResponse->SetBeginMarker(szPointer - pResponse->Data() - uiSizeOfATRes - 2);
+        }
         // Call the function pointer
         if (!(this->*fctParser)(pResponse, szPointer))
         {
@@ -87,7 +95,7 @@ BOOL CSilo::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& sz
     return fRet;
 }
 
-PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const char*& pszStr)
+PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const char*& pszStr, BOOL& fPendingSolicitedResponse, UINT32& uiSizeOfATRes)
 {
     PFN_ATRSP_PARSE fctParser = NULL;
 
@@ -96,6 +104,7 @@ PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const char*& pszStr)
         for (int nRow = 0; ; ++nRow)
         {
             const char* szATRsp = pRspTable[nRow].szATResponse;
+            uiSizeOfATRes = strlen(szATRsp);
 
             // Check for a valid pointer
             if (NULL == szATRsp)
@@ -117,6 +126,12 @@ PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const char*& pszStr)
                 //                m_pChannel->GetRilChannel(),
                 //                CRLFExpandedString(m_pATRspTable[nRow].szATResponse, strlen(m_pATRspTable[nRow].szATResponse)).GetString());
 
+                break;
+            }
+            else if ((m_pChannel->GetRilChannel() != RIL_CHANNEL_URC) && (FindAndSkipString(pszStr, szATRsp, pszStr)))
+            {
+                fPendingSolicitedResponse = TRUE;
+                fctParser = m_pATRspTable[nRow].pfnATParseRsp;
                 break;
             }
         }

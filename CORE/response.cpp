@@ -49,7 +49,9 @@ m_pData(NULL),
 m_uiDataSize(0),
 m_pChannel(pChannel),
 m_uiResponseEndMarker(0),
-m_uiFlags(0)
+m_uiResponseBeginMarker(0),
+m_uiFlags(0),
+m_bIsPendingSolicitedResponse(FALSE)
 {
     //RIL_LogDebugMsg("CResponse::CResponse() : CONSTRUCTOR\r\n");
 
@@ -59,7 +61,8 @@ m_uiFlags(0)
 ///////////////////////////////////////////////////////////////////////////////
 CResponse::~CResponse()
 {
-    FreeData();
+    free(m_pData);
+    m_pData = NULL;
     //RIL_LogDebugMsg("CResponse::~CResponse() : DESTRUCTOR\r\n");
 }
 
@@ -124,6 +127,7 @@ BOOL CResponse::IsUnsolicitedResponse()
 {
     BOOL bRet = FALSE;
     BOOL fDummy = FALSE;
+    BOOL fPendingSolicitedResponse = FALSE;
     const char* szPointer = m_szBuffer;
 
     RIL_LOG_VERBOSE("CResponse::IsUnsolicitedResponse() : Enter\r\n");
@@ -131,7 +135,7 @@ BOOL CResponse::IsUnsolicitedResponse()
     // Parse "<prefix>" if it exists.
     SkipRspStart(szPointer, g_szNewLine, szPointer);
 
-    if (m_pChannel->ParseUnsolicitedResponse(this, szPointer, fDummy))
+    if (m_pChannel->ParseUnsolicitedResponse(this, szPointer, fDummy, fPendingSolicitedResponse))
     {
         // unsolicited response parsed correctly; verify
         // string contains cr-lf
@@ -144,6 +148,7 @@ BOOL CResponse::IsUnsolicitedResponse()
         }
         m_uiResponseEndMarker = szPointer - m_szBuffer;
         SetUnsolicitedFlag(TRUE);
+        SetPendingSolicitedResponse(fPendingSolicitedResponse);
         bRet = TRUE;
     }
 
@@ -409,14 +414,37 @@ BOOL CResponse::TransferData(CResponse*& rpRspIn, CResponse*& rpRspOut)
 
     // RspOut contains the valid response, RspIn keeps the remainder
     rpRspOut = pRspTmp;
-    iRemainder = rpRspOut->m_uiUsed - rpRspOut->m_uiResponseEndMarker;
-    if (iRemainder > 0)
+    if (rpRspOut->IsPendingSolicitedResponse())
     {
-        rpRspIn->Append(rpRspOut->m_szBuffer + rpRspOut->m_uiResponseEndMarker, iRemainder);
-        rpRspOut->m_uiUsed -= iRemainder;
+        void* rpData;
+        UINT32 uiDataSize;
+        // append the uncompleted solicited AT part to RspIn
+        rpRspIn->Append(rpRspOut->m_szBuffer, rpRspOut->m_uiResponseBeginMarker);
+        // If there is any string following with the URC, also append it to RspIn
+        if (rpRspOut->m_uiUsed - rpRspOut->m_uiResponseEndMarker > 0)
+            rpRspIn->Append(rpRspOut->m_szBuffer + rpRspOut->m_uiResponseEndMarker, rpRspOut->m_uiUsed - rpRspOut->m_uiResponseEndMarker);
+        // extract the URC part string, and fill it into RspOut
+        rpRspOut = new CResponse(pRspTmp->m_pChannel);
+        rpRspOut->Append(pRspTmp->m_szBuffer + pRspTmp->m_uiResponseBeginMarker, pRspTmp->m_uiResponseEndMarker - pRspTmp->m_uiResponseBeginMarker);
+        // set related flag to rpRspOut
+        rpRspOut->SetUnsolicitedFlag(pRspTmp->IsUnsolicitedFlag());
+        rpRspOut->SetResultCode(pRspTmp->GetResultCode());
+        rpRspOut->SetUnrecognizedFlag(pRspTmp->IsUnrecognizedFlag());
+        // set m_Data to rpRspOut
+        pRspTmp->GetData(rpData, uiDataSize);
+        rpRspOut->SetData(rpData, uiDataSize);
+        pRspTmp->FreeData();
     }
-    rpRspOut->m_szBuffer[rpRspOut->m_uiUsed] = '\0';
-
+    else
+    {
+        iRemainder = rpRspOut->m_uiUsed - rpRspOut->m_uiResponseEndMarker;
+        if (iRemainder > 0)
+        {
+            rpRspIn->Append(rpRspOut->m_szBuffer + rpRspOut->m_uiResponseEndMarker, iRemainder);
+            rpRspOut->m_uiUsed -= iRemainder;
+        }
+        rpRspOut->m_szBuffer[rpRspOut->m_uiUsed] = '\0';
+    }
     bRet = TRUE;
 Error:
     RIL_LOG_VERBOSE("CResponse::TransferData() : Exit [%d]\r\n", bRet);

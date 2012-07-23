@@ -801,6 +801,37 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     }
     else
     {
+        if (FindAndSkipString(rszPointer, "NW DETACH", rszPointer) ||
+               FindAndSkipString(rszPointer, "ME DETACH", rszPointer))
+        {
+            if (!g_bIsDataSuspended)
+            {
+                int pos = 0;
+                g_bIsDataSuspended = false;
+                pszData = (unsigned char*) malloc(sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+                if (NULL == pszData)
+                {
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Could not allocate memory for pszData.\r\n");
+                    goto Error;
+                }
+                memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+
+                convertIntToByteArrayAt(pszData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
+                pos += sizeof(int);
+                convertIntToByteArrayAt(pszData, g_bIsDataSuspended, pos);
+
+                pResponse->SetUnsolicitedFlag(TRUE);
+                pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+
+                if (!pResponse->SetData((void*)pszData, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND), FALSE))
+                {
+                    goto Error;
+                }
+
+                return true;
+            }
+        }
+
         // For the NW DEACT case, Android will perform a DEACTIVATE
         // DATA CALL itself, so no need for us to do it here.
         // Simply trigger data call list changed and let Android process
