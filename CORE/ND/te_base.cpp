@@ -1292,26 +1292,20 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
                         pCallListData->pCallData[nUsed].numberPresentation = 1;
                         pCallListData->pCallData[nUsed].namePresentation = 1;
                     }
-
-                    if (!SkipString(szRsp, ",", szRsp) ||
-                        !ExtractUpperBoundedUInt32(szRsp, 0x100, nValue, szRsp))
+                    else
                     {
-                        goto Continue;
+                        // allow number presentation
+                        pCallListData->pCallData[nUsed].numberPresentation = 0;
                     }
-
-                    pCallListData->pCallData[nUsed].toa = nValue;
                 }
-                else
+
+                if (!SkipString(szRsp, ",", szRsp) ||
+                    !ExtractUpperBoundedUInt32(szRsp, 0x100, nValue, szRsp))
                 {
-                    // If we couldn't parse an address, then it might be empty,
-                    // meaning the ID is blocked. Since the address parameter
-                    // is present, make sure the type also exists before continuing.
-                    if (!SkipString(szRsp, ",", szRsp)                 ||
-                        !ExtractUpperBoundedUInt32(szRsp, 0x100, nValue, szRsp))
-                    {
-                        goto Continue;
-                    }
+                    goto Continue;
                 }
+
+                pCallListData->pCallData[nUsed].toa = nValue;
 
                 // Parse ","
                 if (SkipString(szRsp, ",", szRsp))
@@ -1349,7 +1343,6 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
             }
 
             pCallListData->pCallData[nUsed].als = 0;
-            pCallListData->pCallData[nUsed].numberPresentation = 0;
 
             pCallListData->pCallPointers[nUsed] = &(pCallListData->pCallData[nUsed]);
 
