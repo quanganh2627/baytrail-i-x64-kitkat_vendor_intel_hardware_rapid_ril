@@ -33,13 +33,11 @@ class CMutex
         static void Lock(CMutex* pMutex);
         static BOOL TryLock(CMutex* pMutex);
         static void Unlock(CMutex* pMutex);
-        static int GetLockValue(CMutex* pMutex);
 
     protected:
         BOOL EnterMutex(BOOL fTryLock = FALSE);
         void LeaveMutex();
 
-        int nLockValue;
         pthread_mutex_t m_mutex;
 };
 

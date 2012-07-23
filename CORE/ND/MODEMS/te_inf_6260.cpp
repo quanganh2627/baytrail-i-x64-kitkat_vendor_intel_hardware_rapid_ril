@@ -320,25 +320,6 @@ Error:
     return res;
 }
 
-#if defined(BOARD_HAVE_IFX7060)
-bool isDataDirectlyOverHSI(const char* szDataProfile)
-{
-    int dataProfile = 0;
-    if (szDataProfile == NULL) return false;
-    dataProfile = atoi(szDataProfile);
-    if (dataProfile == RIL_DATA_PROFILE_DEFAULT || dataProfile == RIL_DATA_PROFILE_TETHERED || dataProfile == RIL_DATA_PROFILE_IMS)
-    {
-        RIL_LOG_INFO("isDataDirectlyOverHSI() - HSI\r\n");
-        return true;
-    }
-    else
-    {
-        RIL_LOG_INFO("isDataDirectlyOverHSI() - MUX\r\n");
-        return false;
-    }
-}
-#endif
-
 RIL_RESULT_CODE CTE_INF_6260::ParseEnterSimPin(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseEnterSimPin() - Enter\r\n");
@@ -362,16 +343,9 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char szIPV4V6[] = "IPV4V6";
-    int nPapChap;
+    int nPapChap = 0; // no auth
     PdpData stPdpData;
     memset(&stPdpData, 0, sizeof(PdpData));
-
-#if defined(BOARD_HAVE_IFX7060)
-    PdpNetworkPath* networkPath = (PdpNetworkPath *) malloc(sizeof(PdpNetworkPath));
-    networkPath->bTurnHSIOn = false;
-    networkPath->uiCID = uiCID;
-    int muxControlChannel = MUX_DATA_CONTROL_CHANNEL_FOR_PDP_DIRECTLY_OVER_HSI;
-#endif
 
     if (NULL == pData)
     {
@@ -403,29 +377,26 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n", stPdpData.szPassword);
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n", stPdpData.szPAPCHAP);
 
-    // PAP/CHAP auth type 3 (PAP or CHAP) is not supported. In this case if a
-    // a username is defined we will use PAP and no no authentication otherwise.
-    // Note: due to an issue in the Android/Fw (missing check of the username
-    // length), if the authentication is not defined, it's the value 3 (PAP or
-    // CHAP) who is sent to the RRIL by default.
-    nPapChap = atoi(stPdpData.szPAPCHAP);
-    if (nPapChap == 3)
+    // if user name is empty, always use no authentication
+    if (stPdpData.szUserName == NULL || strlen(stPdpData.szUserName) == 0)
     {
-        if (stPdpData.szUserName != NULL && strlen(stPdpData.szUserName) != 0)
+        nPapChap = 0;    // No authentication
+    }
+    else
+    {
+        // PAP/CHAP auth type 3 (PAP or CHAP) is not supported. In this case if a
+        // a username is defined we will use PAP for authentication.
+        // Note: due to an issue in the Android/Fw (missing check of the username
+        // length), if the authentication is not defined, it's the value 3 (PAP or
+        // CHAP) which is sent to RRIL by default.
+        nPapChap = atoi(stPdpData.szPAPCHAP);
+        if (nPapChap == 3)
         {
             nPapChap = 1;    // PAP authentication
-        }
-        else
-        {
-            nPapChap = 0;    // No authentication
-        }
-        RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - New PAP/CHAP=[%d]\r\n", nPapChap);
-    }
 
-#if defined(BOARD_HAVE_IFX7060)
-    networkPath->bTurnHSIOn = isDataDirectlyOverHSI(stPdpData.szRILDataProfile);
-    RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - networkPath->bTurnHSIOn=[%d]\r\n", networkPath->bTurnHSIOn);
-#endif
+            RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - New PAP/CHAP=[%d]\r\n", nPapChap);
+        }
+    }
 
     if (RIL_VERSION >= 4 && (uiDataSize >= (7 * sizeof(char*))))
     {
@@ -485,67 +456,16 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         goto Error;
     }
 
-#if defined(BOARD_HAVE_IFX7060)
-    networkPath->uiDataProfile = atoi(stPdpData.szRILDataProfile);
-    if (!networkPath->bTurnHSIOn)
-    {
-        if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2),
-            "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() -  cannot create CGDATA command\r\n");
-            goto Error;
-        }
-    }
-    else
-    {
-        int hsiChannnel = CChannel_Data::GetFreeHSIChannel(uiCID);
-        networkPath->uiHSIChannel = hsiChannnel;
-        if (hsiChannnel < 0)
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - No free HSI Channel \r\n");
-            goto Error;
-        }
-
-        int hsiNetworkPath = 0;
-        switch (hsiChannnel)
-        {
-            case 0:
-                hsiNetworkPath = RIL_HSI_CHANNEL1;
-                break;
-            case 1:
-                hsiNetworkPath = RIL_HSI_CHANNEL2;
-                break;
-            case 2:
-                hsiNetworkPath = RIL_HSI_CHANNEL3;
-                break;
-            default:
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - Unknown HSI Channel [%d] \r\n", hsiChannnel);
-                goto Error;
-        }
-
-        if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2),
-            "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/%d\",\"/mipi_ipc/%d\",0;+CGDATA=\"M-RAW_IP\",%d\r",
-            uiCID, muxControlChannel, hsiNetworkPath, uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() -  cannot create CGDATA command\r\n");
-            goto Error;
-        }
-    }
-#else
     if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2),
         "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - cannot create CGDATA command\r\n");
         goto Error;
     }
-#endif
 
     //  Store the potential uiCID in the pContext
-#if defined(BOARD_HAVE_IFX7060)
-    rReqData.pContextData = (void*)networkPath;
-#else
     rReqData.pContextData = (void*)uiCID;
-#endif
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -640,9 +560,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
 
     char szIP[PROPERTY_VALUE_MAX] = {0};
     P_ND_SETUP_DATA_CALL pDataCallRsp = NULL;
-#if defined(BOARD_HAVE_IFX7060)
-    PdpNetworkPath* networkPath = (PdpNetworkPath *) rRspData.pContextData;
-#endif
+
     /*
      * For RAW IP, when we get the CONNECT response to AT+CGDATA, we then need
      * to send AT+CGPADDR (or AT+CGDCONT?) to get the IP address which needs to
@@ -667,9 +585,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     CRepository repository;
     PDP_TYPE eDataConnectionType = PDP_TYPE_IPV4;  //  dummy for now, set to IPv4.
 
-#if defined(BOARD_HAVE_IFX7060)
-    int networkInterfaceID = 0;
-#endif
     const char* szRsp = rRspData.szResponse;
 
     pDataCallRsp = (P_ND_SETUP_DATA_CALL)malloc(sizeof(S_ND_SETUP_DATA_CALL));
@@ -681,11 +596,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     memset(pDataCallRsp, 0, sizeof(S_ND_SETUP_DATA_CALL));
 
     //  Get CID
-#if defined(BOARD_HAVE_IFX7060)
-    uiCID = (UINT32)networkPath->uiCID;
-#else
     uiCID = (UINT32)rRspData.pContextData;
-#endif
+
     if (uiCID == 0)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - CID must be >= 1!! CID=[%u]\r\n", uiCID);
@@ -711,30 +623,11 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     }
 
     // 1st confirm we got "CONNECT"
-#if defined(BOARD_HAVE_IFX7060)
-    if (!networkPath->bTurnHSIOn)
-    {
-        if (!FindAndSkipString(szRsp, "CONNECT", szRsp))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() -  Did not get \"CONNECT\" response.\r\n");
-            goto Error;
-        }
-    }
-    else
-    {
-        if (!FindAndSkipString(szRsp, "OK", szRsp))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() -  Did not get \"OK\" response.\r\n");
-            goto Error;
-        }
-    }
-#else
     if (!FindAndSkipString(szRsp, "CONNECT", szRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Did not get \"CONNECT\" response.\r\n");
         goto Error;
     }
-#endif
 
     // Following code-block is moved up here from the end of this function to get if_name needed for netconfig (N_GSM)
     // But the IP address is filled in end of function.
@@ -742,42 +635,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     //  Populate pDataCallRsp
     pDataCallRsp->sPDPData.cid = uiCID;
 
-#if defined(BOARD_HAVE_IFX7060)
-    RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - uiDataProfile =[%d]\r\n", networkPath->uiDataProfile);
-    switch (networkPath->uiDataProfile)
-    {
-        case RIL_DATA_PROFILE_DEFAULT:
-            networkInterfaceID = NETWORK_INTERFACE_ID0;
-            break;
-        case RIL_DATA_PROFILE_TETHERED:
-            networkInterfaceID = NETWORK_INTERFACE_ID1;
-            break;
-        case RIL_DATA_PROFILE_IMS:
-            networkInterfaceID = NETWORK_INTERFACE_ID2;
-            break;
-        case RIL_DATA_PROFILE_MMS:
-            networkInterfaceID = NETWORK_INTERFACE_ID3;
-            break;
-        case RIL_DATA_PROFILE_CBS:
-            networkInterfaceID = NETWORK_INTERFACE_ID4;
-            break;
-        case RIL_DATA_PROFILE_FOTA:
-            networkInterfaceID = NETWORK_INTERFACE_ID5;
-            break;
-        case RIL_DATA_PROFILE_SUPL:
-            networkInterfaceID = NETWORK_INTERFACE_ID6;
-            break;
-        case RIL_DATA_PROFILE_HIPRI:
-            networkInterfaceID = NETWORK_INTERFACE_ID7;
-            break;
-        default:
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unknown Data Profile [%d] \r\n", networkPath->uiDataProfile);
-            goto Error;
-    }
-    if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%d", m_szNetworkInterfaceNamePrefix, networkInterfaceID))
-#else
     if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%u", m_szNetworkInterfaceNamePrefix, uiCID-1))
-#endif
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot set network interface name\r\n");
         goto Error;
@@ -799,10 +657,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
     strncpy(pChannelData->m_szInterfaceName, pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE-1);
     pChannelData->m_szInterfaceName[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
 
-#if defined(BOARD_HAVE_IFX7060)
-    if (!networkPath->bTurnHSIOn)
-    {
-#endif
     // N_GSM related code
     netconfig.adaption = 3;
     netconfig.protocol = htons(ETH_P_IP);
@@ -827,9 +681,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Could not get Data Channel chnl=[%d] fd=[%d].\r\n", rRspData.uiChannel, fd);
         goto Error;
     }
-#if defined(BOARD_HAVE_IFX7060)
-    }
-#endif
 
     // Send AT+CGPADDR and AT+XDNS? commands to query for assigned IP Address and DNS and wait for responses
 
@@ -1042,15 +893,12 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
         pChannelData->GetRilChannel(), pChannelData->GetContextID());
 
 Error:
-#if defined(BOARD_HAVE_IFX7060)
-    free(networkPath);
-#endif
     if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Error cleanup\r\n");
         if (pChannelData)
         {
-            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Calling triggerDeactivateDataCall chnl=[%d], cid=[%d]\r\n", rRspData.uiChannel, uiCID);
+            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Calling triggerDeactivateDataCall  chnl=[%d], cid=[%u]\r\n", rRspData.uiChannel, uiCID);
 
             //  Explicitly deactivate context ID = uiCID
             //  This will call DataConfigDown(uiCID) and convert channel to AT mode.
@@ -1211,9 +1059,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseDns() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-#if defined(BOARD_HAVE_IFX7060)
-    PdpNetworkPath* networkPath = (PdpNetworkPath *) rRspData.pContextData;
-#endif
+
     const char* szRsp = rRspData.szResponse;
     UINT32 nCid = 0, nXDNSCid = 0;
     UINT32  cbDns1 = 0;
@@ -1222,11 +1068,8 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
     const int MAX_IPADDR_SIZE = 100;
 
     //  Get Context ID from context data (passed in from ParseSetupDataCall)
-#if defined(BOARD_HAVE_IFX7060)
-    nCid = (UINT32)networkPath->uiCID;
-#else
     nCid = (UINT32)rRspData.pContextData;
-#endif
+
     RIL_LOG_INFO("CTE_INF_6260::ParseDns() - looking for cid=[%d]\r\n", nCid);
 
     // Parse "+XDNS: "
@@ -3624,105 +3467,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkHandleCallSetupRequestedFromSim(RESPONSE_D
 //
 // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
 //
-#if defined(BOARD_HAVE_IFX7060)
-RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetPreferredNetworkType() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_PreferredNetworkType networkType = PREF_NET_TYPE_GSM_WCDMA; // 0
-
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Data pointer is NULL.\r\n");
-        goto Error;
-    }
-
-    if (uiDataSize != sizeof(RIL_PreferredNetworkType *))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Invalid data size.\r\n");
-        goto Error;
-    }
-
-    networkType = ((RIL_PreferredNetworkType *)pData)[0];
-
-    // if network type already set, NO-OP this command
-    if (m_currentNetworkType == networkType)
-    {
-        rReqData.szCmd1[0] = '\0';
-        res = RRIL_RESULT_OK;
-        RIL_LOG_INFO("CTE_INF_6260::CoreSetPreferredNetworkType() - Network type {%d} already set.\r\n", networkType);
-        goto Error;
-    }
-
-    switch (networkType)
-    {
-        case PREF_NET_TYPE_LTE_GSM_WCDMA: // Triple LTE/WCDMA/GSM with LTE prefered
-
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=6,2,1\r", sizeof(rReqData.szCmd1)))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
-                goto Error;
-            }
-
-            break;
-
-        case PREF_NET_TYPE_GSM_WCDMA: // WCDMA Preferred
-
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=3,1\r", sizeof(rReqData.szCmd1)))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
-                goto Error;
-            }
-
-           break;
-
-        case PREF_NET_TYPE_GSM_ONLY: // GSM Only
-
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=0\r", sizeof(rReqData.szCmd1)))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
-                goto Error;
-            }
-
-            break;
-
-        case PREF_NET_TYPE_WCDMA: // WCDMA Only
-
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=1\r", sizeof(rReqData.szCmd1)))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
-                goto Error;
-            }
-
-            break;
-
-        case PREF_NET_TYPE_LTE_ONLY: // LTE Only
-
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=2\r", sizeof(rReqData.szCmd1)))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
-                goto Error;
-            }
-
-            break;
-
-        default:
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Undefined rat code: %d\r\n", networkType);
-            res = RIL_E_GENERIC_FAILURE;
-            goto Error;
-
-    }
-
-    //  Set the context of this command to the network type we're attempting to set
-    rReqData.pContextData = (void*)networkType;  // Store this as an int.
-
-    res = RRIL_RESULT_OK;
-
-Error:
-    RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetPreferredNetworkType() - Exit\r\n");
-    return res;
-}
-#else
 RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetPreferredNetworkType() - Enter\r\n");
@@ -3800,7 +3544,6 @@ Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetPreferredNetworkType() - Exit\r\n");
     return res;
 }
-#endif
 
 RIL_RESULT_CODE CTE_INF_6260::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspData)
 {
@@ -3818,21 +3561,6 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspD
 //
 // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
 //
-#if defined(BOARD_HAVE_IFX7060)
-RIL_RESULT_CODE CTE_INF_6260::CoreGetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("CTE_INF_6260::CoreGetPreferredNetworkType() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT?\r", sizeof(rReqData.szCmd1)))
-    {
-        res = RRIL_RESULT_OK;
-    }
-
-    RIL_LOG_VERBOSE("CTE_INF_6260::CoreGetPreferredNetworkType() - Exit\r\n");
-    return res;
-}
-#else
 RIL_RESULT_CODE CTE_INF_6260::CoreGetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreGetPreferredNetworkType() - Enter\r\n");
@@ -3846,115 +3574,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreGetPreferredNetworkType(REQUEST_DATA & rReqDat
     RIL_LOG_VERBOSE("CTE_INF_6260::CoreGetPreferredNetworkType() - Exit\r\n");
     return res;
 }
-#endif
-#if defined(BOARD_HAVE_IFX7060)
-RIL_RESULT_CODE CTE_INF_6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTE_INF_6260::ParseGetPreferredNetworkType() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
-
-    UINT32 rat = 0;
-    UINT32 pref = 0;
-
-    int * pRat = (int*)malloc(sizeof(int));
-    if (NULL == pRat)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not allocate memory for response.\r\n");
-        goto Error;
-    }
-
-    // Skip "<prefix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not skip response prefix.\r\n");
-        goto Error;
-    }
-
-    // Skip "+XACT: "
-    if (!SkipString(pszRsp, "+XACT: ", pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not skip \"+XACT: \".\r\n");
-        goto Error;
-    }
-
-    if (!ExtractUInt32(pszRsp, rat, pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not extract rat value.\r\n");
-        goto Error;
-    }
-
-    if (FindAndSkipString(pszRsp, ",", pszRsp))
-    {
-        if (!ExtractUInt32(pszRsp, pref, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not find and skip pref value even though it was expected.\r\n");
-            goto Error;
-        }
-    }
-
-    switch(rat)
-    {
-        case 0:     // GSM Only
-        {
-            pRat[0] = PREF_NET_TYPE_GSM_ONLY;
-            m_currentNetworkType = PREF_NET_TYPE_GSM_ONLY;
-            break;
-        }
-
-        case 1:     // WCDMA Only
-        {
-            pRat[0] = PREF_NET_TYPE_WCDMA;
-            m_currentNetworkType = PREF_NET_TYPE_WCDMA;
-            break;
-        }
-
-        case 2:     // LTE Only
-        {
-            pRat[0] = PREF_NET_TYPE_LTE_ONLY;
-            m_currentNetworkType = PREF_NET_TYPE_LTE_ONLY;
-            break;
-        }
-
-        case 3:     // Dual WCDMA/GSM with WCDMA prefered
-        {
-            pRat[0] = PREF_NET_TYPE_GSM_WCDMA;
-            m_currentNetworkType = PREF_NET_TYPE_GSM_WCDMA;
-            break;
-        }
-
-        case 6:     // Triple LTE/WCDMA/GSM with LTE prefered
-        {
-            pRat[0] = PREF_NET_TYPE_LTE_GSM_WCDMA;
-            m_currentNetworkType = PREF_NET_TYPE_LTE_GSM_WCDMA;
-            break;
-        }
-
-        default:
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Unexpected rat found: %d. Failing out.\r\n", rat);
-            goto Error;
-        }
-    }
-
-    rRspData.pData  = (void*)pRat;
-    rRspData.uiDataSize = sizeof(int*);
-
-    res = RRIL_RESULT_OK;
-
-Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pRat);
-        pRat = NULL;
-    }
-
-
-    RIL_LOG_VERBOSE("CTE_INF_6260::ParseGetPreferredNetworkType() - Exit\r\n");
-    return res;
-}
-#else
 RIL_RESULT_CODE CTE_INF_6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseGetPreferredNetworkType() - Enter\r\n");
@@ -4046,7 +3666,6 @@ Error:
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseGetPreferredNetworkType() - Exit\r\n");
     return res;
 }
-#endif
 
 //
 // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75

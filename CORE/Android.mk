@@ -54,6 +54,10 @@ LOCAL_SRC_FILES:= \
     ND/MODEMS/silo_phonebook_inf.cpp \
     ND/MODEMS/silo_misc_inf.cpp
 
+ifeq ($(strip $(BOARD_HAVE_IFX7060)),true)
+LOCAL_SRC_FILES += \
+    ND/MODEMS/te_inf_7x60.cpp
+endif
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils
 

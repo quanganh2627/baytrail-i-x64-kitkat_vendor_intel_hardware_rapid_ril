@@ -18,7 +18,6 @@
 #include "request_id.h"
 
 //  List channels here (one per COM port)
-
 #define RIL_CHANNEL_MAX 11
 
 // Upper limit on number of RIL channels to create
@@ -29,10 +28,10 @@ extern UINT32 g_uiRilChannelCurMax;
 
 #if defined(BOARD_HAVE_IFX7060)
 
-#define RIL_HSI_CHANNEL_MAX 4
+#define RIL_HSI_CHANNEL_MAX 5
 
-/*Mux channel for connection control of pdp context which goes directly over HSI */
-#define MUX_DATA_CONTROL_CHANNEL_FOR_PDP_DIRECTLY_OVER_HSI 3
+// Number of apn profile
+#define NUMBER_OF_APN_PROFILE 8
 
 //Store the value of the first hsi channel for data directly over HSI
 #define RIL_HSI_CHANNEL1 2

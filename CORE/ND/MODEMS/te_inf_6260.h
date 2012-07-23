@@ -135,10 +135,9 @@ public:
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
     virtual RIL_RESULT_CODE ParseQueryPIN2(RESPONSE_DATA & rRspData);
     virtual RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE QueryDataCallFailCause();
 
 private:
-    RIL_RESULT_CODE QueryDataCallFailCause();
-
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
                                                     const char** pszRequest,
                                                     const UINT32 uiDataSize);

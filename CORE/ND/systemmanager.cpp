@@ -67,7 +67,21 @@ CEvent* g_RxQueueEvent[RIL_CHANNEL_MAX];
 CChannel* g_pRilChannel[RIL_CHANNEL_MAX] = { NULL };
 
 #if defined(BOARD_HAVE_IFX7060)
-UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX] = { NULL, NULL, NULL };
+UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX] = { NULL, NULL, NULL, NULL, NULL};
+
+int m_hsiChannelsReservedForClass1 = -1;
+int m_hsiChannelsReservedForDataDirectlyoverHsi = -1;
+int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE] = { NULL };
+
+const char   g_szHsiChannelsReservedForDataDirectlyoverHsi[] = "HsiChannelsReservedForDataDirectlyoverHsi";
+const char   g_szApnTypeDefault[] = "ApnTypeDefault";
+const char   g_szApnTypeThetered[] = "ApnTypeThetered";
+const char   g_szApnTypeIMS[] = "ApnTypeIMS";
+const char   g_szApnTypeMMS[] = "ApnTypeMMS";
+const char   g_szApnTypeCBS[] = "ApnTypeCBS";
+const char   g_szApnTypeFOTA[] = "ApnTypeFOTA";
+const char   g_szApnTypeSUPL[] = "ApnTypeSUPL";
+const char   g_szApnTypeHIPRI[] = "ApnTypeHIPRI";
 #endif
 
 CSystemManager* CSystemManager::m_pInstance = NULL;
@@ -140,8 +154,6 @@ CSystemManager::~CSystemManager()
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Enter\r\n");
     BOOL fLocked = TRUE;
 
-    RIL_LOG_INFO("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] before Lock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
-
     for (int x = 0; x < 3; x++)
     {
         Sleep(300);
@@ -158,9 +170,6 @@ CSystemManager::~CSystemManager()
             break;
         }
     }
-
-    RIL_LOG_INFO("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] after Lock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
-
 
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before signal m_pExitRilEvent\r\n");
     // signal the cancel event to kill the thread
@@ -242,11 +251,7 @@ CSystemManager::~CSystemManager()
 
     if (fLocked)
     {
-        RIL_LOG_INFO("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] before Unlock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
-
         CMutex::Unlock(m_pSystemManagerMutex);
-
-        RIL_LOG_INFO("CSystemManager::~CSystemManager() - INFO: GetLockValue=[%d] after Unlock\r\n", CMutex::GetLockValue(m_pSystemManagerMutex));
     }
 
     if (m_pSystemManagerMutex)
@@ -304,6 +309,106 @@ BOOL CSystemManager::InitializeSystem()
     if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
     {
         g_nFastDormancyMode = (UINT32)iTemp;
+    }
+#else
+    int apnType = 0;
+    if (!repository.Read(g_szGroupModem, g_szApnTypeDefault, apnType))
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type default from repository\r\n");
+    }
+    else
+    {
+        m_dataProfilePathAssignation[0] = apnType;
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - ApnTypeThetered: %d...\r\n", apnType);
+    }
+
+    if (!repository.Read(g_szGroupModem, g_szApnTypeThetered, apnType))
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type Tethered from repository\r\n");
+    }
+    else
+    {
+        m_dataProfilePathAssignation[1] = apnType;
+    }
+
+    if (!repository.Read(g_szGroupModem, g_szApnTypeIMS, apnType))
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type IMS from repository\r\n");
+    }
+    else
+    {
+        m_dataProfilePathAssignation[2] = apnType;
+    }
+
+    if (!repository.Read(g_szGroupModem, g_szApnTypeMMS, apnType))
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type MMS from repository\r\n");
+    }
+    else
+    {
+        m_dataProfilePathAssignation[3] = apnType;
+    }
+
+    if (!repository.Read(g_szGroupModem, g_szApnTypeCBS, apnType))
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type CBS from repository\r\n");
+    }
+    else
+    {
+        m_dataProfilePathAssignation[4] = apnType;
+    }
+
+    if (!repository.Read(g_szGroupModem, g_szApnTypeFOTA, apnType))
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type FOTA from repository\r\n");
+    }
+    else
+    {
+        m_dataProfilePathAssignation[5] = apnType;
+    }
+
+    if (!repository.Read(g_szGroupModem, g_szApnTypeSUPL, apnType))
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type SUPL from repository\r\n");
+    }
+    else
+    {
+        m_dataProfilePathAssignation[6] = apnType;
+    }
+
+    if (!repository.Read(g_szGroupModem, g_szApnTypeHIPRI, apnType))
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type HIPRI from repository\r\n");
+    }
+    else
+    {
+        m_dataProfilePathAssignation[7] = apnType;
+    }
+
+    if (!repository.Read(g_szGroupModem, g_szHsiChannelsReservedForDataDirectlyoverHsi, m_hsiChannelsReservedForDataDirectlyoverHsi))
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type default from repository\r\n");
+    }
+
+    m_hsiChannelsReservedForClass1 = 0;
+    for (UINT32 i = 0; i < NUMBER_OF_APN_PROFILE; i++)
+    {
+        if (m_dataProfilePathAssignation[i] == 1)
+        {
+            m_hsiChannelsReservedForClass1++;
+        }
+    }
+
+    if (m_hsiChannelsReservedForClass1 > m_hsiChannelsReservedForDataDirectlyoverHsi)
+    {
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much class1 APN\r\n");
+        goto Done;
+    }
+    //hsi chnnel 0 and 1 are not used for data.
+    if (m_hsiChannelsReservedForDataDirectlyoverHsi > RIL_HSI_CHANNEL_MAX - 2)
+    {
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much hsi channel reserved for data\r\n");
+        goto Done;
     }
 #endif // BOARD_HAVE_IFX7060
 

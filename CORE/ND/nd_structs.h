@@ -86,22 +86,8 @@ struct PdpData
 };
 
 #if defined(BOARD_HAVE_IFX7060)
-struct PdpNetworkPath
-{
-    UINT32 uiCID;
-    UINT32 uiHSIChannel;
-    UINT32 uiDataProfile;
-    bool bTurnHSIOn;
-};
-
-#define NETWORK_INTERFACE_ID0 0
-#define NETWORK_INTERFACE_ID1 1
-#define NETWORK_INTERFACE_ID2 2
-#define NETWORK_INTERFACE_ID3 3
-#define NETWORK_INTERFACE_ID4 4
-#define NETWORK_INTERFACE_ID5 5
-#define NETWORK_INTERFACE_ID6 6
-#define NETWORK_INTERFACE_ID7 7
+#define NETWORK_INTERFACE_PDP_MUX_OFFSET 3
+#define NETWORK_INTERFACE_PDP_HSI_DIRECT_OFFSET 2
 #endif
 
 //

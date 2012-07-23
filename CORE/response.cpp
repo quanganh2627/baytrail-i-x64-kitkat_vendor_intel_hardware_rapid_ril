@@ -45,6 +45,8 @@ const char* pszAborted       = "ABORTED";
 CResponse::CResponse(CChannel* pChannel)
 : m_uiResultCode(RRIL_RESULT_OK),
 m_uiErrorCode(0),
+m_uiIntermediateResultCode(RRIL_RESULT_OK),
+m_uiIntermediateErrorCode(0),
 m_pData(NULL),
 m_uiDataSize(0),
 m_pChannel(pChannel),
@@ -542,6 +544,9 @@ BOOL CResponse::ParseResponse(CCommand*& rpCmd)
 
         rspData.pContextData2 = rpCmd->GetContextData2();
         rspData.cbContextData2 = rpCmd->GetContextDataSize2();
+
+        rspData.uiIntermediateResultCode = GetIntermediateResultCode();
+        rspData.uiIntermediateErrorCode = GetIntermediateErrorCode();
 
         RIL_LOG_VERBOSE("CResponse::ParseResponse() : chnl=[%d] Calling Parsing Function\r\n", m_pChannel->GetRilChannel() );
         resCode = (CTE::GetTE().*parser)(rspData);

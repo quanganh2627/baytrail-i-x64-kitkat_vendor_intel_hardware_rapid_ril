@@ -45,7 +45,7 @@ public:
     static CChannel_Data* GetChnlFromContextID(UINT32 dwContextID);
     static CChannel_Data* GetChnlFromRilChannelNumber(UINT32 index);
 #if defined(BOARD_HAVE_IFX7060)
-    static int GetFreeHSIChannel(UINT32 uiCID);
+    static int GetFreeHSIChannel(UINT32 uiCID, int sindex, int eIndex);
     static bool FreeHSIChannel(UINT32 uiCID);
 #endif
 
@@ -53,6 +53,9 @@ public:
     //  context ID of returned channel.
     //  If error, then NULL is returned.
     static CChannel_Data* GetFreeChnl(UINT32& outCID);
+#if defined(BOARD_HAVE_IFX7060)
+    static CChannel_Data* GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile);
+#endif
 
     CEvent *            m_pSetupIntermediateEvent;
     CEvent *            m_pSetupDoneEvent;
@@ -74,6 +77,11 @@ public:
     char*               m_szPdpType;
     char*               m_szInterfaceName;
     INT32               m_iStatus;
+#if defined(BOARD_HAVE_IFX7060)
+    int                 m_dataProfile;
+    bool                m_hsiDirect;
+    int                 m_hsiChannel;
+#endif
 
 private:
 

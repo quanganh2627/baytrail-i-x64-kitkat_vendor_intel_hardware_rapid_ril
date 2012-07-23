@@ -66,6 +66,7 @@ protected:
 private:
     // helper functions
     BOOL ParsePin(CCommand*& rpCmd, CResponse*& rpRsp);
+    BOOL ParseFacilityLock(CCommand*& rpCmd, CResponse*& rpRsp);
     BOOL ParseNetworkPersonalisationPin(CCommand*& rpCmd, CResponse*& rpRsp);
     BOOL ParseSimIO(CCommand*& rpCmd, CResponse*& rpRsp);
     BOOL ParseSimStatus(CCommand*& rpCmd, CResponse*& rpRsp);

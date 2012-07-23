@@ -85,6 +85,17 @@ extern const char   g_szFDDelayTimer[];
 extern const char   g_szSCRITimer[];
 extern const char   g_szFDMode[];
 extern const char   g_szTempOoSNotificationEnable[];
+#if defined(BOARD_HAVE_IFX7060)
+extern const char   g_szHsiChannelsReservedForDataDirectlyoverHsi[];
+extern const char   g_szApnTypeDefault[];
+extern const char   g_szApnTypeThetered[];
+extern const char   g_szApnTypeIMS[];
+extern const char   g_szApnTypeMMS[];
+extern const char   g_szApnTypeCBS[];
+extern const char   g_szApnTypeFOTA[];
+extern const char   g_szApnTypeSUPL[];
+extern const char   g_szApnTypeHIPRI[];
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 

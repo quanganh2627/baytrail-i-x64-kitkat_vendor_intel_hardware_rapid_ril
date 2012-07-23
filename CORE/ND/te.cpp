@@ -27,6 +27,7 @@
 #include "channel_data.h"
 #include "te_inf_6260.h"
 #include "data_util.h"
+#include "te_inf_7x60.h"
 
 CTE * CTE::m_pTEInstance = NULL;
 
@@ -52,13 +53,29 @@ CTE::~CTE()
 
 CTEBase* CTE::CreateModemTE()
 {
+#if defined(BOARD_HAVE_IFX7060)
+    const char* szInfineon7x60       = "Infineon7x60";
+#else
     const char* szInfineon6260       = "Infineon6260";
+#endif
 
     CRepository repository;
     char szModem[m_uiMaxModemNameLen];
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, m_uiMaxModemNameLen))
     {
+#if defined(BOARD_HAVE_IFX7060)
+        if (0 == strcmp(szModem, szInfineon7x60))
+        {
+                RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 7x60\r\n");
+
+                //  Set g_cTerminator and g_szNewLine
+                g_cTerminator = '\r';
+                (void)CopyStringNullTerminate(g_szNewLine, "\r\n", sizeof(g_szNewLine));
+
+                return new CTE_INF_7x60();
+        }
+#else
         if (0 == strcmp(szModem, szInfineon6260))
         {
             RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 6260\r\n");
@@ -69,6 +86,7 @@ CTEBase* CTE::CreateModemTE()
 
             return new CTE_INF_6260();
         }
+#endif
     }
 
     // return default modem
@@ -1463,6 +1481,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
     REQUEST_DATA reqData;
     RIL_RESULT_CODE res;
     UINT32 uiCID = 0;
+    CChannel_Data* pChannelData = NULL;
 
     if (g_bIsManualNetworkSearchOngoing)
     {
@@ -1489,7 +1508,21 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     //  Find free channel, and get the context ID that was set.
-    CChannel_Data* pChannelData = CChannel_Data::GetFreeChnl(uiCID);
+#if defined(BOARD_HAVE_IFX7060)
+    // Extract the data profile. it is the 2nd parameter of pData.
+    int dataProfile = -1;
+
+    if (pData == NULL || datalen < (6 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ****** invalid parameter pData ******\r\n");
+        res = RIL_E_GENERIC_FAILURE;
+        goto Error;
+    }
+    dataProfile = atoi(((char**)pData)[1]);
+    pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiCID, dataProfile);
+#else
+    pChannelData = CChannel_Data::GetFreeChnl(uiCID);
+#endif
     if (NULL == pChannelData)
     {
         RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ****** No free data channels available ******\r\n");

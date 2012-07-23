@@ -311,7 +311,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseGetSimStatus() - Enter\r\n");
 
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
     RIL_CardStatus_v6* pCardStatus = NULL;
     RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus);
     if (res != RRIL_RESULT_OK)
@@ -366,9 +366,15 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\";+CCID\r", pszPassword))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPIN=\"%s\"\r", pszPassword))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin() - Failed to write command to buffer!\r\n");
+        goto Error;
+    }
+
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CCID;+XPINCNT\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin() - Failed to write command 2 to buffer!\r\n");
         goto Error;
     }
 
@@ -388,8 +394,8 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPin() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int *pnRetries = NULL;
-    const char * pszRsp = rRspData.szResponse;
+    int* pnRetries = NULL;
+    const char* pszRsp = rRspData.szResponse;
     char szUICCID[MAX_PROP_VALUE] = {0};
 
     pnRetries = (int*)malloc(sizeof(int));
@@ -406,7 +412,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
     rRspData.uiDataSize   = sizeof(int*);
 
     // Cache the PIN code only if we are not silently entering it
-    if (!PCache_GetUseCachedPIN() )
+    if (!PCache_GetUseCachedPIN())
     {
         // Parse "<prefix>+CCID: <ICCID><postfix>"
         SkipRspStart(pszRsp, g_szNewLine, pszRsp);
@@ -415,18 +421,49 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
         {
             if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Cannot parse UICC ID\r\n");
+                RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot parse UICC ID\r\n");
                 szUICCID[0] = '\0';
             }
 
             SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
         }
 
-        //  Cache PIN1 value
-        PCache_Store_PIN(szUICCID, m_szPIN);
+        if (RIL_E_SUCCESS == rRspData.uiIntermediateResultCode)
+        {
+            //  Cache PIN1 value
+            PCache_Store_PIN(szUICCID, m_szPIN);
 
-        //  Clear it locally.
-        memset(m_szPIN, 0, MAX_PIN_SIZE);
+            //  Clear it locally.
+            memset(m_szPIN, 0, MAX_PIN_SIZE);
+        }
+    }
+
+    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
+    {
+        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
+
+        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot parse XPINCNT\r\n");
+            //  Set pin retries to -1 (unknown)
+            *pnRetries = (int)-1;
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::ParseEnterSimPin() - retries pin1:%u pin2:%u puk1:%u puk2:%u\r\n",
+                uiPin1, uiPin2, uiPuk1, uiPuk2);
+
+            *pnRetries = (int)uiPin1;
+        }
+        RIL_LOG_INFO("CTEBase::ParseEnterSimPin() - Setting data (int*) to %d\r\n", *pnRetries);
+
+        return rRspData.uiIntermediateResultCode;
     }
 
     res = RRIL_RESULT_OK;
@@ -480,6 +517,12 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk(REQUEST_DATA & rReqData, void * pData, 
         goto Error;
     }
 
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XPINCNT\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk() - Failed to write command 2 to buffer!\r\n");
+        goto Error;
+    }
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -492,7 +535,8 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPuk() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int *pnRetries = NULL;
+    const char* pszRsp = rRspData.szResponse;
+    int* pnRetries = NULL;
 
     // If the response to PUK unlock is OK, then we are unlocked.
     // rril will get XSIM: <status> which will indicate whether the
@@ -510,6 +554,34 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
+
+    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
+    {
+        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
+
+        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPuk() - Cannot parse XPINCNT\r\n");
+            //  Set pin retries to -1 (unknown)
+            *pnRetries = (int)-1;
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::ParseEnterSimPuk() - retries pin1:%u pin2:%u puk1:%u puk2:%u\r\n",
+                uiPin1, uiPin2, uiPuk1, uiPuk2);
+
+            *pnRetries = (int)uiPuk1;
+        }
+        RIL_LOG_INFO("CTEBase::ParseEnterSimPuk() - Setting data (int*) to %d\r\n", *pnRetries);
+
+        return rRspData.uiIntermediateResultCode;
+    }
 
     res = RRIL_RESULT_OK;
 
@@ -562,6 +634,12 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin2(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XPINCNT\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin2() - Failed to write command 2 to buffer!\r\n");
+        goto Error;
+    }
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -574,7 +652,8 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin2(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPin2() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int *pnRetries = NULL;
+    const char* pszRsp = rRspData.szResponse;
+    int* pnRetries = NULL;
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -588,6 +667,34 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin2(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
+
+    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
+    {
+        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
+
+        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin2() - Cannot parse XPINCNT\r\n");
+            //  Set pin retries to -1 (unknown)
+            *pnRetries = (int)-1;
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::ParseEnterSimPin2() - retries pin1:%u pin2:%u puk1:%u puk2:%u\r\n",
+                uiPin1, uiPin2, uiPuk1, uiPuk2);
+
+            *pnRetries = (int)uiPin2;
+        }
+        RIL_LOG_INFO("CTEBase::ParseEnterSimPin2() - Setting data (int*) to %d\r\n", *pnRetries);
+
+        return rRspData.uiIntermediateResultCode;
+    }
 
     res = RRIL_RESULT_OK;
 
@@ -640,6 +747,12 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPuk2(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XPINCNT\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPuk2() - Failed to write command 2 to buffer!\r\n");
+        goto Error;
+    }
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -652,7 +765,8 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk2(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseEnterSimPuk2() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int *pnRetries = NULL;
+    const char* pszRsp = rRspData.szResponse;
+    int* pnRetries = NULL;
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -666,6 +780,34 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk2(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
+
+    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
+    {
+        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
+
+        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPuk2() - Cannot parse XPINCNT\r\n");
+            //  Set pin retries to -1 (unknown)
+            *pnRetries = (int)-1;
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::ParseEnterSimPuk2() - retries pin1:%u pin2:%u puk1:%u puk2:%u\r\n",
+                uiPin1, uiPin2, uiPuk1, uiPuk2);
+
+            *pnRetries = (int)uiPuk2;
+        }
+        RIL_LOG_INFO("CTEBase::ParseEnterSimPuk2() - Setting data (int*) to %d\r\n", *pnRetries);
+
+        return rRspData.uiIntermediateResultCode;
+    }
 
     res = RRIL_RESULT_OK;
 
@@ -712,9 +854,15 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin(REQUEST_DATA & rReqData, void * pData,
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPWD=\"SC\",\"%s\",\"%s\";+CCID\r", pszOldPIN, pszNewPIN))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CPWD=\"SC\",\"%s\",\"%s\"\r", pszOldPIN, pszNewPIN))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin() - Unable to write command string to buffer\r\n");
+        goto Error;
+    }
+
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CCID;+XPINCNT\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin() - Failed to write command 2 to buffer!\r\n");
         goto Error;
     }
 
@@ -734,9 +882,9 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseChangeSimPin() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
     char szUICCID[MAX_PROP_VALUE] = {0};
-    int *pnRetries = NULL;
+    int* pnRetries = NULL;
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -765,11 +913,42 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA & rRspData)
         SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
     }
 
-    //  Cache PIN1 value
-    PCache_Store_PIN(szUICCID, m_szPIN);
-    
-    //  Clear it locally.
-    memset(m_szPIN, 0, MAX_PIN_SIZE);
+    if (RIL_E_SUCCESS == rRspData.uiIntermediateResultCode)
+    {
+        //  Cache PIN1 value
+        PCache_Store_PIN(szUICCID, m_szPIN);
+
+        //  Clear it locally.
+        memset(m_szPIN, 0, MAX_PIN_SIZE);
+    }
+
+    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
+    {
+        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
+
+        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot parse XPINCNT\r\n");
+            //  Set pin retries to -1 (unknown)
+            *pnRetries = (int)-1;
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::ParseChangeSimPin() - retries pin1:%u pin2:%u puk1:%u puk2:%u\r\n",
+                uiPin1, uiPin2, uiPuk1, uiPuk2);
+
+            *pnRetries = (int)uiPin1;
+        }
+        RIL_LOG_INFO("CTEBase::ParseChangeSimPin() - Setting data (int*) to %d\r\n", *pnRetries);
+
+        return rRspData.uiIntermediateResultCode;
+    }
 
     res = RRIL_RESULT_OK;
 
@@ -822,6 +1001,12 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin2(REQUEST_DATA & rReqData, void * pData
         goto Error;
     }
 
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XPINCNT\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin2() - Failed to write command 2 to buffer!\r\n");
+        goto Error;
+    }
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -834,7 +1019,8 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin2(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseChangeSimPin2() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int *pnRetries = NULL;
+    const char* pszRsp = rRspData.szResponse;
+    int* pnRetries = NULL;
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -848,6 +1034,34 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin2(RESPONSE_DATA & rRspData)
 
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
+
+    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
+    {
+        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
+
+        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin2() - Cannot parse XPINCNT\r\n");
+            //  Set pin retries to -1 (unknown)
+            *pnRetries = (int)-1;
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::ParseChangeSimPin2() - retries pin1:%u pin2:%u puk1:%u puk2:%u\r\n",
+                uiPin1, uiPin2, uiPuk1, uiPuk2);
+
+            *pnRetries = (int)uiPin2;
+        }
+        RIL_LOG_INFO("CTEBase::ParseChangeSimPin2() - Setting data (int*) to %d\r\n", *pnRetries);
+
+        return rRspData.uiIntermediateResultCode;
+    }
 
     res = RRIL_RESULT_OK;
 
@@ -910,7 +1124,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterNetworkDepersonalization(RESPONSE_DATA & rRsp
     RIL_LOG_VERBOSE("CTEBase::ParseEnterNetworkDepersonalization() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int *pnRetries = NULL;
+    int* pnRetries = NULL;
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -1187,7 +1401,7 @@ RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA & rReqData, void * pData, UINT32 
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_Dial *pRilDial   = NULL;
-    const char *clir;
+    const char* clir;
 
     if (NULL == pData)
     {
@@ -1261,7 +1475,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImsi(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseGetImsi() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     char * szSerialNumber = NULL;
 
@@ -1311,7 +1525,7 @@ RIL_RESULT_CODE CTEBase::CoreHangup(REQUEST_DATA & rReqData, void * pData, UINT3
 {
     RIL_LOG_VERBOSE("CTEBase::CoreHangup() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int * pnLine = NULL;
+    int* pnLine = NULL;
 
     if (sizeof(int*) != uiDataSize)
     {
@@ -1663,7 +1877,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseRegistrationState() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     S_ND_REG_STATUS regStatus;
     P_ND_REG_STATUS pRegStatus = NULL;
@@ -1729,7 +1943,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseGPRSRegistrationState() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     S_ND_GPRS_REG_STATUS psRegStatus;
     P_ND_GPRS_REG_STATUS pGPRSRegStatus = NULL;
@@ -1794,7 +2008,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     UINT32 uiType = 0;
     const int NAME_SIZE = 50;
@@ -2086,6 +2300,18 @@ RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
+    /*
+     * Rapid RIL remains active even when the system services are
+     * killed due to FATAL exception. So, when the system servcies
+     * are started again, android telephony framework will turn off
+     * the RADIO which is as per its state machine. This will result
+     * in clearing up the data connections on modem side. So, framework
+     * and modem will have the right data state but not the rapid ril.
+     * Cleanup data connections internally when there is a change in
+     * radio state(on/off).
+     */
+    CleanupAllDataConnections();
+
     //  Extract power setting from context
     int nPower = (int)rRspData.pContextData;
 
@@ -2229,7 +2455,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSendSms() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     P_ND_SEND_MSG pSendMsg = NULL;
     UINT32          uiMsgRef;
@@ -2379,7 +2605,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSendSmsExpectMore() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     P_ND_SEND_MSG pSendMsg = NULL;
     UINT32          uiMsgRef;
@@ -2677,7 +2903,7 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSimIo() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     UINT32  uiSW1 = 0;
     UINT32  uiSW2 = 0;
@@ -2931,7 +3157,7 @@ RIL_RESULT_CODE CTEBase::ParseGetClir(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseGetClir() - Enter\r\n");
 
-    int * pCLIRBlob = NULL;
+    int* pCLIRBlob = NULL;
 
     UINT32 nValue;
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -2997,7 +3223,7 @@ RIL_RESULT_CODE CTEBase::CoreSetClir(REQUEST_DATA & rReqData, void * pData, UINT
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSetClir() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int * pnClir = NULL;
+    int* pnClir = NULL;
 
     if (sizeof(int*) != uiDataSize)
     {
@@ -3416,7 +3642,7 @@ RIL_RESULT_CODE CTEBase::CoreQueryCallWaiting(REQUEST_DATA & rReqData, void * pD
 {
     RIL_LOG_VERBOSE("CTEBase::CoreQueryCallWaiting() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int * pnInfoClasses = NULL;
+    int* pnInfoClasses = NULL;
 
     if (sizeof(int*) != uiDataSize)
     {
@@ -3474,7 +3700,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallWaiting(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseQueryCallWaiting() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int * prgnCallWaiting = NULL;
+    int* prgnCallWaiting = NULL;
     const char* szRsp = rRspData.szResponse;
     UINT32 nStatus;
     UINT32 nClass;
@@ -3648,7 +3874,7 @@ RIL_RESULT_CODE CTEBase::CoreSmsAcknowledge(REQUEST_DATA & rReqData, void * pDat
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     BOOL fSuccess = FALSE;
-    int * pnAckData = NULL;
+    int* pnAckData = NULL;
 
     if ((sizeof(int *) != uiDataSize) && ((2 * sizeof(int *)) != uiDataSize))
     {
@@ -4076,7 +4302,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryFacilityLock(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseQueryFacilityLock() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int * pnClass = NULL;
+    int* pnClass = NULL;
     const char* szRsp = rRspData.szResponse;
     UINT32 dwStatus = 0, dwClass = 0, dwServices = 0;
     UINT32 uiCause;
@@ -4167,6 +4393,9 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     char * pszMode = NULL;
     char * pszPassword = NULL;
     char * pszClass = NULL;
+    const UINT32 MAX_FACILITY_SIZE = 5;
+    char* pszFacilityName = NULL;
+    BOOL bHasIntermediateResult = FALSE;
 
     if ((4 * sizeof(char *)) > uiDataSize)
     {
@@ -4206,28 +4435,80 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
     // Password provided
     else if (NULL == pszClass || '\0' == pszClass[0] || '0' == pszClass[0])
     {
-        if (!PrintStringNullTerminate(  rReqData.szCmd1,
-                                        sizeof(rReqData.szCmd1),
-                                        "AT+CLCK=\"%s\",%s,\"%s\";+CCID\r",
-                                        pszFacility,
-                                        pszMode,
-                                        pszPassword))
+        // Get SIM PIN2 retry count when enabling sim lock/unlock and fixed dialing
+        if (0 == strcmp(pszFacility, "SC") || 0 == strcmp(pszFacility, "FD"))
         {
-            RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - Unable to write command to buffer\r\n");
-            goto Error;
+            if (!PrintStringNullTerminate(  rReqData.szCmd1,
+                                            sizeof(rReqData.szCmd1),
+                                            "AT+CLCK=\"%s\",%s,\"%s\"\r",
+                                            pszFacility,
+                                            pszMode,
+                                            pszPassword))
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - Unable to write command to buffer\r\n");
+                goto Error;
+            }
+
+            if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CCID;+XPINCNT\r", sizeof(rReqData.szCmd2)))
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - Failed to write command 2 to buffer!\r\n");
+                goto Error;
+            }
+            bHasIntermediateResult = TRUE;
+        }
+        else
+        {
+            if (!PrintStringNullTerminate(  rReqData.szCmd1,
+                                            sizeof(rReqData.szCmd1),
+                                            "AT+CLCK=\"%s\",%s,\"%s\";+CCID\r",
+                                            pszFacility,
+                                            pszMode,
+                                            pszPassword))
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - Unable to write command to buffer\r\n");
+                goto Error;
+            }
         }
     }
-    // Class provided
-    else if (!PrintStringNullTerminate( rReqData.szCmd1,
-                                        sizeof(rReqData.szCmd1),
-                                        "AT+CLCK=\"%s\",%s,\"%s\",%s;+CCID\r",
-                                        pszFacility,
-                                        pszMode,
-                                        pszPassword,
-                                        pszClass))
+    // Password and Class provided
+    else
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - Unable to write command to buffer\r\n");
-        goto Error;
+        // Get SIM PIN2 retry count when enabling sim lock/unlock and fixed dialing
+        if (0 == strcmp(pszFacility, "SC") || 0 == strcmp(pszFacility, "FD"))
+        {
+            if (!PrintStringNullTerminate( rReqData.szCmd1,
+                                                    sizeof(rReqData.szCmd1),
+                                                    "AT+CLCK=\"%s\",%s,\"%s\",%s\r",
+                                                    pszFacility,
+                                                    pszMode,
+                                                    pszPassword,
+                                                    pszClass))
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - Unable to write command to buffer\r\n");
+                goto Error;
+            }
+
+            if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CCID;+XPINCNT\r", sizeof(rReqData.szCmd2)))
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - Failed to write command 2 to buffer!\r\n");
+                goto Error;
+            }
+            bHasIntermediateResult = TRUE;
+        }
+        else
+        {
+            if (!PrintStringNullTerminate( rReqData.szCmd1,
+                                                    sizeof(rReqData.szCmd1),
+                                                    "AT+CLCK=\"%s\",%s,\"%s\",%s;+CCID\r",
+                                                    pszFacility,
+                                                    pszMode,
+                                                    pszPassword,
+                                                    pszClass))
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - Unable to write command to buffer\r\n");
+                goto Error;
+            }
+        }
     }
 
     /*
@@ -4263,6 +4544,23 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA & rReqData, void * pDa
         }
     }
 
+    // Store facility
+    pszFacilityName = (char*)malloc(MAX_FACILITY_SIZE);
+    if (NULL == pszFacilityName)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSetFacilityLock() - Could not allocate memory for pszFacilityName\r\n");
+        goto Error;
+    }
+    memset(pszFacilityName, 0, MAX_FACILITY_SIZE);
+    strncpy(pszFacilityName, pszFacility, MAX_FACILITY_SIZE-1);
+    pszFacilityName[MAX_FACILITY_SIZE-1] = '\0';
+
+    // Pass facility to parse function in context. handle cleanup in PostParseResponseHook
+    rReqData.pContextData = (void*)pszFacilityName;
+
+    // Pass intermediate result flag to parse function in context2
+    rReqData.pContextData2 = (void*)bHasIntermediateResult;
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -4275,10 +4573,12 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSetFacilityLock() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
     char szUICCID[MAX_PROP_VALUE] = {0};
-    int *pnRetries = NULL;
+    int* pnRetries = NULL;
     UINT32 uiCause;
+    char* pszFacility = (char*)rRspData.pContextData;
+    BOOL bHasIntermediateResult = (BOOL)rRspData.pContextData2;
 
     //  Could have +CEER response here, if AT command returned CME error.
     if (ParseCEER(rRspData, uiCause))
@@ -4300,7 +4600,7 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
     rRspData.uiDataSize   = sizeof(int*);
 
     //  Cache PIN1 value
-    RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - PIN code: %s\r\n", m_szPIN);
+    RIL_LOG_INFO("CTEBase::ParseSetFacilityLock() - PIN code: %s\r\n", m_szPIN);
     if (0 == strcmp(m_szPIN, "CLR"))
     {
         PCache_Clear();
@@ -4315,17 +4615,62 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
         {
             if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetFacilityLock() - Cannot parse UICC ID\r\n");
+                RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - Cannot parse UICC ID\r\n");
                 szUICCID[0] = '\0';
             }
 
             SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
         }
 
-        PCache_Store_PIN(szUICCID, m_szPIN);
+        if (!bHasIntermediateResult || RIL_E_SUCCESS == rRspData.uiIntermediateResultCode)
+        {
+            PCache_Store_PIN(szUICCID, m_szPIN);
+        }
     }
     //  Clear it locally.
     memset(m_szPIN, 0, MAX_PIN_SIZE);
+
+    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
+    {
+        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
+
+        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - Cannot parse XPINCNT\r\n");
+            //  Set pin retries to -1 (unknown)
+            *pnRetries = (int)-1;
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::ParseSetFacilityLock() - retries pin1:%u pin2:%u puk1:%u puk2:%u\r\n",
+                uiPin1, uiPin2, uiPuk1, uiPuk2);
+
+            if (pszFacility && (0 == strcmp(pszFacility, "SC")))
+            {
+                // use pin1 when network facility is SIM "SC"
+                *pnRetries = (int)uiPin1;
+            }
+            else if (pszFacility && (0 == strcmp(pszFacility, "FD")))
+            {
+                // use pin2 when network facility is fixed dialing "FD"
+                *pnRetries = (int)uiPin2;
+            }
+            else
+            {
+                // set pin retries to unknown
+                *pnRetries = (int)-1;
+            }
+        }
+        RIL_LOG_INFO("CTEBase::ParseSetFacilityLock() - Setting data (int*) to %d\r\n", *pnRetries);
+
+        return rRspData.uiIntermediateResultCode;
+    }
 
     res = RRIL_RESULT_OK;
 
@@ -4348,9 +4693,9 @@ RIL_RESULT_CODE CTEBase::CoreChangeBarringPassword(REQUEST_DATA & rReqData, void
     RIL_LOG_VERBOSE("CTEBase::CoreChangeBarringPassword() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    const char * pszFacility;
-    const char * pszOldPassword;
-    const char * pszNewPassword;
+    const char* pszFacility;
+    const char* pszOldPassword;
+    const char* pszNewPassword;
 
     if ((3 * sizeof(char *) != uiDataSize))
     {
@@ -4432,7 +4777,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryNetworkSelectionMode(RESPONSE_DATA & rRspData
     RIL_LOG_VERBOSE("CTEBase::ParseQueryNetworkSelectionMode() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int * pnMode = NULL;
+    int* pnMode = NULL;
     const char* szRsp = rRspData.szResponse;
 
     pnMode = (int*)malloc(sizeof(int));
@@ -5061,7 +5406,7 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseBasebandVersion() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     char szTemp[MAX_BUFFER_SIZE] = {0};
     char* szBasebandVersion = (char*)malloc(MAX_PROP_VALUE);
@@ -5214,9 +5559,9 @@ RIL_RESULT_CODE CTEBase::ParseGetMute(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseGetMute() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
-    int * pMuteVal = NULL;
+    int* pMuteVal = NULL;
     UINT32 nValue = 0;
 
     pMuteVal = (int*)malloc(sizeof(int));
@@ -5297,9 +5642,9 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseQueryClip() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
-    int * pClipVal = NULL;
+    int* pClipVal = NULL;
     UINT32 nValue = 0;
     UINT32 uiCause;
 
@@ -5447,7 +5792,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseDataCallList() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     P_ND_PDP_CONTEXT_DATA pPDPListData = NULL;
     UINT32 nValue = 0;
@@ -5929,7 +6274,7 @@ RIL_RESULT_CODE CTEBase::ParseWriteSmsToSim(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseWriteSmsToSim() - Enter\r\n");
 
-    int * pIndex = NULL;
+    int* pIndex = NULL;
     const char* szRsp = rRspData.szResponse;
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
@@ -7466,7 +7811,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitBasic() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     UINT32  uiSW1 = 0;
     UINT32  uiSW2 = 0;
@@ -7987,7 +8332,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitChannel() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * szRsp = rRspData.szResponse;
+    const char* szRsp = rRspData.szResponse;
 
     UINT32  uiSW1 = 0;
     UINT32  uiSW2 = 0;
@@ -8238,7 +8583,7 @@ RIL_RESULT_CODE CTEBase::CoreDialVT(REQUEST_DATA & rReqData, void * pData, UINT3
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_Dial *pRilDial   = NULL;
-    const char *clir;
+    const char* clir;
 
     if (NULL == pData)
     {
@@ -8323,7 +8668,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimSmsStorage(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseGetSimSmsStorage() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
     char szMemStore[3];
     UINT32 uiUsed = 0, uiTotal = 0;
     int i = 0;
@@ -8408,7 +8753,7 @@ RIL_SignalStrength_v6* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspDat
 {
     RIL_LOG_VERBOSE("CTEBase::ParseQuerySignalStrength() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     UINT32 uiRSSI  = 0;
     UINT32 uiBER   = 0;
@@ -8514,7 +8859,7 @@ RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseDataCallListChanged() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     P_ND_PDP_CONTEXT_DATA pPDPListData = NULL;
     UINT32 nValue = 0;
@@ -8835,7 +9180,7 @@ RIL_RESULT_CODE CTEBase::ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseQuerySimSmsStoreStatus() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
     char szMemStore[3];
     UINT32 uiUsed = 0, uiTotal = 0;
     int i = 0;

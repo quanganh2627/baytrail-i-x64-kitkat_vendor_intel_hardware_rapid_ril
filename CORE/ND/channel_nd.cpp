@@ -421,6 +421,19 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         pATCommand = (char *) rpCmd->GetATCmd2();
         UINT32 uiBytesWritten = 0;
 
+        // For Set Faciliy Lock request, no need to get extended error report for call
+        // barring related facilities if Cmd1 succeeded.
+        // Note: +CEER is only sent for call barring related facilities in CoreSetFacilityLock()
+        if (ND_REQ_ID_SETFACILITYLOCK == rpCmd->GetRequestID())
+        {
+            if ( (0 == strcmp(pATCommand, "AT+CEER\r")) &&
+                 (RIL_E_SUCCESS == rpResponse->GetResultCode()) )
+            {
+                RIL_LOG_INFO("CChannel::GetResponse() - SetFacilityLock for Call barring facility succeeded\r\n");
+                return RIL_E_SUCCESS;
+            }
+        }
+
         // send 2nd phase of command
         SetCmdThreadBlockedOnRxQueue();
 
@@ -458,10 +471,20 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
             pATCommand = NULL;
         }
 
+        //  Store the previous error and result code
+        UINT32 uiPreviousErrorCode = rpResponse->GetErrorCode();
+        UINT32 uiPreviousResultCode = rpResponse->GetResultCode();
+
         // wait for the secondary response
         delete rpResponse;
         rpResponse = NULL;
         resCode = ReadQueue(rpResponse, rpCmd->GetTimeout());
+
+        if (rpResponse)
+        {
+            rpResponse->SetIntermediateErrorCode(uiPreviousErrorCode);
+            rpResponse->SetIntermediateResultCode(uiPreviousResultCode);
+        }
 
         if (rpResponse && rpResponse->IsTimedOutFlag())
         {
@@ -505,6 +528,15 @@ bool CChannel::SendCommandPhase2(const UINT32 uiResCode, const UINT32 uiReqID) c
     //  Is our request ID in the special list?
     switch (uiReqID)
     {
+        case ND_REQ_ID_ENTERSIMPIN:
+        case ND_REQ_ID_ENTERSIMPUK:
+        case ND_REQ_ID_ENTERSIMPIN2:
+        case ND_REQ_ID_ENTERSIMPUK2:
+        case ND_REQ_ID_CHANGESIMPIN:
+        case ND_REQ_ID_CHANGESIMPIN2:
+        case ND_REQ_ID_SETFACILITYLOCK:
+            return true;  // Special case because we need to get PIN retry count
+
         case ND_REQ_ID_SIMOPENCHANNEL:
         case ND_REQ_ID_SIMCLOSECHANNEL:
         case ND_REQ_ID_SIMTRANSMITCHANNEL:
@@ -516,7 +548,6 @@ bool CChannel::SendCommandPhase2(const UINT32 uiResCode, const UINT32 uiReqID) c
         case ND_REQ_ID_QUERYCALLWAITING:
         case ND_REQ_ID_SETCALLWAITING:
         case ND_REQ_ID_QUERYFACILITYLOCK:
-        case ND_REQ_ID_SETFACILITYLOCK:
         case ND_REQ_ID_CHANGEBARRINGPASSWORD:
         case ND_REQ_ID_QUERYCLIP:
             if (RIL_E_SUCCESS == uiResCode)

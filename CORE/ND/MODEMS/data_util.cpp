@@ -605,6 +605,7 @@ Error:
 //
 //  Call this whenever data is disconnected
 //
+#if defined(BOARD_HAVE_IFX7060)
 BOOL DataConfigDown(UINT32 uiCID)
 {
     //  First check to see if uiCID is valid
@@ -619,8 +620,101 @@ BOOL DataConfigDown(UINT32 uiCID)
     char szNetworkInterfaceName[MAX_BUFFER_SIZE] = {0};
     CChannel_Data* pChannelData = NULL;
     struct gsm_netconfig netconfig;
-    int fd=-1;
-    int ret =-1;
+    int fd = -1;
+    int ret = -1;
+    int s = -1;
+
+    //  See if CID passed in is valid
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("DataConfigDown() - Invalid CID=[%u], no data channel found!\r\n", uiCID);
+        return FALSE;
+    }
+
+    //  Grab the network interface name
+    if (!CopyStringNullTerminate(szNetworkInterfaceName, pChannelData->m_szInterfaceName, MAX_BUFFER_SIZE))
+    {
+        RIL_LOG_CRITICAL("DataConfigDown() - Could not create network interface name\r\n");
+        strcpy(szNetworkInterfaceName, "");
+        goto Error;
+    }
+    else
+    {
+        RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName=[%s]  CID=[%u]\r\n", szNetworkInterfaceName, uiCID);
+    }
+
+    // Reset ContextID to 0, to free up the channel for future use
+    RIL_LOG_INFO("DataConfigDown() - ****** Setting chnl=[%d] to CID=[0] ******\r\n", pChannelData->GetRilChannel());
+
+
+    fd = pChannelData->GetFD();
+
+    if (!pChannelData->m_hsiDirect)
+    {
+        //  Put the channel back into AT command mode
+        netconfig.adaption = 3;
+        netconfig.protocol = htons(ETH_P_IP);
+
+        if (fd >= 0)
+        {
+            RIL_LOG_INFO("DataConfigDown() - ***** PUTTING channel=[%d] in AT COMMAND MODE *****\r\n", pChannelData->GetRilChannel());
+            ret = ioctl( fd, GSMIOC_DISABLE_NET, &netconfig );
+        }
+
+        // Flush the response buffer to restart from scratch.
+        // Any data received by the RRIL during the DATA MODE should be trashed
+        //pChannelData->FlushResponse();
+    }
+    else
+    {
+        RIL_LOG_INFO("DataConfigDown() : disable hsi network interface\r\n");
+        //  Open socket for ifconfig and setFlags commands
+        s = socket(AF_INET, SOCK_DGRAM, 0);
+        if (s < 0)
+        {
+            RIL_LOG_CRITICAL("DataConfigDown() : cannot open control socket\n");
+            goto Error;
+        }
+
+        struct ifreq ifr;
+        memset(&ifr, 0, sizeof(struct ifreq));
+        strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
+        ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
+        if (!setflags(s, &ifr, 0, IFF_UP))
+        {
+            RIL_LOG_CRITICAL("DataConfigDown() : Error setting flags\r\n");
+            goto Error;
+        }
+    }
+
+    pChannelData->FreeContextID();
+    bRet = TRUE;
+
+    RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%d\r\n", pChannelData->GetRilChannel());
+
+Error:
+
+    RIL_LOG_INFO("DataConfigDown() EXIT  bRet=[%d]\r\n", bRet);
+    return bRet;
+}
+#else
+BOOL DataConfigDown(UINT32 uiCID)
+{
+    //  First check to see if uiCID is valid
+    if (uiCID > MAX_PDP_CONTEXTS || uiCID == 0)
+    {
+        RIL_LOG_CRITICAL("DataConfigDown() - Invalid CID = [%u]\r\n", uiCID);
+        return FALSE;
+    }
+
+    CRepository repository;
+    BOOL bRet = FALSE;
+    char szNetworkInterfaceName[MAX_BUFFER_SIZE] = {0};
+    CChannel_Data* pChannelData = NULL;
+    struct gsm_netconfig netconfig;
+    int fd = -1;
+    int ret = -1;
 
     //  See if CID passed in is valid
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
@@ -654,15 +748,8 @@ BOOL DataConfigDown(UINT32 uiCID)
     // Reset ContextID to 0, to free up the channel for future use
     RIL_LOG_INFO("DataConfigDown() - ****** Setting chnl=[%d] to CID=[0] ******\r\n", pChannelData->GetRilChannel());
 
-#if defined(BOARD_HAVE_IFX7060)
-    // TODO: Find if it's HSI cid or not
-#endif
     pChannelData->FreeContextID();
     fd = pChannelData->GetFD();
-#if defined(BOARD_HAVE_IFX7060)
-    if (!CChannel_Data::FreeHSIChannel(uiCID))
-    {
-#endif
 
     //  Put the channel back into AT command mode
     netconfig.adaption = 3;
@@ -678,9 +765,6 @@ BOOL DataConfigDown(UINT32 uiCID)
     // Any data received by the RRIL during the DATA MODE should be trashed
     //pChannelData->FlushResponse();
 
-#if defined(BOARD_HAVE_IFX7060)
-    }
-#endif
     bRet = TRUE;
 
     RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%d\r\n", pChannelData->GetRilChannel());
@@ -690,18 +774,20 @@ Error:
     RIL_LOG_INFO("DataConfigDown() EXIT  bRet=[%d]\r\n", bRet);
     return bRet;
 }
+#endif
 
 void CleanupAllDataConnections()
 {
     //  Bring down all data contexts internally.
     CChannel_Data* pChannelData = NULL;
 
-    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
     {
         if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
             continue;
 
-        CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+        pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+
         //  We are taking down all data connections here, so we are looping over each data channel.
         //  Don't call DataConfigDown with invalid CID.
         if (pChannelData && pChannelData->GetContextID() > 0)

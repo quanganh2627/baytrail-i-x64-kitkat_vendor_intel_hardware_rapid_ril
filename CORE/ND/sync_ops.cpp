@@ -19,8 +19,7 @@
 #include <time.h>
 #include <stdio.h>
 
-CMutex::CMutex() :
-    nLockValue(0)
+CMutex::CMutex()
 {
     int rc = 0;
 
@@ -176,7 +175,6 @@ BOOL CMutex::EnterMutex(BOOL fTryLock)
     else
     {
         fRet = TRUE;
-        nLockValue++;
     }
 
     return fRet;
@@ -208,10 +206,6 @@ void CMutex::LeaveMutex()
                 RIL_LOG_CRITICAL("CMutex::LeaveMutex() - [%d] code returned\r\n", rc);
                 break;
         }
-    }
-    else
-    {
-        nLockValue--;
     }
 }
 
@@ -250,19 +244,6 @@ void CMutex::Unlock(CMutex* pMutex)
     else
     {
         RIL_LOG_CRITICAL("CMutex::Unlock() : Unable to unlock mutex as it is NULL!\r\n");
-    }
-}
-
-int CMutex::GetLockValue(CMutex* pMutex)
-{
-    if (pMutex)
-    {
-        return pMutex->nLockValue;
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CMutex::GetLockValue() - Unable to get lock value as mutex pointer is NULL\r\n");
-        return -1;
     }
 }
 
