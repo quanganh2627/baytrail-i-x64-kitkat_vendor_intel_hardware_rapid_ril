@@ -25,7 +25,7 @@
 #include "reset.h"
 #include <cutils/properties.h>
 
-
+#define RAPID_RIL_BASE_VERSION 6
 ///////////////////////////////////////////////////////////
 //  FUNCTION PROTOTYPES
 //
@@ -57,7 +57,7 @@ char* g_szSIMID = NULL;
 
 static const RIL_RadioFunctions gs_callbacks =
 {
-    RIL_VERSION,
+    RAPID_RIL_BASE_VERSION,
     onRequest,
     onGetCurrentRadioState,
     onSupports,
