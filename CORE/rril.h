@@ -204,6 +204,9 @@ enum
 #define RRIL_CME_ERROR_SIM_PUK2_REQUIRED                         18
 #define RRIL_CME_ERROR_NO_NETWORK_SERVICE                        30
 #define RRIL_CME_ERROR_NETWORK_PUK_REQUIRED                      41
+#define RRIL_CME_ERROR_PLMN_NOT_ALLOWED                          111
+#define RRIL_CME_ERROR_LOCATION_NOT_ALLOWED                      112
+#define RRIL_CME_ERROR_ROAMING_NOT_ALLOWED                       113
 
 ///////////////////////////////////////////////////////////////////////////////
 // CEER Error code defines

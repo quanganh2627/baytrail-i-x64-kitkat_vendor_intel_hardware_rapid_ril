@@ -138,6 +138,21 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
 
     }
+    else if ((ND_REQ_ID_SETNETWORKSELECTIONMANUAL == rpCmd->GetRequestID()) &&
+             (RRIL_RESULT_OK != rpRsp->GetResultCode()))
+    {
+        switch (rpRsp->GetErrorCode())
+        {
+            case RRIL_CME_ERROR_PLMN_NOT_ALLOWED:
+            case RRIL_CME_ERROR_LOCATION_NOT_ALLOWED:
+            case RRIL_CME_ERROR_ROAMING_NOT_ALLOWED:
+                rpRsp->SetResultCode(RIL_E_ILLEGAL_SIM_OR_ME);
+                break;
+            default:
+                /* do not change result code */
+                break;
+        }
+    }
 
     return TRUE;
 }
