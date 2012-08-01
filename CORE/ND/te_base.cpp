@@ -7712,7 +7712,7 @@ RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_TRANSMIT_BASIC 108
+// RIL_REQUEST_SIM_TRANSMIT_BASIC 109
 //
 RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -7926,7 +7926,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SIM_OPEN_CHANNEL 109
+// RIL_REQUEST_SIM_OPEN_CHANNEL 110
 //
 RIL_RESULT_CODE CTEBase::CoreSimOpenChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -8102,7 +8102,7 @@ Error:
 
 
 //
-// RIL_REQUEST_SIM_CLOSE_CHANNEL 110
+// RIL_REQUEST_SIM_CLOSE_CHANNEL 111
 //
 RIL_RESULT_CODE CTEBase::CoreSimCloseChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -8225,7 +8225,7 @@ Error:
 
 
 //
-// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 111
+// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 112
 //
 RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -8514,7 +8514,7 @@ Error:
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //
-// RIL_REQUEST_HANGUP_VT 112
+// RIL_REQUEST_HANGUP_VT 113
 //
 RIL_RESULT_CODE CTEBase::CoreHangupVT(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -8571,7 +8571,7 @@ RIL_RESULT_CODE CTEBase::ParseHangupVT(RESPONSE_DATA & rRspData)
 
 
 //
-// RIL_REQUEST_DIAL_VT 113
+// RIL_REQUEST_DIAL_VT 114
 //
 RIL_RESULT_CODE CTEBase::CoreDialVT(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -8644,7 +8644,7 @@ RIL_RESULT_CODE CTEBase::ParseDialVT(RESPONSE_DATA & rRspData)
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
 //
-// RIL_REQUEST_GET_SIM_SMS_STORAGE 114
+// RIL_REQUEST_GET_SIM_SMS_STORAGE 115
 //
 RIL_RESULT_CODE CTEBase::CoreGetSimSmsStorage(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {

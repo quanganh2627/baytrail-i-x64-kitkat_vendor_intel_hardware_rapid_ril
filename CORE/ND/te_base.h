@@ -446,34 +446,34 @@ public:
     virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_BASIC 108
+    // RIL_REQUEST_SIM_TRANSMIT_BASIC 109
     virtual RIL_RESULT_CODE CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimTransmitBasic(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_SIM_OPEN_CHANNEL 109
+    // RIL_REQUEST_SIM_OPEN_CHANNEL 110
     virtual RIL_RESULT_CODE CoreSimOpenChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_SIM_CLOSE_CHANNEL 110
+    // RIL_REQUEST_SIM_CLOSE_CHANNEL 111
     virtual RIL_RESULT_CODE CoreSimCloseChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 111
+    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 112
     virtual RIL_RESULT_CODE CoreSimTransmitChannel(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA & rRspData);
 
 #if defined(M2_VT_FEATURE_ENABLED)
-    // RIL_REQUEST_HANGUP_VT 112
+    // RIL_REQUEST_HANGUP_VT 113
     virtual RIL_RESULT_CODE CoreHangupVT(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseHangupVT(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_DIAL_VT 113
+    // RIL_REQUEST_DIAL_VT 114
     virtual RIL_RESULT_CODE CoreDialVT(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDialVT(RESPONSE_DATA & rRspData);
 #endif // M2_VT_FEATURE_ENABLED
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    // RIL_REQUEST_GET_SIM_SMS_STORAGE 114
+    // RIL_REQUEST_GET_SIM_SMS_STORAGE 115
     virtual RIL_RESULT_CODE CoreGetSimSmsStorage(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetSimSmsStorage(RESPONSE_DATA & rRspData);
 #endif // M2_GET_SIM_SMS_STORAGE_ENABLED

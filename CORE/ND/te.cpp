@@ -4717,8 +4717,9 @@ RIL_RESULT_CODE CTE::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
     return m_pTEBaseInstance->ParseReportStkServiceRunning(rRspData);
 }
 
+
 //
-// RIL_REQUEST_SIM_TRANSMIT_BASIC 108
+// RIL_REQUEST_SIM_TRANSMIT_BASIC 109
 //
 RIL_RESULT_CODE CTE::RequestSimTransmitBasic(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -4765,7 +4766,7 @@ RIL_RESULT_CODE CTE::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_OPEN_CHANNEL 109
+// RIL_REQUEST_SIM_OPEN_CHANNEL 110
 //
 RIL_RESULT_CODE CTE::RequestSimOpenChannel(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -4812,7 +4813,7 @@ RIL_RESULT_CODE CTE::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_CLOSE_CHANNEL 110
+// RIL_REQUEST_SIM_CLOSE_CHANNEL 111
 //
 RIL_RESULT_CODE CTE::RequestSimCloseChannel(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -4859,7 +4860,7 @@ RIL_RESULT_CODE CTE::ParseSimCloseChannel(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 111
+// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 112
 //
 RIL_RESULT_CODE CTE::RequestSimTransmitChannel(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -4908,7 +4909,7 @@ RIL_RESULT_CODE CTE::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //
-// RIL_REQUEST_HANGUP_VT 112
+// RIL_REQUEST_HANGUP_VT 113
 //
 RIL_RESULT_CODE CTE::RequestHangupVT(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -4957,7 +4958,7 @@ RIL_RESULT_CODE CTE::ParseHangupVT(RESPONSE_DATA & rRspData)
 
 
 //
-// RIL_REQUEST_DIAL_VT 113
+// RIL_REQUEST_DIAL_VT 114
 //
 RIL_RESULT_CODE CTE::RequestDialVT(RIL_Token rilToken, void * pData, size_t datalen)
 {
@@ -5008,7 +5009,7 @@ RIL_RESULT_CODE CTE::ParseDialVT(RESPONSE_DATA & rRspData)
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
 //
-// RIL_REQUEST_GET_SIM_SMS_STORAGE 114
+// RIL_REQUEST_GET_SIM_SMS_STORAGE 115
 //
 RIL_RESULT_CODE CTE::RequestGetSimSmsStorage(RIL_Token rilToken, void * pData, size_t datalen)
 {

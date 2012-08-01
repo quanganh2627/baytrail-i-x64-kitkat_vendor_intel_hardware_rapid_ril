@@ -1222,7 +1222,14 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 108
+        case RIL_REQUEST_VOICE_RADIO_TECH:  // 108 - not supported
+        {
+            RIL_LOG_INFO("onRequest() - RIL_REQUEST_VOICE_RADIO_TECH\r\n");
+            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+        }
+        break;
+
+        case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 109
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_TRANSMIT_BASIC\r\n");
 #if defined(M2_SEEK_FEATURE_ENABLED)
@@ -1233,7 +1240,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 109
+        case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 110
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_OPEN_CHANNEL\r\n");
 #if defined(M2_SEEK_FEATURE_ENABLED)
@@ -1244,7 +1251,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 110
+        case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 111
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_CLOSE_CHANNEL\r\n");
 #if defined(M2_SEEK_FEATURE_ENABLED)
@@ -1255,7 +1262,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 111
+        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 112
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SIM_TRANSMIT_CHANNEL\r\n");
 #if defined(M2_SEEK_FEATURE_ENABLED)
@@ -1268,14 +1275,14 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
 
 #if defined(M2_VT_FEATURE_ENABLED)
 
-        case RIL_REQUEST_HANGUP_VT:  // 112
+        case RIL_REQUEST_HANGUP_VT:  // 113
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_HANGUP_VT\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestHangupVT(hRilToken, pData, datalen);
         }
         break;
 
-        case RIL_REQUEST_DIAL_VT:  // 113
+        case RIL_REQUEST_DIAL_VT:  // 114
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_DIAL_VT\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestDialVT(hRilToken, pData, datalen);
@@ -1286,7 +1293,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
 
-        case RIL_REQUEST_GET_SIM_SMS_STORAGE:  // 114
+        case RIL_REQUEST_GET_SIM_SMS_STORAGE:  // 115
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_GET_SIM_SMS_STORAGE\r\n");
             eRetVal = (RIL_Errno)CTE::GetTE().RequestGetSimSmsStorage(hRilToken, pData, datalen);
