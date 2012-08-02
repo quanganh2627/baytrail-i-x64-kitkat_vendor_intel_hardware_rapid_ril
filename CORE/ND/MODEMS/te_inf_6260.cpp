@@ -1022,9 +1022,12 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
                     goto Error;
                 }
 
+                //  The AT+CGPADDR command doesn't return IPV4V6 format
+                //  Use a dummy IPV4 address as only an IPV6 address is expected here
+                char szDummyIpAddr[MAX_IPADDR_SIZE];
+                szDummyIpAddr[0] = '\0';
 
-                //  The AT+CGPADDR command doesn't return IPV4V6 format.
-                if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr, MAX_IPADDR_SIZE, pChannelData->m_szIpAddr2, MAX_IPADDR_SIZE))
+                if (!ConvertIPAddressToAndroidReadable(szPdpAddr, szDummyIpAddr, MAX_IPADDR_SIZE, pChannelData->m_szIpAddr2, MAX_IPADDR_SIZE))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
                     goto Error;
