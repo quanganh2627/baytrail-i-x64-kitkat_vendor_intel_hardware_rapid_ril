@@ -65,6 +65,7 @@ BOOL CSilo_SMS::isRetryPossible(UINT32 uiErrorCode)
     case RRIL_CMS_ERROR_CALLED_PARTY_BLACKLISTED:
     case RRIL_CMS_ERROR_NUMBER_INCORRECT:
     case RRIL_CMS_ERROR_SIM_ABSENT:
+    case RRIL_CMS_ERROR_MO_SMS_REJECTED_BY_SIM_MO_SMS_CONTROL:
         return false;
     default:
         return true;

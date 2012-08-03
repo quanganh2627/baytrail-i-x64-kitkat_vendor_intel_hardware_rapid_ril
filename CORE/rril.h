@@ -227,13 +227,14 @@ enum
 ///////////////////////////////////////////////////////////////////////////////
 // CMS Error code defines
 //
-#define RRIL_CMS_ERROR_SIM_ABSENT                   310
-#define RRIL_CMS_ERROR_FDN_CHECK_FAILED             543
-#define RRIL_CMS_ERROR_SCA_FDN_FAILED               544
-#define RRIL_CMS_ERROR_DA_FDN_FAILED                545
-#define RRIL_CMS_ERROR_NO_ROUTE_TO_DESTINATION      548
-#define RRIL_CMS_ERROR_ACM_MAX                      564
-#define RRIL_CMS_ERROR_CALLED_PARTY_BLACKLISTED     581
-#define RRIL_CMS_ERROR_NUMBER_INCORRECT             680
+#define RRIL_CMS_ERROR_SIM_ABSENT                               310
+#define RRIL_CMS_ERROR_MO_SMS_REJECTED_BY_SIM_MO_SMS_CONTROL    540
+#define RRIL_CMS_ERROR_FDN_CHECK_FAILED                         543
+#define RRIL_CMS_ERROR_SCA_FDN_FAILED                           544
+#define RRIL_CMS_ERROR_DA_FDN_FAILED                            545
+#define RRIL_CMS_ERROR_NO_ROUTE_TO_DESTINATION                  548
+#define RRIL_CMS_ERROR_ACM_MAX                                  564
+#define RRIL_CMS_ERROR_CALLED_PARTY_BLACKLISTED                 581
+#define RRIL_CMS_ERROR_NUMBER_INCORRECT                         680
 #endif // RRIL_RRIL_H
 
