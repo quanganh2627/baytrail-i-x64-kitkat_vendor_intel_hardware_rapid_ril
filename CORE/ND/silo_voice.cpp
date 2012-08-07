@@ -762,9 +762,9 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
     RIL_LOG_VERBOSE("CSilo_Voice::ParseUSSDInfo() - Enter\r\n");
     P_ND_USSD_STATUS pUssdStatus = NULL;
     UINT32 uiStatus = 0;
-    char* szDataString = NULL;
-    UINT32 uiDataString = 0;
-    UINT32 nDCS = 0;
+    char* pszDataString = NULL;
+    UINT32 uiDataStringLen = 0;
+    UINT32 uiDCS = 0;
     UINT32 uiAllocSize = 0;
     const char* szDummy;
     BOOL fRet = FALSE;
@@ -808,19 +808,22 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
     {
         // Extract "<data>,<dcs>"
         // NOTE: we take ownership of allocated szDataString
-        if (!ExtractQuotedStringWithAllocatedMemory(rszPointer, szDataString, uiDataString, rszPointer))
+        if (!ExtractQuotedStringWithAllocatedMemory(rszPointer, pszDataString, uiDataStringLen, rszPointer))
         {
             RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : Couldn't extract ExtractQuotedStringWithAllocatedMemory\r\n");
             goto Error;
         }
+
         if (!SkipString(rszPointer, ",", rszPointer) ||
-            !ExtractUInt32(rszPointer, nDCS, rszPointer))
+            !ExtractUInt32(rszPointer, uiDCS, rszPointer))
         {
-            // default nDCS.  this parameter is supposed to be mandatory but we've
+            // default uiDCS.  this parameter is supposed to be mandatory but we've
             // seen it missing from otherwise normal USSD responses.
-            nDCS = 0;
+            uiDCS = 0;
         }
 
+        // Reduce -1 to get the actual length
+        uiDataStringLen--;
 
         //  New for Medfield R2
         //  There's an extra <lf> in here, skip over it.
@@ -844,25 +847,58 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
             goto Error;
         }
         memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
+        pUssdStatus->szMessage[0] = '\0';
+
         snprintf(pUssdStatus->szType, 2, "%u", uiStatus);
 
         // For more information on DCS bits, refer 3GPP TS 23.038 section 5
-        int codingGroupBits = nDCS >> 4;
-        if (codingGroupBits != 0x03 && codingGroupBits != 0x08 &&
+        int codingGroupBits = uiDCS >> 4;
+        if (NULL != pszDataString && uiDataStringLen > 0 &&
+                codingGroupBits != 0x03 && codingGroupBits != 0x08 &&
                 (codingGroupBits < 0x0A || codingGroupBits > 0x0E))
         {
             /*
              * Note: Character set is set to UCS2. When changing the TE character set
              * to anything other than UCS2, conversion functions needs to be added.
              */
-            char* pUtf8Buffer = ConvertUCS2ToUTF8(szDataString, uiDataString - 1);
-            CopyStringNullTerminate(pUssdStatus->szMessage, pUtf8Buffer, MAX_BUFFER_SIZE);
+            char* pUCS2String = pszDataString;
+            UINT32 uiUCS2StrLength = uiDataStringLen;
+            const UINT32 LANGUAGE_CODE_LENGTH = 4;
+            char* pUtf8Buffer = NULL;
+
+            if (17 == uiDCS) // UCS2; message preceded by language indication
+            {
+                if (uiUCS2StrLength > LANGUAGE_CODE_LENGTH)
+                {
+                    /*
+                     * Skip the two GSM 7-bit default alphabet character
+                     * representing the language code. Since the source UCS2 buffer
+                     * is a byte array containing values in semi-octets, first 4 values in
+                     * the source buffer needs to be skipped.
+                     */
+                    pUCS2String += LANGUAGE_CODE_LENGTH;
+                    uiUCS2StrLength -= LANGUAGE_CODE_LENGTH;
+                    pUtf8Buffer = ConvertUCS2ToUTF8(pUCS2String,
+                                                            uiUCS2StrLength);
+                }
+            }
+            else
+            {
+                pUtf8Buffer = ConvertUCS2ToUTF8(pUCS2String, uiUCS2StrLength);
+            }
+
+            /*
+             * CopyString done only when both pUssdStatus->szMessage and
+             * pUtf8Buffer are not null.
+             */
+            CopyStringNullTerminate(pUssdStatus->szMessage, pUtf8Buffer,
+                                                            MAX_BUFFER_SIZE);
             delete[] pUtf8Buffer;
             pUtf8Buffer = NULL;
         }
         else
         {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - Unhandled codingGroupBits: 0x%x \r\n", codingGroupBits);
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() - codingGroupBits: 0x%x not handled\r\n", codingGroupBits);
         }
 
         RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - %s\r\n", pUssdStatus->szMessage);
@@ -889,8 +925,8 @@ Error:
         pUssdStatus = NULL;
     }
 
-    delete[] szDataString;
-    szDataString = NULL;
+    delete[] pszDataString;
+    pszDataString = NULL;
 
     RIL_LOG_VERBOSE("CSilo_Voice::ParseUSSDInfo() - Exit\r\n");
     return fRet;
