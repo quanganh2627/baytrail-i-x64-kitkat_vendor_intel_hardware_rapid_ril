@@ -822,26 +822,26 @@ BOOL CChannel::ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp)
             case ND_REQ_ID_GPRSREGISTRATIONSTATE:
             case ND_REQ_ID_OPERATOR:
             case ND_REQ_ID_QUERYNETWORKSELECTIONMODE:
-                FindIdenticalRequestsAndSendResponses(uiReqID, (RIL_Errno) rpRsp->GetResultCode(), (void*)pData, uiDataSize);
+                CSystemManager::CompleteIdenticalRequests(uiReqID,
+                                                    rpRsp->GetResultCode(),
+                                                    (void*)pData, uiDataSize);
                 break;
             case ND_REQ_ID_HANGUP:
             case ND_REQ_ID_HANGUPWAITINGORBACKGROUND:
             case ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND:
             case ND_REQ_ID_CONFERENCE:
-                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_DTMF, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
-                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_REQUESTDTMFSTART, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
-                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_REQUESTDTMFSTOP, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
+                CompletePendingDtmfRequests();
                 break;
             case ND_REQ_ID_SWITCHHOLDINGANDACTIVE:
                 if (g_clearPendingChlds || RRIL_RESULT_OK != rpRsp->GetResultCode())
                 {
                     RIL_LOG_VERBOSE("CChannel::ParseResponse() clearing all ND_REQ_ID_SWITCHHOLDINGANDACTIVE\r\n");
                     g_clearPendingChlds = false;
-                    FindIdenticalRequestsAndSendResponses(ND_REQ_ID_SWITCHHOLDINGANDACTIVE, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
+                    FindIdenticalRequestsAndSendResponses(
+                                            ND_REQ_ID_SWITCHHOLDINGANDACTIVE,
+                                            RIL_E_GENERIC_FAILURE, NULL, 0);
                 }
-                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_DTMF, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
-                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_REQUESTDTMFSTART, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
-                FindIdenticalRequestsAndSendResponses(ND_REQ_ID_REQUESTDTMFSTOP, (RIL_Errno) RIL_E_GENERIC_FAILURE, NULL, 0);
+                CompletePendingDtmfRequests();
                 break;
             default:
                 break;
@@ -863,28 +863,43 @@ Error:
     return bResult;
 }
 
+void CChannel::CompletePendingDtmfRequests()
+{
+    CSystemManager::CompleteIdenticalRequests(ND_REQ_ID_REQUESTDTMFSTART,
+                                                RIL_E_GENERIC_FAILURE,
+                                                NULL, 0);
+    CSystemManager::CompleteIdenticalRequests(ND_REQ_ID_REQUESTDTMFSTOP,
+                                                RIL_E_GENERIC_FAILURE,
+                                                NULL, 0);
+}
 
-BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID, RIL_Errno eErrNo, void *pResponse, size_t responseLen)
+BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
+                                                        UINT32 uiResultCode,
+                                                        void* pResponse,
+                                                        size_t responseLen)
 {
     RIL_LOG_VERBOSE("CChannel::FindIdenticalRequestsAndSendResponses() - Enter\r\n");
 
     CCommand **pCmdArray = NULL;
-    int nNumOfCommands = 0;
+    int numOfCommands = 0;
 
     //  The following function returns us an array of CCommands, and the size of the returned array.
-    g_pTxQueue[m_uiRilChannel]->GetAllQueuedObjects(pCmdArray, nNumOfCommands);
+    g_pTxQueue[m_uiRilChannel]->GetAllQueuedObjects(pCmdArray, numOfCommands);
 
-    for (int i=0; i<nNumOfCommands; i++)
+    for (int i = 0; i < numOfCommands; i++)
     {
-        RIL_LOG_VERBOSE("CChannel::FindIdenticalRequestsAndSendResponses() - nNumOfCommands=[%d] reqID to match=[%d]  i=[%d] reqID=[%d]\r\n", nNumOfCommands, uiReqID, i, pCmdArray[i]->GetRequestID());
+        RIL_LOG_VERBOSE("CChannel::FindIdenticalRequestsAndSendResponses() - nNumOfCommands=[%d] reqID to match=[%u]  i=[%d] reqID=[%u]\r\n",
+                numOfCommands, uiReqID, i, pCmdArray[i]->GetRequestID());
+
         if (pCmdArray[i]->GetRequestID() == uiReqID)
         {
             //  Dequeue the object, send the response.  Then free the CCommand.
             g_pTxQueue[m_uiRilChannel]->DequeueByObj(pCmdArray[i]);
 
-            RIL_LOG_INFO("CChannel::FindIdenticalRequestsAndSendResponses() - Found match for ReqID=[%d] at index=[%d]\r\n", uiReqID, i);
-            RIL_LOG_INFO("CChannel::FindIdenticalRequestsAndSendResponses() - Complete for token 0x%08x, error: %d,  reqID=[%d]\r\n", pCmdArray[i]->GetToken(), eErrNo, uiReqID);
-            RIL_onRequestComplete(pCmdArray[i]->GetToken(), eErrNo, pResponse, responseLen);
+            RIL_LOG_INFO("CChannel::FindIdenticalRequestsAndSendResponses() - Found match for ReqID=[%u] at index=[%d]\r\n", uiReqID, i);
+            RIL_LOG_INFO("CChannel::FindIdenticalRequestsAndSendResponses() - Complete for token 0x%08x, error: %u,  reqID=[%u]\r\n",
+                                                                            pCmdArray[i]->GetToken(), uiResultCode, uiReqID);
+            RIL_onRequestComplete(pCmdArray[i]->GetToken(), (RIL_Errno) uiResultCode, pResponse, responseLen);
 
             delete pCmdArray[i];
             pCmdArray[i] = NULL;

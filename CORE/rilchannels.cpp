@@ -47,7 +47,7 @@ UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_GPRSREGISTRATIONSTATE,               // 20
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_OPERATOR,                            // 21
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_RADIOPOWER,                          // 22
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_DTMF,                                // 23
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_DTMF,                                // 23
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_SENDSMS,                             // 24
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_SENDSMSEXPECTMORE,                   // 25
     RIL_CHANNEL_DATA1, //ND_REQ_ID_SETUPDEFAULTPDP,                     // 26
@@ -72,8 +72,8 @@ UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC,        // 45
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_SETNETWORKSELECTIONMANUAL,           // 46
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_QUERYAVAILABLENETWORKS,              // 47
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_REQUESTDTMFSTART,                    // 48
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_REQUESTDTMFSTOP,                     // 49
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_REQUESTDTMFSTART,                    // 48
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_REQUESTDTMFSTOP,                     // 49
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_BASEBANDVERSION,                     // 50
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_SEPERATECONNECTION,                  // 51
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_SETMUTE,                             // 52

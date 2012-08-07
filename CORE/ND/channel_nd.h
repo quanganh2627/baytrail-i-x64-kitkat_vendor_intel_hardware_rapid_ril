@@ -37,6 +37,15 @@ public:
 
     virtual void FlushResponse();
 
+    /*
+     * Goes through Tx queue, finds identical request IDs and completes
+     * ril request with the provided result code and response.
+     */
+    virtual BOOL FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
+                                                UINT32 uiResultCode,
+                                                void* pResponse,
+                                                size_t responseLen);
+
 protected:
     //  Init functions
     virtual BOOL    FinishInit() = 0;
@@ -68,10 +77,7 @@ private:
 
     //  helper function to close and open the port.
     void            CloseOpenPort();
-
-    //  Go through Tx queue and find identical request IDs.  Send response to IDs that match.
-    //  Maybe make this a global function?
-    BOOL FindIdenticalRequestsAndSendResponses(UINT32 uiReqID, RIL_Errno eErrNo, void *pResponse, size_t responseLen);
+    void CompletePendingDtmfRequests();
 
 protected:
     CResponse*      m_pResponse;

@@ -1445,3 +1445,23 @@ Error:
     RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - EXIT\r\n");
     return bRet;
 }
+
+void CSystemManager::CompleteIdenticalRequests(UINT32 uiReqID,
+                                                UINT32 uiResultCode,
+                                                void* pResponse,
+                                                size_t responseLen)
+{
+    RIL_LOG_VERBOSE("CSystemManager::CompleteIdenticalRequests() - Enter\r\n");
+
+    for (UINT32 i = 0; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
+    {
+        if (NULL != g_pRilChannel[i])
+        {
+            g_pRilChannel[i]->FindIdenticalRequestsAndSendResponses(uiReqID,
+                                                                    uiResultCode,
+                                                                    pResponse,
+                                                                    responseLen);
+        }
+    }
+    RIL_LOG_VERBOSE("CSystemManager::CompleteIdenticalRequests() - Exit\r\n");
+}

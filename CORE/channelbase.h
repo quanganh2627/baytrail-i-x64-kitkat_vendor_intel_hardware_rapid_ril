@@ -87,6 +87,14 @@ public:
     BOOL            IsCmdThreadBlockedOnRxQueue() const { return m_bCmdThreadBlockedOnRxQueue; };
 //    BOOL            FWaitingForRsp() const  { return m_fWaitingForRsp; };
 
+    /*
+     * Goes through Tx queue, finds identical request IDs and completes
+     * ril request with the provided result code and response.
+     */
+    virtual BOOL FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
+                                                UINT32 uiResultCode,
+                                                void* pResponse,
+                                                size_t responseLen) = 0;
 protected:
     //  Init functions
     virtual BOOL    FinishInit() = 0;
