@@ -63,13 +63,19 @@ LOCAL_SHARED_LIBRARIES := libcutils libutils
 
 
 # Activating this macro enables the optional Video Telephony feature
-#LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
+ifeq ($(strip $(M2_VT_FEATURE_ENABLED)),true)
+LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
+endif
 
 # Activating this macro enables the Call Failed Cause Notification feature
-#LOCAL_CFLAGS += -DM2_CALL_FAILED_CAUSE_FEATURE_ENABLED
+ifeq ($(strip $(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)),true)
+LOCAL_CFLAGS += -DM2_CALL_FAILED_CAUSE_FEATURE_ENABLED
+endif
 
 # Activating this macro enables PIN retry count feature
-#LOCAL_CFLAGS += -DM2_PIN_RETRIES_FEATURE_ENABLED
+ifeq ($(strip $(M2_PIN_RETRIES_FEATURE_ENABLED)),true)
+LOCAL_CFLAGS += -DM2_PIN_RETRIES_FEATURE_ENABLED
+endif
 
 # Activating this macro enables SEEK for Android (for Ice Cream Sandwich)
 LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED
@@ -83,7 +89,9 @@ LOCAL_CFLAGS += -DM2_DUALSIM_FEATURE_ENABLED
 endif
 
 # Activating this macro enables the Get SIM SMS Storage feature
-#LOCAL_CFLAGS += -DM2_GET_SIM_SMS_STORAGE_ENABLED
+ifeq ($(strip $(M2_GET_SIM_SMS_STORAGE_ENABLED)),true)
+LOCAL_CFLAGS += -DM2_GET_SIM_SMS_STORAGE_ENABLED
+endif
 
 ifeq ($(strip $(BOARD_HAVE_IFX7060)),true)
 LOCAL_CFLAGS += -DBOARD_HAVE_IFX7060

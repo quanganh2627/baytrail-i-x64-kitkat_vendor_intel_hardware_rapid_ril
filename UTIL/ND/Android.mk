@@ -17,7 +17,9 @@ LOCAL_SHARED_LIBRARIES := \
     libutils libcutils
 
 # Activating this macro enables the optional Video Telephony feature
-#LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
+ifeq ($(strip $(M2_VT_FEATURE_ENABLED)),true)
+LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
+endif
 
 LOCAL_C_INCLUDES :=  \
     $(LOCAL_PATH)/../../INC \
