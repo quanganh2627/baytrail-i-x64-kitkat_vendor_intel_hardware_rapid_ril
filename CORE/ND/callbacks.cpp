@@ -143,53 +143,51 @@ void triggerUSSDNotification(void *param)
     free(pUssdStatus);
 }
 
-void triggerDataCallListChanged(void *param)
+// [in] param = context id.
+void triggerDeactivateDataCall(void* param)
 {
-    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_PDPCONTEXTLIST_UNSOL], NULL, ND_REQ_ID_PDPCONTEXTLIST_UNSOL, "AT+CGACT?;+CGDCONT?\r", &CTE::ParseDataCallListChanged);
+    RIL_LOG_VERBOSE("triggerDeactivateDataCall() - Enter\r\n");
 
-    if (pCmd)
-    {
-        if (!CCommand::AddCmdToQueue(pCmd))
-        {
-            RIL_LOG_CRITICAL("triggerDataCallListChanged() - Unable to queue command!\r\n");
-            delete pCmd;
-            pCmd = NULL;
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("triggerDataCallListChanged() - Unable to allocate memory for new command!\r\n");
-    }
-}
-
-
-//  [in] param = context id.
-void triggerDeactivateDataCall(void *param)
-{
-    UINT32 nCID;
+    UINT32 uiCID;
     REQUEST_DATA rReqData;
+    BOOL bSuccess = FALSE;
+    CCommand* pCmd = NULL;
+    UINT32* pCID = NULL;
 
     if (param == NULL)
-       return;
+        return;
 
-    nCID = (UINT32)param;
+    uiCID = *((UINT32*)param);
 
+    pCID = (UINT32*)malloc(sizeof(UINT32));
+    if (NULL == pCID)
+        return;
+
+    *pCID = uiCID;
     memset(&rReqData, 0, sizeof(REQUEST_DATA));
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%d\r", nCID))
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                                                "AT+CGACT=0,%d\r", uiCID))
     {
         RIL_LOG_CRITICAL("triggerDeactivateDataCall() - Unable to create CGACT command!\r\n");
-        return;
+        goto Error;
     }
-    rReqData.pContextData = param;
-    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL], NULL, ND_REQ_ID_DEACTIVATEDATACALL, rReqData, &CTE::ParseDeactivateDataCall);
+
+    rReqData.pContextData = pCID;
+    rReqData.cbContextData = sizeof(UINT32);
+
+    pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL],
+                            NULL, ND_REQ_ID_DEACTIVATEDATACALL, rReqData,
+                            &CTE::ParseDeactivateDataCall,
+                            &CTE::PostDeactivateDataCallCmdHandler);
 
     if (pCmd)
     {
-        if (!CCommand::AddCmdToQueue(pCmd))
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd, TRUE))
         {
             RIL_LOG_CRITICAL("triggerDeactivateDataCall() - Unable to queue command!\r\n");
-            delete pCmd;
-            pCmd = NULL;
+            goto Error;
         }
     }
     else
@@ -197,6 +195,15 @@ void triggerDeactivateDataCall(void *param)
         RIL_LOG_CRITICAL("triggerDeactivateDataCall() - Unable to allocate memory for new command!\r\n");
     }
 
+    bSuccess = TRUE;
+Error:
+    if (!bSuccess)
+    {
+        free(pCID);
+        delete pCmd;
+    }
+
+    RIL_LOG_VERBOSE("triggerDeactivateDataCall() - Exit\r\n");
 }
 
 

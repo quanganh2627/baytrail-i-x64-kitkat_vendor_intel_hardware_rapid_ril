@@ -530,14 +530,15 @@ Error:
 }
 
 //  Helper function to determine whether to send phase 2 of a command
-bool CChannel::SendCommandPhase2(const UINT32 uiResCode, const UINT32 uiReqID) const
+BOOL CChannel::SendCommandPhase2(const UINT32 uiResCode,
+                                    const UINT32 uiReqID) const
 {
-    bool bSendPhase2 = true;
+    BOOL bSendPhase2 = TRUE;
 
 #if defined(M2_VT_FEATURE_ENABLED)
     //  VT_HANGUP request (since we don't care about a possible error)
     if (ND_REQ_ID_HANGUPVT == uiReqID)
-        return true;
+        return TRUE;
 #endif // M2_VT_FEATURE_ENABLED
 
     //  Is our request ID in the special list?
@@ -557,16 +558,17 @@ bool CChannel::SendCommandPhase2(const UINT32 uiResCode, const UINT32 uiReqID) c
         case ND_REQ_ID_SETFACILITYLOCK:
         case ND_REQ_ID_CHANGEBARRINGPASSWORD:
         case ND_REQ_ID_QUERYCLIP:
+        case ND_REQ_ID_SETUPDEFAULTPDP:
             if (RIL_E_SUCCESS == uiResCode)
-                bSendPhase2 = false;
+                bSendPhase2 = FALSE;
             else
-                bSendPhase2 = true;
+                bSendPhase2 = TRUE;
             break;
         default:
             if (RIL_E_SUCCESS == uiResCode)
-                bSendPhase2 = true;
+                bSendPhase2 = TRUE;
             else
-                bSendPhase2 = false;
+                bSendPhase2 = FALSE;
             break;
     }
 

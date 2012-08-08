@@ -281,7 +281,6 @@ public:
 
     // RIL_REQUEST_DATA_CALL_LIST 57
     RIL_RESULT_CODE RequestDataCallList(RIL_Token rilToken, void * pData, size_t datalen);
-    RIL_RESULT_CODE ParseDataCallList(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_RESET_RADIO 58
     RIL_RESULT_CODE RequestResetRadio(RIL_Token rilToken, void * pData, size_t datalen);
@@ -503,17 +502,10 @@ public:
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData);
 
-    // RIL_UNSOL_DATA_CALL_LIST_CHANGED  1010
-    RIL_RESULT_CODE ParseDataCallListChanged(RESPONSE_DATA & rRspData);
-
-    // REQ_ID_GETIPADDRESS
-    RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);
-
-    // REQ_ID_GETDNS
-    RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
-
-    // REQ_ID_LASTPDPFAILCAUSE
-    RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
+    // Parser functions for data call related requests
+    RIL_RESULT_CODE ParsePdpContextActivate(RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseQueryIpAndDns(RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseEnterDataState(RESPONSE_DATA& rRspData);
 
     RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
 
@@ -672,9 +664,12 @@ public:
 
     /*
      * Post Command handler functions for the RIL_REQUEST_SETUP_DATA_CALL
-     * ril request.
+     * ril request. Post processing is done at modem level.
      */
     void PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
+    void PostPdpContextActivateCmdHandler(POST_CMD_HANDLER_DATA& rData);
+    void PostQueryIpAndDnsCmdHandler(POST_CMD_HANDLER_DATA& rData);
+    void PostEnterDataStateCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
     /*
      * Post Command handler function for RIL_REQUEST_SIM_IO
@@ -683,6 +678,12 @@ public:
      * Upon failure, error codes are mapped to the RIL error codes and completes the request.
      */
     void PostSimIOCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler functions for the RIL_REQUEST_DEACTIVATE_DATA_CALL
+     * ril request. Post processing is done at modem level.
+     */
+    void PostDeactivateDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
     /*
      * Post Command handler function for RIL_REQUEST_SET_FACILITY_LOCK
@@ -730,6 +731,20 @@ public:
      * Upon failure, request is completed with number of retries set to -1
      */
     void PostFacilityLockRetryCount(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Gets the list of active data calls.
+     *
+     * pPDPListData - Contains the list of active data calls
+     * Number of active data calls is returned.
+     */
+    int GetActiveDataCallInfoList(P_ND_PDP_CONTEXT_DATA pPDPListData);
+
+    /*
+     * Completes RIL_UNSOL_DATA_CALL_LIST_CHANGED with the list
+     * of active data call information.
+     */
+    void CompleteDataCallListChanged();
 
 private:
     BOOL m_bCSStatusCached;

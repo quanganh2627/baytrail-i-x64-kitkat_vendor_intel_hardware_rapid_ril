@@ -53,6 +53,7 @@ protected:
     virtual BOOL    ParseXDATASTAT(CResponse* const pResponse, const char* &rszPointer);
 
 private:
+    BOOL GetContextIdFromDeact(const char* pData, UINT32& uiCID);
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
     BOOL ParseXREGFastOoS(CResponse *const pResponse, const char* &rszPointer);
 #endif // M2_DUALSIM_FEATURE_ENABLED

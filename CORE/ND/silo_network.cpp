@@ -588,8 +588,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     const char* szStrExtract = NULL;
     const char* szResponse = NULL;
     char* pszCommaBuffer = NULL;
-    UINT32 nCID = 0;
-    UINT32 nREASON = 0;
+    UINT32 uiCID = 0;
+    UINT32 uiReason = 0;
     UINT32 uiLength = 0;
     CChannel_Data* pChannelData = NULL;
     unsigned char* pszData = NULL;
@@ -629,32 +629,30 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     //  Format is "ME PDN ACT, <cid>[, <reason>]"
     if (FindAndSkipString(szStrExtract, "ME PDN ACT", szStrExtract))
     {
-        if (!ExtractUInt32(szStrExtract, nCID, szStrExtract))
+        if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
         {
             goto Error;
         }
         else
         {
             RIL_LOG_INFO(
-                    "CSilo_Network::ParseCGEV() - ME PDN ACT , extracted cid=[%d]\r\n",
-                    nCID);
+                    "CSilo_Network::ParseCGEV() - ME PDN ACT , extracted cid=[%u]\r\n",
+                    uiCID);
         }
 
-        pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
+        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
         if (NULL == pChannelData)
         {
             //  This may occur using AT proxy during 3GPP conformance testing.
             //  Let normal processing occur.
-            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%d], no data channel found!\r\n", nCID);
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u], no data channel found!\r\n",
+                                                                        uiCID);
+            goto Error;
         }
-        if (!FindAndSkipString(szStrExtract, ",", szStrExtract))
+
+        if (FindAndSkipString(szStrExtract, ",", szStrExtract))
         {
-            if (pChannelData)
-                pChannelData->m_iStatus = PDP_FAIL_NONE;
-        }
-        else
-        {
-            if (!ExtractUInt32(szStrExtract, nREASON, szStrExtract))
+            if (!ExtractUInt32(szStrExtract, uiReason, szStrExtract))
             {
                 RIL_LOG_CRITICAL(
                         "CSilo_Network::ParseCGEV() - Couldn't extract reason\r\n");
@@ -663,37 +661,33 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
             else
             {
                 RIL_LOG_INFO(
-                        "CSilo_Network::ParseCGEV() - ME PDN ACT , extracted reason=[%d]\r\n",
-                        nREASON);
+                        "CSilo_Network::ParseCGEV() - ME PDN ACT , extracted reason=[%u]\r\n",
+                        uiReason);
                 pResponse->SetUnsolicitedFlag(TRUE);
 
                 // IPV4 only allowed
-                if (nREASON == 0)
+                if (uiReason == 0)
                 {
                     pResponse->SetResultCode(RRIL_RESULT_OK);
-                    if (pChannelData)
-                        pChannelData->m_iStatus = PDP_FAIL_ONLY_IPV4_ALLOWED;
+                    pChannelData->SetDataFailCause(PDP_FAIL_ONLY_IPV4_ALLOWED);
                 }
                 // IPV6 only allowed
-                else if (nREASON == 1)
+                else if (uiReason == 1)
                 {
                     pResponse->SetResultCode(RRIL_RESULT_OK);
-                    if (pChannelData)
-                        pChannelData->m_iStatus = PDP_FAIL_ONLY_IPV6_ALLOWED;
+                    pChannelData->SetDataFailCause(PDP_FAIL_ONLY_IPV6_ALLOWED);
                 }
                 // Single bearrer allowed
-                else if (nREASON == 2)
+                else if (uiReason == 2)
                 {
                     pResponse->SetResultCode(RRIL_RESULT_OK);
-                    if (pChannelData)
-                        pChannelData->m_iStatus = PDP_FAIL_ONLY_SINGLE_BEARER_ALLOWED;
+                    pChannelData->SetDataFailCause(PDP_FAIL_ONLY_SINGLE_BEARER_ALLOWED);
                 }
                 else
                 {
                     RIL_LOG_CRITICAL(
                         "CSilo_Network::ParseCGEV() - reason unknown\r\n");
-                    if (pChannelData)
-                        pChannelData->m_iStatus = PDP_FAIL_ERROR_UNSPECIFIED;
+                    pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
                     goto Error;
                 }
             }
@@ -748,22 +742,47 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
             goto Error;
         }
     }
-    else
+    else if (FindAndSkipString(rszPointer, "ME DETACH", rszPointer) ||
+            FindAndSkipString(rszPointer, "NW DETACH", rszPointer))
     {
-        if (FindAndSkipString(rszPointer, "NW DEACT", szStrExtract) ||
-                FindAndSkipString(rszPointer, "ME DEACT", szStrExtract) ||
-                FindAndSkipString(rszPointer, "NW PDN DEACT", szStrExtract) ||
-                FindAndSkipString(rszPointer, "ME PDN DEACT", szStrExtract) ||
-                FindAndSkipString(rszPointer, "NW DETACH", szStrExtract) ||
-                FindAndSkipString(rszPointer, "ME DETACH", szStrExtract))
-        {
-               RIL_requestTimedCallback(triggerQueryCEER, NULL, 0, 0);
-        }
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME or NW DETACH");
+        CleanupAllDataConnections();
+        CTE::GetTE().CompleteDataCallListChanged();
+    }
+    else if (FindAndSkipString(szStrExtract, "ME DEACT", szStrExtract))
+    {
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT");
 
-        // For the NW DEACT case, Android will perform a DEACTIVATE
-        // DATA CALL itself, so no need for us to do it here.
-        // Simply trigger data call list changed and let Android process
-        RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
+        if (GetContextIdFromDeact(szStrExtract, uiCID))
+        {
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT CID- %u", uiCID);
+        }
+    }
+    else if (FindAndSkipString(szStrExtract, "NW DEACT", szStrExtract))
+    {
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV(): NW DEACT");
+
+        if (GetContextIdFromDeact(szStrExtract, uiCID))
+        {
+            pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+            if (NULL == pChannelData)
+            {
+                //  This may occur using AT proxy during 3GPP conformance testing.
+                //  Let normal processing occur.
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u], no data channel found!\r\n",
+                                                                    uiCID);
+            }
+            else
+            {
+                pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
+                /*
+                 * @TODO: If fail cause is provided as part of NW DEACT,
+                 * map the fail cause to ril cause values and set it.
+                 */
+                pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
+                CTE::GetTE().CompleteDataCallListChanged();
+            }
+        }
     }
 
     bRet = TRUE;
@@ -781,6 +800,42 @@ Error:
     return bRet;
 }
 
+BOOL CSilo_Network::GetContextIdFromDeact(const char* pData, UINT32& uiCID)
+{
+    RIL_LOG_INFO("CSilo_Network::GetContextIdFromDeact() - Enter\r\n");
+
+    char szPDPAddr[MAX_IPADDR_SIZE] = {'\0'};
+    BOOL bRet = FALSE;
+    if (!FindAndSkipString(pData, ",", pData) ||
+        !ExtractQuotedString(pData, szPDPAddr, MAX_IPADDR_SIZE, pData))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::GetContextIdFromDeact() - Could not extract ipaddress.\r\n");
+        goto Error;
+    }
+
+    if (!FindAndSkipString(pData, ",", pData))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::GetContextIdFromDeact() - context id not provided.\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt32(pData, uiCID, pData))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::GetContextIdFromDeact() - Could not extract cid.\r\n");
+        goto Error;
+    }
+    else
+    {
+        RIL_LOG_INFO("CSilo_Network::GetContextIdFromDeact() - extracted cid=[%u]\r\n",
+                                                uiCID);
+    }
+
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_INFO("CSilo_Network::GetContextIdFromDeact() - Exit\r\n");
+    return bRet;
+}
 //
 //
 BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char* &rszPointer)

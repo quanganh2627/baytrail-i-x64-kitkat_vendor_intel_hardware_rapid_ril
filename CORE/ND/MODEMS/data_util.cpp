@@ -151,7 +151,8 @@ static BOOL setmtu(int s, struct ifreq *ifr)
 //
 //  Call this function whenever data is activated
 //
-BOOL DataConfigUp(char *szNetworkInterfaceName, CChannel_Data* pChannelData, PDP_TYPE eDataConnectionType)
+BOOL DataConfigUp(char* pszNetworkInterfaceName, CChannel_Data* pChannelData,
+                                                PDP_TYPE eDataConnectionType)
 {
     BOOL bRet = FALSE;
     RIL_LOG_INFO("DataConfigUp() ENTER\r\n");
@@ -160,21 +161,22 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, CChannel_Data* pChannelData, PDP
     {
         case PDP_TYPE_IPV4:
             RIL_LOG_INFO("DataConfigUp() - IPV4 - Calling DataConfigUpIpV4()\r\n");
-            bRet = DataConfigUpIpV4(szNetworkInterfaceName, pChannelData);
+            bRet = DataConfigUpIpV4(pszNetworkInterfaceName, pChannelData);
             break;
 
         case PDP_TYPE_IPV6:
             RIL_LOG_INFO("DataConfigUp() - IPV6 - Calling DataConfigUpIpV6()\r\n");
-            bRet = DataConfigUpIpV6(szNetworkInterfaceName, pChannelData);
+            bRet = DataConfigUpIpV6(pszNetworkInterfaceName, pChannelData);
             break;
 
         case PDP_TYPE_IPV4V6:
             RIL_LOG_INFO("DataConfigUp() - IPV4V6 - Calling DataConfigUpIpV4V6()\r\n");
-            bRet = DataConfigUpIpV4V6(szNetworkInterfaceName, pChannelData);
+            bRet = DataConfigUpIpV4V6(pszNetworkInterfaceName, pChannelData);
             break;
 
         default:
-            RIL_LOG_CRITICAL("DataConfigUp() - Unknown PDP_TYPE!  eDataConnectionType=[%d]\r\n", eDataConnectionType);
+            RIL_LOG_CRITICAL("DataConfigUp() - Unknown PDP_TYPE!  eDataConnectionType=[%d]\r\n",
+                                                                            eDataConnectionType);
             bRet = FALSE;
             break;
     }
@@ -184,17 +186,22 @@ BOOL DataConfigUp(char *szNetworkInterfaceName, CChannel_Data* pChannelData, PDP
 }
 
 
-BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
+BOOL DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pChannelData)
 {
     BOOL bRet = FALSE;
     int s = -1;
-    char *szIpAddr = pChannelData->m_szIpAddr;
-    char *szDNS1 = pChannelData->m_szDNS1;
-    char *szDNS2 = pChannelData->m_szDNS2;
+    char szIpAddr[MAX_BUFFER_SIZE] = {'\0'};
 
+    if (NULL == pChannelData || NULL == pszNetworkInterfaceName)
+    {
+        RIL_LOG_INFO("DataConfigUpIpV4() - Invalid input\r\n");
+        goto Error;
+    }
 
-    RIL_LOG_INFO("DataConfigUpIpV4() ENTER  szNetworkInterfaceName=[%s]  szIpAddr=[%s]\r\n", szNetworkInterfaceName, szIpAddr);
-    RIL_LOG_INFO("DataConfigUpIpV4() ENTER  szDNS1=[%s]  szDNS2=[%s]\r\n", szDNS1, szDNS2);
+    pChannelData->GetIpAddress(szIpAddr, sizeof(szIpAddr), NULL, 0);
+
+    RIL_LOG_INFO("DataConfigUpIpV4() ENTER  pszNetworkInterfaceName=[%s]  szIpAddr=[%s]\r\n",
+                                                        pszNetworkInterfaceName, szIpAddr);
 
     //  Open socket for ifconfig command
     s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -211,7 +218,7 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     {
         struct ifreq ifr;
         memset(&ifr, 0, sizeof(struct ifreq));
-        strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
+        strncpy(ifr.ifr_name, pszNetworkInterfaceName, IFNAMSIZ-1);
         ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
         RIL_LOG_INFO("DataConfigUpIpV4() : Setting flags\r\n");
@@ -234,14 +241,6 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
             //goto Error;
             RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error setting mtu\r\n");
         }
-
-    }
-
-    //  we have to set a fake ipv4 gateway if not android do not setup network correctly
-    if (pChannelData->m_szIpGateways != NULL)
-    {
-        delete[] pChannelData->m_szIpGateways;
-        pChannelData->m_szIpGateways = NULL;
     }
 
     in_addr_t gw;
@@ -258,13 +257,7 @@ BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     gw |= 1;
     gwaddr.s_addr = htonl(gw);
 
-    pChannelData->m_szIpGateways = strdup(inet_ntoa(gwaddr));
-
-    if (pChannelData->m_szIpGateways == NULL)
-    {
-        RIL_LOG_CRITICAL("DataConfigUpIpV4() : Error creating GW\r\n");
-        goto Error;
-    }
+    pChannelData->SetGateway(inet_ntoa(gwaddr));
 
     bRet = TRUE;
 
@@ -281,18 +274,26 @@ Error:
 }
 
 
-BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
+BOOL DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pChannelData)
 {
     BOOL bRet = FALSE;
     int s = -1;
-    char *szIpAddr = pChannelData->m_szIpAddr2;
-
+    char szIpAddr2[MAX_IPADDR_SIZE] = {'\0'};
     char szIpAddrOut[50];
     struct in6_addr ifIdAddr;
     struct in6_addr ifPrefixAddr;
     struct in6_addr ifOutAddr;
 
-    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  szNetworkInterfaceName=[%s]  szIpAddr=[%s]\r\n", szNetworkInterfaceName, szIpAddr);
+    if (NULL == pChannelData || NULL == pszNetworkInterfaceName)
+    {
+        RIL_LOG_INFO("DataConfigUpIpV6() - Invalid input\r\n");
+        goto Error;
+    }
+
+    pChannelData->GetIpAddress(NULL, 0, szIpAddr2, sizeof(szIpAddr2));
+
+    RIL_LOG_INFO("DataConfigUpIpV6() ENTER  pszNetworkInterfaceName=[%s]  szIpAddr2=[%s]\r\n",
+                                                    pszNetworkInterfaceName, szIpAddr2);
 
     //  Open socket for ifconfig command (note this is ipv6 socket)
     s = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -304,10 +305,10 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
 
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(struct ifreq));
-    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
+    strncpy(ifr.ifr_name, pszNetworkInterfaceName, IFNAMSIZ-1);
     ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
-    inet_pton(AF_INET6, szIpAddr, &ifIdAddr);
+    inet_pton(AF_INET6, szIpAddr2, &ifIdAddr);
     inet_pton(AF_INET6, "FE80::", &ifPrefixAddr);
 
 
@@ -317,7 +318,7 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     memcpy((ifOutAddr.s6_addr)+8,(ifIdAddr.s6_addr)+8,8);
 
     inet_ntop(AF_INET6, &ifOutAddr, szIpAddrOut, sizeof(szIpAddrOut));
-    strncpy(szIpAddr,szIpAddrOut,sizeof(szIpAddrOut));
+    strncpy(szIpAddr2, szIpAddrOut, sizeof(szIpAddrOut));
 
     RIL_LOG_INFO("DataConfigUpIpV6() : Setting flags\r\n");
     if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
@@ -326,11 +327,12 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         RIL_LOG_CRITICAL("DataConfigUpIpV6(): Error setting flags\r\n");
     }
 
-    RIL_LOG_INFO("DataConfigUpIpV6() : Setting addr :%s\r\n",szIpAddr);
-    if (!setaddr6(s, &ifr, szIpAddr))
+    RIL_LOG_INFO("DataConfigUpIpV6() : Setting addr :%s\r\n",szIpAddr2);
+    if (!setaddr6(s, &ifr, szIpAddr2))
     {
         //goto Error;
-        RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting addr %s\r\n", szIpAddr);
+        RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error setting addr %s\r\n",
+                                                                szIpAddr2);
     }
 
     RIL_LOG_INFO("DataConfigUpV6() : Setting mtu\r\n");
@@ -346,7 +348,8 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
     FILE * fp;
 
     //  Open dad_transmits file, write 0<lf>.
-    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits", szNetworkInterfaceName);
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits",
+                                                    pszNetworkInterfaceName);
 
     fp = fopen(file_to_open, "w");
     if (fp)
@@ -356,11 +359,13 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         RIL_LOG_INFO("DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
         if (EOF == fputs(szData, fp))
         {
-            RIL_LOG_CRITICAL("DataConfigUpIpV6() : file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
+            RIL_LOG_CRITICAL("DataConfigUpIpV6() : file=[%s] cannot write value [%s]\r\n",
+                                                                    file_to_open, szData);
         }
         else
         {
-            RIL_LOG_INFO("DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+            RIL_LOG_INFO("DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n",
+                    CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
         }
 
         //  Close file handle
@@ -371,7 +376,8 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         RIL_LOG_CRITICAL("DataConfigUpIpV6() : Cannot open [%s]\r\n", file_to_open);
     }
     //  Open accept_dad file, write 0<lf>.
-    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad", szNetworkInterfaceName);
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad",
+                                                            pszNetworkInterfaceName);
 
     fp = fopen(file_to_open, "w");
     if (fp)
@@ -381,11 +387,13 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         RIL_LOG_INFO("DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
         if (EOF == fputs(szData, fp))
         {
-            RIL_LOG_CRITICAL("DataConfigUpIpV6() : file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
+            RIL_LOG_CRITICAL("DataConfigUpIpV6() : file=[%s] cannot write value [%s]\r\n",
+                                                                    file_to_open, szData);
         }
         else
         {
-            RIL_LOG_INFO("DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+            RIL_LOG_INFO("DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n",
+                    CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
         }
 
         //  Close file handle.
@@ -396,17 +404,8 @@ BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData)
         RIL_LOG_CRITICAL("DataConfigUpIpV6() : Cannot open [%s]\r\n", file_to_open);
     }
 
-    if (NULL == pChannelData->m_szIpGateways)
-    {
-        pChannelData->m_szIpGateways = new char[MAX_BUFFER_SIZE];
-    }
+    pChannelData->SetGateway("");
 
-    if (NULL == pChannelData->m_szIpGateways)
-    {
-        RIL_LOG_CRITICAL("DataConfigUpIpV6() : Error creating GW\r\n");
-        goto Error;
-    }
-    strcpy(pChannelData->m_szIpGateways,"");
     bRet = TRUE;
 
 Error:
@@ -419,9 +418,9 @@ Error:
     return bRet;
 }
 
-BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData )
+BOOL DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
+                                            CChannel_Data* pChannelData)
 {
-    CRepository repository;
     BOOL bRet = FALSE;
     int s = -1;
     int s6 =-1;
@@ -429,16 +428,20 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     struct in6_addr ifIdAddr;
     struct in6_addr ifPrefixAddr;
     struct in6_addr ifOutAddr;
+    char szIpAddr[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpAddr2[MAX_IPADDR_SIZE] = {'\0'};
 
-    char *szIpAddr = pChannelData->m_szIpAddr;
-    char *szDNS1 = pChannelData->m_szDNS1;
-    char *szDNS2 = pChannelData->m_szDNS2;
-    char *szIpAddr2 = pChannelData->m_szIpAddr2;
-    char *szIpV6DNS1 = pChannelData->m_szIpV6DNS1;
-    char *szIpV6DNS2 = pChannelData->m_szIpV6DNS2;
+    if (NULL == pChannelData || NULL == pszNetworkInterfaceName)
+    {
+        RIL_LOG_INFO("DataConfigUpIpV4V6() - Invalid input\r\n");
+        goto Error;
+    }
 
-    RIL_LOG_INFO("DataConfigUpIpV4V6() ENTER  szNetworkInterfaceName=[%s]  szIpAddr=[%s] szIpAddr2=[%s]\r\n", szNetworkInterfaceName, szIpAddr, szIpAddr2);
-    RIL_LOG_INFO("DataConfigUpIpV4V6() ENTER  szDNS1=[%s]  szDNS2=[%s] szIpV6DNS1=[%s]  szIpV6DNS2=[%s]\r\n", szDNS1, szDNS2, szIpV6DNS1, szIpV6DNS2);
+    pChannelData->GetIpAddress(szIpAddr, sizeof(szIpAddr),
+                                        szIpAddr2, sizeof(szIpAddr2));
+
+    RIL_LOG_INFO("DataConfigUpIpV4V6() ENTER  pszNetworkInterfaceName=[%s]  szIpAddr=[%s] szIpAddr2=[%s]\r\n",
+                                                                pszNetworkInterfaceName, szIpAddr, szIpAddr2);
 
     //  Open socket for ifconfig and setFlags commands
     s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -451,7 +454,7 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
 
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(struct ifreq));
-    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
+    strncpy(ifr.ifr_name, pszNetworkInterfaceName, IFNAMSIZ-1);
     ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
     RIL_LOG_INFO("DataConfigUpIpV4V6() : Setting addr\r\n");
@@ -462,7 +465,7 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     }
 
     memset(&ifr, 0, sizeof(struct ifreq));
-    strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
+    strncpy(ifr.ifr_name, pszNetworkInterfaceName, IFNAMSIZ-1);
     ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
     // Set link local address to start the SLAAC process
@@ -470,30 +473,27 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     inet_pton(AF_INET6, "FE80::", &ifPrefixAddr);
 
     // Set local prefix from FE80::
-    memcpy(ifOutAddr.s6_addr,ifPrefixAddr.s6_addr,8);
+    memcpy(ifOutAddr.s6_addr, ifPrefixAddr.s6_addr, 8);
     // Set interface identifier from address given by network
-    memcpy((ifOutAddr.s6_addr)+8,(ifIdAddr.s6_addr)+8,8);
+    memcpy((ifOutAddr.s6_addr)+8, (ifIdAddr.s6_addr)+8, 8);
 
     inet_ntop(AF_INET6, &ifOutAddr, szIpAddrOut, sizeof(szIpAddrOut));
-    strncpy(szIpAddr2,szIpAddrOut,sizeof(szIpAddrOut));
+    strncpy(szIpAddr2, szIpAddrOut, sizeof(szIpAddrOut));
 
     RIL_LOG_INFO("DataConfigUpIpV4V6() : Setting flags\r\n");
     if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
     {
-        //goto Error;
         RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Error setting flags\r\n");
     }
 
     if (!setaddr6(s6, &ifr, szIpAddr2))
     {
-        //goto Error;
         RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Error setting add\r\n");
     }
 
     RIL_LOG_INFO("DataConfigUpV4V6() : Setting mtu\r\n");
     if (!setmtu(s, &ifr))
     {
-        //goto Error;
         RIL_LOG_CRITICAL("DataConfigUpV4V6() : Error setting mtu\r\n");
     }
 
@@ -503,7 +503,8 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     FILE * fp;
 
     //  Open dad_transmits file, write 0<lf>.
-    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits", szNetworkInterfaceName);
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits",
+                                                pszNetworkInterfaceName);
 
     fp = fopen(file_to_open, "w");
     if (fp)
@@ -513,11 +514,13 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
         RIL_LOG_INFO("DataConfigUpIpV4V6() : Opened file=[%s]\r\n", file_to_open);
         if (EOF == fputs(szData, fp))
         {
-            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
+            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : file=[%s] cannot write value [%s]\r\n",
+                                                                    file_to_open, szData);
         }
         else
         {
-            RIL_LOG_INFO("DataConfigUpIpV4V6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+            RIL_LOG_INFO("DataConfigUpIpV4V6() : Wrote [%s] to file=[%s]\r\n",
+                    CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
         }
 
         //  Close file handle
@@ -525,11 +528,13 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     }
     else
     {
-        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Cannot open [%s]\r\n", file_to_open);
+        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Cannot open [%s]\r\n",
+                                                            file_to_open);
     }
 
     //  Open accept_dad file, write 0<lf>.
-    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad", szNetworkInterfaceName);
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad",
+                                                    pszNetworkInterfaceName);
 
     fp = fopen(file_to_open, "w");
     if (fp)
@@ -539,12 +544,13 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
         RIL_LOG_INFO("DataConfigUpIpV4V6() : Opened file=[%s]\r\n", file_to_open);
         if (EOF == fputs(szData, fp))
         {
-            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : file=[%s] cannot write value [%s]\r\n", file_to_open, szData);
-
+            RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : file=[%s] cannot write value [%s]\r\n",
+                                                                    file_to_open, szData);
         }
         else
         {
-            RIL_LOG_INFO("DataConfigUpIpV4V6() : Wrote [%s] to file=[%s]\r\n", CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+            RIL_LOG_INFO("DataConfigUpIpV4V6() : Wrote [%s] to file=[%s]\r\n",
+                    CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
         }
 
         //  Close file handle.
@@ -553,13 +559,6 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     else
     {
         RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Cannot open [%s]\r\n", file_to_open);
-    }
-
-    // we have to set a fake ipv4 gateway if not android do not setup network correctly
-    if (pChannelData->m_szIpGateways != NULL)
-    {
-        delete[] pChannelData->m_szIpGateways;
-        pChannelData->m_szIpGateways = NULL;
     }
 
     in_addr_t gw;
@@ -576,13 +575,7 @@ BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData
     gw |= 1;
     gwaddr.s_addr = htonl(gw);
 
-    pChannelData->m_szIpGateways = strdup(inet_ntoa(gwaddr));
-
-    if (pChannelData->m_szIpGateways == NULL)
-    {
-        RIL_LOG_CRITICAL("DataConfigUpIpV4V6() : Error creating GW\r\n");
-        goto Error;
-    }
+    pChannelData->SetGateway(inet_ntoa(gwaddr));
 
     bRet = TRUE;
 
@@ -616,42 +609,40 @@ BOOL DataConfigDown(UINT32 uiCID)
         return FALSE;
     }
 
-    CRepository repository;
     BOOL bRet = FALSE;
-    char szNetworkInterfaceName[MAX_BUFFER_SIZE] = {0};
+    char szNetworkInterfaceName[MAX_INTERFACE_NAME_SIZE] = {'\0'};
     CChannel_Data* pChannelData = NULL;
     struct gsm_netconfig netconfig;
     int fd = -1;
     int ret = -1;
     int s = -1;
+    UINT32 uiRilChannel = 0;
+    BOOL bIsHSIDirect = FALSE;
 
     //  See if CID passed in is valid
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("DataConfigDown() - Invalid CID=[%u], no data channel found!\r\n", uiCID);
+        RIL_LOG_CRITICAL("DataConfigDown() - Invalid CID=[%u], no data channel found!\r\n",
+                                                                        uiCID);
         return FALSE;
     }
 
-    //  Grab the network interface name
-    if (!CopyStringNullTerminate(szNetworkInterfaceName, pChannelData->m_szInterfaceName, MAX_BUFFER_SIZE))
-    {
-        RIL_LOG_CRITICAL("DataConfigDown() - Could not create network interface name\r\n");
-        strcpy(szNetworkInterfaceName, "");
-        goto Error;
-    }
-    else
-    {
-        RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName=[%s]  CID=[%u]\r\n", szNetworkInterfaceName, uiCID);
-    }
+    uiRilChannel = pChannelData->GetRilChannel();
+    bIsHSIDirect = pChannelData->IsHSIDirect();
+    pChannelData->GetInterfaceName(szNetworkInterfaceName,
+                                            sizeof(szNetworkInterfaceName));
+
+    RIL_LOG_INFO("DataConfigDown() - szNetworkInterfaceName=[%s]  CID=[%u]\r\n",
+                                                szNetworkInterfaceName, uiCID);
 
     // Reset ContextID to 0, to free up the channel for future use
-    RIL_LOG_INFO("DataConfigDown() - ****** Setting chnl=[%d] to CID=[0] ******\r\n", pChannelData->GetRilChannel());
-
+    RIL_LOG_INFO("DataConfigDown() - ****** Setting chnl=[%u] to CID=[0] ******\r\n",
+                                                                uiRilChannel);
 
     fd = pChannelData->GetFD();
 
-    if (!pChannelData->m_hsiDirect)
+    if (!bIsHSIDirect)
     {
         //  Put the channel back into AT command mode
         netconfig.adaption = 3;
@@ -659,17 +650,19 @@ BOOL DataConfigDown(UINT32 uiCID)
 
         if (fd >= 0)
         {
-            RIL_LOG_INFO("DataConfigDown() - ***** PUTTING channel=[%d] in AT COMMAND MODE *****\r\n", pChannelData->GetRilChannel());
+            RIL_LOG_INFO("DataConfigDown() - ***** PUTTING channel=[%u] in AT COMMAND MODE *****\r\n",
+                                                                uiRilChannel);
             ret = ioctl( fd, GSMIOC_DISABLE_NET, &netconfig );
         }
-
-        // Flush the response buffer to restart from scratch.
-        // Any data received by the RRIL during the DATA MODE should be trashed
-        //pChannelData->FlushResponse();
     }
     else
     {
-        RIL_LOG_INFO("DataConfigDown() : disable hsi network interface\r\n");
+        /*
+         * HSI inteface ENABLE/DISABLE can be done only by the HSI driver.
+         * Rapid RIL can only bring up or down the interface.
+         */
+        RIL_LOG_INFO("DataConfigDown() : Bring down hsi network interface\r\n");
+
         //  Open socket for ifconfig and setFlags commands
         s = socket(AF_INET, SOCK_DGRAM, 0);
         if (s < 0)
@@ -681,20 +674,20 @@ BOOL DataConfigDown(UINT32 uiCID)
         struct ifreq ifr;
         memset(&ifr, 0, sizeof(struct ifreq));
         strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
-        ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
+        ifr.ifr_name[IFNAMSIZ-1] = '\0';
         if (!setflags(s, &ifr, 0, IFF_UP))
         {
             RIL_LOG_CRITICAL("DataConfigDown() : Error setting flags\r\n");
-            goto Error;
         }
     }
+    pChannelData->ResetDataCallInfo();
 
     bRet = TRUE;
 
     RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%d\r\n", pChannelData->GetRilChannel());
 
 Error:
-    pChannelData->FreeContextID();
+
     RIL_LOG_INFO("DataConfigDown() EXIT  bRet=[%d]\r\n", bRet);
     return bRet;
 }
@@ -708,66 +701,45 @@ BOOL DataConfigDown(UINT32 uiCID)
         return FALSE;
     }
 
-    CRepository repository;
     BOOL bRet = FALSE;
-    char szNetworkInterfaceName[MAX_BUFFER_SIZE] = {0};
     CChannel_Data* pChannelData = NULL;
     struct gsm_netconfig netconfig;
     int fd = -1;
     int ret = -1;
+    UINT32 uiChannel = 0;
 
     //  See if CID passed in is valid
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("DataConfigDown() - Invalid CID=[%u], no data channel found!\r\n", uiCID);
+        RIL_LOG_CRITICAL("DataConfigDown() - Invalid CID=[%u], no data channel found!\r\n",
+                                                                        uiCID);
         return FALSE;
     }
 
-    //  Grab the network interface name
-    if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceNamePrefix, szNetworkInterfaceName, MAX_BUFFER_SIZE))
-    {
-        RIL_LOG_CRITICAL("DataConfigDown() - Could not read network interface name prefix from repository\r\n");
-        strcpy(szNetworkInterfaceName, "");
-        goto Error;
-    }
-    RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName prefix=[%s]  CID=[%u]\r\n", szNetworkInterfaceName, uiCID);
-    //  Don't forget to append the Context ID!
-    if (!PrintStringNullTerminate(szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%u", szNetworkInterfaceName, uiCID-1))
-    {
-        RIL_LOG_CRITICAL("DataConfigDown() - Could not create network interface name\r\n");
-        strcpy(szNetworkInterfaceName, "");
-        goto Error;
-    }
-    else
-    {
-        RIL_LOG_INFO("DataConfigDown() - ENTER  szNetworkInterfaceName=[%s]  CID=[%u]\r\n", szNetworkInterfaceName, uiCID);
-    }
-
+    uiChannel = pChannelData->GetRilChannel();
 
     // Reset ContextID to 0, to free up the channel for future use
-    RIL_LOG_INFO("DataConfigDown() - ****** Setting chnl=[%d] to CID=[0] ******\r\n", pChannelData->GetRilChannel());
+    RIL_LOG_INFO("DataConfigDown() - ****** Setting chnl=[%u] to CID=[0] ******\r\n",
+                                                                    uiChannel);
 
-    pChannelData->FreeContextID();
-    fd = pChannelData->GetFD();
+    pChannelData->ResetDataCallInfo();
 
     //  Put the channel back into AT command mode
     netconfig.adaption = 3;
     netconfig.protocol = htons(ETH_P_IP);
 
+    fd = pChannelData->GetFD();
     if (fd >= 0)
     {
-        RIL_LOG_INFO("DataConfigDown() - ***** PUTTING channel=[%d] in AT COMMAND MODE *****\r\n", pChannelData->GetRilChannel());
+        RIL_LOG_INFO("DataConfigDown() - ***** PUTTING channel=[%u] in AT COMMAND MODE *****\r\n",
+                                                                    uiChannel);
         ret = ioctl( fd, GSMIOC_DISABLE_NET, &netconfig );
     }
 
-    // Flush the response buffer to restart from scratch.
-    // Any data received by the RRIL during the DATA MODE should be trashed
-    //pChannelData->FlushResponse();
-
     bRet = TRUE;
 
-    RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%d\r\n", pChannelData->GetRilChannel());
+    RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%u\r\n", uiChannel);
 
 Error:
 

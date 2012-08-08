@@ -106,8 +106,6 @@ typedef struct
 //
 // Struct for reporting PDP Context List to Android
 //
-#define MAX_PDP_CONTEXTS                            ( 5)
-
 typedef struct
 {
     RIL_Data_Call_Response_v6   pPDPData[MAX_PDP_CONTEXTS];

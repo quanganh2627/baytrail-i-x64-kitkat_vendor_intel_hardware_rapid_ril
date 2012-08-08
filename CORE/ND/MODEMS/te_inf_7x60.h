@@ -36,16 +36,17 @@ private:
 public:
     // modem overrides
 
-    // RIL_REQUEST_SETUP_DATA_CALL 27
-    virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize, UINT32 uiCID);
-    virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA& rRspData);
-
     // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
     virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
 
     // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
     virtual RIL_RESULT_CODE CoreGetPreferredNetworkType(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData);
+
+    virtual BOOL PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
+                                                        UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseEnterDataState(RESPONSE_DATA& rRspData);
+    virtual BOOL SetupInterface(UINT32 uiCID);
 };
 
 #endif

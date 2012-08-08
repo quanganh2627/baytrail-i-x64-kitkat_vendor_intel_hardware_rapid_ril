@@ -41,10 +41,14 @@ typedef long                RIL_RESULT_CODE;
 ///////////////////////////////////////////////////////////////////////////////
 // Maximum length for various buffers and string parameters
 //
-#define MAX_BUFFER_SIZE     (1024)
-#define MAX_PROP_VALUE      (81)
-#define MAX_PIN_SIZE        (10)
-#define MAX_FACILITY_CODE   (5)
+#define MAX_BUFFER_SIZE         (1024)
+#define MAX_PROP_VALUE          (81)
+#define MAX_PIN_SIZE            (10)
+#define MAX_FACILITY_CODE       (5)
+#define MAX_IPADDR_SIZE         (100)
+#define MAX_PDP_CONTEXTS        (5)
+#define MAX_INTERFACE_NAME_SIZE (50)
+#define MAX_PDP_TYPE_SIZE       (20)
 
 ///////////////////////////////////////////////////////////////////////////////
 // SIM related constants
@@ -91,6 +95,45 @@ typedef struct
     int fileId;
 } S_SIM_IO_CONTEXT_DATA;
 
+///////////////////////////////////////////////////////////////////////////////
+// Setup data call Context data
+//
+typedef struct
+{
+    UINT32 uiCID;
+} S_SETUP_DATA_CALL_CONTEXT_DATA;
+
+///////////////////////////////////////////////////////////////////////////////
+// Data call Info
+//
+typedef struct
+{
+    int failCause;
+    UINT32 uiCID;
+    int state;
+    char szPdpType[MAX_PDP_TYPE_SIZE];
+    char szInterfaceName[MAX_INTERFACE_NAME_SIZE];
+    char szIpAddr1[MAX_IPADDR_SIZE];
+    char szIpAddr2[MAX_IPADDR_SIZE];
+    char szDNS1[MAX_IPADDR_SIZE];
+    char szDNS2[MAX_IPADDR_SIZE];
+    char szIpV6DNS1[MAX_IPADDR_SIZE];
+    char szIpV6DNS2[MAX_IPADDR_SIZE];
+    char szGateways[MAX_IPADDR_SIZE];
+} S_DATA_CALL_INFO;
+
+///////////////////////////////////////////////////////////////////////////////
+// Data call states
+//
+enum
+{
+    E_DATA_STATE_IDLE = 0,
+    E_DATA_STATE_INITING,
+    E_DATA_STATE_ACTIVATING,
+    E_DATA_STATE_ACTIVE,
+    E_DATA_STATE_DEACTIVATING,
+    E_DATA_STATE_DEACTIVATED
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Registration States

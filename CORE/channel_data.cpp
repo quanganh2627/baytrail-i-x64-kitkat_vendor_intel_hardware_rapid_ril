@@ -17,6 +17,7 @@
 #include "channelbase.h"
 #include "silo_factory.h"
 #include "channel_data.h"
+#include "rril.h"
 
 extern char* g_szDataPort1;
 extern char* g_szDataPort2;
@@ -40,32 +41,21 @@ extern int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE];
 
 CChannel_Data::CChannel_Data(UINT32 uiChannel)
 :   CChannel(uiChannel),
-    m_szIpAddr(NULL),
-    m_szDNS1(NULL),
-    m_szDNS2(NULL),
-    m_szIpAddr2(NULL),
-    m_szIpV6DNS1(NULL),
-    m_szIpV6DNS2(NULL),
-    m_szIpGateways(NULL),
-    m_szPdpType(NULL),
-    m_szInterfaceName(NULL)
+    m_dataFailCause(PDP_FAIL_NONE),
+    m_uiContextID(0),
+    m_dataState(E_DATA_STATE_IDLE)
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
 
-    m_uiContextID = 0;
-    m_iStatus = 0;
-
-    m_pSetupIntermediateEvent = new CEvent();
-    if (!m_pSetupIntermediateEvent)
-    {
-        RIL_LOG_CRITICAL("CChannel_Data::CChannel_Data() - Could not create m_pSetupIntermediateEvent\r\n");
-    }
-
-    m_pSetupDoneEvent = new CEvent();
-    if (!m_pSetupDoneEvent)
-    {
-        RIL_LOG_CRITICAL("CChannel_Data::CChannel_Data() - Could not create m_pSetupDoneEvent\r\n");
-    }
+    m_szPdpType[0] = '\0';
+    m_szInterfaceName[0] = '\0';
+    m_szIpAddr[0] = '\0';
+    m_szIpAddr2[0] = '\0';
+    m_szDNS1[0] = '\0';
+    m_szDNS2[0] = '\0';
+    m_szIpV6DNS1[0] = '\0';
+    m_szIpV6DNS2[0] = '\0';
+    m_szIpGateways[0] = '\0';
 
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Exit\r\n");
 }
@@ -76,36 +66,6 @@ CChannel_Data::~CChannel_Data()
 
     delete []m_prisdModuleInit;
     m_prisdModuleInit = NULL;
-
-    delete m_pSetupIntermediateEvent;
-    m_pSetupIntermediateEvent = NULL;
-
-    delete m_pSetupDoneEvent;
-    m_pSetupDoneEvent = NULL;
-
-    delete[] m_szIpAddr;
-    m_szIpAddr = NULL;
-
-    delete[] m_szDNS1;
-    m_szDNS1 = NULL;
-
-    delete[] m_szDNS2;
-    m_szDNS2 = NULL;
-
-    delete[] m_szIpGateways;
-    m_szIpGateways = NULL;
-
-    delete[] m_szPdpType;
-    m_szPdpType = NULL;
-
-    delete[] m_szIpAddr2;
-    m_szIpAddr2 = NULL;
-
-    delete[] m_szIpV6DNS1;
-    m_szIpV6DNS1 = NULL;
-
-    delete[] m_szIpV6DNS2;
-    m_szIpV6DNS2 = NULL;
 
     RIL_LOG_VERBOSE("CChannel_Data::~CChannel_Data() - Exit\r\n");
 }
@@ -223,10 +183,9 @@ Error:
 //
 CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 uiContextID)
 {
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
-
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromContextID() - Enter\r\n");
 
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
@@ -245,9 +204,9 @@ CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 uiContextID)
     }
 
 Error:
-    RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromContextID() - Exit\r\n");
-
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromContextID() - Exit\r\n");
     return pChannelData;
 }
 
@@ -267,9 +226,9 @@ Error:
 #if defined(BOARD_HAVE_IFX7060)
 CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile)
 {
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
-
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnlsRilHsi() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     extern UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX];
@@ -329,17 +288,17 @@ Error:
         outCID = 0;
     }
 
-    RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnlsRilHsi() - Exit\r\n");
-
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnlsRilHsi() - Exit\r\n");
     return pChannelData;
 }
 
 int CChannel_Data::GetFreeHSIChannel(UINT32 uiCID, int sIndex, int eIndex)
 {
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
-
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
     extern UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX];
 
@@ -360,16 +319,17 @@ int CChannel_Data::GetFreeHSIChannel(UINT32 uiCID, int sIndex, int eIndex)
         }
     }
 
-    RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Not Success - Exit\r\n");
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Not Success - Exit\r\n");
     return -1;
 }
 
 bool CChannel_Data::FreeHSIChannel(UINT32 uiCID)
 {
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
-
     RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChannel() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
     extern UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX];
 
@@ -384,8 +344,9 @@ bool CChannel_Data::FreeHSIChannel(UINT32 uiCID)
         }
     }
 
-    RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChannel() - Exit\r\n");
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChannel() - Exit\r\n");
     return false;
 }
 #endif
@@ -404,9 +365,9 @@ bool CChannel_Data::FreeHSIChannel(UINT32 uiCID)
 //  No other context ID
 CChannel_Data* CChannel_Data::GetFreeChnl(UINT32& outCID)
 {
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
-
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnl() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
@@ -437,9 +398,9 @@ Error:
         outCID = 0;
     }
 
-    RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnl() - Exit\r\n");
-
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnl() - Exit\r\n");
     return pChannelData;
 }
 
@@ -448,9 +409,9 @@ Error:
 //
 CChannel_Data* CChannel_Data::GetChnlFromRilChannelNumber(UINT32 index)
 {
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
-
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromRilChannelNumber() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
@@ -469,9 +430,9 @@ CChannel_Data* CChannel_Data::GetChnlFromRilChannelNumber(UINT32 index)
     }
 
 Error:
-    RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromRilChannelNumber() - Exit\r\n");
-
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromRilChannelNumber() - Exit\r\n");
     return pChannelData;
 }
 
@@ -479,16 +440,15 @@ Error:
 
 UINT32 CChannel_Data::GetContextID() const
 {
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
-
     RIL_LOG_VERBOSE("CChannel_Data::GetContextID() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
     UINT32 nCID = m_uiContextID;
 
-    RIL_LOG_VERBOSE("CChannel_Data::GetContextID() - Exit\r\n");
-
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
 
+    RIL_LOG_VERBOSE("CChannel_Data::GetContextID() - Exit\r\n");
     return nCID;
 }
 
@@ -498,26 +458,269 @@ UINT32 CChannel_Data::GetContextID() const
 //
 BOOL CChannel_Data::SetContextID(UINT32 dwContextID)
 {
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
-
     RIL_LOG_VERBOSE("CChannel_Data::SetContextID() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
     m_uiContextID = dwContextID;
 
-    RIL_LOG_VERBOSE("CChannel_Data::SetContextID() - Exit\r\n");
-
     CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
 
+    RIL_LOG_VERBOSE("CChannel_Data::SetContextID() - Exit\r\n");
     return TRUE;
 }
 
-//
-//  Free's the context Id by setting it to 0
-//
-void CChannel_Data::FreeContextID()
+void CChannel_Data::ResetDataCallInfo()
 {
+    RIL_LOG_VERBOSE("CChannel_Data::ResetDataCallInfo() - Enter\r\n");
+
+    SetDataFailCause(PDP_FAIL_NONE);
+    SetDataState(E_DATA_STATE_IDLE);
 #if defined(BOARD_HAVE_IFX7060)
     FreeHSIChannel(m_uiContextID);
 #endif
     SetContextID(0);
+    RIL_LOG_VERBOSE("CChannel_Data::ResetDataCallInfo() - Exit\r\n");
+}
+
+void CChannel_Data::SetDataFailCause(int cause)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::SetDataFailCause() - Enter\r\n");
+
+    m_dataFailCause = cause;
+
+    RIL_LOG_VERBOSE("CChannel_Data::SetDataFailCause() - Exit\r\n");
+}
+
+int CChannel_Data::GetDataFailCause()
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetDataFailCause() - Enter/Exit\r\n");
+    return m_dataFailCause;
+}
+
+void CChannel_Data::SetPdpType(const char* pPdpType)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::SetPdpType() - Enter\r\n");
+
+    strncpy(m_szPdpType, pPdpType, MAX_PDP_TYPE_SIZE-1);
+    m_szPdpType[MAX_PDP_TYPE_SIZE-1] = '\0';
+
+    RIL_LOG_VERBOSE("CChannel_Data::SetPdpType() - Exit\r\n");
+}
+
+void CChannel_Data::GetPdpType(char* pPdpType, const int maxSize)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetPdpType() - Enter\r\n");
+
+    if (NULL != pPdpType && 0 < maxSize)
+    {
+        strncpy(pPdpType, m_szPdpType, maxSize-1);
+        pPdpType[maxSize-1] = '\0';
+    }
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetPdpType() - Exit\r\n");
+}
+
+void CChannel_Data::SetInterfaceName(const char* pInterfaceName)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::SetInterfaceName() - Enter\r\n");
+
+    strncpy(m_szInterfaceName, pInterfaceName, MAX_INTERFACE_NAME_SIZE-1);
+    m_szInterfaceName[MAX_INTERFACE_NAME_SIZE-1] = '\0';
+
+    RIL_LOG_VERBOSE("CChannel_Data::SetInterfaceName() - Exit\r\n");
+}
+
+void CChannel_Data::GetInterfaceName(char* pInterfaceName, const int maxSize)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetInterfaceName() - Enter\r\n");
+
+    if (NULL != pInterfaceName && 0 < maxSize)
+    {
+        strncpy(pInterfaceName, m_szInterfaceName, maxSize-1);
+        pInterfaceName[maxSize-1] = '\0';
+    }
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetInterfaceName() - Exit\r\n");
+}
+
+void CChannel_Data::SetIpAddress(const char* pIpAddr1,
+                                        const char* pIpAddr2)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::SetIpAddress() - Enter\r\n");
+
+    strncpy(m_szIpAddr, pIpAddr1, MAX_IPADDR_SIZE-1);
+    m_szIpAddr[MAX_IPADDR_SIZE-1] = '\0';
+
+    strncpy(m_szIpAddr2, pIpAddr2, MAX_IPADDR_SIZE-1);
+    m_szIpAddr2[MAX_IPADDR_SIZE-1] = '\0';
+
+    RIL_LOG_VERBOSE("CChannel_Data::SetIpAddress() - Exit\r\n");
+}
+
+void CChannel_Data::GetIpAddress(char* pIpAddr, const int maxIpAddrSize,
+                                char* pIpAddr2, const int maxIpAddr2Size)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetIpAddress() - Enter\r\n");
+
+    if (NULL != pIpAddr && 0 < maxIpAddrSize)
+    {
+        strncpy(pIpAddr, m_szIpAddr, maxIpAddrSize-1);
+        pIpAddr[maxIpAddrSize-1] = '\0';
+    }
+
+    if (NULL != pIpAddr2 && 0 < maxIpAddr2Size)
+    {
+        strncpy(pIpAddr2, m_szIpAddr2, maxIpAddr2Size-1);
+        pIpAddr2[maxIpAddr2Size-1] = '\0';
+    }
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetIpAddress() - Exit\r\n");
+}
+
+void CChannel_Data::SetDNS(const char* pDNS1, const char* pDNS2,
+                                const char* pIpV6DNS1, const char* pIpV6DNS2)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::SetDNS() - Enter\r\n");
+
+    strncpy(m_szDNS1, pDNS1, MAX_IPADDR_SIZE-1);
+    m_szDNS1[MAX_IPADDR_SIZE-1] = '\0';
+
+    strncpy(m_szDNS2, pDNS2, MAX_IPADDR_SIZE-1);
+    m_szDNS2[MAX_IPADDR_SIZE-1] = '\0';
+
+    strncpy(m_szIpV6DNS1, pIpV6DNS1, MAX_IPADDR_SIZE-1);
+    m_szIpV6DNS1[MAX_IPADDR_SIZE-1] = '\0';
+
+    strncpy(m_szIpV6DNS2, pIpV6DNS2, MAX_IPADDR_SIZE-1);
+    m_szIpV6DNS2[MAX_IPADDR_SIZE-1] = '\0';
+
+    RIL_LOG_VERBOSE("CChannel_Data::SetDNS() - Exit\r\n");
+}
+
+void CChannel_Data::GetDNS(char* pDNS1, const int maxDNS1Size,
+                                char* pDNS2, const int maxDNS2Size,
+                                char* pIpV6DNS1, const int maxIpV6DNS1Size,
+                                char* pIpV6DNS2, const int maxIpV6DNS2Size)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetDNS() - Enter\r\n");
+
+    if (NULL != pDNS1 && 0 < maxDNS1Size)
+    {
+        strncpy(pDNS1, m_szDNS1, maxDNS1Size-1);
+        pDNS1[maxDNS1Size-1] = '\0';
+    }
+
+    if (NULL != pDNS2 && 0 < maxDNS2Size)
+    {
+        strncpy(pDNS2, m_szDNS2, maxDNS2Size-1);
+        pDNS2[maxDNS2Size-1] = '\0';
+    }
+
+    if (NULL != pIpV6DNS1 && 0 < maxIpV6DNS1Size)
+    {
+        strncpy(pIpV6DNS1, m_szIpV6DNS1, maxIpV6DNS1Size-1);
+        pIpV6DNS1[maxIpV6DNS1Size-1] = '\0';
+    }
+
+    if (NULL != pIpV6DNS2 && 0 < maxIpV6DNS2Size)
+    {
+        strncpy(pIpV6DNS2, m_szIpV6DNS2, maxIpV6DNS2Size-1);
+        pIpV6DNS2[maxIpV6DNS2Size-1] = '\0';
+    }
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetDNS() - Exit\r\n");
+}
+
+void CChannel_Data::SetGateway(const char* pIpGateways)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::SetGateway() - Enter\r\n");
+
+    strncpy(m_szIpGateways, pIpGateways, MAX_IPADDR_SIZE-1);
+    m_szIpGateways[MAX_IPADDR_SIZE-1] = '\0';
+
+    RIL_LOG_VERBOSE("CChannel_Data::SetGateway() - Exit\r\n");
+}
+
+void CChannel_Data::GetGateway(char* pIpGateways, const int maxSize)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetGateway() - Enter\r\n");
+
+    if (NULL != pIpGateways && 0 < maxSize)
+    {
+        strncpy(pIpGateways, m_szIpGateways, maxSize-1);
+        pIpGateways[maxSize-1] = '\0';
+    }
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetGateway() - Exit\r\n");
+}
+
+void CChannel_Data::SetDataState(int state)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::SetDataState() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+
+    m_dataState = state;
+
+    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::SetDataState() - Exit\r\n");
+}
+
+int CChannel_Data::GetDataState()
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetDataState() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+
+    int state = m_dataState;
+
+    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetDataState() - Exit\r\n");
+    return state;
+}
+
+void CChannel_Data::GetDataCallInfo(S_DATA_CALL_INFO& rDataCallInfo)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetDataCallInfo() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+
+    rDataCallInfo.failCause = m_dataFailCause;
+    rDataCallInfo.uiCID = m_uiContextID;
+    rDataCallInfo.state = m_dataState;
+
+    strncpy(rDataCallInfo.szPdpType, m_szPdpType, MAX_PDP_TYPE_SIZE-1);
+    rDataCallInfo.szPdpType[MAX_PDP_TYPE_SIZE-1] = '\0';
+
+    strncpy(rDataCallInfo.szInterfaceName, m_szInterfaceName,
+                                        MAX_INTERFACE_NAME_SIZE-1);
+    rDataCallInfo.szInterfaceName[MAX_INTERFACE_NAME_SIZE-1] = '\0';
+
+    strncpy(rDataCallInfo.szIpAddr1, m_szIpAddr, MAX_IPADDR_SIZE-1);
+    rDataCallInfo.szIpAddr1[MAX_IPADDR_SIZE-1] = '\0';
+
+    strncpy(rDataCallInfo.szIpAddr2, m_szIpAddr2, MAX_IPADDR_SIZE-1);
+    rDataCallInfo.szIpAddr2[MAX_IPADDR_SIZE-1] = '\0';
+
+    strncpy(rDataCallInfo.szDNS1, m_szDNS1, MAX_IPADDR_SIZE-1);
+    rDataCallInfo.szDNS1[MAX_IPADDR_SIZE-1] = '\0';
+
+    strncpy(rDataCallInfo.szDNS2, m_szDNS2, MAX_IPADDR_SIZE-1);
+    rDataCallInfo.szDNS2[MAX_IPADDR_SIZE-1] = '\0';
+
+    strncpy(rDataCallInfo.szIpV6DNS1, m_szIpV6DNS1, MAX_IPADDR_SIZE-1);
+    rDataCallInfo.szIpV6DNS1[MAX_IPADDR_SIZE-1] = '\0';
+
+    strncpy(rDataCallInfo.szIpV6DNS2, m_szIpV6DNS2, MAX_IPADDR_SIZE-1);
+    rDataCallInfo.szIpV6DNS2[MAX_IPADDR_SIZE-1] = '\0';
+
+    strncpy(rDataCallInfo.szGateways, m_szIpGateways, MAX_IPADDR_SIZE-1);
+    rDataCallInfo.szGateways[MAX_IPADDR_SIZE-1] = '\0';
+
+    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetDataCallInfo() - Exit\r\n");
 }

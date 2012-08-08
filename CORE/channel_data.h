@@ -30,14 +30,41 @@ private:
 
 public:
     //  public port interface
-    BOOL    OpenPort();
+    BOOL OpenPort();
+
+    void ResetDataCallInfo();
 
     // get / set functions
+    void SetDataFailCause(int cause);
+    int GetDataFailCause();
 
     UINT32 GetContextID() const;
-
     BOOL SetContextID( UINT32 dwContextID );
-    void FreeContextID();
+
+    void SetPdpType(const char* pPdpType);
+    void GetPdpType(char* pPdpType, const int maxSize);
+
+    void SetInterfaceName(const char* pInterfaceName);
+    void GetInterfaceName(char* pInterfaceName, const int maxSize);
+
+    void SetIpAddress(const char* pIpAddr1, const char* pIpAddr2);
+    void GetIpAddress(char* pIpAddr, const int maxIpAddrSize,
+                                    char* pIpAddr2, const int maxIpAddr2Size);
+
+    void SetDNS(const char* pDNS1, const char* pDNS2,
+                                const char* pIpV6DNS1, const char* pIpV6DNS2);
+    void GetDNS(char* pDNS1, int maxDNS1Size,
+                                    char* pDNS2, const int maxDNS2Size,
+                                    char* pIpV6DNS1, const int maxIpV6DNS1Size,
+                                    char* pIpV6DNS2, const int maxIpV6DNS2Size);
+
+    void SetGateway(const char* pIpGateway);
+    void GetGateway(char* pIpGateway, const int maxSize);
+
+    void SetDataState(int state);
+    int GetDataState();
+
+    void GetDataCallInfo(S_DATA_CALL_INFO& rsDataCallInfo);
 
     //
     // helper functions to convert ContextID, Dlci and Channel
@@ -57,40 +84,44 @@ public:
     static CChannel_Data* GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile);
 #endif
 
-    CEvent *            m_pSetupIntermediateEvent;
-    CEvent *            m_pSetupDoneEvent;
-
-
-    //  Local storage of IP adress, DNS1, DNS2
-    char*               m_szIpAddr;
-    char*               m_szDNS1;
-    char*               m_szDNS2;
-
-    //  For IPV4V6, there could be 2 IP addresses
-    char*               m_szIpAddr2;
-
-    //  For IPV4V6, there could be 2 DNS addresses for primary and secondary.
-    char*               m_szIpV6DNS1;
-    char*               m_szIpV6DNS2;
-
-    char*               m_szIpGateways;
-    char*               m_szPdpType;
-    char*               m_szInterfaceName;
-    INT32               m_iStatus;
 #if defined(BOARD_HAVE_IFX7060)
-    int                 m_dataProfile;
-    bool                m_hsiDirect;
-    int                 m_hsiChannel;
+    int GetDataProfile() { return m_dataProfile; };
+    int GetHSIChannel() { return m_hsiChannel; };
+    BOOL IsHSIDirect() { return m_hsiDirect; };
 #endif
 
 private:
 
-    UINT32              m_uiContextID;
+    int m_dataFailCause;
+    UINT32 m_uiContextID;
+    int m_dataState;
 
+    char m_szPdpType[MAX_PDP_TYPE_SIZE];
+
+    char m_szInterfaceName[MAX_INTERFACE_NAME_SIZE];
+
+    //  Local storage of IP address, DNS1, DNS2
+    char m_szIpAddr[MAX_IPADDR_SIZE];
+    char m_szDNS1[MAX_IPADDR_SIZE];
+    char m_szDNS2[MAX_IPADDR_SIZE];
+
+    //  For IPV4V6, there could be 2 IP addresses
+    char m_szIpAddr2[MAX_IPADDR_SIZE];
+
+    //  For IPV4V6, there could be 2 DNS addresses for primary and secondary.
+    char m_szIpV6DNS1[MAX_IPADDR_SIZE];
+    char m_szIpV6DNS2[MAX_IPADDR_SIZE];
+
+    char m_szIpGateways[MAX_IPADDR_SIZE];
+#if defined(BOARD_HAVE_IFX7060)
+    int m_dataProfile;
+    BOOL m_hsiDirect;
+    int m_hsiChannel;
+#endif
 
 protected:
-    BOOL    FinishInit();
-    BOOL    AddSilos();
+    BOOL FinishInit();
+    BOOL AddSilos();
 
 };
 

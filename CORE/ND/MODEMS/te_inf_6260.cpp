@@ -14,12 +14,12 @@
 
 #include "types.h"
 #include "nd_structs.h"
-#include "../../util.h"
+#include "util.h"
 #include "extract.h"
 #include "rillog.h"
 #include "te.h"
 #include "te_base.h"
-#include "../../globals.h"
+#include "globals.h"
 #include "sync_ops.h"
 #include "command.h"
 #include "te_inf_6260.h"
@@ -31,6 +31,8 @@
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
 #include "data_util.h"
+#include "rril.h"
+#include "callbacks.h"
 
 //  This is for socket-related calls.
 #include <sys/ioctl.h>
@@ -40,28 +42,15 @@
 #include <linux/gsmmux.h>
 
 
-
 CTE_INF_6260::CTE_INF_6260()
-: m_currentNetworkType(-1),
-m_pQueryDataCallFailCauseEvent(NULL),
-m_dataCallFailCause(PDP_FAIL_ERROR_UNSPECIFIED)
+: m_currentNetworkType(-1)
 {
-    //  Create Data call Fail cause query event
-    m_pQueryDataCallFailCauseEvent = new CEvent();
-    if (!m_pQueryDataCallFailCauseEvent)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CTE_INF_6260() - Could not create new QueryDataCallFailCauseEvent!\r\n");
-    }
-
     m_szUICCID[0] = '\0';
 }
 
 CTE_INF_6260::~CTE_INF_6260()
 {
-    delete m_pQueryDataCallFailCauseEvent;
-    m_pQueryDataCallFailCauseEvent = NULL;
 }
-
 
 //
 // RIL_REQUEST_GET_SIM_STATUS 1
@@ -223,7 +212,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
     char szIPV4V6[] = "IPV4V6";
     int nPapChap = 0; // no auth
     PdpData stPdpData;
-    memset(&stPdpData, 0, sizeof(PdpData));
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+    CChannel_Data* pChannelData = NULL;
 
     if (NULL == pData)
     {
@@ -239,6 +229,23 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
 
     RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - uiDataSize=[%d]\r\n", uiDataSize);
 
+    pDataCallContextData =
+            (S_SETUP_DATA_CALL_CONTEXT_DATA*)malloc(sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA));
+    if (NULL == pDataCallContextData)
+    {
+        goto Error;
+    }
+
+    // Get Channel Data according to CID
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - No Channel with context Id: %u\r\n", uiCID);
+        goto Error;
+    }
+
+    memset(&stPdpData, 0, sizeof(PdpData));
+    pDataCallContextData->uiCID = uiCID;
 
     // extract data
     stPdpData.szRadioTechnology = ((char **)pData)[0];  // not used
@@ -282,8 +289,6 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         RIL_LOG_INFO("CTE_INF_6260::CoreSetupDataCall() - stPdpData.szPDPType=[%s]\r\n", stPdpData.szPDPType);
     }
 
-    // For setting up data call we need to send 2 sets of chained commands: AT+CGDCONT to define PDP Context, then
-    // if RAW IP is used send AT+CGDATA to enable Raw IP on data channel (which will then switch the channel to data mode).
     //
     //  IP type is passed in dynamically.
     if (NULL == stPdpData.szPDPType)
@@ -334,493 +339,173 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * 
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2),
-        "AT+CGACT=1,%d;+CGDATA=\"M-RAW_IP\",%d\r", uiCID, uiCID))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetupDataCall() - cannot create CGDATA command\r\n");
-        goto Error;
-    }
-
-    //  Store the potential uiCID in the pContext
-    rReqData.pContextData = (void*)uiCID;
-
     res = RRIL_RESULT_OK;
-
-Error:
-    RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetupDataCall() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE_INF_6260::QueryDataCallFailCause()
-{
-    RIL_LOG_VERBOSE("CTE_INF_6260::QueryDataCallFailCause() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    CCommand *pCmd1 = NULL;
-    char szCmd1[MAX_BUFFER_SIZE] = {0};
-    UINT32 uiWaitRes = 0;
-
-    CEvent::Reset(m_pQueryDataCallFailCauseEvent);
-
-    if (!CopyStringNullTerminate(szCmd1, "AT+CEER\r", sizeof(szCmd1)))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::QueryDataCallFailCause() - Cannot CopyStringNullTerminate CEER\r\n");
-        goto Error;
-    }
-
-    pCmd1 = new CCommand(g_arChannelMapping[ND_REQ_ID_LASTPDPFAILCAUSE], NULL,
-                                ND_REQ_ID_LASTPDPFAILCAUSE, szCmd1, &CTE::ParseDataCallFailCause);
-    if (pCmd1)
-    {
-        if (!CCommand::AddCmdToQueue(pCmd1))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::QueryDataCallFailCause() - Unable to queue AT+CEER command!\r\n");
-            delete pCmd1;
-            pCmd1 = NULL;
-            goto Error;
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::QueryDataCallFailCause() - Unable to allocate memory for new AT+CEER command!\r\n");
-        goto Error;
-    }
-
-    //  Wait here for response
-    uiWaitRes = CEvent::Wait(m_pQueryDataCallFailCauseEvent, g_TimeoutAPIDefault);
-    switch (uiWaitRes)
-    {
-        case WAIT_EVENT_0_SIGNALED:
-            RIL_LOG_INFO("CTE_INF_6260::QueryDataCallFailCause() : CEER event signalled\r\n");
-            break;
-
-        case WAIT_TIMEDOUT:
-            RIL_LOG_CRITICAL("CTE_INF_6260::QueryDataCallFailCause() - Timed out waiting for CEER result!! \r\n");
-            goto Error;
-
-        default:
-            RIL_LOG_CRITICAL("CTE_INF_6260::QueryDataCallFailCause() - Unexpected event result on Wait for CEER, res: %d\r\n", uiWaitRes);
-            goto Error;
-    }
-
-    res = RRIL_RESULT_OK;
-Error:
-    RIL_LOG_VERBOSE("CTE_INF_6260::QueryDataCallFailCause() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE_INF_6260::ParseDataCallFailCause(RESPONSE_DATA& rRspData)
-{
-    UINT32 uiCause;
-
-    if (CTEBase::ParseCEER(rRspData, uiCause))
-    {
-        m_dataCallFailCause = MapErrorCodeToRilDataFailCause(uiCause);
-    }
-    else
-    {
-        m_dataCallFailCause = PDP_FAIL_ERROR_UNSPECIFIED;
-    }
-
-    if (m_pQueryDataCallFailCauseEvent)
-    {
-        CEvent::Signal(m_pQueryDataCallFailCauseEvent);
-    }
-
-    return RRIL_RESULT_OK;
-}
-
-RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    char szIP[PROPERTY_VALUE_MAX] = {0};
-    P_ND_SETUP_DATA_CALL pDataCallRsp = NULL;
-
-    /*
-     * For RAW IP, when we get the CONNECT response to AT+CGDATA, we then need
-     * to send AT+CGPADDR (or AT+CGDCONT?) to get the IP address which needs to
-     * be returned in the response to the RIL_REQUEST_SETUP_DATA_CALL.
-     * DNS address of the activated context is got from AT+XDNS?
-     * Response to RIL_REQUEST_SETUP_DATA_CALL is sent only after the IP
-     * address and DNS address is got.
-     */
-
-    struct gsm_netconfig netconfig;
-
-    CCommand * pCmd1 = NULL;
-    CCommand * pCmd2 = NULL;
-    const int nIPADDR_TIMEOUT_DEFAULT = 5000, nDNS_TIMEOUT_DEFAULT = 5000;
-    int nCommandTimeout = 5000;
-    UINT32 uiWaitRes;
-    char szCmd[MAX_BUFFER_SIZE];
-    CChannel_Data* pChannelData = NULL;
-    UINT32 uiCID = 0;
-    int fd = -1;
-    int ret = 0;
-    CRepository repository;
-    PDP_TYPE eDataConnectionType = PDP_TYPE_IPV4;  //  dummy for now, set to IPv4.
-
-    const char* szRsp = rRspData.szResponse;
-
-    pDataCallRsp = (P_ND_SETUP_DATA_CALL)malloc(sizeof(S_ND_SETUP_DATA_CALL));
-    if (NULL == pDataCallRsp)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot allocate pDataCallRsp  size=[%d]\r\n", sizeof(S_ND_SETUP_DATA_CALL));
-        goto Error;
-    }
-    memset(pDataCallRsp, 0, sizeof(S_ND_SETUP_DATA_CALL));
-
-    //  Get CID
-    uiCID = (UINT32)rRspData.pContextData;
-
-    if (uiCID == 0)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - CID must be >= 1!! CID=[%u]\r\n", uiCID);
-        goto Error;
-    }
-
-    // Get Channel Data according to CID
-    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
-    if (!pChannelData)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR: Could not get Data Channel for RIL channel number %d.\r\n", rRspData.uiChannel);
-        goto Error;
-    }
-
-    m_dataCallFailCause = PDP_FAIL_ERROR_UNSPECIFIED;
-    if (FindAndSkipString(szRsp, "ERROR", szRsp) ||
-        FindAndSkipString(szRsp, "+CME ERROR:", szRsp))
-    {
-        QueryDataCallFailCause();
-
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - ERROR/CME ERROR occured\r\n");
-        goto Error;
-    }
-
-    // 1st confirm we got "CONNECT"
-    if (!FindAndSkipString(szRsp, "CONNECT", szRsp))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Did not get \"CONNECT\" response.\r\n");
-        goto Error;
-    }
-
-    // Following code-block is moved up here from the end of this function to get if_name needed for netconfig (N_GSM)
-    // But the IP address is filled in end of function.
-
-    //  Populate pDataCallRsp
-    pDataCallRsp->sPDPData.cid = uiCID;
-
-    if (!PrintStringNullTerminate(pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE, "%s%u", m_szNetworkInterfaceNamePrefix, uiCID-1))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot set network interface name\r\n");
-        goto Error;
-    }
-    else
-    {
-        RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - szNetworkInterfaceName=[%s], CID=[%u]\r\n", pDataCallRsp->szNetworkInterfaceName, uiCID);
-    }
-
-    pDataCallRsp->sPDPData.ifname = pDataCallRsp->szNetworkInterfaceName;
-
-    //  Store interface name in pChannelData
-    pChannelData->m_szInterfaceName = new char[MAX_BUFFER_SIZE];
-    if (NULL == pChannelData->m_szInterfaceName)
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Could not allocate interface name for Data Channel chnl=[%d] fd=[%d].\r\n", rRspData.uiChannel, fd);
-        goto Error;
-    }
-    strncpy(pChannelData->m_szInterfaceName, pDataCallRsp->szNetworkInterfaceName, MAX_BUFFER_SIZE-1);
-    pChannelData->m_szInterfaceName[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
-
-    // N_GSM related code
-    netconfig.adaption = 3;
-    netconfig.protocol = htons(ETH_P_IP);
-    strncpy(netconfig.if_name, pDataCallRsp->szNetworkInterfaceName, IFNAMSIZ-1);
-    netconfig.if_name[IFNAMSIZ-1] = '\0';  //  KW fix
-
-    // Add IF NAME
-    fd = pChannelData->GetFD();
-    if (fd >= 0)
-    {
-        RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - ***** PUTTING channel=[%d] in DATA MODE *****\r\n", rRspData.uiChannel);
-        ret = ioctl( fd, GSMIOC_ENABLE_NET, &netconfig );       // Enable data channel
-        if (ret < 0)
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to create interface %s : %s \r\n",netconfig.if_name,strerror(errno));
-            goto Error;
-        }
-    }
-    else
-    {
-        //  No FD.
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Could not get Data Channel chnl=[%d] fd=[%d].\r\n", rRspData.uiChannel, fd);
-        goto Error;
-    }
-
-    // Send AT+CGPADDR and AT+XDNS? commands to query for assigned IP Address and DNS and wait for responses
-
-    CEvent::Reset(pChannelData->m_pSetupIntermediateEvent);
-
-    if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CGPADDR=%u\r", uiCID))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - cannot create CGPADDR command\r\n");
-        goto Error;
-    }
-
-    pCmd1 = new CCommand(g_arChannelMapping[ND_REQ_ID_GETIPADDRESS], NULL, ND_REQ_ID_GETIPADDRESS, szCmd, &CTE::ParseIpAddress);
-    if (pCmd1)
-    {
-        if (!CCommand::AddCmdToQueue(pCmd1))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to queue AT+CGPADDR command!\r\n");
-            delete pCmd1;
-            pCmd1 = NULL;
-            goto Error;
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to allocate memory for new AT+CGPADDR command!\r\n");
-        goto Error;
-    }
-
-    //  Now wait for the intermediate command to complete.
-    //  Get nCommandTimeout
-    if (!repository.Read(g_szGroupRequestTimeouts, g_szRequestNames[ND_REQ_ID_GETIPADDRESS], nCommandTimeout))
-    {
-        nCommandTimeout = nIPADDR_TIMEOUT_DEFAULT;
-    }
-
-    RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Wait for intermediate response, nCommandTimeout=[%d]\r\n",
-                    nCommandTimeout);
-    uiWaitRes = CEvent::Wait(pChannelData->m_pSetupIntermediateEvent, nCommandTimeout);
-    switch(uiWaitRes)
-    {
-        case WAIT_EVENT_0_SIGNALED:
-            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() : SetupData intermediate event signalled\r\n");
-            RIL_LOG_INFO("m_szIpAddr = [%s]    m_szIpAddr2 = [%s]\r\n",
-                pChannelData->m_szIpAddr, pChannelData->m_szIpAddr2);
-
-            //  If the IP address command timed-out, then the data channel's IP addr
-            //  buffers will be NULL.
-            if (NULL == pChannelData->m_szIpAddr || NULL == pChannelData->m_szIpAddr2)
-            {
-                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - IP addresses are null\r\n");
-                 goto Error;
-            }
-
-            // pChannelData->m_szIpAddr and pChannelData->m_szIpAddr2 can not be null because if initialization fails
-            // the connection manager do not call this function but they can be empty
-            if (0 == pChannelData->m_szIpAddr[0] && 0 == pChannelData->m_szIpAddr2[0])
-            {
-                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - IP addresses are empty\r\n");
-                 goto Error;
-            }
-            break;
-
-        case WAIT_TIMEDOUT:
-             RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Timed out waiting for IP Address\r\n");
-             goto Error;
-
-        default:
-             RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unexpected event result on Wait for IP Address, res: %d\r\n", uiWaitRes);
-             goto Error;
-
-    }
-
-    CEvent::Reset(pChannelData->m_pSetupDoneEvent);
-
-    if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+XDNS?;+XDNS=%u,0\r", uiCID))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Cannot create XDNS command\r\n");
-        goto Error;
-    }
-
-    pCmd2 = new CCommand(g_arChannelMapping[ND_REQ_ID_GETDNS], NULL, ND_REQ_ID_GETDNS, szCmd, &CTE::ParseDns);
-    if (pCmd2)
-    {
-        //  Need to send context ID to parse function so set contextData for this command
-        pCmd2->SetContextData(rRspData.pContextData);
-        if (!CCommand::AddCmdToQueue(pCmd2))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to queue AT+XDNS? command!\r\n");
-            delete pCmd2;
-            pCmd2 = NULL;
-            goto Error;
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to allocate memory for new AT+XDNS? command!\r\n");
-        goto Error;
-    }
-
-    //  Get nCommentTimeout
-    //  Wait for DNS command (m_pSetupDoneEvent)
-    if (!repository.Read(g_szGroupRequestTimeouts, g_szRequestNames[ND_REQ_ID_GETDNS], nCommandTimeout))
-    {
-        nCommandTimeout = nDNS_TIMEOUT_DEFAULT;
-    }
-
-    RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Wait for DNS response, nCommandTimeout=[%d]\r\n",
-                    nCommandTimeout);
-    uiWaitRes = CEvent::Wait(pChannelData->m_pSetupDoneEvent, nCommandTimeout);
-    switch (uiWaitRes)
-    {
-        case WAIT_EVENT_0_SIGNALED:
-            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() : SetupData event signalled\r\n");
-            RIL_LOG_INFO("m_szDNS1 = [%s]    m_szDNS2 = [%s]\r\n",
-                pChannelData->m_szDNS1, pChannelData->m_szDNS2);
-
-            if (NULL == pChannelData->m_szDNS1)
-            {
-                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - DNS1 is null\r\n");
-                 goto Error;
-            }
-            if (NULL == pChannelData->m_szDNS2)
-            {
-                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - DNS2 is null\r\n");
-                 goto Error;
-            }
-            if (NULL == pChannelData->m_szPdpType)
-            {
-                pChannelData->m_szPdpType = new char[sizeof("IPV4V6")];
-                if (NULL == pChannelData->m_szPdpType)
-                {
-                    RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - cannot allocate m_szPdpType!\r\n");
-                    goto Error;
-                }
-            }
-
-            if (0 == pChannelData->m_szIpAddr[0])
-            {
-                strncpy(szIP, pChannelData->m_szIpAddr2, PROPERTY_VALUE_MAX-1);
-                szIP[PROPERTY_VALUE_MAX-1] = '\0';  //  KW fix
-            }
-            else
-            {
-                strncpy(szIP, pChannelData->m_szIpAddr, PROPERTY_VALUE_MAX-1);
-                szIP[PROPERTY_VALUE_MAX-1] = '\0';  //  KW fix
-            }
-
-            if (pChannelData->m_szIpAddr2[0] == 0)
-            {
-                eDataConnectionType = PDP_TYPE_IPV4;
-                strcpy(pChannelData->m_szPdpType, "IPV4");
-            }
-            else if (pChannelData->m_szIpAddr[0] == 0)
-            {
-                eDataConnectionType = PDP_TYPE_IPV6;
-                strcpy(pChannelData->m_szPdpType, "IPV6");
-            }
-            else
-            {
-                eDataConnectionType = PDP_TYPE_IPV4V6;
-                strcpy(pChannelData->m_szPdpType, "IPV4V6");
-            }
-            break;
-
-        case WAIT_TIMEDOUT:
-             RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Timed out waiting for IP Address and DNS\r\n");
-             goto Error;
-
-        default:
-             RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unexpected event result on Wait for IP Address and DNS, res: %d\r\n", uiWaitRes);
-             goto Error;
-    }
-
-    // set interface address(es) and bring up interface
-    if (!DataConfigUp(pDataCallRsp->szNetworkInterfaceName, pChannelData, eDataConnectionType))
-    {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseSetupDataCall() - Unable to set ifconfig\r\n");
-        goto Error;
-    }
-
-    snprintf(pDataCallRsp->szDNS, MAX_BUFFER_SIZE-1, "%s %s %s %s",
-        (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
-        (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
-        (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
-        (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
-    pDataCallRsp->szDNS[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
-
-    snprintf(pDataCallRsp->szIPAddress, MAX_BUFFER_SIZE-1, "%s %s",
-        (pChannelData->m_szIpAddr ? pChannelData->m_szIpAddr : ""),
-        (pChannelData->m_szIpAddr2 ? pChannelData->m_szIpAddr2 : ""));
-    pDataCallRsp->szIPAddress[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
-
-    strncpy(pDataCallRsp->szGateway, pChannelData->m_szIpGateways, MAX_BUFFER_SIZE-1);
-    pDataCallRsp->szGateway[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
-    strncpy(pDataCallRsp->szPdpType, pChannelData->m_szPdpType, MAX_BUFFER_SIZE-1);
-    pDataCallRsp->szPdpType[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
-
-    pDataCallRsp->sPDPData.status = pChannelData->m_iStatus;
-    pDataCallRsp->sPDPData.suggestedRetryTime = -1;
-
-    pDataCallRsp->sPDPData.active = 2;
-    pDataCallRsp->sPDPData.type = pDataCallRsp->szPdpType;
-    pDataCallRsp->sPDPData.addresses = pDataCallRsp->szIPAddress;
-    pDataCallRsp->sPDPData.dnses = pDataCallRsp->szDNS;
-    pDataCallRsp->sPDPData.gateways = pDataCallRsp->szGateway;
-
-    res = RRIL_RESULT_OK;
-
-    RIL_LOG_INFO("[RIL STATE] PDP CONTEXT ACTIVATION chnl=%d ContextID=%d\r\n",
-        pChannelData->GetRilChannel(), pChannelData->GetContextID());
 
 Error:
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Error cleanup\r\n");
-        if (pChannelData)
-        {
-            RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Calling triggerDeactivateDataCall  chnl=[%d], cid=[%u]\r\n", rRspData.uiChannel, uiCID);
-
-            //  Explicitly deactivate context ID = uiCID
-            //  This will call DataConfigDown(uiCID) and convert channel to AT mode.
-            //  Otherwise the data channel hangs and is unresponsive.
-            RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)uiCID, 0, 0);
-        }
-
-        if (pDataCallRsp)
-        {
-            // If pDataCallRsp, then cause can be sent in status field.
-            res = RRIL_RESULT_OK;
-            pDataCallRsp->sPDPData.status = m_dataCallFailCause;
-            pDataCallRsp->sPDPData.cid = uiCID;
-            pDataCallRsp->sPDPData.suggestedRetryTime = -1; // The value < 0 means no value is suggested
-        }
-        else
-        {
-            res = RIL_E_GENERIC_FAILURE;
-        }
+        free(pDataCallContextData);
     }
-
-    if (pDataCallRsp)
+    else
     {
-        rRspData.pData = (void*)pDataCallRsp;
-        rRspData.uiDataSize = sizeof(RIL_Data_Call_Response_v6);
+        pChannelData->SetDataState(E_DATA_STATE_INITING);
+
+        rReqData.pContextData = (void*)pDataCallContextData;
+        rReqData.cbContextData = sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA);
     }
 
-    RIL_LOG_INFO("CTE_INF_6260::ParseSetupDataCall() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTE_INF_6260::CoreSetupDataCall() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_INF_6260::ParseSetupDataCall(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseSetupDataCall() - Enter\r\n");
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseSetupDataCall() - Exit\r\n");
+    return RRIL_RESULT_OK;
+}
+
+BOOL CTE_INF_6260::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
+                                                            UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::PdpContextActivate() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    UINT32 uiCID = 0;
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+
+    if (NULL == pData ||
+                    sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::PdpContextActivate() - Invalid input data\r\n");
+        goto Error;
+    }
+
+    pDataCallContextData = (S_SETUP_DATA_CALL_CONTEXT_DATA*)pData;
+    uiCID = pDataCallContextData->uiCID;
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                                                    "AT+CGACT=1,%d\r", uiCID))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::PdpContextActivate() -  cannot create CGDATA command\r\n");
+        goto Error;
+    }
+
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::PdpContextActivate() - Cannot create CEER command\r\n");
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::PdpContextActivate() - Exit\r\n");
+    return bRet;
+}
+
+RIL_RESULT_CODE CTE_INF_6260::ParsePdpContextActivate(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParsePdpContextActivate() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* szRsp = rRspData.szResponse;
+    UINT32 uiCause;
+
+    //  Could have +CEER response here, if AT command returned CME error.
+    if (ParseCEER(rRspData, uiCause))
+    {
+        RIL_LOG_INFO("CTE_INF_6260::ParsePdpContextActivate() - uiCause: %u\r\n", uiCause);
+
+        S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+        UINT32 uiCID = 0;
+        CChannel_Data* pChannelData = NULL;
+        int failCause = PDP_FAIL_ERROR_UNSPECIFIED;
+
+        if (NULL == rRspData.pContextData ||
+                sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA) != rRspData.cbContextData)
+        {
+            RIL_LOG_INFO("CTE_INF_6260::ParsePdpContextActivate() - Invalid context data\r\n");
+            goto Error;
+        }
+
+        pDataCallContextData =
+                        (S_SETUP_DATA_CALL_CONTEXT_DATA*)rRspData.pContextData;
+        uiCID = pDataCallContextData->uiCID;
+
+        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+        if (NULL == pChannelData)
+        {
+            RIL_LOG_INFO("CTE_INF_6260::ParsePdpContextActivate() - No Data Channel for CID %u.\r\n",
+                                                                        uiCID);
+            goto Error;
+        }
+
+        failCause = MapErrorCodeToRilDataFailCause(uiCause);
+        pChannelData->SetDataFailCause(failCause);
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParsePdpContextActivate() - Exit\r\n");
+    return res;
+}
+
+BOOL CTE_INF_6260::QueryIpAndDns(REQUEST_DATA& rReqData, UINT32 uiCID)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::QueryIpAndDns() - Enter\r\n");
+    BOOL bRet = FALSE;
+
+    if (uiCID != 0)
+    {
+        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                                            "AT+CGPADDR=%u;+XDNS?\r", uiCID))
+        {
+            bRet = TRUE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::QueryIpAndDns() - Exit\r\n");
+    return bRet;
+}
+
+RIL_RESULT_CODE CTE_INF_6260::ParseQueryIpAndDns(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseQueryIpAndDns() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    const char* pszRsp = rRspData.szResponse;
+    const char* szStrExtract = NULL;
+
+    // Parse prefix
+    if (FindAndSkipString(pszRsp, "+CGPADDR: ", pszRsp))
+    {
+        RIL_LOG_INFO("CTE_INF_6260::ParseQueryIpAndDns() - parse \"+CGPADDR\" \r\n");
+        res = ParseIpAddress(rRspData);
+    }
+
+    if (FindAndSkipString(pszRsp, "+XDNS: ", pszRsp))
+    {
+        RIL_LOG_INFO("CTE_INF_6260::ParseQueryIpAndDns() - parse \"+XDNS\" \r\n");
+        res = ParseDns(rRspData);
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseQueryIpAndDns() - Exit\r\n");
     return res;
 }
 
 //
 // Response to AT+CGPADDR=<CID>
 //
-RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
+RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseIpAddress() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
     const char* szRsp = rRspData.szResponse;
-    UINT32 nCid;
-    UINT32  cbIpAddr = 0;
-    CChannel_Data* pChannelData = NULL;
+    UINT32 uiCID;
 
     // Parse prefix
     if (!FindAndSkipString(szRsp, "+CGPADDR: ", szRsp))
@@ -830,63 +515,85 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
     }
 
     // Parse <cid>
-    if (!ExtractUInt32(szRsp, nCid, szRsp))
+    if (!ExtractUInt32(szRsp, uiCID, szRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - Unable to parse <cid>!\r\n");
         goto Error;
     }
 
-    if (nCid > 0)
+    if (uiCID > 0)
     {
-        pChannelData = CChannel_Data::GetChnlFromContextID(nCid);
-        if (!pChannelData)
+        //  The response could come back as:
+        //  +CGPADDR: <cid>,<PDP_Addr1>,<PDP_Addr2>
+        //  PDP_Addr1 could be in IPv4, or IPv6.  PDP_Addr2 is present only for IPv4v6
+        //  in which case PDP_Addr1 is IPv4 and PDP_Addr2 is IPv6.
+        //  a1.a2.a3.a4 (for IPv4)
+        //  a1.a2.a3.a4.a5.a6.a7.a8.a9.a10.a11.a12.a13.a14.a15.a16 (for IPv6)
+
+        //  The IPv6 format above is not IPv6 standard address string notation, as
+        //  required by Android, so we need to convert it.
+
+        //  Extract original string into szPdpAddr.
+        //  Then converted address is in szIpAddr1.
+        char szPdpAddr[MAX_IPADDR_SIZE] = {'\0'};
+        char szIpAddr1[MAX_IPADDR_SIZE] = {'\0'};
+        char szIpAddr2[MAX_IPADDR_SIZE] = {'\0'};
+        int state;
+
+        CChannel_Data* pChannelData =
+                                    CChannel_Data::GetChnlFromContextID(uiCID);
+        if (NULL == pChannelData)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - Could not get Data Channel for Context ID %d.\r\n", nCid);
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - No Data Channel for CID %u.\r\n",
+                                                                                        uiCID);
             goto Error;
         }
 
-
+        state = pChannelData->GetDataState();
+        if (E_DATA_STATE_ACTIVE != state)
         {
-            //  The response could come back as:
-            //  +CGPADDR: <cid>,<PDP_Addr1>,<PDP_Addr2>
-            //  PDP_Addr1 could be in IPv4, or IPv6.  PDP_Addr2 is present only for IPv4v6
-            //  in which case PDP_Addr1 is IPv4 and PDP_Addr2 is IPv6.
-            //  a1.a2.a3.a4 (for IPv4)
-            //  a1.a2.a3.a4.a5.a6.a7.a8.a9.a10.a11.a12.a13.a14.a15.a16 (for IPv6)
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - Wrong data state: %d\r\n",
+                                                                                state);
+            goto Error;
+        }
 
-            //  The IPv6 format above is not IPv6 standard address string notation, as
-            //  required by Android, so we need to convert it.
+        //  Extract ,<Pdp_Addr1>
+        if (!SkipString(szRsp, ",", szRsp) ||
+            !ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - Unable to parse <PDP_addr1>!\r\n");
+            goto Error;
+        }
 
-            //  Extract original string into szPdpAddr.
-            //  Then converted address is in pChannelData->m_szIpAddr.
-            const int MAX_IPADDR_SIZE = 100;
-            char szPdpAddr[MAX_IPADDR_SIZE] = {0};
+        //  The AT+CGPADDR command doesn't return IPV4V6 format
+        if (!ConvertIPAddressToAndroidReadable(szPdpAddr,
+                                                szIpAddr1,
+                                                MAX_IPADDR_SIZE,
+                                                szIpAddr2,
+                                                MAX_IPADDR_SIZE))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ConvertIPAddressToAndroidReadable failed!\r\n");
+            goto Error;
+        }
 
-            //  Extract ,<Pdp_Addr1>
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
+        //  Extract ,<PDP_Addr2>
+        //  Converted address is in szIpAddr2.
+        if (SkipString(szRsp, ",", szRsp))
+        {
+            if (!ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - Unable to parse <PDP_addr1>!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - Unable to parse <PDP_addr2>!\r\n");
                 goto Error;
             }
 
-            if (pChannelData->m_szIpAddr == NULL)
+            //  The AT+CGPADDR command doesn't return IPV4V6 format.
+            if (!ConvertIPAddressToAndroidReadable(szPdpAddr,
+                                                    szIpAddr1,
+                                                    MAX_IPADDR_SIZE,
+                                                    szIpAddr2,
+                                                    MAX_IPADDR_SIZE))
             {
-                pChannelData->m_szIpAddr = new char[MAX_IPADDR_SIZE];
-                pChannelData->m_szIpAddr[0] = '\0';
-            }
-
-            if (pChannelData->m_szIpAddr2 == NULL)
-            {
-                pChannelData->m_szIpAddr2 = new char[MAX_IPADDR_SIZE];
-                pChannelData->m_szIpAddr2[0] = '\0';
-            }
-
-
-            //  The AT+CGPADDR command doesn't return IPV4V6 format
-            if (!ConvertIPAddressToAndroidReadable(szPdpAddr, pChannelData->m_szIpAddr, MAX_IPADDR_SIZE, pChannelData->m_szIpAddr2, MAX_IPADDR_SIZE))
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ConvertIPAddressToAndroidReadable failed!\r\n");
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
                 goto Error;
             }
 
@@ -905,29 +612,26 @@ RIL_RESULT_CODE CTE_INF_6260::ParseIpAddress(RESPONSE_DATA & rRspData)
                 char szDummyIpAddr[MAX_IPADDR_SIZE];
                 szDummyIpAddr[0] = '\0';
 
-                if (!ConvertIPAddressToAndroidReadable(szPdpAddr, szDummyIpAddr, MAX_IPADDR_SIZE, pChannelData->m_szIpAddr2, MAX_IPADDR_SIZE))
+                if (!ConvertIPAddressToAndroidReadable(szPdpAddr, szDummyIpAddr, MAX_IPADDR_SIZE, szIpAddr2, MAX_IPADDR_SIZE))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
                     goto Error;
                 }
 
-            RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IPV4 address: %s\r\n", pChannelData->m_szIpAddr);
-            RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IPV6 address: %s\r\n", pChannelData->m_szIpAddr2);
+            RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IPV4 address: %s\r\n", szIpAddr1);
+            RIL_LOG_INFO("CTE_INF_6260::ParseIpAddress() - IPV6 address: %s\r\n", szIpAddr2);
             }
         }
 
+        pChannelData->SetIpAddress(szIpAddr1, szIpAddr2);
         res = RRIL_RESULT_OK;
     }
     else
     {
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - nCid=[%d] not valid!\r\n", nCid);
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseIpAddress() - uiCID=[%u] not valid!\r\n", uiCID);
     }
 
 Error:
-    // Signal completion of setting up data
-    if (pChannelData)
-        CEvent::Signal(pChannelData->m_pSetupIntermediateEvent);
-
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseIpAddress() - Exit\r\n");
     return res;
 }
@@ -940,175 +644,207 @@ RIL_RESULT_CODE CTE_INF_6260::ParseDns(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTE_INF_6260::ParseDns() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
     const char* szRsp = rRspData.szResponse;
-    UINT32 nCid = 0, nXDNSCid = 0;
-    UINT32  cbDns1 = 0;
-    UINT32  cbDns2 = 0;
+    UINT32 uiCID = 0;
+    char szDNS[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpDNS1[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpDNS2[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpV6DNS1[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpV6DNS2[MAX_IPADDR_SIZE] = {'\0'};
     CChannel_Data* pChannelData = NULL;
-    const int MAX_IPADDR_SIZE = 100;
-
-    //  Get Context ID from context data (passed in from ParseSetupDataCall)
-    nCid = (UINT32)rRspData.pContextData;
-
-    RIL_LOG_INFO("CTE_INF_6260::ParseDns() - looking for cid=[%d]\r\n", nCid);
+    int state;
 
     // Parse "+XDNS: "
     while (FindAndSkipString(szRsp, "+XDNS: ", szRsp))
     {
         // Parse <cid>
-        if (!ExtractUInt32(szRsp, nXDNSCid, szRsp))
+        if (!ExtractUInt32(szRsp, uiCID, szRsp))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Unable to parse <cid>!\r\n");
-            goto Error;
+            continue;
         }
 
-        if (nXDNSCid == nCid)
+        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+        if (NULL == pChannelData)
         {
-            RIL_LOG_INFO("CTE_INF_6260::ParseDns() - Found match! nCid=[%d]\r\n", nXDNSCid);
-            pChannelData = CChannel_Data::GetChnlFromContextID(nCid);
-            if (!pChannelData)
-            {
-                RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Could not get Data Channel for Context ID %d.\r\n", nXDNSCid);
-                goto Error;
-            }
-
-            {
-                //  The response could come back as:
-                //  +XDNS: <cid>,<Primary_DNS>,<Secondary_DNS>
-                //  Also, Primary_DNS and Secondary_DNS could be in ipv4, ipv6, or ipv4v6 format.
-                //  String is in dot-separated numeric (0-255) of the form:
-                //  a1.a2.a3.a4 (for IPv4)
-                //  a1.a2.a3.a4.a5.a6.a7.a8.a9.a10.a11.a12.a13.a14.a15.a16 (for IPv6)
-                //  a1.a2.a3.a4.a5.a6.a7.a8.a9.a10.a11.a12.a13.a14.a15.a16.a17.a18.a19.a20 (for IPv4v6)
-
-                //  The IPV6, and IPV4V6 format above is incompatible with Android, so we need to convert
-                //  to an Android-readable IPV6, IPV4 address format.
-
-                //  Extract original string into
-                //  Then converted address is in pChannelData->m_szDNS1, pChannelData->m_szIpV6DNS1 (if IPv4v6).
-
-                char szDNS[MAX_IPADDR_SIZE] = {0};
-
-                // Parse <primary DNS>
-                // Converted address is in m_szDNS1, m_szIpV6DNS1 (if necessary)
-                if (SkipString(szRsp, ",", szRsp))
-                {
-                    if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Unable to extact szDNS 1!\r\n");
-                        goto Error;
-                    }
-
-                    if (pChannelData->m_szDNS1== NULL)
-                    {
-                        pChannelData->m_szDNS1 = new char[MAX_IPADDR_SIZE];
-                        if (NULL == pChannelData->m_szDNS1)
-                        {
-                            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Cannot allocate m_szDNS1\r\n");
-                            goto Error;
-                        }
-                        pChannelData->m_szDNS1[0] = '\0';
-                    }
-
-                    if (pChannelData->m_szIpV6DNS1== NULL)
-                    {
-                        pChannelData->m_szIpV6DNS1 = new char[MAX_IPADDR_SIZE];
-                        if (NULL == pChannelData->m_szIpV6DNS1)
-                        {
-                            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Cannot allocate m_szIpV6DNS1\r\n");
-                            goto Error;
-                        }
-                        pChannelData->m_szIpV6DNS1[0] = '\0';
-                    }
-
-                    //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
-                    if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS1, MAX_IPADDR_SIZE,
-                            pChannelData->m_szIpV6DNS1, MAX_IPADDR_SIZE))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ConvertIPAddressToAndroidReadable failed! m_szDNS1\r\n");
-                        goto Error;
-                    }
-                    RIL_LOG_INFO("CTE_INF_6260::ParseDns() - m_szDNS1: %s\r\n", pChannelData->m_szDNS1);
-
-                    if (strlen(pChannelData->m_szIpV6DNS1) > 0)
-                    {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - m_szIpV6DNS1: %s\r\n", pChannelData->m_szIpV6DNS1);
-                    }
-                    else
-                    {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - m_szIpV6DNS1: <NONE>\r\n");
-                    }
-                }
-                //initialisation is made by ConvertIPAddressToAndroidReadable
-                if (pChannelData->m_szIpV6DNS2== NULL)
-                {
-                    pChannelData->m_szIpV6DNS2 = new char[MAX_IPADDR_SIZE];
-                    if (NULL == pChannelData->m_szIpV6DNS2)
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Cannot allocate m_szIpV6DNS2\r\n");
-                        goto Error;
-                    }
-                    pChannelData->m_szIpV6DNS2[0] = '\0';
-                }
-                if (pChannelData->m_szDNS2== NULL)
-                {
-                    pChannelData->m_szDNS2 = new char[MAX_IPADDR_SIZE];
-                    if (NULL == pChannelData->m_szDNS2)
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Cannot allocate m_szDNS2\r\n");
-                        goto Error;
-                    }
-                    pChannelData->m_szDNS2[0] = '\0';
-                }
-
-                // Parse <secondary DNS>
-                // Converted address is in m_szDNS2, m_szIpV6DNS2 (if necessary)
-                if (SkipString(szRsp, ",", szRsp))
-                {
-                    if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Unable to extact szDNS 2!\r\n");
-                        goto Error;
-                    }
-
-
-                    //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
-                    if (!ConvertIPAddressToAndroidReadable(szDNS, pChannelData->m_szDNS2, MAX_IPADDR_SIZE,
-                            pChannelData->m_szIpV6DNS2, MAX_IPADDR_SIZE))
-                    {
-                        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ConvertIPAddressToAndroidReadable failed! m_szDNS2\r\n");
-                        goto Error;
-                    }
-                    RIL_LOG_INFO("CTE_INF_6260::ParseDns() - m_szDNS2: %s\r\n", pChannelData->m_szDNS2);
-
-                    if (strlen(pChannelData->m_szIpV6DNS2) > 0)
-                    {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - m_szIpV6DNS2: %s\r\n", pChannelData->m_szIpV6DNS2);
-                    }
-                    else
-                    {
-                        RIL_LOG_INFO("CTE_INF_6260::ParseDns() - m_szIpV6DNS2: <NONE>\r\n");
-                    }
-                }
-            }
-
-            res = RRIL_RESULT_OK;
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - No Data Channel for CID %u.\r\n",
+                                                                                        uiCID);
+            continue;
         }
+
+        state = pChannelData->GetDataState();
+        if (E_DATA_STATE_ACTIVE != state)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Wrong data state: %d\r\n",
+                                                                                state);
+            continue;
+        }
+
+        //  The response could come back as:
+        //  +XDNS: <cid>,<Primary_DNS>,<Secondary_DNS>
+        //  Also, Primary_DNS and Secondary_DNS could be in ipv4, ipv6, or ipv4v6 format.
+        //  String is in dot-separated numeric (0-255) of the form:
+        //  a1.a2.a3.a4 (for IPv4)
+        //  a1.a2.a3.a4.a5.a6.a7.a8.a9.a10.a11.a12.a13.a14.a15.a16 (for IPv6)
+        //  a1.a2.a3.a4.a5.a6.a7.a8.a9.a10.a11.a12.a13.a14.a15.a16.a17.a18.a19.a20 (for IPv4v6)
+
+        //  The IPV6, and IPV4V6 format above is incompatible with Android, so we need to convert
+        //  to an Android-readable IPV6, IPV4 address format.
+
+        //  Extract original string into
+        //  Then converted address is in szIpDNS1, szIpV6DNS1 (if IPv4v6).
+
+        // Parse <primary DNS>
+        // Converted address is in szIpDNS1, szIpV6DNS1 (if necessary)
+        if (SkipString(szRsp, ",", szRsp))
+        {
+            if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Unable to extact szDNS 1!\r\n");
+                continue;
+            }
+
+            //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
+            if (!ConvertIPAddressToAndroidReadable(szDNS,
+                                                    szIpDNS1,
+                                                    MAX_IPADDR_SIZE,
+                                                    szIpV6DNS1,
+                                                    MAX_IPADDR_SIZE))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ConvertIPAddressToAndroidReadable failed! m_szDNS1\r\n");
+                continue;
+            }
+
+            RIL_LOG_INFO("CTE_INF_6260::ParseDns() - szIpDNS1: %s\r\n", szIpDNS1);
+
+            if (strlen(szIpV6DNS1) > 0)
+            {
+                RIL_LOG_INFO("CTE_INF_6260::ParseDns() - szIpV6DNS1: %s\r\n", szIpV6DNS1);
+            }
+            else
+            {
+                RIL_LOG_INFO("CTE_INF_6260::ParseDns() - szIpV6DNS1: <NONE>\r\n");
+            }
+        }
+
+        // Parse <secondary DNS>
+        // Converted address is in szIpDNS2, szIpV6DNS2 (if necessary)
+        if (SkipString(szRsp, ",", szRsp))
+        {
+            if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Unable to extact szDNS 2!\r\n");
+                continue;
+            }
+
+            //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
+            if (!ConvertIPAddressToAndroidReadable(szDNS,
+                                                    szIpDNS2,
+                                                    MAX_IPADDR_SIZE,
+                                                    szIpV6DNS2,
+                                                    MAX_IPADDR_SIZE))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - ConvertIPAddressToAndroidReadable failed! szIpDNS2\r\n");
+                continue;
+            }
+
+            RIL_LOG_INFO("CTE_INF_6260::ParseDns() - szIpDNS2: %s\r\n", szIpDNS2);
+
+            if (strlen(szIpV6DNS2) > 0)
+            {
+                RIL_LOG_INFO("CTE_INF_6260::ParseDns() - szIpV6DNS2: %s\r\n", szIpV6DNS2);
+            }
+            else
+            {
+                RIL_LOG_INFO("CTE_INF_6260::ParseDns() - szIpV6DNS2: <NONE>\r\n");
+            }
+        }
+
+        pChannelData->SetDNS(szIpDNS1, szIpV6DNS1, szIpDNS2, szIpV6DNS2);
+
+        res = RRIL_RESULT_OK;
     }
 
 Error:
-    if (RRIL_RESULT_ERROR == res)
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseDns() - Exit\r\n");
+    return res;
+}
+
+BOOL CTE_INF_6260::EnterDataState(REQUEST_DATA& rReqData, UINT32 uiCID)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::EnterDataState() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                                        "AT+CGDATA=\"M-RAW_IP\",%d\r", uiCID))
     {
-        //  We didn't parse correctly or didn't find context ID in this response
-        RIL_LOG_CRITICAL("CTE_INF_6260::ParseDns() - Didn't find context ID=[%d] in response\r\n", nCid);
+        RIL_LOG_CRITICAL("CTE_INF_6260::EnterDataState() -  cannot create CGDATA command\r\n");
+        goto Error;
     }
 
-    // Signal completion of setting up data
-    if (pChannelData)
-        CEvent::Signal(pChannelData->m_pSetupDoneEvent);
+    if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+CEER\r", sizeof(rReqData.szCmd2)))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::EnterDataState() - Cannot create CEER command\r\n");
+    }
 
-    RIL_LOG_VERBOSE("CTE_INF_6260::ParseDns() - Exit\r\n");
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::EnterDataState() - Exit\r\n");
+    return bRet;
+}
+
+RIL_RESULT_CODE CTE_INF_6260::ParseEnterDataState(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseEnterDataState() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+    UINT32 uiCause;
+
+    if (ParseCEER(rRspData, uiCause))
+    {
+        RIL_LOG_INFO("CTE_INF_6260::ParseEnterDataState() - uiCause: %u\r\n",
+                                                                    uiCause);
+        S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+        UINT32 uiCID = 0;
+        CChannel_Data* pChannelData = NULL;
+        int failCause = PDP_FAIL_ERROR_UNSPECIFIED;
+
+        if (NULL == rRspData.pContextData ||
+                sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA) != rRspData.cbContextData)
+        {
+            RIL_LOG_INFO("CTE_INF_6260::ParseEnterDataState() - Invalid context data\r\n");
+            goto Error;
+        }
+
+        pDataCallContextData =
+                        (S_SETUP_DATA_CALL_CONTEXT_DATA*)rRspData.pContextData;
+        uiCID = pDataCallContextData->uiCID;
+
+        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+        if (NULL == pChannelData)
+        {
+            RIL_LOG_INFO("CTE_INF_6260::ParseEnterDataState() - No Data Channel for CID %u.\r\n",
+                                                                        uiCID);
+            goto Error;
+        }
+
+        failCause = MapErrorCodeToRilDataFailCause(uiCause);
+        pChannelData->SetDataFailCause(failCause);
+        goto Error;
+    }
+
+    if (!FindAndSkipString(pszRsp, "CONNECT", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseEnterDataState() -  Did not get \"CONNECT\" response.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseEnterDataState() - Exit\r\n");
     return res;
 }
 
@@ -2016,7 +1752,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
 
     char * pszCid = NULL;
     char * pszReason = NULL;
-    UINT32 uiCid = 0;
+    UINT32 uiCID = 0;
 
     if (uiDataSize < (1 * sizeof(char *)))
     {
@@ -2053,7 +1789,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
     }
 
     //  Get CID as UINT32.
-    if (sscanf(pszCid, "%u", &uiCid) == EOF)
+    if (sscanf(pszCid, "%u", &uiCID) == EOF)
     {
         // Error
         RIL_LOG_CRITICAL("CTE_INF_6260::CoreDeactivateDataCall() -  cannot convert %s to int\r\n", pszCid);
@@ -2068,20 +1804,29 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
         res = RRIL_RESULT_OK;
         rReqData.pContextData = (void*)((UINT32)0);
 
-        if (uiCid > 0 && uiCid <= MAX_PDP_CONTEXTS)
+        if (uiCID > 0 && uiCID <= MAX_PDP_CONTEXTS)
         {
-            DataConfigDown(uiCid);
+            DataConfigDown(uiCID);
         }
     }
     else
     {
+        UINT32* pCID = (UINT32*)malloc(sizeof(UINT32));
+        if (NULL == pCID)
+        {
+            goto Error;
+        }
+
+        *pCID = uiCID;
+
         if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%s\r", pszCid))
         {
             res = RRIL_RESULT_OK;
         }
 
         //  Set the context of this command to the CID (for multiple context support).
-        rReqData.pContextData = (void*)uiCid;  // Store this as an UINT32.
+        rReqData.pContextData = (void*)pCID;
+        rReqData.cbContextData = sizeof(UINT32);
     }
 
 Error:
@@ -2089,38 +1834,13 @@ Error:
     return res;
 }
 
-
 RIL_RESULT_CODE CTE_INF_6260::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_INFO("CTE_INF_6260::ParseDeactivateDataCall() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseDeactivateDataCall() - Enter\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    //  Set CID to 0 for this data channel
-    UINT32 uiCID = 0;
-    uiCID = (UINT32)rRspData.pContextData;
-
-    if (uiCID > 0)
-    {
-        CChannel_Data* pChannelData = NULL;
-        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
-        if (pChannelData)
-        {
-            RIL_LOG_INFO("CTE_INF_6260::ParseDeactivateDataCall() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", pChannelData->GetRilChannel(), uiCID);
-        }
-        if (!DataConfigDown(uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_6260::ParseDeactivateDataCall() - Couldn't DataConfigDown chnl=[%d] CID=[%d]\r\n", rRspData.uiChannel, uiCID);
-        }
-    }
-
-    res = RRIL_RESULT_OK;
-
-Error:
-    RIL_LOG_INFO("CTE_INF_6260::ParseDeactivateDataCall() - Exit\r\n");
-    return res;
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseDeactivateDataCall() - Exit\r\n");
+    return RRIL_RESULT_OK;
 }
-
 
 //
 // RIL_REQUEST_OEM_HOOK_RAW 59
@@ -4553,3 +4273,701 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimPinRetryCount(RESPONSE_DATA& rRspData)
     return res;
 }
 
+void CTE_INF_6260::PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::PostSetupDataCallCmdHandler() Enter\r\n");
+
+    BOOL bSuccess = FALSE;
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+    UINT32 uiCID = 0;
+    CChannel_Data* pChannelData = NULL;
+
+    if (NULL == rData.pContextData ||
+            sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA) != rData.uiContextDataSize)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::PostSetupDataCallCmdHandler() - Invalid context data\r\n");
+        goto Error;
+    }
+
+    pDataCallContextData = (S_SETUP_DATA_CALL_CONTEXT_DATA*)rData.pContextData;
+    uiCID = pDataCallContextData->uiCID;
+
+    if (RIL_E_SUCCESS != rData.uiResultCode)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostSetupDataCallCmdHandler() - Failure\r\n");
+        goto Error;
+    }
+
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostSetupDataCallCmdHandler() - No Data Channel for CID %u.\r\n",
+                                                                    uiCID);
+        goto Error;
+    }
+
+    pChannelData->SetDataState(E_DATA_STATE_ACTIVATING);
+
+    if (!CreatePdpContextActivateReq(rData.uiChannel, rData.pRilToken,
+                                    rData.uiRequestId, rData.pContextData,
+                                    rData.uiContextDataSize,
+                                    &CTE::ParsePdpContextActivate,
+                                    &CTE::PostPdpContextActivateCmdHandler))
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostSetupDataCallCmdHandler() - CreatePdpContextActivateReq failed\r\n");
+        goto Error;
+    }
+
+    bSuccess = TRUE;
+Error:
+    if (!bSuccess)
+    {
+        free(rData.pContextData);
+        rData.pContextData = NULL;
+
+        HandleSetupDataCallFailure(uiCID, rData.pRilToken, rData.uiResultCode);
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::PostSetupDataCallCmdHandler() Exit\r\n");
+}
+
+void CTE_INF_6260::PostPdpContextActivateCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::PostPdpContextActivateCmdHandler() Enter\r\n");
+
+    CChannel_Data* pChannelData = NULL;
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+    UINT32 uiCID = 0;
+    int state;
+    BOOL bSuccess = FALSE;
+
+    if (NULL == rData.pContextData ||
+            sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA) != rData.uiContextDataSize)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostPdpContextActivateCmdHandler() - Invalid context data\r\n");
+        goto Error;
+    }
+
+    pDataCallContextData = (S_SETUP_DATA_CALL_CONTEXT_DATA*)rData.pContextData;
+    uiCID = pDataCallContextData->uiCID;
+
+    if (RIL_E_SUCCESS != rData.uiResultCode)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostPdpContextActivateCmdHandler() - Failure\r\n");
+        goto Error;
+    }
+
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostPdpContextActivateCmdHandler() - No Data Channel for CID %u.\r\n",
+                                                                    uiCID);
+        goto Error;
+    }
+
+    state = pChannelData->GetDataState();
+    if (E_DATA_STATE_ACTIVATING != state)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostPdpContextActivateCmdHandler() - Wrong data state: %d\r\n", state);
+        goto Error;
+    }
+
+    pChannelData->SetDataState(E_DATA_STATE_ACTIVE);
+    if (!CreateQueryIpAndDnsReq(rData.uiChannel, rData.pRilToken,
+                                    rData.uiRequestId, rData.pContextData,
+                                    rData.uiContextDataSize,
+                                    &CTE::ParseQueryIpAndDns,
+                                    &CTE::PostQueryIpAndDnsCmdHandler))
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostPdpContextActivateCmdHandler() - CreateQueryIpAndDnsReq failed\r\n");
+        goto Error;
+    }
+
+    bSuccess = TRUE;
+Error:
+    if (!bSuccess)
+    {
+        free(rData.pContextData);
+        rData.pContextData = NULL;
+
+        HandleSetupDataCallFailure(uiCID, rData.pRilToken, rData.uiResultCode);
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::PostPdpContextActivateCmdHandler() Exit\r\n");
+}
+
+void CTE_INF_6260::PostQueryIpAndDnsCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::PostQueryIpAndDnsCmdHandler() Enter\r\n");
+
+    UINT32 uiCID = 0;
+    CChannel_Data* pChannelData = NULL;
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;;
+    int state;
+    BOOL bSuccess = FALSE;
+
+    if (NULL == rData.pContextData ||
+            sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA) != rData.uiContextDataSize)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostQueryIpAndDnsCmdHandler() - Invalid context data\r\n");
+        goto Error;
+    }
+
+    pDataCallContextData = (S_SETUP_DATA_CALL_CONTEXT_DATA*)rData.pContextData;
+    uiCID = pDataCallContextData->uiCID;
+
+    if (RIL_E_SUCCESS != rData.uiResultCode)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostQueryIpAndDnsCmdHandler() - Failure\r\n");
+        goto Error;
+    }
+
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostQueryIpAndDnsCmdHandler() - No Data Channel for CID %u.\r\n",
+                                                                    uiCID);
+        goto Error;
+    }
+
+    state = pChannelData->GetDataState();
+    if (E_DATA_STATE_ACTIVE != state)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostQueryIpAndDnsCmdHandler() - Wrong data state: %d\r\n",
+                                                                        state);
+        goto Error;
+    }
+
+    if (!CreateEnterDataStateReq(rData.uiChannel, rData.pRilToken,
+                                    rData.uiRequestId, rData.pContextData,
+                                    rData.uiContextDataSize,
+                                    &CTE::ParseEnterDataState,
+                                    &CTE::PostEnterDataStateCmdHandler))
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostQueryIpAndDnsCmdHandler() - CreateEnterDataStateReq failed\r\n");
+        goto Error;
+    }
+
+    bSuccess = TRUE;
+
+Error:
+    if (!bSuccess)
+    {
+        free(rData.pContextData);
+        rData.pContextData = NULL;
+
+        HandleSetupDataCallFailure(uiCID, rData.pRilToken, rData.uiResultCode);
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::PostQueryIpAndDnsCmdHandler() Exit\r\n");
+}
+
+void CTE_INF_6260::PostEnterDataStateCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::PostEnterDataStateCmdHandler() Enter\r\n");
+
+    UINT32 uiCID = 0;
+    CChannel_Data* pChannelData = NULL;
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;;
+    int state;
+    BOOL bSuccess = FALSE;
+
+    if (NULL == rData.pContextData ||
+            sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA) != rData.uiContextDataSize)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostEnterDataStateCmdHandler() - Invalid context data\r\n");
+        goto Error;
+    }
+
+    pDataCallContextData = (S_SETUP_DATA_CALL_CONTEXT_DATA*)rData.pContextData;
+    uiCID = pDataCallContextData->uiCID;
+
+    if (RIL_E_SUCCESS != rData.uiResultCode)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostEnterDataStateCmdHandler() - Failure\r\n");
+        goto Error;
+    }
+
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostEnterDataStateCmdHandler() - No Data Channel for CID %u.\r\n",
+                                                                    uiCID);
+        goto Error;
+    }
+
+    state = pChannelData->GetDataState();
+    if (E_DATA_STATE_ACTIVE != state)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostEnterDataStateCmdHandler() - Wrong data state: %d\r\n",
+                                                                        state);
+        goto Error;
+    }
+
+    if (!SetupInterface(uiCID))
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostEnterDataStateCmdHandler() - SetupInterface failed\r\n");
+        goto Error;
+    }
+
+    bSuccess = TRUE;
+
+Error:
+    free(rData.pContextData);
+    rData.pContextData = NULL;
+
+    if (!bSuccess)
+    {
+        HandleSetupDataCallFailure(uiCID, rData.pRilToken, rData.uiResultCode);
+    }
+    else
+    {
+        HandleSetupDataCallSuccess(uiCID, rData.pRilToken);
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::PostEnterDataStateCmdHandler() Exit\r\n");
+}
+
+void CTE_INF_6260::PostDeactivateDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::PostDeactivateDataCallCmdHandler() Enter\r\n");
+
+    UINT32 uiCID;
+
+    if (RIL_E_SUCCESS != rData.uiResultCode)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostDeactivateDataCallCmdHandler() request failure\r\n");
+        goto Error;
+    }
+
+    if (NULL == rData.pContextData ||
+            sizeof(UINT32) != rData.uiContextDataSize)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::PostDeactivateDataCallCmdHandler() - Invalid context data\r\n");
+        goto Error;
+    }
+
+    uiCID = *((UINT32*)rData.pContextData);
+
+    DataConfigDown(uiCID);
+
+Error:
+    free(rData.pContextData);
+    rData.pContextData = NULL;
+
+    if (NULL != rData.pRilToken)
+    {
+        RIL_onRequestComplete(rData.pRilToken, RIL_E_SUCCESS, NULL, 0);
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::PostDeactivateDataCallCmdHandler() Exit\r\n");
+}
+
+BOOL CTE_INF_6260::CreatePdpContextActivateReq(UINT32 uiChannel,
+                                            RIL_Token rilToken,
+                                            UINT32 uiReqId, void* pData,
+                                            UINT32 uiDataSize,
+                                            PFN_TE_PARSE pParseFcn,
+                                            PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreatePdpContextActivateReq() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    REQUEST_DATA reqData;
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    if (!PdpContextActivate(reqData, pData, uiDataSize))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreatePdpContextActivateReq() - Unable to create AT command data\r\n");
+        goto Error;
+    }
+    else
+    {
+        CCommand * pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
+                                                pParseFcn, pPostCmdHandlerFcn);
+        if (pCmd)
+        {
+            pCmd->SetContextData(pData);
+            pCmd->SetContextDataSize(uiDataSize);
+            pCmd->SetHighPriority();
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CreatePdpContextActivateReq() - Unable to add command to queue\r\n");
+                delete pCmd;
+                pCmd = NULL;
+                goto Error;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CreatePdpContextActivateReq() - Unable to allocate memory for command\r\n");
+            goto Error;
+        }
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreatePdpContextActivateReq() - Exit\r\n");
+    return bRet;
+}
+
+BOOL CTE_INF_6260::CreateQueryIpAndDnsReq(UINT32 uiChannel, RIL_Token rilToken,
+                                            UINT32 uiReqId, void* pData,
+                                            UINT32 uiDataSize,
+                                            PFN_TE_PARSE pParseFcn,
+                                            PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateQueryIpAndDnsReq() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    REQUEST_DATA reqData;
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+
+    if (NULL == pData || sizeof(pDataCallContextData) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateQueryIpAndDnsReq() - Invalid context data\r\n");
+        goto Error;
+    }
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+    pDataCallContextData = (S_SETUP_DATA_CALL_CONTEXT_DATA*)pData;
+
+    if (!QueryIpAndDns(reqData, pDataCallContextData->uiCID))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateQueryIpAndDnsReq() - Unable to create AT command data\r\n");
+        goto Error;
+    }
+    else
+    {
+        CCommand * pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
+                                                pParseFcn, pPostCmdHandlerFcn);
+        if (pCmd)
+        {
+            pCmd->SetContextData(pData);
+            pCmd->SetContextDataSize(uiDataSize);
+            pCmd->SetHighPriority();
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CreateQueryIpAndDnsReq() - Unable to add command to queue\r\n");
+                delete pCmd;
+                pCmd = NULL;
+                goto Error;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CreateQueryIpAndDnsReq() - Unable to allocate memory for command\r\n");
+            goto Error;
+        }
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateQueryIpAndDnsReq() - Exit\r\n");
+    return bRet;
+}
+
+BOOL CTE_INF_6260::CreateEnterDataStateReq(UINT32 uiChannel, RIL_Token rilToken,
+                                            UINT32 uiReqId, void* pData,
+                                            UINT32 uiDataSize,
+                                            PFN_TE_PARSE pParseFcn,
+                                            PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateEnterDataStateReq() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    REQUEST_DATA reqData;
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+
+    if (NULL == pData || sizeof(pDataCallContextData) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateEnterDataStateReq() - Invalid context data\r\n");
+        goto Error;
+    }
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+    pDataCallContextData = (S_SETUP_DATA_CALL_CONTEXT_DATA*)pData;
+
+    if (!EnterDataState(reqData, pDataCallContextData->uiCID))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CreateEnterDataStateReq() - Unable to create AT command data\r\n");
+        goto Error;
+    }
+    else
+    {
+        CCommand * pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
+                                                pParseFcn, pPostCmdHandlerFcn);
+        if (pCmd)
+        {
+            pCmd->SetContextData(pData);
+            pCmd->SetContextDataSize(uiDataSize);
+            pCmd->SetHighPriority();
+            pCmd->SetAlwaysParse();
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CreateEnterDataStateReq() - Unable to add command to queue\r\n");
+                delete pCmd;
+                pCmd = NULL;
+                goto Error;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CreateEnterDataStateReq() - Unable to allocate memory for command\r\n");
+            goto Error;
+        }
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::CreateEnterDataStateReq() - Exit\r\n");
+    return bRet;
+}
+
+BOOL CTE_INF_6260::SetupInterface(UINT32 uiCID)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::SetupInterface() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    char szNetworkInterfaceName[IFNAMSIZ];
+    struct gsm_netconfig netconfig;
+    int fd = -1;
+    int ret = 0;
+    CChannel_Data* pChannelData = NULL;
+    PDP_TYPE eDataConnectionType = PDP_TYPE_IPV4;  //  dummy for now, set to IPv4.
+    char szPdpType[MAX_BUFFER_SIZE] = {'\0'};
+    char szIpAddr[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpAddr2[MAX_IPADDR_SIZE] = {'\0'};
+    UINT32 uiChannel = 0;
+    int state = 0;
+
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::SetupInterface() - No Data Channel for CID %u.\r\n",
+                                                                    uiCID);
+        goto Error;
+    }
+
+    state = pChannelData->GetDataState();
+    if (E_DATA_STATE_ACTIVE != state)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::SetupInterface() - Invalid data state %d.\r\n",
+                                                                    state);
+        goto Error;
+    }
+
+    if (!PrintStringNullTerminate(szNetworkInterfaceName, IFNAMSIZ,
+                            "%s%u", m_szNetworkInterfaceNamePrefix, uiCID-1))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::SetupInterface() - Cannot set network interface name\r\n");
+        goto Error;
+    }
+    else
+    {
+        RIL_LOG_INFO("CTE_INF_6260::SetupInterface() - szNetworkInterfaceName=[%s], CID=[%u]\r\n",
+                                                szNetworkInterfaceName, uiCID);
+    }
+
+    pChannelData->SetInterfaceName(szNetworkInterfaceName);
+    uiChannel = pChannelData->GetRilChannel();
+
+    // N_GSM related code
+    netconfig.adaption = 3; /// @TODO: Use meaningful name
+    netconfig.protocol = htons(ETH_P_IP);
+    strncpy(netconfig.if_name, szNetworkInterfaceName, IFNAMSIZ - 1);
+    netconfig.if_name[IFNAMSIZ - 1] = '\0';
+
+    // Add IF NAME
+    fd = pChannelData->GetFD();
+    if (fd >= 0)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::SetupInterface() - ***** PUTTING channel=[%u] in DATA MODE *****\r\n",
+                                                                    uiChannel);
+        ret = ioctl(fd, GSMIOC_ENABLE_NET, &netconfig); // Enable data channel
+        if (ret < 0)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::SetupInterface() - Unable to create interface %s : %s \r\n",
+                                            netconfig.if_name,strerror(errno));
+            goto Error;
+        }
+    }
+    else
+    {
+        //  No FD.
+        RIL_LOG_CRITICAL("CTE_INF_6260::SetupInterface() - Could not get Data Channel chnl=[%u] fd=[%d].\r\n",
+                                                                uiChannel, fd);
+        goto Error;
+    }
+
+    pChannelData->GetIpAddress(szIpAddr, sizeof(szIpAddr),
+                                    szIpAddr2, sizeof(szIpAddr2));
+
+    if (szIpAddr2[0] == '\0')
+    {
+        eDataConnectionType = PDP_TYPE_IPV4;
+        strcpy(szPdpType, "IPV4");
+    }
+    else if (szIpAddr[0] == '\0')
+    {
+        eDataConnectionType = PDP_TYPE_IPV6;
+        strcpy(szPdpType, "IPV6");
+    }
+    else
+    {
+        eDataConnectionType = PDP_TYPE_IPV4V6;
+        strcpy(szPdpType, "IPV4V6");
+    }
+
+    pChannelData->SetPdpType(szPdpType);
+
+    // set interface address(es) and bring up interface
+    if (!DataConfigUp(szNetworkInterfaceName, pChannelData,
+                                                        eDataConnectionType))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::SetupInterface() - Unable to bringup interface ifconfig\r\n");
+        goto Error;
+    }
+
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_INF_6260::SetupInterface() Exit\r\n");
+    return bRet;
+}
+
+void CTE_INF_6260::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::HandleSetupDataCallSuccess() - Enter\r\n");
+
+    RIL_Data_Call_Response_v6 dataCallResp;
+    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+    char szInterfaceName[MAX_INTERFACE_NAME_SIZE] = {'\0'};
+    char szIPAddress[MAX_BUFFER_SIZE] = {'\0'};
+    char szDNS[MAX_BUFFER_SIZE] = {'\0'};
+    char szGateway[MAX_IPADDR_SIZE] = {'\0'};
+    S_DATA_CALL_INFO sDataCallInfo;
+    CChannel_Data* pChannelData = NULL;
+
+    memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
+    dataCallResp.status = PDP_FAIL_ERROR_UNSPECIFIED;
+    dataCallResp.suggestedRetryTime = -1;
+
+    CTE::GetTE().SetupDataCallOngoing(FALSE);
+
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::HandleSetupDataCallSuccess() - No Data Channel for CID %u.\r\n",
+                                                                    uiCID);
+        goto Error;
+    }
+
+    pChannelData->GetDataCallInfo(sDataCallInfo);
+
+    snprintf(szDNS, MAX_BUFFER_SIZE-1, "%s %s %s %s",
+                        sDataCallInfo.szDNS1, sDataCallInfo.szDNS2,
+                        sDataCallInfo.szIpV6DNS1, sDataCallInfo.szIpV6DNS2);
+    szDNS[MAX_BUFFER_SIZE-1] = '\0';
+
+    snprintf(szIPAddress, MAX_BUFFER_SIZE-1, "%s %s",
+                    sDataCallInfo.szIpAddr1, sDataCallInfo.szIpAddr2);
+    szIPAddress[MAX_BUFFER_SIZE-1] = '\0';
+
+    strncpy(szGateway, sDataCallInfo.szGateways, MAX_IPADDR_SIZE-1);
+    szGateway[MAX_IPADDR_SIZE-1] = '\0';
+
+    strncpy(szPdpType, sDataCallInfo.szPdpType, MAX_PDP_TYPE_SIZE-1);
+    szPdpType[MAX_PDP_TYPE_SIZE-1] = '\0';
+
+    strncpy(szInterfaceName, sDataCallInfo.szInterfaceName,
+                                            MAX_INTERFACE_NAME_SIZE-1);
+    szInterfaceName[MAX_INTERFACE_NAME_SIZE-1] = '\0';
+
+    dataCallResp.status = sDataCallInfo.failCause;
+    dataCallResp.suggestedRetryTime = -1;
+    dataCallResp.cid = sDataCallInfo.uiCID;
+    dataCallResp.active = 2;
+    dataCallResp.type = szPdpType;
+    dataCallResp.addresses = szIPAddress;
+    dataCallResp.dnses = szDNS;
+    dataCallResp.gateways = szGateway;
+    dataCallResp.ifname = szInterfaceName;
+
+    if (CRilLog::IsFullLogBuild())
+    {
+        RIL_LOG_INFO("status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
+                      dataCallResp.status, dataCallResp.suggestedRetryTime,
+                      dataCallResp.cid, dataCallResp.active,
+                      dataCallResp.type, dataCallResp.ifname,
+                      dataCallResp.addresses, dataCallResp.dnses,
+                      dataCallResp.gateways);
+    }
+
+Error:
+    if (NULL != pRilToken)
+    {
+        RIL_onRequestComplete(pRilToken, RIL_E_SUCCESS, &dataCallResp,
+                                    sizeof(RIL_Data_Call_Response_v6));
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::HandleSetupDataCallSuccess() - Exit\r\n");
+}
+
+void CTE_INF_6260::HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken,
+                                                        UINT32 uiResultCode)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::HandleSetupDataCallFailure() - Enter\r\n");
+
+    int state;
+    int failCause = PDP_FAIL_ERROR_UNSPECIFIED;
+
+    CTE::GetTE().SetupDataCallOngoing(FALSE);
+
+    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_INFO("CTE_INF_6260::HandleSetupDataCallFailure() - No data channel for CID: %u\r\n",
+                                                                        uiCID);
+        goto Complete;
+    }
+
+    state = pChannelData->GetDataState();
+    failCause = pChannelData->GetDataFailCause();
+    if (PDP_FAIL_NONE == failCause)
+    {
+        failCause = PDP_FAIL_ERROR_UNSPECIFIED;
+    }
+
+    RIL_LOG_INFO("CTE_INF_6260::HandleSetupDataCallFailure() - state: %d\r\n",
+                                                                        state);
+
+    switch (state)
+    {
+        case E_DATA_STATE_ACTIVE:
+            /*
+             * @TODO: Delay the completion of ril request till the
+             * data call is deactivated successfully?
+             */
+            RIL_requestTimedCallback(triggerDeactivateDataCall,
+                                                        (void*)uiCID, 0, 0);
+            break;
+        default:
+            DataConfigDown(uiCID);
+            break;
+    }
+
+Complete:
+    if (NULL != pRilToken)
+    {
+        RIL_Data_Call_Response_v6 dataCallResp;
+        memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
+        dataCallResp.status = failCause;
+        dataCallResp.suggestedRetryTime = -1;
+        RIL_onRequestComplete(pRilToken, RIL_E_SUCCESS, &dataCallResp,
+                                    sizeof(RIL_Data_Call_Response_v6));
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::HandleSetupDataCallFailure() - Exit\r\n");
+}

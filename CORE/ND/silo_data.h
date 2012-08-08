@@ -40,8 +40,6 @@ public:
 
 protected:
     //  Parse notification functions here.
-    //virtual BOOL    ParseTriplePlus(CResponse* const pResponse, const char*& rszPointer);
-    virtual BOOL    ParseConnect(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseNoCarrier(CResponse* const pResponse, const char*& rszPointer);
 };
 

@@ -55,11 +55,6 @@ void triggerQuerySimSmsStoreStatus(void *param);
 void triggerUSSDNotification(void *param);
 
 //
-// Callback to get data call list
-//
-void triggerDataCallListChanged(void *param);
-
-//
 // Callback to trigger deactivate Data call
 //
 void triggerDeactivateDataCall(void *param);

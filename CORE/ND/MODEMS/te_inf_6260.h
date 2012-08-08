@@ -33,8 +33,6 @@ private:
 
 protected:
     int m_currentNetworkType;
-    CEvent* m_pQueryDataCallFailCauseEvent;
-    int m_dataCallFailCause;
     char m_szUICCID[MAX_PROP_VALUE];
 
 public:
@@ -45,9 +43,6 @@ public:
     virtual RIL_RESULT_CODE ParseGetSimStatus(RESPONSE_DATA & rRspData);
 
     virtual RIL_RESULT_CODE ParseEnterSimPin(RESPONSE_DATA & rRspData);
-
-    // RIL_REQUEST_SIGNAL_STRENGTH 19
-    //virtual RIL_RESULT_CODE ParseSignalStrength(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SETUP_DATA_CALL 27
     virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 uiCID);
@@ -126,10 +121,9 @@ public:
     virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
 
     // internal response handlers
-    virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);
-    virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
-    virtual RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
-    virtual RIL_RESULT_CODE QueryDataCallFailCause();
+    virtual RIL_RESULT_CODE ParsePdpContextActivate(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseQueryIpAndDns(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseEnterDataState(RESPONSE_DATA& rRspData);
 
     // Silent Pin Entry request and response handler
     virtual BOOL HandleSilentPINEntry(void* pRilToken, void* pContextData, int dataSize);
@@ -143,6 +137,36 @@ public:
     // Handles the PIN2 provided SIM IO requests
     RIL_RESULT_CODE HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs,
                                            REQUEST_DATA& rReqData);
+
+    virtual BOOL CreatePdpContextActivateReq(UINT32 uiChannel, RIL_Token rilToken,
+                                    UINT32 uiReqId,void* pData,
+                                    UINT32 uiDataSize, PFN_TE_PARSE pParseFcn,
+                                    PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn);
+    virtual BOOL CreateQueryIpAndDnsReq(UINT32 uiChannel, RIL_Token rilToken,
+                                    UINT32 uiReqId, void* pData,
+                                    UINT32 uiDataSize, PFN_TE_PARSE pParseFcn,
+                                    PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn);
+    virtual BOOL CreateEnterDataStateReq(UINT32 uiChannel, RIL_Token rilToken,
+                                    UINT32 uiReqId, void* pData,
+                                    UINT32 uiDataSize, PFN_TE_PARSE pParseFcn,
+                                    PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn);
+    virtual BOOL PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
+                                    UINT32 uiDataSize);
+    virtual BOOL QueryIpAndDns(REQUEST_DATA& rReqData, UINT32 uiCID);
+    virtual BOOL EnterDataState(REQUEST_DATA& rReqData, UINT32 uiCID);
+
+    virtual void PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
+    virtual void PostPdpContextActivateCmdHandler(POST_CMD_HANDLER_DATA& rData);
+    virtual void PostQueryIpAndDnsCmdHandler(POST_CMD_HANDLER_DATA& rData);
+    virtual void PostEnterDataStateCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    virtual void PostDeactivateDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    virtual BOOL SetupInterface(UINT32 uiCID);
+
+    virtual void HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken);
+    virtual void HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken,
+                                                    UINT32 uiResultCode);
 
 private:
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
@@ -165,6 +189,9 @@ private:
     RIL_RESULT_CODE ParseCGED(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseXCGEDPAGE(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseCGSMS(const char* pszRsp, RESPONSE_DATA& rRspData);
+    // internal response handlers
+    RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
     RIL_RESULT_CODE ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRspData);
 #endif // M2_DUALSIM_FEATURE_ENABLED

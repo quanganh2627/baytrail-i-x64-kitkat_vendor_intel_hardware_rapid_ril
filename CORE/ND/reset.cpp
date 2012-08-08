@@ -93,23 +93,7 @@ void ModemResetUpdate()
 
     RIL_LOG_VERBOSE("ModemResetUpdate() - Enter\r\n");
 
-    extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
-    CChannel_Data* pChannelData = NULL;
-
-    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
-    {
-        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
-            continue;
-
-        pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
-        //  We are taking down all data connections here, so we are looping over each data channel.
-        //  Don't call DataConfigDown with invalid CID.
-        if (pChannelData && pChannelData->GetContextID() > 0)
-        {
-            RIL_LOG_INFO("ModemResetUpdate() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", i, pChannelData->GetContextID());
-            DataConfigDown(pChannelData->GetContextID());
-        }
-    }
+    CleanupAllDataConnections();
 
     //  Tell Android no more data connection
     RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);

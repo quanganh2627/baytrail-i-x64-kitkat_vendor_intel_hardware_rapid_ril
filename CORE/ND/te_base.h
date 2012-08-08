@@ -269,10 +269,6 @@ public:
     virtual RIL_RESULT_CODE CoreLastDataCallFailCause(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseLastDataCallFailCause(RESPONSE_DATA & rRspData);
 
-    // RIL_REQUEST_DATA_CALL_LIST 57
-    virtual RIL_RESULT_CODE CoreDataCallList(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseDataCallList(RESPONSE_DATA & rRspData);
-
     // RIL_REQUEST_RESET_RADIO 58
     virtual RIL_RESULT_CODE CoreResetRadio(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseResetRadio(RESPONSE_DATA & rRspData);
@@ -490,20 +486,12 @@ public:
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     virtual RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData);
 
-    // RIL_UNSOL_DATA_CALL_LIST_CHANGED  1010
-    virtual RIL_RESULT_CODE ParseDataCallListChanged(RESPONSE_DATA & rRspData);
-
-    // GET IP ADDRESS
-    virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA & rRspData);
-
-    // GET DNS
-    virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA & rRspData);
-
-    // Parse Data Fail Cause
-    virtual RIL_RESULT_CODE ParseDataCallFailCause(RESPONSE_DATA& rRspData);
-
     // QUERY SIM SMS STORE STATUS
     virtual RIL_RESULT_CODE ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData);
+
+    virtual RIL_RESULT_CODE ParsePdpContextActivate(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseQueryIpAndDns(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseEnterDataState(RESPONSE_DATA& rRspData);
 
     virtual RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
 
@@ -528,6 +516,15 @@ public:
     // PIN retry count request and response handler
     virtual RIL_RESULT_CODE QueryPinRetryCount(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
+
+    // Post command handlers for RIL_REQUEST_SETUP_DATA_CALL request
+    virtual void PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
+    virtual void PostPdpContextActivateCmdHandler(POST_CMD_HANDLER_DATA& rData);
+    virtual void PostQueryIpAndDnsCmdHandler(POST_CMD_HANDLER_DATA& rData);
+    virtual void PostEnterDataStateCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    // Post command handler for RIL_REQUEST_DEACTIVATE_DATA_CALL request
+    virtual void PostDeactivateDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
     // Get functions returning number of retry counts left for respective locks
     virtual int GetPinRetryCount() { return m_PinRetryCount.pin; };

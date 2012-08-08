@@ -35,8 +35,6 @@ CSilo_Data::CSilo_Data(CChannel *pChannel)
     // AT Response Table
     static ATRSPTABLE pATRspTable[] =
     {
-//        { "+++3"     , (PFN_ATRSP_PARSE)&CSilo_Data::ParseTriplePlus   },
-//        { "CONNECT"  , (PFN_ATRSP_PARSE)&CSilo_Data::ParseConnect      },
         { "NO CARRIER"  , (PFN_ATRSP_PARSE)&CSilo_Data::ParseNoCarrier },
         { "+XCIEV: "      , (PFN_ATRSP_PARSE)&CSilo_Data::ParseUnrecognized },
         { "+XCIEV:"      , (PFN_ATRSP_PARSE)&CSilo_Data::ParseUnrecognized },
@@ -61,41 +59,6 @@ CSilo_Data::~CSilo_Data()
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
-BOOL CSilo_Data::ParseConnect(CResponse* const pResponse, const char*& rszPointer)
-{
-    RIL_LOG_VERBOSE("CSilo_Data::ParseConnect() - Enter\r\n");
-
-    const char* szDummy;
-    BOOL fRet = FALSE;
-    UINT32 uiBaud = 0;
-
-    if (NULL == pResponse)
-    {
-        goto Error;
-    }
-
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
-    {
-        //  incomplete notification
-        goto Error;
-    }
-
-    //  CONNECT 9600000<cr><lf>
-    //  Check for possible space
-    if (SkipString(rszPointer, " ", rszPointer))
-    {
-        ExtractUInt32(rszPointer, uiBaud, rszPointer);
-    }
-
-    pResponse->SetUnsolicitedFlag(FALSE);
-    pResponse->SetResultCode(RRIL_RESULT_OK);
-    fRet = TRUE;
-
-Error:
-    RIL_LOG_VERBOSE("CSilo_Data::ParseConnect() - Exit\r\n");
-    return fRet;
-}
 
 //
 //
@@ -123,24 +86,21 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const char*& rszPoin
     }
 
     pResponse->SetUnsolicitedFlag(TRUE);
-    //pResponse->SetResultCode(RIL_UNSOL_DATA_CALL_LIST_CHANGED);
-    //RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Called timed callback  START\r\n");
-    //RIL_requestTimedCallback(triggerDataCallListChanged, NULL, 0, 0);
-    //RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Called timed callback  END\r\n");
-
 
     // Free this channel's context ID.
-    pChannelData = CChannel_Data::GetChnlFromRilChannelNumber(m_pChannel->GetRilChannel());
-    if (pChannelData)
+    pChannelData =
+            CChannel_Data::GetChnlFromRilChannelNumber(m_pChannel->GetRilChannel());
+    if (NULL != pChannelData)
     {
-        RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() : Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", m_pChannel->GetRilChannel(), pChannelData->GetContextID());
+        RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() : Calling DataConfigDown  chnl=[%u], cid=[%u]\r\n",
+                    m_pChannel->GetRilChannel(), pChannelData->GetContextID());
 
         //  Release network interface
         if (!DataConfigDown(pChannelData->GetContextID()))
         {
-            RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() - DataConfigDown FAILED chnl=[%d], cid=[%d]\r\n", m_pChannel->GetRilChannel(), pChannelData->GetContextID());
+            RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() - DataConfigDown FAILED chnl=[%u], cid=[%u]\r\n",
+                    m_pChannel->GetRilChannel(), pChannelData->GetContextID());
         }
-
     }
     fRet = TRUE;
 

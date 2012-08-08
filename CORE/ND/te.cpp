@@ -14,7 +14,7 @@
 #include <wchar.h>
 #include <cutils/properties.h>
 
-#include "../util.h"
+#include "util.h"
 #include "extract.h"
 #include "sync_ops.h"
 #include "types.h"
@@ -1599,7 +1599,10 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
 
     else
     {
-        CCommand* pCmd = new CCommand(pChannelData->GetRilChannel(), rilToken, ND_REQ_ID_SETUPDEFAULTPDP, reqData, &CTE::ParseSetupDataCall);
+        CCommand* pCmd = new CCommand(pChannelData->GetRilChannel(), rilToken,
+                                        ND_REQ_ID_SETUPDEFAULTPDP, reqData,
+                                        &CTE::ParseSetupDataCall,
+                                        &CTE::PostSetupDataCallCmdHandler);
 
         if (pCmd)
         {
@@ -1624,8 +1627,10 @@ Error:
     if (RRIL_RESULT_OK != res)
     {
         m_bIsSetupDataCallOngoing = false;
+        CleanRequestData(reqData);
+
         if (pChannelData)
-            pChannelData->FreeContextID();
+            pChannelData->ResetDataCallInfo();
     }
     else
     {
@@ -2286,7 +2291,11 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void * pData,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL], rilToken, ND_REQ_ID_DEACTIVATEDATACALL, reqData, &CTE::ParseDeactivateDataCall);
+        CCommand* pCmd = new CCommand(
+                            g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL],
+                            rilToken, ND_REQ_ID_DEACTIVATEDATACALL, reqData,
+                            &CTE::ParseDeactivateDataCall,
+                            &CTE::PostDeactivateDataCallCmdHandler);
 
         if (pCmd)
         {
@@ -2307,6 +2316,11 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void * pData,
             RIL_LOG_CRITICAL("CTE::RequestDeactivateDataCall() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
+    }
+
+    if (RRIL_RESULT_OK != res)
+    {
+        CleanRequestData(reqData);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestDeactivateDataCall() - Exit\r\n");
@@ -3070,44 +3084,33 @@ RIL_RESULT_CODE CTE::RequestDataCallList(RIL_Token rilToken, void * pData, size_
 {
     RIL_LOG_VERBOSE("CTE::RequestDataCallList() - Enter\r\n");
 
-    REQUEST_DATA reqData;
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
-
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDataCallList(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    UINT32 usiCount = 0;
+    P_ND_PDP_CONTEXT_DATA pPDPListData =
+                (P_ND_PDP_CONTEXT_DATA)malloc(sizeof(S_ND_PDP_CONTEXT_DATA));
+    if (NULL == pPDPListData)
     {
-        RIL_LOG_CRITICAL("CTE::RequestDataCallList() - Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestDataCallList() - Could not allocate memory for a P_ND_PDP_CONTEXT_DATA struct.\r\n");
+        goto Error;
+    }
+    memset(pPDPListData, 0, sizeof(S_ND_PDP_CONTEXT_DATA));
+
+    usiCount = GetActiveDataCallInfoList(pPDPListData);
+
+Error:
+    if (usiCount > 0)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, pPDPListData,
+                                usiCount * sizeof(RIL_Data_Call_Response_v6));
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_PDPCONTEXTLIST], rilToken, ND_REQ_ID_PDPCONTEXTLIST, reqData, &CTE::ParseDataCallList);
-
-        if (pCmd)
-        {
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CTE::RequestDataCallList() - Unable to add command to queue\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE::RequestDataCallList() - Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-        }
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
     }
+    free(pPDPListData);
+    pPDPListData = NULL;
 
     RIL_LOG_VERBOSE("CTE::RequestDataCallList() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE::ParseDataCallList(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseDataCallList() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseDataCallList(rRspData);
+    return RRIL_RESULT_OK;
 }
 
 //
@@ -5148,46 +5151,6 @@ RIL_RESULT_CODE CTE::ParseUnsolicitedSignalStrength(RESPONSE_DATA & rRspData)
     return m_pTEBaseInstance->ParseUnsolicitedSignalStrength(rRspData);
 }
 
-//
-// RIL_UNSOL_DATA_CALL_LIST_CHANGED  1010
-//
-RIL_RESULT_CODE CTE::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseDataCallListChanged() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseDataCallListChanged(rRspData);
-}
-
-//
-// GET_IP_ADDRESS (sent internally)
-//
-RIL_RESULT_CODE CTE::ParseIpAddress(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseIpAddress() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseIpAddress(rRspData);
-}
-
-//
-// GET_DNS (sent internally)
-//
-RIL_RESULT_CODE CTE::ParseDns(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseDns() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseDns(rRspData);
-}
-
-//
-// QueryDataCallFailCause (sent internally)
-//
-RIL_RESULT_CODE CTE::ParseDataCallFailCause(RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseDataCallFailCause() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseDataCallFailCause(rRspData);
-}
-
 RIL_RadioTechnology CTE::MapAccessTechnology(UINT32 uiStdAct)
 {
     RIL_LOG_VERBOSE("CTE::MapAccessTechnology() - Enter\r\n");
@@ -5805,6 +5768,27 @@ RIL_RESULT_CODE CTE::ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData)
     RIL_LOG_VERBOSE("CTE::ParseDeactivateAllDataCalls() - Enter / Exit\r\n");
 
     return m_pTEBaseInstance->ParseDeactivateAllDataCalls(rRspData);
+}
+
+RIL_RESULT_CODE CTE::ParsePdpContextActivate(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParsePdpContextActivate() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParsePdpContextActivate(rRspData);
+}
+
+RIL_RESULT_CODE CTE::ParseQueryIpAndDns(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseQueryIpAndDns() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseQueryIpAndDns(rRspData);
+}
+
+RIL_RESULT_CODE CTE::ParseEnterDataState(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseEnterDataState() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseEnterDataState(rRspData);
 }
 
 void CTE::SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus)
@@ -6449,19 +6433,36 @@ void CTE::PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostSetupDataCallCmdHandler - Enter\r\n");
 
-    if (NULL == rData.pRilToken)
-    {
-        RIL_LOG_INFO("CTE::PostCmdHandlerCompleteRequest() RilToken NULL - May be internal request, RequestID: %u\r\n",
-                                                            rData.uiRequestId);
-        return;
-    }
-
-    SetupDataCallOngoing(FALSE);
-
-    RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
-                                                rData.pData, rData.uiDataSize);
+    m_pTEBaseInstance->PostSetupDataCallCmdHandler(rData);
 
     RIL_LOG_VERBOSE("CTE::PostSetupDataCallCmdHandler() Exit\r\n");
+}
+
+void CTE::PostPdpContextActivateCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostPdpContextActivateCmdHandler - Enter\r\n");
+
+    m_pTEBaseInstance->PostPdpContextActivateCmdHandler(rData);
+
+    RIL_LOG_VERBOSE("CTE::PostActivateDataCallCmdHandler() Exit\r\n");
+}
+
+void CTE::PostQueryIpAndDnsCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostQueryIpAndDnsCmdHandler - Enter\r\n");
+
+    m_pTEBaseInstance->PostQueryIpAndDnsCmdHandler(rData);
+
+    RIL_LOG_VERBOSE("CTE::PostQueryIpAndDnsCmdHandler() Exit\r\n");
+}
+
+void CTE::PostEnterDataStateCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostEnterDataStateCmdHandler - Enter\r\n");
+
+    m_pTEBaseInstance->PostEnterDataStateCmdHandler(rData);
+
+    RIL_LOG_VERBOSE("CTE::PostEnterDataStateCmdHandler() Exit\r\n");
 }
 
 void CTE::PostSimIOCmdHandler(POST_CMD_HANDLER_DATA& rData)
@@ -6525,6 +6526,15 @@ void CTE::PostSimIOCmdHandler(POST_CMD_HANDLER_DATA& rData)
     }
 
     RIL_LOG_VERBOSE("CTE::PostSimIOCmdHandler() Exit\r\n");
+}
+
+void CTE::PostDeactivateDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostDeactivateDataCallCmdHandler - Enter\r\n");
+
+    m_pTEBaseInstance->PostDeactivateDataCallCmdHandler(rData);
+
+    RIL_LOG_VERBOSE("CTE::PostDeactivateDataCallCmdHandler() Exit\r\n");
 }
 
 void CTE::PostSetFacilityLockCmdHandler(POST_CMD_HANDLER_DATA& rData)
@@ -6850,4 +6860,101 @@ void CTE::PostFacilityLockRetryCount(POST_CMD_HANDLER_DATA& rData)
                                 (void*) &noOfRetries, sizeof(noOfRetries));
     }
     RIL_LOG_VERBOSE("CTE::PostFacilityLockRetryCount() Exit\r\n");
+}
+
+int CTE::GetActiveDataCallInfoList(P_ND_PDP_CONTEXT_DATA pPDPListData)
+{
+    CChannel_Data* pChannelData = NULL;
+    S_DATA_CALL_INFO sDataCallInfo;
+    int noOfActivePDP = 0;
+    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+    char szInterfaceName[MAX_INTERFACE_NAME_SIZE] = {'\0'};
+    char szIPAddress[MAX_BUFFER_SIZE] = {'\0'};
+    char szDNS[MAX_BUFFER_SIZE] = {'\0'};
+    char szGateway[MAX_IPADDR_SIZE] = {'\0'};
+
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
+    {
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
+
+        pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+
+        //  We are taking down all data connections here, so we are looping over each data channel.
+        //  Don't call DataConfigDown with invalid CID.
+        if (NULL != pChannelData &&
+                        E_DATA_STATE_ACTIVE == pChannelData->GetDataState())
+        {
+            pChannelData->GetDataCallInfo(sDataCallInfo);
+
+            snprintf(szDNS, MAX_BUFFER_SIZE-1, "%s %s %s %s",
+                                sDataCallInfo.szDNS1,
+                                sDataCallInfo.szDNS2,
+                                sDataCallInfo.szIpV6DNS1,
+                                sDataCallInfo.szIpV6DNS2);
+            szDNS[MAX_BUFFER_SIZE-1] = '\0';
+
+            snprintf(szIPAddress, MAX_BUFFER_SIZE-1, "%s %s",
+                            sDataCallInfo.szIpAddr1, sDataCallInfo.szIpAddr2);
+            szIPAddress[MAX_BUFFER_SIZE-1] = '\0';
+
+            strncpy(szGateway, sDataCallInfo.szGateways, MAX_IPADDR_SIZE-1);
+            szGateway[MAX_IPADDR_SIZE-1] = '\0';
+
+            strncpy(szPdpType, sDataCallInfo.szPdpType, MAX_PDP_TYPE_SIZE-1);
+            szPdpType[MAX_PDP_TYPE_SIZE-1] = '\0';
+
+            strncpy(szInterfaceName, sDataCallInfo.szInterfaceName,
+                                                    MAX_INTERFACE_NAME_SIZE-1);
+            szInterfaceName[MAX_INTERFACE_NAME_SIZE-1] = '\0';
+
+            pPDPListData->pPDPData[noOfActivePDP].status =
+                                                    sDataCallInfo.failCause;
+            pPDPListData->pPDPData[noOfActivePDP].suggestedRetryTime = -1;
+            pPDPListData->pPDPData[noOfActivePDP].cid = sDataCallInfo.uiCID;
+            pPDPListData->pPDPData[noOfActivePDP].active = 2;
+            pPDPListData->pPDPData[noOfActivePDP].type = szPdpType;
+            pPDPListData->pPDPData[noOfActivePDP].addresses = szIPAddress;
+            pPDPListData->pPDPData[noOfActivePDP].dnses = szDNS;
+            pPDPListData->pPDPData[noOfActivePDP].gateways = szGateway;
+            pPDPListData->pPDPData[noOfActivePDP].ifname = szInterfaceName;
+
+            ++noOfActivePDP;
+        }
+    }
+
+    return noOfActivePDP;
+}
+
+void CTE::CompleteDataCallListChanged()
+{
+    RIL_LOG_VERBOSE("CTE::CompleteDataCallListChanged() - Enter\r\n");
+
+    int noOfActivePDP = 0;
+
+    P_ND_PDP_CONTEXT_DATA pPDPListData =
+                (P_ND_PDP_CONTEXT_DATA)malloc(sizeof(S_ND_PDP_CONTEXT_DATA));
+    if (NULL == pPDPListData)
+    {
+        RIL_LOG_CRITICAL("CTE::CompleteDataCallListChanged() - Could not allocate memory for a P_ND_PDP_CONTEXT_DATA struct.\r\n");
+        return;
+    }
+    memset(pPDPListData, 0, sizeof(S_ND_PDP_CONTEXT_DATA));
+
+    noOfActivePDP = GetActiveDataCallInfoList(pPDPListData);
+    if (noOfActivePDP > 0)
+    {
+        RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED,
+                                                        (void*) pPDPListData,
+                            noOfActivePDP * sizeof(RIL_Data_Call_Response_v6));
+    }
+    else
+    {
+        RIL_onUnsolicitedResponse (RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
+    }
+
+    free(pPDPListData);
+    pPDPListData = NULL;
+
+    RIL_LOG_VERBOSE("CTE::CompleteDataCallListChanged() - Exit\r\n");
 }

@@ -15,7 +15,7 @@
 
 #include "types.h"
 #include "rillog.h"
-#include "../util.h"
+#include "util.h"
 #include "extract.h"
 #include "nd_structs.h"
 #include "callbacks.h"
@@ -2431,84 +2431,18 @@ Error:
 //
 // RIL_REQUEST_SETUP_DATA_CALL 27
 //
-RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 uiCID)
+RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA& rReqData, void* pData,
+                                            UINT32 uiDataSize, UINT32 uiCID)
 {
-    RIL_LOG_VERBOSE("CTEBase::CoreSetupDataCall() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    PdpData stPdpData;
-    memset(&stPdpData, 0, sizeof(PdpData));
+    RIL_LOG_VERBOSE("CTEBase::CoreSetupDataCall() - Enter / Exit\r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only supported at modem level
 
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreSetupDataCall() - Data pointer is NULL.\r\n");
-        goto Error;
-    }
-
-    if (uiDataSize < (6 * sizeof(char*)))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreSetupDataCall() - Invalid data size. Was given %d bytes\r\n", uiDataSize);
-        goto Error;
-    }
-
-    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - uiDataSize=[%d]\r\n", uiDataSize);
-
-
-    // extract data
-    stPdpData.szRadioTechnology = ((char **)pData)[0];  // not used
-    stPdpData.szRILDataProfile  = ((char **)pData)[1];  // not used
-    stPdpData.szApn             = ((char **)pData)[2];
-    stPdpData.szUserName        = ((char **)pData)[3];  // not used
-    stPdpData.szPassword        = ((char **)pData)[4];  // not used
-    stPdpData.szPAPCHAP         = ((char **)pData)[5];  // not used
-
-    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szRadioTechnology=[%s]\r\n", stPdpData.szRadioTechnology);
-    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szRILDataProfile=[%s]\r\n", stPdpData.szRILDataProfile);
-    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szApn=[%s]\r\n", stPdpData.szApn);
-    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szUserName=[%s]\r\n", stPdpData.szUserName);
-    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n", stPdpData.szPassword);
-    RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n", stPdpData.szPAPCHAP);
-
-
-    if (RIL_VERSION >= 4 && (uiDataSize >= (7 * sizeof(char*))))
-    {
-        stPdpData.szPDPType         = ((char **)pData)[6];  // new in Android 2.3.4.
-        RIL_LOG_INFO("CTEBase::CoreSetupDataCall() - stPdpData.szPDPType=[%s]\r\n", stPdpData.szPDPType);
-    }
-
-    if (!PrintStringNullTerminate(rReqData.szCmd1,
-          sizeof(rReqData.szCmd1),
-          "AT+CGDCONT=%d,\"IP\",\"%s\",,0,0;+CGQREQ=%d;+CGQMIN=%d;+CGACT=0,%d\r", uiCID,
-          stPdpData.szApn, uiCID, uiCID, uiCID))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreSetupDataCall() - Cannot create CGDCONT command\r\n");
-        goto Error;
-    }
-
-    if (!CopyStringNullTerminate(rReqData.szCmd2, "ATD*99***1#\r", sizeof(rReqData.szCmd2)))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreSetupDataCall() - Cannot CopyStringNullTerminate ATD\r\n");
-        goto Error;
-    }
-
-    //  Store the potential uiCID in the pContext
-    rReqData.pContextData = (void*)uiCID;
-
-
-    res = RRIL_RESULT_OK;
-
-Error:
-    RIL_LOG_VERBOSE("CTEBase::CoreSetupDataCall() - Exit\r\n");
-    return res;
 }
 
-RIL_RESULT_CODE CTEBase::ParseSetupDataCall(RESPONSE_DATA & rRspData)
+RIL_RESULT_CODE CTEBase::ParseSetupDataCall(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseSetupDataCall() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
-
-    RIL_LOG_VERBOSE("CTEBase::ParseSetupDataCall() - Exit\r\n");
-    return res;
+    RIL_LOG_VERBOSE("CTEBase::ParseSetupDataCall() - Enter / Exit\r\n");
+    return RRIL_RESULT_OK; // only supported at modem level
 }
 
 //
@@ -5432,262 +5366,6 @@ Error:
 }
 
 //
-// RIL_REQUEST_DATA_CALL_LIST 57
-//
-RIL_RESULT_CODE CTEBase::CoreDataCallList(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("CTEBase::CoreDataCallList() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CGACT?;+CGDCONT?\r", sizeof(rReqData.szCmd1)))
-    {
-        res = RRIL_RESULT_OK;
-    }
-
-Error:
-    RIL_LOG_VERBOSE("CTEBase::CoreDataCallList() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTEBase::ParseDataCallList(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTEBase::ParseDataCallList() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char* pszRsp = rRspData.szResponse;
-
-    P_ND_PDP_CONTEXT_DATA pPDPListData = NULL;
-    UINT32 nValue = 0;
-    UINT32 nCID = 0;
-    int  count = 0;
-    int active[MAX_PDP_CONTEXTS] = {0};
-    char szPDPType[MAX_BUFFER_SIZE] = {0};
-    char szIP[MAX_BUFFER_SIZE] = {0};
-    int status[MAX_PDP_CONTEXTS] = {0};
-    int suggestedRetryTime[MAX_PDP_CONTEXTS] = {0};
-    char szAPN[MAX_BUFFER_SIZE] = {0};
-    char szDnses[MAX_BUFFER_SIZE] = {0};
-    char szGateways[MAX_BUFFER_SIZE] = {0};
-
-    pPDPListData = (P_ND_PDP_CONTEXT_DATA)malloc(sizeof(S_ND_PDP_CONTEXT_DATA));
-    if (NULL == pPDPListData)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Could not allocate memory for a P_ND_PDP_CONTEXT_DATA struct.\r\n");
-        goto Error;
-    }
-    memset(pPDPListData, 0, sizeof(S_ND_PDP_CONTEXT_DATA));
-    memset(active, 0, sizeof(active));
-
-    // Parse +CGACT response
-    while (FindAndSkipString(pszRsp, "+CGACT: ", pszRsp))
-    {
-        // Parse <cid>
-        if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Invalid CID.\r\n");
-            goto Error;
-        }
-
-        // Parse <state>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt32(pszRsp, 2, nValue, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Invalid state.\r\n");
-            goto Error;
-        }
-        active[nCID - 1] = nValue;
-        RIL_LOG_INFO("CTEBase::ParseDataCallList() - Context %d %s.\r\n", nCID, (nValue ? "active" : "not active") );
-    }
-
-    // Parse +CGDCONT response
-
-    // Parse "+CGDCONT: "
-    count = 0;
-    while (FindAndSkipString(pszRsp, "+CGDCONT: ", pszRsp))
-    {
-        CChannel_Data *pChannelData = NULL;
-
-        // Parse <cid>
-        if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Could not extract CID.\r\n");
-            goto Error;
-        }
-
-        // If entry is not active forget it
-        if (active[nCID - 1] == 0)
-        {
-            continue;
-        }
-
-        //  Grab the pChannelData for this CID
-        pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
-
-        pPDPListData->pPDPData[count].cid = nCID;
-
-        // set active flag
-        pPDPListData->pPDPData[count].active = active[nCID - 1];
-
-        // set status
-        pPDPListData->pPDPData[count].status = PDP_FAIL_NONE;
-
-        // set suggestedRetryTime
-        pPDPListData->pPDPData[count].suggestedRetryTime = -1;
-
-        // Parse ,<PDP_type>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szPDPType, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Could not extract PDP type.\r\n");
-            goto Error;
-        }
-        strncpy(pPDPListData->pTypeBuffers[count], szPDPType, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].type = pPDPListData->pTypeBuffers[count];
-
-        // Skip over ,<APN>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Could not extract APN.\r\n");
-            goto Error;
-        }
-
-        //  This is interface name (i.e. rmnet0)
-        //  If interface name is <blank>, then java layer throws exception.
-        if (pChannelData && pChannelData->m_szInterfaceName)
-        {
-            strncpy(pPDPListData->pIfnameBuffers[count], pChannelData->m_szInterfaceName, MAX_BUFFER_SIZE);
-            pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
-
-            // If ifname is empty forget the entry
-            if (pChannelData->m_szInterfaceName[0] == '\0')
-            {
-                continue;
-            }
-        }
-        else
-        {
-            //  The pChannelData may not be found due to the CID being set to 0 from
-            //  context deactivation.
-            //  Fill interface name based on CID
-            if (nCID > 0)
-            {
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d",
-                    m_szNetworkInterfaceNamePrefix, nCID-1);
-                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
-            }
-            else
-            {
-                //  Just assume context ID of 1
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0",
-                    m_szNetworkInterfaceNamePrefix);
-                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
-            }
-        }
-
-        // Parse ,<PDP_addr>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallList() - Could not extract APN.\r\n");
-            goto Error;
-        }
-        strncpy(pPDPListData->pAddressBuffers[count], szIP, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].addresses = pPDPListData->pAddressBuffers[count];
-
-        //  Populate DNSs and gateways
-        if (pChannelData)
-        {
-            snprintf(pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s %s %s",
-                (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
-                (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
-                (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
-                (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
-            pPDPListData->pDnsesBuffers[count][MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
-        }
-        else
-        {
-            strcpy(pPDPListData->pDnsesBuffers[count], "");
-        }
-        pPDPListData->pPDPData[count].dnses = pPDPListData->pDnsesBuffers[count];
-
-        if (pChannelData)
-        {
-            strncpy(pPDPListData->pGatewaysBuffers[count],
-                (pChannelData->m_szIpGateways ? pChannelData->m_szIpGateways : ""),
-                MAX_BUFFER_SIZE);
-        }
-        else
-        {
-            strcpy(pPDPListData->pGatewaysBuffers[count], "");
-        }
-        pPDPListData->pPDPData[count].gateways = pPDPListData->pGatewaysBuffers[count];
-
-        // Parse ,<data_comp>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt32(pszRsp, 0x2, nValue, pszRsp))
-        {
-            RIL_LOG_WARNING("CTEBase::ParseDataCallList() - WARNING: Could not extract data comp.\r\n");
-            goto Continue;
-        }
-
-        // Parse ,<head_comp>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt32(pszRsp, 0x2, nValue, pszRsp))
-        {
-            RIL_LOG_WARNING("CTEBase::ParseDataCallList() - WARNING: Could not extract header comp.\r\n");
-            goto Continue;
-        }
-
-        // following we could have ,<pd1>[,...[,pdN]]
-        // but Android does not care about extra parameters
-        // so skip them all
-Continue:
-
-        // entry complete
-        ++count;
-    }
-
-    if (count > 0)
-    {
-        rRspData.pData  = (void*) pPDPListData;
-        rRspData.uiDataSize = count * sizeof(RIL_Data_Call_Response_v6);
-    }
-    else
-    {
-        free(pPDPListData);
-        pPDPListData = NULL;
-        rRspData.pData  = NULL;
-        rRspData.uiDataSize = 0;
-    }
-    res = RRIL_RESULT_OK;
-    RIL_LOG_INFO("CTEBase::ParseDataCallList() - Parse complete, found [%d] contexts.\r\n", count);
-
-    if (CRilLog::IsFullLogBuild())
-    {
-        for (int i = 0; i < count; ++i)
-        {
-            RIL_LOG_INFO("i=%d  status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
-                i, pPDPListData->pPDPData[i].status, pPDPListData->pPDPData[i].suggestedRetryTime,
-                pPDPListData->pPDPData[i].cid, pPDPListData->pPDPData[i].active,
-                pPDPListData->pPDPData[i].type, pPDPListData->pPDPData[i].ifname,
-                pPDPListData->pPDPData[i].addresses, pPDPListData->pPDPData[i].dnses,
-                pPDPListData->pPDPData[i].gateways);
-        }
-    }
-
-Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pPDPListData);
-        pPDPListData = NULL;
-    }
-
-    RIL_LOG_VERBOSE("CTEBase::ParseDataCallList() - Exit\r\n");
-    return res;
-}
-
-//
 // RIL_REQUEST_RESET_RADIO 58
 //
 RIL_RESULT_CODE CTEBase::CoreResetRadio(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
@@ -8512,267 +8190,6 @@ Error:
     return res;
 }
 
-
-//
-// RIL_UNSOL_DATA_CALL_LIST_CHANGED  1010
-//
-RIL_RESULT_CODE CTEBase::ParseDataCallListChanged(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTEBase::ParseDataCallListChanged() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char* pszRsp = rRspData.szResponse;
-
-    P_ND_PDP_CONTEXT_DATA pPDPListData = NULL;
-    UINT32 nValue = 0;
-    UINT32 nCID = 0;
-    int  count = 0;
-    int active[MAX_PDP_CONTEXTS] = {0};
-    char szPDPType[MAX_BUFFER_SIZE] = {0};
-    char szIP[MAX_BUFFER_SIZE] = {0};
-    int status[MAX_PDP_CONTEXTS] = {0};
-    int suggestedRetryTime[MAX_PDP_CONTEXTS] = {0};
-    char szAPN[MAX_BUFFER_SIZE] = {0};
-    char szDnses[MAX_BUFFER_SIZE] = {0};
-    char szGateways[MAX_BUFFER_SIZE] = {0};
-
-    pPDPListData = (P_ND_PDP_CONTEXT_DATA)malloc(sizeof(S_ND_PDP_CONTEXT_DATA));
-    if (NULL == pPDPListData)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Could not allocate memory for a P_ND_PDP_CONTEXT_DATA struct.\r\n");
-        goto Error;
-    }
-    memset(pPDPListData, 0, sizeof(S_ND_PDP_CONTEXT_DATA));
-    memset(active, 0, sizeof(active));
-
-    // Parse "+CGACT: "
-    while (FindAndSkipString(pszRsp, "+CGACT: ", pszRsp))
-    {
-        // Parse <cid>
-        if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Invalid CID.\r\n");
-            goto Error;
-        }
-
-        // Parse <state>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt32(pszRsp, 2, nValue, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Invalid state.\r\n");
-            goto Error;
-        }
-        active[nCID - 1] = nValue;
-        RIL_LOG_INFO("CTEBase::ParseDataCallListChanged() - Context %d %s.\r\n", nCID, (nValue ? "active" : "not active") );
-    }
-
-    // Parse +CGDCONT response
-    count = 0;
-    while (FindAndSkipString(pszRsp, "+CGDCONT: ", pszRsp))
-    {
-        CChannel_Data *pChannelData = NULL;
-
-        // Parse <cid>
-        if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Could not extract CID.\r\n");
-            goto Error;
-        }
-
-        // If entry is not active forget it
-        if (active[nCID - 1] == 0)
-        {
-            continue;
-        }
-
-        //  Grab the pChannelData for this CID
-        pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
-
-        pPDPListData->pPDPData[count].cid = nCID;
-
-        // set active flag
-        pPDPListData->pPDPData[count].active = active[nCID - 1];
-
-        // set status
-        pPDPListData->pPDPData[count].status = PDP_FAIL_NONE;
-
-        // set suggestedRetryTime
-        pPDPListData->pPDPData[count].suggestedRetryTime = -1;
-
-        // Parse ,<PDP_type>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szPDPType, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Could not extract PDP type.\r\n");
-            goto Error;
-        }
-        strncpy(pPDPListData->pTypeBuffers[count], szPDPType, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].type = pPDPListData->pTypeBuffers[count];
-
-        // Skip over ,<APN>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Could not extract APN.\r\n");
-            goto Error;
-        }
-
-        //  This is interface name (i.e. rmnet0)
-        //  If interface name is <blank>, then java layer throws exception.
-        if (pChannelData && pChannelData->m_szInterfaceName)
-        {
-            strncpy(pPDPListData->pIfnameBuffers[count], pChannelData->m_szInterfaceName, MAX_BUFFER_SIZE);
-            pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
-
-            // If ifname is empty forget the entry
-            if (pChannelData->m_szInterfaceName[0] == '\0')
-            {
-                continue;
-            }
-        }
-        else
-        {
-            //  The pChannelData may not be found due to the CID being set to 0 from
-            //  context deactivation.
-            //  Fill interface name based on CID
-            if (nCID > 0)
-            {
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d",
-                    m_szNetworkInterfaceNamePrefix, nCID-1);
-                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
-            }
-            else
-            {
-                //  Just assume context ID of 1
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0",
-                    m_szNetworkInterfaceNamePrefix);
-                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
-            }
-        }
-
-        // Parse ,<PDP_addr>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseDataCallListChanged() - Could not extract APN.\r\n");
-            goto Error;
-        }
-        strncpy(pPDPListData->pAddressBuffers[count], szIP, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].addresses = pPDPListData->pAddressBuffers[count];
-
-        //  Populate DNSs and gateways
-        if (pChannelData)
-        {
-            snprintf(pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s %s %s",
-                (pChannelData->m_szDNS1 ? pChannelData->m_szDNS1 : ""),
-                (pChannelData->m_szDNS2 ? pChannelData->m_szDNS2 : ""),
-                (pChannelData->m_szIpV6DNS1 ? pChannelData->m_szIpV6DNS1 : ""),
-                (pChannelData->m_szIpV6DNS2 ? pChannelData->m_szIpV6DNS2 : ""));
-            pPDPListData->pDnsesBuffers[count][MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
-        }
-        else
-        {
-            strcpy(pPDPListData->pDnsesBuffers[count], "");
-        }
-        pPDPListData->pPDPData[count].dnses = pPDPListData->pDnsesBuffers[count];
-
-        if (pChannelData)
-        {
-            strncpy(pPDPListData->pGatewaysBuffers[count],
-                (pChannelData->m_szIpGateways ? pChannelData->m_szIpGateways : ""),
-                MAX_BUFFER_SIZE);
-        }
-        else
-        {
-            strcpy(pPDPListData->pGatewaysBuffers[count], "");
-        }
-        pPDPListData->pPDPData[count].gateways = pPDPListData->pGatewaysBuffers[count];
-
-        // Parse ,<data_comp>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt32(pszRsp, 0x2, nValue, pszRsp))
-        {
-            RIL_LOG_WARNING("CTEBase::ParseDataCallListChanged() - WARNING: Could not extract data comp.\r\n");
-            goto Continue;
-        }
-
-        // Parse ,<head_comp>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt32(pszRsp, 0x2, nValue, pszRsp))
-        {
-            RIL_LOG_WARNING("CTEBase::ParseDataCallListChanged() - WARNING: Could not extract header comp.\r\n");
-            goto Continue;
-        }
-
-        // following we could have ,<pd1>[,...[,pdN]]
-        // but Android does not care about extra parameters
-        // so skip them all
-Continue:
-
-        // entry complete
-        ++count;
-    }
-
-    RIL_LOG_INFO("CTEBase::ParseDataCallListChanged() - Parse complete, found [%d] contexts.\r\n", count);
-
-    if (CRilLog::IsFullLogBuild())
-    {
-        for (int i = 0; i < count; ++i)
-        {
-            RIL_LOG_INFO("i=%d  status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
-                i, pPDPListData->pPDPData[i].status, pPDPListData->pPDPData[i].suggestedRetryTime,
-                pPDPListData->pPDPData[i].cid, pPDPListData->pPDPData[i].active,
-                pPDPListData->pPDPData[i].type, pPDPListData->pPDPData[i].ifname,
-                pPDPListData->pPDPData[i].addresses, pPDPListData->pPDPData[i].dnses,
-                pPDPListData->pPDPData[i].gateways);
-        }
-    }
-
-    if (count > 0)
-    {
-        RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, (void*)pPDPListData, count * sizeof(RIL_Data_Call_Response_v6));
-    }
-    else
-    {
-        RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
-    }
-
-    res = RRIL_RESULT_OK;
-
-Error:
-    free(pPDPListData);
-    pPDPListData = NULL;
-
-
-    RIL_LOG_VERBOSE("CTEBase::ParseDataCallListChanged() - Exit\r\n");
-    return res;
-}
-
-
-//
-// GET IP ADDRESS (sent internally)
-//
-RIL_RESULT_CODE CTEBase::ParseIpAddress(RESPONSE_DATA & rRspData)
-{
-    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
-}
-
-//
-// GET DNS (sent internally)
-//
-RIL_RESULT_CODE CTEBase::ParseDns(RESPONSE_DATA & rRspData)
-{
-    return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
-}
-
-//
-// QUERY DATA FAIL CAUSE (sent internally)
-//
-RIL_RESULT_CODE CTEBase::ParseDataCallFailCause(RESPONSE_DATA& rRspData)
-{
-    return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
-}
-
 //
 // Parse Extended Error Report
 //
@@ -8943,6 +8360,27 @@ RIL_RESULT_CODE CTEBase::ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData)
     return RRIL_RESULT_OK;
 }
 
+RIL_RESULT_CODE CTEBase::ParsePdpContextActivate(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParsePdpContextActivate() - Enter / Exit\r\n");
+
+    return RRIL_RESULT_OK; // only supported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::ParseEnterDataState(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseEnterDataState() - Enter / Exit\r\n");
+
+    return RRIL_RESULT_OK; // only supported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::ParseQueryIpAndDns(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryIpAndDns() - Enter / Exit\r\n");
+
+    return RRIL_RESULT_OK; // only supported at modem level
+}
+
 void CTEBase::SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus)
 {
     RIL_LOG_VERBOSE("CTEBase::SetIncomingCallStatus - Enter\r\n");
@@ -9048,4 +8486,34 @@ RIL_RESULT_CODE CTEBase::ParseSimPinRetryCount(RESPONSE_DATA& /*rRspData*/)
     RIL_LOG_VERBOSE("CTEBase::ParseSimPinRetryCount() - Enter / Exit\r\n");
 
     return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
+}
+
+void CTEBase::PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTEBase::PostSetupDataCallCmdHandler - Enter/Exit \r\n");
+    // only suported at modem level
+}
+
+void CTEBase::PostPdpContextActivateCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTEBase::PostPdpContextActivateCmdHandler - Enter/Exit \r\n");
+    // only suported at modem level
+}
+
+void CTEBase::PostQueryIpAndDnsCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTEBase::PostQueryIpAndDnsCmdHandler - Enter/Exit \r\n");
+    // only suported at modem level
+}
+
+void CTEBase::PostEnterDataStateCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTEBase::PostEnterDataStateCmdHandler - Enter/Exit \r\n");
+    // only suported at modem level
+}
+
+void CTEBase::PostDeactivateDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTEBase::PostDeactivateDataCallCmdHandler - Enter/Exit \r\n");
+    // only suported at modem level
 }
