@@ -60,15 +60,18 @@ BOOL CSilo_SMS::isRetryPossible(UINT32 uiErrorCode)
 {
     switch(uiErrorCode)
     {
-    case RRIL_CMS_ERROR_NO_ROUTE_TO_DESTINATION:
-    case RRIL_CMS_ERROR_ACM_MAX:
-    case RRIL_CMS_ERROR_CALLED_PARTY_BLACKLISTED:
-    case RRIL_CMS_ERROR_NUMBER_INCORRECT:
-    case RRIL_CMS_ERROR_SIM_ABSENT:
-    case RRIL_CMS_ERROR_MO_SMS_REJECTED_BY_SIM_MO_SMS_CONTROL:
-        return false;
-    default:
-        return true;
+        case RRIL_CMS_ERROR_NETWORK_FAILURE:
+        case RRIL_CMS_ERROR_NO_ROUTE_TO_DESTINATION:
+        case RRIL_CMS_ERROR_ACM_MAX:
+        case RRIL_CMS_ERROR_CALLED_PARTY_BLACKLISTED:
+        case RRIL_CMS_ERROR_NUMBER_INCORRECT:
+        case RRIL_CMS_ERROR_SIM_ABSENT:
+        case RRIL_CMS_ERROR_MO_SMS_REJECTED_BY_SIM_MO_SMS_CONTROL:
+        case RRIL_CMS_ERROR_CM_SERVICE_REJECT_FROM_NETWORK:
+        case RRIL_CMS_ERROR_IMSI_DETACH_INITIATED:
+            return false;
+        default:
+            return true;
     }
 }
 

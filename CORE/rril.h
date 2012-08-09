@@ -227,6 +227,7 @@ enum
 ///////////////////////////////////////////////////////////////////////////////
 // CMS Error code defines
 //
+#define RRIL_CMS_ERROR_NETWORK_FAILURE                          17
 #define RRIL_CMS_ERROR_SIM_ABSENT                               310
 #define RRIL_CMS_ERROR_MO_SMS_REJECTED_BY_SIM_MO_SMS_CONTROL    540
 #define RRIL_CMS_ERROR_FDN_CHECK_FAILED                         543
@@ -235,6 +236,8 @@ enum
 #define RRIL_CMS_ERROR_NO_ROUTE_TO_DESTINATION                  548
 #define RRIL_CMS_ERROR_ACM_MAX                                  564
 #define RRIL_CMS_ERROR_CALLED_PARTY_BLACKLISTED                 581
+#define RRIL_CMS_ERROR_CM_SERVICE_REJECT_FROM_NETWORK           623
+#define RRIL_CMS_ERROR_IMSI_DETACH_INITIATED                    626
 #define RRIL_CMS_ERROR_NUMBER_INCORRECT                         680
 #endif // RRIL_RRIL_H
 
