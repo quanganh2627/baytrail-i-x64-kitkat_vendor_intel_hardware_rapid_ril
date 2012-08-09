@@ -839,6 +839,16 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     }
     else
     {
+        if (FindAndSkipString(rszPointer, "NW DEACT", szStrExtract) ||
+                FindAndSkipString(rszPointer, "ME DEACT", szStrExtract) ||
+                FindAndSkipString(rszPointer, "NW PDN DEACT", szStrExtract) ||
+                FindAndSkipString(rszPointer, "ME PDN DEACT", szStrExtract) ||
+                FindAndSkipString(rszPointer, "NW DETACH", szStrExtract) ||
+                FindAndSkipString(rszPointer, "ME DETACH", szStrExtract))
+        {
+               RIL_requestTimedCallback(triggerQueryCEER, NULL, 0, 0);
+        }
+
         // For the NW DEACT case, Android will perform a DEACTIVATE
         // DATA CALL itself, so no need for us to do it here.
         // Simply trigger data call list changed and let Android process

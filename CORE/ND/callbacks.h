@@ -69,4 +69,9 @@ void triggerDeactivateDataCall(void *param);
 //
 void triggerManualNetworkSearch(void* param);
 
+//
+// Callback to trigger extended error report on data call disconnect
+//
+void triggerQueryCEER(void* param);
+
 #endif

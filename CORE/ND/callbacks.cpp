@@ -211,3 +211,25 @@ void triggerManualNetworkSearch(void* param)
     }
 }
 
+void triggerQueryCEER(void* param)
+{
+    CCommand* pCmd = new CCommand(RIL_CHANNEL_DLC8, NULL, REQ_ID_NONE,
+                                    "AT+CEER\r",
+                                    &CTE::ParseLastDataCallFailCause);
+
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd, TRUE))
+        {
+            RIL_LOG_CRITICAL("triggerQueryCEER() - Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("triggerQueryCEER() - Unable to allocate memory for new command!\r\n");
+    }
+}
+
