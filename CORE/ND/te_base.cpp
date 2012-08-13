@@ -142,7 +142,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
 
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
         pCardStatus->applications[0].app_state =
-          (RADIO_STATE_SIM_READY == g_RadioState.GetSIMState()) ?
+          (RRIL_SIM_STATE_READY == GetSIMState()) ?
             RIL_APPSTATE_READY :
             RIL_APPSTATE_DETECTED;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_READY;
@@ -171,7 +171,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
 
             pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
             pCardStatus->applications[0].app_state =
-              (RADIO_STATE_SIM_READY == g_RadioState.GetSIMState()) ?
+              (RRIL_SIM_STATE_READY == GetSIMState()) ?
                 RIL_APPSTATE_READY :
                 RIL_APPSTATE_DETECTED;
             pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_READY;
@@ -260,7 +260,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
 
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
         pCardStatus->applications[0].app_state =
-          (RADIO_STATE_SIM_READY == g_RadioState.GetSIMState()) ?
+          (RRIL_SIM_STATE_READY == GetSIMState()) ?
             RIL_APPSTATE_READY :
             RIL_APPSTATE_DETECTED;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
@@ -280,7 +280,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
 
         pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
         pCardStatus->applications[0].app_state =
-          (RADIO_STATE_SIM_READY == g_RadioState.GetSIMState()) ?
+          (RRIL_SIM_STATE_READY == GetSIMState()) ?
             RIL_APPSTATE_READY :
             RIL_APPSTATE_DETECTED;
         pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
@@ -2314,7 +2314,7 @@ RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
     if (0 == nPower)
     {
         //  Turning off phone
-        g_RadioState.SetRadioState(RRIL_RADIO_STATE_OFF);
+        SetRadioState(RRIL_RADIO_STATE_OFF);
         if (mShutdown)
         {
             do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
@@ -2323,7 +2323,7 @@ RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
     else if (1 == nPower)
     {
         //  Turning on phone
-        g_RadioState.SetRadioState(RRIL_RADIO_STATE_ON);
+        SetRadioState(RRIL_RADIO_STATE_ON);
         CSystemManager::GetInstance().TriggerModemPowerOnEvent();
     }
 
@@ -9312,4 +9312,28 @@ UINT32 CTEBase::GetIncomingCallId()
 {
     RIL_LOG_VERBOSE("CTEBase::GetIncomingCallId - Enter/Exit \r\n");
     return m_IncomingCallInfo.callId;
+}
+
+RIL_RadioState CTEBase::GetRadioState()
+{
+    return m_RadioState.GetRadioState();
+}
+
+RRIL_SIM_State CTEBase::GetSIMState()
+{
+    return m_SIMState.GetSIMState();
+}
+
+void CTEBase::SetRadioState(const RRIL_Radio_State eRadioState)
+{
+    RIL_LOG_VERBOSE("CTEBase::SetRadioState() - Enter / Exit\r\n");
+
+    m_RadioState.SetRadioState(eRadioState);
+}
+
+void CTEBase::SetSIMState(const RRIL_SIM_State eSIMState)
+{
+    RIL_LOG_VERBOSE("CTEBase::SetSIMState() - Enter / Exit\r\n");
+
+    m_SIMState.SetSIMState(eSIMState);
 }

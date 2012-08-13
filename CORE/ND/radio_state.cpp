@@ -18,8 +18,7 @@
 
 
 ///////////////////////////////////////////////////////////////////////////////
-CRadioState::CRadioState() : m_eRadioState(RRIL_RADIO_STATE_UNAVAILABLE),
-                            m_eSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT)
+CRadioState::CRadioState() : m_eRadioState(RRIL_RADIO_STATE_UNAVAILABLE)
 {
     RIL_LOG_VERBOSE("CRadioState::CRadioState() - Enter / Exit\r\n");
 }
@@ -28,13 +27,6 @@ CRadioState::CRadioState() : m_eRadioState(RRIL_RADIO_STATE_UNAVAILABLE),
 CRadioState::~CRadioState()
 {
     RIL_LOG_VERBOSE("CRadioState::~CRadioState() - Enter / Exit\r\n");
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void CRadioState::SetToUnavailable()
-{
-    m_eRadioState = RRIL_RADIO_STATE_UNAVAILABLE;
-    m_eSIMState = RRIL_SIM_STATE_LOCKED_OR_ABSENT;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -50,20 +42,7 @@ RIL_RadioState CRadioState::GetRadioState()
         radioState = RADIO_STATE_OFF;
         break;
     case RRIL_RADIO_STATE_ON:
-        switch (m_eSIMState)
-        {
-        case RRIL_SIM_STATE_LOCKED_OR_ABSENT:
-            radioState = RADIO_STATE_SIM_LOCKED_OR_ABSENT;
-            break;
-        case RRIL_SIM_STATE_READY:
-            radioState = RADIO_STATE_SIM_READY;
-            break;
-        case RRIL_SIM_STATE_NOT_READY:
-            radioState = RADIO_STATE_SIM_NOT_READY;
-            break;
-        default:
-            radioState = RADIO_STATE_OFF;
-        }
+        radioState = RADIO_STATE_ON;
         break;
     default:
         radioState =  RADIO_STATE_UNAVAILABLE;
@@ -72,29 +51,6 @@ RIL_RadioState CRadioState::GetRadioState()
     RIL_LOG_INFO("[RIL STATE] RADIO STATE = %s\r\n", PrintState(radioState));
 
     return radioState;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-RIL_RadioState CRadioState::GetSIMState()
-{
-    RIL_RadioState simState;
-    switch (m_eSIMState)
-    {
-    case RRIL_SIM_STATE_NOT_READY:
-        simState = RADIO_STATE_SIM_NOT_READY;
-        break;
-    case RRIL_SIM_STATE_LOCKED_OR_ABSENT:
-        simState = RADIO_STATE_SIM_LOCKED_OR_ABSENT;
-        break;
-    case RRIL_SIM_STATE_READY:
-        simState = RADIO_STATE_SIM_READY;
-        break;
-    default:
-        simState = RADIO_STATE_SIM_LOCKED_OR_ABSENT;
-    }
-    RIL_LOG_INFO("[RIL STATE] SIM STATE = %s\r\n", PrintState(simState));
-
-    return simState;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -107,26 +63,18 @@ void CRadioState::SetRadioState(const RRIL_Radio_State eRadioState)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void CRadioState::SetSIMState(const RRIL_SIM_State eSIMState)
-{
-    RIL_LOG_INFO("CRadioState::SetSIMState  m_eSIMState: %d, eSIMState: %d, m_eRadioState: %d\r\n",
-                m_eSIMState, eSIMState, m_eRadioState);
-
-    if (m_eSIMState != eSIMState) {
-        m_eSIMState = eSIMState;
-        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
 const char* CRadioState::PrintState(const RIL_RadioState eState)
 {
     switch (eState)
     {
         case RADIO_STATE_OFF:
             return "RADIO_STATE_OFF";
+        case RADIO_STATE_ON:
+            return "RADIO_STATE_ON";
         case RADIO_STATE_UNAVAILABLE:
             return "RADIO_STATE_UNAVAILABLE";
+        // the following enumerations are deprecated from
+        // RIL v7 onwards.
         case RADIO_STATE_SIM_NOT_READY:
             return "RADIO_STATE_SIM_NOT_READY";
         case RADIO_STATE_SIM_LOCKED_OR_ABSENT:

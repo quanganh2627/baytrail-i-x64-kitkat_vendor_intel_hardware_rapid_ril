@@ -25,7 +25,7 @@
 #include "reset.h"
 #include "channel_data.h"
 #include "data_util.h" // For DataConfigDown
-
+#include "te.h"
 #include <sys/ioctl.h>
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
@@ -119,9 +119,9 @@ void ModemResetUpdate()
     //  This will cause a RIL_REQUEST_GET_CURRENT_CALLS to be sent
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 
-    g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
+    CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
 
-    g_RadioState.SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
 
     //  Delay slightly so Java layer receives replies
     Sleep(10);

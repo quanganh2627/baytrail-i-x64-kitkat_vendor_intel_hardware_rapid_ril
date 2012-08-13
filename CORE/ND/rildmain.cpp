@@ -24,8 +24,8 @@
 #include "rildmain.h"
 #include "reset.h"
 #include <cutils/properties.h>
+#include <utils/Log.h>
 
-#define RAPID_RIL_BASE_VERSION 6
 ///////////////////////////////////////////////////////////
 //  FUNCTION PROTOTYPES
 //
@@ -57,7 +57,7 @@ char* g_szSIMID = NULL;
 
 static const RIL_RadioFunctions gs_callbacks =
 {
-    RAPID_RIL_BASE_VERSION,
+    RIL_VERSION,
     onRequest,
     onGetCurrentRadioState,
     onSupports,
@@ -1329,7 +1329,7 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
  */
 static RIL_RadioState onGetCurrentRadioState()
 {
-    return g_RadioState.GetRadioState();
+    return CTE::GetTE().GetRadioState();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

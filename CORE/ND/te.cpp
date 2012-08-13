@@ -16,9 +16,12 @@
 
 #include "../util.h"
 #include "extract.h"
+#include "sync_ops.h"
 #include "types.h"
 #include "rillog.h"
+#include "systemmanager.h"
 #include "te.h"
+#include "te_base.h"
 #include "command.h"
 #include "cmdcontext.h"
 #include "rril_OEM.h"
@@ -96,18 +99,33 @@ CTEBase* CTE::CreateModemTE()
     return NULL;
 }
 
-CTE& CTE::GetTE()
+// Creates the Modem specific TE Singlton Object
+void CTE::CreateTE()
 {
+    CMutex::Lock(CSystemManager::GetTEAccessMutex());
     if (NULL == m_pTEInstance)
     {
         m_pTEInstance = new CTE;
         if (NULL == m_pTEInstance)
         {
-            RIL_LOG_CRITICAL("CTE::GetTE() - Unable to construct terminal equipment!!!!!! EXIT!\r\n");
+            CMutex::Unlock(CSystemManager::GetTEAccessMutex());
+            RIL_LOG_CRITICAL("CTE::CreateTE() - Unable to create terminal equipment!!!!!! EXIT!\r\n");
             exit(0);
         }
     }
+    CMutex::Unlock(CSystemManager::GetTEAccessMutex());
+}
 
+CTE& CTE::GetTE()
+{
+    CMutex::Lock(CSystemManager::GetTEAccessMutex());
+    if (NULL == m_pTEInstance)
+    {
+        CMutex::Unlock(CSystemManager::GetTEAccessMutex());
+        RIL_LOG_CRITICAL("CTE::GetTE() - Unable to get terminal equipment!!!!!! EXIT!\r\n");
+        exit(0);
+    }
+    CMutex::Unlock(CSystemManager::GetTEAccessMutex());
     return *m_pTEInstance;
 }
 
@@ -1243,7 +1261,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
-    RIL_RadioState radio_state = g_RadioState.GetRadioState();
+    RIL_RadioState radio_state = GetRadioState();
     char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     if (NULL == pData)
@@ -5762,3 +5780,22 @@ BOOL CTE::IsSetupDataCallOnGoing()
     return m_bIsSetupDataCallOngoing;
 };
 
+RIL_RadioState CTE::GetRadioState()
+{
+    return m_pTEBaseInstance->GetRadioState();
+}
+
+RRIL_SIM_State CTE::GetSIMState()
+{
+    return m_pTEBaseInstance->GetSIMState();
+}
+
+void CTE::SetRadioState(const RRIL_Radio_State eRadioState)
+{
+    m_pTEBaseInstance->SetRadioState(eRadioState);
+}
+
+void CTE::SetSIMState(const RRIL_SIM_State eRadioState)
+{
+    m_pTEBaseInstance->SetSIMState(eRadioState);
+}

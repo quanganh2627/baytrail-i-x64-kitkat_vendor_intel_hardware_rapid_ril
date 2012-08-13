@@ -106,7 +106,7 @@ BOOL CSilo_Network::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
     }
     else if ((ND_REQ_ID_GETCURRENTCALLS == rpCmd->GetRequestID()) &&
         (RRIL_RESULT_ERROR == rpRsp->GetResultCode()) &&
-        (RADIO_STATE_SIM_LOCKED_OR_ABSENT == g_RadioState.GetRadioState()))
+        (RRIL_SIM_STATE_NOT_READY == CTE::GetTE().GetSIMState()))
     {
         RIL_LOG_INFO("CSilo_Network::PostParseResponseHook() - INFO: Override GET CURRENT CALLS error with OK as SIM is locked or absent\r\n");
         rpRsp->SetResultCode(RRIL_RESULT_OK);

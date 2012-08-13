@@ -79,6 +79,7 @@ public:
     //  Get/Set functions.
     static CEvent*  GetCancelEvent()                    { return GetInstance().m_pExitRilEvent;    };
     static CMutex*  GetDataChannelAccessorMutex()       { return GetInstance().m_pDataChannelAccessorMutex; };
+    static CMutex*  GetTEAccessMutex()                  { return GetInstance().m_pTEAccessMutex;   }
 
     void            TriggerSimUnlockedEvent() const         { CEvent::Signal(m_pSimUnlockedEvent);      };
     void            TriggerModemPowerOnEvent() const        { CEvent::Signal(m_pModemPowerOnEvent);     };
@@ -169,6 +170,8 @@ private:
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     UINT32          m_uiLastCallFailedCauseID;
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
+
+    CMutex *            m_pTEAccessMutex;
 };
 
 #endif // SYSTEMMANAGER

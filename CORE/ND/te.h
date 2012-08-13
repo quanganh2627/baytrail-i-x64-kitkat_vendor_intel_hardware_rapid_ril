@@ -14,10 +14,14 @@
 #ifndef RRIL_TE_H
 #define RRIL_TE_H
 
-#include "te_base.h"
-#include "rril.h"
-#include "sync_ops.h"
 #include "nd_structs.h"
+#include "rril.h"
+#include "rril_OEM.h"
+#include "radio_state.h"
+#include "sim_state.h"
+#include "types.h"
+
+class CTEBase;
 
 class CTE
 {
@@ -40,6 +44,7 @@ private:
 
 
 public:
+    static void CreateTE();
     static CTE & GetTE();
     static void  DeleteTEObject();
 
@@ -526,6 +531,11 @@ public:
 
     void SetupDataCallOngoing(BOOL bStatus);
     BOOL IsSetupDataCallOnGoing();
+
+    RIL_RadioState GetRadioState();
+    RRIL_SIM_State GetSIMState();
+    void SetRadioState(const RRIL_Radio_State eRadioState);
+    void SetSIMState(const RRIL_SIM_State eRadioState);
 
 private:
     BOOL m_bCSStatusCached;

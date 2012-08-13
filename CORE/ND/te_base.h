@@ -17,6 +17,8 @@
 #include "types.h"
 #include "rril_OEM.h"
 #include "rril.h"
+#include "radio_state.h"
+#include "sim_state.h"
 #include <utils/Vector.h>
 
 class CTEBase
@@ -29,6 +31,10 @@ protected:
     bool mShutdown;
     int m_nSimAppType;
     android::Vector<RIL_GSM_BroadcastSmsConfigInfo> m_vBroadcastSmsConfigInfo;
+    // This tracks the radio state and handles notifications
+    CRadioState m_RadioState;
+    // This class tracks the SIM state and handles notifications
+    CSimState m_SIMState;
 
 public:
 
@@ -505,6 +511,12 @@ public:
     virtual UINT32 GetIncomingCallId();
 
     virtual BOOL ParseCEER(RESPONSE_DATA& rRspData, UINT32& rUICause);
+
+    // Manage SIM and Radio states
+    virtual RIL_RadioState GetRadioState();
+    virtual RRIL_SIM_State GetSIMState();
+    virtual void SetRadioState(const RRIL_Radio_State eRadioState);
+    virtual void SetSIMState(const RRIL_SIM_State eSIMState);
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus, bool* pbSilentPINEntry = NULL);

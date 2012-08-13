@@ -145,6 +145,8 @@ CSystemManager::CSystemManager()
     //                so we don't block during suspend.
     m_pSystemManagerMutex = new CMutex();
 
+    m_pTEAccessMutex = new CMutex();
+
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Exit\r\n");
 }
 
@@ -247,6 +249,14 @@ CSystemManager::~CSystemManager()
         shutdown(m_fdCleanupSocket, SHUT_RDWR);
         close(m_fdCleanupSocket);
         m_fdCleanupSocket = -1;
+    }
+
+    if (m_pTEAccessMutex)
+    {
+        CMutex::Unlock(m_pTEAccessMutex);
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pTEAccessMutex\r\n");
+        delete m_pTEAccessMutex;
+        m_pTEAccessMutex = NULL;
     }
 
     if (fLocked)
@@ -482,6 +492,9 @@ BOOL CSystemManager::InitializeSystem()
             goto Done;
         }
     }
+    // The modem specific TE Object is created here. This should be done before the
+    // AT channels starts sending the initialization commands.
+    CTE::CreateTE();
 
     ResetSystemState();
 

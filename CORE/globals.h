@@ -37,10 +37,6 @@ extern char g_cTerminator;
 extern char g_szNewLine[3];
 
 ///////////////////////////////////////////////////////////////////////////////
-// This global class instance tracks the radio state and handles notifications
-extern CRadioState g_RadioState;
-
-///////////////////////////////////////////////////////////////////////////////
 // This global flag is used to cancel the pending chld requests in ril when
 // the call is disconnected.
 extern bool g_clearPendingChlds;

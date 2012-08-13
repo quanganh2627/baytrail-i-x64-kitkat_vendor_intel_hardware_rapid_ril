@@ -23,7 +23,7 @@
 #include "rildmain.h"
 #include "silo_sim.h"
 #include "callbacks.h"
-
+#include "te.h"
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
 
@@ -122,7 +122,7 @@ BOOL CSilo_SIM::PostParseResponseHook(CCommand*& rpCmd, CResponse*& rpRsp)
         case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION:
             if (RIL_E_SUCCESS == rpRsp->GetResultCode())
             {
-                g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
+                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
                 CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             }
             break;
@@ -208,7 +208,7 @@ BOOL CSilo_SIM::ParsePin(CCommand*& rpCmd, CResponse*& rpRsp)
             case CME_ERROR_SIM_PUK_REQUIRED:
                 RIL_LOG_INFO("CSilo_SIM::ParsePin() - SIM PUK required");
                 rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-                g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
+                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
                 break;
 
             case CME_ERROR_SIM_PUK2_REQUIRED:
@@ -258,7 +258,7 @@ BOOL CSilo_SIM::ParseFacilityLock(CCommand*& rpCmd, CResponse*& rpRsp)
                     case CME_ERROR_SIM_PUK_REQUIRED:
                         RIL_LOG_INFO("CSilo_SIM::ParseFacilityLock() - SIM PUK required");
                         rpRsp->SetResultCode(RIL_E_PASSWORD_INCORRECT);
-                        g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
+                        CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
                         break;
 
                     case CME_ERROR_SIM_PUK2_REQUIRED:
@@ -300,7 +300,7 @@ BOOL CSilo_SIM::ParseNetworkPersonalisationPin(CCommand*& rpCmd, CResponse*& rpR
             case CME_ERROR_NETWORK_PUK_REQUIRED:
                 RIL_LOG_INFO("CSilo_SIM::ParseNetworkPersonalisationPin() - NETWORK PUK required");
                 rpRsp->SetResultCode(RIL_E_NETWORK_PUK_REQUIRED);
-                g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
+                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
                 break;
             default:
                 RIL_LOG_INFO("CSilo_SIM::ParseNetworkPersonalisationPin() - Unknown error [%d]", rpRsp->GetErrorCode());
@@ -914,7 +914,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
         case 3: // PIN verified - Ready
             if (m_IsReadyForAttach) {
                 RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
-                g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
+                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
             }
             break;
         /*
@@ -928,7 +928,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
         case 10: // SIM Reactivating
             break;
         case 11: // SIM Reactivated
-            g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
             break;
         /*
          * XSIM: 2 means PIN verification not needed but not ready for attach.
@@ -940,17 +940,17 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM NOT READY\r\n");
-            g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
             break;
         case 8: // SIM Technical problem
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM TECHNICAL PROBLEM\r\n");
-            g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
             g_bReportCardStateError = TRUE;
             break;
         case 7: // ready for attach (+COPS)
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
             m_IsReadyForAttach = TRUE;
-            g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
         case 12: // SIM SMS caching completed
@@ -966,7 +966,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
         case 4: // PUK verification needed
         case 5: // SIM permanently blocked
         default:
-            g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
             break;
     }
 
@@ -1086,7 +1086,7 @@ complete:
         if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
            (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
         {
-            g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
             pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
             break;
         }
@@ -1302,7 +1302,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
         case 3: // PIN verified - Ready
             if (m_IsReadyForAttach) {
                 RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
-                g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
+                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
             }
             break;
         /*
@@ -1316,7 +1316,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
         case 10: // SIM Reactivating
             break;
         case 11: // SIM Reactivated
-            g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
             break;
         /*
          * XSIM: 2 means PIN verification not needed but not ready for attach.
@@ -1328,17 +1328,17 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
             RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM NOT READY\r\n");
-            g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
             break;
         case 8: // SIM Technical problem
             RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
-            g_RadioState.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
             g_bReportCardStateError = TRUE;
             break;
         case 7: // ready for attach (+COPS)
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
             m_IsReadyForAttach = TRUE;
-            g_RadioState.SetSIMState(RRIL_SIM_STATE_READY);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
         case 0: // SIM not present
@@ -1351,7 +1351,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
         case 5: // SIM permanently blocked
         case 99: // SIM state unknown
         default:
-            g_RadioState.SetSIMState(RRIL_SIM_STATE_LOCKED_OR_ABSENT);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
             break;
     }
 

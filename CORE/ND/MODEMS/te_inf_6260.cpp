@@ -119,7 +119,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
     RIL_CardStatus_v6* pCardStatus = NULL;
     char szUICCID[MAX_PROP_VALUE] = {0};
     bool bSilentPINEntry = false;
-    RIL_RESULT_CODE res = CTEBase::ParseSimPin(pszRsp, pCardStatus, &bSilentPINEntry);
+    RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus, &bSilentPINEntry);
     if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Could not parse Sim Pin.\r\n");
@@ -2370,7 +2370,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, vo
     }
 
     //  May 18,2011 - Don't call AT+CGACT=0,X if SIM was removed since context is already deactivated.
-    if (RADIO_STATE_SIM_LOCKED_OR_ABSENT == g_RadioState.GetRadioState())
+    if (RRIL_SIM_STATE_NOT_READY == GetSIMState())
     {
         RIL_LOG_INFO("CTE_INF_6260::CoreDeactivateDataCall() - SIM LOCKED OR ABSENT!! no-op this command\r\n");
         rReqData.szCmd1[0] = '\0';
@@ -4733,7 +4733,9 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRs
 
     if ((int)rRspData.pContextData & 2)
     {
-        g_RadioState.SetToUnavailable();
+        // Set the radio and SIM state as un available
+        SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
+        SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
     }
     //  Todo: Handle error here.
 

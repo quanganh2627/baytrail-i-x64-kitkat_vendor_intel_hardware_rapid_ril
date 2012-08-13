@@ -12,6 +12,7 @@ LOCAL_SRC_FILES:= \
     ND/te.cpp \
     ND/systemmanager.cpp \
     ND/radio_state.cpp \
+    ND/sim_state.cpp \
     silo.cpp \
     ND/silo_voice.cpp \
     ND/silo_network.cpp \
