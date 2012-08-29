@@ -24,7 +24,7 @@
 #include "rildmain.h"
 #include "reset.h"
 #include "channel_data.h"
-#include "data_util.h" // For DataConfigDown
+#include "data_util.h"
 #include "te.h"
 #include "te_base.h"
 #include <sys/ioctl.h>
@@ -99,7 +99,6 @@ void ModemResetUpdate()
     //  Tell Android no more data connection
     RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
 
-
     //  If there was a voice call active, it is disconnected.
     //  This will cause a RIL_REQUEST_GET_CURRENT_CALLS to be sent
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
@@ -139,11 +138,6 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
         //  Close ports
         CSystemManager::GetInstance().CloseChannelPorts();
 
-        //  Inform Android of new state
-        //  Voice calls disconnected, no more data connections
-        ModemResetUpdate();
-
-
         if (eRadioError_ForceShutdown == eError)
         {
             RIL_LOG_INFO("do_request_clean_up() - SendRequestShutdown\r\n");
@@ -159,6 +153,10 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
         {
             RIL_LOG_INFO("do_request_clean_up() - SendRequestCleanup, eError=[%d]\r\n", eError);
 
+            //  Inform Android of new state
+            //  Voice calls disconnected, no more data connections
+            ModemResetUpdate();
+
             //  Send "REQUEST_CLEANUP" on CleanupRequest socket
             if (!CSystemManager::GetInstance().SendRequestCleanup())
             {
@@ -168,6 +166,7 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
             }
 
             RIL_LOG_INFO("do_request_clean_up() - Calling exit(0)\r\n");
+            CSystemManager::Destroy();
             exit(0);
         }
     }
@@ -332,6 +331,7 @@ void* ModemWatchdogThreadProc(void* pVoid)
                                 //  let's exit, init will restart us
                                 RIL_LOG_INFO("ModemWatchdogThreadProc() - CALLING EXIT\r\n");
 
+                                CSystemManager::Destroy();
                                 exit(0);
 
                                 //  Rely on STMD to perform cleanup
@@ -342,9 +342,27 @@ void* ModemWatchdogThreadProc(void* pVoid)
 
                             case PLATFORM_SHUTDOWN:
                                 RIL_LOG_INFO("[RIL STATE] (RIL <- STMD) PLATFORM_SHUTDOWN\r\n");
-                                //  RIL should already be preparing for a platform shutdown through
-                                //  RIL_REQUEST_RADIO_POWER.
-                                //  Do nothing here.
+                                //  If the SPOOF mode is not set, this means that the SHUTDOWN
+                                //  request was not triggered by this instance of the RRIL.
+                                //  So we should take the event into account.
+                                if (!g_bSpoofCommands)
+                                {
+                                    CTE::GetTE().CleanupAllDataConnections();
+
+                                    CTE::GetTE().SetManualNetworkSearchOn(FALSE);
+                                    CTE::GetTE().SetupDataCallOngoing(FALSE);
+
+                                    //  Turning off phone
+                                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
+                                    do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
+                                }
+                                else
+                                {
+                                    // Ends the RRIL
+                                    CSystemManager::Destroy();
+                                    // Don't exit the RRIL to avoid automatic restart: sleep for ever
+                                    while(1) { sleep(10000); }
+                                }
                                 break;
 
                             case MODEM_COLD_RESET:

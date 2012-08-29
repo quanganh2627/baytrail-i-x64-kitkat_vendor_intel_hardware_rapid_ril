@@ -821,6 +821,13 @@ UINT32 CChannelBase::ResponseThread()
         RIL_LOG_VERBOSE("CChannelBase::ResponseThread() chnl=[%d] - Waiting for data\r\n", m_uiRilChannel);
         if (!WaitForAvailableData(WAIT_FOREVER))
         {
+            if (g_bSpoofCommands)
+            {
+                // If we are in spoof mode this means that the modem is down.
+                // Don't report error in this case and simply ends the thread.
+                return 0;
+            }
+
             RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Waiting for data failed!\r\n", m_uiRilChannel);
             CMutex::Lock(m_pPossibleInvalidFDMutex);
             BOOL bPossibleInvalidFD = m_bPossibleInvalidFD;
@@ -851,6 +858,13 @@ UINT32 CChannelBase::ResponseThread()
         {
             if (!ReadFromPort(szData, uiRespDataBufSize, uiRead))
             {
+                if (g_bSpoofCommands)
+                {
+                    //  If we are in spoof mode, this means that the modem is down.
+                    //  Don't report error in this case and simply ends the thread.
+                    return 0;
+                }
+
                 RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Read failed\r\n", m_uiRilChannel);
 
                 if (m_bPossibleInvalidFD)
@@ -873,14 +887,14 @@ UINT32 CChannelBase::ResponseThread()
             {
                 if (bFirstRead)
                 {
-                    RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Data available but uiRead is 0!\r\n", m_uiRilChannel);
                     if (g_bSpoofCommands)
                     {
-                        // If we are in "spoof" mode this means that a call to do_request_clean_up
-                        // was done. In this case, we must exit the thread to end the RRIL.
+                        // If we are in spoof mode this means that the modem is down.
+                        // Don't report error in this case and simply ends the thread.
                         return 0;
                     }
-                    //  ignore, watchdog thread handles this now.
+
+                    RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Data available but uiRead is 0!\r\n", m_uiRilChannel);
                     Sleep(25);
                 }
                 break;
