@@ -39,7 +39,6 @@ LOCAL_SRC_FILES:= \
     ND/thread_ops.cpp \
     cmdcontext.cpp \
     command.cpp \
-    globals.cpp \
     rilchannels.cpp \
     response.cpp \
     request_info_table.cpp \

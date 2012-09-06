@@ -12,10 +12,9 @@
 
 #include "types.h"
 #include "rillog.h"
-#include "globals.h"
 #include "request_info_table.h"
 #include "repository.h"
-
+#include "te.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 CRequestInfoTable::CRequestInfoTable()
@@ -40,7 +39,7 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO &rReqInfo)
     REQ_INFO * pNewReqInfo = NULL;
 
     // Set defaults if we can't find the request id
-    rReqInfo.uiTimeout       = g_TimeoutAPIDefault;
+    rReqInfo.uiTimeout = CTE::GetTE().GetTimeoutAPIDefault();
 
     if (REQ_ID_NONE == requestID)
     {
@@ -79,7 +78,7 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO &rReqInfo)
         }
         else
         {
-            pNewReqInfo->uiTimeout = g_TimeoutAPIDefault;
+            pNewReqInfo->uiTimeout = CTE::GetTE().GetTimeoutAPIDefault();
         }
 
         // Use WAIT_FOREVER timeout if given time was 0

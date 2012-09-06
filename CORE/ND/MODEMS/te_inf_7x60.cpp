@@ -18,7 +18,6 @@
 #include "extract.h"
 #include "rillog.h"
 #include "te.h"
-#include "globals.h"
 #include "sync_ops.h"
 #include "command.h"
 #include "te_inf_7x60.h"
@@ -38,16 +37,14 @@
 #include <linux/if_ether.h>
 #include <linux/gsmmux.h>
 
-CTE_INF_7x60::CTE_INF_7x60()
-:CTE_INF_6260(),
-m_currentNetworkType(-1)
+CTE_INF_7x60::CTE_INF_7x60() :
+    CTE_INF_6260(),
+    m_currentNetworkType(-1)
 {
-
 }
 
 CTE_INF_7x60::~CTE_INF_7x60()
 {
-
 }
 
 BOOL CTE_INF_7x60::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
@@ -325,7 +322,7 @@ RIL_RESULT_CODE CTE_INF_7x60::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
         default:
             RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Undefined rat code: %d\r\n", networkType);
-            res = RIL_E_GENERIC_FAILURE;
+            res = RIL_E_MODE_NOT_SUPPORTED;
             goto Error;
 
     }
@@ -376,7 +373,7 @@ RIL_RESULT_CODE CTE_INF_7x60::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspD
     }
 
     // Skip "<prefix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_7x60::ParseGetPreferredNetworkType() - Could not skip response prefix.\r\n");
         goto Error;
@@ -462,6 +459,118 @@ Error:
 
 
     RIL_LOG_VERBOSE("CTE_INF_7x60::ParseGetPreferredNetworkType() - Exit\r\n");
+    return res;
+}
+
+//
+// RIL_REQUEST_VOICE_RADIO_TECH 108
+//
+RIL_RESULT_CODE CTE_INF_7x60::CoreVoiceRadioTech(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_7x60::CoreVoiceRadioTech() - Enter / Exit\r\n");
+
+    return CoreGetPreferredNetworkType(rReqData, pData, uiDataSize);
+}
+
+RIL_RESULT_CODE CTE_INF_7x60::ParseVoiceRadioTech(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_7x60::ParseVoiceRadioTech() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+
+    UINT32 uiAcT = 0;
+    UINT32 uiPreferredAcT = 0;
+
+    int* pCurRadioTech = (int*)malloc(sizeof(int));
+    if (NULL == pCurRadioTech)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_7x60::ParseVoiceRadioTech() - Could not allocate memory for response.\r\n");
+        goto Error;
+    }
+
+    // Skip "<prefix>"
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_7x60::ParseVoiceRadioTech() - Could not skip response prefix.\r\n");
+        goto Error;
+    }
+
+    // Skip "+XACT: "
+    if (!SkipString(pszRsp, "+XACT: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_7x60::ParseVoiceRadioTech() - Could not skip \"+XACT: \".\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt32(pszRsp, uiAcT, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_7x60::ParseVoiceRadioTech() - Could not extract rat value.\r\n");
+        goto Error;
+    }
+
+    if (FindAndSkipString(pszRsp, ",", pszRsp))
+    {
+        if (!ExtractUInt32(pszRsp, uiPreferredAcT, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_7x60::ParseVoiceRadioTech() - Could not find and skip pref value even though it was expected.\r\n");
+            goto Error;
+        }
+    }
+
+    switch (uiAcT)
+    {
+        case 0: // GSM Only
+            RIL_LOG_INFO("CTE_INF_7x60::ParseVoiceRadioTech() - AcT = %d, GSM\r\n", uiAcT);
+            pCurRadioTech[0] = RADIO_TECH_GSM;
+            break;
+
+        case 1: // UMTS only
+            RIL_LOG_INFO("CTE_INF_7x60::ParseVoiceRadioTech() - AcT = %d, UMTS\r\n", uiAcT);
+            pCurRadioTech[0] = RADIO_TECH_UMTS;
+            break;
+
+        case 2: // LTE only
+            RIL_LOG_INFO("CTE_INF_7x60::ParseVoiceRadioTech() - AcT = %d, LTE\r\n", uiAcT);
+            pCurRadioTech[0] = RADIO_TECH_LTE;
+            break;
+
+        case 3: // GSM / UMTS dual mode
+            RIL_LOG_INFO("CTE_INF_7x60::ParseVoiceRadioTech() - AcT = %d, GSM / UMTS, preferredAcT = %d\r\n",
+                uiAcT, uiPreferredAcT);
+            pCurRadioTech[0] = (uiPreferredAcT == 1) ? RADIO_TECH_UMTS : RADIO_TECH_GSM;
+            break;
+
+        case 6: // GSM / UMTS / LTE triple mode
+            RIL_LOG_INFO("CTE_INF_7x60::ParseVoiceRadioTech() - AcT = %d, GSM / UMTS / LTE, preferredAcT = %d\r\n",
+                uiAcT, uiPreferredAcT);
+            if (2 == uiPreferredAcT)
+                pCurRadioTech[0] = RADIO_TECH_LTE;
+            else if (1 == uiPreferredAcT)
+                pCurRadioTech[0] = RADIO_TECH_UMTS;
+            else
+                pCurRadioTech[0] = RADIO_TECH_GSM;
+            break;
+
+        default:
+            RIL_LOG_CRITICAL("CTE_INF_7x60::ParseVoiceRadioTech() - Unsupported AcT = %d\r\n", uiAcT);
+            pCurRadioTech[0] = RADIO_TECH_UNKNOWN;
+            goto Error;
+    }
+
+    rRspData.pData = (void*)pCurRadioTech;
+    rRspData.uiDataSize = sizeof(int*);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pCurRadioTech);
+        pCurRadioTech = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_7x60::ParseVoiceRadioTech() - Exit\r\n");
     return res;
 }
 

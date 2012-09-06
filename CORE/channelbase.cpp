@@ -24,6 +24,7 @@
 #include "reset.h"
 #include "repository.h"
 #include "channelbase.h"
+#include "te.h"
 
 extern char* g_szSIMID;
 
@@ -562,7 +563,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                 repository.ReadFDParam(g_szGroupModem, g_szSCRITimer, szSCRITimer, MAX_BUFFER_SIZE, MIN_SCRI_TIMER, MAX_SCRI_TIMER);
 
                // define XFDOR command according to FD mode
-                switch (g_nFastDormancyMode)
+                switch (CTE::GetTE().GetFastDormancyMode())
                 {
                     case E_FD_MODE_ALWAYS_ON :
                         if (!PrintStringNullTerminate(szFDCmdString,
@@ -733,7 +734,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             {
                 CContext* pContext = new CContextInitString(eInitIndex, m_uiRilChannel, bLastCmd);
                 pCmd->SetContext(pContext);
-                pCmd->SetTimeout(g_TimeoutCmdInit);
+                pCmd->SetTimeout(CTE::GetTE().GetTimeoutCmdInit());
                 pCmd->SetHighPriority();
                 pCmd->SetInitCommand();
             }

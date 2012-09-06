@@ -33,13 +33,15 @@
 
 
 CTEBase::CTEBase() :
-m_nNetworkRegistrationType(0),
-mShutdown(false),
-m_nSimAppType(RIL_APPTYPE_UNKNOWN),
-m_ePin2State(RIL_PINSTATE_UNKNOWN)
+    m_cTerminator('\r'),
+    m_nNetworkRegistrationType(0),
+    mShutdown(false),
+    m_nSimAppType(RIL_APPTYPE_UNKNOWN),
+    m_ePin2State(RIL_PINSTATE_UNKNOWN)
 {
     CRepository repository;
     strcpy(m_szNetworkInterfaceNamePrefix, "");
+    CopyStringNullTerminate(m_szNewLine, "\r\n", sizeof(m_szNewLine));
 
     //  Grab the network interface name
     if (!repository.Read(g_szGroupModem, g_szNetworkInterfaceNamePrefix, m_szNetworkInterfaceNamePrefix, MAX_BUFFER_SIZE))
@@ -107,7 +109,7 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
     memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
 
     // Parse "<prefix>+CPIN: <state><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - Could not skip response prefix.\r\n");
         goto Error;
@@ -119,13 +121,13 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
         goto Error;
     }
 
-    if (!ExtractUnquotedString(pszRsp, g_cTerminator, szSimState, MAX_BUFFER_SIZE, pszRsp))
+    if (!ExtractUnquotedString(pszRsp, m_cTerminator, szSimState, MAX_BUFFER_SIZE, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - Could not extract SIM State.\r\n");
         goto Error;
     }
 
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - Could not skip response postfix.\r\n");
         goto Error;
@@ -378,17 +380,17 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA & rRspData)
     if (!PCache_GetUseCachedPIN())
     {
         // Parse "<prefix>+CCID: <ICCID><postfix>"
-        SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
         if (SkipString(pszRsp, "+CCID: ", pszRsp))
         {
-            if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+            if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot parse UICC ID\r\n");
                 szUICCID[0] = '\0';
             }
 
-            SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+            SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
         }
 
         //  Cache PIN1 value
@@ -721,17 +723,17 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA & rRspData)
     rRspData.uiDataSize   = sizeof(int*);
 
     // Parse "<prefix>+CCID: <ICCID><postfix>"
-    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
     if (SkipString(pszRsp, "+CCID: ", pszRsp))
     {
-        if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+        if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot parse UICC ID\r\n");
             szUICCID[0] = '\0';
         }
 
-        SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+        SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
     }
 
     //  Cache PIN1 value
@@ -948,7 +950,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
     int  nCalls = 0;
 
     // Parse "<prefix>"
-    if (!SkipRspStart(szRsp, g_szNewLine, szRsp))
+    if (!SkipRspStart(szRsp, m_szNewLine, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() - Couldn't find rsp start\r\n");
         goto Error;
@@ -1106,7 +1108,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
 
 Continue:
             // Find "<postfix>"
-            bSuccess = SkipRspEnd(szRsp, g_szNewLine, szRsp);
+            bSuccess = SkipRspEnd(szRsp, m_szNewLine, szRsp);
 
             // Note: WaveCom euro radios forget to include the <cr><lf> between +CLCC lines,
             // so for wavecom don't worry if we don't find these characters
@@ -1242,9 +1244,9 @@ RIL_RESULT_CODE CTEBase::ParseGetImsi(RESPONSE_DATA & rRspData)
     memset(szSerialNumber, 0x00, MAX_PROP_VALUE);
 
     // Parse "<prefix><serial_number><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
-        !ExtractUnquotedString(pszRsp, g_cTerminator, szSerialNumber, MAX_PROP_VALUE, pszRsp) ||
-        !SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp) ||
+        !ExtractUnquotedString(pszRsp, m_cTerminator, szSerialNumber, MAX_PROP_VALUE, pszRsp) ||
+        !SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImsi() - Could not extract the IMSI string.\r\n");
         goto Error;
@@ -1789,7 +1791,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
      */
 
     // Parse "<prefix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseOperator() - Could not skip response prefix.\r\n");
         goto Error;
@@ -1920,7 +1922,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
         }
 
         // Extract "<CR><LF>"
-        if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+        if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseOperator() - Could not extract response postfix.\r\n");
             goto Error;
@@ -1928,7 +1930,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA & rRspData)
 
         // If we have another line to parse, get rid of its prefix now.
         // Note that this will do nothing if we don't have another line to parse.
-        SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
         RIL_LOG_VERBOSE("CTEBase::ParseOperator() - Response: %s\r\n", CRLFExpandedString(pszRsp, strlen(pszRsp)).GetString());
     }
@@ -2216,14 +2218,14 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
     }
     memset(pSendMsg, 0, sizeof(S_ND_SEND_MSG));
 
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSendSms() - Could not parse response prefix.\r\n");
         goto Error;
     }
 
     //  Sometimes modems add another rspStart here due to sending of a PDU.
-    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
     if (!SkipString(pszRsp, "+CMGS: ", pszRsp))
     {
@@ -2243,7 +2245,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
 
     if (SkipString(pszRsp, ",", pszRsp))
     {
-        if (!ExtractUnquotedString(pszRsp, g_cTerminator, pSendMsg->szAckPDU, 160, pszRsp))
+        if (!ExtractUnquotedString(pszRsp, m_cTerminator, pSendMsg->szAckPDU, 160, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseSendSms() - Could not parse <ackPdu>.\r\n");
             goto Error;
@@ -2259,7 +2261,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSms(RESPONSE_DATA & rRspData)
     //  Error code is n/a.
     pSendMsg->smsRsp.errorCode = -1;
 
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSendSms() - Could not parse response postfix.\r\n");
         goto Error;
@@ -2366,7 +2368,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
     }
     memset(pSendMsg, 0, sizeof(S_ND_SEND_MSG));
 
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSendSmsExpectMore() - Could not parse response prefix.\r\n");
         goto Error;
@@ -2390,7 +2392,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
 
     if (!SkipString(pszRsp, ",", pszRsp))
     {
-        if (!ExtractUnquotedString(pszRsp, g_cTerminator, pSendMsg->szAckPDU, 160, pszRsp))
+        if (!ExtractUnquotedString(pszRsp, m_cTerminator, pSendMsg->szAckPDU, 160, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseSendSmsExpectMore() - Could not parse <ackPdu>.\r\n");
             goto Error;
@@ -2406,7 +2408,7 @@ RIL_RESULT_CODE CTEBase::ParseSendSmsExpectMore(RESPONSE_DATA & rRspData)
     //  Error code is n/a.
     pSendMsg->smsRsp.errorCode = -1;
 
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSendSmsExpectMore() - Could not parse response postfix.\r\n");
         goto Error;
@@ -2601,7 +2603,7 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
     }
 
     // Parse "<prefix>+CRSM: <sw1>,<sw2>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimIo() - Could not skip over response prefix.\r\n");
         goto Error;
@@ -2682,7 +2684,7 @@ RIL_RESULT_CODE CTEBase::ParseSimIo(RESPONSE_DATA & rRspData)
     }
 
     // Parse "<postfix>"
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         goto Error;
     }
@@ -2862,7 +2864,7 @@ RIL_RESULT_CODE CTEBase::ParseGetClir(RESPONSE_DATA & rRspData)
     memset(pCLIRBlob, 0, sizeof(int) * 2);
 
     // Parse "<prefix>+CLIR: <status>"
-    if (!SkipRspStart(szRsp, g_szNewLine, szRsp)          ||
+    if (!SkipRspStart(szRsp, m_szNewLine, szRsp)          ||
         !SkipString(szRsp, "+CLIR: ", szRsp) ||
         !ExtractUInt32(szRsp, nValue, szRsp))
     {
@@ -2875,7 +2877,7 @@ RIL_RESULT_CODE CTEBase::ParseGetClir(RESPONSE_DATA & rRspData)
     // Parse ",<provisioning><postfix>"
     if (!SkipString(szRsp, ",", szRsp)     ||
         !ExtractUInt32(szRsp, nValue, szRsp) ||
-        !SkipRspEnd(szRsp, g_szNewLine, szRsp))
+        !SkipRspEnd(szRsp, m_szNewLine, szRsp))
     {
         goto Error;
     }
@@ -3146,7 +3148,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA & rRspData)
         nCur++;
 
 Continue:
-        if (!FindAndSkipRspEnd(szRsp, g_szNewLine, szRsp))
+        if (!FindAndSkipRspEnd(szRsp, m_szNewLine, szRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseQueryCallForwardStatus() - Could not find response end\r\n");
             goto Error;
@@ -3420,7 +3422,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallWaiting(RESPONSE_DATA & rRspData)
 
 Continue:
         // Find "<postfix>"
-        if (!FindAndSkipRspEnd(szRsp, g_szNewLine, szRsp))
+        if (!FindAndSkipRspEnd(szRsp, m_szNewLine, szRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseQueryCallWaiting() - Unable to find response end\r\n");
             goto Error;
@@ -3644,13 +3646,13 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA & rRspData)
     }
     memset(szIMEI, 0, MAX_PROP_VALUE);
 
-    if (!SkipRspStart(szRsp, g_szNewLine, szRsp))
+    if (!SkipRspStart(szRsp, m_szNewLine, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImei() - Could not find response start\r\n");
         goto Error;
     }
 
-    if (!ExtractUnquotedString(szRsp, g_cTerminator, szIMEI, MAX_PROP_VALUE, szRsp))
+    if (!ExtractUnquotedString(szRsp, m_cTerminator, szIMEI, MAX_PROP_VALUE, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImei() - Could not find unquoted string\r\n");
         goto Error;
@@ -3714,7 +3716,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
     memset(szIMEISV, 0, MAX_PROP_VALUE);
 
     //  Skip over <prefix> if there.
-    if (!SkipRspStart(szRsp, g_szNewLine, szRsp))
+    if (!SkipRspStart(szRsp, m_szNewLine, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImeisv() - Could not find response start\r\n");
         goto Error;
@@ -3724,7 +3726,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA & rRspData)
     SkipSpaces(szRsp, szRsp);
 
     //  Grab SV into szSV
-    if (!ExtractUnquotedString(szRsp, g_cTerminator, szSV, MAX_BUFFER_SIZE, szRsp))
+    if (!ExtractUnquotedString(szRsp, m_cTerminator, szSV, MAX_BUFFER_SIZE, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImeisv() - Could not find unquoted string szSV\r\n");
         goto Error;
@@ -4040,7 +4042,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryFacilityLock(RESPONSE_DATA & rRspData)
 
 Continue:
         // Find "<postfix>"
-        if (!FindAndSkipRspEnd(szRsp, g_szNewLine, szRsp))
+        if (!FindAndSkipRspEnd(szRsp, m_szNewLine, szRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseQueryFacilityLock() - Unable to find response end\r\n");
             goto Error;
@@ -4250,17 +4252,17 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA & rRspData)
     else
     {
         // Parse "<prefix>+CCID: <ICCID><postfix>"
-        SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
         if (SkipString(pszRsp, "+CCID: ", pszRsp))
         {
-            if (!ExtractUnquotedString(pszRsp, g_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+            if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - Cannot parse UICC ID\r\n");
                 szUICCID[0] = '\0';
             }
 
-            SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+            SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
         }
 
         PCache_Store_PIN(szUICCID, m_szPIN);
@@ -4599,7 +4601,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
     const char* szDummy = NULL;
 
     // Skip "<prefix>+COPS: "
-    SkipRspStart(szRsp, g_szNewLine, szRsp);
+    SkipRspStart(szRsp, m_szNewLine, szRsp);
 
     if (!FindAndSkipString(szRsp, "+COPS: ", szRsp))
     {
@@ -4890,7 +4892,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA & rRspData)
     // NOTE: there may be more data here, but we don't care about it
 
     // Find "<postfix>"
-    if (!FindAndSkipRspEnd(szRsp, g_szNewLine, szRsp))
+    if (!FindAndSkipRspEnd(szRsp, m_szNewLine, szRsp))
     {
         goto Error;
     }
@@ -5013,16 +5015,16 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA & rRspData)
     }
     memset(szBasebandVersion, 0x00, MAX_PROP_VALUE);
 
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() - Could not find response start\r\n");
         goto Error;
     }
 
     // There is two NewLine before the sw_version, so do again a SkipRspStart
-    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
-    if (!ExtractUnquotedString(pszRsp, g_cTerminator, szTemp, MAX_BUFFER_SIZE, pszRsp))
+    if (!ExtractUnquotedString(pszRsp, m_cTerminator, szTemp, MAX_BUFFER_SIZE, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() - Could not extract the baseband version string.\r\n");
         goto Error;
@@ -5170,7 +5172,7 @@ RIL_RESULT_CODE CTEBase::ParseGetMute(RESPONSE_DATA & rRspData)
 
 
     // Parse "<prefix>+CMUT: <enabled><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp)                         ||
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp)                         ||
         !SkipString(pszRsp, "+CMUT: ", pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetMute() - Can't parse prefix.\r\n");
@@ -5184,7 +5186,7 @@ RIL_RESULT_CODE CTEBase::ParseGetMute(RESPONSE_DATA & rRspData)
     }
     *pMuteVal = nValue;
 
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetMute() - Can't parse postfix.\r\n");
         goto Error;
@@ -5260,7 +5262,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
 
 
     // Parse "<prefix>+CLIP: <n>,<value><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp)                         ||
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp)                         ||
         !SkipString(pszRsp, "+CLIP: ", pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseQueryClip() - Can't parse prefix.\r\n");
@@ -5283,7 +5285,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA & rRspData)
     }
     *pClipVal = nValue;
 
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseQueryClip() - Can't parse postfix.\r\n");
         goto Error;
@@ -5475,8 +5477,8 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     property_get("persist.conformance", szConformanceProperty, NULL);
 
     // if Modem Fast Dormancy mode is "Display Driven"
-    if (E_FD_MODE_DISPLAY_DRIVEN == g_nFastDormancyMode
-        && strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
+    if (E_FD_MODE_DISPLAY_DRIVEN == CTE::GetTE().GetFastDormancyMode() &&
+        strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
     {
         // disable MAFD when "Screen On", enable MAFD when "Screen Off"
         //      XFDOR=2: switch ON MAFD
@@ -5627,7 +5629,7 @@ RIL_RESULT_CODE CTEBase::ParseWriteSmsToSim(RESPONSE_DATA & rRspData)
 
     if (!FindAndSkipString(szRsp, "+CMGW: ", szRsp) ||
         !ExtractUInt32(szRsp, (UINT32&)*pIndex, szRsp)  ||
-        !SkipRspEnd(szRsp, g_szNewLine, szRsp))
+        !SkipRspEnd(szRsp, m_szNewLine, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseWriteSmsToSim() - Could not extract the Message Index.\r\n");
         goto Error;
@@ -6278,14 +6280,14 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA & rRspData)
     memset(pBroadcastSmsConfigInfoBlob, 0xFF, sizeof(S_ND_BROADCASTSMSCONFIGINFO_DATA));
 
     // Parse "<prefix>+CSCB: <mode>,<mids>,<dcss><postfix>"
-    if (!SkipRspStart(szRsp, g_szNewLine, szRsp) ||
+    if (!SkipRspStart(szRsp, m_szNewLine, szRsp) ||
         !SkipString(szRsp, "+CSCB: ", szRsp) ||
         !ExtractUInt32(szRsp, nSelected, szRsp) ||
         !SkipString(szRsp, ",", szRsp) ||
         !ExtractQuotedString(szRsp, szChannels, MAX_BUFFER_SIZE, szRsp) ||
         !SkipString(szRsp, ",", szRsp) ||
         !ExtractQuotedString(szRsp, szLangs, MAX_BUFFER_SIZE, szRsp) ||
-        !SkipRspEnd(szRsp, g_szNewLine, szRsp))
+        !SkipRspEnd(szRsp, m_szNewLine, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGsmGetBroadcastSmsConfig() - Could not extract data.\r\n");
         goto Error;
@@ -6938,7 +6940,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSmscAddress(RESPONSE_DATA & rRspData)
 
     // Parse "<prefix><sca>,<tosca><postfix>"
     //  We can ignore the , and <tosca>.
-    SkipRspStart(szRsp, g_szNewLine, szRsp);
+    SkipRspStart(szRsp, m_szNewLine, szRsp);
 
     if (!FindAndSkipString(szRsp, "+CSCA: ", szRsp) ||
         !ExtractQuotedString(szRsp, szSCAddr, MAX_BUFFER_SIZE, szRsp))
@@ -7056,6 +7058,21 @@ RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 }
 
 //
+// RIL_REQUEST_VOICE_RADIO_TECH 108
+//
+RIL_RESULT_CODE CTEBase::CoreVoiceRadioTech(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreVoiceRadioTech() - Enter / Exit\r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only supported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::ParseVoiceRadioTech(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseVoiceRadioTech() - Enter / Exit\r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only supported at modem level
+}
+
+//
 // RIL_REQUEST_SIM_TRANSMIT_BASIC 109
 //
 RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
@@ -7168,7 +7185,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
     }
 
     // Parse "<prefix>+CSIM: <len>,"<response>"<postfix>"
-    SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
 
     if (!SkipString(pszRsp, "+CSIM: ", pszRsp))
@@ -7248,7 +7265,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA & rRspData)
     }
 
     // Parse "<postfix>"
-    SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+    SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
 
     rRspData.pData   = (void*)pResponse;
     rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
@@ -7415,7 +7432,7 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA & rRspData)
         memset(pnChannelId, 0, sizeof(int));
 
         // Parse "<prefix><channelId><postfix>"
-        SkipRspStart(szRsp, g_szNewLine, szRsp);
+        SkipRspStart(szRsp, m_szNewLine, szRsp);
 
         //if (!FindAndSkipString(szRsp, "+CCHO: ", szRsp) ||
         //    !ExtractUInt32(szRsp, nChannelId, szRsp))
@@ -7753,7 +7770,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
     else
     {
         // Parse "<prefix>+CGLA: <len>,<response><postfix>"
-        SkipRspStart(szRsp, g_szNewLine, szRsp);
+        SkipRspStart(szRsp, m_szNewLine, szRsp);
 
 
         if (!SkipString(szRsp, "+CGLA: ", szRsp))
@@ -7833,7 +7850,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA & rRspData)
         }
 
         // Parse "<postfix>"
-        SkipRspEnd(szRsp, g_szNewLine, szRsp);
+        SkipRspEnd(szRsp, m_szNewLine, szRsp);
 
         rRspData.pData   = (void*)pResponse;
         rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
@@ -8026,7 +8043,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimSmsStorage(RESPONSE_DATA & rRspData)
     memset(pStorage, 0, sizeof(S_ND_SIM_SMS_STORAGE));
 
     // Parse "<prefix>+CPMS: <mem1>,<used1>,<total1>,<mem2>,<used2>,<total2>,<mem3>,<used3>,<total3><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp) ||
         !SkipString(pszRsp, "+CPMS: ", pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetSimSmsStorage() - Could not find AT response.\r\n");
@@ -8067,7 +8084,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimSmsStorage(RESPONSE_DATA & rRspData)
         i++;
     }
 
-    if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetSimSmsStorage() - Could not extract the response end.\r\n");
         goto Error;
@@ -8109,7 +8126,7 @@ RIL_SignalStrength_v6* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspDat
     memset(pSigStrData, 0x00, sizeof(RIL_SignalStrength_v6));
 
     // Parse "<prefix>+CSQ: <rssi>,<ber><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp) ||
         !SkipString(pszRsp, "+CSQ: ", pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - Could not find AT response.\r\n");
@@ -8129,7 +8146,7 @@ RIL_SignalStrength_v6* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspDat
         goto Error;
     }
 
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - Could not extract the response end.\r\n");
         goto Error;
@@ -8228,12 +8245,12 @@ BOOL CTEBase::ParseCEER(RESPONSE_DATA& rRspData, UINT32& rUICause)
             {
                 RIL_LOG_WARNING("CTEBase::ParseCEER() - WARNING: Could not extract verbose cause.\r\n");
             }
-            else if (!SkipRspEnd(szRsp, g_szNewLine, szRsp))
+            else if (!SkipRspEnd(szRsp, m_szNewLine, szRsp))
             {
                 RIL_LOG_WARNING("CTEBase::ParseCEER() - WARNING: Could not extract RspEnd.\r\n");
             }
         }
-        else if (!SkipRspEnd(szRsp, g_szNewLine, szRsp))
+        else if (!SkipRspEnd(szRsp, m_szNewLine, szRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseCEER() - WARNING: Could not extract RspEnd.\r\n");
         }
@@ -8259,7 +8276,7 @@ RIL_RESULT_CODE CTEBase::ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData)
     const int MAX_MEM_STORE_INFO = 3;
 
     // Parse "<prefix>+CPMS: <mem1>,<used1>,<total1>,<mem2>,<used2>,<total2>,<mem3>,<used3>,<total3><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp) ||
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp) ||
         !SkipString(pszRsp, "+CPMS: ", pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseQuerySimSmsStoreStatus() - Could not find AT response.\r\n");
@@ -8302,7 +8319,7 @@ RIL_RESULT_CODE CTEBase::ParseQuerySimSmsStoreStatus(RESPONSE_DATA & rRspData)
         i++;
     }
 
-    if (!FindAndSkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseQuerySimSmsStoreStatus() - Could not extract the response end.\r\n");
         goto Error;

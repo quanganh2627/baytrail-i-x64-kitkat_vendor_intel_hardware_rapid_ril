@@ -19,7 +19,6 @@
 #include "rillog.h"
 #include "te.h"
 #include "te_base.h"
-#include "globals.h"
 #include "sync_ops.h"
 #include "command.h"
 #include "te_inf_6260.h"
@@ -95,7 +94,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
     if (pCardStatus->card_state != RIL_CARDSTATE_ABSENT)
     {
         // Parse "<prefix>+XUICC: <state><postfix>"
-        SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
         if (SkipString(pszRsp, "+XUICC: ", pszRsp))
         {
@@ -124,12 +123,12 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
 
             m_nSimAppType = pCardStatus->applications[0].app_type;
 
-            SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+            SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
         }
 
 #if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
         // Parse "<prefix>+XPINCNT: <PIN attempts>, <PIN2 attempts>, <PUK attempts>, <PUK2 attempts><postfix>"
-        SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
         if (SkipString(pszRsp, "+XPINCNT: ", pszRsp))
         {
@@ -160,23 +159,23 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
                 pCardStatus->applications[0].pin2_num_retries = uiPin2;
                 pCardStatus->applications[0].puk2_num_retries = uiPuk2;
             }
-            SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+            SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
         }
 
 #endif // M2_PIN_RETRIES_FEATURE_ENABLED
 
         // Parse "<prefix>+CCID: <ICCID><postfix>"
-        SkipRspStart(pszRsp, g_szNewLine, pszRsp);
+        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
         if (SkipString(pszRsp, "+CCID: ", pszRsp))
         {
-            if (!ExtractUnquotedString(pszRsp, g_cTerminator, m_szUICCID, MAX_PROP_VALUE, pszRsp))
+            if (!ExtractUnquotedString(pszRsp, m_cTerminator, m_szUICCID, MAX_PROP_VALUE, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetSimStatus() - Cannot parse UICC ID\r\n");
                 m_szUICCID[0] = '\0';
             }
 
-            SkipRspEnd(pszRsp, g_szNewLine, pszRsp);
+            SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
         }
     }
 
@@ -1343,6 +1342,17 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, U
         pSimIOArgs->data, pSimIOArgs->aidPtr);
 #endif
 
+    // Currently, in JB, Android implements functions that use the aidPtr parameter
+    // but for the moment only an empty string is used. The use of aidPtr is not
+    // supported here. This function needs to be modified to use +CRLA, CCHO and
+    // CCHC commands.
+    if (NULL != pSimIOArgs->aidPtr && 0 != strcmp(pSimIOArgs->aidPtr, ""))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::CoreSimIo() - use of aidPtr NOT SUPPORTED, must call +CRLA, CCHO and CCHC commands\r\n");
+        res = RIL_E_REQUEST_NOT_SUPPORTED;
+        goto Error;
+    }
+
     rReqData.pContextData = NULL;
 
     pContextData = (S_SIM_IO_CONTEXT_DATA*) malloc(sizeof(S_SIM_IO_CONTEXT_DATA));
@@ -1484,7 +1494,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
     }
 
     // Parse "<prefix>+CRSM: <sw1>,<sw2>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseSimIo() - Could not skip over response prefix.\r\n");
         goto Error;
@@ -1716,7 +1726,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseSimIo(RESPONSE_DATA & rRspData)
     }
 
     // Parse "<postfix>"
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         goto Error;
     }
@@ -1998,7 +2008,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY");
             // Check if Fast Dormancy mode allows OEM Hook
-            if (g_nFastDormancyMode == E_FD_MODE_OEM_MANAGED)
+            if (CTE::GetTE().GetFastDormancyMode() == E_FD_MODE_OEM_MANAGED)
             {
                 res = CreateAutonomousFDReq(rReqData, (const char**) pszRequest, uiDataSize);
             }
@@ -2122,7 +2132,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseHookStrings(RESPONSE_DATA & rRspData)
     }
 
     // Skip "<prefix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseHookStrings() - Could not skip response prefix.\r\n");
         goto Error;
@@ -2526,7 +2536,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkGetProfile(RESPONSE_DATA & rRspData)
     memset(pszTermProfile, 0x00, MAX_BUFFER_SIZE);
 
     // Parse "<prefix>+STKPROF: <length>,<data><postfix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkGetProfile() - Could not skip response prefix.\r\n");
         goto Error;
@@ -2553,7 +2563,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkGetProfile(RESPONSE_DATA & rRspData)
         }
     }
 
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkGetProfile() - Could not extract the response end.\r\n");
         goto Error;
@@ -2677,7 +2687,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
     }
 
     // Parse "<prefix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not skip over response prefix.\r\n");
         goto Error;
@@ -2738,7 +2748,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
         memset(pszRespData, 0x00, MAX_BUFFER_SIZE);
 
         // Parse ",<response_data>"
-        if (!ExtractUnquotedString(pszRsp, g_cTerminator, pszRespData, MAX_BUFFER_SIZE, pszRsp))
+        if (!ExtractUnquotedString(pszRsp, m_cTerminator, pszRespData, MAX_BUFFER_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not parse response data.\r\n");
             goto Error;
@@ -2752,7 +2762,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDa
     }
 
     // Parse "<postfix>"
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeCommand() - Could not extract the response end.\r\n");
         goto Error;
@@ -2944,7 +2954,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
         default:
             RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Undefined rat code: %d\r\n", networkType);
-            res = RIL_E_GENERIC_FAILURE;
+            res = RIL_E_MODE_NOT_SUPPORTED;
             goto Error;
             break;
     }
@@ -3007,7 +3017,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspD
     }
 
     // Skip "<prefix>"
-    if (!SkipRspStart(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetPreferredNetworkType() - Could not skip response prefix.\r\n");
         goto Error;
@@ -3269,7 +3279,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspDat
                 char szBuf[MAX_BUFFER_SIZE] = {0};
                 const char *szDummy = pszRsp;
                 UINT32 nCommaCount = 0;
-                if (!ExtractUnquotedString(pszRsp, g_cTerminator, szBuf, MAX_BUFFER_SIZE, szDummy))
+                if (!ExtractUnquotedString(pszRsp, m_cTerminator, szBuf, MAX_BUFFER_SIZE, szDummy))
                 {
                     RIL_LOG_CRITICAL("CTE_INF_6260::ParseGetNeighboringCellIDs() - mode 2, could not extract temp buf\r\n");
                     goto Error;
@@ -3599,6 +3609,102 @@ RIL_RESULT_CODE CTE_INF_6260::ParseReportStkServiceRunning(RESPONSE_DATA & rRspD
     return res;
 }
 
+//
+// RIL_REQUEST_VOICE_RADIO_TECH 108
+//
+RIL_RESULT_CODE CTE_INF_6260::CoreVoiceRadioTech(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::CoreVoiceRadioTech() - Enter / Exit\r\n");
+
+    return CoreGetPreferredNetworkType(rReqData, pData, uiDataSize);
+}
+
+RIL_RESULT_CODE CTE_INF_6260::ParseVoiceRadioTech(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseVoiceRadioTech() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+
+    UINT32 uiAcT = 0;
+    UINT32 uiPreferredAcT = 0;
+
+    int* pCurRadioTech = (int*)malloc(sizeof(int));
+    if (NULL == pCurRadioTech)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseVoiceRadioTech() - Could not allocate memory for response.\r\n");
+        goto Error;
+    }
+
+    // Skip "<prefix>"
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseVoiceRadioTech() - Could not skip response prefix.\r\n");
+        goto Error;
+    }
+
+    // Skip "+XRAT: "
+    if (!SkipString(pszRsp, "+XRAT: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseVoiceRadioTech() - Could not skip \"+XRAT: \".\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt32(pszRsp, uiAcT, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseVoiceRadioTech() - Could not extract rat value.\r\n");
+        goto Error;
+    }
+
+    if (FindAndSkipString(pszRsp, ",", pszRsp))
+    {
+        if (!ExtractUInt32(pszRsp, uiPreferredAcT, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseVoiceRadioTech() - Could not find and skip pref value even though it was expected.\r\n");
+            goto Error;
+        }
+    }
+
+    switch (uiAcT)
+    {
+        case 0: // GSM only
+            RIL_LOG_INFO("CTE_INF_6260::ParseVoiceRadioTech() - AcT = %d, GSM\r\n", uiAcT);
+            pCurRadioTech[0] = RADIO_TECH_GSM;
+            break;
+
+        case 1: // GSM / UMTS dual mode
+            RIL_LOG_INFO("CTE_INF_6260::ParseVoiceRadioTech() - AcT = %d, GSM/UMTS, preferredAcT = %d\r\n",
+                uiAcT, uiPreferredAcT);
+            pCurRadioTech[0] = (uiPreferredAcT == 2) ? RADIO_TECH_UMTS : RADIO_TECH_GSM;
+            break;
+
+        case 2: // UMTS only
+            RIL_LOG_INFO("CTE_INF_6260::ParseVoiceRadioTech() - AcT = %d, UMTS\r\n", uiAcT);
+            pCurRadioTech[0] = RADIO_TECH_UMTS;
+            break;
+
+        default:
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseVoiceRadioTech() - Unsupported AcT = %d\r\n", uiAcT);
+            pCurRadioTech[0] = RADIO_TECH_UNKNOWN;
+            goto Error;
+    }
+
+    rRspData.pData = (void*)pCurRadioTech;
+    rRspData.uiDataSize = sizeof(int*);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pCurRadioTech);
+        pCurRadioTech = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_INF_6260::ParseVoiceRadioTech() - Exit\r\n");
+    return res;
+}
+
 RIL_RESULT_CODE CTE_INF_6260::CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
                                                     const char** pszRequest, const UINT32 uiDataSize)
 {
@@ -3880,7 +3986,7 @@ RIL_RESULT_CODE CTE_INF_6260::ParseXGATR(const char* pszRsp, RESPONSE_DATA& rRsp
     RIL_LOG_INFO("CTE_INF_6260::ParseXGATR() - szATR: %s\r\n", pResponse->szATR);
 
     // Parse "<postfix>"
-    if (!SkipRspEnd(pszRsp, g_szNewLine, pszRsp))
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         goto Error;
     }

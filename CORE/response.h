@@ -85,6 +85,7 @@ private:
     BOOL    IsConnectResponse();
     BOOL    IsAbortedResponse();
 
+    char      m_szNewLine[3];
     UINT32    m_uiResultCode;
     UINT32    m_uiErrorCode;
     void*     m_pData;

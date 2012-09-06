@@ -31,6 +31,7 @@
 #include "extract.h"
 #include "util.h"
 #include "ril_result.h"
+#include "te.h"
 
 int MapErrorCodeToRilDataFailCause(UINT32 uiCause)
 {
@@ -138,7 +139,7 @@ BOOL setflags(int s, struct ifreq *ifr, int set, int clr)
 
 static BOOL setmtu(int s, struct ifreq *ifr)
 {
-    ifr->ifr_mtu = g_MTU;
+    ifr->ifr_mtu = CTE::GetTE().GetMTU();
     RIL_LOG_INFO("setmtu - calling SIOCSIFMTU\r\n");
     if(ioctl(s, SIOCSIFMTU, ifr) < 0)
     {

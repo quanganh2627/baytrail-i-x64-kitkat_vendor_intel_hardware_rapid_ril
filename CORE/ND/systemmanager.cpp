@@ -31,7 +31,6 @@
 #include "sync_ops.h"
 #include "thread_ops.h"
 #include "rilqueue.h"
-#include "globals.h"
 #include "thread_manager.h"
 #include "cmdcontext.h"
 #include "rilchannels.h"
@@ -144,6 +143,8 @@ CSystemManager::CSystemManager()
     //                Need to track down when time is available. Workaround for now is to call TryLock
     //                so we don't block during suspend.
     m_pSystemManagerMutex = new CMutex();
+
+    memset(m_szDualSim, 0, PROPERTY_VALUE_MAX);
 
     m_pTEAccessMutex = new CMutex();
 
@@ -288,39 +289,7 @@ BOOL CSystemManager::InitializeSystem()
     int iTemp;
     BOOL bRetVal = FALSE;
 
-
-    if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutCmdInit, iTemp))
-    {
-        g_TimeoutCmdInit = (UINT32)iTemp;
-    }
-
-    if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutAPIDefault, iTemp))
-    {
-        g_TimeoutAPIDefault = (UINT32)iTemp;
-    }
-
-    if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutWaitForInit, iTemp))
-    {
-        g_TimeoutWaitForInit = (UINT32)iTemp;
-    }
-
-    if (repository.Read(g_szGroupRILSettings, g_szTimeoutThresholdForRetry, iTemp))
-    {
-        g_TimeoutThresholdForRetry = (UINT32)iTemp;
-    }
-
-    if (repository.Read(g_szGroupModem, g_szMTU, iTemp))
-    {
-        g_MTU = (UINT32)iTemp;
-    }
-
-#if !defined(BOARD_HAVE_IFX7060)
-    // store initial value of Fast Dormancy Mode
-    if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
-    {
-        g_nFastDormancyMode = (UINT32)iTemp;
-    }
-#else
+#if defined(BOARD_HAVE_IFX7060)
     int apnType = 0;
     if (!repository.Read(g_szGroupModem, g_szApnTypeDefault, apnType))
     {
@@ -497,6 +466,39 @@ BOOL CSystemManager::InitializeSystem()
     CTE::CreateTE();
 
     ResetSystemState();
+
+    if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutCmdInit, iTemp))
+    {
+        CTE::GetTE().SetTimeoutCmdInit((UINT32)iTemp);
+    }
+
+    if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutAPIDefault, iTemp))
+    {
+        CTE::GetTE().SetTimeoutAPIDefault((UINT32)iTemp);
+    }
+
+    if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutWaitForInit, iTemp))
+    {
+        CTE::GetTE().SetTimeoutWaitForInit((UINT32)iTemp);
+    }
+
+    if (repository.Read(g_szGroupRILSettings, g_szTimeoutThresholdForRetry, iTemp))
+    {
+        CTE::GetTE().SetTimeoutThresholdForRetry((UINT32)iTemp);
+    }
+
+    if (repository.Read(g_szGroupModem, g_szMTU, iTemp))
+    {
+        CTE::GetTE().SetMTU((UINT32)iTemp);
+    }
+
+#if !defined(BOARD_HAVE_IFX7060)
+    // store initial value of Fast Dormancy Mode
+    if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
+    {
+        CTE::GetTE().SetFastDormancyMode((UINT32)iTemp);
+    }
+#endif
 
     //  Need to open the "clean up request" socket here.
     if (!OpenCleanupRequestSocket())
@@ -749,7 +751,7 @@ BOOL CSystemManager::IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eIni
 // Check if Dual Sim Dual Standby is used with a XM2230 Board
 BOOL CSystemManager::IsDSDS_2230_Mode()
 {
-    if (strncmp(g_szDualSim, "dsds_2230", 9) == 0)
+    if (strncmp(m_szDualSim, "dsds_2230", 9) == 0)
     {
         return true;
     }

@@ -168,24 +168,25 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
     else
     {
         // process command here
-        int nNumRetries = 0;
-        UINT32 nCommandTimeout = rpCmd->GetTimeout();
+        int numRetries = 0;
+        UINT32 uiCommandTimeout = rpCmd->GetTimeout();
+        UINT32 uiTimeoutThresholdForRetry = CTE::GetTE().GetTimeoutThresholdForRetry();
 
         //  Compare command timeout of threshold timeout
-        if (0 == g_TimeoutThresholdForRetry)
+        if (0 == uiTimeoutThresholdForRetry)
         {
             //  A threshold value of 0 means no retries.
-            nNumRetries = 0;
+            numRetries = 0;
         }
-        else if (nCommandTimeout <= g_TimeoutThresholdForRetry)
+        else if (uiCommandTimeout <= uiTimeoutThresholdForRetry)
         {
             //  AT Command timeout is <= threshold time, retry ONCE
-            nNumRetries = 1;
+            numRetries = 1;
         }
         else
         {
             //  AT command timeout is > threshold time.  No retries.
-            nNumRetries = 0;
+            numRetries = 0;
         }
 
         pATCommand = (char *) rpCmd->GetATCmd1();
@@ -201,10 +202,10 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
 
         if (CRilLog::IsFullLogBuild())
             RIL_LOG_INFO("CChannel::SendCommand() - chnl=[%d] RILReqID=[%d] retries=[%d] Timeout=[%d] cmd1=[%s] cmd2=[%s]\r\n",
-                m_uiRilChannel, rpCmd->GetRequestID(), nNumRetries, rpCmd->GetTimeout(), pPrintStr, pPrintCmd2Str);
+                m_uiRilChannel, rpCmd->GetRequestID(), numRetries, rpCmd->GetTimeout(), pPrintStr, pPrintCmd2Str);
         else
             RIL_LOG_INFO("CChannel::SendCommand() - chnl=[%d] RILReqID=[%d] retries=[%d] Timeout=[%d]\r\n",
-                m_uiRilChannel, rpCmd->GetRequestID(), nNumRetries, rpCmd->GetTimeout());
+                m_uiRilChannel, rpCmd->GetRequestID(), numRetries, rpCmd->GetTimeout());
 
         do
         {
@@ -247,7 +248,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
                                     m_uiRilChannel, uiBytesWritten, rpCmd->GetRequestID());
             }
 
-            if (!CRilLog::IsFullLogBuild() && 0 == nNumRetries)
+            if (!CRilLog::IsFullLogBuild() && 0 == numRetries)
             {
                 rpCmd->FreeATCmd1();
                 pATCommand = NULL;
@@ -278,9 +279,9 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             else
             {
                 //  Our response timed out, retry if we can
-                if (nNumRetries > 0)
+                if (numRetries > 0)
                 {
-                    RIL_LOG_INFO("CChannel::SendCommand() - ***** chnl=[%d] Attempting retry  nNumRetries remaining=[%d] *****\r\n", m_uiRilChannel, nNumRetries);
+                    RIL_LOG_INFO("CChannel::SendCommand() - ***** chnl=[%d] Attempting retry  numRetries remaining=[%d] *****\r\n", m_uiRilChannel, numRetries);
                 }
                 else
                 {
@@ -295,7 +296,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
                     }
                 }
             }
-        } while (--nNumRetries >= 0);
+        } while (--numRetries >= 0);
     }
 
     if (NULL == pResponse)

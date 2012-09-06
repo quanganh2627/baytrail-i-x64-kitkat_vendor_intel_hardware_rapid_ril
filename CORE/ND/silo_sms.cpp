@@ -97,7 +97,7 @@ BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const char*& rszPo
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
     {
         goto Error;
     }
@@ -158,7 +158,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
     // Parse ",<length><CR><LF>
     if (!SkipString(rszPointer, ",", rszPointer)       ||
         !ExtractUInt32(rszPointer, uiLength, rszPointer) ||
-        !SkipString(rszPointer, g_szNewLine, rszPointer))
+        !SkipString(rszPointer, m_szNewLine, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - Could not parse PDU Length.\r\n");
         goto Error;
@@ -166,10 +166,10 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
 
     //RIL_LOG_INFO("CMT=[%s]\r\n", CRLFExpandedString(rszPointer,strlen(rszPointer)).GetString() );
 
-    // The PDU will be followed by g_szNewline, so look for g_szNewline
+    // The PDU will be followed by m_szNewLine, so look for m_szNewLine
     // and use its position to determine the length of the PDU string.
 
-    if (!FindAndSkipString(rszPointer, g_szNewLine, szDummy))
+    if (!FindAndSkipString(rszPointer, m_szNewLine, szDummy))
     {
         // This isn't a complete message notification -- no need to parse it
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - Could not find postfix; assuming this is an incomplete response.\r\n");
@@ -178,7 +178,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
     else
     {
         // Override the given length with the actual length. Don't forget the '\0'.
-        uiLength = ((UINT32)(szDummy - rszPointer)) - strlen(g_szNewLine) + 1;
+        uiLength = ((UINT32)(szDummy - rszPointer)) - strlen(m_szNewLine) + 1;
         RIL_LOG_INFO("CSilo_SMS::ParseCMT() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
@@ -190,7 +190,7 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
     }
     memset(szPDU, 0, sizeof(char) * uiLength);
 
-    if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, uiLength, rszPointer))
+    if (!ExtractUnquotedString(rszPointer, m_cTerminator, szPDU, uiLength, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - Could not parse PDU String.\r\n");
         goto Error;
@@ -248,16 +248,16 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
 
     // Parse "<length><CR><LF>
     if (!ExtractUInt32(rszPointer, uiLength, rszPointer) ||
-        !SkipString(rszPointer, g_szNewLine, rszPointer))
+        !SkipString(rszPointer, m_szNewLine, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - Could not parse PDU Length.\r\n");
         goto Error;
     }
 
-    // The PDU will be followed by g_szNewline, so look for g_szNewline
+    // The PDU will be followed by m_szNewLine, so look for m_szNewLine
     // and use its position to determine the length of the PDU string.
 
-    if (!FindAndSkipString(rszPointer, g_szNewLine, szDummy))
+    if (!FindAndSkipString(rszPointer, m_szNewLine, szDummy))
     {
         // This isn't a complete message notification -- no need to parse it
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - Could not find postfix; assuming this is an incomplete response.\r\n");
@@ -265,7 +265,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
     }
     else
     {
-        uiLength = (UINT32)(szDummy - rszPointer) - strlen(g_szNewLine);
+        uiLength = (UINT32)(szDummy - rszPointer) - strlen(m_szNewLine);
         RIL_LOG_INFO("CSilo_SMS::ParseCBM() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
@@ -282,7 +282,7 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
     memset(szPDU, 0, sizeof(char) * (uiLength + 1));
     memset(pByteBuffer, 0, sizeof(BYTE) * (uiLength / 2) + 1);
 
-    if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, (uiLength + 1), rszPointer))
+    if (!ExtractUnquotedString(rszPointer, m_cTerminator, szPDU, (uiLength + 1), rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - Could not parse PDU String.\r\n");
         goto Error;
@@ -344,7 +344,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
 
     // Parse ",<length><CR><LF>
     if (!ExtractUInt32(rszPointer, uiLength, rszPointer) ||
-        !SkipString(rszPointer, g_szNewLine, rszPointer))
+        !SkipString(rszPointer, m_szNewLine, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - Could not parse PDU Length.\r\n");
         goto Error;
@@ -352,9 +352,9 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
 
     //RIL_LOG_INFO("CDS=[%s]\r\n", CRLFExpandedString(rszPointer,strlen(rszPointer)).GetString() );
 
-    // The PDU will be followed by g_szNewline, so look for g_szNewline
+    // The PDU will be followed by m_szNewLine, so look for m_szNewLine
     // and use its position to determine the length of the PDU string
-    if (!FindAndSkipString(rszPointer, g_szNewLine, szDummy))
+    if (!FindAndSkipString(rszPointer, m_szNewLine, szDummy))
     {
         // This isn't a complete message notification -- no need to parse it
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - Could not find postfix; assuming this is an incomplete response.\r\n");
@@ -363,7 +363,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
     else
     {
         // Override the given length with the actual length. Don't forget the '\0'.
-        uiLength = ((UINT32)(szDummy - rszPointer)) - strlen(g_szNewLine) + 1;
+        uiLength = ((UINT32)(szDummy - rszPointer)) - strlen(m_szNewLine) + 1;
         RIL_LOG_INFO("CSilo_SMS::ParseCDS() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
@@ -375,7 +375,7 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
     }
     memset(szPDU, 0, sizeof(char) * uiLength);
 
-    if (!ExtractUnquotedString(rszPointer, g_cTerminator, szPDU, uiLength, rszPointer))
+    if (!ExtractUnquotedString(rszPointer, m_cTerminator, szPDU, uiLength, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - Could not parse PDU String.\r\n");
         goto Error;

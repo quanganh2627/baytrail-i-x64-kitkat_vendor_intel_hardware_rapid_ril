@@ -14,9 +14,6 @@
 #include "../../CORE/util.h"
 #include "extract.h"
 
-
-//char g_szNewLine[] = "\r\n";
-
 // Takes in a string to search for a substring. If found, returns true and rszEnd
 // points to the first character after szSkip.
 BOOL FindAndSkipString(const char* szStart, const char* szSkip, const char*& rszEnd)

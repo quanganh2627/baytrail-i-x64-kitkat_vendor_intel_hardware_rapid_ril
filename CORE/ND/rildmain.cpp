@@ -231,8 +231,10 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIM_REFRESH\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_SimRefreshResult=%d\r\n", ((int *)pData)[0]);
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - EFID=0x%04X\r\n", ((int *)pData)[1]);
+                RIL_SimRefreshResponse_v7 *pSimRefreshRsp = (RIL_SimRefreshResponse_v7*)pData;
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_SimRefreshResult=%d efid=%d aid=%s\r\n",
+                        pSimRefreshRsp->ef_id,
+                        pSimRefreshRsp->aid);
             }
             break;
 
@@ -1222,10 +1224,10 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         }
         break;
 
-        case RIL_REQUEST_VOICE_RADIO_TECH:  // 108 - not supported
+        case RIL_REQUEST_VOICE_RADIO_TECH:  // 108
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_VOICE_RADIO_TECH\r\n");
-            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestVoiceRadioTech(hRilToken, pData, datalen);
         }
         break;
 
@@ -1362,7 +1364,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.30 for Android 4.0.4 (Build July 17/2012)";
+    return "Intrinsyc Rapid-RIL M6.33 for Android 4.1.1 (Build September 5/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1437,9 +1439,10 @@ static bool RIL_SetGlobals(int argc, char **argv)
 {
     int opt;
     UINT32 uiDataPortIndex = RIL_CHANNEL_DATA1;
+    char* szDualSim = CSystemManager::GetInstance().m_szDualSim;
 
-    property_get("persist.dual_sim", g_szDualSim, "none");
-    if (strncmp(g_szDualSim, "dsds_2230", 9) == 0)
+    property_get("persist.dual_sim", szDualSim , "none");
+    if (strncmp(szDualSim, "dsds_2230", 9) == 0)
     {
         g_uiRilChannelUpperLimit = RIL_CHANNEL_DATA2 + 1;
         g_arChannelMapping = g_arChannelMapping2230;
@@ -1568,7 +1571,7 @@ static bool RIL_SetGlobals(int argc, char **argv)
         LOGI("RIL_SetGlobals() - g_uiRilChannelCurMax = %d  g_uiRilChannelUpperLimit = %d\r\n", g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
     }
 
-    if (strncmp(g_szDualSim, "dsds_2230", 9) == 0)
+    if (strncmp(szDualSim, "dsds_2230", 9) == 0)
     {
         if (!g_szCmdPort || !g_szDataPort1 || !g_szDataPort2)
         {

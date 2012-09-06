@@ -467,6 +467,10 @@ public:
     RIL_RESULT_CODE RequestReportStkServiceRunning(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
 
+    // RIL_REQUEST_VOICE_RADIO_TECH 108
+    RIL_RESULT_CODE RequestVoiceRadioTech(RIL_Token rilToken, void* pData, size_t datalen);
+    RIL_RESULT_CODE ParseVoiceRadioTech(RESPONSE_DATA& rRspData);
+
     // RIL_REQUEST_SIM_TRANSMIT_BASIC 109
     RIL_RESULT_CODE RequestSimTransmitBasic(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitBasic(RESPONSE_DATA & rRspData);
@@ -540,6 +544,21 @@ public:
 
     void SetClearPendingCHLDs(BOOL bIsClearPendingCHLDs) { m_bIsClearPendingCHLD = bIsClearPendingCHLDs; };
     BOOL IsClearPendingCHLD() { return m_bIsClearPendingCHLD; };
+
+    void SetFastDormancyMode(int fastDormancyMode) { m_FastDormancyMode = fastDormancyMode; };
+    int GetFastDormancyMode() { return m_FastDormancyMode; };
+
+    void SetMTU(UINT32 uiMTU) { m_uiMTU = uiMTU; };
+    UINT32 GetMTU() { return m_uiMTU; };
+
+    void SetTimeoutCmdInit(UINT32 uiCmdInit) { m_uiTimeoutCmdInit = uiCmdInit; };
+    UINT32 GetTimeoutCmdInit()     { return m_uiTimeoutCmdInit; };
+    void SetTimeoutAPIDefault(UINT32 uiAPIDefault) { m_uiTimeoutAPIDefault = uiAPIDefault; };
+    UINT32 GetTimeoutAPIDefault()  { return m_uiTimeoutAPIDefault; };
+    void SetTimeoutWaitForInit(UINT32 uiWaitForInit ) { m_uiTimeoutWaitForInit = uiWaitForInit; };
+    UINT32 GetTimeoutWaitForInit() { return m_uiTimeoutWaitForInit; };
+    void SetTimeoutThresholdForRetry(UINT32 uiThresholdForRetry) { m_uiTimeoutThresholdForRetry = uiThresholdForRetry; };
+    UINT32 GetTimeoutThresholdForRetry() { return m_uiTimeoutThresholdForRetry; };
 
     BOOL IsSetupDataCallAllowed(int& retryTime);
 
@@ -800,6 +819,25 @@ private:
 
     // Function to determine whether the SIMIO request is for FDN related SIM files
     BOOL isFDNRequest(int fileId);
+
+    // initial value of Modem Autonomous Fast Dormancy (MAFD) mode
+    static const int FAST_DORMANCY_MODE_DEFAULT = 2;
+    int m_FastDormancyMode;
+
+    // MTU size of 1358 is the recommended value in 3GPP 23.060 to support
+    // IPV4 and IPV6 traffic.
+    static const UINT32 MTU_SIZE = 1358;
+    UINT32 m_uiMTU;
+
+    // Timeouts (in milliseconds)
+    static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;
+    static const UINT32 TIMEOUT_API_DEFAULT            = 10000;
+    static const UINT32 TIMEOUT_WAITFORINIT            = 10000;
+    static const UINT32 TIMEOUT_THRESHOLDFORRETRY      = 10000;
+    UINT32 m_uiTimeoutCmdInit;
+    UINT32 m_uiTimeoutAPIDefault;
+    UINT32 m_uiTimeoutWaitForInit;
+    UINT32 m_uiTimeoutThresholdForRetry;
 };
 
 #endif

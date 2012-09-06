@@ -1,6 +1,518 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+September 5, 2012 (M6.33 release for Medfield PR3)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR3 devices, Android version 4.1.1 (Jelly Bean).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external JB ABSP dated August 14, 2012 (ww32).
+- We are using the HSI interface.
+
+PR3 Setup
+=========
+FW DnX: SIGNED_PNW_D1_FWR_DnX.FD.05.bin (from ww32 PR3.3 release)
+IFWI: IFWI_v05.9E_CRAK_DEV.bin (from ww32 PR3.3 release)
+OS DnX: SIGNED_PNW_D1_OSR_DnX.0D.07.bin (from ww32 PR3.3 release)
+OS Image: droidboot.img.POS (from ww32 PR3.3 release)
+Modem Firmware: radio_firmware.bin (from ww32 PR3.3 release - 1231.B)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch mfld_pr2-eng
+make mfld_pr2 -j8
+
+
+Release Notes for M6.33
+========================
+
+1. Sync with Intel's M6.32 mainline:
+   -Re-integrate bug fixes from 6.32:
+    -BZ 50433: Return MODE_NOT_SUPPORTED for undefined RAT code 7
+    -BZ 48174: RIL v7: Implement the new REFRESH_UNSOLICITED
+    -BZ 48462: RIL v7: Implement the aidptr usage in RIL_REQUEST_SIMIO
+
+2. Bugzilla 48928: Stop using global variables in RRIL. Remove globals.cpp
+   to avoid that bad usage.
+   -Move g_MTU, g_nFastDormancyMode, and timeout variables to private
+    members in singleton CTE class and use accessor methods.
+   -Localize g_cTerminator and g_szNewLine and remove from CTE::CreateModemTE()
+    since they do not change across modem family.
+
+3. Bugzilla 48172: Implement RIL_REQUEST_VOICE_RADIO_TECH
+   -Return the voice radio technology from querying the Radio Access Technology (AcT).
+   -Use the preferred AcT for dual or triple modes.
+
+
+Testing results:  (tested on Medfield PR3)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+August 21, 2012 (M6.32 release for Medfield PR3)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR3 devices, Android version 4.1.1 (Jelly Bean).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ICS ABSP dated August 10, 2012 (ww30).
+- We are using the HSI interface.
+
+PR3 Setup
+=========
+FW DnX: SIGNED_PNW_D1_FWR_DnX.FD.05.bin (from ww30 PR3.3 release)
+IFWI: IFWI_v05.98_CRAK_DEV.bin (from ww30 PR3.3 release)
+OS DnX: SIGNED_PNW_D1_OSR_DnX.0D.05.bin (from ww30 PR3.3 release)
+OS Image: droidboot.img.POS (from ww30 PR3.3 release)
+Modem Firmware: radio_firmware.bin (from ww30 PR3.3 release - 1224.A)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch mfld_pr2-eng
+make mfld_pr2 -j8
+
+
+Release Notes for M6.32
+========================
+
+1. Bugzilla 50433: Return MODE_NOT_SUPPORTED for undefined RAT code 7
+   -In CTE_INF_6260/7x60::CoreSetPreferredNetworkType() return
+    RIL_E_MODE_NOT_SUPPORTED instead of GENERIC_FAILURE for
+    unsupported RAT modes.
+
+2. Bugzilla 48174: RIL v7: Implement the new REFRESH_UNSOLICITED
+   -Update current handling of RIL_UNSOL_SIM_REFRESH to return
+    RIL_SimRefreshResponse_V7 instead of int data.
+
+3. Bugzilla 48462: RIL v7: Implement the aidptr usage in RIL_REQUEST_SIMIO
+   -Update CTE_INF_6260::CoreSimIo() to return RIL_E_REQUEST_NOT_SUPPORTED
+    if aidPtr is NULL or empty string and display critical log message.
+
+4. Bugzilla 48177: RIL v7: Implement the new Radio State management for RIL
+    -Integrate patch 61753: This was integrated in last release.
+     -Patch Changes: Remove log messages from functions GetRadioState,
+      GetSIMState, SetRadioState, SetSIMState.
+
+
+Testing results:  (tested on Medfield PR3)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+August 14, 2012 (M6.31 release for Medfield PR3)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR3 devices, Android version 4.1.1 (Jelly Bean).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external ICS ABSP dated August 10, 2012 (ww30).
+- We are using the HSI interface.
+
+PR3 Setup
+=========
+FW DnX: SIGNED_PNW_D1_FWR_DnX.FD.05.bin (from ww30 PR3.3 release)
+IFWI: IFWI_v05.98_CRAK_DEV.bin (from ww30 PR3.3 release)
+OS DnX: SIGNED_PNW_D1_OSR_DnX.0D.05.bin (from ww30 PR3.3 release)
+OS Image: droidboot.img.POS (from ww30 PR3.3 release)
+Modem Firmware: radio_firmware.bin (from ww30 PR3.3 release - 1224.A)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch mfld_pr2-eng
+make mfld_pr2 -j8
+
+
+Release Notes for M6.31
+========================
+
+1. Bugzilla 47740: Fix number presentation when number not available
+   -Integrate patch 59800
+
+2. Merge external files from WW30 ABSP to RRIL.
+   -hardware/ril/include/telephony/ril.h
+   -            /libril/Android.mk
+   -                   /ril_commands.h
+   -                   /ril.cpp
+   -                   /ril_event.cpp
+   -                   /ril_unsol_commands.h
+   -            /reference-ril/reference-ril.c
+   -vendor/intel/mfld_pr2/init.mfld_pr2.rc
+
+3. Fix compilation issues when switching to Jelly Bean
+    -/CORE/ND/silo_network.cpp:
+     -add time.h include
+     -remove cutils/tztime.h include
+    -/UTIL/ND/rillog.cpp:
+     -change LOG() messages to ALOG()
+
+4. Bugzilla 31171: Free RIL and HSI channel
+   -Integrate patch 31171
+
+5. Bugzilla 49522: Avoid overwritting of IPV4 address in parsing of +CGPADDR
+   -Integrate patch 60823
+
+6. Bugzilla 43609: Delay network scan if a setup data call is ongoing
+   -Integrate patch 60821
+   -Changes: Integrate with architecture change BZ 43090
+    -Remove SetupDataCallOngoing(false) from PostSendCommandHook (currently done
+     in CTE::RequestSetupDataCall) and PreParseResponseHook
+     (now done in CTE::PostSetupDataCall) in CSilo_Data.
+    -Remove setting IsManualNetworkSearchOngoing and SetupDataCallOngoing
+     flags to false in CTEBase::ParseRadioPower.  Now done in ResetInternalStates()
+     in CTE::ParseRadioPower.
+    -Move SetupDataCallOngoing accessor methods as inline in header file.
+
+7. Bugzilla 43717: Use SPID property to turn ON/OFF RX DIV
+   -Integrate patch 60733
+
+8. Bugzilla 48904: Return right error code for PLMN not supported by SIM
+   -Integrate patch 60822
+   -Changes: Integrate with architecture change BZ 43090
+    -Move error code mapping from CSilo_Network::PostParseResponseHook
+     to PostSetNtwkSelManualCmdHandler in te.cpp
+
+9. Bugzilla 46624: Fix STK MO SMS retrying instead of being rejected
+   -Integrate patch 60912
+   -Changes: Integrate with architecture change BZ 43090
+    -Move new CMS error define to ril_result.h
+    -Move use of define in isRetryPossible to te.cpp
+
+10. Bugzilla 43090: Request handling using callback function
+    -Integrate patch 59411
+
+11. Bugzilla 44113: Silent pin entry handling using post command handler
+    -Integrate patch 59412
+
+12. Bugzilla 44871: Pin retry count using post command handler
+    -Integrate patch 59413
+
+13. Bugzilla 42615: PIN2 related SIMIO handling using post command handler
+    -Integrate patch 59414
+
+14. Bugzilla 48161: Remove duplicate Seek-for-Android definitions in ril.h
+
+15. Bugzilla 47122: Move the DTMF requests to SS channel
+    -Integrate patch 61768
+    -Changes: Integrate with architecture change BZ 43090
+     -Changes made to FindIdenticalRequestsAndSendResponses done in
+      applicable post command handlers in te.cpp
+     -Change CChannel::CompletePendingDtmfRequests to public
+
+16. Bugzilla 50530: Fix issue with USSD message conversion
+    -Integrate patch 61771
+
+17. Bugzilla 50308: Don't retry SMS sending on network failure
+    -Integrate patch 61796
+    -Changes: Integrate with architecture change BZ 43090
+     -Add new CMS error defines to ril_result.h instead of rril.h
+     -Add use of new defines to CTE::isRetryPossible
+
+18. Bugzilla 47730: Query extended error report on data
+    -Integrate patch 61785
+
+19. Bugzilla 50021: Add new JB RIL request
+    -Integrate patch 61805
+    -Changes: Use id of 113 for ND_REQ_ID_VOICERADIOTECH in request_id.h
+              to avoid conflict with existing
+
+20. Bugzilla 48177: Implement the new Radio State management for RIL
+    -Integrate patch 61753
+    -Changes: Integrate with architecture change BZ 43090
+     -Change g_RadioState.GetRadioState() calls in PostParseResponseHook
+      silos to CTE::GetTE().GetSIMState in post command handlers in te.cpp
+
+
+
+Testing results:  (tested on Medfield PR3)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 July 17, 2012 (M6.30 release for Medfield PR3)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield

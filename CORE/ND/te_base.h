@@ -24,6 +24,8 @@
 class CTEBase
 {
 protected:
+    char m_cTerminator;
+    char m_szNewLine[3];
     char m_szNetworkInterfaceNamePrefix[MAX_BUFFER_SIZE];
     int m_nNetworkRegistrationType;  //  0 = automatic, 1 = manual
     char m_szManualMCCMNC[MAX_BUFFER_SIZE];  //  If manual, this holds the MCCMNC string.
@@ -450,6 +452,10 @@ public:
     // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
     virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
+
+    // RIL_REQUEST_VOICE_RADIO_TECH 108
+    virtual RIL_RESULT_CODE CoreVoiceRadioTech(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseVoiceRadioTech(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SIM_TRANSMIT_BASIC 109
     virtual RIL_RESULT_CODE CoreSimTransmitBasic(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);

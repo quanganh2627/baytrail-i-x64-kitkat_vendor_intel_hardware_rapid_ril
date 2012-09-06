@@ -31,11 +31,11 @@
 #include "types.h"
 #include "request_id.h"
 #include "request_info_table.h"
-#include "globals.h"
 #include "rilqueue.h"
 #include "thread_manager.h"
 #include "rilchannels.h"
 #include "com_init_index.h"
+#include <cutils/properties.h>
 
 class CCommand;
 class CChannel;
@@ -72,106 +72,105 @@ private:
 
 public:
     // Start system initialization process
-    BOOL            InitializeSystem();
+    BOOL InitializeSystem();
 
-    BOOL            IsExitRequestSignalled() const;
+    BOOL IsExitRequestSignalled() const;
 
     //  Get/Set functions.
-    static CEvent*  GetCancelEvent()                    { return GetInstance().m_pExitRilEvent;    };
-    static CMutex*  GetDataChannelAccessorMutex()       { return GetInstance().m_pDataChannelAccessorMutex; };
-    static CMutex*  GetTEAccessMutex()                  { return GetInstance().m_pTEAccessMutex;   }
+    static CEvent* GetCancelEvent() { return GetInstance().m_pExitRilEvent; };
+    static CMutex* GetDataChannelAccessorMutex() { return GetInstance().m_pDataChannelAccessorMutex; };
+    static CMutex* GetTEAccessMutex() { return GetInstance().m_pTEAccessMutex; }
 
-    void            TriggerSimUnlockedEvent() const         { CEvent::Signal(m_pSimUnlockedEvent);      };
-    void            TriggerModemPowerOnEvent() const        { CEvent::Signal(m_pModemPowerOnEvent);     };
-    void            TriggerInitStringCompleteEvent(UINT32 eChannel, eComInitIndex eInitIndex);
+    void TriggerSimUnlockedEvent() const { CEvent::Signal(m_pSimUnlockedEvent); };
+    void TriggerModemPowerOnEvent() const { CEvent::Signal(m_pModemPowerOnEvent); };
+    void TriggerInitStringCompleteEvent(UINT32 eChannel, eComInitIndex eInitIndex);
 
-    BOOL            IsInitializationSuccessful() const      { return !m_bFailedToInitialize; };
-    void            SetInitializationUnsuccessful()         { m_bFailedToInitialize = TRUE; };
+    BOOL IsInitializationSuccessful() const { return !m_bFailedToInitialize; };
+    void SetInitializationUnsuccessful() { m_bFailedToInitialize = TRUE; };
 
-    void            GetRequestInfo(REQ_ID reqID, REQ_INFO &rReqInfo);
+    void GetRequestInfo(REQ_ID reqID, REQ_INFO &rReqInfo);
 
     //  For resetting modem
-    void            CloseChannelPorts();
-    BOOL            OpenChannelPortsOnly();
+    void CloseChannelPorts();
+    BOOL OpenChannelPortsOnly();
 
-    BOOL            SendRequestCleanup();
-    BOOL            SendRequestShutdown();
+    BOOL SendRequestCleanup();
+    BOOL SendRequestShutdown();
 
     //  This function continues the init in the function InitializeSystem() left
     //  off from InitChannelPorts().  Called when MODEM_UP status is received.
-    BOOL            ContinueInit();
+    BOOL ContinueInit();
 
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
-    void            SetLastCallFailedCauseID(UINT32 nID)    { m_uiLastCallFailedCauseID = nID; };
-    UINT32          GetLastCallFailedCauseID() const        { return m_uiLastCallFailedCauseID; };
+    void SetLastCallFailedCauseID(UINT32 nID) { m_uiLastCallFailedCauseID = nID; };
+    UINT32 GetLastCallFailedCauseID() const { return m_uiLastCallFailedCauseID; };
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
     // DSDS 2230 Mode
-    BOOL            IsDSDS_2230_Mode();
+    BOOL IsDSDS_2230_Mode();
 
     // Calls FindIdenticalRequestsAndSendResponses on all the channels
     static void CompleteIdenticalRequests(UINT32 uiReqID, UINT32 uiResultCode,
                                         void* pResponse, size_t responseLen);
+    char m_szDualSim[PROPERTY_VALUE_MAX];
 
 private:
     // Framework Init Functions
-    BOOL            CreateQueues();
-    void            DeleteQueues();
+    BOOL CreateQueues();
+    void DeleteQueues();
     //  Note that OpenChannelPorts() = InitChannelPorts() + OpenChannelPortsOnly()
-    BOOL            OpenChannelPorts();
-    void            DeleteChannels();
-    CChannel*       CreateChannel(UINT32 uiIndex);
+    BOOL OpenChannelPorts();
+    void DeleteChannels();
+    CChannel* CreateChannel(UINT32 uiIndex);
 
     //  Create and initialize the channels, but don't actually open the ports.
-    BOOL            InitChannelPorts();
+    BOOL InitChannelPorts();
 
-    BOOL            OpenCleanupRequestSocket();
+    BOOL OpenCleanupRequestSocket();
 
     // Internal Init helper functions
-    void            SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
-    BOOL            IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
-    BOOL            VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex);
-    void            ResetChannelCompletedInit();
-    void            ResetSystemState();
+    void SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
+    BOOL IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
+    BOOL VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex);
+    void ResetChannelCompletedInit();
+    void ResetSystemState();
 
     // RIL Component Initialization functions (called by system init function)
-    BOOL            InitializeModem();
-    BOOL            InitializeSim();
+    BOOL InitializeModem();
+    BOOL InitializeSim();
 
     // Modem initialization helper functions (called by component init functions)
-    BOOL            SendModemInitCommands(eComInitIndex eInitIndex);
-    static void*    StartModemInitializationThreadWrapper(void *pArg);
-    void            StartModemInitializationThread();
+    BOOL SendModemInitCommands(eComInitIndex eInitIndex);
+    static void* StartModemInitializationThreadWrapper(void *pArg);
+    void StartModemInitializationThread();
 
-    BOOL            IsChannelUndefined(int channel);
+    BOOL IsChannelUndefined(int channel);
 
 private:
     static CSystemManager* m_pInstance;
 
-    CEvent *            m_pExitRilEvent;
-    CEvent *            m_pSimUnlockedEvent;
-    CEvent *            m_pModemPowerOnEvent;
-    CEvent *            m_pInitStringCompleteEvent;
-    CEvent *            m_pSysInitCompleteEvent;
+    CEvent* m_pExitRilEvent;
+    CEvent* m_pSimUnlockedEvent;
+    CEvent* m_pModemPowerOnEvent;
+    CEvent* m_pInitStringCompleteEvent;
+    CEvent* m_pSysInitCompleteEvent;
 
-    CMutex *            m_pSystemManagerMutex;
+    CMutex* m_pSystemManagerMutex;
+    CMutex* m_pDataChannelAccessorMutex;
 
+    int m_fdCleanupSocket;
 
-    CMutex *            m_pDataChannelAccessorMutex;
+    CRequestInfoTable m_RequestInfoTable;
 
-    int                 m_fdCleanupSocket;
+    BOOL m_bFailedToInitialize;
 
-    CRequestInfoTable   m_RequestInfoTable;
-
-    BOOL                m_bFailedToInitialize;
-
-    BOOL                m_rgfChannelCompletedInit[RIL_CHANNEL_MAX][COM_MAX_INDEX];
+    BOOL m_rgfChannelCompletedInit[RIL_CHANNEL_MAX][COM_MAX_INDEX];
 
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
-    UINT32          m_uiLastCallFailedCauseID;
+    UINT32 m_uiLastCallFailedCauseID;
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
-    CMutex *            m_pTEAccessMutex;
+    CMutex* m_pTEAccessMutex;
 };
 
 #endif // SYSTEMMANAGER

@@ -48,6 +48,9 @@ public:
     virtual BOOL ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError);
 
 protected:
+    char m_cTerminator;
+    char m_szNewLine[3];
+
     CChannel *m_pChannel;
 
     ATRSPTABLE* m_pATRspTable;

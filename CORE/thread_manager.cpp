@@ -11,11 +11,11 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
-#include "globals.h"
 #include "rillog.h"
 #include "rilchannels.h"
 #include "channel_nd.h"
 #include "thread_manager.h"
+#include "te.h"
 
 CThreadManager* CThreadManager::m_pInstance = NULL;
 
@@ -104,7 +104,8 @@ BOOL CThreadManager::Initialize()
         goto Error;
     }
 
-    if (WAIT_EVENT_0_SIGNALED != CEvent::Wait(m_pStartupCompleteEvent, g_TimeoutWaitForInit))
+    if (WAIT_EVENT_0_SIGNALED !=
+            CEvent::Wait(m_pStartupCompleteEvent, CTE::GetTE().GetTimeoutWaitForInit()))
     {
         RIL_LOG_CRITICAL("CThreadManager::Initialize() : Timed out waiting for threads to register\r\n");
         goto Error;

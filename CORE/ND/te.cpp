@@ -33,7 +33,6 @@
 #include "te_inf_7x60.h"
 #include "ril_result.h"
 #include "callbacks.h"
-#include "globals.h"
 #include "reset.h"
 
 CTE * CTE::m_pTEInstance = NULL;
@@ -46,7 +45,13 @@ CTE::CTE() :
     m_bIsSimTechnicalProblem(FALSE),
     m_bIsManualNetworkSearchOn(FALSE),
     m_bIsDataSuspended(FALSE),
-    m_bIsClearPendingCHLD(FALSE)
+    m_bIsClearPendingCHLD(FALSE),
+    m_FastDormancyMode(FAST_DORMANCY_MODE_DEFAULT),
+    m_uiMTU(MTU_SIZE),
+    m_uiTimeoutCmdInit(TIMEOUT_INITIALIZATION_COMMAND),
+    m_uiTimeoutAPIDefault(TIMEOUT_API_DEFAULT),
+    m_uiTimeoutWaitForInit(TIMEOUT_WAITFORINIT),
+    m_uiTimeoutThresholdForRetry(TIMEOUT_THRESHOLDFORRETRY)
 {
     m_pTEBaseInstance = CreateModemTE();
 
@@ -79,23 +84,13 @@ CTEBase* CTE::CreateModemTE()
 #if defined(BOARD_HAVE_IFX7060)
         if (0 == strcmp(szModem, szInfineon7x60))
         {
-                RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 7x60\r\n");
-
-                //  Set g_cTerminator and g_szNewLine
-                g_cTerminator = '\r';
-                (void)CopyStringNullTerminate(g_szNewLine, "\r\n", sizeof(g_szNewLine));
-
-                return new CTE_INF_7x60();
+            RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 7x60\r\n");
+            return new CTE_INF_7x60();
         }
 #else
         if (0 == strcmp(szModem, szInfineon6260))
         {
             RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 6260\r\n");
-
-            //  Set g_cTerminator and g_szNewLine
-            g_cTerminator = '\r';
-            (void)CopyStringNullTerminate(g_szNewLine, "\r\n", sizeof(g_szNewLine));
-
             return new CTE_INF_6260();
         }
 #endif
@@ -1626,7 +1621,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
 Error:
     if (RRIL_RESULT_OK != res)
     {
-        m_bIsSetupDataCallOngoing = false;
+        m_bIsSetupDataCallOngoing = FALSE;
         CleanRequestData(reqData);
 
         if (pChannelData)
@@ -1634,7 +1629,7 @@ Error:
     }
     else
     {
-        m_bIsSetupDataCallOngoing = true;
+        m_bIsSetupDataCallOngoing = TRUE;
     }
     RIL_LOG_VERBOSE("CTE::RequestSetupDataCall() - Exit\r\n");
     return res;
@@ -4797,6 +4792,54 @@ RIL_RESULT_CODE CTE::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
     return m_pTEBaseInstance->ParseReportStkServiceRunning(rRspData);
 }
 
+//
+// RIL_REQUEST_VOICE_RADIO_TECH 108
+//
+RIL_RESULT_CODE CTE::RequestVoiceRadioTech(RIL_Token rilToken, void* pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestVoiceRadioTech() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreVoiceRadioTech(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() - Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_VOICERADIOTECH], rilToken,
+                                        ND_REQ_ID_VOICERADIOTECH, reqData,
+                                        &CTE::ParseVoiceRadioTech);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() - Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() - Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestVoiceRadioTech() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseVoiceRadioTech(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseVoiceRadioTech() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseVoiceRadioTech(rRspData);
+}
 
 //
 // RIL_REQUEST_SIM_TRANSMIT_BASIC 109
@@ -5223,11 +5266,12 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
     UINT32 uiAct = 0;
     RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
     BOOL bRet = false;
+    char szNewLine[3] = "\r\n";
 
     if (!bUnSolicited)
     {
         // Skip "<prefix>"
-        if (!SkipRspStart(rszPointer, g_szNewLine, rszPointer))
+        if (!SkipRspStart(rszPointer, szNewLine, rszPointer))
         {
             RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not skip response prefix.\r\n");
             goto Error;
@@ -5306,7 +5350,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
     }
 
     // Skip "<postfix>"
-    if (!SkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    if (!SkipRspEnd(rszPointer, szNewLine, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not skip response postfix.\r\n");
         goto Error;
@@ -5352,11 +5396,12 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
     RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
     UINT32 uiRAC = 0;
     BOOL bRet = false;
+    char szNewLine[3] = "\r\n";
 
     if (!bUnSolicited)
     {
         // Skip "<prefix>"
-        if (!SkipRspStart(rszPointer, g_szNewLine, rszPointer))
+        if (!SkipRspStart(rszPointer, szNewLine, rszPointer))
         {
             RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not skip response prefix.\r\n");
             goto Error;
@@ -5452,7 +5497,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS
     }
 
     // Skip "<postfix>"
-    if (!SkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    if (!SkipRspEnd(rszPointer, szNewLine, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not skip response postfix.\r\n");
         goto Error;
@@ -5487,11 +5532,12 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_
     UINT32 uiAct = 0;
     char szBand[MAX_BUFFER_SIZE] = {0};
     BOOL bRet = false;
+    char szNewLine[3] = "\r\n";
 
     if (!bUnSolicited)
     {
         // Skip "<prefix>"
-        if (!SkipRspStart(rszPointer, g_szNewLine, rszPointer))
+        if (!SkipRspStart(rszPointer, szNewLine, rszPointer))
         {
             RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not skip response prefix.\r\n");
             goto Error;
@@ -5576,7 +5622,7 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_
     }
 
     // Skip "<postfix>"
-    if (!SkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    if (!SkipRspEnd(rszPointer, szNewLine, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not skip response postfix.\r\n");
         goto Error;

@@ -14,6 +14,7 @@
 #define __RIL_QUEUE__
 
 #include "rillog.h"
+#include "sync_ops.h"
 
 template <class Object>
 class CRilQueue

@@ -108,7 +108,7 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
     }
 
     //  Check to see if we have a complete XNITZINFO notification.
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - This isn't a complete registration notification -- no need to parse it!\r\n");
         goto Error;
@@ -360,7 +360,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     }
 
     // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
     {
         // This isn't a complete registration notification -- no need to parse it
         goto Error;
@@ -533,7 +533,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         else
             CTE::GetTE().StoreRegistrationInfo(pRegStatusInfo, (SILO_NETWORK_CREG == regType) ? false : true);
 
-        rszPointer -= strlen(g_szNewLine);
+        rszPointer -= strlen(m_szNewLine);
 
         pResponse->SetUnsolicitedFlag(TRUE);
         pResponse->SetResultCode(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED);
@@ -601,7 +601,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
         RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - pResponse is NULL\r\n");
         goto Error;
     }
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szResponse))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szResponse))
     {
         // This isn't a complete registration notification -- no need to parse it
         RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - This isn't a complete registration notification -- no need to parse it\r\n");
@@ -609,7 +609,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     }
 
     //  Back up over the "\r\n".
-    szResponse -= strlen(g_szNewLine);
+    szResponse -= strlen(m_szNewLine);
 
     // Allocate +CGEV string buffer
     uiLength = szResponse - rszPointer;
@@ -854,7 +854,7 @@ BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char* &rszP
         goto Error;
     }
 
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szResponse))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szResponse))
     {
         // This isn't a complete notification -- no need to parse it
         RIL_LOG_CRITICAL("CSilo_Network::ParseXDATASTAT: Failed to find rsp end!\r\n");
@@ -941,7 +941,7 @@ BOOL CSilo_Network::ParseXCSQ(CResponse *const pResponse, const char*& rszPointe
     }
     memset(pSigStrData, 0x00, sizeof(RIL_SignalStrength_v6));
 
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
     {
         // This isn't a complete notification -- no need to parse it
         RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ: Failed to find rsp end!\r\n");

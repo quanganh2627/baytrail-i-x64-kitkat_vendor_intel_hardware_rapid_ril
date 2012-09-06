@@ -79,7 +79,7 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const char*& rszPoin
     }
 
     // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, szDummy))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
     {
         RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() : Could not find response end\r\n");
         goto Error;

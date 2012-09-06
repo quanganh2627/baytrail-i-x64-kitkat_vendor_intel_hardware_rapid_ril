@@ -42,17 +42,16 @@ const char* pszAborted       = "ABORTED";
 
 
 ///////////////////////////////////////////////////////////////////////////////
-CResponse::CResponse(CChannel* pChannel)
-: m_uiResultCode(RRIL_RESULT_OK),
-m_uiErrorCode(0),
-m_pData(NULL),
-m_uiDataSize(0),
-m_pChannel(pChannel),
-m_uiResponseEndMarker(0),
-m_uiFlags(0)
+CResponse::CResponse(CChannel* pChannel) :
+    m_uiResultCode(RRIL_RESULT_OK),
+    m_uiErrorCode(0),
+    m_pData(NULL),
+    m_uiDataSize(0),
+    m_pChannel(pChannel),
+    m_uiResponseEndMarker(0),
+    m_uiFlags(0)
 {
-    //RIL_LogDebugMsg("CResponse::CResponse() : CONSTRUCTOR\r\n");
-
+    CopyStringNullTerminate(m_szNewLine, "\r\n", sizeof(m_szNewLine));
 }
 
 
@@ -60,7 +59,6 @@ m_uiFlags(0)
 CResponse::~CResponse()
 {
     FreeData();
-    //RIL_LogDebugMsg("CResponse::~CResponse() : DESTRUCTOR\r\n");
 }
 
 
@@ -129,13 +127,13 @@ BOOL CResponse::IsUnsolicitedResponse()
     RIL_LOG_VERBOSE("CResponse::IsUnsolicitedResponse() : Enter\r\n");
 
     // Parse "<prefix>" if it exists.
-    SkipRspStart(szPointer, g_szNewLine, szPointer);
+    SkipRspStart(szPointer, m_szNewLine, szPointer);
 
     if (m_pChannel->ParseUnsolicitedResponse(this, szPointer, fDummy))
     {
         // unsolicited response parsed correctly; verify
         // string contains cr-lf
-        if (!SkipRspEnd(szPointer, g_szNewLine, szPointer))
+        if (!SkipRspEnd(szPointer, m_szNewLine, szPointer))
         {
             RIL_LOG_CRITICAL("CResponse::IsUnsolicitedResponse() - chnl=[%d] no CRLF at end of response: \"%s\"\r\n",
                             m_pChannel->GetRilChannel(),
@@ -173,7 +171,7 @@ BOOL CResponse::IsExtendedError(const char* pszToken)
         {
             RIL_LOG_CRITICAL("CResponse::IsExtendedError() - chnl=[%d] could not extract error code\r\n", m_pChannel->GetRilChannel());
             // treat as unrecognized - discard everything until the CR LF or end of buffer
-            if (!SkipRspEnd(szPointer, g_szNewLine, szPointer))
+            if (!SkipRspEnd(szPointer, m_szNewLine, szPointer))
             {
                 // no CR LF - discard everything
                 m_uiResponseEndMarker = m_uiUsed;
@@ -187,7 +185,7 @@ BOOL CResponse::IsExtendedError(const char* pszToken)
             goto Error;
         }
 
-        if (!SkipRspEnd(szPointer, g_szNewLine, szPointer))
+        if (!SkipRspEnd(szPointer, m_szNewLine, szPointer))
         {
             RIL_LOG_CRITICAL("CResponse::IsExtendedError() - chnl=[%d] no CRLF at end of response: \"%s\"\r\n",
                             m_pChannel->GetRilChannel(),
@@ -257,14 +255,14 @@ BOOL CResponse::IsOkResponse()
     RIL_LOG_VERBOSE("CResponse::IsOkResponse() : Enter\r\n");
 
     // look for "OK" in response data
-    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", g_szNewLine, pszOkResponse, g_szNewLine);
+    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", m_szNewLine, pszOkResponse, m_szNewLine);
     szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
     if (!bRet)
     {
         //  Maybe we have just OK<cr><lf> due to modem missing a character
-        snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s", pszOkResponse, g_szNewLine);
+        snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s", pszOkResponse, m_szNewLine);
         szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
         bRet = FindAndSkipString(szPointer, szToken, szPointer);
     }
@@ -273,7 +271,7 @@ BOOL CResponse::IsOkResponse()
     {
         // No "OK" in buffer - is this an SMS intermediate prompt?
         // look for SMS token from the beginning of the buffer only
-        bRet = SkipRspStart(szPointer, g_szNewLine, szPointer) &&
+        bRet = SkipRspStart(szPointer, m_szNewLine, szPointer) &&
                SkipString(szPointer, pszSMSResponse, szPointer);
     }
 
@@ -302,7 +300,7 @@ BOOL CResponse::IsErrorResponse()
     RIL_LOG_VERBOSE("CResponse::IsErrorResponse() : Enter\r\n");
 
     // look for "ERROR" in response data
-    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", g_szNewLine, pszErrorResponse, g_szNewLine);
+    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", m_szNewLine, pszErrorResponse, m_szNewLine);
     szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
@@ -334,7 +332,7 @@ BOOL CResponse::IsConnectResponse()
     RIL_LOG_VERBOSE("CResponse::IsConnectResponse() : Enter\r\n");
 
     // look for "CONNECT" in response data
-    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", g_szNewLine, pszConnectResponse, g_szNewLine);
+    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", m_szNewLine, pszConnectResponse, m_szNewLine);
     szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
@@ -362,7 +360,7 @@ BOOL CResponse::IsAbortedResponse()
     RIL_LOG_VERBOSE("CResponse::IsAbortedResponse() : Enter\r\n");
 
     // look for "ABORTED" in response data
-    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", g_szNewLine, pszAborted, g_szNewLine);
+    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", m_szNewLine, pszAborted, m_szNewLine);
     szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 

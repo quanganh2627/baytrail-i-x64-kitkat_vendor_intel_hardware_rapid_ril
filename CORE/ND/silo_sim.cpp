@@ -86,7 +86,7 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
     {
         // incomplete message notification
         RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() : Could not find response end\r\n");
@@ -94,11 +94,11 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
     }
     else
     {
-        // PDU is followed by g_szNewline, so look for g_szNewline and use its
+        // PDU is followed by m_szNewLine, so look for m_szNewLine and use its
         // position to determine length of PDU string.
 
         // Calculate PDU length + NULL byte
-        uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(g_szNewLine) + 1;
+        uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(m_szNewLine) + 1;
         RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
@@ -158,8 +158,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     char szFileID[5] = {0};
     UINT32 uiFileTagLength = 0;
     char szRefreshType[3] = {0};
-
-    int *pInts = NULL;
+    RIL_SimRefreshResponse_v7* pSimRefreshResp = NULL;
 
     if (pResponse == NULL)
     {
@@ -168,7 +167,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     }
 
     // Look for a "<postfix>" to be sure we got the whole message
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
     {
         // incomplete message notification
         RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() : Could not find response end\r\n");
@@ -176,11 +175,11 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     }
     else
     {
-        // PDU is followed by g_szNewline, so look for g_szNewline and use its
+        // PDU is followed by m_szNewLine, so look for m_szNewLine and use its
         // position to determine length of PDU string.
 
         // Calculate PDU length  - including NULL byte, not including quotes
-        uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(g_szNewLine) - 1;
+        uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(m_szNewLine) - 1;
         RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Calculated PDU String length: %u chars.\r\n", uiLength);
     }
 
@@ -238,12 +237,13 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                 //  If refresh type = "00","02","03" -> SIM_INIT
                 //  If refresh type = "04","05","06" -> SIM_RESET
 
-                pInts = (int*)malloc(2 * sizeof(int));
-                if (NULL != pInts)
+                pSimRefreshResp = (RIL_SimRefreshResponse_v7*)malloc(sizeof(RIL_SimRefreshResponse_v7));
+                if (NULL != pSimRefreshResp)
                 {
                     //  default to SIM_INIT
-                    pInts[0] = SIM_INIT;
-                    pInts[1] = NULL;
+                    pSimRefreshResp->result = SIM_INIT;
+                    pSimRefreshResp->ef_id = 0;
+                    pSimRefreshResp->aid = NULL;
 
                     //  Check for type of refresh
                     if ( (0 == strncmp(szRefreshType, "00", 2)) ||
@@ -252,8 +252,10 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                     {
                         //  SIM_INIT
                         RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - SIM_INIT\r\n");
-                        pInts[0] = SIM_INIT;
-                        pInts[1] = NULL;  // see ril.h
+                        pSimRefreshResp->result = SIM_INIT;
+                        // See ril.h: aid : For SIM_INIT result this field is set to AID of
+                        //      application that caused REFRESH
+                        pSimRefreshResp->aid = NULL;
                     }
                     else if ( (0 == strncmp(szRefreshType, "04", 2)) ||
                               (0 == strncmp(szRefreshType, "05", 2)) ||
@@ -275,7 +277,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                     {
                         //  SIM_FILE_UPDATE
                         RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - SIM_FILE_UPDATE\r\n");
-                        pInts[0] = SIM_FILE_UPDATE;
+                        pSimRefreshResp->result = SIM_FILE_UPDATE;
 
                         //  Tough part here - need to read file ID(s)
                         //  Android looks for EF_MBDN 0x6FC7 or EF_MAILBOX_CPHS 0x6F17
@@ -313,31 +315,32 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                                         UINT32 ui1 = 0, ui2 = 0;
                                         ui1 = (UINT8)SemiByteCharsToByte(szFileID[0], szFileID[1]);
                                         ui2 = (UINT8)SemiByteCharsToByte(szFileID[2], szFileID[3]);
-                                        pInts[1] = (ui1 << 8) + ui2;
-                                        RIL_LOG_INFO("pInts[1]=[%d],%04X\r\n", pInts[1], pInts[1]);
-
-
+                                        // See ril.h:
+                                        //      ef_id : is the EFID of the updated file if the result is
+                                        //          SIM_FILE_UPDATE or 0 for any other result.
+                                        //      aid: For SIM_FILE_UPDATE result it can be set to AID of
+                                        //          application in which updated EF resides or it can be
+                                        //          NULL if EF is outside of an application.
+                                        pSimRefreshResp->ef_id = (ui1 << 8) + ui2;
+                                        RIL_LOG_INFO("pInts[1]=[%d],%04X\r\n",
+                                            pSimRefreshResp->ef_id, pSimRefreshResp->ef_id);
                                     }
                                 }
                             }
-
                         }
-
                     }
 
                     //  Send out SIM_REFRESH notification
-                    RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)pInts, 2 * sizeof(int));
-
+                    RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)pSimRefreshResp,
+                                                sizeof(RIL_SimRefreshResponse_v7));
                 }
                 else
                 {
                     RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() - cannot allocate pInts\r\n");
                 }
-
             }
         }
     }
-
 
 event_notify:
     //  Normal STK Event notify
@@ -348,8 +351,8 @@ event_notify:
         goto Error;
     }
 
-    free(pInts);
-    pInts = NULL;
+    free(pSimRefreshResp);
+    pSimRefreshResp = NULL;
 
     fRet = TRUE;
 
@@ -358,8 +361,9 @@ Error:
     {
         free(pszProactiveCmd);
         pszProactiveCmd = NULL;
-        free(pInts);
-        pInts = NULL;
+
+        free(pSimRefreshResp);
+        pSimRefreshResp = NULL;
     }
 
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Exit\r\n");
@@ -381,7 +385,7 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const char*& rs
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
     {
         RIL_LOG_CRITICAL("CSilo_SIM::ParseTermRespConfirm() : Could not find response end\r\n");
         goto Error;
@@ -433,7 +437,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
     {
         RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIM() : Could not find response end\r\n");
         goto Error;
@@ -575,7 +579,7 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
     {
         RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() : Could not find response end\r\n");
         goto Error;
@@ -618,14 +622,14 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
 
 complete:
     // Look for "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Could not extract response postfix.\r\n");
         goto Error;
     }
 
     // Walk back over the <CR><LF>
-    rszPointer -= strlen(g_szNewLine);
+    rszPointer -= strlen(m_szNewLine);
 
     pResponse->SetUnsolicitedFlag(TRUE);
 
@@ -673,7 +677,7 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
     {
         RIL_LOG_CRITICAL("CSilo_SIM::ParseXLEMA() : Could not find response end\r\n");
         goto Error;
@@ -705,10 +709,10 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
 
     //  Skip the rest of the parameters (if any)
     // Look for a "<postfix>" to be sure we got a whole message
-    FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer);
+    FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer);
 
     //  Back up over the "\r\n".
-    rszPointer -= strlen(g_szNewLine);
+    rszPointer -= strlen(m_szNewLine);
 
 
     //  If the uiIndex is 1, then assume reading first ECC code.
@@ -783,7 +787,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
     {
         RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() : Could not find response end\r\n");
         goto Error;
@@ -829,10 +833,10 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
 
     //  Skip the rest of the parameters (if any)
     // Look for a "<postfix>" to be sure we got a whole message
-    FindAndSkipRspEnd(rszPointer, g_szNewLine, rszPointer);
+    FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer);
 
     //  Back up over the "\r\n".
-    rszPointer -= strlen(g_szNewLine);
+    rszPointer -= strlen(m_szNewLine);
 
     // Here we assume we don't have card error.
     // This will be changed in case of nSIMState is 8.

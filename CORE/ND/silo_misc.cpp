@@ -82,7 +82,7 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse * const pResponse, const char*& rszPointer
     }
 
     // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, g_szNewLine, pszEnd))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
     {
         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() : Could not find response end\r\n");
         goto Error;
