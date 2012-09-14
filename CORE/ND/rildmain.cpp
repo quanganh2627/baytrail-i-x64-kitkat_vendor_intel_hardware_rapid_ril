@@ -1001,7 +1001,8 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
         case RIL_REQUEST_SET_LOCATION_UPDATES:  // 76
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_SET_LOCATION_UPDATES\r\n");
-            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestSetLocationUpdates(
+                                                    hRilToken, pData, datalen);
         }
         break;
 

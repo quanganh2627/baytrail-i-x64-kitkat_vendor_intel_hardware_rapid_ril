@@ -524,7 +524,8 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         }
         else if (SILO_NETWORK_XREG == regType)
         {
-            fRet = CTE::ParseXREG(rszPointer, fUnSolicited, psRegStatus);
+            fRet = CTE::ParseXREG(rszPointer, fUnSolicited, psRegStatus,
+                                                            nNumParams);
             pRegStatusInfo = (void*) &psRegStatus;
         }
 
