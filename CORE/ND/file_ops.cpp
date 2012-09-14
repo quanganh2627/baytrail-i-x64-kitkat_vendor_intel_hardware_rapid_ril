@@ -142,8 +142,7 @@ BOOL CFile::Open(   const char * pszFileName,
 
             case FILE_ACCESS_READ_WRITE:
             {
-                //iAttr = O_RDWR;
-                iAttr = O_NONBLOCK | O_RDWR;
+                iAttr = O_RDWR;
                 break;
             }
 
@@ -189,7 +188,7 @@ BOOL CFile::Open(   const char * pszFileName,
             iAttr |= O_EXCL;
         }
 
-        m_file = open(pszFileName, iAttr | O_NONBLOCK);
+        m_file = open(pszFileName, iAttr);
 
         if (m_file < 0)
         {

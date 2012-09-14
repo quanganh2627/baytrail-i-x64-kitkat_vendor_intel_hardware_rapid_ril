@@ -100,6 +100,7 @@ BOOL CPort::Init()
 
     int fd = 0;
     int bit = 0;
+    int flag;
     struct termios oldtio, newtio;
 
     if (m_fIsPortOpen)
@@ -111,9 +112,13 @@ BOOL CPort::Init()
             // save current port settings
             tcgetattr(fd,&oldtio);
 
-/*            if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
+            // switch TTY to NON BLOCKING mode for Rd/Wr RRIL operations
+            flag = fcntl(fd, F_GETFL, 0);
+            flag |= O_NONBLOCK;
+
+            if (fcntl(fd, F_SETFL, flag) < 0)
                 perror("fcntl()");
-*/
+
             bzero(&newtio, sizeof(newtio));
             newtio.c_cflag = B115200;
 
