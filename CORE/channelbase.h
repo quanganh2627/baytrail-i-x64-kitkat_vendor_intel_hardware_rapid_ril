@@ -77,8 +77,8 @@ public:
     //  Public framework functions
     void            ClearCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = FALSE; };
 
-    BOOL            BlockReadThread()   { return CEvent::Reset(m_pBlockReadThreadEvent); }
-    BOOL            UnblockReadThread() { return CEvent::Signal(m_pBlockReadThreadEvent); }
+    BOOL            BlockReadThread();
+    BOOL            UnblockReadThread();
 
     //  Public interfaces to notify all silos.
     BOOL            ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError);
@@ -136,6 +136,7 @@ protected:
     CThread *                       m_pReadThread;
 
     CEvent *                        m_pBlockReadThreadEvent;
+    BOOL                            m_bReadThreadBlocked;
 
     UINT32                          m_uiLockCommandQueue;
     UINT32                          m_uiLockCommandQueueTimeout;

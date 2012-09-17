@@ -36,6 +36,7 @@ CChannelBase::CChannelBase(UINT32 uiChannel)
     m_pCmdThread(NULL),
     m_pReadThread(NULL),
     m_pBlockReadThreadEvent(NULL),
+    m_bReadThreadBlocked(TRUE),
     m_uiLockCommandQueue(0),
     m_uiLockCommandQueueTimeout(0),
     m_prisdModuleInit(NULL),
@@ -808,10 +809,13 @@ UINT32 CChannelBase::ResponseThread()
             break;
         }
 
-        // Wait until Read Thread get unblocked
-        CEvent* pEvents[] = { m_pBlockReadThreadEvent };
-        uiNumEvents = 1;
-        CEvent::WaitForAnyEvent(uiNumEvents, pEvents, WAIT_FOREVER);
+        // Wait until Read Thread get unblocked (if blocked)
+        if (m_bReadThreadBlocked)
+        {
+            CEvent* pEvents[] = { m_pBlockReadThreadEvent };
+            uiNumEvents = 1;
+            CEvent::WaitForAnyEvent(uiNumEvents, pEvents, WAIT_FOREVER);
+        }
 
         // Wait for more data
         RIL_LOG_VERBOSE("CChannelBase::ResponseThread() chnl=[%d] - Waiting for data\r\n", m_uiRilChannel);
@@ -885,6 +889,14 @@ UINT32 CChannelBase::ResponseThread()
             {
                 uiReadError = 0;
             }
+
+            // If the thread is blocked don't take into account the data
+            // This can occur if the thread was blocked when we are running WaitForAvailableData
+            if (m_bReadThreadBlocked)
+            {
+                break;
+            }
+
             if (!ProcessModemData(szData, uiRead))
             {
                 RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - chnl=[%d] ProcessModemData failed?!\r\n", m_uiRilChannel);
@@ -989,4 +1001,15 @@ BOOL CChannelBase::WaitForAvailableData(UINT32 uiTimeout)
     return m_Port.WaitForAvailableData(uiTimeout);
 }
 
+BOOL CChannelBase::BlockReadThread()
+{
+    m_bReadThreadBlocked = TRUE;
+    return CEvent::Reset(m_pBlockReadThreadEvent);
+}
+
+BOOL CChannelBase::UnblockReadThread()
+{
+    m_bReadThreadBlocked = FALSE;
+    return CEvent::Signal(m_pBlockReadThreadEvent);
+}
 
