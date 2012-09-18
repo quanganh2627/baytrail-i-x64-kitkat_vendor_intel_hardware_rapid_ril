@@ -26,6 +26,7 @@
 #include "channel_data.h"
 #include "data_util.h" // For DataConfigDown
 #include "te.h"
+#include "te_base.h"
 #include <sys/ioctl.h>
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
@@ -93,7 +94,7 @@ void ModemResetUpdate()
 
     RIL_LOG_VERBOSE("ModemResetUpdate() - Enter\r\n");
 
-    CleanupAllDataConnections();
+    CTE::GetTE().CleanupAllDataConnections();
 
     //  Tell Android no more data connection
     RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);

@@ -27,6 +27,7 @@
 #include "channel_data.h"
 #include "data_util.h"
 #include "te.h"
+#include "te_base.h"
 #include "oemhookids.h"
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
 #include "repository.h"
@@ -747,7 +748,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
             FindAndSkipString(rszPointer, "NW DETACH", rszPointer))
     {
         RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME or NW DETACH");
-        CleanupAllDataConnections();
+        CTE::GetTE().CleanupAllDataConnections();
         CTE::GetTE().CompleteDataCallListChanged();
     }
     else if (FindAndSkipString(szStrExtract, "ME DEACT", szStrExtract))

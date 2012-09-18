@@ -16,6 +16,27 @@
 
 #include "channelbase.h"
 
+typedef enum {
+    FLUSH_CHANNEL_NO_FLUSH,
+    FLUSH_CHANNEL_FLUSH_BUFFER,
+    FLUSH_CHANNEL_FLUSH_TTY,
+    FLUSH_CHANNEL_FLUSH_ALL,
+} FLUSH_CHANNEL;
+
+typedef enum {
+    BLOCK_CHANNEL_NO_BLOCK,
+    BLOCK_CHANNEL_BLOCK_THREAD,
+    BLOCK_CHANNEL_BLOCK_TTY,
+    BLOCK_CHANNEL_BLOCK_ALL,
+} BLOCK_CHANNEL;
+
+typedef enum {
+    UNBLOCK_CHANNEL_NO_UNBLOCK,
+    UNBLOCK_CHANNEL_UNBLOCK_THREAD,
+    UNBLOCK_CHANNEL_UNBLOCK_TTY,
+    UNBLOCK_CHANNEL_UNBLOCK_ALL,
+} UNBLOCK_CHANNEL;
+
 class CCommand;
 class CResponse;
 
@@ -36,6 +57,10 @@ public:
     virtual UINT32  ResponseThread() { return CChannelBase::ResponseThread(); }
 
     virtual void FlushResponse();
+
+    // Public Flush functions
+    virtual BOOL BlockAndFlushChannel(BLOCK_CHANNEL blockLevel, FLUSH_CHANNEL flushLevel);
+    virtual BOOL FlushAndUnblockChannel(UNBLOCK_CHANNEL blockLevel, FLUSH_CHANNEL flushLevel);
 
     /*
      * Goes through Tx queue, finds identical request IDs and completes

@@ -917,6 +917,7 @@ public:
     BOOL            Append(const char *szIn, UINT32 nLength);
     const char*     Data() const    { return m_szBuffer; };
     UINT32          Size() const    { return m_uiUsed; };
+    void            Flush()         { delete[] m_szBuffer; m_szBuffer = NULL; m_uiUsed = 0; };
 
 private:
     static const UINT32 m_nChunkSize = 1024;

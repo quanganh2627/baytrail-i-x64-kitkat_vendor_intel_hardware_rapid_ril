@@ -21,6 +21,8 @@
 #include "sim_state.h"
 #include <utils/Vector.h>
 
+class CChannel_Data;
+
 class CTEBase
 {
 protected:
@@ -545,8 +547,18 @@ public:
     virtual void SetPin2State(RIL_PinState ePin2State) { m_ePin2State = ePin2State; };
     virtual RIL_PinState GetPin2State() { return m_ePin2State; };
 
+    // Functions for configuring data connections
+    virtual BOOL DataConfigUp(char* pszNetworkInterfaceName, CChannel_Data* pChannelData,
+                                                PDP_TYPE eDataConnectionType);
+    virtual BOOL DataConfigDown(UINT32 uiCID) = 0;
+    virtual void CleanupAllDataConnections();
+    virtual BOOL DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pChannelData);
+    virtual BOOL DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pChannelData);
+    virtual BOOL DataConfigUpIpV4V6(char* pszNetworkInterfaceName, CChannel_Data* pChannelData);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char *& pszRsp, RIL_CardStatus_v6 *& pCardStatus);
+
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA & rRspData);
     void DeactivateAllDataCalls();

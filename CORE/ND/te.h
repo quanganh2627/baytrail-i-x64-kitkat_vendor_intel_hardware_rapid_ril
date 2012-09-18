@@ -34,20 +34,21 @@ private:
     CTE(const CTE& rhs);  // Copy Constructor
     CTE& operator=(const CTE& rhs);  //  Assignment operator
 
+    static CTEBase* CreateModemTE();
 
-    static CTE*         m_pTEInstance;
+    static CTE* m_pTEInstance;
+    CTEBase* m_pTEBaseInstance;
 
     static const UINT32 m_uiMaxModemNameLen = 64;
-    CTEBase*            m_pTEBaseInstance;
-
-private:
-    static CTEBase*     CreateModemTE();
-
 
 public:
     static void CreateTE();
-    static CTE & GetTE();
+    static CTE& GetTE();
     static void  DeleteTEObject();
+
+    // Accessor functions for configuring data connections
+    BOOL DataConfigDown(UINT32 uiCID);
+    void CleanupAllDataConnections();
 
     static BOOL ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_STATUS& pCSRegStruct);
     static BOOL ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_REG_STATUS& pPSRegStruct);

@@ -24,6 +24,7 @@
 #include "rildmain.h"
 #include "callbacks.h"
 #include "te.h"
+#include "te_base.h"
 
 //
 //
@@ -96,7 +97,7 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const char*& rszPoin
                     m_pChannel->GetRilChannel(), pChannelData->GetContextID());
 
         //  Release network interface
-        if (!DataConfigDown(pChannelData->GetContextID()))
+        if (!CTE::GetTE().DataConfigDown(pChannelData->GetContextID()))
         {
             RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() - DataConfigDown FAILED chnl=[%u], cid=[%u]\r\n",
                     m_pChannel->GetRilChannel(), pChannelData->GetContextID());

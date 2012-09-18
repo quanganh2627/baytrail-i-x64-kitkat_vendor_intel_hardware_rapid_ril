@@ -51,6 +51,8 @@ public:
                                                         UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseEnterDataState(RESPONSE_DATA& rRspData);
     virtual BOOL SetupInterface(UINT32 uiCID);
+
+    virtual BOOL DataConfigDown(UINT32 uiCID);
 };
 
 #endif

@@ -7100,3 +7100,15 @@ void CTE::CompleteDataCallListChanged()
 
     RIL_LOG_VERBOSE("CTE::CompleteDataCallListChanged() - Exit\r\n");
 }
+
+BOOL CTE::DataConfigDown(UINT32 uiCID)
+{
+    RIL_LOG_VERBOSE("CTE::DataConfigDown() - Enter / Exit\r\n");
+    return m_pTEBaseInstance->DataConfigDown(uiCID);
+}
+
+void CTE::CleanupAllDataConnections()
+{
+    RIL_LOG_VERBOSE("CTE::CleanupAllDataConnections() - Enter / Exit\r\n");
+    m_pTEBaseInstance->CleanupAllDataConnections();
+}

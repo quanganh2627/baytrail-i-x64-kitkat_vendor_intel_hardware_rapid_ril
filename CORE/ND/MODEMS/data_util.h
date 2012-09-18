@@ -11,19 +11,19 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
-#include "nd_structs.h"
 
-class CChannel_Data;
+//  This is for socket-related calls.
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <linux/gsmmux.h>
+
+// Helper functions for configuring data connections
+BOOL setaddr6(int sockfd6, struct ifreq *ifr, const char *addr);
+BOOL setaddr(int s, struct ifreq *ifr, const char *addr);
+BOOL setflags(int s, struct ifreq *ifr, int set, int clr);
+BOOL setmtu(int s, struct ifreq *ifr);
 
 int MapErrorCodeToRilDataFailCause(UINT32 uiCause);
-
-//  Call these functions to set up data and bring down data.
-BOOL DataConfigUp(char *szNetworkInterfaceName, CChannel_Data* pChannelData, PDP_TYPE eDataConnectionType);
-BOOL DataConfigUpIpV4(char *szNetworkInterfaceName, CChannel_Data* pChannelData);
-BOOL DataConfigUpIpV6(char *szNetworkInterfaceName, CChannel_Data* pChannelData);
-BOOL DataConfigUpIpV4V6(char *szNetworkInterfaceName,CChannel_Data* pChannelData );
-BOOL DataConfigDown(UINT32 uiCID);
-void CleanupAllDataConnections();
 
 // Helper function to convert IP addresses to Android-readable format.
 // szIpIn [IN] - The IP string to be converted

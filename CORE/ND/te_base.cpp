@@ -8587,3 +8587,471 @@ void CTEBase::PostDeactivateDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
     RIL_LOG_VERBOSE("CTEBase::PostDeactivateDataCallCmdHandler - Enter/Exit \r\n");
     // only suported at modem level
 }
+
+void CTEBase::CleanupAllDataConnections()
+{
+    RIL_LOG_VERBOSE("CTEBase::CleanupAllDataConnections() - Enter\r\n");
+
+    //  Bring down all data contexts internally.
+    CChannel_Data* pChannelData = NULL;
+
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
+    {
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
+
+        pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+
+        //  We are taking down all data connections here, so we are looping over each data channel.
+        //  Don't call DataConfigDown with invalid CID.
+        if (pChannelData && pChannelData->GetContextID() > 0)
+        {
+            RIL_LOG_INFO("CTEBase::CleanupAllDataConnections() - Calling DataConfigDown  chnl=[%d], cid=[%d]\r\n", i, pChannelData->GetContextID());
+            DataConfigDown(pChannelData->GetContextID());
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::CleanupAllDataConnections() - Exit\r\n");
+}
+
+//
+//  Call this function whenever data is activated
+//
+BOOL CTEBase::DataConfigUp(char* pszNetworkInterfaceName, CChannel_Data* pChannelData,
+                                                PDP_TYPE eDataConnectionType)
+{
+    BOOL bRet = FALSE;
+    RIL_LOG_INFO("CTEBase::DataConfigUp() ENTER\r\n");
+
+    switch(eDataConnectionType)
+    {
+        case PDP_TYPE_IPV4:
+            RIL_LOG_INFO("CTEBase::DataConfigUp() - IPV4 - Calling DataConfigUpIpV4()\r\n");
+            bRet = DataConfigUpIpV4(pszNetworkInterfaceName, pChannelData);
+            break;
+
+        case PDP_TYPE_IPV6:
+            RIL_LOG_INFO("CTEBase::DataConfigUp() - IPV6 - Calling DataConfigUpIpV6()\r\n");
+            bRet = DataConfigUpIpV6(pszNetworkInterfaceName, pChannelData);
+            break;
+
+        case PDP_TYPE_IPV4V6:
+            RIL_LOG_INFO("CTEBase::DataConfigUp() - IPV4V6 - Calling DataConfigUpIpV4V6()\r\n");
+            bRet = DataConfigUpIpV4V6(pszNetworkInterfaceName, pChannelData);
+            break;
+
+        default:
+            RIL_LOG_CRITICAL("CTEBase::DataConfigUp() - Unknown PDP_TYPE!  eDataConnectionType=[%d]\r\n",
+                                                                            eDataConnectionType);
+            bRet = FALSE;
+            break;
+    }
+
+    RIL_LOG_INFO("CTEBase::DataConfigUp() EXIT=%d\r\n", bRet);
+    return bRet;
+}
+
+BOOL CTEBase::DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pChannelData)
+{
+    BOOL bRet = FALSE;
+    int s = -1;
+    char szIpAddr[MAX_BUFFER_SIZE] = {'\0'};
+
+    if (NULL == pChannelData || NULL == pszNetworkInterfaceName)
+    {
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() - Invalid input\r\n");
+        goto Error;
+    }
+
+    pChannelData->GetIpAddress(szIpAddr, sizeof(szIpAddr), NULL, 0);
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() ENTER  pszNetworkInterfaceName=[%s]  szIpAddr=[%s]\r\n",
+                                                        pszNetworkInterfaceName, szIpAddr);
+
+    //  Open socket for ifconfig command
+    s = socket(AF_INET, SOCK_DGRAM, 0);
+    if (s < 0)
+    {
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4() : cannot open control socket\n");
+        goto Error;
+    }
+
+    //  Code in this function is from system/core/toolbox/ifconfig.c
+    //  also from system/core/toolbox/route.c
+
+    //  ifconfig rmnetX <ip address>
+    {
+        struct ifreq ifr;
+        memset(&ifr, 0, sizeof(struct ifreq));
+        strncpy(ifr.ifr_name, pszNetworkInterfaceName, IFNAMSIZ-1);
+        ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
+
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : Setting flags\r\n");
+        if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
+        {
+            //goto Error;
+            RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4() : Error setting flags\r\n");
+        }
+
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : Setting addr\r\n");
+        if (!setaddr(s, &ifr, szIpAddr)) // ipaddr
+        {
+            //goto Error;
+            RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4() : Error setting addr\r\n");
+        }
+
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : Setting mtu\r\n");
+        if (!setmtu(s, &ifr))
+        {
+            //goto Error;
+            RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4() : Error setting mtu\r\n");
+        }
+    }
+
+    in_addr_t gw;
+    struct in_addr gwaddr;
+    in_addr_t addr;
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : set default gateway to fake value\r\n");
+    if (inet_pton(AF_INET, szIpAddr, &addr) <= 0)
+    {
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : inet_pton() failed for %s!\r\n", szIpAddr);
+        goto Error;
+    }
+    gw = ntohl(addr) & 0xFFFFFF00;
+    gw |= 1;
+    gwaddr.s_addr = htonl(gw);
+
+    pChannelData->SetGateway(inet_ntoa(gwaddr));
+
+    bRet = TRUE;
+
+Error:
+    if (s >= 0)
+    {
+        close(s);
+    }
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() EXIT  bRet=[%d]\r\n", bRet);
+    return bRet;
+}
+
+BOOL CTEBase::DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pChannelData)
+{
+    BOOL bRet = FALSE;
+    int s = -1;
+    char szIpAddr2[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpAddrOut[50];
+    struct in6_addr ifIdAddr;
+    struct in6_addr ifPrefixAddr;
+    struct in6_addr ifOutAddr;
+
+    if (NULL == pChannelData || NULL == pszNetworkInterfaceName)
+    {
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() - Invalid input\r\n");
+        goto Error;
+    }
+
+    pChannelData->GetIpAddress(NULL, 0, szIpAddr2, sizeof(szIpAddr2));
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() ENTER  pszNetworkInterfaceName=[%s]  szIpAddr2=[%s]\r\n",
+                                                    pszNetworkInterfaceName, szIpAddr2);
+
+    //  Open socket for ifconfig command (note this is ipv6 socket)
+    s = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (s < 0)
+    {
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6() : cannot open control socket\n");
+        goto Error;
+    }
+
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(struct ifreq));
+    strncpy(ifr.ifr_name, pszNetworkInterfaceName, IFNAMSIZ-1);
+    ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
+
+    inet_pton(AF_INET6, szIpAddr2, &ifIdAddr);
+    inet_pton(AF_INET6, "FE80::", &ifPrefixAddr);
+
+
+    // Set local prefix from FE80::
+    memcpy(ifOutAddr.s6_addr,ifPrefixAddr.s6_addr,8);
+    // Set interface identifier from address given by network
+    memcpy((ifOutAddr.s6_addr)+8,(ifIdAddr.s6_addr)+8,8);
+
+    inet_ntop(AF_INET6, &ifOutAddr, szIpAddrOut, sizeof(szIpAddrOut));
+    strncpy(szIpAddr2, szIpAddrOut, sizeof(szIpAddrOut));
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() : Setting flags\r\n");
+    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6(): Error setting flags\r\n");
+    }
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() : Setting addr :%s\r\n",szIpAddr2);
+    if (!setaddr6(s, &ifr, szIpAddr2))
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6() : Error setting addr %s\r\n",
+                                                                szIpAddr2);
+    }
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpV6() : Setting mtu\r\n");
+    if (!setmtu(s, &ifr))
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpV6() : Error setting mtu\r\n");
+    }
+
+    //  Before setting interface UP, need to deactivate DAD on interface.
+    char file_to_open[100];
+    file_to_open[0]='\0';
+    FILE * fp;
+
+    //  Open dad_transmits file, write 0<lf>.
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits",
+                                                    pszNetworkInterfaceName);
+
+    fp = fopen(file_to_open, "w");
+    if (fp)
+    {
+        char szData[] = "0\n";
+
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
+        if (EOF == fputs(szData, fp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6() : file=[%s] cannot write value [%s]\r\n",
+                                                                    file_to_open, szData);
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n",
+                    CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+        }
+
+        //  Close file handle
+        fclose(fp);
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6() : Cannot open [%s]\r\n", file_to_open);
+    }
+    //  Open accept_dad file, write 0<lf>.
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad",
+                                                            pszNetworkInterfaceName);
+
+    fp = fopen(file_to_open, "w");
+    if (fp)
+    {
+        char szData[] = "0\n";
+
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() : Opened file=[%s]\r\n", file_to_open);
+        if (EOF == fputs(szData, fp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6() : file=[%s] cannot write value [%s]\r\n",
+                                                                    file_to_open, szData);
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() : Wrote [%s] to file=[%s]\r\n",
+                    CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+        }
+
+        //  Close file handle.
+        fclose(fp);
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6() : Cannot open [%s]\r\n", file_to_open);
+    }
+
+    pChannelData->SetGateway("");
+
+    bRet = TRUE;
+
+Error:
+    if (s >= 0)
+    {
+        close(s);
+    }
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() EXIT  bRet=[%d]\r\n", bRet);
+    return bRet;
+}
+
+BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
+                                            CChannel_Data* pChannelData)
+{
+    BOOL bRet = FALSE;
+    int s = -1;
+    int s6 =-1;
+    char szIpAddrOut[50];
+    struct in6_addr ifIdAddr;
+    struct in6_addr ifPrefixAddr;
+    struct in6_addr ifOutAddr;
+    char szIpAddr[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpAddr2[MAX_IPADDR_SIZE] = {'\0'};
+
+    if (NULL == pChannelData || NULL == pszNetworkInterfaceName)
+    {
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() - Invalid input\r\n");
+        goto Error;
+    }
+
+    pChannelData->GetIpAddress(szIpAddr, sizeof(szIpAddr),
+                                        szIpAddr2, sizeof(szIpAddr2));
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() ENTER  pszNetworkInterfaceName=[%s]  szIpAddr=[%s] szIpAddr2=[%s]\r\n",
+                                                                pszNetworkInterfaceName, szIpAddr, szIpAddr2);
+
+    //  Open socket for ifconfig and setFlags commands
+    s = socket(AF_INET, SOCK_DGRAM, 0);
+    s6 = socket(AF_INET6, SOCK_DGRAM, 0);
+    if (s < 0 || s6 < 0)
+    {
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : cannot open control socket\n");
+        goto Error;
+    }
+
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(struct ifreq));
+    strncpy(ifr.ifr_name, pszNetworkInterfaceName, IFNAMSIZ-1);
+    ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : Setting addr\r\n");
+    if (!setaddr(s, &ifr, szIpAddr))
+    {
+        //goto Error;
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : Error setting add\r\n");
+    }
+
+    memset(&ifr, 0, sizeof(struct ifreq));
+    strncpy(ifr.ifr_name, pszNetworkInterfaceName, IFNAMSIZ-1);
+    ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
+
+    // Set link local address to start the SLAAC process
+    inet_pton(AF_INET6, szIpAddr2, &ifIdAddr);
+    inet_pton(AF_INET6, "FE80::", &ifPrefixAddr);
+
+    // Set local prefix from FE80::
+    memcpy(ifOutAddr.s6_addr, ifPrefixAddr.s6_addr, 8);
+    // Set interface identifier from address given by network
+    memcpy((ifOutAddr.s6_addr)+8, (ifIdAddr.s6_addr)+8, 8);
+
+    inet_ntop(AF_INET6, &ifOutAddr, szIpAddrOut, sizeof(szIpAddrOut));
+    strncpy(szIpAddr2, szIpAddrOut, sizeof(szIpAddrOut));
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : Setting flags\r\n");
+    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
+    {
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : Error setting flags\r\n");
+    }
+
+    if (!setaddr6(s6, &ifr, szIpAddr2))
+    {
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : Error setting add\r\n");
+    }
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpV4V6() : Setting mtu\r\n");
+    if (!setmtu(s, &ifr))
+    {
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpV4V6() : Error setting mtu\r\n");
+    }
+
+    //  Before setting interface UP, need to deactivate DAD on interface.
+    char file_to_open[100];
+    file_to_open[0]='\0';
+    FILE * fp;
+
+    //  Open dad_transmits file, write 0<lf>.
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits",
+                                                pszNetworkInterfaceName);
+
+    fp = fopen(file_to_open, "w");
+    if (fp)
+    {
+        char szData[] = "0\n";
+
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : Opened file=[%s]\r\n", file_to_open);
+        if (EOF == fputs(szData, fp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : file=[%s] cannot write value [%s]\r\n",
+                                                                    file_to_open, szData);
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : Wrote [%s] to file=[%s]\r\n",
+                    CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+        }
+
+        //  Close file handle
+        fclose(fp);
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : Cannot open [%s]\r\n",
+                                                            file_to_open);
+    }
+
+    //  Open accept_dad file, write 0<lf>.
+    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad",
+                                                    pszNetworkInterfaceName);
+
+    fp = fopen(file_to_open, "w");
+    if (fp)
+    {
+        char szData[] = "0\n";
+
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : Opened file=[%s]\r\n", file_to_open);
+        if (EOF == fputs(szData, fp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : file=[%s] cannot write value [%s]\r\n",
+                                                                    file_to_open, szData);
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : Wrote [%s] to file=[%s]\r\n",
+                    CRLFExpandedString(szData, strlen(szData)).GetString(), file_to_open);
+        }
+
+        //  Close file handle.
+        fclose(fp);
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : Cannot open [%s]\r\n", file_to_open);
+    }
+
+    in_addr_t gw;
+    struct in_addr gwaddr;
+    in_addr_t addr;
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : set default gateway to fake value\r\n");
+    if (inet_pton(AF_INET, szIpAddr, &addr) <= 0)
+    {
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : inet_pton() failed for %s!\r\n", szIpAddr);
+        goto Error;
+    }
+    gw = ntohl(addr) & 0xFFFFFF00;
+    gw |= 1;
+    gwaddr.s_addr = htonl(gw);
+
+    pChannelData->SetGateway(inet_ntoa(gwaddr));
+
+    bRet = TRUE;
+
+Error:
+    if (s >= 0)
+    {
+        close(s);
+    }
+
+    if (s6 >= 0)
+    {
+        close(s6);
+    }
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() EXIT  bRet=[%d]\r\n", bRet);
+    return bRet;
+}

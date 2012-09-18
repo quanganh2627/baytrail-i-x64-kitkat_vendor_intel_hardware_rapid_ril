@@ -23,6 +23,11 @@
 #include "te.h"
 #include "rril_OEM.h"
 
+//  This is for socket-related calls.
+#include <sys/ioctl.h>
+#include <errno.h>
+#include <linux/termios.h>
+
 CChannel::CChannel(UINT32 uiChannel)
 : CChannelBase(uiChannel),
   m_pResponse(NULL)
@@ -1068,6 +1073,252 @@ Error:
 
 void CChannel::FlushResponse()
 {
-    delete m_pResponse;
-    m_pResponse = NULL;
+    void* pData = NULL;
+    UINT32 uiDataSize = 0;
+    m_pResponse->GetData(pData, uiDataSize);
+    // Flush unrecognized data
+    if (uiDataSize)
+    {
+        m_pResponse->FreeData();
+    }
+    // Flush any data not yet processed
+    if (m_pResponse->Data())
+    {
+        m_pResponse->Flush();
+    }
+}
+
+//
+// Block the read thread on demand, then flush the channel upon argument level
+// Flush level 0 : No flush
+// Flush level 1 : Flush the channel only
+// Flush level 2 : Flush the TTY port only
+// Flush level 3 : Flush both channel and TTY
+// Block level 0 : No block
+// Block level 1 : Block read thread
+// Block level 2 : Active TTY control flow
+// Block level 3 : Block both read thread and TTY
+//
+BOOL CChannel::BlockAndFlushChannel(BLOCK_CHANNEL blockLevel, FLUSH_CHANNEL flushLevel)
+{
+    int fd, ret, flags;
+    BOOL bRet = RRIL_RESULT_ERROR;
+
+    fd = this->GetFD();
+
+    if (BLOCK_CHANNEL_NO_BLOCK != blockLevel)
+    {
+        if ((BLOCK_CHANNEL_BLOCK_ALL == blockLevel) || (BLOCK_CHANNEL_BLOCK_THREAD == blockLevel))
+        {
+            RIL_LOG_INFO("BlockAndFlushChannel() - ***** Blocking read thread on channel=[%d] *****\r\n",
+                                this->GetRilChannel());
+            this->BlockReadThread();
+        }
+
+
+        if ((BLOCK_CHANNEL_BLOCK_ALL == blockLevel) || (BLOCK_CHANNEL_BLOCK_TTY == blockLevel))
+        {
+            // Blocking TTY flow.
+            // Third security level in order to avoid IP data in response buffer.
+            // Not mandatory.
+            if (fd >= 0)
+            {
+                RIL_LOG_INFO("BlockAndFlushChannel() - ***** Activating flow control on channel=[%d] *****\r\n",
+                                    this->GetRilChannel());
+                ret = ioctl(fd, TIOCMGET, &flags);       // Get current flags
+                flags &= ~TIOCM_RTS;
+                if (ret < 0)
+                {
+                    RIL_LOG_CRITICAL("BlockAndFlushChannel() - Could not get flags on Channel chnl=[%d] fd=[%d]  %s\r\n",
+                                            this->GetRilChannel(), fd, strerror(errno));
+                    goto Error;
+                }
+
+                ret = ioctl(fd, TIOCMSET, &flags);       // Set flags
+                if (ret < 0)
+                {
+                    RIL_LOG_CRITICAL("BlockAndFlushChannel() - Could not set flow control on Channel chnl=[%d] fd=[%d]  %s\r\n",
+                                            this->GetRilChannel(), fd, strerror(errno));
+                    goto Error;
+                }
+            }
+            else
+            {
+                //  No FD.
+                RIL_LOG_CRITICAL("BlockAndFlushChannel() - Could not unset flow control on Channel chnl=[%d] fd=[%d].\r\n",
+                                        this->GetRilChannel(), fd);
+                goto Error;
+            }
+        }
+    }
+
+    if (FLUSH_CHANNEL_NO_FLUSH != flushLevel)
+    {
+        if ((FLUSH_CHANNEL_FLUSH_TTY == flushLevel) || (FLUSH_CHANNEL_FLUSH_ALL == flushLevel))
+        {
+            if (fd >= 0)
+            {
+                // Flush TTY buffer.
+                // Third security level in order to avoid IP data in response buffer.
+                // Not mandatory.
+                RIL_LOG_INFO("BlockAndFlushChannel() - ***** Flushing TTY on channel=[%d] *****\r\n",
+                                    this->GetRilChannel());
+
+                // Flushing the tty IN and OUT.
+                // No need to re-flush the channel once we blocked reading.
+                ret = ioctl(fd, TCFLSH, 2);
+                if (ret < 0)
+                {
+                    RIL_LOG_CRITICAL("BlockAndFlushChannel() - Unable to flush the tty chnl=[%d] fd=[%d]  %s\r\n",
+                                            this->GetRilChannel(), fd, strerror(errno));
+
+                    RIL_LOG_INFO("BlockAndFlushChannel() - Exit bRet=[0]\r\n");
+                    goto Error;
+                }
+            }
+            else
+            {
+                //  No FD.
+                RIL_LOG_CRITICAL("BlockAndFlushChannel() - Could not flush TTY on Channel chnl=[%d] fd=[%d].\r\n",
+                                        this->GetRilChannel(), fd);
+
+                RIL_LOG_INFO("BlockAndFlushChannel() - Exit bRet=[0]\r\n");
+                goto Error;
+            }
+        }
+
+        if ((FLUSH_CHANNEL_FLUSH_BUFFER == flushLevel) || (FLUSH_CHANNEL_FLUSH_ALL == flushLevel))
+        {
+            // Flush the response buffer. First security level in order to avoid IP data in response buffer.
+            // Mandatory.
+            // We ishould be in a stable state before the flush.
+            // Any data received by the RRIL during the DATA MODE should be trashed.
+            // Once read thread was blocked until then, this may by useless.
+            RIL_LOG_INFO("BlockAndFlushChannel() - ***** Flushing response buffer on channel=[%d] *****\r\n",
+                                this->GetRilChannel());
+
+            this->FlushResponse();
+        }
+    }
+
+    bRet = RRIL_RESULT_OK;
+
+Error:
+    return bRet;
+}
+
+//
+// Flush the channel upon argument level, and then unblock read thread
+// Flush level 0 : no flush
+// Flush level 1 : Flush the channel only
+// Flush level 2 : Flush the tty port only
+// Flush level 3 : Flush both channel and tty
+// Unblock level 0 : No unblock
+// Unblock level 1 : Unblock read thread
+// Unblock level 2 : Deactive TTY control flow
+// Unblock level 3 : Unblock both
+//
+BOOL CChannel::FlushAndUnblockChannel(UNBLOCK_CHANNEL unblockLevel, FLUSH_CHANNEL flushLevel)
+{
+    int fd, ret, flags;
+    BOOL bRet = RRIL_RESULT_ERROR;
+
+    fd = this->GetFD();
+
+    if (FLUSH_CHANNEL_NO_FLUSH != flushLevel)
+    {
+        if ((FLUSH_CHANNEL_FLUSH_ALL == flushLevel) || (FLUSH_CHANNEL_FLUSH_TTY == flushLevel))
+        {
+            if (fd >= 0)
+            {
+                // Flush TTY buffer.
+                // Third security level in order to avoid IP data in response buffer.
+                // Not mandatory.
+                RIL_LOG_INFO("FlushAndUnblockChannel() - ***** Flushing TTY on channel=[%d] *****\r\n",
+                                    this->GetRilChannel());
+
+                // Flushing the tty IN and OUT.
+                // No need to re-flush the channel once we blocked reading.
+                ret = ioctl(fd, TCFLSH, 2);
+                if (ret < 0)
+                {
+                    RIL_LOG_CRITICAL("FlushAndUnblockChannel() - Unable to flush the tty chnl=[%d] fd=[%d]  %s\r\n",
+                                            this->GetRilChannel(), fd, strerror(errno));
+                    RIL_LOG_INFO("FlushAndUnblockChannel() - Exit bRet=[%u]\r\n", bRet);
+                    goto Error;
+                }
+            }
+            else
+            {
+                //  No FD.
+                RIL_LOG_CRITICAL("FlushAndUnblockChannel() - Could not flush TTY on Channel chnl=[%d] fd=[%d].\r\n",
+                                        this->GetRilChannel(), fd);
+                RIL_LOG_INFO("FlushAndUnblockChannel() - Exit bRet=[%u]\r\n", bRet);
+                goto Error;
+            }
+        }
+
+        if ((FLUSH_CHANNEL_FLUSH_ALL == flushLevel) || (FLUSH_CHANNEL_FLUSH_BUFFER == flushLevel))
+        {
+            // Flush the response buffer. First security level in order to avoid IP data in response buffer.
+            // Mandatory.
+            // We are in a stable state.
+            // Any data received by the RRIL during the DATA MODE should be trashed.
+            // Once read thread was blocked until then, this may by useless.
+            RIL_LOG_INFO("FlushAndUnblockChannel() - ***** Flushing response buffer on channel=[%d] *****\r\n",
+                                this->GetRilChannel());
+            this->FlushResponse();
+        }
+    }
+
+    bRet = RRIL_RESULT_OK;
+
+Error:
+    if (UNBLOCK_CHANNEL_NO_UNBLOCK != unblockLevel)
+    {
+        if ((UNBLOCK_CHANNEL_UNBLOCK_ALL == unblockLevel) || (UNBLOCK_CHANNEL_UNBLOCK_TTY == unblockLevel))
+        {
+            // Unlocking TTY flow. Third security level in order to avoid IP data in response buffer.
+            // Not mandatory.
+            if (fd >= 0)
+            {
+                RIL_LOG_INFO("FlushAndUnblockChannel() - ***** Deactivating flow control on channel=[%d] *****\r\n",
+                                    this->GetRilChannel());
+                ret = ioctl(fd, TIOCMGET, &flags);       // Get current flags
+                flags |= TIOCM_RTS;
+                if (ret < 0)
+                {
+                    RIL_LOG_CRITICAL("FlushAndUnblockChannel() - Could not get flags on Channel chnl=[%d] fd=[%d]  %s\r\n",
+                                            this->GetRilChannel(), fd, strerror(errno));
+                    goto Unblock;
+                }
+
+                ret = ioctl(fd, TIOCMSET, &flags);       // Set flags
+                if (ret < 0)
+                {
+                    RIL_LOG_CRITICAL("FlushAndUnblockChannel() - Could not unset flag on Channel chnl=[%d] fd=[%d]  %s\r\n",
+                                            this->GetRilChannel(), fd, strerror(errno));
+                    goto Unblock;
+                }
+            }
+            else
+            {
+                //  No FD.
+                RIL_LOG_CRITICAL("FlushAndUnblockChannel() - Could not unset flow control on Channel chnl=[%d] fd=[%d].\r\n",
+                                        this->GetRilChannel(), fd);
+                goto Unblock;
+            }
+        }
+
+Unblock:
+        if ((UNBLOCK_CHANNEL_UNBLOCK_ALL == unblockLevel) || (UNBLOCK_CHANNEL_UNBLOCK_THREAD == unblockLevel))
+        {
+            // Unblock the read thread
+            this->UnblockReadThread();
+            RIL_LOG_INFO("FlushAndUnblockChannel() - ***** Unblocking read thread on channel=[%d] *****\r\n",
+                                this->GetRilChannel());
+        }
+    }
+
+    return bRet;
 }

@@ -172,6 +172,8 @@ public:
     virtual void HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken,
                                                     UINT32 uiResultCode);
 
+    virtual BOOL DataConfigDown(UINT32 uiCID);
+
 private:
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
                                                     const char** pszRequest,

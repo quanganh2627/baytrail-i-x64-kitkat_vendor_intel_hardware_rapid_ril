@@ -58,7 +58,10 @@ CResponse::CResponse(CChannel* pChannel) :
 ///////////////////////////////////////////////////////////////////////////////
 CResponse::~CResponse()
 {
-    FreeData();
+    if (m_uiDataSize)
+    {
+        FreeData();
+    }
 }
 
 

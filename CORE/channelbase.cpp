@@ -111,6 +111,8 @@ BOOL CChannelBase::InitChannel()
         RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] Failed to create block read thread event!\r\n", m_uiRilChannel);
         goto Done;
     }
+    // Unblock read thread by default.
+    UnblockReadThread();
 
     m_pPossibleInvalidFDMutex = new CMutex();
     if (!m_pPossibleInvalidFDMutex)
@@ -783,8 +785,9 @@ UINT32 CChannelBase::ResponseThread()
     const UINT32 uiRespDataBufSize = 1024;
     char         szData[uiRespDataBufSize];
     UINT32       uiRead;
+    UINT32       uiNumEvents;
     UINT32       uiReadError = 0;
-    const UINT32 uiMAX_READERROR = 3;
+    const UINT32 MAX_READERROR = 3;
 
     CThreadManager::RegisterThread();
 
@@ -794,9 +797,9 @@ UINT32 CChannelBase::ResponseThread()
     {
         // If the error count is accumulated
         // to 3, we trigger a radio error and reboot the modem.
-        if (uiReadError >= uiMAX_READERROR)
+        if (uiReadError >= MAX_READERROR)
         {
-            RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - chnl=[%d] uiReadError > = %d! Trigger radio error!\r\n", m_uiRilChannel, uiMAX_READERROR);
+            RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - chnl=[%d] uiReadError > = %d! Trigger radio error!\r\n", m_uiRilChannel, MAX_READERROR);
             do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
 
 
@@ -805,6 +808,10 @@ UINT32 CChannelBase::ResponseThread()
             break;
         }
 
+        // Wait until Read Thread get unblocked
+        CEvent* pEvents[] = { m_pBlockReadThreadEvent };
+        uiNumEvents = 1;
+        CEvent::WaitForAnyEvent(uiNumEvents, pEvents, WAIT_FOREVER);
 
         // Wait for more data
         RIL_LOG_VERBOSE("CChannelBase::ResponseThread() chnl=[%d] - Waiting for data\r\n", m_uiRilChannel);
