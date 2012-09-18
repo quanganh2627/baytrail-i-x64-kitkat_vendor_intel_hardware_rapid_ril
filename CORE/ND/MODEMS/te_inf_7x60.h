@@ -43,10 +43,6 @@ public:
     virtual RIL_RESULT_CODE CoreGetPreferredNetworkType(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_VOICE_RADIO_TECH 108
-    virtual RIL_RESULT_CODE CoreVoiceRadioTech(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseVoiceRadioTech(RESPONSE_DATA& rRspData);
-
     virtual BOOL PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
                                                         UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseEnterDataState(RESPONSE_DATA& rRspData);

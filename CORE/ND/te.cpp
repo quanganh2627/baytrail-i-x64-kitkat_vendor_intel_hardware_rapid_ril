@@ -4865,34 +4865,43 @@ RIL_RESULT_CODE CTE::RequestVoiceRadioTech(RIL_Token rilToken, void* pData, size
 {
     RIL_LOG_VERBOSE("CTE::RequestVoiceRadioTech() - Enter\r\n");
 
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreVoiceRadioTech(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    if (RADIO_STATE_ON != GetRadioState())
     {
-        RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() - Unable to create AT command data\r\n");
+        RIL_LOG_INFO("CTE::RequestVoiceRadioTech() - Radio state is not ON!\r\n");
+        res = RIL_E_RADIO_NOT_AVAILABLE;
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_VOICERADIOTECH], rilToken,
-                                        ND_REQ_ID_VOICERADIOTECH, reqData,
-                                        &CTE::ParseVoiceRadioTech);
-
-        if (pCmd)
+        RIL_RESULT_CODE res = m_pTEBaseInstance->CoreVoiceRadioTech(reqData, pData, datalen);
+        if (RRIL_RESULT_OK != res)
         {
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() - Unable to add command to queue\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
+            RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() - Unable to create AT command data\r\n");
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() - Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
+            CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_VOICERADIOTECH], rilToken,
+                                            ND_REQ_ID_VOICERADIOTECH, reqData,
+                                            &CTE::ParseVoiceRadioTech);
+
+            if (pCmd)
+            {
+                if (!CCommand::AddCmdToQueue(pCmd))
+                {
+                    RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() - Unable to add command to queue\r\n");
+                    res = RIL_E_GENERIC_FAILURE;
+                    delete pCmd;
+                    pCmd = NULL;
+                }
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() - Unable to allocate memory for command\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+            }
         }
     }
 

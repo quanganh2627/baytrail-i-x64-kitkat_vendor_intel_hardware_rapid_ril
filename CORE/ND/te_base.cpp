@@ -7116,13 +7116,44 @@ RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 RIL_RESULT_CODE CTEBase::CoreVoiceRadioTech(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreVoiceRadioTech() - Enter / Exit\r\n");
-    return RIL_E_REQUEST_NOT_SUPPORTED; // only supported at modem level
+
+    rReqData.szCmd1[0] = '\0';  // no-op (no command to send)
+    return RRIL_RESULT_OK;
 }
 
 RIL_RESULT_CODE CTEBase::ParseVoiceRadioTech(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseVoiceRadioTech() - Enter / Exit\r\n");
-    return RIL_E_REQUEST_NOT_SUPPORTED; // only supported at modem level
+    RIL_LOG_VERBOSE("CTEBase::ParseVoiceRadioTech() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    int* pVoiceRadioTech = (int*)malloc(sizeof(int));
+    if (NULL == pVoiceRadioTech)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseVoiceRadioTech() - Could not allocate memory for int\r\n");
+        goto Error;
+    }
+
+    // for now the voice radio technology is arbitrarily hardcoded to one
+    // of the defined GSM RIL_RadioTechnology values defined in ril.h
+    // It is used by Android to differentiate between CDMA or GSM radio technologies.
+    // See RIL_REQUEST_VOICE_RADIO_TECH in ril.h for more info.
+    *pVoiceRadioTech = RADIO_TECH_GSM;
+
+    rRspData.pData = (void*)pVoiceRadioTech;
+    rRspData.uiDataSize = sizeof(int*);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pVoiceRadioTech);
+        pVoiceRadioTech = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::ParseVoiceRadioTech() - Exit\r\n");
+    return res;
 }
 
 //
