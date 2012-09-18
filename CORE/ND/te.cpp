@@ -6324,18 +6324,11 @@ void CTE::PostNtwkPersonalizationCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - Incorrect password");
                 rData.uiResultCode = RIL_E_PASSWORD_INCORRECT;
                 break;
-
-            case CME_ERROR_SIM_PUK_REQUIRED:
-                RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - SIM PUK required");
-                rData.uiResultCode = RIL_E_PASSWORD_INCORRECT;
+            case CME_ERROR_NETWORK_PUK_REQUIRED:
+                RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - NETWORK PUK required");
+                rData.uiResultCode = RIL_E_NETWORK_PUK_REQUIRED;
                 SetSIMState(RRIL_SIM_STATE_NOT_READY);
                 break;
-
-            case CME_ERROR_SIM_PUK2_REQUIRED:
-                RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - SIM PUK2 required");
-                rData.uiResultCode = RIL_E_SIM_PUK2;
-                break;
-
             default:
                 RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - Unknown error [%u]",
                                                             rData.uiErrorCode);
