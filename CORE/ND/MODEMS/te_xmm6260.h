@@ -189,6 +189,9 @@ private:
     RIL_RESULT_CODE CreateSetSMSTransportModeReq(REQUEST_DATA& rReqData,
                                                  const char** pszRequest,
                                                  const UINT32 uiDataSize);
+    RIL_RESULT_CODE CreateSetRFPowerCutbackTableReq(REQUEST_DATA& rReqData,
+                                                    const char** pszRequest,
+                                                    const UINT32 uiDataSize);
     RIL_RESULT_CODE CreateDebugScreenReq(REQUEST_DATA& rReqData,
                                           const char** pszRequest,
                                           const UINT32 uiDataSize);
@@ -197,6 +200,7 @@ private:
     RIL_RESULT_CODE ParseCGED(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseXCGEDPAGE(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseCGSMS(const char* pszRsp, RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseXRFCBT(const char* pszRsp, RESPONSE_DATA& rRspData);
     // internal response handlers
     RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);

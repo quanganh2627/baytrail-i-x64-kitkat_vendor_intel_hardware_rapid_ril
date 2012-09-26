@@ -202,6 +202,37 @@ const int RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE = 0x000000AA;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_GET_RF_POWER_CUTBACK_TABLE
+//  Command ID = 0x000000AB
+//
+//  This command retrieves the Output Power cutback/boost table set.
+//
+//  "data" = NULL
+//  "response" - String containing the state of the Conducted/Radiated GPIO, the
+//               TX Power offset table index and the state of the TX Power
+//               Controller.
+//
+const int RIL_OEM_HOOK_STRING_GET_RF_POWER_CUTBACK_TABLE = 0x000000AB;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_SET_RF_POWER_CUTBACK_TABLE
+//  Command ID = 0x000000AC
+//
+//  This command sets the TX power offset table to be used for reduction/boost.
+//
+// "data" - int power offset table
+//                    “0” = Table set #0.
+//                    “1” = Table set #1.
+//                    “2” = Table set #2.
+//  "response" = NULL
+//
+const int RIL_OEM_HOOK_STRING_SET_RF_POWER_CUTBACK_TABLE = 0x000000AC;
+
+///////////////////////////////////////////////////////////////////////////////
+
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
 
 //

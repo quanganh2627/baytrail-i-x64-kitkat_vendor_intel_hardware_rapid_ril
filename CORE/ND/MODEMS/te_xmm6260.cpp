@@ -2087,6 +2087,29 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData
             res = CreateSetSMSTransportModeReq(rReqData, (const char**) pszRequest, uiDataSize);
             break;
 
+        case RIL_OEM_HOOK_STRING_GET_RF_POWER_CUTBACK_TABLE:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_RF_POWER_CUTBACK_TABLE");
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1), "AT+XRFCBT?\r"))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - "
+                        "RIL_OEM_HOOK_STRING_GET_RF_POWER_CUTBACK_TABLE - "
+                        "Can't construct szCmd1.\r\n");
+                goto Error;
+            }
+            //  Send this command on OEM channel.
+            uiRilChannel = RIL_CHANNEL_OEM;
+            res = RRIL_RESULT_OK;
+            break;
+
+        case RIL_OEM_HOOK_STRING_SET_RF_POWER_CUTBACK_TABLE:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_RF_POWER_CUTBACK_TABLE");
+            //  Send this command on OEM channel.
+            uiRilChannel = RIL_CHANNEL_OEM;
+            res = CreateSetRFPowerCutbackTableReq(rReqData,
+                    (const char**) pszRequest, uiDataSize);
+            break;
+
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
         case RIL_OEM_HOOK_STRING_SWAP_PS:
             {
@@ -2181,9 +2204,14 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
             res = ParseCGSMS(pszRsp, rRspData);
             break;
 
+        case RIL_OEM_HOOK_STRING_GET_RF_POWER_CUTBACK_TABLE:
+            res = ParseXRFCBT(pszRsp, rRspData);
+            break;
+
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
         case RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS:
         case RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE:
+        case RIL_OEM_HOOK_STRING_SET_RF_POWER_CUTBACK_TABLE:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
             break;
@@ -4103,6 +4131,59 @@ Error:
     return res;
 }
 
+RIL_RESULT_CODE CTE_XMM6260::CreateSetRFPowerCutbackTableReq(REQUEST_DATA& rReqData,
+        const char** pszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::CreateSetRFPowerCutbackTableReq() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int powerTableOffset;
+
+    if (pszRequest == NULL || '\0' == pszRequest[0])
+    {
+        RIL_LOG_CRITICAL("CTE_XMM260::CreateSetRFPowerCutbackTableReq()"
+                " - invalid input parameter pszRequest \r\n");
+        goto Error;
+    }
+
+    if (uiDataSize < (2 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetRFPowerCutbackTableReq()"
+            ": received_size < required_size\r\n");
+        goto Error;
+    }
+
+    if (sscanf(pszRequest[1], "%d", &powerTableOffset) == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetRFPowerCutbackTableReq()"
+            " - cannot convert %s to int\r\n", pszRequest);
+        goto Error;
+    }
+
+    if (powerTableOffset < 0 || powerTableOffset > 3)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetRFPowerCutbackTableReq()"
+            " - service %s out of boundaries\r\n", powerTableOffset);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM6260::CreateSetRFPowerCutbackTableReq() - powerTableOffset=[%d]\r\n",
+        powerTableOffset);
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XRFCBT=%d\r",
+            powerTableOffset))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetRFPowerCutbackTableReq()"
+            " - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::CreateSetRFPowerCutbackTableReq() - Exit\r\n");
+    return res;
+}
+
 RIL_RESULT_CODE CTE_XMM6260::ParseXGATR(const char* pszRsp, RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseXGATR() - Enter\r\n");
@@ -4386,6 +4467,85 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseCGSMS() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseXRFCBT(const char* pszRsp, RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXRFCBT() - Enter\r\n");
+
+    UINT32 uiIsEnabled;
+    UINT32 uiOffsetTableIndex;
+    UINT32 uiIsApplied;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    P_ND_RF_POWER_CUTBACK_TABLE pResponse = NULL;
+
+    // Parse prefix
+    if (!FindAndSkipString(pszRsp, "+XRFCBT: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXRFCBT() - Unable to parse \"+XRFCBT\" prefix\r\n");
+        goto Error;
+    }
+
+    // Parse <Is Enabled>
+    if (!ExtractUInt32(pszRsp, uiIsEnabled, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXRFCBT() - Unable to parse <Is Enabled>\r\n");
+        goto Error;
+    }
+
+    // Parse <Offset Table Index>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, uiOffsetTableIndex, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXRFCBT() - Unable to parse <Offset Table Index>\r\n");
+        goto Error;
+    }
+
+    // Parse <Is Applied>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, uiIsApplied, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXRFCBT() - Unable to parse <Is Applied>\r\n");
+        goto Error;
+    }
+
+    // Check the upper boundary of the parameters
+    if (uiIsEnabled > 1 || uiOffsetTableIndex > 3 || uiIsApplied > 1)
+    {
+        goto Error;
+    }
+
+    pResponse = (P_ND_RF_POWER_CUTBACK_TABLE) malloc(sizeof(S_ND_RF_POWER_CUTBACK_TABLE));
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXRFCBT() - Could not allocate memory for response");
+        goto Error;
+    }
+    memset(pResponse, 0, sizeof(S_ND_RF_POWER_CUTBACK_TABLE));
+
+    RIL_LOG_INFO("Is Enabled: %u, Offset Table Index: %u, Is Applied: %u\r\n",
+            uiIsEnabled, uiOffsetTableIndex, uiIsApplied);
+
+    snprintf(pResponse->szRFPowerCutbackTable,
+            sizeof(pResponse->szRFPowerCutbackTable) - 1,
+            "%u %u %u", uiIsEnabled, uiOffsetTableIndex, uiIsApplied);
+
+    pResponse->sResponsePointer.pszRFPowerCutbackTable = pResponse->szRFPowerCutbackTable;
+
+    rRspData.pData = (void*)pResponse;
+    rRspData.uiDataSize = sizeof(S_ND_RF_POWER_CUTBACK_TABLE_PTR);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXRFCBT() - Exit\r\n");
     return res;
 }
 

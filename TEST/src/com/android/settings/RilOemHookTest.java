@@ -208,6 +208,32 @@ public class RilOemHookTest extends Activity
             }
             break;
 
+            case R.id.radio_api10:
+            {
+                // RIL_OEM_HOOK_STRING_GET_RF_POWER_CUTBACK_TABLE
+                // AT+XRFCBT?
+
+                // data: <command id>
+                String[] data = { "171" };
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
+                mPhone.invokeOemRilRequestStrings(data, msg);
+            }
+            break;
+
+            case R.id.radio_api11:
+            {
+                // RIL_OEM_HOOK_STRING_SET_RF_POWER_CUTBACK_TABLE
+                // AT+XRFCBT=<Offset Table Index>
+
+                // data: <command id>, <Offset Table Index>
+                String[] data = { "172", "0" };
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
+                mPhone.invokeOemRilRequestStrings(data, msg);
+            }
+            break;
+
             default:
                 log("unknown button selected");
                 break;

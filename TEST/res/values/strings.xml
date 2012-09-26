@@ -22,6 +22,8 @@
     <string name="radio_api7">Release All Calls</string>
     <string name="radio_api8">Get SMS Transport Mode</string>
     <string name="radio_api9">Set SMS Transport Mode</string>
+    <string name="radio_api10">Get RF Power Cutback Table</string>
+    <string name="radio_api11">Set RF Power Cutback Table</string>
     <string name="radio_run">RUN</string>
 
 </resources>

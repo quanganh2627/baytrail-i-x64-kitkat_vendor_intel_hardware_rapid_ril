@@ -284,6 +284,7 @@ typedef struct
 } S_ND_DEBUG_SCREEN, *P_ND_DEBUG_SCREEN;
 
 const UINT32 MAX_SMS_TRANSPORT_MODE_SIZE = 5;
+const UINT32 MAX_RF_POWER_CUTBACK_TABLE_SIZE = 15;
 
 typedef struct
 {
@@ -295,5 +296,19 @@ typedef struct
     S_ND_SMS_TRANSPORT_MODE_PTR sResponsePointer;
     char szService[MAX_SMS_TRANSPORT_MODE_SIZE];
 } S_ND_SMS_TRANSPORT_MODE, *P_ND_SMS_TRANSPORT_MODE;
+
+//
+// Structs for retrieving the RF Power Cutback Table
+//
+typedef struct
+{
+    char* pszRFPowerCutbackTable;
+}  S_ND_RF_POWER_CUTBACK_TABLE_PTR, *P_ND_RF_POWER_CUTBACK_TABLE_PTR;
+
+typedef struct
+{
+    S_ND_RF_POWER_CUTBACK_TABLE_PTR sResponsePointer;
+    char szRFPowerCutbackTable[MAX_RF_POWER_CUTBACK_TABLE_SIZE];
+} S_ND_RF_POWER_CUTBACK_TABLE, *P_ND_RF_POWER_CUTBACK_TABLE;
 
 #endif
