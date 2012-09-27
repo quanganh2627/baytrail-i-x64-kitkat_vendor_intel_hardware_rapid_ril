@@ -26,8 +26,9 @@ extern UINT32 g_uiRilChannelUpperLimit;
 // Current RIL channel index maximum (depends on number of data channels created)
 extern UINT32 g_uiRilChannelCurMax;
 
-#if defined(BOARD_HAVE_IFX7060)
-
+//
+// RIL HSI defines are used by 7x60 modems only
+//
 #define RIL_HSI_CHANNEL_MAX 5
 
 // Number of apn profile
@@ -42,7 +43,6 @@ extern UINT32 g_uiRilChannelCurMax;
 //Store the value of the third hsi channel for data directly over HSI
 #define RIL_HSI_CHANNEL3 4
 
-#endif
 
 //  Call control commands, misc commands
 #define RIL_CHANNEL_ATCMD 0

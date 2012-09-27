@@ -152,25 +152,26 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
         goto Error;
     }
 
-#if defined(BOARD_HAVE_IFX7060)
-    // WORAROUND : BZ28102.
-    // TZ = -1h : szTimeZone = "0-4" -> "-04"
-    // TZ = -4h : szTimeZone = "-16" -> "-16"
-    // TZ = +1h : szTimeZone = "004" -> "+04"
-    // TZ = +4h : szTimeZone = "016" -> "+16"
-    if (strlen(szTimeZone) > 0)
+    if (MODEM_TYPE_IFX7060 == CTE::GetTE().GetModemType())
     {
-        if ((szTimeZone[0] == '0') && ((szTimeZone[1] == '-')))
+        // WORAROUND : BZ28102.
+        // TZ = -1h : szTimeZone = "0-4" -> "-04"
+        // TZ = -4h : szTimeZone = "-16" -> "-16"
+        // TZ = +1h : szTimeZone = "004" -> "+04"
+        // TZ = +4h : szTimeZone = "016" -> "+16"
+        if (strlen(szTimeZone) > 0)
         {
-            szTimeZone[0] = '-';
-            szTimeZone[1] = '0';
-        }
-        else if ((szTimeZone[0] == '0') && ((szTimeZone[1] != '-')))
-        {
-            szTimeZone[0] = '+';
+            if ((szTimeZone[0] == '0') && ((szTimeZone[1] == '-')))
+            {
+                szTimeZone[0] = '-';
+                szTimeZone[1] = '0';
+            }
+            else if ((szTimeZone[0] == '0') && ((szTimeZone[1] != '-')))
+            {
+                szTimeZone[0] = '+';
+            }
         }
     }
-#endif // BOARD_HAVE_IFX7060
 
     RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - szTimeZone: \"%s\"\r\n", szTimeZone);
 

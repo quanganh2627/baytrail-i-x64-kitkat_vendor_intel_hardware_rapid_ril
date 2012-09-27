@@ -71,24 +71,22 @@ public:
     //
     static CChannel_Data* GetChnlFromContextID(UINT32 dwContextID);
     static CChannel_Data* GetChnlFromRilChannelNumber(UINT32 index);
-#if defined(BOARD_HAVE_IFX7060)
+
+    // used by 7x60 modems only
     static int GetFreeHSIChannel(UINT32 uiCID, int sindex, int eIndex);
     static bool FreeHSIChannel(UINT32 uiCID);
-#endif
 
     //  This function returns the next free data channel.  Also, populates the
     //  context ID of returned channel.
     //  If error, then NULL is returned.
     static CChannel_Data* GetFreeChnl(UINT32& outCID);
-#if defined(BOARD_HAVE_IFX7060)
+    // used by 7x60 modems only
     static CChannel_Data* GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile);
-#endif
 
-#if defined(BOARD_HAVE_IFX7060)
+    // used by 7x60 modems only
     int GetDataProfile() { return m_dataProfile; };
     int GetHSIChannel() { return m_hsiChannel; };
     BOOL IsHSIDirect() { return m_hsiDirect; };
-#endif
 
 private:
 
@@ -113,11 +111,11 @@ private:
     char m_szIpV6DNS2[MAX_IPADDR_SIZE];
 
     char m_szIpGateways[MAX_IPADDR_SIZE];
-#if defined(BOARD_HAVE_IFX7060)
+
+    // used by 7x60 modems only
     int m_dataProfile;
     BOOL m_hsiDirect;
     int m_hsiChannel;
-#endif
 
 protected:
     BOOL FinishInit();

@@ -84,7 +84,8 @@ extern const char   g_szFDDelayTimer[];
 extern const char   g_szSCRITimer[];
 extern const char   g_szFDMode[];
 extern const char   g_szTempOoSNotificationEnable[];
-#if defined(BOARD_HAVE_IFX7060)
+
+// used by 7x60 modems only
 extern const char   g_szHsiChannelsReservedForDataDirectlyoverHsi[];
 extern const char   g_szApnTypeDefault[];
 extern const char   g_szApnTypeThetered[];
@@ -94,7 +95,6 @@ extern const char   g_szApnTypeCBS[];
 extern const char   g_szApnTypeFOTA[];
 extern const char   g_szApnTypeSUPL[];
 extern const char   g_szApnTypeHIPRI[];
-#endif
 
 //////////////////////////////////////////////////////////////////////////
 

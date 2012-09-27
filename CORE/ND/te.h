@@ -22,29 +22,34 @@
 #include "types.h"
 #include "command.h"
 
+enum {
+    MODEM_TYPE_UNKNOWN,
+    MODEM_TYPE_IFX6260,
+    MODEM_TYPE_IFX7060
+};
+
 class CTEBase;
 
 class CTE
 {
 private:
-    CTE();
+    CTE(UINT32 modemType);
     ~CTE();
 
     //  Prevent assignment: Declared but not implemented.
     CTE(const CTE& rhs);  // Copy Constructor
     CTE& operator=(const CTE& rhs);  //  Assignment operator
 
-    static CTEBase* CreateModemTE();
+    CTEBase* CreateModemTE();
 
     static CTE* m_pTEInstance;
     CTEBase* m_pTEBaseInstance;
 
-    static const UINT32 m_uiMaxModemNameLen = 64;
-
 public:
-    static void CreateTE();
+    static void CreateTE(UINT32 modemType);
     static CTE& GetTE();
-    static void  DeleteTEObject();
+    static void DeleteTEObject();
+    UINT32 GetModemType() { return m_uiModemType; };
 
     // Accessor functions for configuring data connections
     BOOL DataConfigDown(UINT32 uiCID);
@@ -780,6 +785,8 @@ public:
     void CompleteDataCallListChanged();
 
 private:
+    UINT32 m_uiModemType;
+
     BOOL m_bCSStatusCached;
     BOOL m_bPSStatusCached;
     S_ND_GPRS_REG_STATUS m_sPSStatus;

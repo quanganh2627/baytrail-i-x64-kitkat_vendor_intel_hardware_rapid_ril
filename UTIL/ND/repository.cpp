@@ -217,6 +217,17 @@ const char   g_szSCRITimer[]                    = "SCRITimer";
 const char   g_szFDMode[]                       = "FDMode";
 const char   g_szTempOoSNotificationEnable[]    = "TempOoSNotificationEnable";
 
+// used for 7x60 modems only
+const char   g_szHsiChannelsReservedForDataDirectlyoverHsi[] = "HsiChannelsReservedForDataDirectlyoverHsi";
+const char   g_szApnTypeDefault[]       = "ApnTypeDefault";
+const char   g_szApnTypeThetered[]      = "ApnTypeThetered";
+const char   g_szApnTypeIMS[]           = "ApnTypeIMS";
+const char   g_szApnTypeMMS[]           = "ApnTypeMMS";
+const char   g_szApnTypeCBS[]           = "ApnTypeCBS";
+const char   g_szApnTypeFOTA[]          = "ApnTypeFOTA";
+const char   g_szApnTypeSUPL[]          = "ApnTypeSUPL";
+const char   g_szApnTypeHIPRI[]         = "ApnTypeHIPRI";
+
 /////////////////////////////////////////////////
 
 const char   g_szGroupLogging[]                 = "Logging";

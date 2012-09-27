@@ -48,12 +48,6 @@ extern CEvent* g_TxQueueEvent[RIL_CHANNEL_MAX];
 extern CEvent* g_RxQueueEvent[RIL_CHANNEL_MAX];
 extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
 
-#if defined(BOARD_HAVE_IFX7060)
-extern int m_hsiChannelsReservedForClass1;
-extern int m_hsiChannelsReservedForDataDirectlyoverHsi;
-extern int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE];
-#endif
-
 ///////////////////////////////////////////////////////////////////////////////
 class CSystemManager
 {

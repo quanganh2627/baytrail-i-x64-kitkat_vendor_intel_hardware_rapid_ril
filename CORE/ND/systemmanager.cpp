@@ -65,23 +65,11 @@ CEvent* g_RxQueueEvent[RIL_CHANNEL_MAX];
 //  Array of CChannels
 CChannel* g_pRilChannel[RIL_CHANNEL_MAX] = { NULL };
 
-#if defined(BOARD_HAVE_IFX7060)
-UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX] = { NULL, NULL, NULL, NULL, NULL};
-
+// used for 7x60 modems
 int m_hsiChannelsReservedForClass1 = -1;
 int m_hsiChannelsReservedForDataDirectlyoverHsi = -1;
 int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE] = { NULL };
 
-const char   g_szHsiChannelsReservedForDataDirectlyoverHsi[] = "HsiChannelsReservedForDataDirectlyoverHsi";
-const char   g_szApnTypeDefault[] = "ApnTypeDefault";
-const char   g_szApnTypeThetered[] = "ApnTypeThetered";
-const char   g_szApnTypeIMS[] = "ApnTypeIMS";
-const char   g_szApnTypeMMS[] = "ApnTypeMMS";
-const char   g_szApnTypeCBS[] = "ApnTypeCBS";
-const char   g_szApnTypeFOTA[] = "ApnTypeFOTA";
-const char   g_szApnTypeSUPL[] = "ApnTypeSUPL";
-const char   g_szApnTypeHIPRI[] = "ApnTypeHIPRI";
-#endif
 
 CSystemManager* CSystemManager::m_pInstance = NULL;
 
@@ -289,107 +277,135 @@ BOOL CSystemManager::InitializeSystem()
     int iTemp;
     BOOL bRetVal = FALSE;
 
-#if defined(BOARD_HAVE_IFX7060)
-    int apnType = 0;
-    if (!repository.Read(g_szGroupModem, g_szApnTypeDefault, apnType))
-    {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type default from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[0] = apnType;
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - ApnTypeThetered: %d...\r\n", apnType);
-    }
+    const char* szInfineon7x60 = "Infineon7x60";
+    const char* szInfineon6260 = "Infineon6260";
 
-    if (!repository.Read(g_szGroupModem, g_szApnTypeThetered, apnType))
-    {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type Tethered from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[1] = apnType;
-    }
+    static const UINT32 uiMaxModemNameLen = 64;
+    char szModem[uiMaxModemNameLen];
+    UINT32 uiModemType = MODEM_TYPE_UNKNOWN;
 
-    if (!repository.Read(g_szGroupModem, g_szApnTypeIMS, apnType))
+    // read the modem type used from repository
+    if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
     {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type IMS from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[2] = apnType;
-    }
-
-    if (!repository.Read(g_szGroupModem, g_szApnTypeMMS, apnType))
-    {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type MMS from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[3] = apnType;
-    }
-
-    if (!repository.Read(g_szGroupModem, g_szApnTypeCBS, apnType))
-    {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type CBS from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[4] = apnType;
-    }
-
-    if (!repository.Read(g_szGroupModem, g_szApnTypeFOTA, apnType))
-    {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type FOTA from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[5] = apnType;
-    }
-
-    if (!repository.Read(g_szGroupModem, g_szApnTypeSUPL, apnType))
-    {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type SUPL from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[6] = apnType;
-    }
-
-    if (!repository.Read(g_szGroupModem, g_szApnTypeHIPRI, apnType))
-    {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type HIPRI from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[7] = apnType;
-    }
-
-    if (!repository.Read(g_szGroupModem, g_szHsiChannelsReservedForDataDirectlyoverHsi, m_hsiChannelsReservedForDataDirectlyoverHsi))
-    {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type default from repository\r\n");
-    }
-
-    m_hsiChannelsReservedForClass1 = 0;
-    for (UINT32 i = 0; i < NUMBER_OF_APN_PROFILE; i++)
-    {
-        if (m_dataProfilePathAssignation[i] == 1)
+        if (0 == strcmp(szModem, szInfineon7x60))
         {
-            m_hsiChannelsReservedForClass1++;
+            RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using Infineon 7x60\r\n");
+            uiModemType = MODEM_TYPE_IFX7060;
+        }
+        else if (0 == strcmp(szModem, szInfineon6260))
+        {
+            RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using Infineon 6260\r\n");
+            uiModemType = MODEM_TYPE_IFX6260;
         }
     }
+    else
+    {
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Failed to read the modem type!\r\n");
+        goto Done;
+    }
 
-    if (m_hsiChannelsReservedForClass1 > m_hsiChannelsReservedForDataDirectlyoverHsi)
+    if (MODEM_TYPE_IFX7060 == uiModemType)
     {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much class1 APN\r\n");
-        goto Done;
+        int apnType = 0;
+        if (!repository.Read(g_szGroupModem, g_szApnTypeDefault, apnType))
+        {
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type default from repository\r\n");
+        }
+        else
+        {
+            m_dataProfilePathAssignation[0] = apnType;
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() - ApnTypeThetered: %d...\r\n", apnType);
+        }
+
+        if (!repository.Read(g_szGroupModem, g_szApnTypeThetered, apnType))
+        {
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type Tethered from repository\r\n");
+        }
+        else
+        {
+            m_dataProfilePathAssignation[1] = apnType;
+        }
+
+        if (!repository.Read(g_szGroupModem, g_szApnTypeIMS, apnType))
+        {
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type IMS from repository\r\n");
+        }
+        else
+        {
+            m_dataProfilePathAssignation[2] = apnType;
+        }
+
+        if (!repository.Read(g_szGroupModem, g_szApnTypeMMS, apnType))
+        {
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type MMS from repository\r\n");
+        }
+        else
+        {
+            m_dataProfilePathAssignation[3] = apnType;
+        }
+
+        if (!repository.Read(g_szGroupModem, g_szApnTypeCBS, apnType))
+        {
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type CBS from repository\r\n");
+        }
+        else
+        {
+            m_dataProfilePathAssignation[4] = apnType;
+        }
+
+        if (!repository.Read(g_szGroupModem, g_szApnTypeFOTA, apnType))
+        {
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type FOTA from repository\r\n");
+        }
+        else
+        {
+            m_dataProfilePathAssignation[5] = apnType;
+        }
+
+        if (!repository.Read(g_szGroupModem, g_szApnTypeSUPL, apnType))
+        {
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type SUPL from repository\r\n");
+        }
+        else
+        {
+            m_dataProfilePathAssignation[6] = apnType;
+        }
+
+        if (!repository.Read(g_szGroupModem, g_szApnTypeHIPRI, apnType))
+        {
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type HIPRI from repository\r\n");
+        }
+        else
+        {
+            m_dataProfilePathAssignation[7] = apnType;
+        }
+
+        if (!repository.Read(g_szGroupModem, g_szHsiChannelsReservedForDataDirectlyoverHsi, m_hsiChannelsReservedForDataDirectlyoverHsi))
+        {
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type default from repository\r\n");
+        }
+
+        m_hsiChannelsReservedForClass1 = 0;
+        for (UINT32 i = 0; i < NUMBER_OF_APN_PROFILE; i++)
+        {
+            if (m_dataProfilePathAssignation[i] == 1)
+            {
+                m_hsiChannelsReservedForClass1++;
+            }
+        }
+
+        if (m_hsiChannelsReservedForClass1 > m_hsiChannelsReservedForDataDirectlyoverHsi)
+        {
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much class1 APN\r\n");
+            goto Done;
+        }
+        //hsi chnnel 0 and 1 are not used for data.
+        if (m_hsiChannelsReservedForDataDirectlyoverHsi > RIL_HSI_CHANNEL_MAX - 2)
+        {
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much hsi channel reserved for data\r\n");
+            goto Done;
+        }
     }
-    //hsi chnnel 0 and 1 are not used for data.
-    if (m_hsiChannelsReservedForDataDirectlyoverHsi > RIL_HSI_CHANNEL_MAX - 2)
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much hsi channel reserved for data\r\n");
-        goto Done;
-    }
-#endif // BOARD_HAVE_IFX7060
 
     if (m_pSimUnlockedEvent)
     {
@@ -447,7 +463,6 @@ BOOL CSystemManager::InitializeSystem()
         }
     }
 
-
     if (m_pDataChannelAccessorMutex)
     {
         RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pDataChannelAccessorMutex was already created!\r\n");
@@ -463,7 +478,7 @@ BOOL CSystemManager::InitializeSystem()
     }
     // The modem specific TE Object is created here. This should be done before the
     // AT channels starts sending the initialization commands.
-    CTE::CreateTE();
+    CTE::CreateTE(uiModemType);
 
     ResetSystemState();
 
@@ -492,13 +507,14 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetMTU((UINT32)iTemp);
     }
 
-#if !defined(BOARD_HAVE_IFX7060)
-    // store initial value of Fast Dormancy Mode
-    if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
+    if (MODEM_TYPE_IFX6260 == uiModemType)
     {
-        CTE::GetTE().SetFastDormancyMode((UINT32)iTemp);
+        // store initial value of Fast Dormancy Mode
+        if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
+        {
+            CTE::GetTE().SetFastDormancyMode((UINT32)iTemp);
+        }
     }
-#endif
 
     //  Need to open the "clean up request" socket here.
     if (!OpenCleanupRequestSocket())

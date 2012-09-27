@@ -85,11 +85,6 @@ struct PdpData
     char* szPDPType;
 };
 
-#if defined(BOARD_HAVE_IFX7060)
-#define NETWORK_INTERFACE_PDP_MUX_OFFSET 3
-#define NETWORK_INTERFACE_PDP_HSI_DIRECT_OFFSET 2
-#endif
-
 //
 // Struct for reporting Setup Data Call to Android
 //

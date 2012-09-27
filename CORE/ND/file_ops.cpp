@@ -51,9 +51,6 @@ timeval msFromNowToTimeval(UINT32 msInFuture)
 
 CFile::CFile() :
     m_file(-1),
-#if defined(BOARD_HAVE_IFX7060)
-    msz_fileName(NULL),
-#endif
     m_fInitialized(FALSE) {};
 
 CFile::~CFile()
@@ -67,12 +64,6 @@ CFile::~CFile()
 
         m_fInitialized = FALSE;
     }
-#if defined(BOARD_HAVE_IFX7060)
-    if (msz_fileName)
-    {
-        free((void*)msz_fileName);
-    }
-#endif
 }
 
 BOOL CFile::OpenSocket(const char * pszSocketName)
@@ -198,9 +189,6 @@ BOOL CFile::Open(   const char * pszFileName,
             iAttr |= O_EXCL;
         }
 
-#if defined(BOARD_HAVE_IFX7060)
-        msz_fileName = strdup(pszFileName);
-#endif
         m_file = open(pszFileName, iAttr | O_NONBLOCK);
 
         if (m_file < 0)
@@ -529,17 +517,3 @@ int CFile::GetFD(CFile * pFile)
     }
 }
 
-#if defined(BOARD_HAVE_IFX7060)
-const char * CFile::GetFileName(CFile* pFile)
-{
-    if (pFile)
-    {
-        return pFile->msz_fileName;
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CFile::GetFD() : pFile was NULL!\r\n");
-        return NULL;
-    }
-}
-#endif

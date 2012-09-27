@@ -63,10 +63,6 @@ public:
 
     static int GetFD(CFile * pFile);
 
-#if defined(BOARD_HAVE_IFX7060)
-    static const char * GetFileName(CFile * pFile);
-#endif
-
 private:
 
     BOOL  Open(const char * pszFileName, UINT32 dwAccessFlags, UINT32 dwOpenFlags, UINT32 dwOptFlags, BOOL fIsSocket = FALSE);
@@ -82,10 +78,6 @@ private:
     BOOL    OpenSocket(const char * pszSocketName);
 
     int    m_file;
-
-#if defined(BOARD_HAVE_IFX7060)
-    const char* msz_fileName;
-#endif
 
     BOOL   m_fInitialized;
 

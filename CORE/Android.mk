@@ -46,6 +46,7 @@ LOCAL_SRC_FILES:= \
     ND/silo_factory.cpp \
     ND/MODEMS/data_util.cpp \
     ND/MODEMS/te_inf_6260.cpp \
+    ND/MODEMS/te_inf_7x60.cpp \
     ND/MODEMS/silo_voice_inf.cpp \
     ND/MODEMS/silo_sim_inf.cpp \
     ND/MODEMS/silo_sms_inf.cpp \
@@ -53,11 +54,6 @@ LOCAL_SRC_FILES:= \
     ND/MODEMS/silo_network_inf.cpp \
     ND/MODEMS/silo_phonebook_inf.cpp \
     ND/MODEMS/silo_misc_inf.cpp
-
-ifeq ($(strip $(BOARD_HAVE_IFX7060)),true)
-LOCAL_SRC_FILES += \
-    ND/MODEMS/te_inf_7x60.cpp
-endif
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils
 
@@ -91,10 +87,6 @@ endif
 # Activating this macro enables the Get SIM SMS Storage feature
 ifeq ($(strip $(M2_GET_SIM_SMS_STORAGE_ENABLED)),true)
 LOCAL_CFLAGS += -DM2_GET_SIM_SMS_STORAGE_ENABLED
-endif
-
-ifeq ($(strip $(BOARD_HAVE_IFX7060)),true)
-LOCAL_CFLAGS += -DBOARD_HAVE_IFX7060
 endif
 
 LOCAL_C_INCLUDES :=  \

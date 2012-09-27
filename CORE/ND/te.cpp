@@ -37,8 +37,9 @@
 
 CTE * CTE::m_pTEInstance = NULL;
 
-CTE::CTE() :
+CTE::CTE(UINT32 modemType) :
     m_pTEBaseInstance(NULL),
+    m_uiModemType(modemType),
     m_bCSStatusCached(FALSE),
     m_bPSStatusCached(FALSE),
     m_bIsSetupDataCallOngoing(FALSE),
@@ -71,30 +72,15 @@ CTE::~CTE()
 
 CTEBase* CTE::CreateModemTE()
 {
-#if defined(BOARD_HAVE_IFX7060)
-    const char* szInfineon7x60       = "Infineon7x60";
-#else
-    const char* szInfineon6260       = "Infineon6260";
-#endif
-
-    CRepository repository;
-    char szModem[m_uiMaxModemNameLen];
-
-    if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, m_uiMaxModemNameLen))
+    if (MODEM_TYPE_IFX7060 == m_uiModemType)
     {
-#if defined(BOARD_HAVE_IFX7060)
-        if (0 == strcmp(szModem, szInfineon7x60))
-        {
-            RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 7x60\r\n");
-            return new CTE_INF_7x60();
-        }
-#else
-        if (0 == strcmp(szModem, szInfineon6260))
-        {
-            RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 6260\r\n");
-            return new CTE_INF_6260();
-        }
-#endif
+        RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 7x60\r\n");
+        return new CTE_INF_7x60();
+    }
+    if (MODEM_TYPE_IFX6260 == m_uiModemType)
+    {
+        RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 6260\r\n");
+        return new CTE_INF_6260();
     }
 
     // return default modem
@@ -103,12 +89,12 @@ CTEBase* CTE::CreateModemTE()
 }
 
 // Creates the Modem specific TE Singlton Object
-void CTE::CreateTE()
+void CTE::CreateTE(UINT32 modemType)
 {
     CMutex::Lock(CSystemManager::GetTEAccessMutex());
     if (NULL == m_pTEInstance)
     {
-        m_pTEInstance = new CTE;
+        m_pTEInstance = new CTE(modemType);
         if (NULL == m_pTEInstance)
         {
             CMutex::Unlock(CSystemManager::GetTEAccessMutex());
@@ -1564,21 +1550,25 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     //  Find free channel, and get the context ID that was set.
-#if defined(BOARD_HAVE_IFX7060)
-    // Extract the data profile. it is the 2nd parameter of pData.
-    int dataProfile = -1;
-
-    if (pData == NULL || datalen < (6 * sizeof(char*)))
+    if (MODEM_TYPE_IFX7060 == m_uiModemType)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ****** invalid parameter pData ******\r\n");
-        res = RIL_E_GENERIC_FAILURE;
-        goto Error;
+        // Extract the data profile. it is the 2nd parameter of pData.
+        int dataProfile = -1;
+
+        if (pData == NULL || datalen < (6 * sizeof(char*)))
+        {
+            RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ****** invalid parameter pData ******\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+            goto Error;
+        }
+        dataProfile = atoi(((char**)pData)[1]);
+        pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiCID, dataProfile);
     }
-    dataProfile = atoi(((char**)pData)[1]);
-    pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiCID, dataProfile);
-#else
-    pChannelData = CChannel_Data::GetFreeChnl(uiCID);
-#endif
+    else
+    {
+        pChannelData = CChannel_Data::GetFreeChnl(uiCID);
+    }
+
     if (NULL == pChannelData)
     {
         RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ****** No free data channels available ******\r\n");

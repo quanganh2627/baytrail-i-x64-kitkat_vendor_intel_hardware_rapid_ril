@@ -43,10 +43,6 @@ public:
 
     int  GetFD();
 
-#if defined(BOARD_HAVE_IFX7060)
-    const char* GetFileName() { return CFile::GetFileName(m_pFile); };
-#endif
-
 private:
     BOOL OpenPort(const char * pszFileName);
     BOOL OpenSocket(const char * pszSocketName);

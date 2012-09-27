@@ -18,6 +18,7 @@
 #include "silo_factory.h"
 #include "channel_data.h"
 #include "rril.h"
+#include "te.h"
 
 extern char* g_szDataPort1;
 extern char* g_szDataPort2;
@@ -33,11 +34,14 @@ INITSTRING_DATA DataUnlockInitString = { "" };
 INITSTRING_DATA DataPowerOnInitString = { "" };
 INITSTRING_DATA DataReadyInitString = { "" };
 
-#if defined(BOARD_HAVE_IFX7060)
+// used for 7x60 modems only
 extern int m_hsiChannelsReservedForClass1;
 extern int m_hsiChannelsReservedForDataDirectlyoverHsi;
 extern int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE];
-#endif
+
+// used by 7x60 modems only
+UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX] = { NULL, NULL, NULL, NULL, NULL};
+
 
 CChannel_Data::CChannel_Data(UINT32 uiChannel)
 :   CChannel(uiChannel),
@@ -223,7 +227,6 @@ Error:
 //       ...
 //       RIL_CHANNEL_DATA5 = CID of 5
 //  No other context ID
-#if defined(BOARD_HAVE_IFX7060)
 CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile)
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnlsRilHsi() - Enter\r\n");
@@ -231,7 +234,7 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
     CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
-    extern UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX];
+
     CChannel_Data* pChannelData = NULL;
     int hsiChannel = -1;
     int hsiDirect = FALSE;
@@ -300,8 +303,6 @@ int CChannel_Data::GetFreeHSIChannel(UINT32 uiCID, int sIndex, int eIndex)
 
     CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
-    extern UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX];
-
     if (sIndex < 0 || eIndex > RIL_HSI_CHANNEL_MAX)
     {
         RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Index error\r\n");
@@ -331,8 +332,6 @@ bool CChannel_Data::FreeHSIChannel(UINT32 uiCID)
 
     CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
-    extern UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX];
-
     for (int i = 0; i < RIL_HSI_CHANNEL_MAX; i++)
     {
         if (g_uiHSIChannel[i] == uiCID)
@@ -349,7 +348,6 @@ bool CChannel_Data::FreeHSIChannel(UINT32 uiCID)
     RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChannel() - Exit\r\n");
     return false;
 }
-#endif
 
 //
 //  Returns a free channel to use for data
@@ -476,9 +474,12 @@ void CChannel_Data::ResetDataCallInfo()
 
     SetDataFailCause(PDP_FAIL_NONE);
     SetDataState(E_DATA_STATE_IDLE);
-#if defined(BOARD_HAVE_IFX7060)
-    FreeHSIChannel(m_uiContextID);
-#endif
+
+    if (MODEM_TYPE_IFX7060 == CTE::GetTE().GetModemType())
+    {
+        FreeHSIChannel(m_uiContextID);
+    }
+
     SetContextID(0);
     RIL_LOG_VERBOSE("CChannel_Data::ResetDataCallInfo() - Exit\r\n");
 }
