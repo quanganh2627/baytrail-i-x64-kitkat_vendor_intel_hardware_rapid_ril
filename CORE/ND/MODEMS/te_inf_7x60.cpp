@@ -578,7 +578,7 @@ BOOL CTE_INF_7x60::SetupInterface(UINT32 uiCID)
     }
 
 
-    if (!PrintStringNullTerminate(szNetworkInterfaceName, MAX_BUFFER_SIZE,
+    if (!PrintStringNullTerminate(szNetworkInterfaceName, sizeof(szNetworkInterfaceName),
                                         "%s%d", m_szNetworkInterfaceNamePrefix,
                                                             networkInterfaceID))
     {
