@@ -650,7 +650,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
             //  Let normal processing occur.
             RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u], no data channel found!\r\n",
                                                                         uiCID);
-            goto Error;
         }
 
         if (FindAndSkipString(szStrExtract, ",", szStrExtract))
