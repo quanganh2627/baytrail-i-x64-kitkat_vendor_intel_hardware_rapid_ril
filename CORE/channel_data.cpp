@@ -36,11 +36,11 @@ INITSTRING_DATA DataReadyInitString = { "" };
 
 // used for 7x60 modems only
 extern int m_hsiChannelsReservedForClass1;
-extern int m_hsiChannelsReservedForDataDirectlyoverHsi;
+extern int m_hsiDataDirect;
 extern int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE];
 
 // used by 7x60 modems only
-UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX] = { NULL, NULL, NULL, NULL, NULL};
+UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX] = {0};
 
 
 CChannel_Data::CChannel_Data(UINT32 uiChannel)
@@ -265,7 +265,7 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
                 case 2:
                     // For APN of the class 2, check if there is a free hsi channel that can be used.
                     RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() - data profile class: %d.\r\n", m_dataProfilePathAssignation[dataProfile]);
-                    hsiChannel = GetFreeHSIChannel(outCID, RIL_HSI_CHANNEL1 + m_hsiChannelsReservedForClass1, RIL_HSI_CHANNEL1 + m_hsiChannelsReservedForDataDirectlyoverHsi);
+                    hsiChannel = GetFreeHSIChannel(outCID, RIL_HSI_CHANNEL1 + m_hsiChannelsReservedForClass1, RIL_HSI_CHANNEL1 + m_hsiDataDirect);
                     if (hsiChannel != -1)
                     {
                         hsiDirect = TRUE;

@@ -1012,4 +1012,3 @@ BOOL CChannelBase::UnblockReadThread()
     m_bReadThreadBlocked = FALSE;
     return CEvent::Signal(m_pBlockReadThreadEvent);
 }
-

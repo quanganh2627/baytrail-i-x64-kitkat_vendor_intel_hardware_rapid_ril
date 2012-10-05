@@ -72,19 +72,21 @@ CTE::~CTE()
 
 CTEBase* CTE::CreateModemTE()
 {
-    if (MODEM_TYPE_IFX7060 == m_uiModemType)
+    switch (m_uiModemType)
     {
-        RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 7x60\r\n");
-        return new CTE_INF_7x60();
-    }
-    if (MODEM_TYPE_IFX6260 == m_uiModemType)
-    {
-        RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 6260\r\n");
-        return new CTE_INF_6260();
+        case MODEM_TYPE_IFX7060:
+            RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 7x60\r\n");
+            return new CTE_INF_7x60();
+
+        case MODEM_TYPE_IFX6260:
+            RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 6260\r\n");
+            return new CTE_INF_6260();
+
+        default: // unsupported modem
+            RIL_LOG_INFO("CTE::CreateModemTE() - No modem specified, returning NULL\r\n");
+            break;
     }
 
-    // return default modem
-    RIL_LOG_INFO("CTE::CreateModemTE() - No modem specified, returning NULL\r\n");
     return NULL;
 }
 
@@ -1555,7 +1557,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
         // Extract the data profile. it is the 2nd parameter of pData.
         int dataProfile = -1;
 
-        if (pData == NULL || datalen < (6 * sizeof(char*)))
+        if (pData == NULL || datalen < (7 * sizeof(char*)))
         {
             RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - ****** invalid parameter pData ******\r\n");
             res = RIL_E_GENERIC_FAILURE;
@@ -3929,7 +3931,11 @@ RIL_RESULT_CODE CTE::RequestGetNeighboringCellIDs(RIL_Token rilToken, void * pDa
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETNEIGHBORINGCELLIDS], rilToken, ND_REQ_ID_GETNEIGHBORINGCELLIDS, reqData, &CTE::ParseGetNeighboringCellIDs);
+        CCommand* pCmd = new CCommand(
+                            g_arChannelMapping[ND_REQ_ID_GETNEIGHBORINGCELLIDS],
+                            rilToken, ND_REQ_ID_GETNEIGHBORINGCELLIDS, reqData,
+                            &CTE::ParseGetNeighboringCellIDs,
+                            &CTE::PostGetNeighboringCellIDs);
 
         if (pCmd)
         {
@@ -4866,7 +4872,7 @@ RIL_RESULT_CODE CTE::RequestVoiceRadioTech(RIL_Token rilToken, void* pData, size
     }
     else
     {
-        RIL_RESULT_CODE res = m_pTEBaseInstance->CoreVoiceRadioTech(reqData, pData, datalen);
+        res = m_pTEBaseInstance->CoreVoiceRadioTech(reqData, pData, datalen);
         if (RRIL_RESULT_OK != res)
         {
             RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() - Unable to create AT command data\r\n");
@@ -5813,13 +5819,23 @@ const char* CTE::PrintRegistrationInfo(char *szRegInfo) const
 
     switch (nRegInfo)
     {
-        case 0: return "NOT REGISTERED, NOT SEARCHING";
-        case 1: return "REGISTERED, HOME NETWORK";
-        case 2: return "NOT REGISTERED, SEARCHING";
-        case 3: return "REGISTRATION DENIED";
-        case 4: return "UNKNOWN";
-        case 5: return "REGISTERED, IN ROAMING";
-        default: return "UNKNOWN REG STATUS";
+        case 0:
+            return "NOT REGISTERED, NOT SEARCHING";
+        case 1:
+            return "REGISTERED, HOME NETWORK";
+        case 2:
+        case 12:
+            return "NOT REGISTERED, SEARCHING";
+        case 3:
+        case 13:
+            return "REGISTRATION DENIED";
+        case 4:
+        case 14:
+            return "UNKNOWN";
+        case 5:
+            return "REGISTERED, IN ROAMING";
+        default:
+            return "UNKNOWN REG STATUS";
     }
 }
 
@@ -6314,11 +6330,13 @@ void CTE::PostNtwkPersonalizationCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - Incorrect password");
                 rData.uiResultCode = RIL_E_PASSWORD_INCORRECT;
                 break;
+
             case CME_ERROR_NETWORK_PUK_REQUIRED:
                 RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - NETWORK PUK required");
                 rData.uiResultCode = RIL_E_NETWORK_PUK_REQUIRED;
                 SetSIMState(RRIL_SIM_STATE_NOT_READY);
                 break;
+
             default:
                 RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - Unknown error [%u]",
                                                             rData.uiErrorCode);
@@ -6788,6 +6806,27 @@ void CTE::PostWriteSmsToSimCmdHandler(POST_CMD_HANDLER_DATA& rData)
     }
 
     RIL_LOG_VERBOSE("CTE::PostWriteSmsToSimCmdHandler() Exit\r\n");
+}
+
+void CTE::PostGetNeighboringCellIDs(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostGetNeighboringCellIDs() Enter\r\n");
+
+    if (NULL == rData.pRilToken)
+    {
+        RIL_LOG_CRITICAL("CTE::PostGetNeighboringCellIDs() rData.pRilToken NULL!\r\n");
+        return;
+    }
+
+    RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                                    (void*)rData.pData, rData.uiDataSize);
+
+    CSystemManager::CompleteIdenticalRequests(rData.uiRequestId,
+                                                rData.uiResultCode,
+                                                (void*)rData.pData,
+                                                rData.uiDataSize);
+
+    RIL_LOG_VERBOSE("CTE::PostGetNeighboringCellIDs() Exit\r\n");
 }
 
 void CTE::PostSetLocationUpdates(POST_CMD_HANDLER_DATA& rData)

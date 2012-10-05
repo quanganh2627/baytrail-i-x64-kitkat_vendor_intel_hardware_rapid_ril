@@ -488,8 +488,8 @@ BOOL CTE_INF_7x60::SetupInterface(UINT32 uiCID)
     BOOL bIsHSIDirect = FALSE;
     int hsiChannel = -1;
 
-    const UINT32 uiNetworkInterfacePDPMuxOffset = 3;
-    const UINT32 uiNetworkInterfacePDPHSIDirectOffset = 2;
+    const UINT32 NW_IF_PDP_MUX_OFFSET = 3;
+    const UINT32 NW_IF_PDP_HSI_DIRECT_OFFSET = 2;
 
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
@@ -515,42 +515,34 @@ BOOL CTE_INF_7x60::SetupInterface(UINT32 uiCID)
         // First network interface is rmnet3 for pdp over mux
         switch (dataProfile)
         {
-            case RIL_DATA_PROFILE_DEFAULT:
-                networkInterfaceID =
-                        uiNetworkInterfacePDPMuxOffset + RIL_DATA_PROFILE_DEFAULT;
-                break;
-            case RIL_DATA_PROFILE_TETHERED:
-                networkInterfaceID =
-                        uiNetworkInterfacePDPMuxOffset + RIL_DATA_PROFILE_TETHERED;
-                break;
-            case RIL_DATA_PROFILE_IMS:
-                networkInterfaceID =
-                        uiNetworkInterfacePDPMuxOffset + RIL_DATA_PROFILE_IMS;
-                break;
-            case RIL_DATA_PROFILE_MMS:
-                networkInterfaceID =
-                        uiNetworkInterfacePDPMuxOffset + RIL_DATA_PROFILE_MMS;
-                break;
-            case RIL_DATA_PROFILE_CBS:
-                networkInterfaceID =
-                        uiNetworkInterfacePDPMuxOffset + RIL_DATA_PROFILE_CBS;
-                break;
-            case RIL_DATA_PROFILE_FOTA:
-                networkInterfaceID =
-                        uiNetworkInterfacePDPMuxOffset + RIL_DATA_PROFILE_FOTA;
-                break;
-            case RIL_DATA_PROFILE_SUPL:
-                networkInterfaceID =
-                        uiNetworkInterfacePDPMuxOffset + RIL_DATA_PROFILE_SUPL;
-                break;
-            case RIL_DATA_PROFILE_HIPRI:
-                networkInterfaceID =
-                        uiNetworkInterfacePDPMuxOffset + RIL_DATA_PROFILE_HIPRI;
-                break;
-            default:
-                RIL_LOG_CRITICAL("CTE_INF_7x60::SetupInterface() - Unknown Data Profile [%d] \r\n",
-                                                                    dataProfile);
-                goto Error;
+        case RIL_DATA_PROFILE_DEFAULT:
+            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_DEFAULT;
+            break;
+        case RIL_DATA_PROFILE_TETHERED:
+            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_TETHERED;
+            break;
+        case RIL_DATA_PROFILE_IMS:
+            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_IMS;
+            break;
+        case RIL_DATA_PROFILE_MMS:
+            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_MMS;
+            break;
+        case RIL_DATA_PROFILE_CBS:
+            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_CBS;
+            break;
+        case RIL_DATA_PROFILE_FOTA:
+            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_FOTA;
+            break;
+        case RIL_DATA_PROFILE_SUPL:
+            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_SUPL;
+            break;
+        case RIL_DATA_PROFILE_HIPRI:
+            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_HIPRI;
+            break;
+        default:
+            RIL_LOG_CRITICAL("CTE_INF_7x60::SetupInterface() - Unknown Data Profile [%d] \r\n",
+                                                                dataProfile);
+            goto Error;
         }
     }
     else
@@ -558,22 +550,19 @@ BOOL CTE_INF_7x60::SetupInterface(UINT32 uiCID)
         // First network interface is rmnet0 for pdp directly over hsi
         switch (hsiChannel)
         {
-            case RIL_HSI_CHANNEL1:
-                networkInterfaceID =
-                        RIL_HSI_CHANNEL1 - uiNetworkInterfacePDPHSIDirectOffset;
-                break;
-            case RIL_HSI_CHANNEL2:
-                networkInterfaceID =
-                        RIL_HSI_CHANNEL2 - uiNetworkInterfacePDPHSIDirectOffset;
-                break;
-            case RIL_HSI_CHANNEL3:
-                networkInterfaceID =
-                        RIL_HSI_CHANNEL3 - uiNetworkInterfacePDPHSIDirectOffset;
-                break;
-            default:
-                RIL_LOG_CRITICAL("CTE_INF_7x60::SetupInterface() - Unknown his channel [%d] \r\n",
-                                                        hsiChannel);
-                goto Error;
+        case RIL_HSI_CHANNEL1:
+            networkInterfaceID = RIL_HSI_CHANNEL1 - NW_IF_PDP_HSI_DIRECT_OFFSET;
+            break;
+        case RIL_HSI_CHANNEL2:
+            networkInterfaceID = RIL_HSI_CHANNEL2 - NW_IF_PDP_HSI_DIRECT_OFFSET;
+            break;
+        case RIL_HSI_CHANNEL3:
+            networkInterfaceID = RIL_HSI_CHANNEL3 - NW_IF_PDP_HSI_DIRECT_OFFSET;
+            break;
+        default:
+            RIL_LOG_CRITICAL("CTE_INF_7x60::SetupInterface() - Unknown his channel [%d] \r\n",
+                                                    hsiChannel);
+            goto Error;
         }
     }
 

@@ -27,19 +27,23 @@ extern BOOL  g_bIsSocket;
 
 INITSTRING_DATA* ATCmdBasicInitString;
 
-INITSTRING_DATA ATCmdDefBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XCALLNBMMI=1|+XPOW=0,0,0" };
-INITSTRING_DATA ATCmd2230BasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XCALLNBMMI=1|+XPOW=0,0,0|+XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+XNITZINFO=1|+CREG=2|+CGREG=2|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XCSQ=1|+XLEMA=1|+CMGF=0" };
+INITSTRING_DATA ATCmdDefBasicInitString = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XCALLNBMMI=1|+XPOW=0,0,0" };
+INITSTRING_DATA ATCmd2230BasicInitString = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XCALLNBMMI=1|+XPOW=0,0,0|\
++XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+XNITZINFO=1|+CREG=2|+CGREG=2|+CGEREP=1,0|+CSSN=1,1|+CMGF=0\
+|+XCSQ=1|+XLEMA=1|+CMGF=0" };
 
 // used by 7x60 modems only
 // XGENDATA is not supported by IFX7060
-INITSTRING_DATA IFX7x60ATCmdDefBasicInitString    = { "E0V1Q0X4|+CMEE=1|S0=0|+XCALLNBMMI=1|+XPOW=0,0,0" };
-INITSTRING_DATA IFX7x60ATCmd2230BasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0|+XCALLNBMMI=1|+XPOW=0,0,0|+XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+XNITZINFO=1|+CREG=2|+CGREG=2|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XCSQ=1|+XLEMA=1|+CMGF=0" };
+INITSTRING_DATA IFX7x60ATCmdDefBasicInitString = { "E0V1Q0X4|+CMEE=1|S0=0|+XCALLNBMMI=1|+XPOW=0,0,0" };
+INITSTRING_DATA IFX7x60ATCmd2230BasicInitString = { "E0V1Q0X4|+CMEE=1|S0=0|+XCALLNBMMI=1|+XPOW=0,0,0|\
++XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+XNITZINFO=1|+CREG=2|+CGREG=2|+CGEREP=1,0|+CSSN=1,1|+\
+CMGF=0|+XCSQ=1|+XLEMA=1|+CMGF=0" };
 
 INITSTRING_DATA* ATCmdUnlockInitString;
-INITSTRING_DATA ATCmdDefUnlockInitString   = { "" };
-INITSTRING_DATA ATCmd2230UnlockInitString  = { "+CNMI=2,2,2,1|+CRC=1|+CCWA=1|+CSMS=1|+CGSMS=3|+CUSD=1" };
-INITSTRING_DATA ATCmdPowerOnInitString  = { "" };
-INITSTRING_DATA ATCmdReadyInitString    = { "" };
+INITSTRING_DATA ATCmdDefUnlockInitString = { "" };
+INITSTRING_DATA ATCmd2230UnlockInitString = { "+CNMI=2,2,2,1|+CRC=1|+CCWA=1|+CSMS=1|+CGSMS=3|+CUSD=1" };
+INITSTRING_DATA ATCmdPowerOnInitString = { "" };
+INITSTRING_DATA ATCmdReadyInitString = { "" };
 
 CChannel_ATCmd::CChannel_ATCmd(UINT32 uiChannel)
 : CChannel(uiChannel)
@@ -89,13 +93,15 @@ BOOL CChannel_ATCmd::FinishInit()
     if (CSystemManager::GetInstance().IsDSDS_2230_Mode())
     {
         ATCmdBasicInitString  = (MODEM_TYPE_IFX7060 == CTE::GetTE().GetModemType()) ?
-                                    &IFX7x60ATCmd2230BasicInitString : &ATCmd2230BasicInitString;
+                                    &IFX7x60ATCmd2230BasicInitString :
+                                    &ATCmd2230BasicInitString;
         ATCmdUnlockInitString = &ATCmd2230UnlockInitString;
     }
     else
     {
         ATCmdBasicInitString  = (MODEM_TYPE_IFX7060 == CTE::GetTE().GetModemType()) ?
-                                    &IFX7x60ATCmdDefBasicInitString : &ATCmdDefBasicInitString;
+                                    &IFX7x60ATCmdDefBasicInitString :
+                                    &ATCmdDefBasicInitString;
         ATCmdUnlockInitString = &ATCmdDefUnlockInitString;
     }
 

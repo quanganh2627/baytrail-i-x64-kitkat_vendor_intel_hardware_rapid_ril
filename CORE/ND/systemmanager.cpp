@@ -67,7 +67,7 @@ CChannel* g_pRilChannel[RIL_CHANNEL_MAX] = { NULL };
 
 // used for 7x60 modems
 int m_hsiChannelsReservedForClass1 = -1;
-int m_hsiChannelsReservedForDataDirectlyoverHsi = -1;
+int m_hsiDataDirect = -1;
 int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE] = { NULL };
 
 
@@ -277,15 +277,11 @@ BOOL CSystemManager::InitializeSystem()
     int iTemp;
     BOOL bRetVal = FALSE;
 
-    const char* szInfineon7x60 = "Infineon7x60";
-    const char* szInfineon6260 = "Infineon6260";
-
-    static const UINT32 uiMaxModemNameLen = 64;
-    char szModem[uiMaxModemNameLen];
+    char szModem[MAX_MODEM_NAME_LEN];
     UINT32 uiModemType = MODEM_TYPE_UNKNOWN;
 
     // read the modem type used from repository
-    if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, uiMaxModemNameLen))
+    if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
     {
         if (0 == strcmp(szModem, szInfineon7x60))
         {
@@ -296,6 +292,11 @@ BOOL CSystemManager::InitializeSystem()
         {
             RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using Infineon 6260\r\n");
             uiModemType = MODEM_TYPE_IFX6260;
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unknown modem type- Calling exit(0)\r\n");
+            exit(0);
         }
     }
     else
@@ -380,7 +381,7 @@ BOOL CSystemManager::InitializeSystem()
             m_dataProfilePathAssignation[7] = apnType;
         }
 
-        if (!repository.Read(g_szGroupModem, g_szHsiChannelsReservedForDataDirectlyoverHsi, m_hsiChannelsReservedForDataDirectlyoverHsi))
+        if (!repository.Read(g_szGroupModem, g_szHsiDataDirect, m_hsiDataDirect))
         {
             RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type default from repository\r\n");
         }
@@ -394,13 +395,13 @@ BOOL CSystemManager::InitializeSystem()
             }
         }
 
-        if (m_hsiChannelsReservedForClass1 > m_hsiChannelsReservedForDataDirectlyoverHsi)
+        if (m_hsiChannelsReservedForClass1 > m_hsiDataDirect)
         {
             RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much class1 APN\r\n");
             goto Done;
         }
-        //hsi chnnel 0 and 1 are not used for data.
-        if (m_hsiChannelsReservedForDataDirectlyoverHsi > RIL_HSI_CHANNEL_MAX - 2)
+        // HSI channel 0 and 1 are not used for data.
+        if (m_hsiDataDirect > RIL_HSI_CHANNEL_MAX - 2)
         {
             RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much hsi channel reserved for data\r\n");
             goto Done;

@@ -218,7 +218,7 @@ const char   g_szFDMode[]                       = "FDMode";
 const char   g_szTempOoSNotificationEnable[]    = "TempOoSNotificationEnable";
 
 // used for 7x60 modems only
-const char   g_szHsiChannelsReservedForDataDirectlyoverHsi[] = "HsiChannelsReservedForDataDirectlyoverHsi";
+const char   g_szHsiDataDirect[]        = "HsiDataDirect";
 const char   g_szApnTypeDefault[]       = "ApnTypeDefault";
 const char   g_szApnTypeThetered[]      = "ApnTypeThetered";
 const char   g_szApnTypeIMS[]           = "ApnTypeIMS";

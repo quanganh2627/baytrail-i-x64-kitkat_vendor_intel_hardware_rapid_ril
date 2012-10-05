@@ -22,17 +22,24 @@
 #include "types.h"
 #include "command.h"
 
+static const UINT32 MAX_MODEM_NAME_LEN = 64;
+
+static const char* szInfineon7x60 = "Infineon7x60";
+static const char* szInfineon6260 = "Infineon6260";
+
 enum {
     MODEM_TYPE_UNKNOWN,
     MODEM_TYPE_IFX6260,
     MODEM_TYPE_IFX7060
 };
 
+
 class CTEBase;
 
 class CTE
 {
 private:
+    CTE();
     CTE(UINT32 modemType);
     ~CTE();
 
@@ -736,6 +743,14 @@ public:
     void PostWriteSmsToSimCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
     /*
+     * Post Command handler function for the RIL_REQUEST_GET_NEIGHBORING_CELL_IDS request.
+     *
+     * Upon success/failure, request and also any pending requestes are completed.
+     */
+    void PostGetNeighboringCellIDs(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     *
      * Post Command handler function for the RIL_REQUEST_SET_LOCATION_UPDATES request.
      *
      * Upon success/failure, completes the request

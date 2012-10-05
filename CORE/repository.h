@@ -86,7 +86,7 @@ extern const char   g_szFDMode[];
 extern const char   g_szTempOoSNotificationEnable[];
 
 // used by 7x60 modems only
-extern const char   g_szHsiChannelsReservedForDataDirectlyoverHsi[];
+extern const char   g_szHsiDataDirect[];
 extern const char   g_szApnTypeDefault[];
 extern const char   g_szApnTypeThetered[];
 extern const char   g_szApnTypeIMS[];

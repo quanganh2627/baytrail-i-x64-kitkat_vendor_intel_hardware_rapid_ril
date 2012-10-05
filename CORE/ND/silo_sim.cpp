@@ -502,7 +502,6 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             break;
         case 8: // SIM Technical problem
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM TECHNICAL PROBLEM\r\n");
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
             CTE::GetTE().SetSimTechnicalProblem(TRUE);
             break;
         case 7: // ready for attach (+COPS)
@@ -890,7 +889,6 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
             break;
         case 8: // SIM Technical problem
             RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
             CTE::GetTE().SetSimTechnicalProblem(TRUE);
             break;
         case 7: // ready for attach (+COPS)
