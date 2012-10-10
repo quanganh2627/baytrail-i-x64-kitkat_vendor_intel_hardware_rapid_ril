@@ -1369,10 +1369,8 @@ BOOL CSystemManager::OpenCleanupRequestSocket()
 {
     RIL_LOG_INFO("CSystemManager::OpenCleanupRequestSocket() - ENTER\r\n");
 
-    BOOL bRet = FALSE;
     const int NUM_LOOPS = 10;
     const int SLEEP_MS = 1000;  // 1 sec between retries
-    //  TODO: Change looping formula
 
     for (int i = 0; i < NUM_LOOPS; i++)
     {
@@ -1383,8 +1381,14 @@ BOOL CSystemManager::OpenCleanupRequestSocket()
 
         if (m_fdCleanupSocket < 0)
         {
-            RIL_LOG_CRITICAL("CSystemManager::OpenCleanupRequestSocket() - Cannot open m_fdCleanupSocket\r\n");
-            Sleep(SLEEP_MS);
+            if (i < NUM_LOOPS - 1)
+            {
+                Sleep(SLEEP_MS);
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CSystemManager::OpenCleanupRequestSocket() - Cannot open m_fdCleanupSocket after %d tries\r\n", NUM_LOOPS);
+            }
         }
         else
         {
@@ -1393,13 +1397,8 @@ BOOL CSystemManager::OpenCleanupRequestSocket()
         }
     }
 
-    if (m_fdCleanupSocket < 0)
-        bRet = FALSE;
-    else
-        bRet = TRUE;
-
     RIL_LOG_INFO("CSystemManager::OpenCleanupRequestSocket() - EXIT\r\n");
-    return bRet;
+    return (m_fdCleanupSocket >= 0);
 }
 
 

@@ -61,6 +61,9 @@ CTE::CTE(UINT32 modemType) :
         RIL_LOG_CRITICAL("CTE::CTE() - Unable to construct base terminal equipment!!!!!! EXIT!\r\n");
         exit(0);
     }
+
+    memset(&m_sCSStatus, 0, sizeof(S_ND_REG_STATUS));
+    memset(&m_sPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 }
 
 CTE::~CTE()
@@ -4789,6 +4792,104 @@ RIL_RESULT_CODE CTE::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 }
 
 //
+// RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU 106
+//
+RIL_RESULT_CODE CTE::RequestAckIncomingGsmSmsWithPdu(RIL_Token rilToken, void* pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestAckIncomingGsmSmsWithPdu() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreAckIncomingGsmSmsWithPdu(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestAckIncomingGsmSmsWithPdu() - Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_ACKINCOMINGSMSWITHPDU], rilToken,
+                                        ND_REQ_ID_ACKINCOMINGSMSWITHPDU, reqData,
+                                        &CTE::ParseAckIncomingGsmSmsWithPdu);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestAckIncomingGsmSmsWithPdu() - Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestAckIncomingGsmSmsWithPdu() - Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestAckIncomingGsmSmsWithPdu() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseAckIncomingGsmSmsWithPdu(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseAckIncomingGsmSmsWithPdu() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseAckIncomingGsmSmsWithPdu(rRspData);
+}
+
+//
+// RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+//
+RIL_RESULT_CODE CTE::RequestStkSendEnvelopeWithStatus(RIL_Token rilToken, void* pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestStkSendEnvelopeWithStatus() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreStkSendEnvelopeCommand(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestStkSendEnvelopeWithStatus() - Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_STKSENDENVELOPECOMMAND],
+                                        rilToken, ND_REQ_ID_STKSENDENVELOPECOMMAND,
+                                        reqData, &CTE::ParseStkSendEnvelopeWithStatus);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestStkSendEnvelopeWithStatus() - Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestStkSendEnvelopeWithStatus() - Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestStkSendEnvelopeWithStatus() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseStkSendEnvelopeWithStatus() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseStkSendEnvelopeWithStatus(rRspData);
+}
+
+//
 // RIL_REQUEST_VOICE_RADIO_TECH 108
 //
 RIL_RESULT_CODE CTE::RequestVoiceRadioTech(RIL_Token rilToken, void* pData, size_t datalen)
@@ -5362,14 +5463,19 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_S
     }
 
     /*
-     * Registration status value of 2,3 or 4 means that there is a cell
-     * around on which emergency calls are possible. Inorder to show
-     * emergency calls only, Android telephony stack expects the registration
-     * status value to be one of 10,12,13,14.
+     * In order to show emergency calls only, Android telephony stack expects
+     * the registration status value to be one of 10,12,13,14. Add 10 to the
+     * reported registration status in which emergency calls are possible.
      */
-    if (2 == uiStatus || 3 == uiStatus || 4 == uiStatus)
+    if (E_REGISTRATION_DENIED == uiStatus)
     {
         uiStatus += 10;
+    }
+    else if (E_REGISTRATION_EMERGENCY_SERVICES_ONLY == uiStatus)
+    {
+        // Android do not manage the new value state +CREG 8, so we use the
+        // case 10 (0+10) which means no network but emergency call possible
+        uiStatus = 10;
     }
 
     snprintf(rCSRegStatusInfo.szStat,        REG_STATUS_LENGTH, "%u", uiStatus);
@@ -5751,21 +5857,21 @@ const char* CTE::PrintRegistrationInfo(char *szRegInfo) const
 
     switch (nRegInfo)
     {
-        case 0:
+        case E_REGISTRATION_NOT_REGISTERED_NOT_SEARCHING:
             return "NOT REGISTERED, NOT SEARCHING";
-        case 1:
+        case E_REGISTRATION_REGISTERED_HOME_NETWORK:
             return "REGISTERED, HOME NETWORK";
-        case 2:
-        case 12:
+        case E_REGISTRATION_NOT_REGISTERED_SEARCHING:
             return "NOT REGISTERED, SEARCHING";
-        case 3:
-        case 13:
+        case E_REGISTRATION_DENIED:
+        case E_REGISTRATION_DENIED + 10: // Android specific emergency possible
             return "REGISTRATION DENIED";
-        case 4:
-        case 14:
+        case E_REGISTRATION_UNKNOWN:
             return "UNKNOWN";
-        case 5:
+        case E_REGISTRATION_REGISTERED_ROAMING:
             return "REGISTERED, IN ROAMING";
+        case 10: // Android specific emergency possible
+            return "EMERGENCY SERVICE ONLY";
         default:
             return "UNKNOWN REG STATUS";
     }
@@ -5777,12 +5883,18 @@ const char* CTE::PrintGPRSRegistrationInfo(char *szGPRSInfo) const
 
     switch (nGPRSInfo)
     {
-        case 0: return "NOT REGISTERED, HOME NETWORK";
-        case 1: return "REGISTERED, HOME NETWORK";
-        case 2: return "NOT REGISTERED, SEARCHING";
-        case 3: return "REGISTRATION DENIED";
-        case 4: return "UNKNOWN";
-        case 5: return "REGISTERED, IN ROAMING";
+        case E_REGISTRATION_NOT_REGISTERED_NOT_SEARCHING:
+            return "NOT REGISTERED, HOME NETWORK";
+        case E_REGISTRATION_REGISTERED_HOME_NETWORK:
+            return "REGISTERED, HOME NETWORK";
+        case E_REGISTRATION_NOT_REGISTERED_SEARCHING:
+            return "NOT REGISTERED, SEARCHING";
+        case E_REGISTRATION_DENIED:
+            return "REGISTRATION DENIED";
+        case E_REGISTRATION_UNKNOWN:
+            return "UNKNOWN";
+        case E_REGISTRATION_REGISTERED_ROAMING:
+            return "REGISTERED, IN ROAMING";
         default: return "UNKNOWN REG STATUS";
     }
 }
@@ -6644,6 +6756,12 @@ void CTE::PostSetFacilityLockCmdHandler(POST_CMD_HANDLER_DATA& rData)
          */
         S_SET_FACILITY_LOCK_CONTEXT_DATA* pContextData =
                                 (S_SET_FACILITY_LOCK_CONTEXT_DATA*) rData.pContextData;
+
+        if (RIL_E_SUCCESS == rData.uiResultCode
+                && (0 == strncmp(pContextData->szFacilityLock, "FD", 2)))
+        {
+            m_pTEBaseInstance->SetPin2State(RIL_PINSTATE_ENABLED_VERIFIED);
+        }
 
         pContextData->uiResultCode = rData.uiResultCode;
 

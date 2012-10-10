@@ -455,6 +455,13 @@ public:
     virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
 
+    // RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU 106
+    virtual RIL_RESULT_CODE CoreAckIncomingGsmSmsWithPdu(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseAckIncomingGsmSmsWithPdu(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+    virtual RIL_RESULT_CODE ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData);
+
     // RIL_REQUEST_VOICE_RADIO_TECH 108
     virtual RIL_RESULT_CODE CoreVoiceRadioTech(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseVoiceRadioTech(RESPONSE_DATA& rRspData);

@@ -1,7 +1,181 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
-October 4, 2012 (M6.36 release for Medfield PR3)
+October 16, 2012 (M6.37 release for Medfield PR3)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR3 devices, Android version 4.1.1 (Jelly Bean).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external JB ABSP dated August 31, 2012 (ww35).
+- We are using the HSI interface.
+
+PR3 Setup
+=========
+FW DnX: SIGNED_PNW_D1_FWR_DnX.FD.05.bin (from ww35 PR3.3 release)
+IFWI: IFWI_v05.A4_CRAK_DEV.bin (from ww35 PR3.3 release)
+OS DnX: SIGNED_PNW_D1_OSR_DnX.0D.07.bin (from ww35 PR3.3 release)
+OS Image: droidboot.img.POS (from ww35 PR3.3 release)
+Modem Firmware: radio_firmware.bin (from ww35 PR3.3 release - 1232.A)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch mfld_pr2-eng
+make mfld_pr2 -j8
+
+
+Release Notes for M6.37
+========================
+
+1. Bugzilla 60593: Fix critical KW issue in RRIL 6.35
+   -In CTE_INF_7x60::SetupInterface(), in PrintStringNullTerminate(), change
+    second parameter from MAX_BUFFER_SIZE to sizeof(szNetworkInterfaceName).
+
+2. Bugzilla 60262: Fix issue in notifying emergeny call allowed cases
+   -Integrate patch 68873
+   -Note: Patch 67511 (BZ 54596, integrated in 6.36) for adding missing emergency
+    cases (12, 13 & 14) to CTE::PrintRegistrationInfo() has been superseded
+    by this patch.
+
+3. Bugzilla 54971: Use blocking mode for the opening of gsmtty ports
+   -Integrate patch 67507
+
+4. Bugzilla 58617: Reduce severity of log message if useCachedPIN does not exist
+   -Integrate patch 67507
+
+5. Bugzilla 59116: Declare socket cleanup critical error after 10 failures
+   -Integrate patch 69080
+
+6. Bugzilla 60777: Ignore ME PDN ACT received with invalid CID
+   -Integrate patch 68990
+
+7. Bugzilla 60718: [RRIL Acceptance] Cannot add/remove contact from FDN list on
+   first boot
+   -Set Pin2 state to RIL_PINSTATE_ENABLED_VERIFIED in
+    CTE::PostSetFacilityLockCmdHandler if result code is RIL_E_SUCCESS.
+
+8. Bugzilla 60136: Implement RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS
+   -Return status bytes SW1 and SW2 along with response data using the
+    RIL_SIM_IO_Response structure.
+
+9. Bugzilla 60133: Implement RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU
+   -Send acknowledgement TPDU along with successful/failure receipt
+    acknowledgement to modem.
+
+10. Bugzilla 60438: Fix crash seen on SIM Refresh proactive command
+    -Integate patch 69418
+
+11. Bugzilla 61460: Remove Modem type condition to read FDMode
+    -Integrate patch 69544
+
+12. Bugzilla 62291: Revert: Notify registration status in screen off state
+    -Integrate patch 69510
+
+13. Bugzilla 59841: Fix issue in notifying empty ussd message
+    -Integrate patch 70239
+
+
+Testing results:  (tested on Medfield PR3)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+October 2, 2012 (M6.36 release for Medfield PR3)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
 PR3 devices, Android version 4.1.1 (Jelly Bean).
@@ -267,7 +441,7 @@ Testing results:  (tested on Medfield PR3)
 
 16. Join calls to make conference call.  Ensure conference call is active and working.
     PASS.
-
++    BOOL                            m_bReadThreadBlocked;
 17. Conference call, DTMF tones.  Ensure DTMF tones working.
     PASS.  (By design, no DTMF tones generated in conference call)
     AT+XVTS=<dtmf> = +CME ERROR: 30

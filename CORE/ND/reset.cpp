@@ -1009,7 +1009,7 @@ bool PCache_GetUseCachedPIN()
 
     if (!property_get(szUseCachedPinProp, szProp, ""))
     {
-        RIL_LOG_CRITICAL("PCache_GetUseCachedPIN - cannot get %s\r\n", szUseCachedPinProp);
+        RIL_LOG_WARNING("PCache_GetUseCachedPIN - cannot get %s\r\n", szUseCachedPinProp);
         return false;
     }
 

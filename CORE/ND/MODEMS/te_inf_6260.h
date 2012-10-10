@@ -120,6 +120,9 @@ public:
     virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
 
+    // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+    virtual RIL_RESULT_CODE ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRspData);
+
     // internal response handlers
     virtual RIL_RESULT_CODE ParsePdpContextActivate(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseQueryIpAndDns(RESPONSE_DATA& rRspData);

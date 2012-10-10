@@ -3628,6 +3628,160 @@ RIL_RESULT_CODE CTE_INF_6260::ParseReportStkServiceRunning(RESPONSE_DATA & rRspD
     return res;
 }
 
+//
+// RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+//
+RIL_RESULT_CODE CTE_INF_6260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_INFO("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    UINT32 uiSw1 = 0, uiSw2 = 0;
+    UINT32 uiEventType = 0;
+    UINT32 uiEnvelopeType = 0;
+    char* pszRespData = NULL;
+    UINT32 cbRespData = 0;
+    RIL_SIM_IO_Response* pResponse = NULL;
+
+    const char* pszRsp = rRspData.szResponse;
+    if (NULL == pszRsp)
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Response string is NULL!\r\n");
+        goto Error;
+    }
+
+    // Parse "<prefix>"
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Could not skip over response prefix.\r\n");
+        goto Error;
+    }
+
+    // Parse "+SATE: "
+    if (!SkipString(pszRsp, "+SATE: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Could not skip over \"+SATE: \".\r\n");
+        goto Error;
+    }
+
+    // Parse "<sw1>"
+    if (!ExtractUInt32(pszRsp, uiSw1, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Could not extract sw1.\r\n");
+        goto Error;
+    }
+
+    // Parse ",<sw2>"
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, uiSw2, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Could not extract sw2.\r\n");
+        goto Error;
+    }
+
+    // Parse ",<event_type>"
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, uiEventType, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Could not extract event type.\r\n");
+        goto Error;
+    }
+
+    // Parse ",<envelope_type>"
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, uiEnvelopeType, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Could not extract envelope type.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO(" sw1: %u, sw2: %u, event type: %u, envelope type: %u\r\n",
+            uiSw1, uiSw2, uiEventType, uiEnvelopeType);
+
+    // Parse "," if response data exists
+    if (SkipString(pszRsp, ",", pszRsp))
+    {
+        // Parse ",<response_data>"
+        // NOTE: we take ownership of allocated pszRespData
+        if (!ExtractUnquotedStringWithAllocatedMemory(pszRsp, m_cTerminator, pszRespData, cbRespData, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Could not parse response data.\r\n");
+            goto Error;
+        }
+
+        RIL_LOG_INFO("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - response data: \"%s\".\r\n", pszRespData);
+
+        // Allocate memory for the RIL_SIM_IO_Response struct + sim response string.
+        // The char* in the RIL_SIM_IO_Response will point to the buffer allocated
+        // directly after the RIL_SIM_IO_Response.  When the RIL_SIM_IO_Response
+        // is deleted, the corresponding response string will be freed as well.
+        pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbRespData + 1);
+        if (NULL == pResponse)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+            goto Error;
+        }
+        memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbRespData + 1);
+
+        if (NULL == pszRespData)
+        {
+            pResponse->simResponse = NULL;
+        }
+        else
+        {
+            // set location to copy sim response string just after RIL_SIM_IO_Response
+            pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
+
+            if (!CopyStringNullTerminate(pResponse->simResponse, pszRespData, cbRespData))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Cannot CopyStringNullTerminate szResponseString\r\n");
+                goto Error;
+            }
+
+            // Ensure NULL termination!
+            pResponse->simResponse[cbRespData] = '\0';
+        }
+    }
+    else
+    {
+        pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response));
+        if (NULL == pResponse)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+            goto Error;
+        }
+        pResponse->simResponse = NULL;
+    }
+
+    pResponse->sw1 = uiSw1;
+    pResponse->sw2 = uiSw2;
+
+    // Parse "<postfix>"
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Could not extract the response end.\r\n");
+        goto Error;
+    }
+
+    rRspData.pData   = (void*)pResponse;
+    rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    delete[] pszRespData;
+    pszRespData = NULL;
+
+    RIL_LOG_INFO("CTE_INF_6260::ParseStkSendEnvelopeWithStatus() - Exit\r\n");
+    return res;
+}
+
 RIL_RESULT_CODE CTE_INF_6260::CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
                                                     const char** pszRequest, const UINT32 uiDataSize)
 {

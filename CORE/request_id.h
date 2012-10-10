@@ -130,11 +130,12 @@ enum ND_REQ_ID_ID {
     ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS,          // 111
     ND_REQ_ID_VOICERADIOTECH,                      // 112
     ND_REQ_ID_SILENT_PIN_ENTRY,                    // 113
+    ND_REQ_ID_ACKINCOMINGSMSWITHPDU,               // 114
 #if defined(M2_VT_FEATURE_ENABLED)
-    ND_REQ_ID_HANGUPVT,                            // 114
-    ND_REQ_ID_DIALVT,                              // 115
+    ND_REQ_ID_HANGUPVT,                            // 115
+    ND_REQ_ID_DIALVT,                              // 116
 #endif // M2_VT_FEATURE_ENABLED
-    ND_REQ_ID_TOTAL                                // 114 or 116
+    ND_REQ_ID_TOTAL                                // 115 or 117
 };
 
 

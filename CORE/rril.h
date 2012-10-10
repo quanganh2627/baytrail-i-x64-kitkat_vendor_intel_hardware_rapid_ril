@@ -138,15 +138,16 @@ enum
 ///////////////////////////////////////////////////////////////////////////////
 // Registration States
 //
-// Check 3GPP 27.007 V6.3.0 section 7.2
+// Check 3GPP 27.007 R10 section 7.2
 enum
 {
     E_REGISTRATION_NOT_REGISTERED_NOT_SEARCHING = 0,
-    E_REGISTRATION_REGISTERED_HOME_NETWORK,
-    E_REGISTRATION_NOT_REGISTERED_SEARCHING,
-    E_REGISTRATION_DENIED,
-    E_REGISTRATION_UNKNOWN,
-    E_REGISTRATION_REGISTERED_ROAMING
+    E_REGISTRATION_REGISTERED_HOME_NETWORK = 1,
+    E_REGISTRATION_NOT_REGISTERED_SEARCHING = 2,
+    E_REGISTRATION_DENIED = 3,
+    E_REGISTRATION_UNKNOWN = 4,
+    E_REGISTRATION_REGISTERED_ROAMING = 5,
+    E_REGISTRATION_EMERGENCY_SERVICES_ONLY = 8
 };
 
 ///////////////////////////////////////////////////////////////////////////////

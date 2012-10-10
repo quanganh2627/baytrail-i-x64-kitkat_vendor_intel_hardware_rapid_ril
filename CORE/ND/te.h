@@ -480,6 +480,14 @@ public:
     RIL_RESULT_CODE RequestReportStkServiceRunning(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
 
+    // RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU 106
+    RIL_RESULT_CODE RequestAckIncomingGsmSmsWithPdu(RIL_Token rilToken, void* pData, size_t datalen);
+    RIL_RESULT_CODE ParseAckIncomingGsmSmsWithPdu(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+    RIL_RESULT_CODE RequestStkSendEnvelopeWithStatus(RIL_Token rilToken, void* pData, size_t datalen);
+    RIL_RESULT_CODE ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData);
+
     // RIL_REQUEST_VOICE_RADIO_TECH 108
     RIL_RESULT_CODE RequestVoiceRadioTech(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseVoiceRadioTech(RESPONSE_DATA& rRspData);

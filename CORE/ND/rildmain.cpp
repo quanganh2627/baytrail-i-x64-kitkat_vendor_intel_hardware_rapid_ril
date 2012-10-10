@@ -234,7 +234,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
                 RIL_SimRefreshResponse_v7 *pSimRefreshRsp = (RIL_SimRefreshResponse_v7*)pData;
                 RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_SimRefreshResult=%d efid=%d aid=%s\r\n",
                         pSimRefreshRsp->ef_id,
-                        pSimRefreshRsp->aid);
+                        (NULL == pSimRefreshRsp->aid) ? "" : pSimRefreshRsp->aid);
             }
             break;
 
@@ -1210,17 +1210,17 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
 
         //  ************************* END OF REGULAR REQUESTS *******************************
 
-        case RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU:  // 106 - not supported
+        case RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU:  // 106
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU\r\n");
-            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestAckIncomingGsmSmsWithPdu(hRilToken, pData, datalen);
         }
         break;
 
-        case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:  // 107 - not supported
+        case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:  // 107
         {
             RIL_LOG_INFO("onRequest() - RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS\r\n");
-            RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+            eRetVal = (RIL_Errno)CTE::GetTE().RequestStkSendEnvelopeWithStatus(hRilToken, pData, datalen);
         }
         break;
 
@@ -1364,7 +1364,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.36 for Android 4.1.1 (Build October 4/2012)";
+    return "Intrinsyc Rapid-RIL M6.37 for Android 4.1.1 (Build October 16/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -7058,6 +7058,89 @@ RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 }
 
 //
+// RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU 106
+//
+RIL_RESULT_CODE CTEBase::CoreAckIncomingGsmSmsWithPdu(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreAckIncomingGsmSmsWithPdu() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    char** pszCmdData = NULL;
+    char* szStatus = NULL;
+    char* szPDU = NULL;
+    int nPDULength = 0;
+    BOOL fSuccess = FALSE;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreAckIncomingGsmSmsWithPdu() - Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+
+    if ((2 * sizeof(char *)) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreAckIncomingGsmSmsWithPdu() - Invalid data size. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    pszCmdData = (char**)pData;
+    szStatus = pszCmdData[0];
+    szPDU = pszCmdData[1];
+
+    if (NULL == szStatus || NULL == szPDU)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreAckIncomingGsmSmsWithPdu() - Status or PDU was NULL!\r\n");
+        goto Error;
+    }
+
+    // 2 chars per byte.
+    nPDULength = (strlen(szPDU) / 2);
+
+    fSuccess = (0 == strcmp(szStatus, "1")) ? TRUE : FALSE;
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CNMA=%u,%u\r",
+            fSuccess ? 1 : 2, nPDULength))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreAckIncomingGsmSmsWithPdu() - Cannot create CNMA command\r\n");
+        goto Error;
+    }
+
+    if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "%s\x1a", szPDU))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreAckIncomingGsmSmsWithPdu() - Cannot create CNMA PDU\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("Ack pdu: %s\r\n", CRLFExpandedString(rReqData.szCmd2, strlen(rReqData.szCmd2)).GetString());
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::CoreAckIncomingGsmSmsWithPdu() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseAckIncomingGsmSmsWithPdu(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseAckIncomingGsmSmsWithPdu() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseAckIncomingGsmSmsWithPdu() - Exit\r\n");
+    return res;
+}
+
+//
+// RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+//
+RIL_RESULT_CODE CTEBase::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseStkSendEnvelopeWithStatus() - Enter / Exit\r\n");
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+//
 // RIL_REQUEST_VOICE_RADIO_TECH 108
 //
 RIL_RESULT_CODE CTEBase::CoreVoiceRadioTech(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
