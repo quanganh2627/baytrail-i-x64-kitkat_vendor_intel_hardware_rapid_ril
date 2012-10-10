@@ -508,13 +508,10 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetMTU((UINT32)iTemp);
     }
 
-    if (MODEM_TYPE_IFX6260 == uiModemType)
+    // store initial value of Fast Dormancy Mode
+    if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
     {
-        // store initial value of Fast Dormancy Mode
-        if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
-        {
-            CTE::GetTE().SetFastDormancyMode((UINT32)iTemp);
-        }
+        CTE::GetTE().SetFastDormancyMode((UINT32)iTemp);
     }
 
     //  Need to open the "clean up request" socket here.
