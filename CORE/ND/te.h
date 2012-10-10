@@ -64,8 +64,7 @@ public:
 
     static BOOL ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_STATUS& pCSRegStruct);
     static BOOL ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_REG_STATUS& pPSRegStruct);
-    static BOOL ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
-                    S_ND_GPRS_REG_STATUS& pPSRegStruct, int numOfParams = 0);
+    static BOOL ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_REG_STATUS& pPSRegStruct);
     static RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
@@ -372,9 +371,6 @@ public:
     RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_SET_LOCATION_UPDATES 76
-    RIL_RESULT_CODE RequestSetLocationUpdates(RIL_Token rilToken, void* pData,
-                                                                size_t datalen);
-    RIL_RESULT_CODE ParseSetLocationUpdates(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE 77
     RIL_RESULT_CODE RequestCdmaSetSubscription(RIL_Token rilToken, void * pData, size_t datalen);
@@ -544,8 +540,6 @@ public:
 
     void SetupDataCallOngoing(BOOL bStatus);
     BOOL IsSetupDataCallOnGoing();
-
-    BOOL IsLocationUpdatesEnabled();
 
     RIL_RadioState GetRadioState();
     RRIL_SIM_State GetSIMState();
@@ -750,14 +744,6 @@ public:
     void PostGetNeighboringCellIDs(POST_CMD_HANDLER_DATA& rData);
 
     /*
-     *
-     * Post Command handler function for the RIL_REQUEST_SET_LOCATION_UPDATES request.
-     *
-     * Upon success/failure, completes the request
-     */
-    void PostSetLocationUpdates(POST_CMD_HANDLER_DATA& rData);
-
-    /*
      * Post Command handler function for the Silent PIN Entry request.
      *
      * Clears the cached pin on error, usecachedpin flag and
@@ -809,9 +795,6 @@ private:
 
     // Flag used to store setup data call status
     BOOL m_bIsSetupDataCallOngoing;
-
-    // Flag used to store the location update requested status
-    int m_enableLocationUpdates;
 
     /*
      * Flag is used to store sim technical problem.
