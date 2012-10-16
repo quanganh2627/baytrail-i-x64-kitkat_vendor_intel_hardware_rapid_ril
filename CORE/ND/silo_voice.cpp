@@ -888,7 +888,8 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
         RIL_LOG_INFO("CSilo_Voice::ParseUSSDInfo() - %s\r\n", pUssdStatus->szMessage);
 
         pUssdStatus->sStatusPointers.pszType    = pUssdStatus->szType;
-        pUssdStatus->sStatusPointers.pszMessage = pUssdStatus->szMessage;
+        pUssdStatus->sStatusPointers.pszMessage =
+                (pUssdStatus->szMessage[0] != '\0') ? pUssdStatus->szMessage : NULL;
         uiAllocSize = 2 * sizeof(char *);
     }
 
