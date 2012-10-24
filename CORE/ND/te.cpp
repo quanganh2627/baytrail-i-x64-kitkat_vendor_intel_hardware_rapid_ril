@@ -1596,7 +1596,6 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
 
         if (pCmd)
         {
-            pCmd->SetAlwaysParse();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - Unable to add command to queue\r\n");
