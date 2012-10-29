@@ -5838,12 +5838,38 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA& rReqData,
     //  Store setting in context.
     rReqData.pContextData = (void*)nEnable;
 
-    if (!CopyStringNullTerminate(rReqData.szCmd1, (1 == nEnable) ?
-                                "AT+CREG=2;+CGREG=0;+XREG=2;+XCSQ=1\r" :
-                                "AT+CREG=1;+CGREG=1;+XREG=0;+XCSQ=0\r", sizeof(rReqData.szCmd1)))
+    if (1 == nEnable)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
-        goto Error;
+        if (!CopyStringNullTerminate(rReqData.szCmd1,
+                                            "AT+CREG=2;+CGREG=0;+XREG=2;+XCSQ=1\r",
+                                            sizeof(rReqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
+            goto Error;
+        }
+    }
+    else // SCREEN OFF
+    {
+        if (CTE::GetTE().IsLocationUpdatesEnabled())
+        {
+            if (!CopyStringNullTerminate(rReqData.szCmd1,
+                                                "AT+CGREG=1;+XREG=0;+XCSQ=0\r",
+                                                sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
+                goto Error;
+            }
+        }
+        else
+        {
+            if (!CopyStringNullTerminate(rReqData.szCmd1,
+                                                "AT+CREG=1;+CGREG=1;+XREG=0;+XCSQ=0\r",
+                                                sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
+                goto Error;
+            }
+        }
     }
 
     // Read the "conformance" property and disable FD if it is set to "true"
@@ -6371,6 +6397,43 @@ RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_SET_LOCATION_UPDATES 76
 //
+RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA& rReqData,
+                                                void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreSetLocationUpdates() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int enableLocationUpdates = 0;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    enableLocationUpdates = ((int*)pData)[0];
+
+    if (!CopyStringNullTerminate(rReqData.szCmd1,
+            (1 == enableLocationUpdates) ? "AT+CREG=2\r" : "AT+CREG=1\r",
+            sizeof(rReqData.szCmd1)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - Cannot create command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::CoreSetLocationUpdates() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseSetLocationUpdates(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseSetLocationUpdates() - Enter / Exit\r\n");
+
+    return RRIL_RESULT_OK;
+}
 
 //
 // RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77

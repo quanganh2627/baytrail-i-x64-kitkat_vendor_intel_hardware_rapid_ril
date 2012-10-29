@@ -406,6 +406,9 @@ public:
     RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SET_LOCATION_UPDATES 76
+    RIL_RESULT_CODE RequestSetLocationUpdates(RIL_Token rilToken, void* pData,
+            size_t datalen);
+    RIL_RESULT_CODE ParseSetLocationUpdates(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE 77
     RIL_RESULT_CODE RequestCdmaSetSubscription(RIL_Token rilToken, void* pData, size_t datalen);
@@ -615,6 +618,8 @@ public:
 
     void SetupDataCallOngoing(BOOL bStatus);
     BOOL IsSetupDataCallOnGoing();
+
+    BOOL IsLocationUpdatesEnabled();
 
     RIL_RadioState GetRadioState();
     RRIL_SIM_State GetSIMState();
@@ -923,6 +928,14 @@ public:
     void PostGetNeighboringCellIDs(POST_CMD_HANDLER_DATA& rData);
 
     /*
+     *
+     * Post Command handler function for the RIL_REQUEST_SET_LOCATION_UPDATES request.
+     *
+     * Upon success/failure, completes the request
+     */
+    void PostSetLocationUpdates(POST_CMD_HANDLER_DATA& rData);
+
+    /*
      * Post Command handler function for the Silent PIN Entry request.
      *
      * Clears the cached pin on error, usecachedpin flag and
@@ -989,6 +1002,9 @@ private:
      * enabled.
      */
     BOOL m_bModemOffInFlightMode;
+
+    // Flag used to store the location update requested status
+    int m_enableLocationUpdates;
 
     /*
      * Flag to indicate whether the Rapid ril is in restricted mode.

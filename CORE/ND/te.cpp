@@ -48,6 +48,7 @@ CTE::CTE(UINT32 modemType) :
     m_bSpoofCommandsStatus(TRUE),
     m_uiLastModemEvent(E_MMGR_EVENT_MODEM_DOWN),
     m_bModemOffInFlightMode(FALSE),
+    m_enableLocationUpdates(0),
     m_bRestrictedMode(FALSE),
     m_bRadioRequestPending(FALSE),
     m_bIsSimTechnicalProblem(FALSE),
@@ -688,7 +689,8 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
             break;
 
             case RIL_REQUEST_SET_LOCATION_UPDATES:  // 76
-                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+                eRetVal = (RIL_Errno)CTE::GetTE().RequestSetLocationUpdates(
+                        hRilToken, pData, datalen);
                 break;
 
             case RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE:  // 77 - CDMA, not supported
@@ -1915,7 +1917,7 @@ RIL_RESULT_CODE CTE::RequestRegistrationState(RIL_Token rilToken, void* pData, s
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    if (m_bCSStatusCached)
+    if (m_bCSStatusCached && !IsLocationUpdatesEnabled())
     {
         S_ND_REG_STATUS regStatus;
 
@@ -1982,7 +1984,7 @@ RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void* pDat
 {
     RIL_LOG_VERBOSE("CTE::RequestGPRSRegistrationState() - Enter\r\n");
 
-    if (m_bPSStatusCached)
+    if (m_bPSStatusCached && !IsLocationUpdatesEnabled())
     {
         S_ND_GPRS_REG_STATUS regStatus;
 
@@ -5035,6 +5037,73 @@ RIL_RESULT_CODE CTE::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_SET_LOCATION_UPDATES 76
 //
+RIL_RESULT_CODE CTE::RequestSetLocationUpdates(RIL_Token rilToken, void* pData,
+        size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestSetLocationUpdates() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int enableLocationUpdates = 0;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::RequestSetLocationUpdates() - Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    enableLocationUpdates = ((int*)pData)[0];
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    res = m_pTEBaseInstance->CoreSetLocationUpdates(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSetLocationUpdates() - Unable to create AT command"
+                "data\r\n");
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(
+                g_arChannelMapping[ND_REQ_ID_SETLOCATIONUPDATES], rilToken,
+                ND_REQ_ID_SETLOCATIONUPDATES, reqData,
+                &CTE::ParseSetLocationUpdates,
+                &CTE::PostSetLocationUpdates);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestSetLocationUpdates() - Unable to add command to "
+                        "queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestSetLocationUpdates() - Unable to allocate memory for "
+                    "command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+Error:
+    if (RRIL_RESULT_OK == res)
+    {
+        m_enableLocationUpdates = enableLocationUpdates;
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestSetLocationUpdates() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseSetLocationUpdates(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseSetLocationUpdates() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseSetLocationUpdates(rRspData);
+}
 
 //
 // RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE 77
@@ -7133,6 +7202,12 @@ BOOL CTE::IsSetupDataCallOnGoing()
     return m_bIsSetupDataCallOngoing;
 }
 
+BOOL CTE::IsLocationUpdatesEnabled()
+{
+    RIL_LOG_VERBOSE("CTE::IsLocationUpdatesEnabled() - Enter / Exit\r\n");
+    return (1 == m_enableLocationUpdates);
+}
+
 RIL_RadioState CTE::GetRadioState()
 {
     return m_pTEBaseInstance->GetRadioState();
@@ -8272,6 +8347,28 @@ void CTE::PostGetNeighboringCellIDs(POST_CMD_HANDLER_DATA& rData)
             rData.uiRequestId, rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
 
     RIL_LOG_VERBOSE("CTE::PostGetNeighboringCellIDs() Exit\r\n");
+}
+
+void CTE::PostSetLocationUpdates(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostSetLocationUpdates() Enter\r\n");
+
+    if (NULL == rData.pRilToken)
+    {
+        RIL_LOG_CRITICAL("CTE::PostSetLocationUpdates() rData.pRilToken NULL!\r\n");
+        return;
+    }
+
+    RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                                                NULL, 0);
+
+    if (RIL_E_SUCCESS != rData.uiResultCode)
+    {
+        m_enableLocationUpdates =
+                (m_enableLocationUpdates > 0) ? m_enableLocationUpdates : 0;
+    }
+
+    RIL_LOG_VERBOSE("CTE::PostSetLocationUpdates() Exit\r\n");
 }
 
 void CTE::PostSilentPinRetryCmdHandler(POST_CMD_HANDLER_DATA& rData)
