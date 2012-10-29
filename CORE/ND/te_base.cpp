@@ -2009,15 +2009,35 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
         {
             res = RRIL_RESULT_OK;
             mShutdown = true;
+
+            // Releasing modem ressource won't turn it off directly
+            // There shouldn't be issue by sending command for few seconds
+            CSystemManager::GetInstance().ReleaseModem();
         }
     }
     else
     {
+        if (CTE::GetTE().GetModemOffInFlightModeState())
+        {
+            if (true == bTurnRadioOn)
+            {
+                CSystemManager::GetInstance().GetModem();
+            }
+            else
+            {
+                // Releasing modem ressource won't turn it off directly
+                // There shouldn't be issue by sending command for few seconds
+                CSystemManager::GetInstance().ReleaseModem();
+            }
+        } // Else, resource was already acquired on startup in InitializeSystem
+
 #if !defined(M2_DUALSIM_FEATURE_ENABLED)
         if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
                                             "AT+CFUN=1\r" : "AT+CFUN=4\r",
                                             sizeof(rReqData.szCmd1)))
         {
+            (true == bTurnRadioOn) ? property_set("persist.radio.ril_modem_state", "1")
+                                   : property_set("persist.radio.ril_modem_state", "0");
             res = RRIL_RESULT_OK;
         }
 #else

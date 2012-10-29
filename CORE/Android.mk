@@ -54,7 +54,7 @@ LOCAL_SRC_FILES:= \
     ND/MODEMS/silo_phonebook_inf.cpp \
     ND/MODEMS/silo_misc_inf.cpp
 
-LOCAL_SHARED_LIBRARIES := libcutils libutils
+LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli
 
 
 # Activating this macro enables the optional Video Telephony feature
@@ -93,7 +93,8 @@ LOCAL_C_INCLUDES :=  \
     $(LOCAL_PATH)/ND/MODEMS  \
     $(LOCAL_PATH)/MODEMS  \
     $(LOCAL_PATH)/../INC \
-    $(LOCAL_PATH)/../UTIL/ND
+    $(LOCAL_PATH)/../UTIL/ND \
+    $(TARGET_OUT_HEADERS)/IFX-modem
 
 
 #build shared library

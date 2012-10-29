@@ -14,7 +14,7 @@
 #define RRIL_RESET_H
 
 
-#include "../../../IFX-modem/stmd.h"
+#include "mmgr_cli.h"
 
 enum eRadioError
 {
@@ -23,18 +23,15 @@ enum eRadioError
     eRadioError_LowMemory,          //  Couldn't allocate memory
     eRadioError_ChannelDead,        //  Modem non-responsive
     eRadioError_InitFailure,        //  AT command init sequence failed
-    eRadioError_OpenPortFailure,    //  Couldn't open the tty ports successfully
-
+    eRadioError_OpenPortFailure     //  Couldn't open the tty ports successfully
 };
 
 const char* Print_eRadioError(eRadioError e);
 
 void ModemResetUpdate();
-extern BOOL g_bSpoofCommands;
-
 
 void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszFileName);
-extern BOOL CreateModemWatchdogThread();
+int ModemManagerEventHandler(mmgr_cli_event_t* param);
 
 enum ePCache_Code
 {

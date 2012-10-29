@@ -424,36 +424,43 @@ static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRi
     RIL_LOG_INFO("onRequest() - id=%d token: 0x%08x\r\n", requestID, (int) hRilToken);
 
     //  If we're in the middle of TriggerRadioError(), spoof all commands.
-    if (g_bSpoofCommands)
+    if (CTE::GetTE().GetSpoofCommandsStatus() ||
+            (CTE::GetTE().GetModemOffInFlightModeState() &&
+                (RADIO_STATE_OFF == CTE::GetTE().GetRadioState())))
     {
-        if (RIL_REQUEST_GET_CURRENT_CALLS == requestID)
+        switch (requestID)
         {
-            RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_GET_CURRENT_CALLS *********************\r\n");
-            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
-            return;
+            case RIL_REQUEST_GET_CURRENT_CALLS:
+                RIL_LOG_INFO("********* SPOOFED RIL_REQUEST_GET_CURRENT_CALLS *********\r\n");
+                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+                break;
+           case RIL_REQUEST_DEACTIVATE_DATA_CALL:
+                RIL_LOG_INFO("********* SPOOFED RIL_REQUEST_DEACTIVATE_DATA_CALL *********\r\n");
+                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+                break;
+           case RIL_REQUEST_SETUP_DATA_CALL:
+                RIL_LOG_INFO("********* SPOOFED RIL_REQUEST_SETUP_DATA_CALL *********\r\n");
+                RIL_Data_Call_Response_v6 dataCallResp;
+                memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
+                dataCallResp.status = PDP_FAIL_SIGNAL_LOST;
+                dataCallResp.suggestedRetryTime = -1;
+                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &dataCallResp,
+                                       sizeof(RIL_Data_Call_Response_v6));
+                break;
+            case RIL_REQUEST_RADIO_POWER:  // 23
+                if (CTE::GetTE().GetModemOffInFlightModeState())
+                {
+                    RIL_LOG_INFO("onRequest() - RIL_REQUEST_RADIO_POWER\r\n");
+                    eRetVal = (RIL_Errno)CTE::GetTE().RequestRadioPower(hRilToken, pData, datalen);
+                    break;
+                }
+            default:
+                RIL_LOG_INFO("********* SPOOFED REQID=0x%08X, %d  token=0x%08x *********\r\n",
+                               requestID, requestID, (int) hRilToken);
+                RIL_onRequestComplete(hRilToken, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
+                break;
         }
-        else if (RIL_REQUEST_DEACTIVATE_DATA_CALL == requestID)
-        {
-            RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_DEACTIVATE_DATA_CALL *********************\r\n");
-            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
-            return;
-        }
-        else if (RIL_REQUEST_SETUP_DATA_CALL == requestID)
-        {
-            RIL_LOG_INFO("****************** SPOOFED RIL_REQUEST_SETUP_DATA_CALL *********************\r\n");
-            RIL_Data_Call_Response_v6 dataCallResp;
-            memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
-            dataCallResp.status = PDP_FAIL_SIGNAL_LOST;
-            dataCallResp.suggestedRetryTime = -1;
-            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &dataCallResp, sizeof(RIL_Data_Call_Response_v6));
-            return;
-        }
-        else
-        {
-            RIL_LOG_INFO("****************** SPOOFED REQID=0x%08X, %d  token=0x%08x *********************\r\n", requestID, requestID, (int) hRilToken);
-            RIL_onRequestComplete(hRilToken, RIL_E_RADIO_NOT_AVAILABLE, NULL, 0);
-            return;
-        }
+    return;
     }
 
     switch (requestID)

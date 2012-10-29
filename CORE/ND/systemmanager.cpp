@@ -27,7 +27,7 @@
 
 #include "types.h"
 #include "rillog.h"
-#include "../util.h"
+#include "util.h"
 #include "sync_ops.h"
 #include "thread_ops.h"
 #include "rilqueue.h"
@@ -45,6 +45,7 @@
 #include "repository.h"
 #include "te.h"
 #include "rildmain.h"
+#include "mmgr_cli.h"
 #include "reset.h"
 #include "systemmanager.h"
 
@@ -118,7 +119,7 @@ CSystemManager::CSystemManager()
     m_pInitStringCompleteEvent(NULL),
     m_pSysInitCompleteEvent(NULL),
     m_pDataChannelAccessorMutex(NULL),
-    m_fdCleanupSocket(-1),
+    m_pMMgrLibHandle(NULL),
     m_RequestInfoTable(),
     m_bFailedToInitialize(FALSE)
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
@@ -233,12 +234,8 @@ CSystemManager::~CSystemManager()
         m_pDataChannelAccessorMutex = NULL;
     }
 
-    if (m_fdCleanupSocket >= 0)
-    {
-        shutdown(m_fdCleanupSocket, SHUT_RDWR);
-        close(m_fdCleanupSocket);
-        m_fdCleanupSocket = -1;
-    }
+    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete TE object\r\n");
+    CTE::GetTE().DeleteTEObject();
 
     if (m_pTEAccessMutex)
     {
@@ -279,6 +276,7 @@ BOOL CSystemManager::InitializeSystem()
 
     char szModem[MAX_MODEM_NAME_LEN];
     UINT32 uiModemType = MODEM_TYPE_UNKNOWN;
+    char szModemState[PROPERTY_VALUE_MAX] = "0";
 
     // read the modem type used from repository
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
@@ -489,6 +487,11 @@ BOOL CSystemManager::InitializeSystem()
 
     ResetSystemState();
 
+    if (repository.Read(g_szGroupModem, g_szEnableModemOffInFlightMode, iTemp))
+    {
+        CTE::GetTE().SetModemOffInFlightModeState((UINT32)iTemp);
+    }
+
     if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutCmdInit, iTemp))
     {
         CTE::GetTE().SetTimeoutCmdInit((UINT32)iTemp);
@@ -521,16 +524,9 @@ BOOL CSystemManager::InitializeSystem()
     }
 
     //  Need to open the "clean up request" socket here.
-    if (!OpenCleanupRequestSocket())
+    if (!MMgrConnectionInit())
     {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unable to create cleanup request socket\r\n");
-        goto Done;
-    }
-
-    //  Launch the modem reset watchdog socket thread
-    if (!CreateModemWatchdogThread())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Couldn't create modem watchdog thread!\r\n");
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unable to connect to MMgr lib\r\n");
         goto Done;
     }
 
@@ -576,21 +572,52 @@ Done:
             m_pDataChannelAccessorMutex = NULL;
         }
 
-        if (m_fdCleanupSocket >= 0)
+        if (m_pMMgrLibHandle)
         {
-            shutdown(m_fdCleanupSocket, SHUT_RDWR);
-            close(m_fdCleanupSocket);
-            m_fdCleanupSocket = -1;
+            mmgr_cli_disconnect(m_pMMgrLibHandle);
+            Sleep(300);
+            mmgr_cli_delete_handle(m_pMMgrLibHandle);
+            delete m_pMMgrLibHandle;
+            m_pMMgrLibHandle = NULL;
         }
-    }
 
+        CTE::GetTE().DeleteTEObject();
+    }
 
     CMutex::Unlock(m_pSystemManagerMutex);
 
     if (bRetVal)
     {
-        RIL_LOG_INFO("CSystemManager::InitializeSystem() : Waiting for RIL initialization....\r\n");
-        CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
+        RIL_LOG_INFO("CSystemManager::InitializeSystem() :"
+                        " Now waiting for modem initialization....\r\n");
+        if (CTE::GetTE().GetModemOffInFlightModeState())
+        {
+            property_get("persist.radio.ril_modem_state", szModemState , "1");
+            if (strncmp(szModemState, "0", 1) == 0)
+            {
+                // Flightmode enabled
+                CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
+            }
+            else
+            {
+                if (E_MMGR_EVENT_MODEM_DOWN == CTE::GetTE().GetLastModemEvent())
+                {
+                    // Modem reset or plateform boot
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+                }
+                else
+                {
+                    // This is unlikely
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
+                }
+            }
+        }
+        else
+        {
+            GetModem();
+            CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
+        }
+
         RIL_LOG_INFO("CSystemManager::InitializeSystem() : Rapid Ril initialization completed\r\n");
     }
 
@@ -646,9 +673,18 @@ BOOL CSystemManager::ContinueInit()
 
     bRetVal = TRUE;
 
+    if (CTE::GetTE().GetModemOffInFlightModeState() &&
+            (RADIO_STATE_OFF != CTE::GetTE().GetRadioState()))
+    {
+        CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
+    }
     // Signal that we have initialized, so that framework
     // can start using the rild socket.
     CEvent::Signal(m_pSysInitCompleteEvent);
+    if (CTE::GetTE().GetModemOffInFlightModeState())
+    {
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
+    }
 
 Done:
     if (!bRetVal)
@@ -683,14 +719,18 @@ Done:
             m_pDataChannelAccessorMutex = NULL;
         }
 
-        if (m_fdCleanupSocket >= 0)
+        CThreadManager::Stop();
+
+        if (m_pMMgrLibHandle)
         {
-            shutdown(m_fdCleanupSocket, SHUT_RDWR);
-            close(m_fdCleanupSocket);
-            m_fdCleanupSocket = -1;
+            mmgr_cli_disconnect(m_pMMgrLibHandle);
+            Sleep(300);
+            mmgr_cli_delete_handle(m_pMMgrLibHandle);
+            delete m_pMMgrLibHandle;
+            m_pMMgrLibHandle = NULL;
         }
 
-        CThreadManager::Stop();
+        CTE::GetTE().DeleteTEObject();
 
         if (m_pExitRilEvent)
         {
@@ -1348,114 +1388,370 @@ void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIn
 ///////////////////////////////////////////////////////////////////////////////
 //  This function opens clean-up request socket.
 //  The fd of this socket is stored in the CSystemManager class.
-BOOL CSystemManager::OpenCleanupRequestSocket()
+BOOL CSystemManager::MMgrConnectionInit()
 {
-    RIL_LOG_INFO("CSystemManager::OpenCleanupRequestSocket() - ENTER\r\n");
+    RIL_LOG_INFO("CSystemManager::MMgrConnectionInit() - ENTER\r\n");
 
+    BOOL bRet = FALSE;
     const int NUM_LOOPS = 10;
     const int SLEEP_MS = 1000;  // 1 sec between retries
 
+    char RRIL_NAME[CLIENT_NAME_LEN] = "RRIL";
+
+    if (g_szSIMID)
+    {
+        RRIL_NAME[4] = g_szSIMID[0];
+        RRIL_NAME[5] = '\0';
+    }
+
+    if (E_ERR_CLI_SUCCEED != mmgr_cli_create_handle(&m_pMMgrLibHandle, RRIL_NAME, NULL))
+    {
+        m_pMMgrLibHandle = NULL;
+        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
+                         " Cannot create handle\n");
+        goto out;
+    }
+
+    if (E_ERR_CLI_SUCCEED !=
+          mmgr_cli_subscribe_event(m_pMMgrLibHandle,
+                                     ModemManagerEventHandler,
+                                     E_MMGR_EVENT_MODEM_UP))
+    {
+        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
+                         " Cannot subscribe event %d\n",
+                          E_MMGR_EVENT_MODEM_UP);
+        goto out;
+    }
+
+    if (E_ERR_CLI_SUCCEED !=
+          mmgr_cli_subscribe_event(m_pMMgrLibHandle,
+                                     ModemManagerEventHandler,
+                                     E_MMGR_EVENT_MODEM_DOWN))
+    {
+        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
+                         " Cannot subscribe event %d\n",
+                          E_MMGR_EVENT_MODEM_UP);
+        goto out;
+    }
+
+    if (E_ERR_CLI_SUCCEED !=
+          mmgr_cli_subscribe_event(m_pMMgrLibHandle,
+                                     ModemManagerEventHandler,
+                                     E_MMGR_EVENT_MODEM_OUT_OF_SERVICE))
+    {
+        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
+                         " Cannot subscribe event %d\n",
+                          E_MMGR_EVENT_MODEM_OUT_OF_SERVICE);
+        goto out;
+    }
+
+    if (E_ERR_CLI_SUCCEED !=
+          mmgr_cli_subscribe_event(m_pMMgrLibHandle,
+                                     ModemManagerEventHandler,
+                                     E_MMGR_NOTIFY_MODEM_WARM_RESET))
+    {
+        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
+                         " Cannot subscribe notification %d\n",
+                          E_MMGR_NOTIFY_MODEM_WARM_RESET);
+        goto out;
+    }
+
+    if (E_ERR_CLI_SUCCEED !=
+          mmgr_cli_subscribe_event(m_pMMgrLibHandle,
+                                     ModemManagerEventHandler,
+                                     E_MMGR_NOTIFY_MODEM_COLD_RESET))
+    {
+        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
+                         " Cannot subscribe notification %d\n",
+                          E_MMGR_NOTIFY_MODEM_COLD_RESET);
+        goto out;
+    }
+
+    if (E_ERR_CLI_SUCCEED !=
+          mmgr_cli_subscribe_event(m_pMMgrLibHandle,
+                                     ModemManagerEventHandler,
+                                     E_MMGR_NOTIFY_MODEM_SHUTDOWN))
+    {
+        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
+                         " Cannot subscribe notification %d\n",
+                          E_MMGR_NOTIFY_MODEM_SHUTDOWN);
+        goto out;
+    }
+
+    if (E_ERR_CLI_SUCCEED !=
+          mmgr_cli_subscribe_event(m_pMMgrLibHandle,
+                                     ModemManagerEventHandler,
+                                     E_MMGR_NOTIFY_PLATFORM_REBOOT))
+    {
+        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
+                         " Cannot subscribe notification %d\n",
+                          E_MMGR_NOTIFY_PLATFORM_REBOOT);
+        goto out;
+    }
+
+    if (E_ERR_CLI_SUCCEED !=
+          mmgr_cli_subscribe_event(m_pMMgrLibHandle,
+                                     ModemManagerEventHandler,
+                                     E_MMGR_NOTIFY_CORE_DUMP))
+    {
+        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
+                         " Cannot subscribe notification %d\n",
+                          E_MMGR_NOTIFY_CORE_DUMP);
+        goto out;
+    }
+
+    //  TODO: Change looping formula
+
     for (int i = 0; i < NUM_LOOPS; i++)
     {
-        RIL_LOG_INFO("CSystemManager::OpenCleanupRequestSocket() - Attempting open cleanup socket try=[%d] out of %d\r\n", i+1, NUM_LOOPS);
-        m_fdCleanupSocket = socket_local_client(SOCKET_NAME_CLEAN_UP,
-                ANDROID_SOCKET_NAMESPACE_RESERVED,
-                SOCK_STREAM);
+        RIL_LOG_INFO("CSystemManager::MMgrConnectionInit() -"
+                     " Attempting to connect to MMgr try=[%d] out of %d\r\n",
+                       i+1,
+                       NUM_LOOPS);
 
-        if (m_fdCleanupSocket < 0)
+        if (E_ERR_CLI_SUCCEED != mmgr_cli_connect(m_pMMgrLibHandle))
         {
-            if (i < NUM_LOOPS - 1)
-            {
-                Sleep(SLEEP_MS);
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CSystemManager::OpenCleanupRequestSocket() - Cannot open m_fdCleanupSocket after %d tries\r\n", NUM_LOOPS);
-            }
+            RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() "
+                             "- Cannot connect to MMgr\r\n");
+            Sleep(SLEEP_MS);
         }
         else
         {
-            RIL_LOG_INFO("CSystemManager::OpenCleanupRequestSocket() - *** CREATED socket fd=[%d] ***\r\n", m_fdCleanupSocket);
+            RIL_LOG_INFO("CSystemManager::MMgrConnectionInit() -"
+                         " *** Connection opened ***\r\n");
+            bRet = TRUE;
             break;
         }
     }
 
-    RIL_LOG_INFO("CSystemManager::OpenCleanupRequestSocket() - EXIT\r\n");
-    return (m_fdCleanupSocket >= 0);
+out:
+    if (!bRet && (m_pMMgrLibHandle != NULL))
+    {
+        mmgr_cli_delete_handle(m_pMMgrLibHandle);
+        m_pMMgrLibHandle = NULL;
+    }
+
+    RIL_LOG_INFO("CSystemManager::MMgrConnectionInit() - EXIT\r\n");
+    return bRet;
 }
 
 
 //  Send clean up request on the socket
-BOOL CSystemManager::SendRequestCleanup()
+BOOL CSystemManager::SendRequestModemRecovery()
 {
-    RIL_LOG_INFO("CSystemManager::SendRequestCleanup() - ENTER\r\n");
+    RIL_LOG_INFO("CSystemManager::SendRequestModemRecovery() - ENTER\r\n");
     BOOL bRet = FALSE;
+    mmgr_cli_requests_t request;
+    request.id = E_MMGR_REQUEST_MODEM_RECOVERY;
 
-    if (m_fdCleanupSocket >= 0)
+    if (m_pMMgrLibHandle)
     {
-        UINT32 data;
-        int data_size = 0;
+        RIL_LOG_INFO("CSystemManager::SendRequestModemRecovery() -"
+                     " Send request clean up\r\n");
 
-        RIL_LOG_INFO("CSystemManager::SendRequestCleanup() - Send request clean up\r\n");
-        data = REQUEST_CLEANUP;
-        data_size = send(m_fdCleanupSocket, &data, sizeof(UINT32), 0);
-        if (data_size < 0)
+        if (E_ERR_CLI_SUCCEED != mmgr_cli_send_msg(m_pMMgrLibHandle, &request))
         {
-            RIL_LOG_CRITICAL("CSystemManager::SendRequestCleanup() - Failed to send CLEANUP_REQUEST\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::SendRequestModemRecovery() -"
+                             " Failed to send REQUEST_MODEM_RECOVERY\r\n");
             goto Error;
         }
         else
         {
-            RIL_LOG_INFO("CSystemManager::SendRequestCleanup() - Send request clean up  SUCCESSFUL\r\n");
+            RIL_LOG_INFO("CSystemManager::SendRequestModemRecovery() -"
+                         " Send request clean up  SUCCESSFUL\r\n");
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CSystemManager::SendRequestCleanup() - invalid socket fd=[%d]\r\n", m_fdCleanupSocket);
+        RIL_LOG_CRITICAL("CSystemManager::SendRequestModemRecovery() -"
+                         " unable to communicate with MMgr\r\n");
         goto Error;
     }
 
     bRet = TRUE;
 Error:
-    RIL_LOG_INFO("CSystemManager::SendRequestCleanup() - EXIT\r\n");
+    RIL_LOG_INFO("CSystemManager::SendRequestModemRecovery() - EXIT\r\n");
     return bRet;
 }
 
 //  Send shutdown request on the socket
-BOOL CSystemManager::SendRequestShutdown()
+BOOL CSystemManager::SendRequestModemShutdown()
 {
-    RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - ENTER\r\n");
+    RIL_LOG_INFO("CSystemManager::SendRequestModemShutdown() - ENTER\r\n");
     BOOL bRet = FALSE;
+    mmgr_cli_requests_t request;
+    request.id = E_MMGR_REQUEST_FORCE_MODEM_SHUTDOWN;
 
-    if (m_fdCleanupSocket >= 0)
+    if (m_pMMgrLibHandle)
     {
-        UINT32 data;
-        int data_size = 0;
+        RIL_LOG_INFO("CSystemManager::SendRequestModemShutdown() -"
+                     " Send request modem force shutdown\r\n");
 
-        RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - Send request shutdown\r\n");
-        data = REQUEST_SHUTDOWN;
-        data_size = send(m_fdCleanupSocket, &data, sizeof(UINT32), 0);
-        if (data_size < 0)
+        if (E_ERR_CLI_SUCCEED != mmgr_cli_send_msg(m_pMMgrLibHandle, &request))
         {
-            RIL_LOG_CRITICAL("CSystemManager::SendRequestShutdown() - Failed to send CLEANUP_SHUTDOWN\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::SendRequestModemShutdown() -"
+                             " Failed to send REQUEST_FORCE_MODEM_SHUTDOWN\r\n");
             goto Error;
         }
         else
         {
-            RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - Send request shutdown  SUCCESSFUL\r\n");
+            RIL_LOG_INFO("CSystemManager::SendRequestModemShutdown() -"
+                         " Send request modem force shutdown SUCCESSFUL\r\n");
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CSystemManager::SendRequestShutdown() - invalid socket fd=[%d]\r\n", m_fdCleanupSocket);
+        RIL_LOG_CRITICAL("CSystemManager::SendRequestModemShutdown() -"
+                         " unable to communicate with MMgr\r\n");
         goto Error;
     }
 
     bRet = TRUE;
 Error:
-    RIL_LOG_INFO("CSystemManager::SendRequestShutdown() - EXIT\r\n");
+    RIL_LOG_INFO("CSystemManager::SendRequestModemShutdown() - EXIT\r\n");
     return bRet;
 }
+
+//  Send shutdown request on the socket
+BOOL CSystemManager::SendAckModemShutdown()
+{
+    RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() - ENTER\r\n");
+    BOOL bRet = FALSE;
+    mmgr_cli_requests_t request;
+    request.id = E_MMGR_ACK_MODEM_SHUTDOWN;
+
+    if (m_pMMgrLibHandle)
+    {
+        RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() -"
+                     " Acknowledging modem force shutdown\r\n");
+
+        if (E_ERR_CLI_SUCCEED != mmgr_cli_send_msg(m_pMMgrLibHandle, &request))
+        {
+            RIL_LOG_CRITICAL("CSystemManager::SendAckModemShutdown() -"
+                             " Failed to send REQUEST_ACK_MODEM_SHUTDOWN\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() -"
+                         " Modem force shutdown acknowledge SUCCESSFUL\r\n");
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CSystemManager::SendAckModemShutdown() -"
+                         " unable to communicate with MMgr\r\n");
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() - EXIT\r\n");
+    return bRet;
+}
+
+//  Send shutdown request on the socket
+BOOL CSystemManager::SendAckModemColdReset()
+{
+    RIL_LOG_INFO("CSystemManager::SendAckModemColdReset() - ENTER\r\n");
+    BOOL bRet = FALSE;
+    mmgr_cli_requests_t request;
+    request.id = E_MMGR_ACK_MODEM_COLD_RESET;
+
+    if (m_pMMgrLibHandle)
+    {
+        RIL_LOG_INFO("CSystemManager::SendAckModemColdReset() -"
+                     " Acknowledging cold reset \r\n");
+
+        if (E_ERR_CLI_SUCCEED != mmgr_cli_send_msg(m_pMMgrLibHandle, &request))
+        {
+            RIL_LOG_CRITICAL("CSystemManager::SendAckModemColdReset() -"
+                             " Failed to send ACK_MODEM_COLD_RESET\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSystemManager::SendAckModemColdReset() -"
+                         " Cold reset acknowledge SUCCESSFUL\r\n");
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CSystemManager::SendAckModemColdReset() -"
+                         " unable to communicate with MMgr\r\n");
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_INFO("CSystemManager::SendAckModemColdReset() - EXIT\r\n");
+    return bRet;
+}
+
+//  Send shutdown request on the socket
+BOOL CSystemManager::GetModem()
+{
+    RIL_LOG_INFO("CSystemManager::GetModem() - ENTER\r\n");
+    BOOL bRet = FALSE;
+
+    if (m_pMMgrLibHandle)
+    {
+        RIL_LOG_INFO("CSystemManager::GetModem() - Getting modem resource\r\n");
+
+        if (E_ERR_CLI_SUCCEED != mmgr_cli_lock(m_pMMgrLibHandle))
+        {
+            RIL_LOG_CRITICAL("CSystemManager::GetModem() - Failed to get modem resource\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSystemManager::GetModem() - Modem resource get SUCCESSFUL\r\n");
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CSystemManager::GetModem() - unable to communicate with MMgr\r\n");
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_INFO("CSystemManager::GetModem() - EXIT\r\n");
+    return bRet;
+}
+
+//  Send shutdown request on the socket
+BOOL CSystemManager::ReleaseModem()
+{
+    RIL_LOG_INFO("CSystemManager::ReleaseModem() - ENTER\r\n");
+    BOOL bRet = FALSE;
+
+    if (m_pMMgrLibHandle)
+    {
+        RIL_LOG_INFO("CSystemManager::ReleaseModem() - Releasing modem resource\r\n");
+
+        if (E_ERR_CLI_SUCCEED != mmgr_cli_unlock(m_pMMgrLibHandle))
+        {
+            RIL_LOG_CRITICAL("CSystemManager::ReleaseModem() - Modem resource release failed\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSystemManager::ReleaseModem() - Modem resource release SUCCESSFUL\r\n");
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CSystemManager::ReleaseModem() - unable to communicate with MMgr\r\n");
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_INFO("CSystemManager::ReleaseModem() - EXIT\r\n");
+    return bRet;
+}
+
 
 void CSystemManager::CompleteIdenticalRequests(UINT32 uiReqID,
                                                 UINT32 uiResultCode,

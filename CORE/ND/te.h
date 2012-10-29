@@ -558,6 +558,15 @@ public:
     void SetRadioState(const RRIL_Radio_State eRadioState);
     void SetSIMState(const RRIL_SIM_State eRadioState);
 
+    void SetSpoofCommandsStatus(BOOL bStatus) { m_bSpoofCommandsStatus = bStatus; };
+    BOOL GetSpoofCommandsStatus() { return m_bSpoofCommandsStatus; };
+
+    void SetLastModemEvent(UINT32 uiValue) { m_uiLastModemEvent = uiValue; };
+    UINT32 GetLastModemEvent() {return m_uiLastModemEvent;};
+
+    void SetModemOffInFlightModeState(BOOL bValue) { m_bModemOffInFlightMode = bValue; };
+    BOOL GetModemOffInFlightModeState() {return m_bModemOffInFlightMode;};
+
     void SetSimTechnicalProblem(BOOL bIsTechnicalProblem) { m_bIsSimTechnicalProblem = bIsTechnicalProblem; };
     BOOL IsSimTechnicalProblem() { return m_bIsSimTechnicalProblem; };
 
@@ -807,6 +816,21 @@ private:
 
     // Flag used to store setup data call status
     BOOL m_bIsSetupDataCallOngoing;
+
+    // Flag used to store spoof commands status
+    BOOL m_bSpoofCommandsStatus;
+
+    /*
+     * Flag is used to know the current modem status.
+     */
+    UINT32 m_uiLastModemEvent;
+
+    /*
+     * Flag is used to know if modem shutdown is available during flightmode.
+     * If TRUE, RIL will ask MMgr to power off the mode when flightmode is
+     * enabled.
+     */
+    BOOL m_bModemOffInFlightMode;
 
     /*
      * Flag is used to store sim technical problem.

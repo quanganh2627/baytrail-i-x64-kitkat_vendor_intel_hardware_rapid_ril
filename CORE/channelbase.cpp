@@ -819,7 +819,7 @@ UINT32 CChannelBase::ResponseThread()
         RIL_LOG_VERBOSE("CChannelBase::ResponseThread() chnl=[%d] - Waiting for data\r\n", m_uiRilChannel);
         if (!WaitForAvailableData(WAIT_FOREVER))
         {
-            if (g_bSpoofCommands)
+            if (CTE::GetTE().GetSpoofCommandsStatus())
             {
                 // If we are in spoof mode this means that the modem is down.
                 // Don't report error in this case and simply ends the thread.
@@ -856,7 +856,7 @@ UINT32 CChannelBase::ResponseThread()
         {
             if (!ReadFromPort(szData, uiRespDataBufSize, uiRead))
             {
-                if (g_bSpoofCommands)
+                if (CTE::GetTE().GetSpoofCommandsStatus())
                 {
                     //  If we are in spoof mode, this means that the modem is down.
                     //  Don't report error in this case and simply ends the thread.
@@ -885,15 +885,18 @@ UINT32 CChannelBase::ResponseThread()
             {
                 if (bFirstRead)
                 {
-                    if (g_bSpoofCommands)
+                    if (CTE::GetTE().GetSpoofCommandsStatus())
                     {
                         // If we are in spoof mode this means that the modem is down.
                         // Don't report error in this case and simply ends the thread.
                         return 0;
                     }
 
+                    // This is not really an error but this should not happen
                     RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Data available but uiRead is 0!\r\n", m_uiRilChannel);
-                    Sleep(25);
+                    // As MODEM_DOWN event comes late, increase the sleep time
+                    // to 100ms to avoid log flood
+                    Sleep(100);
                 }
                 break;
             }

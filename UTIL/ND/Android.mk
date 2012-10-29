@@ -11,7 +11,7 @@ LOCAL_SRC_FILES:= \
     repository.cpp
 
 LOCAL_SHARED_LIBRARIES := \
-    libutils libcutils
+    libutils libcutils libmmgrcli
 
 # Activating this macro enables the optional Video Telephony feature
 ifeq ($(strip $(M2_VT_FEATURE_ENABLED)),true)
@@ -22,7 +22,8 @@ LOCAL_C_INCLUDES :=  \
     $(LOCAL_PATH)/../../INC \
     $(LOCAL_PATH)/../../CORE \
     $(LOCAL_PATH)/../../CORE/ND \
-    $(LOCAL_PATH)/../../OEM/ND
+    $(LOCAL_PATH)/../../OEM/ND \
+    $(TARGET_OUT_HEADERS)/IFX-modem
 
 #build shared library
 LOCAL_PRELINK_MODULE := false

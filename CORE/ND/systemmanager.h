@@ -36,6 +36,7 @@
 #include "rilchannels.h"
 #include "com_init_index.h"
 #include <cutils/properties.h>
+#include "mmgr_cli.h"
 
 class CCommand;
 class CChannel;
@@ -72,6 +73,7 @@ public:
 
     //  Get/Set functions.
     static CEvent* GetCancelEvent() { return GetInstance().m_pExitRilEvent; };
+    static CEvent* GetInitCompleteEvent() { return GetInstance().m_pSysInitCompleteEvent; };
     static CMutex* GetDataChannelAccessorMutex() { return GetInstance().m_pDataChannelAccessorMutex; };
     static CMutex* GetTEAccessMutex() { return GetInstance().m_pTEAccessMutex; }
 
@@ -88,8 +90,13 @@ public:
     void CloseChannelPorts();
     BOOL OpenChannelPortsOnly();
 
-    BOOL SendRequestCleanup();
-    BOOL SendRequestShutdown();
+    BOOL SendRequestModemRecovery();
+    BOOL SendRequestModemShutdown();
+    BOOL SendAckModemShutdown();
+    BOOL SendAckModemColdReset();
+
+    BOOL GetModem();
+    BOOL ReleaseModem();
 
     //  This function continues the init in the function InitializeSystem() left
     //  off from InitChannelPorts().  Called when MODEM_UP status is received.
@@ -117,7 +124,7 @@ private:
     //  Create and initialize the channels, but don't actually open the ports.
     BOOL InitChannelPorts();
 
-    BOOL OpenCleanupRequestSocket();
+    BOOL MMgrConnectionInit();
 
     // Internal Init helper functions
     void SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
@@ -149,7 +156,7 @@ private:
     CMutex* m_pSystemManagerMutex;
     CMutex* m_pDataChannelAccessorMutex;
 
-    int m_fdCleanupSocket;
+    mmgr_cli_handle_t* m_pMMgrLibHandle;
 
     CRequestInfoTable m_RequestInfoTable;
 

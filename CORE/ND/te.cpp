@@ -44,6 +44,7 @@ CTE::CTE(UINT32 modemType) :
     m_bCSStatusCached(FALSE),
     m_bPSStatusCached(FALSE),
     m_bIsSetupDataCallOngoing(FALSE),
+    m_bSpoofCommandsStatus(TRUE),
     m_bIsSimTechnicalProblem(FALSE),
     m_bIsManualNetworkSearchOn(FALSE),
     m_bIsDataSuspended(FALSE),
@@ -129,8 +130,11 @@ CTE& CTE::GetTE()
 
 void CTE::DeleteTEObject()
 {
+    CMutex::Lock(CSystemManager::GetTEAccessMutex());
+    RIL_LOG_INFO("CTE::DeleteTEObject() - Deleting TE instance\r\n");
     delete m_pTEInstance;
     m_pTEInstance = NULL;
+    CMutex::Unlock(CSystemManager::GetTEAccessMutex());
 }
 
 //
@@ -1350,6 +1354,8 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
         }
         else
         {
+            // FIXME: Handle wait forever
+            CEvent::Wait(CSystemManager::GetInitCompleteEvent(), WAIT_FOREVER);
             CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER], rilToken, ND_REQ_ID_RADIOPOWER, reqData, &CTE::ParseRadioPower);
 
             if (pCmd)
