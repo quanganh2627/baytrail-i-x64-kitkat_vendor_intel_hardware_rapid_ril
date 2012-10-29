@@ -5839,8 +5839,8 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA& rReqData,
     rReqData.pContextData = (void*)nEnable;
 
     if (!CopyStringNullTerminate(rReqData.szCmd1, (1 == nEnable) ?
-                                "AT+CREG=2;+XREG=2;+XCSQ=1\r" :
-                                "AT+CREG=0;+XREG=0;+XCSQ=0\r", sizeof(rReqData.szCmd1)))
+                                "AT+CREG=2;+CGREG=0;+XREG=2;+XCSQ=1\r" :
+                                "AT+CREG=1;+CGREG=1;+XREG=0;+XCSQ=0\r", sizeof(rReqData.szCmd1)))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
         goto Error;
