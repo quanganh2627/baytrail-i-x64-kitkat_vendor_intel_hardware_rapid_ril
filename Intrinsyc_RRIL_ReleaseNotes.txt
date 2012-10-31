@@ -1,6 +1,172 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+November 2, 2012 (M6.38 release for Medfield PR3)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield
+PR3 devices, Android version 4.1.1 (Jelly Bean).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external JB ABSP dated September 29, 2012 (ww39).
+- We are using the HSI interface.
+
+PR3 Setup
+=========
+FW DnX: SIGNED_PNW_D1_FWR_DnX.FD.05.bin (from ww39 PR3.3 release)
+IFWI: IFWI_v05.AB_CRAK_DEV.bin (from ww39 PR3.3 release)
+OS DnX: SIGNED_PNW_D1_OSR_DnX.0D.08.bin (from ww39 PR3.3 release)
+OS Image: droidboot.img.POS (from ww39 PR3.3 release)
+Modem Firmware: radio_firmware.bin (from ww39 PR3.3 release - 1238.A)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch mfld_pr2-eng
+make mfld_pr2 -j8
+
+
+Release Notes for M6.38
+========================
+
+1. Merge external files from WW39 ABSP to RRIL:
+   -hardware/ril/libril/ril.cpp
+   -vendor/intel/mfld_pr2/init.mfld_pr2.rc
+                         /init.wireless.rc
+
+2. Sync with Intel's M6.37 mainline:
+   -Fix formatting, code cleanup.
+   -Modify fix for BZ 60718: Couldn't add/remove contact from FDN list on
+    first boot.
+   -Change channel for VOICERADIOTECH request from DLC2 to ATCMD and
+    ACKINCOMINGSMSWITHPDU request from DLC6 to ATCMD.
+
+3. Bugzilla 63414: Incorrect way to get uiCID
+   -Integrate patch 71004
+
+4. Bugzilla 57382: Pass CTE as reference to modem instance creation
+   -Integrate patch 66745
+
+5. Bugzilla 63314: Remove SetAlwaysParse for defining context
+   -Integrate patch 71516
+
+6. Bugzilla 64826: RIL does not support default network type in
+   reregistering case
+   -In CoreSetPreferredNetworkType() for te_inf_6260/7x60.cpp,
+    add case for unsupported RAT type of 7.  Use default of
+    PREF_NET_TYPE_GSM_WCDMA for 6260 and default of
+    PREF_NET_TYPE_LTE_GSM_WCDMA for 7x60.
+
+7. Bugzilla 63978: Removing references of 2230 from rapid ril
+   -Integrate patch 71426
+
+8. Bugzilla 60109: Use +XGENDATA for 7x60 modem initialization
+   -Integrate patch 71488
+
+9. Incorporate feedback, re-release M6.38
+   -For BZ 64826, in te_inf_7x60.cpp, check "config_lte_support" property before setting
+    radio access technology as triple mode LTE/GSM/UMTS or dual mode GSM/UMTS.
+   -Fix formatting for lines > 100 characters and missing line feeds.
+
+
+Testing results:  (tested on Medfield PR3)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 October 16, 2012 (M6.37 release for Medfield PR3)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Medfield

@@ -516,17 +516,17 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     {
         if (SILO_NETWORK_CGREG == regType)
         {
-            fRet = CTE::ParseCGREG(rszPointer, fUnSolicited, psRegStatus);
+            fRet = CTE::GetTE().ParseCGREG(rszPointer, fUnSolicited, psRegStatus);
             pRegStatusInfo = (void*) &psRegStatus;
         }
         else if (SILO_NETWORK_CREG == regType)
         {
-            fRet = CTE::ParseCREG(rszPointer, fUnSolicited, csRegStatus);
+            fRet = CTE::GetTE().ParseCREG(rszPointer, fUnSolicited, csRegStatus);
             pRegStatusInfo = (void*) &csRegStatus;
         }
         else if (SILO_NETWORK_XREG == regType)
         {
-            fRet = CTE::ParseXREG(rszPointer, fUnSolicited, psRegStatus);
+            fRet = CTE::GetTE().ParseXREG(rszPointer, fUnSolicited, psRegStatus);
             pRegStatusInfo = (void*) &psRegStatus;
         }
 

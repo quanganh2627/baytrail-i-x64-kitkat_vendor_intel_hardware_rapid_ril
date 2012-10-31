@@ -32,12 +32,13 @@
 #include <cutils/properties.h>
 
 
-CTEBase::CTEBase() :
-    m_cTerminator('\r'),
-    m_nNetworkRegistrationType(0),
-    mShutdown(false),
-    m_nSimAppType(RIL_APPTYPE_UNKNOWN),
-    m_ePin2State(RIL_PINSTATE_UNKNOWN)
+CTEBase::CTEBase(CTE& cte)
+: m_cte(cte),
+  m_cTerminator('\r'),
+  m_nNetworkRegistrationType(0),
+  mShutdown(false),
+  m_nSimAppType(RIL_APPTYPE_UNKNOWN),
+  m_ePin2State(RIL_PINSTATE_UNKNOWN)
 {
     CRepository repository;
     strcpy(m_szNetworkInterfaceNamePrefix, "");
@@ -1640,14 +1641,14 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA & rRspData)
     }
     memset(pRegStatus, 0, sizeof(S_ND_REG_STATUS));
 
-    if (!CTE::ParseCREG(pszRsp, FALSE, regStatus))
+    if (!m_cte.ParseCREG(pszRsp, FALSE, regStatus))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseRegistrationState() - ERROR in parsing response.\r\n");
         goto Error;
     }
 
-    CTE::GetTE().StoreRegistrationInfo(&regStatus, FALSE);
-    CTE::GetTE().CopyCachedRegistrationInfo(pRegStatus, FALSE);
+    m_cte.StoreRegistrationInfo(&regStatus, FALSE);
+    m_cte.CopyCachedRegistrationInfo(pRegStatus, FALSE);
 
     // We cheat with the size here.
     // Although we have allocated a S_ND_REG_STATUS struct, we tell
@@ -1706,14 +1707,14 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA & rRspData)
     }
     memset(pGPRSRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
-    if (!CTE::ParseXREG(pszRsp, FALSE, psRegStatus))
+    if (!m_cte.ParseXREG(pszRsp, FALSE, psRegStatus))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR in parsing response.\r\n");
         goto Error;
     }
 
-    CTE::GetTE().StoreRegistrationInfo(&psRegStatus, TRUE);
-    CTE::GetTE().CopyCachedRegistrationInfo(pGPRSRegStatus, TRUE);
+    m_cte.StoreRegistrationInfo(&psRegStatus, TRUE);
+    m_cte.CopyCachedRegistrationInfo(pGPRSRegStatus, TRUE);
 
     // We cheat with the size here.
     // Although we have allocated a S_ND_GPRS_REG_STATUS struct, we tell
@@ -5477,7 +5478,7 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA & rReqData, void * pData, 
     property_get("persist.conformance", szConformanceProperty, NULL);
 
     // if Modem Fast Dormancy mode is "Display Driven"
-    if (E_FD_MODE_DISPLAY_DRIVEN == CTE::GetTE().GetFastDormancyMode() &&
+    if (E_FD_MODE_DISPLAY_DRIVEN == m_cte.GetFastDormancyMode() &&
         strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
     {
         // disable MAFD when "Screen On", enable MAFD when "Screen Off"
@@ -5526,7 +5527,7 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA & rRspData)
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
     }
 
-    CTE::GetTE().ResetRegistrationCache();
+    m_cte.ResetRegistrationCache();
 
     RIL_LOG_VERBOSE("CTEBase::ParseScreenState() - Exit\r\n");
     return RRIL_RESULT_OK;

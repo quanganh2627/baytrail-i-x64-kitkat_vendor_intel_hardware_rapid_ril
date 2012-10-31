@@ -23,10 +23,13 @@ class CTE_INF_6260 : public CTEBase
 {
 public:
 
-    CTE_INF_6260();
+    CTE_INF_6260(CTE& cte);
     virtual ~CTE_INF_6260();
 
 private:
+
+    CTE_INF_6260();
+
     //  Prevent assignment: Declared but not implemented.
     CTE_INF_6260(const CTE_INF_6260& rhs);  // Copy Constructor
     CTE_INF_6260& operator=(const CTE_INF_6260& rhs);  //  Assignment operator

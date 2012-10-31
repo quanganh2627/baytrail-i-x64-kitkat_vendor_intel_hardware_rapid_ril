@@ -54,7 +54,7 @@ CTE::CTE(UINT32 modemType) :
     m_uiTimeoutWaitForInit(TIMEOUT_WAITFORINIT),
     m_uiTimeoutThresholdForRetry(TIMEOUT_THRESHOLDFORRETRY)
 {
-    m_pTEBaseInstance = CreateModemTE();
+    m_pTEBaseInstance = CreateModemTE(this);
 
     if (NULL == m_pTEBaseInstance)
     {
@@ -72,17 +72,17 @@ CTE::~CTE()
     m_pTEBaseInstance = NULL;
 }
 
-CTEBase* CTE::CreateModemTE()
+CTEBase* CTE::CreateModemTE(CTE* pTEInstance)
 {
     switch (m_uiModemType)
     {
         case MODEM_TYPE_IFX7060:
             RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 7x60\r\n");
-            return new CTE_INF_7x60();
+            return new CTE_INF_7x60(*pTEInstance);
 
         case MODEM_TYPE_IFX6260:
             RIL_LOG_INFO("CTE::CreateModemTE() - Using Infineon 6260\r\n");
-            return new CTE_INF_6260();
+            return new CTE_INF_6260(*pTEInstance);
 
         default: // unsupported modem
             RIL_LOG_INFO("CTE::CreateModemTE() - No modem specified, returning NULL\r\n");

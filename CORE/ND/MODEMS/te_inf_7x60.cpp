@@ -37,9 +37,9 @@
 #include <linux/if_ether.h>
 #include <linux/gsmmux.h>
 
-CTE_INF_7x60::CTE_INF_7x60() :
-    CTE_INF_6260(),
-    m_currentNetworkType(-1)
+CTE_INF_7x60::CTE_INF_7x60(CTE& refTE)
+: CTE_INF_6260(refTE),
+  m_currentNetworkType(-1)
 {
 }
 
@@ -268,7 +268,8 @@ RIL_RESULT_CODE CTE_INF_7x60::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
     {
         rReqData.szCmd1[0] = '\0';
         res = RRIL_RESULT_OK;
-        RIL_LOG_INFO("CTE_INF_7x60::CoreSetPreferredNetworkType() - Network type {%d} already set.\r\n", networkType);
+        RIL_LOG_INFO("CTE_INF_7x60::CoreSetPreferredNetworkType() - Network type {%d} "
+            "already set.\r\n", networkType);
         goto Error;
     }
 
@@ -276,9 +277,11 @@ RIL_RESULT_CODE CTE_INF_7x60::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
     {
         case PREF_NET_TYPE_LTE_GSM_WCDMA: // LTE Preferred
 
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=6,2,1\r", sizeof(rReqData.szCmd1)))
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=6,2,1\r",
+                sizeof(rReqData.szCmd1)))
             {
-                RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't construct "
+                    "szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
@@ -288,7 +291,8 @@ RIL_RESULT_CODE CTE_INF_7x60::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=3,1\r", sizeof(rReqData.szCmd1)))
             {
-                RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't construct "
+                    "szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
@@ -298,7 +302,8 @@ RIL_RESULT_CODE CTE_INF_7x60::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=0\r", sizeof(rReqData.szCmd1)))
             {
-                RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't construct "
+                    "szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
@@ -308,7 +313,8 @@ RIL_RESULT_CODE CTE_INF_7x60::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=1\r", sizeof(rReqData.szCmd1)))
             {
-                RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't construct "
+                    "szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
@@ -318,14 +324,54 @@ RIL_RESULT_CODE CTE_INF_7x60::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=2\r", sizeof(rReqData.szCmd1)))
             {
-                RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't construct "
+                    "szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
             break;
 
+        // This value is received as a result of the recovery mechanism in the framework even
+        // though not supported by modem.  In this case, set to supported default value of
+        // PREF_NET_TYPE_LTE_GSM_WCDMA if LTE supported or PREF_NET_TYPE_GSM_WCDMA otherwise.
+        case PREF_NET_TYPE_GSM_WCDMA_CDMA_EVDO_AUTO:
+            {
+                char szLteSupported[MAX_PROP_VALUE] = {0};
+
+                if (property_get("config_lte_support", szLteSupported, "false") &&
+                    (0 == strcmp(szLteSupported, "true")))
+                {
+                    RIL_LOG_INFO("CTE_INF_7x60::CoreSetPreferredNetworkType() - Unsupported rat "
+                        "type %d, changing to %d\r\n", networkType, PREF_NET_TYPE_LTE_GSM_WCDMA);
+
+                    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=6,2,1\r",
+                        sizeof(rReqData.szCmd1)))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't "
+                            "construct szCmd1 networkType=%d\r\n", networkType);
+                        goto Error;
+                    }
+                }
+                else // default to non-LTE support
+                {
+                    RIL_LOG_INFO("CTE_INF_7x60::CoreSetPreferredNetworkType() - Unsupported rat "
+                        "type %d, changing to %d\r\n", networkType, PREF_NET_TYPE_GSM_WCDMA);
+
+                    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=3,1\r",
+                        sizeof(rReqData.szCmd1)))
+                    {
+                        RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Can't "
+                            "construct szCmd1 networkType=%d\r\n", networkType);
+                        goto Error;
+                    }
+                }
+            }
+
+            break;
+
         default:
-            RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Undefined rat code: %d\r\n", networkType);
+            RIL_LOG_CRITICAL("CTE_INF_7x60::CoreSetPreferredNetworkType() - Undefined rat code: "
+                "%d\r\n", networkType);
             res = RIL_E_MODE_NOT_SUPPORTED;
             goto Error;
 

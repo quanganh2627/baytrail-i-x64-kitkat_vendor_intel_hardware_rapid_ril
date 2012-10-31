@@ -41,8 +41,9 @@
 #include <linux/gsmmux.h>
 
 
-CTE_INF_6260::CTE_INF_6260()
-: m_currentNetworkType(-1)
+CTE_INF_6260::CTE_INF_6260(CTE& cte)
+: CTEBase(cte),
+  m_currentNetworkType(-1)
 {
     m_szUICCID[0] = '\0';
 }
@@ -2027,7 +2028,7 @@ RIL_RESULT_CODE CTE_INF_6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pDat
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY");
             // Check if Fast Dormancy mode allows OEM Hook
-            if (CTE::GetTE().GetFastDormancyMode() == E_FD_MODE_OEM_MANAGED)
+            if (m_cte.GetFastDormancyMode() == E_FD_MODE_OEM_MANAGED)
             {
                 res = CreateAutonomousFDReq(rReqData, (const char**) pszRequest, uiDataSize);
             }
@@ -2935,7 +2936,8 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
     {
         rReqData.szCmd1[0] = '\0';
         res = RRIL_RESULT_OK;
-        RIL_LOG_INFO("CTE_INF_6260::CoreSetPreferredNetworkType() - Network type {%d} already set.\r\n", networkType);
+        RIL_LOG_INFO("CTE_INF_6260::CoreSetPreferredNetworkType() - Network type {%d} "
+            "already set.\r\n", networkType);
         goto Error;
     }
 
@@ -2943,19 +2945,21 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
     {
         case PREF_NET_TYPE_GSM_WCDMA: // WCDMA Preferred
 
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=1,2\r", sizeof(rReqData.szCmd1) ))
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=1,2\r", sizeof(rReqData.szCmd1)))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't "
+                    "construct szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
-           break;
+            break;
 
         case PREF_NET_TYPE_GSM_ONLY: // GSM Only
 
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=0\r", sizeof(rReqData.szCmd1) ))
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=0\r", sizeof(rReqData.szCmd1)))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't "
+                    "construct szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
@@ -2963,16 +2967,35 @@ RIL_RESULT_CODE CTE_INF_6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqDat
 
         case PREF_NET_TYPE_WCDMA: // WCDMA Only
 
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=2\r", sizeof(rReqData.szCmd1) ))
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=2\r", sizeof(rReqData.szCmd1)))
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't construct szCmd1 networkType=%d\r\n", networkType);
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't "
+                    "construct szCmd1 networkType=%d\r\n", networkType);
+                goto Error;
+            }
+
+            break;
+
+        // This value is received as a result of the recovery mechanism in the framework even
+        // though not supported by modem.  In this case, set to supported default value of
+        // PREF_NET_TYPE_GSM_WCDMA.
+        case PREF_NET_TYPE_GSM_WCDMA_CDMA_EVDO_AUTO:
+
+            RIL_LOG_INFO("CTE_INF_6260::CoreSetPreferredNetworkType() - Unsupported rat type "
+                "%d, changing to %d\r\n", networkType, PREF_NET_TYPE_GSM_WCDMA);
+
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=1,2\r", sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Can't "
+                    "construct szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
             break;
 
         default:
-            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Undefined rat code: %d\r\n", networkType);
+            RIL_LOG_CRITICAL("CTE_INF_6260::CoreSetPreferredNetworkType() - Undefined rat "
+                "code: %d\r\n", networkType);
             res = RIL_E_MODE_NOT_SUPPORTED;
             goto Error;
             break;
@@ -5037,7 +5060,7 @@ void CTE_INF_6260::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
     dataCallResp.status = PDP_FAIL_ERROR_UNSPECIFIED;
     dataCallResp.suggestedRetryTime = -1;
 
-    CTE::GetTE().SetupDataCallOngoing(FALSE);
+    m_cte.SetupDataCallOngoing(FALSE);
 
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
@@ -5106,7 +5129,7 @@ void CTE_INF_6260::HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken,
     int state;
     int failCause = PDP_FAIL_ERROR_UNSPECIFIED;
 
-    CTE::GetTE().SetupDataCallOngoing(FALSE);
+    m_cte.SetupDataCallOngoing(FALSE);
 
     CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)

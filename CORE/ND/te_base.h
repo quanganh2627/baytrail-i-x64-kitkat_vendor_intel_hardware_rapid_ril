@@ -22,10 +22,12 @@
 #include <utils/Vector.h>
 
 class CChannel_Data;
+class CTE;
 
 class CTEBase
 {
 protected:
+    CTE& m_cte;
     char m_cTerminator;
     char m_szNewLine[3];
     char m_szNetworkInterfaceNamePrefix[MAX_BUFFER_SIZE];
@@ -45,8 +47,14 @@ protected:
 
 public:
 
-    CTEBase();
+    CTEBase(CTE& cte);
     virtual ~CTEBase();
+
+private:
+
+    CTEBase();
+
+public:
 
     // RIL_REQUEST_GET_SIM_STATUS 1
     virtual RIL_RESULT_CODE CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);

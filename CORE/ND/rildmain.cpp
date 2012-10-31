@@ -1364,7 +1364,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.37 for Android 4.1.1 (Build October 16/2012)";
+    return "Intrinsyc Rapid-RIL M6.38 for Android 4.1.1 (Build November 2/2012)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1442,16 +1442,8 @@ static bool RIL_SetGlobals(int argc, char **argv)
     char* szDualSim = CSystemManager::GetInstance().m_szDualSim;
 
     property_get("persist.dual_sim", szDualSim , "none");
-    if (strncmp(szDualSim, "dsds_2230", 9) == 0)
-    {
-        g_uiRilChannelUpperLimit = RIL_CHANNEL_DATA2 + 1;
-        g_arChannelMapping = g_arChannelMapping2230;
-    }
-    else
-    {
-        g_uiRilChannelUpperLimit = RIL_CHANNEL_MAX;
-        g_arChannelMapping = g_arChannelMappingDefault;
-    }
+    g_uiRilChannelUpperLimit = RIL_CHANNEL_MAX;
+    g_arChannelMapping = g_arChannelMappingDefault;
 
     while (-1 != (opt = getopt(argc, argv, "d:s:a:n:m:c:u:o:i:")))
     {
@@ -1571,15 +1563,8 @@ static bool RIL_SetGlobals(int argc, char **argv)
         LOGI("RIL_SetGlobals() - g_uiRilChannelCurMax = %d  g_uiRilChannelUpperLimit = %d\r\n", g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
     }
 
-    if (strncmp(szDualSim, "dsds_2230", 9) == 0)
-    {
-        if (!g_szCmdPort || !g_szDataPort1 || !g_szDataPort2)
-        {
-            usage(argv[0]);
-            return false;
-        }
-    }
-    else if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port || !g_szURCPort || !g_szOEMPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3)
+    if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port
+            || !g_szURCPort || !g_szOEMPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3)
     {
         usage(argv[0]);
         return false;

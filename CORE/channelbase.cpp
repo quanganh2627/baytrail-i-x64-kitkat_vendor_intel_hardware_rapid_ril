@@ -552,114 +552,112 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     //  and in first init index.
     if ((COM_BASIC_INIT_INDEX == eInitIndex) && (RIL_CHANNEL_ATCMD == m_uiRilChannel))
     {
-        //These commands are not supported by 2230 modem
-        if (!CSystemManager::GetInstance().IsDSDS_2230_Mode())
+        // Read the "conformance" property and disable FD if it is set to "true"
+        char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+        property_get("persist.conformance", szConformanceProperty, NULL);
+
+        if (strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
         {
-            // Read the "conformance" property and disable FD if it is set to "true"
-            char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
-            property_get("persist.conformance", szConformanceProperty, NULL);
+            // Read Fast Dormancy Timers from repository
+            repository.ReadFDParam(g_szGroupModem, g_szFDDelayTimer,
+                    szFDDelayTimer, MAX_BUFFER_SIZE, MIN_FDDELAY_TIMER, MAX_FDDELAY_TIMER);
+            repository.ReadFDParam(g_szGroupModem, g_szSCRITimer,
+                    szSCRITimer, MAX_BUFFER_SIZE, MIN_SCRI_TIMER, MAX_SCRI_TIMER);
 
-            if (strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
+            // define XFDOR command according to FD mode
+            switch (CTE::GetTE().GetFastDormancyMode())
             {
-                // Read Fast Dormancy Timers from repository
-                repository.ReadFDParam(g_szGroupModem, g_szFDDelayTimer, szFDDelayTimer, MAX_BUFFER_SIZE, MIN_FDDELAY_TIMER, MAX_FDDELAY_TIMER);
-                repository.ReadFDParam(g_szGroupModem, g_szSCRITimer, szSCRITimer, MAX_BUFFER_SIZE, MIN_SCRI_TIMER, MAX_SCRI_TIMER);
-
-               // define XFDOR command according to FD mode
-                switch (CTE::GetTE().GetFastDormancyMode())
-                {
-                    case E_FD_MODE_ALWAYS_ON :
-                        if (!PrintStringNullTerminate(szFDCmdString,
-                                              sizeof(szFDCmdString),
-                                              "+XFDOR=2,%s,%s",
-                                              szFDDelayTimer, szSCRITimer))
-                        {
-                                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
-                                goto Done;
-                        }
-                        break;
-                     case E_FD_MODE_OEM_MANAGED :
-                     case E_FD_MODE_DISPLAY_DRIVEN :
-                     default :
-                        if (!PrintStringNullTerminate(szFDCmdString,
-                                              sizeof(szFDCmdString),
-                                              "+XFDOR=3"))
-                        {
-                                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
-                                goto Done;
-                        }
-                        break;
-                }
-            }
-
-            // Add FD command to init string
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
-            {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
-                goto Done;
-            }
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szFDCmdString))
-            {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szFDCmdString failed\r\n");
-                goto Done;
-            }
-
-            // Read the RX DIV property
-            property_get("ro.spid.telephony.rxdiv", szRxDivProperty, "0");
-            nRxDiversity3GEnable = (szRxDivProperty[0] == '1') ? 1 : 0;
-
-            if (nRxDiversity3GEnable)
-            {
-                // Read 2G DARP mode setting from repository
-                if (repository.Read(g_szGroupModem, g_szRxDiversity2GDARP, nRxDiversity2GDARP))
-                {
-                    // no parameter
-                    if (-1 == nRxDiversity2GDARP)
+                case E_FD_MODE_ALWAYS_ON :
+                    if (!PrintStringNullTerminate(szFDCmdString,
+                                          sizeof(szFDCmdString),
+                                          "+XFDOR=2,%s,%s",
+                                         szFDDelayTimer, szSCRITimer))
                     {
-                        bIgnoreDARPParam = TRUE;
+                        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
+                        goto Done;
                     }
-                }
-                else
-                {
-                    // 2G DARP parameter is missing, set to default value
-                    nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
-                }
+                    break;
+                 case E_FD_MODE_OEM_MANAGED :
+                 case E_FD_MODE_DISPLAY_DRIVEN :
+                 default :
+                    if (!PrintStringNullTerminate(szFDCmdString,
+                                          sizeof(szFDCmdString),
+                                          "+XFDOR=3"))
+                    {
+                            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create Fast Dormancy command\r\n");
+                            goto Done;
+                    }
+                    break;
             }
+        }
 
-            if (bIgnoreDARPParam)
+        // Add FD command to init string
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
+            goto Done;
+        }
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szFDCmdString))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szFDCmdString failed\r\n");
+            goto Done;
+        }
+
+        // Read the RX DIV property
+        property_get("ro.spid.telephony.rxdiv", szRxDivProperty, "0");
+        nRxDiversity3GEnable = (szRxDivProperty[0] == '1') ? 1 : 0;
+
+        if (nRxDiversity3GEnable)
+        {
+            // Read 2G DARP mode setting from repository
+            if (repository.Read(g_szGroupModem, g_szRxDiversity2GDARP, nRxDiversity2GDARP))
             {
-                if (!PrintStringNullTerminate(szRxDiversityCmdString,
-                                              sizeof(szRxDiversityCmdString),
-                                              "+XRXDIV=%d",
-                                              nRxDiversity3GEnable))
+                // no parameter
+                if (-1 == nRxDiversity2GDARP)
                 {
-                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XRXDIV command\r\n");
-                    goto Done;
+                    bIgnoreDARPParam = TRUE;
                 }
             }
             else
             {
-                if (!PrintStringNullTerminate(szRxDiversityCmdString,
-                                              sizeof(szRxDiversityCmdString),
-                                              "+XRXDIV=%d,%d",
-                                              nRxDiversity3GEnable,
-                                              nRxDiversity2GDARP))
-                {
-                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XRXDIV command\r\n");
-                    goto Done;
-                }
+                // 2G DARP parameter is missing, set to default value
+                nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
             }
+        }
 
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+        if (bIgnoreDARPParam)
+        {
+            if (!PrintStringNullTerminate(szRxDiversityCmdString,
+                                          sizeof(szRxDiversityCmdString),
+                                          "+XRXDIV=%d",
+                                          nRxDiversity3GEnable))
             {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XRXDIV command\r\n");
                 goto Done;
             }
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szRxDiversityCmdString))
+        }
+        else
+        {
+            if (!PrintStringNullTerminate(szRxDiversityCmdString,
+                                          sizeof(szRxDiversityCmdString),
+                                          "+XRXDIV=%d,%d",
+                                          nRxDiversity3GEnable,
+                                          nRxDiversity2GDARP))
             {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szRxDiversityString failed\r\n");
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create XRXDIV command\r\n");
                 goto Done;
             }
+        }
+
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed\r\n");
+            goto Done;
+        }
+        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szRxDiversityCmdString))
+        {
+            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szRxDiversityString failed\r\n");
+            goto Done;
         }
 
 #if defined(M2_VT_FEATURE_ENABLED)

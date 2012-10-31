@@ -23,10 +23,13 @@ class CTE_INF_7x60 : public CTE_INF_6260
 {
 public:
 
-    CTE_INF_7x60();
+    CTE_INF_7x60(CTE& cte);
     virtual ~CTE_INF_7x60();
 
 private:
+
+    CTE_INF_7x60();
+
     //  Prevent assignment: Declared but not implemented.
     CTE_INF_7x60(const CTE_INF_7x60& rhs);  // Copy Constructor
     CTE_INF_7x60& operator=(const CTE_INF_7x60& rhs);  //  Assignment operator

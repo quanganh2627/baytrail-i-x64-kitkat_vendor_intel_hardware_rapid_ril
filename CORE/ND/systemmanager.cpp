@@ -740,16 +740,6 @@ void CSystemManager::SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eIn
 ///////////////////////////////////////////////////////////////////////////////
 BOOL CSystemManager::IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex)
 {
-    // DSDS 2230 mode
-    if (IsDSDS_2230_Mode() &&
-        (uiChannel != RIL_CHANNEL_ATCMD) &&
-        (uiChannel != RIL_CHANNEL_DATA1) &&
-        (uiChannel != RIL_CHANNEL_DATA2))
-    {
-        return true;
-    }
-
-    // Normal case
     if ((uiChannel < g_uiRilChannelCurMax) && (eInitIndex < COM_MAX_INDEX))
     {
         return m_rgfChannelCompletedInit[uiChannel][eInitIndex];
@@ -761,19 +751,6 @@ BOOL CSystemManager::IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eIni
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// Check if Dual Sim Dual Standby is used with a XM2230 Board
-BOOL CSystemManager::IsDSDS_2230_Mode()
-{
-    if (strncmp(m_szDualSim, "dsds_2230", 9) == 0)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
 ///////////////////////////////////////////////////////////////////////////////
 // Check for a channel type if port is correctly assigned
 BOOL CSystemManager::IsChannelUndefined(int channel)

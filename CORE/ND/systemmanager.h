@@ -100,9 +100,6 @@ public:
     UINT32 GetLastCallFailedCauseID() const { return m_uiLastCallFailedCauseID; };
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
-    // DSDS 2230 Mode
-    BOOL IsDSDS_2230_Mode();
-
     // Calls FindIdenticalRequestsAndSendResponses on all the channels
     static void CompleteIdenticalRequests(UINT32 uiReqID, UINT32 uiResultCode,
                                         void* pResponse, size_t responseLen);

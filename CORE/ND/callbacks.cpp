@@ -157,7 +157,7 @@ void triggerDeactivateDataCall(void* param)
     if (param == NULL)
         return;
 
-    uiCID = *((UINT32*)param);
+    uiCID = (UINT32)param;
 
     pCID = (UINT32*)malloc(sizeof(UINT32));
     if (NULL == pCID)

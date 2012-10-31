@@ -47,7 +47,7 @@ private:
     CTE(const CTE& rhs);  // Copy Constructor
     CTE& operator=(const CTE& rhs);  //  Assignment operator
 
-    CTEBase* CreateModemTE();
+    CTEBase* CreateModemTE(CTE* pTEInstance);
 
     static CTE* m_pTEInstance;
     CTEBase* m_pTEBaseInstance;
@@ -62,10 +62,12 @@ public:
     BOOL DataConfigDown(UINT32 uiCID);
     void CleanupAllDataConnections();
 
-    static BOOL ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_STATUS& pCSRegStruct);
-    static BOOL ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_REG_STATUS& pPSRegStruct);
-    static BOOL ParseXREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_GPRS_REG_STATUS& pPSRegStruct);
-    static RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
+    BOOL ParseCREG(const char*& rszPointer, const BOOL bUnSolicited, S_ND_REG_STATUS& pCSRegStruct);
+    BOOL ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
+                    S_ND_GPRS_REG_STATUS& pPSRegStruct);
+    BOOL ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
+                    S_ND_GPRS_REG_STATUS& pPSRegStruct);
+    RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
     RIL_RESULT_CODE RequestGetSimStatus(RIL_Token rilToken, void * pData, size_t datalen);

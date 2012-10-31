@@ -84,6 +84,5 @@ extern UINT32 g_uiRilChannelCurMax;
 
 //  Channel mapping array
 extern UINT32* g_arChannelMapping;
-extern UINT32 g_arChannelMapping2230[REQ_ID_TOTAL];
 extern UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL];
 
