@@ -293,7 +293,16 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
 
         case RIL_UNSOL_OEM_HOOK_RAW:  // 1028
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_OEM_HOOK_RAW\r\n");
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - dataSize=%d\r\n", dataSize);
+            if (pData && dataSize)
+            {
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - dataSize=%d\r\n", dataSize);
+            }
+            else
+            {
+                // If there is no data, this unsolicited command will generate a JAVA CRASH
+                // So ignore it if we are in this case
+                bSendNotification = false;
+            }
             break;
 
         case RIL_UNSOL_RINGBACK_TONE:  // 1029
