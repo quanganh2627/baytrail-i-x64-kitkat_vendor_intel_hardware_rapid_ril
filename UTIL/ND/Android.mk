@@ -1,9 +1,6 @@
 #
 # Copyright 2010 Intrinsyc Software International, Inc.  All rights reserved.
 #
-
-ifeq ($(strip $(BOARD_HAVE_IFX6160)),true)
-
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -35,4 +32,3 @@ LOCAL_MODULE:= librapid-ril-util
 LOCAL_MODULE_TAGS:= optional
 include $(BUILD_SHARED_LIBRARY)
 
-endif
