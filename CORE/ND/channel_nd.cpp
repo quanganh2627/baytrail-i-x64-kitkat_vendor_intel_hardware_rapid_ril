@@ -688,6 +688,11 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
 
     //  "ping" modem to see if still alive
     SetCmdThreadBlockedOnRxQueue();  //  Tell response thread that reponse is pending
+
+    // empty the queue before sending the command
+    g_pRxQueue[m_uiRilChannel]->MakeEmpty();
+    FlushResponse();
+
     uiBytesWritten = 0;
     RIL_LOG_INFO("CChannel::HandleTimeout() - Sending PING Command on chnl=[%d], timeout=[%d]ms\r\n", m_uiRilChannel, PING_TIMEOUT);
     WriteToPort(szPINGCmd, strlen(szPINGCmd), uiBytesWritten);
