@@ -38,6 +38,8 @@
 
 // CMS error codes are mapped to 3GPP spec
 #define CMS_ERROR_NETWORK_FAILURE                           17
+#define CMS_ERROR_MEMORY_CAPACITY_EXCEEDED                  211
+#define CMS_ERROR_UNSPECIFIED_FAILURE_CAUSE                 255
 #define CMS_ERROR_SIM_ABSENT                                310
 #define CMS_ERROR_MEMORY_FULL                               322
 #define CMS_ERROR_MO_SMS_REJECTED_BY_SIM_MO_SMS_CONTROL     540

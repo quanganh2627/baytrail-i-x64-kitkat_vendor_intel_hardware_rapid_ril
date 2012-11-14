@@ -30,6 +30,7 @@
 #include "channel_data.h"
 #include "data_util.h"
 #include <cutils/properties.h>
+#include "ril_result.h"
 
 
 CTEBase::CTEBase(CTE& cte)
@@ -3558,12 +3559,16 @@ RIL_RESULT_CODE CTEBase::CoreSmsAcknowledge(REQUEST_DATA & rReqData, void * pDat
     RIL_LOG_VERBOSE("CTEBase::CoreSmsAcknowledge() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    BOOL fSuccess = FALSE;
-    int* pnAckData = NULL;
+    int* pCmdData = NULL;
+    int status = 0;
+    int failCause = 0;
+    const int MAX_PDU_LENGTH = 3; // only 3 octets needed for DELIVER-REPORT
+    char szPdu[8] = {0};
 
     if ((sizeof(int *) != uiDataSize) && ((2 * sizeof(int *)) != uiDataSize))
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreSmsAcknowledge() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTEBase::CoreSmsAcknowledge() - Passed data size mismatch."
+                " Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
@@ -3573,30 +3578,66 @@ RIL_RESULT_CODE CTEBase::CoreSmsAcknowledge(REQUEST_DATA & rReqData, void * pDat
         goto Error;
     }
 
-    pnAckData = (int *)pData;
+    pCmdData = (int *)pData;
 
-    if (1 == pnAckData[0])
-    {
-        fSuccess = TRUE;
-    }
+    status = pCmdData[0];
+    failCause = pCmdData[1];
 
-    //  We ack the SMS in silo_sms so just send AT here to get OK response and keep upper layers happy.
-    //  Unless the want to send an unsuccessful ACK, then do so.
-    if (fSuccess)
+    //  We ack the SMS in silo_sms so just send AT here to get OK response and keep
+    //  upper layers happy. Unless the want to send an unsuccessful ACK, then do so.
+
+    if (1 == status) // successful receipt
     {
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CNMA=1\r", sizeof(rReqData.szCmd1)))
+        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CNMA=1\r", sizeof(rReqData.szCmd1)))
         {
-            res = RRIL_RESULT_OK;
+            RIL_LOG_CRITICAL("CTEBase::CoreSmsAcknowledge() - Cannot create CNMA command\r\n");
+            goto Error;
         }
+    }
+    else if (0 == status) // failed receipt
+    {
+        // SMS-DELIVER-REPORT TPDU (negative ack) format, 3GPP TS 23.040, 9.2.2.1a:
+        //   octet 1: Message Type Indicator - bits 0 & 1: 0 for SMS-DELIVER-REPORT
+        //   octet 2: Failure Cause
+        //   octet 3: Parameter Indicator - bits 0-7: set to 0, optional fields not used
+
+        switch (failCause)
+        {
+            case CMS_ERROR_MEMORY_CAPACITY_EXCEEDED: // 0xD3
+                RIL_LOG_INFO("CTEBase::CoreSmsAcknowledge() - MEMORY_CAPACIY_EXCEEDED\r\n");
+                snprintf(szPdu, sizeof(szPdu) - 1, "%s", "00D300");
+                break;
+
+            case CMS_ERROR_UNSPECIFIED_FAILURE_CAUSE: // 0xFF
+            default:
+                RIL_LOG_INFO("CTEBase::CoreSmsAcknowledge() - Unspecified failure cause\r\n");
+                snprintf(szPdu, sizeof(szPdu) - 1, "%s", "00FF00");
+                break;
+        }
+
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+CNMA=2,%u\r", MAX_PDU_LENGTH))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreSmsAcknowledge() - Cannot create CNMA command\r\n");
+            goto Error;
+        }
+
+        if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), "%s\x1a", szPdu))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreSmsAcknowledge() - Cannot create CNMA PDU\r\n");
+            goto Error;
+        }
+
+        RIL_LOG_INFO("pdu: %s\r\n",
+                CRLFExpandedString(rReqData.szCmd2, strlen(rReqData.szCmd2)).GetString());
     }
     else
     {
-        //if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CNMA=%u\r", fSuccess ? 1 : 2))
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CNMA=2\r", sizeof(rReqData.szCmd1)))
-        {
-            res = RRIL_RESULT_OK;
-        }
+        RIL_LOG_CRITICAL("CTEBase::CoreSmsAcknowledge() - Invalid parameter!\r\n");
+        goto Error;
     }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSmsAcknowledge() - Exit\r\n");
