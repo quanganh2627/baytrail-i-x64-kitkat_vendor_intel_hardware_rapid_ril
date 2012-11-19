@@ -72,7 +72,7 @@ public:
     static CChannel_Data* GetChnlFromContextID(UINT32 dwContextID);
     static CChannel_Data* GetChnlFromRilChannelNumber(UINT32 index);
 
-    // used by 7x60 modems only
+    // used by 6360 and 7x60 modems.
     static int GetFreeHSIChannel(UINT32 uiCID, int sindex, int eIndex);
     static bool FreeHSIChannel(UINT32 uiCID);
 
@@ -80,10 +80,10 @@ public:
     //  context ID of returned channel.
     //  If error, then NULL is returned.
     static CChannel_Data* GetFreeChnl(UINT32& outCID);
-    // used by 7x60 modems only
+    // used by 6360 and 7x60 modems.
     static CChannel_Data* GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile);
 
-    // used by 7x60 modems only
+    // used by 6360 and 7x60 modems.
     int GetDataProfile() { return m_dataProfile; };
     int GetHSIChannel() { return m_hsiChannel; };
     BOOL IsHSIDirect() { return m_hsiDirect; };
@@ -112,7 +112,7 @@ private:
 
     char m_szIpGateways[MAX_IPADDR_SIZE];
 
-    // used by 7x60 modems only
+    // used by 6360 and 7x60 modems.
     int m_dataProfile;
     BOOL m_hsiDirect;
     int m_hsiChannel;

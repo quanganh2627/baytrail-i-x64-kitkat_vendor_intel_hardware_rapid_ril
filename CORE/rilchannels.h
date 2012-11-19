@@ -27,7 +27,7 @@ extern UINT32 g_uiRilChannelUpperLimit;
 extern UINT32 g_uiRilChannelCurMax;
 
 //
-// RIL HSI defines are used by 7x60 modems only
+// RIL HSI defines are used by 6360 and 7x60 modems.
 //
 #define RIL_HSI_CHANNEL_MAX 5
 

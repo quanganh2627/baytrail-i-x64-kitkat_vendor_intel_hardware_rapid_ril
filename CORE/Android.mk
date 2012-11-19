@@ -45,8 +45,9 @@ LOCAL_SRC_FILES:= \
     thread_manager.cpp \
     ND/silo_factory.cpp \
     ND/MODEMS/data_util.cpp \
-    ND/MODEMS/te_inf_6260.cpp \
-    ND/MODEMS/te_inf_7x60.cpp \
+    ND/MODEMS/te_xmm6260.cpp \
+    ND/MODEMS/te_xmm6360.cpp \
+    ND/MODEMS/te_xmm7x60.cpp \
     ND/MODEMS/silo_voice_inf.cpp \
     ND/MODEMS/silo_sim_inf.cpp \
     ND/MODEMS/silo_sms_inf.cpp \

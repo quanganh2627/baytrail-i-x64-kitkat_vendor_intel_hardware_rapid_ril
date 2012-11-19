@@ -65,7 +65,7 @@ CEvent* g_RxQueueEvent[RIL_CHANNEL_MAX];
 //  Array of CChannels
 CChannel* g_pRilChannel[RIL_CHANNEL_MAX] = { NULL };
 
-// used for 7x60 modems
+// used for 6360 and 7x60 modems
 int m_hsiChannelsReservedForClass1 = -1;
 int m_hsiDataDirect = -1;
 int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE] = { NULL };
@@ -283,15 +283,20 @@ BOOL CSystemManager::InitializeSystem()
     // read the modem type used from repository
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
     {
-        if (0 == strcmp(szModem, szInfineon7x60))
-        {
-            RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using Infineon 7x60\r\n");
-            uiModemType = MODEM_TYPE_IFX7060;
-        }
-        else if (0 == strcmp(szModem, szInfineon6260))
+        if (0 == strcmp(szModem, szXMM6260))
         {
             RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using Infineon 6260\r\n");
-            uiModemType = MODEM_TYPE_IFX6260;
+            uiModemType = MODEM_TYPE_XMM6260;
+        }
+        else if (0 == strcmp(szModem, szXMM6360))
+        {
+            RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using Infineon 6360\r\n");
+            uiModemType = MODEM_TYPE_XMM6360;
+        }
+        else if (0 == strcmp(szModem, szXMM7x60))
+        {
+            RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using Infineon 7x60\r\n");
+            uiModemType = MODEM_TYPE_XMM7x60;
         }
         else
         {
@@ -305,7 +310,8 @@ BOOL CSystemManager::InitializeSystem()
         goto Done;
     }
 
-    if (MODEM_TYPE_IFX7060 == uiModemType)
+    if (MODEM_TYPE_XMM6360 == uiModemType
+            || MODEM_TYPE_XMM7x60 == uiModemType)
     {
         int apnType = 0;
         if (!repository.Read(g_szGroupModem, g_szApnTypeDefault, apnType))

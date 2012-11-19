@@ -1,17 +1,17 @@
 ////////////////////////////////////////////////////////////////////////////
-// te_inf_6260.h
+// te_xmm6260.h
 //
 // Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
 //
 //
 // Description:
-//    Overlay for the Infineon 6260 modem
+//    Overlay for the IMC 6260 modem
 //
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef RRIL_TE_INF_6260_H
-#define RRIL_TE_INF_6260_H
+#ifndef RRIL_TE_XMM6260_H
+#define RRIL_TE_XMM6260_H
 
 #include "te_base.h"
 #include "rril.h"
@@ -19,20 +19,20 @@
 
 class CEvent;
 
-class CTE_INF_6260 : public CTEBase
+class CTE_XMM6260 : public CTEBase
 {
 public:
 
-    CTE_INF_6260(CTE& cte);
-    virtual ~CTE_INF_6260();
+    CTE_XMM6260(CTE& cte);
+    virtual ~CTE_XMM6260();
 
 private:
 
-    CTE_INF_6260();
+    CTE_XMM6260();
 
     //  Prevent assignment: Declared but not implemented.
-    CTE_INF_6260(const CTE_INF_6260& rhs);  // Copy Constructor
-    CTE_INF_6260& operator=(const CTE_INF_6260& rhs);  //  Assignment operator
+    CTE_XMM6260(const CTE_XMM6260& rhs);  // Copy Constructor
+    CTE_XMM6260& operator=(const CTE_XMM6260& rhs);  //  Assignment operator
 
 protected:
     int m_currentNetworkType;

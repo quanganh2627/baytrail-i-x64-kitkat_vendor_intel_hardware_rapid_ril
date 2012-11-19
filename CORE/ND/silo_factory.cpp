@@ -33,8 +33,12 @@ CSilo* CSilo_Factory::GetSiloVoice(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
     {
-        if (0 == strcmp(szModem, szInfineon6260))
+        if (0 == strcmp(szModem, szXMM6260)
+                || 0 == strcmp(szModem, szXMM6360)
+                || 0 == strcmp(szModem, szXMM7x60))
+        {
             pSilo = new CSilo_Voice_INF(pChannel);
+        }
     }
 
     if (NULL == pSilo)
@@ -57,8 +61,12 @@ CSilo* CSilo_Factory::GetSiloSIM(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
     {
-        if (0 == strcmp(szModem, szInfineon6260))
+        if (0 == strcmp(szModem, szXMM6260)
+                || 0 == strcmp(szModem, szXMM6360)
+                || 0 == strcmp(szModem, szXMM7x60))
+        {
             pSilo = new CSilo_SIM_INF(pChannel);
+        }
     }
 
     if (NULL == pSilo)
@@ -81,8 +89,12 @@ CSilo* CSilo_Factory::GetSiloSMS(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
     {
-        if (0 == strcmp(szModem, szInfineon6260))
+        if (0 == strcmp(szModem, szXMM6260)
+                || 0 == strcmp(szModem, szXMM6360)
+                || 0 == strcmp(szModem, szXMM7x60))
+        {
             pSilo = new CSilo_SMS_INF(pChannel);
+        }
     }
 
     if (NULL == pSilo)
@@ -105,8 +117,12 @@ CSilo* CSilo_Factory::GetSiloData(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
     {
-        if (0 == strcmp(szModem, szInfineon6260))
+        if (0 == strcmp(szModem, szXMM6260)
+                || 0 == strcmp(szModem, szXMM6360)
+                || 0 == strcmp(szModem, szXMM7x60))
+        {
             pSilo = new CSilo_Data_INF(pChannel);
+        }
     }
 
     if (NULL == pSilo)
@@ -129,8 +145,12 @@ CSilo* CSilo_Factory::GetSiloNetwork(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
     {
-        if (0 == strcmp(szModem, szInfineon6260))
+        if (0 == strcmp(szModem, szXMM6260)
+                || 0 == strcmp(szModem, szXMM6360)
+                || 0 == strcmp(szModem, szXMM7x60))
+        {
             pSilo = new CSilo_Network_INF(pChannel);
+        }
     }
 
     if (NULL == pSilo)
@@ -153,8 +173,12 @@ CSilo* CSilo_Factory::GetSiloPhonebook(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
     {
-        if (0 == strcmp(szModem, szInfineon6260))
+        if (0 == strcmp(szModem, szXMM6260)
+                || 0 == strcmp(szModem, szXMM6360)
+                || 0 == strcmp(szModem, szXMM7x60))
+        {
             pSilo = new CSilo_Phonebook_INF(pChannel);
+        }
     }
 
     if (NULL == pSilo)
@@ -177,8 +201,12 @@ CSilo* CSilo_Factory::GetSiloMISC(CChannel *pChannel)
 
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
     {
-        if (0 == strcmp(szModem, szInfineon6260))
+        if (0 == strcmp(szModem, szXMM6260)
+                || 0 == strcmp(szModem, szXMM6360)
+                || 0 == strcmp(szModem, szXMM7x60))
+        {
             pSilo = new CSilo_MISC_INF(pChannel);
+        }
     }
 
     if (NULL == pSilo)
