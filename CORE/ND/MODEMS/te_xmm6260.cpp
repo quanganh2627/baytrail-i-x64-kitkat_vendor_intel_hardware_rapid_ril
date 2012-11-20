@@ -3972,11 +3972,14 @@ Error:
 }
 
 RIL_RESULT_CODE CTE_XMM6260::CreateDebugScreenReq(REQUEST_DATA& rReqData,
-                                                    const char** pszRequest, const UINT32 uiDataSize)
+                                                    const char** pszRequest,
+                                                    const UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CreateDebugScreenReq() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int page_nr;
+    const int MAX_NUM_OF_RESPONSE_PAGES = 12;
+    int mode = E_MODE_ONE_SHOT_DUMP;
+    int page_nr = 1; // Number of response pages
 
     if (pszRequest == NULL || '\0' == pszRequest[0])
     {
@@ -3984,21 +3987,66 @@ RIL_RESULT_CODE CTE_XMM6260::CreateDebugScreenReq(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (uiDataSize < (2 * sizeof(char *)))
+    if (uiDataSize < (2 * sizeof(char*)))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateDebugScreenReq() : received_size < required_size\r\n");
-        goto Error;
+        RIL_LOG_INFO("CTE_INF_6260::CreateDebugScreenReq() - mode and  page_nr not provided, "
+                "default to mode=0 and page_nr=1\r\n");
+    }
+    else if (uiDataSize < (3 * sizeof(char*)))
+    {
+        RIL_LOG_INFO("CTE_INF_6260::CreateDebugScreenReq() - page_nr is not provided, "
+                "default to page_nr=1\r\n");
+
+        // Get mode
+        if (sscanf(pszRequest[1], "%d", &mode) == EOF)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - cannot convert %s to int\r\n",
+                    pszRequest[1]);
+            goto Error;
+        }
+    }
+    else
+    {
+        // Get mode and page_nr
+        if (sscanf(pszRequest[1], "%d", &mode) == EOF)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - cannot convert %s to int\r\n",
+                    pszRequest[1]);
+            goto Error;
+        }
+
+        if (E_MODE_ONE_SHOT_DUMP != mode
+                && E_MODE_RESET_STATISTICS != mode
+                && E_MODE_STOP_EM != mode)
+        {
+            RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - mode: %d not allowed\r\n",
+                    mode);
+            goto Error;
+        }
+
+        if (E_MODE_ONE_SHOT_DUMP == mode) // page_nr valid only for mode 0.
+        {
+            if (sscanf(pszRequest[2], "%d", &page_nr) == EOF)
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - "
+                        "cannot convert %s to int\r\n", pszRequest[2]);
+                goto Error;
+            }
+
+            if (MAX_NUM_OF_RESPONSE_PAGES < page_nr)
+            {
+                RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - invalid page_nr: %d\r\n",
+                        page_nr);
+                goto Error;
+            }
+        }
     }
 
-    if (sscanf(pszRequest[1], "%d", &page_nr) == EOF)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateDebugScreenReq() - cannot convert %s to int\r\n", pszRequest[1]);
-        goto Error;
-    }
+    RIL_LOG_INFO("CTE_INF_6260::CreateDebugScreenReq() - mode=[%d] - page_nr=[%d]\r\n",
+            mode, page_nr);
 
-    RIL_LOG_INFO("CTE_XMM6260::CreateDebugScreenReq() - page_nr=[%d]\r\n", page_nr);
-
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XCGEDPAGE=0,%d\r", page_nr))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+XCGEDPAGE=%d,%d\r", mode, page_nr))
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CreateDebugScreenReq() - Can't construct szCmd1.\r\n");
         goto Error;

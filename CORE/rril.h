@@ -202,6 +202,18 @@ enum
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// mode used in +XCGEDPAGE
+//
+enum
+{
+    E_MODE_ONE_SHOT_DUMP = 0,
+    E_MODE_PERIODIC_REFRESHED_DUMP = 1,
+    E_MODE_STOP_PERIODIC_DUMP = 2,
+    E_MODE_RESET_STATISTICS = 3,
+    E_MODE_STOP_EM = 4
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // Notify / Result Codes (m_dwCode)
 //
 

@@ -12,6 +12,8 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneFactory;
+import com.android.internal.telephony.PhoneBase;
+import com.android.internal.telephony.CommandsInterface;
 import android.os.Message;
 import android.os.Handler;
 import android.os.AsyncResult;
@@ -31,6 +33,7 @@ public class RilOemHookTest extends Activity
     private RadioGroup mRadioGroupAPI = null;
 
     private Phone mPhone = null;
+    private CommandsInterface mCM;
 
     private static final int EVENT_RIL_OEM_HOOK_RAW_COMPLETE = 1300;
     private static final int EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE = 1310;
@@ -53,9 +56,7 @@ public class RilOemHookTest extends Activity
         mPhone = PhoneFactory.getDefaultPhone();
 
         //  Register for OEM raw notification.
-        //mPhone.mCM.setOnUnsolOemHookRaw(mHandler, EVENT_UNSOL_RIL_OEM_HOOK_RAW, null);
-
-
+        mCM = ((PhoneBase)mPhone).mCM;
     }
 
 
@@ -67,7 +68,7 @@ public class RilOemHookTest extends Activity
         log("onPause()");
 
         //  Unregister for OEM raw notification.
-        //mPhone.mCM.unSetOnUnsolOemHookRaw(mHandler);
+        mCM.unSetOnUnsolOemHookRaw(mHandler);
     }
 
     @Override
@@ -78,7 +79,7 @@ public class RilOemHookTest extends Activity
         log("onResume()");
 
         //  Register for OEM raw notification.
-        //mPhone.mCM.setOnUnsolOemHookRaw(mHandler, EVENT_UNSOL_RIL_OEM_HOOK_RAW, null);
+        mCM.setOnUnsolOemHookRaw(mHandler, EVENT_UNSOL_RIL_OEM_HOOK_RAW, null);
     }
 
     public void onRun(View view)
