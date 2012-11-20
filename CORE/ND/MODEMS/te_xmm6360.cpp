@@ -533,3 +533,81 @@ Error:
     RIL_LOG_INFO("CTE_XMM6360::DataConfigDown() EXIT  bRet=[%d]\r\n", bRet);
     return bRet;
 }
+
+//
+// RIL_REQUEST_BASEBAND_VERSION 51
+//
+RIL_RESULT_CODE CTE_XMM6360::CoreBasebandVersion(REQUEST_DATA& rReqData,
+        void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreBasebandVersion() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "at+xgendata\r",
+            sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreBasebandVersion() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6360::ParseBasebandVersion(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseBasebandVersion() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+    char szTemp[MAX_BUFFER_SIZE] = {0};
+
+    char* pszBasebandVersion = (char*)malloc(MAX_PROP_VALUE);
+    if (NULL == pszBasebandVersion)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseBasebandVersion() - Could not "
+                "allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
+        goto Error;
+    }
+    memset(pszBasebandVersion, 0x00, MAX_PROP_VALUE);
+
+    if (!sscanf(pszRsp,"%*[^*]%*c%[^*]", szTemp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseBasebandVersion() - Could not "
+                "extract the baseband version string.\r\n");
+        goto Error;
+    }
+
+    if (!PrintStringNullTerminate(pszBasebandVersion, MAX_PROP_VALUE,
+            "%s", szTemp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseBasebandVersion() - Could not "
+                "extract pszBasebandVersion\r\n");
+        goto Error;
+    }
+
+    if (strlen(pszBasebandVersion) <= 0)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseBasebandVersion() - Invalid "
+                "baseband version string.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM6360::ParseBasebandVersion() - "
+            "pszBasebandVersion=[%s]\r\n", pszBasebandVersion);
+
+    rRspData.pData   = (void*)pszBasebandVersion;
+    rRspData.uiDataSize  = sizeof(char*);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pszBasebandVersion);
+        pszBasebandVersion = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseBasebandVersion() - Exit\r\n");
+    return res;
+}

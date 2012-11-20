@@ -45,6 +45,11 @@ public:
     virtual BOOL SetupInterface(UINT32 uiCID);
 
     virtual BOOL DataConfigDown(UINT32 uiCID);
+
+    // RIL_REQUEST_BASEBAND_VERSION 51
+    virtual RIL_RESULT_CODE CoreBasebandVersion(REQUEST_DATA& rReqData,
+            void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseBasebandVersion(RESPONSE_DATA& rRspData);
 };
 
 #endif
