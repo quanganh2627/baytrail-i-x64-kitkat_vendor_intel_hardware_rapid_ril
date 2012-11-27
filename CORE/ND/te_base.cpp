@@ -1509,6 +1509,8 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA & rRspData)
         uiCause = CALL_FAIL_FDN_BLOCKED;
     else if ( (280 == uiCause) || (8 == uiCause) )
         uiCause = CALL_FAIL_CALL_BARRED;
+    else if ( (500 == uiCause) || (510 == uiCause) || (511 == uiCause) )
+        uiCause = CALL_FAIL_NORMAL;
 
     //@TODO: cause code mapping needs to be revisited
     switch(uiCause)
