@@ -5263,11 +5263,17 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
     RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() - ****** Setting chnl=[%u] to CID=[0] ******\r\n",
                                                                     uiChannel);
 
+    state = pChannelData->GetDataState();
     pChannelData->ResetDataCallInfo();
 
-    // Blocking TTY flow. Third security level in order to avoid IP data in response buffer.
-    // Not mandatory.
-    pChannelData->BlockAndFlushChannel(BLOCK_CHANNEL_BLOCK_TTY, FLUSH_CHANNEL_NO_FLUSH);
+    if (E_DATA_STATE_IDLE != state
+            && E_DATA_STATE_INITING != state
+            && E_DATA_STATE_ACTIVATING != state)
+    {
+        // Blocking TTY flow. Third security level in order to avoid IP data in response buffer.
+        // Not mandatory.
+        pChannelData->BlockAndFlushChannel(BLOCK_CHANNEL_BLOCK_TTY, FLUSH_CHANNEL_NO_FLUSH);
+    }
 
     //  Put the channel back into AT command mode
     netconfig.adaption = 3;
