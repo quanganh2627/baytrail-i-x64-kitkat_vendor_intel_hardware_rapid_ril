@@ -1080,6 +1080,12 @@ void CChannel::FlushResponse()
 {
     void* pData = NULL;
     UINT32 uiDataSize = 0;
+
+    if (NULL == m_pResponse)
+    {
+        return;
+    }
+
     m_pResponse->GetData(pData, uiDataSize);
     // Flush unrecognized data
     if (uiDataSize)
