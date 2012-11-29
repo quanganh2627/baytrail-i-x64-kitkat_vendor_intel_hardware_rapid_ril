@@ -447,6 +447,7 @@ BOOL CTE_XMM6360::DataConfigDown(UINT32 uiCID)
     int s = -1;
     UINT32 uiRilChannel = 0;
     BOOL bIsHSIDirect = FALSE;
+    int state;
 
     //  See if CID passed in is valid
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
@@ -470,13 +471,20 @@ BOOL CTE_XMM6360::DataConfigDown(UINT32 uiCID)
                                                                 uiRilChannel);
 
     fd = pChannelData->GetFD();
+    state = pChannelData->GetDataState();
 
     if (!bIsHSIDirect)
     {
-        // Blocking TTY flow.
-        // Security in order to avoid IP data in response buffer.
-        // Not mandatory.
-        pChannelData->BlockAndFlushChannel(BLOCK_CHANNEL_BLOCK_TTY, FLUSH_CHANNEL_NO_FLUSH);
+        if (E_DATA_STATE_IDLE != state
+                && E_DATA_STATE_INITING != state
+                && E_DATA_STATE_ACTIVATING != state)
+        {
+            // Blocking TTY flow.
+            // Security in order to avoid IP data in response buffer.
+            // Not mandatory.
+            pChannelData->BlockAndFlushChannel(BLOCK_CHANNEL_BLOCK_TTY,
+                    FLUSH_CHANNEL_NO_FLUSH);
+        }
 
         //  Put the channel back into AT command mode
         netconfig.adaption = 3;
@@ -523,11 +531,17 @@ BOOL CTE_XMM6360::DataConfigDown(UINT32 uiCID)
 Error:
     if (!bIsHSIDirect)
     {
-        // Flush buffers and Unblock read thread.
-        // Security in order to avoid IP data in response buffer.
-        // Will unblock Channel read thread and TTY.
-        // Unblock read thread whatever the result is to avoid forever block
-        pChannelData->FlushAndUnblockChannel(UNBLOCK_CHANNEL_UNBLOCK_ALL, FLUSH_CHANNEL_FLUSH_ALL);
+        if (E_DATA_STATE_IDLE != state
+                && E_DATA_STATE_INITING != state
+                && E_DATA_STATE_ACTIVATING != state)
+        {
+            // Flush buffers and Unblock read thread.
+            // Security in order to avoid IP data in response buffer.
+            // Will unblock Channel read thread and TTY.
+            // Unblock read thread whatever the result is to avoid forever block
+            pChannelData->FlushAndUnblockChannel(UNBLOCK_CHANNEL_UNBLOCK_ALL,
+                    FLUSH_CHANNEL_FLUSH_ALL);
+        }
     }
 
     RIL_LOG_INFO("CTE_XMM6360::DataConfigDown() EXIT  bRet=[%d]\r\n", bRet);

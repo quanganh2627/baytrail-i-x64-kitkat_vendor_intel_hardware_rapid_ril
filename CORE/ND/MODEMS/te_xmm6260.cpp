@@ -5247,6 +5247,7 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
     int flags;
     int ret = -1;
     UINT32 uiChannel = 0;
+    int state;
 
     //  See if CID passed in is valid
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
@@ -5263,9 +5264,9 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
     RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() - ****** Setting chnl=[%u] to CID=[0] ******\r\n",
                                                                     uiChannel);
 
-    state = pChannelData->GetDataState();
     pChannelData->ResetDataCallInfo();
 
+    state = pChannelData->GetDataState();
     if (E_DATA_STATE_IDLE != state
             && E_DATA_STATE_INITING != state
             && E_DATA_STATE_ACTIVATING != state)
@@ -5299,11 +5300,16 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
     RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%u\r\n", uiChannel);
 
 Error:
-    // Flush buffers and Unblock read thread.
-    // Security in order to avoid IP data in response buffer.
-    // Will unblock Channel read thread and TTY.
-    // Unblock read thread whatever the result is to avoid forever block
-    pChannelData->FlushAndUnblockChannel(UNBLOCK_CHANNEL_UNBLOCK_ALL, FLUSH_CHANNEL_FLUSH_ALL);
+    if (E_DATA_STATE_IDLE != state
+            && E_DATA_STATE_INITING != state
+            && E_DATA_STATE_ACTIVATING != state)
+    {
+        // Flush buffers and Unblock read thread.
+        // Security in order to avoid IP data in response buffer.
+        // Will unblock Channel read thread and TTY.
+        // Unblock read thread whatever the result is to avoid forever block
+        pChannelData->FlushAndUnblockChannel(UNBLOCK_CHANNEL_UNBLOCK_ALL, FLUSH_CHANNEL_FLUSH_ALL);
+    }
 
     RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() EXIT  bRet=[%d]\r\n", bRet);
     return bRet;
