@@ -2105,7 +2105,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData
                         RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_SWAP_PS - Can't construct szCmd1.\r\n");
                         goto Error;
                     }
-                    rReqData.uiTimeout = 60000;
+                    rReqData.uiTimeout = 450000;
                 }
                 else
                 {
