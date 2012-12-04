@@ -34,12 +34,12 @@ INITSTRING_DATA DataUnlockInitString = { "" };
 INITSTRING_DATA DataPowerOnInitString = { "" };
 INITSTRING_DATA DataReadyInitString = { "" };
 
-// used for 6360 and 7x60 modems.
+// used for 6360 and 7160 modems.
 extern int m_hsiChannelsReservedForClass1;
 extern int m_hsiDataDirect;
 extern int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE];
 
-// used by 6360 and 7x60 modems.
+// used by 6360 and 7160 modems.
 UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX] = {0};
 
 
@@ -214,7 +214,7 @@ Error:
     return pChannelData;
 }
 
-//  Used for 6360 and 7x60 modems.
+//  Used for 6360 and 7160 modems.
 //  Returns a free RIL channel and a free hsi channel to use for data.
 //  [out] UINT32 outCID - If successful, the new context ID, else 0.
 //  return value - CChannel_Data* - If successful, the free data channel, else NULL.
@@ -475,7 +475,7 @@ void CChannel_Data::ResetDataCallInfo()
     SetDataFailCause(PDP_FAIL_NONE);
     SetDataState(E_DATA_STATE_IDLE);
 
-    if (MODEM_TYPE_XMM7x60 == CTE::GetTE().GetModemType()
+    if (MODEM_TYPE_XMM7160 == CTE::GetTE().GetModemType()
             || MODEM_TYPE_XMM6360 == CTE::GetTE().GetModemType())
     {
         FreeHSIChannel(m_uiContextID);

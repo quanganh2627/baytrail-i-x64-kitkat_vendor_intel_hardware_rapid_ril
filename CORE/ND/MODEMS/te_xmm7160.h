@@ -1,17 +1,17 @@
 ////////////////////////////////////////////////////////////////////////////
-// te_xmm7x60.h
+// te_xmm7160.h
 //
 // Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
 //
 //
 // Description:
-//    Overlay for the IMC 7x60 modem
+//    Overlay for the IMC 7160 modem
 //
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef RRIL_TE_XMM7x60_H
-#define RRIL_TE_XMM7x60_H
+#ifndef RRIL_TE_XMM7160_H
+#define RRIL_TE_XMM7160_H
 
 #include "te_xmm6360.h"
 #include "rril.h"
@@ -19,20 +19,20 @@
 
 class CEvent;
 
-class CTE_XMM7x60 : public CTE_XMM6360
+class CTE_XMM7160 : public CTE_XMM6360
 {
 public:
 
-    CTE_XMM7x60(CTE& cte);
-    virtual ~CTE_XMM7x60();
+    CTE_XMM7160(CTE& cte);
+    virtual ~CTE_XMM7160();
 
 private:
 
-    CTE_XMM7x60();
+    CTE_XMM7160();
 
     //  Prevent assignment: Declared but not implemented.
-    CTE_XMM7x60(const CTE_XMM7x60& rhs);  // Copy Constructor
-    CTE_XMM7x60& operator=(const CTE_XMM7x60& rhs);  //  Assignment operator
+    CTE_XMM7160(const CTE_XMM7160& rhs);  // Copy Constructor
+    CTE_XMM7160& operator=(const CTE_XMM7160& rhs);  //  Assignment operator
 
     int m_currentNetworkType;
 

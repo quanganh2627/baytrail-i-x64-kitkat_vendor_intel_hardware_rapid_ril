@@ -1,12 +1,12 @@
 ////////////////////////////////////////////////////////////////////////////
-// te_xmm7x60.cpp
+// te_xmm7160.cpp
 //
 // Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
 // Patents pending in the United States of America and other jurisdictions.
 //
 //
 // Description:
-//    Overlay for the IMC 7x60 modem
+//    Overlay for the IMC 7160 modem
 //
 /////////////////////////////////////////////////////////////////////////////
 
@@ -29,7 +29,7 @@
 #include "te.h"
 #include "sync_ops.h"
 #include "command.h"
-#include "te_xmm7x60.h"
+#include "te_xmm7160.h"
 #include "rildmain.h"
 #include "callbacks.h"
 #include "oemhookids.h"
@@ -38,37 +38,37 @@
 #include "data_util.h"
 
 
-CTE_XMM7x60::CTE_XMM7x60(CTE& cte)
+CTE_XMM7160::CTE_XMM7160(CTE& cte)
 : CTE_XMM6360(cte),
   m_currentNetworkType(-1)
 {
 }
 
-CTE_XMM7x60::~CTE_XMM7x60()
+CTE_XMM7160::~CTE_XMM7160()
 {
 }
 
 //
 // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
 //
-RIL_RESULT_CODE CTE_XMM7x60::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
+RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
         void* pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CTE_XMM7x60::CoreSetPreferredNetworkType() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetPreferredNetworkType() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_PreferredNetworkType networkType = PREF_NET_TYPE_GSM_WCDMA; // 0
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM7x60::CoreSetPreferredNetworkType() - Data "
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetPreferredNetworkType() - Data "
                 "pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize != sizeof(RIL_PreferredNetworkType*))
     {
-        RIL_LOG_CRITICAL("CTE_XMM7x60::CoreSetPreferredNetworkType() - "
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                 "Invalid data size.\r\n");
         goto Error;
     }
@@ -80,7 +80,7 @@ RIL_RESULT_CODE CTE_XMM7x60::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
     {
         rReqData.szCmd1[0] = '\0';
         res = RRIL_RESULT_OK;
-        RIL_LOG_INFO("CTE_XMM7x60::CoreSetPreferredNetworkType() - "
+        RIL_LOG_INFO("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                 "Network type {%d} already set.\r\n", networkType);
         goto Error;
     }
@@ -124,7 +124,7 @@ RIL_RESULT_CODE CTE_XMM7x60::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=2\r",
                     sizeof(rReqData.szCmd1)))
             {
-                RIL_LOG_CRITICAL("CTE_XMM7x60::CoreSetPreferredNetworkType() - "
+                RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                         "Can't construct szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
@@ -139,7 +139,7 @@ RIL_RESULT_CODE CTE_XMM7x60::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=6,2,1\r",
                     sizeof(rReqData.szCmd1)))
             {
-                RIL_LOG_CRITICAL("CTE_XMM7x60::CoreSetPreferredNetworkType() - "
+                RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                     "Can't construct szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
@@ -157,16 +157,16 @@ RIL_RESULT_CODE CTE_XMM7x60::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CTE_XMM7x60::CoreSetPreferredNetworkType() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetPreferredNetworkType() - Exit\r\n");
     return res;
 }
 
 // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
 //
-RIL_RESULT_CODE CTE_XMM7x60::CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
+RIL_RESULT_CODE CTE_XMM7160::CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
         void* pData, UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CTE_XMM7x60::CoreGetPreferredNetworkType() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGetPreferredNetworkType() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
@@ -176,13 +176,13 @@ RIL_RESULT_CODE CTE_XMM7x60::CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
         res = RRIL_RESULT_OK;
     }
 
-    RIL_LOG_VERBOSE("CTE_XMM7x60::CoreGetPreferredNetworkType() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGetPreferredNetworkType() - Exit\r\n");
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM7x60::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTE_XMM7160::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTE_XMM7x60::ParseGetPreferredNetworkType() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGetPreferredNetworkType() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
@@ -193,7 +193,7 @@ RIL_RESULT_CODE CTE_XMM7x60::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspDat
     int* pRat = (int*)malloc(sizeof(int));
     if (NULL == pRat)
     {
-        RIL_LOG_CRITICAL("CTE_XMM7x60::ParseGetPreferredNetworkType() - Could "
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetPreferredNetworkType() - Could "
                 "not allocate memory for response.\r\n");
         goto Error;
     }
@@ -201,7 +201,7 @@ RIL_RESULT_CODE CTE_XMM7x60::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspDat
     // Skip "<prefix>"
     if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM7x60::ParseGetPreferredNetworkType() - Could "
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetPreferredNetworkType() - Could "
                 "not skip response prefix.\r\n");
         goto Error;
     }
@@ -209,14 +209,14 @@ RIL_RESULT_CODE CTE_XMM7x60::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspDat
     // Skip "+XACT: "
     if (!SkipString(pszRsp, "+XACT: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM7x60::ParseGetPreferredNetworkType() - Could "
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetPreferredNetworkType() - Could "
                 "not skip \"+XACT: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt32(pszRsp, rat, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM7x60::ParseGetPreferredNetworkType() - Could "
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetPreferredNetworkType() - Could "
                 "not extract rat value.\r\n");
         goto Error;
     }
@@ -225,7 +225,7 @@ RIL_RESULT_CODE CTE_XMM7x60::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspDat
     {
         if (!ExtractUInt32(pszRsp, pref, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_XMM7x60::ParseGetPreferredNetworkType() - "
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetPreferredNetworkType() - "
                     "Could not find and skip pref value even though it was expected.\r\n");
             goto Error;
         }
@@ -270,7 +270,7 @@ RIL_RESULT_CODE CTE_XMM7x60::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspDat
 
         default:
         {
-            RIL_LOG_CRITICAL("CTE_XMM7x60::ParseGetPreferredNetworkType() - "
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetPreferredNetworkType() - "
                     "Unexpected rat found: %d. Failing out.\r\n", rat);
             goto Error;
         }
@@ -288,7 +288,7 @@ Error:
         pRat = NULL;
     }
 
-    RIL_LOG_VERBOSE("CTE_XMM7x60::ParseGetPreferredNetworkType() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGetPreferredNetworkType() - Exit\r\n");
     return res;
 }
 

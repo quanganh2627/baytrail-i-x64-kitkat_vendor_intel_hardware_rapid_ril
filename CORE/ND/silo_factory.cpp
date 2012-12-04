@@ -35,7 +35,7 @@ CSilo* CSilo_Factory::GetSiloVoice(CChannel *pChannel)
     {
         if (0 == strcmp(szModem, szXMM6260)
                 || 0 == strcmp(szModem, szXMM6360)
-                || 0 == strcmp(szModem, szXMM7x60))
+                || 0 == strcmp(szModem, szXMM7160))
         {
             pSilo = new CSilo_Voice_INF(pChannel);
         }
@@ -63,7 +63,7 @@ CSilo* CSilo_Factory::GetSiloSIM(CChannel *pChannel)
     {
         if (0 == strcmp(szModem, szXMM6260)
                 || 0 == strcmp(szModem, szXMM6360)
-                || 0 == strcmp(szModem, szXMM7x60))
+                || 0 == strcmp(szModem, szXMM7160))
         {
             pSilo = new CSilo_SIM_INF(pChannel);
         }
@@ -91,7 +91,7 @@ CSilo* CSilo_Factory::GetSiloSMS(CChannel *pChannel)
     {
         if (0 == strcmp(szModem, szXMM6260)
                 || 0 == strcmp(szModem, szXMM6360)
-                || 0 == strcmp(szModem, szXMM7x60))
+                || 0 == strcmp(szModem, szXMM7160))
         {
             pSilo = new CSilo_SMS_INF(pChannel);
         }
@@ -119,7 +119,7 @@ CSilo* CSilo_Factory::GetSiloData(CChannel *pChannel)
     {
         if (0 == strcmp(szModem, szXMM6260)
                 || 0 == strcmp(szModem, szXMM6360)
-                || 0 == strcmp(szModem, szXMM7x60))
+                || 0 == strcmp(szModem, szXMM7160))
         {
             pSilo = new CSilo_Data_INF(pChannel);
         }
@@ -147,7 +147,7 @@ CSilo* CSilo_Factory::GetSiloNetwork(CChannel *pChannel)
     {
         if (0 == strcmp(szModem, szXMM6260)
                 || 0 == strcmp(szModem, szXMM6360)
-                || 0 == strcmp(szModem, szXMM7x60))
+                || 0 == strcmp(szModem, szXMM7160))
         {
             pSilo = new CSilo_Network_INF(pChannel);
         }
@@ -175,7 +175,7 @@ CSilo* CSilo_Factory::GetSiloPhonebook(CChannel *pChannel)
     {
         if (0 == strcmp(szModem, szXMM6260)
                 || 0 == strcmp(szModem, szXMM6360)
-                || 0 == strcmp(szModem, szXMM7x60))
+                || 0 == strcmp(szModem, szXMM7160))
         {
             pSilo = new CSilo_Phonebook_INF(pChannel);
         }
@@ -203,7 +203,7 @@ CSilo* CSilo_Factory::GetSiloMISC(CChannel *pChannel)
     {
         if (0 == strcmp(szModem, szXMM6260)
                 || 0 == strcmp(szModem, szXMM6360)
-                || 0 == strcmp(szModem, szXMM7x60))
+                || 0 == strcmp(szModem, szXMM7160))
         {
             pSilo = new CSilo_MISC_INF(pChannel);
         }

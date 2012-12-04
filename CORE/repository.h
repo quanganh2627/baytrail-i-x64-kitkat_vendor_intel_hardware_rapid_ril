@@ -85,7 +85,7 @@ extern const char   g_szSCRITimer[];
 extern const char   g_szFDMode[];
 extern const char   g_szTempOoSNotificationEnable[];
 
-// used by 6360 and 7x60 modems.
+// used by 6360 and 7160 modems.
 extern const char   g_szHsiDataDirect[];
 extern const char   g_szApnTypeDefault[];
 extern const char   g_szApnTypeThetered[];

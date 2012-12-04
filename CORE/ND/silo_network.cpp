@@ -154,7 +154,7 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
     }
 
     if (MODEM_TYPE_XMM6360 == CTE::GetTE().GetModemType()
-            || MODEM_TYPE_XMM7x60 == CTE::GetTE().GetModemType())
+            || MODEM_TYPE_XMM7160 == CTE::GetTE().GetModemType())
     {
         // WORAROUND : BZ28102.
         // TZ = -1h : szTimeZone = "0-4" -> "-04"

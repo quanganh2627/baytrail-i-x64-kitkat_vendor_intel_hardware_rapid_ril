@@ -31,7 +31,7 @@
 #include "data_util.h"
 #include "te_xmm6260.h"
 #include "te_xmm6360.h"
-#include "te_xmm7x60.h"
+#include "te_xmm7160.h"
 #include "ril_result.h"
 #include "callbacks.h"
 #include "reset.h"
@@ -85,9 +85,9 @@ CTEBase* CTE::CreateModemTE(CTE* pTEInstance)
             RIL_LOG_INFO("CTE::CreateModemTE() - Using XMM6360\r\n");
             return new CTE_XMM6360(*pTEInstance);
 
-        case MODEM_TYPE_XMM7x60:
-            RIL_LOG_INFO("CTE::CreateModemTE() - Using XMM7x60\r\n");
-            return new CTE_XMM7x60(*pTEInstance);
+        case MODEM_TYPE_XMM7160:
+            RIL_LOG_INFO("CTE::CreateModemTE() - Using XMM7160\r\n");
+            return new CTE_XMM7160(*pTEInstance);
 
         default: // unsupported modem
             RIL_LOG_INFO("CTE::CreateModemTE() - No modem specified, returning NULL\r\n");
@@ -1560,7 +1560,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void * pData, size
 
     //  Find free channel, and get the context ID that was set.
     if (MODEM_TYPE_XMM6360 == m_uiModemType
-            || MODEM_TYPE_XMM7x60 == m_uiModemType)
+            || MODEM_TYPE_XMM7160 == m_uiModemType)
     {
         // Extract the data profile. it is the 2nd parameter of pData.
         int dataProfile = -1;
