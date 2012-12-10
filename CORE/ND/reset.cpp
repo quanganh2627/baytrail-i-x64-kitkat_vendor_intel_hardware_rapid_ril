@@ -100,8 +100,8 @@ void ModemResetUpdate()
 
     if (CTE::GetTE().GetModemOffInFlightModeState())
     {
-        property_get("persist.radio.ril_modem_state", szModemState , "1");
-        if (strncmp(szModemState, "0", 1) == 0)
+        property_get("persist.radio.ril_modem_state", szModemState , "on");
+        if (strncmp(szModemState, "off", 3) == 0)
         {
             // Flightmode enabled
             CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
@@ -151,7 +151,7 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
         {
             RIL_LOG_INFO("do_request_clean_up() - SendRequestModemShutdown\r\n");
 
-            //  Send "REQUEST_SHUTDOWN" on Modem Manager socket
+            //  Send shutdown request to MMgr
             if (!CSystemManager::GetInstance().SendRequestModemShutdown())
             {
                 RIL_LOG_CRITICAL("do_request_clean_up() - CANNOT SEND MODEM SHUTDOWN REQUEST\r\n");
@@ -162,7 +162,7 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
         {
             RIL_LOG_INFO("do_request_clean_up() - SendRequestModemRecovery, eError=[%d]\r\n", eError);
 
-            //  Send "REQUEST_CLEANUP" on Modem Manager socket
+            //  Send recovery request to MMgr
             if (!CSystemManager::GetInstance().SendRequestModemRecovery())
             {
                 RIL_LOG_CRITICAL("do_request_clean_up() - CANNOT SEND MODEM RESTART REQUEST\r\n");
@@ -208,7 +208,7 @@ void* ContinueInitThreadProc(void* pVoid)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//  This method handles the Modem Manager events and notifications
+//  This method handles MMgr events and notifications
 int ModemManagerEventHandler(mmgr_cli_event_t* param)
 {
     RIL_LOG_VERBOSE("ModemManagerEventHandler() - Enter\r\n");
