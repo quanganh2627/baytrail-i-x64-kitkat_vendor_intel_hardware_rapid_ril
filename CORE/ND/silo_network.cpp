@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <time.h>
+#include <limits.h>
 
 #include "types.h"
 #include "rillog.h"
@@ -972,10 +973,10 @@ BOOL CSilo_Network::ParseXCSQ(CResponse *const pResponse, const char*& rszPointe
     pSigStrData->EVDO_SignalStrength.ecio=-1;
     pSigStrData->EVDO_SignalStrength.signalNoiseRatio=-1;
     pSigStrData->LTE_SignalStrength.signalStrength=-1;
-    pSigStrData->LTE_SignalStrength.rsrp=-1;
-    pSigStrData->LTE_SignalStrength.rsrq=-1;
-    pSigStrData->LTE_SignalStrength.rssnr=-1;
-    pSigStrData->LTE_SignalStrength.cqi=-1;
+    pSigStrData->LTE_SignalStrength.rsrp=INT_MAX;
+    pSigStrData->LTE_SignalStrength.rsrq=INT_MAX;
+    pSigStrData->LTE_SignalStrength.rssnr=INT_MAX;
+    pSigStrData->LTE_SignalStrength.cqi=INT_MAX;
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_SIGNAL_STRENGTH);
