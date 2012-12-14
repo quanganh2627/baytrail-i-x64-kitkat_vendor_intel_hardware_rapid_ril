@@ -5264,9 +5264,9 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
     RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() - ****** Setting chnl=[%u] to CID=[0] ******\r\n",
                                                                     uiChannel);
 
+    state = pChannelData->GetDataState();
     pChannelData->ResetDataCallInfo();
 
-    state = pChannelData->GetDataState();
     if (E_DATA_STATE_IDLE != state
             && E_DATA_STATE_INITING != state
             && E_DATA_STATE_ACTIVATING != state)
