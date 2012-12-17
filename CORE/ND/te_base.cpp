@@ -12,6 +12,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <wchar.h>
+#include <limits.h>
 
 #include "types.h"
 #include "rillog.h"
@@ -8319,10 +8320,10 @@ RIL_SignalStrength_v6* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA & rRspDat
     pSigStrData->EVDO_SignalStrength.ecio=-1;
     pSigStrData->EVDO_SignalStrength.signalNoiseRatio=-1;
     pSigStrData->LTE_SignalStrength.signalStrength=-1;
-    pSigStrData->LTE_SignalStrength.rsrp=-1;
-    pSigStrData->LTE_SignalStrength.rsrq=-1;
-    pSigStrData->LTE_SignalStrength.rssnr=-1;
-    pSigStrData->LTE_SignalStrength.cqi=-1;
+    pSigStrData->LTE_SignalStrength.rsrp=INT_MAX;
+    pSigStrData->LTE_SignalStrength.rsrq=INT_MAX;
+    pSigStrData->LTE_SignalStrength.rssnr=INT_MAX;
+    pSigStrData->LTE_SignalStrength.cqi=INT_MAX;
 
     res = RRIL_RESULT_OK;
 
