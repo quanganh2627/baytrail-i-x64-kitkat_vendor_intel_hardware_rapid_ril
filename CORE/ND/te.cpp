@@ -2001,6 +2001,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
     RIL_RadioState radio_state = GetRadioState();
     char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    char szResetActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     if (NULL == pData)
     {
@@ -2033,6 +2034,18 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
         RIL_LOG_INFO("CTE::RequestRadioPower() - Reboot requested, do nothing\r\n");
         res = RIL_E_SUCCESS;
         RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+    }
+    else if (property_get("gsm.radioreset", szResetActionProperty, "false") &&
+                    (strncmp("false", szResetActionProperty, 5) != 0) &&
+                    (false == bTurnRadioOn))
+    {
+        property_set("gsm.radioreset", "false");
+
+        res = RIL_E_SUCCESS;
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+
+        RIL_LOG_INFO("CTE::RequestRadioPower() - Reset requested, do clean-up request\r\n");
+        do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
     }
 #if !defined(M2_DUALSIM_FEATURE_ENABLED)
     // check if the required state is the same as the current one
