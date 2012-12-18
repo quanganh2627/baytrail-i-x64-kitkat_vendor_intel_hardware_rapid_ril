@@ -253,7 +253,6 @@ const int RIL_OEM_HOOK_STRING_SWAP_PS = 0x000000B2;
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID
-    int nResultCode; // result code
     int nSensorId; // sensor id
     int nTemp; // temperature
 } sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND;
