@@ -56,6 +56,7 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
     BOOL bRet = FALSE;
     UINT32 uiCID = 0;
     int muxControlChannel = -1;
+    int muxDataChannel = -1;
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
     CChannel_Data* pChannelData = NULL;
     BOOL bIsHSIDirect = FALSE;
@@ -85,10 +86,38 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
     hsiChannel =  pChannelData->GetHSIChannel();
     uiRilChannel = pChannelData->GetRilChannel();
 
+    // Get the mux  channel id corresponding to the control of the data channel
+    switch (uiRilChannel)
+    {
+        case RIL_CHANNEL_DATA1:
+            sscanf(g_szDataPort1, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA2:
+            sscanf(g_szDataPort2, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA3:
+            sscanf(g_szDataPort3, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA4:
+            sscanf(g_szDataPort4, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA5:
+            sscanf(g_szDataPort5, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        default:
+            RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() - Unknown mux channel"
+
+                    "for RIL Channel [%u] \r\n", uiRilChannel);
+            goto Error;
+        }
+
     if (!bIsHSIDirect)
     {
+        muxDataChannel = muxControlChannel;
+
         if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                                                    "AT+CGACT=1,%d\r", uiCID))
+                "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/%d\",\"/mux/%d\",0\r",
+                uiCID, muxControlChannel, muxDataChannel))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -  cannot create CGDATA command\r\n");
             goto Error;
@@ -121,33 +150,10 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
                 goto Error;
         }
 
-       // Get the mux  channel id corresponding to the control of the data channel
-        switch (uiRilChannel)
-        {
-            case RIL_CHANNEL_DATA1:
-                sscanf(g_szDataPort1, "/dev/gsmtty%d", &muxControlChannel);
-                break;
-            case RIL_CHANNEL_DATA2:
-                sscanf(g_szDataPort2, "/dev/gsmtty%d", &muxControlChannel);
-                break;
-            case RIL_CHANNEL_DATA3:
-                sscanf(g_szDataPort3, "/dev/gsmtty%d", &muxControlChannel);
-                break;
-            case RIL_CHANNEL_DATA4:
-                sscanf(g_szDataPort4, "/dev/gsmtty%d", &muxControlChannel);
-                break;
-            case RIL_CHANNEL_DATA5:
-                sscanf(g_szDataPort5, "/dev/gsmtty%d", &muxControlChannel);
-                break;
-            default:
-                RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() - Unknown mux channel for RIL Channel [%u] \r\n",
-                                                            uiRilChannel);
-                goto Error;
-        }
 
         if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/%d\",\"/mipi_ipc/%d\",0\r",
-            uiCID, muxControlChannel, hsiNetworkPath))
+                "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/%d\",\"/mipi_ipc/%d\",0\r",
+                uiCID, muxControlChannel, hsiNetworkPath))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -  cannot create CGDATA command\r\n");
             goto Error;
@@ -210,28 +216,14 @@ RIL_RESULT_CODE CTE_XMM6360::ParseEnterDataState(RESPONSE_DATA& rRspData)
 
     bIsHSIDirect = pChannelData->IsHSIDirect();
 
-    // Confirm we got "CONNECT" for data over MUX
-    // Confirm we get "OK" for data directly over hsi
     if (!bIsHSIDirect)
     {
-        if (!FindAndSkipString(pszRsp, "CONNECT", pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::ParseEnterDataState() -  Did not get \"CONNECT\" response.\r\n");
-            goto Error;
-        }
         // Block the read thread and then flush the tty and the channel
         // From now, any failure will lead to DataConfigDown
         pChannelData->BlockAndFlushChannel(BLOCK_CHANNEL_BLOCK_ALL, FLUSH_CHANNEL_NO_FLUSH);
         pChannelData->FlushAndUnblockChannel(UNBLOCK_CHANNEL_UNBLOCK_TTY, FLUSH_CHANNEL_FLUSH_ALL);
     }
-    else
-    {
-        if (!FindAndSkipString(pszRsp, "OK", pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::ParseEnterDataState() -  Did not get \"OK\" response.\r\n");
-            goto Error;
-        }
-    }
+
 
     res = RRIL_RESULT_OK;
 
