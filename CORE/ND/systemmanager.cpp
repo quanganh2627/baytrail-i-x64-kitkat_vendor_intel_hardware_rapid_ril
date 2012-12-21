@@ -340,7 +340,7 @@ BOOL CSystemManager::InitializeSystem()
             m_dataProfilePathAssignation[2] = apnType;
         }
 
-        if (!repository.Read(g_szGroupModem, g_szApnTypeMMS, apnType))
+        if (!repository.Read(g_szGroupModem, g_szApnTypeFOTA, apnType))
         {
             RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type MMS from repository\r\n");
         }
@@ -358,7 +358,7 @@ BOOL CSystemManager::InitializeSystem()
             m_dataProfilePathAssignation[4] = apnType;
         }
 
-        if (!repository.Read(g_szGroupModem, g_szApnTypeFOTA, apnType))
+        if (!repository.Read(g_szGroupModem, g_szApnTypeMMS, apnType))
         {
             RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type FOTA from repository\r\n");
         }
