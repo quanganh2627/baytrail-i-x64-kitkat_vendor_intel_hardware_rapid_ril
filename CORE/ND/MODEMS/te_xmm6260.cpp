@@ -4017,18 +4017,18 @@ RIL_RESULT_CODE CTE_XMM6260::CreateDebugScreenReq(REQUEST_DATA& rReqData,
 
     if (uiDataSize < (2 * sizeof(char*)))
     {
-        RIL_LOG_INFO("CTE_INF_6260::CreateDebugScreenReq() - mode and  page_nr not provided, "
+        RIL_LOG_INFO("CTE_XMM6260::CreateDebugScreenReq() - mode and  page_nr not provided, "
                 "default to mode=0 and page_nr=1\r\n");
     }
     else if (uiDataSize < (3 * sizeof(char*)))
     {
-        RIL_LOG_INFO("CTE_INF_6260::CreateDebugScreenReq() - page_nr is not provided, "
+        RIL_LOG_INFO("CTE_XMM6260::CreateDebugScreenReq() - page_nr is not provided, "
                 "default to page_nr=1\r\n");
 
         // Get mode
         if (sscanf(pszRequest[1], "%d", &mode) == EOF)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - cannot convert %s to int\r\n",
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreateDebugScreenReq() - cannot convert %s to int\r\n",
                     pszRequest[1]);
             goto Error;
         }
@@ -4038,7 +4038,7 @@ RIL_RESULT_CODE CTE_XMM6260::CreateDebugScreenReq(REQUEST_DATA& rReqData,
         // Get mode and page_nr
         if (sscanf(pszRequest[1], "%d", &mode) == EOF)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - cannot convert %s to int\r\n",
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreateDebugScreenReq() - cannot convert %s to int\r\n",
                     pszRequest[1]);
             goto Error;
         }
@@ -4047,7 +4047,7 @@ RIL_RESULT_CODE CTE_XMM6260::CreateDebugScreenReq(REQUEST_DATA& rReqData,
                 && E_MODE_RESET_STATISTICS != mode
                 && E_MODE_STOP_EM != mode)
         {
-            RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - mode: %d not allowed\r\n",
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreateDebugScreenReq() - mode: %d not allowed\r\n",
                     mode);
             goto Error;
         }
@@ -4056,21 +4056,21 @@ RIL_RESULT_CODE CTE_XMM6260::CreateDebugScreenReq(REQUEST_DATA& rReqData,
         {
             if (sscanf(pszRequest[2], "%d", &page_nr) == EOF)
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - "
+                RIL_LOG_CRITICAL("CTE_XMM6260::CreateDebugScreenReq() - "
                         "cannot convert %s to int\r\n", pszRequest[2]);
                 goto Error;
             }
 
             if (MAX_NUM_OF_RESPONSE_PAGES < page_nr)
             {
-                RIL_LOG_CRITICAL("CTE_INF_6260::CreateDebugScreenReq() - invalid page_nr: %d\r\n",
+                RIL_LOG_CRITICAL("CTE_XMM6260::CreateDebugScreenReq() - invalid page_nr: %d\r\n",
                         page_nr);
                 goto Error;
             }
         }
     }
 
-    RIL_LOG_INFO("CTE_INF_6260::CreateDebugScreenReq() - mode=[%d] - page_nr=[%d]\r\n",
+    RIL_LOG_INFO("CTE_XMM6260::CreateDebugScreenReq() - mode=[%d] - page_nr=[%d]\r\n",
             mode, page_nr);
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
