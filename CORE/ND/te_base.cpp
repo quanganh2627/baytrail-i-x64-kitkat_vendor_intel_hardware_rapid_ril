@@ -2005,15 +2005,13 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
                 ('0' == szShutdownActionProperty[0]) )
     {
         RIL_LOG_INFO("CTEBase::CoreRadioPower - Shutdown requested\r\n");
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=0\r", sizeof(rReqData.szCmd1)))
-        {
-            res = RRIL_RESULT_OK;
-            mShutdown = true;
 
-            // Releasing modem ressource won't turn it off directly
-            // There shouldn't be issue by sending command for few seconds
-            CSystemManager::GetInstance().ReleaseModem();
-        }
+        res = RRIL_RESULT_OK;
+        mShutdown = true;
+
+        // Releasing modem ressource won't turn it off directly
+        // There shouldn't be issue by sending command for few seconds
+        CSystemManager::GetInstance().ReleaseModem();
     }
     else
     {
