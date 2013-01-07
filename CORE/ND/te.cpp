@@ -1103,25 +1103,19 @@ RIL_RESULT_CODE CTE::RequestRegistrationState(RIL_Token rilToken, void * pData, 
 
     if (m_bCSStatusCached)
     {
-        P_ND_REG_STATUS pRegStatus = NULL;
+        S_ND_REG_STATUS regStatus;
 
-        pRegStatus = (P_ND_REG_STATUS)malloc(sizeof(S_ND_REG_STATUS));
-        if (NULL == pRegStatus)
-        {
-            RIL_LOG_CRITICAL("CTE::ParseRegistrationState() - Could not allocate memory for S_ND_REG_STATUS struct.\r\n");
-            RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
-        }
-        else
-        {
-            CopyCachedRegistrationInfo(pRegStatus, FALSE);
-            /*
-             * cheat with the size here.
-             * Although we have allocated a S_ND_REG_STATUS struct, we tell
-             * Android that we have only allocated a S_ND_REG_STATUS_POINTERS
-             * struct since Android is expecting to receive an array of string pointers.
-             */
-            RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, (void*)pRegStatus, sizeof(S_ND_REG_STATUS_POINTERS));
-        }
+        CopyCachedRegistrationInfo(&regStatus, FALSE);
+        /*
+         * cheat with the size here.
+         * Even though the response size is sizeof(S_ND_REG_STATUS) inform
+         * android that the response size is sizeof(S_ND_REG_STATUS_POINTERS).
+         * This is because Android is expecting to receive an array of
+         * string pointers.
+         */
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, (void*)&regStatus,
+                sizeof(S_ND_REG_STATUS_POINTERS));
+
         return RRIL_RESULT_OK;
     }
 
@@ -1174,25 +1168,18 @@ RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void * pDa
 
     if (m_bPSStatusCached)
     {
-        P_ND_GPRS_REG_STATUS pRegStatus = NULL;
+        S_ND_GPRS_REG_STATUS regStatus;
 
-        pRegStatus = (P_ND_GPRS_REG_STATUS)malloc(sizeof(S_ND_GPRS_REG_STATUS));
-        if (NULL == pRegStatus)
-        {
-            RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() - Could not allocate memory for S_ND_GPRS_REG_STATUS struct.\r\n");
-            RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
-        }
-        else
-        {
-            CopyCachedRegistrationInfo(pRegStatus, TRUE);
-            /*
-             * cheat with the size here.
-             * Although we have allocated a S_ND_GPRS_REG_STATUS struct, we tell
-             * Android that we have only allocated a S_ND_GPRS_REG_STATUS_POINTERS
-             * struct since Android is expecting to receive an array of string pointers.
-             */
-            RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, (void*)pRegStatus, sizeof(S_ND_GPRS_REG_STATUS_POINTERS));
-        }
+        CopyCachedRegistrationInfo(&regStatus, TRUE);
+        /*
+         * cheat with the size here.
+         * Even though the response size is sizeof(S_ND_GPRS_REG_STATUS) inform
+         * android that the response size is sizeof(S_ND_GPRS_REG_STATUS_POINTERS).
+         * This is because Android is expecting to receive an array of
+         * string pointers.
+         */
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, (void*)&regStatus,
+                sizeof(S_ND_GPRS_REG_STATUS_POINTERS));
 
         return RRIL_RESULT_OK;
     }
