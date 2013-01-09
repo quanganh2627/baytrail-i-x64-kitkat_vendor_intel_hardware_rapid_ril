@@ -150,7 +150,6 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
                 goto Error;
         }
 
-
         if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
                 "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/%d\",\"/mipi_ipc/%d\",0\r",
                 uiCID, muxControlChannel, hsiNetworkPath))
@@ -223,7 +222,6 @@ RIL_RESULT_CODE CTE_XMM6360::ParseEnterDataState(RESPONSE_DATA& rRspData)
         pChannelData->BlockAndFlushChannel(BLOCK_CHANNEL_BLOCK_ALL, FLUSH_CHANNEL_NO_FLUSH);
         pChannelData->FlushAndUnblockChannel(UNBLOCK_CHANNEL_UNBLOCK_TTY, FLUSH_CHANNEL_FLUSH_ALL);
     }
-
 
     res = RRIL_RESULT_OK;
 

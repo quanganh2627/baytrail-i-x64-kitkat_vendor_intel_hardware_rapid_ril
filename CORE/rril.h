@@ -39,6 +39,12 @@ typedef long                RIL_RESULT_CODE;
 #define RIL_MAX_CALLFWD_ENTRIES     10
 
 ///////////////////////////////////////////////////////////////////////////////
+// Value to indicate no retry for RIL_REQUEST_SETUP_DATA_CALL request.
+// value comes from request description which can be found in ril.h
+//
+#define MAX_INT 0x7FFFFFFF;
+
+///////////////////////////////////////////////////////////////////////////////
 // Maximum length for various buffers and string parameters
 //
 #define MAX_BUFFER_SIZE         (1024)
@@ -121,6 +127,16 @@ typedef struct
     char szIpV6DNS2[MAX_IPADDR_SIZE];
     char szGateways[MAX_IPADDR_SIZE];
 } S_DATA_CALL_INFO;
+
+///////////////////////////////////////////////////////////////////////////////
+// DTMF states
+//
+enum
+{
+    E_DTMF_STATE_START = 1,
+    E_DTMF_STATE_STOP,
+    E_DTMF_STATE_FLUSH
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Data call states

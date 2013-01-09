@@ -41,6 +41,8 @@ protected:
 public:
     // modem overrides
 
+    virtual BOOL IsRequestSupported(int requestId);
+
     // RIL_REQUEST_GET_SIM_STATUS 1
     virtual RIL_RESULT_CODE CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetSimStatus(RESPONSE_DATA & rRspData);

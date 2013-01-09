@@ -39,6 +39,8 @@ private:
 public:
     // modem overrides
 
+    virtual BOOL IsRequestSupported(int requestId);
+
     // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
     virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             void* pData, UINT32 uiDataSize);

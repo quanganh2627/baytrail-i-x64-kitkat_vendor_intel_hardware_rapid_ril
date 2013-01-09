@@ -51,10 +51,12 @@ CTE::CTE(UINT32 modemType) :
     m_bIsClearPendingCHLD(FALSE),
     m_FastDormancyMode(FAST_DORMANCY_MODE_DEFAULT),
     m_uiMTU(MTU_SIZE),
+    m_bDisableUSSD(DISABLE_USSD_DEFAULT),
     m_uiTimeoutCmdInit(TIMEOUT_INITIALIZATION_COMMAND),
     m_uiTimeoutAPIDefault(TIMEOUT_API_DEFAULT),
     m_uiTimeoutWaitForInit(TIMEOUT_WAITFORINIT),
-    m_uiTimeoutThresholdForRetry(TIMEOUT_THRESHOLDFORRETRY)
+    m_uiTimeoutThresholdForRetry(TIMEOUT_THRESHOLDFORRETRY),
+    m_uiDtmfState(E_DTMF_STATE_STOP)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -66,12 +68,21 @@ CTE::CTE(UINT32 modemType) :
 
     memset(&m_sCSStatus, 0, sizeof(S_ND_REG_STATUS));
     memset(&m_sPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
+
+    m_pDtmfStateAccess = new CMutex();
 }
 
 CTE::~CTE()
 {
     delete m_pTEBaseInstance;
     m_pTEBaseInstance = NULL;
+
+    if (m_pDtmfStateAccess)
+    {
+        CMutex::Unlock(m_pDtmfStateAccess);
+        delete m_pDtmfStateAccess;
+        m_pDtmfStateAccess = NULL;
+    }
 }
 
 CTEBase* CTE::CreateModemTE(CTE* pTEInstance)
@@ -135,6 +146,698 @@ void CTE::DeleteTEObject()
     delete m_pTEInstance;
     m_pTEInstance = NULL;
     CMutex::Unlock(CSystemManager::GetTEAccessMutex());
+}
+
+BOOL CTE::IsRequestSupported(int requestId)
+{
+    return m_pTEBaseInstance->IsRequestSupported(requestId);
+}
+
+BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
+{
+    RIL_LOG_INFO("CTE::IsRequestAllowedInRadioOff - requestId=%d", requestId);
+
+    BOOL bAllowed ;
+
+    switch (requestId)
+    {
+        case RIL_REQUEST_RADIO_POWER:
+        case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
+            bAllowed = TRUE;
+            break;
+
+        case RIL_REQUEST_GET_SIM_STATUS:
+        case RIL_REQUEST_ENTER_SIM_PIN:
+        case RIL_REQUEST_ENTER_SIM_PUK:
+        case RIL_REQUEST_ENTER_SIM_PIN2:
+        case RIL_REQUEST_ENTER_SIM_PUK2:
+        case RIL_REQUEST_CHANGE_SIM_PIN:
+        case RIL_REQUEST_CHANGE_SIM_PIN2:
+        case RIL_REQUEST_QUERY_FACILITY_LOCK:
+        case RIL_REQUEST_SET_FACILITY_LOCK:
+            if (RRIL_SIM_STATE_NOT_AVAILABLE != (int) GetSIMState())
+                bAllowed = TRUE;
+            else
+                bAllowed = FALSE;
+            break;
+
+        case RIL_REQUEST_GET_IMSI:
+        case RIL_REQUEST_SIM_IO:
+        case RIL_REQUEST_SIM_TRANSMIT_BASIC:
+        case RIL_REQUEST_SIM_OPEN_CHANNEL:
+        case RIL_REQUEST_SIM_CLOSE_CHANNEL:
+        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:
+        case RIL_REQUEST_WRITE_SMS_TO_SIM:
+        case RIL_REQUEST_DELETE_SMS_ON_SIM:
+        case RIL_REQUEST_GET_SMSC_ADDRESS:
+        case RIL_REQUEST_SET_SMSC_ADDRESS:
+        case RIL_REQUEST_ISIM_AUTHENTICATION:
+        case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:
+        case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:
+        case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
+        case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
+#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
+        case RIL_REQUEST_GET_SIM_SMS_STORAGE:
+#endif
+            if (RRIL_SIM_STATE_READY == (int) GetSIMState())
+                bAllowed = TRUE;
+            else
+                bAllowed = FALSE;
+            break;
+
+        default:
+            bAllowed = FALSE;
+    }
+
+    return bAllowed;
+}
+
+RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, void* pData,
+        size_t datalen, RIL_Token hRilToken)
+{
+    RIL_LOG_INFO("CTE::HandleRequestWhenNoModem - REQID=%d, token=0x%08x\r\n",
+            requestId, (int) hRilToken);
+
+    RIL_Errno eRetVal = RIL_E_SUCCESS;
+
+    switch (requestId)
+    {
+        case RIL_REQUEST_GET_CURRENT_CALLS:
+        case RIL_REQUEST_DEACTIVATE_DATA_CALL:
+            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+            break;
+
+        case RIL_REQUEST_SCREEN_STATE:
+            eRetVal = RIL_E_GENERIC_FAILURE;
+            break;
+
+        case RIL_REQUEST_SETUP_DATA_CALL:
+            RIL_Data_Call_Response_v6 dataCallResp;
+            memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
+            dataCallResp.status = PDP_FAIL_SIGNAL_LOST;
+            dataCallResp.suggestedRetryTime = MAX_INT;
+            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &dataCallResp,
+                    sizeof(RIL_Data_Call_Response_v6));
+            break;
+
+        default:
+            eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
+            break;
+    }
+
+    return eRetVal;
+}
+
+RIL_Errno CTE::HandleRequestInRadioOff(int requestId, void* pData,
+        size_t datalen, RIL_Token hRilToken)
+{
+    RIL_LOG_INFO("CTE::HandleRequestInRadioOff - REQID=%d, token=0x%08x\r\n",
+            requestId, (int) hRilToken);
+
+    RIL_Errno eRetVal = RIL_E_SUCCESS;
+
+    switch (requestId)
+    {
+        case RIL_REQUEST_GET_CURRENT_CALLS:
+        case RIL_REQUEST_DEACTIVATE_DATA_CALL:
+            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+            break;
+
+        case RIL_REQUEST_SCREEN_STATE:
+            RIL_onRequestComplete(hRilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+            break;
+
+        case RIL_REQUEST_SETUP_DATA_CALL:
+            RIL_Data_Call_Response_v6 dataCallResp;
+            memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
+            dataCallResp.status = PDP_FAIL_RADIO_POWER_OFF;
+            dataCallResp.suggestedRetryTime = MAX_INT;
+            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &dataCallResp,
+                    sizeof(RIL_Data_Call_Response_v6));
+            break;
+
+        default:
+            eRetVal = RIL_E_GENERIC_FAILURE;
+            break;
+    }
+
+    return eRetVal;
+}
+
+void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hRilToken)
+{
+    RIL_RESULT_CODE eRetVal = RIL_E_SUCCESS;
+    RIL_LOG_INFO("CTE::HandleRequest() - id=%d token: 0x%08x\r\n", requestId, (int) hRilToken);
+
+    //  If we're in the middle of TriggerRadioError(), spoof all commands.
+    if (GetSpoofCommandsStatus())
+    {
+        eRetVal = HandleRequestWhenNoModem(requestId, pData, datalen, hRilToken);
+    }
+    else if (RADIO_STATE_OFF == GetRadioState() && !IsRequestAllowedInRadioOff(requestId))
+    {
+        eRetVal = HandleRequestInRadioOff(requestId, pData, datalen, hRilToken);
+    }
+    else if (!m_pTEBaseInstance->IsRequestSupported(requestId))
+    {
+        eRetVal = RIL_E_REQUEST_NOT_SUPPORTED;
+    }
+    else
+    {
+        switch (requestId)
+        {
+            case RIL_REQUEST_GET_SIM_STATUS:  // 1
+                eRetVal = RequestGetSimStatus(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_ENTER_SIM_PIN:  // 2
+                eRetVal = RequestEnterSimPin(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_ENTER_SIM_PUK:  // 3
+                eRetVal = RequestEnterSimPuk(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_ENTER_SIM_PIN2:  // 4
+                eRetVal = RequestEnterSimPin2(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_ENTER_SIM_PUK2:  // 5
+                eRetVal = RequestEnterSimPuk2(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_CHANGE_SIM_PIN:  // 6
+                eRetVal = RequestChangeSimPin(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_CHANGE_SIM_PIN2:  // 7
+                eRetVal = RequestChangeSimPin2(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION:  // 8
+                eRetVal = RequestEnterNetworkDepersonalization(hRilToken,
+                        pData, datalen);
+                break;
+
+            case RIL_REQUEST_GET_CURRENT_CALLS:  // 9
+                eRetVal = RequestGetCurrentCalls(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_DIAL:  // 10
+                eRetVal = RequestDial(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_GET_IMSI:  // 11
+                eRetVal = RequestGetImsi(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_HANGUP:  // 12
+                eRetVal = RequestHangup(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND:  // 13
+                eRetVal = RequestHangupWaitingOrBackground(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND:  // 14
+                eRetVal = RequestHangupForegroundResumeBackground(hRilToken,
+                        pData, datalen);
+                break;
+
+            case RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE:  // 15
+                eRetVal = RequestSwitchHoldingAndActive(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_CONFERENCE:  // 16
+                eRetVal = RequestConference(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_UDUB:  // 17
+                eRetVal = RequestUdub(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_LAST_CALL_FAIL_CAUSE:  // 18
+                eRetVal = RequestLastCallFailCause(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SIGNAL_STRENGTH:  // 19
+                eRetVal = RequestSignalStrength(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_VOICE_REGISTRATION_STATE:  // 20
+                eRetVal = RequestRegistrationState(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_DATA_REGISTRATION_STATE:  // 21
+                eRetVal = RequestGPRSRegistrationState(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_OPERATOR:  // 22
+                eRetVal = RequestOperator(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_RADIO_POWER:  // 23
+                eRetVal = RequestRadioPower(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_DTMF:  // 24
+                eRetVal = RequestDtmf(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SEND_SMS:  // 25
+                eRetVal = RequestSendSms(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SEND_SMS_EXPECT_MORE:  // 26
+                eRetVal = RequestSendSmsExpectMore(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SETUP_DATA_CALL:  // 27
+                eRetVal = RequestSetupDataCall(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SIM_IO:  // 28
+                eRetVal = RequestSimIo(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SEND_USSD:  // 29
+                if (CTE::GetTE().GetDisableUSSD())
+                {
+                    RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                }
+                else
+                {
+                    eRetVal = (RIL_Errno)CTE::GetTE().RequestSendUssd(hRilToken, pData, datalen);
+                }
+                break;
+
+            case RIL_REQUEST_CANCEL_USSD:  // 30
+                if (CTE::GetTE().GetDisableUSSD())
+                {
+                    RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                }
+                else
+                {
+                    eRetVal = (RIL_Errno)CTE::GetTE().RequestCancelUssd(hRilToken, pData, datalen);
+                }
+                break;
+
+            case RIL_REQUEST_GET_CLIR:  // 31
+                eRetVal = RequestGetClir(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SET_CLIR:  // 32
+                eRetVal = RequestSetClir(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_QUERY_CALL_FORWARD_STATUS:  // 33
+                eRetVal = RequestQueryCallForwardStatus(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SET_CALL_FORWARD:  // 34
+                eRetVal = RequestSetCallForward(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_QUERY_CALL_WAITING:  // 35
+                eRetVal = RequestQueryCallWaiting(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SET_CALL_WAITING:  // 36
+                eRetVal = RequestSetCallWaiting(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SMS_ACKNOWLEDGE:  // 37
+                eRetVal = RequestSmsAcknowledge(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_GET_IMEI:  // 38
+                eRetVal = RequestGetImei(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_GET_IMEISV:  // 39
+                eRetVal = RequestGetImeisv(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_ANSWER:  // 40
+                eRetVal = RequestAnswer(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_DEACTIVATE_DATA_CALL:  // 41
+                eRetVal = RequestDeactivateDataCall(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_QUERY_FACILITY_LOCK:  // 42
+                eRetVal = RequestQueryFacilityLock(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SET_FACILITY_LOCK:  // 43
+                eRetVal = RequestSetFacilityLock(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_CHANGE_BARRING_PASSWORD:  // 44
+                eRetVal = RequestChangeBarringPassword(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:  // 45
+                eRetVal = RequestQueryNetworkSelectionMode(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC:  // 46
+                eRetVal = RequestSetNetworkSelectionAutomatic(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:  // 47
+                eRetVal = RequestSetNetworkSelectionManual(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_QUERY_AVAILABLE_NETWORKS:  // 48
+                eRetVal = RequestQueryAvailableNetworks(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_DTMF_START:  // 49
+                eRetVal = RequestDtmfStart(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_DTMF_STOP:  // 50
+                eRetVal = RequestDtmfStop(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_BASEBAND_VERSION:  // 51
+                eRetVal = RequestBasebandVersion(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SEPARATE_CONNECTION:  // 52
+                eRetVal = RequestSeparateConnection(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SET_MUTE:  // 53
+                eRetVal = RequestSetMute(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_GET_MUTE:  // 54
+                eRetVal = RequestGetMute(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_QUERY_CLIP:  // 55
+                eRetVal = RequestQueryClip(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE:  // 56
+                eRetVal = RequestLastDataCallFailCause(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_DATA_CALL_LIST:  // 57
+                eRetVal = RequestDataCallList(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_RESET_RADIO:  // 58
+                eRetVal = RequestResetRadio(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_OEM_HOOK_RAW:  // 59
+                eRetVal = RequestHookRaw(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_OEM_HOOK_STRINGS:  // 60
+                eRetVal = RequestHookStrings(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SCREEN_STATE:  // 61
+                eRetVal = RequestScreenState(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION:  // 62
+                eRetVal = RequestSetSuppSvcNotification(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_WRITE_SMS_TO_SIM:  // 63
+                eRetVal = RequestWriteSmsToSim(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_DELETE_SMS_ON_SIM:  // 64
+                eRetVal = RequestDeleteSmsOnSim(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SET_BAND_MODE:  // 65
+                eRetVal = RequestSetBandMode(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE:  // 66
+                eRetVal = RequestQueryAvailableBandMode(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_STK_GET_PROFILE:  // 67
+                eRetVal = RequestStkGetProfile(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_STK_SET_PROFILE:  // 68
+                eRetVal = RequestStkSetProfile(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:  // 69
+                eRetVal = RequestStkSendEnvelopeCommand(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:  // 70
+                eRetVal = RequestStkSendTerminalResponse(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM:  // 71
+                eRetVal = RequestStkHandleCallSetupRequestedFromSim(hRilToken,
+                        pData, datalen);
+                break;
+
+            case RIL_REQUEST_EXPLICIT_CALL_TRANSFER:  // 72
+                eRetVal = RequestExplicitCallTransfer(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:  // 73
+                eRetVal = RequestSetPreferredNetworkType(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE:  // 74
+                eRetVal = RequestGetPreferredNetworkType(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:  // 75
+            {
+                CRepository repository;
+                const int CELLINFO_EN_DEFAULT = 1;
+                int nEnableCellInfo = CELLINFO_EN_DEFAULT;
+
+                if (!repository.Read(g_szGroupModem, g_szEnableCellInfo, nEnableCellInfo))
+                {
+                    nEnableCellInfo = CELLINFO_EN_DEFAULT;
+                }
+
+                if (nEnableCellInfo)
+                {
+                    eRetVal = RequestGetNeighboringCellIDs(hRilToken, pData, datalen);
+                }
+                else
+                {
+                    RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                }
+            }
+            break;
+
+            case RIL_REQUEST_SET_LOCATION_UPDATES:  // 76
+                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE:  // 77 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE:  // 78 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE:  // 79 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_SET_TTY_MODE:  // 80
+                eRetVal = RequestSetTtyMode(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_QUERY_TTY_MODE:  // 81
+                eRetVal = RequestQueryTtyMode(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE:  // 82 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE:  // 83 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_FLASH:  // 84 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_BURST_DTMF:  // 85 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY:  // 86 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_SEND_SMS:  // 87 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE:  // 88 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG:  // 89
+                eRetVal = RequestGsmGetBroadcastSmsConfig(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG:  // 90
+                eRetVal = RequestGsmSetBroadcastSmsConfig(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION:  // 91
+                eRetVal = RequestGsmSmsBroadcastActivation(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG:  // 92 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG:  // 93 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION:  // 94 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_SUBSCRIPTION:  // 95 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM:  // 96 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM:  // 97 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_DEVICE_IDENTITY:  // 98 - CDMA, not supported
+                eRetVal = RequestDeviceIdentity(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE:  // 99 - CDMA, not supported
+                eRetVal = RequestExitEmergencyCallbackMode(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_GET_SMSC_ADDRESS:  // 100
+                eRetVal = RequestGetSmscAddress(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SET_SMSC_ADDRESS:  // 101
+                eRetVal = RequestSetSmscAddress(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_REPORT_SMS_MEMORY_STATUS:  // 102
+                eRetVal = RequestReportSmsMemoryStatus(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:  // 103
+                eRetVal = RequestReportStkServiceRunning(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_CDMA_GET_SUBSCRIPTION_SOURCE:  // 104 - CDMA, not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_ISIM_AUTHENTICATION:  // 105 - not supported
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
+            case RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU:  // 106
+                eRetVal = RequestAckIncomingGsmSmsWithPdu(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:  // 107
+                eRetVal = RequestStkSendEnvelopeWithStatus(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_VOICE_RADIO_TECH:  // 108
+                eRetVal = RequestVoiceRadioTech(hRilToken, pData, datalen);
+                break;
+
+            //  ************************* END OF REGULAR REQUESTS *******************************
+
+            case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 109
+#if defined(M2_SEEK_FEATURE_ENABLED)
+                eRetVal = RequestSimTransmitBasic(hRilToken, pData, datalen);
+#else
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif
+                break;
+
+            case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 110
+#if defined(M2_SEEK_FEATURE_ENABLED)
+                eRetVal = RequestSimOpenChannel(hRilToken, pData, datalen);
+#else
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif
+                break;
+
+            case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 111
+#if defined(M2_SEEK_FEATURE_ENABLED)
+                eRetVal = RequestSimCloseChannel(hRilToken, pData, datalen);
+#else
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif
+                break;
+
+            case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 112
+#if defined(M2_SEEK_FEATURE_ENABLED)
+                eRetVal = RequestSimTransmitChannel(hRilToken, pData, datalen);
+#else
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif
+                break;
+
+#if defined(M2_VT_FEATURE_ENABLED)
+
+            case RIL_REQUEST_HANGUP_VT:  // 113
+                eRetVal = RequestHangupVT(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_DIAL_VT:  // 114
+                eRetVal = RequestDialVT(hRilToken, pData, datalen);
+                break;
+
+#endif // M2_VT_FEATURE_ENABLED
+
+#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
+
+            case RIL_REQUEST_GET_SIM_SMS_STORAGE:  // 115
+                eRetVal = RequestGetSimSmsStorage(hRilToken, pData, datalen);
+                break;
+
+#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
+
+            default:
+                RIL_LOG_INFO("onRequest() - Unknown Request ID id=%d\r\n", requestId);
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+            break;
+        }
+    }
+
+    if (RIL_E_SUCCESS != eRetVal)
+    {
+        RIL_onRequestComplete(hRilToken, (RIL_Errno)eRetVal, NULL, 0);
+    }
 }
 
 //
@@ -764,8 +1467,7 @@ RIL_RESULT_CODE CTE::RequestHangupWaitingOrBackground(RIL_Token rilToken, void *
     {
         CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_HANGUPWAITINGORBACKGROUND],
                                         rilToken, ND_REQ_ID_HANGUPWAITINGORBACKGROUND, reqData,
-                                        &CTE::ParseHangupWaitingOrBackground,
-                                        &CTE::PostHangupCmdHandler);
+                                        &CTE::ParseHangupWaitingOrBackground);
 
         if (pCmd)
         {
@@ -888,6 +1590,11 @@ RIL_RESULT_CODE CTE::RequestSwitchHoldingAndActive(RIL_Token rilToken, void * pD
         }
     }
 
+    if (RRIL_RESULT_OK == res)
+    {
+        SetDtmfState(E_DTMF_STATE_FLUSH);
+    }
+
     RIL_LOG_VERBOSE("CTE::RequestSwitchHoldingAndActive() - Exit\r\n");
     return res;
 }
@@ -936,6 +1643,11 @@ RIL_RESULT_CODE CTE::RequestConference(RIL_Token rilToken, void * pData, size_t 
             RIL_LOG_CRITICAL("CTE::RequestConference() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
+    }
+
+    if (RRIL_RESULT_OK == res)
+    {
+        SetDtmfState(E_DTMF_STATE_FLUSH);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestConference() - Exit\r\n");
@@ -1343,7 +2055,9 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
         {
             // FIXME: Handle wait forever
             CEvent::Wait(CSystemManager::GetInitCompleteEvent(), WAIT_FOREVER);
-            CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER], rilToken, ND_REQ_ID_RADIOPOWER, reqData, &CTE::ParseRadioPower);
+            CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER],
+                    rilToken, ND_REQ_ID_RADIOPOWER, reqData, &CTE::ParseRadioPower,
+                    &CTE::PostRadioPower);
 
             if (pCmd)
             {
@@ -1366,6 +2080,10 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void * pData, size_t 
     }
 
 Error:
+    if (RRIL_RESULT_OK == res && !bTurnRadioOn)
+    {
+        SetRadioState(RRIL_RADIO_STATE_OFF);
+    }
 
     RIL_LOG_VERBOSE("CTE::RequestRadioPower() - Exit\r\n");
     return res;
@@ -1374,8 +2092,6 @@ Error:
 RIL_RESULT_CODE CTE::ParseRadioPower(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTE::ParseRadioPower() - Enter / Exit\r\n");
-
-    ResetInternalStates();
 
     return m_pTEBaseInstance->ParseRadioPower(rRspData);
 }
@@ -2704,7 +3420,8 @@ RIL_RESULT_CODE CTE::RequestDtmfStart(RIL_Token rilToken, void * pData, size_t d
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REQUESTDTMFSTART], rilToken, ND_REQ_ID_REQUESTDTMFSTART, reqData, &CTE::ParseDtmfStart);
+        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REQUESTDTMFSTART], NULL,
+                ND_REQ_ID_REQUESTDTMFSTART, reqData, &CTE::ParseDtmfStart, &CTE::PostDtmfStart);
 
         if (pCmd)
         {
@@ -2721,6 +3438,11 @@ RIL_RESULT_CODE CTE::RequestDtmfStart(RIL_Token rilToken, void * pData, size_t d
             RIL_LOG_CRITICAL("CTE::RequestDtmfStart() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
+    }
+
+    if (RRIL_RESULT_OK == res)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestDtmfStart() - Exit\r\n");
@@ -2751,7 +3473,8 @@ RIL_RESULT_CODE CTE::RequestDtmfStop(RIL_Token rilToken, void * pData, size_t da
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REQUESTDTMFSTOP], rilToken, ND_REQ_ID_REQUESTDTMFSTOP, reqData, &CTE::ParseDtmfStop);
+        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REQUESTDTMFSTOP], NULL,
+                ND_REQ_ID_REQUESTDTMFSTOP, reqData, &CTE::ParseDtmfStop, &CTE::PostDtmfStop);
 
         if (pCmd)
         {
@@ -2768,6 +3491,11 @@ RIL_RESULT_CODE CTE::RequestDtmfStop(RIL_Token rilToken, void * pData, size_t da
             RIL_LOG_CRITICAL("CTE::RequestDtmfStop() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
+    }
+
+    if (RRIL_RESULT_OK == res)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestDtmfStop() - Exit\r\n");
@@ -2863,6 +3591,11 @@ RIL_RESULT_CODE CTE::RequestSeparateConnection(RIL_Token rilToken, void * pData,
             RIL_LOG_CRITICAL("CTE::RequestSeparateConnection() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
+    }
+
+    if (RRIL_RESULT_OK == res)
+    {
+        SetDtmfState(E_DTMF_STATE_FLUSH);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestSeparateConnection() - Exit\r\n");
@@ -6037,6 +6770,101 @@ BOOL CTE::IsSetupDataCallAllowed(int& retryTime)
     return bAllowed;
 }
 
+void CTE::SetDtmfState(UINT32 uiDtmfState)
+{
+    m_uiDtmfState = uiDtmfState;
+}
+
+UINT32 CTE::TestAndSetDtmfState(UINT32 uiDtmfState)
+{
+    CMutex::Lock(m_pDtmfStateAccess);
+    UINT32 uiPrevDtmfState = m_uiDtmfState;
+
+    if (m_uiDtmfState != uiDtmfState)
+        m_uiDtmfState = uiDtmfState;
+
+    CMutex::Unlock(m_pDtmfStateAccess);
+    return uiPrevDtmfState;
+}
+
+UINT32 CTE::GetDtmfState()
+{
+    return m_uiDtmfState;
+}
+
+BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId)
+{
+    switch (uiRequestId)
+    {
+        case ND_REQ_ID_REQUESTDTMFSTART:
+        {
+            RIL_LOG_INFO("CTE::IsRequestAllowed() - ND_REQ_ID_REQUESTDTMFSTART\r\n");
+            BOOL bIsReqAllowed = FALSE;
+
+            CMutex::Lock(m_pDtmfStateAccess);
+
+            if (E_DTMF_STATE_STOP == GetDtmfState())
+            {
+                SetDtmfState(E_DTMF_STATE_START);
+                bIsReqAllowed = TRUE;
+            }
+            else
+            {
+                // Current request
+                if (NULL != rilToken)
+                {
+                    RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+                }
+
+                // Pending DTMF start and stop request
+                CSystemManager::CompleteIdenticalRequests(uiChannelId, ND_REQ_ID_REQUESTDTMFSTART,
+                        RIL_E_GENERIC_FAILURE, NULL, 0);
+
+                // Pending DTMF start and stop request
+                CSystemManager::CompleteIdenticalRequests(uiChannelId, ND_REQ_ID_REQUESTDTMFSTOP,
+                        RIL_E_GENERIC_FAILURE, NULL, 0);
+
+                SetDtmfState(E_DTMF_STATE_STOP);
+            }
+
+            CMutex::Unlock(m_pDtmfStateAccess);
+
+            return bIsReqAllowed;
+        }
+        case ND_REQ_ID_REQUESTDTMFSTOP:
+        {
+            RIL_LOG_INFO("CTE::IsRequestAllowed() - ND_REQ_ID_REQUESTDTMFSTOP\r\n");
+
+            BOOL bIsReqAllowed = FALSE;
+
+            if (E_DTMF_STATE_START == TestAndSetDtmfState(E_DTMF_STATE_STOP))
+            {
+                bIsReqAllowed = TRUE;
+            }
+            else
+            {
+                // Current request
+                if (NULL != rilToken)
+                {
+                    RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+                }
+
+                // Pending request
+                CSystemManager::CompleteIdenticalRequests(uiChannelId, ND_REQ_ID_REQUESTDTMFSTOP,
+                        RIL_E_GENERIC_FAILURE, NULL, 0);
+
+                // Pending request
+                CSystemManager::CompleteIdenticalRequests(uiChannelId, ND_REQ_ID_REQUESTDTMFSTART,
+                        RIL_E_GENERIC_FAILURE, NULL, 0);
+            }
+
+            return bIsReqAllowed;
+        }
+        default:
+            return TRUE;
+    }
+}
+
 BOOL CTE::isRetryPossible(UINT32 uiErrorCode)
 {
     switch (uiErrorCode)
@@ -6075,6 +6903,18 @@ BOOL CTE::isFDNRequest(int fileId)
         default:
             return FALSE;
     }
+}
+
+BOOL CTE::TestAndSetSpoofCommandsStatus(BOOL bStatus)
+{
+    CMutex::Lock(CSystemManager::GetSpoofCommandsStatusAccessMutex());
+    BOOL bPrevSpoofCommandsStatus = m_bSpoofCommandsStatus;
+
+    if (m_bSpoofCommandsStatus != bStatus)
+        m_bSpoofCommandsStatus = bStatus;
+
+    CMutex::Unlock(CSystemManager::GetSpoofCommandsStatusAccessMutex());
+    return bPrevSpoofCommandsStatus;
 }
 
 //
@@ -6445,15 +7285,13 @@ void CTE::PostHangupCmdHandler(POST_CMD_HANDLER_DATA& rData)
         return;
     }
 
+    if (RRIL_RESULT_OK == rData.uiResultCode)
+    {
+        SetDtmfState(E_DTMF_STATE_FLUSH);
+    }
+
     RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                                                 rData.pData, rData.uiDataSize);
-
-    CSystemManager::CompleteIdenticalRequests(ND_REQ_ID_REQUESTDTMFSTART,
-                                                RIL_E_GENERIC_FAILURE,
-                                                NULL, 0);
-    CSystemManager::CompleteIdenticalRequests(ND_REQ_ID_REQUESTDTMFSTOP,
-                                                RIL_E_GENERIC_FAILURE,
-                                                NULL, 0);
 
     RIL_LOG_VERBOSE("CTE::PostHangupCmdHandler() Exit\r\n");
 }
@@ -6471,22 +7309,19 @@ void CTE::PostSwitchHoldingAndActiveCmdHandler(POST_CMD_HANDLER_DATA& rData)
     RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                                                 rData.pData, rData.uiDataSize);
 
+    if (RRIL_RESULT_OK == rData.uiResultCode)
+    {
+        SetDtmfState(E_DTMF_STATE_FLUSH);
+    }
+
     if (IsClearPendingCHLD() || RRIL_RESULT_OK != rData.uiResultCode)
     {
         RIL_LOG_VERBOSE("CTE::PostSwitchHoldingAndActiveCmdHandler() clearing all ND_REQ_ID_SWITCHHOLDINGANDACTIVE\r\n");
         SetClearPendingCHLDs(FALSE);
 
-        CSystemManager::CompleteIdenticalRequests(ND_REQ_ID_SWITCHHOLDINGANDACTIVE,
-                                                    RIL_E_GENERIC_FAILURE,
-                                                    NULL, 0);
+        CSystemManager::CompleteIdenticalRequests(rData.uiChannel,
+                ND_REQ_ID_SWITCHHOLDINGANDACTIVE, RIL_E_GENERIC_FAILURE, NULL, 0);
     }
-
-    CSystemManager::CompleteIdenticalRequests(ND_REQ_ID_REQUESTDTMFSTART,
-                                                RIL_E_GENERIC_FAILURE,
-                                                NULL, 0);
-    CSystemManager::CompleteIdenticalRequests(ND_REQ_ID_REQUESTDTMFSTOP,
-                                                RIL_E_GENERIC_FAILURE,
-                                                NULL, 0);
 
     RIL_LOG_VERBOSE("CTE::PostSwitchHoldingAndActiveCmdHandler() Exit\r\n");
 }
@@ -6530,10 +7365,8 @@ void CTE::PostNetworkInfoCmdHandler(POST_CMD_HANDLER_DATA& rData)
         return;
     }
 
-    CSystemManager::CompleteIdenticalRequests(rData.uiRequestId,
-                                                rData.uiResultCode,
-                                                (void*)rData.pData,
-                                                rData.uiDataSize);
+    CSystemManager::CompleteIdenticalRequests(rData.uiChannel, rData.uiRequestId,
+            rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
 
     RIL_LOG_VERBOSE("CTE::PostNetworkInfoCmdHandler() Exit\r\n");
 }
@@ -6559,6 +7392,57 @@ void CTE::PostOperator(POST_CMD_HANDLER_DATA& rData)
     PostNetworkInfoCmdHandler(rData);
 
     RIL_LOG_VERBOSE("CTE::PostOperator() Exit\r\n");
+}
+
+void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostRadioPower() Enter\r\n");
+
+    ResetInternalStates();
+
+    /*
+     * Rapid RIL remains active even when the system services are
+     * killed due to FATAL exception. So, when the system servcies
+     * are started again, android telephony framework will turn off
+     * the RADIO which is as per its state machine. This will result
+     * in cleaning up the data connections on modem side. So, framework
+     * and modem will have the right data state but not the rapid ril.
+     * Cleanup data connections internally when there is a change in
+     * radio state(on/off).
+     */
+    CleanupAllDataConnections();
+
+    //  Extract power setting from context
+    int radioPower = (int)rData.pContextData;
+
+    // Retrieve the shutdown property
+    char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL) &&
+                ('0' == szShutdownActionProperty[0]) )
+    {
+        RIL_LOG_INFO("CTE::CoreRadioPower - Shutdown requested\r\n");
+        do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
+    }
+
+    if (1 == radioPower)
+    {
+        //  Turning on phone
+        SetRadioState(RRIL_RADIO_STATE_ON);
+        CSystemManager::GetInstance().TriggerModemPowerOnEvent();
+    }
+
+    if (RIL_E_SUCCESS != rData.uiResultCode && 0 == radioPower)
+    {
+        rData.uiResultCode = RIL_E_SUCCESS;
+    }
+
+    if (NULL != rData.pRilToken)
+    {
+        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                rData.pData, rData.uiDataSize);
+    }
+
+    RIL_LOG_VERBOSE("CTE::PostRadioPower() Exit\r\n");
 }
 
 void CTE::PostSendSmsCmdHandler(POST_CMD_HANDLER_DATA& rData)
@@ -6828,6 +7712,49 @@ void CTE::PostQueryAvailableNetworksCmdHandler(POST_CMD_HANDLER_DATA& rData)
     RIL_LOG_VERBOSE("CTE::PostQueryAvailableNetworksCmdHandler() Exit\r\n");
 }
 
+void CTE::PostDtmfStart(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostDtmfStart() Enter\r\n");
+
+    if (NULL != rData.pRilToken)
+    {
+        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                rData.pData, rData.uiDataSize);
+    }
+
+    if (RRIL_RESULT_OK != rData.uiResultCode)
+    {
+        RIL_LOG_INFO("CTE::PostDtmfStart() Before setting DTMF state - uiResultCode: %d\r\n",
+                rData.uiResultCode);
+
+        SetDtmfState(E_DTMF_STATE_STOP);
+
+        CSystemManager::CompleteIdenticalRequests(rData.uiChannel, rData.uiRequestId,
+                rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
+    }
+
+    RIL_LOG_VERBOSE("CTE::PostDtmfStart() Exit\r\n");
+}
+
+void CTE::PostDtmfStop(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostDtmfStop() Enter\r\n");
+
+    if (NULL != rData.pRilToken)
+    {
+        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                rData.pData, rData.uiDataSize);
+    }
+
+    if (RRIL_RESULT_OK != rData.uiResultCode)
+    {
+        CSystemManager::CompleteIdenticalRequests(rData.uiChannel, rData.uiRequestId,
+                rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
+    }
+
+    RIL_LOG_VERBOSE("CTE::PostDtmfStop() Exit\r\n");
+}
+
 void CTE::PostWriteSmsToSimCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostWriteSmsToSimCmdHandler() Enter\r\n");
@@ -6863,10 +7790,8 @@ void CTE::PostGetNeighboringCellIDs(POST_CMD_HANDLER_DATA& rData)
     RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                                     (void*)rData.pData, rData.uiDataSize);
 
-    CSystemManager::CompleteIdenticalRequests(rData.uiRequestId,
-                                                rData.uiResultCode,
-                                                (void*)rData.pData,
-                                                rData.uiDataSize);
+    CSystemManager::CompleteIdenticalRequests(rData.uiChannel,
+            rData.uiRequestId, rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
 
     RIL_LOG_VERBOSE("CTE::PostGetNeighboringCellIDs() Exit\r\n");
 }

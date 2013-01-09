@@ -830,20 +830,21 @@ BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
 
     for (int i = 0; i < numOfCommands; i++)
     {
-        RIL_LOG_VERBOSE("CChannel::FindIdenticalRequestsAndSendResponses() - nNumOfCommands=[%d] reqID to match=[%u]  i=[%d] reqID=[%u]\r\n",
-                numOfCommands, uiReqID, i, pCmdArray[i]->GetRequestID());
-
         if (pCmdArray[i]->GetRequestID() == uiReqID)
         {
-            //  Dequeue the object, send the response.  Then free the CCommand.
-            g_pTxQueue[m_uiRilChannel]->DequeueByObj(pCmdArray[i]);
+            //  Dequeue the object, send the response and then free the CCommand.
+            //  Do this ONLY if the command is still present in the channel queue
+            if (g_pTxQueue[m_uiRilChannel]->DequeueByObj(pCmdArray[i]))
+            {
+                RIL_Token rilToken = pCmdArray[i]->GetToken();
+                if (NULL != rilToken)
+                {
+                    RIL_onRequestComplete(rilToken, (RIL_Errno) uiResultCode,
+                            pResponse, responseLen);
+                }
 
-            RIL_LOG_INFO("CChannel::FindIdenticalRequestsAndSendResponses() - Found match for ReqID=[%u] at index=[%d]\r\n", uiReqID, i);
-            RIL_LOG_INFO("CChannel::FindIdenticalRequestsAndSendResponses() - Complete for token 0x%08x, error: %u,  reqID=[%u]\r\n",
-                                                                            pCmdArray[i]->GetToken(), uiResultCode, uiReqID);
-            RIL_onRequestComplete(pCmdArray[i]->GetToken(), (RIL_Errno) uiResultCode, pResponse, responseLen);
-
-            delete pCmdArray[i];
+                delete pCmdArray[i];
+            }
             pCmdArray[i] = NULL;
         }
     }
@@ -854,7 +855,6 @@ BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
     RIL_LOG_VERBOSE("CChannel::FindIdenticalRequestsAndSendResponses() - Exit\r\n");
     return true;
 }
-
 
 BOOL CChannel::ProcessModemData(char *szRxBytes, UINT32 uiRxBytesSize)
 {

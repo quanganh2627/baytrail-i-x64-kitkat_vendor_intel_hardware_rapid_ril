@@ -133,14 +133,13 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
     RIL_LOG_INFO("[RIL STATE] REQUEST RESET (RIL -> MMGR) eError=[%s], file=[%s], line num=[%d]\r\n",
             Print_eRadioError(eError), lpszFileName, uiLineNum);
 
-    if (CTE::GetTE().GetSpoofCommandsStatus())
+    // If Spoof commands, log and return
+    if (CTE::GetTE().TestAndSetSpoofCommandsStatus(TRUE))
     {
         RIL_LOG_INFO("do_request_clean_up() - pending.\r\n");
     }
     else
     {
-        CTE::GetTE().SetSpoofCommandsStatus(TRUE);
-
         //  Doesn't matter what the error is, we are notifying MMGR that
         //  something is wrong.  Let the modem status socket watchdog get
         //  a MODEM_UP when things are OK again.

@@ -71,6 +71,16 @@ public:
                     S_ND_GPRS_REG_STATUS& pPSRegStruct);
     RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
 
+    BOOL IsRequestSupported(int requestId);
+    void HandleRequest(int requestID, void* pData, size_t datalen, RIL_Token hRilToken);
+    RIL_Errno HandleRequestWhenNoModem(int requestID, void* pData, size_t datalen,
+            RIL_Token hRilToken);
+    RIL_Errno HandleRequestInRadioOff(int requestID, void* pData, size_t datalen,
+            RIL_Token hRilToken);
+
+    BOOL IsRequestAllowedInRadioOff(int requestId);
+    BOOL IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId);
+
     // RIL_REQUEST_GET_SIM_STATUS 1
     RIL_RESULT_CODE RequestGetSimStatus(RIL_Token rilToken, void * pData, size_t datalen);
     RIL_RESULT_CODE ParseGetSimStatus(RESPONSE_DATA & rRspData);
@@ -560,6 +570,7 @@ public:
 
     void SetSpoofCommandsStatus(BOOL bStatus) { m_bSpoofCommandsStatus = bStatus; };
     BOOL GetSpoofCommandsStatus() { return m_bSpoofCommandsStatus; };
+    BOOL TestAndSetSpoofCommandsStatus(BOOL bStatus);
 
     void SetLastModemEvent(UINT32 uiValue) { m_uiLastModemEvent = uiValue; };
     UINT32 GetLastModemEvent() {return m_uiLastModemEvent;};
@@ -585,6 +596,9 @@ public:
     void SetMTU(UINT32 uiMTU) { m_uiMTU = uiMTU; };
     UINT32 GetMTU() { return m_uiMTU; };
 
+    void SetDisableUSSD(BOOL bDisableUSSD) { m_bDisableUSSD = bDisableUSSD; };
+    UINT32 GetDisableUSSD() { return m_bDisableUSSD; };
+
     void SetTimeoutCmdInit(UINT32 uiCmdInit) { m_uiTimeoutCmdInit = uiCmdInit; };
     UINT32 GetTimeoutCmdInit()     { return m_uiTimeoutCmdInit; };
     void SetTimeoutAPIDefault(UINT32 uiAPIDefault) { m_uiTimeoutAPIDefault = uiAPIDefault; };
@@ -595,6 +609,10 @@ public:
     UINT32 GetTimeoutThresholdForRetry() { return m_uiTimeoutThresholdForRetry; };
 
     BOOL IsSetupDataCallAllowed(int& retryTime);
+
+    void SetDtmfState(UINT32 uiDtmfState);
+    UINT32 TestAndSetDtmfState(UINT32 uiDtmfState);
+    UINT32 GetDtmfState();
 
     RIL_RESULT_CODE RequestSimPinRetryCount(RIL_Token rilToken, void* pData, size_t datalen,
                                             UINT32 uiReqId = 0,
@@ -707,6 +725,17 @@ public:
     void PostOperator(POST_CMD_HANDLER_DATA& rData);
 
     /*
+     * Post Command handler function for RIL_REQUEST_RADIO_POWER.
+     *
+     * Upon success, completes the request
+     * Upon failure,
+     *      If request state is airplane mode, then always complete success.
+     *
+     * Upon success/failure, reset all internal states and cleanup all data connections.
+     */
+    void PostRadioPower(POST_CMD_HANDLER_DATA& rData);
+
+    /*
      * Post Command handler function for RIL_REQUEST_SEND_SMS and
      * RIL_REQUEST_SEND_SMS_EXPECT_MORE request.
      *
@@ -748,6 +777,24 @@ public:
 
     // Sets the g_bIsManualNetworkSearchOngoing to false
     void PostQueryAvailableNetworksCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_DTMF_START
+     *
+     * Upon success, completes the request
+     * Upon failure, completes the current request and pending requests.
+     *               Also, DTMF state is updated.
+     */
+    void PostDtmfStart(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for RIL_REQUEST_DTMF_STOP
+     *
+     * Upon success, completes the request
+     * Upon failure, completes the current request and pending requests.
+     *               Also, DTMF state is updated.
+     */
+    void PostDtmfStop(POST_CMD_HANDLER_DATA& rData);
 
     /*
      * Post Command handler function for the RIL_REQUEST_WRITE_SMS_TO_SIM request.
@@ -887,6 +934,13 @@ private:
     static const UINT32 MTU_SIZE = 1358;
     UINT32 m_uiMTU;
 
+    /*
+     * Flag determines if USSD is enabled or disabled.
+     * If TRUE, USSD is disabled.
+     */
+    static const BOOL DISABLE_USSD_DEFAULT = FALSE;
+    BOOL m_bDisableUSSD;
+
     // Timeouts (in milliseconds)
     static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;
     static const UINT32 TIMEOUT_API_DEFAULT            = 10000;
@@ -896,6 +950,9 @@ private:
     UINT32 m_uiTimeoutAPIDefault;
     UINT32 m_uiTimeoutWaitForInit;
     UINT32 m_uiTimeoutThresholdForRetry;
+
+    UINT32 m_uiDtmfState;
+    CMutex* m_pDtmfStateAccess;
 };
 
 #endif

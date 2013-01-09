@@ -48,6 +48,18 @@ CTE_XMM7160::~CTE_XMM7160()
 {
 }
 
+BOOL CTE_XMM7160::IsRequestSupported(int requestId)
+{
+    switch (requestId)
+    {
+        case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
+        case RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE:
+            return TRUE;
+        default:
+            return CTE_XMM6260::IsRequestSupported(requestId);
+    }
+}
+
 //
 // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
 //

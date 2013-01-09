@@ -31,7 +31,7 @@ class CRilQueue
     BOOL Enqueue(const Object & rObj, UINT32 uiPriority = m_uiMinPriority, BOOL bFront = false);
 
     void GetAllQueuedObjects(Object* &rpObjArray, int &rnNumOfObjects);
-    void DequeueByObj(Object &rObj);
+    BOOL DequeueByObj(Object& rObj);
 
   private:
     // disallow copy constructor and assignment operator
@@ -311,8 +311,9 @@ Error:
 
 //  Remove item with matching object from the queue.
 template <class Object>
-void CRilQueue<Object>::DequeueByObj(Object &rObj)
+BOOL CRilQueue<Object>::DequeueByObj(Object& rObj)
 {
+    BOOL ret = false;
     RIL_LOG_VERBOSE("CRilQueue::DequeueByObj() - ENTER  rObj=[0x%08x]\r\n", (unsigned long)rObj);
 
     CMutex::Lock(&m_cMutex);
@@ -331,6 +332,7 @@ void CRilQueue<Object>::DequeueByObj(Object &rObj)
     {
         if (rObj == node->m_Element)
         {
+            ret = true;
             //  Found a match.  Determine where in the queue it is.
             RIL_LOG_VERBOSE("CRilQueue::DequeueByObj() - Found a match\r\n");
             if (m_pFront == node)
@@ -368,6 +370,7 @@ Done:
     CMutex::Unlock(&m_cMutex);
 
     RIL_LOG_VERBOSE("CRilQueue::DequeueByObj() - EXIT\r\n");
+    return ret;
 }
 
 

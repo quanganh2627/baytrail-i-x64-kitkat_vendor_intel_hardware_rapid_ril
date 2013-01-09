@@ -76,6 +76,10 @@ public:
     static CEvent* GetInitCompleteEvent() { return GetInstance().m_pSysInitCompleteEvent; };
     static CMutex* GetDataChannelAccessorMutex() { return GetInstance().m_pDataChannelAccessorMutex; };
     static CMutex* GetTEAccessMutex() { return GetInstance().m_pTEAccessMutex; }
+    static CMutex* GetSpoofCommandsStatusAccessMutex()
+    {
+        return GetInstance().m_pSpoofCommandsStatusAccessMutex;
+    }
 
     void TriggerSimUnlockedEvent() const { CEvent::Signal(m_pSimUnlockedEvent); };
     void TriggerModemPowerOnEvent() const { CEvent::Signal(m_pModemPowerOnEvent); };
@@ -107,9 +111,9 @@ public:
     UINT32 GetLastCallFailedCauseID() const { return m_uiLastCallFailedCauseID; };
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
-    // Calls FindIdenticalRequestsAndSendResponses on all the channels
-    static void CompleteIdenticalRequests(UINT32 uiReqID, UINT32 uiResultCode,
-                                        void* pResponse, size_t responseLen);
+    // Calls FindIdenticalRequestsAndSendResponses on the given channel
+    static void CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID, UINT32 uiResultCode,
+            void* pResponse, size_t responseLen);
     char m_szDualSim[PROPERTY_VALUE_MAX];
 
 private:
@@ -168,6 +172,7 @@ private:
     UINT32 m_uiLastCallFailedCauseID;
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
+    CMutex* m_pSpoofCommandsStatusAccessMutex;
     CMutex* m_pTEAccessMutex;
 };
 

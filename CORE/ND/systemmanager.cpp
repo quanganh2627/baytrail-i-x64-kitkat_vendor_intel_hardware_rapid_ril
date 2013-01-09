@@ -135,6 +135,8 @@ CSystemManager::CSystemManager()
 
     memset(m_szDualSim, 0, PROPERTY_VALUE_MAX);
 
+    m_pSpoofCommandsStatusAccessMutex = new CMutex();
+
     m_pTEAccessMutex = new CMutex();
 
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Exit\r\n");
@@ -236,6 +238,15 @@ CSystemManager::~CSystemManager()
 
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete TE object\r\n");
     CTE::GetTE().DeleteTEObject();
+
+    if (m_pSpoofCommandsStatusAccessMutex)
+    {
+        CMutex::Unlock(m_pSpoofCommandsStatusAccessMutex);
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - "
+                "Before delete m_pSpoofCommandsStatusAccessMutex\r\n");
+        delete m_pSpoofCommandsStatusAccessMutex;
+        m_pSpoofCommandsStatusAccessMutex = NULL;
+    }
 
     if (m_pTEAccessMutex)
     {
@@ -515,6 +526,11 @@ BOOL CSystemManager::InitializeSystem()
     if (repository.Read(g_szGroupModem, g_szMTU, iTemp))
     {
         CTE::GetTE().SetMTU((UINT32)iTemp);
+    }
+
+    if (repository.Read(g_szGroupModem, g_szDisableUSSD, iTemp))
+    {
+        CTE::GetTE().SetDisableUSSD(iTemp == 1 ? TRUE : FALSE);
     }
 
     // store initial value of Fast Dormancy Mode
@@ -1753,21 +1769,20 @@ Error:
 }
 
 
-void CSystemManager::CompleteIdenticalRequests(UINT32 uiReqID,
+void CSystemManager::CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID,
                                                 UINT32 uiResultCode,
                                                 void* pResponse,
                                                 size_t responseLen)
 {
     RIL_LOG_VERBOSE("CSystemManager::CompleteIdenticalRequests() - Enter\r\n");
 
-    for (UINT32 i = 0; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
+    if (uiChannelId < RIL_CHANNEL_MAX)
     {
-        if (NULL != g_pRilChannel[i])
+        CChannel* pChannel = g_pRilChannel[uiChannelId];
+        if (NULL != pChannel)
         {
-            g_pRilChannel[i]->FindIdenticalRequestsAndSendResponses(uiReqID,
-                                                                    uiResultCode,
-                                                                    pResponse,
-                                                                    responseLen);
+            pChannel->FindIdenticalRequestsAndSendResponses(uiReqID, uiResultCode,
+                    pResponse, responseLen);
         }
     }
     RIL_LOG_VERBOSE("CSystemManager::CompleteIdenticalRequests() - Exit\r\n");

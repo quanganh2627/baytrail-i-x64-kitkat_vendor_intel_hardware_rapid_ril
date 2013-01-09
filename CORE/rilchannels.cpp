@@ -35,12 +35,12 @@ UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL] =
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_GETCURRENTCALLS,                     // 8
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_DIAL,                                // 9
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_GETIMSI,                             // 10
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_HANGUP,                              // 11
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_HANGUPWAITINGORBACKGROUND,           // 12
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND,    // 13
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_HANGUP,                              // 11
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_HANGUPWAITINGORBACKGROUND,           // 12
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND,    // 13
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_SWITCHHOLDINGANDACTIVE,              // 14
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_CONFERENCE,                          // 15
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_UDUB,                                // 16
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_UDUB,                                // 16
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_LASTCALLFAILCAUSE,                   // 17
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_SIGNALSTRENGTH,                      // 18
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_REGISTRATIONSTATE,                   // 19
@@ -72,8 +72,8 @@ UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC,        // 45
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_SETNETWORKSELECTIONMANUAL,           // 46
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_QUERYAVAILABLENETWORKS,              // 47
-    RIL_CHANNEL_DLC6,  //ND_REQ_ID_REQUESTDTMFSTART,                    // 48
-    RIL_CHANNEL_DLC6,  //ND_REQ_ID_REQUESTDTMFSTOP,                     // 49
+    RIL_CHANNEL_ATCMD,  //ND_REQ_ID_REQUESTDTMFSTART,                    // 48
+    RIL_CHANNEL_ATCMD,  //ND_REQ_ID_REQUESTDTMFSTOP,                     // 49
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_BASEBANDVERSION,                     // 50
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_SEPERATECONNECTION,                  // 51
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_SETMUTE,                             // 52
@@ -140,7 +140,7 @@ UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL] =
     RIL_CHANNEL_ATCMD,  //ND_REQ_ID_SILENT_PIN_ENTRY                    // 113
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_ACKINCOMINGSMSWITHPDU                // 114
 #if defined(M2_VT_FEATURE_ENABLED)
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_HANGUPVT                             // 115
+    RIL_CHANNEL_DLC6, //ND_REQ_ID_HANGUPVT                             // 115
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_DIALVT                               // 116
 #endif  // M2_VT_FEATURE_ENABLED
 };

@@ -34,7 +34,6 @@ protected:
     int m_nNetworkRegistrationType;  //  0 = automatic, 1 = manual
     char m_szManualMCCMNC[MAX_BUFFER_SIZE];  //  If manual, this holds the MCCMNC string.
     char m_szPIN[MAX_PIN_SIZE];
-    bool mShutdown;
     int m_nSimAppType;
     android::Vector<RIL_GSM_BroadcastSmsConfigInfo> m_vBroadcastSmsConfigInfo;
     // This tracks the radio state and handles notifications
@@ -55,6 +54,8 @@ private:
     CTEBase();
 
 public:
+
+    virtual BOOL IsRequestSupported(int requestId);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
     virtual RIL_RESULT_CODE CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);

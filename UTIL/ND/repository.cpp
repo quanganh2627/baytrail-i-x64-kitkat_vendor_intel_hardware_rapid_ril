@@ -217,6 +217,7 @@ const char   g_szFDDelayTimer[]                 = "FDDelayTimer";
 const char   g_szSCRITimer[]                    = "SCRITimer";
 const char   g_szFDMode[]                       = "FDMode";
 const char   g_szTempOoSNotificationEnable[]    = "TempOoSNotificationEnable";
+const char   g_szDisableUSSD[]                  = "DisableUSSD";
 
 // used for 7160 modems only
 const char   g_szHsiDataDirect[]        = "HsiDataDirect";

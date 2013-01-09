@@ -52,6 +52,39 @@ CTE_XMM6260::~CTE_XMM6260()
 {
 }
 
+BOOL CTE_XMM6260::IsRequestSupported(int requestId)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::IsRequestSupported() - Enter\r\n");
+
+    switch (requestId)
+    {
+        case RIL_REQUEST_GET_SIM_STATUS:
+        case RIL_REQUEST_SETUP_DATA_CALL:
+        case RIL_REQUEST_SIM_IO:
+        case RIL_REQUEST_DEACTIVATE_DATA_CALL:
+        case RIL_REQUEST_OEM_HOOK_RAW:
+        case RIL_REQUEST_OEM_HOOK_STRINGS:
+        case RIL_REQUEST_SET_BAND_MODE:
+        case RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE:
+        case RIL_REQUEST_STK_GET_PROFILE:
+        case RIL_REQUEST_STK_SET_PROFILE:
+        case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:
+        case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:
+        case RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM:
+        case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
+        case RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE:
+        case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:
+        case RIL_REQUEST_SET_TTY_MODE:
+        case RIL_REQUEST_QUERY_TTY_MODE:
+        case RIL_REQUEST_REPORT_SMS_MEMORY_STATUS:
+        case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
+        case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
+            return TRUE;
+        default:
+            return CTEBase::IsRequestSupported(requestId);
+    }
+}
+
 //
 // RIL_REQUEST_GET_SIM_STATUS 1
 //

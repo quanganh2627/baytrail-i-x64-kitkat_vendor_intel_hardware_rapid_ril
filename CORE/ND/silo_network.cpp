@@ -473,7 +473,10 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         else if (4 == nNumParams)
         {
             CRepository repository;
-            const int TEMP_OUT_OF_SERVICE_EN_DEFAULT = 1;
+
+            // Temporary Out of Service Notifications are only supported on
+            //  DSDS modems and therefore must not be active by default
+            const int TEMP_OUT_OF_SERVICE_EN_DEFAULT = 0;
             int nEnableTempOoSNotif = TEMP_OUT_OF_SERVICE_EN_DEFAULT;
 
             if (!repository.Read(g_szGroupModem, g_szTempOoSNotificationEnable, nEnableTempOoSNotif))

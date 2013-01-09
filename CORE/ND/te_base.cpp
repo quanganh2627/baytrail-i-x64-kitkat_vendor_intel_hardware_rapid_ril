@@ -38,7 +38,6 @@ CTEBase::CTEBase(CTE& cte)
 : m_cte(cte),
   m_cTerminator('\r'),
   m_nNetworkRegistrationType(0),
-  mShutdown(false),
   m_nSimAppType(RIL_APPTYPE_UNKNOWN),
   m_ePin2State(RIL_PINSTATE_UNKNOWN)
 {
@@ -64,6 +63,38 @@ CTEBase::CTEBase(CTE& cte)
 
 CTEBase::~CTEBase()
 {
+}
+
+BOOL CTEBase::IsRequestSupported(int requestId)
+{
+    switch (requestId)
+    {
+        case RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE: // 77 - CDMA, not supported
+        case RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE: // 78 - CDMA, not supported
+        case RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE: // 79 - CDMA, not supported
+        case RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE: // 82 - CDMA, not supported
+        case RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE: // 83 - CDMA, not supported
+        case RIL_REQUEST_CDMA_FLASH: // 84 - CDMA, not supported
+        case RIL_REQUEST_CDMA_BURST_DTMF: // 85 - CDMA, not supported
+        case RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY: // 86 - CDMA, not supported
+        case RIL_REQUEST_CDMA_SEND_SMS: // 87 - CDMA, not supported
+        case RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE: // 88 - CDMA, not supported
+        case RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG: // 92 - CDMA, not supported
+        case RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG: // 93 - CDMA, not supported
+        case RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION: // 94 - CDMA, not supported
+        case RIL_REQUEST_CDMA_SUBSCRIPTION: // 95 - CDMA, not supported
+        case RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM: // 96 - CDMA, not supported
+        case RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM: // 97 - CDMA, not supported
+        case RIL_REQUEST_DEVICE_IDENTITY: // 98 - CDMA, not supported
+        case RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE: // 99 - CDMA, not supported
+        case RIL_REQUEST_CDMA_GET_SUBSCRIPTION_SOURCE: // 104 - CDMA, not supported
+            return FALSE;
+        case RIL_REQUEST_RESET_RADIO: // 58 - not supported
+        case RIL_REQUEST_ISIM_AUTHENTICATION: // 105 - not supported
+            return FALSE;
+        default:
+            return TRUE;
+    }
 }
 
 //
@@ -948,6 +979,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
 
     BOOL bSuccess;
+    BOOL bDtmfAllowed = FALSE;
 
     P_ND_CALL_LIST_DATA pCallListData = NULL;
     int  nCalls = 0;
@@ -1131,6 +1163,28 @@ Continue:
         rRspData.uiDataSize = 0;
     }
 
+    if (pCallListData != NULL)
+    {
+        UINT32 uiCallState;
+        for (UINT32 i = 0; i < RRIL_MAX_CALL_ID_COUNT; i++)
+        {
+            uiCallState = pCallListData->pCallData[nUsed].state;
+            if (uiCallState == E_CALL_STATUS_DIALING
+                    || uiCallState == E_CALL_STATUS_ALERTING
+                    || uiCallState == E_CALL_STATUS_ACTIVE
+                    || uiCallState == E_CALL_STATUS_CONNECTED)
+            {
+                bDtmfAllowed = TRUE;
+                break;
+            }
+        }
+    }
+
+    if (!bDtmfAllowed)
+    {
+        m_cte.SetDtmfState(E_DTMF_STATE_STOP);
+    }
+
     res = RRIL_RESULT_OK;
 
 Error:
@@ -1294,7 +1348,8 @@ RIL_RESULT_CODE CTEBase::CoreHangup(REQUEST_DATA & rReqData, void * pData, UINT3
 
     pnLine = (int*)pData;
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CHLD=1%u\r", pnLine[0]))
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+CHLD=1%u\r", pnLine[0]))
     {
         res = RRIL_RESULT_OK;
     }
@@ -1377,8 +1432,11 @@ RIL_RESULT_CODE CTEBase::CoreSwitchHoldingAndActive(REQUEST_DATA & rReqData, voi
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSwitchHoldingAndActive() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    UINT32 uiDtmfState = m_cte.GetDtmfState();
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=2\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1,
+            (E_DTMF_STATE_START == uiDtmfState) ? "AT+XVTS;+CHLD=2\r" : "AT+CHLD=2\r",
+            sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -1405,7 +1463,11 @@ RIL_RESULT_CODE CTEBase::CoreConference(REQUEST_DATA & rReqData, void * pData, U
     RIL_LOG_VERBOSE("CTEBase::CoreConference() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=3\r", sizeof(rReqData.szCmd1)))
+    UINT32 uiDtmfState = m_cte.GetDtmfState();
+
+    if (CopyStringNullTerminate(rReqData.szCmd1,
+            (E_DTMF_STATE_START == uiDtmfState) ? "AT+XVTS;+CHLD=3\r" : "AT+CHLD=3\r",
+            sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -2007,7 +2069,6 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA & rReqData, void * pData, U
         RIL_LOG_INFO("CTEBase::CoreRadioPower - Shutdown requested\r\n");
 
         res = RRIL_RESULT_OK;
-        mShutdown = true;
 
         // Releasing modem ressource won't turn it off directly
         // There shouldn't be issue by sending command for few seconds
@@ -2069,43 +2130,8 @@ Error:
 
 RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA & rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
-
-    /*
-     * Rapid RIL remains active even when the system services are
-     * killed due to FATAL exception. So, when the system servcies
-     * are started again, android telephony framework will turn off
-     * the RADIO which is as per its state machine. This will result
-     * in clearing up the data connections on modem side. So, framework
-     * and modem will have the right data state but not the rapid ril.
-     * Cleanup data connections internally when there is a change in
-     * radio state(on/off).
-     */
-    CleanupAllDataConnections();
-
-    //  Extract power setting from context
-    int nPower = (int)rRspData.pContextData;
-
-    if (0 == nPower)
-    {
-        //  Turning off phone
-        SetRadioState(RRIL_RADIO_STATE_OFF);
-        if (mShutdown)
-        {
-            do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
-        }
-    }
-    else if (1 == nPower)
-    {
-        //  Turning on phone
-        SetRadioState(RRIL_RADIO_STATE_ON);
-        CSystemManager::GetInstance().TriggerModemPowerOnEvent();
-    }
-
-    RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Exit\r\n");
-    return res;
+    RIL_LOG_VERBOSE("CTEBase::ParseRadioPower() - Enter / Exit\r\n");
+    return RRIL_RESULT_OK;
 }
 
 //
@@ -5131,6 +5157,7 @@ RIL_RESULT_CODE CTEBase::CoreSeparateConnection(REQUEST_DATA & rReqData, void * 
     RIL_LOG_VERBOSE("CTEBase::CoreSeparateConnection() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int callId = 0;
+    UINT32 uiDtmfState = m_cte.GetDtmfState();
 
     if (NULL == pData)
     {
@@ -5140,7 +5167,9 @@ RIL_RESULT_CODE CTEBase::CoreSeparateConnection(REQUEST_DATA & rReqData, void * 
 
     callId = ((int *)pData)[0];
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CHLD=2%u\r", callId))
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            (E_DTMF_STATE_START == uiDtmfState) ? "AT+XVTS;+CHLD=%u\r" :"AT+CHLD=2%u\r",
+            callId))
     {
         res = RRIL_RESULT_OK;
     }
