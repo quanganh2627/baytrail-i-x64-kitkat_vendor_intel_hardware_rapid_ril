@@ -363,6 +363,9 @@ BOOL CRilQueue<Object>::DequeueByObj(Object& rObj)
                 RIL_LOG_VERBOSE("CRilQueue::DequeueByObj() - Found a match in middle\r\n");
                 previous->m_pNext = node->m_pNext;
             }
+
+            delete node;
+            break;
         }
     }
 
