@@ -41,7 +41,8 @@ CChannelBase::CChannelBase(UINT32 uiChannel)
     m_uiLockCommandQueueTimeout(0),
     m_prisdModuleInit(NULL),
     m_bPossibleInvalidFD(FALSE),
-    m_pPossibleInvalidFDMutex(NULL)
+    m_pPossibleInvalidFDMutex(NULL),
+    m_pResponseObjectAccessMutex(NULL)
 {
     RIL_LOG_VERBOSE("CChannelBase::CChannelBase() - Enter\r\n");
 
@@ -76,6 +77,12 @@ CChannelBase::~CChannelBase()
     {
         delete m_pPossibleInvalidFDMutex;
         m_pPossibleInvalidFDMutex = NULL;
+    }
+
+    if (m_pResponseObjectAccessMutex)
+    {
+        delete m_pResponseObjectAccessMutex;
+        m_pResponseObjectAccessMutex = NULL;
     }
 
     int count = m_SiloContainer.nSilos;
@@ -122,6 +129,14 @@ BOOL CChannelBase::InitChannel()
         goto Done;
     }
 
+    m_pResponseObjectAccessMutex = new CMutex();
+    if (!m_pResponseObjectAccessMutex)
+    {
+        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%u] Failed to create "
+                "m_pResponseObjectAccessMutex!\r\n", m_uiRilChannel);
+        goto Done;
+    }
+
     if (!FinishInit())
     {
         RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] this->FinishInit() failed!\r\n", m_uiRilChannel);
@@ -143,6 +158,9 @@ Done:
 
         delete m_pPossibleInvalidFDMutex;
         m_pPossibleInvalidFDMutex = NULL;
+
+        delete m_pResponseObjectAccessMutex;
+        m_pResponseObjectAccessMutex = NULL;
     }
     RIL_LOG_VERBOSE("CChannelBase::InitChannel() - Exit\r\n");
     return bResult;

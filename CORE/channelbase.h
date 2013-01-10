@@ -152,6 +152,7 @@ protected:
     //  temporarily closed.
     BOOL                            m_bPossibleInvalidFD;
     CMutex *                        m_pPossibleInvalidFDMutex;
+    CMutex*                         m_pResponseObjectAccessMutex;
 };
 
 #endif //RRIL_CHANNEL_H

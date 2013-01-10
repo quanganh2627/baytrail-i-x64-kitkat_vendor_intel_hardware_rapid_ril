@@ -218,6 +218,8 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
 
             pATCommand = (char *) rpCmd->GetATCmd1();
 
+            CMutex::Lock(m_pResponseObjectAccessMutex);
+
             // set flag for response thread
             SetCmdThreadBlockedOnRxQueue();
 
@@ -226,6 +228,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             if (NULL != m_pResponse)
                 m_pResponse->FreeData();
 
+            CMutex::Unlock(m_pResponseObjectAccessMutex);
 
             nCmd1Length = (NULL == pATCommand) ? 0 : strlen(pATCommand);
             BOOL bSuccess = WriteToPort(pATCommand, nCmd1Length, uiBytesWritten);
@@ -860,6 +863,7 @@ BOOL CChannel::ProcessModemData(char *szRxBytes, UINT32 uiRxBytesSize)
 {
     RIL_LOG_VERBOSE("CChannel::ProcessModemData() - Enter\r\n");
     BOOL bResult = FALSE;
+    BOOL bUnlockMutex = FALSE;
 
     if (!szRxBytes || uiRxBytesSize == 0)
     {
@@ -868,6 +872,10 @@ BOOL CChannel::ProcessModemData(char *szRxBytes, UINT32 uiRxBytesSize)
     }
 
     RIL_LOG_INFO("CChannel::ProcessModemData() - INFO: chnl=[%d] size=[%d] RX [%s]\r\n", m_uiRilChannel, uiRxBytesSize, CRLFExpandedString(szRxBytes,uiRxBytesSize).GetString());
+
+    CMutex::Lock(m_pResponseObjectAccessMutex);
+
+    bUnlockMutex = TRUE;
 
     if (!m_pResponse)
     {
@@ -916,6 +924,11 @@ BOOL CChannel::ProcessModemData(char *szRxBytes, UINT32 uiRxBytesSize)
     bResult = TRUE;
 
 Error:
+    if (bUnlockMutex)
+    {
+        CMutex::Unlock(m_pResponseObjectAccessMutex);
+    }
+
     RIL_LOG_VERBOSE("CChannel::ProcessModemData() - Exit [%d]\r\n", bResult);
     return bResult;
 }
