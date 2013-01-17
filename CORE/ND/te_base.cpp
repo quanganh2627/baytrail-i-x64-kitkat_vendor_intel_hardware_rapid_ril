@@ -9334,7 +9334,7 @@ BOOL CTEBase::DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pCh
         ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
         RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : Setting flags\r\n");
-        if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
+        if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT | IFF_NOARP, 0))
         {
             //goto Error;
             RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4() : Error setting flags\r\n");

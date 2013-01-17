@@ -421,6 +421,13 @@ BOOL CSystemManager::InitializeSystem()
                     " default from repository\r\n");
         }
 
+        if (!repository.Read(g_szGroupModem, g_szIpcDataChannelMin, m_ipcDataChannelMin))
+        {
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read min"
+                " IPC Data channel from repository\r\n");
+            m_ipcDataChannelMin = RIL_DEFAULT_IPC_CHANNEL_MIN;
+        }
+
         m_hsiChannelsReservedForClass1 = 0;
         for (UINT32 i = 0; i < NUMBER_OF_APN_PROFILE; i++)
         {
@@ -435,13 +442,25 @@ BOOL CSystemManager::InitializeSystem()
             RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much class1 APN\r\n");
             goto Done;
         }
-        // HSI channel 0 and 1 are not used for data.
-        if (m_hsiDataDirect > RIL_HSI_CHANNEL_MAX - 2)
+
+        if (m_hsiDataDirect > (RIL_MAX_NUM_IPC_CHANNEL - m_ipcDataChannelMin))
         {
             RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much hsi channel reserved"
                     " for data\r\n");
             goto Done;
         }
+
+        //  Grab the Modem data channel resource name
+        if (!repository.Read(g_szGroupModem, g_szModemResourceName, m_szModemResourceName,
+                    MAX_MDM_RESOURCE_NAME_SIZE))
+        {
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not read modem resource"
+                    " name from repository\r\n");
+            // Set default value.
+            strcpy(m_szModemResourceName, RIL_DEFAULT_IPC_RESOURCE_NAME);
+        }
+        RIL_LOG_INFO("CSystemManager::InitializeSystem() - m_szModemResourceName=[%s]\r\n",
+                    m_szModemResourceName);
     }
 
     if (m_pSimUnlockedEvent)
@@ -1848,4 +1867,14 @@ void CSystemManager::CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqI
         }
     }
     RIL_LOG_VERBOSE("CSystemManager::CompleteIdenticalRequests() - Exit\r\n");
+}
+
+char* CSystemManager::GetModemResourceName()
+{
+    return m_szModemResourceName;
+}
+
+int CSystemManager::GetIpcDataChannelMin()
+{
+    return m_ipcDataChannelMin;
 }

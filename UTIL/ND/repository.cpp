@@ -219,7 +219,9 @@ const char   g_szFDMode[]                       = "FDMode";
 const char   g_szTempOoSNotificationEnable[]    = "TempOoSNotificationEnable";
 const char   g_szDisableUSSD[]                  = "DisableUSSD";
 
-// used for 7160 modems only
+// used for 7x60 and 6360 modems
+const char   g_szModemResourceName[]    = "ModemDataChannelResourceName";
+const char   g_szIpcDataChannelMin[]    = "IpcDataChannelMin";
 const char   g_szHsiDataDirect[]        = "HsiDataDirect";
 const char   g_szApnTypeDefault[]       = "ApnTypeDefault";
 const char   g_szApnTypeThetered[]      = "ApnTypeThetered";

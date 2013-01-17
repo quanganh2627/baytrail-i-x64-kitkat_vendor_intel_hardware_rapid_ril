@@ -47,14 +47,15 @@ typedef long                RIL_RESULT_CODE;
 ///////////////////////////////////////////////////////////////////////////////
 // Maximum length for various buffers and string parameters
 //
-#define MAX_BUFFER_SIZE         (1024)
-#define MAX_PROP_VALUE          (81)
-#define MAX_PIN_SIZE            (10)
-#define MAX_FACILITY_CODE       (5)
-#define MAX_IPADDR_SIZE         (100)
-#define MAX_PDP_CONTEXTS        (5)
-#define MAX_INTERFACE_NAME_SIZE (50)
-#define MAX_PDP_TYPE_SIZE       (20)
+#define MAX_BUFFER_SIZE            (1024)
+#define MAX_PROP_VALUE             (81)
+#define MAX_PIN_SIZE               (10)
+#define MAX_FACILITY_CODE          (5)
+#define MAX_IPADDR_SIZE            (100)
+#define MAX_PDP_CONTEXTS           (5)
+#define MAX_INTERFACE_NAME_SIZE    (50)
+#define MAX_PDP_TYPE_SIZE          (20)
+#define MAX_MDM_RESOURCE_NAME_SIZE (20)
 
 ///////////////////////////////////////////////////////////////////////////////
 // SIM related constants

@@ -26,23 +26,17 @@ extern UINT32 g_uiRilChannelUpperLimit;
 // Current RIL channel index maximum (depends on number of data channels created)
 extern UINT32 g_uiRilChannelCurMax;
 
-//
-// RIL HSI defines are used by 6360 and 7160 modems.
-//
-#define RIL_HSI_CHANNEL_MAX 5
-
 // Number of apn profile
 #define NUMBER_OF_APN_PROFILE 8
 
-//Store the value of the first hsi channel for data directly over HSI
-#define RIL_HSI_CHANNEL1 2
+// Number of channels able to carry data.
+#define RIL_MAX_NUM_IPC_CHANNEL     5
 
-//Store the value of the second hsi channel for data directly over HSI
-#define RIL_HSI_CHANNEL2 3
+// HSI: channel 0 and 1 are not used for data.
+#define RIL_DEFAULT_IPC_CHANNEL_MIN    2
 
-//Store the value of the third hsi channel for data directly over HSI
-#define RIL_HSI_CHANNEL3 4
-
+// HSI: default configuration for 7x60.
+#define RIL_DEFAULT_IPC_RESOURCE_NAME   "mipi_ipc"
 
 //  Call control commands, misc commands
 #define RIL_CHANNEL_ATCMD 0
