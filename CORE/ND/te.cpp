@@ -6447,61 +6447,7 @@ RIL_RadioTechnology CTE::MapAccessTechnology(UINT32 uiStdAct)
 {
     RIL_LOG_VERBOSE("CTE::MapAccessTechnology() - Enter\r\n");
 
-    /*
-     * 20111103: There is no 3GPP standard value defined for GPRS and HSPA+
-     * access technology. So, values 1 and 8 are used in relation with the
-     * IMC proprietary +XREG: <Act> parameter.
-     *
-     * Note: GSM Compact is not supported by IMC modem.
-     */
-    RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
-
-    //  Check state and set global variable for network technology
-    switch(uiStdAct)
-    {
-        case 0: // GSM
-        rtAct = RADIO_TECH_UNKNOWN; // 0 - GSM access technology is not used on android side
-        break;
-
-        case 1: // GSM Compact
-        rtAct = RADIO_TECH_GPRS; // 1
-        break;
-
-        case 2: // UTRAN
-        rtAct = RADIO_TECH_UMTS; // 3
-        break;
-
-        case 3: // GSM w/EGPRS
-        rtAct = RADIO_TECH_EDGE; // 2
-        break;
-
-        case 4: // UTRAN w/HSDPA
-        rtAct = RADIO_TECH_HSDPA; // 9
-        break;
-
-        case 5: // UTRAN w/HSUPA
-        rtAct = RADIO_TECH_HSUPA; // 10
-        break;
-
-        case 6: // UTRAN w/HSDPA and HSUPA
-        rtAct = RADIO_TECH_HSPA; // 11
-        break;
-
-        case 7:
-        rtAct = RADIO_TECH_LTE; // 14
-        break;
-
-        case 8: // Proprietary value introduced for HSPA+
-        rtAct = RADIO_TECH_HSPAP; // 15
-        break;
-
-        default:
-        rtAct = RADIO_TECH_UNKNOWN; // 0
-        break;
-    }
-
-    RIL_LOG_VERBOSE("CTE::MapAccessTechnology() - Exit\r\n");
-    return rtAct;
+    return m_pTEBaseInstance->MapAccessTechnology(uiStdAct);
 }
 
 BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,

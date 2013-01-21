@@ -783,6 +783,8 @@ public:
     virtual BOOL DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pChannelData);
     virtual BOOL DataConfigUpIpV4V6(char* pszNetworkInterfaceName, CChannel_Data* pChannelData);
 
+    virtual RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
 

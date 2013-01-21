@@ -620,3 +620,34 @@ Error:
     RIL_LOG_VERBOSE("CTE_XMM6360::ParseBasebandVersion() - Exit\r\n");
     return res;
 }
+
+RIL_RadioTechnology CTE_XMM6360::MapAccessTechnology(UINT32 uiStdAct)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::MapAccessTechnology() ENTER  uiStdAct=[%u]\r\n", uiStdAct);
+
+    /*
+     * 20111103: There is no 3GPP standard value defined for GPRS and HSPA+
+     * access technology. So, values 1 and 8 are used in relation with the
+     * IMC proprietary +XREG: <Act> parameter.
+     *
+     * Note: GSM Compact is not supported by IMC modem.
+     */
+    RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
+
+    //  Check state and set global variable for network technology
+    switch (uiStdAct)
+    {
+        /* 20130202:
+         * case 9 is added for HSPA dual carrier
+         */
+        case 9: // Proprietary value introduced for HSPA+ DC-FSPA+
+        rtAct = RADIO_TECH_HSPAP; // 15
+        break;
+
+        default:
+        rtAct = CTEBase::MapAccessTechnology(uiStdAct);
+        break;
+    }
+    RIL_LOG_VERBOSE("CTE_XMM6360::MapAccessTechnology() EXIT  rtAct=[%u]\r\n", (UINT32)rtAct);
+    return rtAct;
+}
