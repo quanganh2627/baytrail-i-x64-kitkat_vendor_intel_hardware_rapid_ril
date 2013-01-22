@@ -3856,8 +3856,8 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA& rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     const char* szRsp = rRspData.szResponse;
-    char* szIMEI = (char*)malloc(MAX_PROP_VALUE);
-    char szProductImeiProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    char szBuildTypeProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    char * szIMEI = (char*)malloc(MAX_PROP_VALUE);
 
     if (NULL == szIMEI)
     {
@@ -3885,9 +3885,29 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA& rRspData)
     rRspData.pData   = (void*)szIMEI;
     rRspData.uiDataSize  = sizeof(char*);
 
-    // Update IMEI property
-    snprintf(szProductImeiProperty, sizeof(szProductImeiProperty), "%s", szIMEI);
-    property_set("persist.radio.device.imei", szProductImeiProperty);
+    // Update IMEI property if build type is "eng" or "userdebug"
+    if (property_get("ro.build.type", szBuildTypeProperty, NULL))
+    {
+        const char szTypeEng[] = "eng";
+        const char szTypeUserDebug[] = "userdebug";
+        char szProductImeiProperty[PROPERTY_VALUE_MAX] = {'\0'};
+
+        if ((strncmp(szBuildTypeProperty, szTypeEng, strlen(szTypeEng)) == 0)
+                || (strncmp(szBuildTypeProperty, szTypeUserDebug, strlen(szTypeUserDebug)) == 0))
+        {
+            snprintf(szProductImeiProperty, sizeof(szProductImeiProperty), "%s", szIMEI);
+            property_set("persist.radio.device.imei", szProductImeiProperty);
+        }
+        else
+        {
+            // Since the property persists on OTA update, set the property to null if present.
+            int valueLen = property_get("persist.radio.device.imei", szProductImeiProperty, "");
+            if (valueLen > 0)
+            {
+                property_set("persist.radio.device.imei", NULL);
+            }
+        }
+    }
 
 Error:
     if (RRIL_RESULT_OK != res)
