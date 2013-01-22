@@ -4441,7 +4441,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA& rReqData,
     //  Store PIN
     if (0 == strcmp(pszFacility, "SC"))
     {
-        if (0 == strcmp(pszMode, "1"))
+        if (0 == strcmp(pszMode, "1") && NULL != pszPassword)
         {
             strncpy(m_szPIN, pszPassword, MAX_PIN_SIZE-1);
             m_szPIN[MAX_PIN_SIZE-1] = '\0';  //  KW fix
@@ -7875,7 +7875,6 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
     }
 
     sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
-    szResponseString[cbResponseString-5] = '\0';
 
     pResponse->sw1 = uiSW1;
     pResponse->sw2 = uiSW2;
@@ -7886,6 +7885,8 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
     }
     else
     {
+        szResponseString[cbResponseString-5] = '\0';
+
         pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
         if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
         {
@@ -8499,7 +8500,6 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
         }
 
         sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
-        szResponseString[cbResponseString-5] = '\0';
 
         pResponse->sw1 = uiSW1;
         pResponse->sw2 = uiSW2;
@@ -8510,6 +8510,8 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
         }
         else
         {
+            szResponseString[cbResponseString-5] = '\0';
+
             pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
             if (!CopyStringNullTerminate(pResponse->simResponse,
                     szResponseString, cbResponseString))

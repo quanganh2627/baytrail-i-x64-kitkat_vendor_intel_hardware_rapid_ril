@@ -80,8 +80,8 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
     if (NULL == pChannelData)
     {
         RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -"
-                " No Data Channel found for RIL channel number %u.\r\n",
-                pChannelData->GetRilChannel());
+                " No Data Channel found for CID %u.\r\n",
+                uiCID);
         goto Error;
     }
 

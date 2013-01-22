@@ -29,7 +29,7 @@
 #include <sys/ioctl.h>
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
-
+#include "util.h"
 
 
 #include <cutils/sockets.h>
@@ -836,7 +836,7 @@ ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN)
     }
 
     //  Encrypt PIN, store in Android system property
-    return encrypt(szPIN, strlen(szPIN), szUICC);
+    return encrypt(szPIN, MIN(strlen(szPIN), MAX_PIN_SIZE), szUICC);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

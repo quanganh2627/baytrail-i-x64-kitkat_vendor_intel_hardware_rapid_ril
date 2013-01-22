@@ -17,6 +17,7 @@
 #include "rril.h"
 #include "sync_ops.h"
 
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
 
 
 // Copies as much of input string into output as possible and *ALWAYS* appends a NULL

@@ -420,12 +420,16 @@ UINT32 CChannelBase::CommandThread()
             RIL_LOG_CRITICAL("CChannelBase::CommandThread() : chnl=[%d] Failed init, returning"
                     " RIL_E_GENERIC_FAILURE\r\n", m_uiRilChannel);
 
-            RIL_Token rilToken = pCmd->GetToken();
-            if ((NULL != pCmd) && (NULL != rilToken))
+            if (NULL != pCmd)
             {
-                RIL_LOG_VERBOSE("CChannelBase::CommandThread() - Complete for token "
+                RIL_Token rilToken = pCmd->GetToken();
+
+                if (NULL != rilToken)
+                {
+                    RIL_LOG_VERBOSE("CChannelBase::CommandThread() - Complete for token "
                         "0x%08x, error: %d\r\n", rilToken, RIL_E_GENERIC_FAILURE);
-                RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+                    RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+                }
 
                 delete pCmd;
                 pCmd = NULL;

@@ -214,6 +214,8 @@ BOOL CSelfExpandBuffer::Append(const char* szIn, UINT32 nLength)
             if (NULL == m_szBuffer)
                 goto Error;
 
+            memset(m_szBuffer, 0, m_nChunkSize);
+
             m_nCapacity = m_nChunkSize;
         }
 
