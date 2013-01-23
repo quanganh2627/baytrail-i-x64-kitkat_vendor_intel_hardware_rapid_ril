@@ -24,23 +24,24 @@
 // NULL will be placed in the last byte of the output buffer. The BOOL return FALSE
 // indicates that the output does not contain the entire input string. cbOut is the size
 // of the output buffer in bytes.
-BOOL CopyStringNullTerminate(char * const pszOut, const char * pszIn, const UINT32 cbOut);
+BOOL CopyStringNullTerminate(char* const pszOut, const char* pszIn, const UINT32 cbOut);
 
 // Prints out the given arguments as per pszFormat into the output buffer. If the resulting
 // string is too large, it will be truncated and NULL terminated. The return will be false
 // for truncation and any error condition. If an error occurs, pszOut will contain a zero
 // length NULL terminated string.
-BOOL PrintStringNullTerminate(char * const pszOut, const UINT32 cbOut, const char * pszFormat, ... );
+BOOL PrintStringNullTerminate(char* const pszOut, const UINT32 cbOut, const char* pszFormat, ... );
 
 // Adds pszIn to the end of pszOut overwritting its NULL terminating character. Adds a NULL
 // character at the end of the string regardless of truncation. If truncation or some other
 // error occurs, the function will return FALSE.
-BOOL ConcatenateStringNullTerminate(char * const pszOut, const UINT32 cbOut, const char * const pszIn);
+BOOL ConcatenateStringNullTerminate(char* const pszOut,
+        const UINT32 cbOut, const char* const pszIn);
 
 class CRLFExpandedString
 {
 public:
-    CRLFExpandedString(const char * const pszIn, const int nInLen);
+    CRLFExpandedString(const char* const pszIn, const int nInLen);
     ~CRLFExpandedString();
 
 private:
@@ -53,7 +54,7 @@ public:
     const char* GetString() { return (NULL != m_pszString) ? m_pszString : "NULL"; };
 
 private:
-    char * m_pszString;
+    char* m_pszString;
 
 };
 
@@ -71,8 +72,10 @@ struct CHARMAP {
 
 // conversion functions
 BYTE SemiByteCharsToByte(const char chHigh, const char chLow);
-BOOL GSMHexToGSM(const char* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cbOut, UINT32& rcbUsed);
-BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, char* sOut, const UINT32 cbOut, UINT32& rcbUsed);
+BOOL GSMHexToGSM(const char* sIn, const UINT32 cbIn, BYTE* sOut,
+              const UINT32 cbOut, UINT32& rcbUsed);
+BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, char* sOut,
+              const UINT32 cbOut, UINT32& rcbUsed);
 char* ConvertUCS2ToUTF8(const char* pHexBuffer, const UINT32 hexBufferLength);
 
 BOOL IsElementarySimFile(UINT32 dwFileID);
@@ -121,14 +124,16 @@ public:
                     CQueue(const BOOL fDontCallDestructors = FALSE);
     virtual         ~CQueue();
 
-    BOOL            Init(CEvent * const pEvent);
+    BOOL            Init(CEvent* const pEvent);
     BOOL            Put(Type* const pItem, const UINT32 dwTimeout);
     RIL_RESULT_CODE Get(Type*& rpItem, const UINT32 dwTimeout);
     BOOL            Peek(Type*& rpItem);
-    RIL_RESULT_CODE ConditionalGet(const PFN_QUEUE_TEST pfnTest, const UINT32 uiData, Type*& rpItem,
-                               const UINT32 dwTimeout);
+    RIL_RESULT_CODE ConditionalGet(const PFN_QUEUE_TEST pfnTest,
+                                            const UINT32 uiData,
+                                            Type*& rpItem,
+                                            const UINT32 dwTimeout);
     RIL_RESULT_CODE WaitForNextItem(const UINT32 dwTimeout);
-    CEvent *        GetPutEvent() { return m_pPutEvent; }
+    CEvent*         GetPutEvent() { return m_pPutEvent; }
     void            Enum(const PFN_QUEUE_ENUM pfnEnum, const UINT32 uiData, const BOOL fClear);
     BOOL            FEmpty();
     UINT32            GetSize() { return m_uiUsed; }
@@ -141,10 +146,10 @@ protected:
 
     Type*               m_rgpItems[Size];
     UINT32                m_uiUsed;
-    CEvent *            m_pGetEvent;
-    CEvent *            m_pPutEvent;
-    CEvent *            m_pCancelEvent;
-    CMutex *            m_pQueueMutex;
+    CEvent*             m_pGetEvent;
+    CEvent*             m_pPutEvent;
+    CEvent*             m_pCancelEvent;
+    CMutex*             m_pQueueMutex;
     BOOL                m_fDontCallDestructors;
     BOOL                m_fInited;
 };
@@ -181,7 +186,7 @@ public:
 
 private:
     Type*               m_pElems;
-    CMutex *            m_pDblListMutex;
+    CMutex*            m_pDblListMutex;
 };
 
 
@@ -236,8 +241,8 @@ CQueue<Type, Size>::~CQueue()
     {
         if (m_fDontCallDestructors)
         {
-            // NOTE: We use this to avoid useless asserts when this destructor (called from RIL driver) frees
-            //       memory allocated by RIL proxy
+            // NOTE: We use this to avoid useless asserts when this destructor
+            // (called from RIL driver) frees memory allocated by RIL proxy
             FreeBlob(m_rgpItems[i]);
         }
         else
@@ -257,7 +262,7 @@ CQueue<Type, Size>::~CQueue()
 // Initalize the queue
 //
 template <class Type, UINT32 Size>
-BOOL CQueue<Type, Size>::Init(CEvent * const pEvent)
+BOOL CQueue<Type, Size>::Init(CEvent* const pEvent)
 {
     if (NULL == pEvent)
     {
@@ -465,8 +470,10 @@ Error:
 //    (will wait for the next element for a specified timeout)
 //
 template <class Type, UINT32 Size>
-RIL_RESULT_CODE CQueue<Type, Size>::ConditionalGet(const PFN_QUEUE_TEST pfnTest, const UINT32 uiData, Type*& rpItem,
-                                           const UINT32 dwTimeout)
+RIL_RESULT_CODE CQueue<Type, Size>::ConditionalGet(const PFN_QUEUE_TEST pfnTest,
+                                                            const UINT32 uiData,
+                                                            Type*& rpItem,
+                                                            const UINT32 dwTimeout)
 {
     CMutex::Lock(m_pQueueMutex);
 
@@ -530,7 +537,7 @@ RIL_RESULT_CODE CQueue<Type, Size>::WaitForNextItem(const UINT32 dwTimeout)
 template <class Type, UINT32 Size>
 RIL_RESULT_CODE CQueue<Type, Size>::WaitForNextItemInternal(const UINT32 dwTimeout)
 {
-    CEvent * rgpEvents[2] = { m_pPutEvent, m_pCancelEvent };
+    CEvent* rgpEvents[2] = { m_pPutEvent, m_pCancelEvent };
     UINT32 dwWait;
     RIL_RESULT_CODE retCode = RRIL_E_NO_ERROR;
 
@@ -597,7 +604,7 @@ Error:
 template <class Type, UINT32 Size>
 BOOL CQueue<Type, Size>::WaitForEmptySpaceInternal(const UINT32 dwTimeout)
 {
-    CEvent * rgpEvents[2] = { m_pGetEvent, m_pCancelEvent };
+    CEvent* rgpEvents[2] = { m_pGetEvent, m_pCancelEvent };
     UINT32 dwWait;
     BOOL fRet = FALSE;
 
@@ -755,9 +762,11 @@ BOOL CPriorityQueue<Type, Size>::Put(Type* const pNew, const UINT32 dwTimeout)
         {
             if (pNew->GetPriority() < this->m_rgpItems[i]->GetPriority())
             {
-                // We found the first item whose pri is lower (i.e., greater) than the one for the new item --
-                //     shift other items in the queue
-                memmove(&this->m_rgpItems[i + 1], &this->m_rgpItems[i], sizeof(Type*) * (this->m_uiUsed - i));
+                // We found the first item whose pri is lower (i.e., greater)
+                // than the one for the new item --
+                // shift other items in the queue
+                memmove(&this->m_rgpItems[i + 1], &this->m_rgpItems[i],
+                        sizeof(Type*) * (this->m_uiUsed - i));
                 break;
             }
         }
@@ -914,7 +923,7 @@ private:
     CSelfExpandBuffer& operator=(const CSelfExpandBuffer& rhs);  //  Assignment operator
 
 public:
-    BOOL            Append(const char *szIn, UINT32 nLength);
+    BOOL            Append(const char* szIn, UINT32 nLength);
     const char*     Data() const    { return m_szBuffer; };
     UINT32          Size() const    { return m_uiUsed; };
     void            Flush()         { delete[] m_szBuffer; m_szBuffer = NULL; m_uiUsed = 0; };

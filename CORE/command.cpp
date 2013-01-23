@@ -45,7 +45,8 @@ CCommand::CCommand( UINT32 uiChannel,
     }
     else
     {
-        RIL_LOG_CRITICAL("CCommand::CCommand() - Using default channel as given argument is invalid [%d]\r\n", uiChannel);
+        RIL_LOG_CRITICAL("CCommand::CCommand() - Using default channel as given argument"
+                " is invalid [%d]\r\n", uiChannel);
     }
 
     if ((NULL == pszATCmd) || ('\0' == pszATCmd[0]))
@@ -91,7 +92,8 @@ CCommand::CCommand( UINT32 uiChannel,
     }
     else
     {
-        RIL_LOG_CRITICAL("CCommand::CCommand() - Using default channel as given argument is invalid [%d]\r\n", uiChannel);
+        RIL_LOG_CRITICAL("CCommand::CCommand() - Using default channel as given argument is"
+                " invalid [%d]\r\n", uiChannel);
     }
 
     if ((NULL == pszATCmd1) || ('\0' == pszATCmd1[0]))
@@ -148,7 +150,8 @@ CCommand::CCommand( UINT32 uiChannel,
     }
     else
     {
-        RIL_LOG_CRITICAL("CCommand::CCommand() - Using default channel as given argument is invalid [%d]\r\n", uiChannel);
+        RIL_LOG_CRITICAL("CCommand::CCommand() - Using default channel as given argument is"
+                " invalid [%d]\r\n", uiChannel);
     }
 
     if ('\0' == reqData.szCmd1[0])
@@ -186,7 +189,7 @@ CCommand::~CCommand()
     m_pContext = NULL;
 }
 
-BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd, BOOL bFront /*=false*/)
+BOOL CCommand::AddCmdToQueue(CCommand*& rpCmd, BOOL bFront /*=false*/)
 {
     RIL_LOG_VERBOSE("CCommand::AddCmdToQueue() - Enter\r\n");
 
@@ -206,15 +209,16 @@ BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd, BOOL bFront /*=false*/)
         }
 
         UINT32 nChannel = rpCmd->GetChannel();
-        //RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue ENQUEUE BEGIN  ishighpriority=[%d] bFront=[%d]\r\n", rpCmd->IsHighPriority(), bFront);
+        // RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue ENQUEUE BEGIN  ishighpriority=[%d]"
+        //        "bFront=[%d]\r\n", rpCmd->IsHighPriority(), bFront);
         if (g_pTxQueue[nChannel]->Enqueue(rpCmd, (UINT32)(rpCmd->IsHighPriority()), bFront ))
         {
-            //RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue ENQUEUE END\r\n");
+            // RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue ENQUEUE END\r\n");
             // signal Tx thread
-            //RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue SIGNAL BEGIN\r\n");
+            // RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue SIGNAL BEGIN\r\n");
             (void) CEvent::Signal(g_TxQueueEvent[nChannel]);
-            //(void) CEvent::Reset(g_TxQueueEvent[nChannel]);
-            //RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue SIGNAL END\r\n");
+            // (void) CEvent::Reset(g_TxQueueEvent[nChannel]);
+            // RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue SIGNAL END\r\n");
 
             // The queue owns the command now
             rpCmd = NULL;
@@ -224,7 +228,8 @@ BOOL CCommand::AddCmdToQueue(CCommand *& rpCmd, BOOL bFront /*=false*/)
         }
         else
         {
-            RIL_LOG_CRITICAL("CCommand::AddCmdToQueue() - Unable to queue command on channel [%d]\r\n", rpCmd->m_uiChannel);
+            RIL_LOG_CRITICAL("CCommand::AddCmdToQueue() - Unable to queue command on channel"
+                    " [%d]\r\n", rpCmd->m_uiChannel);
         }
     }
     else

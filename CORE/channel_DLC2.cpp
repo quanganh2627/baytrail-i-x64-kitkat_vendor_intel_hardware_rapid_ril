@@ -53,7 +53,8 @@ BOOL CChannel_DLC2::OpenPort()
 
     bRetVal = m_Port.Open(g_szDLC2Port, g_bIsSocket);
 
-    RIL_LOG_INFO("CChannel_DLC2::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
+    RIL_LOG_INFO("CChannel_DLC2::OpenPort() - Opening COM Port: %s\r\n",
+            bRetVal ? "SUCCESS" : "FAILED!");
 
     return bRetVal;
 }
@@ -67,7 +68,8 @@ BOOL CChannel_DLC2::FinishInit()
     m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
     if (!m_prisdModuleInit)
     {
-        RIL_LOG_CRITICAL("CChannel_DLC2::FinishInit() - chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_DLC2::FinishInit() - chnl=[%d] Could not create new "
+                "INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -97,41 +99,46 @@ BOOL CChannel_DLC2::AddSilos()
     //     SMS Silo
     //     Phonebook Silo
     //     SIM Silo
-    CSilo *pSilo = NULL;
+    CSilo* pSilo = NULL;
 
 
     pSilo = CSilo_Factory::GetSiloVoice(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_Voice\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_Voice\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloNetwork(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_Network\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_Network\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloSMS(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_SMS\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_SMS\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloSIM(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_SIM\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_SIM\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloPhonebook(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 

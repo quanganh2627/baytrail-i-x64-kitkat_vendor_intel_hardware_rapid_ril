@@ -45,7 +45,7 @@ char         g_szItemRequestTimeouts[MAX_REQUEST_ITEM_LENGTH];
 //  These strings are used for Request ID Parameters in repository.txt
 //  The strings must be in the same order as the Request IDs defined in request_id.h
 //
-const char * g_szRequestNames[] =
+const char* g_szRequestNames[] =
 {
     "GetSimStatus",                         // ND_REQ_ID_GETSIMSTATUS 0
     "EnterSimPin",                          // ND_REQ_ID_ENTERSIMPIN 1
@@ -187,7 +187,7 @@ const char   g_szOpenPortInterval[]            = "OpenPortInterval";
 
 const char   g_szGroupInitCmds[]               = "InitCmds";
 
-const char * g_szPreInitCmds[] =
+const char* g_szPreInitCmds[] =
 {
     "PreInitCmds",      // COM_INIT_INDEX
     "PreReinitCmds",    // COM_REINIT_INDEX
@@ -195,7 +195,7 @@ const char * g_szPreInitCmds[] =
     "PreSmsInitCmds",   // COM_SMSINIT_INDEX
 };
 
-const char * g_szPostInitCmds[] =
+const char* g_szPostInitCmds[] =
 {
     "PostInitCmds",     // COM_INIT_INDEX
     "PostReinitCmds",   // COM_REINIT_INDEX
@@ -322,7 +322,8 @@ BOOL CRepository::OpenRepositoryFile()
     if (m_iFd < 0)
     {
         int iErrCode = errno;
-        RIL_LOG_CRITICAL("CRepository::OpenRepositoryFile() - Could not open file \"%s\" - %s\r\n", REPO_FILE, strerror(iErrCode));
+        RIL_LOG_CRITICAL("CRepository::OpenRepositoryFile() - Could not open file \"%s\" - %s\r\n",
+                REPO_FILE, strerror(iErrCode));
         goto Error;
     }
 
@@ -344,7 +345,7 @@ void CRepository::CloseRepositoryFile()
     }
 }
 
-BOOL CRepository::Read(const char *szGroup, const char* szKey, int& iRes)
+BOOL CRepository::Read(const char* szGroup, const char* szKey, int& iRes)
 {
     BOOL fRetVal = FALSE;
     char szBuf[MAX_INT_LEN];
@@ -352,7 +353,7 @@ BOOL CRepository::Read(const char *szGroup, const char* szKey, int& iRes)
     fRetVal = Read(szGroup, szKey, szBuf, MAX_INT_LEN);
     if (fRetVal)
     {
-        char *remaining;
+        char* remaining;
 
         iRes = strtol(szBuf, &remaining, 10);
         fRetVal = (szBuf != remaining);
@@ -361,7 +362,7 @@ BOOL CRepository::Read(const char *szGroup, const char* szKey, int& iRes)
     return fRetVal;
 }
 
-BOOL CRepository::Read(const char *szGroup, const char* szKey, char* szRes, int iMaxLen)
+BOOL CRepository::Read(const char* szGroup, const char* szKey, char* szRes, int iMaxLen)
 {
     char  szBuf[MAX_LINE_LEN];
     char* pBuf = szBuf;
@@ -412,8 +413,11 @@ Error:
 
 // Read Fast Dormancy parameters from repository
 // check parameter consistency according to modem range
-// if value in undefined or out of range, parameter is replaced by empty string meaning "use value stored in modem NVRAM"
-BOOL CRepository::ReadFDParam(const char *szGroup, const char* szKey, char* szRes, int iMaxLen, int iMinVal, int iMaxVal)
+// if value in undefined or out of range, parameter is replaced by empty string meaning "use value
+//  stored in modem NVRAM"
+BOOL CRepository::ReadFDParam(const char* szGroup, const char* szKey, char* szRes, int iMaxLen,
+                                                                                   int iMinVal,
+                                                                                   int iMaxVal)
 {
     int param = 0;
     if (Read(szGroup, szKey, szRes, iMaxLen))
@@ -424,13 +428,15 @@ BOOL CRepository::ReadFDParam(const char *szGroup, const char* szKey, char* szRe
         if (param < iMinVal || param > iMaxVal)
         {
             szRes[0] = 0;
-            RIL_LOG_WARNING("CRepository::ReadFDParam() - FD Parameter \"%s\" out of range, use NVRAM modem value.\r\n", szKey);
+            RIL_LOG_WARNING("CRepository::ReadFDParam() -"
+                    "FD Parameter \"%s\" out of range, use NVRAM modem value.\r\n", szKey);
         }
     }
     else
     {
         szRes[0] = 0;
-        RIL_LOG_WARNING("CRepository::ReadFDParam() - FD Parameter \"%s\" not found, use NVRAM modem value.\r\n", szKey);
+        RIL_LOG_WARNING("CRepository::ReadFDParam() -"
+                "FD Parameter \"%s\" not found, use NVRAM modem value.\r\n", szKey);
     }
 
     return (E_OK);
@@ -552,13 +558,13 @@ Done:
 void CRepository::RemoveComment(char* szIn)
 {
     // locate // marker
-    const char *szMarker = "//";
-    char *pSubStr = strstr(szIn, szMarker);
+    const char* szMarker = "//";
+    char* pSubStr = strstr(szIn, szMarker);
     if (pSubStr)
         *pSubStr= '\0';
 }
 
-char* CRepository::SkipSpace(char *szIn)
+char* CRepository::SkipSpace(char* szIn)
 {
     if (szIn != NULL)
     {
@@ -567,7 +573,7 @@ char* CRepository::SkipSpace(char *szIn)
     return szIn;
 }
 
-void CRepository::RemoveTrailingSpaces(char * szIn)
+void CRepository::RemoveTrailingSpaces(char* szIn)
 {
     if (NULL != szIn)
     {
@@ -593,7 +599,7 @@ void CRepository::RemoveTrailingSpaces(char * szIn)
     }
 }
 
-char* CRepository::SkipAlphaNum(char *szIn)
+char* CRepository::SkipAlphaNum(char* szIn)
 {
     if (szIn != NULL)
     {

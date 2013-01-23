@@ -31,7 +31,8 @@
 //
 // Table used to map semi-byte values to hex characters
 //
-static const char g_rgchSemiByteToCharMap[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+static const char g_rgchSemiByteToCharMap[16] =
+        { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
 
 
@@ -44,7 +45,8 @@ char SemiByteToChar(const BYTE bByte, const BOOL fHigh)
 
     if (0x10 <= bSemiByte)
     {
-        RIL_LOG_CRITICAL("SemiByteToChar() : Invalid bByte argument: bByte: 0x%X fHigh: %s\r\n", bByte, fHigh ? "TRUE" : "FALSE");
+        RIL_LOG_CRITICAL("SemiByteToChar() : Invalid bByte argument: bByte: 0x%X fHigh: %s\r\n",
+                bByte, fHigh ? "TRUE" : "FALSE");
         return g_rgchSemiByteToCharMap[0];
     }
     else
@@ -85,7 +87,8 @@ BYTE SemiByteCharsToByte(const char chHigh, const char chLow)
 //
 //
 //
-BOOL GSMHexToGSM(const char* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cbOut, UINT32& rcbUsed)
+BOOL GSMHexToGSM(const char* sIn, const UINT32 cbIn, BYTE* sOut,
+                            const UINT32 cbOut, UINT32& rcbUsed)
 {
     const char* pchIn = sIn;
     const char* pchInEnd = sIn + cbIn;
@@ -108,7 +111,8 @@ BOOL GSMHexToGSM(const char* sIn, const UINT32 cbIn, BYTE* sOut, const UINT32 cb
 //
 //
 //
-BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, char* sOut, const UINT32 cbOut, UINT32& rcbUsed)
+BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, char* sOut, const UINT32 cbOut,
+                                                                    UINT32& rcbUsed)
 {
     const BYTE* pchIn = sIn;
     const BYTE* pchInEnd = sIn + cbIn;
@@ -197,7 +201,7 @@ CSelfExpandBuffer::~CSelfExpandBuffer()
     m_szBuffer = NULL;
 }
 
-BOOL CSelfExpandBuffer::Append(const char *szIn, UINT32 nLength)
+BOOL CSelfExpandBuffer::Append(const char* szIn, UINT32 nLength)
 {
     BOOL   bRet = FALSE;
     UINT32 nNewSize;
@@ -237,7 +241,7 @@ Error:
     return bRet;
 }
 
-BOOL CopyStringNullTerminate(char * const pszOut, const char * pszIn, const UINT32 cbOut)
+BOOL CopyStringNullTerminate(char* const pszOut, const char* pszIn, const UINT32 cbOut)
 {
     BOOL fRet = TRUE;
 
@@ -265,7 +269,7 @@ BOOL CopyStringNullTerminate(char * const pszOut, const char * pszIn, const UINT
     return fRet;
 }
 
-BOOL PrintStringNullTerminate(char * const pszOut, const UINT32 cbOut, const char * pszFormat, ... )
+BOOL PrintStringNullTerminate(char* const pszOut, const UINT32 cbOut, const char* pszFormat, ... )
 {
     BOOL fRet = TRUE;
     int iWritten;
@@ -294,7 +298,7 @@ BOOL PrintStringNullTerminate(char * const pszOut, const UINT32 cbOut, const cha
     return fRet;
 }
 
-BOOL ConcatenateStringNullTerminate(char * const pszOut, const UINT32 cbOut, const char * const pszIn)
+BOOL ConcatenateStringNullTerminate(char* const pszOut, const UINT32 cbOut, const char* const pszIn)
 {
     BOOL fRet = FALSE;
     UINT32 cbOutStrLen = strnlen(pszOut, cbOut);
@@ -320,12 +324,12 @@ BOOL ConcatenateStringNullTerminate(char * const pszOut, const UINT32 cbOut, con
     return fRet;
 }
 
-CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLen)
+CRLFExpandedString::CRLFExpandedString(const char* const pszIn, const int nInLen)
 {
     UINT32 nCRLFs = 0;
     UINT32 nNewLen = 0;
     UINT32 nOther = 0;
-    char * pszNewString = NULL;
+    char* pszNewString = NULL;
     m_pszString = NULL;
 
     if (NULL == pszIn)
@@ -345,7 +349,8 @@ CRLFExpandedString::CRLFExpandedString(const char * const pszIn, const int nInLe
         }
     }
 
-    //RIL_LOG_INFO("CRLFExpandedString::CRLFExpandedString() : Found %d instances of CR and LF combined\r\n", nCRLFs);
+    //RIL_LOG_INFO("CRLFExpandedString::CRLFExpandedString() :"
+   //        " Found %d instances of CR and LF combined\r\n", nCRLFs);
 
     // Size increase for each instance is from 1 char to 4 chars
     nNewLen = nInLen + (nCRLFs * 3) + (nOther * 3) + 1;
@@ -406,7 +411,7 @@ char* ConvertUCS2ToUTF8(const char* pHexBuffer, const UINT32 hexBufferLength)
 {
     BYTE* pByteBuffer = NULL;
     UINT32 byteBufferUsed = 0;
-    char *pUtf8Buffer = NULL;
+    char* pUtf8Buffer = NULL;
     int utf8Count = 0;
 
     if (NULL == pHexBuffer || 0 >= hexBufferLength)
@@ -424,7 +429,8 @@ char* ConvertUCS2ToUTF8(const char* pHexBuffer, const UINT32 hexBufferLength)
     pByteBuffer = new BYTE[(hexBufferLength / 2) + 1];
     if (NULL == pByteBuffer)
     {
-        RIL_LOG_CRITICAL("ConvertUCS2ToUTF8 - Cannot allocate %d bytes for pByteBuffer\r\n", (hexBufferLength / 2) + 1);
+        RIL_LOG_CRITICAL("ConvertUCS2ToUTF8 - Cannot allocate %d bytes for pByteBuffer\r\n",
+                (hexBufferLength / 2) + 1);
         goto Error;
     }
     memset(pByteBuffer, 0, ((hexBufferLength / 2) + 1));
@@ -443,7 +449,8 @@ char* ConvertUCS2ToUTF8(const char* pHexBuffer, const UINT32 hexBufferLength)
     pUtf8Buffer = new char[utf8Count + 1];
     if (NULL == pUtf8Buffer)
     {
-        RIL_LOG_CRITICAL("ConvertUCS2ToUTF8 - Cannot allocate %d bytes for pUtf8Buffer", utf8Count + 1);
+        RIL_LOG_CRITICAL("ConvertUCS2ToUTF8 - Cannot allocate %d bytes for pUtf8Buffer",
+                utf8Count + 1);
         goto Error;
     }
 

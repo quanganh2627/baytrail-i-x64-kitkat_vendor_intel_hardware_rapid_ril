@@ -44,89 +44,128 @@ public:
     virtual BOOL IsRequestSupported(int requestId);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
-    virtual RIL_RESULT_CODE CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseGetSimStatus(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreGetSimStatus(REQUEST_DATA& rReqData,
+                                                        void* pData,
+                                                        UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseGetSimStatus(RESPONSE_DATA& rRspData);
 
-    virtual RIL_RESULT_CODE ParseEnterSimPin(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE ParseEnterSimPin(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SETUP_DATA_CALL 27
-    virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 uiCID);
-    virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
+                                                         void* pData,
+                                                         UINT32 uiDataSize,
+                                                         UINT32 uiCID);
+    virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SIM_IO 28
-    virtual RIL_RESULT_CODE CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSimIo(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreSimIo(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSimIo(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
-    virtual RIL_RESULT_CODE CoreDeactivateDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseDeactivateDataCall(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreDeactivateDataCall(REQUEST_DATA& rReqData,
+                                                              void* pData,
+                                                              UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseDeactivateDataCall(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_OEM_HOOK_RAW 59
-    virtual RIL_RESULT_CODE CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 & uiRilChannel);
-    virtual RIL_RESULT_CODE ParseHookRaw(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreHookRaw(REQUEST_DATA& rReqData,
+                                                   void* pData,
+                                                   UINT32 uiDataSize,
+                                                   UINT32& uiRilChannel);
+    virtual RIL_RESULT_CODE ParseHookRaw(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_OEM_HOOK_STRINGS 60
-    virtual RIL_RESULT_CODE CoreHookStrings(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize, UINT32 & uiRilChannel);
-    virtual RIL_RESULT_CODE ParseHookStrings(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE CoreHookStrings(REQUEST_DATA& rReqData,
+                                                       void* pData,
+                                                       UINT32 uiDataSize,
+                                                       UINT32& uiRilChannel);
+     virtual RIL_RESULT_CODE ParseHookStrings(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SET_BAND_MODE 65
-    virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSetBandMode(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA& rReqData,
+                                                       void* pData,
+                                                       UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSetBandMode(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE 66
-    virtual RIL_RESULT_CODE CoreQueryAvailableBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseQueryAvailableBandMode(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreQueryAvailableBandMode(REQUEST_DATA& rReqData,
+                                                                  void* pData,
+                                                                  UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseQueryAvailableBandMode(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_STK_GET_PROFILE 67
-    virtual RIL_RESULT_CODE CoreStkGetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseStkGetProfile(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreStkGetProfile(REQUEST_DATA& rReqData,
+                                                         void* pData,
+                                                         UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkGetProfile(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_STK_SET_PROFILE 68
-    virtual RIL_RESULT_CODE CoreStkSetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseStkSetProfile(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreStkSetProfile(REQUEST_DATA& rReqData,
+                                                         void* pData,
+                                                         UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkSetProfile(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
-    virtual RIL_RESULT_CODE CoreStkSendEnvelopeCommand(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreStkSendEnvelopeCommand(REQUEST_DATA& rReqData,
+                                                                  void* pData,
+                                                                  UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkSendEnvelopeCommand(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
-    virtual RIL_RESULT_CODE CoreStkSendTerminalResponse(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseStkSendTerminalResponse(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreStkSendTerminalResponse(REQUEST_DATA& rReqData,
+                                                                   void* pData,
+                                                                   UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkSendTerminalResponse(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM 71
-    virtual RIL_RESULT_CODE CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA& rReqData,
+                                                                              void* pData,
+                                                                              UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
-    virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSetPreferredNetworkType(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
+                                                                   void* pData,
+                                                                   UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSetPreferredNetworkType(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
-    virtual RIL_RESULT_CODE CoreGetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseGetPreferredNetworkType(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
+                                                                   void* pData,
+                                                                   UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
-    virtual RIL_RESULT_CODE CoreGetNeighboringCellIDs(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
+                                                                 void* pData,
+                                                                 UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SET_TTY_MODE 80
-    virtual RIL_RESULT_CODE CoreSetTtyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSetTtyMode(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreSetTtyMode(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSetTtyMode(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_QUERY_TTY_MODE 81
-    virtual RIL_RESULT_CODE CoreQueryTtyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseQueryTtyMode(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreQueryTtyMode(REQUEST_DATA& rReqData,
+                                                        void* pData,
+                                                        UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseQueryTtyMode(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SMS_MEMORY_STATUS 102
-    virtual RIL_RESULT_CODE CoreReportSmsMemoryStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreReportSmsMemoryStatus(REQUEST_DATA& rReqData,
+                                                                 void* pData,
+                                                                 UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseReportSmsMemoryStatus(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
-    virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
+                                                                   void* pData,
+                                                                   UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
-    virtual RIL_RESULT_CODE ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRspData);
+    virtual RIL_RESULT_CODE ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData);
 
     // internal response handlers
     virtual RIL_RESULT_CODE ParsePdpContextActivate(RESPONSE_DATA& rRspData);
@@ -139,27 +178,38 @@ public:
 
     // PIN retry count request and response handler
     virtual RIL_RESULT_CODE QueryPinRetryCount(REQUEST_DATA& rReqData,
-                                                            void* pData, UINT32 uiDataSize);
+                                                            void* pData,
+                                                            UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
 
     // Handles the PIN2 provided SIM IO requests
     RIL_RESULT_CODE HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs,
                                            REQUEST_DATA& rReqData);
 
-    virtual BOOL CreatePdpContextActivateReq(UINT32 uiChannel, RIL_Token rilToken,
-                                    UINT32 uiReqId,void* pData,
-                                    UINT32 uiDataSize, PFN_TE_PARSE pParseFcn,
-                                    PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn);
-    virtual BOOL CreateQueryIpAndDnsReq(UINT32 uiChannel, RIL_Token rilToken,
-                                    UINT32 uiReqId, void* pData,
-                                    UINT32 uiDataSize, PFN_TE_PARSE pParseFcn,
-                                    PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn);
-    virtual BOOL CreateEnterDataStateReq(UINT32 uiChannel, RIL_Token rilToken,
-                                    UINT32 uiReqId, void* pData,
-                                    UINT32 uiDataSize, PFN_TE_PARSE pParseFcn,
-                                    PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn);
-    virtual BOOL PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
-                                    UINT32 uiDataSize);
+    virtual BOOL CreatePdpContextActivateReq(UINT32 uiChannel,
+                                           RIL_Token rilToken,
+                                           UINT32 uiReqId,
+                                           void* pData,
+                                           UINT32 uiDataSize,
+                                           PFN_TE_PARSE pParseFcn,
+                                           PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn);
+    virtual BOOL CreateQueryIpAndDnsReq(UINT32 uiChannel,
+                                      RIL_Token rilToken,
+                                      UINT32 uiReqId,
+                                      void* pData,
+                                      UINT32 uiDataSize,
+                                      PFN_TE_PARSE pParseFcn,
+                                      PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn);
+    virtual BOOL CreateEnterDataStateReq(UINT32 uiChannel,
+                                       RIL_Token rilToken,
+                                       UINT32 uiReqId,
+                                       void* pData,
+                                       UINT32 uiDataSize,
+                                       PFN_TE_PARSE pParseFcn,
+                                       PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn);
+    virtual BOOL PdpContextActivate(REQUEST_DATA& rReqData,
+                                               void* pData,
+                                               UINT32 uiDataSize);
     virtual BOOL QueryIpAndDns(REQUEST_DATA& rReqData, UINT32 uiCID);
     virtual BOOL EnterDataState(REQUEST_DATA& rReqData, UINT32 uiCID);
 

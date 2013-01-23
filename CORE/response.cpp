@@ -138,9 +138,9 @@ BOOL CResponse::IsUnsolicitedResponse()
         // string contains cr-lf
         if (!SkipRspEnd(szPointer, m_szNewLine, szPointer))
         {
-            RIL_LOG_CRITICAL("CResponse::IsUnsolicitedResponse() - chnl=[%d] no CRLF at end of response: \"%s\"\r\n",
-                            m_pChannel->GetRilChannel(),
-                            CRLFExpandedString(szPointer, strlen(szPointer)).GetString());
+            RIL_LOG_CRITICAL("CResponse::IsUnsolicitedResponse() - chnl=[%d] no CRLF at end of"
+                    " response: \"%s\"\r\n", m_pChannel->GetRilChannel(),
+                    CRLFExpandedString(szPointer, strlen(szPointer)).GetString());
             goto Error;
         }
         m_uiResponseEndMarker = szPointer - m_szBuffer;
@@ -172,7 +172,8 @@ BOOL CResponse::IsExtendedError(const char* pszToken)
         UINT32 nCode;
         if (!RetrieveErrorCode(szPointer, nCode, pszToken))
         {
-            RIL_LOG_CRITICAL("CResponse::IsExtendedError() - chnl=[%d] could not extract error code\r\n", m_pChannel->GetRilChannel());
+            RIL_LOG_CRITICAL("CResponse::IsExtendedError() - chnl=[%d] could not extract error"
+                    " code\r\n", m_pChannel->GetRilChannel());
             // treat as unrecognized - discard everything until the CR LF or end of buffer
             if (!SkipRspEnd(szPointer, m_szNewLine, szPointer))
             {
@@ -190,9 +191,10 @@ BOOL CResponse::IsExtendedError(const char* pszToken)
 
         if (!SkipRspEnd(szPointer, m_szNewLine, szPointer))
         {
-            RIL_LOG_CRITICAL("CResponse::IsExtendedError() - chnl=[%d] no CRLF at end of response: \"%s\"\r\n",
-                            m_pChannel->GetRilChannel(),
-                            CRLFExpandedString(szPointer, strlen(szPointer)).GetString());
+            RIL_LOG_CRITICAL("CResponse::IsExtendedError() - chnl=[%d] no CRLF at end of response:"
+                    " \"%s\"\r\n",
+                    m_pChannel->GetRilChannel(),
+                    CRLFExpandedString(szPointer, strlen(szPointer)).GetString());
             goto Error;
         }
         m_uiResponseEndMarker = szPointer - m_szBuffer;
@@ -211,13 +213,14 @@ Error:
 BOOL CResponse::IsCorruptResponse()
 {
     BOOL bRet = FALSE;
-    const char *szDummy = NULL;
+    const char* szDummy = NULL;
 
     RIL_LOG_VERBOSE("CResponse::IsCorruptResponse() : Enter\r\n");
 
     if (IsCorruptFlag())
     {
-        RIL_LOG_INFO("CResponse::IsCorruptResponse() : chnl=[%d] Attempting to filter corrupt response\r\n", m_pChannel->GetRilChannel());
+        RIL_LOG_INFO("CResponse::IsCorruptResponse() : chnl=[%d] Attempting to filter corrupt"
+                " response\r\n", m_pChannel->GetRilChannel());
         SetCorruptFlag(FALSE);
 
         // heuristic used is to parse everything up to the first CR.
@@ -393,7 +396,8 @@ BOOL CResponse::TransferData(CResponse*& rpRspIn, CResponse*& rpRspOut)
     RIL_LOG_VERBOSE("CResponse::TransferData() : Enter\r\n");
 
     // rpRspIn must be NOT NULL, rpRspOut must be NULL
-    if (NULL == rpRspIn || NULL != rpRspOut || 0 == rpRspIn->m_uiUsed || 0 == rpRspIn->m_uiResponseEndMarker)
+    if (NULL == rpRspIn || NULL != rpRspOut
+            || 0 == rpRspIn->m_uiUsed || 0 == rpRspIn->m_uiResponseEndMarker)
     {
         RIL_LOG_CRITICAL("CResponse::TransferData() : Invalid parameters\r\n");
         goto Error;
@@ -473,7 +477,7 @@ Error:
     return bRet;
 }
 
-BOOL CResponse::RetrieveErrorCode(const char*& rszPointer, UINT32 &nCode, const char *pszToken)
+BOOL CResponse::RetrieveErrorCode(const char*& rszPointer, UINT32& nCode, const char* pszToken)
 {
     RIL_LOG_VERBOSE("CResponse::RetrieveErrorCode() - Enter\r\n");
     RIL_RESULT_CODE resCode = RIL_E_GENERIC_FAILURE;
@@ -508,7 +512,8 @@ BOOL CResponse::RetrieveErrorCode(const char*& rszPointer, UINT32 &nCode, const 
     SetErrorCode(nCode);
     SetUnsolicitedFlag(FALSE);
 
-    RIL_LOG_INFO("CResponse::RetrieveErrorCode() : Result: 0x%X   %s %d\r\n", m_uiResultCode, pszToken, nCode);
+    RIL_LOG_INFO("CResponse::RetrieveErrorCode() : Result: 0x%X   %s %d\r\n", m_uiResultCode,
+            pszToken, nCode);
 
     bRet = TRUE;
 
@@ -547,7 +552,8 @@ BOOL CResponse::ParseResponse(CCommand*& rpCmd)
         rspData.uiErrorCode = GetErrorCode();
         rspData.uiResultCode = GetResultCode();
 
-        RIL_LOG_VERBOSE("CResponse::ParseResponse() : chnl=[%d] Calling Parsing Function\r\n", m_pChannel->GetRilChannel() );
+        RIL_LOG_VERBOSE("CResponse::ParseResponse() : chnl=[%d] Calling Parsing Function\r\n",
+                m_pChannel->GetRilChannel() );
         resCode = (CTE::GetTE().*parser)(rspData);
 
         m_pData = rspData.pData;
@@ -556,10 +562,10 @@ BOOL CResponse::ParseResponse(CCommand*& rpCmd)
         SetResultCode(resCode);
         if (RIL_E_SUCCESS != resCode)
         {
-            RIL_LOG_CRITICAL("CResponse::ParseResponse() - chnl=[%d] Error parsing response: \"%s\"; resCode = 0x%x\r\n",
-                            m_pChannel->GetRilChannel(),
-                            CRLFExpandedString(m_szBuffer, strlen(m_szBuffer)).GetString(),
-                            resCode);
+            RIL_LOG_CRITICAL("CResponse::ParseResponse() - chnl=[%d] Error parsing response:"
+                    " \"%s\"; resCode = 0x%x\r\n", m_pChannel->GetRilChannel(),
+                    CRLFExpandedString(m_szBuffer, strlen(m_szBuffer)).GetString(),
+                    resCode);
 
             SetUnsolicitedFlag(FALSE);
         }

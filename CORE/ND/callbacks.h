@@ -22,7 +22,7 @@ static const struct timeval CallStateHyperPoll = {0, 500000};
 //
 // Callback to trigger call state update
 //
-void notifyChangedCallState(void *param);
+void notifyChangedCallState(void* param);
 
 //
 // Callback to trigger data suspended notification
@@ -37,27 +37,27 @@ void triggerHangup(UINT32 uiCallId);
 //
 // Callback to trigger signal strength update
 //
-void triggerSignalStrength(void *param);
+void triggerSignalStrength(void* param);
 
 //
 // Callback to send incoming SMS acknowledgement
 //
-void triggerSMSAck(void *param);
+void triggerSMSAck(void* param);
 
 //
 // Callback to query sim sms store status
 //
-void triggerQuerySimSmsStoreStatus(void *param);
+void triggerQuerySimSmsStoreStatus(void* param);
 
 //
 // Callback to send USSD notification
 //
-void triggerUSSDNotification(void *param);
+void triggerUSSDNotification(void* param);
 
 //
 // Callback to trigger deactivate Data call
 //
-void triggerDeactivateDataCall(void *param);
+void triggerDeactivateDataCall(void* param);
 
 //
 // Callback to trigger manual network search

@@ -53,29 +53,37 @@ public:
     CFile();
     ~CFile();
 
-    static BOOL Open(CFile * pFile, const char * pszFileName, UINT32 dwAccessFlags, UINT32 dwOpenFlags, UINT32 dwOptFlags, BOOL fIsSocket = FALSE);
-    static BOOL Close(CFile * pFile);
+    static BOOL Open(CFile* pFile, const char* pszFileName, UINT32 dwAccessFlags,
+                                                              UINT32 dwOpenFlags,
+                                                              UINT32 dwOptFlags,
+                                                              BOOL fIsSocket = FALSE);
+    static BOOL Close(CFile* pFile);
 
-    static BOOL Read(CFile * pFile, void * pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead);
-    static BOOL Write(CFile * pFile, const void * pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesWritten);
+    static BOOL Read(CFile* pFile, void* pBuffer, UINT32 dwBytesToRead,
+                                                 UINT32& rdwBytesRead);
+    static BOOL Write(CFile* pFile, const void* pBuffer,
+                                  UINT32 dwBytesToWrite,
+                                  UINT32& rdwBytesWritten);
 
-    static BOOL WaitForEvent(CFile * pFile, UINT32 &rdwFlags, UINT32 dwTimeoutInMS = WAIT_FOREVER);
+    static BOOL WaitForEvent(CFile* pFile, UINT32& rdwFlags, UINT32 dwTimeoutInMS = WAIT_FOREVER);
 
-    static int GetFD(CFile * pFile);
+    static int GetFD(CFile* pFile);
 
 private:
 
-    BOOL  Open(const char * pszFileName, UINT32 dwAccessFlags, UINT32 dwOpenFlags, UINT32 dwOptFlags, BOOL fIsSocket = FALSE);
+    BOOL  Open(const char* pszFileName, UINT32 dwAccessFlags, UINT32 dwOpenFlags,
+                                                               UINT32 dwOptFlags,
+                                                               BOOL fIsSocket = FALSE);
     BOOL  Close();
 
-    BOOL  Read(void * pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead);
-    BOOL  Write(const void * pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesWritten);
+    BOOL  Read(void* pBuffer, UINT32 dwBytesToRead, UINT32& rdwBytesRead);
+    BOOL  Write(const void* pBuffer, UINT32 dwBytesToWrite, UINT32& rdwBytesWritten);
 
-    BOOL  WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS = WAIT_FOREVER);
+    BOOL  WaitForEvent(UINT32& rdwFlags, UINT32 dwTimeoutInMS = WAIT_FOREVER);
 
-    UINT32 GetFileAttributes(const char * pszFileName);
+    UINT32 GetFileAttributes(const char* pszFileName);
 
-    BOOL    OpenSocket(const char * pszSocketName);
+    BOOL    OpenSocket(const char* pszSocketName);
 
     int    m_file;
 

@@ -28,10 +28,10 @@ public:
     CRequestInfoTable();
     ~CRequestInfoTable();
 
-    void GetRequestInfo(REQ_ID requestID, REQ_INFO &rReqInfo);
+    void GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo);
 
 private:
-    REQ_INFO * m_rgpRequestInfos[REQ_ID_TOTAL];
+    REQ_INFO*  m_rgpRequestInfos[REQ_ID_TOTAL];
 };
 
 #endif // RRIL_REQUEST_INFO_TABLE_H

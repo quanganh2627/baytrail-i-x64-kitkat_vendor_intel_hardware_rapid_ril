@@ -42,8 +42,8 @@ private:
 
     UINT32          m_nChannelsTotal;
     UINT32          m_nChannelsActive;
-    CMutex *        m_pTManMutex;
-    CEvent *        m_pStartupCompleteEvent;
+    CMutex*         m_pTManMutex;
+    CEvent*         m_pStartupCompleteEvent;
 };
 
 #endif // RRIL_THREAD_MANAGER_H

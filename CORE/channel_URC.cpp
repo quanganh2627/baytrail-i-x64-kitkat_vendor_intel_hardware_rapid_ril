@@ -23,7 +23,9 @@ extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
 //  All URCs go on this channel.
-INITSTRING_DATA URCBasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0|+CSCS=\"UCS2\"|+XSIMSTATE=1|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+XNITZINFO=1|+CREG=2|+XREG=2|+CGEREP=1,0|+CSSN=1,1|+CMGF=0|+XCSQ=1|+XDATASTAT=1|+XLEMA=1" };
+INITSTRING_DATA URCBasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0|+CSCS=\"UCS2\"|+XSIMSTATE=1"
+        "|+XSIMSTATE?|+XCALLSTAT=1|+CTZU=1|+XNITZINFO=1|+CREG=2|+XREG=2|+CGEREP=1,0|+CSSN=1,1"
+        "|+CMGF=0|+XCSQ=1|+XDATASTAT=1|+XLEMA=1" };
 INITSTRING_DATA URCUnlockInitString  = { "+CNMI=2,2,2,1|+CRC=1|+CCWA=1" };
 INITSTRING_DATA URCPowerOnInitString = { "" };
 INITSTRING_DATA URCReadyInitString   = { "" };
@@ -54,7 +56,8 @@ BOOL CChannel_URC::OpenPort()
 
     bRetVal = m_Port.Open(g_szURCPort, g_bIsSocket);
 
-    RIL_LOG_INFO("CChannel_URC::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
+    RIL_LOG_INFO("CChannel_URC::OpenPort() - Opening COM Port: %s\r\n",
+            bRetVal ? "SUCCESS" : "FAILED!");
 
     return bRetVal;
 }
@@ -90,7 +93,8 @@ BOOL CChannel_URC::FinishInit()
     m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
     if (!m_prisdModuleInit)
     {
-        RIL_LOG_CRITICAL("CChannel_URC::FinishInit() - chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_URC::FinishInit() - chnl=[%d] Could not create new"
+                " INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -124,41 +128,46 @@ BOOL CChannel_URC::AddSilos()
     //     SMS Silo
     //     Phonebook Silo
     //     SIM Silo
-    CSilo *pSilo = NULL;
+    CSilo* pSilo = NULL;
 
 
     pSilo = CSilo_Factory::GetSiloVoice(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_Voice\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_Voice\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloNetwork(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_Network\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_Network\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloSMS(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_SMS\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_SMS\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloSIM(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_SIM\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_SIM\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloPhonebook(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 

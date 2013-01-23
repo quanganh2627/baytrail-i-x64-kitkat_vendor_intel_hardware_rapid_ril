@@ -18,7 +18,7 @@
 #include "util.h"
 #include "oemhookids.h"
 
-void notifyChangedCallState(void *param)
+void notifyChangedCallState(void* param)
 {
     RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 }
@@ -44,7 +44,8 @@ void triggerDataSuspendInd(void* param)
     pos += sizeof(int);
     convertIntToByteArrayAt(pszData, 0/* SUSPENDED */, pos);
 
-    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, pszData, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, pszData,
+            sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
 
     free(pszData);
 }
@@ -54,13 +55,15 @@ void triggerHangup(UINT32 uiCallId)
     REQUEST_DATA rReqData;
 
     memset(&rReqData, 0, sizeof(REQUEST_DATA));
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XSETCAUSE=1,21;+CHLD=1%u\r", uiCallId))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+             "AT+XSETCAUSE=1,21;+CHLD=1%u\r", uiCallId))
     {
         RIL_LOG_CRITICAL("triggerHangup() - Unable to create hangup command!\r\n");
         return;
     }
 
-    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_HANGUP], NULL, REQ_ID_NONE, rReqData);
+    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_HANGUP],
+            NULL, REQ_ID_NONE, rReqData);
     if (pCmd)
     {
         if (!CCommand::AddCmdToQueue(pCmd, TRUE))
@@ -76,9 +79,10 @@ void triggerHangup(UINT32 uiCallId)
     }
 }
 
-void triggerSignalStrength(void *param)
+void triggerSignalStrength(void* param)
 {
-    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIGNALSTRENGTH], NULL, REQ_ID_NONE, "AT+CSQ\r", &CTE::ParseUnsolicitedSignalStrength);
+    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIGNALSTRENGTH], NULL, REQ_ID_NONE,
+            "AT+CSQ\r", &CTE::ParseUnsolicitedSignalStrength);
 
     if (pCmd)
     {
@@ -95,9 +99,10 @@ void triggerSignalStrength(void *param)
     }
 }
 
-void triggerSMSAck(void *param)
+void triggerSMSAck(void* param)
 {
-    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SMSACKNOWLEDGE], NULL, REQ_ID_NONE, "AT+CNMA=1\r");
+    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SMSACKNOWLEDGE],
+            NULL, REQ_ID_NONE, "AT+CNMA=1\r");
 
     if (pCmd)
     {
@@ -114,10 +119,10 @@ void triggerSMSAck(void *param)
     }
 }
 
-void triggerQuerySimSmsStoreStatus(void *param)
+void triggerQuerySimSmsStoreStatus(void* param)
 {
-    CCommand * pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS],
-                                   NULL, REQ_ID_NONE, "AT+CPMS?\r", &CTE::ParseQuerySimSmsStoreStatus);
+    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS],
+                             NULL, REQ_ID_NONE, "AT+CPMS?\r", &CTE::ParseQuerySimSmsStoreStatus);
 
     if (pCmd)
     {
@@ -134,7 +139,7 @@ void triggerQuerySimSmsStoreStatus(void *param)
     }
 }
 
-void triggerUSSDNotification(void *param)
+void triggerUSSDNotification(void* param)
 {
     P_ND_USSD_STATUS pUssdStatus = (P_ND_USSD_STATUS)param;
 

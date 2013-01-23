@@ -29,7 +29,7 @@
 class CRilLog
 {
 public:
-    static void Init(char * szSIMID);
+    static void Init(char* szSIMID);
     static void Verbose(const char* const szFormatString, ...);
     static void Info(const char* const szFormatString, ...);
     static void Warning(const char* const szFormatString, ...);

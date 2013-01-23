@@ -24,7 +24,7 @@ class CChannel;
 class CSilo_SMS_INF : public CSilo_SMS
 {
 public:
-    CSilo_SMS_INF(CChannel *pChannel);
+    CSilo_SMS_INF(CChannel* pChannel);
     virtual ~CSilo_SMS_INF();
 };
 

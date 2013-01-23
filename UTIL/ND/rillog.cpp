@@ -21,7 +21,7 @@ BOOL  CRilLog::m_bInitialized = FALSE;
 BOOL  CRilLog::m_bFullLogBuild = FALSE;
 char  CRilLog::m_szSIMID[SIMID_MAX_LENGTH];
 
-void CRilLog::Init(char * szSIMID)
+void CRilLog::Init(char* szSIMID)
 {
     CRepository repository;
     int         iLogLevel;

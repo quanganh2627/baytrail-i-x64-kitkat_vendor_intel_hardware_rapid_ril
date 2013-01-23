@@ -128,8 +128,10 @@ CSystemManager::CSystemManager()
 {
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Enter\r\n");
 
-    // TODO / FIXME : Someone is locking this mutex outside of the destructor or system init functions
-    //                Need to track down when time is available. Workaround for now is to call TryLock
+    // TODO / FIXME : Someone is locking this mutex outside of the destructor or system init
+    //                functions
+    //                Need to track down when time is available. Workaround for now is to call
+    //                TryLock
     //                so we don't block during suspend.
     m_pSystemManagerMutex = new CMutex();
 
@@ -217,21 +219,24 @@ CSystemManager::~CSystemManager()
 
     if (m_pInitStringCompleteEvent)
     {
-        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pInitStringCompleteEvent\r\n");
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete"
+                " m_pInitStringCompleteEvent\r\n");
         delete m_pInitStringCompleteEvent;
         m_pInitStringCompleteEvent = NULL;
     }
 
     if (m_pSysInitCompleteEvent)
     {
-        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pSysInitCompleteEvent\r\n");
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete"
+                " m_pSysInitCompleteEvent\r\n");
         delete m_pSysInitCompleteEvent;
         m_pSysInitCompleteEvent = NULL;
     }
 
     if (m_pDataChannelAccessorMutex)
     {
-        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pDataChannelAccessorMutex\r\n");
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete"
+                " m_pDataChannelAccessorMutex\r\n");
         delete m_pDataChannelAccessorMutex;
         m_pDataChannelAccessorMutex = NULL;
     }
@@ -263,7 +268,8 @@ CSystemManager::~CSystemManager()
 
     if (m_pSystemManagerMutex)
     {
-        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pSystemManagerMutex\r\n");
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete"
+                " m_pSystemManagerMutex\r\n");
         delete m_pSystemManagerMutex;
         m_pSystemManagerMutex = NULL;
     }
@@ -309,13 +315,15 @@ BOOL CSystemManager::InitializeSystem()
         }
         else
         {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unknown modem type- Calling exit(0)\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unknown modem type-"
+                    " Calling exit(0)\r\n");
             exit(0);
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Failed to read the modem type!\r\n");
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() -"
+                " Failed to read the modem type!\r\n");
         goto Done;
     }
 
@@ -325,17 +333,20 @@ BOOL CSystemManager::InitializeSystem()
         int apnType = 0;
         if (!repository.Read(g_szGroupModem, g_szApnTypeDefault, apnType))
         {
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type default from repository\r\n");
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type"
+                    " default from repository\r\n");
         }
         else
         {
             m_dataProfilePathAssignation[0] = apnType;
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() - ApnTypeThetered: %d...\r\n", apnType);
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() - ApnTypeThetered: %d...\r\n",
+                    apnType);
         }
 
         if (!repository.Read(g_szGroupModem, g_szApnTypeThetered, apnType))
         {
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type Tethered from repository\r\n");
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type"
+                    " Tethered from repository\r\n");
         }
         else
         {
@@ -344,7 +355,8 @@ BOOL CSystemManager::InitializeSystem()
 
         if (!repository.Read(g_szGroupModem, g_szApnTypeIMS, apnType))
         {
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type IMS from repository\r\n");
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type"
+                    " IMS from repository\r\n");
         }
         else
         {
@@ -353,7 +365,8 @@ BOOL CSystemManager::InitializeSystem()
 
         if (!repository.Read(g_szGroupModem, g_szApnTypeFOTA, apnType))
         {
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type MMS from repository\r\n");
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type"
+                    " MMS from repository\r\n");
         }
         else
         {
@@ -362,7 +375,8 @@ BOOL CSystemManager::InitializeSystem()
 
         if (!repository.Read(g_szGroupModem, g_szApnTypeCBS, apnType))
         {
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type CBS from repository\r\n");
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type"
+                    " CBS from repository\r\n");
         }
         else
         {
@@ -371,7 +385,8 @@ BOOL CSystemManager::InitializeSystem()
 
         if (!repository.Read(g_szGroupModem, g_szApnTypeMMS, apnType))
         {
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type FOTA from repository\r\n");
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type"
+                    " FOTA from repository\r\n");
         }
         else
         {
@@ -380,7 +395,8 @@ BOOL CSystemManager::InitializeSystem()
 
         if (!repository.Read(g_szGroupModem, g_szApnTypeSUPL, apnType))
         {
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type SUPL from repository\r\n");
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type"
+                    " SUPL from repository\r\n");
         }
         else
         {
@@ -389,7 +405,8 @@ BOOL CSystemManager::InitializeSystem()
 
         if (!repository.Read(g_szGroupModem, g_szApnTypeHIPRI, apnType))
         {
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type HIPRI from repository\r\n");
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type"
+                    " HIPRI from repository\r\n");
         }
         else
         {
@@ -398,7 +415,8 @@ BOOL CSystemManager::InitializeSystem()
 
         if (!repository.Read(g_szGroupModem, g_szHsiDataDirect, m_hsiDataDirect))
         {
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type default from repository\r\n");
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type"
+                    " default from repository\r\n");
         }
 
         m_hsiChannelsReservedForClass1 = 0;
@@ -418,77 +436,88 @@ BOOL CSystemManager::InitializeSystem()
         // HSI channel 0 and 1 are not used for data.
         if (m_hsiDataDirect > RIL_HSI_CHANNEL_MAX - 2)
         {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much hsi channel reserved for data\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much hsi channel reserved"
+                    " for data\r\n");
             goto Done;
         }
     }
 
     if (m_pSimUnlockedEvent)
     {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pSimUnlockedEvent was already created!\r\n");
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pSimUnlockedEvent was already"
+                " created!\r\n");
     }
     else
     {
         m_pSimUnlockedEvent = new CEvent(NULL, TRUE);
         if (!m_pSimUnlockedEvent)
         {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create Sim Unlocked Event.\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create"
+                    " Sim Unlocked Event.\r\n");
             goto Done;
         }
     }
 
     if (m_pModemPowerOnEvent)
     {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pModemPowerOnEvent was already created!\r\n");
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pModemPowerOnEvent"
+                " was already created!\r\n");
     }
     else
     {
         m_pModemPowerOnEvent = new CEvent(NULL, TRUE);
         if (!m_pModemPowerOnEvent)
         {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create Modem Power On Event.\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create Modem"
+                    " Power On Event.\r\n");
             goto Done;
         }
     }
 
     if (m_pInitStringCompleteEvent)
     {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pInitStringCompleteEvent was already created!\r\n");
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pInitStringCompleteEvent"
+                " was already created!\r\n");
     }
     else
     {
         m_pInitStringCompleteEvent = new CEvent(NULL, TRUE);
         if (!m_pInitStringCompleteEvent)
         {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create Init commands complete Event.\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create Init commands"
+                    " complete Event.\r\n");
             goto Done;
         }
     }
 
     if (m_pSysInitCompleteEvent)
     {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pSysInitCompleteEvent was already created!\r\n");
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pSysInitCompleteEvent was"
+                " already created!\r\n");
     }
     else
     {
         m_pSysInitCompleteEvent = new CEvent(NULL, TRUE);
         if (!m_pSysInitCompleteEvent)
         {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create System init complete Event.\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create System init"
+                    " complete Event.\r\n");
             goto Done;
         }
     }
 
     if (m_pDataChannelAccessorMutex)
     {
-        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pDataChannelAccessorMutex was already created!\r\n");
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pDataChannelAccessorMutex was"
+                " already created!\r\n");
     }
     else
     {
         m_pDataChannelAccessorMutex = new CMutex();
         if (!m_pDataChannelAccessorMutex)
         {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create m_pDataChannelAccessorMutex.\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create"
+                    " m_pDataChannelAccessorMutex.\r\n");
             goto Done;
         }
     }
@@ -683,7 +712,8 @@ BOOL CSystemManager::ContinueInit()
 
     if (!InitializeModem())
     {
-        RIL_LOG_CRITICAL("CSystemManager::ContinueInit() - Couldn't start Modem initialization!\r\n");
+        RIL_LOG_CRITICAL("CSystemManager::ContinueInit() -"
+                " Couldn't start Modem initialization!\r\n");
         goto Done;
     }
 
@@ -752,7 +782,8 @@ Done:
         {
             if (CEvent::Signal(m_pExitRilEvent))
             {
-                RIL_LOG_INFO("CSystemManager::ContinueInit() : INFO : Signaled m_pExitRilEvent as we are failing out, sleeping for 1 second\r\n");
+                RIL_LOG_INFO("CSystemManager::ContinueInit() : INFO : Signaled m_pExitRilEvent as"
+                        " we are failing out, sleeping for 1 second\r\n");
                 Sleep(1000);
                 RIL_LOG_INFO("CSystemManager::ContinueInit() : INFO : Sleep complete\r\n");
             }
@@ -795,7 +826,8 @@ void CSystemManager::SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eIn
     }
     else
     {
-        RIL_LOG_CRITICAL("CSystemManager::SetChannelCompletedInit() - Invalid channel [%d] or init index [%d]\r\n", uiChannel, eInitIndex);
+        RIL_LOG_CRITICAL("CSystemManager::SetChannelCompletedInit() - Invalid channel [%d] or init"
+                " index [%d]\r\n", uiChannel, eInitIndex);
     }
 }
 
@@ -808,7 +840,8 @@ BOOL CSystemManager::IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eIni
     }
     else
     {
-        RIL_LOG_CRITICAL("CSystemManager::IsChannelCompletedInit() - Invalid channel [%d] or init index [%d]\r\n", uiChannel, eInitIndex);
+        RIL_LOG_CRITICAL("CSystemManager::IsChannelCompletedInit() - Invalid channel [%d] or init"
+                " index [%d]\r\n", uiChannel, eInitIndex);
         return FALSE;
     }
 }
@@ -998,19 +1031,22 @@ BOOL CSystemManager::OpenChannelPorts()
         g_pRilChannel[i] = CreateChannel(i);
         if (!g_pRilChannel[i] || !g_pRilChannel[i]->InitChannel())
         {
-            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPorts() : Channel[%d] (0x%X) Init failed\r\n", i, (UINT32)g_pRilChannel[i]);
+            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPorts() : Channel[%d] (0x%X)"
+                    " Init failed\r\n", i, (UINT32)g_pRilChannel[i]);
             goto Done;
         }
 
         if (!g_pRilChannel[i]->OpenPort())
         {
-            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPorts() : Channel[%d] OpenPort() failed\r\n", i);
+            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPorts() : Channel[%d] OpenPort()"
+                    " failed\r\n", i);
             goto Done;
         }
 
         if (!g_pRilChannel[i]->InitPort())
         {
-            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPorts() : Channel[%d] InitPort() failed\r\n", i);
+            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPorts() : Channel[%d] InitPort()"
+                    " failed\r\n", i);
             goto Done;
         }
     }
@@ -1049,7 +1085,8 @@ BOOL CSystemManager::InitChannelPorts()
         g_pRilChannel[i] = CreateChannel(i);
         if (!g_pRilChannel[i] || !g_pRilChannel[i]->InitChannel())
         {
-            RIL_LOG_CRITICAL("CSystemManager::InitChannelPorts() : Channel[%d] (0x%X) Init failed\r\n", i, (UINT32)g_pRilChannel[i]);
+            RIL_LOG_CRITICAL("CSystemManager::InitChannelPorts() : Channel[%d] (0x%X)"
+                    " Init failed\r\n", i, (UINT32)g_pRilChannel[i]);
             goto Done;
         }
     }
@@ -1086,13 +1123,15 @@ BOOL CSystemManager::OpenChannelPortsOnly()
 
         if (!g_pRilChannel[i]->OpenPort())
         {
-            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPortsOnly() : Channel[%d] OpenPort() failed\r\n", i);
+            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPortsOnly() : Channel[%d] OpenPort()"
+                    " failed\r\n", i);
             goto Done;
         }
 
         if (!g_pRilChannel[i]->InitPort())
         {
-            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPortsOnly() : Channel[%d] InitPort() failed\r\n", i);
+            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPortsOnly() : Channel[%d] InitPort()"
+                    " failed\r\n", i);
             goto Done;
         }
     }
@@ -1154,21 +1193,22 @@ BOOL CSystemManager::IsExitRequestSignalled() const
 
     BOOL bRetVal = WAIT_EVENT_0_SIGNALED == CEvent::Wait(m_pExitRilEvent, 0);
 
-    RIL_LOG_VERBOSE("CSystemManager::IsExitRequestSignalled() - Result: %s\r\n", bRetVal ? "Set" : "Not Set");
+    RIL_LOG_VERBOSE("CSystemManager::IsExitRequestSignalled() - Result: %s\r\n",
+            bRetVal ? "Set" : "Not Set");
     RIL_LOG_VERBOSE("CSystemManager::IsExitRequestSignalled() - Exit\r\n");
     return bRetVal;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void CSystemManager::GetRequestInfo(REQ_ID reqID, REQ_INFO &rReqInfo)
+void CSystemManager::GetRequestInfo(REQ_ID reqID, REQ_INFO& rReqInfo)
 {
     m_RequestInfoTable.GetRequestInfo(reqID, rReqInfo);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void* CSystemManager::StartModemInitializationThreadWrapper(void *pArg)
+void* CSystemManager::StartModemInitializationThreadWrapper(void* pArg)
 {
-    static_cast<CSystemManager *> (pArg)->StartModemInitializationThread();
+    static_cast<CSystemManager*>(pArg)->StartModemInitializationThread();
     return NULL;
 }
 
@@ -1180,14 +1220,16 @@ BOOL CSystemManager::InitializeModem()
 
     if (!SendModemInitCommands(COM_BASIC_INIT_INDEX))
     {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeModem() - Unable to send basic init commands!\r\n");
+        RIL_LOG_CRITICAL("CSystemManager::InitializeModem() -"
+                " Unable to send basic init commands!\r\n");
         goto Done;
     }
 
     pModemThread = new CThread(StartModemInitializationThreadWrapper, this, THREAD_FLAGS_NONE, 0);
     if (!pModemThread || !CThread::IsRunning(pModemThread))
     {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeModem() - Unable to launch modem init thread\r\n");
+        RIL_LOG_CRITICAL("CSystemManager::InitializeModem() -"
+                " Unable to launch modem init thread\r\n");
         bRetVal = FALSE;
     }
 
@@ -1201,7 +1243,8 @@ Done:
 ///////////////////////////////////////////////////////////////////////////////
 void CSystemManager::StartModemInitializationThread()
 {
-    RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() : Start Modem initialization thread\r\n");
+    RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() :"
+            " Start Modem initialization thread\r\n");
     BOOL fUnlocked = FALSE;
     BOOL fPowerOn = FALSE;
     UINT32 uiNumEvents = 0;
@@ -1212,21 +1255,24 @@ void CSystemManager::StartModemInitializationThread()
 
         if (!fUnlocked && !fPowerOn)
         {
-            RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() - DEBUG: Waiting for unlock, power on or cancel\r\n");
+            RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() - DEBUG: Waiting"
+                    " for unlock, power on or cancel\r\n");
             CEvent* rgpEvents[] = { m_pSimUnlockedEvent, m_pModemPowerOnEvent, m_pExitRilEvent };
             uiNumEvents = 3;
             ret = CEvent::WaitForAnyEvent(uiNumEvents, rgpEvents, WAIT_FOREVER);
         }
         else if (fUnlocked)
         {
-            RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() - DEBUG: Waiting for power on or cancel\r\n");
+            RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() - DEBUG: Waiting for"
+                    " power on or cancel\r\n");
             CEvent* rgpEvents[] = { m_pModemPowerOnEvent, m_pExitRilEvent };
             uiNumEvents = 2;
             ret = CEvent::WaitForAnyEvent(uiNumEvents, rgpEvents, WAIT_FOREVER);
         }
         else
         {
-            RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() - DEBUG: Waiting for unlock or cancel\r\n");
+            RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() - DEBUG: Waiting for"
+                    " unlock or cancel\r\n");
             CEvent* rgpEvents[] = { m_pSimUnlockedEvent, m_pExitRilEvent };
             uiNumEvents = 2;
             ret = CEvent::WaitForAnyEvent(uiNumEvents, rgpEvents, WAIT_FOREVER);
@@ -1238,11 +1284,13 @@ void CSystemManager::StartModemInitializationThread()
             {
                 case WAIT_EVENT_0_SIGNALED:
                 {
-                    RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() - DEBUG: Unlocked signaled\r\n");
+                    RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() -"
+                            " DEBUG: Unlocked signaled\r\n");
 
                     if (!SendModemInitCommands(COM_UNLOCK_INIT_INDEX))
                     {
-                        RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() - Unable to send unlock init commands!\r\n");
+                        RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() -"
+                                " Unable to send unlock init commands!\r\n");
                         goto Done;
                     }
 
@@ -1252,11 +1300,13 @@ void CSystemManager::StartModemInitializationThread()
 
                 case WAIT_EVENT_0_SIGNALED + 1:
                 {
-                    RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() - DEBUG: Power on signaled\r\n");
+                    RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() -"
+                            " DEBUG: Power on signaled\r\n");
 
                     if (!SendModemInitCommands(COM_POWER_ON_INIT_INDEX))
                     {
-                        RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() - Unable to send power on init commands!\r\n");
+                        RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() -"
+                                " Unable to send power on init commands!\r\n");
                         goto Done;
                     }
 
@@ -1264,12 +1314,14 @@ void CSystemManager::StartModemInitializationThread()
                     break;
                 }
                 case WAIT_EVENT_0_SIGNALED + 2:
-                    RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() - Exit RIL event signaled!\r\n");
+                    RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() -"
+                            " Exit RIL event signaled!\r\n");
                     goto Done;
                     break;
 
                 default:
-                    RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() - Failed waiting for events!\r\n");
+                    RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() -"
+                            " Failed waiting for events!\r\n");
                     goto Done;
                     break;
             }
@@ -1281,11 +1333,13 @@ void CSystemManager::StartModemInitializationThread()
                 case WAIT_EVENT_0_SIGNALED:
                     if (fUnlocked)
                     {
-                        RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() - DEBUG: Power on signaled\r\n");
+                        RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() -"
+                                " DEBUG: Power on signaled\r\n");
 
                         if (!SendModemInitCommands(COM_POWER_ON_INIT_INDEX))
                         {
-                            RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() - Unable to send power on init commands!\r\n");
+                            RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() -"
+                                    " Unable to send power on init commands!\r\n");
                             goto Done;
                         }
 
@@ -1293,11 +1347,13 @@ void CSystemManager::StartModemInitializationThread()
                     }
                     else
                     {
-                        RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() - DEBUG: Unlocked signaled\r\n");
+                        RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() -"
+                                " DEBUG: Unlocked signaled\r\n");
 
                         if (!SendModemInitCommands(COM_UNLOCK_INIT_INDEX))
                         {
-                            RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() - Unable to send unlock init commands!\r\n");
+                            RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() -"
+                                    " Unable to send unlock init commands!\r\n");
                             goto Done;
                         }
 
@@ -1306,12 +1362,14 @@ void CSystemManager::StartModemInitializationThread()
                     break;
 
                 case WAIT_EVENT_0_SIGNALED + 1:
-                    RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() - Exit RIL event signaled!\r\n");
+                    RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() -"
+                            " Exit RIL event signaled!\r\n");
                     goto Done;
                     break;
 
                 default:
-                    RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() - Failed waiting for events!\r\n");
+                    RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() -"
+                            " Failed waiting for events!\r\n");
                     goto Done;
                     break;
             }
@@ -1320,7 +1378,8 @@ void CSystemManager::StartModemInitializationThread()
 
     if (!SendModemInitCommands(COM_READY_INIT_INDEX))
     {
-        RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() - Unable to send ready init commands!\r\n");
+        RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() -"
+                " Unable to send ready init commands!\r\n");
         goto Done;
     }
 
@@ -1331,7 +1390,8 @@ void CSystemManager::StartModemInitializationThread()
         {
             case WAIT_EVENT_0_SIGNALED:
             {
-                RIL_LOG_INFO("CSystemManager::StartModemInitializationThread() - INFO: Initialization strings complete\r\n");
+                RIL_LOG_INFO("CSystemManager::StartModemInitializationThread() -"
+                        " INFO: Initialization strings complete\r\n");
                 goto Done;
                 break;
             }
@@ -1339,7 +1399,8 @@ void CSystemManager::StartModemInitializationThread()
             case WAIT_EVENT_0_SIGNALED + 1:
             default:
             {
-                RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() - Exiting ril!\r\n");
+                RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() -"
+                        " Exiting ril!\r\n");
                 goto Done;
                 break;
             }
@@ -1347,7 +1408,8 @@ void CSystemManager::StartModemInitializationThread()
     }
 
 Done:
-    RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() : Modem initialized, thread exiting\r\n");
+    RIL_LOG_VERBOSE("CSystemManager::StartModemInitializationThread() :"
+            " Modem initialized, thread exiting\r\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1363,7 +1425,8 @@ BOOL CSystemManager::SendModemInitCommands(eComInitIndex eInitIndex)
         {
             if (!g_pRilChannel[i]->SendModemConfigurationCommands(eInitIndex))
             {
-                RIL_LOG_CRITICAL("CSystemManager::SendModemInitCommands() : Channel=[%d] returned ERROR\r\n", i);
+                RIL_LOG_CRITICAL("CSystemManager::SendModemInitCommands() :"
+                        " Channel=[%d] returned ERROR\r\n", i);
                 return FALSE;
             }
         }
@@ -1380,24 +1443,30 @@ void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIn
 
     if (VerifyAllChannelsCompletedInit(COM_READY_INIT_INDEX))
     {
-        RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() - DEBUG: All channels complete ready init!\r\n");
+        RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() -"
+                " DEBUG: All channels complete ready init!\r\n");
         CEvent::Signal(m_pInitStringCompleteEvent);
     }
     else if (VerifyAllChannelsCompletedInit(COM_UNLOCK_INIT_INDEX))
     {
-        RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() - DEBUG: All channels complete unlock init!\r\n");
+        RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() -"
+                " DEBUG: All channels complete unlock init!\r\n");
     }
     else if (VerifyAllChannelsCompletedInit(COM_BASIC_INIT_INDEX))
     {
-        RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() - DEBUG: All channels complete basic init!\r\n");
+        RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() -"
+                " DEBUG: All channels complete basic init!\r\n");
     }
     else if (VerifyAllChannelsCompletedInit(COM_POWER_ON_INIT_INDEX))
     {
-        RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() - DEBUG: All channels complete power on init!\r\n");
+        RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() -"
+                " DEBUG: All channels complete power on init!\r\n");
     }
     else
     {
-        RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() - DEBUG: Channel [%d] complete! Still waiting for other channels to complete index [%d]!\r\n", uiChannel, eInitIndex);
+        RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() -"
+                " DEBUG: Channel [%d] complete! Still waiting for other channels"
+                " to complete index [%d]!\r\n", uiChannel, eInitIndex);
     }
 }
 

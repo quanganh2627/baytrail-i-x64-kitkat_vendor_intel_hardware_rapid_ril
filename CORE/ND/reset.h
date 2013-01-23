@@ -42,8 +42,8 @@ enum ePCache_Code
     PIN_OK = 0
 };
 
-ePCache_Code PCache_Store_PIN(const char *szUICC, const char *szPIN);
-ePCache_Code PCache_Get_PIN(const char *szUICC, char *szPIN);
+ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN);
+ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN);
 ePCache_Code PCache_Clear();
 
 ePCache_Code PCache_SetUseCachedPIN(bool bFlag);

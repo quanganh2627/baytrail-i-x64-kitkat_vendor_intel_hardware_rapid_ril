@@ -24,7 +24,7 @@ class CChannel;
 class CSilo_SIM_INF : public CSilo_SIM
 {
 public:
-    CSilo_SIM_INF(CChannel *pChannel);
+    CSilo_SIM_INF(CChannel* pChannel);
     virtual ~CSilo_SIM_INF();
 };
 

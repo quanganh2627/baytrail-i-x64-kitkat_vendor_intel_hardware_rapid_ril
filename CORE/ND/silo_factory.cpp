@@ -23,7 +23,7 @@
 #include "silo_factory.h"
 #include "te.h"
 
-CSilo* CSilo_Factory::GetSiloVoice(CChannel *pChannel)
+CSilo* CSilo_Factory::GetSiloVoice(CChannel* pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Factory::GetSiloVoice() - Enter\r\n");
     CSilo* pSilo = NULL;
@@ -51,7 +51,7 @@ CSilo* CSilo_Factory::GetSiloVoice(CChannel *pChannel)
     return pSilo;
 }
 
-CSilo* CSilo_Factory::GetSiloSIM(CChannel *pChannel)
+CSilo* CSilo_Factory::GetSiloSIM(CChannel* pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Factory::GetSiloSIM() - Enter\r\n");
     CSilo* pSilo = NULL;
@@ -79,7 +79,7 @@ CSilo* CSilo_Factory::GetSiloSIM(CChannel *pChannel)
     return pSilo;
 }
 
-CSilo* CSilo_Factory::GetSiloSMS(CChannel *pChannel)
+CSilo* CSilo_Factory::GetSiloSMS(CChannel* pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Factory::GetSiloSMS() - Enter\r\n");
     CSilo* pSilo = NULL;
@@ -107,7 +107,7 @@ CSilo* CSilo_Factory::GetSiloSMS(CChannel *pChannel)
     return pSilo;
 }
 
-CSilo* CSilo_Factory::GetSiloData(CChannel *pChannel)
+CSilo* CSilo_Factory::GetSiloData(CChannel* pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Factory::GetSiloData() - Enter\r\n");
     CSilo* pSilo = NULL;
@@ -135,7 +135,7 @@ CSilo* CSilo_Factory::GetSiloData(CChannel *pChannel)
     return pSilo;
 }
 
-CSilo* CSilo_Factory::GetSiloNetwork(CChannel *pChannel)
+CSilo* CSilo_Factory::GetSiloNetwork(CChannel* pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Factory::GetSiloNetwork() - Enter\r\n");
     CSilo* pSilo = NULL;
@@ -163,7 +163,7 @@ CSilo* CSilo_Factory::GetSiloNetwork(CChannel *pChannel)
     return pSilo;
 }
 
-CSilo* CSilo_Factory::GetSiloPhonebook(CChannel *pChannel)
+CSilo* CSilo_Factory::GetSiloPhonebook(CChannel* pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Factory::GetSiloPhonebook() - Enter\r\n");
     CSilo* pSilo = NULL;
@@ -191,7 +191,7 @@ CSilo* CSilo_Factory::GetSiloPhonebook(CChannel *pChannel)
     return pSilo;
 }
 
-CSilo* CSilo_Factory::GetSiloMISC(CChannel *pChannel)
+CSilo* CSilo_Factory::GetSiloMISC(CChannel* pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Factory::GetSiloMISC() - Enter\r\n");
     CSilo* pSilo = NULL;

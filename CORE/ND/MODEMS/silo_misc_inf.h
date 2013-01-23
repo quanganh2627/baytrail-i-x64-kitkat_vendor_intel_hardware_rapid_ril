@@ -29,7 +29,7 @@ class CChannel;
 class CSilo_MISC_INF : public CSilo_MISC
 {
 public:
-    CSilo_MISC_INF(CChannel *pChannel);
+    CSilo_MISC_INF(CChannel* pChannel);
     virtual ~CSilo_MISC_INF();
 };
 

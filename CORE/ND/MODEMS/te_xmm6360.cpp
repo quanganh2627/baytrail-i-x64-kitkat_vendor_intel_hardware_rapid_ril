@@ -77,8 +77,9 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() - No Data Channel found for RIL channel number %u.\r\n",
-                                                pChannelData->GetRilChannel());
+        RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -"
+                " No Data Channel found for RIL channel number %u.\r\n",
+                pChannelData->GetRilChannel());
         goto Error;
     }
 
@@ -106,7 +107,6 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
             break;
         default:
             RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() - Unknown mux channel"
-
                     "for RIL Channel [%u] \r\n", uiRilChannel);
             goto Error;
         }
@@ -119,7 +119,8 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
                 "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/%d\",\"/mux/%d\",0\r",
                 uiCID, muxControlChannel, muxDataChannel))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -  cannot create CGDATA command\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -"
+                    "  cannot create CGDATA command\r\n");
             goto Error;
         }
     }
@@ -145,8 +146,8 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
                 hsiNetworkPath = RIL_HSI_CHANNEL3;
                 break;
             default:
-                RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() - Unknown HSI Channel [%d] \r\n",
-                                                                hsiChannel);
+                RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -"
+                        " Unknown HSI Channel [%d] \r\n", hsiChannel);
                 goto Error;
         }
 
@@ -154,7 +155,8 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
                 "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/%d\",\"/mipi_ipc/%d\",0\r",
                 uiCID, muxControlChannel, hsiNetworkPath))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -  cannot create CGDATA command\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -"
+                    "  cannot create CGDATA command\r\n");
             goto Error;
         }
     }
@@ -360,21 +362,22 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
         fd = pChannelData->GetFD();
         if (fd >= 0)
         {
-            RIL_LOG_INFO("CTE_XMM6360::SetupInterface() - ***** PUTTING channel=[%u] in DATA MODE *****\r\n",
-                                                                    uiChannel);
+            RIL_LOG_INFO("CTE_XMM6360::SetupInterface() -"
+                    " ***** PUTTING channel=[%u] in DATA MODE *****\r\n", uiChannel);
             ret = ioctl( fd, GSMIOC_ENABLE_NET, &netconfig );       // Enable data channel
             if (ret < 0)
             {
-                RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - Unable to create interface %s : %s \r\n",
-                                            netconfig.if_name, strerror(errno));
+                RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() -"
+                        " Unable to create interface %s : %s \r\n",
+                        netconfig.if_name, strerror(errno));
                 goto Error;
             }
         }
         else
         {
             //  No FD.
-            RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - Could not get Data Channel chnl=[%u] fd=[%d].\r\n",
-                                                                uiChannel, fd);
+            RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() -"
+                    " Could not get Data Channel chnl=[%u] fd=[%d].\r\n", uiChannel, fd);
             goto Error;
         }
     }
@@ -403,7 +406,8 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
     // set interface address(es) and bring up interface
     if (!DataConfigUp(szNetworkInterfaceName, pChannelData, eDataConnectionType))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - Unable to bringup interface ifconfig\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() -"
+                " Unable to bringup interface ifconfig\r\n");
         goto Error;
     }
 
@@ -443,8 +447,8 @@ BOOL CTE_XMM6360::DataConfigDown(UINT32 uiCID)
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() - Invalid CID=[%u], no data channel found!\r\n",
-                                                                        uiCID);
+        RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() -"
+                " Invalid CID=[%u], no data channel found!\r\n", uiCID);
         return FALSE;
     }
 
@@ -482,8 +486,8 @@ BOOL CTE_XMM6360::DataConfigDown(UINT32 uiCID)
 
         if (fd >= 0)
         {
-            RIL_LOG_INFO("CTE_XMM6360::DataConfigDown() - ***** PUTTING channel=[%u] in AT COMMAND MODE *****\r\n",
-                                                                uiRilChannel);
+            RIL_LOG_INFO("CTE_XMM6360::DataConfigDown() -"
+                    " ***** PUTTING channel=[%u] in AT COMMAND MODE *****\r\n", uiRilChannel);
             ret = ioctl(fd, GSMIOC_DISABLE_NET, &netconfig);
         }
     }
@@ -516,7 +520,8 @@ BOOL CTE_XMM6360::DataConfigDown(UINT32 uiCID)
 
     bRet = TRUE;
 
-    RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%d\r\n", pChannelData->GetRilChannel());
+    RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%d\r\n",
+            pChannelData->GetRilChannel());
 
 Error:
     if (!bIsHSIDirect)

@@ -22,13 +22,13 @@ typedef struct s_request_data
     unsigned long uiRetries;    // If command fails, retry this many times.
     bool fForceParse;           // Always calls associated parse function
 
-    void * pContextData;        // Point it to any object you will need during
+    void* pContextData;         // Point it to any object you will need during
                                 // the parsing process that otherwise is not available.
                                 // Can be left NULL if not required
 
-    unsigned int cbContextData;  // Size in bytes of the context data object
+    unsigned int cbContextData; // Size in bytes of the context data object
 
-    void * pContextData2;       // Additional Context Data pointer
+    void* pContextData2;        // Additional Context Data pointer
                                 // Point it to any object you will need during
                                 // the parsing process that otherwise is not available.
                                 // Can be left NULL if not required
@@ -38,20 +38,20 @@ typedef struct s_request_data
 
 typedef struct s_response_data
 {
-    char * szResponse;          // AT response string from modem
-    void * pData;               // Point to blob of memory containing response expected by
+    char* szResponse;           // AT response string from modem
+    void* pData;                // Point to blob of memory containing response expected by
                                 // upper layers
 
     unsigned long uiDataSize;   // Size of response blob
 
     unsigned long uiChannel;    // Channel the response was received on
 
-    void * pContextData;        // Points to object given in request phase or NULL
+    void* pContextData;         // Points to object given in request phase or NULL
                                 // if not supplied
 
     unsigned int cbContextData; // Size in bytes of the context data object
 
-    void * pContextData2;       // Additional Context Data pointer
+    void* pContextData2;        // Additional Context Data pointer
                                 // Points to object given in request phase or NULL
                                 // if not supplied
 
@@ -59,7 +59,8 @@ typedef struct s_response_data
 
     unsigned int uiResultCode;  // Result code for the AT command sent
 
-    unsigned int uiErrorCode;   // CME/CMS error codes returned for the AT command sent or general error code.
+    unsigned int uiErrorCode;   // CME/CMS error codes returned for the AT command sent
+                                //  or general error code.
 } RESPONSE_DATA;
 
 typedef struct s_post_cmd_handler_data
@@ -77,7 +78,8 @@ typedef struct s_post_cmd_handler_data
 
     unsigned int uiResultCode;      // Result code for the AT command sent
 
-    unsigned int uiErrorCode;       // CME/CMS error codes returned for the AT command sent or general error code.
+    unsigned int uiErrorCode;       // CME/CMS error codes returned for the AT command sent or
+                                    //  general error code.
 
     void* pData;                    // Point to blob of memory containing response expected by
                                     // upper layers

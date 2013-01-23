@@ -57,7 +57,7 @@ int CPort::GetFD()
     return fd;
 }
 
-BOOL CPort::Open(const char * pszFileName, BOOL fIsSocket)
+BOOL CPort::Open(const char* pszFileName, BOOL fIsSocket)
 {
     RIL_LOG_VERBOSE("CPort::Open() - Enter  fIsSocket=[%d]\r\n", fIsSocket);
     BOOL fRet = FALSE;
@@ -101,7 +101,8 @@ BOOL CPort::Init()
     int fd = 0;
     int bit = 0;
     int flag;
-    struct termios oldtio, newtio;
+    struct termios oldtio;
+    struct termios newtio;
 
     if (m_fIsPortOpen)
     {
@@ -142,7 +143,8 @@ BOOL CPort::Init()
             /*
             if(ioctl(fd, TIOCMBIS, &bit))
             {
-                RIL_LOG_CRITICAL("CPort::Init() - ioctl(%d, 0x%x, 0x%x) failed with error= %d\r\n", errno);
+                RIL_LOG_CRITICAL("CPort::Init() - ioctl(%d, 0x%x, 0x%x) failed with error="
+                        " %d\r\n", errno);
             }
             else
             {
@@ -189,7 +191,7 @@ BOOL CPort::Close()
     return fRet;
 }
 
-BOOL CPort::Read(char * pszReadBuf, UINT32 uiReadBufSize, UINT32 & ruiBytesRead)
+BOOL CPort::Read(char* pszReadBuf, UINT32 uiReadBufSize, UINT32& ruiBytesRead)
 {
     RIL_LOG_VERBOSE("CPort::Read() - Enter\r\n");
     BOOL fRet = FALSE;
@@ -216,7 +218,7 @@ BOOL CPort::Read(char * pszReadBuf, UINT32 uiReadBufSize, UINT32 & ruiBytesRead)
     return fRet;
 }
 
-BOOL CPort::Write(const char * pszWriteBuf, const UINT32 uiBytesToWrite, UINT32 & ruiBytesWritten)
+BOOL CPort::Write(const char* pszWriteBuf, const UINT32 uiBytesToWrite, UINT32& ruiBytesWritten)
 {
     RIL_LOG_VERBOSE("CPort::Write() - Enter\r\n");
     BOOL fRet = FALSE;
@@ -243,7 +245,7 @@ BOOL CPort::Write(const char * pszWriteBuf, const UINT32 uiBytesToWrite, UINT32 
     RIL_LOG_VERBOSE("CPort::Write() - Exit\r\n");
 }
 
-BOOL CPort::OpenPort(const char * pszFileName)
+BOOL CPort::OpenPort(const char* pszFileName)
 {
     RIL_LOG_VERBOSE("CPort::OpenPort() - Enter\r\n");
     BOOL fRet = FALSE;
@@ -281,7 +283,8 @@ BOOL CPort::OpenPort(const char * pszFileName)
             }
 
             RIL_LOG_INFO("CPort::OpenPort()  ATTEMPT NUMBER %d\r\n", iAttempts);
-            fRet = CFile::Open(m_pFile, pszFileName, FILE_ACCESS_READ_WRITE, FILE_OPEN_EXIST, FILE_OPT_NONE);
+            fRet = CFile::Open(m_pFile, pszFileName, FILE_ACCESS_READ_WRITE,
+                    FILE_OPEN_EXIST, FILE_OPT_NONE);
 
             if (fRet)
             {
@@ -306,7 +309,8 @@ BOOL CPort::OpenPort(const char * pszFileName)
         //  If we didn't open the port, issue critical reset
         if (!fRet)
         {
-            RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT after %d attempts, issuing critical reboot\r\n", iAttempts);
+            RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT after %d attempts, issuing"
+                    " critical reboot\r\n", iAttempts);
 
             //  If we can't open the ports, tell STMD to cleanup.
             do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
@@ -318,7 +322,7 @@ BOOL CPort::OpenPort(const char * pszFileName)
     return fRet;
 }
 
-BOOL CPort::OpenSocket(const char * pszSocketName)
+BOOL CPort::OpenSocket(const char* pszSocketName)
 {
     RIL_LOG_VERBOSE("CPort::OpenSocket() - Enter\r\n");
 
@@ -364,7 +368,8 @@ BOOL CPort::OpenSocket(const char * pszSocketName)
         }
         else
         {
-            RIL_LOG_CRITICAL("CPort::OpenSocket() - Unable to write \"%s\" to socket\r\n", szSocketInit);
+            RIL_LOG_CRITICAL("CPort::OpenSocket() - Unable to write \"%s\" to socket\r\n",
+                    szSocketInit);
             fRet = FALSE;
         }
     }
@@ -387,12 +392,14 @@ BOOL CPort::WaitForAvailableData(UINT32 uiTimeout)
         {
             if (uiMask & FILE_EVENT_ERROR)
             {
-                RIL_LOG_CRITICAL("CPort::WaitForAvailableData() - FILE_EVENT_ERROR received on port\r\n");
+                RIL_LOG_CRITICAL("CPort::WaitForAvailableData() - FILE_EVENT_ERROR received"
+                        " on port\r\n");
             }
 
             if (uiMask & FILE_EVENT_BREAK)
             {
-                RIL_LOG_INFO("CPort::WaitForAvailableData() - FILE_EVENT_BREAK received on port\r\n");
+                RIL_LOG_INFO("CPort::WaitForAvailableData() - FILE_EVENT_BREAK received on"
+                        " port\r\n");
             }
 
             if (uiMask & FILE_EVENT_RXCHAR)

@@ -24,7 +24,7 @@ class CChannel;
 class CSilo_Voice_INF : public CSilo_Voice
 {
 public:
-    CSilo_Voice_INF(CChannel *pChannel);
+    CSilo_Voice_INF(CChannel* pChannel);
     ~CSilo_Voice_INF();
 };
 

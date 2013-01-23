@@ -72,10 +72,8 @@ void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
 {
     if (m_bFinalCmd)
     {
-        RIL_LOG_INFO("CContextInitString::Execute() - Last command for init index [%d] on channel [%d] had result [%s]\r\n",
-            m_eInitIndex,
-            m_uiChannel,
-            bRes ? "OK" : "FAIL");
+        RIL_LOG_INFO("CContextInitString::Execute() - Last command for init index [%d] on channel"
+                " [%d] had result [%s]\r\n", m_eInitIndex, m_uiChannel, bRes ? "OK" : "FAIL");
 
         if (!bRes)
         {

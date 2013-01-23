@@ -23,7 +23,7 @@
 class CContext;
 class CTE;
 
-typedef RIL_RESULT_CODE (CTE::*PFN_TE_PARSE) (RESPONSE_DATA & rRspData);
+typedef RIL_RESULT_CODE (CTE::*PFN_TE_PARSE) (RESPONSE_DATA& rRspData);
 typedef void (CTE::*PFN_TE_POSTCMDHANDLER) (POST_CMD_HANDLER_DATA& rRspData);
 
 class CCommand
@@ -69,7 +69,7 @@ public:
     PFN_TE_POSTCMDHANDLER  GetPostCmdHandlerFcn() { return m_pPostCmdHandlerFcn; };
 
     UINT32              GetTimeout()        { return m_uiTimeout;   };
-    CContext *          GetContext()        { return m_pContext;    };
+    CContext*           GetContext()        { return m_pContext;    };
     void*               GetContextData()    { return m_pContextData;};
     UINT32              GetContextDataSize(){ return m_cbContextData;};
     void*               GetContextData2()    { return m_pContextData2;};
@@ -84,14 +84,14 @@ public:
     void SetHighPriority()                  { m_fHighPriority = TRUE; };
     void SetInitCommand()                   { m_fIsInitCommand = TRUE; };
     void SetContext(CContext*& pContext)    { m_pContext = pContext; pContext = NULL; };
-    void SetContextData(void *pData)        { m_pContextData = pData; };
+    void SetContextData(void* pData)        { m_pContextData = pData; };
     void SetContextDataSize(UINT32 nSize)   { m_cbContextData = nSize; };
-    void SetContextData2(void *pData)       { m_pContextData2 = pData; };
+    void SetContextData2(void* pData)       { m_pContextData2 = pData; };
     void SetContextDataSize2(UINT32 nSize)  { m_cbContextData2 = nSize; };
     void FreeATCmd1() { delete[] m_pszATCmd1; m_pszATCmd1 = NULL; };
     void FreeATCmd2() { delete[] m_pszATCmd2; m_pszATCmd2 = NULL; };
 
-    static BOOL AddCmdToQueue(CCommand *& pCmd, BOOL bFront = false);
+    static BOOL AddCmdToQueue(CCommand*& pCmd, BOOL bFront = false);
 
 private:
 
@@ -106,7 +106,7 @@ private:
     BOOL                m_fAlwaysParse;
     BOOL                m_fHighPriority;
     BOOL                m_fIsInitCommand;
-    CContext *          m_pContext;
+    CContext*           m_pContext;
     void*               m_pContextData;
     UINT32              m_cbContextData;
     void*               m_pContextData2;

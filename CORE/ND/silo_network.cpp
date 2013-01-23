@@ -36,7 +36,7 @@
 
 //
 //
-CSilo_Network::CSilo_Network(CChannel *pChannel)
+CSilo_Network::CSilo_Network(CChannel* pChannel)
 : CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Network::CSilo_Network() - Enter\r\n");
@@ -77,7 +77,7 @@ CSilo_Network::~CSilo_Network()
 
 //
 //
-BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszPointer)
+BOOL CSilo_Network::ParseXNITZINFO(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXNITZINFO() - Enter\r\n");
     const char* szDummy;
@@ -96,7 +96,7 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
     UINT32 uiDst = 0;
     UINT32 uiHour, uiMins, uiSecs;
     UINT32 uiMonth, uiDay, uiYear;
-    char *pszTimeData = NULL;
+    char* pszTimeData = NULL;
     BOOL isTimeZoneAvailable = FALSE;
 
     //  The notification could come in as:
@@ -112,7 +112,8 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
     //  Check to see if we have a complete XNITZINFO notification.
     if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - This isn't a complete registration notification -- no need to parse it!\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - This isn't a complete registration"
+                " notification -- no need to parse it!\r\n");
         goto Error;
     }
 
@@ -124,30 +125,34 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
     }
 
     //  Parse the "<fullname>",
-    if (!ExtractQuotedStringWithAllocatedMemory(rszPointer, pFullName, uiFullNameLength, rszPointer) ||
-        !SkipString(rszPointer, ",", rszPointer))
+    if (!ExtractQuotedStringWithAllocatedMemory(rszPointer, pFullName, uiFullNameLength,
+            rszPointer) || !SkipString(rszPointer, ",", rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Could not extract the Full Format Operator Name.\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Could not extract the Full Format"
+                " Operator Name.\r\n");
         goto Error;
     }
 
     pUtf8FullName = ConvertUCS2ToUTF8(pFullName, uiFullNameLength - 1);
-    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Long oper: \"%s\"\r\n", pUtf8FullName ? pUtf8FullName : "NULL");
+    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Long oper: \"%s\"\r\n",
+            pUtf8FullName ? pUtf8FullName : "NULL");
 
     //  Parse the "<Shortname>"
-    if (!ExtractQuotedStringWithAllocatedMemory(rszPointer, pShortName, uiShortNameLength, rszPointer) ||
-        !SkipString(rszPointer, ",", rszPointer))
+    if (!ExtractQuotedStringWithAllocatedMemory(rszPointer, pShortName, uiShortNameLength,
+            rszPointer) || !SkipString(rszPointer, ",", rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Could not extract the Short Format Operator Name.\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Could not extract the Short Format"
+                " Operator Name.\r\n");
         goto Error;
     }
 
     pUtf8ShortName = ConvertUCS2ToUTF8(pShortName, uiShortNameLength - 1);
-    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Short oper: \"%s\"\r\n", pUtf8ShortName ? pUtf8ShortName: "NULL");
+    RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - Short oper: \"%s\"\r\n",
+            pUtf8ShortName ? pUtf8ShortName: "NULL");
 
     //  Parse the <tz>,
     if (!ExtractQuotedString(rszPointer, szTimeZone, TIME_ZONE_SIZE, rszPointer) ||
-        !SkipString(rszPointer, ",", rszPointer))
+            !SkipString(rszPointer, ",", rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Unable to find time zone!\r\n");
         goto Error;
@@ -179,7 +184,7 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
 
     // Extract "<date,time>"
     if (!ExtractQuotedString(rszPointer, szDateTime, DATE_TIME_SIZE, rszPointer) ||
-        !SkipString(rszPointer, ",", rszPointer))
+            !SkipString(rszPointer, ",", rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Unable to find date/time string!\r\n");
         goto Error;
@@ -203,12 +208,14 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
     if (strlen(szDateTime) != 0)
     {
         // Scan the Date and the Time in the szDateTime buffer to check the date and time.
-        int num = sscanf(szDateTime, "%2d/%2d/%2d,%2d:%2d:%2d", &uiYear, &uiMonth, &uiDay, &uiHour, &uiMins, &uiSecs);
+        int num = sscanf(szDateTime, "%2d/%2d/%2d,%2d:%2d:%2d", &uiYear, &uiMonth, &uiDay, &uiHour,
+                &uiMins, &uiSecs);
 
         // Check the elements number of the date and time.
         if (num != 6)
         {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - bad element number in the scan szDateTime\r\n");
+            RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - bad element number in the scan"
+                    " szDateTime\r\n");
             goto Error;
         }
 
@@ -237,7 +244,8 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
             // Ckeck ctime_secs.
             if (-1 == ctime_secs)
             {
-                RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Unable to convert local to calendar time!\r\n");
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Unable to convert local to"
+                        " calendar time!\r\n");
                 //  Just skip over notification
                 goto Error;
             }
@@ -275,14 +283,16 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse *const pResponse, const char* &rszP
         pszTimeData = (char*)malloc(sizeof(char) * MAX_BUFFER_SIZE);
         if (NULL == pszTimeData)
         {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Could not allocate memory for pszTimeData.\r\n");
+            RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Could not allocate memory for"
+                    " pszTimeData.\r\n");
             goto Error;
         }
         memset(pszTimeData, 0, sizeof(char) * MAX_BUFFER_SIZE);
 
         // Insert the date/time as "yy/mm/dd,hh:mm:ss".
         // Add tz: "+-xx", dst: ",x"
-        if (snprintf(pszTimeData, MAX_BUFFER_SIZE-1, "%s%s,%u", szDateTime, szTimeZone, uiDst) == 0)
+        if (snprintf(pszTimeData, MAX_BUFFER_SIZE-1, "%s%s,%u", szDateTime, szTimeZone,
+                uiDst) == 0)
         {
             RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - snprintf pszTimeData buffer\r\n");
             goto Error;
@@ -373,7 +383,8 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     pszCommaBuffer = new char[szDummy-rszPointer+1];
     if (!pszCommaBuffer)
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - cannot allocate pszCommaBuffer\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() -"
+                " cannot allocate pszCommaBuffer\r\n");
         goto Error;
     }
 
@@ -436,10 +447,12 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         }
         else
         {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - GPRS Unknown param count=%d\r\n", nNumParams);
+            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() -"
+                    " GPRS Unknown param count=%d\r\n", nNumParams);
             fUnSolicited = TRUE;
         }
-        RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CGREG paramcount=%d  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
+        RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CGREG paramcount=%d"
+                "  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
     }
     else if (SILO_NETWORK_CREG == regType)
     {
@@ -456,10 +469,12 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         }
         else
         {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - Unknown param count=%d\r\n", nNumParams);
+            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() -"
+                    " Unknown param count=%d\r\n", nNumParams);
             fUnSolicited = TRUE;
         }
-        RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CREG paramcount=%d  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
+        RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CREG paramcount=%d"
+                "  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
     }
     else if (SILO_NETWORK_XREG == regType)
     {
@@ -479,7 +494,8 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
             const int TEMP_OUT_OF_SERVICE_EN_DEFAULT = 0;
             int nEnableTempOoSNotif = TEMP_OUT_OF_SERVICE_EN_DEFAULT;
 
-            if (!repository.Read(g_szGroupModem, g_szTempOoSNotificationEnable, nEnableTempOoSNotif))
+            if (!repository.Read(g_szGroupModem, g_szTempOoSNotificationEnable,
+                    nEnableTempOoSNotif))
             {
                 nEnableTempOoSNotif = TEMP_OUT_OF_SERVICE_EN_DEFAULT;
             }
@@ -510,11 +526,13 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         }
         else
         {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() - Unknown param count=%d\r\n", nNumParams);
+            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() -"
+                    " Unknown param count=%d\r\n", nNumParams);
             fUnSolicited = TRUE;
         }
 
-        RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - XREG paramcount=%d  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
+        RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - XREG paramcount=%d"
+                "  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
     }
 
     if (fUnSolicited)
@@ -538,7 +556,8 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         if (!fRet)
             goto Error;
         else
-            CTE::GetTE().StoreRegistrationInfo(pRegStatusInfo, (SILO_NETWORK_CREG == regType) ? false : true);
+            CTE::GetTE().StoreRegistrationInfo(pRegStatusInfo,
+                    (SILO_NETWORK_CREG == regType) ? false : true);
 
         rszPointer -= strlen(m_szNewLine);
 
@@ -563,7 +582,7 @@ Error:
 
 //
 //
-BOOL CSilo_Network::ParseCREG(CResponse *const pResponse, const char* &rszPointer)
+BOOL CSilo_Network::ParseCREG(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseCREG() - Enter / Exit\r\n");
     return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_CREG);
@@ -571,7 +590,7 @@ BOOL CSilo_Network::ParseCREG(CResponse *const pResponse, const char* &rszPointe
 
 //
 //
-BOOL CSilo_Network::ParseCGREG(CResponse *const pResponse, const char* &rszPointer)
+BOOL CSilo_Network::ParseCGREG(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseCGREG() - Enter / Exit\r\n");
     return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_CGREG);
@@ -579,7 +598,7 @@ BOOL CSilo_Network::ParseCGREG(CResponse *const pResponse, const char* &rszPoint
 
 //
 //
-BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const char* &rszPointer)
+BOOL CSilo_Network::ParseXREG(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXREG() - Enter / Exit\r\n");
     return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_XREG);
@@ -587,7 +606,7 @@ BOOL CSilo_Network::ParseXREG(CResponse *const pResponse, const char* &rszPointe
 
 //
 //
-BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointer)
+BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Enter\r\n");
 
@@ -611,7 +630,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
     if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szResponse))
     {
         // This isn't a complete registration notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - This isn't a complete registration notification -- no need to parse it\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - This isn't a complete registration"
+                " notification -- no need to parse it\r\n");
         goto Error;
     }
 
@@ -652,8 +672,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
         {
             //  This may occur using AT proxy during 3GPP conformance testing.
             //  Let normal processing occur.
-            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u], no data channel found!\r\n",
-                                                                        uiCID);
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u],"
+                    " no data channel found!\r\n", uiCID);
         }
 
         if (FindAndSkipString(szStrExtract, ",", szStrExtract))
@@ -728,10 +748,11 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
             mt_class = E_MT_CLASS_CC;
         }
 
-        pszData = (unsigned char *)malloc(sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND));
+        pszData = (unsigned char*)malloc(sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND));
         if (NULL == pszData)
         {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Could not allocate memory for pszData.\r\n");
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() -"
+                    " Could not allocate memory for pszData.\r\n");
             goto Error;
         }
         memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND));
@@ -775,8 +796,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse *const pResponse, const char* &rszPointe
             {
                 //  This may occur using AT proxy during 3GPP conformance testing.
                 //  Let normal processing occur.
-                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u], no data channel found!\r\n",
-                                                                    uiCID);
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u],"
+                        " no data channel found!\r\n", uiCID);
             }
             else
             {
@@ -815,7 +836,8 @@ BOOL CSilo_Network::GetContextIdFromDeact(const char* pData, UINT32& uiCID)
     if (!FindAndSkipString(pData, ",", pData) ||
         !ExtractQuotedString(pData, szPDPAddr, MAX_IPADDR_SIZE, pData))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::GetContextIdFromDeact() - Could not extract ipaddress.\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::GetContextIdFromDeact() -"
+                " Could not extract ipaddress.\r\n");
         goto Error;
     }
 
@@ -844,7 +866,7 @@ Error:
 }
 //
 //
-BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char* &rszPointer)
+BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXDATASTAT() - Enter\r\n");
     const char* szResponse = NULL;
@@ -886,7 +908,8 @@ BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char* &rszP
             pszData = (unsigned char*) malloc(sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
             if (NULL == pszData)
             {
-                RIL_LOG_CRITICAL("CSilo_Network::ParseXDATASTAT() - Could not allocate memory for pszData.\r\n");
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXDATASTAT() -"
+                        " Could not allocate memory for pszData.\r\n");
                 goto Error;
             }
             memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
@@ -898,7 +921,8 @@ BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char* &rszP
             pResponse->SetUnsolicitedFlag(TRUE);
             pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
-            if (!pResponse->SetData((void*)pszData, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND), FALSE))
+            if (!pResponse->SetData((void*)pszData,
+                    sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND), FALSE))
             {
                 goto Error;
             }
@@ -924,7 +948,7 @@ Error:
 
 //
 //
-BOOL CSilo_Network::ParseXCSQ(CResponse *const pResponse, const char*& rszPointer)
+BOOL CSilo_Network::ParseXCSQ(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCSQ() - Enter\r\n");
 
@@ -942,7 +966,8 @@ BOOL CSilo_Network::ParseXCSQ(CResponse *const pResponse, const char*& rszPointe
     pSigStrData = (RIL_SignalStrength_v6*)malloc(sizeof(RIL_SignalStrength_v6));
     if (NULL == pSigStrData)
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() - Could not allocate memory for RIL_SignalStrength_v6.\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() -"
+                " Could not allocate memory for RIL_SignalStrength_v6.\r\n");
         goto Error;
     }
     memset(pSigStrData, 0x00, sizeof(RIL_SignalStrength_v6));
@@ -1004,7 +1029,7 @@ Error:
 
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
 // Special parse function to handle Fast Out of Service Notifications
-BOOL CSilo_Network::ParseXREGFastOoS(CResponse *const pResponse, const char* &rszPointer)
+BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXREGFastOoS() - Enter\r\n");
 
@@ -1021,7 +1046,8 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse *const pResponse, const char* &rs
     pData = (BYTE*) malloc(sizeof(UINT32));
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - Could not allocate memory for pData.\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() -"
+                " Could not allocate memory for pData.\r\n");
         goto Error;
     }
 
@@ -1055,7 +1081,8 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse *const pResponse, const char* &rs
     }
     else // unsupported state
     {
-         RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - Unrecognized network reg state\r\n");
+         RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() -"
+                 " Unrecognized network reg state\r\n");
          goto Error;
     }
 

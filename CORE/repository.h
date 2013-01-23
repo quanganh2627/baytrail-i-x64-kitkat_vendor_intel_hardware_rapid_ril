@@ -46,7 +46,7 @@ extern const char   g_szGroupRequestTimeouts[];
 
 extern char         g_szItemRequestTimeouts[MAX_REQUEST_ITEM_LENGTH];
 
-extern const char * g_szRequestNames[];
+extern const char*  g_szRequestNames[];
 
 /////////////////////////////////////////////////
 
@@ -68,8 +68,8 @@ extern const char   g_szOpenPortInterval[];
 
 extern const char   g_szGroupInitCmds[];
 
-extern const char * g_szPreInitCmds[];
-extern const char * g_szPostInitCmds[];
+extern const char*  g_szPreInitCmds[];
+extern const char*  g_szPostInitCmds[];
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -124,19 +124,20 @@ public:
     // APIs to read from and write to the NVM
     // if successful, return 0
     // otherwise return -1
-    BOOL Read(const char *szGroup, const char* szKey, int& iRes);
-    BOOL Read(const char *szGroup, const char* szKey, char* szRes, int iMaxLen);
-    BOOL ReadFDParam(const char *szGroup, const char* szKey, char* szRes, int iMaxLen, int iMinVal, int iMaxVal);
+    BOOL Read(const char* szGroup, const char* szKey, int& iRes);
+    BOOL Read(const char* szGroup, const char* szKey, char* szRes, int iMaxLen);
+    BOOL ReadFDParam(const char* szGroup, const char* szKey, char* szRes, int iMaxLen, int iMinVal,
+                                                                                      int iMaxVal);
 
 private:
     // file access and manipulation
     BOOL  OpenRepositoryFile(void);
     void  CloseRepositoryFile(void);
-    int   ReadLine(char *szBuf = NULL, bool bRemoveCRAndLF = true);
+    int   ReadLine(char* szBuf = NULL, bool bRemoveCRAndLF = true);
     void  RemoveComment(char* szIn);
-    char* SkipSpace(char *szIn);
-    void  RemoveTrailingSpaces(char * szIn);
-    char* SkipAlphaNum(char *szIn);
+    char* SkipSpace(char* szIn);
+    void  RemoveTrailingSpaces(char* szIn);
+    char* SkipAlphaNum(char* szIn);
     int   DumpLines(int iFd, int iFrom, int iTo);
     void  ResetFile(void);
     int   GotoLine(int iLine);
@@ -164,7 +165,8 @@ private:
 private:
     // constants
     static const int END_OF_FILE  = -1;
-    static const int MAX_INT_LEN  = 20;     // arbitrary number, long enough to hold a string-representation of a 32-bit int
+    static const int MAX_INT_LEN  = 20;     // arbitrary number, long enough to hold a
+                                            // string-representation of a 32-bit int
     static const int MAX_LINE_LEN = 256;    // maximum length for a line in the NVM file
 
 private:

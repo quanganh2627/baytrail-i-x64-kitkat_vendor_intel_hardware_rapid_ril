@@ -81,7 +81,10 @@ public:
     BOOL            UnblockReadThread();
 
     //  Public interfaces to notify all silos.
-    BOOL            ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError);
+    BOOL            ParseUnsolicitedResponse(CResponse*
+                                       const pResponse,
+                                       const char*& rszPointer,
+                                       BOOL& fGotoError);
 
     //  General public functions
     BOOL            IsCmdThreadBlockedOnRxQueue() const { return m_bCmdThreadBlockedOnRxQueue; };
@@ -116,7 +119,7 @@ protected:
 
     // Called at end of ResponseThread()
     // Give GPRS response thread a chance to handle Rx data in Data mode
-    virtual BOOL    ProcessModemData(char *szData, UINT32 uiRead) = 0;
+    virtual BOOL    ProcessModemData(char* szData, UINT32 uiRead) = 0;
 
     //  Framework helper functions
     void            SetCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = TRUE; }
@@ -132,10 +135,10 @@ protected:
     UINT32                          m_fLastCommandTimedOut : 1;
     UINT32                          m_fFinalInitOK : 1;
 
-    CThread *                       m_pCmdThread;
-    CThread *                       m_pReadThread;
+    CThread*                        m_pCmdThread;
+    CThread*                        m_pReadThread;
 
-    CEvent *                        m_pBlockReadThreadEvent;
+    CEvent*                         m_pBlockReadThreadEvent;
     BOOL                            m_bReadThreadBlocked;
 
     UINT32                          m_uiLockCommandQueue;

@@ -31,7 +31,7 @@
 class CSilo_MISC : public CSilo
 {
 public:
-    CSilo_MISC(CChannel *pChannel);
+    CSilo_MISC(CChannel* pChannel);
     virtual ~CSilo_MISC();
 
 protected:

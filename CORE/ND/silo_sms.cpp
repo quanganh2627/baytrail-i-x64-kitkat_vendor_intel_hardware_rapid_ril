@@ -22,7 +22,7 @@
 
 //
 //
-CSilo_SMS::CSilo_SMS(CChannel *pChannel)
+CSilo_SMS::CSilo_SMS(CChannel* pChannel)
 : CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::CSilo_SMS() - Enter\r\n");
@@ -58,7 +58,8 @@ CSilo_SMS::~CSilo_SMS()
 
 //
 //
-BOOL CSilo_SMS::ParseMessage(CResponse* const pResponse, const char*& rszPointer, SILO_SMS_MSG_TYPES msgType)
+BOOL CSilo_SMS::ParseMessage(CResponse* const pResponse, const char*& rszPointer,
+                                                      SILO_SMS_MSG_TYPES msgType)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseMessage() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_SMS::ParseMessage() - Exit\r\n");
@@ -68,7 +69,8 @@ BOOL CSilo_SMS::ParseMessage(CResponse* const pResponse, const char*& rszPointer
 //
 //
 //
-BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const char*& rszPointer, SILO_SMS_MSG_TYPES msgType)
+BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const char*& rszPointer,
+                                                           SILO_SMS_MSG_TYPES msgType)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseMessageInSim() - Enter\r\n");
 
@@ -76,7 +78,7 @@ BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const char*& rszPo
     const char* szDummy;
     UINT32 Location;
     UINT32 Index;
-    int * pIndex = NULL;
+    int* pIndex = NULL;
 
     if (SILO_SMS_MSG_IN_SIM == msgType)
     {
@@ -136,7 +138,7 @@ Error:
 //
 // SMS-DELIVER notification
 //
-BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
+BOOL CSilo_SMS::ParseCMT(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCMT() - Enter\r\n");
 
@@ -172,14 +174,16 @@ BOOL CSilo_SMS::ParseCMT(CResponse * const pResponse, const char*& rszPointer)
     if (!FindAndSkipString(rszPointer, m_szNewLine, szDummy))
     {
         // This isn't a complete message notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - Could not find postfix; assuming this is an incomplete response.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - Could not find postfix; assuming this is an"
+                " incomplete response.\r\n");
         goto Error;
     }
     else
     {
         // Override the given length with the actual length. Don't forget the '\0'.
         uiLength = ((UINT32)(szDummy - rszPointer)) - strlen(m_szNewLine) + 1;
-        RIL_LOG_INFO("CSilo_SMS::ParseCMT() - Calculated PDU String length: %u chars.\r\n", uiLength);
+        RIL_LOG_INFO("CSilo_SMS::ParseCMT() - Calculated PDU String length: %u chars.\r\n",
+                uiLength);
     }
 
     szPDU = (char*)malloc(sizeof(char) * uiLength);
@@ -225,7 +229,7 @@ Error:
 //
 //  Incoming cell broadcast.
 //
-BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
+BOOL CSilo_SMS::ParseCBM(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCBM() - Enter\r\n");
 
@@ -260,13 +264,15 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
     if (!FindAndSkipString(rszPointer, m_szNewLine, szDummy))
     {
         // This isn't a complete message notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - Could not find postfix; assuming this is an incomplete response.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - Could not find postfix; assuming this is an"
+                " incomplete response.\r\n");
         goto Error;
     }
     else
     {
         uiLength = (UINT32)(szDummy - rszPointer) - strlen(m_szNewLine);
-        RIL_LOG_INFO("CSilo_SMS::ParseCBM() - Calculated PDU String length: %u chars.\r\n", uiLength);
+        RIL_LOG_INFO("CSilo_SMS::ParseCBM() - Calculated PDU String length: %u chars.\r\n",
+                uiLength);
     }
 
     // Don't forget the '\0'.
@@ -275,7 +281,8 @@ BOOL CSilo_SMS::ParseCBM(CResponse * const pResponse, const char*& rszPointer)
 
     if ((NULL == szPDU) || (NULL == pByteBuffer))
     {
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - Could not allocate memory for szPDU or pByteBuffer\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - Could not allocate memory for szPDU or"
+                " pByteBuffer\r\n");
         goto Error;
     }
 
@@ -323,7 +330,7 @@ Error:
 //
 //
 //
-BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
+BOOL CSilo_SMS::ParseCDS(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCDS() - Enter\r\n");
 
@@ -357,14 +364,16 @@ BOOL CSilo_SMS::ParseCDS(CResponse * const pResponse, const char*& rszPointer)
     if (!FindAndSkipString(rszPointer, m_szNewLine, szDummy))
     {
         // This isn't a complete message notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - Could not find postfix; assuming this is an incomplete response.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - Could not find postfix; assuming this is an"
+                " incomplete response.\r\n");
         goto Error;
     }
     else
     {
         // Override the given length with the actual length. Don't forget the '\0'.
         uiLength = ((UINT32)(szDummy - rszPointer)) - strlen(m_szNewLine) + 1;
-        RIL_LOG_INFO("CSilo_SMS::ParseCDS() - Calculated PDU String length: %u chars.\r\n", uiLength);
+        RIL_LOG_INFO("CSilo_SMS::ParseCDS() - Calculated PDU String length: %u chars.\r\n",
+                uiLength);
     }
 
     szPDU = (char*) malloc(sizeof(char) * uiLength);
@@ -411,7 +420,7 @@ Error:
 //
 //
 //
-BOOL CSilo_SMS::ParseCMTI(CResponse * const pResponse, const char*& rszPointer)
+BOOL CSilo_SMS::ParseCMTI(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCMTI() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCMTI() - Exit\r\n");
@@ -421,7 +430,7 @@ BOOL CSilo_SMS::ParseCMTI(CResponse * const pResponse, const char*& rszPointer)
 //
 //
 //
-BOOL CSilo_SMS::ParseCBMI(CResponse * const pResponse, const char*& rszPointer)
+BOOL CSilo_SMS::ParseCBMI(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCBMI() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCBMI() - Exit\r\n");
@@ -431,7 +440,7 @@ BOOL CSilo_SMS::ParseCBMI(CResponse * const pResponse, const char*& rszPointer)
 //
 //
 //
-BOOL CSilo_SMS::ParseCDSI(CResponse * const pResponse, const char*& rszPointer)
+BOOL CSilo_SMS::ParseCDSI(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCDSI() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_SMS::ParseCDSI() - Exit\r\n");

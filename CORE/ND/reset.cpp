@@ -130,7 +130,8 @@ void ModemResetUpdate()
 //  Alert MMGR to attempt a clean-up.
 void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszFileName)
 {
-    RIL_LOG_INFO("[RIL STATE] REQUEST RESET (RIL -> MMGR) eError=[%s], file=[%s], line num=[%d]\r\n",
+    RIL_LOG_INFO("[RIL STATE] REQUEST RESET (RIL -> MMGR)"
+            " eError=[%s], file=[%s], line num=[%d]\r\n",
             Print_eRadioError(eError), lpszFileName, uiLineNum);
 
     // If Spoof commands, log and return
@@ -160,7 +161,8 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
         }
         else
         {
-            RIL_LOG_INFO("do_request_clean_up() - SendRequestModemRecovery, eError=[%d]\r\n", eError);
+            RIL_LOG_INFO("do_request_clean_up()"
+                    "- SendRequestModemRecovery, eError=[%d]\r\n", eError);
 
             //  Send "REQUEST_CLEANUP" on Modem Manager socket
             if (!CSystemManager::GetInstance().SendRequestModemRecovery())
@@ -286,7 +288,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 if (E_MMGR_EVENT_MODEM_OUT_OF_SERVICE != uiMMgrEvent)
                 {
-
                     //  let's exit, init will restart us
                     RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_DOWN CALLING EXIT\r\n");
                     exit(0);
@@ -463,7 +464,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 //
 //  Return values:
 //  None
-void btea(UINT32 *v, int n, UINT32 const key[4])
+void btea(UINT32* v, int n, UINT32 const key[4])
 {
     UINT32 y, z, sum;
     UINT32 rounds, e;
@@ -523,7 +524,7 @@ void btea(UINT32 *v, int n, UINT32 const key[4])
 //  PIN_INVALID_UICC if error with szKey
 //  PIN_NOK if any other error
 //  PIN_OK if operation is successful
-ePCache_Code ConvertKeyToInt4(const char *szKey, UINT32 *pKey)
+ePCache_Code ConvertKeyToInt4(const char* szKey, UINT32* pKey)
 {
     //  Check inputs
     if ( (NULL == szKey) || (strlen(szKey) > 32))
@@ -589,7 +590,7 @@ ePCache_Code ConvertKeyToInt4(const char *szKey, UINT32 *pKey)
 //  Return values:
 //  PIN_NOK if error
 //  PIN_OK if operation successful
-ePCache_Code encrypt(const char *szInput, const int nInputLen, const char *szKey)
+ePCache_Code encrypt(const char* szInput, const int nInputLen, const char* szKey)
 {
     //  Check inputs
     if ( (NULL == szInput) || ('\0' == szInput[0]) || (0 == nInputLen) || (NULL == szKey) )
@@ -678,7 +679,8 @@ ePCache_Code encrypt(const char *szInput, const int nInputLen, const char *szKey
     if (0 != property_set(szCachedPinProp, szEncryptedBuf))
     {
         property_set(szCachedPinProp, "");
-        RIL_LOG_CRITICAL("encrypt() - Cannot store property %s szEncryptedBuf\r\n", szCachedPinProp);
+        RIL_LOG_CRITICAL("encrypt() - Cannot store property %s szEncryptedBuf\r\n",
+                szCachedPinProp);
         return PIN_NOK;
     }
 
@@ -699,7 +701,7 @@ ePCache_Code encrypt(const char *szInput, const int nInputLen, const char *szKey
 //  PIN_WRONG_INTEGRITY if decrypted text doesn't pass integrity checks
 //  PIN_NOK if inputs are invalid
 //  PIN_OK if operation successful
-ePCache_Code decrypt(char *szOut, const char *szKey)
+ePCache_Code decrypt(char* szOut, const char* szKey)
 {
     if ( (NULL == szOut) || (NULL == szKey) )
     {
@@ -765,7 +767,7 @@ ePCache_Code decrypt(char *szOut, const char *szKey)
     //    RIL_LOG_INFO("    buf[%d]=0x%08X\r\n", i, buf[i]);
     //}
 
-    char *pChar = &(szOut[0]);
+    char* pChar = &(szOut[0]);
 
     // We have our decrypted buffer.  Figure out if it was successful and
     //  throw away the random salt.
@@ -799,7 +801,7 @@ ePCache_Code decrypt(char *szOut, const char *szKey)
 // Input: UICC Id, PIN code
 // Output: {OK},{NOK}
 //
-ePCache_Code PCache_Store_PIN(const char *szUICC, const char *szPIN)
+ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN)
 {
     //  TODO: Remove this log statement when complete
     RIL_LOG_INFO("PCache_Store_PIN() Enter - szUICC=[%s], szPIN=[%s]\r\n", szUICC, szPIN);
@@ -840,7 +842,7 @@ ePCache_Code PCache_Store_PIN(const char *szUICC, const char *szPIN)
 // Input: UICC Id
 // Output: {NOK, invalid UICC},{NOK, wrong integrity},{NOK, No PIN available},{OK}
 //
-ePCache_Code PCache_Get_PIN(const char *szUICC, char *szPIN)
+ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN)
 {
     char szUICCCached[MAX_PROP_VALUE];
     RIL_LOG_INFO("PCache_Get_PIN - Enter\r\n");
@@ -866,7 +868,8 @@ ePCache_Code PCache_Get_PIN(const char *szUICC, char *szPIN)
 
     if (!property_get(szCachedUiccProp, szUICCCached, ""))
     {
-        RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached uicc prop %s\r\n", szCachedUiccProp);
+        RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached uicc prop %s\r\n",
+                szCachedUiccProp);
         return PIN_NO_PIN_AVAILABLE;
     }
 
@@ -969,7 +972,8 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
     {
         if (0 != property_set(szUseCachedPinProp, "1"))
         {
-            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n", szUseCachedPinProp, bFlag);
+            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n",
+                    szUseCachedPinProp, bFlag);
             return PIN_NOK;
         }
     }
@@ -977,7 +981,8 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
     {
         if (0 != property_set(szUseCachedPinProp, ""))
         {
-            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n", szUseCachedPinProp, bFlag);
+            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n",
+                    szUseCachedPinProp, bFlag);
             return PIN_NOK;
         }
     }

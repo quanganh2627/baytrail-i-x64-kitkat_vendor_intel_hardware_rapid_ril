@@ -58,14 +58,14 @@ int MapErrorCodeToRilDataFailCause(UINT32 uiCause)
     }
 }
 
-void init_sockaddr_in(struct sockaddr_in *sin, const char *addr)
+void init_sockaddr_in(struct sockaddr_in* sin, const char* addr)
 {
     sin->sin_family = AF_INET;
     sin->sin_port = 0;
     sin->sin_addr.s_addr = inet_addr(addr);
 }
 
-BOOL setaddr6(int sockfd6, struct ifreq *ifr, const char *addr)
+BOOL setaddr6(int sockfd6, struct ifreq* ifr, const char* addr)
 {
     int ret;
 
@@ -89,10 +89,10 @@ BOOL setaddr6(int sockfd6, struct ifreq *ifr, const char *addr)
     return TRUE;
 }
 
-BOOL setaddr(int s, struct ifreq *ifr, const char *addr)
+BOOL setaddr(int s, struct ifreq* ifr, const char* addr)
 {
     int ret;
-    init_sockaddr_in((struct sockaddr_in *) &ifr->ifr_addr, addr);
+    init_sockaddr_in((struct sockaddr_in*) &ifr->ifr_addr, addr);
     RIL_LOG_INFO("setaddr - calling SIOCSIFADDR\r\n");
     errno = 0; // NOERROR
     ret = ioctl(s, SIOCSIFADDR, ifr);
@@ -105,7 +105,7 @@ BOOL setaddr(int s, struct ifreq *ifr, const char *addr)
     return TRUE;
 }
 
-BOOL setflags(int s, struct ifreq *ifr, int set, int clr)
+BOOL setflags(int s, struct ifreq* ifr, int set, int clr)
 {
     int ret;
     RIL_LOG_INFO("setflags - calling SIOCGIFFLAGS\r\n");
@@ -127,7 +127,7 @@ BOOL setflags(int s, struct ifreq *ifr, int set, int clr)
     return TRUE;
 }
 
-BOOL setmtu(int s, struct ifreq *ifr)
+BOOL setmtu(int s, struct ifreq* ifr)
 {
     ifr->ifr_mtu = CTE::GetTE().GetMTU();
     RIL_LOG_INFO("setmtu - calling SIOCSIFMTU\r\n");
@@ -155,7 +155,11 @@ BOOL setmtu(int s, struct ifreq *ifr)
 // a1.a2.a3.a4 to szIpOut
 // XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX (a5-a20) to szIpOut2
 // If szIpOut2 is NULL, then this parameter is ignored
-BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpOutSize, char *szIpOut2, UINT32 uiIpOutSize2)
+BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
+                                       char* szIpOut,
+                                       UINT32 uiIpOutSize,
+                                       char* szIpOut2,
+                                       UINT32 uiIpOutSize2)
 {
     RIL_LOG_VERBOSE("ConvertIPAddressToAndroidReadable() - Enter\r\n");
     BOOL bRet = FALSE;
@@ -200,10 +204,11 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
             UINT32 aIP[MAX_AIPV6_INDEX] = {0};
             unsigned char acIP[MAX_AIPV6_INDEX] = {0};
             if (EOF == sscanf(szIpIn, "%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u",
-                            &aIP[0], &aIP[1], &aIP[2], &aIP[3], &aIP[4], &aIP[5], &aIP[6], &aIP[7],
-                            &aIP[8], &aIP[9], &aIP[10], &aIP[11], &aIP[12], &aIP[13], &aIP[14], &aIP[15]))
+                    &aIP[0], &aIP[1], &aIP[2], &aIP[3], &aIP[4], &aIP[5], &aIP[6], &aIP[7],
+                    &aIP[8], &aIP[9], &aIP[10], &aIP[11], &aIP[12], &aIP[13], &aIP[14], &aIP[15]))
             {
-                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - cannot sscanf into aIP[]! ipv6\r\n");
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
+                        " cannot sscanf into aIP[]! ipv6\r\n");
                 goto Error;
             }
 
@@ -213,7 +218,8 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                 if (aIP[i] > 255)
                 {
                     //  Value is not between 0-255.
-                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ipv6 aIP[%d] not in range 0-255. val=%u\r\n", i, aIP[i]);
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
+                            " ipv6 aIP[%d] not in range 0-255. val=%u\r\n", i, aIP[i]);
                     goto Error;
                 }
             }
@@ -228,9 +234,10 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
             if (NULL != szIpOut2 && 0 != uiIpOutSize2)
             {
 
-                if (inet_ntop(AF_INET6, (void *)acIP, szIpOut2, uiIpOutSize2) <= 0)
+                if (inet_ntop(AF_INET6, (void*)acIP, szIpOut2, uiIpOutSize2) <= 0)
                 {
-                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - cannot inet_ntop ipv6\r\n");
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
+                            " cannot inet_ntop ipv6\r\n");
                     goto Error;
                 }
             }
@@ -245,13 +252,14 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
             //  Then IPv4 part is extracted into szIpOut.
             //  IPV6 part is extracted into szIpOut2.
             UINT32 aIP[MAX_AIPV4V6_INDEX] = {0};
-            if (EOF == sscanf(szIpIn, "%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u",
-                            &aIP[0], &aIP[1], &aIP[2], &aIP[3],
-                            &aIP[4], &aIP[5], &aIP[6], &aIP[7], &aIP[8], &aIP[9], &aIP[10], &aIP[11],
-                            &aIP[12], &aIP[13], &aIP[14], &aIP[15], &aIP[16], &aIP[17], &aIP[18], &aIP[19]
-                            ))
+            if (EOF == sscanf(szIpIn, "%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u.%u."
+                    "%u.%u.%u.%u.%u.%u", &aIP[0], &aIP[1], &aIP[2], &aIP[3],
+                    &aIP[4], &aIP[5], &aIP[6], &aIP[7], &aIP[8], &aIP[9], &aIP[10], &aIP[11],
+                    &aIP[12], &aIP[13], &aIP[14], &aIP[15], &aIP[16], &aIP[17], &aIP[18], &aIP[19]
+                    ))
             {
-                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - cannot sscanf into aIP[]! ipv4v6\r\n");
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
+                        " cannot sscanf into aIP[]! ipv4v6\r\n");
                 goto Error;
             }
 
@@ -261,7 +269,8 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                 if (aIP[i] > 255)
                 {
                     //  Value is not between 0-255.
-                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - ipv4v6 aIP[%d] not in range 0-255. val=%u\r\n", i, aIP[i]);
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
+                            " ipv4v6 aIP[%d] not in range 0-255. val=%u\r\n", i, aIP[i]);
                     goto Error;
                 }
             }
@@ -270,7 +279,8 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                     "%u.%u.%u.%u",
                     aIP[0], aIP[1], aIP[2], aIP[3]) <= 0)
             {
-                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - error with snprintf()! ipv4v6 v4 part\r\n");
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
+                        " error with snprintf()! ipv4v6 v4 part\r\n");
                 goto Error;
             }
 
@@ -285,9 +295,10 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
                     acIP[i] = (unsigned char)(aIP[i+4]);
                 }
 
-                if (inet_ntop(AF_INET6, (void *)acIP, szIpOut2, uiIpOutSize2) <= 0)
+                if (inet_ntop(AF_INET6, (void*)acIP, szIpOut2, uiIpOutSize2) <= 0)
                 {
-                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - cannot inet_ntop ipv4v6\r\n");
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
+                            " cannot inet_ntop ipv4v6\r\n");
                     goto Error;
                 }
             }
@@ -295,7 +306,8 @@ BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpO
         break;
 
         default:
-            RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() - Unknown address format nDotCount=[%d]\r\n", nDotCount);
+            RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
+                    " Unknown address format nDotCount=[%d]\r\n", nDotCount);
             goto Error;
     }
 

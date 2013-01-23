@@ -33,7 +33,7 @@
 
 //
 //
-CSilo_MISC::CSilo_MISC(CChannel *pChannel)
+CSilo_MISC::CSilo_MISC(CChannel* pChannel)
 : CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_MISC::CSilo_MISC() - Enter\r\n");
@@ -62,7 +62,7 @@ CSilo_MISC::~CSilo_MISC()
 //
 // Thermal sensor notification
 //
-BOOL CSilo_MISC::ParseXDRVI(CResponse * const pResponse, const char*& rszPointer)
+BOOL CSilo_MISC::ParseXDRVI(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_MISC::ParseXDRVI() - Enter\r\n");
     BOOL   fRet = FALSE;
@@ -99,7 +99,8 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse * const pResponse, const char*& rszPointer
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractUInt32(rszPointer, nIpcChrTempThresholdInd, rszPointer))
     {
-         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - Unable to parse <IPC_CHR_TEMP_THRESHOLD_IND>!\r\n");
+         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() -"
+                 " Unable to parse <IPC_CHR_TEMP_THRESHOLD_IND>!\r\n");
          goto Error;
     }
 
@@ -127,10 +128,11 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse * const pResponse, const char*& rszPointer
          goto Error;
     }
 
-    RIL_LOG_INFO("CSilo_MISC::ParseXDRVI - IPC_CHR_GRP: %u, IPC_CHR_TEMP_THRESHOLD_IND: %u, xdrv_result: %u\r\n", nIpcChrGrp, nIpcChrTempThresholdInd, nXdrvResult);
+    RIL_LOG_INFO("CSilo_MISC::ParseXDRVI - IPC_CHR_GRP: %u, IPC_CHR_TEMP_THRESHOLD_IND: %u,"
+            " xdrv_result: %u\r\n", nIpcChrGrp, nIpcChrTempThresholdInd, nXdrvResult);
     RIL_LOG_INFO("CSilo_MISC::ParseXDRVI - temp_sensor_id: %u, temp: %u\r\n", nSensorId, nTemp);
 
-    pszData = (unsigned char *)malloc(sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND));
+    pszData = (unsigned char*)malloc(sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND));
     if (NULL == pszData)
     {
         RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - Could not allocate memory for pszData.\r\n");

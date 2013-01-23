@@ -112,14 +112,16 @@ BOOL CChannel_Data::OpenPort()
             break;
 
         default:
-            RIL_LOG_CRITICAL("CChannel_Data::OpenPort() - channel does not exist m_uiRilChannel=%d\r\n", m_uiRilChannel);
+            RIL_LOG_CRITICAL("CChannel_Data::OpenPort() -"
+                    "channel does not exist m_uiRilChannel=%d\r\n", m_uiRilChannel);
             bRetVal = FALSE;
             break;
     }
 
 
 
-    RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
+    RIL_LOG_INFO("CChannel_Data::OpenPort() - Opening COM Port: %s\r\n",
+            bRetVal ? "SUCCESS" : "FAILED!");
 
     return bRetVal;
 }
@@ -133,7 +135,8 @@ BOOL CChannel_Data::FinishInit()
     m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
     if (!m_prisdModuleInit)
     {
-        RIL_LOG_CRITICAL("CChannel_Data::FinishInit() : chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_Data::FinishInit() : chnl=[%d] Could not create new "
+                "INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -159,20 +162,22 @@ BOOL CChannel_Data::AddSilos()
 
     //  Data1 channel contains 1 silo:
     //    Data Silo
-    CSilo *pSilo = NULL;
+    CSilo* pSilo = NULL;
     BOOL bRet = FALSE;
 
     pSilo = CSilo_Factory::GetSiloData(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : chnl=[%d] Could not add CSilo_Data\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : chnl=[%d] Could not add CSilo_Data\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloPhonebook(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 
@@ -239,22 +244,29 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
     int hsiChannel = -1;
     int hsiDirect = FALSE;
 
-    //First try to get a free RIL channel, then for class 1 or class 2 apn, try to get a hsi channel.
+    // First try to get a free RIL channel, then for class 1
+    // or class 2 apn, try to get a hsi channel.
     pChannelData = CChannel_Data::GetFreeChnl(outCID);
     if (pChannelData != NULL)
     {
         if (dataProfile >= 0 && dataProfile < NUMBER_OF_APN_PROFILE)
         {
-            // According to the data profile class try to associate a hsi channel to the RIL channel.
+            // According to the data profile class try to associate
+            // a hsi channel to the RIL channel.
             switch (m_dataProfilePathAssignation[dataProfile])
             {
                 case 1:
                     // For APN of the class 1 a hsi channel is available. Find the first available.
-                    RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() - data profile class: %d.\r\n", m_dataProfilePathAssignation[dataProfile]);
-                    hsiChannel = GetFreeHSIChannel(outCID, RIL_HSI_CHANNEL1, RIL_HSI_CHANNEL1 + m_hsiChannelsReservedForClass1);
+                    RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() -"
+                            " data profile class: %d.\r\n",
+                            m_dataProfilePathAssignation[dataProfile]);
+                    hsiChannel = GetFreeHSIChannel(
+                            outCID, RIL_HSI_CHANNEL1, RIL_HSI_CHANNEL1
+                            + m_hsiChannelsReservedForClass1);
                     if (hsiChannel == -1)
                     {
-                        RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() - No hsi channel for a data profile class 1.\r\n");
+                        RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() - No hsi channel for"
+                                " a data profile class 1.\r\n");
                         pChannelData->SetContextID(0);
                         pChannelData = NULL;
                         goto Error;
@@ -263,9 +275,13 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
                     break;
 
                 case 2:
-                    // For APN of the class 2, check if there is a free hsi channel that can be used.
-                    RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() - data profile class: %d.\r\n", m_dataProfilePathAssignation[dataProfile]);
-                    hsiChannel = GetFreeHSIChannel(outCID, RIL_HSI_CHANNEL1 + m_hsiChannelsReservedForClass1, RIL_HSI_CHANNEL1 + m_hsiDataDirect);
+                    // For APN of the class 2, check if there is
+                    // a free hsi channel that can be used.
+                    RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() - data profile "
+                            "class: %d.\r\n", m_dataProfilePathAssignation[dataProfile]);
+                    hsiChannel = GetFreeHSIChannel(
+                            outCID, RIL_HSI_CHANNEL1 + m_hsiChannelsReservedForClass1,
+                            RIL_HSI_CHANNEL1 + m_hsiDataDirect);
                     if (hsiChannel != -1)
                     {
                         hsiDirect = TRUE;
@@ -382,7 +398,8 @@ CChannel_Data* CChannel_Data::GetFreeChnl(UINT32& outCID)
             pChannelData = pTemp;
             outCID = (i - RIL_CHANNEL_DATA1) + 1;
 
-            RIL_LOG_INFO("CChannel_Data::GetFreeChnl() - ****** Setting chnl=[%d] to CID=[%d] ******\r\n", i, outCID);
+            RIL_LOG_INFO("CChannel_Data::GetFreeChnl() - ****** Setting chnl=[%d] to CID=[%d]"
+                    " ******\r\n", i, outCID);
             pChannelData->SetContextID(outCID);
             break;
         }

@@ -24,7 +24,7 @@ class CChannel;
 class CSilo_Network_INF : public CSilo_Network
 {
 public:
-    CSilo_Network_INF(CChannel *pChannel);
+    CSilo_Network_INF(CChannel* pChannel);
     virtual ~CSilo_Network_INF();
 };
 
