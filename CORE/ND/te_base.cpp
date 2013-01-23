@@ -2135,10 +2135,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UIN
     //  Store setting in context.
     rReqData.pContextData = (void*)bTurnRadioOn;
 
-    // Retrieve the shutdown property
-    char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
-    if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL) &&
-                ('0' == szShutdownActionProperty[0]) )
+    if (m_cte.IsPlatformShutDownRequested())
     {
         RIL_LOG_INFO("CTEBase::CoreRadioPower - Shutdown requested\r\n");
 

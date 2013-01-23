@@ -77,13 +77,13 @@ public:
 
     BOOL IsRequestSupported(int requestId);
     void HandleRequest(int requestID, void* pData, size_t datalen, RIL_Token hRilToken);
-    RIL_Errno HandleRequestWhenNoModem(int requestID, void* pData, size_t datalen,
-            RIL_Token hRilToken);
-    RIL_Errno HandleRequestInRadioOff(int requestID, void* pData, size_t datalen,
-            RIL_Token hRilToken);
+    RIL_Errno HandleRequestWhenNoModem(int requestID, RIL_Token hRilToken);
+    RIL_Errno HandleRequestInRadioOff(int requestID, RIL_Token hRilToken);
 
+    BOOL IsRequestAllowedInSpoofState(int requestId);
     BOOL IsRequestAllowedInRadioOff(int requestId);
-    BOOL IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId);
+    BOOL IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
+            BOOL bIsInitCommand);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
     RIL_RESULT_CODE RequestGetSimStatus(RIL_Token rilToken, void* pData, size_t datalen);
@@ -676,6 +676,11 @@ public:
     UINT32 TestAndSetDtmfState(UINT32 uiDtmfState);
     UINT32 GetDtmfState();
 
+    BOOL IsPlatformShutDownRequested();
+
+    // Resets all the internal states to default values
+    void ResetInternalStates();
+
     RIL_RESULT_CODE RequestSimPinRetryCount(RIL_Token rilToken, void* pData, size_t datalen,
                                             UINT32 uiReqId = 0,
                                             PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn = NULL);
@@ -970,9 +975,6 @@ private:
      * the call is disconnected.
      */
     BOOL m_bIsClearPendingCHLD;
-
-    // Resets all the internal states to default values
-    void ResetInternalStates();
 
     const char* PrintRegistrationInfo(char* szRegInfo) const;
     const char* PrintGPRSRegistrationInfo(char* szGPRSInfo) const;

@@ -121,7 +121,7 @@ CSystemManager::CSystemManager()
     m_pDataChannelAccessorMutex(NULL),
     m_pMMgrLibHandle(NULL),
     m_RequestInfoTable(),
-    m_bFailedToInitialize(FALSE)
+    m_bIsSystemInitialized(FALSE)
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     ,m_uiLastCallFailedCauseID(0)
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
@@ -166,6 +166,8 @@ CSystemManager::~CSystemManager()
             break;
         }
     }
+
+    m_bIsSystemInitialized = FALSE;
 
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before signal m_pExitRilEvent\r\n");
     // signal the cancel event to kill the thread
@@ -711,6 +713,8 @@ BOOL CSystemManager::ContinueInit()
         RIL_LOG_CRITICAL("CSystemManager::ContinueInit() - Thread manager failed to start.\r\n");
     }
 
+    m_bIsSystemInitialized = TRUE;
+
     if (!InitializeModem())
     {
         RIL_LOG_CRITICAL("CSystemManager::ContinueInit() -"
@@ -739,6 +743,8 @@ BOOL CSystemManager::ContinueInit()
 Done:
     if (!bRetVal)
     {
+        m_bIsSystemInitialized = FALSE;
+
         if (m_pSimUnlockedEvent)
         {
             delete m_pSimUnlockedEvent;

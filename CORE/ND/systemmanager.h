@@ -88,8 +88,8 @@ public:
     void TriggerModemPowerOnEvent() const { CEvent::Signal(m_pModemPowerOnEvent); };
     void TriggerInitStringCompleteEvent(UINT32 eChannel, eComInitIndex eInitIndex);
 
-    BOOL IsInitializationSuccessful() const { return !m_bFailedToInitialize; };
-    void SetInitializationUnsuccessful() { m_bFailedToInitialize = TRUE; };
+    BOOL IsInitializationSuccessful() const { return m_bIsSystemInitialized; };
+    void SetInitializationUnsuccessful() { m_bIsSystemInitialized = FALSE; };
 
     void GetRequestInfo(REQ_ID reqID, REQ_INFO& rReqInfo);
 
@@ -167,7 +167,7 @@ private:
 
     CRequestInfoTable m_RequestInfoTable;
 
-    BOOL m_bFailedToInitialize;
+    BOOL m_bIsSystemInitialized;
 
     BOOL m_rgfChannelCompletedInit[RIL_CHANNEL_MAX][COM_MAX_INDEX];
 

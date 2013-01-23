@@ -436,7 +436,7 @@ UINT32 CChannelBase::CommandThread()
         if (NULL != pCmd)
         {
             if (!CTE::GetTE().IsRequestAllowed(pCmd->GetRequestID(),
-                    pCmd->GetToken(), pCmd->GetChannel()))
+                    pCmd->GetToken(), pCmd->GetChannel(), pCmd->IsInitCommand()))
             {
                 delete pCmd;
                 pCmd = NULL;

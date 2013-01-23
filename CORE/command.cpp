@@ -193,9 +193,8 @@ BOOL CCommand::AddCmdToQueue(CCommand*& rpCmd, BOOL bFront /*=false*/)
 {
     RIL_LOG_VERBOSE("CCommand::AddCmdToQueue() - Enter\r\n");
 
-    if (NULL != rpCmd)
+    if (NULL != rpCmd && CSystemManager::GetInstance().IsInitializationSuccessful())
     {
-
         REQ_INFO reqInfo;
         memset(&reqInfo, 0, sizeof(reqInfo));
 

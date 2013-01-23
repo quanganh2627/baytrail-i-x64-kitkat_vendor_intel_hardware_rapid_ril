@@ -35,6 +35,7 @@
 #include "ril_result.h"
 #include "callbacks.h"
 #include "reset.h"
+#include "nd_util.h"
 
 CTE* CTE::m_pTEInstance = NULL;
 
@@ -155,6 +156,33 @@ BOOL CTE::IsRequestSupported(int requestId)
     return m_pTEBaseInstance->IsRequestSupported(requestId);
 }
 
+BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
+{
+    RIL_LOG_INFO("CTE::IsRequestAllowedInSpoofState - requestId=%d", requestId);
+
+    BOOL bAllowed ;
+
+    switch (requestId)
+    {
+        case RIL_REQUEST_RADIO_POWER:
+            if (GetModemOffInFlightModeState())
+            {
+                SetSpoofCommandsStatus(FALSE);
+                bAllowed = TRUE;
+            }
+            else
+            {
+                bAllowed = FALSE;
+            }
+            break;
+
+        default:
+            bAllowed = FALSE;
+    }
+
+    return bAllowed;
+}
+
 BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
 {
     RIL_LOG_INFO("CTE::IsRequestAllowedInRadioOff - requestId=%d", requestId);
@@ -214,8 +242,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
     return bAllowed;
 }
 
-RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, void* pData,
-        size_t datalen, RIL_Token hRilToken)
+RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
 {
     RIL_LOG_INFO("CTE::HandleRequestWhenNoModem - REQID=%d, token=0x%08x\r\n",
             requestId, (int) hRilToken);
@@ -250,8 +277,7 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, void* pData,
     return eRetVal;
 }
 
-RIL_Errno CTE::HandleRequestInRadioOff(int requestId, void* pData,
-        size_t datalen, RIL_Token hRilToken)
+RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
 {
     RIL_LOG_INFO("CTE::HandleRequestInRadioOff - REQID=%d, token=0x%08x\r\n",
             requestId, (int) hRilToken);
@@ -292,13 +318,13 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     RIL_LOG_INFO("CTE::HandleRequest() - id=%d token: 0x%08x\r\n", requestId, (int) hRilToken);
 
     //  If we're in the middle of TriggerRadioError(), spoof all commands.
-    if (GetSpoofCommandsStatus())
+    if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(requestId))
     {
-        eRetVal = HandleRequestWhenNoModem(requestId, pData, datalen, hRilToken);
+        eRetVal = HandleRequestWhenNoModem(requestId, hRilToken);
     }
     else if (RADIO_STATE_OFF == GetRadioState() && !IsRequestAllowedInRadioOff(requestId))
     {
-        eRetVal = HandleRequestInRadioOff(requestId, pData, datalen, hRilToken);
+        eRetVal = HandleRequestInRadioOff(requestId, hRilToken);
     }
     else if (!m_pTEBaseInstance->IsRequestSupported(requestId))
     {
@@ -2086,18 +2112,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         bTurnRadioOn = true;
     }
 
-    // Retrieve the shutdown property to verify if the requested radio state is OFF
-    // and a reboot is requested
-    // if so ignore the command
-    if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL) &&
-                ('1' == szShutdownActionProperty[0]) )
-    {
-        RIL_LOG_INFO("CTE::RequestRadioPower() - Reboot requested, do nothing\r\n");
-        bShutdown = true;
-        res = RIL_E_SUCCESS;
-        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
-    }
-    else if (property_get("gsm.radioreset", szResetActionProperty, "false") &&
+    if (property_get("gsm.radioreset", szResetActionProperty, "false") &&
                     (strncmp("false", szResetActionProperty, 5) != 0) &&
                     (false == bTurnRadioOn))
     {
@@ -2112,8 +2127,8 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
 #if !defined(M2_DUALSIM_FEATURE_ENABLED)
     // check if the required state is the same as the current one
     // if so, ignore command
-    else if ((bTurnRadioOn && RADIO_STATE_OFF != radio_state) ||
-            (!bTurnRadioOn && RADIO_STATE_OFF == radio_state))
+    else if ((bTurnRadioOn && RADIO_STATE_OFF != radio_state)
+            || (!bTurnRadioOn && RADIO_STATE_OFF == radio_state))
     {
         RIL_LOG_INFO("CTE::RequestRadioPower() - No change in state, spoofing command.\r\n");
         res = RIL_E_SUCCESS;
@@ -2160,12 +2175,18 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
 Error:
     if (RRIL_RESULT_OK == res && !bTurnRadioOn)
     {
-        if (bShutdown || GetModemOffInFlightModeState())
+        if (IsPlatformShutDownRequested())
         {
-            CSystemManager::GetInstance().ReleaseModem();
+            RIL_LOG_INFO("CTE::RequestRadioPower - Shutdown requested\r\n");
+            do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
         }
-
-        SetRadioState(RRIL_RADIO_STATE_OFF);
+        else
+        {
+            if (GetModemOffInFlightModeState())
+            {
+                CSystemManager::GetInstance().ReleaseModem();
+            }
+        }
     }
 
     RIL_LOG_VERBOSE("CTE::RequestRadioPower() - Exit\r\n");
@@ -7192,15 +7213,67 @@ UINT32 CTE::GetDtmfState()
     return m_uiDtmfState;
 }
 
-BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId)
+BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
+        BOOL bIsInitCommand)
 {
+    RIL_Errno eRetVal = RIL_E_SUCCESS;
+    BOOL bIsReqAllowed;
+
+    int rilRequestId = MapVendorRequestIdToRil(uiRequestId);
+
+    //  If we're in the middle of TriggerRadioError(), spoof all commands.
+    if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(rilRequestId))
+    {
+        eRetVal = HandleRequestWhenNoModem(rilRequestId, rilToken);
+        bIsReqAllowed = FALSE;
+    }
+    else if (RADIO_STATE_OFF == GetRadioState()
+            && !IsRequestAllowedInRadioOff(rilRequestId)
+            && !bIsInitCommand)
+    {
+        eRetVal = HandleRequestInRadioOff(rilRequestId, rilToken);
+        bIsReqAllowed = FALSE;
+    }
+    else if (IsPlatformShutDownRequested())
+    {
+        /*
+         * If there is data or voice call, then the framwork will
+         * first send requests to hangup those before sending
+         * radio power off request. So, allow only requests which
+         * are sent to hangup the voice/data call.
+         */
+        if (ND_REQ_ID_RADIOPOWER == uiRequestId
+                || ND_REQ_ID_HANGUP == uiRequestId
+                || ND_REQ_ID_HANGUPWAITINGORBACKGROUND == uiRequestId
+                || ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND == uiRequestId
+#if defined(M2_VT_FEATURE_ENABLED)
+                || ND_REQ_ID_HANGUPVT == uiRequestId
+#endif
+                || ND_REQ_ID_DEACTIVATEDATACALL == uiRequestId)
+        {
+            bIsReqAllowed = TRUE;
+        }
+        else
+        {
+            bIsReqAllowed = FALSE;
+        }
+    }
+    else
+    {
+        bIsReqAllowed = TRUE;
+    }
+
+    if (RIL_E_SUCCESS != eRetVal && NULL != rilToken)
+    {
+        RIL_onRequestComplete(rilToken, (RIL_Errno)eRetVal, NULL, 0);
+    }
+
     switch (uiRequestId)
     {
         case ND_REQ_ID_REQUESTDTMFSTART:
-        {
             RIL_LOG_INFO("CTE::IsRequestAllowed() - ND_REQ_ID_REQUESTDTMFSTART\r\n");
-            BOOL bIsReqAllowed = FALSE;
 
+            bIsReqAllowed = FALSE;
             CMutex::Lock(m_pDtmfStateAccess);
 
             if (E_DTMF_STATE_STOP == GetDtmfState())
@@ -7228,14 +7301,12 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
             }
 
             CMutex::Unlock(m_pDtmfStateAccess);
+            break;
 
-            return bIsReqAllowed;
-        }
         case ND_REQ_ID_REQUESTDTMFSTOP:
-        {
             RIL_LOG_INFO("CTE::IsRequestAllowed() - ND_REQ_ID_REQUESTDTMFSTOP\r\n");
 
-            BOOL bIsReqAllowed = FALSE;
+            bIsReqAllowed = FALSE;
 
             if (E_DTMF_STATE_START == TestAndSetDtmfState(E_DTMF_STATE_STOP))
             {
@@ -7257,12 +7328,13 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
                 CSystemManager::CompleteIdenticalRequests(uiChannelId, ND_REQ_ID_REQUESTDTMFSTART,
                         RIL_E_GENERIC_FAILURE, NULL, 0);
             }
+            break;
 
-            return bIsReqAllowed;
-        }
         default:
-            return TRUE;
+            break;
     }
+
+    return bIsReqAllowed;
 }
 
 BOOL CTE::isRetryPossible(UINT32 uiErrorCode)
@@ -7820,20 +7892,15 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
     //  Extract power setting from context
     int radioPower = (int)rData.pContextData;
 
-    // Retrieve the shutdown property
-    char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
-    if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL) &&
-                ('0' == szShutdownActionProperty[0]) )
-    {
-        RIL_LOG_INFO("CTE::CoreRadioPower - Shutdown requested\r\n");
-        do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
-    }
-
     if (1 == radioPower)
     {
         //  Turning on phone
         SetRadioState(RRIL_RADIO_STATE_ON);
         CSystemManager::GetInstance().TriggerModemPowerOnEvent();
+    }
+    else if (!IsPlatformShutDownRequested())
+    {
+        SetRadioState(RRIL_RADIO_STATE_OFF);
     }
 
     if (RIL_E_SUCCESS != rData.uiResultCode && 0 == radioPower)
@@ -8497,4 +8564,21 @@ void CTE::CleanupAllDataConnections()
 {
     RIL_LOG_VERBOSE("CTE::CleanupAllDataConnections() - Enter / Exit\r\n");
     m_pTEBaseInstance->CleanupAllDataConnections();
+}
+
+BOOL CTE::IsPlatformShutDownRequested()
+{
+    RIL_LOG_VERBOSE("CTE::IsPlatformShutDownRequested() - Enter\r\n");
+
+    BOOL isShutDownRequested = FALSE;
+    char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
+
+    // Retrieve the shutdown property
+    if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL)
+            && ('0' == szShutdownActionProperty[0]))
+    {
+        isShutDownRequested = TRUE;
+    }
+
+    return isShutDownRequested;
 }

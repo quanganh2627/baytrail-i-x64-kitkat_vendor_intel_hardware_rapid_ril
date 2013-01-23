@@ -85,8 +85,6 @@ void ModemResetUpdate()
 
     RIL_LOG_VERBOSE("ModemResetUpdate() - Enter\r\n");
 
-    char szModemState[PROPERTY_VALUE_MAX] = "0";
-
     CTE::GetTE().CleanupAllDataConnections();
 
     //  Tell Android no more data connection
@@ -95,27 +93,6 @@ void ModemResetUpdate()
     //  If there was a voice call active, it is disconnected.
     //  This will cause a RIL_REQUEST_GET_CURRENT_CALLS to be sent
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
-
-    CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
-
-    if (CTE::GetTE().GetModemOffInFlightModeState())
-    {
-        property_get("persist.radio.ril_modem_state", szModemState , "on");
-        if (strncmp(szModemState, "off", 3) == 0)
-        {
-            // Flightmode enabled
-            CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
-        }
-        else
-        {
-            // Modem reset or plateform boot
-            CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-        }
-    }
-    else
-    {
-        CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-    }
 
     //  Delay slightly so Java layer receives replies
     Sleep(10);
@@ -147,6 +124,7 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
 
         //  Close ports
         CSystemManager::GetInstance().CloseChannelPorts();
+        CSystemManager::GetInstance().SetInitializationUnsuccessful();
 
         if (eRadioError_ForceShutdown == eError)
         {
@@ -164,6 +142,12 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
             RIL_LOG_INFO("do_request_clean_up()"
                     "- SendRequestModemRecovery, eError=[%d]\r\n", eError);
 
+            //  Voice calls disconnected, no more data connections
+            ModemResetUpdate();
+
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
+            CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+
             //  Send recovery request to MMgr
             if (!CSystemManager::GetInstance().SendRequestModemRecovery())
             {
@@ -171,14 +155,6 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
                 //  Socket could have been closed by MMGR.
                 //  Restart RRIL, drop down to exit.
             }
-
-            //  Inform Android of new state
-            //  Voice calls disconnected, no more data connections
-            ModemResetUpdate();
-
-            RIL_LOG_INFO("do_request_clean_up() - Calling exit(0)\r\n");
-            CSystemManager::Destroy();
-            exit(0);
         }
     }
 
@@ -275,21 +251,36 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(E_MMGR_EVENT_MODEM_DOWN);
 
-                //  Close ports
-                RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                CSystemManager::GetInstance().CloseChannelPorts();
+                CTE::GetTE().ResetInternalStates();
 
                 //  Inform Android of new state
                 //  Voice calls disconnected, no more data connections
                 ModemResetUpdate();
 
-                CSystemManager::Destroy();
+                //  Close ports
+                RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                CSystemManager::GetInstance().CloseChannelPorts();
 
-                if (E_MMGR_EVENT_MODEM_OUT_OF_SERVICE != uiMMgrEvent)
+                if (E_MMGR_EVENT_MODEM_DOWN == uiMMgrEvent)
                 {
-                    //  let's exit, init will restart us
-                    RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_DOWN CALLING EXIT\r\n");
-                    exit(0);
+                    // Retrieve the shutdown property
+                    if (CTE::GetTE().IsPlatformShutDownRequested()
+                            || CTE::GetTE().GetModemOffInFlightModeState())
+                    {
+                        RIL_LOG_INFO("E_MMGR_EVENT_MODEM_DOWN due to PLATFORM_SHUTDOWN or "
+                                "MODEM OFF in flight mode - don't exit\r\n");
+                    }
+                    else
+                    {
+                        //  let's exit, init will restart us
+                        RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_DOWN CALLING EXIT\r\n");
+                        CSystemManager::Destroy();
+                        exit(0);
+                    }
+                }
+                else
+                {
+                    CSystemManager::Destroy();
                 }
 
                 RIL_LOG_INFO("ModemManagerEventHandler() -"
@@ -308,19 +299,21 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 if (!CTE::GetTE().GetSpoofCommandsStatus() &&
                         (E_MMGR_EVENT_MODEM_DOWN != nPreviousModemState))
                 {
-                    CTE::GetTE().CleanupAllDataConnections();
+                    // Voice calls disconnected, no more data connections
+                    ModemResetUpdate();
 
-                    CTE::GetTE().SetManualNetworkSearchOn(FALSE);
-                    CTE::GetTE().SetupDataCallOngoing(FALSE);
+                    CTE::GetTE().ResetInternalStates();
 
-                    //  Turning off phone
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
                     do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
                 }
                 else
                 {
+                    //  Turning off phone
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
+
                     // Ends the RRIL
                     CSystemManager::Destroy();
+
                     // Don't exit the RRIL to avoid automatic restart: sleep for ever
                     RIL_LOG_INFO("ModemManagerEventHandler() - Now sleeping till reboot\r\n");
                     while(1) { sleep(SLEEP_MS); }
@@ -343,13 +336,15 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 {
                     CTE::GetTE().SetLastModemEvent(E_MMGR_EVENT_MODEM_DOWN);
 
-                    //  Close ports
-                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                    CSystemManager::GetInstance().CloseChannelPorts();
-
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
                     ModemResetUpdate();
+
+                    CTE::GetTE().ResetInternalStates();
+
+                    //  Close ports
+                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
                 CSystemManager::GetInstance().SendAckModemColdReset();
@@ -380,13 +375,15 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 {
                     CTE::GetTE().SetLastModemEvent(E_MMGR_EVENT_MODEM_DOWN);
 
-                    //  Close ports
-                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                    CSystemManager::GetInstance().CloseChannelPorts();
-
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
                     ModemResetUpdate();
+
+                    CTE::GetTE().ResetInternalStates();
+
+                    //  Close ports
+                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
                 // If already down, no need to perform restart
@@ -411,29 +408,33 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
-                    //  Close ports
-                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                    CSystemManager::GetInstance().CloseChannelPorts();
-
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
                     ModemResetUpdate();
+
+                    CTE::GetTE().ResetInternalStates();
+
+                    //  Close ports
+                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
                 CSystemManager::GetInstance().SendAckModemShutdown();
 
-                // If already down, no need to perform restart
-                if (E_MMGR_EVENT_MODEM_DOWN != nPreviousModemState)
-                {
-                    //  let's exit, init will restart us
-                    RIL_LOG_INFO("ModemManagerEventHandler() - CALLING EXIT\r\n");
+                //  Turning off phone
+                CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
 
+                // Retrieve the shutdown property
+                if (CTE::GetTE().IsPlatformShutDownRequested())
+                {
                     CSystemManager::Destroy();
-                    exit(0);
+
+                    // Don't exit the RRIL to avoid automatic restart: sleep for ever
+                    RIL_LOG_INFO("ModemManagerEventHandler() - Now sleeping till reboot\r\n");
+                    while(1) { sleep(SLEEP_MS); }
                 }
 
                 break;
-
 
             default:
                 RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) UNKNOWN [%d]\r\n", uiMMgrEvent);
