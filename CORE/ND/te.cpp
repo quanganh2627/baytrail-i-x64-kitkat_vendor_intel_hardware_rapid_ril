@@ -7289,26 +7289,30 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
                     RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
                 }
 
-                // Pending DTMF start and stop request
-                CSystemManager::CompleteIdenticalRequests(uiChannelId, ND_REQ_ID_REQUESTDTMFSTART,
-                        RIL_E_GENERIC_FAILURE, NULL, 0);
+                if (E_DTMF_STATE_FLUSH == GetDtmfState())
+                {
+                    // Complete pending DTMF start and stop request
+                    CSystemManager::CompleteIdenticalRequests(uiChannelId,
+                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0);
 
-                // Pending DTMF start and stop request
-                CSystemManager::CompleteIdenticalRequests(uiChannelId, ND_REQ_ID_REQUESTDTMFSTOP,
-                        RIL_E_GENERIC_FAILURE, NULL, 0);
+                    CSystemManager::CompleteIdenticalRequests(uiChannelId,
+                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0);
 
-                SetDtmfState(E_DTMF_STATE_STOP);
+                    SetDtmfState(E_DTMF_STATE_STOP);
+                }
             }
 
             CMutex::Unlock(m_pDtmfStateAccess);
             break;
 
         case ND_REQ_ID_REQUESTDTMFSTOP:
+        {
             RIL_LOG_INFO("CTE::IsRequestAllowed() - ND_REQ_ID_REQUESTDTMFSTOP\r\n");
 
             bIsReqAllowed = FALSE;
 
-            if (E_DTMF_STATE_START == TestAndSetDtmfState(E_DTMF_STATE_STOP))
+            int dtmfState = TestAndSetDtmfState(E_DTMF_STATE_STOP);
+            if (E_DTMF_STATE_START == dtmfState)
             {
                 bIsReqAllowed = TRUE;
             }
@@ -7320,15 +7324,18 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
                     RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
                 }
 
-                // Pending request
-                CSystemManager::CompleteIdenticalRequests(uiChannelId, ND_REQ_ID_REQUESTDTMFSTOP,
-                        RIL_E_GENERIC_FAILURE, NULL, 0);
+                if (E_DTMF_STATE_FLUSH == dtmfState)
+                {
+                    // Complete pending DTMF start and stop request
+                    CSystemManager::CompleteIdenticalRequests(uiChannelId,
+                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0);
 
-                // Pending request
-                CSystemManager::CompleteIdenticalRequests(uiChannelId, ND_REQ_ID_REQUESTDTMFSTART,
-                        RIL_E_GENERIC_FAILURE, NULL, 0);
+                    CSystemManager::CompleteIdenticalRequests(uiChannelId,
+                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0);
+                }
             }
             break;
+        }
 
         default:
             break;
@@ -8202,9 +8209,6 @@ void CTE::PostDtmfStart(POST_CMD_HANDLER_DATA& rData)
                 rData.uiResultCode);
 
         SetDtmfState(E_DTMF_STATE_STOP);
-
-        CSystemManager::CompleteIdenticalRequests(rData.uiChannel, rData.uiRequestId,
-                rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
     }
 
     RIL_LOG_VERBOSE("CTE::PostDtmfStart() Exit\r\n");
@@ -8218,12 +8222,6 @@ void CTE::PostDtmfStop(POST_CMD_HANDLER_DATA& rData)
     {
         RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                 rData.pData, rData.uiDataSize);
-    }
-
-    if (RRIL_RESULT_OK != rData.uiResultCode)
-    {
-        CSystemManager::CompleteIdenticalRequests(rData.uiChannel, rData.uiRequestId,
-                rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
     }
 
     RIL_LOG_VERBOSE("CTE::PostDtmfStop() Exit\r\n");
