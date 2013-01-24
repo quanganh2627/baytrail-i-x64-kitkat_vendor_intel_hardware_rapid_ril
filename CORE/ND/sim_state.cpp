@@ -32,8 +32,6 @@ CSimState::~CSimState()
 ///////////////////////////////////////////////////////////////////////////////
 RRIL_SIM_State CSimState::GetSIMState()
 {
-    RIL_LOG_INFO("[RIL STATE] SIM STATE = %s\r\n", PrintState(m_eSIMState));
-
     return m_eSIMState;
 }
 
@@ -42,6 +40,7 @@ void CSimState::SetSIMState(const RRIL_SIM_State eSimState)
 {
     if (m_eSIMState != eSimState) {
         m_eSIMState = eSimState;
+        RIL_LOG_INFO("[RIL STATE] SIM STATE = %s\r\n", PrintState(m_eSIMState));
     }
 }
 

@@ -34,7 +34,7 @@ public:
 private:
     RRIL_Radio_State m_eRadioState;
 
-    const char* PrintState(const RIL_RadioState eState);
+    const char* PrintState(const RRIL_Radio_State eRadioState);
 
 };
 
