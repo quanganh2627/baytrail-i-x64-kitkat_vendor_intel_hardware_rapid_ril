@@ -220,7 +220,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
     const int SLEEP_MS = 10000;
 
     //  Store the previous modem's state.  Only handle the toggle of the modem state.
-    //  Initialize to MODEM_DOWN.
     UINT32 nPreviousModemState = CTE::GetTE().GetLastModemEvent();
 
     //  Now start polling for modem status...

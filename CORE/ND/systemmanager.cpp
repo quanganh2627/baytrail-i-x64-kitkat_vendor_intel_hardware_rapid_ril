@@ -1487,6 +1487,9 @@ BOOL CSystemManager::MMgrConnectionInit()
 
     char RRIL_NAME[CLIENT_NAME_LEN] = "RRIL";
 
+    // Initialize internal state to down.
+    CTE::GetTE().SetLastModemEvent(E_MMGR_EVENT_MODEM_DOWN);
+
     if (g_szSIMID)
     {
         RRIL_NAME[4] = g_szSIMID[0];
