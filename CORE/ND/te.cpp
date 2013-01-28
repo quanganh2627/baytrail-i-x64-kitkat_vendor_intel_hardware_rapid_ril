@@ -7171,6 +7171,7 @@ void CTE::ResetInternalStates()
     m_bIsSimTechnicalProblem = FALSE;
     m_bIsManualNetworkSearchOn = FALSE;
     m_bIsClearPendingCHLD = FALSE;
+    m_bIsDataSuspended = FALSE;
 }
 
 BOOL CTE::IsSetupDataCallAllowed(int& retryTime)
@@ -7883,6 +7884,8 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
     RIL_LOG_VERBOSE("CTE::PostRadioPower() Enter\r\n");
 
     ResetInternalStates();
+
+    triggerDataResumedInd(NULL);
 
     /*
      * Rapid RIL remains active even when the system services are

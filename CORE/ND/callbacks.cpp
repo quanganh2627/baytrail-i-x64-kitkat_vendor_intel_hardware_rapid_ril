@@ -23,31 +23,41 @@ void notifyChangedCallState(void* param)
     RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 }
 
+void triggerDataResumedInd(void* param)
+{
+    unsigned char szData[10];
+    int pos = 0;
+    const int DATA_RESUMED = 1;
+
+    CTE::GetTE().SetDataSuspended(FALSE);
+
+    memset(szData, 0, sizeof(szData));
+
+    convertIntToByteArrayAt(szData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
+    pos += sizeof(int);
+    convertIntToByteArrayAt(szData, DATA_RESUMED, pos);
+
+    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, szData,
+            sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+}
+
 void triggerDataSuspendInd(void* param)
 {
-    if (!CTE::GetTE().IsDataSuspended())
+    if (!CTE::GetTE().IsDataSuspended() || (RRIL_RADIO_STATE_ON != CTE::GetTE().GetRadioState()))
         return;
 
-    unsigned char* pszData = NULL;
+    unsigned char szData[10];
     int pos = 0;
+    const int DATA_SUSPENDED = 0;
 
-    pszData = (unsigned char*) malloc(sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
-    if (NULL == pszData)
-    {
-        RIL_LOG_CRITICAL("triggerDataSuspendInd() - Could not allocate memory for pszData.\r\n");
-        return;
-    }
+    memset(szData, 0, sizeof(szData));
 
-    memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
-
-    convertIntToByteArrayAt(pszData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
+    convertIntToByteArrayAt(szData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
     pos += sizeof(int);
-    convertIntToByteArrayAt(pszData, 0/* SUSPENDED */, pos);
+    convertIntToByteArrayAt(szData, DATA_SUSPENDED, pos);
 
-    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, pszData,
+    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, szData,
             sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
-
-    free(pszData);
 }
 
 void triggerHangup(UINT32 uiCallId)
