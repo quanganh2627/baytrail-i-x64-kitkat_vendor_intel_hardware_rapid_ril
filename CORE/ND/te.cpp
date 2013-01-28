@@ -143,8 +143,8 @@ CTE& CTE::GetTE()
 
 void CTE::DeleteTEObject()
 {
-    CMutex::Lock(CSystemManager::GetTEAccessMutex());
     RIL_LOG_INFO("CTE::DeleteTEObject() - Deleting TE instance\r\n");
+    CMutex::Lock(CSystemManager::GetTEAccessMutex());
     delete m_pTEInstance;
     m_pTEInstance = NULL;
     CMutex::Unlock(CSystemManager::GetTEAccessMutex());
@@ -2055,6 +2055,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
     RIL_LOG_VERBOSE("CTE::RequestRadioPower() - Enter\r\n");
 
     bool bTurnRadioOn = false;
+    bool bShutdown = false;
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
@@ -2092,6 +2093,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
                 ('1' == szShutdownActionProperty[0]) )
     {
         RIL_LOG_INFO("CTE::RequestRadioPower() - Reboot requested, do nothing\r\n");
+        bShutdown = true;
         res = RIL_E_SUCCESS;
         RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
     }
@@ -2158,6 +2160,11 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
 Error:
     if (RRIL_RESULT_OK == res && !bTurnRadioOn)
     {
+        if (bShutdown || GetModemOffInFlightModeState())
+        {
+            CSystemManager::GetInstance().ReleaseModem();
+        }
+
         SetRadioState(RRIL_RADIO_STATE_OFF);
     }
 

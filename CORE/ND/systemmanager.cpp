@@ -568,7 +568,7 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetFastDormancyMode((UINT32)iTemp);
     }
 
-    //  Need to open the "clean up request" socket here.
+    //  Need to establish communication with MMgr here.
     if (!MMgrConnectionInit())
     {
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unable to connect to MMgr lib\r\n");
@@ -637,17 +637,18 @@ Done:
                         " Now waiting for modem initialization....\r\n");
         if (CTE::GetTE().GetModemOffInFlightModeState())
         {
-            property_get("persist.radio.ril_modem_state", szModemState , "1");
-            if (strncmp(szModemState, "0", 1) == 0)
+            property_get("persist.radio.ril_modem_state", szModemState , "on");
+            if (strncmp(szModemState, "off", 3) == 0)
             {
                 // Flightmode enabled
                 CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
+                CTE::GetTE().SetSpoofCommandsStatus(FALSE);
             }
             else
             {
                 if (E_MMGR_EVENT_MODEM_DOWN == CTE::GetTE().GetLastModemEvent())
                 {
-                    // Modem reset or plateform boot
+                    // Modem reset or platform boot
                     CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
                 }
                 else
@@ -727,6 +728,9 @@ BOOL CSystemManager::ContinueInit()
     // Signal that we have initialized, so that framework
     // can start using the rild socket.
     CEvent::Signal(m_pSysInitCompleteEvent);
+
+    // FIXME: Send network state change in order to ensure PDP context re-initalization.
+    // An other way may be found.
     if (CTE::GetTE().GetModemOffInFlightModeState())
     {
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
@@ -1471,8 +1475,8 @@ void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIn
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-//  This function opens clean-up request socket.
-//  The fd of this socket is stored in the CSystemManager class.
+// This function initialize the connection with MMgr.
+// MMgr handler is stored in the CSystemManager class.
 BOOL CSystemManager::MMgrConnectionInit()
 {
     RIL_LOG_INFO("CSystemManager::MMgrConnectionInit() - ENTER\r\n");
@@ -1621,7 +1625,7 @@ out:
 }
 
 
-//  Send clean up request on the socket
+//  Send recovery request to MMgr
 BOOL CSystemManager::SendRequestModemRecovery()
 {
     RIL_LOG_INFO("CSystemManager::SendRequestModemRecovery() - ENTER\r\n");
@@ -1632,7 +1636,7 @@ BOOL CSystemManager::SendRequestModemRecovery()
     if (m_pMMgrLibHandle)
     {
         RIL_LOG_INFO("CSystemManager::SendRequestModemRecovery() -"
-                     " Send request clean up\r\n");
+                     " Send recovery request\r\n");
 
         if (E_ERR_CLI_SUCCEED != mmgr_cli_send_msg(m_pMMgrLibHandle, &request))
         {
@@ -1659,7 +1663,7 @@ Error:
     return bRet;
 }
 
-//  Send shutdown request on the socket
+//  Send shutdown request to MMgr
 BOOL CSystemManager::SendRequestModemShutdown()
 {
     RIL_LOG_INFO("CSystemManager::SendRequestModemShutdown() - ENTER\r\n");
@@ -1697,7 +1701,7 @@ Error:
     return bRet;
 }
 
-//  Send shutdown request on the socket
+//  Send shutdown acknowledge to MMgr
 BOOL CSystemManager::SendAckModemShutdown()
 {
     RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() - ENTER\r\n");
@@ -1735,7 +1739,7 @@ Error:
     return bRet;
 }
 
-//  Send shutdown request on the socket
+//  Send cold reset acknowledge to MMgr
 BOOL CSystemManager::SendAckModemColdReset()
 {
     RIL_LOG_INFO("CSystemManager::SendAckModemColdReset() - ENTER\r\n");
@@ -1773,7 +1777,7 @@ Error:
     return bRet;
 }
 
-//  Send shutdown request on the socket
+//  Get the modem resource
 BOOL CSystemManager::GetModem()
 {
     RIL_LOG_INFO("CSystemManager::GetModem() - ENTER\r\n");
@@ -1805,7 +1809,7 @@ Error:
     return bRet;
 }
 
-//  Send shutdown request on the socket
+//  Release the modem resource
 BOOL CSystemManager::ReleaseModem()
 {
     RIL_LOG_INFO("CSystemManager::ReleaseModem() - ENTER\r\n");
