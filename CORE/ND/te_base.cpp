@@ -2163,8 +2163,15 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UIN
 #else
         // use SIM-specific property, depending on RIL instance
         char szSimPowerOffStatePropName[MAX_PROP_VALUE] = {0};
-        snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
-                    "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+        if (g_szSIMID) {
+            snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
+                        "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - g_szSIMID is NULL\r\n");
+            goto Error;
+        }
 
         // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
         char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
