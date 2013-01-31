@@ -2153,7 +2153,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UIN
 
 #if !defined(M2_DUALSIM_FEATURE_ENABLED)
         if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
-                                            "AT+CFUN=1\r" : "AT+CFUN=4\r",
+                                            "AT+CFUN=1;+XSIMSTATE?\r" : "AT+CFUN=4\r",
                                             sizeof(rReqData.szCmd1)))
         {
             (true == bTurnRadioOn) ? property_set("persist.radio.ril_modem_state", "on")

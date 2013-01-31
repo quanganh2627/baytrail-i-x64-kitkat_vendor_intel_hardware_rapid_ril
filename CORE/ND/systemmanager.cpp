@@ -570,17 +570,17 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetFastDormancyMode((UINT32)iTemp);
     }
 
-    //  Need to establish communication with MMgr here.
-    if (!MMgrConnectionInit())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unable to connect to MMgr lib\r\n");
-        goto Done;
-    }
-
     //  Create and initialize the channels (don't open ports yet)
     if (!InitChannelPorts())
     {
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - InitChannelPorts() error!\r\n");
+        goto Done;
+    }
+
+    //  Need to establish communication with MMgr here.
+    if (!MMgrConnectionInit())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unable to connect to MMgr lib\r\n");
         goto Done;
     }
 
@@ -645,19 +645,6 @@ Done:
                 // Flightmode enabled
                 CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
                 CTE::GetTE().SetSpoofCommandsStatus(FALSE);
-            }
-            else
-            {
-                if (E_MMGR_EVENT_MODEM_DOWN == CTE::GetTE().GetLastModemEvent())
-                {
-                    // Modem reset or platform boot
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-                }
-                else
-                {
-                    // This is unlikely
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
-                }
             }
         }
         else
@@ -729,17 +716,10 @@ BOOL CSystemManager::ContinueInit()
     {
         CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
     }
+
     // Signal that we have initialized, so that framework
     // can start using the rild socket.
     CEvent::Signal(m_pSysInitCompleteEvent);
-
-    // FIXME: Send network state change in order to ensure PDP context re-initalization.
-    // An other way may be found.
-    if (CTE::GetTE().GetModemOffInFlightModeState())
-    {
-        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
-    }
-
 Done:
     if (!bRetVal)
     {

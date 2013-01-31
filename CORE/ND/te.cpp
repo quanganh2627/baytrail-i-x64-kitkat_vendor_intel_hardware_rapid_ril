@@ -46,6 +46,8 @@ CTE::CTE(UINT32 modemType) :
     m_bPSStatusCached(FALSE),
     m_bIsSetupDataCallOngoing(FALSE),
     m_bSpoofCommandsStatus(TRUE),
+    m_uiLastModemEvent(E_MMGR_EVENT_MODEM_DOWN),
+    m_bModemOffInFlightMode(FALSE),
     m_bIsSimTechnicalProblem(FALSE),
     m_bIsManualNetworkSearchOn(FALSE),
     m_bIsDataSuspended(FALSE),
@@ -7169,7 +7171,11 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
     int rilRequestId = MapVendorRequestIdToRil(uiRequestId);
 
     //  If we're in the middle of TriggerRadioError(), spoof all commands.
-    if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(rilRequestId))
+    if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
+    {
+        bIsReqAllowed = FALSE;
+    }
+    else if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(rilRequestId))
     {
         eRetVal = HandleRequestWhenNoModem(rilRequestId, rilToken);
         bIsReqAllowed = FALSE;

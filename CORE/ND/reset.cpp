@@ -209,9 +209,8 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
             case E_MMGR_EVENT_MODEM_UP:
                 RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) MODEM_UP\r\n");
 
-                CTE::GetTE().SetLastModemEvent(E_MMGR_EVENT_MODEM_UP);
-
                 //  transition to up
+                CTE::GetTE().SetLastModemEvent(E_MMGR_EVENT_MODEM_UP);
 
                 //  Modem is alive, open ports since RIL has been waiting at this point.
                 RIL_LOG_INFO("ModemManagerEventHandler() - Continue Init, open ports!\r\n");
@@ -257,6 +256,8 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 //  Voice calls disconnected, no more data connections
                 ModemResetUpdate();
 
+                CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+
                 //  Close ports
                 RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
                 CSystemManager::GetInstance().CloseChannelPorts();
@@ -264,29 +265,28 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 if (E_MMGR_EVENT_MODEM_DOWN == uiMMgrEvent)
                 {
                     // Retrieve the shutdown property
-                    if (CTE::GetTE().IsPlatformShutDownRequested()
-                            || CTE::GetTE().GetModemOffInFlightModeState())
+                    if (CTE::GetTE().IsPlatformShutDownRequested())
                     {
                         RIL_LOG_INFO("E_MMGR_EVENT_MODEM_DOWN due to PLATFORM_SHUTDOWN or "
                                 "MODEM OFF in flight mode - don't exit\r\n");
                     }
                     else
                     {
+                        CSystemManager::Destroy();
+
                         //  let's exit, init will restart us
                         RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_DOWN CALLING EXIT\r\n");
-                        CSystemManager::Destroy();
                         exit(0);
                     }
                 }
                 else
                 {
                     CSystemManager::Destroy();
+
+                    RIL_LOG_INFO("ModemManagerEventHandler() -"
+                            " OUT_OF_SERVICE Now sleeping till reboot\r\n");
+                    while(1) { sleep(SLEEP_MS); }
                 }
-
-                RIL_LOG_INFO("ModemManagerEventHandler() -"
-                                " OUT_OF_SERVICE Now sleeping till reboot\r\n");
-                while(1) { sleep(SLEEP_MS); }
-
                 break;
 
             case E_MMGR_NOTIFY_PLATFORM_REBOOT:
@@ -381,6 +381,8 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                     CTE::GetTE().ResetInternalStates();
 
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+
                     //  Close ports
                     RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
                     CSystemManager::GetInstance().CloseChannelPorts();
@@ -389,10 +391,11 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 // If already down, no need to perform restart
                 if (E_MMGR_EVENT_MODEM_DOWN != nPreviousModemState)
                 {
+                    CSystemManager::Destroy();
+
                     //  let's exit, init will restart us
                     RIL_LOG_INFO("ModemManagerEventHandler() - CALLING EXIT\r\n");
 
-                    CSystemManager::Destroy();
                     exit(0);
                 }
 
