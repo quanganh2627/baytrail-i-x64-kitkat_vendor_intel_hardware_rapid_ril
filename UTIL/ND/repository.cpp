@@ -268,13 +268,12 @@ bool CRepository::m_bInitialized = FALSE;
 //////////////////////////////////////////////////////////////////////////
 // CRepository Class Implementation
 
-CRepository::CRepository()
+CRepository::CRepository() : m_iFd(-1)
 {
 }
 
 CRepository::~CRepository()
 {
-    CloseRepositoryFile();
 }
 
 BOOL CRepository::Init()
