@@ -217,7 +217,9 @@ const char   g_szFDDelayTimer[]                 = "FDDelayTimer";
 const char   g_szSCRITimer[]                    = "SCRITimer";
 const char   g_szFDMode[]                       = "FDMode";
 const char   g_szTempOoSNotificationEnable[]    = "TempOoSNotificationEnable";
-const char   g_szDisableUSSD[]                  = "DisableUSSD";
+const char   g_szVoiceCapable[]                 = "VoiceCapable";
+const char   g_szSmsOverCSCapable[]             = "SmsOverCSCapable";
+const char   g_szSmsOverPSCapable[]             = "SmsOverPSCapable";
 
 // used for 7x60 and 6360 modems
 const char   g_szModemResourceName[]    = "ModemDataChannelResourceName";

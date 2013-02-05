@@ -100,6 +100,16 @@ BOOL CTEBase::IsRequestSupported(int requestId)
     }
 }
 
+char* CTEBase::GetBasicInitCommands(UINT32 uiChannelType)
+{
+    return NULL;
+}
+
+char* CTEBase::GetUnlockInitCommands(UINT32 uiChannelType)
+{
+    return NULL;
+}
+
 //
 // RIL_REQUEST_GET_SIM_STATUS 1
 //

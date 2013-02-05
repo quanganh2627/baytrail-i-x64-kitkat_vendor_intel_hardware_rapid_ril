@@ -56,7 +56,9 @@ CTE::CTE(UINT32 modemType) :
     m_bIsClearPendingCHLD(FALSE),
     m_FastDormancyMode(FAST_DORMANCY_MODE_DEFAULT),
     m_uiMTU(MTU_SIZE),
-    m_bDisableUSSD(DISABLE_USSD_DEFAULT),
+    m_bVoiceCapable(TRUE),
+    m_bSmsOverCSCapable(TRUE),
+    m_bSmsOverPSCapable(TRUE),
     m_uiTimeoutCmdInit(TIMEOUT_INITIALIZATION_COMMAND),
     m_uiTimeoutAPIDefault(TIMEOUT_API_DEFAULT),
     m_uiTimeoutWaitForInit(TIMEOUT_WAITFORINIT),
@@ -153,6 +155,16 @@ void CTE::DeleteTEObject()
     delete m_pTEInstance;
     m_pTEInstance = NULL;
     CMutex::Unlock(CSystemManager::GetTEAccessMutex());
+}
+
+char* CTE::GetBasicInitCommands(UINT32 uiChannelType)
+{
+    return m_pTEBaseInstance->GetBasicInitCommands(uiChannelType);
+}
+
+char* CTE::GetUnlockInitCommands(UINT32 uiChannelType)
+{
+    return m_pTEBaseInstance->GetUnlockInitCommands(uiChannelType);
 }
 
 BOOL CTE::IsRequestSupported(int requestId)
@@ -468,25 +480,11 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 break;
 
             case RIL_REQUEST_SEND_USSD:  // 29
-                if (CTE::GetTE().GetDisableUSSD())
-                {
-                    RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
-                }
-                else
-                {
-                    eRetVal = (RIL_Errno)CTE::GetTE().RequestSendUssd(hRilToken, pData, datalen);
-                }
+                eRetVal = (RIL_Errno)CTE::GetTE().RequestSendUssd(hRilToken, pData, datalen);
                 break;
 
             case RIL_REQUEST_CANCEL_USSD:  // 30
-                if (CTE::GetTE().GetDisableUSSD())
-                {
-                    RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
-                }
-                else
-                {
-                    eRetVal = (RIL_Errno)CTE::GetTE().RequestCancelUssd(hRilToken, pData, datalen);
-                }
+                eRetVal = (RIL_Errno)CTE::GetTE().RequestCancelUssd(hRilToken, pData, datalen);
                 break;
 
             case RIL_REQUEST_GET_CLIR:  // 31

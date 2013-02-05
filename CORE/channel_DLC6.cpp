@@ -23,8 +23,8 @@ extern BOOL  g_bIsSocket;
 
 //  Com init strings for this channel.
 //  Call settings, SMS, supplementary services
-INITSTRING_DATA DLC6BasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0|+CMGF=0" };
-INITSTRING_DATA DLC6UnlockInitString  = { "+CSMS=1|+CGSMS=3" };
+INITSTRING_DATA DLC6BasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0" };
+INITSTRING_DATA DLC6UnlockInitString  = { "" };
 INITSTRING_DATA DLC6PowerOnInitString = { "" };
 INITSTRING_DATA DLC6ReadyInitString   = { "" };
 

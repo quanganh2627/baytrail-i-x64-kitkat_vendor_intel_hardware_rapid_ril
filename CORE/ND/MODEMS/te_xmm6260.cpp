@@ -52,6 +52,94 @@ CTE_XMM6260::~CTE_XMM6260()
 {
 }
 
+char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetBasicInitCommands() - Enter\r\n");
+
+    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
+
+    if (RIL_CHANNEL_URC == uiChannelType)
+    {
+        char szBasicInitCmd[] = "|+CSCS=\"UCS2\"|+XSIMSTATE=1|+XSIMSTATE?|+CTZU=1|+XNITZINFO=1|"
+                "+CREG=2|+XREG=2|+CGEREP=1,0|+XCSQ=1|+XDATASTAT=1";
+
+        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                szBasicInitCmd);
+
+        if (m_cte.IsVoiceCapable())
+        {
+            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                    "|+XCALLSTAT=1|+CSSN=1,1|+XLEMA=1");
+        }
+        else
+        {
+            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                    "|+XCONFIG=3,0");
+        }
+
+        if (m_cte.IsSmsOverCSCapable() || m_cte.IsSmsOverPSCapable())
+        {
+            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                    "|+CMGF=0");
+        }
+    }
+    else if (RIL_CHANNEL_DLC6 == uiChannelType)
+    {
+        if (m_cte.IsSmsOverCSCapable() || m_cte.IsSmsOverPSCapable())
+        {
+            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                    "|+CMGF=0");
+        }
+    }
+    else if (RIL_CHANNEL_ATCMD == uiChannelType)
+    {
+        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                "|+XGENDATA|+XPOW=0,0,0");
+
+        if (m_cte.IsVoiceCapable())
+        {
+            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                    "|+XCALLNBMMI=1");
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetBasicInitCommands() - Exit\r\n");
+    return strndup(szInitCmd, strlen(szInitCmd));
+}
+
+char* CTE_XMM6260::GetUnlockInitCommands(UINT32 uiChannelType)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetUnlockInitCommands() - Enter\r\n");
+
+    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
+
+    if (RIL_CHANNEL_URC == uiChannelType)
+    {
+        if (m_cte.IsVoiceCapable())
+        {
+            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                    "|+CUSD=1|+CRC=1|+CCWA=1");
+        }
+
+        if (m_cte.IsSmsOverCSCapable() || m_cte.IsSmsOverPSCapable())
+        {
+            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                    "|+CNMI=2,2,2,1");
+        }
+    }
+    else if (RIL_CHANNEL_DLC6 == uiChannelType)
+    {
+        if (m_cte.IsSmsOverCSCapable() || m_cte.IsSmsOverPSCapable())
+        {
+            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                    "|+CSMS=1|+CGSMS=3");
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetUnlockInitCommands() - Exit\r\n");
+    return strndup(szInitCmd, strlen(szInitCmd));
+}
+
 BOOL CTE_XMM6260::IsRequestSupported(int requestId)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::IsRequestSupported() - Enter\r\n");
@@ -80,6 +168,40 @@ BOOL CTE_XMM6260::IsRequestSupported(int requestId)
         case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
         case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
             return TRUE;
+        case RIL_REQUEST_DIAL:
+        case RIL_REQUEST_HANGUP:
+        case RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND:
+        case RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND:
+        case RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE:
+        case RIL_REQUEST_CONFERENCE:
+        case RIL_REQUEST_UDUB:
+        case RIL_REQUEST_LAST_CALL_FAIL_CAUSE:
+        case RIL_REQUEST_DTMF:
+        case RIL_REQUEST_SEND_USSD:
+        case RIL_REQUEST_CANCEL_USSD:
+        case RIL_REQUEST_GET_CLIR:
+        case RIL_REQUEST_SET_CLIR:
+        case RIL_REQUEST_QUERY_CALL_FORWARD_STATUS:
+        case RIL_REQUEST_SET_CALL_FORWARD:
+        case RIL_REQUEST_QUERY_CALL_WAITING:
+        case RIL_REQUEST_SET_CALL_WAITING:
+        case RIL_REQUEST_ANSWER:
+        case RIL_REQUEST_CHANGE_BARRING_PASSWORD:
+        case RIL_REQUEST_DTMF_START:
+        case RIL_REQUEST_DTMF_STOP:
+        case RIL_REQUEST_SEPARATE_CONNECTION:
+        case RIL_REQUEST_SET_MUTE:
+        case RIL_REQUEST_GET_MUTE:
+        case RIL_REQUEST_QUERY_CLIP:
+        case RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION:
+        case RIL_REQUEST_EXPLICIT_CALL_TRANSFER:
+            return m_cte.IsVoiceCapable();
+
+        case RIL_REQUEST_SEND_SMS:
+        case RIL_REQUEST_SEND_SMS_EXPECT_MORE:
+        case RIL_REQUEST_SMS_ACKNOWLEDGE:
+            return (m_cte.IsSmsOverCSCapable() || m_cte.IsSmsOverPSCapable());
+
         default:
             return CTEBase::IsRequestSupported(requestId);
     }

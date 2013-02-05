@@ -602,15 +602,25 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetMTU((UINT32)iTemp);
     }
 
-    if (repository.Read(g_szGroupModem, g_szDisableUSSD, iTemp))
-    {
-        CTE::GetTE().SetDisableUSSD(iTemp == 1 ? TRUE : FALSE);
-    }
-
     // store initial value of Fast Dormancy Mode
     if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
     {
         CTE::GetTE().SetFastDormancyMode((UINT32)iTemp);
+    }
+
+    if (repository.Read(g_szGroupModem, g_szVoiceCapable, iTemp))
+    {
+        CTE::GetTE().SetVoiceCapable(iTemp == 1 ? TRUE : FALSE);
+    }
+
+    if (repository.Read(g_szGroupModem, g_szSmsOverCSCapable, iTemp))
+    {
+        CTE::GetTE().SetSmsOverCSCapable(iTemp == 1 ? TRUE : FALSE);
+    }
+
+    if (repository.Read(g_szGroupModem, g_szSmsOverPSCapable, iTemp))
+    {
+        CTE::GetTE().SetSmsOverPSCapable(iTemp == 1 ? TRUE : FALSE);
     }
 
     //  Create and initialize the channels (don't open ports yet)

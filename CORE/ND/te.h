@@ -75,6 +75,9 @@ public:
                           S_ND_GPRS_REG_STATUS& pPSRegStruct);
     RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
 
+    char* GetBasicInitCommands(UINT32 uiChannelType);
+    char* GetUnlockInitCommands(UINT32 uiChannelType);
+
     BOOL IsRequestSupported(int requestId);
     void HandleRequest(int requestID, void* pData, size_t datalen, RIL_Token hRilToken);
     RIL_Errno HandleRequestWhenNoModem(int requestID, RIL_Token hRilToken);
@@ -655,8 +658,35 @@ public:
     void SetMTU(UINT32 uiMTU) { m_uiMTU = uiMTU; };
     UINT32 GetMTU() { return m_uiMTU; };
 
-    void SetDisableUSSD(BOOL bDisableUSSD) { m_bDisableUSSD = bDisableUSSD; };
-    UINT32 GetDisableUSSD() { return m_bDisableUSSD; };
+    void SetVoiceCapable(BOOL bIsVoiceCapable)
+    {
+        m_bVoiceCapable =  bIsVoiceCapable;
+    }
+
+    BOOL IsVoiceCapable()
+    {
+        return m_bVoiceCapable;
+    }
+
+    void SetSmsOverCSCapable(BOOL bIsSmsOverCSCapable)
+    {
+        m_bSmsOverCSCapable =  bIsSmsOverCSCapable;
+    }
+
+    BOOL IsSmsOverCSCapable()
+    {
+        return m_bSmsOverCSCapable;
+    }
+
+    void SetSmsOverPSCapable(BOOL bIsSmsOverPSCapable)
+    {
+        m_bSmsOverPSCapable =  bIsSmsOverPSCapable;
+    }
+
+    BOOL IsSmsOverPSCapable()
+    {
+        return m_bSmsOverPSCapable;
+    }
 
     void SetRestrictedMode(BOOL bIsRetrictedMode) { m_bRestrictedMode = bIsRetrictedMode; }
     BOOL IsRestrictedMode() { return m_bRestrictedMode; }
@@ -1012,12 +1042,9 @@ private:
     static const UINT32 MTU_SIZE = 1358;
     UINT32 m_uiMTU;
 
-    /*
-     * Flag determines if USSD is enabled or disabled.
-     * If TRUE, USSD is disabled.
-     */
-    static const BOOL DISABLE_USSD_DEFAULT = FALSE;
-    BOOL m_bDisableUSSD;
+    BOOL m_bVoiceCapable;
+    BOOL m_bSmsOverCSCapable;
+    BOOL m_bSmsOverPSCapable;
 
     // Timeouts (in milliseconds)
     static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;
