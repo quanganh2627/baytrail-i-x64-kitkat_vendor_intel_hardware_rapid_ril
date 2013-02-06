@@ -623,6 +623,11 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetSmsOverPSCapable(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szStkCapable, iTemp))
+    {
+        CTE::GetTE().SetStkCapable(iTemp == 1 ? TRUE : FALSE);
+    }
+
     //  Create and initialize the channels (don't open ports yet)
     if (!InitChannelPorts())
     {

@@ -688,6 +688,16 @@ public:
         return m_bSmsOverPSCapable;
     }
 
+    void SetStkCapable(BOOL bIsStkCapable)
+    {
+        m_bStkCapable =  bIsStkCapable;
+    }
+
+    BOOL IsStkCapable()
+    {
+        return m_bStkCapable;
+    }
+
     void SetRestrictedMode(BOOL bIsRetrictedMode) { m_bRestrictedMode = bIsRetrictedMode; }
     BOOL IsRestrictedMode() { return m_bRestrictedMode; }
 
@@ -1045,6 +1055,7 @@ private:
     BOOL m_bVoiceCapable;
     BOOL m_bSmsOverCSCapable;
     BOOL m_bSmsOverPSCapable;
+    BOOL m_bStkCapable;
 
     // Timeouts (in milliseconds)
     static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;

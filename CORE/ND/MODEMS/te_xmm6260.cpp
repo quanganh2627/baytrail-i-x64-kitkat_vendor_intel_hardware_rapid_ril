@@ -82,6 +82,14 @@ char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
             ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
                     "|+CMGF=0");
         }
+
+        if (!m_cte.IsStkCapable())
+        {
+            char szDisableStk[] = "|+XSATK=1,0";
+
+            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                    szDisableStk);
+        }
     }
     else if (RIL_CHANNEL_DLC6 == uiChannelType)
     {
@@ -154,19 +162,12 @@ BOOL CTE_XMM6260::IsRequestSupported(int requestId)
         case RIL_REQUEST_OEM_HOOK_STRINGS:
         case RIL_REQUEST_SET_BAND_MODE:
         case RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE:
-        case RIL_REQUEST_STK_GET_PROFILE:
-        case RIL_REQUEST_STK_SET_PROFILE:
-        case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:
-        case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:
-        case RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM:
         case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
         case RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE:
         case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:
         case RIL_REQUEST_SET_TTY_MODE:
         case RIL_REQUEST_QUERY_TTY_MODE:
         case RIL_REQUEST_REPORT_SMS_MEMORY_STATUS:
-        case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
-        case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
             return TRUE;
         case RIL_REQUEST_DIAL:
         case RIL_REQUEST_HANGUP:
@@ -201,6 +202,15 @@ BOOL CTE_XMM6260::IsRequestSupported(int requestId)
         case RIL_REQUEST_SEND_SMS_EXPECT_MORE:
         case RIL_REQUEST_SMS_ACKNOWLEDGE:
             return (m_cte.IsSmsOverCSCapable() || m_cte.IsSmsOverPSCapable());
+
+        case RIL_REQUEST_STK_GET_PROFILE:
+        case RIL_REQUEST_STK_SET_PROFILE:
+        case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:
+        case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:
+        case RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM:
+        case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
+        case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
+            return m_cte.IsStkCapable();
 
         default:
             return CTEBase::IsRequestSupported(requestId);
