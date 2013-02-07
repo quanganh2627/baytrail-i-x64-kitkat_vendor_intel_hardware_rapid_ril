@@ -48,6 +48,8 @@ CTE::CTE(UINT32 modemType) :
     m_bSpoofCommandsStatus(TRUE),
     m_uiLastModemEvent(E_MMGR_EVENT_MODEM_DOWN),
     m_bModemOffInFlightMode(FALSE),
+    m_bRestrictedMode(FALSE),
+    m_bRadioRequestPending(FALSE),
     m_bIsSimTechnicalProblem(FALSE),
     m_bIsManualNetworkSearchOn(FALSE),
     m_bIsDataSuspended(FALSE),
@@ -2135,26 +2137,30 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
     {
         property_set("gsm.radioreset", "false");
 
-        res = RIL_E_SUCCESS;
         RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
 
         RIL_LOG_INFO("CTE::RequestRadioPower() - Reset requested, do clean-up request\r\n");
         do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+        return RRIL_RESULT_OK;
     }
 #if !defined(M2_DUALSIM_FEATURE_ENABLED)
     // check if the required state is the same as the current one
     // if so, ignore command
     else if ((bTurnRadioOn && RADIO_STATE_OFF != radio_state)
-            || (!bTurnRadioOn && RADIO_STATE_OFF == radio_state))
+            || (!bTurnRadioOn && (RADIO_STATE_OFF == radio_state
+                    || E_MMGR_EVENT_MODEM_DOWN == m_uiLastModemEvent)))
     {
         RIL_LOG_INFO("CTE::RequestRadioPower() - No change in state, spoofing command.\r\n");
-        res = RIL_E_SUCCESS;
+
         RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+        SetRadioState(
+                bTurnRadioOn ? RRIL_RADIO_STATE_ON : RRIL_RADIO_STATE_OFF);
+        return RRIL_RESULT_OK;
     }
 #endif
     else
     {
-        RIL_RESULT_CODE res = m_pTEBaseInstance->CoreRadioPower(reqData, pData, datalen);
+        res = m_pTEBaseInstance->CoreRadioPower(reqData, pData, datalen);
         if (RRIL_RESULT_OK != res)
         {
             RIL_LOG_CRITICAL("CTE::RequestRadioPower() : Unable to create AT command data\r\n");
@@ -2162,7 +2168,17 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         else
         {
             // FIXME: Handle wait forever
-            CEvent::Wait(CSystemManager::GetInitCompleteEvent(), WAIT_FOREVER);
+            if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
+            {
+                RIL_LOG_INFO("CTE::RequestRadioPower() : Waiting for "
+                        "modem initialization completion event\r\n");
+
+                m_bRadioRequestPending = TRUE;
+
+                CEvent::Wait(CSystemManager::GetModemBasicInitCompleteEvent(),
+                        WAIT_FOREVER);
+            }
+
             CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER],
                     rilToken, ND_REQ_ID_RADIOPOWER, reqData, &CTE::ParseRadioPower,
                     &CTE::PostRadioPower);
@@ -2190,19 +2206,27 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
     }
 
 Error:
-    if (RRIL_RESULT_OK == res && !bTurnRadioOn)
+    if (RRIL_RESULT_OK == res)
     {
-        if (IsPlatformShutDownRequested())
+        int mode = RIL_RESTRICTED_STATE_NONE;
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESTRICTED_STATE_CHANGED, &mode, sizeof(int));
+
+        m_bRadioRequestPending = TRUE;
+
+        if (!bTurnRadioOn && IsPlatformShutDownRequested())
         {
             RIL_LOG_INFO("CTE::RequestRadioPower - Shutdown requested\r\n");
             do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
         }
-        else
+    }
+    else
+    {
+        m_bRadioRequestPending = FALSE;
+
+        if (IsRestrictedMode())
         {
-            if (GetModemOffInFlightModeState())
-            {
-                CSystemManager::GetInstance().ReleaseModem();
-            }
+            int mode = RIL_RESTRICTED_STATE_CS_ALL | RIL_RESTRICTED_STATE_PS_ALL;
+            RIL_onUnsolicitedResponse(RIL_UNSOL_RESTRICTED_STATE_CHANGED, &mode, sizeof(int));
         }
     }
 
@@ -7866,6 +7890,8 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
      */
     CleanupAllDataConnections();
 
+    m_bRadioRequestPending = FALSE;
+
     //  Extract power setting from context
     int radioPower = (int)rData.pContextData;
 
@@ -7878,6 +7904,11 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
     else if (!IsPlatformShutDownRequested())
     {
         SetRadioState(RRIL_RADIO_STATE_OFF);
+
+        if (GetModemOffInFlightModeState())
+        {
+            CSystemManager::GetInstance().ReleaseModem();
+        }
     }
 
     if (RIL_E_SUCCESS != rData.uiResultCode && 0 == radioPower)

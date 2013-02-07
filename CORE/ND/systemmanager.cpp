@@ -114,6 +114,7 @@ BOOL CSystemManager::Destroy()
 CSystemManager::CSystemManager()
   :
     m_pExitRilEvent(NULL),
+    m_pModemBasicInitCompleteEvent(NULL),
     m_pSimUnlockedEvent(NULL),
     m_pModemPowerOnEvent(NULL),
     m_pInitStringCompleteEvent(NULL),
@@ -205,6 +206,14 @@ CSystemManager::~CSystemManager()
 
     Sleep(300);
 
+    if (m_pModemBasicInitCompleteEvent)
+    {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - "
+                "Before delete m_pModemBasicInitCompleteEvent\r\n");
+        delete m_pModemBasicInitCompleteEvent;
+        m_pModemBasicInitCompleteEvent = NULL;
+    }
+
     if (m_pSimUnlockedEvent)
     {
         RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pSimUnlockedEvent\r\n");
@@ -295,7 +304,6 @@ BOOL CSystemManager::InitializeSystem()
 
     char szModem[MAX_MODEM_NAME_LEN];
     UINT32 uiModemType = MODEM_TYPE_UNKNOWN;
-    char szModemState[PROPERTY_VALUE_MAX] = "0";
 
     // read the modem type used from repository
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
@@ -463,6 +471,22 @@ BOOL CSystemManager::InitializeSystem()
                     m_szModemResourceName);
     }
 
+    if (m_pModemBasicInitCompleteEvent)
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pModemBasicInitCompleteEvent"
+                " was already created!\r\n");
+    }
+    else
+    {
+        m_pModemBasicInitCompleteEvent = new CEvent(NULL, TRUE);
+        if (NULL == m_pModemBasicInitCompleteEvent)
+        {
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create"
+                    " Basic init complete Event.\r\n");
+            goto Done;
+        }
+    }
+
     if (m_pSimUnlockedEvent)
     {
         RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pSimUnlockedEvent was already"
@@ -608,6 +632,12 @@ BOOL CSystemManager::InitializeSystem()
 Done:
     if (!bRetVal)
     {
+        if (m_pModemBasicInitCompleteEvent)
+        {
+            delete m_pModemBasicInitCompleteEvent;
+            m_pModemBasicInitCompleteEvent = NULL;
+        }
+
         if (m_pSimUnlockedEvent)
         {
             delete m_pSimUnlockedEvent;
@@ -652,22 +682,22 @@ Done:
 
     if (bRetVal)
     {
-        RIL_LOG_INFO("CSystemManager::InitializeSystem() :"
-                        " Now waiting for modem initialization....\r\n");
-        if (CTE::GetTE().GetModemOffInFlightModeState())
+        if (!CTE::GetTE().GetModemOffInFlightModeState())
         {
-            property_get("persist.radio.ril_modem_state", szModemState , "on");
-            if (strncmp(szModemState, "off", 3) == 0)
+            if (!GetModem())
             {
-                // Flightmode enabled
-                CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
-                CTE::GetTE().SetSpoofCommandsStatus(FALSE);
+                RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : "
+                        "GetModem Resource failed\r\n");
+
+                CTE::GetTE().SetRestrictedMode(TRUE);
             }
-        }
-        else
-        {
-            GetModem();
-            CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
+            else
+            {
+                RIL_LOG_INFO("CSystemManager::InitializeSystem() : Waiting for "
+                        "System Initialization Complete event\r\n");
+                CTE::GetTE().SetRestrictedMode(FALSE);
+                CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
+            }
         }
 
         RIL_LOG_INFO("CSystemManager::InitializeSystem() : Rapid Ril initialization completed\r\n");
@@ -741,6 +771,12 @@ Done:
     if (!bRetVal)
     {
         m_bIsSystemInitialized = FALSE;
+
+        if (m_pModemBasicInitCompleteEvent)
+        {
+            delete m_pModemBasicInitCompleteEvent;
+            m_pModemBasicInitCompleteEvent = NULL;
+        }
 
         if (m_pSimUnlockedEvent)
         {
@@ -1461,6 +1497,7 @@ void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIn
     {
         RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() -"
                 " DEBUG: All channels complete basic init!\r\n");
+        CEvent::Signal(m_pModemBasicInitCompleteEvent);
     }
     else if (VerifyAllChannelsCompletedInit(COM_POWER_ON_INIT_INDEX))
     {
@@ -1705,44 +1742,6 @@ Error:
     return bRet;
 }
 
-//  Send shutdown acknowledge to MMgr
-BOOL CSystemManager::SendAckModemShutdown()
-{
-    RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() - ENTER\r\n");
-    BOOL bRet = FALSE;
-    mmgr_cli_requests_t request;
-    request.id = E_MMGR_ACK_MODEM_SHUTDOWN;
-
-    if (m_pMMgrLibHandle)
-    {
-        RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() -"
-                     " Acknowledging modem force shutdown\r\n");
-
-        if (E_ERR_CLI_SUCCEED != mmgr_cli_send_msg(m_pMMgrLibHandle, &request))
-        {
-            RIL_LOG_CRITICAL("CSystemManager::SendAckModemShutdown() -"
-                             " Failed to send REQUEST_ACK_MODEM_SHUTDOWN\r\n");
-            goto Error;
-        }
-        else
-        {
-            RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() -"
-                         " Modem force shutdown acknowledge SUCCESSFUL\r\n");
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CSystemManager::SendAckModemShutdown() -"
-                         " unable to communicate with MMgr\r\n");
-        goto Error;
-    }
-
-    bRet = TRUE;
-Error:
-    RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() - EXIT\r\n");
-    return bRet;
-}
-
 //  Send cold reset acknowledge to MMgr
 BOOL CSystemManager::SendAckModemColdReset()
 {
@@ -1786,14 +1785,18 @@ BOOL CSystemManager::GetModem()
 {
     RIL_LOG_INFO("CSystemManager::GetModem() - ENTER\r\n");
     BOOL bRet = FALSE;
+    e_err_mmgr_cli_t errorCode;
 
     if (m_pMMgrLibHandle)
     {
         RIL_LOG_INFO("CSystemManager::GetModem() - Getting modem resource\r\n");
 
-        if (E_ERR_CLI_SUCCEED != mmgr_cli_lock(m_pMMgrLibHandle))
+        errorCode = mmgr_cli_lock(m_pMMgrLibHandle);
+        if (E_ERR_CLI_SUCCEED != errorCode &&
+                E_ERR_CLI_ALREADY_LOCK != errorCode)
         {
-            RIL_LOG_CRITICAL("CSystemManager::GetModem() - Failed to get modem resource\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::GetModem() - Failed to get modem resource: %d\r\n",
+                    errorCode);
             goto Error;
         }
         else

@@ -2147,7 +2147,17 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UIN
         {
             if (true == bTurnRadioOn)
             {
-                CSystemManager::GetInstance().GetModem();
+                if (!CSystemManager::GetInstance().GetModem())
+                {
+                    RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() : GetModem Resource failed\r\n");
+
+                    m_cte.SetRestrictedMode(TRUE);
+                    return RRIL_RESULT_ERROR;
+                }
+                else
+                {
+                    m_cte.SetRestrictedMode(FALSE);
+                }
             }
         } // Else, resource was already acquired on startup in InitializeSystem
 
@@ -2156,8 +2166,6 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UIN
                                             "AT+CFUN=1;+XSIMSTATE?\r" : "AT+CFUN=4\r",
                                             sizeof(rReqData.szCmd1)))
         {
-            (true == bTurnRadioOn) ? property_set("persist.radio.ril_modem_state", "on")
-                                   : property_set("persist.radio.ril_modem_state", "off");
             res = RRIL_RESULT_OK;
         }
 #else

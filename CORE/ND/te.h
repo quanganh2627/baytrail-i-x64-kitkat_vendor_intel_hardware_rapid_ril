@@ -658,6 +658,9 @@ public:
     void SetDisableUSSD(BOOL bDisableUSSD) { m_bDisableUSSD = bDisableUSSD; };
     UINT32 GetDisableUSSD() { return m_bDisableUSSD; };
 
+    void SetRestrictedMode(BOOL bIsRetrictedMode) { m_bRestrictedMode = bIsRetrictedMode; }
+    BOOL IsRestrictedMode() { return m_bRestrictedMode; }
+
     void SetTimeoutCmdInit(UINT32 uiCmdInit) { m_uiTimeoutCmdInit = uiCmdInit; };
     UINT32 GetTimeoutCmdInit()     { return m_uiTimeoutCmdInit; };
     void SetTimeoutAPIDefault(UINT32 uiAPIDefault) { m_uiTimeoutAPIDefault = uiAPIDefault; };
@@ -677,6 +680,7 @@ public:
     UINT32 GetDtmfState();
 
     BOOL IsPlatformShutDownRequested();
+    BOOL IsRadioRequestPending() { return m_bRadioRequestPending; }
 
     // Resets all the internal states to default values
     void ResetInternalStates();
@@ -945,6 +949,16 @@ private:
      * enabled.
      */
     BOOL m_bModemOffInFlightMode;
+
+    /*
+     * Flag to indicate whether the Rapid ril is in restricted mode.
+     * Restricted mode means no telephony functionalities possible due to
+     * communication issue with MMGR.
+     */
+    BOOL m_bRestrictedMode;
+
+    // Set to true if the radio on/off request is pending
+    BOOL m_bRadioRequestPending;
 
     /*
      * Flag is used to store sim technical problem.

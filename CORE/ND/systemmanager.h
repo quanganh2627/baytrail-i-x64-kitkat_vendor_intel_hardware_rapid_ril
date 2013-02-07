@@ -74,6 +74,11 @@ public:
     //  Get/Set functions.
     static CEvent* GetCancelEvent() { return GetInstance().m_pExitRilEvent; };
     static CEvent* GetInitCompleteEvent() { return GetInstance().m_pSysInitCompleteEvent; };
+    static CEvent* GetModemBasicInitCompleteEvent()
+    {
+        return GetInstance().m_pModemBasicInitCompleteEvent;
+    }
+
     static CMutex* GetDataChannelAccessorMutex()
     {
         return GetInstance().m_pDataChannelAccessorMutex;
@@ -99,7 +104,6 @@ public:
 
     BOOL SendRequestModemRecovery();
     BOOL SendRequestModemShutdown();
-    BOOL SendAckModemShutdown();
     BOOL SendAckModemColdReset();
 
     BOOL GetModem();
@@ -158,6 +162,7 @@ private:
     static CSystemManager* m_pInstance;
 
     CEvent* m_pExitRilEvent;
+    CEvent* m_pModemBasicInitCompleteEvent;
     CEvent* m_pSimUnlockedEvent;
     CEvent* m_pModemPowerOnEvent;
     CEvent* m_pInitStringCompleteEvent;

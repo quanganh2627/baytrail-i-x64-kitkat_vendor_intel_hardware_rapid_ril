@@ -87,13 +87,14 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
 {
     bool bSendNotification = true;
 
-    if (CTE::GetTE().IsPlatformShutDownRequested()
+    if (CTE::GetTE().IsRadioRequestPending()
             && RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED != unsolResponseID
+            && RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED != unsolResponseID
             && RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED != unsolResponseID
             && RIL_UNSOL_DATA_CALL_LIST_CHANGED != unsolResponseID)
     {
-        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - ignoring id=%d due to platform shutdown\r\n",
-                unsolResponseID);
+        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - ignoring id=%d due to "
+                "radio on/off requested\r\n", unsolResponseID);
         return;
     }
 
