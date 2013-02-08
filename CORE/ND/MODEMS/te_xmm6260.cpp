@@ -88,18 +88,22 @@ BOOL CTE_XMM6260::IsRequestSupported(int requestId)
 //
 // RIL_REQUEST_GET_SIM_STATUS 1
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreGetSimStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreGetSimStatus(REQUEST_DATA& rReqData,
+                                                          void* pData,
+                                                          UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetSimStatus() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
 #if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CPIN?;+XUICC?;+XPINCNT;+CCID\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CPIN?;+XUICC?;+XPINCNT;+CCID\r",
+            sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
 #else  // M2_PIN_RETRIES_FEATURE_ENABLED
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CPIN?;+XUICC?;+CCID\r", sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CPIN?;+XUICC?;+CCID\r",
+            sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -109,7 +113,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreGetSimStatus(REQUEST_DATA & rReqData, void * pD
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
+RIL_RESULT_CODE CTE_XMM6260::ParseGetSimStatus(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseGetSimStatus() - Enter\r\n");
 
@@ -141,14 +145,16 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
             {
                 if (1 == nValue)
                 {
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetSimStatus() - SIM type = %d  detected USIM\r\n", nValue);
+                    RIL_LOG_INFO("CTE_XMM6260::ParseGetSimStatus() -"
+                            " SIM type = %d  detected USIM\r\n", nValue);
 
                     //  Set to USIM
                     pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
                 }
                 else if (0 == nValue)
                 {
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetSimStatus() - SIM type = %d  detected normal SIM\r\n", nValue);
+                    RIL_LOG_INFO("CTE_XMM6260::ParseGetSimStatus() -"
+                            " SIM type = %d  detected normal SIM\r\n", nValue);
 
                     //  Set to SIM
                     pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
@@ -161,7 +167,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
         }
 
 #if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
-        // Parse "<prefix>+XPINCNT: <PIN attempts>, <PIN2 attempts>, <PUK attempts>, <PUK2 attempts><postfix>"
+        // Parse "<prefix>+XPINCNT: <PIN attempts>, <PIN2 attempts>,
+        // <PUK attempts>, <PUK2 attempts><postfix>"
         SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
         if (SkipString(pszRsp, "+XPINCNT: ", pszRsp))
@@ -185,8 +192,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetSimStatus(RESPONSE_DATA & rRspData)
             }
             else
             {
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetSimStatus() - retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
-                    uiPin1, uiPin2, uiPuk1, uiPuk2);
+                RIL_LOG_INFO("CTE_XMM6260::ParseGetSimStatus() -"
+                        " retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
+                        uiPin1, uiPin2, uiPuk1, uiPuk2);
 
                 pCardStatus->applications[0].pin1_num_retries = uiPin1;
                 pCardStatus->applications[0].puk1_num_retries = uiPuk1;
@@ -238,7 +246,10 @@ RIL_RESULT_CODE CTE_XMM6260::ParseEnterSimPin(RESPONSE_DATA & rRspData)
 
 
 // RIL_REQUEST_SETUP_DATA_CALL 27
-RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 uiCID)
+RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA& rReqData,
+                                                           void* pData,
+                                                           UINT32 uiDataSize,
+                                                           UINT32 uiCID)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -256,7 +267,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * p
 
     if (uiDataSize < (6 * sizeof(char*)))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() - Invalid data size. Was given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() -"
+                " Invalid data size. Was given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
@@ -273,7 +285,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * p
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() - No Channel with context Id: %u\r\n", uiCID);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() - No Channel with context Id: %u\r\n",
+                uiCID);
         goto Error;
     }
 
@@ -281,19 +294,24 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * p
     pDataCallContextData->uiCID = uiCID;
 
     // extract data
-    stPdpData.szRadioTechnology = ((char **)pData)[0];  // not used
-    stPdpData.szRILDataProfile  = ((char **)pData)[1];
-    stPdpData.szApn             = ((char **)pData)[2];
-    stPdpData.szUserName        = ((char **)pData)[3];
-    stPdpData.szPassword        = ((char **)pData)[4];
-    stPdpData.szPAPCHAP         = ((char **)pData)[5];
+    stPdpData.szRadioTechnology = ((char**)pData)[0];  // not used
+    stPdpData.szRILDataProfile  = ((char**)pData)[1];
+    stPdpData.szApn             = ((char**)pData)[2];
+    stPdpData.szUserName        = ((char**)pData)[3];
+    stPdpData.szPassword        = ((char**)pData)[4];
+    stPdpData.szPAPCHAP         = ((char**)pData)[5];
 
-    RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szRadioTechnology=[%s]\r\n", stPdpData.szRadioTechnology);
-    RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szRILDataProfile=[%s]\r\n", stPdpData.szRILDataProfile);
+    RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szRadioTechnology=[%s]\r\n",
+            stPdpData.szRadioTechnology);
+    RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szRILDataProfile=[%s]\r\n",
+            stPdpData.szRILDataProfile);
     RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szApn=[%s]\r\n", stPdpData.szApn);
-    RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szUserName=[%s]\r\n", stPdpData.szUserName);
-    RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n", stPdpData.szPassword);
-    RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n", stPdpData.szPAPCHAP);
+    RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szUserName=[%s]\r\n",
+            stPdpData.szUserName);
+    RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n",
+            stPdpData.szPassword);
+    RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n",
+            stPdpData.szPAPCHAP);
 
     // if user name is empty, always use no authentication
     if (stPdpData.szUserName == NULL || strlen(stPdpData.szUserName) == 0)
@@ -318,8 +336,9 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * p
 
     if (RIL_VERSION >= 4 && (uiDataSize >= (7 * sizeof(char*))))
     {
-        stPdpData.szPDPType         = ((char **)pData)[6];  // new in Android 2.3.4.
-        RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szPDPType=[%s]\r\n", stPdpData.szPDPType);
+        stPdpData.szPDPType         = ((char**)pData)[6];  // new in Android 2.3.4.
+        RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - stPdpData.szPDPType=[%s]\r\n",
+                stPdpData.szPDPType);
     }
 
     //
@@ -335,22 +354,27 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * p
     if (0 == strcmp(stPdpData.szPDPType, "IP"))
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1,
-            sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,1\r", uiCID, stPdpData.szPDPType,
-            stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword, uiCID))
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,1\r",
+                uiCID, stPdpData.szPDPType,
+                stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName,
+                stPdpData.szPassword, uiCID))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() - cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() -"
+                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
         }
     }
     else if (0 == strcmp(stPdpData.szPDPType, "IPV6"))
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1,
-            sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,2\r", uiCID, stPdpData.szPDPType,
-            stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword, uiCID))
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,2\r",
+                uiCID, stPdpData.szPDPType, stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName,
+                stPdpData.szPassword, uiCID))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() - cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() -"
+                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
         }
     }
@@ -358,11 +382,14 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA & rReqData, void * p
     {
         //  XDNS=3 is not supported by the modem so two commands +XDNS=1 and +XDNS=2 should be sent.
         if (!PrintStringNullTerminate(rReqData.szCmd1,
-            sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XGAUTH=%u,%d,\"%s\",\"%s\";+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
-            stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword, uiCID, uiCID))
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XGAUTH=%u,%d,\"%s\","
+                "\"%s\";+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
+                stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
+                uiCID, uiCID))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() - cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() -"
+                " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
         }
     }
@@ -468,8 +495,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParsePdpContextActivate(RESPONSE_DATA& rRspData)
         pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
         if (NULL == pChannelData)
         {
-            RIL_LOG_INFO("CTE_XMM6260::ParsePdpContextActivate() - No Data Channel for CID %u.\r\n",
-                                                                        uiCID);
+            RIL_LOG_INFO("CTE_XMM6260::ParsePdpContextActivate() -"
+                    " No Data Channel for CID %u.\r\n", uiCID);
             goto Error;
         }
 
@@ -543,7 +570,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseIpAddress(RESPONSE_DATA& rRspData)
     // Parse prefix
     if (!FindAndSkipString(szRsp, "+CGPADDR: ", szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() - Unable to parse \"+CGPADDR\" prefix.!\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() -"
+                " Unable to parse \"+CGPADDR\" prefix.!\r\n");
         goto Error;
     }
 
@@ -605,7 +633,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseIpAddress(RESPONSE_DATA& rRspData)
                                                 szIpAddr2,
                                                 MAX_IPADDR_SIZE))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() - ConvertIPAddressToAndroidReadable failed!\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() -"
+                    " ConvertIPAddressToAndroidReadable failed!\r\n");
             goto Error;
         }
 
@@ -615,7 +644,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseIpAddress(RESPONSE_DATA& rRspData)
         {
             if (!ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() - Unable to parse <PDP_addr2>!\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() -"
+                        " Unable to parse <PDP_addr2>!\r\n");
                 goto Error;
             }
 
@@ -626,7 +656,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseIpAddress(RESPONSE_DATA& rRspData)
                                                     szIpAddr2,
                                                     MAX_IPADDR_SIZE))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() - ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() -"
+                        " ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
                 goto Error;
             }
 
@@ -636,7 +667,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseIpAddress(RESPONSE_DATA& rRspData)
             {
                 if (!ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() - Unable to parse <PDP_addr2>!\r\n");
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() -"
+                            " Unable to parse <PDP_addr2>!\r\n");
                     goto Error;
                 }
 
@@ -645,9 +677,11 @@ RIL_RESULT_CODE CTE_XMM6260::ParseIpAddress(RESPONSE_DATA& rRspData)
                 char szDummyIpAddr[MAX_IPADDR_SIZE];
                 szDummyIpAddr[0] = '\0';
 
-                if (!ConvertIPAddressToAndroidReadable(szPdpAddr, szDummyIpAddr, MAX_IPADDR_SIZE, szIpAddr2, MAX_IPADDR_SIZE))
+                if (!ConvertIPAddressToAndroidReadable(szPdpAddr,
+                        szDummyIpAddr, MAX_IPADDR_SIZE, szIpAddr2, MAX_IPADDR_SIZE))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() - ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseIpAddress() -"
+                            " ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
                     goto Error;
                 }
 
@@ -701,7 +735,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseDns(RESPONSE_DATA & rRspData)
         if (NULL == pChannelData)
         {
             RIL_LOG_CRITICAL("CTE_XMM6260::ParseDns() - No Data Channel for CID %u.\r\n",
-                                                                                        uiCID);
+                    uiCID);
             continue;
         }
 
@@ -709,7 +743,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseDns(RESPONSE_DATA & rRspData)
         if (E_DATA_STATE_ACTIVE != state)
         {
             RIL_LOG_CRITICAL("CTE_XMM6260::ParseDns() - Wrong data state: %d\r\n",
-                                                                                state);
+                    state);
             continue;
         }
 
@@ -744,7 +778,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseDns(RESPONSE_DATA & rRspData)
                                                     szIpV6DNS1,
                                                     MAX_IPADDR_SIZE))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseDns() - ConvertIPAddressToAndroidReadable failed! m_szDNS1\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseDns() -"
+                        " ConvertIPAddressToAndroidReadable failed! m_szDNS1\r\n");
                 continue;
             }
 
@@ -777,7 +812,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseDns(RESPONSE_DATA & rRspData)
                                                     szIpV6DNS2,
                                                     MAX_IPADDR_SIZE))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseDns() - ConvertIPAddressToAndroidReadable failed! szIpDNS2\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseDns() -"
+                        " ConvertIPAddressToAndroidReadable failed! szIpDNS2\r\n");
                 continue;
             }
 
@@ -859,7 +895,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseEnterDataState(RESPONSE_DATA& rRspData)
         if (NULL == pChannelData)
         {
             RIL_LOG_INFO("CTE_XMM6260::ParseEnterDataState() - No Data Channel for CID %u.\r\n",
-                                                                        uiCID);
+                    uiCID);
             goto Error;
         }
 
@@ -870,7 +906,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseEnterDataState(RESPONSE_DATA& rRspData)
 
     if (!FindAndSkipString(pszRsp, "CONNECT", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseEnterDataState() -  Did not get \"CONNECT\" response.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseEnterDataState() -"
+                "  Did not get \"CONNECT\" response.\r\n");
         goto Error;
     }
 
@@ -882,7 +919,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseEnterDataState(RESPONSE_DATA& rRspData)
     if (NULL == pChannelData)
     {
         RIL_LOG_INFO("CTE_XMM6260::ParseEnterDataState() - No Data Channel for CID %u.\r\n",
-                                                                    uiCID);
+                uiCID);
         goto Error;
     }
     else
@@ -979,7 +1016,7 @@ BOOL BerTlv::Parse(const UINT8* pRawData, UINT32 cbSize)
 
     return TRUE;
 }
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -1007,7 +1044,7 @@ struct sUSIMGetResponse
 //  sResponse = [in] binary buffer of CRSM response
 //  cbResponse = [in] length of binary buffer
 //  sUSIM = [in,out] where the extracted data is stored
-BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetResponse *sUSIM)
+BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetResponse* sUSIM)
 {
     RIL_LOG_VERBOSE("ParseUSIMRecordStatus - ENTER\r\n");
 
@@ -1053,13 +1090,16 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
     tlvFcp.Parse(sResponse, cbResponse);
     if (FCP_TAG != tlvFcp.GetTag())
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - First tag is not FCP.  Tag=[0x%02X]\r\n", tlvFcp.GetTag());
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - First tag is not FCP.  Tag=[0x%02X]\r\n",
+                tlvFcp.GetTag());
         goto Error;
     }
 
     if (cbResponse != tlvFcp.GetTotalSize())
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - cbResponse=[%d] not equal to total size=[%d]\r\n", cbResponse, tlvFcp.GetTotalSize());
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus -"
+                " cbResponse=[%d] not equal to total size=[%d]\r\n",
+                cbResponse, tlvFcp.GetTotalSize());
         goto Error;
     }
     pbFcpData = tlvFcp.GetValue();
@@ -1069,14 +1109,17 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
     tlvFileDescriptor.Parse(pbFcpData, cbFcpDataSize);
     if (FILE_DESCRIPTOR_TAG != tlvFileDescriptor.GetTag())
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - File descriptor tag is not FCP.  Tag=[0x%02X]\r\n", tlvFileDescriptor.GetTag());
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus -"
+                " File descriptor tag is not FCP.  Tag=[0x%02X]\r\n", tlvFileDescriptor.GetTag());
         goto Error;
     }
 
     cbDataUsed = tlvFileDescriptor.GetTotalSize();
     if (cbDataUsed > cbFcpDataSize)
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - cbDataUsed=[%d] is greater than cbFcpDataSize=[%d]\r\n", cbDataUsed, cbFcpDataSize);
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus -"
+                " cbDataUsed=[%d] is greater than cbFcpDataSize=[%d]\r\n",
+                cbDataUsed, cbFcpDataSize);
         goto Error;
     }
 
@@ -1085,13 +1128,17 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
     // File descriptors should only be 2 or 5 bytes long.
     if((2 != cbFileDescDataSize) && (5 != cbFileDescDataSize))
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - File descriptor can only be 2 or 5 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus -"
+                " File descriptor can only be 2 or 5 bytes.  cbFileDescDataSize=[%d]\r\n",
+                cbFileDescDataSize);
         goto Error;
 
     }
     if (2 > cbFileDescDataSize)
     {
-        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - File descriptor less than 2 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
+        RIL_LOG_CRITICAL("ParseUSIMRecordStatus -"
+                " File descriptor less than 2 bytes.  cbFileDescDataSize=[%d]\r\n",
+                cbFileDescDataSize);
         goto Error;
     }
 
@@ -1132,7 +1179,9 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
             // Need at least 5 bytes
             if (5 > cbFileDescDataSize)
             {
-                RIL_LOG_CRITICAL("ParseUSIMRecordStatus - File descriptor less than 5 bytes.  cbFileDescDataSize=[%d]\r\n", cbFileDescDataSize);
+                RIL_LOG_CRITICAL("ParseUSIMRecordStatus -"
+                        " File descriptor less than 5 bytes.  cbFileDescDataSize=[%d]\r\n",
+                        cbFileDescDataSize);
                 goto Error;
             }
 
@@ -1166,7 +1215,8 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
 
                     if (2 > tlvCurrent.GetLength())
                     {
-                        RIL_LOG_CRITICAL("ParseUSIMRecordStatus - TRANSPARENT length must be at least 2\r\n");
+                        RIL_LOG_CRITICAL("ParseUSIMRecordStatus -"
+                                " TRANSPARENT length must be at least 2\r\n");
                         goto Error;
                     }
 
@@ -1210,7 +1260,8 @@ BOOL ParseUSIMRecordStatus(UINT8* sResponse, UINT32 cbResponse, struct sUSIMGetR
 
         if (MASTER_FILE_ID != uFileId)
         {
-            RIL_LOG_CRITICAL("ParseUSIMRecordStatus - UNKNOWN file ID not equal to MASTER_FILE_ID\r\n");
+            RIL_LOG_CRITICAL("ParseUSIMRecordStatus -"
+                    " UNKNOWN file ID not equal to MASTER_FILE_ID\r\n");
             goto Error;
         }
 
@@ -1228,7 +1279,8 @@ Error:
     return bRet;
 }
 
-RIL_RESULT_CODE CTE_XMM6260::HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs, REQUEST_DATA& rReqData)
+RIL_RESULT_CODE CTE_XMM6260::HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs,
+                                                        REQUEST_DATA& rReqData)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::HandlePin2RelatedSIMIO() - Enter\r\n");
 
@@ -1238,20 +1290,23 @@ RIL_RESULT_CODE CTE_XMM6260::HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs, R
     //  If PIN2 is required, send out AT+CPIN2 request
     if (NULL == pSimIOArgs->pin2 && SIM_COMMAND_UPDATE_RECORD == pSimIOArgs->command)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() - PIN 2 required but not provided!\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() -"
+                " PIN 2 required but not provided!\r\n");
         res = RIL_E_SIM_PIN2;
         goto Error;
     }
 
     if (RIL_PINSTATE_ENABLED_BLOCKED == m_ePin2State)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() - RIL_PINSTATE_ENABLED_BLOCKED\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() -"
+                " RIL_PINSTATE_ENABLED_BLOCKED\r\n");
         res = RIL_E_SIM_PUK2;
         goto Error;
     }
     else if (RIL_PINSTATE_ENABLED_PERM_BLOCKED == m_ePin2State)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() - RIL_PINSTATE_ENABLED_PERM_BLOCKED\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() -"
+                " RIL_PINSTATE_ENABLED_PERM_BLOCKED\r\n");
         res = RIL_E_GENERIC_FAILURE;
         goto Error;
     }
@@ -1268,7 +1323,8 @@ RIL_RESULT_CODE CTE_XMM6260::HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs, R
                 pSimIOArgs->p2,
                 pSimIOArgs->p3))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() - cannot create CRSM command!\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() -"
+                        " cannot create CRSM command!\r\n");
                 goto Error;
             }
         }
@@ -1283,7 +1339,8 @@ RIL_RESULT_CODE CTE_XMM6260::HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs, R
                           pSimIOArgs->p3,
                           pSimIOArgs->path))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() - cannot create CRSM command!\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() -"
+                        " cannot create CRSM command!\r\n");
                 goto Error;
             }
         }
@@ -1301,7 +1358,8 @@ RIL_RESULT_CODE CTE_XMM6260::HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs, R
                 pSimIOArgs->p3,
                 pSimIOArgs->data))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() - cannot create CRSM command!\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() -"
+                        " cannot create CRSM command!\r\n");
                 goto Error;
             }
         }
@@ -1317,7 +1375,8 @@ RIL_RESULT_CODE CTE_XMM6260::HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs, R
                 pSimIOArgs->data,
                 pSimIOArgs->path))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() - cannot create CRSM command!\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() -"
+                        " cannot create CRSM command!\r\n");
                 goto Error;
             }
         }
@@ -1331,7 +1390,8 @@ RIL_RESULT_CODE CTE_XMM6260::HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs, R
             "AT+CPIN2=\"%s\";%s\r",
             pSimIOArgs->pin2, szSimIoCmd))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() - cannot create CPIN2 command!\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() -"
+                    " cannot create CPIN2 command!\r\n");
             goto Error;
         }
     }
@@ -1343,7 +1403,8 @@ RIL_RESULT_CODE CTE_XMM6260::HandlePin2RelatedSIMIO(RIL_SIM_IO_v6* pSimIOArgs, R
             pSimIOArgs->pin2,
             pSimIOArgs->pin2, szSimIoCmd))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() - cannot create CPWD command!\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::HandlePin2RelatedSIMIO() -"
+                    " cannot create CPWD command!\r\n");
             goto Error;
         }
     }
@@ -1361,11 +1422,11 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UI
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreSimIo() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_SIM_IO_v6 *   pSimIOArgs = NULL;
+    RIL_SIM_IO_v6*   pSimIOArgs = NULL;
     // substitute actual path instead of string "img"
     char szGraphicsPath[] = "3F007F105F50";
     char szImg[] = "img";
-    char *pszPath = NULL;
+    char* pszPath = NULL;
     S_SIM_IO_CONTEXT_DATA* pContextData = NULL;
 
     if (NULL == pData)
@@ -1376,7 +1437,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UI
 
     if (sizeof(RIL_SIM_IO_v6) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSimIo() - Invalid data size. Given %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSimIo() - Invalid data size. Given %d bytes\r\n",
+                uiDataSize);
         goto Error;
     }
 
@@ -1384,15 +1446,18 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UI
     pSimIOArgs = (RIL_SIM_IO_v6 *)pData;
 
 #if defined(DEBUG)
-    RIL_LOG_VERBOSE("CTE_XMM6260::CoreSimIo() - command=%d fileid=%04X path=\"%s\" p1=%d p2=%d p3=%d data=\"%s\" pin2=\"%s\" aidPtr=\"%s\"\r\n",
-        pSimIOArgs->command, pSimIOArgs->fileid, pSimIOArgs->path,
-        pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
-        pSimIOArgs->data, pSimIOArgs->pin2, pSimIOArgs->aidPtr);
+    RIL_LOG_VERBOSE("CTE_XMM6260::CoreSimIo() -"
+            " command=%d fileid=%04X path=\"%s\" p1=%d p2=%d p3=%d data=\"%s\""
+            " pin2=\"%s\" aidPtr=\"%s\"\r\n",
+            pSimIOArgs->command, pSimIOArgs->fileid, pSimIOArgs->path,
+            pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
+            pSimIOArgs->data, pSimIOArgs->pin2, pSimIOArgs->aidPtr);
 #else
-    RIL_LOG_VERBOSE("CTE_XMM6260::CoreSimIo() - command=%d fileid=%04X path=\"%s\" p1=%d p2=%d p3=%d data=\"%s\" aidPtr=\"%s\"\r\n",
-        pSimIOArgs->command, pSimIOArgs->fileid, pSimIOArgs->path,
-        pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
-        pSimIOArgs->data, pSimIOArgs->aidPtr);
+    RIL_LOG_VERBOSE("CTE_XMM6260::CoreSimIo() - command=%d fileid=%04X path=\"%s\""
+            " p1=%d p2=%d p3=%d data=\"%s\" aidPtr=\"%s\"\r\n",
+            pSimIOArgs->command, pSimIOArgs->fileid, pSimIOArgs->path,
+            pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
+            pSimIOArgs->data, pSimIOArgs->aidPtr);
 #endif
 
     // Currently, in JB, Android implements functions that use the aidPtr parameter
@@ -1401,7 +1466,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UI
     // CCHC commands.
     if (NULL != pSimIOArgs->aidPtr && 0 != strcmp(pSimIOArgs->aidPtr, ""))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSimIo() - use of aidPtr NOT SUPPORTED, must call +CRLA, CCHO and CCHC commands\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSimIo() -"
+                " use of aidPtr NOT SUPPORTED, must call +CRLA, CCHO and CCHC commands\r\n");
         res = RIL_E_REQUEST_NOT_SUPPORTED;
         goto Error;
     }
@@ -1438,7 +1504,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UI
         if (0 == strcmp(pSimIOArgs->path, szImg))
         {
             //  We have a match for "img"
-            RIL_LOG_INFO("CTE_XMM6260::CoreSimIo() - Found match for path='img'.  Use GRAPHICS path\r\n");
+            RIL_LOG_INFO("CTE_XMM6260::CoreSimIo() -"
+                    " Found match for path='img'.  Use GRAPHICS path\r\n");
             pszPath = szGraphicsPath;
         }
         else
@@ -1532,7 +1599,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseSimIo() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     UINT32  uiSW1 = 0;
     UINT32  uiSW2 = 0;
@@ -1582,14 +1649,19 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
 
         // Parse <response>
         // NOTE: we take ownership of allocated szResponseString
-        if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString, cbResponseString, pszRsp))
+        if (!ExtractQuotedStringWithAllocatedMemory(pszRsp,
+                                          szResponseString,
+                                          cbResponseString,
+                                          pszRsp))
         {
             RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() - Could not extract data string.\r\n");
             goto Error;
         }
         else
         {
-            RIL_LOG_INFO("CTE_XMM6260::ParseSimIo() - Extracted data string: \"%s\" (%u chars including NULL)\r\n", szResponseString, cbResponseString);
+            RIL_LOG_INFO("CTE_XMM6260::ParseSimIo() -"
+                    " Extracted data string: \"%s\" (%u chars including NULL)\r\n",
+                    szResponseString, cbResponseString);
         }
 
         if (0 != (cbResponseString - 1) % 2)
@@ -1619,7 +1691,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
             memset(&sUSIM, 0, sizeof(struct sUSIMGetResponse));
 
             //  Need to convert the response string from ascii to binary.
-            BYTE *sNewString = NULL;
+            BYTE* sNewString = NULL;
             UINT32 cbNewString = (cbResponseString-1)/2;
             sNewString = new BYTE[cbNewString];
             if (NULL == sNewString)
@@ -1632,7 +1704,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
             UINT32 cbUsed = 0;
             if (!GSMHexToGSM(szResponseString, cbResponseString, sNewString, cbNewString, cbUsed))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() - Cannot cconvert szResponseString to GSMHex.\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() -"
+                        " Cannot cconvert szResponseString to GSMHex.\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 cbNewString = 0;
@@ -1654,10 +1727,12 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
             sNewString = NULL;
             cbNewString = 0;
 
-            RIL_LOG_VERBOSE("CTE_XMM6260::ParseSimIo() - sUSIM.dwRecordType=[0x%04X]\r\n", sUSIM.dwRecordType);
-            RIL_LOG_VERBOSE("CTE_XMM6260::ParseSimIo() - sUSIM.dwTotalSize=[0x%04X]\r\n", sUSIM.dwTotalSize);
-            RIL_LOG_VERBOSE("CTE_XMM6260::ParseSimIo() - sUSIM.dwRecordSize=[0x%04X]\r\n", sUSIM.dwRecordSize);
-
+            RIL_LOG_VERBOSE("CTE_XMM6260::ParseSimIo() - sUSIM.dwRecordType=[0x%04X]\r\n",
+                    sUSIM.dwRecordType);
+            RIL_LOG_VERBOSE("CTE_XMM6260::ParseSimIo() - sUSIM.dwTotalSize=[0x%04X]\r\n",
+                    sUSIM.dwTotalSize);
+            RIL_LOG_VERBOSE("CTE_XMM6260::ParseSimIo() - sUSIM.dwRecordSize=[0x%04X]\r\n",
+                    sUSIM.dwRecordSize);
 
             //  Delete old original response.  Create new "fake" response.
             delete []szResponseString;
@@ -1671,14 +1746,17 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
             szResponseString = new char[cbResponseString];
             if (NULL == szResponseString)
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() - Cannot create new szResponsestring!\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() -"
+                        " Cannot create new szResponsestring!\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 goto Error;
             }
-            if (!CopyStringNullTerminate(szResponseString, "000000000000000000000000000000", cbResponseString))
+            if (!CopyStringNullTerminate(szResponseString,
+                    "000000000000000000000000000000", cbResponseString))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() - Cannot CopyStringNullTerminate szResponsestring!\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() -"
+                        " Cannot CopyStringNullTerminate szResponsestring!\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 goto Error;
@@ -1687,7 +1765,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
             //  Extract info, put into new response string
             if (!PrintStringNullTerminate(szTemp, 5, "%04X", sUSIM.dwTotalSize))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() - Cannot PrintStringNullTerminate sUSIM.dwTotalSize!\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() -"
+                        " Cannot PrintStringNullTerminate sUSIM.dwTotalSize!\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 goto Error;
@@ -1696,7 +1775,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
 
             if (!PrintStringNullTerminate(szTemp, 3, "%02X", sUSIM.dwRecordSize))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() - Cannot PrintStringNullTerminate sUSIM.dwRecordSize!\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() -"
+                        " Cannot PrintStringNullTerminate sUSIM.dwRecordSize!\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 goto Error;
@@ -1706,7 +1786,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
             if (RIL_SIMRECORDTYPE_UNKNOWN == sUSIM.dwRecordType)
             {
                 //  bad parse.
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() - sUSIM.dwRecordType is unknown!\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() -"
+                        " sUSIM.dwRecordType is unknown!\r\n");
                 delete[] sNewString;
                 sNewString = NULL;
                 goto Error;
@@ -1741,19 +1822,22 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
             }
 
             //  ok we're done.  print.
-            RIL_LOG_INFO("CTE_XMM6260::ParseSimIo() - new USIM response=[%s]\r\n", szResponseString);
+            RIL_LOG_INFO("CTE_XMM6260::ParseSimIo() - new USIM response=[%s]\r\n",
+                    szResponseString);
 
         }
 
     }
 
     // Allocate memory for the response struct PLUS a buffer for the response string
-    // The char* in the RIL_SIM_IO_Response will point to the buffer allocated directly after the RIL_SIM_IO_Response
-    // When the RIL_SIM_IO_Response is deleted, the corresponding response string will be freed as well.
+    // The char* in the RIL_SIM_IO_Response will point to the buffer allocated directly after the
+    // RIL_SIM_IO_Response, When the RIL_SIM_IO_Response is deleted, the corresponding response
+    // string will be freed as well.
     pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() - Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() -"
+                " Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
         goto Error;
     }
     memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
@@ -1770,7 +1854,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
         pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
         if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() - Cannot CopyStringNullTerminate szResponseString\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() -"
+                    " Cannot CopyStringNullTerminate szResponseString\r\n");
             goto Error;
         }
 
@@ -1808,24 +1893,28 @@ Error:
 //
 // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
+                                                                void* pData,
+                                                                UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreDeactivateDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    char * pszCid = NULL;
-    char * pszReason = NULL;
+    char* pszCid = NULL;
+    char* pszReason = NULL;
     UINT32 uiCID = 0;
 
     if (uiDataSize < (1 * sizeof(char *)))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreDeactivateDataCall() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreDeactivateDataCall() -"
+                " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreDeactivateDataCall() - Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreDeactivateDataCall() -"
+                " Passed data pointer was NULL\r\n");
         goto Error;
     }
 
@@ -1855,14 +1944,17 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, voi
     if (sscanf(pszCid, "%u", &uiCID) == EOF)
     {
         // Error
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreDeactivateDataCall() -  cannot convert %s to int\r\n", pszCid);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreDeactivateDataCall() -  cannot convert %s to int\r\n",
+                pszCid);
         goto Error;
     }
 
-    //  May 18,2011 - Don't call AT+CGACT=0,X if SIM was removed since context is already deactivated.
+    //  May 18,2011 - Don't call AT+CGACT=0,X if SIM was
+    //  removed since context is already deactivated.
     if (RRIL_SIM_STATE_NOT_READY == GetSIMState())
     {
-        RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() - SIM LOCKED OR ABSENT!! no-op this command\r\n");
+        RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() -"
+                " SIM LOCKED OR ABSENT!! no-op this command\r\n");
         rReqData.szCmd1[0] = '\0';
         res = RRIL_RESULT_OK;
         rReqData.pContextData = (void*)((UINT32)0);
@@ -1882,7 +1974,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA & rReqData, voi
 
         *pCID = uiCID;
 
-        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGACT=0,%s\r", pszCid))
+        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+CGACT=0,%s\r", pszCid))
         {
             res = RRIL_RESULT_OK;
         }
@@ -1914,11 +2007,14 @@ RIL_RESULT_CODE CTE_XMM6260::ParseDeactivateDataCall(RESPONSE_DATA & rRspData)
 //
 // Note: Use REQUEST_DATA's pContextData2 to pass custom data to the parse function.
 //       RIL Framework uses pContextData, and is reserved in this function.
-RIL_RESULT_CODE CTE_XMM6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize, UINT32 & uiRilChannel)
+RIL_RESULT_CODE CTE_XMM6260::CoreHookRaw(REQUEST_DATA& rReqData,
+                                                     void* pData,
+                                                     UINT32 uiDataSize,
+                                                     UINT32& uiRilChannel)
 {
     RIL_LOG_INFO("CTE_XMM6260::CoreHookRaw() - Enter\r\n");
 
-    BYTE *pDataBytes = (BYTE*)pData;
+    BYTE* pDataBytes = (BYTE*)pData;
 
     RIL_LOG_INFO("CTE_XMM6260::CoreHookRaw() - uiDataSize=[%d]\r\n", uiDataSize);
     for (int i = 0; i < (int)uiDataSize; i++)
@@ -1934,7 +2030,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData, 
     //  uiDataSize MUST be 4 or greater.
     if (4 > uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookRaw() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookRaw() -"
+                " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
@@ -1951,7 +2048,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookRaw(REQUEST_DATA & rReqData, void * pData, 
     switch(nCommand)
     {
         default:
-            RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookRaw() - Received unknown command=[0x%08X]\r\n", nCommand);
+            RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookRaw() - Received unknown command=[0x%08X]\r\n",
+                    nCommand);
             goto Error;
             break;
     }
@@ -1993,7 +2091,10 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 //
 // Note: Use REQUEST_DATA's pContextData2 to pass custom data to the parse function.
 //       RIL Framework uses pContextData, and is reserved in this function.
-RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize, UINT32 & uiRilChannel)
+RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
+                                                         void* pData,
+                                                         UINT32 uiDataSize,
+                                                         UINT32& uiRilChannel)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreHookStrings() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -2016,22 +2117,26 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData
 
     if ( (uiDataSize < (1 * sizeof(char *))) || (0 != (uiDataSize % sizeof(char*))) )
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
+                " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     //  Loop through input strings and print them
     nNumStrings = uiDataSize / sizeof(char*);
-    RIL_LOG_INFO("CTE_XMM6260::CoreHookStrings() - uiDataSize=[%d], numStrings=[%d]\r\n", uiDataSize, nNumStrings);
+    RIL_LOG_INFO("CTE_XMM6260::CoreHookStrings() - uiDataSize=[%d], numStrings=[%d]\r\n",
+            uiDataSize, nNumStrings);
     for (int i=0; i<nNumStrings; i++)
     {
-        RIL_LOG_INFO("CTE_XMM6260::CoreHookStrings() - pszRequest[%d]=[%s]\r\n", i, pszRequest[i]);
+        RIL_LOG_INFO("CTE_XMM6260::CoreHookStrings() - pszRequest[%d]=[%s]\r\n",
+                i, pszRequest[i]);
     }
 
     //  Get command as int.
     if (sscanf(pszRequest[0], "%u", &uiCommand) == EOF)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - cannot convert %s to int\r\n", pszRequest);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - cannot convert %s to int\r\n",
+                pszRequest);
         goto Error;
     }
 
@@ -2052,7 +2157,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData
         case RIL_OEM_HOOK_STRING_GET_ATR:
             if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XGATR\r"))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - ERROR: RIL_OEM_HOOK_STRINGS_GET_ATR - Can't construct szCmd1.\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
+                        " ERROR: RIL_OEM_HOOK_STRINGS_GET_ATR - Can't construct szCmd1.\r\n");
                 goto Error;
             }
             res = RRIL_RESULT_OK;
@@ -2067,7 +2173,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData
             }
             else
             {
-                RIL_LOG_INFO("RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY - FD Mode is not OEM Managed.\r\n");
+                RIL_LOG_INFO("RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY -"
+                        " FD Mode is not OEM Managed.\r\n");
                 goto Error;
             }
             break;
@@ -2076,7 +2183,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV");
             if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGED=0\r"))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV - Can't construct szCmd1.\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
+                        " RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV - Can't construct szCmd1.\r\n");
                 goto Error;
             }
             //  Send this command on OEM channel.
@@ -2095,7 +2203,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS");
             if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CHLD=8\r"))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS - Can't construct szCmd1.\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
+                        " RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS - Can't construct szCmd1.\r\n");
                 goto Error;
             }
             res = RRIL_RESULT_OK;
@@ -2105,7 +2214,9 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_SMS_TRANSPORT_MODE");
             if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGSMS?\r"))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_GET_SMS_TRANSPORT_MODE - Can't construct szCmd1.\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - "
+                        "RIL_OEM_HOOK_STRING_GET_SMS_TRANSPORT_MODE -"
+                        " Can't construct szCmd1.\r\n");
                 goto Error;
             }
             //  Send this command on SMS channel.
@@ -2150,24 +2261,29 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData
                 RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_SWAP_PS");
                 if (sscanf(pszRequest[1], "%u", &param) == EOF)
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - cannot convert %s to int\r\n", pszRequest);
+                    RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
+                            " cannot convert %s to int\r\n", pszRequest);
                     goto Error;
                 }
                 rReqData.pContextData = (void *) param;
                 if (param & 1)
                 {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XRAT=8\r"))
+                    if (!PrintStringNullTerminate(rReqData.szCmd1,
+                            sizeof(rReqData.szCmd1), "AT+XRAT=8\r"))
                     {
-                        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_SWAP_PS - Can't construct szCmd1.\r\n");
+                        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - "
+                                "RIL_OEM_HOOK_STRING_SWAP_PS - Can't construct szCmd1.\r\n");
                         goto Error;
                     }
                     rReqData.uiTimeout = 450000;
                 }
                 else
                 {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT\r"))
+                    if (!PrintStringNullTerminate(rReqData.szCmd1,
+                            sizeof(rReqData.szCmd1), "AT\r"))
                     {
-                        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - RIL_OEM_HOOK_STRING_SWAP_PS - Can't construct szCmd1.\r\n");
+                        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - "
+                                "RIL_OEM_HOOK_STRING_SWAP_PS - Can't construct szCmd1.\r\n");
                         goto Error;
                     }
                 }
@@ -2177,13 +2293,15 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData, void* pData
 #endif // M2_DUALSIM_FEATURE_ENABLED
 
         default:
-            RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - ERROR: Received unknown uiCommand=[0x%X]\r\n", uiCommand);
+            RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
+                    " ERROR: Received unknown uiCommand=[0x%X]\r\n", uiCommand);
             goto Error;
     }
 
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() : Can't create OEM HOOK String request uiCommand: 0x%X", uiCommand);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() :"
+                " Can't create OEM HOOK String request uiCommand: 0x%X", uiCommand);
         goto Error;
     }
 
@@ -2256,8 +2374,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
 #endif // M2_DUALSIM_FEATURE_ENABLED
 
         default:
-            RIL_LOG_INFO("CTE_XMM6260::ParseHookStrings() - Parsing not implemented for uiCommand: %u\r\n",
-                         uiCommand);
+            RIL_LOG_INFO("CTE_XMM6260::ParseHookStrings() -"
+                    " Parsing not implemented for uiCommand: %u\r\n", uiCommand);
             break;
     }
 
@@ -2269,7 +2387,9 @@ Error:
 //
 // RIL_REQUEST_SET_BAND_MODE 65
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreSetBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreSetBandMode(REQUEST_DATA& rReqData,
+                                                         void* pData,
+                                                         UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreSetBandMode() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -2277,7 +2397,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetBandMode(REQUEST_DATA & rReqData, void * pDa
 
     if (sizeof(int*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetBandMode() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetBandMode() -"
+                " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
@@ -2306,7 +2427,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetBandMode(REQUEST_DATA & rReqData, void * pDa
         break;
 
     case 2:
-        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XBANDSEL=850,1900\r"))
+        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+XBANDSEL=850,1900\r"))
         {
             res = RRIL_RESULT_OK;
         }
@@ -2319,14 +2441,16 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetBandMode(REQUEST_DATA & rReqData, void * pDa
 
     case 4:
     case 5:
-        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XBANDSEL=850,900,1800\r"))
+        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+XBANDSEL=850,900,1800\r"))
         {
             res = RRIL_RESULT_OK;
         }
         break;
 
     default:
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetBandMode() - Undefined region code: %d\r\n", *pnBandMode);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetBandMode() -"
+                " Undefined region code: %d\r\n", *pnBandMode);
         res = RIL_E_GENERIC_FAILURE;
         break;
     }
@@ -2348,7 +2472,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSetBandMode(RESPONSE_DATA & rRspData)
 //
 // RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE 66
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreQueryAvailableBandMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreQueryAvailableBandMode(REQUEST_DATA& rReqData,
+                                                                    void* pData,
+                                                                    UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreQueryAvailableBandMode() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -2380,12 +2506,13 @@ RIL_RESULT_CODE CTE_XMM6260::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDat
     BOOL aus2 = FALSE;
     UINT32 count = 0, count2 = 0;
 
-    int * pModes = NULL;
+    int* pModes = NULL;
 
     // Skip "+XBANDSEL: "
     if (!FindAndSkipString(szRsp, "+XBANDSEL: ", szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryAvailableBandMode() - Could not skip \"+XBANDSEL: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryAvailableBandMode() -"
+                " Could not skip \"+XBANDSEL: \".\r\n");
         goto Error;
     }
 
@@ -2504,7 +2631,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDat
 
     if (0 == count)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryAvailableBandMode() - Cannot have a count of zero.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryAvailableBandMode() -"
+                " Cannot have a count of zero.\r\n");
         goto Error;
     }
 
@@ -2512,7 +2640,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseQueryAvailableBandMode(RESPONSE_DATA & rRspDat
     pModes = (int*)malloc( (1 + count) * sizeof(int));
     if (NULL == pModes)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryAvailableBandMode() - Could not allocate memory for response.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryAvailableBandMode() -"
+                " Could not allocate memory for response.\r\n");
         goto Error;
     }
     memset(pModes, 0, (1 + count) * sizeof(int));
@@ -2578,7 +2707,9 @@ Error:
 //
 // RIL_REQUEST_STK_GET_PROFILE 67
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreStkGetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreStkGetProfile(REQUEST_DATA& rReqData,
+                                                           void* pData,
+                                                           UINT32 uiDataSize)
 {
     RIL_LOG_INFO("CTE_XMM6260::CoreStkGetProfile() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -2610,7 +2741,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkGetProfile(RESPONSE_DATA & rRspData)
     pszTermProfile = (char*)malloc(MAX_BUFFER_SIZE);
     if (NULL == pszTermProfile)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() - Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() -"
+                " Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
         goto Error;
     }
 
@@ -2619,19 +2751,22 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkGetProfile(RESPONSE_DATA & rRspData)
     // Parse "<prefix>+STKPROF: <length>,<data><postfix>"
     if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() - Could not skip response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() -"
+                " Could not skip response prefix.\r\n");
         goto Error;
     }
 
     if (!SkipString(pszRsp, "+STKPROF: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() - Could not skip \"+STKPROF: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() -"
+                " Could not skip \"+STKPROF: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt32(pszRsp, uiLength, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() - Could not extract length value.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() -"
+                " Could not extract length value.\r\n");
         goto Error;
     }
 
@@ -2639,14 +2774,16 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkGetProfile(RESPONSE_DATA & rRspData)
     {
         if (!ExtractQuotedString(pszRsp, pszTermProfile, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() - Could not extract the terminal profile.\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() -"
+                    " Could not extract the terminal profile.\r\n");
             goto Error;
         }
     }
 
     if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() - Could not extract the response end.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkGetProfile() -"
+                " Could not extract the response end.\r\n");
         goto Error;
     }
 
@@ -2669,7 +2806,9 @@ Error:
 //
 // RIL_REQUEST_STK_SET_PROFILE 68
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreStkSetProfile(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreStkSetProfile(REQUEST_DATA& rReqData,
+                                                           void* pData,
+                                                           UINT32 uiDataSize)
 {
     RIL_LOG_INFO("CTE_XMM6260::CoreStkSetProfile() - Enter\r\n");
     char* pszTermProfile = NULL;
@@ -2677,7 +2816,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreStkSetProfile(REQUEST_DATA & rReqData, void * p
 
     if (0 == uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSetProfile() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSetProfile() -"
+                " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
@@ -2690,7 +2830,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreStkSetProfile(REQUEST_DATA & rReqData, void * p
     // extract data
     pszTermProfile = (char*)pData;
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+STKPROF=%u,\"%s\"\r", uiDataSize, pszTermProfile))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+STKPROF=%u,\"%s\"\r", uiDataSize, pszTermProfile))
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSetProfile() - Could not form string.\r\n");
         goto Error;
@@ -2716,7 +2857,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSetProfile(RESPONSE_DATA & rRspData)
 //
 // RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreStkSendEnvelopeCommand(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreStkSendEnvelopeCommand(REQUEST_DATA& rReqData,
+                                                                    void* pData,
+                                                                    UINT32 uiDataSize)
 {
     RIL_LOG_INFO("CTE_XMM6260::CoreStkSendEnvelopeCommand() - Enter\r\n");
     char* pszEnvCommand = NULL;
@@ -2724,22 +2867,26 @@ RIL_RESULT_CODE CTE_XMM6260::CoreStkSendEnvelopeCommand(REQUEST_DATA & rReqData,
 
     if (sizeof(char*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSendEnvelopeCommand() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSendEnvelopeCommand() -"
+                " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSendEnvelopeCommand() - Passed data pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSendEnvelopeCommand() -"
+                " Passed data pointer was NULL\r\n");
         goto Error;
     }
 
     // extract data
     pszEnvCommand = (char*)pData;
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATE=\"%s\"\r", pszEnvCommand))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+SATE=\"%s\"\r", pszEnvCommand))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSendEnvelopeCommand() - Could not form string.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSendEnvelopeCommand() -"
+                " Could not form string.\r\n");
         goto Error;
     }
 
@@ -2763,28 +2910,32 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDat
     const char* pszRsp = rRspData.szResponse;
     if (NULL == pszRsp)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() - Response string is NULL!\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() -"
+                " Response string is NULL!\r\n");
         goto Error;
     }
 
     // Parse "<prefix>"
     if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() - Could not skip over response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() -"
+                " Could not skip over response prefix.\r\n");
         goto Error;
     }
 
     // Parse "+SATE: "
     if (!SkipString(pszRsp, "+SATE: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() - Could not skip over \"+SATE: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() -"
+                " Could not skip over \"+SATE: \".\r\n");
         goto Error;
     }
 
     // Parse "<sw1>"
     if (!ExtractUInt32(pszRsp, uiSw1, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() - Could not extract sw1.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() -"
+                " Could not extract sw1.\r\n");
         goto Error;
     }
 
@@ -2792,7 +2943,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDat
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt32(pszRsp, uiSw2, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() - Could not extract sw2.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() -"
+                " Could not extract sw2.\r\n");
         goto Error;
     }
 
@@ -2800,7 +2952,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDat
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt32(pszRsp, uiEventType, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() - Could not extract event type.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() -"
+                " Could not extract event type.\r\n");
         goto Error;
     }
 
@@ -2808,7 +2961,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDat
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt32(pszRsp, uiEnvelopeType, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() - Could not extract envelope type.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() -"
+                " Could not extract envelope type.\r\n");
         goto Error;
     }
 
@@ -2822,7 +2976,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDat
         pszRespData = (char*)malloc(MAX_BUFFER_SIZE);
         if (NULL == pszRespData)
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() - Could not alloc mem for command.\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() -"
+                    " Could not alloc mem for command.\r\n");
             goto Error;
         }
 
@@ -2831,11 +2986,13 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDat
         // Parse ",<response_data>"
         if (!ExtractUnquotedString(pszRsp, m_cTerminator, pszRespData, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() - Could not parse response data.\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() -"
+                    " Could not parse response data.\r\n");
             goto Error;
         }
 
-        RIL_LOG_INFO("CTE_XMM6260::ParseStkSendEnvelopeCommand() - response data: \"%s\".\r\n", pszRespData);
+        RIL_LOG_INFO("CTE_XMM6260::ParseStkSendEnvelopeCommand() - response data: \"%s\".\r\n",
+                pszRespData);
     }
     else
     {
@@ -2845,7 +3002,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeCommand(RESPONSE_DATA & rRspDat
     // Parse "<postfix>"
     if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() - Could not extract the response end.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeCommand() -"
+                " Could not extract the response end.\r\n");
         goto Error;
     }
 
@@ -2868,7 +3026,9 @@ Error:
 //
 // RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreStkSendTerminalResponse(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreStkSendTerminalResponse(REQUEST_DATA& rReqData,
+                                                                     void* pData,
+                                                                     UINT32 uiDataSize)
 {
     RIL_LOG_INFO("CTE_XMM6260::CoreStkSendTerminalResponse() - Enter\r\n");
     char* pszTermResponse = NULL;
@@ -2876,7 +3036,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreStkSendTerminalResponse(REQUEST_DATA & rReqData
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSendTerminalResponse() - Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSendTerminalResponse() -"
+                " Data pointer is NULL.\r\n");
         goto Error;
     }
 
@@ -2890,9 +3051,11 @@ RIL_RESULT_CODE CTE_XMM6260::CoreStkSendTerminalResponse(REQUEST_DATA & rReqData
 
     pszTermResponse = (char *)pData;
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATR=\"%s\"\r", pszTermResponse))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+SATR=\"%s\"\r", pszTermResponse))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSendTerminalResponse() - Could not form string.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkSendTerminalResponse() -"
+                " Could not form string.\r\n");
         goto Error;
     }
 
@@ -2916,7 +3079,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendTerminalResponse(RESPONSE_DATA & rRspDa
 //
 // RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM 71
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA& rReqData,
+                                                                               void* pData,
+                                                                               UINT32 uiDataSize)
 {
     RIL_LOG_INFO("CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim() - Enter\r\n");
     int nConfirmation = 0;
@@ -2924,30 +3089,36 @@ RIL_RESULT_CODE CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim() - Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim() -"
+                " Data pointer is NULL.\r\n");
         goto Error;
     }
 
     if (uiDataSize != sizeof(int *))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim() - Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim() -"
+                " Invalid data size.\r\n");
         goto Error;
     }
 
-    nConfirmation = ((int *)pData)[0];
+    nConfirmation = ((int*)pData)[0];
     if (0 == nConfirmation)
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATD=0\r"))
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+SATD=0\r"))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim() - Could not form string.\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim() -"
+                    " Could not form string.\r\n");
             goto Error;
         }
     }
     else
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+SATD=1\r"))
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+SATD=1\r"))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim() - Could not form string.\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim() -"
+                    " Could not form string.\r\n");
             goto Error;
         }
     }
@@ -2972,7 +3143,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DA
 //
 // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
+                                                                     void* pData,
+                                                                     UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreSetPreferredNetworkType() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -2980,17 +3153,19 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetPreferredNetworkType() - Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetPreferredNetworkType() -"
+                " Data pointer is NULL.\r\n");
         goto Error;
     }
 
-    if (uiDataSize != sizeof(RIL_PreferredNetworkType *))
+    if (uiDataSize != sizeof(RIL_PreferredNetworkType*))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetPreferredNetworkType() - Invalid data size.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetPreferredNetworkType() -"
+                " Invalid data size.\r\n");
         goto Error;
     }
 
-    networkType = ((RIL_PreferredNetworkType *)pData)[0];
+    networkType = ((RIL_PreferredNetworkType*)pData)[0];
 
     // if network type already set, NO-OP this command
     if (m_currentNetworkType == networkType)
@@ -2998,7 +3173,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData
         rReqData.szCmd1[0] = '\0';
         res = RRIL_RESULT_OK;
         RIL_LOG_INFO("CTE_XMM6260::CoreSetPreferredNetworkType() - Network type {%d} "
-            "already set.\r\n", networkType);
+                "already set.\r\n", networkType);
         goto Error;
     }
 
@@ -3048,7 +3223,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData
             if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XRAT=1,2\r", sizeof(rReqData.szCmd1)))
             {
                 RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetPreferredNetworkType() - Can't "
-                    "construct szCmd1 networkType=%d\r\n", networkType);
+                        "construct szCmd1 networkType=%d\r\n", networkType);
                 goto Error;
             }
 
@@ -3056,7 +3231,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetPreferredNetworkType(REQUEST_DATA & rReqData
 
         default:
             RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetPreferredNetworkType() - Undefined rat "
-                "code: %d\r\n", networkType);
+                    "code: %d\r\n", networkType);
             res = RIL_E_MODE_NOT_SUPPORTED;
             goto Error;
             break;
@@ -3088,7 +3263,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspDa
 //
 // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreGetPreferredNetworkType(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
+                                                                     void* pData,
+                                                                     UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetPreferredNetworkType() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -3107,35 +3284,39 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspDa
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseGetPreferredNetworkType() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     UINT32 rat = 0;
     UINT32 pref = 0;
 
-    int * pRat = (int*)malloc(sizeof(int));
+    int* pRat = (int*)malloc(sizeof(int));
     if (NULL == pRat)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() - Could not allocate memory for response.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() -"
+                " Could not allocate memory for response.\r\n");
         goto Error;
     }
 
     // Skip "<prefix>"
     if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() - Could not skip response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() -"
+                " Could not skip response prefix.\r\n");
         goto Error;
     }
 
     // Skip "+XRAT: "
     if (!SkipString(pszRsp, "+XRAT: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() - Could not skip \"+XRAT: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() -"
+                " Could not skip \"+XRAT: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt32(pszRsp, rat, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() - Could not extract rat value.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() -"
+                " Could not extract rat value.\r\n");
         goto Error;
     }
 
@@ -3143,7 +3324,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspDa
     {
         if (!ExtractUInt32(pszRsp, pref, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() - Could not find and skip pref value even though it was expected.\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() -"
+                    " Could not find and skip pref value even though it was expected.\r\n");
             goto Error;
         }
     }
@@ -3173,7 +3355,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetPreferredNetworkType(RESPONSE_DATA & rRspDa
 
         default:
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() - Unexpected rat found: %d. Failing out.\r\n", rat);
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPreferredNetworkType() -"
+                    " Unexpected rat found: %d. Failing out.\r\n", rat);
             goto Error;
         }
     }
@@ -3197,7 +3380,9 @@ Error:
 //
 // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreGetNeighboringCellIDs(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
+                                                                   void* pData,
+                                                                   UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetNeighboringCellIDs() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -3216,7 +3401,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseGetNeighboringCellIDs() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char * pszRsp = rRspData.szResponse;
+    const char* pszRsp = rRspData.szResponse;
 
     UINT32 nIndex = 0, nTotal = 0;
     UINT32 nLAC = 0, nCI = 0;
@@ -3230,17 +3415,20 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
     //  Data is either (according to C_AT_FS_SUNRISE_Rev6.0.pdf AT spec)
     //  GSM cells:
     //  +XCELLINFO: 0,<MCC>,<MNC>,<LAC>,<CI>,<RxLev>,<BSIC>,<BCCH_Car>,<true_freq>,<t_advance>
-    //  +XCELLINFO: 1,<LAC>,<CI>,<RxLev>,<BSIC>,<BCCH_Car>  // one row for each neighboring cell [0..6]
+    //  +XCELLINFO: 1,<LAC>,<CI>,<RxLev>,<BSIC>,<BCCH_Car>
+    //  one row for each neighboring cell [0..6]
     //  For GSM cells, according to ril.h, must return (LAC/CID , received RSSI)
     //
     //  UMTS FDD cells:
     //  +XCELLINFO: 2,<MCC>,<MNC>,<LAC>,<UCI>,<scrambling_code>,<dl_frequency>,<ul_frequency>
-    //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>  // If UMTS
-    //                          // has any ACTIVE SET neighboring cell
-    //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>  // One row
+    //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+    // If UMTS has any ACTIVE SET neighboring cell
+    //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+    // One row
     //                          // for each intra-frequency neighboring cell [1..32] for each
     //                          // frequency [0..8] in BA list
-    //  For UMTS cells, according to ril.h, must return (Primary scrambling code , received signal code power)
+    //  For UMTS cells, according to ril.h, must return (Primary scrambling code ,
+    //  received signal code power)
     //  NOTE that for first UMTS format above, there is no <rcsp> parameter.
     //
     //  A <type> of 0 or 1 = GSM.  A <type> of 2,3 = UMTS.
@@ -3249,7 +3437,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
     pCellData = (P_ND_N_CELL_DATA)malloc(sizeof(S_ND_N_CELL_DATA));
     if (NULL == pCellData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - Could not allocate memory for a S_ND_N_CELL_DATA struct.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                " Could not allocate memory for a S_ND_N_CELL_DATA struct.\r\n");
         goto Error;
     }
     memset(pCellData, 0, sizeof(S_ND_N_CELL_DATA));
@@ -3263,18 +3452,21 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
         if (RRIL_MAX_CELL_ID_COUNT == nTotal)
         {
             //  We're full.
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - Exceeded max count = %d\r\n", RRIL_MAX_CELL_ID_COUNT);
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                    " Exceeded max count = %d\r\n", RRIL_MAX_CELL_ID_COUNT);
             goto Error;
         }
 
         //  Get <mode>
         if (!ExtractUInt32(pszRsp, nMode, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - cannot extract <mode>\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                    " cannot extract <mode>\r\n");
             goto Error;
         }
 
-        RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - nTotal=%d, found mode=%d\r\n", nTotal, nMode);
+        RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - nTotal=%d, found mode=%d\r\n",
+                nTotal, nMode);
 
         switch(nMode)
         {
@@ -3285,28 +3477,32 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                     !FindAndSkipString(pszRsp, ",", pszRsp) ||
                     !FindAndSkipString(pszRsp, ",", pszRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 0, cannot skip to LAC and CI\r\n");
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode 0, cannot skip to LAC and CI\r\n");
                     goto Error;
                 }
 
                 //  Read <LAC> and <CI>
                 if (!ExtractUInt32(pszRsp, nLAC, pszRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 0, could not extract LAC\r\n");
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode 0, could not extract LAC\r\n");
                     goto Error;
                 }
                 //  Read <CI>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
                     (!ExtractUInt32(pszRsp, nCI, pszRsp)))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 0, could not extract CI value\r\n");
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode 0, could not extract CI value\r\n");
                     goto Error;
                 }
                 //  Read <RxLev>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
                     (!ExtractUInt32(pszRsp, nRSSI, pszRsp)))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 0, could not extract RSSI value\r\n");
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode 0, could not extract RSSI value\r\n");
                     goto Error;
                 }
 
@@ -3314,9 +3510,12 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                 pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
 
                 //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%04X%04X", nLAC, nCI);
+                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH,
+                        "%04X%04X", nLAC, nCI);
 
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 0 GSM LAC,CID index=[%d]  cid=[%s]\r\n", nIndex, pCellData->pnCellCIDBuffers[nIndex]);
+                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                        " mode 0 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
+                        nIndex, pCellData->pnCellCIDBuffers[nIndex]);
 
                 //  rssi = <RxLev>
 
@@ -3324,9 +3523,12 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                 //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
                 //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
 
-                //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31 like AT+CSQ response.
+                //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
+                //  like AT+CSQ response.
                 pCellData->pnCellData[nIndex].rssi = (int)(nRSSI / 2);
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 0 GSM rxlev index=[%d]  rssi=[%d]\r\n", nIndex, pCellData->pnCellData[nIndex].rssi);
+                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                        " mode 0 GSM rxlev index=[%d]  rssi=[%d]\r\n",
+                        nIndex, pCellData->pnCellData[nIndex].rssi);
             }
             break;
 
@@ -3337,21 +3539,24 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                 if (!SkipString(pszRsp, ",", pszRsp) ||
                     !ExtractUInt32(pszRsp, nLAC, pszRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 1, could not extract LAC\r\n");
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode 1, could not extract LAC\r\n");
                     goto Error;
                 }
                 //  Read <CI>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
                     (!ExtractUInt32(pszRsp, nCI, pszRsp)))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 1, could not extract CI value\r\n");
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode 1, could not extract CI value\r\n");
                     goto Error;
                 }
                 //  Read <RxLev>
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
                     (!ExtractUInt32(pszRsp, nRSSI, pszRsp)))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 1, could not extract RSSI value\r\n");
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode 1, could not extract RSSI value\r\n");
                     goto Error;
                 }
 
@@ -3359,9 +3564,12 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                 pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
 
                 //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%04X%04X", nLAC, nCI);
+                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH,
+                        "%04X%04X", nLAC, nCI);
 
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 1 GSM LAC,CID index=[%d]  cid=[%s]\r\n", nIndex, pCellData->pnCellCIDBuffers[nIndex]);
+                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                        " mode 1 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
+                        nIndex, pCellData->pnCellCIDBuffers[nIndex]);
 
                 //  rssi = <RxLev>
 
@@ -3369,9 +3577,12 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                 //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
                 //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
 
-                //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31 like AT+CSQ response.
+                //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
+                //  like AT+CSQ response.
                 pCellData->pnCellData[nIndex].rssi = (int)(nRSSI / 2);
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 1 GSM rxlev index=[%d]  rssi=[%d]\r\n", nIndex, pCellData->pnCellData[nIndex].rssi);
+                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                        " mode 1 GSM rxlev index=[%d]  rssi=[%d]\r\n",
+                        nIndex, pCellData->pnCellData[nIndex].rssi);
             }
             break;
 
@@ -3380,11 +3591,12 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                 //  This can be either first case or second case.
                 //  Loop and count number of commas
                 char szBuf[MAX_BUFFER_SIZE] = {0};
-                const char *szDummy = pszRsp;
+                const char* szDummy = pszRsp;
                 UINT32 nCommaCount = 0;
                 if (!ExtractUnquotedString(pszRsp, m_cTerminator, szBuf, MAX_BUFFER_SIZE, szDummy))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 2, could not extract temp buf\r\n");
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode 2, could not extract temp buf\r\n");
                     goto Error;
                 }
                 for (UINT32 n=0; n<strlen(szBuf); n++)
@@ -3392,7 +3604,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                     if (szBuf[n] == ',')
                         nCommaCount++;
                 }
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 2, found %d commas\r\n", nCommaCount);
+                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                        " mode 2, found %d commas\r\n", nCommaCount);
 
                 if (6 != nCommaCount)
                 {
@@ -3404,34 +3617,42 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                         !FindAndSkipString(pszRsp, ",", pszRsp) ||
                         !FindAndSkipString(pszRsp, ",", pszRsp))
                     {
-                        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 2, could not skip to scrambling code\r\n");
+                        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                                " mode 2, could not skip to scrambling code\r\n");
                         goto Error;
                     }
                     if (!ExtractUInt32(pszRsp, nScramblingCode, pszRsp))
                     {
-                        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 2, could not extract scrambling code\r\n");
+                        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                                " mode 2, could not extract scrambling code\r\n");
                         goto Error;
                     }
                     //  Cannot get <rscp> as it does not exist.
                     //  We now have what we want, copy to main structure.
                     //  cid = <scrambling code> as char *
                     pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
-                    snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%08x", nScramblingCode);
+                    snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%08x",
+                            nScramblingCode);
 
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 2 UMTS scramblingcode index=[%d]  cid=[%s]\r\n", nIndex, pCellData->pnCellCIDBuffers[nIndex]);
+                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode 2 UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
+                            nIndex, pCellData->pnCellCIDBuffers[nIndex]);
 
                     //  rssi = <rscp>
                     //  Note that <rscp> value does not exist with this response.
                     //  Set to 0 for now.
                     pCellData->pnCellData[nIndex].rssi = 0;
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode 2 UMTS rscp index=[%d]  rssi=[%d]\r\n", nIndex, pCellData->pnCellData[nIndex].rssi);
+                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode 2 UMTS rscp index=[%d]  rssi=[%d]\r\n",
+                            nIndex, pCellData->pnCellData[nIndex].rssi);
 
                     break;
                 }
                 else
                 {
                     //  fall through to case 3 as it is parsed the same.
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - comma count = 6, drop to case 3\r\n");
+                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " comma count = 6, drop to case 3\r\n");
                 }
             }
 
@@ -3443,7 +3664,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                 if ((!SkipString(pszRsp, ",", pszRsp)) ||
                     (!ExtractUInt32(pszRsp, nScramblingCode, pszRsp)))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode %d, could not extract scrambling code\r\n", nMode);
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode %d, could not extract scrambling code\r\n", nMode);
                     goto Error;
                 }
 
@@ -3452,33 +3674,42 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                     !FindAndSkipString(pszRsp, ",", pszRsp) ||
                     !FindAndSkipString(pszRsp, ",", pszRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode %d, could not skip to rscp\r\n", nMode);
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                           " mode %d, could not skip to rscp\r\n", nMode);
                     goto Error;
                 }
                 //  read <rscp>
                 if (!ExtractUInt32(pszRsp, nRSSI, pszRsp))
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode %d, could not extract rscp\r\n", nMode);
+                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                            " mode %d, could not extract rscp\r\n", nMode);
                     goto Error;
                 }
 
                 //  We now have what we want, copy to main structure.
                 //  cid = <scrambling code> as char *
                 pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
-                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%08x", nScramblingCode);
+                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%08x",
+                        nScramblingCode);
 
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode %d UMTS scramblingcode index=[%d]  cid=[%s]\r\n", nMode, nIndex, pCellData->pnCellCIDBuffers[nIndex]);
+                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                        " mode %d UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
+                        nMode, nIndex, pCellData->pnCellCIDBuffers[nIndex]);
 
                 //  rssi = <rscp>
-                //  Assume that rssi value is same as <rscp> value and no conversion needs to be done.
+                //  Assume that rssi value is same as <rscp> value and no conversion needs to
+                //  be done.
                 pCellData->pnCellData[nIndex].rssi = (int)nRSSI;
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - mode %d UMTS rscp index=[%d]  rssi=[%d]\r\n", nMode, nIndex, pCellData->pnCellData[nIndex].rssi);
+                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                        " mode %d UMTS rscp index=[%d]  rssi=[%d]\r\n",
+                        nMode, nIndex, pCellData->pnCellData[nIndex].rssi);
             }
             break;
 
             default:
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() - Invalid nMode=[%d]\r\n", nMode);
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                        " Invalid nMode=[%d]\r\n", nMode);
                 goto Error;
             }
             break;
@@ -3522,7 +3753,9 @@ Error:
 //
 // RIL_REQUEST_SET_TTY_MODE 80
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreSetTtyMode(REQUEST_DATA& rReqData,
+                                                        void* pData,
+                                                        UINT32 uiDataSize)
 {
     RIL_LOG_INFO("CTE_XMM6260::CoreSetTtyMode() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -3530,7 +3763,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pDat
 
     if (sizeof(int*) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetTtyMode() - Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetTtyMode() -"
+                " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
@@ -3548,7 +3782,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pDat
     // check for invalid value
     if ((nTtyMode < 0) || (nTtyMode > 3))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetTtyMode() - Undefined CTM/TTY mode: %d\r\n", nTtyMode);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetTtyMode() -"
+                " Undefined CTM/TTY mode: %d\r\n", nTtyMode);
         res = RIL_E_GENERIC_FAILURE;
         goto Error;
     }
@@ -3559,7 +3794,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetTtyMode(REQUEST_DATA & rReqData, void * pDat
     else if (3 == nTtyMode)
         nTtyMode = 2;
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XCTMS=%d\r", nTtyMode))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XCTMS=%d\r",
+            nTtyMode))
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetTtyMode() - Could not form string.\r\n");
         goto Error;
@@ -3582,12 +3818,15 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSetTtyMode(RESPONSE_DATA & rRspData)
 //
 // RIL_REQUEST_QUERY_TTY_MODE 81
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreQueryTtyMode(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreQueryTtyMode(REQUEST_DATA& rReqData,
+                                                          void* pData,
+                                                          UINT32 uiDataSize)
 {
     RIL_LOG_INFO("CTE_XMM6260::CoreQueryTtyMode() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XCTMS?\r"))
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+XCTMS?\r"))
     {
         res = RRIL_RESULT_OK;
     }
@@ -3606,14 +3845,16 @@ RIL_RESULT_CODE CTE_XMM6260::ParseQueryTtyMode(RESPONSE_DATA & rRspData)
     int* pnMode = (int*)malloc(sizeof(int));
     if (NULL == pnMode)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryTtyMode() - Could not allocate memory for response.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryTtyMode() -"
+                " Could not allocate memory for response.\r\n");
         goto Error;
     }
 
     // Parse prefix
     if (!FindAndSkipString(szRsp, "+XCTMS: ", szRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryTtyMode() - Unable to parse \"CTM/TTY mode: \" prefix.!\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryTtyMode() -"
+                " Unable to parse \"CTM/TTY mode: \" prefix.!\r\n");
         goto Error;
     }
 
@@ -3652,7 +3893,9 @@ Error:
 //
 // RIL_REQUEST_REPORT_SMS_MEMORY_STATUS 102
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreReportSmsMemoryStatus(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreReportSmsMemoryStatus(REQUEST_DATA& rReqData,
+                                                                   void* pData,
+                                                                   UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreReportSmsMemoryStatus - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -3690,7 +3933,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseReportSmsMemoryStatus(RESPONSE_DATA & rRspData
 //
 // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
 //
-RIL_RESULT_CODE CTE_XMM6260::CoreReportStkServiceRunning(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM6260::CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
+                                                                     void* pData,
+                                                                     UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreReportStkServiceRunning - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -3730,28 +3975,32 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRsp
     const char* pszRsp = rRspData.szResponse;
     if (NULL == pszRsp)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Response string is NULL!\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                "Response string is NULL!\r\n");
         goto Error;
     }
 
     // Parse "<prefix>"
     if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Could not skip over response prefix.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                "Could not skip over response prefix.\r\n");
         goto Error;
     }
 
     // Parse "+SATE: "
     if (!SkipString(pszRsp, "+SATE: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Could not skip over \"+SATE: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                "Could not skip over \"+SATE: \".\r\n");
         goto Error;
     }
 
     // Parse "<sw1>"
     if (!ExtractUInt32(pszRsp, uiSw1, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Could not extract sw1.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                "Could not extract sw1.\r\n");
         goto Error;
     }
 
@@ -3759,7 +4008,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRsp
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt32(pszRsp, uiSw2, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Could not extract sw2.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                "Could not extract sw2.\r\n");
         goto Error;
     }
 
@@ -3767,7 +4017,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRsp
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt32(pszRsp, uiEventType, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Could not extract event type.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                "Could not extract event type.\r\n");
         goto Error;
     }
 
@@ -3775,7 +4026,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRsp
     if (!SkipString(pszRsp, ",", pszRsp) ||
         !ExtractUInt32(pszRsp, uiEnvelopeType, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Could not extract envelope type.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                "Could not extract envelope type.\r\n");
         goto Error;
     }
 
@@ -3787,13 +4039,16 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRsp
     {
         // Parse ",<response_data>"
         // NOTE: we take ownership of allocated pszRespData
-        if (!ExtractUnquotedStringWithAllocatedMemory(pszRsp, m_cTerminator, pszRespData, cbRespData, pszRsp))
+        if (!ExtractUnquotedStringWithAllocatedMemory(pszRsp, m_cTerminator, pszRespData,
+                cbRespData, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Could not parse response data.\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                    "Could not parse response data.\r\n");
             goto Error;
         }
 
-        RIL_LOG_INFO("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - response data: \"%s\".\r\n", pszRespData);
+        RIL_LOG_INFO("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - response data: \"%s\".\r\n",
+                pszRespData);
 
         // Allocate memory for the RIL_SIM_IO_Response struct + sim response string.
         // The char* in the RIL_SIM_IO_Response will point to the buffer allocated
@@ -3802,7 +4057,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRsp
         pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbRespData + 1);
         if (NULL == pResponse)
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                    "Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
             goto Error;
         }
         memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbRespData + 1);
@@ -3818,7 +4074,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRsp
 
             if (!CopyStringNullTerminate(pResponse->simResponse, pszRespData, cbRespData))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Cannot CopyStringNullTerminate szResponseString\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                        "Cannot CopyStringNullTerminate szResponseString\r\n");
                 goto Error;
             }
 
@@ -3831,7 +4088,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRsp
         pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response));
         if (NULL == pResponse)
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                    "Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
             goto Error;
         }
         pResponse->simResponse = NULL;
@@ -3843,7 +4101,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRsp
     // Parse "<postfix>"
     if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() - Could not extract the response end.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseStkSendEnvelopeWithStatus() -"
+                "Could not extract the response end.\r\n");
         goto Error;
     }
 
@@ -3867,7 +4126,8 @@ Error:
 }
 
 RIL_RESULT_CODE CTE_XMM6260::CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
-                                                    const char** pszRequest, const UINT32 uiDataSize)
+                                                             const char** pszRequest,
+                                                             const UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CreateGetThermalSensorValuesReq() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -3875,27 +4135,32 @@ RIL_RESULT_CODE CTE_XMM6260::CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqD
 
     if (pszRequest == NULL || '\0' == pszRequest[0])
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetThermalSensorValuesReq() - pszRequest was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetThermalSensorValuesReq() -"
+                " pszRequest was NULL\r\n");
         goto Error;
     }
 
     if (uiDataSize < (2 * sizeof(char *)))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetThermalSensorValuesReq() : received_size < required_size\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetThermalSensorValuesReq() :"
+                " received_size < required_size\r\n");
         goto Error;
     }
 
     if (sscanf(pszRequest[1], "%d", &sensorId) == EOF)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetThermalSensorReq() - cannot convert %s to int\r\n", pszRequest[1]);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetThermalSensorReq() -"
+                " cannot convert %s to int\r\n", pszRequest[1]);
         goto Error;
     }
 
     RIL_LOG_INFO("CTE_XMM6260::CreateGetThermalSensorValuesReq() - sensorId=[%d]\r\n", sensorId);
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,9,%d\r", sensorId))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+XDRV=5,9,%d\r", sensorId))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetThermalSensorValuesReq() - Can't construct szCmd1.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetThermalSensorValuesReq() -"
+                " Can't construct szCmd1.\r\n");
         goto Error;
     }
 
@@ -3920,20 +4185,24 @@ RIL_RESULT_CODE CTE_XMM6260::CreateActivateThermalSensorInd(REQUEST_DATA& rReqDa
 
     if (pszRequest == NULL || '\0' == pszRequest[0])
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() - pszRequest was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() -"
+                " pszRequest was NULL\r\n");
         goto Error;
     }
 
     if (uiDataSize < (2 * sizeof(char *)))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() : received data size is not enough to process the request\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() :"
+                " received data size is not enough to process the request\r\n");
         goto Error;
     }
 
-    noOfVariablesFilled = sscanf(pszRequest[1], "%s %d %d %d", szActivate, &sensorId, &minThersholdTemp, &maxThersholdTemp);
+    noOfVariablesFilled = sscanf(pszRequest[1], "%s %d %d %d", szActivate, &sensorId,
+            &minThersholdTemp, &maxThersholdTemp);
     if (noOfVariablesFilled < MAX_NUM_OF_INPUT_DATA || noOfVariablesFilled == EOF)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() - Issue with received input data: %d\r\n", noOfVariablesFilled);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() -"
+                " Issue with received input data: %d\r\n", noOfVariablesFilled);
         goto Error;
     }
 
@@ -3947,18 +4216,22 @@ RIL_RESULT_CODE CTE_XMM6260::CreateActivateThermalSensorInd(REQUEST_DATA& rReqDa
      */
     if (strcmp(szActivate, "true") == 0)
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,14,%d,%d,%d\r",
-                                      sensorId, minThersholdTemp, maxThersholdTemp))
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+XDRV=5,14,%d,%d,%d\r",
+                sensorId, minThersholdTemp, maxThersholdTemp))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() - Can't construct szCmd1.\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() -"
+                   " Can't construct szCmd1.\r\n");
             goto Error;
         }
     }
     else
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XDRV=5,14,%d\r", sensorId))
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+XDRV=5,14,%d\r", sensorId))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() - Can't construct szCmd1.\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() -"
+                    " Can't construct szCmd1.\r\n");
             goto Error;
         }
     }
@@ -3987,32 +4260,34 @@ RIL_RESULT_CODE CTE_XMM6260::CreateAutonomousFDReq(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (uiDataSize < (2 * sizeof(char *)))
+    if (uiDataSize < (2 * sizeof(char*)))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateAutonomousFDReq() : received data size is not enough to process the request\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateAutonomousFDReq() : received data size is not enough"
+                " to process the request\r\n");
         goto Error;
     }
 
     noOfVariablesFilled = sscanf(pszRequest[1], "%s %s %s", szFDEnable, szDelayTimer, szSCRITimer);
     if (noOfVariablesFilled < MAX_NUM_OF_INPUT_DATA || noOfVariablesFilled == EOF)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateAutonomousFDReq() - Issue with received input data: %d\r\n", noOfVariablesFilled);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateAutonomousFDReq() -"
+                " Issue with received input data: %d\r\n", noOfVariablesFilled);
         goto Error;
     }
 
-    RIL_LOG_INFO("CTE_XMM6260::CreateAutonomousFDReq() - Activate=[%s], Delay Timer = [%s], SCRI Timer = [%s]\r\n",
-                szFDEnable,
-                szDelayTimer,
-                szSCRITimer);
+    RIL_LOG_INFO("CTE_XMM6260::CreateAutonomousFDReq() - Activate=[%s], Delay Timer = [%s],"
+            "SCRI Timer = [%s]\r\n", szFDEnable, szDelayTimer, szSCRITimer);
 
     if (strcmp(szDelayTimer, "0") == 0) strcpy(szDelayTimer, "");
     if (strcmp(szSCRITimer, "0") == 0) strcpy(szSCRITimer, "");
 
     if (strcmp(szFDEnable, "true") == 0)
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+XFDOR=2,%s,%s\r", szDelayTimer, szSCRITimer))
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+XFDOR=2,%s,%s\r", szDelayTimer, szSCRITimer))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CreateAutonomousFDReq - Can't construct szCmd1. 2\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreateAutonomousFDReq -"
+                    " Can't construct szCmd1. 2\r\n");
             goto Error;
         }
 
@@ -4021,7 +4296,8 @@ RIL_RESULT_CODE CTE_XMM6260::CreateAutonomousFDReq(REQUEST_DATA& rReqData,
     {
         if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XFDOR=3\r", sizeof(rReqData.szCmd1)))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CreateAutonomousFDReq - Can't construct szCmd1. 3\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreateAutonomousFDReq -"
+                    " Can't construct szCmd1. 3\r\n");
             goto Error;
         }
     }
@@ -4051,12 +4327,12 @@ RIL_RESULT_CODE CTE_XMM6260::CreateDebugScreenReq(REQUEST_DATA& rReqData,
     if (uiDataSize < (2 * sizeof(char*)))
     {
         RIL_LOG_INFO("CTE_XMM6260::CreateDebugScreenReq() - mode and  page_nr not provided, "
-                "default to mode=0 and page_nr=1\r\n");
+                "default to mode = 0 and page_nr = 1\r\n");
     }
     else if (uiDataSize < (3 * sizeof(char*)))
     {
         RIL_LOG_INFO("CTE_XMM6260::CreateDebugScreenReq() - page_nr is not provided, "
-                "default to page_nr=1\r\n");
+                "default to page_nr = 1\r\n");
 
         // Get mode
         if (sscanf(pszRequest[1], "%d", &mode) == EOF)
@@ -4120,7 +4396,8 @@ Error:
 }
 
 RIL_RESULT_CODE CTE_XMM6260::CreateSetSMSTransportModeReq(REQUEST_DATA& rReqData,
-                                                    const char** pszRequest, const UINT32 uiDataSize)
+                                                          const char** pszRequest,
+                                                          const UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CreateSetSMSTransportModeReq() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -4132,27 +4409,31 @@ RIL_RESULT_CODE CTE_XMM6260::CreateSetSMSTransportModeReq(REQUEST_DATA& rReqData
         goto Error;
     }
 
-    if (uiDataSize < (2 * sizeof(char *)))
+    if (uiDataSize < (2 * sizeof(char*)))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetSMSTransportModeReq() : received_size < required_size\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetSMSTransportModeReq() :"
+                " received_size < required_size\r\n");
         goto Error;
     }
 
     if (sscanf(pszRequest[1], "%d", &service) == EOF)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetSMSTransportModeReq() - cannot convert %s to int\r\n", pszRequest);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetSMSTransportModeReq() -"
+                " cannot convert %s to int\r\n", pszRequest);
         goto Error;
     }
 
     if ((service < 0) || (service > 3))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetSMSTransportModeReq() - service %s out of boundaries\r\n", service);
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetSMSTransportModeReq() -"
+                " service %s out of boundaries\r\n", service);
         goto Error;
     }
 
     RIL_LOG_INFO("CTE_XMM6260::CreateSetSMSTransportModeReq() - service=[%d]\r\n", service);
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGSMS=%d\r", service))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+CGSMS=%d\r", service))
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetSMSTransportModeReq() - Can't construct szCmd1.\r\n");
         goto Error;
@@ -4423,7 +4704,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseXCGEDPAGE(const char* pszRsp, RESPONSE_DATA& r
     pResponse = (P_ND_DEBUG_SCREEN) malloc(sizeof(S_ND_DEBUG_SCREEN));
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXCGEDPAGE() - Could not allocate memory for response");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXCGEDPAGE() -"
+                " Could not allocate memory for response");
         goto Error;
     }
     memset(pResponse, 0, sizeof(S_ND_DEBUG_SCREEN));
@@ -4621,7 +4903,8 @@ BOOL CTE_XMM6260::HandleSilentPINEntry(void* pRilToken, void* /*pContextData*/, 
         //  Queue AT+CPIN=<PIN> command
         if (!PrintStringNullTerminate(szCmd, MAX_BUFFER_SIZE, "AT+CPIN=\"%s\"\r", szPIN))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::HandleSilentPINEntry() - cannot create silent AT+CPIN=<PIN> command\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::HandleSilentPINEntry() -"
+                    " cannot create silent AT+CPIN=<PIN> command\r\n");
             goto Error;
         }
 
@@ -4632,7 +4915,8 @@ BOOL CTE_XMM6260::HandleSilentPINEntry(void* pRilToken, void* /*pContextData*/, 
         {
             if (!CCommand::AddCmdToQueue(pCmd, TRUE))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::HandleSilentPINEntry() - Unable to queue AT+CPIN command!\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::HandleSilentPINEntry() -"
+                        " Unable to queue AT+CPIN command!\r\n");
                 delete pCmd;
                 pCmd = NULL;
                 goto Error;
@@ -4640,7 +4924,8 @@ BOOL CTE_XMM6260::HandleSilentPINEntry(void* pRilToken, void* /*pContextData*/, 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::HandleSilentPINEntry() - Unable to allocate memory for new silent AT+CPIN=<PIN> command!\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::HandleSilentPINEntry() -"
+                    " Unable to allocate memory for new silent AT+CPIN=<PIN> command!\r\n");
             goto Error;
         }
 
@@ -4664,7 +4949,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSilentPinEntry(RESPONSE_DATA& rRspData)
     return RRIL_RESULT_OK;
 }
 
-RIL_RESULT_CODE CTE_XMM6260::QueryPinRetryCount(REQUEST_DATA& rReqData, void* /*pData*/, UINT32 /*uiDataSize*/)
+RIL_RESULT_CODE CTE_XMM6260::QueryPinRetryCount(REQUEST_DATA& rReqData,
+                                                        void* /*pData*/,
+                                                        UINT32 /*uiDataSize*/)
 {
     RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
 
@@ -4705,8 +4992,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimPinRetryCount(RESPONSE_DATA& rRspData)
         }
         else
         {
-            RIL_LOG_INFO("CTE_XMM6260::ParseSimPinRetryCount() - retries pin:%d pin2:%d puk:%d puk2:%d\r\n",
-                uiRetryCount[0], uiRetryCount[1], uiRetryCount[2], uiRetryCount[3]);
+            RIL_LOG_INFO("CTE_XMM6260::ParseSimPinRetryCount() -"
+                    " retries pin:%d pin2:%d puk:%d puk2:%d\r\n",
+                    uiRetryCount[0], uiRetryCount[1], uiRetryCount[2], uiRetryCount[3]);
             m_PinRetryCount.pin = uiRetryCount[0];
             m_PinRetryCount.pin2 = uiRetryCount[1];
             m_PinRetryCount.puk = uiRetryCount[2];
@@ -4748,8 +5036,8 @@ void CTE_XMM6260::PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_INFO("CTE_XMM6260::PostSetupDataCallCmdHandler() - No Data Channel for CID %u.\r\n",
-                                                                    uiCID);
+        RIL_LOG_INFO("CTE_XMM6260::PostSetupDataCallCmdHandler() -"
+                " No Data Channel for CID %u.\r\n", uiCID);
         goto Error;
     }
 
@@ -4761,7 +5049,8 @@ void CTE_XMM6260::PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
                                     &CTE::ParsePdpContextActivate,
                                     &CTE::PostPdpContextActivateCmdHandler))
     {
-        RIL_LOG_INFO("CTE_XMM6260::PostSetupDataCallCmdHandler() - CreatePdpContextActivateReq failed\r\n");
+        RIL_LOG_INFO("CTE_XMM6260::PostSetupDataCallCmdHandler() -"
+                " CreatePdpContextActivateReq failed\r\n");
         goto Error;
     }
 
@@ -4791,7 +5080,8 @@ void CTE_XMM6260::PostPdpContextActivateCmdHandler(POST_CMD_HANDLER_DATA& rData)
     if (NULL == rData.pContextData ||
             sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA) != rData.uiContextDataSize)
     {
-        RIL_LOG_INFO("CTE_XMM6260::PostPdpContextActivateCmdHandler() - Invalid context data\r\n");
+        RIL_LOG_INFO("CTE_XMM6260::PostPdpContextActivateCmdHandler() -"
+                " Invalid context data\r\n");
         goto Error;
     }
 
@@ -4807,15 +5097,16 @@ void CTE_XMM6260::PostPdpContextActivateCmdHandler(POST_CMD_HANDLER_DATA& rData)
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_INFO("CTE_XMM6260::PostPdpContextActivateCmdHandler() - No Data Channel for CID %u.\r\n",
-                                                                    uiCID);
+        RIL_LOG_INFO("CTE_XMM6260::PostPdpContextActivateCmdHandler() -"
+                " No Data Channel for CID %u.\r\n", uiCID);
         goto Error;
     }
 
     state = pChannelData->GetDataState();
     if (E_DATA_STATE_ACTIVATING != state)
     {
-        RIL_LOG_INFO("CTE_XMM6260::PostPdpContextActivateCmdHandler() - Wrong data state: %d\r\n", state);
+        RIL_LOG_INFO("CTE_XMM6260::PostPdpContextActivateCmdHandler() -"
+                " Wrong data state: %d\r\n", state);
         goto Error;
     }
 
@@ -4826,7 +5117,8 @@ void CTE_XMM6260::PostPdpContextActivateCmdHandler(POST_CMD_HANDLER_DATA& rData)
                                     &CTE::ParseQueryIpAndDns,
                                     &CTE::PostQueryIpAndDnsCmdHandler))
     {
-        RIL_LOG_INFO("CTE_XMM6260::PostPdpContextActivateCmdHandler() - CreateQueryIpAndDnsReq failed\r\n");
+        RIL_LOG_INFO("CTE_XMM6260::PostPdpContextActivateCmdHandler() -"
+                " CreateQueryIpAndDnsReq failed\r\n");
         goto Error;
     }
 
@@ -4872,8 +5164,8 @@ void CTE_XMM6260::PostQueryIpAndDnsCmdHandler(POST_CMD_HANDLER_DATA& rData)
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_INFO("CTE_XMM6260::PostQueryIpAndDnsCmdHandler() - No Data Channel for CID %u.\r\n",
-                                                                    uiCID);
+        RIL_LOG_INFO("CTE_XMM6260::PostQueryIpAndDnsCmdHandler() -"
+                " No Data Channel for CID %u.\r\n", uiCID);
         goto Error;
     }
 
@@ -4881,7 +5173,7 @@ void CTE_XMM6260::PostQueryIpAndDnsCmdHandler(POST_CMD_HANDLER_DATA& rData)
     if (E_DATA_STATE_ACTIVE != state)
     {
         RIL_LOG_INFO("CTE_XMM6260::PostQueryIpAndDnsCmdHandler() - Wrong data state: %d\r\n",
-                                                                        state);
+                state);
         goto Error;
     }
 
@@ -4891,7 +5183,8 @@ void CTE_XMM6260::PostQueryIpAndDnsCmdHandler(POST_CMD_HANDLER_DATA& rData)
                                     &CTE::ParseEnterDataState,
                                     &CTE::PostEnterDataStateCmdHandler))
     {
-        RIL_LOG_INFO("CTE_XMM6260::PostQueryIpAndDnsCmdHandler() - CreateEnterDataStateReq failed\r\n");
+        RIL_LOG_INFO("CTE_XMM6260::PostQueryIpAndDnsCmdHandler() -"
+                " CreateEnterDataStateReq failed\r\n");
         goto Error;
     }
 
@@ -4938,8 +5231,8 @@ void CTE_XMM6260::PostEnterDataStateCmdHandler(POST_CMD_HANDLER_DATA& rData)
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_INFO("CTE_XMM6260::PostEnterDataStateCmdHandler() - No Data Channel for CID %u.\r\n",
-                                                                    uiCID);
+        RIL_LOG_INFO("CTE_XMM6260::PostEnterDataStateCmdHandler() -"
+                " No Data Channel for CID %u.\r\n", uiCID);
         goto Error;
     }
 
@@ -4947,7 +5240,7 @@ void CTE_XMM6260::PostEnterDataStateCmdHandler(POST_CMD_HANDLER_DATA& rData)
     if (E_DATA_STATE_ACTIVE != state)
     {
         RIL_LOG_INFO("CTE_XMM6260::PostEnterDataStateCmdHandler() - Wrong data state: %d\r\n",
-                                                                        state);
+                state);
         goto Error;
     }
 
@@ -4990,7 +5283,8 @@ void CTE_XMM6260::PostDeactivateDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
     if (NULL == rData.pContextData ||
             sizeof(UINT32) != rData.uiContextDataSize)
     {
-        RIL_LOG_INFO("CTE_XMM6260::PostDeactivateDataCallCmdHandler() - Invalid context data\r\n");
+        RIL_LOG_INFO("CTE_XMM6260::PostDeactivateDataCallCmdHandler() -"
+                " Invalid context data\r\n");
         goto Error;
     }
 
@@ -5026,12 +5320,13 @@ BOOL CTE_XMM6260::CreatePdpContextActivateReq(UINT32 uiChannel,
 
     if (!PdpContextActivate(reqData, pData, uiDataSize))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreatePdpContextActivateReq() - Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreatePdpContextActivateReq() -"
+                " Unable to create AT command data\r\n");
         goto Error;
     }
     else
     {
-        CCommand * pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
+        CCommand* pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
                                                 pParseFcn, pPostCmdHandlerFcn);
         if (pCmd)
         {
@@ -5040,7 +5335,8 @@ BOOL CTE_XMM6260::CreatePdpContextActivateReq(UINT32 uiChannel,
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::CreatePdpContextActivateReq() - Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::CreatePdpContextActivateReq() -"
+                        " Unable to add command to queue\r\n");
                 delete pCmd;
                 pCmd = NULL;
                 goto Error;
@@ -5048,7 +5344,8 @@ BOOL CTE_XMM6260::CreatePdpContextActivateReq(UINT32 uiChannel,
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CreatePdpContextActivateReq() - Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreatePdpContextActivateReq() -"
+                    " Unable to allocate memory for command\r\n");
             goto Error;
         }
     }
@@ -5082,12 +5379,13 @@ BOOL CTE_XMM6260::CreateQueryIpAndDnsReq(UINT32 uiChannel, RIL_Token rilToken,
 
     if (!QueryIpAndDns(reqData, pDataCallContextData->uiCID))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateQueryIpAndDnsReq() - Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateQueryIpAndDnsReq() -"
+                " Unable to create AT command data\r\n");
         goto Error;
     }
     else
     {
-        CCommand * pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
+        CCommand* pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
                                                 pParseFcn, pPostCmdHandlerFcn);
         if (pCmd)
         {
@@ -5096,7 +5394,8 @@ BOOL CTE_XMM6260::CreateQueryIpAndDnsReq(UINT32 uiChannel, RIL_Token rilToken,
             pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::CreateQueryIpAndDnsReq() - Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::CreateQueryIpAndDnsReq() -"
+                        " Unable to add command to queue\r\n");
                 delete pCmd;
                 pCmd = NULL;
                 goto Error;
@@ -5104,7 +5403,8 @@ BOOL CTE_XMM6260::CreateQueryIpAndDnsReq(UINT32 uiChannel, RIL_Token rilToken,
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CreateQueryIpAndDnsReq() - Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreateQueryIpAndDnsReq() -"
+                    " Unable to allocate memory for command\r\n");
             goto Error;
         }
     }
@@ -5138,12 +5438,13 @@ BOOL CTE_XMM6260::CreateEnterDataStateReq(UINT32 uiChannel, RIL_Token rilToken,
 
     if (!EnterDataState(reqData, pDataCallContextData->uiCID))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateEnterDataStateReq() - Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateEnterDataStateReq() -"
+                " Unable to create AT command data\r\n");
         goto Error;
     }
     else
     {
-        CCommand * pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
+        CCommand* pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
                                                 pParseFcn, pPostCmdHandlerFcn);
         if (pCmd)
         {
@@ -5153,7 +5454,8 @@ BOOL CTE_XMM6260::CreateEnterDataStateReq(UINT32 uiChannel, RIL_Token rilToken,
             pCmd->SetAlwaysParse();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE_XMM6260::CreateEnterDataStateReq() - Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM6260::CreateEnterDataStateReq() -"
+                        " Unable to add command to queue\r\n");
                 delete pCmd;
                 pCmd = NULL;
                 goto Error;
@@ -5161,7 +5463,8 @@ BOOL CTE_XMM6260::CreateEnterDataStateReq(UINT32 uiChannel, RIL_Token rilToken,
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CreateEnterDataStateReq() - Unable to allocate memory for command\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreateEnterDataStateReq() -"
+                    " Unable to allocate memory for command\r\n");
             goto Error;
         }
     }
@@ -5230,21 +5533,21 @@ BOOL CTE_XMM6260::SetupInterface(UINT32 uiCID)
     fd = pChannelData->GetFD();
     if (fd >= 0)
     {
-        RIL_LOG_INFO("CTE_XMM6260::SetupInterface() - ***** PUTTING channel=[%u] in DATA MODE *****\r\n",
-                                                                    uiChannel);
+        RIL_LOG_INFO("CTE_XMM6260::SetupInterface() -"
+                " ***** PUTTING channel=[%u] in DATA MODE *****\r\n", uiChannel);
         ret = ioctl(fd, GSMIOC_ENABLE_NET, &netconfig); // Enable data channel
         if (ret < 0)
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::SetupInterface() - Unable to create interface %s : %s \r\n",
-                                            netconfig.if_name,strerror(errno));
+            RIL_LOG_CRITICAL("CTE_XMM6260::SetupInterface() -"
+                    " Unable to create interface %s : %s \r\n", netconfig.if_name,strerror(errno));
             goto Error;
         }
     }
     else
     {
         //  No FD.
-        RIL_LOG_CRITICAL("CTE_XMM6260::SetupInterface() - Could not get Data Channel chnl=[%u] fd=[%d].\r\n",
-                                                                uiChannel, fd);
+        RIL_LOG_CRITICAL("CTE_XMM6260::SetupInterface() - "
+                "Could not get Data Channel chnl=[%u] fd=[%d].\r\n", uiChannel, fd);
         goto Error;
     }
 
@@ -5273,7 +5576,8 @@ BOOL CTE_XMM6260::SetupInterface(UINT32 uiCID)
     if (!DataConfigUp(szNetworkInterfaceName, pChannelData,
                                                         eDataConnectionType))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::SetupInterface() - Unable to bringup interface ifconfig\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::SetupInterface() -"
+                " Unable to bringup interface ifconfig\r\n");
         goto Error;
     }
 
@@ -5306,8 +5610,8 @@ void CTE_XMM6260::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::HandleSetupDataCallSuccess() - No Data Channel for CID %u.\r\n",
-                                                                    uiCID);
+        RIL_LOG_CRITICAL("CTE_XMM6260::HandleSetupDataCallSuccess() -"
+                " No Data Channel for CID %u.\r\n", uiCID);
         goto Error;
     }
 
@@ -5344,12 +5648,13 @@ void CTE_XMM6260::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
 
     if (CRilLog::IsFullLogBuild())
     {
-        RIL_LOG_INFO("status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
-                      dataCallResp.status, dataCallResp.suggestedRetryTime,
-                      dataCallResp.cid, dataCallResp.active,
-                      dataCallResp.type, dataCallResp.ifname,
-                      dataCallResp.addresses, dataCallResp.dnses,
-                      dataCallResp.gateways);
+        RIL_LOG_INFO("status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\""
+                " addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
+                dataCallResp.status, dataCallResp.suggestedRetryTime,
+                dataCallResp.cid, dataCallResp.active,
+                dataCallResp.type, dataCallResp.ifname,
+                dataCallResp.addresses, dataCallResp.dnses,
+                dataCallResp.gateways);
     }
 
 Error:
@@ -5375,8 +5680,8 @@ void CTE_XMM6260::HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken,
     CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_INFO("CTE_XMM6260::HandleSetupDataCallFailure() - No data channel for CID: %u\r\n",
-                                                                        uiCID);
+        RIL_LOG_INFO("CTE_XMM6260::HandleSetupDataCallFailure() -"
+                " No data channel for CID: %u\r\n", uiCID);
         goto Complete;
     }
 
@@ -5446,8 +5751,8 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::DataConfigDown() - Invalid CID=[%u], no data channel found!\r\n",
-                                                                        uiCID);
+        RIL_LOG_CRITICAL("CTE_XMM6260::DataConfigDown() - "
+                "Invalid CID=[%u], no data channel found!\r\n", uiCID);
         return FALSE;
     }
 
@@ -5455,7 +5760,7 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
 
     // Reset ContextID to 0, to free up the channel for future use
     RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() - ****** Setting chnl=[%u] to CID=[0] ******\r\n",
-                                                                    uiChannel);
+            uiChannel);
 
     state = pChannelData->GetDataState();
     pChannelData->ResetDataCallInfo();
@@ -5476,8 +5781,8 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
     fd = pChannelData->GetFD();
     if (fd >= 0)
     {
-        RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() - ***** PUTTING channel=[%u] in AT COMMAND MODE *****\r\n",
-                            uiChannel);
+        RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() -"
+                " ***** PUTTING channel=[%u] in AT COMMAND MODE *****\r\n", uiChannel);
         ret = ioctl(fd, GSMIOC_DISABLE_NET, &netconfig);
     }
     else

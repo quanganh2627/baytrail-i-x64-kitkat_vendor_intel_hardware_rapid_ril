@@ -24,7 +24,7 @@ class CChannel;
 class CSilo_Data_INF : public CSilo_Data
 {
 public:
-    CSilo_Data_INF(CChannel *pChannel);
+    CSilo_Data_INF(CChannel* pChannel);
     virtual ~CSilo_Data_INF();
 };
 

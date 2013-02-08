@@ -85,8 +85,6 @@ void ModemResetUpdate()
 
     RIL_LOG_VERBOSE("ModemResetUpdate() - Enter\r\n");
 
-    char szModemState[PROPERTY_VALUE_MAX] = "0";
-
     CTE::GetTE().CleanupAllDataConnections();
 
     //  Tell Android no more data connection
@@ -95,27 +93,6 @@ void ModemResetUpdate()
     //  If there was a voice call active, it is disconnected.
     //  This will cause a RIL_REQUEST_GET_CURRENT_CALLS to be sent
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
-
-    CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
-
-    if (CTE::GetTE().GetModemOffInFlightModeState())
-    {
-        property_get("persist.radio.ril_modem_state", szModemState , "1");
-        if (strncmp(szModemState, "0", 1) == 0)
-        {
-            // Flightmode enabled
-            CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
-        }
-        else
-        {
-            // Modem reset or plateform boot
-            CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-        }
-    }
-    else
-    {
-        CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-    }
 
     //  Delay slightly so Java layer receives replies
     Sleep(10);
@@ -130,7 +107,8 @@ void ModemResetUpdate()
 //  Alert MMGR to attempt a clean-up.
 void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszFileName)
 {
-    RIL_LOG_INFO("[RIL STATE] REQUEST RESET (RIL -> MMGR) eError=[%s], file=[%s], line num=[%d]\r\n",
+    RIL_LOG_INFO("[RIL STATE] REQUEST RESET (RIL -> MMGR)"
+            " eError=[%s], file=[%s], line num=[%d]\r\n",
             Print_eRadioError(eError), lpszFileName, uiLineNum);
 
     // If Spoof commands, log and return
@@ -146,12 +124,13 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
 
         //  Close ports
         CSystemManager::GetInstance().CloseChannelPorts();
+        CSystemManager::GetInstance().SetInitializationUnsuccessful();
 
         if (eRadioError_ForceShutdown == eError)
         {
             RIL_LOG_INFO("do_request_clean_up() - SendRequestModemShutdown\r\n");
 
-            //  Send "REQUEST_SHUTDOWN" on Modem Manager socket
+            //  Send shutdown request to MMgr
             if (!CSystemManager::GetInstance().SendRequestModemShutdown())
             {
                 RIL_LOG_CRITICAL("do_request_clean_up() - CANNOT SEND MODEM SHUTDOWN REQUEST\r\n");
@@ -160,23 +139,22 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
         }
         else
         {
-            RIL_LOG_INFO("do_request_clean_up() - SendRequestModemRecovery, eError=[%d]\r\n", eError);
+            RIL_LOG_INFO("do_request_clean_up()"
+                    "- SendRequestModemRecovery, eError=[%d]\r\n", eError);
 
-            //  Send "REQUEST_CLEANUP" on Modem Manager socket
+            //  Voice calls disconnected, no more data connections
+            ModemResetUpdate();
+
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
+            CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+
+            //  Send recovery request to MMgr
             if (!CSystemManager::GetInstance().SendRequestModemRecovery())
             {
                 RIL_LOG_CRITICAL("do_request_clean_up() - CANNOT SEND MODEM RESTART REQUEST\r\n");
                 //  Socket could have been closed by MMGR.
                 //  Restart RRIL, drop down to exit.
             }
-
-            //  Inform Android of new state
-            //  Voice calls disconnected, no more data connections
-            ModemResetUpdate();
-
-            RIL_LOG_INFO("do_request_clean_up() - Calling exit(0)\r\n");
-            CSystemManager::Destroy();
-            exit(0);
         }
     }
 
@@ -208,7 +186,7 @@ void* ContinueInitThreadProc(void* pVoid)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//  This method handles the Modem Manager events and notifications
+//  This method handles MMgr events and notifications
 int ModemManagerEventHandler(mmgr_cli_event_t* param)
 {
     RIL_LOG_VERBOSE("ModemManagerEventHandler() - Enter\r\n");
@@ -218,7 +196,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
     const int SLEEP_MS = 10000;
 
     //  Store the previous modem's state.  Only handle the toggle of the modem state.
-    //  Initialize to MODEM_DOWN.
     UINT32 nPreviousModemState = CTE::GetTE().GetLastModemEvent();
 
     //  Now start polling for modem status...
@@ -274,22 +251,36 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(E_MMGR_EVENT_MODEM_DOWN);
 
-                //  Close ports
-                RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                CSystemManager::GetInstance().CloseChannelPorts();
+                CTE::GetTE().ResetInternalStates();
 
                 //  Inform Android of new state
                 //  Voice calls disconnected, no more data connections
                 ModemResetUpdate();
 
-                CSystemManager::Destroy();
+                //  Close ports
+                RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                CSystemManager::GetInstance().CloseChannelPorts();
 
-                if (E_MMGR_EVENT_MODEM_OUT_OF_SERVICE != uiMMgrEvent)
+                if (E_MMGR_EVENT_MODEM_DOWN == uiMMgrEvent)
                 {
-
-                    //  let's exit, init will restart us
-                    RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_DOWN CALLING EXIT\r\n");
-                    exit(0);
+                    // Retrieve the shutdown property
+                    if (CTE::GetTE().IsPlatformShutDownRequested()
+                            || CTE::GetTE().GetModemOffInFlightModeState())
+                    {
+                        RIL_LOG_INFO("E_MMGR_EVENT_MODEM_DOWN due to PLATFORM_SHUTDOWN or "
+                                "MODEM OFF in flight mode - don't exit\r\n");
+                    }
+                    else
+                    {
+                        //  let's exit, init will restart us
+                        RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_DOWN CALLING EXIT\r\n");
+                        CSystemManager::Destroy();
+                        exit(0);
+                    }
+                }
+                else
+                {
+                    CSystemManager::Destroy();
                 }
 
                 RIL_LOG_INFO("ModemManagerEventHandler() -"
@@ -308,19 +299,21 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 if (!CTE::GetTE().GetSpoofCommandsStatus() &&
                         (E_MMGR_EVENT_MODEM_DOWN != nPreviousModemState))
                 {
-                    CTE::GetTE().CleanupAllDataConnections();
+                    // Voice calls disconnected, no more data connections
+                    ModemResetUpdate();
 
-                    CTE::GetTE().SetManualNetworkSearchOn(FALSE);
-                    CTE::GetTE().SetupDataCallOngoing(FALSE);
+                    CTE::GetTE().ResetInternalStates();
 
-                    //  Turning off phone
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
                     do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
                 }
                 else
                 {
+                    //  Turning off phone
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
+
                     // Ends the RRIL
                     CSystemManager::Destroy();
+
                     // Don't exit the RRIL to avoid automatic restart: sleep for ever
                     RIL_LOG_INFO("ModemManagerEventHandler() - Now sleeping till reboot\r\n");
                     while(1) { sleep(SLEEP_MS); }
@@ -343,13 +336,15 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 {
                     CTE::GetTE().SetLastModemEvent(E_MMGR_EVENT_MODEM_DOWN);
 
-                    //  Close ports
-                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                    CSystemManager::GetInstance().CloseChannelPorts();
-
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
                     ModemResetUpdate();
+
+                    CTE::GetTE().ResetInternalStates();
+
+                    //  Close ports
+                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
                 CSystemManager::GetInstance().SendAckModemColdReset();
@@ -380,13 +375,15 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 {
                     CTE::GetTE().SetLastModemEvent(E_MMGR_EVENT_MODEM_DOWN);
 
-                    //  Close ports
-                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                    CSystemManager::GetInstance().CloseChannelPorts();
-
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
                     ModemResetUpdate();
+
+                    CTE::GetTE().ResetInternalStates();
+
+                    //  Close ports
+                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
                 // If already down, no need to perform restart
@@ -411,29 +408,33 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
-                    //  Close ports
-                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                    CSystemManager::GetInstance().CloseChannelPorts();
-
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
                     ModemResetUpdate();
+
+                    CTE::GetTE().ResetInternalStates();
+
+                    //  Close ports
+                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
                 CSystemManager::GetInstance().SendAckModemShutdown();
 
-                // If already down, no need to perform restart
-                if (E_MMGR_EVENT_MODEM_DOWN != nPreviousModemState)
-                {
-                    //  let's exit, init will restart us
-                    RIL_LOG_INFO("ModemManagerEventHandler() - CALLING EXIT\r\n");
+                //  Turning off phone
+                CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
 
+                // Retrieve the shutdown property
+                if (CTE::GetTE().IsPlatformShutDownRequested())
+                {
                     CSystemManager::Destroy();
-                    exit(0);
+
+                    // Don't exit the RRIL to avoid automatic restart: sleep for ever
+                    RIL_LOG_INFO("ModemManagerEventHandler() - Now sleeping till reboot\r\n");
+                    while(1) { sleep(SLEEP_MS); }
                 }
 
                 break;
-
 
             default:
                 RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) UNKNOWN [%d]\r\n", uiMMgrEvent);
@@ -463,7 +464,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 //
 //  Return values:
 //  None
-void btea(UINT32 *v, int n, UINT32 const key[4])
+void btea(UINT32* v, int n, UINT32 const key[4])
 {
     UINT32 y, z, sum;
     UINT32 rounds, e;
@@ -523,7 +524,7 @@ void btea(UINT32 *v, int n, UINT32 const key[4])
 //  PIN_INVALID_UICC if error with szKey
 //  PIN_NOK if any other error
 //  PIN_OK if operation is successful
-ePCache_Code ConvertKeyToInt4(const char *szKey, UINT32 *pKey)
+ePCache_Code ConvertKeyToInt4(const char* szKey, UINT32* pKey)
 {
     //  Check inputs
     if ( (NULL == szKey) || (strlen(szKey) > 32))
@@ -589,7 +590,7 @@ ePCache_Code ConvertKeyToInt4(const char *szKey, UINT32 *pKey)
 //  Return values:
 //  PIN_NOK if error
 //  PIN_OK if operation successful
-ePCache_Code encrypt(const char *szInput, const int nInputLen, const char *szKey)
+ePCache_Code encrypt(const char* szInput, const int nInputLen, const char* szKey)
 {
     //  Check inputs
     if ( (NULL == szInput) || ('\0' == szInput[0]) || (0 == nInputLen) || (NULL == szKey) )
@@ -678,7 +679,8 @@ ePCache_Code encrypt(const char *szInput, const int nInputLen, const char *szKey
     if (0 != property_set(szCachedPinProp, szEncryptedBuf))
     {
         property_set(szCachedPinProp, "");
-        RIL_LOG_CRITICAL("encrypt() - Cannot store property %s szEncryptedBuf\r\n", szCachedPinProp);
+        RIL_LOG_CRITICAL("encrypt() - Cannot store property %s szEncryptedBuf\r\n",
+                szCachedPinProp);
         return PIN_NOK;
     }
 
@@ -699,7 +701,7 @@ ePCache_Code encrypt(const char *szInput, const int nInputLen, const char *szKey
 //  PIN_WRONG_INTEGRITY if decrypted text doesn't pass integrity checks
 //  PIN_NOK if inputs are invalid
 //  PIN_OK if operation successful
-ePCache_Code decrypt(char *szOut, const char *szKey)
+ePCache_Code decrypt(char* szOut, const char* szKey)
 {
     if ( (NULL == szOut) || (NULL == szKey) )
     {
@@ -765,7 +767,7 @@ ePCache_Code decrypt(char *szOut, const char *szKey)
     //    RIL_LOG_INFO("    buf[%d]=0x%08X\r\n", i, buf[i]);
     //}
 
-    char *pChar = &(szOut[0]);
+    char* pChar = &(szOut[0]);
 
     // We have our decrypted buffer.  Figure out if it was successful and
     //  throw away the random salt.
@@ -799,7 +801,7 @@ ePCache_Code decrypt(char *szOut, const char *szKey)
 // Input: UICC Id, PIN code
 // Output: {OK},{NOK}
 //
-ePCache_Code PCache_Store_PIN(const char *szUICC, const char *szPIN)
+ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN)
 {
     //  TODO: Remove this log statement when complete
     RIL_LOG_INFO("PCache_Store_PIN() Enter - szUICC=[%s], szPIN=[%s]\r\n", szUICC, szPIN);
@@ -840,7 +842,7 @@ ePCache_Code PCache_Store_PIN(const char *szUICC, const char *szPIN)
 // Input: UICC Id
 // Output: {NOK, invalid UICC},{NOK, wrong integrity},{NOK, No PIN available},{OK}
 //
-ePCache_Code PCache_Get_PIN(const char *szUICC, char *szPIN)
+ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN)
 {
     char szUICCCached[MAX_PROP_VALUE];
     RIL_LOG_INFO("PCache_Get_PIN - Enter\r\n");
@@ -866,7 +868,8 @@ ePCache_Code PCache_Get_PIN(const char *szUICC, char *szPIN)
 
     if (!property_get(szCachedUiccProp, szUICCCached, ""))
     {
-        RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached uicc prop %s\r\n", szCachedUiccProp);
+        RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached uicc prop %s\r\n",
+                szCachedUiccProp);
         return PIN_NO_PIN_AVAILABLE;
     }
 
@@ -969,7 +972,8 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
     {
         if (0 != property_set(szUseCachedPinProp, "1"))
         {
-            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n", szUseCachedPinProp, bFlag);
+            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n",
+                    szUseCachedPinProp, bFlag);
             return PIN_NOK;
         }
     }
@@ -977,7 +981,8 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
     {
         if (0 != property_set(szUseCachedPinProp, ""))
         {
-            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n", szUseCachedPinProp, bFlag);
+            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n",
+                    szUseCachedPinProp, bFlag);
             return PIN_NOK;
         }
     }

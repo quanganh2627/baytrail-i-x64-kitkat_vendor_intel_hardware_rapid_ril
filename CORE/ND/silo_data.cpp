@@ -28,7 +28,7 @@
 
 //
 //
-CSilo_Data::CSilo_Data(CChannel *pChannel)
+CSilo_Data::CSilo_Data(CChannel* pChannel)
 : CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Data::CSilo_Data() - Enter\r\n");
@@ -93,14 +93,14 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const char*& rszPoin
             CChannel_Data::GetChnlFromRilChannelNumber(m_pChannel->GetRilChannel());
     if (NULL != pChannelData)
     {
-        RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() : Calling DataConfigDown  chnl=[%u], cid=[%u]\r\n",
-                    m_pChannel->GetRilChannel(), pChannelData->GetContextID());
+        RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() : Calling DataConfigDown  chnl=[%u],"
+                " cid=[%u]\r\n", m_pChannel->GetRilChannel(), pChannelData->GetContextID());
 
         //  Release network interface
         if (!CTE::GetTE().DataConfigDown(pChannelData->GetContextID()))
         {
-            RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() - DataConfigDown FAILED chnl=[%u], cid=[%u]\r\n",
-                    m_pChannel->GetRilChannel(), pChannelData->GetContextID());
+            RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() - DataConfigDown FAILED chnl=[%u],"
+                    " cid=[%u]\r\n", m_pChannel->GetRilChannel(), pChannelData->GetContextID());
         }
     }
     fRet = TRUE;

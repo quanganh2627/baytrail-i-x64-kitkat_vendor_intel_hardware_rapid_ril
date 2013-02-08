@@ -18,10 +18,10 @@
 #include <linux/gsmmux.h>
 
 // Helper functions for configuring data connections
-BOOL setaddr6(int sockfd6, struct ifreq *ifr, const char *addr);
-BOOL setaddr(int s, struct ifreq *ifr, const char *addr);
-BOOL setflags(int s, struct ifreq *ifr, int set, int clr);
-BOOL setmtu(int s, struct ifreq *ifr);
+BOOL setaddr6(int sockfd6, struct ifreq* ifr, const char* addr);
+BOOL setaddr(int s, struct ifreq* ifr, const char* addr);
+BOOL setflags(int s, struct ifreq* ifr, int set, int clr);
+BOOL setmtu(int s, struct ifreq* ifr);
 
 int MapErrorCodeToRilDataFailCause(UINT32 uiCause);
 
@@ -41,4 +41,8 @@ int MapErrorCodeToRilDataFailCause(UINT32 uiCause);
 // a1.a2.a3.a4 to szIpOut
 // XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX (a5-a20) to szIpOut2
 // If szIpOut2 is NULL, then this parameter is ignored
-BOOL ConvertIPAddressToAndroidReadable(char *szIpIn, char *szIpOut, UINT32 uiIpOutSize, char *szIpOut2, UINT32 uiIpOutSize2);
+BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
+                                      char* szIpOut,
+                                      UINT32 uiIpOutSize,
+                                      char* szIpOut2,
+                                      UINT32 uiIpOutSize2);

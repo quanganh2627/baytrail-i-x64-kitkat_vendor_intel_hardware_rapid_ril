@@ -30,7 +30,7 @@
 
 //
 //
-CSilo_SIM::CSilo_SIM(CChannel *pChannel)
+CSilo_SIM::CSilo_SIM(CChannel* pChannel)
 : CSilo(pChannel),
 m_IsReadyForAttach(FALSE)
 {
@@ -99,13 +99,15 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
 
         // Calculate PDU length + NULL byte
         uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(m_szNewLine) + 1;
-        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Calculated PDU String length: %u chars.\r\n", uiLength);
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Calculated PDU String length: %u"
+                " chars.\r\n", uiLength);
     }
 
     pszProactiveCmd = (char*)malloc(sizeof(char) * uiLength);
     if (NULL == pszProactiveCmd)
     {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() - Could not alloc mem for command.\r\n");
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() - Could not alloc mem for"
+                " command.\r\n");
         goto Error;
     }
     memset(pszProactiveCmd, 0, sizeof(char) * uiLength);
@@ -180,7 +182,8 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
 
         // Calculate PDU length  - including NULL byte, not including quotes
         uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(m_szNewLine) - 1;
-        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Calculated PDU String length: %u chars.\r\n", uiLength);
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Calculated PDU String length: %u"
+                " chars.\r\n", uiLength);
     }
 
     pszProactiveCmd = (char*)malloc(sizeof(char) * uiLength);
@@ -231,13 +234,15 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                 strncpy(szRefreshType, &pszProactiveCmd[uiPos], 2);
                 uiPos += 2;
 
-                RIL_LOG_INFO("*** We found %s SIM_REFRESH   type=[%s]***\r\n", szRefreshCmd, szRefreshType);
+                RIL_LOG_INFO("*** We found %s SIM_REFRESH   type=[%s]***\r\n",
+                        szRefreshCmd, szRefreshType);
 
                 //  If refresh type = "01"  -> SIM_FILE_UPDATE
                 //  If refresh type = "00","02","03" -> SIM_INIT
                 //  If refresh type = "04","05","06" -> SIM_RESET
 
-                pSimRefreshResp = (RIL_SimRefreshResponse_v7*)malloc(sizeof(RIL_SimRefreshResponse_v7));
+                pSimRefreshResp =
+                        (RIL_SimRefreshResponse_v7*)malloc(sizeof(RIL_SimRefreshResponse_v7));
                 if (NULL != pSimRefreshResp)
                 {
                     //  default to SIM_INIT
@@ -297,11 +302,13 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                                     //  Read length of tag
                                     strncpy(szFileTagLength, &pszProactiveCmd[uiPos], 2);
                                     //RIL_LOG_INFO("file tag length = %s\r\n", szFileTagLength);
-                                    uiFileTagLength = (UINT8)SemiByteCharsToByte(szFileTagLength[0], szFileTagLength[1]);
+                                    uiFileTagLength = (UINT8)SemiByteCharsToByte(
+                                            szFileTagLength[0], szFileTagLength[1]);
                                     RIL_LOG_INFO("file tag length = %d\r\n", uiFileTagLength);
                                     uiPos += 2;  //  we read the tag length
                                     uiPos += (uiFileTagLength * 2);
-                                    //RIL_LOG_INFO("uiPos is now end hopefully = %d  uilength=%d\r\n", uiPos, uiLength);
+                                    //RIL_LOG_INFO("uiPos is now end hopefully = %d
+                                    //         "uilength=%d\r\n", uiPos, uiLength);
 
                                     if (uiPos <= uiLength)
                                     {
@@ -316,11 +323,11 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                                         ui1 = (UINT8)SemiByteCharsToByte(szFileID[0], szFileID[1]);
                                         ui2 = (UINT8)SemiByteCharsToByte(szFileID[2], szFileID[3]);
                                         // See ril.h:
-                                        //      ef_id : is the EFID of the updated file if the result is
-                                        //          SIM_FILE_UPDATE or 0 for any other result.
-                                        //      aid: For SIM_FILE_UPDATE result it can be set to AID of
-                                        //          application in which updated EF resides or it can be
-                                        //          NULL if EF is outside of an application.
+                                        //  ef_id : is the EFID of the updated file if the result is
+                                        //  SIM_FILE_UPDATE or 0 for any other result.
+                                        //  aid: For SIM_FILE_UPDATE result it can be set to AID of
+                                        //  application in which updated EF resides or it can be
+                                        //  NULL if EF is outside of an application.
                                         pSimRefreshResp->ef_id = (ui1 << 8) + ui2;
                                         RIL_LOG_INFO("pInts[1]=[%d],%04X\r\n",
                                             pSimRefreshResp->ef_id, pSimRefreshResp->ef_id);
@@ -336,7 +343,8 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                 }
                 else
                 {
-                    RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() - cannot allocate pInts\r\n");
+                    RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() -"
+                            " cannot allocate pInts\r\n");
                 }
             }
         }
@@ -592,7 +600,8 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
         memset(lock_info[i].fac, '\0', sizeof(lock_info[i].fac));
 
         // Extract "<fac>"
-        if (!ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac), rszPointer))
+        if (!ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac),
+                rszPointer))
         {
             RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() - Unable to find <fac>!\r\n");
             goto complete;
@@ -704,7 +713,8 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
         goto Error;
     }
 
-    RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - Found ECC item=[%d] out of [%d]  ECC=[%s]\r\n", uiIndex, uiTotalCnt, szECCItem);
+    RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - Found ECC item=[%d] out of [%d]  ECC=[%s]\r\n",
+            uiIndex, uiTotalCnt, szECCItem);
 
     //  Skip the rest of the parameters (if any)
     // Look for a "<postfix>" to be sure we got a whole message
@@ -718,7 +728,8 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
     //  Clear the master list and store the code.
     if (1 == uiIndex)
     {
-        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - First index, clear master ECC list, store code=[%s]\r\n", szECCItem);
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - First index, clear master ECC list,"
+                " store code=[%s]\r\n", szECCItem);
         if (!PrintStringNullTerminate(m_szECCList, MAX_BUFFER_SIZE, "%s", szECCItem))
         {
             RIL_LOG_CRITICAL("CSilo_SIM::ParseXLEMA() - Could not create m_szCCList\r\n");
@@ -755,7 +766,8 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
         }
 
         RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - uiIndex == uiTotalCnt == %d\r\n", uiTotalCnt);
-        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - setting %s = [%s]\r\n", szEccListProp, m_szECCList);
+        RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - setting %s = [%s]\r\n", szEccListProp,
+                m_szECCList);
         property_set(szEccListProp, m_szECCList);
     }
 

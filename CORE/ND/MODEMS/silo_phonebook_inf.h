@@ -24,7 +24,7 @@ class CChannel;
 class CSilo_Phonebook_INF : public CSilo_Phonebook
 {
 public:
-    CSilo_Phonebook_INF(CChannel *pChannel);
+    CSilo_Phonebook_INF(CChannel* pChannel);
     virtual ~CSilo_Phonebook_INF();
 };
 

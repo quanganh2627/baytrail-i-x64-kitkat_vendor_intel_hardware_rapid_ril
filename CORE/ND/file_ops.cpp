@@ -66,7 +66,7 @@ CFile::~CFile()
     }
 }
 
-BOOL CFile::OpenSocket(const char * pszSocketName)
+BOOL CFile::OpenSocket(const char* pszSocketName)
 {
     if (NULL == pszSocketName)
     {
@@ -88,7 +88,7 @@ Error:
    return m_fInitialized;
 }
 
-BOOL CFile::Open(   const char * pszFileName,
+BOOL CFile::Open(   const char* pszFileName,
                     UINT32 dwAccessFlags,
                     UINT32 dwOpenFlags,
                     UINT32 dwOptFlags,
@@ -123,7 +123,8 @@ BOOL CFile::Open(   const char * pszFileName,
         dwAttr = GetFileAttributes(pszFileName);
 
         fExists = (dwAttr == FILE_ATTRIB_DOESNT_EXIST) ? FALSE : TRUE;
-        fFile   = (dwAttr == FILE_ATTRIB_DOESNT_EXIST) ? FALSE : ((dwAttr & FILE_ATTRIB_REG) ? TRUE : FALSE);
+        fFile   = (dwAttr == FILE_ATTRIB_DOESNT_EXIST)
+                      ? FALSE : ((dwAttr & FILE_ATTRIB_REG) ? TRUE : FALSE);
         RIL_LOG_INFO("CFile::Open() : fExists=[%d]  fFile=[%d]\r\n", fExists, fFile);
 
         switch (dwAccessFlags)
@@ -239,7 +240,7 @@ BOOL CFile::Close()
     return TRUE;
 }
 
-BOOL CFile::Write(const void * pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesWritten)
+BOOL CFile::Write(const void* pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesWritten)
 {
     int bytesWritten = 0;
     int writeAttempt = 0;
@@ -281,7 +282,8 @@ BOOL CFile::Write(const void * pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesW
             break;
 
             default:
-                RIL_LOG_CRITICAL("CFile::Write() : Error during write process!  errno=[%d] [%s]\r\n", errno, strerror(errno));
+                RIL_LOG_CRITICAL("CFile::Write() : Error during write process!"
+                        "  errno=[%d] [%s]\r\n", errno, strerror(errno));
                 return FALSE;
         }
     }
@@ -291,7 +293,7 @@ BOOL CFile::Write(const void * pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesW
     return TRUE;
 }
 
-BOOL CFile::Read(void * pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
+BOOL CFile::Read(void* pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
 {
     int iCount = 0;
     rdwBytesRead = 0;
@@ -306,7 +308,8 @@ BOOL CFile::Read(void * pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
     {
         if (errno != EAGAIN)
         {
-            RIL_LOG_CRITICAL("CFile::Read() : Error during read process!  errno=[%d] [%s]\r\n", errno, strerror(errno));
+            RIL_LOG_CRITICAL("CFile::Read() : Error during read process!"
+                    "  errno=[%d] [%s]\r\n", errno, strerror(errno));
             return FALSE;
         }
 
@@ -319,7 +322,7 @@ BOOL CFile::Read(void * pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
     return TRUE;
 }
 
-UINT32 CFile::GetFileAttributes(const char * pszFileName)
+UINT32 CFile::GetFileAttributes(const char* pszFileName)
 {
     struct stat statbuf;
     UINT32 dwReturn;
@@ -367,7 +370,7 @@ UINT32 CFile::GetFileAttributes(const char * pszFileName)
     return dwReturn;
 }
 
-BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
+BOOL CFile::WaitForEvent(UINT32& rdwFlags, UINT32 dwTimeoutInMS)
 {
     struct pollfd fds[1] = { {0,0,0} };
     int nPollVal = 0;
@@ -389,7 +392,8 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
     }
     else
     {
-        RIL_LOG_INFO("CFile::WaitForEvent() : calling poll() on fd=[%d]  timeout=[%d]ms\r\n", m_file, dwTimeoutInMS);
+        RIL_LOG_INFO("CFile::WaitForEvent() : calling poll() on"
+                " fd=[%d]  timeout=[%d]ms\r\n", m_file, dwTimeoutInMS);
 
         nPollVal = poll(fds, 1, dwTimeoutInMS);
     }
@@ -398,7 +402,8 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
     {
         case -1:
             //  Error
-            RIL_LOG_CRITICAL("CFile::WaitForEvent() : polling error [%d] [%s]\r\n", errno, strerror(errno));
+            RIL_LOG_CRITICAL("CFile::WaitForEvent() : polling error [%d] [%s]\r\n",
+                    errno, strerror(errno));
             return FALSE;
 
         case 0:
@@ -415,12 +420,14 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
             }
             else if (fds[0].revents & POLLHUP)
             {
-                RIL_LOG_CRITICAL("CFile::WaitForEvent() : **** RECEIVED POLLHUP on fd=[%d]  ignoring...\r\n", m_file);
+                RIL_LOG_CRITICAL("CFile::WaitForEvent() :"
+                        " **** RECEIVED POLLHUP on fd=[%d]  ignoring...\r\n", m_file);
                 //  ignore, should clean-up when uiRead < 0
             }
             else if (fds[0].revents & POLLNVAL)
             {
-                RIL_LOG_CRITICAL("CFile::WaitForEvent() : **** RECEIVED POLLNVAL on fd=[%d]\r\n", m_file);
+                RIL_LOG_CRITICAL("CFile::WaitForEvent() : **** RECEIVED POLLNVAL on fd=[%d]\r\n",
+                        m_file);
 
                 //  possible that port has been closed
                 return FALSE;
@@ -428,7 +435,8 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
             else
             {
                 //  not sure if we will ever get here
-                RIL_LOG_CRITICAL("CFile::WaitForEvent() : unexpected event=[%08x]\r\n", fds[0].revents);
+                RIL_LOG_CRITICAL("CFile::WaitForEvent() : unexpected event=[%08x]\r\n",
+                        fds[0].revents);
                 //  ignore
             }
             break;
@@ -438,7 +446,9 @@ BOOL CFile::WaitForEvent(UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
 }
 
 
-BOOL CFile::Open(CFile * pFile, const char * pszFileName, UINT32 dwAccessFlags, UINT32 dwOpenFlags, UINT32 dwOptFlags, BOOL fIsSocket)
+BOOL CFile::Open(CFile* pFile, const char* pszFileName, UINT32 dwAccessFlags, UINT32 dwOpenFlags,
+                                                                               UINT32 dwOptFlags,
+                                                                               BOOL fIsSocket)
 {
     if (pFile)
     {
@@ -451,7 +461,7 @@ BOOL CFile::Open(CFile * pFile, const char * pszFileName, UINT32 dwAccessFlags, 
     }
 }
 
-BOOL CFile::Close(CFile * pFile)
+BOOL CFile::Close(CFile* pFile)
 {
     if (pFile)
     {
@@ -464,7 +474,7 @@ BOOL CFile::Close(CFile * pFile)
     }
 }
 
-BOOL CFile::Read(CFile * pFile, void * pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
+BOOL CFile::Read(CFile* pFile, void* pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
 {
     if (pFile)
     {
@@ -477,7 +487,7 @@ BOOL CFile::Read(CFile * pFile, void * pBuffer, UINT32 dwBytesToRead, UINT32 &rd
     }
 }
 
-BOOL CFile::Write(CFile * pFile, const void * pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesWritten)
+BOOL CFile::Write(CFile* pFile, const void* pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesWritten)
 {
     if (pFile)
     {
@@ -490,7 +500,7 @@ BOOL CFile::Write(CFile * pFile, const void * pBuffer, UINT32 dwBytesToWrite, UI
     }
 }
 
-BOOL CFile::WaitForEvent(CFile * pFile, UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
+BOOL CFile::WaitForEvent(CFile* pFile, UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
 {
     if (pFile)
     {
@@ -503,7 +513,7 @@ BOOL CFile::WaitForEvent(CFile * pFile, UINT32 &rdwFlags, UINT32 dwTimeoutInMS)
     }
 }
 
-int CFile::GetFD(CFile * pFile)
+int CFile::GetFD(CFile* pFile)
 {
     if (pFile)
     {

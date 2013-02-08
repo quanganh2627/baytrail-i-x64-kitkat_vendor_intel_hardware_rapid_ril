@@ -20,7 +20,7 @@
 
 //
 //
-CSilo::CSilo(CChannel *pChannel) :
+CSilo::CSilo(CChannel* pChannel) :
     m_cTerminator('\r'),
     m_pChannel(pChannel),
     m_pATRspTable(NULL),
@@ -43,13 +43,17 @@ CSilo::~CSilo()
 //  Parameters:
 //    [in]      pResponse  = Pointer to CResponse class
 //    [in/out]  rszPointer = Pointer to string response buffer.
-//    [in/out]  fGotoError = Set to TRUE if we wish to stop response chain and goto Error in CResponse::ParseUnsolicitedResponse().
+//    [in/out]  fGotoError = Set to TRUE if we wish to stop response chain and goto
+//    Error in CResponse::ParseUnsolicitedResponse().
 //
 //  Return values:
 //    TRUE  if response is handled by this hook, then handling still stop.
-//    FALSE if response is not handled by this hook, and handling will continue to other silos, then framework.
+//    FALSE if response is not handled by this hook, and handling will continue to other silos,
+//    then framework.
 //
-BOOL CSilo::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& szPointer, BOOL& fGotoError)
+BOOL CSilo::ParseUnsolicitedResponse(CResponse* const pResponse,
+                                         const char*& szPointer,
+                                         BOOL& fGotoError)
 {
     //RIL_LOG_VERBOSE("CSilo::ParseUnsolicitedResponse() - Enter\r\n");
 
@@ -58,7 +62,8 @@ BOOL CSilo::ParseUnsolicitedResponse(CResponse* const pResponse, const char*& sz
 
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CSilo::ParseUnsolicitedResponse() chnl=[%d] - pResponse is NULL\r\n", m_pChannel->GetRilChannel());
+        RIL_LOG_CRITICAL("CSilo::ParseUnsolicitedResponse() chnl=[%d] - pResponse is NULL\r\n",
+                m_pChannel->GetRilChannel());
         fGotoError = TRUE;
     }
     else
@@ -102,7 +107,8 @@ PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const char*& pszStr)
             // Check for a valid pointer
             if (NULL == szATRsp)
             {
-                RIL_LOG_INFO("CSilo::FindParser() chnl=[%d] - Prefix String pointer is NULL\r\n", m_pChannel->GetRilChannel());
+                RIL_LOG_INFO("CSilo::FindParser() chnl=[%d] - Prefix String pointer is NULL\r\n",
+                        m_pChannel->GetRilChannel());
                 break;
             }
 
@@ -115,9 +121,10 @@ PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const char*& pszStr)
             if (SkipString(pszStr, szATRsp, pszStr))
             {
                 fctParser = m_pATRspTable[nRow].pfnATParseRsp;
-                //RIL_LOG_INFO("CSilo::FindParser() chnl=[%d] - Found parse function for response [%s]\r\n",
-                //                m_pChannel->GetRilChannel(),
-                //                CRLFExpandedString(m_pATRspTable[nRow].szATResponse, strlen(m_pATRspTable[nRow].szATResponse)).GetString());
+                //RIL_LOG_INFO("CSilo::FindParser() chnl=[%d] - Found parse function for response
+                //        [%s]\r\n", m_pChannel->GetRilChannel(),
+                //        CRLFExpandedString(m_pATRspTable[nRow].szATResponse,
+                //        strlen(m_pATRspTable[nRow].szATResponse)).GetString());
 
                 break;
             }
@@ -130,14 +137,14 @@ PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const char*& pszStr)
 
 //
 //
-BOOL CSilo::ParseNULL(CResponse *const pResponse, const char* &rszPointer)
+BOOL CSilo::ParseNULL(CResponse* const pResponse, const char*& rszPointer)
 {
     return TRUE;
 }
 
 //
 //
-BOOL CSilo::ParseUnrecognized(CResponse *const pResponse, const char* &rszPointer)
+BOOL CSilo::ParseUnrecognized(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo::ParseUnrecognized() - Enter\r\n");
     BOOL fRet = FALSE;
@@ -152,7 +159,8 @@ BOOL CSilo::ParseUnrecognized(CResponse *const pResponse, const char* &rszPointe
     if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
     {
         // This isn't a complete registration notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo::ParseUnrecognized() chnl=[%d] - Failed to find postfix in the response.\r\n", m_pChannel->GetRilChannel());
+        RIL_LOG_CRITICAL("CSilo::ParseUnrecognized() chnl=[%d] - Failed to find postfix"
+                " in the response.\r\n", m_pChannel->GetRilChannel());
         goto Error;
     }
 

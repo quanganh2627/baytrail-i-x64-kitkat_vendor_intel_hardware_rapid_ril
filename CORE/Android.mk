@@ -42,6 +42,7 @@ LOCAL_SRC_FILES:= \
     request_info_table.cpp \
     thread_manager.cpp \
     ND/silo_factory.cpp \
+    ND/nd_util.cpp \
     ND/MODEMS/data_util.cpp \
     ND/MODEMS/te_xmm6260.cpp \
     ND/MODEMS/te_xmm6360.cpp \

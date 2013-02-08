@@ -38,7 +38,7 @@
 class CSilo_Voice : public CSilo
 {
 public:
-    CSilo_Voice(CChannel *pChannel);
+    CSilo_Voice(CChannel* pChannel);
     virtual ~CSilo_Voice();
 
 protected:
@@ -51,10 +51,13 @@ protected:
     virtual BOOL    ParseUnsolicitedSSInfo(CResponse* const pResponse, const char*& szPointer);
     virtual BOOL    ParseIntermediateSSInfo(CResponse* const pResponse, const char*& szPointer);
     virtual BOOL    ParseCallMeter(CResponse* const pResponse, const char*& rszPointer);
-    virtual BOOL    ParseCallProgressInformation(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseCallProgressInformation(CResponse* const pResponse,
+                                                   const char*& rszPointer);
     virtual BOOL    ParseUSSDInfo(CResponse* const pResponse, const char*& rszPointer);
-    virtual BOOL    ParseConnLineIdPresentation(CResponse* const pResponse, const char*& rszPointer);
-    virtual BOOL    ParseConnLineIdRestriction(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseConnLineIdPresentation(CResponse* const pResponse,
+                                                  const char*& rszPointer);
+    virtual BOOL    ParseConnLineIdRestriction(CResponse* const pResponse,
+                                                 const char*& rszPointer);
     virtual BOOL    ParseDISCONNECT(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseIndicatorEvent(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPointer);

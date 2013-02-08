@@ -43,10 +43,10 @@ typedef struct
 //
 typedef struct
 {
-    char * pszOpInfoLong;
-    char * pszOpInfoShort;
-    char * pszOpInfoNumeric;
-    char * pszOpInfoStatus;
+    char* pszOpInfoLong;
+    char* pszOpInfoShort;
+    char* pszOpInfoNumeric;
+    char* pszOpInfoStatus;
 } S_ND_OPINFO_PTRS, *P_ND_OPINFO_PTRS;
 
 typedef struct
@@ -129,21 +129,21 @@ typedef struct
 
 typedef struct
 {
-    char * pszStat;
-    char * pszLAC;
-    char * pszCID;
-    char * pszNetworkType;
-    char * pszBaseStationID;
-    char * pszBaseStationLat;
-    char * pszBaseStationLon;
-    char * pszConcurrentServices;
-    char * pszSystemID;
-    char * pszNetworkID;
-    char * pszTSB58;
-    char * pszPRL;
-    char * pszDefaultRoaming;
-    char * pszReasonDenied;
-    char * pszPrimaryScramblingCode;
+    char* pszStat;
+    char* pszLAC;
+    char* pszCID;
+    char* pszNetworkType;
+    char* pszBaseStationID;
+    char* pszBaseStationLat;
+    char* pszBaseStationLon;
+    char* pszConcurrentServices;
+    char* pszSystemID;
+    char* pszNetworkID;
+    char* pszTSB58;
+    char* pszPRL;
+    char* pszDefaultRoaming;
+    char* pszReasonDenied;
+    char* pszPrimaryScramblingCode;
 } S_ND_REG_STATUS_POINTERS, *P_ND_REG_STATUS_POINTERS;
 
 typedef struct
@@ -168,12 +168,12 @@ typedef struct
 
 typedef struct
 {
-    char * pszStat;
-    char * pszLAC;
-    char * pszCID;
-    char * pszNetworkType;
-    char * pszReasonDenied;
-    char * pszNumDataCalls;
+    char* pszStat;
+    char* pszLAC;
+    char* pszCID;
+    char* pszNetworkType;
+    char* pszReasonDenied;
+    char* pszNumDataCalls;
 } S_ND_GPRS_REG_STATUS_POINTERS, *P_ND_GPRS_REG_STATUS_POINTERS;
 
 typedef struct
@@ -190,9 +190,9 @@ typedef struct
 
 typedef struct
 {
-    char * pszOpNameLong;
-    char * pszOpNameShort;
-    char * pszOpNameNumeric;
+    char* pszOpNameLong;
+    char* pszOpNameShort;
+    char* pszOpNameNumeric;
 } S_ND_OP_NAME_POINTERS, *P_ND_OP_NAME_POINTERS;
 
 typedef struct

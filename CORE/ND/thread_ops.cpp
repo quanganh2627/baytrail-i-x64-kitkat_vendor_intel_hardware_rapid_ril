@@ -22,7 +22,7 @@
 
 typedef struct sThreadData
 {
-    void *          pvDataObj;
+    void*          pvDataObj;
     THREAD_PROC_PTR pvThreadProc;
 } THREAD_DATA;
 
@@ -32,9 +32,9 @@ typedef struct sThreadWaitData
     CEvent*     pEvent;
 } THREAD_WAIT_DATA;
 
-void * ThreadProcStartStop(void * pVoid)
+void* ThreadProcStartStop(void* pVoid)
 {
-    void * pvRet = NULL;
+    void* pvRet = NULL;
 
     if (NULL == pVoid)
     {
@@ -43,10 +43,10 @@ void * ThreadProcStartStop(void * pVoid)
     }
 
     {
-        THREAD_DATA * pThreadData = (THREAD_DATA*)pVoid;
+        THREAD_DATA* pThreadData = (THREAD_DATA*)pVoid;
 
         THREAD_PROC_PTR pvThreadProc = pThreadData->pvThreadProc;
-        void * pvDataObj = pThreadData->pvDataObj;
+        void* pvDataObj = pThreadData->pvDataObj;
 
         delete pThreadData;
         pThreadData = NULL;
@@ -59,9 +59,9 @@ Error:
     return NULL;
 }
 
-void * ThreadWaitProc(void * pVoid)
+void* ThreadWaitProc(void* pVoid)
 {
-    void ** ppvRetVal = NULL;
+    void** ppvRetVal = NULL;
 
     if (NULL == pVoid)
     {
@@ -69,10 +69,10 @@ void * ThreadWaitProc(void * pVoid)
         return NULL;
     }
 
-    THREAD_WAIT_DATA * pThreadWaitData = (THREAD_WAIT_DATA*)pVoid;
+    THREAD_WAIT_DATA* pThreadWaitData = (THREAD_WAIT_DATA*)pVoid;
 
     pthread_t thread = pThreadWaitData->thread;
-    CEvent * pEvent = pThreadWaitData->pEvent;
+    CEvent* pEvent = pThreadWaitData->pEvent;
 
     delete pThreadWaitData;
     pThreadWaitData = NULL;
@@ -103,7 +103,7 @@ void * ThreadWaitProc(void * pVoid)
     return NULL;
 }
 
-CThread::CThread(THREAD_PROC_PTR pvThreadProc, void * pvDataObj, UINT32 dwFlags, UINT32 dwStackSize) :
+CThread::CThread(THREAD_PROC_PTR pvThreadProc, void* pvDataObj, UINT32 dwFlags, UINT32 dwStackSize) :
     m_pvDataObj(pvDataObj),
     m_uiPriority(THREAD_PRIORITY_LEVEL_UNKNOWN),
     m_fJoinable(FALSE),
@@ -112,12 +112,14 @@ CThread::CThread(THREAD_PROC_PTR pvThreadProc, void * pvDataObj, UINT32 dwFlags,
 {
     if (dwFlags & THREAD_FLAGS_START_SUSPENDED)
     {
-        RIL_LOG_WARNING("CThread::CThread() - WARNING: We don't support start from suspended at this time\r\n");
+        RIL_LOG_WARNING("CThread::CThread() -"
+                " WARNING: We don't support start from suspended at this time\r\n");
     }
 
     if (0 != dwStackSize)
     {
-        RIL_LOG_WARNING("CThread::CThread() - WARNING: We don't support stack size parameter at this time\r\n");
+        RIL_LOG_WARNING("CThread::CThread() -"
+                " WARNING: We don't support stack size parameter at this time\r\n");
     }
 
     int iResult = 0;
@@ -160,7 +162,8 @@ CThread::CThread(THREAD_PROC_PTR pvThreadProc, void * pvDataObj, UINT32 dwFlags,
 
         if (!SetPriority(THREAD_PRIORITY_LEVEL_NORMAL))
         {
-            //RIL_LOG_CRITICAL("CThread::CThread() - Failed to set priority to THREAD_PRIORITY_LEVEL_NORMAL\r\n");
+            //RIL_LOG_CRITICAL("CThread::CThread() -"
+            //        "Failed to set priority to THREAD_PRIORITY_LEVEL_NORMAL\r\n");
         }
     }
 }
@@ -244,13 +247,16 @@ BOOL CThread::SetPriority(UINT32 dwPriority)
             {
                 fRet = FALSE;
                 //perror("pthread_setschedparam");
-                //RIL_LOG_CRITICAL("CThread::SetPriority() - pthread_setschedparam returned failed response: %d\r\n", nRes);
-                //RIL_LOG_CRITICAL("CThread::SetPriority() - errno=[%d],[%s]\r\n", errno, strerror(errno));
+                //RIL_LOG_CRITICAL("CThread::SetPriority() -"
+                //        "pthread_setschedparam returned failed response: %d\r\n", nRes);
+                //RIL_LOG_CRITICAL("CThread::SetPriority() -"
+                //        "errno=[%d],[%s]\r\n", errno, strerror(errno));
             }
         }
         else
         {
-            RIL_LOG_CRITICAL("CThread::SetPriority() - Given priority out of range: %d\r\n", dwPriority);
+            RIL_LOG_CRITICAL("CThread::SetPriority() - Given priority out of range: %d\r\n",
+                    dwPriority);
         }
     }
     else
@@ -288,7 +294,7 @@ UINT32 CThread::Wait(UINT32 dwTimeout)
     pthread_attr_t attr;
     pthread_attr_init(&attr);
 
-    CEvent * pEvent = new CEvent();
+    CEvent* pEvent = new CEvent();
     if (NULL == pEvent)
     {
         RIL_LOG_CRITICAL("CThread::Wait() - Failed to create event!\r\n");
@@ -338,7 +344,7 @@ Error:
     return dwRet;
 }
 
-BOOL CThread::SetPriority(CThread * pThread, UINT32 dwPriority)
+BOOL CThread::SetPriority(CThread* pThread, UINT32 dwPriority)
 {
     BOOL fRet = FALSE;
 
@@ -354,7 +360,7 @@ BOOL CThread::SetPriority(CThread * pThread, UINT32 dwPriority)
     return fRet;
 }
 
-UINT32 CThread::GetPriority(CThread * pThread)
+UINT32 CThread::GetPriority(CThread* pThread)
 {
     if (pThread)
     {
@@ -367,7 +373,7 @@ UINT32 CThread::GetPriority(CThread * pThread)
     }
 }
 
-UINT32 CThread::Wait(CThread * pThread, UINT32 dwTimeoutInMS)
+UINT32 CThread::Wait(CThread* pThread, UINT32 dwTimeoutInMS)
 {
     if (pThread)
     {
@@ -380,7 +386,7 @@ UINT32 CThread::Wait(CThread * pThread, UINT32 dwTimeoutInMS)
     }
 }
 
-BOOL CThread::IsRunning(CThread * pThread)
+BOOL CThread::IsRunning(CThread* pThread)
 {
     if (pThread)
     {
@@ -393,7 +399,7 @@ BOOL CThread::IsRunning(CThread * pThread)
     }
 }
 
-BOOL CThread::IsInitialized(CThread * pThread)
+BOOL CThread::IsInitialized(CThread* pThread)
 {
     if (pThread)
     {

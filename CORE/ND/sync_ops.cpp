@@ -34,11 +34,13 @@ CMutex::CMutex()
         switch (rc)
         {
             case ENOMEM:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_init ENOMEM code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_init ENOMEM code"
+                        " returned\r\n");
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_init [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_init [%d] code"
+                        " returned\r\n", rc);
                 break;
         }
     }
@@ -52,11 +54,13 @@ CMutex::CMutex()
         switch (rc)
         {
             case EINVAL:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_settype EINVAL code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_settype EINVAL code"
+                        " returned\r\n");
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_settype [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_settype [%d] code"
+                        " returned\r\n", rc);
                 break;
         }
     }
@@ -90,7 +94,8 @@ CMutex::CMutex()
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutex_init [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutex_init [%d] code returned\r\n",
+                        rc);
                 break;
         }
     }
@@ -104,11 +109,13 @@ CMutex::CMutex()
         switch (rc)
         {
             case EINVAL:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_destroy EINVAL code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_destroy EINVAL code"
+                        " returned\r\n");
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_destroy [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::CMutex() - pthread_mutexattr_destroy [%d] code returned"
+                        "\r\n", rc);
                 break;
         }
     }
@@ -125,15 +132,18 @@ CMutex::~CMutex()
         switch (rc)
         {
             case EINVAL:
-                RIL_LOG_CRITICAL("CMutex::~CMutex() - pthread_mutex_destroy EINVAL code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::~CMutex() - pthread_mutex_destroy EINVAL code"
+                        " returned\r\n");
                 break;
 
             case EBUSY:
-                RIL_LOG_CRITICAL("CMutex::~CMutex() - pthread_mutex_destroy EBUSY code returned\r\n");
+                RIL_LOG_CRITICAL("CMutex::~CMutex() - pthread_mutex_destroy EBUSY code"
+                        " returned\r\n");
                 break;
 
             default:
-                RIL_LOG_CRITICAL("CMutex::~CMutex() - pthread_mutex_destroy [%d] code returned\r\n", rc);
+                RIL_LOG_CRITICAL("CMutex::~CMutex() - pthread_mutex_destroy [%d] code"
+                        " returned\r\n", rc);
                 break;
         }
     }
@@ -273,7 +283,7 @@ timespec msFromNowToTimespec(UINT32 msInFuture)
     return FutureTime;
 }
 
-CEvent::CEvent(const char * szName, BOOL fManual, BOOL fInitial) : CMutex()
+CEvent::CEvent(const char* szName, BOOL fManual, BOOL fInitial) : CMutex()
 {
     EnterMutex();
 
@@ -405,7 +415,8 @@ int CEvent::Wait(UINT32 uiTimeout)
             {
                 if (rc != ETIMEDOUT)
                 {
-                    RIL_LOG_CRITICAL("CEvent::Wait() : pthread_cond_timedwait(): returned %d\r\n", rc);
+                    RIL_LOG_CRITICAL("CEvent::Wait() : pthread_cond_timedwait(): returned %d\r\n",
+                            rc);
                 }
             }
         }
@@ -432,7 +443,7 @@ int CEvent::Wait(UINT32 uiTimeout)
     return rc;
 }
 
-BOOL CEvent::Signal(CEvent * pEvent)
+BOOL CEvent::Signal(CEvent* pEvent)
 {
     if (pEvent)
     {
@@ -445,7 +456,7 @@ BOOL CEvent::Signal(CEvent * pEvent)
     }
 }
 
-BOOL CEvent::Reset(CEvent * pEvent)
+BOOL CEvent::Reset(CEvent* pEvent)
 {
     if (pEvent)
     {
@@ -458,7 +469,7 @@ BOOL CEvent::Reset(CEvent * pEvent)
     }
 }
 
-UINT32 CEvent::Wait(CEvent * pEvent, UINT32 uiTimeoutInMS)
+UINT32 CEvent::Wait(CEvent* pEvent, UINT32 uiTimeoutInMS)
 {
     if (pEvent)
     {
@@ -471,7 +482,7 @@ UINT32 CEvent::Wait(CEvent * pEvent, UINT32 uiTimeoutInMS)
     }
 }
 
-UINT32 CEvent::WaitForAnyEvent(UINT32 nEvents, CEvent ** rgpEvents, UINT32 uiTimeoutInMS)
+UINT32 CEvent::WaitForAnyEvent(UINT32 nEvents, CEvent** rgpEvents, UINT32 uiTimeoutInMS)
 {
     CMultipleEvent* pMultipleEvents = new CMultipleEvent(nEvents);
     UINT32 uiRet = WAIT_TIMEDOUT;
@@ -525,7 +536,7 @@ UINT32 CEvent::WaitForAnyEvent(UINT32 nEvents, CEvent ** rgpEvents, UINT32 uiTim
     return uiRet;
 }
 
-UINT32 CEvent::WaitForAllEvents(UINT32 nEvents, CEvent ** rgpEvents, UINT32 uiTimeoutInMS)
+UINT32 CEvent::WaitForAllEvents(UINT32 nEvents, CEvent** rgpEvents, UINT32 uiTimeoutInMS)
 {
     // FIXME Not currently supported... or needed?
     return WAIT_TIMEDOUT;
@@ -639,7 +650,8 @@ int CMultipleEvent::Wait(UINT32 uiTimeout)
         {
             if (rc != ETIMEDOUT)
             {
-                RIL_LOG_CRITICAL("CMultipleEvent::Wait() : pthread_cond_timedwait(): returned %d\r\n", rc);
+                RIL_LOG_CRITICAL("CMultipleEvent::Wait() : pthread_cond_timedwait():"
+                        " returned %d\r\n", rc);
 
                 // TODO Deal with these errors
                 rc = ETIMEDOUT;

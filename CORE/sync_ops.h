@@ -116,15 +116,15 @@ class CEvent
 {
     public:
 
-        CEvent(const char * szName = NULL, BOOL fManual = FALSE, BOOL fInitial = FALSE);
+        CEvent(const char* szName = NULL, BOOL fManual = FALSE, BOOL fInitial = FALSE);
         ~CEvent();
 
-        static BOOL Signal(CEvent * pEvent);
-        static BOOL Reset(CEvent * pEvent);
-        static UINT32 Wait(CEvent * pEvent, UINT32 uiTimeoutInMS);
+        static BOOL Signal(CEvent* pEvent);
+        static BOOL Reset(CEvent* pEvent);
+        static UINT32 Wait(CEvent* pEvent, UINT32 uiTimeoutInMS);
 
-        static UINT32 WaitForAnyEvent(UINT32 nEvents, CEvent ** rgpEvents, UINT32 uiTimeoutInMS);
-        static UINT32 WaitForAllEvents(UINT32 nEvents, CEvent ** rgpEvents, UINT32 uiTimeoutInMS);
+        static UINT32 WaitForAnyEvent(UINT32 nEvents, CEvent** rgpEvents, UINT32 uiTimeoutInMS);
+        static UINT32 WaitForAllEvents(UINT32 nEvents, CEvent** rgpEvents, UINT32 uiTimeoutInMS);
 
 
 
@@ -139,7 +139,7 @@ class CEvent
         friend void CMultipleEvent::AddEvent(int iEventIndex , CEvent* pEvent);
         friend void CMultipleEvent::RemoveEvent(int iEventIndex);
 
-        char *          m_szName;
+        char*           m_szName;
         BOOL            m_fManual;
         mapObserver     m_mObservers;
 

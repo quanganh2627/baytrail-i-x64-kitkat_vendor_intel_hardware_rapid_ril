@@ -53,7 +53,8 @@ BOOL CChannel_OEM::OpenPort()
 
     bRetVal = m_Port.Open(g_szOEMPort, g_bIsSocket);
 
-    RIL_LOG_INFO("CChannel_OEM::OpenPort() - Opening COM Port: %s\r\n", bRetVal ? "SUCCESS" : "FAILED!");
+    RIL_LOG_INFO("CChannel_OEM::OpenPort() - Opening COM Port: %s\r\n",
+            bRetVal ? "SUCCESS" : "FAILED!");
 
     return bRetVal;
 }
@@ -67,7 +68,8 @@ BOOL CChannel_OEM::FinishInit()
     m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
     if (!m_prisdModuleInit)
     {
-        RIL_LOG_CRITICAL("CChannel_OEM::FinishInit() - chnl=[%d] Could not create new INITSTRING_DATA\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_OEM::FinishInit() - chnl=[%d] Could not create new"
+                " INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
@@ -94,20 +96,22 @@ BOOL CChannel_OEM::AddSilos()
     //  OEM channel contains 5 silos:
     //     Voice Silo
     //     Phonebook Silo
-    CSilo *pSilo = NULL;
+    CSilo* pSilo = NULL;
 
 
     pSilo = CSilo_Factory::GetSiloVoice(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_OEM::AddSilos() : chnl=[%d] Could not add CSilo_Voice\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_OEM::AddSilos() : chnl=[%d] Could not add CSilo_Voice\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 
     pSilo = CSilo_Factory::GetSiloPhonebook(this);
     if (!pSilo || !AddSilo(pSilo))
     {
-        RIL_LOG_CRITICAL("CChannel_OEM::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n", m_uiRilChannel);
+        RIL_LOG_CRITICAL("CChannel_OEM::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n",
+                m_uiRilChannel);
         goto Error;
     }
 

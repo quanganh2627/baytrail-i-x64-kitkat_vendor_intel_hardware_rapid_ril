@@ -74,7 +74,10 @@ public:
     //  Get/Set functions.
     static CEvent* GetCancelEvent() { return GetInstance().m_pExitRilEvent; };
     static CEvent* GetInitCompleteEvent() { return GetInstance().m_pSysInitCompleteEvent; };
-    static CMutex* GetDataChannelAccessorMutex() { return GetInstance().m_pDataChannelAccessorMutex; };
+    static CMutex* GetDataChannelAccessorMutex()
+    {
+        return GetInstance().m_pDataChannelAccessorMutex;
+    }
     static CMutex* GetTEAccessMutex() { return GetInstance().m_pTEAccessMutex; }
     static CMutex* GetSpoofCommandsStatusAccessMutex()
     {
@@ -85,10 +88,10 @@ public:
     void TriggerModemPowerOnEvent() const { CEvent::Signal(m_pModemPowerOnEvent); };
     void TriggerInitStringCompleteEvent(UINT32 eChannel, eComInitIndex eInitIndex);
 
-    BOOL IsInitializationSuccessful() const { return !m_bFailedToInitialize; };
-    void SetInitializationUnsuccessful() { m_bFailedToInitialize = TRUE; };
+    BOOL IsInitializationSuccessful() const { return m_bIsSystemInitialized; };
+    void SetInitializationUnsuccessful() { m_bIsSystemInitialized = FALSE; };
 
-    void GetRequestInfo(REQ_ID reqID, REQ_INFO &rReqInfo);
+    void GetRequestInfo(REQ_ID reqID, REQ_INFO& rReqInfo);
 
     //  For resetting modem
     void CloseChannelPorts();
@@ -143,7 +146,7 @@ private:
 
     // Modem initialization helper functions (called by component init functions)
     BOOL SendModemInitCommands(eComInitIndex eInitIndex);
-    static void* StartModemInitializationThreadWrapper(void *pArg);
+    static void* StartModemInitializationThreadWrapper(void* pArg);
     void StartModemInitializationThread();
 
     BOOL IsChannelUndefined(int channel);
@@ -164,7 +167,7 @@ private:
 
     CRequestInfoTable m_RequestInfoTable;
 
-    BOOL m_bFailedToInitialize;
+    BOOL m_bIsSystemInitialized;
 
     BOOL m_rgfChannelCompletedInit[RIL_CHANNEL_MAX][COM_MAX_INDEX];
 

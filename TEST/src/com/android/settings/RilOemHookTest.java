@@ -109,7 +109,8 @@ public class RilOemHookTest extends Activity
                 // RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD
                 //  AT+XDRV=5,14,<activate>,<sensor_id>,<min_threshold>,<max_threshold>
 
-                // data: <command id>, <activate>, <sensor_id>, <minThersholdTemp>, <maxThersholdTemp>
+                // data: <command id>, <activate>, <sensor_id>, <minThersholdTemp>,
+                // <maxThersholdTemp>
                 String[] data = { "163", "true 2 2000 5000" };
 
                 Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
@@ -272,8 +273,10 @@ public class RilOemHookTest extends Activity
                 {
                     byte myByte = oemResponse[i];
                     int myInt = (int)(myByte & 0x000000FF);
-                    log("oemResponse[" + Integer.toString(i) + "]=[0x" + Integer.toString(myInt,16) + "]");
-                    str += "oemResponse[" + Integer.toString(i) + "]=[0x" + Integer.toString(myInt,16) + "]" + "\n";
+                    log("oemResponse[" + Integer.toString(i) + "]=[0x"
+                            + Integer.toString(myInt,16) + "]");
+                    str += "oemResponse[" + Integer.toString(i) + "]=[0x"
+                            + Integer.toString(myInt,16) + "]" + "\n";
                 }
             }
         }
@@ -320,7 +323,8 @@ public class RilOemHookTest extends Activity
                 for (int i=0; i<size; i++)
                 {
                     log("oemResponse[" + Integer.toString(i) + "]=[" + oemResponse[i] + "]");
-                    str += "oemResponse[" + Integer.toString(i) + "]=[" + oemResponse[i] + "]" + "\n";
+                    str += "oemResponse[" + Integer.toString(i) + "]=[" + oemResponse[i] + "]"
+                            + "\n";
                 }
             }
         }

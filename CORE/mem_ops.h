@@ -17,9 +17,9 @@
 #define MEM_ZERO_INIT       0x0001
 
 ///////////////////////////////////////////////////////////////////////////////
-inline void *AllocBlob(UINT32 bytes, BOOL fClearMem = TRUE)
+inline void* AllocBlob(UINT32 bytes, BOOL fClearMem = TRUE)
 {
-    void * pBlob = malloc(bytes);
+    void* pBlob = malloc(bytes);
 
     if ((fClearMem) && (NULL != pBlob))
     {
@@ -30,14 +30,14 @@ inline void *AllocBlob(UINT32 bytes, BOOL fClearMem = TRUE)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-inline void *FreeBlob(void *pblob)
+inline void* FreeBlob(void* pblob)
 {
     free(pblob);
     return NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-inline void *ReallocBlob(void *pblob, UINT32 bytes)
+inline void* ReallocBlob(void* pblob, UINT32 bytes)
 {
     if (!pblob)
     {

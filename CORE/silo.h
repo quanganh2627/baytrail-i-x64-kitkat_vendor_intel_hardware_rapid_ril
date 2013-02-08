@@ -35,23 +35,26 @@ typedef struct atrsptable_tag
 class CSilo
 {
 public:
-    CSilo(CChannel *pChannel);
+    CSilo(CChannel* pChannel);
     virtual ~CSilo();
 
     //  Called at beginning of CResponse::ParseUnsolicitedResponse().
     //  [in] pResponse = Pointer to CResponse class
     //  [in/out] rszPointer = Pointer to string response buffer.
-    //  [in/out] fGotoError = Set to TRUE if we wish to stop response chain and goto Error in CResponse::ParseUnsolicitedResponse().
+    //  [in/out] fGotoError = Set to TRUE if we wish to stop response chain and goto Error in
+    //  CResponse::ParseUnsolicitedResponse().
     //  Return values:
     //  TRUE if response is handled by this hook, then handling still stop.
-    //  FALSE if response is not handled by this hook, and handling will continue to other silos, then framework.
-    virtual BOOL ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer, BOOL& fGotoError);
+    //  FALSE if response is not handled by this hook, and handling will continue to other silos,
+    //  then framework.
+    virtual BOOL ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer,
+            BOOL& fGotoError);
 
 protected:
     char m_cTerminator;
     char m_szNewLine[3];
 
-    CChannel *m_pChannel;
+    CChannel* m_pChannel;
 
     ATRSPTABLE* m_pATRspTable;
     ATRSPTABLE* m_pATRspTableExt;

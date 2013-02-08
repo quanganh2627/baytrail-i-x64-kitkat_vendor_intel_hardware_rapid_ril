@@ -19,7 +19,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 CRequestInfoTable::CRequestInfoTable()
 {
-    memset(m_rgpRequestInfos, 0x00, REQ_ID_TOTAL * sizeof(REQ_INFO*));
+    memset(m_rgpRequestInfos, 0x00, sizeof(REQ_INFO*) * REQ_ID_TOTAL);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -33,22 +33,24 @@ CRequestInfoTable::~CRequestInfoTable()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO &rReqInfo)
+void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo)
 {
     RIL_LOG_VERBOSE("CRequestInfoTable::GetRequestInfo() - Enter\r\n");
-    REQ_INFO * pNewReqInfo = NULL;
+    REQ_INFO* pNewReqInfo = NULL;
 
     // Set defaults if we can't find the request id
     rReqInfo.uiTimeout = CTE::GetTE().GetTimeoutAPIDefault();
 
     if (REQ_ID_NONE == requestID)
     {
-        RIL_LOG_INFO("CRequestInfoTable::GetRequestInfo() - Request ID NONE given; assigning default values.\r\n");
+        RIL_LOG_INFO("CRequestInfoTable::GetRequestInfo() - Request ID NONE given; assigning"
+                " default values.\r\n");
         goto Error;
     }
     else if ((requestID >= REQ_ID_TOTAL) || (requestID < 0))
     {
-        RIL_LOG_CRITICAL("CRequestInfoTable::GetRequestInfo() - Invalid request ID [0x%X]\r\n", requestID);
+        RIL_LOG_CRITICAL("CRequestInfoTable::GetRequestInfo() - Invalid request ID [0x%X]\r\n",
+                requestID);
         goto Error;
     }
 
@@ -60,7 +62,8 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO &rReqInfo)
         pNewReqInfo = new REQ_INFO;
         if (!pNewReqInfo)
         {
-            RIL_LOG_CRITICAL("CRequestInfoTable::GetRequestInfo() - Unable to allocate memory for a new REQ_INFO.\r\n");
+            RIL_LOG_CRITICAL("CRequestInfoTable::GetRequestInfo() - Unable to allocate memory for"
+                    " a new REQ_INFO.\r\n");
             goto Error;
         }
 

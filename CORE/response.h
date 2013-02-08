@@ -27,7 +27,7 @@ class CChannel;
 class CResponse : public CSelfExpandBuffer
 {
 public:
-    CResponse(CChannel *pChannel);
+    CResponse(CChannel* pChannel);
     ~CResponse();
 
 private:
@@ -39,33 +39,72 @@ public:
     static BOOL TransferData(CResponse*& rpRspIn, CResponse*& rpRspOut);
 
     // For unsolicited responses, set fCpyMem to FALSE. This ensures our internal string pointers
-    // are correct in the memory we return to upper layers. The framework already ensures this memory
-    // will be freed.
-    BOOL    SetData(void* pData, const UINT32 nSize, const BOOL fCpyMem = TRUE);
-    void    GetData(void*& rpData, UINT32& rnDataSize) const  { rpData = m_pData; rnDataSize = m_uiDataSize; };
-    void    GetData(RESPONSE_DATA& responseData) const        { responseData.pData = m_pData; responseData.uiDataSize = m_uiDataSize; };
-    void    FreeData()                                        { free(m_pData); m_pData = NULL; m_uiDataSize = 0; m_uiResponseEndMarker = 0; };
+    // are correct in the memory we return to upper layers. The framework already ensures this
+    // memory will be freed.
+    BOOL SetData(void* pData, const UINT32 nSize, const BOOL fCpyMem = TRUE);
+    void GetData(void*& rpData, UINT32& rnDataSize) const
+    {
+        rpData = m_pData; rnDataSize = m_uiDataSize;
+    }
+    void GetData(RESPONSE_DATA& responseData) const
+    {
+        responseData.pData = m_pData;
+        responseData.uiDataSize = m_uiDataSize;
+    }
+    void FreeData()
+    {
+            free(m_pData);
+            m_pData = NULL;
+            m_uiDataSize = 0;
+            m_uiResponseEndMarker = 0;
+    }
 
-    BOOL    IsCompleteResponse();
-    BOOL    ParseResponse(CCommand*&rpCmd);
+    BOOL IsCompleteResponse();
+    BOOL ParseResponse(CCommand*& rpCmd);
 
-    UINT32   GetResultCode() const                           { return m_uiResultCode; };
-    void    SetResultCode(const UINT32 uiResultCode)         { m_uiResultCode = uiResultCode; };
+    UINT32 GetResultCode() const                           { return m_uiResultCode; };
+    void SetResultCode(const UINT32 uiResultCode)         { m_uiResultCode = uiResultCode; };
 
-    UINT32   GetErrorCode() const                            { return m_uiErrorCode; };
-    void    SetErrorCode(const UINT32 uiErrorCode)           { m_uiErrorCode = uiErrorCode; };
+    UINT32 GetErrorCode() const                            { return m_uiErrorCode; };
+    void SetErrorCode(const UINT32 uiErrorCode)           { m_uiErrorCode = uiErrorCode; };
 
-    BOOL    IsUnsolicitedFlag() const                       { return ( (m_uiFlags & E_RSP_FLAG_UNSOLICITED) ? TRUE : FALSE); };
-    void    SetUnsolicitedFlag(const BOOL bUnsolicited)     { (bUnsolicited ? (m_uiFlags |= E_RSP_FLAG_UNSOLICITED) : (m_uiFlags &= ~E_RSP_FLAG_UNSOLICITED)); };
+    BOOL IsUnsolicitedFlag() const
+    {
+        return ( (m_uiFlags & E_RSP_FLAG_UNSOLICITED) ? TRUE : FALSE);
+    }
+    void SetUnsolicitedFlag(const BOOL bUnsolicited)
+    {
+        (bUnsolicited ? (m_uiFlags |= E_RSP_FLAG_UNSOLICITED) :
+                (m_uiFlags &= ~E_RSP_FLAG_UNSOLICITED));
+    }
 
-    BOOL    IsUnrecognizedFlag() const                      { return ( (m_uiFlags & E_RSP_FLAG_UNRECOGNIZED) ? TRUE : FALSE); };
-    void    SetUnrecognizedFlag(const BOOL bUnrecognized)   { (bUnrecognized ? (m_uiFlags |= E_RSP_FLAG_UNRECOGNIZED) : (m_uiFlags &= ~E_RSP_FLAG_UNRECOGNIZED)); };
+    BOOL IsUnrecognizedFlag() const
+    {
+        return ( (m_uiFlags & E_RSP_FLAG_UNRECOGNIZED) ? TRUE : FALSE);
+    }
+    void SetUnrecognizedFlag(const BOOL bUnrecognized)
+    {
+        (bUnrecognized ? (m_uiFlags |= E_RSP_FLAG_UNRECOGNIZED) :
+                (m_uiFlags &= ~E_RSP_FLAG_UNRECOGNIZED));
+    }
 
-    BOOL    IsCorruptFlag() const                           { return ( (m_uiFlags & E_RSP_FLAG_CORRUPT) ? TRUE : FALSE); };
-    void    SetCorruptFlag(const BOOL bCorrupt)             { (bCorrupt ? (m_uiFlags |= E_RSP_FLAG_CORRUPT) : (m_uiFlags &= ~E_RSP_FLAG_CORRUPT)); };
+    BOOL IsCorruptFlag() const
+    {
+        return ( (m_uiFlags & E_RSP_FLAG_CORRUPT) ? TRUE : FALSE);
+    }
+    void SetCorruptFlag(const BOOL bCorrupt)
+    {
+        (bCorrupt ? (m_uiFlags |= E_RSP_FLAG_CORRUPT) : (m_uiFlags &= ~E_RSP_FLAG_CORRUPT));
+    }
 
-    BOOL    IsTimedOutFlag() const                          { return ( (m_uiFlags & E_RSP_FLAG_TIMEDOUT) ? TRUE : FALSE); };
-    void    SetTimedOutFlag(const BOOL bTimedOut)           { (bTimedOut ? (m_uiFlags |= E_RSP_FLAG_TIMEDOUT) : (m_uiFlags &= ~E_RSP_FLAG_TIMEDOUT)); };
+    BOOL IsTimedOutFlag() const
+    {
+        return ( (m_uiFlags & E_RSP_FLAG_TIMEDOUT) ? TRUE : FALSE);
+    }
+    void SetTimedOutFlag(const BOOL bTimedOut)
+    {
+        (bTimedOut ? (m_uiFlags |= E_RSP_FLAG_TIMEDOUT) : (m_uiFlags &= ~E_RSP_FLAG_TIMEDOUT));
+    }
 
 private:
     enum
@@ -76,14 +115,14 @@ private:
         E_RSP_FLAG_TIMEDOUT     = 0x00000008
     };
 
-    BOOL    IsUnsolicitedResponse();
-    BOOL    IsExtendedError(const char* pszToken);
-    BOOL    IsCorruptResponse();
-    BOOL    IsOkResponse();
-    BOOL    IsErrorResponse();
-    BOOL    RetrieveErrorCode(const char*& rszPointer,  UINT32 &nCode, const char* pszToken);
-    BOOL    IsConnectResponse();
-    BOOL    IsAbortedResponse();
+    BOOL IsUnsolicitedResponse();
+    BOOL IsExtendedError(const char* pszToken);
+    BOOL IsCorruptResponse();
+    BOOL IsOkResponse();
+    BOOL IsErrorResponse();
+    BOOL RetrieveErrorCode(const char*& rszPointer,  UINT32& nCode, const char* pszToken);
+    BOOL IsConnectResponse();
+    BOOL IsAbortedResponse();
 
     char      m_szNewLine[3];
     UINT32    m_uiResultCode;

@@ -107,7 +107,8 @@ BOOL CThreadManager::Initialize()
     if (WAIT_EVENT_0_SIGNALED !=
             CEvent::Wait(m_pStartupCompleteEvent, CTE::GetTE().GetTimeoutWaitForInit()))
     {
-        RIL_LOG_CRITICAL("CThreadManager::Initialize() : Timed out waiting for threads to register\r\n");
+        RIL_LOG_CRITICAL("CThreadManager::Initialize() : Timed out waiting for threads to"
+                " register\r\n");
         goto Error;
     }
 
@@ -171,11 +172,13 @@ void CThreadManager::Register()
     CMutex::Lock(m_pTManMutex);
 
     ++m_nChannelsActive;
-    RIL_LOG_INFO("CThreadManager::Register() : %d of %d threads registered\r\n", m_nChannelsActive, m_nChannelsTotal);
+    RIL_LOG_INFO("CThreadManager::Register() : %d of %d threads registered\r\n",
+            m_nChannelsActive, m_nChannelsTotal);
 
     if (m_nChannelsActive == m_nChannelsTotal)
     {
-        RIL_LOG_INFO("CThreadManager::Register() : Channel threads are running. Setting event.\r\n");
+        RIL_LOG_INFO("CThreadManager::Register() : Channel threads are running."
+                " Setting event.\r\n");
         SignalComplete();
     }
 

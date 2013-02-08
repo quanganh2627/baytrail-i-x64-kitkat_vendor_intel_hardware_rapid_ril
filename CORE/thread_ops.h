@@ -35,20 +35,20 @@ typedef void* (*THREAD_PROC_PTR)(void*);
 class CThread
 {
 public:
-    CThread(THREAD_PROC_PTR pvThreadProc, void * pvDataObj, UINT32 dwFlags, UINT32 dwStackSize);
+    CThread(THREAD_PROC_PTR pvThreadProc, void* pvDataObj, UINT32 dwFlags, UINT32 dwStackSize);
 
     // Note: Deleting the CThread will not stop the spawned thread.
     ~CThread();
 
-    static BOOL SetPriority(CThread * pThread, UINT32 dwPriority);
-    static UINT32 GetPriority(CThread * pThread);
-    static UINT32 Wait(CThread * pThread, UINT32 dwTimeoutInMS);
+    static BOOL SetPriority(CThread* pThread, UINT32 dwPriority);
+    static UINT32 GetPriority(CThread* pThread);
+    static UINT32 Wait(CThread* pThread, UINT32 dwTimeoutInMS);
 
-    static BOOL IsRunning(CThread * pThread);
-    static BOOL IsInitialized(CThread * pThread);
+    static BOOL IsRunning(CThread* pThread);
+    static BOOL IsInitialized(CThread* pThread);
 
     // Will stop thread.
-    static void Kill(CThread * pThread);
+    static void Kill(CThread* pThread);
 
 private:
     BOOL    SetPriority(UINT32 dwPriority);
@@ -57,10 +57,10 @@ private:
     UINT32   Wait(UINT32 dwTimeout);
     void    Kill();
 
-    void *      m_pvDataObj;
-    void *      m_pvThreadProc;
+    void*       m_pvDataObj;
+    void*       m_pvThreadProc;
 
-    UINT32       m_uiPriority;
+    UINT32      m_uiPriority;
     BOOL        m_fJoinable;
     BOOL        m_fRunning;
     BOOL        m_fInitialized;

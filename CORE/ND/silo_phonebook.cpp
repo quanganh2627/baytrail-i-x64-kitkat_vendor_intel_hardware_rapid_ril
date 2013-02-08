@@ -19,7 +19,7 @@
 
 //
 //
-CSilo_Phonebook::CSilo_Phonebook(CChannel *pChannel)
+CSilo_Phonebook::CSilo_Phonebook(CChannel* pChannel)
 : CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Phonebook::CSilo_Phonebook() - Enter\r\n");

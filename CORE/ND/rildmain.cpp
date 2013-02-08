@@ -30,7 +30,7 @@
 //  FUNCTION PROTOTYPES
 //
 
-static void onRequest(int request, void *data, size_t datalen, RIL_Token t);
+static void onRequest(int request, void* data, size_t datalen, RIL_Token t);
 static RIL_RadioState onGetCurrentRadioState();
 static int onSupports(int requestCode);
 static void onCancel(RIL_Token t);
@@ -65,7 +65,7 @@ static const RIL_RadioFunctions gs_callbacks =
     getVersion
 };
 
-static const struct RIL_Env * gs_pRilEnv;
+static const struct RIL_Env* gs_pRilEnv;
 
 
 ///////////////////////////////////////////////////////////
@@ -74,34 +74,49 @@ static const struct RIL_Env * gs_pRilEnv;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void RIL_onRequestComplete(RIL_Token tRIL, RIL_Errno eErrNo, void *pResponse, size_t responseLen)
+void RIL_onRequestComplete(RIL_Token tRIL, RIL_Errno eErrNo, void* pResponse, size_t responseLen)
 {
     gs_pRilEnv->OnRequestComplete(tRIL, eErrNo, pResponse, responseLen);
-    RIL_LOG_INFO("After OnRequestComplete(): token=0x%08x, eErrNo=%d, pResponse=[0x%08x], len=[%d]\r\n", tRIL, eErrNo, pResponse, responseLen);
+    RIL_LOG_INFO("After OnRequestComplete(): token=0x%08x, eErrNo=%d, pResponse=[0x%08x],"
+            " len=[%d]\r\n", tRIL, eErrNo, pResponse, responseLen);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t dataSize)
+void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t dataSize)
 {
     bool bSendNotification = true;
+
+    if (CTE::GetTE().IsPlatformShutDownRequested()
+            && RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED != unsolResponseID
+            && RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED != unsolResponseID
+            && RIL_UNSOL_DATA_CALL_LIST_CHANGED != unsolResponseID)
+    {
+        RIL_LOG_INFO("RIL_onUnsolicitedResponse() - ignoring id=%d due to platform shutdown\r\n",
+                unsolResponseID);
+        return;
+    }
 
     switch (unsolResponseID)
     {
         case RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED: // 1000
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED\r\n");
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
+                    " RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED\r\n");
             break;
 
         case RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED:  // 1001
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED\r\n");
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
+                    " RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED\r\n");
             break;
 
         case RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED:  // 1002
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED\r\n");
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
+                    " RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED\r\n");
             break;
 
         case RIL_UNSOL_RESPONSE_NEW_SMS:  // 1003
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_NEW_SMS\r\n");
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
+                    " RIL_UNSOL_RESPONSE_NEW_SMS\r\n");
             if (pData && dataSize)
             {
                 RIL_LOG_INFO("RIL_onUnsolicitedResponse() - PDU=\"%s\"\r\n", (char*)pData);
@@ -109,7 +124,8 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             break;
 
         case RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT:  // 1004
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT\r\n");
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
+                    " RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT\r\n");
             if (pData && dataSize)
             {
                 RIL_LOG_INFO("RIL_onUnsolicitedResponse() - PDU=\"%s\"\r\n", (char*)pData);
@@ -120,7 +136,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_NEW_SMS_ON_SIM\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - index=%d\r\n", ((int *)pData)[0]);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - index=%d\r\n", ((int*)pData)[0]);
             }
             break;
 
@@ -128,8 +144,9 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_ON_USSD\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - type code=\"%s\"\r\n", ((char **)pData)[0]);
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - msg=\"%s\"\r\n", ((char **)pData)[1]);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - type code=\"%s\"\r\n",
+                        ((char**)pData)[0]);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - msg=\"%s\"\r\n", ((char**)pData)[1]);
             }
             break;
 
@@ -141,7 +158,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_NITZ_TIME_RECEIVED\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - NITZ info=\"%s\"\r\n", (char *)pData);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - NITZ info=\"%s\"\r\n", (char*)pData);
             }
             break;
 
@@ -149,8 +166,10 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIGNAL_STRENGTH\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_signalStrength=%d\r\n", ((RIL_SignalStrength_v6 *)pData)->GW_SignalStrength.signalStrength);
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_bitErrorRate=%d\r\n", ((RIL_SignalStrength_v6 *)pData)->GW_SignalStrength.bitErrorRate);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_signalStrength=%d\r\n",
+                        ((RIL_SignalStrength_v6*)pData)->GW_SignalStrength.signalStrength);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_bitErrorRate=%d\r\n",
+                        ((RIL_SignalStrength_v6*)pData)->GW_SignalStrength.bitErrorRate);
             }
             break;
 
@@ -159,18 +178,20 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             if (pData && dataSize)
             {
                 int nDataCallResponseNum = dataSize / sizeof(RIL_Data_Call_Response_v6);
-                RIL_Data_Call_Response_v6 *pDCR = (RIL_Data_Call_Response_v6 *)pData;
+                RIL_Data_Call_Response_v6* pDCR = (RIL_Data_Call_Response_v6*)pData;
                 for (int i=0; i<nDataCallResponseNum; i++)
                 {
-                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v6[%d] status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
-                        i,
-                        pDCR[i].status,
-                        pDCR[i].suggestedRetryTime,
-                        pDCR[i].cid, pDCR[i].active,
-                        pDCR[i].type, pDCR[i].ifname,
-                        pDCR[i].addresses,
-                        pDCR[i].dnses,
-                        pDCR[i].gateways);
+                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_Data_Call_Response_v6[%d]"
+                            " status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\""
+                            " addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
+                            i,
+                            pDCR[i].status,
+                            pDCR[i].suggestedRetryTime,
+                            pDCR[i].cid, pDCR[i].active,
+                            pDCR[i].type, pDCR[i].ifname,
+                            pDCR[i].addresses,
+                            pDCR[i].dnses,
+                            pDCR[i].gateways);
                 }
             }
             break;
@@ -179,13 +200,14 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SUPP_SVC_NOTIFICATION\r\n");
             if (pData && dataSize)
             {
-                RIL_SuppSvcNotification *pSSN = (RIL_SuppSvcNotification*)pData;
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - notification type=%d code=%d index=%d type=%d number=\"%s\"\r\n",
-                    pSSN->notificationType,
-                    pSSN->code,
-                    pSSN->index,
-                    pSSN->type,
-                    pSSN->number);
+                RIL_SuppSvcNotification* pSSN = (RIL_SuppSvcNotification*)pData;
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - notification type=%d code=%d index=%d"
+                        " type=%d number=\"%s\"\r\n",
+                        pSSN->notificationType,
+                        pSSN->code,
+                        pSSN->index,
+                        pSSN->type,
+                        pSSN->number);
             }
             break;
 
@@ -197,7 +219,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_STK_PROACTIVE_COMMAND\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - data=\"%s\"\r\n", (char *)pData);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - data=\"%s\"\r\n", (char*)pData);
             }
             else
             {
@@ -211,7 +233,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_STK_EVENT_NOTIFY\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - data=\"%s\"\r\n", (char *)pData);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - data=\"%s\"\r\n", (char*)pData);
             }
             break;
 
@@ -219,7 +241,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_STK_CALL_SETUP\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - timeout=%d ms\r\n", ((int *)pData)[0]);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - timeout=%d ms\r\n", ((int*)pData)[0]);
             }
             break;
 
@@ -231,9 +253,9 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIM_REFRESH\r\n");
             if (pData && dataSize)
             {
-                RIL_SimRefreshResponse_v7 *pSimRefreshRsp = (RIL_SimRefreshResponse_v7*)pData;
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_SimRefreshResult=%d efid=%d aid=%s\r\n",
-                        pSimRefreshRsp->ef_id,
+                RIL_SimRefreshResponse_v7* pSimRefreshRsp = (RIL_SimRefreshResponse_v7*)pData;
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_SimRefreshResult=%d efid=%d"
+                        " aid=%s\r\n", pSimRefreshRsp->ef_id,
                         (NULL == pSimRefreshRsp->aid) ? "" : pSimRefreshRsp->aid);
             }
             break;
@@ -255,7 +277,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - PDU=\"%s\"\r\n", (char *)pData);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - PDU=\"%s\"\r\n", (char*)pData);
             }
             break;
 
@@ -268,12 +290,14 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESTRICTED_STATE_CHANGED\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_RESTRICTED_STATE_* bitmask=0x%08X\r\n", ((int *)pData)[0]);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
+                        " RIL_RESTRICTED_STATE_* bitmask=0x%08X\r\n", ((int*)pData)[0]);
             }
             break;
 
         case RIL_UNSOL_ENTER_EMERGENCY_CALLBACK_MODE:  // 1024
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_ENTER_EMERGENCY_CALLBACK_MODE\r\n");
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
+                    " RIL_UNSOL_ENTER_EMERGENCY_CALLBACK_MODE\r\n");
             break;
 
         case RIL_UNSOL_CDMA_CALL_WAITING:  // 1025 - CDMA, not supported
@@ -309,7 +333,8 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RINGBACK_TONE\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RINGBACK_TONE=[%d]\r\n", ((int *)pData)[0]);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RINGBACK_TONE=[%d]\r\n",
+                        ((int*)pData)[0]);
             }
             break;
 
@@ -318,7 +343,8 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             break;
 
         case RIL_UNSOL_CDMA_SUBSCRIPTION_SOURCE_CHANGED:  // 1031 - not supported
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_SUBSCRIPTION_SOURCE_CHANGED\r\n");
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
+                    " RIL_UNSOL_CDMA_SUBSCRIPTION_SOURCE_CHANGED\r\n");
             bSendNotification = false;
             break;
 
@@ -328,14 +354,16 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             break;
 
         case RIL_UNSOL_EXIT_EMERGENCY_CALLBACK_MODE:  // 1033
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_EXIT_EMERGENCY_CALLBACK_MODE\r\n");
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
+                    " RIL_UNSOL_EXIT_EMERGENCY_CALLBACK_MODE\r\n");
             break;
 
         case RIL_UNSOL_RIL_CONNECTED:  // 1034
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RIL_CONNECTED\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RIL_CONNECTED=[%d]\r\n", ((int *)pData)[0]);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RIL_CONNECTED=[%d]\r\n",
+                        ((int*)pData)[0]);
             }
             break;
 
@@ -348,8 +376,9 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CALL_FAILED_CAUSE\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - call id=[%d]\r\n", ((int *)pData)[0]);
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - failed cause=[%d]\r\n", ((int *)pData)[1]);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - call id=[%d]\r\n", ((int*)pData)[0]);
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - failed cause=[%d]\r\n",
+                        ((int*)pData)[1]);
             }
             break;
 
@@ -357,7 +386,8 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
 
 
         default:
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - Ignoring Unknown Notification id=0x%08X, %d\r\n", unsolResponseID, unsolResponseID);
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - Ignoring Unknown Notification id=0x%08X,"
+                    " %d\r\n", unsolResponseID, unsolResponseID);
             bSendNotification = false;
             break;
     }
@@ -380,11 +410,13 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void *pData, size_t da
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void RIL_requestTimedCallback(RIL_TimedCallback callback, void * pParam, const struct timeval * pRelativeTime)
+void RIL_requestTimedCallback(RIL_TimedCallback callback, void* pParam,
+                                   const struct timeval* pRelativeTime)
 {
     if (pRelativeTime)
     {
-        RIL_LOG_INFO("Calling gs_pRilEnv->RequestTimedCallback() timeval sec=[%d]  usec=[%d]\r\n", pRelativeTime->tv_sec, pRelativeTime->tv_usec);
+        RIL_LOG_INFO("Calling gs_pRilEnv->RequestTimedCallback() timeval sec=[%d]  usec=[%d]\r\n",
+                pRelativeTime->tv_sec, pRelativeTime->tv_usec);
     }
     else
     {
@@ -395,9 +427,12 @@ void RIL_requestTimedCallback(RIL_TimedCallback callback, void * pParam, const s
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void RIL_requestTimedCallback(RIL_TimedCallback callback, void * pParam, const unsigned long seconds, const unsigned long microSeconds)
+void RIL_requestTimedCallback(RIL_TimedCallback callback, void* pParam,
+                                           const unsigned long seconds,
+                                           const unsigned long microSeconds)
 {
-    RIL_LOG_INFO("Calling gs_pRilEnv->RequestTimedCallback() sec=[%d]  usec=[%d]\r\n", seconds, microSeconds);
+    RIL_LOG_INFO("Calling gs_pRilEnv->RequestTimedCallback() sec=[%d]  usec=[%d]\r\n",
+            seconds, microSeconds);
     struct timeval myTimeval = {0,0};
     myTimeval.tv_sec = seconds;
     myTimeval.tv_usec = microSeconds;
@@ -418,7 +453,7 @@ void RIL_requestTimedCallback(RIL_TimedCallback callback, void * pParam, const u
  * that the radio is ready to process another command (whether or not
  * the previous command has completed).
  */
-static void onRequest(int requestID, void * pData, size_t datalen, RIL_Token hRilToken)
+static void onRequest(int requestID, void* pData, size_t datalen, RIL_Token hRilToken)
 {
     RIL_LOG_INFO("onRequest() - id=%d token: 0x%08x\r\n", requestID, (int) hRilToken);
 
@@ -469,12 +504,12 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.42 for Android 4.1.2 (Build January 8/2013)";
+    return "Intrinsyc Rapid-RIL M6.43 for Android 4.1.2 (Build January 22/2013)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-static void* mainLoop(void *param)
+static void* mainLoop(void* param)
 {
     LOGI("mainLoop() - Enter\r\n");
 
@@ -517,7 +552,7 @@ Error:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-static void usage(char *szProgName)
+static void usage(char* szProgName)
 {
     fprintf(stderr, "RapidRIL requires:\n");
     fprintf(stderr, "    -a <Call and Misc AT command port>\n");
@@ -534,13 +569,16 @@ static void usage(char *szProgName)
     fprintf(stderr, "    [-i <SIM ID for DSDS>]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Example in init.rc file:\n");
-    fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12 -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1 -o /dev/gsmtty9 -d /dev/gsmtty3 -d /dev/gsmtty4 -d /dev/gsmtty15 -d /dev/gsmtty16 -d /dev/gsmtty17\n", szProgName);
+    fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12"
+            " -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1"
+            " -o /dev/gsmtty9 -d /dev/gsmtty3 -d /dev/gsmtty4 -d /dev/gsmtty15"
+            " -d /dev/gsmtty16 -d /dev/gsmtty17\n", szProgName);
     fprintf(stderr, "\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-static bool RIL_SetGlobals(int argc, char **argv)
+static bool RIL_SetGlobals(int argc, char** argv)
 {
     int opt;
     UINT32 uiDataPortIndex = RIL_CHANNEL_DATA1;
@@ -564,37 +602,44 @@ static bool RIL_SetGlobals(int argc, char **argv)
             // This should be the non-emulator case.
             case 'a':
                 g_szCmdPort = optarg;
-                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for AT channel chnl=[%d] -a\r\n", g_szCmdPort, RIL_CHANNEL_ATCMD);
+                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for AT channel chnl=[%d] -a\r\n",
+                        g_szCmdPort, RIL_CHANNEL_ATCMD);
             break;
 
             // This should be the non-emulator case.
             case 'n':
                 g_szDLC2Port = optarg;
-                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Network channel chnl=[%d] -n\r\n", g_szDLC2Port, RIL_CHANNEL_DLC2);
+                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Network channel chnl=[%d]"
+                        " -n\r\n", g_szDLC2Port, RIL_CHANNEL_DLC2);
             break;
 
             // This should be the non-emulator case.
             case 'm':
                 g_szDLC6Port = optarg;
-                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Messaging channel chnl=[%d] -m\r\n", g_szDLC6Port, RIL_CHANNEL_DLC6);
+                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Messaging channel chnl=[%d]"
+                        " -m\r\n", g_szDLC6Port, RIL_CHANNEL_DLC6);
             break;
 
             // This should be the non-emulator case.
             case 'c':
                 g_szDLC8Port = optarg;
-                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for SIM/USIM Card channel chnl=[%d] -c\r\n", g_szDLC8Port, RIL_CHANNEL_DLC8);
+                LOGI("RIL_SetGlobals() -"
+                        " Using tty device \"%s\" for SIM/USIM Card channel chnl=[%d]"
+                        " -c\r\n", g_szDLC8Port, RIL_CHANNEL_DLC8);
             break;
 
             // This should be the non-emulator case.
             case 'u':
                 g_szURCPort = optarg;
-                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for URC channel chnl=[%d] -u\r\n", g_szURCPort, RIL_CHANNEL_URC);
+                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for URC channel chnl=[%d] -u\r\n",
+                        g_szURCPort, RIL_CHANNEL_URC);
             break;
 
             // This should be the non-emulator case.
             case 'o':
                 g_szOEMPort = optarg;
-                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for OEM channel chnl=[%d] -u\r\n", g_szOEMPort, RIL_CHANNEL_OEM);
+                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for OEM channel chnl=[%d] -u\r\n",
+                        g_szOEMPort, RIL_CHANNEL_OEM);
             break;
 
             // This should be the non-emulator case.
@@ -604,12 +649,13 @@ static bool RIL_SetGlobals(int argc, char **argv)
             break;
 
             // This should be the non-emulator case.
-            //  For multiple PDP contexts (which is default in ICS), must choose more than 1 data port.
-            //  Also note that 1 data port is the minimum.
+            // For multiple PDP contexts (which is default in ICS), must choose
+            // more than 1 data port. Also note that 1 data port is the minimum.
             case 'd':
                 if (uiDataPortIndex >= g_uiRilChannelUpperLimit)
                 {
-                    LOGI("RIL_SetGlobals() - Too many RIL data channels!  uiDataPortIndex=%d, Upper Limit=%d\r\n", uiDataPortIndex, g_uiRilChannelUpperLimit);
+                    LOGI("RIL_SetGlobals() - Too many RIL data channels!  uiDataPortIndex=%d,"
+                            " Upper Limit=%d\r\n", uiDataPortIndex, g_uiRilChannelUpperLimit);
                     usage(argv[0]);
                     return false;
                 }
@@ -619,27 +665,32 @@ static bool RIL_SetGlobals(int argc, char **argv)
                     {
                         case RIL_CHANNEL_DATA1:
                             g_szDataPort1 = optarg;
-                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort1, RIL_CHANNEL_DATA1);
+                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
+                                    " chnl=[%d] -d\r\n", g_szDataPort1, RIL_CHANNEL_DATA1);
                             break;
 
                         case RIL_CHANNEL_DATA2:
                             g_szDataPort2 = optarg;
-                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort2, RIL_CHANNEL_DATA2);
+                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
+                                    " chnl=[%d] -d\r\n", g_szDataPort2, RIL_CHANNEL_DATA2);
                             break;
 
                         case RIL_CHANNEL_DATA3:
                             g_szDataPort3 = optarg;
-                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort3, RIL_CHANNEL_DATA3);
+                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
+                                    " chnl=[%d] -d\r\n", g_szDataPort3, RIL_CHANNEL_DATA3);
                             break;
 
                         case RIL_CHANNEL_DATA4:
                             g_szDataPort4 = optarg;
-                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort4, RIL_CHANNEL_DATA4);
+                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
+                                    " chnl=[%d] -d\r\n", g_szDataPort4, RIL_CHANNEL_DATA4);
                             break;
 
                         case RIL_CHANNEL_DATA5:
                             g_szDataPort5 = optarg;
-                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel chnl=[%d] -d\r\n", g_szDataPort5, RIL_CHANNEL_DATA5);
+                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
+                                    " chnl=[%d] -d\r\n", g_szDataPort5, RIL_CHANNEL_DATA5);
                             break;
 
                         default:
@@ -659,13 +710,15 @@ static bool RIL_SetGlobals(int argc, char **argv)
     g_uiRilChannelCurMax = uiDataPortIndex;
     if (g_uiRilChannelCurMax > g_uiRilChannelUpperLimit)
     {
-        LOGE("RIL_SetGlobals() - g_uiRilChannelCurMax = %d higher than g_uiRilChannelUpperLimit = %d\r\n", g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
+        LOGE("RIL_SetGlobals() - g_uiRilChannelCurMax = %d higher than g_uiRilChannelUpperLimit ="
+                " %d\r\n", g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
         usage(argv[0]);
         return false;
     }
     else
     {
-        LOGI("RIL_SetGlobals() - g_uiRilChannelCurMax = %d  g_uiRilChannelUpperLimit = %d\r\n", g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
+        LOGI("RIL_SetGlobals() - g_uiRilChannelCurMax = %d  g_uiRilChannelUpperLimit = %d\r\n",
+                g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
     }
 
     if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port
@@ -679,7 +732,7 @@ static bool RIL_SetGlobals(int argc, char **argv)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-const RIL_RadioFunctions * RIL_Init(const struct RIL_Env *pRilEnv, int argc, char **argv)
+const RIL_RadioFunctions* RIL_Init(const struct RIL_Env* pRilEnv, int argc, char** argv)
 {
     RIL_LOG_INFO("RIL_Init() - Enter\r\n");
 
