@@ -573,10 +573,10 @@ public:
     BOOL TestAndSetSpoofCommandsStatus(BOOL bStatus);
 
     void SetLastModemEvent(UINT32 uiValue) { m_uiLastModemEvent = uiValue; };
-    UINT32 GetLastModemEvent() { return m_uiLastModemEvent; };
+    UINT32 GetLastModemEvent() {return m_uiLastModemEvent;};
 
     void SetModemOffInFlightModeState(BOOL bValue) { m_bModemOffInFlightMode = bValue; };
-    BOOL GetModemOffInFlightModeState() { return m_bModemOffInFlightMode; };
+    BOOL GetModemOffInFlightModeState() {return m_bModemOffInFlightMode;};
 
     void SetSimTechnicalProblem(BOOL bIsTechnicalProblem) { m_bIsSimTechnicalProblem = bIsTechnicalProblem; };
     BOOL IsSimTechnicalProblem() { return m_bIsSimTechnicalProblem; };
