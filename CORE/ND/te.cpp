@@ -303,6 +303,43 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
                     sizeof(RIL_Data_Call_Response_v6));
             break;
 
+        case RIL_REQUEST_GET_SIM_STATUS:
+            RIL_CardStatus_v6 cardStatus;
+
+            // Fill in the default values
+            cardStatus.gsm_umts_subscription_app_index = -1;
+            cardStatus.cdma_subscription_app_index = -1;
+            cardStatus.ims_subscription_app_index = -1;
+
+            if (RRIL_SIM_STATE_READY == GetSIMState())
+            {
+                cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
+                cardStatus.card_state = RIL_CARDSTATE_PRESENT;
+                cardStatus.num_applications = 1;
+                cardStatus.applications[0].app_state = RIL_APPSTATE_DETECTED;
+                cardStatus.applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+                cardStatus.applications[0].aid_ptr = NULL;
+                cardStatus.applications[0].app_label_ptr = NULL;
+                cardStatus.applications[0].pin1_replaced = 0;
+                cardStatus.applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
+                cardStatus.applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+                cardStatus.applications[0].pin1_num_retries = -1;
+                cardStatus.applications[0].puk1_num_retries = -1;
+                cardStatus.applications[0].pin2_num_retries = -1;
+                cardStatus.applications[0].puk2_num_retries = -1;
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+            }
+            else
+            {
+                cardStatus.card_state = RIL_CARDSTATE_ABSENT;
+                cardStatus.num_applications = 0;
+            }
+
+            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &cardStatus,
+                    sizeof(RIL_CardStatus_v6));
+            break;
+
         default:
             eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
             break;
@@ -338,6 +375,17 @@ RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
                     sizeof(RIL_Data_Call_Response_v6));
             break;
 
+        /*
+         * If any of the following request fails with RIL_E_RADIO_NOT_AVAILABLE,
+         * then framework cancels the polling.
+         */
+        case RIL_REQUEST_VOICE_REGISTRATION_STATE:
+        case RIL_REQUEST_DATA_REGISTRATION_STATE:
+        case RIL_REQUEST_OPERATOR:
+        case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:
+            eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
+            break;
+
         default:
             eRetVal = RIL_E_GENERIC_FAILURE;
             break;
@@ -351,12 +399,13 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     RIL_RESULT_CODE eRetVal = RIL_E_SUCCESS;
     RIL_LOG_INFO("CTE::HandleRequest() - id=%d token: 0x%08x\r\n", requestId, (int) hRilToken);
 
-    //  If we're in the middle of TriggerRadioError(), spoof all commands.
+    //  If we're in the middle of Radio error or radio off request handling, spoof all commands.
     if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(requestId))
     {
         eRetVal = HandleRequestWhenNoModem(requestId, hRilToken);
     }
-    else if (RADIO_STATE_OFF == GetRadioState() && !IsRequestAllowedInRadioOff(requestId))
+    else if ((m_bRadioRequestPending || RADIO_STATE_OFF == GetRadioState())
+            && !IsRequestAllowedInRadioOff(requestId))
     {
         eRetVal = HandleRequestInRadioOff(requestId, hRilToken);
     }
@@ -2183,16 +2232,39 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         }
         else
         {
-            // FIXME: Handle wait forever
-            if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
+            if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent()
+                    || !CSystemManager::GetInstance().IsInitializationSuccessful())
             {
+                /*
+                 * This timeout is based on test results. Timeout is the sum of
+                 * time taken for powering up the modem(~6seconds) + opening of ports(<1second)
+                 * + modem basic initialization(1second).
+                 */
+                UINT32 WAIT_TIMEOUT_IN_MS = 15000;
+
                 RIL_LOG_INFO("CTE::RequestRadioPower() : Waiting for "
                         "modem initialization completion event\r\n");
 
                 m_bRadioRequestPending = TRUE;
 
-                CEvent::Wait(CSystemManager::GetModemBasicInitCompleteEvent(),
-                        WAIT_FOREVER);
+                CEvent::Reset(CSystemManager::GetModemBasicInitCompleteEvent());
+
+                if (WAIT_EVENT_0_SIGNALED !=
+                        CEvent::Wait(CSystemManager::GetModemBasicInitCompleteEvent(),
+                                WAIT_TIMEOUT_IN_MS))
+                {
+                    RIL_LOG_INFO("CTE::RequestRadioPower() : Timeout Waiting for"
+                            "modem initialization completion event\r\n");
+
+                    res = RRIL_RESULT_RADIOOFF;
+                    /*
+                     * This is done to force the framework to trigger RADIO_POWER on
+                     * request again.
+                     */
+                    SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+                    RIL_requestTimedCallback(triggerRadioOffInd, NULL, 1, 0);
+                    goto Error;
+                }
             }
 
             CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER],
