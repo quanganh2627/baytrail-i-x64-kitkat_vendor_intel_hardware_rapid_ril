@@ -187,6 +187,9 @@ BOOL CPort::Close()
         }
     }
 
+    delete m_pFile;
+    m_pFile = NULL;
+
     RIL_LOG_VERBOSE("CPort::Close() - Exit\r\n");
     return fRet;
 }
@@ -250,72 +253,27 @@ BOOL CPort::OpenPort(const char* pszFileName)
     RIL_LOG_VERBOSE("CPort::OpenPort() - Enter\r\n");
     BOOL fRet = FALSE;
 
-    const int iRETRIES_DEFAULT = 30;    // default values
-    const int iINTERVAL_DEFAULT = 1000; // default values
-
-    int iRetries = iRETRIES_DEFAULT;
-    int iInterval = iINTERVAL_DEFAULT;
-
-    int  iAttempts = 0;
-
-    //  Grab retries and interval from repository.
-    CRepository repository;
-    if (!repository.Read(g_szGroupRILSettings, g_szOpenPortRetries, iRetries))
+    if (NULL == m_pFile)
     {
-        iRetries = iRETRIES_DEFAULT;
+        RIL_LOG_CRITICAL("CPort::OpenPort() - m_pFile is NULL");
+        return fRet;
     }
-    RIL_LOG_INFO("CPort::OpenPort() - iRetries=[%d]\r\n", iRetries);
 
-    if (!repository.Read(g_szGroupRILSettings, g_szOpenPortInterval, iInterval))
+    fRet = CFile::Open(m_pFile, pszFileName, FILE_ACCESS_READ_WRITE,
+            FILE_OPEN_EXIST, FILE_OPT_NONE);
+
+    if (fRet)
     {
-        iInterval = iINTERVAL_DEFAULT;
+        m_fIsPortOpen = TRUE;
     }
-    RIL_LOG_INFO("CPort::OpenPort() - iInterval=[%d]\r\n", iInterval);
 
-    while(!fRet)
+    //  If we didn't open the port, issue critical reset
+    if (!fRet)
     {
-        for (iAttempts = 0; iAttempts < iRetries; iAttempts++)
-//        for(;;)
-        {
-            if (iAttempts > 0)
-            {
-                Sleep(iInterval);
-            }
+        RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT issuing critical reboot\r\n");
 
-            RIL_LOG_INFO("CPort::OpenPort()  ATTEMPT NUMBER %d\r\n", iAttempts);
-            fRet = CFile::Open(m_pFile, pszFileName, FILE_ACCESS_READ_WRITE,
-                    FILE_OPEN_EXIST, FILE_OPT_NONE);
-
-            if (fRet)
-            {
-                m_fIsPortOpen = TRUE;
-                break;
-            }
-            // else
-            // {
-            //    /* maybe modem is absent, so dont wake up the system too
-            //       often in that case.
-            //       we do exponential retry with 20 minutes maximum */
-            //    if (iAttempts > 9 && iInterval < 1200000)
-            //        iInterval *= 2;
-            //    Sleep(iInterval);
-            //}
-
-            //  Remove this when using for loop
-            // iAttempts++;
-        }
-
-
-        //  If we didn't open the port, issue critical reset
-        if (!fRet)
-        {
-            RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT after %d attempts, issuing"
-                    " critical reboot\r\n", iAttempts);
-
-            //  If we can't open the ports, tell STMD to cleanup.
-            do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
-        }
-
+        //  If we can't open the ports, tell MMGR to cleanup.
+        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
     }
 
     RIL_LOG_VERBOSE("CPort::OpenPort() - Exit\r\n");

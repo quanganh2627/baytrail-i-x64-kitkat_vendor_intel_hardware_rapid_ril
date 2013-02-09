@@ -114,6 +114,8 @@ public:
     //  off from InitChannelPorts().  Called when MODEM_UP status is received.
     BOOL ContinueInit();
 
+    void ResetChannelInfo();
+
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     void SetLastCallFailedCauseID(UINT32 nID) { m_uiLastCallFailedCauseID = nID; };
     UINT32 GetLastCallFailedCauseID() const { return m_uiLastCallFailedCauseID; };

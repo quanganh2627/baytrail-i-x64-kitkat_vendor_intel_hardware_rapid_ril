@@ -969,6 +969,36 @@ void CSystemManager::ResetSystemState()
     RIL_LOG_VERBOSE("CSystemManager::ResetSystemState() - Exit\r\n");
 }
 
+void CSystemManager::ResetChannelInfo()
+{
+    RIL_LOG_INFO("CSystemManager::ResetChannelInfo() - Enter\r\n");
+
+    CMutex::Lock(m_pSystemManagerMutex);
+
+    // signal the cancel event to kill the thread
+    CEvent::Signal(m_pExitRilEvent);
+
+    ResetChannelCompletedInit();
+
+    //  Close the COM ports
+    CloseChannelPorts();
+
+    CThreadManager::Stop();
+
+    if (m_pExitRilEvent)
+    {
+        delete m_pExitRilEvent;
+        m_pExitRilEvent = NULL;
+    }
+
+    // free queues
+    DeleteQueues();
+
+    CMutex::Unlock(m_pSystemManagerMutex);
+
+    RIL_LOG_INFO("CSystemManager::ResetChannelInfo() - Exit\r\n");
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 BOOL CSystemManager::CreateQueues()
 {
@@ -1510,6 +1540,16 @@ void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIn
         RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() -"
                 " DEBUG: All channels complete basic init!\r\n");
         CEvent::Signal(m_pModemBasicInitCompleteEvent);
+
+        if (!CTE::GetTE().IsRadioRequestPending()
+                && (RADIO_STATE_UNAVAILABLE == CTE::GetTE().GetRadioState()))
+        {
+            /*
+             * Needed as RIL_REQUEST_RADIO_POWER request is not received
+             * after modem core dump, warm reset.
+             */
+            CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
+        }
     }
     else if (VerifyAllChannelsCompletedInit(COM_POWER_ON_INIT_INDEX))
     {
