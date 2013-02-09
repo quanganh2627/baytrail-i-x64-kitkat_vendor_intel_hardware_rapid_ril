@@ -95,19 +95,11 @@ RIL_RESULT_CODE CTE_XMM6260::CoreGetSimStatus(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetSimStatus() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CPIN?;+XUICC?;+XPINCNT;+CCID\r",
             sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
-#else  // M2_PIN_RETRIES_FEATURE_ENABLED
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CPIN?;+XUICC?;+CCID\r",
-            sizeof(rReqData.szCmd1)))
-    {
-        res = RRIL_RESULT_OK;
-    }
-#endif // M2_PIN_RETRIES_FEATURE_ENABLED
 
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetSimStatus() - Exit\r\n");
     return res;
@@ -166,7 +158,6 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetSimStatus(RESPONSE_DATA& rRspData)
             SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
         }
 
-#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
         // Parse "<prefix>+XPINCNT: <PIN attempts>, <PIN2 attempts>,
         // <PUK attempts>, <PUK2 attempts><postfix>"
         SkipRspStart(pszRsp, m_szNewLine, pszRsp);
@@ -184,11 +175,13 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetSimStatus(RESPONSE_DATA& rRspData)
                 !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetSimStatus() - Cannot parse XPINCNT\r\n");
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
                 //  Set pin retries to -1 (unknown)
                 pCardStatus->applications[0].pin1_num_retries = -1;
                 pCardStatus->applications[0].puk1_num_retries = -1;
                 pCardStatus->applications[0].pin2_num_retries = -1;
                 pCardStatus->applications[0].puk2_num_retries = -1;
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
             }
             else
             {
@@ -196,15 +189,20 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetSimStatus(RESPONSE_DATA& rRspData)
                         " retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
                         uiPin1, uiPin2, uiPuk1, uiPuk2);
 
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
                 pCardStatus->applications[0].pin1_num_retries = uiPin1;
                 pCardStatus->applications[0].puk1_num_retries = uiPuk1;
                 pCardStatus->applications[0].pin2_num_retries = uiPin2;
                 pCardStatus->applications[0].puk2_num_retries = uiPuk2;
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+
+                m_PinRetryCount.pin = uiPin1;
+                m_PinRetryCount.pin2 = uiPuk1;
+                m_PinRetryCount.puk = uiPin2;
+                m_PinRetryCount.puk2 = uiPuk2;
             }
             SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
         }
-
-#endif // M2_PIN_RETRIES_FEATURE_ENABLED
 
         // Parse "<prefix>+CCID: <ICCID><postfix>"
         SkipRspStart(pszRsp, m_szNewLine, pszRsp);

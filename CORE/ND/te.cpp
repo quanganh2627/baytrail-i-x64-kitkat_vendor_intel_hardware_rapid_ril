@@ -7528,7 +7528,8 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
         if (NULL != rData.pData && sizeof(RIL_CardStatus_v6) == rData.uiDataSize)
         {
             RIL_CardStatus_v6* pCardStatus = (RIL_CardStatus_v6*) rData.pData;
-            if (m_pTEBaseInstance->IsPinEnabled(pCardStatus) && PCache_GetUseCachedPIN())
+            if (m_pTEBaseInstance->IsPinEnabled(pCardStatus)
+                    && PCache_GetUseCachedPIN() && m_pTEBaseInstance->GetPinRetryCount() > 2)
             {
                 BOOL bRet = m_pTEBaseInstance->HandleSilentPINEntry(rData.pRilToken, NULL, 0);
                 if (bRet)

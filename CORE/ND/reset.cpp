@@ -442,6 +442,9 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 }
                 else
                 {
+                    // Set local flag to use cached PIN next time
+                    PCache_SetUseCachedPIN(true);
+
                     CSystemManager::Destroy();
 
                     //  let's exit, init will restart us
