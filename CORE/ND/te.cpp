@@ -162,7 +162,7 @@ BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
 {
     RIL_LOG_INFO("CTE::IsRequestAllowedInSpoofState - requestId=%d", requestId);
 
-    BOOL bAllowed ;
+    BOOL bAllowed;
 
     switch (requestId)
     {
@@ -189,13 +189,28 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
 {
     RIL_LOG_INFO("CTE::IsRequestAllowedInRadioOff - requestId=%d", requestId);
 
-    BOOL bAllowed ;
+    BOOL bAllowed;
 
     switch (requestId)
     {
         case RIL_REQUEST_RADIO_POWER:
-        case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
             bAllowed = TRUE;
+            break;
+
+        case RIL_REQUEST_GET_IMEI:
+        case RIL_REQUEST_GET_IMEISV:
+        case RIL_REQUEST_BASEBAND_VERSION:
+        case RIL_REQUEST_SET_TTY_MODE:
+        case RIL_REQUEST_QUERY_TTY_MODE:
+        case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
+            if (E_MMGR_EVENT_MODEM_UP == GetLastModemEvent())
+            {
+                bAllowed = TRUE;
+            }
+            else
+            {
+                bAllowed = FALSE;
+            }
             break;
 
         case RIL_REQUEST_GET_SIM_STATUS:
