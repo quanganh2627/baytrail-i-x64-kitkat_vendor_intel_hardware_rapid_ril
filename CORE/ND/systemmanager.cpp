@@ -641,9 +641,7 @@ Done:
         if (m_pMMgrLibHandle)
         {
             mmgr_cli_disconnect(m_pMMgrLibHandle);
-            Sleep(300);
             mmgr_cli_delete_handle(m_pMMgrLibHandle);
-            delete m_pMMgrLibHandle;
             m_pMMgrLibHandle = NULL;
         }
 
@@ -779,9 +777,7 @@ Done:
         if (m_pMMgrLibHandle)
         {
             mmgr_cli_disconnect(m_pMMgrLibHandle);
-            Sleep(300);
             mmgr_cli_delete_handle(m_pMMgrLibHandle);
-            delete m_pMMgrLibHandle;
             m_pMMgrLibHandle = NULL;
         }
 
