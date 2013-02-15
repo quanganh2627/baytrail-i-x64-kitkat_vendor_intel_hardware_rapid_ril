@@ -62,6 +62,8 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
     BOOL bIsHSIDirect = FALSE;
     int hsiChannel = -1;
     UINT32 uiRilChannel = 0;
+    int ipcDataChannelMin = 0;
+    char* szModemResourceName = {'\0'};
 
     if (NULL == pData ||
                     sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA) != uiDataSize)
@@ -134,26 +136,26 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
 
        // Get the hsi channel id
         int hsiNetworkPath = -1;
-        switch (hsiChannel)
+
+        ipcDataChannelMin = CSystemManager::GetInstance().GetIpcDataChannelMin();
+
+        if (ipcDataChannelMin <= hsiChannel && RIL_MAX_NUM_IPC_CHANNEL > hsiChannel)
         {
-            case RIL_HSI_CHANNEL1:
-                hsiNetworkPath = RIL_HSI_CHANNEL1;
-                break;
-            case RIL_HSI_CHANNEL2:
-                hsiNetworkPath = RIL_HSI_CHANNEL2;
-                break;
-            case RIL_HSI_CHANNEL3:
-                hsiNetworkPath = RIL_HSI_CHANNEL3;
-                break;
-            default:
-                RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -"
-                        " Unknown HSI Channel [%d] \r\n", hsiChannel);
-                goto Error;
+           hsiNetworkPath = hsiChannel;
+        }
+        else
+        {
+           RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() - Unknown HSI Channel [%d] \r\n",
+                            hsiChannel);
+           goto Error;
         }
 
+        szModemResourceName = CSystemManager::GetInstance().GetModemResourceName();
+
         if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/%d\",\"/mipi_ipc/%d\",0\r",
-                uiCID, muxControlChannel, hsiNetworkPath))
+                "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/%d\",\"/%s/%d\",0\r",
+                uiCID, muxControlChannel,
+                szModemResourceName, hsiNetworkPath))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -"
                     "  cannot create CGDATA command\r\n");
@@ -253,9 +255,20 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
     int dataProfile = -1;
     BOOL bIsHSIDirect = FALSE;
     int hsiChannel = -1;
+    int ipcDataChannelMin = 0;
 
-    const UINT32 NW_IF_PDP_MUX_OFFSET = 3;
-    const UINT32 NW_IF_PDP_HSI_DIRECT_OFFSET = 2;
+    UINT32 nw_if_pdp_mux_offset = 0;
+
+    ipcDataChannelMin = CSystemManager::GetInstance().GetIpcDataChannelMin();
+
+    if (ipcDataChannelMin > RIL_MAX_NUM_IPC_CHANNEL)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - Invalid data channel range (%u).\r\n",
+                                                                    ipcDataChannelMin);
+        goto Error;
+    }
+
+    nw_if_pdp_mux_offset = (RIL_MAX_NUM_IPC_CHANNEL - ipcDataChannelMin);
 
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
@@ -282,28 +295,28 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
         switch (dataProfile)
         {
         case RIL_DATA_PROFILE_DEFAULT:
-            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_DEFAULT;
+            networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_DEFAULT;
             break;
         case RIL_DATA_PROFILE_TETHERED:
-            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_TETHERED;
+            networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_TETHERED;
             break;
         case RIL_DATA_PROFILE_IMS:
-            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_IMS;
+            networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_IMS;
             break;
         case RIL_DATA_PROFILE_MMS:
-            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_MMS;
+            networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_MMS;
             break;
         case RIL_DATA_PROFILE_CBS:
-            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_CBS;
+            networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_CBS;
             break;
         case RIL_DATA_PROFILE_FOTA:
-            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_FOTA;
+            networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_FOTA;
             break;
         case RIL_DATA_PROFILE_SUPL:
-            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_SUPL;
+            networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_SUPL;
             break;
         case RIL_DATA_PROFILE_HIPRI:
-            networkInterfaceID = NW_IF_PDP_MUX_OFFSET + RIL_DATA_PROFILE_HIPRI;
+            networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_HIPRI;
             break;
         default:
             RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - Unknown Data Profile [%d] \r\n",
@@ -313,25 +326,23 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
     }
     else
     {
-        // First network interface is rmnet0 for pdp directly over hsi
-        switch (hsiChannel)
+        if (ipcDataChannelMin <= hsiChannel && RIL_MAX_NUM_IPC_CHANNEL > hsiChannel)
         {
-        case RIL_HSI_CHANNEL1:
-            networkInterfaceID = RIL_HSI_CHANNEL1 - NW_IF_PDP_HSI_DIRECT_OFFSET;
-            break;
-        case RIL_HSI_CHANNEL2:
-            networkInterfaceID = RIL_HSI_CHANNEL2 - NW_IF_PDP_HSI_DIRECT_OFFSET;
-            break;
-        case RIL_HSI_CHANNEL3:
-            networkInterfaceID = RIL_HSI_CHANNEL3 - NW_IF_PDP_HSI_DIRECT_OFFSET;
-            break;
-        default:
+            networkInterfaceID = (hsiChannel - ipcDataChannelMin);
+            if (networkInterfaceID < 0)
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - Invalid network"
+                        " interface ID (%d) \r\n", networkInterfaceID);
+                goto Error;
+            }
+        }
+        else
+        {
             RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - Unknown his channel [%d] \r\n",
                                                     hsiChannel);
             goto Error;
         }
     }
-
 
     if (!PrintStringNullTerminate(szNetworkInterfaceName, sizeof(szNetworkInterfaceName),
                                         "%s%d", m_szNetworkInterfaceNamePrefix,
@@ -619,4 +630,35 @@ Error:
 
     RIL_LOG_VERBOSE("CTE_XMM6360::ParseBasebandVersion() - Exit\r\n");
     return res;
+}
+
+RIL_RadioTechnology CTE_XMM6360::MapAccessTechnology(UINT32 uiStdAct)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::MapAccessTechnology() ENTER  uiStdAct=[%u]\r\n", uiStdAct);
+
+    /*
+     * 20111103: There is no 3GPP standard value defined for GPRS and HSPA+
+     * access technology. So, values 1 and 8 are used in relation with the
+     * IMC proprietary +XREG: <Act> parameter.
+     *
+     * Note: GSM Compact is not supported by IMC modem.
+     */
+    RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
+
+    //  Check state and set global variable for network technology
+    switch (uiStdAct)
+    {
+        /* 20130202:
+         * case 9 is added for HSPA dual carrier
+         */
+        case 9: // Proprietary value introduced for HSPA+ DC-FSPA+
+        rtAct = RADIO_TECH_HSPAP; // 15
+        break;
+
+        default:
+        rtAct = CTEBase::MapAccessTechnology(uiStdAct);
+        break;
+    }
+    RIL_LOG_VERBOSE("CTE_XMM6360::MapAccessTechnology() EXIT  rtAct=[%u]\r\n", (UINT32)rtAct);
+    return rtAct;
 }

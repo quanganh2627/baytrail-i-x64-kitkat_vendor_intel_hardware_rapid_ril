@@ -421,6 +421,13 @@ BOOL CSystemManager::InitializeSystem()
                     " default from repository\r\n");
         }
 
+        if (!repository.Read(g_szGroupModem, g_szIpcDataChannelMin, m_ipcDataChannelMin))
+        {
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read min"
+                " IPC Data channel from repository\r\n");
+            m_ipcDataChannelMin = RIL_DEFAULT_IPC_CHANNEL_MIN;
+        }
+
         m_hsiChannelsReservedForClass1 = 0;
         for (UINT32 i = 0; i < NUMBER_OF_APN_PROFILE; i++)
         {
@@ -435,13 +442,25 @@ BOOL CSystemManager::InitializeSystem()
             RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much class1 APN\r\n");
             goto Done;
         }
-        // HSI channel 0 and 1 are not used for data.
-        if (m_hsiDataDirect > RIL_HSI_CHANNEL_MAX - 2)
+
+        if (m_hsiDataDirect > (RIL_MAX_NUM_IPC_CHANNEL - m_ipcDataChannelMin))
         {
             RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : Too much hsi channel reserved"
                     " for data\r\n");
             goto Done;
         }
+
+        //  Grab the Modem data channel resource name
+        if (!repository.Read(g_szGroupModem, g_szModemResourceName, m_szModemResourceName,
+                    MAX_MDM_RESOURCE_NAME_SIZE))
+        {
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not read modem resource"
+                    " name from repository\r\n");
+            // Set default value.
+            strcpy(m_szModemResourceName, RIL_DEFAULT_IPC_RESOURCE_NAME);
+        }
+        RIL_LOG_INFO("CSystemManager::InitializeSystem() - m_szModemResourceName=[%s]\r\n",
+                    m_szModemResourceName);
     }
 
     if (m_pSimUnlockedEvent)
@@ -570,17 +589,17 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetFastDormancyMode((UINT32)iTemp);
     }
 
-    //  Need to establish communication with MMgr here.
-    if (!MMgrConnectionInit())
-    {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unable to connect to MMgr lib\r\n");
-        goto Done;
-    }
-
     //  Create and initialize the channels (don't open ports yet)
     if (!InitChannelPorts())
     {
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - InitChannelPorts() error!\r\n");
+        goto Done;
+    }
+
+    //  Need to establish communication with MMgr here.
+    if (!MMgrConnectionInit())
+    {
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unable to connect to MMgr lib\r\n");
         goto Done;
     }
 
@@ -645,19 +664,6 @@ Done:
                 // Flightmode enabled
                 CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
                 CTE::GetTE().SetSpoofCommandsStatus(FALSE);
-            }
-            else
-            {
-                if (E_MMGR_EVENT_MODEM_DOWN == CTE::GetTE().GetLastModemEvent())
-                {
-                    // Modem reset or platform boot
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-                }
-                else
-                {
-                    // This is unlikely
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
-                }
             }
         }
         else
@@ -729,17 +735,10 @@ BOOL CSystemManager::ContinueInit()
     {
         CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
     }
+
     // Signal that we have initialized, so that framework
     // can start using the rild socket.
     CEvent::Signal(m_pSysInitCompleteEvent);
-
-    // FIXME: Send network state change in order to ensure PDP context re-initalization.
-    // An other way may be found.
-    if (CTE::GetTE().GetModemOffInFlightModeState())
-    {
-        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
-    }
-
 Done:
     if (!bRetVal)
     {
@@ -1868,4 +1867,14 @@ void CSystemManager::CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqI
         }
     }
     RIL_LOG_VERBOSE("CSystemManager::CompleteIdenticalRequests() - Exit\r\n");
+}
+
+char* CSystemManager::GetModemResourceName()
+{
+    return m_szModemResourceName;
+}
+
+int CSystemManager::GetIpcDataChannelMin()
+{
+    return m_ipcDataChannelMin;
 }

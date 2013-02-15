@@ -119,6 +119,9 @@ public:
             void* pResponse, size_t responseLen);
     char m_szDualSim[PROPERTY_VALUE_MAX];
 
+    char* GetModemResourceName();
+    int GetIpcDataChannelMin();
+
 private:
     // Framework Init Functions
     BOOL CreateQueues();
@@ -170,6 +173,9 @@ private:
     BOOL m_bIsSystemInitialized;
 
     BOOL m_rgfChannelCompletedInit[RIL_CHANNEL_MAX][COM_MAX_INDEX];
+
+    char m_szModemResourceName[MAX_MDM_RESOURCE_NAME_SIZE];
+    int m_ipcDataChannelMin;
 
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     UINT32 m_uiLastCallFailedCauseID;

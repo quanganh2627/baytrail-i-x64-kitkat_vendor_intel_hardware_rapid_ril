@@ -48,8 +48,6 @@ RIL_RadioState CRadioState::GetRadioState()
         radioState =  RADIO_STATE_UNAVAILABLE;
     }
 
-    RIL_LOG_INFO("[RIL STATE] RADIO STATE = %s\r\n", PrintState(radioState));
-
     return radioState;
 }
 
@@ -59,38 +57,21 @@ void CRadioState::SetRadioState(const RRIL_Radio_State eRadioState)
     if (m_eRadioState != eRadioState) {
         m_eRadioState = eRadioState;
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
+        RIL_LOG_INFO("[RIL STATE] RADIO STATE = %s\r\n", PrintState(m_eRadioState));
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const char* CRadioState::PrintState(const RIL_RadioState eState)
+const char* CRadioState::PrintState(const RRIL_Radio_State eRadioState)
 {
-    switch (eState)
+    switch (eRadioState)
     {
-        case RADIO_STATE_OFF:
+        case RRIL_RADIO_STATE_OFF:
             return "RADIO_STATE_OFF";
-        case RADIO_STATE_ON:
+        case RRIL_RADIO_STATE_ON:
             return "RADIO_STATE_ON";
-        case RADIO_STATE_UNAVAILABLE:
+        case RRIL_RADIO_STATE_UNAVAILABLE:
             return "RADIO_STATE_UNAVAILABLE";
-        // the following enumerations are deprecated from
-        // RIL v7 onwards.
-        case RADIO_STATE_SIM_NOT_READY:
-            return "RADIO_STATE_SIM_NOT_READY";
-        case RADIO_STATE_SIM_LOCKED_OR_ABSENT:
-            return "RADIO_STATE_SIM_LOCKED_OR_ABSENT";
-        case RADIO_STATE_SIM_READY:
-            return "RADIO_STATE_SIM_READY";
-        case RADIO_STATE_RUIM_NOT_READY:
-            return "RADIO_STATE_RUIM_NOT_READY";
-        case RADIO_STATE_RUIM_READY:
-            return "RADIO_STATE_RUIM_READY";
-        case RADIO_STATE_RUIM_LOCKED_OR_ABSENT:
-            return "RADIO_STATE_RUIM_LOCKED_OR_ABSENT";
-        case RADIO_STATE_NV_NOT_READY:
-            return "RADIO_STATE_NV_NOT_READY";
-        case RADIO_STATE_NV_READY:
-            return "RADIO_STATE_NV_READY";
         default:
             return "UNKNOWN";
     }

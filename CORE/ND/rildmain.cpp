@@ -504,7 +504,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.43 for Android 4.1.2 (Build January 22/2013)";
+    return "Intrinsyc Rapid-RIL M6.44 for Android 4.2 (Build February 5/2013)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -722,7 +722,11 @@ static bool RIL_SetGlobals(int argc, char** argv)
     }
 
     if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port
-            || !g_szURCPort || !g_szOEMPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3)
+            || !g_szURCPort || !g_szOEMPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3
+#if defined(M2_DUALSIM_FEATURE_ENABLED)
+            || !g_szSIMID
+#endif
+            )
     {
         usage(argv[0]);
         return false;

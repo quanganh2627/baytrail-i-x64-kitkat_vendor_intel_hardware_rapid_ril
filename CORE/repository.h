@@ -88,6 +88,8 @@ extern const char   g_szTempOoSNotificationEnable[];
 extern const char   g_szDisableUSSD[];
 
 // used by 6360 and 7160 modems.
+extern const char   g_szModemResourceName[];
+extern const char   g_szIpcDataChannelMin[];
 extern const char   g_szHsiDataDirect[];
 extern const char   g_szApnTypeDefault[];
 extern const char   g_szApnTypeThetered[];

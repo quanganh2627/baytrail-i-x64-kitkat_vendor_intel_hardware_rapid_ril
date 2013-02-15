@@ -2153,7 +2153,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UIN
 
 #if !defined(M2_DUALSIM_FEATURE_ENABLED)
         if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
-                                            "AT+CFUN=1\r" : "AT+CFUN=4\r",
+                                            "AT+CFUN=1;+XSIMSTATE?\r" : "AT+CFUN=4\r",
                                             sizeof(rReqData.szCmd1)))
         {
             (true == bTurnRadioOn) ? property_set("persist.radio.ril_modem_state", "on")
@@ -2163,8 +2163,15 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UIN
 #else
         // use SIM-specific property, depending on RIL instance
         char szSimPowerOffStatePropName[MAX_PROP_VALUE] = {0};
-        snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
-                    "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+        if (g_szSIMID) {
+            snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
+                        "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - g_szSIMID is NULL\r\n");
+            goto Error;
+        }
 
         // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
         char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
@@ -3856,8 +3863,8 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA& rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     const char* szRsp = rRspData.szResponse;
-    char* szIMEI = (char*)malloc(MAX_PROP_VALUE);
-    char szProductImeiProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    char szBuildTypeProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    char * szIMEI = (char*)malloc(MAX_PROP_VALUE);
 
     if (NULL == szIMEI)
     {
@@ -3885,9 +3892,29 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA& rRspData)
     rRspData.pData   = (void*)szIMEI;
     rRspData.uiDataSize  = sizeof(char*);
 
-    // Update IMEI property
-    snprintf(szProductImeiProperty, sizeof(szProductImeiProperty), "%s", szIMEI);
-    property_set("persist.radio.device.imei", szProductImeiProperty);
+    // Update IMEI property if build type is "eng" or "userdebug"
+    if (property_get("ro.build.type", szBuildTypeProperty, NULL))
+    {
+        const char szTypeEng[] = "eng";
+        const char szTypeUserDebug[] = "userdebug";
+        char szProductImeiProperty[PROPERTY_VALUE_MAX] = {'\0'};
+
+        if ((strncmp(szBuildTypeProperty, szTypeEng, strlen(szTypeEng)) == 0)
+                || (strncmp(szBuildTypeProperty, szTypeUserDebug, strlen(szTypeUserDebug)) == 0))
+        {
+            snprintf(szProductImeiProperty, sizeof(szProductImeiProperty), "%s", szIMEI);
+            property_set("persist.radio.device.imei", szProductImeiProperty);
+        }
+        else
+        {
+            // Since the property persists on OTA update, set the property to null if present.
+            int valueLen = property_get("persist.radio.device.imei", szProductImeiProperty, "");
+            if (valueLen > 0)
+            {
+                property_set("persist.radio.device.imei", NULL);
+            }
+        }
+    }
 
 Error:
     if (RRIL_RESULT_OK != res)
@@ -9307,7 +9334,7 @@ BOOL CTEBase::DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pCh
         ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
         RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : Setting flags\r\n");
-        if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
+        if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT | IFF_NOARP, 0))
         {
             //goto Error;
             RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4() : Error setting flags\r\n");
@@ -9676,4 +9703,64 @@ Error:
 
     RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() EXIT  bRet=[%d]\r\n", bRet);
     return bRet;
+}
+
+RIL_RadioTechnology CTEBase::MapAccessTechnology(UINT32 uiStdAct)
+{
+    RIL_LOG_VERBOSE("CTEBase::MapAccessTechnology() ENTER  uiStdAct=[%u]\r\n", uiStdAct);
+
+    /*
+     * 20111103: There is no 3GPP standard value defined for GPRS and HSPA+
+     * access technology. So, values 1 and 8 are used in relation with the
+     * IMC proprietary +XREG: <Act> parameter.
+     *
+     * Note: GSM Compact is not supported by IMC modem.
+     */
+    RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
+
+    //  Check state and set global variable for network technology
+    switch (uiStdAct)
+    {
+        case 0: // GSM
+        rtAct = RADIO_TECH_UNKNOWN; // 0 - GSM access technology is not used on android side
+        break;
+
+        case 1: // GSM Compact
+        rtAct = RADIO_TECH_GPRS; // 1
+        break;
+
+        case 2: // UTRAN
+        rtAct = RADIO_TECH_UMTS; // 3
+        break;
+
+        case 3: // GSM w/EGPRS
+        rtAct = RADIO_TECH_EDGE; // 2
+        break;
+
+        case 4: // UTRAN w/HSDPA
+        rtAct = RADIO_TECH_HSDPA; // 9
+        break;
+
+        case 5: // UTRAN w/HSUPA
+        rtAct = RADIO_TECH_HSUPA; // 10
+        break;
+
+        case 6: // UTRAN w/HSDPA and HSUPA
+        rtAct = RADIO_TECH_HSPA; // 11
+        break;
+
+        case 7:
+        rtAct = RADIO_TECH_LTE; // 14
+        break;
+
+        case 8:
+        rtAct = RADIO_TECH_HSPAP; // 15
+        break;
+
+        default:
+        rtAct = RADIO_TECH_UNKNOWN; // 0
+        break;
+    }
+    RIL_LOG_VERBOSE("CTEBase::MapAccessTechnology() EXIT  rtAct=[%u]\r\n", (UINT32)rtAct);
+    return rtAct;
 }

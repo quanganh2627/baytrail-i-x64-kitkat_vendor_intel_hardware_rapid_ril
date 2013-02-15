@@ -40,8 +40,7 @@ extern int m_hsiDataDirect;
 extern int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE];
 
 // used by 6360 and 7160 modems.
-UINT32 g_uiHSIChannel[RIL_HSI_CHANNEL_MAX] = {0};
-
+UINT32 g_uiHSIChannel[RIL_MAX_NUM_IPC_CHANNEL] = {0};
 
 CChannel_Data::CChannel_Data(UINT32 uiChannel)
 :   CChannel(uiChannel),
@@ -244,6 +243,10 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
     int hsiChannel = -1;
     int hsiDirect = FALSE;
 
+    int ipcDataChannelMin = 0;
+
+    ipcDataChannelMin = CSystemManager::GetInstance().GetIpcDataChannelMin();
+
     // First try to get a free RIL channel, then for class 1
     // or class 2 apn, try to get a hsi channel.
     pChannelData = CChannel_Data::GetFreeChnl(outCID);
@@ -260,9 +263,8 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
                     RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() -"
                             " data profile class: %d.\r\n",
                             m_dataProfilePathAssignation[dataProfile]);
-                    hsiChannel = GetFreeHSIChannel(
-                            outCID, RIL_HSI_CHANNEL1, RIL_HSI_CHANNEL1
-                            + m_hsiChannelsReservedForClass1);
+                    hsiChannel = GetFreeHSIChannel(outCID,
+                            ipcDataChannelMin, ipcDataChannelMin + m_hsiChannelsReservedForClass1);
                     if (hsiChannel == -1)
                     {
                         RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() - No hsi channel for"
@@ -275,18 +277,17 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
                     break;
 
                 case 2:
-                    // For APN of the class 2, check if there is
-                    // a free hsi channel that can be used.
+                    // For APN of the class 2, check if there is a free hsi channel
+                    // that can be used.
                     RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() - data profile "
                             "class: %d.\r\n", m_dataProfilePathAssignation[dataProfile]);
-                    hsiChannel = GetFreeHSIChannel(
-                            outCID, RIL_HSI_CHANNEL1 + m_hsiChannelsReservedForClass1,
-                            RIL_HSI_CHANNEL1 + m_hsiDataDirect);
+                    hsiChannel = GetFreeHSIChannel(outCID,
+                            ipcDataChannelMin + m_hsiChannelsReservedForClass1,
+                            ipcDataChannelMin + m_hsiDataDirect);
                     if (hsiChannel != -1)
                     {
                         hsiDirect = TRUE;
                     }
-
                     break;
 
                 default:
@@ -319,7 +320,7 @@ int CChannel_Data::GetFreeHSIChannel(UINT32 uiCID, int sIndex, int eIndex)
 
     CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
-    if (sIndex < 0 || eIndex > RIL_HSI_CHANNEL_MAX)
+    if (sIndex < 0 || eIndex > RIL_MAX_NUM_IPC_CHANNEL)
     {
         RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Index error\r\n");
         return -1;
@@ -348,7 +349,7 @@ bool CChannel_Data::FreeHSIChannel(UINT32 uiCID)
 
     CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
 
-    for (int i = 0; i < RIL_HSI_CHANNEL_MAX; i++)
+    for (int i = 0; i < RIL_MAX_NUM_IPC_CHANNEL; i++)
     {
         if (g_uiHSIChannel[i] == uiCID)
         {

@@ -535,14 +535,6 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             break;
     }
 
-    /*
-     * Instead of triggering the GET_SIM_STATUS and QUERY_FACILITY_LOCK
-     * requests based on RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED,
-     * android telephony stack is triggering those requests based on
-     * RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED.
-     * Might change in the future, so its better to trigger
-     * the RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED
-     */
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
 
@@ -870,7 +862,7 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
          */
         case 3: // PIN verified - Ready
             if (m_IsReadyForAttach) {
-                RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
+                RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - READY FOR ATTACH\r\n");
                 CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
             }
             break;
@@ -904,14 +896,14 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
             CTE::GetTE().SetSimTechnicalProblem(TRUE);
             break;
         case 7: // ready for attach (+COPS)
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - READY FOR ATTACH\r\n");
             m_IsReadyForAttach = TRUE;
             CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
         case 0: // SIM not present
         case 9: // SIM Removed
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM REMOVED/NOT PRESENT\r\n");
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM REMOVED/NOT PRESENT\r\n");
             m_IsReadyForAttach = FALSE;
             // Fall through to notify Radio and Sim status
         case 1: // PIN verification needed
@@ -923,14 +915,6 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
             break;
     }
 
-    /*
-     * Instead of triggering the GET_SIM_STATUS and QUERY_FACILITY_LOCK
-     * requests based on RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED,
-     * android telephony stack is triggering those requests based on
-     * RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED.
-     * Might change in the future, so its better to trigger
-     * the RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED
-     */
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
 
