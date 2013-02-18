@@ -1624,6 +1624,11 @@ RIL_RESULT_CODE CTE::RequestHangupForegroundResumeBackground(RIL_Token rilToken,
         }
     }
 
+    if (RRIL_RESULT_OK == res)
+    {
+        SetDtmfState(E_DTMF_STATE_FLUSH);
+    }
+
     RIL_LOG_VERBOSE("CTE::RequestHangupForegroundResumeBackground() - Exit\r\n");
     return res;
 }
