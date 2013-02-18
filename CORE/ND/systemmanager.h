@@ -104,6 +104,7 @@ public:
 
     BOOL SendRequestModemRecovery();
     BOOL SendRequestModemShutdown();
+    BOOL SendAckModemShutdown();
     BOOL SendAckModemColdReset();
 
     BOOL GetModem();

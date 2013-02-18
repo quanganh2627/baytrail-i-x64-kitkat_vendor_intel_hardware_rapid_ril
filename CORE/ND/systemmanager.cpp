@@ -178,19 +178,13 @@ CSystemManager::~CSystemManager()
     //  Close the COM ports
     CloseChannelPorts();
 
-    Sleep(300);
-
     //  Delete channels
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteChannels\r\n");
     // free queues
     DeleteChannels();
 
-    Sleep(300);
-
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CThreadManager::Stop\r\n");
     CThreadManager::Stop();
-
-    Sleep(300);
 
     // destroy events
     if (m_pExitRilEvent)
@@ -203,8 +197,6 @@ CSystemManager::~CSystemManager()
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteQueues\r\n");
     // free queues
     DeleteQueues();
-
-    Sleep(300);
 
     if (m_pModemBasicInitCompleteEvent)
     {
@@ -1754,6 +1746,44 @@ BOOL CSystemManager::SendRequestModemShutdown()
     bRet = TRUE;
 Error:
     RIL_LOG_INFO("CSystemManager::SendRequestModemShutdown() - EXIT\r\n");
+    return bRet;
+}
+
+//  Send shutdown acknowledge to MMgr
+BOOL CSystemManager::SendAckModemShutdown()
+{
+    RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() - ENTER\r\n");
+    BOOL bRet = FALSE;
+    mmgr_cli_requests_t request;
+    request.id = E_MMGR_ACK_MODEM_SHUTDOWN;
+
+    if (m_pMMgrLibHandle)
+    {
+        RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() -"
+                     " Acknowledging modem force shutdown\r\n");
+
+        if (E_ERR_CLI_SUCCEED != mmgr_cli_send_msg(m_pMMgrLibHandle, &request))
+        {
+            RIL_LOG_CRITICAL("CSystemManager::SendAckModemShutdown() -"
+                             " Failed to send REQUEST_ACK_MODEM_SHUTDOWN\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() -"
+                         " Modem force shutdown acknowledge SUCCESSFUL\r\n");
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CSystemManager::SendAckModemShutdown() -"
+                         " unable to communicate with MMgr\r\n");
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() - EXIT\r\n");
     return bRet;
 }
 

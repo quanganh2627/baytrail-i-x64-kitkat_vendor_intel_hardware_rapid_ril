@@ -43,7 +43,7 @@ void triggerDataResumedInd(void* param)
 
 void triggerDataSuspendInd(void* param)
 {
-    if (!CTE::GetTE().IsDataSuspended() || (RRIL_RADIO_STATE_ON != CTE::GetTE().GetRadioState()))
+    if (!CTE::GetTE().IsDataSuspended() || (RADIO_STATE_ON != CTE::GetTE().GetRadioState()))
         return;
 
     unsigned char szData[10];

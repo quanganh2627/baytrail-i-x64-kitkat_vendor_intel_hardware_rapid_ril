@@ -137,7 +137,7 @@ UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_SIMTRANSMITCHANNEL                   // 110
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS           // 111
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_VOICERADIOTECH                       // 112
-    RIL_CHANNEL_ATCMD,  //ND_REQ_ID_SILENT_PIN_ENTRY                    // 113
+    RIL_CHANNEL_DLC8,  //ND_REQ_ID_SILENT_PIN_ENTRY                     // 113
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_ACKINCOMINGSMSWITHPDU                // 114
 #if defined(M2_VT_FEATURE_ENABLED)
     RIL_CHANNEL_DLC6, //ND_REQ_ID_HANGUPVT                             // 115

@@ -183,9 +183,9 @@ BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
     switch (requestId)
     {
         case RIL_REQUEST_RADIO_POWER:
-            if (GetModemOffInFlightModeState())
+            if (E_MMGR_EVENT_MODEM_UP == m_uiLastModemEvent
+                    || E_MMGR_EVENT_MODEM_DOWN == m_uiLastModemEvent)
             {
-                SetSpoofCommandsStatus(FALSE);
                 bAllowed = TRUE;
             }
             else
@@ -2164,6 +2164,15 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         return RRIL_RESULT_OK;
     }
 #endif
+    else if (!bTurnRadioOn && IsPlatformShutDownRequested())
+    {
+        RIL_LOG_INFO("CTEBase::CoreRadioPower - Shutdown requested\r\n");
+
+        do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
+
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+        return RRIL_RESULT_OK;
+    }
     else
     {
         res = m_pTEBaseInstance->CoreRadioPower(reqData, pData, datalen);
@@ -2218,12 +2227,6 @@ Error:
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESTRICTED_STATE_CHANGED, &mode, sizeof(int));
 
         m_bRadioRequestPending = TRUE;
-
-        if (!bTurnRadioOn && IsPlatformShutDownRequested())
-        {
-            RIL_LOG_INFO("CTE::RequestRadioPower - Shutdown requested\r\n");
-            do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
-        }
     }
     else
     {
