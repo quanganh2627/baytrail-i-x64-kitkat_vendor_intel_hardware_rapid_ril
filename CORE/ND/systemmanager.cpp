@@ -462,7 +462,7 @@ BOOL CSystemManager::InitializeSystem()
         if (!repository.Read(g_szGroupModem, g_szModemResourceName, m_szModemResourceName,
                     MAX_MDM_RESOURCE_NAME_SIZE))
         {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not read modem resource"
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() - Could not read modem resource"
                     " name from repository\r\n");
             // Set default value.
             strcpy(m_szModemResourceName, RIL_DEFAULT_IPC_RESOURCE_NAME);
