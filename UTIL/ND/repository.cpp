@@ -221,6 +221,7 @@ const char   g_szVoiceCapable[]                 = "VoiceCapable";
 const char   g_szSmsOverCSCapable[]             = "SmsOverCSCapable";
 const char   g_szSmsOverPSCapable[]             = "SmsOverPSCapable";
 const char   g_szStkCapable[]                   = "StkCapable";
+const char   g_szEnableXDATASTATURC[]           = "EnableXDATASTATReporting";
 
 // used for 7x60 and 6360 modems
 const char   g_szModemResourceName[]    = "ModemDataChannelResourceName";

@@ -61,6 +61,7 @@ CTE::CTE(UINT32 modemType) :
     m_bSmsOverCSCapable(TRUE),
     m_bSmsOverPSCapable(TRUE),
     m_bStkCapable(TRUE),
+    m_bXDATASTATEnabled(FALSE),
     m_uiTimeoutCmdInit(TIMEOUT_INITIALIZATION_COMMAND),
     m_uiTimeoutAPIDefault(TIMEOUT_API_DEFAULT),
     m_uiTimeoutWaitForInit(TIMEOUT_WAITFORINIT),

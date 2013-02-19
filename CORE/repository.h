@@ -89,6 +89,7 @@ extern const char   g_szVoiceCapable[];
 extern const char   g_szSmsOverCSCapable[];
 extern const char   g_szSmsOverPSCapable[];
 extern const char   g_szStkCapable[];
+extern const char   g_szEnableXDATASTATURC[];
 
 // used by 6360 and 7160 modems.
 extern const char   g_szModemResourceName[];

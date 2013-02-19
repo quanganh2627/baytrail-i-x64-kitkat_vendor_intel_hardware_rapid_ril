@@ -620,6 +620,11 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetStkCapable(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szEnableXDATASTATURC, iTemp))
+    {
+        CTE::GetTE().SetXDATASTATReporting(iTemp == 1 ? TRUE : FALSE);
+    }
+
     //  Create and initialize the channels (don't open ports yet)
     if (!InitChannelPorts())
     {

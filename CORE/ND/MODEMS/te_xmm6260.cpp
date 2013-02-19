@@ -61,10 +61,16 @@ char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
     if (RIL_CHANNEL_URC == uiChannelType)
     {
         char szBasicInitCmd[] = "|+CSCS=\"UCS2\"|+XSIMSTATE=1|+XSIMSTATE?|+CTZU=1|+XNITZINFO=1|"
-                "+CREG=2|+XREG=2|+CGEREP=1,0|+XCSQ=1|+XDATASTAT=1";
+                "+CREG=2|+XREG=2|+CGEREP=1,0|+XCSQ=1";
 
         ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
                 szBasicInitCmd);
+
+        if (m_cte.IsXDATASTATReportingEnabled())
+        {
+            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                    "|+XDATASTAT=1");
+        }
 
         if (m_cte.IsVoiceCapable())
         {
