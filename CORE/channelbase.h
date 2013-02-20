@@ -156,7 +156,7 @@ protected:
     //  need to ignore possible invalid file descriptor errors while port is
     //  temporarily closed.
     BOOL                            m_bPossibleInvalidFD;
-    CMutex *                        m_pPossibleInvalidFDMutex;
+    CMutex*                         m_pPossibleInvalidFDMutex;
     CMutex*                         m_pResponseObjectAccessMutex;
 };
 

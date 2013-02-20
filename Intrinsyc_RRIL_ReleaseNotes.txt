@@ -1,6 +1,185 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+February 19, 2013 (M6.45 release for Clovertrail Phone PR2.0)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Clovertrail
+Phone PR2.0 device, Android version 4.2 (Jelly Bean).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external JB ABSP dated February 4, 2013 (ww05).
+- We are using the HSI interface.
+
+PR2.0 Setup
+===========
+FW DnX: SIGNED_CLVp_FWR_DnX_20.14.bin (from ww05 PR2.0 release)
+IFWI: IFWI_vF6.41_CRAK_DEV.bin (from ww05 PR2.0 release)
+OS DnX: SIGNED_CLVp_OSR_DnX_20.14.bin (from ww05 PR2.0 release)
+OS Image: droidboot.img (from ww05 PR2.0 release)
+Modem Firmware: radio_firmware_6360.bin (from ww05 PR2.0 release - 1303.E)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch redhookbay-eng
+make flashfiles -j8
+
+
+Release Notes for M6.45
+========================
+
+1. Sync external files from WW05 ABSP:
+   -Remove: /vendor/intel/clovertrail/board/redhookbay/init.modem.rc
+                                                      /repository.txt from release.
+    Add: /vendor/intel/clovertrail/board/redhookbay/init.modem.dlp.rc
+                                                   /init.modem.ffl.rc
+                                                   /rril/repository6260.txt
+                                                        /repository6360.txt to release.
+
+2. Bugzilla 77006: Protect access to response buffer
+   -Integrate patch 87913
+
+3. Bugzilla 84053: Fix system clock issue on airplane mode on/off
+   -Integrate patch 90028
+
+4. Bugzilla 84016: Add a check on g_szSIMID to avoid the storm of TOMBSTONE
+   -Integrate patch 90259
+
+5. Bugzilla 81742: Restrict IMEI property based on build type
+   -Integrate patch 90547
+
+6. Bugzilla 82588: Log the radio and sim states only when they are updated
+   -Integate patch 88393
+
+7. Bugzilla 65089: Add USB/HSIC IPC capability
+   -Integrate patch 87533
+
+8. Bugzilla 80779: Fix KW9.6 critical errors
+   -Integrate patch 88003
+
+9. Bugzilla 83522: Update response pointer after parsing CSSU
+   -Integrate patch 91513
+
+10. Bugzilla 86765: Fix issue in deleting MMGR handle on error
+    -Integrate patch 91816
+
+11. Bugzilla 84360: Fix issue in camping back after modem self-reset
+    -Integrate patch 89668
+
+12. Bugzilla 86565: Allow IMEI and TTY MODE requests in radio off
+    -Integrate patch 91652
+
+13. Bugzilla 79396: Send init commands based on feature support
+    -Integrate patch 91879
+
+14. Bugzilla 81971: Disable STK based on StkCapable flag
+    -Integrate patch 91880
+
+15. Bugzilla 87162: Continuous DTMF heard in remote party on hangup
+    -Integrate patch 92306
+
+16. Bugzilla 81762: Fix issues seen in disabling flight mode modem off
+    -Integrate patch 88860
+
+17. Bugzilla 79165: Manage PIN caching in flight mode - modem off
+    -Integrate patch 91199
+
+
+Testing results:  (tested on Clovertrail Phone PR2.0)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
 February 5, 2013 (M6.44 release for Clovertrail Phone PR2.0)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Clovertrail
