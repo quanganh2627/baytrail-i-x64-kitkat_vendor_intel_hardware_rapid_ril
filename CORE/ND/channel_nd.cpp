@@ -690,6 +690,12 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
         {
             RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] Failed read from queue during"
                     " ABORTED 1\r\n", m_uiRilChannel);
+
+            if (NULL != pRspTemp)
+            {
+                delete pRspTemp;
+                pRspTemp = NULL;
+            }
             return FALSE;
         }
         else
@@ -740,6 +746,13 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
     {
         RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] Failed read from queue during"
                 " PING 1\r\n", m_uiRilChannel);
+
+        if (NULL != pRspTemp)
+        {
+            delete pRspTemp;
+            pRspTemp = NULL;
+        }
+
         return FALSE;
     }
     else

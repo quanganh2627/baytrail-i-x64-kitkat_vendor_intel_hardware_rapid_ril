@@ -48,13 +48,19 @@ CTE::CTE(UINT32 modemType) :
     m_bSpoofCommandsStatus(TRUE),
     m_uiLastModemEvent(E_MMGR_EVENT_MODEM_DOWN),
     m_bModemOffInFlightMode(FALSE),
+    m_enableLocationUpdates(0),
+    m_bRestrictedMode(FALSE),
+    m_bRadioRequestPending(FALSE),
     m_bIsSimTechnicalProblem(FALSE),
     m_bIsManualNetworkSearchOn(FALSE),
     m_bIsDataSuspended(FALSE),
     m_bIsClearPendingCHLD(FALSE),
     m_FastDormancyMode(FAST_DORMANCY_MODE_DEFAULT),
     m_uiMTU(MTU_SIZE),
-    m_bDisableUSSD(DISABLE_USSD_DEFAULT),
+    m_bVoiceCapable(TRUE),
+    m_bSmsOverCSCapable(TRUE),
+    m_bSmsOverPSCapable(TRUE),
+    m_bStkCapable(TRUE),
     m_uiTimeoutCmdInit(TIMEOUT_INITIALIZATION_COMMAND),
     m_uiTimeoutAPIDefault(TIMEOUT_API_DEFAULT),
     m_uiTimeoutWaitForInit(TIMEOUT_WAITFORINIT),
@@ -153,6 +159,16 @@ void CTE::DeleteTEObject()
     CMutex::Unlock(CSystemManager::GetTEAccessMutex());
 }
 
+char* CTE::GetBasicInitCommands(UINT32 uiChannelType)
+{
+    return m_pTEBaseInstance->GetBasicInitCommands(uiChannelType);
+}
+
+char* CTE::GetUnlockInitCommands(UINT32 uiChannelType)
+{
+    return m_pTEBaseInstance->GetUnlockInitCommands(uiChannelType);
+}
+
 BOOL CTE::IsRequestSupported(int requestId)
 {
     return m_pTEBaseInstance->IsRequestSupported(requestId);
@@ -162,7 +178,7 @@ BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
 {
     RIL_LOG_INFO("CTE::IsRequestAllowedInSpoofState - requestId=%d", requestId);
 
-    BOOL bAllowed ;
+    BOOL bAllowed;
 
     switch (requestId)
     {
@@ -189,13 +205,28 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
 {
     RIL_LOG_INFO("CTE::IsRequestAllowedInRadioOff - requestId=%d", requestId);
 
-    BOOL bAllowed ;
+    BOOL bAllowed;
 
     switch (requestId)
     {
         case RIL_REQUEST_RADIO_POWER:
-        case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
             bAllowed = TRUE;
+            break;
+
+        case RIL_REQUEST_GET_IMEI:
+        case RIL_REQUEST_GET_IMEISV:
+        case RIL_REQUEST_BASEBAND_VERSION:
+        case RIL_REQUEST_SET_TTY_MODE:
+        case RIL_REQUEST_QUERY_TTY_MODE:
+        case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
+            if (E_MMGR_EVENT_MODEM_UP == GetLastModemEvent())
+            {
+                bAllowed = TRUE;
+            }
+            else
+            {
+                bAllowed = FALSE;
+            }
             break;
 
         case RIL_REQUEST_GET_SIM_STATUS:
@@ -451,25 +482,11 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 break;
 
             case RIL_REQUEST_SEND_USSD:  // 29
-                if (CTE::GetTE().GetDisableUSSD())
-                {
-                    RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
-                }
-                else
-                {
-                    eRetVal = (RIL_Errno)CTE::GetTE().RequestSendUssd(hRilToken, pData, datalen);
-                }
+                eRetVal = (RIL_Errno)CTE::GetTE().RequestSendUssd(hRilToken, pData, datalen);
                 break;
 
             case RIL_REQUEST_CANCEL_USSD:  // 30
-                if (CTE::GetTE().GetDisableUSSD())
-                {
-                    RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
-                }
-                else
-                {
-                    eRetVal = (RIL_Errno)CTE::GetTE().RequestCancelUssd(hRilToken, pData, datalen);
-                }
+                eRetVal = (RIL_Errno)CTE::GetTE().RequestCancelUssd(hRilToken, pData, datalen);
                 break;
 
             case RIL_REQUEST_GET_CLIR:  // 31
@@ -672,7 +689,8 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
             break;
 
             case RIL_REQUEST_SET_LOCATION_UPDATES:  // 76
-                RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
+                eRetVal = (RIL_Errno)CTE::GetTE().RequestSetLocationUpdates(
+                        hRilToken, pData, datalen);
                 break;
 
             case RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE:  // 77 - CDMA, not supported
@@ -1608,6 +1626,11 @@ RIL_RESULT_CODE CTE::RequestHangupForegroundResumeBackground(RIL_Token rilToken,
         }
     }
 
+    if (RRIL_RESULT_OK == res)
+    {
+        SetDtmfState(E_DTMF_STATE_FLUSH);
+    }
+
     RIL_LOG_VERBOSE("CTE::RequestHangupForegroundResumeBackground() - Exit\r\n");
     return res;
 }
@@ -1894,7 +1917,7 @@ RIL_RESULT_CODE CTE::RequestRegistrationState(RIL_Token rilToken, void* pData, s
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    if (m_bCSStatusCached)
+    if (m_bCSStatusCached && !IsLocationUpdatesEnabled())
     {
         S_ND_REG_STATUS regStatus;
 
@@ -1961,7 +1984,7 @@ RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void* pDat
 {
     RIL_LOG_VERBOSE("CTE::RequestGPRSRegistrationState() - Enter\r\n");
 
-    if (m_bPSStatusCached)
+    if (m_bPSStatusCached && !IsLocationUpdatesEnabled())
     {
         S_ND_GPRS_REG_STATUS regStatus;
 
@@ -2120,26 +2143,30 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
     {
         property_set("gsm.radioreset", "false");
 
-        res = RIL_E_SUCCESS;
         RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
 
         RIL_LOG_INFO("CTE::RequestRadioPower() - Reset requested, do clean-up request\r\n");
         do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+        return RRIL_RESULT_OK;
     }
 #if !defined(M2_DUALSIM_FEATURE_ENABLED)
     // check if the required state is the same as the current one
     // if so, ignore command
     else if ((bTurnRadioOn && RADIO_STATE_OFF != radio_state)
-            || (!bTurnRadioOn && RADIO_STATE_OFF == radio_state))
+            || (!bTurnRadioOn && (RADIO_STATE_OFF == radio_state
+                    || E_MMGR_EVENT_MODEM_DOWN == m_uiLastModemEvent)))
     {
         RIL_LOG_INFO("CTE::RequestRadioPower() - No change in state, spoofing command.\r\n");
-        res = RIL_E_SUCCESS;
+
         RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+        SetRadioState(
+                bTurnRadioOn ? RRIL_RADIO_STATE_ON : RRIL_RADIO_STATE_OFF);
+        return RRIL_RESULT_OK;
     }
 #endif
     else
     {
-        RIL_RESULT_CODE res = m_pTEBaseInstance->CoreRadioPower(reqData, pData, datalen);
+        res = m_pTEBaseInstance->CoreRadioPower(reqData, pData, datalen);
         if (RRIL_RESULT_OK != res)
         {
             RIL_LOG_CRITICAL("CTE::RequestRadioPower() : Unable to create AT command data\r\n");
@@ -2147,7 +2174,17 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         else
         {
             // FIXME: Handle wait forever
-            CEvent::Wait(CSystemManager::GetInitCompleteEvent(), WAIT_FOREVER);
+            if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
+            {
+                RIL_LOG_INFO("CTE::RequestRadioPower() : Waiting for "
+                        "modem initialization completion event\r\n");
+
+                m_bRadioRequestPending = TRUE;
+
+                CEvent::Wait(CSystemManager::GetModemBasicInitCompleteEvent(),
+                        WAIT_FOREVER);
+            }
+
             CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER],
                     rilToken, ND_REQ_ID_RADIOPOWER, reqData, &CTE::ParseRadioPower,
                     &CTE::PostRadioPower);
@@ -2175,19 +2212,27 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
     }
 
 Error:
-    if (RRIL_RESULT_OK == res && !bTurnRadioOn)
+    if (RRIL_RESULT_OK == res)
     {
-        if (IsPlatformShutDownRequested())
+        int mode = RIL_RESTRICTED_STATE_NONE;
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESTRICTED_STATE_CHANGED, &mode, sizeof(int));
+
+        m_bRadioRequestPending = TRUE;
+
+        if (!bTurnRadioOn && IsPlatformShutDownRequested())
         {
             RIL_LOG_INFO("CTE::RequestRadioPower - Shutdown requested\r\n");
             do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
         }
-        else
+    }
+    else
+    {
+        m_bRadioRequestPending = FALSE;
+
+        if (IsRestrictedMode())
         {
-            if (GetModemOffInFlightModeState())
-            {
-                CSystemManager::GetInstance().ReleaseModem();
-            }
+            int mode = RIL_RESTRICTED_STATE_CS_ALL | RIL_RESTRICTED_STATE_PS_ALL;
+            RIL_onUnsolicitedResponse(RIL_UNSOL_RESTRICTED_STATE_CHANGED, &mode, sizeof(int));
         }
     }
 
@@ -4992,6 +5037,73 @@ RIL_RESULT_CODE CTE::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_SET_LOCATION_UPDATES 76
 //
+RIL_RESULT_CODE CTE::RequestSetLocationUpdates(RIL_Token rilToken, void* pData,
+        size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestSetLocationUpdates() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int enableLocationUpdates = 0;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::RequestSetLocationUpdates() - Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    enableLocationUpdates = ((int*)pData)[0];
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    res = m_pTEBaseInstance->CoreSetLocationUpdates(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSetLocationUpdates() - Unable to create AT command"
+                "data\r\n");
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(
+                g_arChannelMapping[ND_REQ_ID_SETLOCATIONUPDATES], rilToken,
+                ND_REQ_ID_SETLOCATIONUPDATES, reqData,
+                &CTE::ParseSetLocationUpdates,
+                &CTE::PostSetLocationUpdates);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestSetLocationUpdates() - Unable to add command to "
+                        "queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestSetLocationUpdates() - Unable to allocate memory for "
+                    "command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+Error:
+    if (RRIL_RESULT_OK == res)
+    {
+        m_enableLocationUpdates = enableLocationUpdates;
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestSetLocationUpdates() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseSetLocationUpdates(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseSetLocationUpdates() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseSetLocationUpdates(rRspData);
+}
 
 //
 // RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE 77
@@ -7090,6 +7202,12 @@ BOOL CTE::IsSetupDataCallOnGoing()
     return m_bIsSetupDataCallOngoing;
 }
 
+BOOL CTE::IsLocationUpdatesEnabled()
+{
+    RIL_LOG_VERBOSE("CTE::IsLocationUpdatesEnabled() - Enter / Exit\r\n");
+    return (1 == m_enableLocationUpdates);
+}
+
 RIL_RadioState CTE::GetRadioState()
 {
     return m_pTEBaseInstance->GetRadioState();
@@ -7489,7 +7607,8 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
         if (NULL != rData.pData && sizeof(RIL_CardStatus_v6) == rData.uiDataSize)
         {
             RIL_CardStatus_v6* pCardStatus = (RIL_CardStatus_v6*) rData.pData;
-            if (m_pTEBaseInstance->IsPinEnabled(pCardStatus) && PCache_GetUseCachedPIN())
+            if (m_pTEBaseInstance->IsPinEnabled(pCardStatus)
+                    && PCache_GetUseCachedPIN() && m_pTEBaseInstance->GetPinRetryCount() > 2)
             {
                 BOOL bRet = m_pTEBaseInstance->HandleSilentPINEntry(rData.pRilToken, NULL, 0);
                 if (bRet)
@@ -7851,6 +7970,8 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
      */
     CleanupAllDataConnections();
 
+    m_bRadioRequestPending = FALSE;
+
     //  Extract power setting from context
     int radioPower = (int)rData.pContextData;
 
@@ -7863,6 +7984,11 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
     else if (!IsPlatformShutDownRequested())
     {
         SetRadioState(RRIL_RADIO_STATE_OFF);
+
+        if (GetModemOffInFlightModeState())
+        {
+            CSystemManager::GetInstance().ReleaseModem();
+        }
     }
 
     if (RIL_E_SUCCESS != rData.uiResultCode && 0 == radioPower)
@@ -8221,6 +8347,28 @@ void CTE::PostGetNeighboringCellIDs(POST_CMD_HANDLER_DATA& rData)
             rData.uiRequestId, rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
 
     RIL_LOG_VERBOSE("CTE::PostGetNeighboringCellIDs() Exit\r\n");
+}
+
+void CTE::PostSetLocationUpdates(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostSetLocationUpdates() Enter\r\n");
+
+    if (NULL == rData.pRilToken)
+    {
+        RIL_LOG_CRITICAL("CTE::PostSetLocationUpdates() rData.pRilToken NULL!\r\n");
+        return;
+    }
+
+    RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                                                NULL, 0);
+
+    if (RIL_E_SUCCESS != rData.uiResultCode)
+    {
+        m_enableLocationUpdates =
+                (m_enableLocationUpdates > 0) ? m_enableLocationUpdates : 0;
+    }
+
+    RIL_LOG_VERBOSE("CTE::PostSetLocationUpdates() Exit\r\n");
 }
 
 void CTE::PostSilentPinRetryCmdHandler(POST_CMD_HANDLER_DATA& rData)

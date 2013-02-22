@@ -100,6 +100,16 @@ BOOL CTEBase::IsRequestSupported(int requestId)
     }
 }
 
+char* CTEBase::GetBasicInitCommands(UINT32 uiChannelType)
+{
+    return NULL;
+}
+
+char* CTEBase::GetUnlockInitCommands(UINT32 uiChannelType)
+{
+    return NULL;
+}
+
 //
 // RIL_REQUEST_GET_SIM_STATUS 1
 //
@@ -2147,7 +2157,17 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UIN
         {
             if (true == bTurnRadioOn)
             {
-                CSystemManager::GetInstance().GetModem();
+                if (!CSystemManager::GetInstance().GetModem())
+                {
+                    RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() : GetModem Resource failed\r\n");
+
+                    m_cte.SetRestrictedMode(TRUE);
+                    return RRIL_RESULT_ERROR;
+                }
+                else
+                {
+                    m_cte.SetRestrictedMode(FALSE);
+                }
             }
         } // Else, resource was already acquired on startup in InitializeSystem
 
@@ -2156,8 +2176,6 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UIN
                                             "AT+CFUN=1;+XSIMSTATE?\r" : "AT+CFUN=4\r",
                                             sizeof(rReqData.szCmd1)))
         {
-            (true == bTurnRadioOn) ? property_set("persist.radio.ril_modem_state", "on")
-                                   : property_set("persist.radio.ril_modem_state", "off");
             res = RRIL_RESULT_OK;
         }
 #else
@@ -4441,7 +4459,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA& rReqData,
     //  Store PIN
     if (0 == strcmp(pszFacility, "SC"))
     {
-        if (0 == strcmp(pszMode, "1"))
+        if (0 == strcmp(pszMode, "1") && NULL != pszPassword)
         {
             strncpy(m_szPIN, pszPassword, MAX_PIN_SIZE-1);
             m_szPIN[MAX_PIN_SIZE-1] = '\0';  //  KW fix
@@ -5820,12 +5838,38 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA& rReqData,
     //  Store setting in context.
     rReqData.pContextData = (void*)nEnable;
 
-    if (!CopyStringNullTerminate(rReqData.szCmd1, (1 == nEnable) ?
-                                "AT+CREG=2;+XREG=2;+XCSQ=1\r" :
-                                "AT+CREG=0;+XREG=0;+XCSQ=0\r", sizeof(rReqData.szCmd1)))
+    if (1 == nEnable)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
-        goto Error;
+        if (!CopyStringNullTerminate(rReqData.szCmd1,
+                                            "AT+CREG=2;+CGREG=0;+XREG=2;+XCSQ=1\r",
+                                            sizeof(rReqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
+            goto Error;
+        }
+    }
+    else // SCREEN OFF
+    {
+        if (CTE::GetTE().IsLocationUpdatesEnabled())
+        {
+            if (!CopyStringNullTerminate(rReqData.szCmd1,
+                                                "AT+CGREG=1;+XREG=0;+XCSQ=0\r",
+                                                sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
+                goto Error;
+            }
+        }
+        else
+        {
+            if (!CopyStringNullTerminate(rReqData.szCmd1,
+                                                "AT+CREG=1;+CGREG=1;+XREG=0;+XCSQ=0\r",
+                                                sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
+                goto Error;
+            }
+        }
     }
 
     // Read the "conformance" property and disable FD if it is set to "true"
@@ -6353,6 +6397,43 @@ RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_SET_LOCATION_UPDATES 76
 //
+RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA& rReqData,
+                                                void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreSetLocationUpdates() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int enableLocationUpdates = 0;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    enableLocationUpdates = ((int*)pData)[0];
+
+    if (!CopyStringNullTerminate(rReqData.szCmd1,
+            (1 == enableLocationUpdates) ? "AT+CREG=2\r" : "AT+CREG=1\r",
+            sizeof(rReqData.szCmd1)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - Cannot create command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::CoreSetLocationUpdates() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseSetLocationUpdates(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseSetLocationUpdates() - Enter / Exit\r\n");
+
+    return RRIL_RESULT_OK;
+}
 
 //
 // RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77
@@ -7875,7 +7956,6 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
     }
 
     sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
-    szResponseString[cbResponseString-5] = '\0';
 
     pResponse->sw1 = uiSW1;
     pResponse->sw2 = uiSW2;
@@ -7886,6 +7966,8 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
     }
     else
     {
+        szResponseString[cbResponseString-5] = '\0';
+
         pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
         if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
         {
@@ -8499,7 +8581,6 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
         }
 
         sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
-        szResponseString[cbResponseString-5] = '\0';
 
         pResponse->sw1 = uiSW1;
         pResponse->sw2 = uiSW2;
@@ -8510,6 +8591,8 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
         }
         else
         {
+            szResponseString[cbResponseString-5] = '\0';
+
             pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
             if (!CopyStringNullTerminate(pResponse->simResponse,
                     szResponseString, cbResponseString))

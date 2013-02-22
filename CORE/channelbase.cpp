@@ -420,12 +420,16 @@ UINT32 CChannelBase::CommandThread()
             RIL_LOG_CRITICAL("CChannelBase::CommandThread() : chnl=[%d] Failed init, returning"
                     " RIL_E_GENERIC_FAILURE\r\n", m_uiRilChannel);
 
-            RIL_Token rilToken = pCmd->GetToken();
-            if ((NULL != pCmd) && (NULL != rilToken))
+            if (NULL != pCmd)
             {
-                RIL_LOG_VERBOSE("CChannelBase::CommandThread() - Complete for token "
+                RIL_Token rilToken = pCmd->GetToken();
+
+                if (NULL != rilToken)
+                {
+                    RIL_LOG_VERBOSE("CChannelBase::CommandThread() - Complete for token "
                         "0x%08x, error: %d\r\n", rilToken, RIL_E_GENERIC_FAILURE);
-                RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+                    RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+                }
 
                 delete pCmd;
                 pCmd = NULL;
@@ -496,6 +500,22 @@ BOOL CChannelBase::WaitForCommand()
 }
 
 #define INIT_CMD_STRLEN  (MAX_BUFFER_SIZE)
+
+char* CChannelBase::GetTESpecificInitCommands(eComInitIndex eInitIndex)
+{
+    char* pInitCommands = NULL;
+
+    if (COM_BASIC_INIT_INDEX == eInitIndex)
+    {
+        pInitCommands = CTE::GetTE().GetBasicInitCommands( m_uiRilChannel);
+    }
+    else if (COM_UNLOCK_INIT_INDEX == eInitIndex)
+    {
+        pInitCommands = CTE::GetTE().GetUnlockInitCommands( m_uiRilChannel);
+    }
+
+    return pInitCommands;
+}
 
 //
 // Send an intialization command string to the COM port
@@ -778,28 +798,28 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         }
 #endif // M2_VT_FEATURE_ENABLED
     }
-    else if ((COM_UNLOCK_INIT_INDEX == eInitIndex) && (RIL_CHANNEL_URC == m_uiRilChannel))
+
+    if (COM_BASIC_INIT_INDEX == eInitIndex
+            || COM_UNLOCK_INIT_INDEX == eInitIndex)
     {
-        // Enable USSD unless disabled in repository
-        if (CTE::GetTE().GetDisableUSSD() == FALSE)
+        char* pInitCommands = NULL;
+        BOOL bSuccess = TRUE;
+
+        pInitCommands = GetTESpecificInitCommands(eInitIndex);
+        if (NULL != pInitCommands)
         {
-            if (!CopyStringNullTerminate(szTemp, "+CUSD=1", sizeof(szTemp)))
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, pInitCommands))
             {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : "
-                    "Cannot create CUSD command\r\n");
-                goto Done;
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concatenate"
+                        "DataPath failed\r\n");
+                bSuccess = FALSE;
             }
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+
+            free(pInitCommands);
+            pInitCommands = NULL;
+
+            if (!bSuccess)
             {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : "
-                    "Concat | failed eInitIndex=[%d], chan=[%u]\r\n", eInitIndex, m_uiRilChannel);
-                goto Done;
-            }
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp))
-            {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : "
-                    "Concat szTemp failed eInitIndex=[%d], chan=[%u]\r\n",
-                    eInitIndex, m_uiRilChannel);
                 goto Done;
             }
         }

@@ -125,6 +125,8 @@ protected:
     void            SetCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = TRUE; }
     BOOL            WaitForCommand();
 
+    char* GetTESpecificInitCommands(eComInitIndex eInitIndex);
+
 protected:
     //  Member variables
     UINT32                          m_uiRilChannel;

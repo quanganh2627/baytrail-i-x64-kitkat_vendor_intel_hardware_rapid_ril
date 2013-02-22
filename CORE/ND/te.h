@@ -75,6 +75,9 @@ public:
                           S_ND_GPRS_REG_STATUS& pPSRegStruct);
     RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
 
+    char* GetBasicInitCommands(UINT32 uiChannelType);
+    char* GetUnlockInitCommands(UINT32 uiChannelType);
+
     BOOL IsRequestSupported(int requestId);
     void HandleRequest(int requestID, void* pData, size_t datalen, RIL_Token hRilToken);
     RIL_Errno HandleRequestWhenNoModem(int requestID, RIL_Token hRilToken);
@@ -403,6 +406,9 @@ public:
     RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SET_LOCATION_UPDATES 76
+    RIL_RESULT_CODE RequestSetLocationUpdates(RIL_Token rilToken, void* pData,
+            size_t datalen);
+    RIL_RESULT_CODE ParseSetLocationUpdates(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE 77
     RIL_RESULT_CODE RequestCdmaSetSubscription(RIL_Token rilToken, void* pData, size_t datalen);
@@ -613,6 +619,8 @@ public:
     void SetupDataCallOngoing(BOOL bStatus);
     BOOL IsSetupDataCallOnGoing();
 
+    BOOL IsLocationUpdatesEnabled();
+
     RIL_RadioState GetRadioState();
     RRIL_SIM_State GetSIMState();
     void SetRadioState(const RRIL_Radio_State eRadioState);
@@ -655,8 +663,48 @@ public:
     void SetMTU(UINT32 uiMTU) { m_uiMTU = uiMTU; };
     UINT32 GetMTU() { return m_uiMTU; };
 
-    void SetDisableUSSD(BOOL bDisableUSSD) { m_bDisableUSSD = bDisableUSSD; };
-    UINT32 GetDisableUSSD() { return m_bDisableUSSD; };
+    void SetVoiceCapable(BOOL bIsVoiceCapable)
+    {
+        m_bVoiceCapable =  bIsVoiceCapable;
+    }
+
+    BOOL IsVoiceCapable()
+    {
+        return m_bVoiceCapable;
+    }
+
+    void SetSmsOverCSCapable(BOOL bIsSmsOverCSCapable)
+    {
+        m_bSmsOverCSCapable =  bIsSmsOverCSCapable;
+    }
+
+    BOOL IsSmsOverCSCapable()
+    {
+        return m_bSmsOverCSCapable;
+    }
+
+    void SetSmsOverPSCapable(BOOL bIsSmsOverPSCapable)
+    {
+        m_bSmsOverPSCapable =  bIsSmsOverPSCapable;
+    }
+
+    BOOL IsSmsOverPSCapable()
+    {
+        return m_bSmsOverPSCapable;
+    }
+
+    void SetStkCapable(BOOL bIsStkCapable)
+    {
+        m_bStkCapable =  bIsStkCapable;
+    }
+
+    BOOL IsStkCapable()
+    {
+        return m_bStkCapable;
+    }
+
+    void SetRestrictedMode(BOOL bIsRetrictedMode) { m_bRestrictedMode = bIsRetrictedMode; }
+    BOOL IsRestrictedMode() { return m_bRestrictedMode; }
 
     void SetTimeoutCmdInit(UINT32 uiCmdInit) { m_uiTimeoutCmdInit = uiCmdInit; };
     UINT32 GetTimeoutCmdInit()     { return m_uiTimeoutCmdInit; };
@@ -677,6 +725,7 @@ public:
     UINT32 GetDtmfState();
 
     BOOL IsPlatformShutDownRequested();
+    BOOL IsRadioRequestPending() { return m_bRadioRequestPending; }
 
     // Resets all the internal states to default values
     void ResetInternalStates();
@@ -879,6 +928,14 @@ public:
     void PostGetNeighboringCellIDs(POST_CMD_HANDLER_DATA& rData);
 
     /*
+     *
+     * Post Command handler function for the RIL_REQUEST_SET_LOCATION_UPDATES request.
+     *
+     * Upon success/failure, completes the request
+     */
+    void PostSetLocationUpdates(POST_CMD_HANDLER_DATA& rData);
+
+    /*
      * Post Command handler function for the Silent PIN Entry request.
      *
      * Clears the cached pin on error, usecachedpin flag and
@@ -946,6 +1003,19 @@ private:
      */
     BOOL m_bModemOffInFlightMode;
 
+    // Flag used to store the location update requested status
+    int m_enableLocationUpdates;
+
+    /*
+     * Flag to indicate whether the Rapid ril is in restricted mode.
+     * Restricted mode means no telephony functionalities possible due to
+     * communication issue with MMGR.
+     */
+    BOOL m_bRestrictedMode;
+
+    // Set to true if the radio on/off request is pending
+    BOOL m_bRadioRequestPending;
+
     /*
      * Flag is used to store sim technical problem.
      * If TRUE, card_state will be reported as error.
@@ -998,12 +1068,10 @@ private:
     static const UINT32 MTU_SIZE = 1358;
     UINT32 m_uiMTU;
 
-    /*
-     * Flag determines if USSD is enabled or disabled.
-     * If TRUE, USSD is disabled.
-     */
-    static const BOOL DISABLE_USSD_DEFAULT = FALSE;
-    BOOL m_bDisableUSSD;
+    BOOL m_bVoiceCapable;
+    BOOL m_bSmsOverCSCapable;
+    BOOL m_bSmsOverPSCapable;
+    BOOL m_bStkCapable;
 
     // Timeouts (in milliseconds)
     static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;

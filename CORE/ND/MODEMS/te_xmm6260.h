@@ -41,6 +41,9 @@ protected:
 public:
     // modem overrides
 
+    virtual char* GetBasicInitCommands(UINT32 uiChannelType);
+    virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
+
     virtual BOOL IsRequestSupported(int requestId);
 
     // RIL_REQUEST_GET_SIM_STATUS 1

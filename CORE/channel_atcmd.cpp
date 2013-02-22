@@ -27,9 +27,7 @@ extern BOOL  g_bIsSocket;
 
 INITSTRING_DATA* ATCmdBasicInitString;
 
-INITSTRING_DATA ATCmdDefBasicInitString = { "E0V1Q0X4|+CMEE=1|S0=0|+XGENDATA|+XCALLNBMMI=1|"
-        "+XPOW=0,0,0" };
-
+INITSTRING_DATA ATCmdDefBasicInitString = { "E0V1Q0X4|+CMEE=1|S0=0" };
 INITSTRING_DATA* ATCmdUnlockInitString;
 INITSTRING_DATA ATCmdDefUnlockInitString = { "" };
 INITSTRING_DATA ATCmdPowerOnInitString = { "" };

@@ -29,7 +29,7 @@
 #include <sys/ioctl.h>
 #include <cutils/properties.h>
 #include <sys/system_properties.h>
-
+#include "util.h"
 
 
 #include <cutils/sockets.h>
@@ -93,6 +93,12 @@ void ModemResetUpdate()
     //  If there was a voice call active, it is disconnected.
     //  This will cause a RIL_REQUEST_GET_CURRENT_CALLS to be sent
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
+
+    /*
+     * Needs to be triggered so that operator, registration states and signal bars
+     * gets updated when radio off or not available.
+     */
+    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
 
     //  Delay slightly so Java layer receives replies
     Sleep(10);
@@ -250,11 +256,11 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(E_MMGR_EVENT_MODEM_DOWN);
 
-                CTE::GetTE().ResetInternalStates();
-
                 //  Inform Android of new state
                 //  Voice calls disconnected, no more data connections
                 ModemResetUpdate();
+
+                CTE::GetTE().ResetInternalStates();
 
                 CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
 
@@ -308,10 +314,8 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 }
                 else
                 {
-                    //  Turning off phone
                     CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
 
-                    // Ends the RRIL
                     CSystemManager::Destroy();
 
                     // Don't exit the RRIL to avoid automatic restart: sleep for ever
@@ -341,6 +345,8 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     ModemResetUpdate();
 
                     CTE::GetTE().ResetInternalStates();
+
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
 
                     //  Close ports
                     RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
@@ -422,8 +428,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
-                CSystemManager::GetInstance().SendAckModemShutdown();
-
                 //  Turning off phone
                 CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
 
@@ -436,7 +440,17 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     RIL_LOG_INFO("ModemManagerEventHandler() - Now sleeping till reboot\r\n");
                     while(1) { sleep(SLEEP_MS); }
                 }
+                else
+                {
+                    // Set local flag to use cached PIN next time
+                    PCache_SetUseCachedPIN(true);
 
+                    CSystemManager::Destroy();
+
+                    //  let's exit, init will restart us
+                    RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_DOWN CALLING EXIT\r\n");
+                    exit(0);
+                }
                 break;
 
             default:
@@ -836,7 +850,7 @@ ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN)
     }
 
     //  Encrypt PIN, store in Android system property
-    return encrypt(szPIN, strlen(szPIN), szUICC);
+    return encrypt(szPIN, MIN(strlen(szPIN), MAX_PIN_SIZE), szUICC);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

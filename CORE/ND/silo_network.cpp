@@ -689,31 +689,42 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                 RIL_LOG_INFO(
                         "CSilo_Network::ParseCGEV() - ME PDN ACT , extracted reason=[%u]\r\n",
                         uiReason);
+                int failCause;
                 pResponse->SetUnsolicitedFlag(TRUE);
 
                 // IPV4 only allowed
                 if (uiReason == 0)
                 {
                     pResponse->SetResultCode(RRIL_RESULT_OK);
-                    pChannelData->SetDataFailCause(PDP_FAIL_ONLY_IPV4_ALLOWED);
+                    failCause = PDP_FAIL_ONLY_IPV4_ALLOWED;
                 }
                 // IPV6 only allowed
                 else if (uiReason == 1)
                 {
                     pResponse->SetResultCode(RRIL_RESULT_OK);
-                    pChannelData->SetDataFailCause(PDP_FAIL_ONLY_IPV6_ALLOWED);
+                    failCause = PDP_FAIL_ONLY_IPV6_ALLOWED;
                 }
                 // Single bearrer allowed
                 else if (uiReason == 2)
                 {
                     pResponse->SetResultCode(RRIL_RESULT_OK);
-                    pChannelData->SetDataFailCause(PDP_FAIL_ONLY_SINGLE_BEARER_ALLOWED);
+                    failCause = PDP_FAIL_ONLY_SINGLE_BEARER_ALLOWED;
                 }
                 else
                 {
                     RIL_LOG_CRITICAL(
                         "CSilo_Network::ParseCGEV() - reason unknown\r\n");
-                    pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
+
+                    failCause = PDP_FAIL_ERROR_UNSPECIFIED;
+                }
+
+                if (NULL != pChannelData)
+                {
+                    pChannelData->SetDataFailCause(failCause);
+                }
+
+                if (PDP_FAIL_ERROR_UNSPECIFIED == failCause)
+                {
                     goto Error;
                 }
             }

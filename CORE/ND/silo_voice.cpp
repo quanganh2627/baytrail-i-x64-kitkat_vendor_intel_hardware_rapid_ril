@@ -603,18 +603,6 @@ BOOL CSilo_Voice::ParseUnsolicitedSSInfo(CResponse* const pResponse, const char*
         // Android doesn't support subaddr or satype fields so just skip to the end
 
 Continue:
-        // We have the parameters, look for the postfix
-        if (!FindAndSkipRspEnd(szPointer, m_szNewLine, szDummy))
-        {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseUnsolicitedSSInfo : Didn't find rsp end!\r\n");
-            szPointer = szPostfix - strlen(m_szNewLine);
-            pResponse->SetUnrecognizedFlag(TRUE);
-            free(pSuppSvcBlob);
-            pSuppSvcBlob = NULL;
-            fRet = TRUE;
-            goto Error;
-        }
-
         pResponse->SetUnsolicitedFlag(TRUE);
         pResponse->SetResultCode(RIL_UNSOL_SUPP_SVC_NOTIFICATION);
 
@@ -639,6 +627,8 @@ Continue:
         pSuppSvcBlob = NULL;
         fRet = TRUE;
     }
+
+    szPointer = szPostfix - strlen(m_szNewLine);
 
 Error:
     if (!fRet)
