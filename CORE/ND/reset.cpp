@@ -235,6 +235,16 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     CSystemManager::GetInstance().ResetChannelInfo();
                 }
 
+                if (E_MMGR_NOTIFY_MODEM_SHUTDOWN == uiPreviousModemState)
+                {
+                    // TODO: Need to address cleanly
+                    RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_UP after"
+                            " MODEM_SHUTDOWN exit\r\n");
+
+                    CSystemManager::Destroy();
+                    exit(0);
+                }
+
                 //  transition to up
                 CTE::GetTE().SetLastModemEvent(E_MMGR_EVENT_MODEM_UP);
 
