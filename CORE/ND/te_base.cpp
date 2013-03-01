@@ -2145,71 +2145,65 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UIN
     //  Store setting in context.
     rReqData.pContextData = (void*)bTurnRadioOn;
 
-    if (m_cte.IsPlatformShutDownRequested())
+    if (m_cte.GetModemOffInFlightModeState())
     {
-        RIL_LOG_INFO("CTEBase::CoreRadioPower - Shutdown requested\r\n");
+        if (true == bTurnRadioOn)
+        {
+            if (!CSystemManager::GetInstance().GetModem())
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() : GetModem Resource failed\r\n");
 
+                m_cte.SetRestrictedMode(TRUE);
+                return RRIL_RESULT_ERROR;
+            }
+            else
+            {
+                m_cte.SetRestrictedMode(FALSE);
+            }
+        }
+    } // Else, resource was already acquired on startup in InitializeSystem
+
+#if !defined(M2_DUALSIM_FEATURE_ENABLED)
+    if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
+                                        "AT+CFUN=1;+XSIMSTATE?\r" : "AT+CFUN=4\r",
+                                        sizeof(rReqData.szCmd1)))
+    {
         res = RRIL_RESULT_OK;
+    }
+#else
+    // use SIM-specific property, depending on RIL instance
+    char szSimPowerOffStatePropName[MAX_PROP_VALUE] = {'\0'};
+    char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
+    UINT32 uiSimPoweredOff;
+    UINT32 uiFunMode;
+
+    if (g_szSIMID) {
+        snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
+                    "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
     }
     else
     {
-        if (CTE::GetTE().GetModemOffInFlightModeState())
-        {
-            if (true == bTurnRadioOn)
-            {
-                if (!CSystemManager::GetInstance().GetModem())
-                {
-                    RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() : GetModem Resource failed\r\n");
-
-                    m_cte.SetRestrictedMode(TRUE);
-                    return RRIL_RESULT_ERROR;
-                }
-                else
-                {
-                    m_cte.SetRestrictedMode(FALSE);
-                }
-            }
-        } // Else, resource was already acquired on startup in InitializeSystem
-
-#if !defined(M2_DUALSIM_FEATURE_ENABLED)
-        if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
-                                            "AT+CFUN=1;+XSIMSTATE?\r" : "AT+CFUN=4\r",
-                                            sizeof(rReqData.szCmd1)))
-        {
-            res = RRIL_RESULT_OK;
-        }
-#else
-        // use SIM-specific property, depending on RIL instance
-        char szSimPowerOffStatePropName[MAX_PROP_VALUE] = {0};
-        if (g_szSIMID) {
-            snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
-                        "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - g_szSIMID is NULL\r\n");
-            goto Error;
-        }
-
-        // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
-        char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
-        property_get(szSimPowerOffStatePropName, szSimPowerOffState, "");
-        UINT32 nSimPoweredOff = (strcmp(szSimPowerOffState, "true") == 0) ? 1 : 0;
-
-        // Power On (20) or flight mode (21)
-        UINT32 nFunMode = bTurnRadioOn ? 20 : 21;
-
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                "AT+CFUN=%u,%u%s\r", nFunMode, nSimPoweredOff,
-                (nFunMode == 20 && nSimPoweredOff == 0) ? ";+XSIMSTATE?" : ""))
-        {
-            RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - Cannot create CFUN command\r\n");
-            goto Error;
-        }
-
-        res = RRIL_RESULT_OK;
-#endif // M2_DUALSIM_FEATURE_ENABLED
+        RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - g_szSIMID is NULL\r\n");
+        goto Error;
     }
+
+    // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
+    property_get(szSimPowerOffStatePropName, szSimPowerOffState, "");
+    uiSimPoweredOff = (strcmp(szSimPowerOffState, "true") == 0) ? 1 : 0;
+
+    // Power On (20) or flight mode (21)
+    uiFunMode = bTurnRadioOn ? 20 : 21;
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+CFUN=%u,%u%s\r", uiFunMode, uiSimPoweredOff,
+            (uiFunMode == 20 && uiSimPoweredOff == 0) ? ";+XSIMSTATE?" : ""))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - Cannot create CFUN command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+#endif // M2_DUALSIM_FEATURE_ENABLED
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Exit\r\n");
@@ -9514,7 +9508,7 @@ BOOL CTEBase::DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pCh
     strncpy(szIpAddr2, szIpAddrOut, sizeof(szIpAddrOut));
 
     RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() : Setting flags\r\n");
-    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
+    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT | IFF_NOARP, 0))
     {
         //goto Error;
         RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6(): Error setting flags\r\n");
@@ -9675,7 +9669,7 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
     strncpy(szIpAddr2, szIpAddrOut, sizeof(szIpAddrOut));
 
     RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : Setting flags\r\n");
-    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
+    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT | IFF_NOARP, 0))
     {
         RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : Error setting flags\r\n");
     }

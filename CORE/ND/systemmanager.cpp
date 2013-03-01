@@ -178,19 +178,13 @@ CSystemManager::~CSystemManager()
     //  Close the COM ports
     CloseChannelPorts();
 
-    Sleep(300);
-
     //  Delete channels
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteChannels\r\n");
     // free queues
     DeleteChannels();
 
-    Sleep(300);
-
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CThreadManager::Stop\r\n");
     CThreadManager::Stop();
-
-    Sleep(300);
 
     // destroy events
     if (m_pExitRilEvent)
@@ -203,8 +197,6 @@ CSystemManager::~CSystemManager()
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteQueues\r\n");
     // free queues
     DeleteQueues();
-
-    Sleep(300);
 
     if (m_pModemBasicInitCompleteEvent)
     {
@@ -628,6 +620,11 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetStkCapable(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szEnableXDATASTATURC, iTemp))
+    {
+        CTE::GetTE().SetXDATASTATReporting(iTemp == 1 ? TRUE : FALSE);
+    }
+
     //  Create and initialize the channels (don't open ports yet)
     if (!InitChannelPorts())
     {
@@ -970,6 +967,36 @@ void CSystemManager::ResetSystemState()
     ResetChannelCompletedInit();
 
     RIL_LOG_VERBOSE("CSystemManager::ResetSystemState() - Exit\r\n");
+}
+
+void CSystemManager::ResetChannelInfo()
+{
+    RIL_LOG_INFO("CSystemManager::ResetChannelInfo() - Enter\r\n");
+
+    CMutex::Lock(m_pSystemManagerMutex);
+
+    // signal the cancel event to kill the thread
+    CEvent::Signal(m_pExitRilEvent);
+
+    ResetChannelCompletedInit();
+
+    //  Close the COM ports
+    CloseChannelPorts();
+
+    CThreadManager::Stop();
+
+    if (m_pExitRilEvent)
+    {
+        delete m_pExitRilEvent;
+        m_pExitRilEvent = NULL;
+    }
+
+    // free queues
+    DeleteQueues();
+
+    CMutex::Unlock(m_pSystemManagerMutex);
+
+    RIL_LOG_INFO("CSystemManager::ResetChannelInfo() - Exit\r\n");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1513,6 +1540,16 @@ void CSystemManager::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIn
         RIL_LOG_VERBOSE("CSystemManager::TriggerInitStringCompleteEvent() -"
                 " DEBUG: All channels complete basic init!\r\n");
         CEvent::Signal(m_pModemBasicInitCompleteEvent);
+
+        if (!CTE::GetTE().IsRadioRequestPending()
+                && (RADIO_STATE_UNAVAILABLE == CTE::GetTE().GetRadioState()))
+        {
+            /*
+             * Needed as RIL_REQUEST_RADIO_POWER request is not received
+             * after modem core dump, warm reset.
+             */
+            CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
+        }
     }
     else if (VerifyAllChannelsCompletedInit(COM_POWER_ON_INIT_INDEX))
     {
@@ -1754,6 +1791,44 @@ BOOL CSystemManager::SendRequestModemShutdown()
     bRet = TRUE;
 Error:
     RIL_LOG_INFO("CSystemManager::SendRequestModemShutdown() - EXIT\r\n");
+    return bRet;
+}
+
+//  Send shutdown acknowledge to MMgr
+BOOL CSystemManager::SendAckModemShutdown()
+{
+    RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() - ENTER\r\n");
+    BOOL bRet = FALSE;
+    mmgr_cli_requests_t request;
+    request.id = E_MMGR_ACK_MODEM_SHUTDOWN;
+
+    if (m_pMMgrLibHandle)
+    {
+        RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() -"
+                     " Acknowledging modem force shutdown\r\n");
+
+        if (E_ERR_CLI_SUCCEED != mmgr_cli_send_msg(m_pMMgrLibHandle, &request))
+        {
+            RIL_LOG_CRITICAL("CSystemManager::SendAckModemShutdown() -"
+                             " Failed to send REQUEST_ACK_MODEM_SHUTDOWN\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() -"
+                         " Modem force shutdown acknowledge SUCCESSFUL\r\n");
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CSystemManager::SendAckModemShutdown() -"
+                         " unable to communicate with MMgr\r\n");
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() - EXIT\r\n");
     return bRet;
 }
 

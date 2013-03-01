@@ -706,6 +706,16 @@ public:
     void SetRestrictedMode(BOOL bIsRetrictedMode) { m_bRestrictedMode = bIsRetrictedMode; }
     BOOL IsRestrictedMode() { return m_bRestrictedMode; }
 
+    void SetXDATASTATReporting(BOOL bEnable)
+    {
+        m_bXDATASTATEnabled =  bEnable;
+    }
+
+    BOOL IsXDATASTATReportingEnabled()
+    {
+        return m_bXDATASTATEnabled;
+    }
+
     void SetTimeoutCmdInit(UINT32 uiCmdInit) { m_uiTimeoutCmdInit = uiCmdInit; };
     UINT32 GetTimeoutCmdInit()     { return m_uiTimeoutCmdInit; };
     void SetTimeoutAPIDefault(UINT32 uiAPIDefault) { m_uiTimeoutAPIDefault = uiAPIDefault; };
@@ -1072,6 +1082,8 @@ private:
     BOOL m_bSmsOverCSCapable;
     BOOL m_bSmsOverPSCapable;
     BOOL m_bStkCapable;
+
+    BOOL m_bXDATASTATEnabled;
 
     // Timeouts (in milliseconds)
     static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;
