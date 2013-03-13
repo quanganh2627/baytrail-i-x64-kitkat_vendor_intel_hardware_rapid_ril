@@ -13,6 +13,7 @@ import android.widget.RadioGroup;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.PhoneBase;
+import com.android.internal.telephony.PhoneProxy;
 import com.android.internal.telephony.CommandsInterface;
 import android.os.Message;
 import android.os.Handler;
@@ -53,7 +54,7 @@ public class RilOemHookTest extends Activity
         mRadioButtonAPI1.toggle();
 
         //  Get our main phone object.
-        mPhone = PhoneFactory.getDefaultPhone();
+        mPhone = ((PhoneProxy)PhoneFactory.getDefaultPhone()).getActivePhone();
 
         //  Register for OEM raw notification.
         mCM = ((PhoneBase)mPhone).mCM;
