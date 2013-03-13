@@ -526,7 +526,9 @@ UINT32 CEvent::WaitForAnyEvent(UINT32 nEvents, CEvent** rgpEvents, UINT32 uiTime
 
         if (pEvent != NULL)
         {
+            pEvent->EnterMutex();
             pMultipleEvents->RemoveEvent(index);
+            pEvent->LeaveMutex();
         }
     }
 
