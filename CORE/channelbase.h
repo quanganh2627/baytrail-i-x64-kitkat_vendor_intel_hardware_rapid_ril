@@ -26,8 +26,7 @@ class CThread;
 class CSilo;
 class CThread;
 
-
-const UINT32 MAX_SILOS = 6;
+const UINT32 MAX_SILOS = 7;
 
 #define MAX_COM_PORT_NAME_LENGTH  64
 

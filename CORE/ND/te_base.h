@@ -863,6 +863,13 @@ public:
     virtual BOOL GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
             BOOL bIsModemOffInFlightMode, /*INOUT*/ char* pCmdBuffer, int cmdBufferLen);
 
+    virtual RIL_RESULT_CODE CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
+            const char** pszRequest,
+            const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateIMSConfigReq(REQUEST_DATA& rReqData,
+            const char** pszRequest,
+            const int nNumStrings);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
 

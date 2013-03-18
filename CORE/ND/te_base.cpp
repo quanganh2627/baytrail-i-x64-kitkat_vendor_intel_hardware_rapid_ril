@@ -10472,3 +10472,23 @@ BOOL CTEBase::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
     // should be derived in modem specific class
     return FALSE;
 }
+
+RIL_RESULT_CODE CTEBase::CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
+        const char** pszRequest,
+        const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTEBase::CreateIMSRegistrationReq() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;
+    RIL_LOG_VERBOSE("CTEBase::CreateIMSRegistrationReq() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::CreateIMSConfigReq(REQUEST_DATA& rReqData,
+        const char** pszRequest,
+        const int nNumStrings)
+{
+    RIL_LOG_VERBOSE("CTEBase::CreateIMSConfigReq() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;
+    RIL_LOG_VERBOSE("CTEBase::CreateIMSConfigReq() - Exit\r\n");
+    return res;
+}

@@ -178,6 +178,7 @@ const char   g_szGroupOtherTimeouts[]          = "OtherTimeouts";
 const char   g_szTimeoutCmdInit[]              = "TimeoutCmdInit";
 const char   g_szTimeoutAPIDefault[]           = "TimeoutAPIDefault";
 const char   g_szTimeoutWaitForInit[]          = "TimeoutWaitForInit";
+const char   g_szTimeoutWaitForXIREG[]         = "TimeoutWaitForXIREG";
 
 /////////////////////////////////////////////////
 
@@ -226,6 +227,10 @@ const char   g_szSmsOverCSCapable[]             = "SmsOverCSCapable";
 const char   g_szSmsOverPSCapable[]             = "SmsOverPSCapable";
 const char   g_szStkCapable[]                   = "StkCapable";
 const char   g_szEnableXDATASTATURC[]           = "EnableXDATASTATReporting";
+
+// IMS dependent parameters
+const char   g_szIMSCapable[]                   = "IMSCapable";
+const char   g_szEnableSMSOverIP[]              = "EnableSMSOverIP";
 
 // used for 7x60 and 6360 modems
 const char   g_szModemResourceName[]    = "ModemDataChannelResourceName";

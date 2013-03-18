@@ -63,6 +63,8 @@ CTE::CTE(UINT32 modemType) :
     m_bSmsOverPSCapable(TRUE),
     m_bStkCapable(TRUE),
     m_bXDATASTATEnabled(FALSE),
+    m_bIMSCapable(FALSE),
+    m_bSMSOverIPCapable(FALSE),
     m_uiTimeoutCmdInit(TIMEOUT_INITIALIZATION_COMMAND),
     m_uiTimeoutAPIDefault(TIMEOUT_API_DEFAULT),
     m_uiTimeoutWaitForInit(TIMEOUT_WAITFORINIT),
@@ -4228,7 +4230,8 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestHookStrings() - Unable to add command to queue\r\n");
+                RIL_LOG_CRITICAL("CTE::RequestHookStrings() - "
+                        "Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
                 pCmd = NULL;
@@ -8888,4 +8891,22 @@ BOOL CTE::IsPlatformShutDownOngoing()
     }
 
     return bIsPlatformShutDownOngoing;
+}
+
+RIL_RESULT_CODE CTE::CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
+        const char** pszRequest,
+        const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE::CreateIMSRegistrationReq() - Enter/Exit\r\n");
+    return m_pTEBaseInstance->CreateIMSRegistrationReq(rReqData,
+                    pszRequest, uiDataSize);
+}
+
+RIL_RESULT_CODE CTE::CreateIMSConfigReq(REQUEST_DATA& rReqData,
+        const char** pszRequest,
+        const int nNumStrings)
+{
+    RIL_LOG_VERBOSE("CTE::CreateIMSConfigReq() - Enter/Exit\r\n");
+    return m_pTEBaseInstance->CreateIMSConfigReq(rReqData,
+                    pszRequest, nNumStrings);
 }

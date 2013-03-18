@@ -58,6 +58,7 @@ typedef long                RIL_RESULT_CODE;
 #define MAX_MDM_RESOURCE_NAME_SIZE (20)
 #define MAX_FDTIMER_SIZE           (5)
 #define MODEM_STATE_UNKNOWN        (-1)
+#define MAX_PARAM_LENGTH           (256)
 
 ///////////////////////////////////////////////////////////////////////////////
 // SIM related constants
@@ -273,6 +274,22 @@ enum
     E_MODE_RESET_STATISTICS = 3,
     E_MODE_STOP_EM = 4
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// IMS APN Info
+//
+typedef struct
+{
+    char szIMSApn[MAX_PARAM_LENGTH];
+    char szOutboundProxyName[MAX_PARAM_LENGTH];
+    char szOutboundProxyPort[MAX_PARAM_LENGTH];
+    char szPrivateUserId[MAX_PARAM_LENGTH];
+    char szHomeNWDomainName[MAX_PARAM_LENGTH];
+    char szAuthName[MAX_PARAM_LENGTH];
+    char szAuthPassword[MAX_PARAM_LENGTH];
+    char szAuthType[MAX_PARAM_LENGTH];
+    char szLoggerLevel[MAX_PARAM_LENGTH];
+} S_IMS_APN_INFO;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Notify / Result Codes (m_dwCode)

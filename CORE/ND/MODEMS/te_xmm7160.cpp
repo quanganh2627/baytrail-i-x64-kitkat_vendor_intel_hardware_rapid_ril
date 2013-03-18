@@ -65,6 +65,18 @@ char* CTE_XMM7160::GetBasicInitCommands(UINT32 uiChannelType)
     if (pInitCmd != NULL)
     {
         strncpy(szInitCmd,pInitCmd,MAX_BUFFER_SIZE);
+
+        if (m_cte.IsIMSCapable())
+        {
+            char szEnableIMS[MAX_BUFFER_SIZE] = {'\0'};
+            PrintStringNullTerminate(szEnableIMS,
+                    MAX_BUFFER_SIZE,
+                    "|+CISRVCC=1|+CIREP=1|+XISMSCFG=%d",
+                    m_cte.IsSMSOverIPCapable() ? 1 : 0);
+            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                    szEnableIMS);
+        }
+
         // add to init string. +CEREG=2
         ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
                 "|+CEREG=2");
@@ -743,6 +755,187 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseGetPreferredNetworkType() - Exit\r\n");
+    return res;
+}
+
+BOOL CTE_XMM7160::IMSRegister(REQUEST_DATA& rReqData, void* pData,
+        UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::IMSRegister() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+
+    if ((NULL == pData) || (sizeof(int) != uiDataSize))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::IMSRegister() - Invalid input data\r\n");
+        return bRet;
+    }
+
+    int* pService = (int*)pData;
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+XIREG=%d\r", *pService))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::IMSRegister() - Can't construct szCmd1.\r\n");
+        return bRet;
+    }
+
+    int temp = 0;
+    const int DEFAULT_XIREG_TIMEOUT = 180000;
+    CRepository repository;
+
+    if (repository.Read(g_szGroupOtherTimeouts, g_szTimeoutWaitForXIREG, temp))
+    {
+        rReqData.uiTimeout = temp;
+    }
+    else
+    {
+        rReqData.uiTimeout = DEFAULT_XIREG_TIMEOUT;
+    }
+
+    bRet = TRUE;
+
+    return bRet;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseIMSRegister(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseIMSRegister() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseIMSRegister() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
+        const char** pszRequest,
+        const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateIMSRegistrationReq() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (pszRequest == NULL || '\0' == pszRequest[1])
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSRegistrationReq() - pszRequest was empty\r\n");
+        goto Error;
+    }
+
+    if (uiDataSize < (2 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSRegistrationReq() :"
+                " received_size < required_size\r\n");
+        goto Error;
+    }
+
+    int service;
+    if (sscanf(pszRequest[1], "%d", &service) == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSRegistrationReq() -"
+                " cannot convert %s to int\r\n", pszRequest);
+        goto Error;
+    }
+
+    if ((service < 0) || (service > 1))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSRegistrationReq() -"
+                " service %s out of boundaries\r\n", service);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM7160::CreateIMSRegistrationReq() - service=[%d]\r\n", service);
+
+    if (!IMSRegister(rReqData, &service, sizeof(int)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSRegistrationReq() - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateIMSRegistrationReq() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::CreateIMSConfigReq(REQUEST_DATA& rReqData,
+        const char** pszRequest,
+        const int nNumStrings)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateIMSConfigReq() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    S_IMS_APN_INFO sImsApnInfo;
+
+    if (pszRequest == NULL)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - pszRequest was empty\r\n");
+        return res;
+    }
+
+    // There should be 9 parameters and the request ID
+    if (nNumStrings < 10)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() :"
+                " received_size < required_size\r\n");
+        return res;
+    }
+
+    memset(&sImsApnInfo, 0, sizeof(S_IMS_APN_INFO));
+    strncpy(sImsApnInfo.szIMSApn, pszRequest[1], MAX_PARAM_LENGTH - 1);
+    strncpy(sImsApnInfo.szOutboundProxyName, pszRequest[2], MAX_PARAM_LENGTH - 1);
+    strncpy(sImsApnInfo.szOutboundProxyPort, pszRequest[3], MAX_PARAM_LENGTH - 1);
+    strncpy(sImsApnInfo.szPrivateUserId,pszRequest[4], MAX_PARAM_LENGTH - 1);
+    strncpy(sImsApnInfo.szHomeNWDomainName, pszRequest[5], MAX_PARAM_LENGTH - 1);
+    strncpy(sImsApnInfo.szAuthName, pszRequest[6], MAX_PARAM_LENGTH - 1);
+    strncpy(sImsApnInfo.szAuthPassword, pszRequest[7], MAX_PARAM_LENGTH - 1);
+    strncpy(sImsApnInfo.szAuthType, pszRequest[8], MAX_PARAM_LENGTH - 1);
+    strncpy(sImsApnInfo.szLoggerLevel, pszRequest[9], MAX_PARAM_LENGTH - 1);
+
+    sImsApnInfo.szIMSApn[MAX_PARAM_LENGTH - 1] = '\0';
+    sImsApnInfo.szOutboundProxyName[MAX_PARAM_LENGTH - 1] = '\0';
+    sImsApnInfo.szOutboundProxyPort[MAX_PARAM_LENGTH - 1] = '\0';
+    sImsApnInfo.szPrivateUserId[MAX_PARAM_LENGTH - 1] = '\0';
+    sImsApnInfo.szHomeNWDomainName[MAX_PARAM_LENGTH - 1] = '\0';
+    sImsApnInfo.szAuthName[MAX_PARAM_LENGTH - 1] = '\0';
+    sImsApnInfo.szAuthPassword[MAX_PARAM_LENGTH - 1] = '\0';
+    sImsApnInfo.szAuthType[MAX_PARAM_LENGTH - 1] = '\0';
+    sImsApnInfo.szLoggerLevel[MAX_PARAM_LENGTH - 1] = '\0';
+
+    if (0 == strncmp(sImsApnInfo.szIMSApn, "void", 4)) {
+        sImsApnInfo.szIMSApn[0] = '\0';
+    }
+
+    if (0 == strncmp(sImsApnInfo.szAuthPassword, "void", 4)) {
+        sImsApnInfo.szAuthPassword[0] = '\0';
+    }
+
+    RIL_LOG_INFO("CTE_XMM7160::CreateIMSConfigReq() - IMS_APN=[%s %s %s %s %s %s %s %s %s]\r\n",
+            sImsApnInfo.szIMSApn,
+            sImsApnInfo.szOutboundProxyName,
+            sImsApnInfo.szOutboundProxyPort,
+            sImsApnInfo.szPrivateUserId,
+            sImsApnInfo.szHomeNWDomainName,
+            sImsApnInfo.szAuthName,
+            sImsApnInfo.szAuthPassword,
+            sImsApnInfo.szAuthType,
+            sImsApnInfo.szLoggerLevel);
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+XICFG=%s,%s,%s,%s,%s,%s,%s,%s,%s\r",
+            sImsApnInfo.szIMSApn,
+            sImsApnInfo.szOutboundProxyName,
+            sImsApnInfo.szOutboundProxyPort,
+            sImsApnInfo.szPrivateUserId,
+            sImsApnInfo.szHomeNWDomainName,
+            sImsApnInfo.szAuthName,
+            sImsApnInfo.szAuthPassword,
+            sImsApnInfo.szAuthType,
+            sImsApnInfo.szLoggerLevel))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateIMSConfigReq() - Exit\r\n");
     return res;
 }
 

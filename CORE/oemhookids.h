@@ -233,6 +233,45 @@ const int RIL_OEM_HOOK_STRING_SET_RF_POWER_CUTBACK_TABLE = 0x000000AC;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_IMS_REGISTRATION
+//  Command ID = 0x000000AD
+//
+//  This command ask for IMS registration/unregistration.
+//
+// "data" - string containing an int value registration state request
+//                    “0” = unregister.
+//                    “1” = register.
+//  "response" = NULL
+//  Effective modification of the state is sent back through an unsolicited
+//  response.
+//
+const int RIL_OEM_HOOK_STRING_IMS_REGISTRATION = 0x000000AD;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_IMS_CONFIG
+//  Command ID = 0x000000AE
+//
+//  This command ask for IMS apn configuration.
+//
+// "data" = An array of strings representing +XICFG parameters:
+//          ((const char **)data)[0] - string parameter <IMS_APN>
+//          ((const char **)data)[1] - string parameter <outbound_proxy_name>
+//          ((const char **)data)[2] - string parameter <outbound_proxy_port>
+//          ((const char **)data)[3] - string parameter <private_user_id>
+//          ((const char **)data)[4] - string parameter <home_network_domain_name>
+//          ((const char **)data)[5] - string parameter <XCAP_auth_username>
+//          ((const char **)data)[6] - string parameter <XCAP_auth_password>
+//          ((const char **)data)[7] - string parameter <XCAP_auth_type>
+//          ((const char **)data)[8] - string parameter <logger_level>
+//  "response" = NULL
+//
+const int RIL_OEM_HOOK_STRING_IMS_CONFIG = 0x000000AE;
+
+///////////////////////////////////////////////////////////////////////////////
+
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
 
 //
@@ -321,6 +360,38 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_MT_CLASS_IND
 //  "data" is sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND
 //
 const int RIL_OEM_HOOK_RAW_UNSOL_MT_CLASS_IND = 0x000000D4;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_UNSOL_IMS_REG_STATUS
+{
+    int command; //  Command ID
+    int status; // IMS registration status
+} sOEM_HOOK_RAW_UNSOL_IMS_REG_STATUS;
+
+//
+//  OEM_HOOK_RAW_UNSOL_IMS_REG_STATUS
+//  Command ID = 0x000000D6
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_IMS_REG_STATUS
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_IMS_REG_STATUS = 0x000000D6;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_UNSOL_IMS_SUPPORT_STATUS
+{
+    int command; //  Command ID
+    int status; // result code
+} sOEM_HOOK_RAW_UNSOL_IMS_SUPPORT_STATUS;
+
+//
+//  OEM_HOOK_RAW_UNSOL_IMS_SUPPORT_STATUS
+//  Command ID = 0x000000D7
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_IMS_SUPPORT_STATUS
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_IMS_SUPPORT_STATUS = 0x000000D7;
 
 #pragma pack()
 

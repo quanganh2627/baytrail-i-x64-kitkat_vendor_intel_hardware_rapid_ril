@@ -730,6 +730,26 @@ public:
         return m_bXDATASTATEnabled;
     }
 
+    void SetIMSCapable(BOOL bIsIMSCapable)
+    {
+        m_bIMSCapable = bIsIMSCapable;
+    }
+
+    BOOL IsIMSCapable()
+    {
+        return m_bIMSCapable;
+    }
+
+    void SetSMSOverIPCapable(BOOL bIsSMSOverIPCapable)
+    {
+        m_bSMSOverIPCapable =  bIsSMSOverIPCapable;
+    }
+
+    BOOL IsSMSOverIPCapable()
+    {
+        return m_bSMSOverIPCapable;
+    }
+
     void SetTimeoutCmdInit(UINT32 uiCmdInit) { m_uiTimeoutCmdInit = uiCmdInit; };
     UINT32 GetTimeoutCmdInit()     { return m_uiTimeoutCmdInit; };
     void SetTimeoutAPIDefault(UINT32 uiAPIDefault) { m_uiTimeoutAPIDefault = uiAPIDefault; };
@@ -1013,6 +1033,14 @@ public:
      */
     void CompleteDataCallListChanged();
 
+    RIL_RESULT_CODE CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
+            const char** pszRequest,
+            const UINT32 uiDataSize);
+
+    RIL_RESULT_CODE CreateIMSConfigReq(REQUEST_DATA& rReqData,
+            const char** pszRequest,
+            const int nNumStrings);
+
 private:
     UINT32 m_uiModemType;
 
@@ -1112,6 +1140,9 @@ private:
     BOOL m_bStkCapable;
 
     BOOL m_bXDATASTATEnabled;
+
+    BOOL m_bIMSCapable;
+    BOOL m_bSMSOverIPCapable;
 
     // Timeouts (in milliseconds)
     static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;

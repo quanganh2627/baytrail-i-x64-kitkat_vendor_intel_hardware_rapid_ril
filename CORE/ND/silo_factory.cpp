@@ -18,6 +18,7 @@
 #include "silo_network_inf.h"
 #include "silo_phonebook_inf.h"
 #include "silo_misc_inf.h"
+#include "silo_ims_inf.h"
 #include "rillog.h"
 #include "repository.h"
 #include "silo_factory.h"
@@ -219,3 +220,28 @@ CSilo* CSilo_Factory::GetSiloMISC(CChannel* pChannel)
     return pSilo;
 }
 
+CSilo* CSilo_Factory::GetSiloIMS(CChannel* pChannel)
+{
+    RIL_LOG_VERBOSE("CSilo_Factory::GetSiloIMS() - Enter\r\n");
+    CSilo* pSilo = NULL;
+
+    CRepository repository;
+    char szModem[MAX_MODEM_NAME_LEN];
+
+    if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
+    {
+        if (0 == strcmp(szModem, szXMM7160))
+        {
+            pSilo = new CSilo_IMS_INF(pChannel);
+        }
+    }
+
+    if (NULL == pSilo)
+    {
+        // return default silo ims
+        pSilo = new CSilo_IMS(pChannel);
+    }
+
+    RIL_LOG_VERBOSE("CSilo_Factory::GetSiloIMS() - Exit\r\n");
+    return pSilo;
+}

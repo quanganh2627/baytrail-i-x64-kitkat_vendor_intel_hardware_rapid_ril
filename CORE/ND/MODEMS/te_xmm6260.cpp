@@ -2435,6 +2435,22 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             }
 #endif // M2_DUALSIM_FEATURE_ENABLED
 
+        case RIL_OEM_HOOK_STRING_IMS_REGISTRATION:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_REGISTRATION");
+            // Send this command on DLC2 channel
+            uiRilChannel = RIL_CHANNEL_DLC2;
+            res = m_cte.CreateIMSRegistrationReq(rReqData,
+                    (const char**) pszRequest, uiDataSize);
+            break;
+
+        case RIL_OEM_HOOK_STRING_IMS_CONFIG:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_CONFIG");
+            // Send this command on DLC2 channel
+            uiRilChannel = RIL_CHANNEL_DLC2;
+            res = m_cte.CreateIMSConfigReq(rReqData,
+                    (const char**) pszRequest, nNumStrings);
+            break;
+
         default:
             RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
                     " ERROR: Received unknown uiCommand=[0x%X]\r\n", uiCommand);
@@ -2506,6 +2522,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS:
         case RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE:
         case RIL_OEM_HOOK_STRING_SET_RF_POWER_CUTBACK_TABLE:
+        case RIL_OEM_HOOK_STRING_IMS_REGISTRATION:
+        case RIL_OEM_HOOK_STRING_IMS_CONFIG:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
             break;

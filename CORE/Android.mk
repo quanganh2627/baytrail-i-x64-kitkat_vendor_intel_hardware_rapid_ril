@@ -19,6 +19,7 @@ LOCAL_SRC_FILES:= \
     ND/silo_phonebook.cpp \
     ND/silo_sms.cpp \
     ND/silo_misc.cpp \
+    ND/silo_ims.cpp \
     ND/channel_nd.cpp \
     channelbase.cpp \
     channel_atcmd.cpp \
@@ -53,7 +54,8 @@ LOCAL_SRC_FILES:= \
     ND/MODEMS/silo_data_inf.cpp \
     ND/MODEMS/silo_network_inf.cpp \
     ND/MODEMS/silo_phonebook_inf.cpp \
-    ND/MODEMS/silo_misc_inf.cpp
+    ND/MODEMS/silo_misc_inf.cpp \
+    ND/MODEMS/silo_ims_inf.cpp
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli
 
