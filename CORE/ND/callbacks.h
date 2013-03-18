@@ -25,13 +25,6 @@ static const struct timeval CallStateHyperPoll = {0, 500000};
 void notifyChangedCallState(void* param);
 
 //
-// Callback to trigger radio off state change indication
-// This is done to force the framework to trigger RADIO_POWER on
-// request again
-//
-void triggerRadioOffInd(void* param);
-
-//
 // Callback to trigger data resumed notification
 //
 void triggerDataResumedInd(void* param);

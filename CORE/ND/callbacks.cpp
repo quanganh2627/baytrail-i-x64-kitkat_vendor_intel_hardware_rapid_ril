@@ -23,14 +23,6 @@ void notifyChangedCallState(void* param)
     RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 }
 
-void triggerRadioOffInd(void* param)
-{
-    if (RADIO_STATE_UNAVAILABLE == CTE::GetTE().GetRadioState())
-    {
-       CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
-    }
-}
-
 void triggerDataResumedInd(void* param)
 {
     unsigned char szData[10];

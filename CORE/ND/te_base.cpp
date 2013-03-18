@@ -9508,7 +9508,7 @@ BOOL CTEBase::DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pCh
     strncpy(szIpAddr2, szIpAddrOut, sizeof(szIpAddrOut));
 
     RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() : Setting flags\r\n");
-    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT | IFF_NOARP, 0))
+    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
     {
         //goto Error;
         RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6(): Error setting flags\r\n");
@@ -9669,7 +9669,7 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
     strncpy(szIpAddr2, szIpAddrOut, sizeof(szIpAddrOut));
 
     RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : Setting flags\r\n");
-    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT | IFF_NOARP, 0))
+    if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT, 0))
     {
         RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : Error setting flags\r\n");
     }

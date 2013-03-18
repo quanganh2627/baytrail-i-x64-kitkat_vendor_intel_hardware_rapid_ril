@@ -100,12 +100,6 @@ void ModemResetUpdate()
      */
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
 
-    /*
-     * Needed for SIM hot swap to function properly when modem off in flight
-     * is activated.
-     */
-    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
-
     RIL_LOG_VERBOSE("ModemResetUpdate() - Exit\r\n");
 }
 
@@ -148,28 +142,21 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
         }
         else
         {
-            if (E_MMGR_EVENT_MODEM_UP == CTE::GetTE().GetLastModemEvent())
+            RIL_LOG_INFO("do_request_clean_up()"
+                    "- SendRequestModemRecovery, eError=[%d]\r\n", eError);
+
+            //  Voice calls disconnected, no more data connections
+            ModemResetUpdate();
+
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
+            CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+
+            //  Send recovery request to MMgr
+            if (!CSystemManager::GetInstance().SendRequestModemRecovery())
             {
-                RIL_LOG_INFO("do_request_clean_up()"
-                        "- SendRequestModemRecovery, eError=[%d]\r\n", eError);
-
-                //  Voice calls disconnected, no more data connections
-                ModemResetUpdate();
-
-                // Needed for resetting registration states in framework
-                CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-
-                //  Send recovery request to MMgr
-                if (!CSystemManager::GetInstance().SendRequestModemRecovery())
-                {
-                    RIL_LOG_CRITICAL("do_request_clean_up() - CANNOT SEND "
-                            "MODEM RESTART REQUEST\r\n");
-                }
-            }
-            else
-            {
-                RIL_LOG_INFO("do_request_clean_up() - "
-                    "received in modem_state != E_MMGR_EVENT_MODEM_UP state\r\n");
+                RIL_LOG_CRITICAL("do_request_clean_up() - CANNOT SEND MODEM RESTART REQUEST\r\n");
+                //  Socket could have been closed by MMGR.
+                //  Restart RRIL, drop down to exit.
             }
         }
     }
@@ -229,17 +216,9 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                         || E_MMGR_NOTIFY_MODEM_WARM_RESET == uiPreviousModemState
                         || E_MMGR_NOTIFY_CORE_DUMP == uiPreviousModemState)
                 {
+                    //  let's exit, init will restart us
                     RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_UP after"
-                            " COLD_RESET/WARM_RESET/CORE_DUMP Reset channel information\r\n");
-
-                    CSystemManager::GetInstance().ResetChannelInfo();
-                }
-
-                if (E_MMGR_NOTIFY_MODEM_SHUTDOWN == uiPreviousModemState)
-                {
-                    // TODO: Need to address cleanly
-                    RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_UP after"
-                            " MODEM_SHUTDOWN exit\r\n");
+                            " COLD_RESET/WARM_RESET/CORE_DUMP CALLING EXIT\r\n");
 
                     CSystemManager::Destroy();
                     exit(0);
@@ -302,11 +281,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
-                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
-
-                    // Needed for resetting registration states in framework
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
                     ModemResetUpdate();
@@ -328,9 +302,19 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     CSystemManager::Destroy();
                     while(1) { sleep(SLEEP_MS); }
                 }
+                else if (CTE::GetTE().GetModemOffInFlightModeState()
+                            && (RADIO_STATE_OFF == CTE::GetTE().GetRadioState()))
+                {
+                    CSystemManager::Destroy();
+
+                    //  let's exit, init will restart us
+                    RIL_LOG_INFO("ModemManagerEventHandler() -"
+                            "MODEM_DOWN due to flight mode EXIT\r\n");
+                    exit(0);
+                }
                 else
                 {
-                    CSystemManager::GetInstance().ResetChannelInfo();
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
                 }
                 break;
 
@@ -344,15 +328,12 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
-                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
-
-                    // Needed for resetting registration states in framework
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-
                     // Voice calls disconnected, no more data connections
                     ModemResetUpdate();
 
                     CTE::GetTE().ResetInternalStates();
+
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
                 }
 
                 CSystemManager::Destroy();
@@ -375,11 +356,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 {
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
-
-                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
-
-                    // Needed for resetting registration states in framework
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
 
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
@@ -409,11 +385,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
-                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
-
-                    // Needed for resetting registration states in framework
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
                     ModemResetUpdate();
@@ -433,7 +404,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 //  Spoof commands from now on
                 CTE::GetTE().SetSpoofCommandsStatus(TRUE);
-                CSystemManager::GetInstance().SetInitializationUnsuccessful();
 
                 if (CTE::GetTE().GetModemOffInFlightModeState()
                         && (RADIO_STATE_OFF == CTE::GetTE().GetRadioState()))
