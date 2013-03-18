@@ -49,7 +49,7 @@ typedef long                RIL_RESULT_CODE;
 //
 #define MAX_BUFFER_SIZE            (1024)
 #define MAX_PROP_VALUE             (81)
-#define MAX_PIN_SIZE               (10)
+#define MAX_PIN_SIZE               (9)
 #define MAX_FACILITY_CODE          (5)
 #define MAX_IPADDR_SIZE            (100)
 #define MAX_PDP_CONTEXTS           (5)

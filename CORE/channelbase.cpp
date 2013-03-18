@@ -952,10 +952,10 @@ UINT32 CChannelBase::ResponseThread()
                 m_uiRilChannel);
         if (!WaitForAvailableData(WAIT_FOREVER))
         {
-            if (CTE::GetTE().GetSpoofCommandsStatus())
+            if (E_MMGR_EVENT_MODEM_UP != CTE::GetTE().GetLastModemEvent())
             {
-                // If we are in spoof mode this means that the modem is down.
-                // Don't report error in this case and simply ends the thread.
+                // If the modem is not up, then don't report error in this case.
+                // Simply end the thread.
                 return 0;
             }
 

@@ -100,6 +100,12 @@ void ModemResetUpdate()
      */
     RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
 
+    /*
+     * Needed for SIM hot swap to function properly when modem off in flight
+     * is activated.
+     */
+    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+
     RIL_LOG_VERBOSE("ModemResetUpdate() - Exit\r\n");
 }
 
@@ -142,21 +148,28 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
         }
         else
         {
-            RIL_LOG_INFO("do_request_clean_up()"
-                    "- SendRequestModemRecovery, eError=[%d]\r\n", eError);
-
-            //  Voice calls disconnected, no more data connections
-            ModemResetUpdate();
-
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
-            CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-
-            //  Send recovery request to MMgr
-            if (!CSystemManager::GetInstance().SendRequestModemRecovery())
+            if (E_MMGR_EVENT_MODEM_UP == CTE::GetTE().GetLastModemEvent())
             {
-                RIL_LOG_CRITICAL("do_request_clean_up() - CANNOT SEND MODEM RESTART REQUEST\r\n");
-                //  Socket could have been closed by MMGR.
-                //  Restart RRIL, drop down to exit.
+                RIL_LOG_INFO("do_request_clean_up()"
+                        "- SendRequestModemRecovery, eError=[%d]\r\n", eError);
+
+                //  Voice calls disconnected, no more data connections
+                ModemResetUpdate();
+
+                // Needed for resetting registration states in framework
+                CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+
+                //  Send recovery request to MMgr
+                if (!CSystemManager::GetInstance().SendRequestModemRecovery())
+                {
+                    RIL_LOG_CRITICAL("do_request_clean_up() - CANNOT SEND "
+                            "MODEM RESTART REQUEST\r\n");
+                }
+            }
+            else
+            {
+                RIL_LOG_INFO("do_request_clean_up() - "
+                    "received in modem_state != E_MMGR_EVENT_MODEM_UP state\r\n");
             }
         }
     }
@@ -216,9 +229,17 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                         || E_MMGR_NOTIFY_MODEM_WARM_RESET == uiPreviousModemState
                         || E_MMGR_NOTIFY_CORE_DUMP == uiPreviousModemState)
                 {
-                    //  let's exit, init will restart us
                     RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_UP after"
-                            " COLD_RESET/WARM_RESET/CORE_DUMP CALLING EXIT\r\n");
+                            " COLD_RESET/WARM_RESET/CORE_DUMP Reset channel information\r\n");
+
+                    CSystemManager::GetInstance().ResetChannelInfo();
+                }
+
+                if (E_MMGR_NOTIFY_MODEM_SHUTDOWN == uiPreviousModemState)
+                {
+                    // TODO: Need to address cleanly
+                    RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_UP after"
+                            " MODEM_SHUTDOWN exit\r\n");
 
                     CSystemManager::Destroy();
                     exit(0);
@@ -281,6 +302,11 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
+                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
+
+                    // Needed for resetting registration states in framework
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
                     ModemResetUpdate();
@@ -302,19 +328,9 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     CSystemManager::Destroy();
                     while(1) { sleep(SLEEP_MS); }
                 }
-                else if (CTE::GetTE().GetModemOffInFlightModeState()
-                            && (RADIO_STATE_OFF == CTE::GetTE().GetRadioState()))
-                {
-                    CSystemManager::Destroy();
-
-                    //  let's exit, init will restart us
-                    RIL_LOG_INFO("ModemManagerEventHandler() -"
-                            "MODEM_DOWN due to flight mode EXIT\r\n");
-                    exit(0);
-                }
                 else
                 {
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+                    CSystemManager::GetInstance().ResetChannelInfo();
                 }
                 break;
 
@@ -328,12 +344,15 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
+                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
+
+                    // Needed for resetting registration states in framework
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+
                     // Voice calls disconnected, no more data connections
                     ModemResetUpdate();
 
                     CTE::GetTE().ResetInternalStates();
-
-                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
                 }
 
                 CSystemManager::Destroy();
@@ -356,6 +375,11 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 {
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
+
+                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
+
+                    // Needed for resetting registration states in framework
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
 
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
@@ -385,6 +409,11 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
+                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
+
+                    // Needed for resetting registration states in framework
+                    CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+
                     //  Inform Android of new state
                     //  Voice calls disconnected, no more data connections
                     ModemResetUpdate();
@@ -404,6 +433,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 //  Spoof commands from now on
                 CTE::GetTE().SetSpoofCommandsStatus(TRUE);
+                CSystemManager::GetInstance().SetInitializationUnsuccessful();
 
                 if (CTE::GetTE().GetModemOffInFlightModeState()
                         && (RADIO_STATE_OFF == CTE::GetTE().GetRadioState()))
@@ -574,7 +604,7 @@ ePCache_Code ConvertKeyToInt4(const char* szKey, UINT32* pKey)
 //
 //  Parameters:
 //  string szInput [in] : string to be encrypted
-//  int nInputLen [in] : number of characters to encrypt
+//  int nInputLen [in] : number of characters to encrypt (max value is MAX_PIN_SIZE-1)
 //  string szKey [in] : key to encrypt szInput with
 //
 //  Return values:
@@ -583,21 +613,23 @@ ePCache_Code ConvertKeyToInt4(const char* szKey, UINT32* pKey)
 ePCache_Code encrypt(const char* szInput, const int nInputLen, const char* szKey)
 {
     //  Check inputs
-    if ( (NULL == szInput) || ('\0' == szInput[0]) || (0 == nInputLen) || (NULL == szKey) )
+    if ( (NULL == szInput) || ('\0' == szInput[0]) || (0 == nInputLen)
+            || (MAX_PIN_SIZE - 1 < nInputLen) || (NULL == szKey) )
     {
         RIL_LOG_CRITICAL("encrypt() - Inputs are invalid!\r\n");
         return PIN_NOK;
     }
 
-    //RIL_LOG_INFO("encrypt() - szInput=[%s] nInputLen=[%d] szKey=[%s]\r\n", szInput, nInputLen, szKey);
-
-    const int BUF_LEN = 9;
+    //  The buffer len is the max of nInputLen (MAX_PIN_SIZE-1)
+    //  +1 to have at least 1 salt element (see below)
+    const int BUF_LEN = MAX_PIN_SIZE - 1 + 1;
     UINT32 buf[BUF_LEN] = {0};
 
     //  generate random salt
     srand((UINT32) time(NULL));
 
-    //  Front-fill the 9 int buffer with random salt (first 8 bits of int is FF so we can identify later)
+    //  Front-fill the int buffer with random salt (first bits of int is FF
+    //  so we can identify later)
     for (int i=0; i < BUF_LEN-nInputLen; i++)
     {
         int nRand = rand();
@@ -613,13 +645,6 @@ ePCache_Code encrypt(const char* szInput, const int nInputLen, const char* szKey
         buf[i+(BUF_LEN-nInputLen)] = (UINT32)szInput[i];
     }
 
-    //  Print what we have
-    //RIL_LOG_INFO("Buffer before encryption:\r\n");
-    //for (int i=0; i<BUF_LEN; i++)
-    //{
-    //    RIL_LOG_INFO("    buf[%d]=0x%08X\r\n", i, buf[i]);
-    //}
-
     // Convert the UICC to format suitable for btea
     UINT32 key[4] = {0};
     if (PIN_OK != ConvertKeyToInt4(szKey, key))
@@ -628,29 +653,21 @@ ePCache_Code encrypt(const char* szInput, const int nInputLen, const char* szKey
         return PIN_NOK;
     }
 
-    //  Actual encryption
+    //  Encrypt all buffer including the random salt
     btea(buf, BUF_LEN, key);
 
-    //RIL_LOG_INFO("after encrypt:\r\n");
-    //for (int i = 0; i < BUF_LEN; i++)
-    //{
-    //    RIL_LOG_INFO("    buf[%d]=0x%08X\r\n", i, buf[i]);
-    //}
-
     //  Now write pInput somewhere....
+    const int HEX_BUF_SIZE = 8;  // 8 chars to code our uint32 buffer in hex ASCII
     char szEncryptedBuf[MAX_PROP_VALUE] = {0};
     for (int i = 0; i < BUF_LEN; i++)
     {
-        char szPrint[9] = {0};
-        snprintf(szPrint, 9, "%08X", buf[i]);  //  9 includes terminating NULL character
-        szPrint[8] = '\0';  //  KW fix
-        //RIL_LOG_INFO("szPrint[%d]=%s\r\n", i, szPrint);
+        char szPrint[HEX_BUF_SIZE+1] = {0};    //  +1 for C-string
+        snprintf(szPrint, HEX_BUF_SIZE+1, "%08X", buf[i]);
+        szPrint[HEX_BUF_SIZE] = '\0';  //  KW fix
 
         strncat(szEncryptedBuf, szPrint, (MAX_PROP_VALUE-1) - strlen(szEncryptedBuf));
         szEncryptedBuf[MAX_PROP_VALUE-1] = '\0';  //  KW fix
     }
-
-    //RIL_LOG_INFO("szEncryptedBuf = %s\r\n", szEncryptedBuf);
 
     //  Store in property
     char szCachedPinProp[MAX_PROP_VALUE] = {0};
@@ -823,7 +840,7 @@ ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN)
     }
 
     //  Encrypt PIN, store in Android system property
-    return encrypt(szPIN, MIN(strlen(szPIN), MAX_PIN_SIZE), szUICC);
+    return encrypt(szPIN, MIN(strlen(szPIN), MAX_PIN_SIZE-1), szUICC);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
