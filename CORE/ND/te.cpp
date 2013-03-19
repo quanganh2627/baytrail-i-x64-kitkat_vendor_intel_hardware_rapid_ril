@@ -311,10 +311,10 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
             cardStatus.gsm_umts_subscription_app_index = -1;
             cardStatus.cdma_subscription_app_index = -1;
             cardStatus.ims_subscription_app_index = -1;
+            cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
 
             if (RRIL_SIM_STATE_READY == GetSIMState())
             {
-                cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
                 cardStatus.card_state = RIL_CARDSTATE_PRESENT;
                 cardStatus.num_applications = 1;
                 cardStatus.applications[0].app_state = RIL_APPSTATE_DETECTED;

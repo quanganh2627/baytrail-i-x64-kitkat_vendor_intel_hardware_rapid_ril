@@ -233,7 +233,8 @@ BOOL CCommand::AddCmdToQueue(CCommand*& rpCmd, BOOL bFront /*=false*/)
     }
     else
     {
-        RIL_LOG_CRITICAL("CCommand::AddCmdToQueue() - Command pointer was NULL\r\n");
+        RIL_LOG_CRITICAL("CCommand::AddCmdToQueue() -"
+                " Command pointer was NULL or Init Not Complete\r\n");
     }
 
     RIL_LOG_VERBOSE("CCommand::AddCmdToQueue() - Exit\r\n");
