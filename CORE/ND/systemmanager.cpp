@@ -256,6 +256,14 @@ CSystemManager::~CSystemManager()
         m_pSpoofCommandsStatusAccessMutex = NULL;
     }
 
+    if (m_pPortsManagerMutex)
+    {
+        CMutex::Unlock(m_pPortsManagerMutex);
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete m_pPortsManagerMutex\r\n");
+        delete m_pPortsManagerMutex;
+        m_pPortsManagerMutex = NULL;
+    }
+
     if (m_pTEAccessMutex)
     {
         CMutex::Unlock(m_pTEAccessMutex);
@@ -558,6 +566,23 @@ BOOL CSystemManager::InitializeSystem()
             goto Done;
         }
     }
+
+    if (m_pPortsManagerMutex)
+    {
+        RIL_LOG_WARNING("CSystemManager::InitializeSystem() - WARN: m_pPortsManagerMutex was"
+                " already created!\r\n");
+    }
+    else
+    {
+        m_pPortsManagerMutex = new CMutex();
+        if (!m_pPortsManagerMutex)
+        {
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Could not create"
+                    " m_pPortsManagerMutex.\r\n");
+            goto Done;
+        }
+    }
+
     // The modem specific TE Object is created here. This should be done before the
     // AT channels starts sending the initialization commands.
     CTE::CreateTE(uiModemType);
@@ -678,6 +703,12 @@ Done:
         {
             delete m_pDataChannelAccessorMutex;
             m_pDataChannelAccessorMutex = NULL;
+        }
+
+        if (m_pPortsManagerMutex)
+        {
+            delete m_pPortsManagerMutex;
+            m_pPortsManagerMutex = NULL;
         }
 
         if (m_pMMgrLibHandle)
@@ -818,6 +849,12 @@ Done:
         {
             delete m_pDataChannelAccessorMutex;
             m_pDataChannelAccessorMutex = NULL;
+        }
+
+        if (m_pPortsManagerMutex)
+        {
+            delete m_pPortsManagerMutex;
+            m_pPortsManagerMutex = NULL;
         }
 
         CThreadManager::Stop();
@@ -1102,6 +1139,7 @@ BOOL CSystemManager::OpenChannelPorts()
 
     BOOL bRet = FALSE;
 
+    CMutex::Lock(m_pPortsManagerMutex);
     //  Init our array of global CChannel pointers.
     for (UINT32 i = 0; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
     {
@@ -1138,10 +1176,14 @@ BOOL CSystemManager::OpenChannelPorts()
     bRet = TRUE;
 
 Done:
+    CMutex::Unlock(m_pPortsManagerMutex);
     if (!bRet)
     {
         //  We had an error.
-        CloseChannelPorts();
+        //  If we didn't open/init the port, issue critical reset
+        RIL_LOG_CRITICAL("CSystemManager::Open/Init Failed issuing critical reboot\r\n");
+        //  If we can't open the ports, tell MMGR to cleanup.
+        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
     }
 
     RIL_LOG_VERBOSE("CSystemManager::OpenChannelPorts() - Exit\r\n");
@@ -1156,6 +1198,7 @@ BOOL CSystemManager::InitChannelPorts()
 
     BOOL bRet = FALSE;
 
+    CMutex::Lock(m_pPortsManagerMutex);
     //  Init our array of global CChannel pointers.
     for (UINT32 i = 0; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
     {
@@ -1178,10 +1221,15 @@ BOOL CSystemManager::InitChannelPorts()
     bRet = TRUE;
 
 Done:
+    CMutex::Unlock(m_pPortsManagerMutex);
     if (!bRet)
     {
         //  We had an error.
-        CloseChannelPorts();
+        //  If we didn't open the port, issue critical reset
+        RIL_LOG_CRITICAL("CSystemManager::Open/Init Failed issuing critical reboot\r\n");
+        //  If we can't open the ports, tell MMGR to cleanup.
+        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
+
     }
 
     RIL_LOG_VERBOSE("CSystemManager::InitChannelPorts() - Exit\r\n");
@@ -1195,6 +1243,7 @@ BOOL CSystemManager::OpenChannelPortsOnly()
 
     BOOL bRet = FALSE;
 
+    CMutex::Lock(m_pPortsManagerMutex);
     //  Init our array of global CChannel pointers.
     for (UINT32 i = 0; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
     {
@@ -1223,10 +1272,15 @@ BOOL CSystemManager::OpenChannelPortsOnly()
     bRet = TRUE;
 
 Done:
+    CMutex::Unlock(m_pPortsManagerMutex);
     if (!bRet)
     {
         //  We had an error.
-        CloseChannelPorts();
+        //  If we didn't open the port, issue critical reset
+        RIL_LOG_CRITICAL("CSystemManager::Open/Init Failed issuing critical reboot\r\n");
+        //  If we can't open the ports, tell MMGR to cleanup.
+        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
+
     }
 
     RIL_LOG_VERBOSE("CSystemManager::OpenChannelPortsOnly() - Exit\r\n");
@@ -1239,6 +1293,8 @@ void CSystemManager::CloseChannelPorts()
 {
     RIL_LOG_VERBOSE("CSystemManager::CloseChannelPorts() - Enter\r\n");
 
+    CMutex::Lock(m_pPortsManagerMutex);
+
     for (UINT32 i = 0; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
     {
         if (g_pRilChannel[i])
@@ -1246,7 +1302,7 @@ void CSystemManager::CloseChannelPorts()
             g_pRilChannel[i]->ClosePort();
         }
     }
-
+    CMutex::Unlock(m_pPortsManagerMutex);
 
     RIL_LOG_VERBOSE("CSystemManager::CloseChannelPorts() - Exit\r\n");
 }
