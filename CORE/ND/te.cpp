@@ -3251,8 +3251,6 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void* pData, 
     }
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
-    // send rilToken to CoreDeactivateDataCall in order to call RIL_onRequestComplete
-    reqData.pContextData = &rilToken;
     res = m_pTEBaseInstance->CoreDeactivateDataCall(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {

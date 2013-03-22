@@ -2073,12 +2073,6 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
             RIL_LOG_CRITICAL("CTE_XMM6260::CoreDeactivateDataCall() - pszReason was NULL\r\n");
             goto Error;
         }
-        if (strlen(pszReason) == 1 && pszReason[0] == '1') // contains "1"
-        {
-            res = RRIL_RESULT_OK;
-            RIL_onRequestComplete(*(RIL_Token*)rReqData.pContextData, RIL_E_SUCCESS, NULL, 0);
-            goto Error;
-        }
         RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() - pszReason=[%s]\r\n", pszReason);
     }
 
