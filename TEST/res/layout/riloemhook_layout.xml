@@ -34,6 +34,10 @@
 
             <RadioButton android:id="@+id/radio_api11" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/radio_api11"/>
 
+            <RadioButton android:id="@+id/radio_api12" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/radio_api11"/>
+
+            <RadioButton android:id="@+id/radio_api13" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/radio_api11"/>
+
       </RadioGroup>
 
 
