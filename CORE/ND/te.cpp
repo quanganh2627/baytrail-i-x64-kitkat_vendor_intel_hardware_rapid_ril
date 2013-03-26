@@ -178,8 +178,6 @@ BOOL CTE::IsRequestSupported(int requestId)
 
 BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
 {
-    RIL_LOG_INFO("CTE::IsRequestAllowedInSpoofState - requestId=%d", requestId);
-
     BOOL bAllowed;
 
     switch (requestId)
@@ -206,8 +204,6 @@ BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
 
 BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
 {
-    RIL_LOG_INFO("CTE::IsRequestAllowedInRadioOff - requestId=%d", requestId);
-
     BOOL bAllowed;
 
     switch (requestId)
@@ -312,31 +308,9 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
             cardStatus.gsm_umts_subscription_app_index = -1;
             cardStatus.cdma_subscription_app_index = -1;
             cardStatus.ims_subscription_app_index = -1;
+            cardStatus.card_state = RIL_CARDSTATE_ERROR;
+            cardStatus.num_applications = 0;
             cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
-
-            if (RRIL_SIM_STATE_READY == GetSIMState())
-            {
-                cardStatus.card_state = RIL_CARDSTATE_PRESENT;
-                cardStatus.num_applications = 1;
-                cardStatus.applications[0].app_state = RIL_APPSTATE_DETECTED;
-                cardStatus.applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-                cardStatus.applications[0].aid_ptr = NULL;
-                cardStatus.applications[0].app_label_ptr = NULL;
-                cardStatus.applications[0].pin1_replaced = 0;
-                cardStatus.applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
-                cardStatus.applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
-#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
-                cardStatus.applications[0].pin1_num_retries = -1;
-                cardStatus.applications[0].puk1_num_retries = -1;
-                cardStatus.applications[0].pin2_num_retries = -1;
-                cardStatus.applications[0].puk2_num_retries = -1;
-#endif // M2_PIN_RETRIES_FEATURE_ENABLED
-            }
-            else
-            {
-                cardStatus.card_state = RIL_CARDSTATE_ABSENT;
-                cardStatus.num_applications = 0;
-            }
 
             RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &cardStatus,
                     sizeof(RIL_CardStatus_v6));
@@ -2234,6 +2208,8 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         }
         else
         {
+            m_bRadioRequestPending = TRUE;
+
             if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent()
                     || !CSystemManager::GetInstance().IsInitializationSuccessful())
             {
@@ -2246,8 +2222,6 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
 
                 RIL_LOG_INFO("CTE::RequestRadioPower() : Waiting for "
                         "modem initialization completion event\r\n");
-
-                m_bRadioRequestPending = TRUE;
 
                 CEvent::Reset(CSystemManager::GetModemBasicInitCompleteEvent());
 
@@ -2300,8 +2274,6 @@ Error:
     {
         int mode = RIL_RESTRICTED_STATE_NONE;
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESTRICTED_STATE_CHANGED, &mode, sizeof(int));
-
-        m_bRadioRequestPending = TRUE;
     }
     else
     {
