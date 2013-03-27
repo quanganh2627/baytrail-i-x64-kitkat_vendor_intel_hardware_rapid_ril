@@ -231,6 +231,8 @@ public:
 
     virtual BOOL DataConfigDown(UINT32 uiCID);
 
+    virtual RIL_RESULT_CODE HandleScreenStateReq(int screenState);
+
 private:
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
                                                     const char** pszRequest,

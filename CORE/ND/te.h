@@ -1097,6 +1097,9 @@ private:
 
     UINT32 m_uiDtmfState;
     CMutex* m_pDtmfStateAccess;
+
+    // SCREEN_STATE_UNKNOWN(-1), SCREEN_STATE_OFF(0), SCREEN_STATE_ON(1)
+    int m_ScreenState;
 };
 
 #endif

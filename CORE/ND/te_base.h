@@ -791,6 +791,12 @@ public:
 
     virtual RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
 
+    /*
+     * AT commands which will disable detailed registration status reporting,
+     * signal strength, fast dormancy etc are added to the command queue.
+     */
+    virtual RIL_RESULT_CODE HandleScreenStateReq(int screenState);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
 

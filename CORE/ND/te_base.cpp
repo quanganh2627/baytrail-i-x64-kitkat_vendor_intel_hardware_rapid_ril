@@ -5807,99 +5807,7 @@ RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreScreenState() - Enter\r\n");
 
-    // TODO : Mark flags for unsol updates for LAC, CID, CSQ to not send updates
-    //        when screen is off. Resume updates when screen turns back on.
-    //        will probably need to trigger immediate updates on resume to have correct
-    //        info on screen. For now, just return OK and keep throwing updates.
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int nEnable = 0;
-    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
-    CRepository  repository;
-
-    // Data for fast dormancy
-    static char szFDDelayTimer[MAX_BUFFER_SIZE] = {0};
-    static char szSCRITimer[MAX_BUFFER_SIZE] = {0};
-    static BOOL FDParamReady = FALSE;
-
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Data pointer is NULL.\r\n");
-        goto Error;
-    }
-
-    nEnable = ((int *)pData)[0];
-
-    //  Store setting in context.
-    rReqData.pContextData = (void*)nEnable;
-
-    if (1 == nEnable)
-    {
-        if (!CopyStringNullTerminate(rReqData.szCmd1,
-                                            "AT+CREG=2;+CGREG=0;+XREG=2;+XCSQ=1\r",
-                                            sizeof(rReqData.szCmd1)))
-        {
-            RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
-            goto Error;
-        }
-    }
-    else // SCREEN OFF
-    {
-        if (CTE::GetTE().IsLocationUpdatesEnabled())
-        {
-            if (!CopyStringNullTerminate(rReqData.szCmd1,
-                                                "AT+CGREG=1;+XREG=0;+XCSQ=0\r",
-                                                sizeof(rReqData.szCmd1)))
-            {
-                RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
-                goto Error;
-            }
-        }
-        else
-        {
-            if (!CopyStringNullTerminate(rReqData.szCmd1,
-                                                "AT+CREG=1;+CGREG=1;+XREG=0;+XCSQ=0\r",
-                                                sizeof(rReqData.szCmd1)))
-            {
-                RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create command\r\n");
-                goto Error;
-            }
-        }
-    }
-
-    // Read the "conformance" property and disable FD if it is set to "true"
-    property_get("persist.conformance", szConformanceProperty, NULL);
-
-    // if Modem Fast Dormancy mode is "Display Driven"
-    if (E_FD_MODE_DISPLAY_DRIVEN == m_cte.GetFastDormancyMode() &&
-        strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
-    {
-        // disable MAFD when "Screen On", enable MAFD when "Screen Off"
-        //      XFDOR=2: switch ON MAFD
-        //      XFDOR=3: switch OFF MAFD
-        // Read Fast Dormancy Timers from repository if screen is off
-        if (0 == nEnable && FDParamReady == FALSE)
-        {
-            repository.ReadFDParam(g_szGroupModem, g_szFDDelayTimer, szFDDelayTimer,
-                                MAX_BUFFER_SIZE, MIN_FDDELAY_TIMER, MAX_FDDELAY_TIMER);
-            repository.ReadFDParam(g_szGroupModem, g_szSCRITimer, szSCRITimer,
-                                MAX_BUFFER_SIZE, MIN_SCRI_TIMER, MAX_SCRI_TIMER);
-            FDParamReady = TRUE;
-        }
-
-        if (!PrintStringNullTerminate(rReqData.szCmd2, sizeof(rReqData.szCmd2), (1 == nEnable) ?
-                                "AT+XFDOR=3\r" :
-                                "AT+XFDOR=2,%s,%s\r", szFDDelayTimer, szSCRITimer))
-        {
-            RIL_LOG_CRITICAL("CTEBase::CoreScreenState() - Cannot create XFDOR command\r\n");
-            goto Error;
-        }
-    }
-
-    res = RRIL_RESULT_OK;
-
-Error:
-    RIL_LOG_VERBOSE("CTEBase::CoreScreenState() - Exit\r\n");
-    return res;
+    return HandleScreenStateReq(((int*)pData)[0]);
 }
 
 RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA& rRspData)
@@ -9840,4 +9748,10 @@ RIL_RadioTechnology CTEBase::MapAccessTechnology(UINT32 uiStdAct)
     }
     RIL_LOG_VERBOSE("CTEBase::MapAccessTechnology() EXIT  rtAct=[%u]\r\n", (UINT32)rtAct);
     return rtAct;
+}
+
+RIL_RESULT_CODE CTEBase::HandleScreenStateReq(int screenState)
+{
+    // should be derived in modem specific class
+    return RRIL_RESULT_OK;
 }
