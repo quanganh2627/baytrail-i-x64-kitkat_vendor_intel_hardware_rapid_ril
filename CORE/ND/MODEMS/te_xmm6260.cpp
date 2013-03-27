@@ -5949,3 +5949,118 @@ Error:
     return bRet;
 }
 
+RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleScreenStateReq() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    REQUEST_DATA reqData;
+    CCommand* pCmd = NULL;
+    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    CRepository repository;
+
+    // Data for fast dormancy
+    static char s_szFDDelayTimer[MAX_FDTIMER_SIZE] = {'\0'};
+    static char s_szSCRITimer[MAX_FDTIMER_SIZE] = {'\0'};
+    static BOOL s_bFDParamReady = FALSE;
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    //  Store setting in context.
+    reqData.pContextData = (void*)screenState;
+
+    switch (screenState)
+    {
+        case SCREEN_STATE_ON:
+            if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CREG=2;+CGREG=0;+XREG=2;+XCSQ=1\r",
+                    sizeof(reqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6260::HandleScreenStateReq() - Cannot create command\r\n");
+                goto Error;
+            }
+            break;
+
+        case SCREEN_STATE_OFF:
+            if (m_cte.IsLocationUpdatesEnabled())
+            {
+                if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CGREG=1;+XREG=0;+XCSQ=0\r",
+                        sizeof(reqData.szCmd1)))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6260::HandleScreenStateReq() - "
+                            "Cannot create command\r\n");
+                    goto Error;
+                }
+            }
+            else
+            {
+                if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CREG=1;+CGREG=1;+XREG=0;+XCSQ=0\r",
+                        sizeof(reqData.szCmd1)))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6260::HandleScreenStateReq() - "
+                            "Cannot create command\r\n");
+                    goto Error;
+                }
+            }
+            break;
+
+        default:
+            goto Error;
+    }
+
+    // Read the "conformance" property and disable FD if it is set to "true"
+    property_get("persist.conformance", szConformanceProperty, NULL);
+
+    // if Modem Fast Dormancy mode is "Display Driven"
+    if (E_FD_MODE_DISPLAY_DRIVEN == m_cte.GetFastDormancyMode()
+            && strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
+    {
+        // disable MAFD when "Screen On", enable MAFD when "Screen Off"
+        //      XFDOR=2: switch ON MAFD
+        //      XFDOR=3: switch OFF MAFD
+        // Read Fast Dormancy Timers from repository if screen is off
+        if (SCREEN_STATE_OFF == screenState && s_bFDParamReady == FALSE)
+        {
+            repository.ReadFDParam(g_szGroupModem, g_szFDDelayTimer, s_szFDDelayTimer,
+                    MAX_FDTIMER_SIZE, MIN_FDDELAY_TIMER, MAX_FDDELAY_TIMER);
+            repository.ReadFDParam(g_szGroupModem, g_szSCRITimer, s_szSCRITimer,
+                    MAX_FDTIMER_SIZE, MIN_SCRI_TIMER, MAX_SCRI_TIMER);
+            s_bFDParamReady = TRUE;
+        }
+
+        if (!PrintStringNullTerminate(reqData.szCmd2, sizeof(reqData.szCmd2),
+                (SCREEN_STATE_ON == screenState) ? "AT+XFDOR=3\r" : "AT+XFDOR=2,%s,%s\r",
+                s_szFDDelayTimer, s_szSCRITimer))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::HandleScreenStateReq() - "
+                    "Cannot create XFDOR command\r\n");
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+
+    pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SCREENSTATE],
+            NULL, ND_REQ_ID_SCREENSTATE, reqData, &CTE::ParseScreenState);
+
+    if (pCmd)
+    {
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::HandleScreenStateReq() - "
+                    "Unable to add command to queue\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::HandleScreenStateReq() -"
+                " Unable to allocate memory for command\r\n");
+        res = RIL_E_GENERIC_FAILURE;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleScreenStateReq() - Exit\r\n");
+    return res;
+}
