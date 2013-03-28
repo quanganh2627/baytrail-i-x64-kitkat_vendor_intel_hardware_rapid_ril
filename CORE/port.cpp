@@ -266,11 +266,9 @@ BOOL CPort::OpenPort(const char* pszFileName)
     {
         m_fIsPortOpen = TRUE;
     }
-
-    //  If we didn't open the port, issue critical reset
-    if (!fRet)
+    else
     {
-        RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT \r\n");
+        RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT\r\n");
     }
 
     RIL_LOG_VERBOSE("CPort::OpenPort() - Exit\r\n");

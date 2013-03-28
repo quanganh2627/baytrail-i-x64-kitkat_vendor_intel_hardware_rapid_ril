@@ -133,8 +133,6 @@ private:
     // Framework Init Functions
     BOOL CreateQueues();
     void DeleteQueues();
-    //  Note that OpenChannelPorts() = InitChannelPorts() + OpenChannelPortsOnly()
-    BOOL OpenChannelPorts();
     void DeleteChannels();
     CChannel* CreateChannel(UINT32 uiIndex);
 
