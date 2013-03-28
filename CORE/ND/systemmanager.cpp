@@ -814,75 +814,7 @@ Done:
     if (!bRetVal)
     {
         m_bIsSystemInitialized = FALSE;
-
-        if (m_pModemBasicInitCompleteEvent)
-        {
-            delete m_pModemBasicInitCompleteEvent;
-            m_pModemBasicInitCompleteEvent = NULL;
-        }
-
-        if (m_pSimUnlockedEvent)
-        {
-            delete m_pSimUnlockedEvent;
-            m_pSimUnlockedEvent = NULL;
-        }
-
-        if (m_pModemPowerOnEvent)
-        {
-            delete m_pModemPowerOnEvent;
-            m_pModemPowerOnEvent = NULL;
-        }
-
-        if (m_pInitStringCompleteEvent)
-        {
-            delete m_pInitStringCompleteEvent;
-            m_pInitStringCompleteEvent = NULL;
-        }
-
-        if (m_pSysInitCompleteEvent)
-        {
-            delete m_pSysInitCompleteEvent;
-            m_pSysInitCompleteEvent = NULL;
-        }
-
-        if (m_pDataChannelAccessorMutex)
-        {
-            delete m_pDataChannelAccessorMutex;
-            m_pDataChannelAccessorMutex = NULL;
-        }
-
-        if (m_pPortsManagerMutex)
-        {
-            delete m_pPortsManagerMutex;
-            m_pPortsManagerMutex = NULL;
-        }
-
-        CThreadManager::Stop();
-
-        if (m_pMMgrLibHandle)
-        {
-            mmgr_cli_disconnect(m_pMMgrLibHandle);
-            mmgr_cli_delete_handle(m_pMMgrLibHandle);
-            m_pMMgrLibHandle = NULL;
-        }
-
-        CTE::GetTE().DeleteTEObject();
-
-        if (m_pExitRilEvent)
-        {
-            if (CEvent::Signal(m_pExitRilEvent))
-            {
-                RIL_LOG_INFO("CSystemManager::ContinueInit() : INFO : Signaled m_pExitRilEvent as"
-                        " we are failing out, sleeping for 1 second\r\n");
-                Sleep(1000);
-                RIL_LOG_INFO("CSystemManager::ContinueInit() : INFO : Sleep complete\r\n");
-            }
-
-            delete m_pExitRilEvent;
-            m_pExitRilEvent = NULL;
-        }
     }
-
 
     CMutex::Unlock(m_pSystemManagerMutex);
 
@@ -1132,65 +1064,6 @@ CChannel* CSystemManager::CreateChannel(UINT32 eIndex)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-//  Note that OpenChannelPorts() = InitChannelPorts() + OpenChannelPortsOnly()
-BOOL CSystemManager::OpenChannelPorts()
-{
-    RIL_LOG_VERBOSE("CSystemManager::OpenChannelPorts() - Enter\r\n");
-
-    BOOL bRet = FALSE;
-
-    CMutex::Lock(m_pPortsManagerMutex);
-    //  Init our array of global CChannel pointers.
-    for (UINT32 i = 0; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
-    {
-        if (i == RIL_CHANNEL_RESERVED)
-            continue;
-
-        if (IsChannelUndefined(i))
-            continue;
-
-        g_pRilChannel[i] = CreateChannel(i);
-        if (!g_pRilChannel[i] || !g_pRilChannel[i]->InitChannel())
-        {
-            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPorts() : Channel[%d] (0x%X)"
-                    " Init failed\r\n", i, (UINT32)g_pRilChannel[i]);
-            goto Done;
-        }
-
-        if (!g_pRilChannel[i]->OpenPort())
-        {
-            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPorts() : Channel[%d] OpenPort()"
-                    " failed\r\n", i);
-            goto Done;
-        }
-
-        if (!g_pRilChannel[i]->InitPort())
-        {
-            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPorts() : Channel[%d] InitPort()"
-                    " failed\r\n", i);
-            goto Done;
-        }
-    }
-
-    //  We made it this far, return TRUE.
-    bRet = TRUE;
-
-Done:
-    CMutex::Unlock(m_pPortsManagerMutex);
-    if (!bRet)
-    {
-        //  We had an error.
-        //  If we didn't open/init the port, issue critical reset
-        RIL_LOG_CRITICAL("CSystemManager::Open/Init Failed issuing critical reboot\r\n");
-        //  If we can't open the ports, tell MMGR to cleanup.
-        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
-    }
-
-    RIL_LOG_VERBOSE("CSystemManager::OpenChannelPorts() - Exit\r\n");
-    return bRet;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 //  Create and initialize the channels, but don't actually open the ports.
 BOOL CSystemManager::InitChannelPorts()
 {
@@ -1225,11 +1098,7 @@ Done:
     if (!bRet)
     {
         //  We had an error.
-        //  If we didn't open the port, issue critical reset
-        RIL_LOG_CRITICAL("CSystemManager::Open/Init Failed issuing critical reboot\r\n");
-        //  If we can't open the ports, tell MMGR to cleanup.
-        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
-
+        DeleteChannels();
     }
 
     RIL_LOG_VERBOSE("CSystemManager::InitChannelPorts() - Exit\r\n");
@@ -1273,15 +1142,6 @@ BOOL CSystemManager::OpenChannelPortsOnly()
 
 Done:
     CMutex::Unlock(m_pPortsManagerMutex);
-    if (!bRet)
-    {
-        //  We had an error.
-        //  If we didn't open the port, issue critical reset
-        RIL_LOG_CRITICAL("CSystemManager::Open/Init Failed issuing critical reboot\r\n");
-        //  If we can't open the ports, tell MMGR to cleanup.
-        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
-
-    }
 
     RIL_LOG_VERBOSE("CSystemManager::OpenChannelPortsOnly() - Exit\r\n");
     return bRet;

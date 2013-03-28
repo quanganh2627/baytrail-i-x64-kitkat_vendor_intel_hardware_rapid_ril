@@ -184,17 +184,6 @@ BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
     switch (requestId)
     {
         case RIL_REQUEST_RADIO_POWER:
-            if (E_MMGR_EVENT_MODEM_UP == m_uiLastModemEvent
-                    || E_MMGR_EVENT_MODEM_DOWN == m_uiLastModemEvent
-                    || E_MMGR_NOTIFY_MODEM_SHUTDOWN == m_uiLastModemEvent)
-            {
-                bAllowed = TRUE;
-            }
-            else
-            {
-                bAllowed = FALSE;
-            }
-        case RIL_REQUEST_SCREEN_STATE:
             bAllowed = TRUE;
             break;
 
