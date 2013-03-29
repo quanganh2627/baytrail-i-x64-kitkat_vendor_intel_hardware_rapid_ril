@@ -522,6 +522,14 @@ BOOL CTE_XMM6360::DataConfigDown(UINT32 uiCID)
         memset(&ifr, 0, sizeof(struct ifreq));
         strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
         ifr.ifr_name[IFNAMSIZ-1] = '\0';
+
+        // set ipv4 address to 0.0.0.0 to unset ipv4 address,
+        // ipv6 addresses are automatically cleared
+        if (!setaddr(s, &ifr, "0.0.0.0"))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() : Error removing addr\r\n");
+        }
+
         if (!setflags(s, &ifr, 0, IFF_UP))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() : Error setting flags\r\n");
