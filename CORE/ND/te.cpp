@@ -7441,6 +7441,7 @@ void CTE::ResetInternalStates()
     m_bIsManualNetworkSearchOn = FALSE;
     m_bIsClearPendingCHLD = FALSE;
     m_bIsDataSuspended = FALSE;
+    m_bRadioRequestPending = FALSE;
 }
 
 BOOL CTE::IsSetupDataCallAllowed(int& retryTime)
@@ -8172,8 +8173,6 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
      * radio state(on/off).
      */
     CleanupAllDataConnections();
-
-    m_bRadioRequestPending = FALSE;
 
     //  Extract power setting from context
     int radioPower = (int)rData.pContextData;
