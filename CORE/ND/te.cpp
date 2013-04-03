@@ -1404,8 +1404,8 @@ RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void* pData, size_t datalen
     }
     else
     {
-        CCommand* pCmd = new CCommand(RIL_CHANNEL_ATCMD, rilToken, ND_REQ_ID_DIAL, reqData,
-                                    &CTE::ParseDial, &CTE::PostDialCmdHandler);
+        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DIAL], rilToken,
+                ND_REQ_ID_DIAL, reqData, &CTE::ParseDial, &CTE::PostDialCmdHandler);
 
         if (pCmd)
         {
