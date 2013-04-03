@@ -68,7 +68,8 @@ CTE::CTE(UINT32 modemType) :
     m_uiTimeoutWaitForInit(TIMEOUT_WAITFORINIT),
     m_uiTimeoutThresholdForRetry(TIMEOUT_THRESHOLDFORRETRY),
     m_uiDtmfState(E_DTMF_STATE_STOP),
-    m_ScreenState(SCREEN_STATE_UNKNOWN)
+    m_ScreenState(SCREEN_STATE_UNKNOWN),
+    m_pPrefNetTypeReqInfo(NULL)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -89,6 +90,12 @@ CTE::~CTE()
 {
     delete m_pTEBaseInstance;
     m_pTEBaseInstance = NULL;
+
+    if (m_pPrefNetTypeReqInfo)
+    {
+        free(m_pPrefNetTypeReqInfo);
+        m_pPrefNetTypeReqInfo = NULL;
+    }
 
     if (m_pDtmfStateAccess)
     {
@@ -267,7 +274,8 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
     return bAllowed;
 }
 
-RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
+RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken, void* pData,
+        size_t datalen)
 {
     RIL_LOG_INFO("CTE::HandleRequestWhenNoModem - REQID=%d, token=0x%08x\r\n",
             requestId, (int) hRilToken);
@@ -303,6 +311,38 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
 
             RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &cardStatus,
                     sizeof(RIL_CardStatus_v6));
+            break;
+
+        case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
+            eRetVal = RIL_E_GENERIC_FAILURE;
+
+            // Delay sending command if radio is off or modem not up
+            if ((RADIO_STATE_OFF == GetRadioState()
+                    || E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
+                    && NULL == m_pPrefNetTypeReqInfo)
+            {
+                if (NULL != pData
+                        && sizeof(RIL_PreferredNetworkType*) == datalen)
+                {
+                    RIL_LOG_INFO("CTE::HandleRequestWhenNoModem - Waiting for radioPower On "
+                            "before setting preferred network type...\r\n");
+
+                    RIL_PreferredNetworkType prefType = ((RIL_PreferredNetworkType*)pData)[0];
+
+                    m_pPrefNetTypeReqInfo = (PREF_NET_TYPE_REQ_INFO*)malloc(
+                                                        sizeof(PREF_NET_TYPE_REQ_INFO));
+                    if (m_pPrefNetTypeReqInfo)
+                    {
+                        // Save request info
+                        memset(m_pPrefNetTypeReqInfo, 0, sizeof(PREF_NET_TYPE_REQ_INFO));
+                        m_pPrefNetTypeReqInfo->token = hRilToken;
+                        m_pPrefNetTypeReqInfo->type = prefType;
+                        m_pPrefNetTypeReqInfo->datalen = datalen;
+
+                        eRetVal = RIL_E_SUCCESS;
+                    }
+                }
+            }
             break;
 
         default:
@@ -363,7 +403,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     //  If we're in the middle of Radio error or radio off request handling, spoof all commands.
     if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(requestId))
     {
-        eRetVal = HandleRequestWhenNoModem(requestId, hRilToken);
+        eRetVal = HandleRequestWhenNoModem(requestId, hRilToken, pData, datalen);
     }
     else if ((m_bRadioRequestPending || RADIO_STATE_OFF == GetRadioState())
             && !IsRequestAllowedInRadioOff(requestId))
@@ -8167,6 +8207,25 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
         if (SCREEN_STATE_UNKNOWN != m_ScreenState)
         {
             m_pTEBaseInstance->HandleScreenStateReq(m_ScreenState);
+        }
+         // Send request to SetPreferredNetworkType if previously received before radio power on
+        if (NULL != m_pPrefNetTypeReqInfo)
+        {
+            RIL_LOG_INFO("CTE::PostRadioPower() - RadioPower On, Calling "
+                    "RequestSetPreferredNetworkType()...\r\n");
+
+            RIL_RESULT_CODE res = RequestSetPreferredNetworkType(
+                                            m_pPrefNetTypeReqInfo->token,
+                                            &m_pPrefNetTypeReqInfo->type,
+                                            m_pPrefNetTypeReqInfo->datalen);
+            if (RRIL_RESULT_OK != res)
+            {
+                RIL_LOG_CRITICAL("CTE::PostRadioPower() - "
+                        "RequestSetPreferredNetworkType failed!\r\n");
+            }
+
+            free(m_pPrefNetTypeReqInfo);
+            m_pPrefNetTypeReqInfo = NULL;
         }
 
         //  Turning on phone

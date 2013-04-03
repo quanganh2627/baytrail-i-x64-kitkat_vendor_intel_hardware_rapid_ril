@@ -349,11 +349,11 @@ BOOL CSystemManager::InitializeSystem()
         else
         {
             m_dataProfilePathAssignation[0] = apnType;
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() - ApnTypeThetered: %d...\r\n",
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() - ApnTypeDUN: %d...\r\n",
                     apnType);
         }
 
-        if (!repository.Read(g_szGroupModem, g_szApnTypeThetered, apnType))
+        if (!repository.Read(g_szGroupModem, g_szApnTypeDUN, apnType))
         {
             RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type"
                     " Tethered from repository\r\n");

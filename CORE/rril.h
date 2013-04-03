@@ -138,6 +138,14 @@ typedef struct
     char szGateways[MAX_IPADDR_SIZE];
 } S_DATA_CALL_INFO;
 
+// Pref network type request information cache.
+typedef struct
+{
+    RIL_Token token;
+    RIL_PreferredNetworkType type;
+    size_t datalen;
+} PREF_NET_TYPE_REQ_INFO;
+
 ///////////////////////////////////////////////////////////////////////////////
 // DTMF states
 //

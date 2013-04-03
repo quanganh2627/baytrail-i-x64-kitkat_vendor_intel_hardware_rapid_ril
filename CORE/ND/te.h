@@ -84,7 +84,8 @@ public:
 
     BOOL IsRequestSupported(int requestId);
     void HandleRequest(int requestID, void* pData, size_t datalen, RIL_Token hRilToken);
-    RIL_Errno HandleRequestWhenNoModem(int requestID, RIL_Token hRilToken);
+    RIL_Errno HandleRequestWhenNoModem(int requestID, RIL_Token hRilToken,
+            void* pData = NULL, size_t datalen = 0);
     RIL_Errno HandleRequestInRadioOff(int requestID, RIL_Token hRilToken);
 
     BOOL IsRequestAllowedInSpoofState(int requestId);
@@ -1116,6 +1117,7 @@ private:
 
     // SCREEN_STATE_UNKNOWN(-1), SCREEN_STATE_OFF(0), SCREEN_STATE_ON(1)
     int m_ScreenState;
+    PREF_NET_TYPE_REQ_INFO* m_pPrefNetTypeReqInfo;
 };
 
 #endif
