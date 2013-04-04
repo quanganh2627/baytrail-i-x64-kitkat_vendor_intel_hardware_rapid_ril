@@ -788,8 +788,6 @@ public:
     virtual RIL_RESULT_CODE ParseQueryIpAndDns(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseEnterDataState(RESPONSE_DATA& rRspData);
 
-    virtual RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
-
     virtual void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
     virtual UINT32 GetIncomingCallId();
 
@@ -867,7 +865,6 @@ protected:
 
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA& rRspData);
-    void DeactivateAllDataCalls();
 
     typedef struct
     {

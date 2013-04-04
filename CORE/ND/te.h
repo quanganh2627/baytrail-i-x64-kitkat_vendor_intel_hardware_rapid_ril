@@ -608,8 +608,6 @@ public:
     RIL_RESULT_CODE ParseQueryIpAndDns(RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseEnterDataState(RESPONSE_DATA& rRspData);
 
-    RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
-
     RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
 
     void StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
