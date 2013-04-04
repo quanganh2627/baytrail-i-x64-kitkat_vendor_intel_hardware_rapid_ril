@@ -4862,13 +4862,8 @@ RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA& rReqData,
      * get interrupted by CS/PS signalling from network. In order to get the response in
      * an acceptable time for manual network search, data has to be disabled
      * before starting the manual network search.
-     *
-     * Since the deactivate data call request should be sent before AT+COPS=?,
-     * DeactivateAllDataCalls is issued from here.
      */
-    DeactivateAllDataCalls();
-
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS=?\r"))
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGATT=0;+COPS=?;+CGATT=1\r"))
     {
         res = RRIL_RESULT_OK;
     }
@@ -9008,54 +9003,6 @@ RIL_RESULT_CODE CTEBase::ParseQuerySimSmsStoreStatus(RESPONSE_DATA& rRspData)
 Error:
     RIL_LOG_VERBOSE("CTEBase::ParseQuerySimSmsStoreStatus - Exit()\r\n");
     return res;
-}
-
-void CTEBase::DeactivateAllDataCalls()
-{
-    RIL_LOG_VERBOSE("CTEBase::DeactivateAllDataCalls - Enter()\r\n");
-
-    REQUEST_DATA reqData;
-
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
-    if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CGACT=0\r", sizeof(reqData.szCmd1)))
-    {
-        RIL_LOG_CRITICAL("CTEBase::DeactivateAllDataCalls() -"
-                " Unable to create CGACT=0 command!\r\n");
-        return;
-    }
-
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL], NULL,
-                                   ND_REQ_ID_DEACTIVATEDATACALL, reqData,
-                                   &CTE::ParseDeactivateAllDataCalls);
-
-    if (pCmd)
-    {
-        pCmd->SetHighPriority();
-        if (!CCommand::AddCmdToQueue(pCmd))
-        {
-            RIL_LOG_CRITICAL("CTEBase::DeactivateAllDataCalls() - Unable to queue command!\r\n");
-            delete pCmd;
-            pCmd = NULL;
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CTEBase::DeactivateAllDataCalls() -"
-                " Unable to allocate memory for new command!\r\n");
-    }
-
-    RIL_LOG_VERBOSE("CTEBase::DeactivateAllDataCalls - Exit()\r\n");
-}
-
-RIL_RESULT_CODE CTEBase::ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTEBase::ParseDeactivateAllDataCalls() - Enter\r\n");
-
-    CleanupAllDataConnections();
-    RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
-
-    RIL_LOG_VERBOSE("CTEBase::ParseDeactivateAllDataCalls() - Exit\r\n");
-    return RRIL_RESULT_OK;
 }
 
 RIL_RESULT_CODE CTEBase::ParsePdpContextActivate(RESPONSE_DATA& rRspData)
