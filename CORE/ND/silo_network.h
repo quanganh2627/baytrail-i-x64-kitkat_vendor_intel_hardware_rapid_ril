@@ -37,7 +37,8 @@ protected:
         {
         SILO_NETWORK_CREG,
         SILO_NETWORK_CGREG,
-        SILO_NETWORK_XREG
+        SILO_NETWORK_XREG,
+        SILO_NETWORK_CEREG
         };
 
 protected:
@@ -48,6 +49,7 @@ protected:
     virtual BOOL    ParseCREG(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseCGREG(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseXREG(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseCEREG(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseCGEV(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseXCSQ(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseXDATASTAT(CResponse* const pResponse, const char* &rszPointer);

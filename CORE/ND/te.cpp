@@ -40,6 +40,7 @@
 CTE* CTE::m_pTEInstance = NULL;
 
 CTE::CTE(UINT32 modemType) :
+    m_uiAct(0),
     m_pTEBaseInstance(NULL),
     m_uiModemType(modemType),
     m_bCSStatusCached(FALSE),
@@ -177,8 +178,6 @@ BOOL CTE::IsRequestSupported(int requestId)
 
 BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
 {
-    RIL_LOG_INFO("CTE::IsRequestAllowedInSpoofState - requestId=%d", requestId);
-
     BOOL bAllowed;
 
     switch (requestId)
@@ -205,8 +204,6 @@ BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
 
 BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
 {
-    RIL_LOG_INFO("CTE::IsRequestAllowedInRadioOff - requestId=%d", requestId);
-
     BOOL bAllowed;
 
     switch (requestId)
@@ -311,31 +308,9 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
             cardStatus.gsm_umts_subscription_app_index = -1;
             cardStatus.cdma_subscription_app_index = -1;
             cardStatus.ims_subscription_app_index = -1;
-
-            if (RRIL_SIM_STATE_READY == GetSIMState())
-            {
-                cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
-                cardStatus.card_state = RIL_CARDSTATE_PRESENT;
-                cardStatus.num_applications = 1;
-                cardStatus.applications[0].app_state = RIL_APPSTATE_DETECTED;
-                cardStatus.applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-                cardStatus.applications[0].aid_ptr = NULL;
-                cardStatus.applications[0].app_label_ptr = NULL;
-                cardStatus.applications[0].pin1_replaced = 0;
-                cardStatus.applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
-                cardStatus.applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
-#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
-                cardStatus.applications[0].pin1_num_retries = -1;
-                cardStatus.applications[0].puk1_num_retries = -1;
-                cardStatus.applications[0].pin2_num_retries = -1;
-                cardStatus.applications[0].puk2_num_retries = -1;
-#endif // M2_PIN_RETRIES_FEATURE_ENABLED
-            }
-            else
-            {
-                cardStatus.card_state = RIL_CARDSTATE_ABSENT;
-                cardStatus.num_applications = 0;
-            }
+            cardStatus.card_state = RIL_CARDSTATE_ERROR;
+            cardStatus.num_applications = 0;
+            cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
 
             RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &cardStatus,
                     sizeof(RIL_CardStatus_v6));
@@ -2233,6 +2208,8 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         }
         else
         {
+            m_bRadioRequestPending = TRUE;
+
             if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent()
                     || !CSystemManager::GetInstance().IsInitializationSuccessful())
             {
@@ -2245,8 +2222,6 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
 
                 RIL_LOG_INFO("CTE::RequestRadioPower() : Waiting for "
                         "modem initialization completion event\r\n");
-
-                m_bRadioRequestPending = TRUE;
 
                 CEvent::Reset(CSystemManager::GetModemBasicInitCompleteEvent());
 
@@ -2299,8 +2274,6 @@ Error:
     {
         int mode = RIL_RESTRICTED_STATE_NONE;
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESTRICTED_STATE_CHANGED, &mode, sizeof(int));
-
-        m_bRadioRequestPending = TRUE;
     }
     else
     {
@@ -4154,6 +4127,14 @@ Error:
 
     RIL_LOG_VERBOSE("CTE::RequestDataCallList() - Exit\r\n");
     return RRIL_RESULT_OK;
+}
+
+
+RIL_RESULT_CODE CTE::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseEstablishedPDPList() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseEstablishedPDPList(rRspData);
 }
 
 //
@@ -6727,12 +6708,13 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
                 RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract <act>.\r\n");
                 goto Error;
             }
-
             /*
              * Maps the 3GPP standard access technology values to android specific access
              * technology values.
              */
             rtAct = MapAccessTechnology(uiAct);
+            CTE::GetTE().SetUiAct(rtAct);
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - uiAct=%d\r\n",rtAct);
         }
     }
 
@@ -6803,7 +6785,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
         // Skip "<,prefix> string"
         if (!SkipString(rszPointer, "+CGREG: ", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not skip \"+CREG: \".\r\n");
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not skip \"+CGREG: \".\r\n");
             goto Error;
         }
 
@@ -7040,6 +7022,131 @@ Error:
     return bRet;
 }
 
+
+BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
+                              S_ND_GPRS_REG_STATUS& rPSRegStatusInfo)
+{
+    RIL_LOG_VERBOSE("CTE::ParseCEREG() - Enter\r\n");
+
+    UINT32 uiNum;
+    UINT32 uiStatus = 0;
+    UINT32 uiTac = 0;
+    UINT32 uiCid = 0;
+    UINT32 uiAct = 0;
+    BOOL bRet = false;
+    char szNewLine[3] = "\r\n";
+
+    if (!bUnSolicited)
+    {
+        // Skip "<prefix>"
+        if (!SkipRspStart(rszPointer, szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not skip response prefix.\r\n");
+            goto Error;
+        }
+
+        // Skip "<,prefix> string"
+        if (!SkipString(rszPointer, "+CEREG: ", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not skip \"+CEREG: \".\r\n");
+            goto Error;
+        }
+
+        // Extract <n> and throw away
+        if (!ExtractUInt32(rszPointer, uiNum, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not extract <n>.\r\n");
+            goto Error;
+        }
+
+        // Skip ","
+        if (!SkipString(rszPointer, ",", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not extract <stat>.\r\n");
+            goto Error;
+        }
+    }
+
+    // "<stat>"
+    if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not extract <stat>.\r\n");
+        goto Error;
+    }
+
+
+
+    // Do we have more to parse?
+    if (SkipString(rszPointer, ",", rszPointer))
+    {
+        //  Parse <tac>
+        SkipString(rszPointer, "\"", rszPointer);
+        if (!ExtractHexUInt32(rszPointer, uiTac, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCEREG() - Error: Parsing <tac>\r\n");
+            goto Error;
+        }
+        SkipString(rszPointer, "\"", rszPointer);
+
+        // Extract ",<cid>"
+        if (!SkipString(rszPointer, ",", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not extract \",<cid>\".\r\n");
+            goto Error;
+        }
+        SkipString(rszPointer, "\"", rszPointer);
+
+        if (!ExtractHexUInt32(rszPointer, uiCid, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract <cid>.\r\n");
+            goto Error;
+        }
+        SkipString(rszPointer, "\"", rszPointer);
+    }
+
+
+    // Do we have more to parse?
+    if (SkipString(rszPointer, ",", rszPointer))
+    {
+        //  Parse <AcT>
+        if (!ExtractUInt32(rszPointer, uiAct, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCEREG() - Error: Parsing <AcT>\r\n");
+            goto Error;
+        }
+        /*
+        * Maps the 3GPP standard access technology values to android specific access
+        * technology values.
+        */
+        uiAct = CTE::MapAccessTechnology(uiAct);
+        CTE::GetTE().SetUiAct(uiAct);
+        RIL_LOG_CRITICAL("CTE::ParseCEREG() - uiAct=%d,%p\r\n",uiAct);
+    }
+
+
+    // Skip "<postfix>"
+    if (!SkipRspEnd(rszPointer, szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not skip response postfix.\r\n");
+        goto Error;
+    }
+
+    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);
+    snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
+
+    (uiTac == 0) ? rPSRegStatusInfo.szLAC[0] = '\0' :
+                    snprintf(rPSRegStatusInfo.szLAC, REG_STATUS_LENGTH, "%x", uiTac);
+
+    (uiTac == 0) ? rPSRegStatusInfo.szCID[0] = '\0' :
+                    snprintf(rPSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", uiCid);
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CTE::ParseCEREG() - Exit\r\n");
+    return bRet;
+}
+
+
 void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
 {
     RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Enter\r\n");
@@ -7095,11 +7202,30 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         P_ND_GPRS_REG_STATUS psRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
 
         memset(psRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
-        strncpy(psRegStatus->szStat, m_sPSStatus.szStat, sizeof(psRegStatus->szStat));
-        strncpy(psRegStatus->szLAC, m_sPSStatus.szLAC, sizeof(psRegStatus->szLAC));
-        strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
-        strncpy(psRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
-                sizeof(psRegStatus->szNetworkType));
+
+        // we only report the actual registration unless the conext cache has been populated,
+        // otherwise the CM would come back with a setup data call before the context cache is ready.
+        if((atoi(m_sPSStatus.szNetworkType) == RADIO_TECH_LTE))
+        {
+            if (HasActivatedContext())
+            {
+                RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - HasActivatedContext\r\n");
+                strncpy(psRegStatus->szStat, m_sPSStatus.szStat, sizeof(psRegStatus->szStat));
+                strncpy(psRegStatus->szLAC, m_sPSStatus.szLAC, sizeof(psRegStatus->szLAC));
+                strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
+                strncpy(psRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
+                    sizeof(psRegStatus->szNetworkType));
+            }
+        }
+        else
+        {
+            RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() !LTE\r\n");
+            strncpy(psRegStatus->szStat, m_sPSStatus.szStat, sizeof(psRegStatus->szStat));
+            strncpy(psRegStatus->szLAC, m_sPSStatus.szLAC, sizeof(psRegStatus->szLAC));
+            strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
+            strncpy(psRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
+                    sizeof(psRegStatus->szNetworkType));
+        }
 
         //  Ice Cream Sandwich has new field ((const char **)response)[5] which is
         //  the maximum number of simultaneous data calls.

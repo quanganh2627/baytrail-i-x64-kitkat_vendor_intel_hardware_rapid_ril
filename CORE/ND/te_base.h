@@ -44,6 +44,10 @@ protected:
     S_PIN_RETRY_COUNT m_PinRetryCount;
     RIL_PinState m_ePin2State;
 
+    char m_szTmpIPAddress[MAX_BUFFER_SIZE];
+    char m_szTmpDNS[MAX_BUFFER_SIZE];
+    char m_szTmpGateway[MAX_BUFFER_SIZE];
+
 public:
 
     CTEBase(CTE& cte);
@@ -387,6 +391,9 @@ public:
                                                                  UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseLastDataCallFailCause(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_DATA_CALL_LIST 57
+    virtual RIL_RESULT_CODE ParseEstablishedPDPList(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_RESET_RADIO 58
     virtual RIL_RESULT_CODE CoreResetRadio(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);

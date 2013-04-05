@@ -51,7 +51,7 @@ typedef long                RIL_RESULT_CODE;
 #define MAX_PROP_VALUE             (81)
 #define MAX_PIN_SIZE               (9)
 #define MAX_FACILITY_CODE          (5)
-#define MAX_IPADDR_SIZE            (100)
+#define MAX_IPADDR_SIZE            (255)
 #define MAX_PDP_CONTEXTS           (5)
 #define MAX_INTERFACE_NAME_SIZE    (50)
 #define MAX_PDP_TYPE_SIZE          (20)

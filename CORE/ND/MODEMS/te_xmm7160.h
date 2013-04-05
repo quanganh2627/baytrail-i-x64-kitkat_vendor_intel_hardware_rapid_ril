@@ -38,8 +38,17 @@ private:
 
 public:
     // modem overrides
+    virtual char* GetBasicInitCommands(UINT32 uiChannelType);
 
-    virtual BOOL IsRequestSupported(int requestId);
+    // RIL_REQUEST_SETUP_DATA_CALL 27
+    virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
+                                                         void* pData,
+                                                         UINT32 uiDataSize,
+                                                         UINT32 uiCID);
+    virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA& rRspData);
+    virtual void PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    virtual void HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken);
 
     // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
     virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,

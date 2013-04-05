@@ -48,6 +48,7 @@ CSilo_Network::CSilo_Network(CChannel* pChannel)
         { "+CREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCREG         },
         { "+CGREG: "    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGREG        },
         { "+XREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXREG         },
+        { "+CEREG: "    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCEREG        },
         { "+CGEV: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGEV         },
         { "+XDATASTAT: ", (PFN_ATRSP_PARSE)&CSilo_Network::ParseXDATASTAT    },
         { "+CTZV: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
@@ -476,6 +477,29 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CREG paramcount=%d"
                 "  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
     }
+    else if (SILO_NETWORK_CEREG == regType)
+    {
+        //  The +CEREG case
+        //  Unsol is 1 and 4
+        if ((1 == nNumParams) || (4 == nNumParams))
+        {
+            fUnSolicited = TRUE;
+        }
+        else if ((2 == nNumParams) || (5 == nNumParams))
+        {
+            // sol is 2 and 5
+            fUnSolicited = FALSE;
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() -"
+                    " Unknown param count=%d\r\n", nNumParams);
+            fUnSolicited = TRUE;
+        }
+        RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CEREG paramcount=%d"
+                "  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
+
+    }
     else if (SILO_NETWORK_XREG == regType)
     {
         //  The +XREG case
@@ -552,6 +576,11 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
             fRet = CTE::GetTE().ParseXREG(rszPointer, fUnSolicited, psRegStatus);
             pRegStatusInfo = (void*) &psRegStatus;
         }
+        else if (SILO_NETWORK_CEREG == regType)
+        {
+            fRet = CTE::GetTE().ParseCEREG(rszPointer, fUnSolicited, psRegStatus);
+            pRegStatusInfo = (void*) &psRegStatus;
+        }
 
         if (!fRet)
             goto Error;
@@ -606,6 +635,14 @@ BOOL CSilo_Network::ParseXREG(CResponse* const pResponse, const char*& rszPointe
 
 //
 //
+BOOL CSilo_Network::ParseCEREG(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Network::ParseCEREG() - Enter / Exit\r\n");
+    return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_CEREG);
+}
+
+//
+//
 BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_INFO("CSilo_Network::ParseCGEV() - Enter\r\n");
@@ -619,6 +656,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     UINT32 uiLength = 0;
     CChannel_Data* pChannelData = NULL;
     unsigned char* pszData = NULL;
+    REQUEST_DATA rReqData;
 
     szResponse = rszPointer;
 
@@ -662,9 +700,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         }
         else
         {
-            RIL_LOG_INFO(
-                    "CSilo_Network::ParseCGEV() - ME PDN ACT , extracted cid=[%u]\r\n",
-                    uiCID);
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN ACT , extracted cid=[%u]\r\n",
+            uiCID);
         }
 
         pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
@@ -680,15 +717,13 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         {
             if (!ExtractUInt32(szStrExtract, uiReason, szStrExtract))
             {
-                RIL_LOG_CRITICAL(
-                        "CSilo_Network::ParseCGEV() - Couldn't extract reason\r\n");
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Couldn't extract reason\r\n");
                 goto Error;
             }
             else
             {
-                RIL_LOG_INFO(
-                        "CSilo_Network::ParseCGEV() - ME PDN ACT , extracted reason=[%u]\r\n",
-                        uiReason);
+                RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN ACT , extracted reason=[%u]\r\n",
+                uiReason);
                 int failCause;
                 pResponse->SetUnsolicitedFlag(TRUE);
 
@@ -712,9 +747,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                 }
                 else
                 {
-                    RIL_LOG_CRITICAL(
-                        "CSilo_Network::ParseCGEV() - reason unknown\r\n");
-
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - reason unknown\r\n");
                     failCause = PDP_FAIL_ERROR_UNSPECIFIED;
                 }
 
@@ -729,6 +762,41 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                 }
             }
         }
+
+
+
+        if (PrintStringNullTerminate(rReqData.szCmd1,sizeof(rReqData.szCmd1),"AT+CGCONTRDP=%d\r",
+                                     uiCID))
+        {
+            CCommand* pCmd = new CCommand(RIL_CHANNEL_ATCMD, NULL, ND_REQ_ID_PDPCONTEXTLIST,
+                                          rReqData, &CTE::ParseEstablishedPDPList);
+            if (pCmd)
+            {
+                if (!CCommand::AddCmdToQueue(pCmd))
+                {
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - "
+                                     "Unable to queue AT+CGCONTRDP command!\r\n");
+                    delete pCmd;
+                    goto Error;
+                }
+            }
+        }
+    }
+    //  Format is "ME DEACT, "IP", "IP_ADDR", <cid>"
+    else if (FindAndSkipString(rszPointer, "ME DEACT", szStrExtract))
+    {
+        char dummy[MAX_IPADDR_SIZE] = {0};
+        if(!ExtractQuotedString(szStrExtract, dummy, sizeof(dummy)-1, szStrExtract) || // skip "IP"
+           !FindAndSkipString(szStrExtract, ",", szStrExtract)                      ||
+           // skip "IP_ADDR"
+           !ExtractQuotedString(szStrExtract, dummy, sizeof(dummy)-1, szStrExtract) ||
+           !FindAndSkipString(szStrExtract, ",", szStrExtract)                      ||
+           !ExtractUInt32(szStrExtract, uiCID, szStrExtract))
+        {
+            goto Error;
+        }
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME DEACT, cid=[%d]\r\n", uiCID);
+        CTE::GetTE().RemoveActivatedContext(uiCID);
     }
     else if (FindAndSkipString(rszPointer, "NW CLASS", szStrExtract) ||
             FindAndSkipString(rszPointer, "ME CLASS", szStrExtract))
