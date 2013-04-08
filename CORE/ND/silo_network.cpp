@@ -762,25 +762,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                 }
             }
         }
-
-
-
-        if (PrintStringNullTerminate(rReqData.szCmd1,sizeof(rReqData.szCmd1),"AT+CGCONTRDP=%d\r",
-                                     uiCID))
-        {
-            CCommand* pCmd = new CCommand(RIL_CHANNEL_ATCMD, NULL, ND_REQ_ID_PDPCONTEXTLIST,
-                                          rReqData, &CTE::ParseEstablishedPDPList);
-            if (pCmd)
-            {
-                if (!CCommand::AddCmdToQueue(pCmd))
-                {
-                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - "
-                                     "Unable to queue AT+CGCONTRDP command!\r\n");
-                    delete pCmd;
-                    goto Error;
-                }
-            }
-        }
+        RIL_requestTimedCallback(requestEstablishedPDPList, (void*)uiCID, 0, 0);
     }
     //  Format is "ME DEACT, "IP", "IP_ADDR", <cid>"
     else if (FindAndSkipString(rszPointer, "ME DEACT", szStrExtract))
