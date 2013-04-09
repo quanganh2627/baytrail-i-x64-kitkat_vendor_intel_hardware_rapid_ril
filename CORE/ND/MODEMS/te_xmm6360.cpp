@@ -514,7 +514,8 @@ BOOL CTE_XMM6360::DataConfigDown(UINT32 uiCID)
         s = socket(AF_INET, SOCK_DGRAM, 0);
         if (s < 0)
         {
-            RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() : cannot open control socket\n");
+            RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() : cannot open control socket "
+                    "(error %d / '%s')\n", errno, strerror(errno));
             goto Error;
         }
 
@@ -533,6 +534,12 @@ BOOL CTE_XMM6360::DataConfigDown(UINT32 uiCID)
         if (!setflags(s, &ifr, 0, IFF_UP))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() : Error setting flags\r\n");
+        }
+
+        if (close(s) < 0)
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() : could not close control socket "
+                    "(error %d / '%s')\n", errno, strerror(errno));
         }
     }
     pChannelData->ResetDataCallInfo();
