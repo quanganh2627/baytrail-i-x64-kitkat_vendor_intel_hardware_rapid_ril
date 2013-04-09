@@ -36,6 +36,7 @@
 #include "callbacks.h"
 #include "reset.h"
 #include "nd_util.h"
+#include "extract.h"
 
 CTE* CTE::m_pTEInstance = NULL;
 
@@ -74,7 +75,8 @@ CTE::CTE(UINT32 modemType) :
     m_pPrefNetTypeReqInfo(NULL),
     m_RequestedRadioPower(RADIO_POWER_UNKNOWN),
     m_RadioOffReason(E_RADIO_OFF_REASON_NONE),
-    m_pRadioStateChangedEvent(NULL)
+    m_pRadioStateChangedEvent(NULL),
+    m_bCallDropReporting(FALSE)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -87,6 +89,15 @@ CTE::CTE(UINT32 modemType) :
 
     memset(&m_sCSStatus, 0, sizeof(S_ND_REG_STATUS));
     memset(&m_sPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
+
+    CopyStringNullTerminate(m_szNewLine, "\r\n", sizeof(m_szNewLine));
+
+    for (int i = 0; i < LAST_NETWORK_DATA_COUNT; i++)
+    {
+        m_szLastNetworkData[i][0] = '\0';
+    }
+    m_szLastCEER[0] = '\0';
+    m_szLastXCELLINFO[0] = '\0';
 
     m_pDtmfStateAccess = new CMutex();
 
@@ -7146,6 +7157,9 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         strncpy(m_sCSStatus.szLAC, csRegStatus->szLAC, sizeof(csRegStatus->szLAC));
         strncpy(m_sCSStatus.szCID, csRegStatus->szCID, sizeof(csRegStatus->szCID));
 
+        SaveNetworkData(LAST_NETWORK_LAC, csRegStatus->szLAC);
+        SaveNetworkData(LAST_NETWORK_CID, csRegStatus->szCID);
+
         /*
          * 20111025: framework doesn't make use of technology information
          * sent as part of RIL_REQUEST_REGISTRATION_STATE response.
@@ -8915,4 +8929,24 @@ RIL_RESULT_CODE CTE::CreateIMSConfigReq(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTE::CreateIMSConfigReq() - Enter/Exit\r\n");
     return m_pTEBaseInstance->CreateIMSConfigReq(rReqData,
                     pszRequest, nNumStrings);
+}
+void CTE::SaveCEER(const char* pszData)
+{
+    CopyStringNullTerminate(m_szLastCEER, pszData, 255);
+}
+
+void CTE::SaveNetworkData(LAST_NETWORK_DATA_ID id, const char* pszData)
+{
+    if (id >= LAST_NETWORK_DATA_COUNT)
+    {
+        return;
+    }
+
+    CopyStringNullTerminate(m_szLastNetworkData[id], pszData,
+            MAX_NETWORK_DATA_SIZE);
+}
+
+void CTE::SaveXCELLINFO(const char* pszData)
+{
+    CopyStringNullTerminate(m_szLastXCELLINFO, pszData, 512);
 }

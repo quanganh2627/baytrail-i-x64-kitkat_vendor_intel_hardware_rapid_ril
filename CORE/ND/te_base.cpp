@@ -1616,6 +1616,12 @@ RIL_RESULT_CODE CTEBase::ParseHangup(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseHangup() - Enter\r\n");
 
+    if (m_cte.GetCallDropReportingState())
+    {
+        UINT32 mobileRelease = 1;
+        triggerDropCallEvent((void*)mobileRelease);
+    }
+
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
     RIL_LOG_VERBOSE("CTEBase::ParseHangup() - Exit\r\n");
@@ -1814,6 +1820,16 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA& rRspData)
     UINT32      uiCause  = 0;
     int*      pCause   = NULL;
 
+    const char* pszEnd = NULL;
+    const char* pszStart = NULL;
+    char szBackup[255] = {0};
+
+    // Backup the +CEER response string to report data on crashtool
+    pszStart = rRspData.szResponse;
+    SkipRspStart(pszStart, m_szNewLine, pszStart);
+    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, 255, pszEnd);
+    m_cte.SaveCEER(szBackup);
+
     if (!ParseCEER(rRspData, uiCause))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseLastCallFailCause() - Parsing of CEER failed\r\n");
@@ -1857,6 +1873,12 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA& rRspData)
         default:
             *pCause = (int) CALL_FAIL_ERROR_UNSPECIFIED;
             break;
+    }
+
+    if (m_cte.GetCallDropReportingState())
+    {
+        UINT32 mobileRelease = 0;
+        triggerDropCallEvent((void*)mobileRelease);
     }
 
     rRspData.pData    = (void*) pCause;
@@ -2312,6 +2334,9 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
     pOpNames->sOpNamePtrs.pszOpNameLong    = pOpNames->szOpNameLong;
     pOpNames->sOpNamePtrs.pszOpNameShort   = pOpNames->szOpNameShort;
     pOpNames->sOpNamePtrs.pszOpNameNumeric = pOpNames->szOpNameNumeric;
+
+    m_cte.SaveNetworkData(LAST_NETWORK_OP_NAME_NUMERIC, pOpNames->szOpNameNumeric);
+    m_cte.SaveNetworkData(LAST_NETWORK_OP_NAME_SHORT, pOpNames->szOpNameShort);
 
     RIL_LOG_VERBOSE("CTEBase::ParseOperator() -"
             " Long Name: \"%s\", Short Name: \"%s\", Numeric Name: \"%s\"\r\n",

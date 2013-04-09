@@ -85,4 +85,10 @@ void triggerQueryCEER(void* param);
 // Callback to request Established PDP list
 //
 void requestEstablishedPDPList(void* param);
+
+//
+// Callback to trigger drop call data to crashtool
+//
+void triggerDropCallEvent(void* param);
+
 #endif

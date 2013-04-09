@@ -643,7 +643,17 @@ Error:
 //
 BOOL CSilo_Network::ParseCREG(CResponse* const pResponse, const char*& rszPointer)
 {
+    char szBackup[MAX_NETWORK_DATA_SIZE] = {0};
+    const char* pszStart = NULL;
+    const char* pszEnd = NULL;
+
     RIL_LOG_VERBOSE("CSilo_Network::ParseCREG() - Enter / Exit\r\n");
+
+    // Backup the CREG response string to report data on crashtool
+    pszStart = rszPointer;
+    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszEnd);
+    CTE::GetTE().SaveNetworkData(LAST_NETWORK_CREG, szBackup);
+
     return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_CREG);
 }
 
@@ -659,7 +669,17 @@ BOOL CSilo_Network::ParseCGREG(CResponse* const pResponse, const char*& rszPoint
 //
 BOOL CSilo_Network::ParseXREG(CResponse* const pResponse, const char*& rszPointer)
 {
+    char szBackup[MAX_NETWORK_DATA_SIZE] = {0};
+    const char* pszStart = NULL;
+    const char* pszEnd = NULL;
+
     RIL_LOG_VERBOSE("CSilo_Network::ParseXREG() - Enter / Exit\r\n");
+
+    // Backup the XREG response string to report data on crashtool
+    pszStart = rszPointer;
+    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszEnd);
+    CTE::GetTE().SaveNetworkData(LAST_NETWORK_XREG, szBackup);
+
     return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_XREG);
 }
 
@@ -1137,7 +1157,9 @@ BOOL CSilo_Network::ParseXCSQ(CResponse* const pResponse, const char*& rszPointe
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCSQ() - Enter\r\n");
 
     BOOL bRet = FALSE;
-    const char* szDummy;
+    const char* pszDummy = NULL;
+    const char* pszStart = NULL;
+    char szBackup[MAX_NETWORK_DATA_SIZE] = {0};
     UINT32 uiRSSI = 0, uiBER = 0;
     RIL_SignalStrength_v6* pSigStrData = NULL;
 
@@ -1156,12 +1178,17 @@ BOOL CSilo_Network::ParseXCSQ(CResponse* const pResponse, const char*& rszPointe
     }
     memset(pSigStrData, 0x00, sizeof(RIL_SignalStrength_v6));
 
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszDummy))
     {
         // This isn't a complete notification -- no need to parse it
         RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ: Failed to find rsp end!\r\n");
         goto Error;
     }
+
+    // Backup the XCSQ response string to report data on crashtool
+    pszStart = rszPointer;
+    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszDummy);
+    CTE::GetTE().SaveNetworkData(LAST_NETWORK_XCSQ, szBackup);
 
     if (!ExtractUInt32(rszPointer, uiRSSI, rszPointer))
     {
