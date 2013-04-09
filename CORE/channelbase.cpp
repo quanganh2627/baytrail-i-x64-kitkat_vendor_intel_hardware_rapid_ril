@@ -373,6 +373,43 @@ BOOL CChannelBase::StopChannelThreads()
 }
 
 
+void CChannelBase::ClearCommandQueue()
+{
+    RIL_LOG_VERBOSE("CChannelBase::ClearCommandQueue() - Enter\r\n");
+
+    CCommand* pCmd = NULL;
+
+    while (!g_pTxQueue[m_uiRilChannel]->IsEmpty())
+    {
+        if (!g_pTxQueue[m_uiRilChannel]->Dequeue(pCmd))
+        {
+            //  Dequeue() returns false when the queue is empty.
+            //  In this case, log the error, but continue processing other commands.
+            RIL_LOG_CRITICAL("CChannelBase::ClearCommandQueue() : chnl=[%d] Dequeue TxQueue "
+                    "returned FALSE\r\n", m_uiRilChannel);
+            return;
+        }
+
+        if (NULL != pCmd)
+        {
+            RIL_Token rilToken = pCmd->GetToken();
+
+            if (NULL != rilToken)
+            {
+                RIL_LOG_VERBOSE("CChannelBase::ClearCommandQueue() - Complete for token "
+                        "0x%08x, error: %d\r\n", rilToken, RIL_E_GENERIC_FAILURE);
+                RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
+            }
+
+            pCmd->FreeContextData();
+
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CChannelBase::ClearCommandQueue() - Exit\r\n");
+}
 
 UINT32 CChannelBase::CommandThread()
 {
@@ -404,36 +441,22 @@ UINT32 CChannelBase::CommandThread()
             }
         }
 
-        //RIL_LOG_INFO("CChannelBase::CommandThread() : Getting command  DEQUEUE BEGIN\r\n");
+        if (E_MMGR_EVENT_MODEM_UP != CTE::GetTE().GetLastModemEvent())
+        {
+            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : chnl=[%d] Failed init, returning"
+                    " RIL_E_GENERIC_FAILURE\r\n", m_uiRilChannel);
+
+            ClearCommandQueue();
+
+            break;
+        }
+
         if (!g_pTxQueue[m_uiRilChannel]->Dequeue(pCmd))
         {
             //  Dequeue() returns false when the queue is empty.
             //  In this case, log the error, but continue processing other commands.
             RIL_LOG_CRITICAL("CChannelBase::CommandThread() : chnl=[%d] Dequeue TxQueue returned"
                     " FALSE\r\n", m_uiRilChannel);
-            continue;
-        }
-        //RIL_LOG_INFO("CChannelBase::CommandThread() : Getting command  DEQUEUE END\r\n");
-
-        if (!CSystemManager::GetInstance().IsInitializationSuccessful())
-        {
-            RIL_LOG_CRITICAL("CChannelBase::CommandThread() : chnl=[%d] Failed init, returning"
-                    " RIL_E_GENERIC_FAILURE\r\n", m_uiRilChannel);
-
-            if (NULL != pCmd)
-            {
-                RIL_Token rilToken = pCmd->GetToken();
-
-                if (NULL != rilToken)
-                {
-                    RIL_LOG_VERBOSE("CChannelBase::CommandThread() - Complete for token "
-                        "0x%08x, error: %d\r\n", rilToken, RIL_E_GENERIC_FAILURE);
-                    RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
-                }
-
-                delete pCmd;
-                pCmd = NULL;
-            }
             continue;
         }
 

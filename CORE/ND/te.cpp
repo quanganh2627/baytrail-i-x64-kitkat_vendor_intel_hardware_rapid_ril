@@ -2131,7 +2131,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         goto Error;
     }
 
-    if (sizeof(int) != datalen)
+    if (sizeof(int*) != datalen)
     {
         RIL_LOG_CRITICAL("CTE::RequestRadioPower() - Invalid data size.\r\n");
         goto Error;
@@ -7319,6 +7319,7 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
     if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
     {
         bIsReqAllowed = FALSE;
+        eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
     }
     else if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(rilRequestId))
     {
