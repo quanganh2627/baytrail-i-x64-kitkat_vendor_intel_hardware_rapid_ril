@@ -192,6 +192,21 @@ CCommand::~CCommand()
     m_pContext = NULL;
 }
 
+void CCommand::FreeContextData()
+{
+    if (m_cbContextData > 0)
+    {
+        free(m_pContextData);
+        m_pContextData = NULL;
+    }
+
+    if (m_cbContextData2 > 0)
+    {
+        free(m_pContextData2);
+        m_pContextData2 = NULL;
+    }
+}
+
 BOOL CCommand::AddCmdToQueue(CCommand*& rpCmd, BOOL bFront /*=false*/)
 {
     RIL_LOG_VERBOSE("CCommand::AddCmdToQueue() - Enter\r\n");
@@ -211,16 +226,10 @@ BOOL CCommand::AddCmdToQueue(CCommand*& rpCmd, BOOL bFront /*=false*/)
         }
 
         UINT32 nChannel = rpCmd->GetChannel();
-        // RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue ENQUEUE BEGIN  ishighpriority=[%d]"
-        //        "bFront=[%d]\r\n", rpCmd->IsHighPriority(), bFront);
         if (g_pTxQueue[nChannel]->Enqueue(rpCmd, (UINT32)(rpCmd->IsHighPriority()), bFront ))
         {
-            // RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue ENQUEUE END\r\n");
             // signal Tx thread
-            // RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue SIGNAL BEGIN\r\n");
             (void) CEvent::Signal(g_TxQueueEvent[nChannel]);
-            // (void) CEvent::Reset(g_TxQueueEvent[nChannel]);
-            // RIL_LOG_INFO("CCommand::AddCmdToQueue() - TXQueue SIGNAL END\r\n");
 
             // The queue owns the command now
             rpCmd = NULL;
