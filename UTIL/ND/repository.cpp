@@ -241,6 +241,7 @@ const char   g_szApnTypeHIPRI[]         = "ApnTypeHIPRI";
 
 const char   g_szGroupLogging[]                 = "Logging";
 
+const char   g_szCallDropReporting[]            = "CallDropReporting";
 const char   g_szLogLevel[]                     = "LogLevel";
 
 

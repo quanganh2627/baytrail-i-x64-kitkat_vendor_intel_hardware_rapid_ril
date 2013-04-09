@@ -49,6 +49,7 @@
 #include "reset.h"
 #include "systemmanager.h"
 
+#include <cutils/properties.h>
 #include <cutils/sockets.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -304,6 +305,8 @@ BOOL CSystemManager::InitializeSystem()
 
     char szModem[MAX_MODEM_NAME_LEN];
     UINT32 uiModemType = MODEM_TYPE_UNKNOWN;
+
+    char szBuildTypeProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     // read the modem type used from repository
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
@@ -664,6 +667,21 @@ BOOL CSystemManager::InitializeSystem()
     if (repository.Read(g_szGroupModem, g_szEnableXDATASTATURC, iTemp))
     {
         CTE::GetTE().SetXDATASTATReporting(iTemp == 1 ? TRUE : FALSE);
+    }
+
+    // Call drop reporting is available only for eng or userdebug build
+    if (property_get("ro.build.type", szBuildTypeProperty, NULL))
+    {
+        const char szTypeEng[] = "eng";
+        const char szTypeUserDebug[] = "userdebug";
+        if ((strncmp(szBuildTypeProperty, szTypeEng, strlen(szTypeEng)) == 0)
+                || (strncmp(szBuildTypeProperty, szTypeUserDebug, strlen(szTypeUserDebug)) == 0))
+        {
+            if (repository.Read(g_szGroupLogging, g_szCallDropReporting, iTemp))
+            {
+                CTE::GetTE().SetCallDropReportingState(iTemp == 1 ? TRUE : FALSE);
+            }
+        }
     }
 
     //  Create and initialize the channels (don't open ports yet)

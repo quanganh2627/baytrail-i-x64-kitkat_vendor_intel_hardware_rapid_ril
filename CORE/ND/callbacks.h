@@ -81,4 +81,9 @@ void triggerManualNetworkSearch(void* param);
 //
 void triggerQueryCEER(void* param);
 
+//
+// Callback to trigger drop call data to crashtool
+//
+void triggerDropCallEvent(void* param);
+
 #endif
