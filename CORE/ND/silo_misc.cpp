@@ -156,6 +156,8 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse* const pResponse, const char*& rszPointer)
 
     fRet = TRUE;
 
+    rszPointer = pszEnd - strlen(m_szNewLine);
+
 Error:
     if (!fRet)
     {
