@@ -108,7 +108,7 @@ char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
     else if (RIL_CHANNEL_ATCMD == uiChannelType)
     {
         ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                "|+XGENDATA|+XPOW=0,0,0|+CFUN=4");
+                "|+XGENDATA|+XPOW=0,0,0");
 
         if (m_cte.IsVoiceCapable())
         {
