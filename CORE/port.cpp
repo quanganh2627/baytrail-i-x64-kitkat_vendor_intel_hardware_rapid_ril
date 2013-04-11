@@ -266,14 +266,9 @@ BOOL CPort::OpenPort(const char* pszFileName)
     {
         m_fIsPortOpen = TRUE;
     }
-
-    //  If we didn't open the port, issue critical reset
-    if (!fRet)
+    else
     {
-        RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT issuing critical reboot\r\n");
-
-        //  If we can't open the ports, tell MMGR to cleanup.
-        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
+        RIL_LOG_CRITICAL("CPort::OpenPort()  CANNOT OPEN PORT\r\n");
     }
 
     RIL_LOG_VERBOSE("CPort::OpenPort() - Exit\r\n");

@@ -133,8 +133,6 @@ private:
     // Framework Init Functions
     BOOL CreateQueues();
     void DeleteQueues();
-    //  Note that OpenChannelPorts() = InitChannelPorts() + OpenChannelPortsOnly()
-    BOOL OpenChannelPorts();
     void DeleteChannels();
     CChannel* CreateChannel(UINT32 uiIndex);
 
@@ -172,6 +170,12 @@ private:
     CEvent* m_pSysInitCompleteEvent;
 
     CMutex* m_pSystemManagerMutex;
+
+    // This mutex manages the access to ports as a whole
+    // for operations such as opening and closing, thus
+    // preventing access by multiple threads.
+    CMutex* m_pPortsManagerMutex;
+
     CMutex* m_pDataChannelAccessorMutex;
 
     mmgr_cli_handle_t* m_pMMgrLibHandle;

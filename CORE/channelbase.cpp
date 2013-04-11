@@ -399,7 +399,7 @@ UINT32 CChannelBase::CommandThread()
             if (!WaitForCommand())
             {
                 RIL_LOG_CRITICAL("CChannelBase::CommandThread() : WaitForCommand returns False,"
-                        " exiting\r\n");
+                        " exiting channel [%d]\r\n",m_uiRilChannel);
                 break;
             }
         }
