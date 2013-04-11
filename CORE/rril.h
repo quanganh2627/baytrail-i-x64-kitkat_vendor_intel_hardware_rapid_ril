@@ -153,8 +153,17 @@ enum
 {
     E_DTMF_STATE_START = 1,
     E_DTMF_STATE_STOP,
-    E_DTMF_STATE_FLUSH
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// Voice call state information
+//
+typedef struct
+{
+    int id;
+    int state;
+    BOOL bDtmfAllowed;
+} S_VOICECALL_STATE_INFO;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Data call states
