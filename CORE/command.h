@@ -75,6 +75,9 @@ public:
     void*               GetContextData2()    { return m_pContextData2;};
     UINT32              GetContextDataSize2(){ return m_cbContextData2;};
 
+    int                 GetCallId()         { return m_callId; }
+    void                SetCallId(int id)   { m_callId = id; }
+
     BOOL                IsAlwaysParse()     { return m_fAlwaysParse; };
     BOOL                IsHighPriority()    { return m_fHighPriority; };
     BOOL                IsInitCommand()     { return m_fIsInitCommand; };
@@ -113,6 +116,7 @@ private:
     UINT32              m_cbContextData;
     void*               m_pContextData2;
     UINT32              m_cbContextData2;
+    int                 m_callId;
 };
 
 #endif

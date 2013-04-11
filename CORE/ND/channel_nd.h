@@ -69,7 +69,8 @@ public:
     virtual BOOL FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
                                                         UINT32 uiResultCode,
                                                         void* pResponse,
-                                                        size_t responseLen);
+                                                        size_t responseLen,
+                                                        int callId = -1);
 
 protected:
     //  Init functions

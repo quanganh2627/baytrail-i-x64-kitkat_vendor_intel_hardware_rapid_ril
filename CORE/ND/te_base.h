@@ -795,6 +795,11 @@ public:
      */
     virtual RIL_RESULT_CODE HandleScreenStateReq(int screenState);
 
+    virtual int GetCurrentCallId();
+
+    BOOL IsDtmfAllowed(int callId);
+    void SetDtmfAllowed(int callId, BOOL bDtmfAllowed);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
 
@@ -808,6 +813,8 @@ private:
         BOOL isAnswerReqSent;
     } INCOMING_CALL_INFO;
     INCOMING_CALL_INFO m_IncomingCallInfo;
+
+    S_VOICECALL_STATE_INFO m_VoiceCallInfo[RRIL_MAX_CALL_ID_COUNT];
 };
 
 #endif

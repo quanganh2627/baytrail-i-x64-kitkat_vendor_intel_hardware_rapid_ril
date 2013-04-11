@@ -1883,7 +1883,8 @@ Error:
 void CSystemManager::CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID,
                                                 UINT32 uiResultCode,
                                                 void* pResponse,
-                                                size_t responseLen)
+                                                size_t responseLen,
+                                                int callId)
 {
     RIL_LOG_VERBOSE("CSystemManager::CompleteIdenticalRequests() - Enter\r\n");
 
@@ -1893,7 +1894,7 @@ void CSystemManager::CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqI
         if (NULL != pChannel)
         {
             pChannel->FindIdenticalRequestsAndSendResponses(uiReqID, uiResultCode,
-                    pResponse, responseLen);
+                    pResponse, responseLen, callId);
         }
     }
     RIL_LOG_VERBOSE("CSystemManager::CompleteIdenticalRequests() - Exit\r\n");
