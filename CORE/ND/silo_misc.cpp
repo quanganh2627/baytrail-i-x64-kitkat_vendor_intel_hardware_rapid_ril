@@ -67,13 +67,12 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse* const pResponse, const char*& rszPointer)
     RIL_LOG_VERBOSE("CSilo_MISC::ParseXDRVI() - Enter\r\n");
     BOOL   fRet = FALSE;
     const char* pszEnd = NULL;
-    unsigned char*  pszData = NULL;
+    sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND* pData = NULL;
     UINT32 nIpcChrGrp;
     UINT32 nIpcChrTempThresholdInd;
     UINT32 nXdrvResult;
     UINT32 nSensorId;
     UINT32 nTemp;
-    int pos = 0;
 
     if (NULL == pResponse)
     {
@@ -132,24 +131,23 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse* const pResponse, const char*& rszPointer)
             " xdrv_result: %u\r\n", nIpcChrGrp, nIpcChrTempThresholdInd, nXdrvResult);
     RIL_LOG_INFO("CSilo_MISC::ParseXDRVI - temp_sensor_id: %u, temp: %u\r\n", nSensorId, nTemp);
 
-    pszData = (unsigned char*)malloc(sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND));
-    if (NULL == pszData)
+    pData = (sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND*)malloc(
+            sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND));
+    if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - Could not allocate memory for pszData.\r\n");
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() - Could not allocate memory for pData.\r\n");
         goto Error;
     }
-    memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND));
+    memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND));
 
-    convertIntToByteArrayAt(pszData, RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND, pos);
-    pos += sizeof(int);
-    convertIntToByteArrayAt(pszData, nSensorId, pos);
-    pos += sizeof(int);
-    convertIntToByteArrayAt(pszData, nTemp, pos);
+    pData->nCommand = RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND;
+    pData->nSensorId = nSensorId;
+    pData->nTemp = nTemp;
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
-    if (!pResponse->SetData(pszData, sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND), FALSE))
+    if (!pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND), FALSE))
     {
         goto Error;
     }
@@ -161,8 +159,8 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse* const pResponse, const char*& rszPointer)
 Error:
     if (!fRet)
     {
-        free(pszData);
-        pszData = NULL;
+        free(pData);
+        pData = NULL;
     }
 
     RIL_LOG_VERBOSE("CSilo_MISC::ParseXDRVI() - Exit\r\n");

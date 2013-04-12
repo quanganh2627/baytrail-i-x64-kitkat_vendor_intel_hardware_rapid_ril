@@ -618,7 +618,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     UINT32 uiReason = 0;
     UINT32 uiLength = 0;
     CChannel_Data* pChannelData = NULL;
-    unsigned char* pszData = NULL;
+    sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND* pData = NULL;
 
     szResponse = rszPointer;
 
@@ -743,7 +743,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     else if (FindAndSkipString(szStrExtract, "NW CLASS", szStrExtract) ||
             FindAndSkipString(szStrExtract, "ME CLASS", szStrExtract))
     {
-        int pos = 0;
         int mt_class = 0;
 
         RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW CLASS/ME CLASS\r\n");
@@ -769,23 +768,24 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             mt_class = E_MT_CLASS_CC;
         }
 
-        pszData = (unsigned char*)malloc(sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND));
-        if (NULL == pszData)
+        pData = (sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND*)malloc(
+                sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND));
+        if (NULL == pData)
         {
             RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() -"
-                    " Could not allocate memory for pszData.\r\n");
+                    " Could not allocate memory for pData.\r\n");
             goto Error;
         }
-        memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND));
+        memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND));
 
-        convertIntToByteArrayAt(pszData, RIL_OEM_HOOK_RAW_UNSOL_MT_CLASS_IND, pos);
-        pos += sizeof(int);
-        convertIntToByteArrayAt(pszData, mt_class, pos);
+        pData->command = RIL_OEM_HOOK_RAW_UNSOL_MT_CLASS_IND;
+        pData->mt_class = mt_class;
 
         pResponse->SetUnsolicitedFlag(TRUE);
         pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
-        if (!pResponse->SetData((void*)pszData, sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND), FALSE))
+        if (!pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND),
+                FALSE))
         {
             goto Error;
         }
@@ -841,8 +841,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
 Error:
     if (!bRet)
     {
-        free(pszData);
-        pszData = NULL;
+        free(pData);
+        pData = NULL;
     }
 
     rszPointer = szResponse;
@@ -897,8 +897,7 @@ BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char*& rszP
     const char* szResponse = NULL;
     BOOL bRet = FALSE;
     UINT32 uiDataStatus = 0;
-    unsigned char* pszData = NULL;
-    int pos = 0;
+    sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND* pData = NULL;
     BOOL bIsDataSuspended  = 0;
 
     if (NULL == pResponse)
@@ -930,23 +929,23 @@ BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char*& rszP
 
         if (!bIsDataSuspended)
         {
-            pszData = (unsigned char*) malloc(sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
-            if (NULL == pszData)
+            pData = (sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND*) malloc(
+                    sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+            if (NULL == pData)
             {
                 RIL_LOG_CRITICAL("CSilo_Network::ParseXDATASTAT() -"
                         " Could not allocate memory for pszData.\r\n");
                 goto Error;
             }
-            memset(pszData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
+            memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
 
-            convertIntToByteArrayAt(pszData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
-            pos += sizeof(int);
-            convertIntToByteArrayAt(pszData, uiDataStatus, pos);
+            pData->command = RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND;
+            pData->status = uiDataStatus;
 
             pResponse->SetUnsolicitedFlag(TRUE);
             pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
-            if (!pResponse->SetData((void*)pszData,
+            if (!pResponse->SetData((void*)pData,
                     sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND), FALSE))
             {
                 goto Error;
@@ -963,8 +962,8 @@ BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char*& rszP
 Error:
     if (!bRet)
     {
-        free(pszData);
-        pszData = NULL;
+        free(pData);
+        pData = NULL;
     }
 
     RIL_LOG_VERBOSE("CSilo_Network::ParseXDATASTAT() - Exit\r\n");
@@ -1061,20 +1060,11 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rs
     BOOL bRet = FALSE;
     UINT32 uiState = 0;
     UINT32 commandId = 0;
-    BYTE* pData = NULL;
     BYTE i = 0;
 
     const UINT32 NETWORK_REG_STATUS_FAST_OOS = 20;
     const UINT32 NETWORK_REG_STATUS_IN_SERVICE = 21;
     const BYTE MAX_NUM_EMPTY_VALUES = 3;
-
-    pData = (BYTE*) malloc(sizeof(UINT32));
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() -"
-                " Could not allocate memory for pData.\r\n");
-        goto Error;
-    }
 
     if (NULL == pResponse)
     {
@@ -1111,14 +1101,10 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rs
          goto Error;
     }
 
-    memset(pData, 0, sizeof(UINT32));
-
-    convertIntToByteArrayAt(pData, commandId, 0);
-
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
-    if (!pResponse->SetData((void*)pData, sizeof(UINT32), FALSE))
+    if (!pResponse->SetData((void*)&commandId, sizeof(UINT32), TRUE))
     {
         goto Error;
     }
@@ -1126,11 +1112,6 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rs
     bRet = TRUE;
 
 Error:
-    if (!bRet)
-    {
-        free(pData);
-        pData = NULL;
-    }
 
     RIL_LOG_VERBOSE("CSilo_Network::ParseXREGFastOoS() - Exit[%d]\r\n", bRet);
     return bRet;
