@@ -67,7 +67,8 @@ CTE::CTE(UINT32 modemType) :
     m_uiTimeoutAPIDefault(TIMEOUT_API_DEFAULT),
     m_uiTimeoutWaitForInit(TIMEOUT_WAITFORINIT),
     m_uiTimeoutThresholdForRetry(TIMEOUT_THRESHOLDFORRETRY),
-    m_uiDtmfState(E_DTMF_STATE_STOP)
+    m_uiDtmfState(E_DTMF_STATE_STOP),
+    m_ScreenState(SCREEN_STATE_UNKNOWN)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -183,16 +184,7 @@ BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
     switch (requestId)
     {
         case RIL_REQUEST_RADIO_POWER:
-            if (E_MMGR_EVENT_MODEM_UP == m_uiLastModemEvent
-                    || E_MMGR_EVENT_MODEM_DOWN == m_uiLastModemEvent
-                    || E_MMGR_NOTIFY_MODEM_SHUTDOWN == m_uiLastModemEvent)
-            {
-                bAllowed = TRUE;
-            }
-            else
-            {
-                bAllowed = FALSE;
-            }
+            bAllowed = TRUE;
             break;
 
         default:
@@ -209,6 +201,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
     switch (requestId)
     {
         case RIL_REQUEST_RADIO_POWER:
+        case RIL_REQUEST_SCREEN_STATE:
             bAllowed = TRUE;
             break;
 
@@ -288,10 +281,6 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
             RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
             break;
 
-        case RIL_REQUEST_SCREEN_STATE:
-            eRetVal = RIL_E_GENERIC_FAILURE;
-            break;
-
         case RIL_REQUEST_SETUP_DATA_CALL:
             RIL_Data_Call_Response_v6 dataCallResp;
             memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
@@ -336,10 +325,6 @@ RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
         case RIL_REQUEST_GET_CURRENT_CALLS:
         case RIL_REQUEST_DEACTIVATE_DATA_CALL:
             RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, NULL, 0);
-            break;
-
-        case RIL_REQUEST_SCREEN_STATE:
-            RIL_onRequestComplete(hRilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
             break;
 
         case RIL_REQUEST_SETUP_DATA_CALL:
@@ -3224,6 +3209,8 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void* pData, 
     }
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
+    // send rilToken to CoreDeactivateDataCall in order to call RIL_onRequestComplete
+    reqData.pContextData = &rilToken;
     res = m_pTEBaseInstance->CoreDeactivateDataCall(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
@@ -3261,7 +3248,7 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void* pData, 
         }
     }
 
-    if (RRIL_RESULT_OK != res)
+    if ((RRIL_RESULT_OK != res) && (RRIL_RESULT_OK_IMMEDIATE != res))
     {
         CleanRequestData(reqData);
     }
@@ -4305,36 +4292,34 @@ RIL_RESULT_CODE CTE::RequestScreenState(RIL_Token rilToken, void* pData, size_t 
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreScreenState(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTE::RequestScreenState() - Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestScreenState() - Data pointer is NULL.\r\n");
+        goto Done;
     }
-    else
-    {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SCREENSTATE],
-                rilToken, ND_REQ_ID_SCREENSTATE, reqData, &CTE::ParseScreenState);
 
-        if (pCmd)
-        {
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CTE::RequestScreenState() - Unable to add command to queue\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE::RequestScreenState() -"
-                    " Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-        }
+    switch (((int*)pData)[0])
+    {
+        case 0:
+            m_ScreenState = SCREEN_STATE_OFF;
+            break;
+        case 1:
+            m_ScreenState = SCREEN_STATE_ON;
+            break;
+        default:
+            goto Done;
     }
+
+    if (E_MMGR_EVENT_MODEM_UP == GetLastModemEvent())
+    {
+        m_pTEBaseInstance->CoreScreenState(reqData, pData, datalen);
+    }
+
+Done:
+    RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
 
     RIL_LOG_VERBOSE("CTE::RequestScreenState() - Exit\r\n");
-    return res;
+    return RRIL_RESULT_OK;
 }
 
 RIL_RESULT_CODE CTE::ParseScreenState(RESPONSE_DATA& rRspData)
@@ -7441,6 +7426,7 @@ void CTE::ResetInternalStates()
     m_bIsManualNetworkSearchOn = FALSE;
     m_bIsClearPendingCHLD = FALSE;
     m_bIsDataSuspended = FALSE;
+    m_bRadioRequestPending = FALSE;
 }
 
 BOOL CTE::IsSetupDataCallAllowed(int& retryTime)
@@ -8173,13 +8159,16 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
      */
     CleanupAllDataConnections();
 
-    m_bRadioRequestPending = FALSE;
-
     //  Extract power setting from context
     int radioPower = (int)rData.pContextData;
 
     if (1 == radioPower)
     {
+        if (SCREEN_STATE_UNKNOWN != m_ScreenState)
+        {
+            m_pTEBaseInstance->HandleScreenStateReq(m_ScreenState);
+        }
+
         //  Turning on phone
         SetRadioState(RRIL_RADIO_STATE_ON);
         CSystemManager::GetInstance().TriggerModemPowerOnEvent();

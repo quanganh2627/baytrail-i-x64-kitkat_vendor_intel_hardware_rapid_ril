@@ -23,7 +23,9 @@
     <string name="radio_api8">Get SMS Transport Mode</string>
     <string name="radio_api9">Set SMS Transport Mode</string>
     <string name="radio_api10">Get RF Power Cutback Table</string>
-    <string name="radio_api11">Set RF Power Cutback Table</string>
+    <string name="radio_api11">Set RF Power Cutback Table 0</string>
+    <string name="radio_api12">Set RF Power Cutback Table 1</string>
+    <string name="radio_api13">Set RF Power Cutback Table 2</string>
     <string name="radio_run">RUN</string>
 
 </resources>

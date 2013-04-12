@@ -397,7 +397,14 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
             case E_MMGR_NOTIFY_MODEM_WARM_RESET:
             case E_MMGR_NOTIFY_CORE_DUMP:
-                RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) MODEM_WARM_RESET/COREDUMP\r\n");
+                if (E_MMGR_NOTIFY_MODEM_WARM_RESET == uiMMgrEvent)
+                {
+                    RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) MODEM_WARM_RESET\r\n");
+                }
+                else
+                {
+                    RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) E_MMGR_NOTIFY_CORE_DUMP\r\n");
+                }
 
                 CTE::GetTE().SetLastModemEvent(uiMMgrEvent);
 

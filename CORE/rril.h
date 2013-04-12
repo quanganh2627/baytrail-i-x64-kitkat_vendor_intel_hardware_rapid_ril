@@ -56,6 +56,7 @@ typedef long                RIL_RESULT_CODE;
 #define MAX_INTERFACE_NAME_SIZE    (50)
 #define MAX_PDP_TYPE_SIZE          (20)
 #define MAX_MDM_RESOURCE_NAME_SIZE (20)
+#define MAX_FDTIMER_SIZE           (5)
 
 ///////////////////////////////////////////////////////////////////////////////
 // SIM related constants
@@ -72,6 +73,14 @@ const int SIM_COMMAND_UPDATE_RECORD = 220;
 const int SIM_COMMAND_STATUS = 242;
 const int SIM_COMMAND_RETRIEVE_DATA = 203;
 const int SIM_COMMAND_SET_DATA = 219;
+
+///////////////////////////////////////////////////////////////////////////////
+// screen state constants
+//
+
+const int SCREEN_STATE_UNKNOWN = -1;
+const int SCREEN_STATE_OFF = 0;
+const int SCREEN_STATE_ON = 1;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Retry count information
@@ -243,6 +252,7 @@ enum
 #define RRIL_RESULT_NOTSUPPORTED        RIL_E_REQUEST_NOT_SUPPORTED  // 0x00000006
 #define RRIL_RESULT_CALLABORTED         RIL_E_CANCELLED              // 0x00000007
 #define RRIL_RESULT_FDN_FAILURE         RIL_E_FDN_CHECK_FAILURE      // 0x0000000E
+#define RRIL_RESULT_OK_IMMEDIATE        (0x00000010)
 
 // V25 Results
 #define RRIL_RESULT_NOCARRIER      RIL_E_GENERIC_FAILURE
