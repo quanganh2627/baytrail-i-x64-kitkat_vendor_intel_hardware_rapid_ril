@@ -8742,8 +8742,12 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
         // Parse "<prefix><channelId><postfix>"
         SkipRspStart(szRsp, m_szNewLine, szRsp);
 
-        //if (!FindAndSkipString(szRsp, "+CCHO: ", szRsp) ||
-        //    !ExtractUInt32(szRsp, nChannelId, szRsp))
+        // The modem repsonse may contain the prefix +CCHO.
+        // However ETSI spec doesn't require it:
+        // so if there is no such string found in the response
+        // we should simply ignore the error and move forward
+        FindAndSkipString(szRsp, "+CCHO: ", szRsp);
+
         if (!ExtractUInt32(szRsp, nChannelId, szRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() -"
@@ -8802,6 +8806,8 @@ RIL_RESULT_CODE CTEBase::CoreSimCloseChannel(REQUEST_DATA& rReqData,
         RIL_LOG_CRITICAL("CTEBase::CoreSimCloseChannel() - Cannot create XEER command\r\n");
         goto Error;
     }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSimCloseChannel() - Exit\r\n");
@@ -8942,7 +8948,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA& rReqData,
         {
             if (!PrintStringNullTerminate(rReqData.szCmd1,
                     sizeof(rReqData.szCmd1),
-                    "AT+CGLA=%d,%d,\"%02x%02x%02x%02x\"",
+                    "AT+CGLA=%d,%d,\"%02x%02x%02x%02x\"\r",
                     pSimIOArgs->fileid,
                     8,
                     classByte,
@@ -8959,7 +8965,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA& rReqData,
         {
             if (!PrintStringNullTerminate(rReqData.szCmd1,
                     sizeof(rReqData.szCmd1),
-                    "AT+CGLA=%d,%d,\"%02x%02x%02x%02x%02x\"",
+                    "AT+CGLA=%d,%d,\"%02x%02x%02x%02x%02x\"\r",
                     pSimIOArgs->fileid,
                     10,
                     classByte,
@@ -8978,7 +8984,7 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA& rReqData,
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
-                "AT+CGLA=%d,%d,\"%02x%02x%02x%02x%02x%s\"",
+                "AT+CGLA=%d,%d,\"%02x%02x%02x%02x%02x%s\"\r",
                 pSimIOArgs->fileid,
                 10 + strlen(pSimIOArgs->data),
                 classByte,
