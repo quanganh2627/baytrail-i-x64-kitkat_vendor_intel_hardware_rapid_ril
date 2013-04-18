@@ -18,6 +18,10 @@ ifeq ($(strip $(M2_VT_FEATURE_ENABLED)),true)
 LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
 endif
 
+ifeq ($(strip $(M2_GET_SIM_SMS_STORAGE_ENABLED)),true)
+LOCAL_CFLAGS += -DM2_GET_SIM_SMS_STORAGE_ENABLED
+endif
+
 LOCAL_C_INCLUDES :=  \
     $(LOCAL_PATH)/../../INC \
     $(LOCAL_PATH)/../../CORE \

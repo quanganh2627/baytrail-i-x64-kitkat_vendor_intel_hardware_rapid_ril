@@ -166,6 +166,9 @@ const char* g_szRequestNames[] =
     "HangupVT",                             // ND_REQ_ID_HANGUPVT 115
     "DialVT",                               // ND_REQ_ID_DIALVT 116
 #endif // M2_VT_FEATURE_ENABLED
+#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
+    "GetSimSmsStorage",                    // ND_REQ_GET_SIM_SMS_STORAGE 115 or 117
+#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
 };
 
 /////////////////////////////////////////////////
