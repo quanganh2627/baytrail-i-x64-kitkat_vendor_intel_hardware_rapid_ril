@@ -5974,7 +5974,6 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
 
         //  Grab the pChannelData for this CID. Will be null for LTE
         pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
-        RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - pChannelData:%x\r\n",pChannelData);
 
         m_pPDPListData->pPDPData[count].cid = nCID;
 
@@ -6005,8 +6004,21 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
             goto Error;
         }
 
-        RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Add APN(%s) to cache.\r\n", szAPN);
-        CTE::GetTE().SetActivatedContext(nCID, szAPN);
+        // Only do caching for LTE
+        if (CTE::GetTE().GetUiAct() == RADIO_TECH_LTE)
+        {
+            if (strncmp(szAPN, "", MAX_BUFFER_SIZE) == 0)
+            {
+                RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - Warning APN"
+                        " not provided by network\r\n");
+            }
+            else
+            {
+                RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Add APN(%s) to cache.\r\n",
+                        szAPN);
+                CTE::GetTE().SetActivatedContext(nCID, szAPN);
+            }
+        }
 
         //  This is interface name (i.e. rmnet0)
         //  If interface name is <blank>, then java layer throws exception.
