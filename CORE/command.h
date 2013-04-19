@@ -91,6 +91,8 @@ public:
     void FreeATCmd1() { delete[] m_pszATCmd1; m_pszATCmd1 = NULL; };
     void FreeATCmd2() { delete[] m_pszATCmd2; m_pszATCmd2 = NULL; };
 
+    void FreeContextData();
+
     static BOOL AddCmdToQueue(CCommand*& pCmd, BOOL bFront = false);
 
 private:

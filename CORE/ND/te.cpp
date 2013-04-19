@@ -2131,7 +2131,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         goto Error;
     }
 
-    if (sizeof(int) != datalen)
+    if (sizeof(int*) != datalen)
     {
         RIL_LOG_CRITICAL("CTE::RequestRadioPower() - Invalid data size.\r\n");
         goto Error;
@@ -7181,13 +7181,6 @@ RIL_RESULT_CODE CTE::ParseQuerySimSmsStoreStatus(RESPONSE_DATA& rRspData)
     return m_pTEBaseInstance->ParseQuerySimSmsStoreStatus(rRspData);
 }
 
-RIL_RESULT_CODE CTE::ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseDeactivateAllDataCalls() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseDeactivateAllDataCalls(rRspData);
-}
-
 RIL_RESULT_CODE CTE::ParsePdpContextActivate(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE::ParsePdpContextActivate() - Enter / Exit\r\n");
@@ -7326,6 +7319,7 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
     if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
     {
         bIsReqAllowed = FALSE;
+        eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
     }
     else if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(rilRequestId))
     {

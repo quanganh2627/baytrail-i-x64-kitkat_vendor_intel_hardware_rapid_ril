@@ -131,9 +131,10 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
         //  something is wrong.  Let the modem status socket watchdog get
         //  a MODEM_UP when things are OK again.
 
+        CSystemManager::GetInstance().SetInitializationUnsuccessful();
+
         //  Close ports
         CSystemManager::GetInstance().CloseChannelPorts();
-        CSystemManager::GetInstance().SetInitializationUnsuccessful();
 
         if (eRadioError_ForceShutdown == eError)
         {
@@ -312,10 +313,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     ModemResetUpdate();
 
                     CTE::GetTE().ResetInternalStates();
-
-                    //  Close ports
-                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
                 // Retrieve the shutdown property
