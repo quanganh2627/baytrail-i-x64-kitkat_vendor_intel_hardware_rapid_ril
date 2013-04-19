@@ -228,22 +228,14 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 if (E_MMGR_NOTIFY_MODEM_COLD_RESET == uiPreviousModemState
                         || E_MMGR_NOTIFY_MODEM_WARM_RESET == uiPreviousModemState
-                        || E_MMGR_NOTIFY_CORE_DUMP == uiPreviousModemState)
+                        || E_MMGR_NOTIFY_CORE_DUMP == uiPreviousModemState
+                        || E_MMGR_NOTIFY_MODEM_SHUTDOWN == uiPreviousModemState)
                 {
                     RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_UP after"
-                            " COLD_RESET/WARM_RESET/CORE_DUMP Reset channel information\r\n");
+                            " COLD_RESET/WARM_RESET/CORE_DUMP/MODEM_SHUTDOWN"
+                            " Reset channel information\r\n");
 
                     CSystemManager::GetInstance().ResetChannelInfo();
-                }
-
-                if (E_MMGR_NOTIFY_MODEM_SHUTDOWN == uiPreviousModemState)
-                {
-                    // TODO: Need to address cleanly
-                    RIL_LOG_INFO("ModemManagerEventHandler() - MODEM_UP after"
-                            " MODEM_SHUTDOWN exit\r\n");
-
-                    CSystemManager::Destroy();
-                    exit(0);
                 }
 
                 //  transition to up
