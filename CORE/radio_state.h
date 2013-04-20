@@ -31,6 +31,8 @@ public:
 
     void SetRadioState(const RRIL_Radio_State eRadioState);
 
+    void SetRadioStateAndNotify(const RRIL_Radio_State eRadioState);
+
 private:
     RRIL_Radio_State m_eRadioState;
 

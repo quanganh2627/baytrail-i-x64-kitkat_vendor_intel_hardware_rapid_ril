@@ -47,7 +47,7 @@ CTE::CTE(UINT32 modemType) :
     m_bPSStatusCached(FALSE),
     m_bIsSetupDataCallOngoing(FALSE),
     m_bSpoofCommandsStatus(TRUE),
-    m_uiLastModemEvent(E_MMGR_EVENT_MODEM_DOWN),
+    m_LastModemEvent(MODEM_STATE_UNKNOWN),
     m_bModemOffInFlightMode(FALSE),
     m_enableLocationUpdates(0),
     m_bRestrictedMode(FALSE),
@@ -69,7 +69,10 @@ CTE::CTE(UINT32 modemType) :
     m_uiTimeoutThresholdForRetry(TIMEOUT_THRESHOLDFORRETRY),
     m_uiDtmfState(E_DTMF_STATE_STOP),
     m_ScreenState(SCREEN_STATE_UNKNOWN),
-    m_pPrefNetTypeReqInfo(NULL)
+    m_pPrefNetTypeReqInfo(NULL),
+    m_RequestedRadioPower(RADIO_POWER_UNKNOWN),
+    m_RadioOffReason(E_RADIO_OFF_REASON_INIT),
+    m_pRadioStateChangedEvent(NULL)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -84,10 +87,15 @@ CTE::CTE(UINT32 modemType) :
     memset(&m_sPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
     m_pDtmfStateAccess = new CMutex();
+
+    m_pRadioStateChangedEvent = new CEvent(NULL, TRUE);
 }
 
 CTE::~CTE()
 {
+    delete m_pRadioStateChangedEvent;
+    m_pRadioStateChangedEvent = NULL;
+
     delete m_pTEBaseInstance;
     m_pTEBaseInstance = NULL;
 
@@ -2169,12 +2177,8 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
     RIL_LOG_VERBOSE("CTE::RequestRadioPower() - Enter\r\n");
 
     bool bTurnRadioOn = false;
-    bool bShutdown = false;
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
-    REQUEST_DATA reqData;
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
-    RIL_RadioState radio_state = GetRadioState();
-    char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    REQUEST_DATA reqData; // Not used
     char szResetActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     if (NULL == pData)
@@ -2193,6 +2197,8 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
     {
         RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio OFF\r\n");
         bTurnRadioOn = false;
+        m_RadioOffReason = IsPlatformShutDownRequested() ?
+                E_RADIO_OFF_REASON_SHUTDOWN : m_RadioOffReason;
     }
     else
     {
@@ -2200,110 +2206,21 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         bTurnRadioOn = true;
     }
 
-    if (property_get("gsm.radioreset", szResetActionProperty, "false") &&
-                    (strncmp("false", szResetActionProperty, 5) != 0) &&
-                    (false == bTurnRadioOn))
+    if (property_get("gsm.radioreset", szResetActionProperty, "false")
+            && (strncmp("false", szResetActionProperty, 5) != 0)
+            && (false == bTurnRadioOn))
     {
         property_set("gsm.radioreset", "false");
 
-        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
-
         RIL_LOG_INFO("CTE::RequestRadioPower() - Reset requested, do clean-up request\r\n");
         do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
-        return RRIL_RESULT_OK;
-    }
-#if !defined(M2_DUALSIM_FEATURE_ENABLED)
-    // check if the required state is the same as the current one
-    // if so, ignore command
-    else if ((bTurnRadioOn && RADIO_STATE_OFF != radio_state)
-            || (!bTurnRadioOn && (RADIO_STATE_OFF == radio_state
-                    || E_MMGR_EVENT_MODEM_DOWN == m_uiLastModemEvent)))
-    {
-        RIL_LOG_INFO("CTE::RequestRadioPower() - No change in state, spoofing command.\r\n");
-
-        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
-        SetRadioState(
-                bTurnRadioOn ? RRIL_RADIO_STATE_ON : RRIL_RADIO_STATE_OFF);
-        return RRIL_RESULT_OK;
-    }
-#endif
-    else if (!bTurnRadioOn && IsPlatformShutDownRequested())
-    {
-        RIL_LOG_INFO("CTEBase::CoreRadioPower - Shutdown requested\r\n");
-
-        do_request_clean_up(eRadioError_ForceShutdown, __LINE__, __FILE__);
-
-        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
-        return RRIL_RESULT_OK;
     }
     else
     {
+        m_bRadioRequestPending = TRUE;
+        m_RequestedRadioPower = bTurnRadioOn ? RADIO_POWER_ON : RADIO_POWER_OFF;
+
         res = m_pTEBaseInstance->CoreRadioPower(reqData, pData, datalen);
-        if (RRIL_RESULT_OK != res)
-        {
-            RIL_LOG_CRITICAL("CTE::RequestRadioPower() : Unable to create AT command data\r\n");
-        }
-        else
-        {
-            m_bRadioRequestPending = TRUE;
-
-            if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent()
-                    || !CSystemManager::GetInstance().IsInitializationSuccessful())
-            {
-                /*
-                 * This timeout is based on test results. Timeout is the sum of
-                 * time taken for powering up the modem(~6seconds) + opening of ports(<1second)
-                 * + modem basic initialization(1second).
-                 */
-                UINT32 WAIT_TIMEOUT_IN_MS = 15000;
-
-                RIL_LOG_INFO("CTE::RequestRadioPower() : Waiting for "
-                        "modem initialization completion event\r\n");
-
-                CEvent::Reset(CSystemManager::GetModemBasicInitCompleteEvent());
-
-                if (WAIT_EVENT_0_SIGNALED !=
-                        CEvent::Wait(CSystemManager::GetModemBasicInitCompleteEvent(),
-                                WAIT_TIMEOUT_IN_MS))
-                {
-                    RIL_LOG_INFO("CTE::RequestRadioPower() : Timeout Waiting for"
-                            "modem initialization completion event\r\n");
-
-                    res = RRIL_RESULT_RADIOOFF;
-                    /*
-                     * This is done to force the framework to trigger RADIO_POWER on
-                     * request again.
-                     */
-                    SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
-                    RIL_requestTimedCallback(triggerRadioOffInd, NULL, 1, 0);
-                    goto Error;
-                }
-            }
-
-            CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER],
-                    rilToken, ND_REQ_ID_RADIOPOWER, reqData, &CTE::ParseRadioPower,
-                    &CTE::PostRadioPower);
-
-            if (pCmd)
-            {
-                pCmd->SetHighPriority();
-
-                if (!CCommand::AddCmdToQueue(pCmd))
-                {
-                    RIL_LOG_CRITICAL("CTE::RequestRadioPower() :"
-                            " Unable to add command to queue\r\n");
-                    res = RIL_E_GENERIC_FAILURE;
-                    delete pCmd;
-                    pCmd = NULL;
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CTE::RequestRadioPower() -"
-                        " Unable to allocate memory for command\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-            }
-        }
     }
 
 Error:
@@ -2314,8 +2231,6 @@ Error:
     }
     else
     {
-        m_bRadioRequestPending = FALSE;
-
         if (IsRestrictedMode())
         {
             int mode = RIL_RESTRICTED_STATE_CS_ALL | RIL_RESTRICTED_STATE_PS_ALL;
@@ -2323,8 +2238,11 @@ Error:
         }
     }
 
+    m_bRadioRequestPending = FALSE;
+    RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
+
     RIL_LOG_VERBOSE("CTE::RequestRadioPower() - Exit\r\n");
-    return res;
+    return RRIL_RESULT_OK;
 }
 
 RIL_RESULT_CODE CTE::ParseRadioPower(RESPONSE_DATA& rRspData)
@@ -7465,6 +7383,11 @@ void CTE::SetRadioState(const RRIL_Radio_State eRadioState)
     m_pTEBaseInstance->SetRadioState(eRadioState);
 }
 
+void CTE::SetRadioStateAndNotify(const RRIL_Radio_State eRadioState)
+{
+    m_pTEBaseInstance->SetRadioStateAndNotify(eRadioState);
+}
+
 void CTE::SetSIMState(const RRIL_SIM_State eRadioState)
 {
     m_pTEBaseInstance->SetSIMState(eRadioState);
@@ -7549,7 +7472,7 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
         eRetVal = HandleRequestInRadioOff(rilRequestId, rilToken);
         bIsReqAllowed = FALSE;
     }
-    else if (IsPlatformShutDownRequested())
+    else if (IsPlatformShutDownOngoing())
     {
         /*
          * If there is data or voice call, then the framwork will
@@ -8212,10 +8135,12 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
      */
     CleanupAllDataConnections();
 
-    //  Extract power setting from context
-    int radioPower = (int)rData.pContextData;
+    if (NULL != m_pRadioStateChangedEvent)
+    {
+        CEvent::Signal(m_pRadioStateChangedEvent);
+    }
 
-    if (1 == radioPower)
+    if (RADIO_POWER_ON == m_RequestedRadioPower)
     {
         if (SCREEN_STATE_UNKNOWN != m_ScreenState)
         {
@@ -8242,28 +8167,34 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
         }
 
         //  Turning on phone
-        SetRadioState(RRIL_RADIO_STATE_ON);
-        CSystemManager::GetInstance().TriggerModemPowerOnEvent();
+        SetRadioStateAndNotify(RRIL_RADIO_STATE_ON);
+        CSystemManager::GetInstance().TriggerRadioPoweredOnEvent();
     }
-    else if (!IsPlatformShutDownRequested())
+    else
     {
-        SetRadioState(RRIL_RADIO_STATE_OFF);
-
-        if (GetModemOffInFlightModeState())
+        if (IsPlatformShutDownOngoing())
         {
-            CSystemManager::GetInstance().ReleaseModem();
+            CSystemManager::GetInstance().CloseChannelPorts();
+
+            //  Send shutdown request to MMgr
+            if (!CSystemManager::GetInstance().SendRequestModemShutdown())
+            {
+                RIL_LOG_CRITICAL("CTE::PostRadioPower() - CANNOT SEND MODEM SHUTDOWN REQUEST\r\n");
+
+                //  Socket could have been closed by MMGR.
+                CSystemManager::GetInstance().TriggerModemPoweredOffEvent();
+                SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
+            }
         }
-    }
+        else
+        {
+            SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
 
-    if (RIL_E_SUCCESS != rData.uiResultCode && 0 == radioPower)
-    {
-        rData.uiResultCode = RIL_E_SUCCESS;
-    }
-
-    if (NULL != rData.pRilToken)
-    {
-        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
-                rData.pData, rData.uiDataSize);
+            if (GetModemOffInFlightModeState())
+            {
+                CSystemManager::GetInstance().ReleaseModem();
+            }
+        }
     }
 
     RIL_LOG_VERBOSE("CTE::PostRadioPower() Exit\r\n");
@@ -8935,15 +8866,33 @@ BOOL CTE::IsPlatformShutDownRequested()
 {
     RIL_LOG_VERBOSE("CTE::IsPlatformShutDownRequested() - Enter\r\n");
 
-    BOOL isShutDownRequested = FALSE;
-    char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    static BOOL s_bIsShutDownRequested = FALSE;
 
-    // Retrieve the shutdown property
-    if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL)
-            && ('0' == szShutdownActionProperty[0]))
+    if (!s_bIsShutDownRequested)
     {
-        isShutDownRequested = TRUE;
+        char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
+
+        // Retrieve the shutdown property
+        if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL)
+                && (('0' == szShutdownActionProperty[0]) || ('1' == szShutdownActionProperty[0])))
+        {
+            s_bIsShutDownRequested = TRUE;
+        }
     }
 
-    return isShutDownRequested;
+    return s_bIsShutDownRequested;
+}
+
+BOOL CTE::IsPlatformShutDownOngoing()
+{
+    RIL_LOG_VERBOSE("CTE::IsPlatformShutDownOngoing() - Enter\r\n");
+
+    BOOL bIsPlatformShutDownOngoing = FALSE;
+
+    if (IsPlatformShutDownRequested() && (E_RADIO_OFF_REASON_SHUTDOWN == m_RadioOffReason))
+    {
+        bIsPlatformShutDownOngoing = TRUE;
+    }
+
+    return bIsPlatformShutDownOngoing;
 }

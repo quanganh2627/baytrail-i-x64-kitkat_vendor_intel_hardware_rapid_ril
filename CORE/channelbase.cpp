@@ -949,7 +949,7 @@ UINT32 CChannelBase::ResponseThread()
     while (TRUE)
     {
         // If the error count is accumulated
-        // to 3, we trigger a radio error and reboot the modem.
+        // to 3, we trigger a radio error and request for recovery.
         if (uiReadError >= MAX_READERROR)
         {
             RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - chnl=[%d] uiReadError > = %d!"
@@ -975,9 +975,10 @@ UINT32 CChannelBase::ResponseThread()
                 m_uiRilChannel);
         if (!WaitForAvailableData(WAIT_FOREVER))
         {
-            if (E_MMGR_EVENT_MODEM_UP != CTE::GetTE().GetLastModemEvent())
+            if (CTE::GetTE().IsPlatformShutDownOngoing()
+                    || CTE::GetTE().GetSpoofCommandsStatus())
             {
-                // If the modem is not up, then don't report error in this case.
+                // If we are in platform shutdown or spoof mode, don't report error in this case.
                 // Simply end the thread.
                 return 0;
             }
@@ -991,7 +992,7 @@ UINT32 CChannelBase::ResponseThread()
             {
                 ++uiReadError;
 
-                // if the port is not open, reboot
+                // if the port is not open, request for recovery
                 if (!IsPortOpen())
                 {
                     RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Port closed,"
@@ -1017,8 +1018,8 @@ UINT32 CChannelBase::ResponseThread()
             {
                 if (CTE::GetTE().GetSpoofCommandsStatus())
                 {
-                    //  If we are in spoof mode, this means that the modem is down.
-                    //  Don't report error in this case and simply ends the thread.
+                    // If we are in spoof mode, this means that the modem is not ready.
+                    //  Don't report error in this case. Simply end the thread.
                     return 0;
                 }
 

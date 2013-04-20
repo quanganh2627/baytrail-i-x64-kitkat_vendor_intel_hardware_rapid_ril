@@ -27,7 +27,7 @@ void triggerRadioOffInd(void* param)
 {
     if (RADIO_STATE_UNAVAILABLE == CTE::GetTE().GetRadioState())
     {
-       CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
+       CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
     }
 }
 

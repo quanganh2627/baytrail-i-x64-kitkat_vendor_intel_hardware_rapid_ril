@@ -636,14 +636,15 @@ public:
     RIL_RadioState GetRadioState();
     RRIL_SIM_State GetSIMState();
     void SetRadioState(const RRIL_Radio_State eRadioState);
+    void SetRadioStateAndNotify(const RRIL_Radio_State eRadioState);
     void SetSIMState(const RRIL_SIM_State eRadioState);
 
     void SetSpoofCommandsStatus(BOOL bStatus) { m_bSpoofCommandsStatus = bStatus; };
     BOOL GetSpoofCommandsStatus() { return m_bSpoofCommandsStatus; };
     BOOL TestAndSetSpoofCommandsStatus(BOOL bStatus);
 
-    void SetLastModemEvent(UINT32 uiValue) { m_uiLastModemEvent = uiValue; };
-    UINT32 GetLastModemEvent() { return m_uiLastModemEvent; };
+    void SetLastModemEvent(int value) { m_LastModemEvent = value; }
+    int GetLastModemEvent() { return m_LastModemEvent; }
 
     void SetModemOffInFlightModeState(BOOL bValue) { m_bModemOffInFlightMode = bValue; };
     BOOL GetModemOffInFlightModeState() { return m_bModemOffInFlightMode; };
@@ -749,8 +750,20 @@ public:
     UINT32 TestAndSetDtmfState(UINT32 uiDtmfState);
     UINT32 GetDtmfState();
 
+    // This function will return true if sys.shutdown.requested is set to 0 or 1
     BOOL IsPlatformShutDownRequested();
+
+    /*
+     * This function will return true if sys.shutdown.requested is set to 0 or 1 and
+     * m_RadioOffReason is E_RADIO_OFF_REASON_SHUTDOWN. m_RadioOffReason is set to
+     * if the RIL_REQUEST_RADIO_POWER request is for platform shutdown.
+     */
+    BOOL IsPlatformShutDownOngoing();
+
     BOOL IsRadioRequestPending() { return m_bRadioRequestPending; }
+    int GetRequestedRadioPower() { return m_RequestedRadioPower; }
+    int GetRadioOffReason() { return m_RadioOffReason; }
+    CEvent* GetRadioStateChangedEvent() { return m_pRadioStateChangedEvent; }
 
     // Resets all the internal states to default values
     void ResetInternalStates();
@@ -1020,7 +1033,7 @@ private:
     /*
      * Flag is used to know the current modem status.
      */
-    UINT32 m_uiLastModemEvent;
+    int m_LastModemEvent;
 
     /*
      * Flag is used to know if modem shutdown is available during flightmode.
@@ -1117,7 +1130,17 @@ private:
 
     // SCREEN_STATE_UNKNOWN(-1), SCREEN_STATE_OFF(0), SCREEN_STATE_ON(1)
     int m_ScreenState;
+
     PREF_NET_TYPE_REQ_INFO* m_pPrefNetTypeReqInfo;
+
+    // RADIO_POWER_UNKNOWN(-1), RADIO_POWER_OFF(0), RADIO_POWER_OFF(1)
+    int m_RequestedRadioPower;
+
+    // RADIO_OFF_REASON_UNSPECIFIED(0),RADIO_OFF_REASON_SHUTDOWN(1) and
+    // RADIO_OFF_REASON_AIRPLANE_MODE(2)
+    int m_RadioOffReason;
+
+    CEvent* m_pRadioStateChangedEvent;
 };
 
 #endif

@@ -87,7 +87,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
 {
     bool bSendNotification = true;
 
-    if (CTE::GetTE().IsRadioRequestPending()
+    if ((CTE::GetTE().IsPlatformShutDownRequested() || CTE::GetTE().IsRadioRequestPending())
             && RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED != unsolResponseID
             && RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED != unsolResponseID
             && RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED != unsolResponseID

@@ -2343,74 +2343,285 @@ Error:
 //
 // RIL_REQUEST_RADIO_POWER 23
 //
-RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData, UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    bool bTurnRadioOn = (0 == *(int*)pData) ? false : true;
 
-    //  Store setting in context.
-    rReqData.pContextData = (void*)bTurnRadioOn;
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    CCommand* pCmd = NULL;
+    char szCmd[MAX_BUFFER_SIZE] = {'\0'};
+    int radioOffReason = m_cte.GetRadioOffReason();
 
-    if (m_cte.GetModemOffInFlightModeState())
+    BOOL bModemOffInFlightMode = m_cte.GetModemOffInFlightModeState();
+    BOOL bTurnRadioOn = (0 == ((int*)pData)[0]) ? FALSE : TRUE;
+
+    if (bTurnRadioOn)
     {
-        if (true == bTurnRadioOn)
+        switch (m_cte.GetLastModemEvent())
         {
-            if (!CSystemManager::GetInstance().GetModem())
-            {
-                RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() : GetModem Resource failed\r\n");
+            case E_MMGR_NOTIFY_CORE_DUMP:
+            case E_MMGR_EVENT_MODEM_OUT_OF_SERVICE:
+            case E_MMGR_NOTIFY_PLATFORM_REBOOT:
+                /*
+                 * Don't acquire the resource as it may fail due to MMGR busy
+                 * core dump or platform reboot.
+                 */
+                res = RRIL_RESULT_ERROR;
+                break;
 
-                m_cte.SetRestrictedMode(TRUE);
-                return RRIL_RESULT_ERROR;
-            }
-            else
-            {
-                m_cte.SetRestrictedMode(FALSE);
-            }
+            default:
+                if (!CSystemManager::GetInstance().GetModem())
+                {
+                    RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - "
+                            "GetModem Resource failed\r\n");
+
+                    m_cte.SetRestrictedMode(TRUE);
+                    res = RRIL_RESULT_ERROR;
+                }
+                else
+                {
+                    m_cte.SetRestrictedMode(FALSE);
+                }
+                break;
         }
-    } // Else, resource was already acquired on startup in InitializeSystem
 
-#if !defined(M2_DUALSIM_FEATURE_ENABLED)
-    if (CopyStringNullTerminate(rReqData.szCmd1, (true == bTurnRadioOn) ?
-                                        "AT+CFUN=1;+XSIMSTATE?\r" : "AT+CFUN=4\r",
-                                        sizeof(rReqData.szCmd1)))
-    {
-        res = RRIL_RESULT_OK;
+        if (RRIL_RESULT_ERROR == res)
+        {
+            RIL_LOG_INFO("CTEBase::CoreRadioPower - Issue seen in RADIO_POWER ON\r\n");
+            goto Error;
+        }
     }
-#else
-    // use SIM-specific property, depending on RIL instance
-    char szSimPowerOffStatePropName[MAX_PROP_VALUE] = {'\0'};
-    char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
-    UINT32 uiSimPoweredOff;
-    UINT32 uiFunMode;
+    else // Turn radio off
+    {
+        switch (m_cte.GetLastModemEvent())
+        {
+            case E_MMGR_EVENT_MODEM_UP:
+                if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
+                {
+                    // Do nothing. Actions will be taken on modem powered off event
+                }
+                else
+                {
+                    /*
+                     * This is possible in 2 cases,
+                     *         - Airplane mode activation.
+                     *         - RADIO_POWER OFF sent on rild socket connected
+                     *
+                     * RADIO_POWER on on rild socket connected case is explained.
+                     *
+                     * This case is possible when rild is still running but the android
+                     * core services are killed(e.g: adb shell stop). When android core
+                     * services are restarted agsin(e.g: adb shell start) modem is
+                     * still UP. So, when framework requests for radio power off, send
+                     * modem specific radio power off commands and wait for radio state
+                     * changed event.Upon response, if modem off in flight modem is
+                     * supported, modem resource will be released thus resulting in
+                     * in modem powered down. Modem powered down in this case can only
+                     * be avoided if the reason for RADIO_POWER OFF(init or airplane
+                     * mode) is known. Even though modem is powered down, modem will be
+                     * powered upon RADIO_POWER on request.
+                     */
+                }
+                break;
+            case E_MMGR_EVENT_MODEM_DOWN:
+                if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
+                {
+                    CSystemManager::GetInstance().CloseChannelPorts();
+                }
 
-    if (g_szSIMID) {
-        snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
-                    "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+                /*
+                 * Since the reason for radio power off(init or airplane mode) is not
+                 * known, it is better to set the radio state to off and wait for
+                 * RADIO_POWER ON request to power on the modem.
+                 */
+                SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
+                res = RRIL_RESULT_ERROR;
+                RIL_LOG_INFO("CTEBase::CoreRadioPower - Already in expected state\r\n");
+                break;
+            default:
+                if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
+                {
+                    CSystemManager::GetInstance().CloseChannelPorts();
+                    SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
+                }
+
+                res = RRIL_RESULT_ERROR;
+                RIL_LOG_INFO("CTEBase::CoreRadioPower - Error in handling RADIO_POWER OFF\r\n");
+                break;
+        }
+
+        if (RRIL_RESULT_ERROR == res)
+        {
+            goto Error;
+        }
+    }
+
+    if (!GetRadioPowerCommand(bTurnRadioOn, radioOffReason, bModemOffInFlightMode,
+            szCmd, sizeof(szCmd)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - GetRadioPowerCommand failed\r\n");
+        goto Error;
+    }
+
+    if (!CSystemManager::GetInstance().IsInitializationSuccessful())
+    {
+        /*
+         * This timeout is based on test results. Timeout is the sum of
+         * time taken for powering up the modem(~6seconds) + opening of ports(<1second)
+         * + modem basic initialization(1second).
+         */
+        UINT32 WAIT_TIMEOUT_IN_MS = 15000;
+
+        RIL_LOG_INFO("CTEBase::CoreRadioPower() - Waiting for "
+                "modem initialization completion event\r\n");
+
+        CEvent::Reset(CSystemManager::GetModemBasicInitCompleteEvent());
+
+        if (WAIT_EVENT_0_SIGNALED !=
+                CEvent::Wait(CSystemManager::GetModemBasicInitCompleteEvent(),
+                        WAIT_TIMEOUT_IN_MS))
+        {
+            RIL_LOG_INFO("CTEBase::CoreRadioPower() - Timeout Waiting for"
+                    "modem initialization completion event\r\n");
+
+            /*
+             * Timeout waiting for modem power on and initialization means
+             * that there is no change in radio state neither in rapid ril nor
+             * in android framework side. Since the requested radio state is
+             * not yet reached, device will remain in not registered state.
+             * In order to recover from this state, framework should be informed
+             * that the requested radio state is not yet reached. This can be
+             * done only by notifying the framework of radio state different
+             * from the current state. So, set the radio state to unavailable and
+             * notify the framework of the radio state change. Framework doesn't
+             * take any actions on radio unavailable state. In order to force
+             * the framework to take any action , set the radio state to off and
+             * notify it after 1seconds. This will force the framework to trigger
+             * RADIO_POWER request again with the desired power state.
+             *
+             * e.g.: Time out Sequence is described as follows:
+             *     RADIO_POWER ON request from framework.
+             *     Acquire modem resource.
+             *     Timeout waiting for MODEM_UP and initialiation.
+             *     RADIO_POWER ON request completed.
+             *     SetRadioState to RADIO_UNAVAILABLE and notify framework.
+             *     After 1second, set radio state to RADIO_OFF and notify framework.
+             *     Framework will trigger RADIO_POWER ON request again
+             */
+            SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
+            RIL_requestTimedCallback(triggerRadioOffInd, NULL, 1, 0);
+
+            res = RRIL_RESULT_ERROR;
+            goto Error;
+        }
+    }
+
+    /*
+     * Note: RIL_Token is not provided as part of the command creation.
+     * If the RIL_REQUEST_RADIO_POWER is for platform shutdown, then the
+     * main thread(request handling thread) waits for ModemPoweredOffEvent.
+     * If the request is for radio state change(on/off), then the main
+     * thread waits for RadioStateChangedEvent. This events are triggered
+     * on MODEM_DOWN or from PostRadioPower(on response of CFUN commands).
+     * On this events, main thread will be unblocked and RIL_REQUEST_RADIO_POWER
+     * request is completed in RequestRadioPower function in te.cpp with the valid
+     * RIL_Token.
+     */
+    pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER],
+            NULL, ND_REQ_ID_RADIOPOWER, szCmd, &CTE::ParseRadioPower,
+            &CTE::PostRadioPower);
+
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() -"
+                    " Unable to add command to queue\r\n");
+            res = RRIL_RESULT_ERROR;
+            delete pCmd;
+            pCmd = NULL;
+            goto Error;
+        }
     }
     else
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - g_szSIMID is NULL\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() -"
+                " Unable to allocate memory for command\r\n");
+        res = RRIL_RESULT_ERROR;
         goto Error;
     }
 
-    // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
-    property_get(szSimPowerOffStatePropName, szSimPowerOffState, "");
-    uiSimPoweredOff = (strcmp(szSimPowerOffState, "true") == 0) ? 1 : 0;
-
-    // Power On (20) or flight mode (21)
-    uiFunMode = bTurnRadioOn ? 20 : 21;
-
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            "AT+CFUN=%u,%u%s\r", uiFunMode, uiSimPoweredOff,
-            (uiFunMode == 20 && uiSimPoweredOff == 0) ? ";+XSIMSTATE?" : ""))
+    if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - Cannot create CFUN command\r\n");
-        goto Error;
-    }
+        /*
+         * Incase of platform shutdown, wait for modem powered off event.
+         * Modem powered off event will be signalled on MODEM_DOWN event.
+         *
+         * Platform shutdown sequence is as follows:
+         *     - RADIO_POWER OFF request with property sys.shutdown.requested
+         *       set to 0 or 1.
+         *     - Add modem specific RADIO_POWER OFF commands added to command
+         *       queue and wait for modem powered off event.
+         *     - Channel specific command thread will sent the command to modem.
+         *     - Upon response, send modem shutdown request to MMGR.
+         *     -  Upon MODEM_SHUTDOWN notification modem event, acknowledge
+         *     - Upon MODEM_DOWN event, set the radio state to OFF and signal
+         *       modem powered off.
+         *     - Modem powere d off event will unblock the ril request handling
+         *       thread. Once unblocked, RADIO_POWER OFF request will be completed.
+         */
+        CEvent* pModemPoweredOffEvent =
+                CSystemManager::GetInstance().GetModemPoweredOffEvent();
+        if (NULL != pModemPoweredOffEvent)
+        {
+            CEvent::Reset(pModemPoweredOffEvent);
 
-    res = RRIL_RESULT_OK;
-#endif // M2_DUALSIM_FEATURE_ENABLED
+            CEvent::Wait(pModemPoweredOffEvent, WAIT_FOREVER);
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - Waiting for radio state changed event\r\n");
+
+        /*
+         * Incase of radio on/off request, wait for radio state change or
+         * cancel event. Radio state change event will be signalled when
+         * the command is sent to modem and also response is received from
+         * modem. Cancel event is signalled on modem events. Cancel event
+         * means that there is no some issue in handling RADIO_POWER request.
+         *
+         * RADIO_POWER ON sequence is as follows:
+         *     - RADIO_POWER request from framework.
+         *     - If modem is not powered on, acquire the modem resource
+         *     - Wait for modem powered on and basic initialization completion
+         *       event.
+         *     - Add modem specific RADIO_POWER ON commands to command queue
+         *       and wait for radio state changed event
+         *     - Channel specific command thread sends the command to modem
+         *     - Upon response from modem, parser and then post command
+         *     - handlers will be called.
+         *     - Post command handler set the radio state to ON and notifies
+         *       the framework.
+         *     - Post command handler signals radio state changed event
+         *     - Radio state changed event unblocks the ril request handling
+         *       thread which was blocked in handing RADIO_POWER ON request.
+         *     - Upon radio state changed event complete the RADIO_POWER ON
+         *       request.
+         */
+        CEvent* pRadioStateChangedEvent = m_cte.GetRadioStateChangedEvent();
+        CEvent* pExitRilEvent = CSystemManager::GetCancelEvent();
+
+        if (NULL != pRadioStateChangedEvent && NULL != pExitRilEvent)
+        {
+            CEvent::Reset(pRadioStateChangedEvent);
+
+            CEvent* rgpEvents[] = { pRadioStateChangedEvent, pExitRilEvent };
+
+            CEvent::WaitForAnyEvent(2/*NumEvents*/, rgpEvents, WAIT_FOREVER);
+        }
+    }
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Exit\r\n");
@@ -9602,6 +9813,13 @@ void CTEBase::SetRadioState(const RRIL_Radio_State eRadioState)
     m_RadioState.SetRadioState(eRadioState);
 }
 
+void CTEBase::SetRadioStateAndNotify(const RRIL_Radio_State eRadioState)
+{
+    RIL_LOG_VERBOSE("CTEBase::SetRadioStateAndNotify() - Enter / Exit\r\n");
+
+    m_RadioState.SetRadioStateAndNotify(eRadioState);
+}
+
 void CTEBase::SetSIMState(const RRIL_SIM_State eSIMState)
 {
     RIL_LOG_VERBOSE("CTEBase::SetSIMState() - Enter / Exit\r\n");
@@ -10272,4 +10490,11 @@ void CTEBase::SetDtmfAllowed(int callId, BOOL bDtmfAllowed)
             break;
         }
     }
+}
+
+BOOL CTEBase::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
+        BOOL bIsModemOffInFlightMode, char* pCmdBuffer, int cmdBufferLen)
+{
+    // should be derived in modem specific class
+    return FALSE;
 }

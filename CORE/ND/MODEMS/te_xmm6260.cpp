@@ -5018,7 +5018,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRsp
     {
         // Set the radio and SIM state as un available
         SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
-        SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+        SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
     }
     //  Todo: Handle error here.
 
@@ -6070,4 +6070,84 @@ RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::HandleScreenStateReq() - Exit\r\n");
     return res;
+}
+
+BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
+        BOOL bIsModemOffInFlightMode, char* pCmdBuffer, int cmdBufferLen)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetRadioPowerCommand() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    char szCmd[MAX_BUFFER_SIZE] = {'\0'};
+
+    if (NULL == pCmdBuffer || cmdBufferLen <= 0)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - Invalid buffer\r\n");
+
+        return bRet;
+    }
+
+#if !defined(M2_DUALSIM_FEATURE_ENABLED)
+    if (bTurnRadioOn)
+    {
+        strcpy(szCmd, "AT+CFUN=1;+XSIMSTATE?\r");
+    }
+    else
+    {
+        if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
+        {
+            strcpy(szCmd, "AT+CHLD=8;+CGATT=0\r");
+        }
+        else
+        {
+            strcpy(szCmd, "AT+CFUN=4\r");
+        }
+    }
+#else
+    // use SIM-specific property, depending on RIL instance
+    char szSimPowerOffStatePropName[MAX_PROP_VALUE] = {'\0'};
+    char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
+    UINT32 uiSimPoweredOff;
+    UINT32 uiFunMode;
+
+    if (g_szSIMID)
+    {
+        snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
+                "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - g_szSIMID is NULL\r\n");
+        goto Error;
+    }
+
+    // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
+    property_get(szSimPowerOffStatePropName, szSimPowerOffState, "");
+    uiSimPoweredOff = (strcmp(szSimPowerOffState, "true") == 0) ? 1 : 0;
+
+    // Power On (20) or flight mode (21)
+    uiFunMode = bTurnRadioOn ? 20 : 21;
+
+    if (!PrintStringNullTerminate(szCmd, sizeof(szCmd),
+            "AT+CFUN=%u,%u%s\r", uiFunMode, uiSimPoweredOff,
+            (uiFunMode == 20 && uiSimPoweredOff == 0) ? ";+XSIMSTATE?" : ""))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - Cannot create command\r\n");
+        goto Error;
+    }
+#endif
+
+    if (!CopyStringNullTerminate(pCmdBuffer, szCmd, cmdBufferLen))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - "
+                "Cannot copy command to output buffer\r\n");
+
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetRadioPowerCommand() - Exit\r\n");
+
+    return bRet;
 }
