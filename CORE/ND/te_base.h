@@ -744,6 +744,7 @@ public:
     virtual RIL_RadioState GetRadioState();
     virtual RRIL_SIM_State GetSIMState();
     virtual void SetRadioState(const RRIL_Radio_State eRadioState);
+    virtual void SetRadioStateAndNotify(const RRIL_Radio_State eRadioState);
     virtual void SetSIMState(const RRIL_SIM_State eSIMState);
 
     // Returns true on PIN entry required
@@ -799,6 +800,12 @@ public:
 
     BOOL IsDtmfAllowed(int callId);
     void SetDtmfAllowed(int callId, BOOL bDtmfAllowed);
+
+    /*
+     * Get AT commands to power on/off the radio
+     */
+    virtual BOOL GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
+            BOOL bIsModemOffInFlightMode, /*INOUT*/ char* pCmdBuffer, int cmdBufferLen);
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);

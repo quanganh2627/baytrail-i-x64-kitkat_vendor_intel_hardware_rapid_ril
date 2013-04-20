@@ -79,6 +79,9 @@ public:
         return GetInstance().m_pModemBasicInitCompleteEvent;
     }
 
+    //  Get/Set functions.
+    CEvent* GetModemPoweredOffEvent() { return m_pModemPoweredOffEvent; }
+
     static CMutex* GetDataChannelAccessorMutex()
     {
         return GetInstance().m_pDataChannelAccessorMutex;
@@ -90,7 +93,8 @@ public:
     }
 
     void TriggerSimUnlockedEvent() const { CEvent::Signal(m_pSimUnlockedEvent); };
-    void TriggerModemPowerOnEvent() const { CEvent::Signal(m_pModemPowerOnEvent); };
+    void TriggerRadioPoweredOnEvent() const { CEvent::Signal(m_pRadioPoweredOnEvent); };
+    void TriggerModemPoweredOffEvent() const { CEvent::Signal(m_pModemPoweredOffEvent); };
     void TriggerInitStringCompleteEvent(UINT32 eChannel, eComInitIndex eInitIndex);
 
     BOOL IsInitializationSuccessful() const { return m_bIsSystemInitialized; };
@@ -165,7 +169,8 @@ private:
     CEvent* m_pExitRilEvent;
     CEvent* m_pModemBasicInitCompleteEvent;
     CEvent* m_pSimUnlockedEvent;
-    CEvent* m_pModemPowerOnEvent;
+    CEvent* m_pRadioPoweredOnEvent;
+    CEvent* m_pModemPoweredOffEvent;
     CEvent* m_pInitStringCompleteEvent;
     CEvent* m_pSysInitCompleteEvent;
 
