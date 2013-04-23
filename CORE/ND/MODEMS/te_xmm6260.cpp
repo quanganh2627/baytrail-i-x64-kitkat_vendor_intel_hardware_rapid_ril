@@ -5894,7 +5894,7 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::DataConfigDown() - "
+        RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() - "
                 "Invalid CID=[%u], no data channel found!\r\n", uiCID);
         return FALSE;
     }
