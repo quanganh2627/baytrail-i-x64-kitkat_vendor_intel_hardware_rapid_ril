@@ -765,22 +765,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         }
         RIL_requestTimedCallback(requestEstablishedPDPList, (void*)uiCID, 0, 0);
     }
-    //  Format is "ME DEACT, "IP", "IP_ADDR", <cid>"
-    else if (FindAndSkipString(rszPointer, "ME DEACT", szStrExtract))
-    {
-        char dummy[MAX_IPADDR_SIZE] = {0};
-        if(!ExtractQuotedString(szStrExtract, dummy, sizeof(dummy)-1, szStrExtract) || // skip "IP"
-           !FindAndSkipString(szStrExtract, ",", szStrExtract)                      ||
-           // skip "IP_ADDR"
-           !ExtractQuotedString(szStrExtract, dummy, sizeof(dummy)-1, szStrExtract) ||
-           !FindAndSkipString(szStrExtract, ",", szStrExtract)                      ||
-           !ExtractUInt32(szStrExtract, uiCID, szStrExtract))
-        {
-            goto Error;
-        }
-        RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME DEACT, cid=[%d]\r\n", uiCID);
-        CTE::GetTE().RemoveActivatedContext(uiCID);
-    }
     // Format: "NW ACT <p_cid>, <cid>, <event_type>. Unsupported.
     else if (FindAndSkipString(szStrExtract, "NW ACT", szStrExtract))
     {
@@ -795,8 +779,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME ACT event for secondary PDP "
                 "context ignored (unsupported)!\r\n");
     }
-    else if (FindAndSkipString(rszPointer, "NW CLASS", szStrExtract) ||
-            FindAndSkipString(rszPointer, "ME CLASS", szStrExtract))
+    else if (FindAndSkipString(szStrExtract, "NW CLASS", szStrExtract) ||
+            FindAndSkipString(szStrExtract, "ME CLASS", szStrExtract))
     {
         int mt_class = 0;
 
@@ -845,10 +829,12 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             goto Error;
         }
     }
-    else if (FindAndSkipString(rszPointer, "ME DETACH", rszPointer) ||
-            FindAndSkipString(rszPointer, "NW DETACH", rszPointer))
+    else if (FindAndSkipString(szStrExtract, "ME DETACH", szStrExtract) ||
+            FindAndSkipString(szStrExtract, "NW DETACH", szStrExtract))
     {
         RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME or NW DETACH");
+
+        CTE::GetTE().RemoveActivatedContext(uiCID);
         CTE::GetTE().CleanupAllDataConnections();
         CTE::GetTE().CompleteDataCallListChanged();
     }
@@ -867,6 +853,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             if (GetContextIdFromDeact(szStrExtract, uiCID))
             {
                 RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT CID- %u", uiCID);
+                CTE::GetTE().DataConfigDown(uiCID);
             }
         }
         else // Otherwise, must be format for secondary PDP context
@@ -906,6 +893,9 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                      * map the fail cause to ril cause values and set it.
                      */
                     pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
+
+                    CTE::GetTE().DataConfigDown(uiCID);
+
                     CTE::GetTE().CompleteDataCallListChanged();
                 }
             }
@@ -933,6 +923,9 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN DEACT, extracted "
                     "cid=[%u]\r\n", uiCID);
         }
+
+        CTE::GetTE().RemoveActivatedContext(uiCID);
+        CTE::GetTE().DataConfigDown(uiCID);
     }
     // Format: "NW PDN DEACT, <cid>"
     else if (FindAndSkipString(szStrExtract, "NW PDN DEACT", szStrExtract))
@@ -966,6 +959,9 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                  * map the fail cause to ril cause values and set it.
                  */
                 pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
+
+                CTE::GetTE().DataConfigDown(uiCID);
+
                 CTE::GetTE().CompleteDataCallListChanged();
             }
         }
