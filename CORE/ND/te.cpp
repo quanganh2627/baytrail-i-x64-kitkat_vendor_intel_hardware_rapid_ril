@@ -186,13 +186,20 @@ BOOL CTE::IsRequestSupported(int requestId)
 
 BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
 {
-    BOOL bAllowed;
+    BOOL bAllowed = FALSE;
 
     switch (requestId)
     {
         case RIL_REQUEST_RADIO_POWER:
-            bAllowed = TRUE;
+        {
+            int modemState = GetLastModemEvent();
+            if (E_MMGR_EVENT_MODEM_OUT_OF_SERVICE != modemState
+                    && E_MMGR_NOTIFY_PLATFORM_REBOOT != modemState)
+            {
+                bAllowed = TRUE;
+            }
             break;
+        }
 
         default:
             bAllowed = FALSE;
