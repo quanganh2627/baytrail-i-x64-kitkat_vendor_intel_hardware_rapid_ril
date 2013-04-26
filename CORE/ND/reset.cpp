@@ -328,6 +328,9 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     ModemResetUpdate();
 
                     CTE::GetTE().ResetInternalStates();
+
+                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
                 // Retrieve the shutdown property
@@ -393,6 +396,9 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     ModemResetUpdate();
 
                     CTE::GetTE().ResetInternalStates();
+
+                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
                 CSystemManager::GetInstance().SendAckModemColdReset();
@@ -429,6 +435,9 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     ModemResetUpdate();
 
                     CTE::GetTE().ResetInternalStates();
+
+                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
                 break;
 
@@ -450,6 +459,9 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 }
 
                 CTE::GetTE().ResetInternalStates();
+
+                RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
+                CSystemManager::GetInstance().CloseChannelPorts();
 
                 CSystemManager::GetInstance().SendAckModemShutdown();
                 break;

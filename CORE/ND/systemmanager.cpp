@@ -143,6 +143,8 @@ CSystemManager::CSystemManager()
 
     m_pTEAccessMutex = new CMutex();
 
+    memset(m_cancelWaitPipeFds, -1, sizeof(m_cancelWaitPipeFds));
+
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Exit\r\n");
 }
 
@@ -171,20 +173,13 @@ CSystemManager::~CSystemManager()
 
     m_bIsSystemInitialized = FALSE;
 
-    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before signal m_pExitRilEvent\r\n");
-    // signal the cancel event to kill the command and response thread
-    CEvent::Signal(m_pExitRilEvent);
-
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CloseChannelPorts\r\n");
-    //  Close the COM ports
+    // Close the COM ports
     CloseChannelPorts();
 
     //  Delete channels
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteChannels\r\n");
     DeleteChannels();
-
-    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CThreadManager::Stop\r\n");
-    CThreadManager::Stop();
 
     // destroy events
     if (m_pExitRilEvent)
@@ -971,18 +966,10 @@ void CSystemManager::ResetChannelInfo()
 
     CMutex::Lock(m_pSystemManagerMutex);
 
-    // signal the cancel event to kill the command and response thread
-    if (NULL != m_pExitRilEvent)
-    {
-        CEvent::Signal(m_pExitRilEvent);
-    }
-
     ResetChannelCompletedInit();
 
     //  Close the COM ports
     CloseChannelPorts();
-
-    CThreadManager::Stop();
 
     if (m_pExitRilEvent)
     {
@@ -1143,6 +1130,13 @@ BOOL CSystemManager::OpenChannelPortsOnly()
     BOOL bRet = FALSE;
 
     CMutex::Lock(m_pPortsManagerMutex);
+
+    if (pipe(m_cancelWaitPipeFds) == -1)
+    {
+        RIL_LOG_WARNING("CSystemManager::OpenChannelPortsOnly() - pipe creation failed\r\n");
+        goto Done;
+    }
+
     //  Init our array of global CChannel pointers.
     for (UINT32 i = 0; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
     {
@@ -1199,13 +1193,30 @@ void CSystemManager::CloseChannelPorts()
 {
     RIL_LOG_VERBOSE("CSystemManager::CloseChannelPorts() - Enter\r\n");
 
-    // signal the cancel event to kill the command and response thread
+    // signal the cancel event to stop command thread
     if (NULL != m_pExitRilEvent)
     {
         CEvent::Signal(m_pExitRilEvent);
     }
 
     CMutex::Lock(m_pPortsManagerMutex);
+
+    // Signal the response thread to exit by writing to pipe
+    if (m_cancelWaitPipeFds[0] >= 0 && m_cancelWaitPipeFds[1] >= 0)
+    {
+        BOOL bTerminateResponseThread = 1;
+        write(m_cancelWaitPipeFds[1], &bTerminateResponseThread, sizeof(BOOL));
+    }
+
+    RIL_LOG_INFO("CSystemManager::CloseChannelPorts() - Before CThreadManager::Stop\r\n");
+    CThreadManager::Stop();
+
+    // Close the pipes
+    close(m_cancelWaitPipeFds[0]);
+    m_cancelWaitPipeFds[0] = -1;
+
+    close(m_cancelWaitPipeFds[1]);
+    m_cancelWaitPipeFds[1] = -1;
 
     for (UINT32 i = 0; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
     {
