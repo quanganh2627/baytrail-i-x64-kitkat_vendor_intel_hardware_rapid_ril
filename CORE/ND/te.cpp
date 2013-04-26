@@ -1404,8 +1404,8 @@ RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void* pData, size_t datalen
     }
     else
     {
-        CCommand* pCmd = new CCommand(RIL_CHANNEL_ATCMD, rilToken, ND_REQ_ID_DIAL, reqData,
-                                    &CTE::ParseDial, &CTE::PostDialCmdHandler);
+        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DIAL], rilToken,
+                ND_REQ_ID_DIAL, reqData, &CTE::ParseDial, &CTE::PostDialCmdHandler);
 
         if (pCmd)
         {
@@ -1521,6 +1521,11 @@ RIL_RESULT_CODE CTE::RequestHangup(RIL_Token rilToken, void* pData, size_t datal
             RIL_LOG_CRITICAL("CTE::RequestHangup() - Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
+    }
+
+    if (RRIL_RESULT_OK == res)
+    {
+        m_pTEBaseInstance->SetDtmfAllowed(m_pTEBaseInstance->GetCurrentCallId(), FALSE);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestHangup() - Exit\r\n");
@@ -1639,7 +1644,7 @@ RIL_RESULT_CODE CTE::RequestHangupForegroundResumeBackground(RIL_Token rilToken,
 
     if (RRIL_RESULT_OK == res)
     {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
+        m_pTEBaseInstance->SetDtmfAllowed(m_pTEBaseInstance->GetCurrentCallId(), FALSE);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestHangupForegroundResumeBackground() - Exit\r\n");
@@ -1699,7 +1704,7 @@ RIL_RESULT_CODE CTE::RequestSwitchHoldingAndActive(RIL_Token rilToken, void* pDa
 
     if (RRIL_RESULT_OK == res)
     {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
+        m_pTEBaseInstance->SetDtmfAllowed(m_pTEBaseInstance->GetCurrentCallId(), FALSE);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestSwitchHoldingAndActive() - Exit\r\n");
@@ -1755,7 +1760,7 @@ RIL_RESULT_CODE CTE::RequestConference(RIL_Token rilToken, void* pData, size_t d
 
     if (RRIL_RESULT_OK == res)
     {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
+        m_pTEBaseInstance->SetDtmfAllowed(m_pTEBaseInstance->GetCurrentCallId(), FALSE);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestConference() - Exit\r\n");
@@ -3209,6 +3214,8 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void* pData, 
     }
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
+    // send rilToken to CoreDeactivateDataCall in order to call RIL_onRequestComplete
+    reqData.pContextData = &rilToken;
     res = m_pTEBaseInstance->CoreDeactivateDataCall(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
@@ -3246,7 +3253,7 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void* pData, 
         }
     }
 
-    if (RRIL_RESULT_OK != res)
+    if ((RRIL_RESULT_OK != res) && (RRIL_RESULT_OK_IMMEDIATE != res))
     {
         CleanRequestData(reqData);
     }
@@ -3688,6 +3695,7 @@ RIL_RESULT_CODE CTE::RequestDtmfStart(RIL_Token rilToken, void* pData, size_t da
 
         if (pCmd)
         {
+            pCmd->SetCallId(m_pTEBaseInstance->GetCurrentCallId());
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestDtmfStart() - Unable to add command to queue\r\n");
@@ -3742,6 +3750,7 @@ RIL_RESULT_CODE CTE::RequestDtmfStop(RIL_Token rilToken, void* pData, size_t dat
 
         if (pCmd)
         {
+            pCmd->SetCallId(m_pTEBaseInstance->GetCurrentCallId());
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestDtmfStop() - Unable to add command to queue\r\n");
@@ -3866,7 +3875,7 @@ RIL_RESULT_CODE CTE::RequestSeparateConnection(RIL_Token rilToken, void* pData, 
 
     if (RRIL_RESULT_OK == res)
     {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
+        m_pTEBaseInstance->SetDtmfAllowed(m_pTEBaseInstance->GetCurrentCallId(), FALSE);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestSeparateConnection() - Exit\r\n");
@@ -7308,7 +7317,7 @@ UINT32 CTE::GetDtmfState()
 }
 
 BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
-        BOOL bIsInitCommand)
+        BOOL bIsInitCommand, int callId)
 {
     RIL_Errno eRetVal = RIL_E_SUCCESS;
     BOOL bIsReqAllowed;
@@ -7375,7 +7384,8 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
             bIsReqAllowed = FALSE;
             CMutex::Lock(m_pDtmfStateAccess);
 
-            if (E_DTMF_STATE_STOP == GetDtmfState())
+            if (E_DTMF_STATE_STOP == GetDtmfState()
+                    && m_pTEBaseInstance->IsDtmfAllowed(callId))
             {
                 SetDtmfState(E_DTMF_STATE_START);
                 bIsReqAllowed = TRUE;
@@ -7388,14 +7398,20 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
                     RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
                 }
 
-                if (E_DTMF_STATE_FLUSH == GetDtmfState())
+                /*
+                 * Incase of multi-party call, first call id in the multi-party
+                 * call is added as the call id for DTMF requests. So, if dtmf is
+                 * not allowed for the first call, then it implicitly means that DTMF
+                 * is not allowed for all the calls in the multi-party call.
+                 */
+                if (!m_pTEBaseInstance->IsDtmfAllowed(callId))
                 {
                     // Complete pending DTMF start and stop request
                     CSystemManager::CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0);
+                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
                     CSystemManager::CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0);
+                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
                     SetDtmfState(E_DTMF_STATE_STOP);
                 }
@@ -7411,7 +7427,8 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
             bIsReqAllowed = FALSE;
 
             int dtmfState = TestAndSetDtmfState(E_DTMF_STATE_STOP);
-            if (E_DTMF_STATE_START == dtmfState)
+            if (E_DTMF_STATE_START == dtmfState
+                    && m_pTEBaseInstance->IsDtmfAllowed(callId))
             {
                 bIsReqAllowed = TRUE;
             }
@@ -7423,14 +7440,14 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
                     RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
                 }
 
-                if (E_DTMF_STATE_FLUSH == dtmfState)
+                if (!m_pTEBaseInstance->IsDtmfAllowed(callId))
                 {
                     // Complete pending DTMF start and stop request
                     CSystemManager::CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0);
+                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
                     CSystemManager::CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0);
+                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
                 }
             }
             break;
@@ -7868,11 +7885,6 @@ void CTE::PostHangupCmdHandler(POST_CMD_HANDLER_DATA& rData)
         return;
     }
 
-    if (RRIL_RESULT_OK == rData.uiResultCode)
-    {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
-    }
-
     RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                                                 rData.pData, rData.uiDataSize);
 
@@ -7891,11 +7903,6 @@ void CTE::PostSwitchHoldingAndActiveCmdHandler(POST_CMD_HANDLER_DATA& rData)
 
     RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                                                 rData.pData, rData.uiDataSize);
-
-    if (RRIL_RESULT_OK == rData.uiResultCode)
-    {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
-    }
 
     if (IsClearPendingCHLD() || RRIL_RESULT_OK != rData.uiResultCode)
     {

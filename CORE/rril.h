@@ -145,8 +145,17 @@ enum
 {
     E_DTMF_STATE_START = 1,
     E_DTMF_STATE_STOP,
-    E_DTMF_STATE_FLUSH
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// Voice call state information
+//
+typedef struct
+{
+    int id;
+    int state;
+    BOOL bDtmfAllowed;
+} S_VOICECALL_STATE_INFO;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Data call states
@@ -252,6 +261,7 @@ enum
 #define RRIL_RESULT_NOTSUPPORTED        RIL_E_REQUEST_NOT_SUPPORTED  // 0x00000006
 #define RRIL_RESULT_CALLABORTED         RIL_E_CANCELLED              // 0x00000007
 #define RRIL_RESULT_FDN_FAILURE         RIL_E_FDN_CHECK_FAILURE      // 0x0000000E
+#define RRIL_RESULT_OK_IMMEDIATE        (0x00000010)
 
 // V25 Results
 #define RRIL_RESULT_NOCARRIER      RIL_E_GENERIC_FAILURE

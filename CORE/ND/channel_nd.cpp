@@ -863,7 +863,8 @@ Error:
 BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
                                                         UINT32 uiResultCode,
                                                         void* pResponse,
-                                                        size_t responseLen)
+                                                        size_t responseLen,
+                                                        int callId)
 {
     RIL_LOG_VERBOSE("CChannel::FindIdenticalRequestsAndSendResponses() - Enter\r\n");
 
@@ -875,7 +876,8 @@ BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
 
     for (int i = 0; i < numOfCommands; i++)
     {
-        if (pCmdArray[i]->GetRequestID() == uiReqID)
+        if (pCmdArray[i]->GetRequestID() == uiReqID
+                && pCmdArray[i]->GetCallId() == callId)
         {
             //  Dequeue the object, send the response and then free the CCommand.
             //  Do this ONLY if the command is still present in the channel queue

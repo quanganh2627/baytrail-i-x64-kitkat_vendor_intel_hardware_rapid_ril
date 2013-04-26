@@ -123,7 +123,7 @@ public:
 
     // Calls FindIdenticalRequestsAndSendResponses on the given channel
     static void CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID, UINT32 uiResultCode,
-            void* pResponse, size_t responseLen);
+            void* pResponse, size_t responseLen, int callId = -1);
     char m_szDualSim[PROPERTY_VALUE_MAX];
 
     char* GetModemResourceName();

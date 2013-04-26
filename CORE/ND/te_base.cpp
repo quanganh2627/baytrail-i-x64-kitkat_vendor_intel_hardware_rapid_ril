@@ -62,6 +62,7 @@ CTEBase::CTEBase(CTE& cte)
     memset(m_szPIN, 0, MAX_PIN_SIZE);
     memset(&m_IncomingCallInfo, 0, sizeof(m_IncomingCallInfo));
     memset(&m_PinRetryCount, -1, sizeof(m_PinRetryCount));
+    memset(&m_VoiceCallInfo, -1, sizeof(m_VoiceCallInfo));
 }
 
 CTEBase::~CTEBase()
@@ -1014,7 +1015,6 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
     RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
 
     BOOL bSuccess;
-    BOOL bDtmfAllowed = FALSE;
 
     P_ND_CALL_LIST_DATA pCallListData = NULL;
     int  nCalls = 0;
@@ -1206,26 +1206,29 @@ Continue:
         rRspData.uiDataSize = 0;
     }
 
+    memset(&m_VoiceCallInfo, -1, sizeof(m_VoiceCallInfo));
+
     if (pCallListData != NULL)
     {
         UINT32 uiCallState;
-        for (UINT32 i = 0; i < RRIL_MAX_CALL_ID_COUNT; i++)
+        for (UINT32 i = 0; i < nUsed; i++)
         {
-            uiCallState = pCallListData->pCallData[nUsed].state;
+            m_VoiceCallInfo[i].id = pCallListData->pCallData[i].index;
+            m_VoiceCallInfo[i].state = pCallListData->pCallData[i].state;
+
+            uiCallState = pCallListData->pCallData[i].state;
             if (uiCallState == E_CALL_STATUS_DIALING
                     || uiCallState == E_CALL_STATUS_ALERTING
                     || uiCallState == E_CALL_STATUS_ACTIVE
                     || uiCallState == E_CALL_STATUS_CONNECTED)
             {
-                bDtmfAllowed = TRUE;
-                break;
+                m_VoiceCallInfo[i].bDtmfAllowed = TRUE;
+            }
+            else
+            {
+                m_VoiceCallInfo[i].bDtmfAllowed = FALSE;
             }
         }
-    }
-
-    if (!bDtmfAllowed)
-    {
-        m_cte.SetDtmfState(E_DTMF_STATE_STOP);
     }
 
     res = RRIL_RESULT_OK;
@@ -5426,7 +5429,7 @@ RIL_RESULT_CODE CTEBase::CoreSeparateConnection(REQUEST_DATA& rReqData,
     callId = ((int *)pData)[0];
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            (E_DTMF_STATE_START == uiDtmfState) ? "AT+XVTS;+CHLD=%u\r" :"AT+CHLD=2%u\r",
+            (E_DTMF_STATE_START == uiDtmfState) ? "AT+XVTS;+CHLD=2%u\r" :"AT+CHLD=2%u\r",
             callId))
     {
         res = RRIL_RESULT_OK;
@@ -9701,4 +9704,45 @@ RIL_RESULT_CODE CTEBase::HandleScreenStateReq(int screenState)
 {
     // should be derived in modem specific class
     return RRIL_RESULT_OK;
+}
+
+int CTEBase::GetCurrentCallId()
+{
+    for (UINT32 i = 0; i < RRIL_MAX_CALL_ID_COUNT; i++)
+    {
+        if (E_CALL_STATUS_DIALING == m_VoiceCallInfo[i].state
+                || E_CALL_STATUS_ALERTING == m_VoiceCallInfo[i].state
+                || E_CALL_STATUS_ACTIVE == m_VoiceCallInfo[i].state
+                || E_CALL_STATUS_CONNECTED == m_VoiceCallInfo[i].state)
+        {
+            return m_VoiceCallInfo[i].id;
+        }
+    }
+
+    return -1;
+}
+
+BOOL CTEBase::IsDtmfAllowed(int callId)
+{
+    for (UINT32 i = 0; i < RRIL_MAX_CALL_ID_COUNT; i++)
+    {
+        if (callId == m_VoiceCallInfo[i].id)
+        {
+            return m_VoiceCallInfo[i].bDtmfAllowed;
+        }
+    }
+
+    return FALSE;
+}
+
+void CTEBase::SetDtmfAllowed(int callId, BOOL bDtmfAllowed)
+{
+    for (UINT32 i = 0; i < RRIL_MAX_CALL_ID_COUNT; i++)
+    {
+        if (callId == m_VoiceCallInfo[i].id)
+        {
+            m_VoiceCallInfo[i].bDtmfAllowed = bDtmfAllowed;
+            break;
+        }
+    }
 }
