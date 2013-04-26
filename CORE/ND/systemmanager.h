@@ -103,7 +103,13 @@ public:
     void GetRequestInfo(REQ_ID reqID, REQ_INFO& rReqInfo);
 
     //  For resetting modem
+
+    /*
+     * Signals the command, response thread to exit and also stops the thread before
+     * closing the ports.
+     */
     void CloseChannelPorts();
+
     BOOL OpenChannelPortsOnly();
 
     BOOL SendRequestModemRecovery();
@@ -132,6 +138,8 @@ public:
 
     char* GetModemResourceName();
     int GetIpcDataChannelMin();
+
+    int GetCancelWaitPipeFd() { return m_cancelWaitPipeFds[0]; }
 
 private:
     // Framework Init Functions
@@ -200,6 +208,13 @@ private:
 
     CMutex* m_pSpoofCommandsStatusAccessMutex;
     CMutex* m_pTEAccessMutex;
+
+    /*
+     * This holds the read and write pipe descriptors. Upon data in read pipe
+     * descriptor, channel response thread will cancel the response polling and
+     * exit the response thread.
+     */
+    int m_cancelWaitPipeFds[2];
 };
 
 #endif // SYSTEMMANAGER
