@@ -524,7 +524,6 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             break;
         case 0: // SIM not present
         case 9: // SIM Removed
-        case 14: // SIM powered off by modem
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM REMOVED/NOT PRESENT\r\n");
             m_IsReadyForAttach = FALSE;
             // Fall through to notify Radio and Sim status
@@ -904,7 +903,6 @@ BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPoint
             break;
         case 0: // SIM not present
         case 9: // SIM Removed
-        case 14: // SIM powered off by modem
             RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM REMOVED/NOT PRESENT\r\n");
             m_IsReadyForAttach = FALSE;
             // Fall through to notify Radio and Sim status

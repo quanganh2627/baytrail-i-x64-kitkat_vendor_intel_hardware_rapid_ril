@@ -596,15 +596,10 @@ void CMultipleEvent::RemoveEvent(int iEventIndex)
 {
     assert((iEventIndex >= 0) && (iEventIndex < m_nEvents));
 
-    EnterMutex();
-    {
-        if (m_pEvents[iEventIndex])
-            m_pEvents[iEventIndex]->DeleteObserver(this);
+    if (m_pEvents[iEventIndex])
+        m_pEvents[iEventIndex]->DeleteObserver(this);
 
-        m_pEvents[iEventIndex] = NULL;
-    }
-
-    LeaveMutex();
+    m_pEvents[iEventIndex] = NULL;
 }
 
 BOOL CMultipleEvent::Update(int iEventIndex)
