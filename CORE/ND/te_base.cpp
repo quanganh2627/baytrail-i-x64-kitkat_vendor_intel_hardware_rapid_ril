@@ -63,16 +63,214 @@ CTEBase::CTEBase(CTE& cte)
     memset(&m_IncomingCallInfo, 0, sizeof(m_IncomingCallInfo));
     memset(&m_PinRetryCount, -1, sizeof(m_PinRetryCount));
 
-    // quick temp hack to store LTE initial PDP data
-    memset(m_szTmpIPAddress,0,MAX_BUFFER_SIZE);
-    memset(m_szTmpDNS,0,MAX_BUFFER_SIZE);
-    memset(m_szTmpGateway,0,MAX_BUFFER_SIZE);
-
+    m_pPDPListData = (P_ND_PDP_CONTEXT_DATA) new S_ND_PDP_CONTEXT_DATA;
+    if (m_pPDPListData)
+    {
+       memset(m_pPDPListData, 0, sizeof(S_ND_PDP_CONTEXT_DATA));
+    }
 }
 
 CTEBase::~CTEBase()
 {
+    delete m_pPDPListData;
 }
+
+char* CTEBase::GetPDNFirstIpV4Dns(UINT32 cid, char* ret)
+{
+
+    char* pData;
+    char* pmv;
+    char tmpbuf[MAX_BUFFER_SIZE+1] = {0};
+    int contextId = (int) cid;
+
+    if (!m_pPDPListData || !ret)
+        return ret;
+
+    *ret = '\0';
+
+    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
+    {
+        if (m_pPDPListData->pPDPData[i].cid == contextId
+             && strcmp(m_pPDPListData->pTypeBuffers[i], "IP") == 0 )
+        {
+            pData = m_pPDPListData->pDnsesBuffers[i];
+            pmv = ret;
+            while (*pData && *pData != ' ')
+                *pmv++ = *pData++;
+            *pmv = '\0';
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
+char* CTEBase::GetPDNSecIpV4Dns(UINT32 cid, char* ret)
+{
+    char* pData;
+    char* pmv;
+    char tmpbuf[MAX_BUFFER_SIZE+1] = {0};
+    int contextId = (int) cid;
+
+    if (!m_pPDPListData || !ret)
+        return ret;
+
+    *ret = '\0';
+
+    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
+    {
+        if (m_pPDPListData->pPDPData[i].cid == contextId
+             && strcmp(m_pPDPListData->pTypeBuffers[i], "IP") == 0)
+        {
+            pData = m_pPDPListData->pDnsesBuffers[i];
+            pmv = ret;
+            while (*pData && *pData++ != ' ');
+            while (*pData && *pData != ' ')
+                *pmv++ = *pData++;
+            *pmv = '\0';
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
+char* CTEBase::GetPDNFirstIpV6Dns(UINT32 cid, char* ret)
+{
+    char* pData;
+    char* pmv;
+    int contextId = (int) cid;
+
+    if (!m_pPDPListData || !ret)
+        return ret;
+
+    *ret = '\0';
+
+    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
+    {
+        if (m_pPDPListData->pPDPData[i].cid == contextId
+             && strcmp(m_pPDPListData->pTypeBuffers[i], "IPV6") == 0)
+        {
+            pData = m_pPDPListData->pDnsesBuffers[i];
+            pmv = ret;
+            while (*pData && *pData != ' ')
+                *pmv++ = *pData++;
+            *pmv = '\0';
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
+char* CTEBase::GetPDNSecIpV6Dns(UINT32 cid,char* ret)
+{
+    char* pData;
+    char* pmv;
+    int contextId = (int) cid;
+
+    if (!m_pPDPListData || !ret)
+        return ret;
+
+    *ret = '\0';
+
+    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
+    {
+        if (m_pPDPListData->pPDPData[i].cid == contextId
+             && strcmp(m_pPDPListData->pTypeBuffers[i], "IPV6") == 0)
+        {
+            pData = m_pPDPListData->pDnsesBuffers[i];
+            pmv = ret;
+            while (*pData && *pData++ != ' ');
+            while (*pData && *pData != ' ')
+                *pmv++ = *pData++;
+            *pmv = '\0';
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
+char* CTEBase::GetPDNFirstIpV4(UINT32 cid, char* ret)
+{
+    char* pData;
+    char* pmv;
+    int contextId = (int) cid;
+
+    if (!m_pPDPListData || !ret)
+        return ret;
+
+    *ret = '\0';
+
+    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
+    {
+        if (m_pPDPListData->pPDPData[i].cid == contextId
+             && strcmp(m_pPDPListData->pTypeBuffers[i], "IP") == 0)
+        {
+            pData = m_pPDPListData->pAddressBuffers[i];
+            pmv = ret;
+            while (*pData && *pData != ' ')
+                *pmv++ = *pData++;
+            *pmv = '\0';
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
+char* CTEBase::GetPDNSecIpV4(UINT32 cid, char* ret)
+{
+    char* pData;
+    char* pmv;
+    char tmpbuf[MAX_BUFFER_SIZE+1]={0};
+    int contextId = (int) cid;
+
+    if (!m_pPDPListData || !ret)
+        return ret;
+
+    *ret = '\0';
+
+    for (int i=0;i<MAX_PDP_CONTEXTS;i++)
+    {
+        if (m_pPDPListData->pPDPData[i].cid == contextId
+             && strcmp(m_pPDPListData->pTypeBuffers[i], "IP") == 0)
+        {
+            pData = m_pPDPListData->pAddressBuffers[i];
+            pmv = tmpbuf;
+            while (*pData && *pData++ != ' ');
+            while (*pData && *pData != ' ')
+                *pmv++ = *pData++;
+            *pmv = '\0';
+            return ret;
+        }
+    }
+
+    return ret;
+}
+
+char* CTEBase::GetPDNGwIpV4(UINT32 cid, char* ret)
+{
+    if (!m_pPDPListData || !ret)
+        return ret;
+
+    int contextId = (int) cid;
+
+    *ret = '\0';
+
+    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
+    {
+        if (m_pPDPListData->pPDPData[i].cid == contextId)
+        {
+            return m_pPDPListData->pGatewaysBuffers[i];
+        }
+    }
+
+    return ret;
+}
+
+
 
 BOOL CTEBase::IsRequestSupported(int requestId)
 {
@@ -5741,248 +5939,52 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    P_ND_PDP_CONTEXT_DATA pPDPListData = NULL;
-    UINT32 nValue = 0;
     UINT32 nCID = 0;
     UINT32 nBearerID = 0;
     int count = 0;
-    int active[MAX_PDP_CONTEXTS] = {0};
-    char szPDPType[MAX_BUFFER_SIZE] = {0};
     char szIP[MAX_BUFFER_SIZE] = {0};
-    int status[MAX_PDP_CONTEXTS] = {0};
-    int suggestedRetryTime[MAX_PDP_CONTEXTS] = {0};
     char szAPN[MAX_BUFFER_SIZE] = {0};
     char szGW[MAX_BUFFER_SIZE] = {0};
     char szDNS1[MAX_IPADDR_SIZE] = {0};
     char szDNS2[MAX_IPADDR_SIZE] = {0};
-    char szIpV6DNS1[MAX_IPADDR_SIZE] = {0};
-    char szIpV6DNS2[MAX_IPADDR_SIZE] = {0};
     char szCSCFPrimAddr[MAX_IPADDR_SIZE] = {0};
     char szCSCFSecAddr[MAX_IPADDR_SIZE] = {0};
 
-    pPDPListData = (P_ND_PDP_CONTEXT_DATA)malloc(sizeof(S_ND_PDP_CONTEXT_DATA));
-    if (NULL == pPDPListData)
+    if (NULL == m_pPDPListData)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not allocate memory for a"
+        RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - memory not allocated for"
                          " P_ND_PDP_CONTEXT_DATA struct.\r\n");
         goto Error;
     }
-    memset(pPDPListData, 0, sizeof(S_ND_PDP_CONTEXT_DATA));
-    memset(active, 0, sizeof(active));
 
-    // Parse +CGACT response
-    while (FindAndSkipString(pszRsp, "+CGACT: ", pszRsp))
-    {
-        // Parse <cid>
-        if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Invalid CID.\r\n");
-            goto Error;
-        }
-
-        // Parse <state>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt32(pszRsp, 2, nValue, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Invalid state.\r\n");
-            goto Error;
-        }
-        active[nCID - 1] = nValue;
-        RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Context %d %s.\r\n",
-                      nCID, (nValue ? "active" : "not active") );
-    }
-
-    // Parse "+CGDCONT: "
-    count = 0;
-    while (FindAndSkipString(pszRsp, "+CGDCONT: ", pszRsp))
-    {
-        CChannel_Data *pChannelData = NULL;
-
-        // Parse <cid>
-        if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract CID.\r\n");
-            goto Error;
-        }
-
-        // If entry is not active forget it
-        if (active[nCID - 1] == 0)
-        {
-            continue;
-        }
-
-        //  Grab the pChannelData for this CID
-        pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
-
-        pPDPListData->pPDPData[count].cid = nCID;
-
-        // set active flag
-        pPDPListData->pPDPData[count].active = active[nCID - 1];
-
-        // set status
-        pPDPListData->pPDPData[count].status = PDP_FAIL_NONE;
-
-        // set suggestedRetryTime
-        pPDPListData->pPDPData[count].suggestedRetryTime = -1;
-
-        // Parse ,<PDP_type>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szPDPType, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - "
-                             "Could not extract PDP type.\r\n");
-            goto Error;
-        }
-        strncpy(pPDPListData->pTypeBuffers[count], szPDPType, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].type = pPDPListData->pTypeBuffers[count];
-
-        // Skip over ,<APN>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract APN.\r\n");
-            goto Error;
-        }
-
-        RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Add APN(%s) to cache.\r\n", szAPN);
-        CTE::GetTE().SetActivatedContext(nCID, szAPN);
-
-
-        //  This is interface name (i.e. rmnet0)
-        //  If interface name is <blank>, then java layer throws exception.
-
-        if (pChannelData)
-        {
-            pChannelData->GetInterfaceName( pPDPListData->pIfnameBuffers[count],
-                                            MAX_BUFFER_SIZE);
-
-            if (pPDPListData->pIfnameBuffers[count][0] == '\0')
-            {
-                // If ifname is empty forget the entry
-                continue;
-            }
-
-            pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
-        }
-        else
-        {
-            //  The pChannelData may not be found due to the CID being set to 0 from
-            //  context deactivation.
-            //  Fill interface name based on CID
-           if (nCID > 0)
-            {
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d",
-                    m_szNetworkInterfaceNamePrefix, nCID-1);
-                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
-            }
-            else
-            {
-                //  Just assume context ID of 1
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0",
-                    m_szNetworkInterfaceNamePrefix);
-                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
-            }
-        }
-
-        // Parse ,<PDP_addr>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract Ip Addr.\r\n");
-            goto Error;
-        }
-        strncpy(pPDPListData->pAddressBuffers[count], szIP, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].addresses = pPDPListData->pAddressBuffers[count];
-
-        //  Populate DNSs and gateways
-        if (pChannelData)
-        {
-            pChannelData->GetDNS(szDNS1,MAX_IPADDR_SIZE,
-                                szDNS2,MAX_IPADDR_SIZE,
-                                szIpV6DNS1,MAX_IPADDR_SIZE,
-                                szIpV6DNS2,MAX_IPADDR_SIZE);
-
-            snprintf(pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s %s %s",
-                        szDNS1,szDNS2,szIpV6DNS1,szIpV6DNS2);
-            pPDPListData->pDnsesBuffers[count][MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
-        }
-        else
-        {
-            strcpy(pPDPListData->pDnsesBuffers[count], "");
-        }
-        pPDPListData->pPDPData[count].dnses = pPDPListData->pDnsesBuffers[count];
-
-        if (pChannelData)
-        {
-          pChannelData->GetGateway(pPDPListData->pGatewaysBuffers[count],
-                                   MAX_BUFFER_SIZE);
-        }
-        else
-        {
-            strcpy(pPDPListData->pGatewaysBuffers[count], "");
-        }
-        pPDPListData->pPDPData[count].gateways = pPDPListData->pGatewaysBuffers[count];
-
-        // Parse ,<data_comp>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt32(pszRsp, 0x2, nValue, pszRsp))
-        {
-            RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - WARNING: Could not extract"
-                            " data comp.\r\n");
-            goto Continue;
-        }
-
-        // Parse ,<head_comp>
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUpperBoundedUInt32(pszRsp, 0x2, nValue, pszRsp))
-        {
-            RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - WARNING: Could not extract "
-                            "header comp.\r\n");
-            goto Continue;
-        }
-
-        // following we could have ,<pd1>[,...[,pdN]]
-        // but Android does not care about extra parameters
-        // so skip them all
-Continue:
-
-        // entry complete
-        ++count;
-    }
-
-
-    if ( count != 0 )
-      goto End;
-
-
-    // Parse +CGCONTRDP response
+    RIL_LOG_VERBOSE("CTEBase::ParseEstablishedPDPList() - %s\r\n", pszRsp);
+    // Parse +CGCONTRDP response, will return up to 2 lines of data (if MT has
+    // dual stack capability. 1st line for IPV4 data, 2nd for IPV6
     count = 0;
     while (FindAndSkipString(pszRsp, "+CGCONTRDP:", pszRsp))
     {
         CChannel_Data *pChannelData = NULL;
 
-        RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - while\r\n");
-        // Parse <cid>
+       // Parse <cid>
         if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract CID.\r\n");
             goto Error;
         }
 
-        //  Grab the pChannelData for this CID
+        //  Grab the pChannelData for this CID. Will be null for LTE
         pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
-       RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - pChannelData:%x\r\n",pChannelData);
 
-        pPDPListData->pPDPData[count].cid = nCID;
+        m_pPDPListData->pPDPData[count].cid = nCID;
 
         // set active flag
-        pPDPListData->pPDPData[count].active = 1;
+        m_pPDPListData->pPDPData[count].active = 1;
 
         // set status
-        pPDPListData->pPDPData[count].status = PDP_FAIL_NONE;
+        m_pPDPListData->pPDPData[count].status = PDP_FAIL_NONE;
 
         // set suggestedRetryTime
-        pPDPListData->pPDPData[count].suggestedRetryTime = -1;
+        m_pPDPListData->pPDPData[count].suggestedRetryTime = -1;
 
         // Parse ,<bearer_id>
         // not used yet
@@ -5994,9 +5996,6 @@ Continue:
             goto Error;
         }
 
-        snprintf(pPDPListData->pTypeBuffers[count], MAX_BUFFER_SIZE,"%d",nBearerID);
-        pPDPListData->pPDPData[count].type = pPDPListData->pTypeBuffers[count];
-
         // Skip over ,<APN>
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
@@ -6005,52 +6004,56 @@ Continue:
             goto Error;
         }
 
-        // REVERT ME WHEN MODEM PROVIDES THIS INFORMATION.
-        if ( strncmp(szAPN,"",MAX_BUFFER_SIZE) == 0 )
+        // Only do caching for LTE
+        if (CTE::GetTE().GetUiAct() == RADIO_TECH_LTE)
         {
-            RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Force APN\r\n");
-            strncpy(szAPN,"cmw500.rohde-schwarz.com.mnc01.mcc001.gprs",MAX_BUFFER_SIZE);
+            if (strncmp(szAPN, "", MAX_BUFFER_SIZE) == 0)
+            {
+                RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - Warning APN"
+                        " not provided by network\r\n");
+            }
+            else
+            {
+                RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Add APN(%s) to cache.\r\n",
+                        szAPN);
+                CTE::GetTE().SetActivatedContext(nCID, szAPN);
+            }
         }
-
-
-        RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Add APN(%s) to cache.\r\n", szAPN);
-        CTE::GetTE().SetActivatedContext(nCID, szAPN);
-
 
         //  This is interface name (i.e. rmnet0)
         //  If interface name is <blank>, then java layer throws exception.
 
         if (pChannelData)
         {
-            pChannelData->GetInterfaceName( pPDPListData->pIfnameBuffers[count],
+            pChannelData->GetInterfaceName( m_pPDPListData->pIfnameBuffers[count],
                                             MAX_BUFFER_SIZE);
 
-            if (pPDPListData->pIfnameBuffers[count][0] == '\0')
+            if (m_pPDPListData->pIfnameBuffers[count][0] == '\0')
             {
                 // If ifname is empty forget the entry
                 RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - no ifname\r\n");
                 continue;
             }
 
-            pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+            m_pPDPListData->pPDPData[count].ifname = m_pPDPListData->pIfnameBuffers[count];
         }
         else
         {
             //  The pChannelData may not be found due to the CID being set to 0 from
-            //  context deactivation.
+            //  context deactivation, OR when the RAT is LTE.
             //  Fill interface name based on CID
-           if (nCID > 0)
+            if (nCID > 0)
             {
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d",
+                snprintf(m_pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d",
                     m_szNetworkInterfaceNamePrefix, nCID-1);
-                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+                m_pPDPListData->pPDPData[count].ifname = m_pPDPListData->pIfnameBuffers[count];
             }
             else
             {
                 //  Just assume context ID of 1
-                snprintf(pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0",
+                snprintf(m_pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0",
                     m_szNetworkInterfaceNamePrefix);
-                pPDPListData->pPDPData[count].ifname = pPDPListData->pIfnameBuffers[count];
+                m_pPDPListData->pPDPData[count].ifname = m_pPDPListData->pIfnameBuffers[count];
             }
         }
 
@@ -6063,26 +6066,44 @@ Continue:
             goto Error;
         }
 
-        // extract Ip address only
+        int cut = 0;
+        if (count == 0)
         {
-           int i=0,c=0;
-           char *pIP = szIP;
-           while (*pIP)
-           {
-                if ( i >= MAX_BUFFER_SIZE )break;
-                pPDPListData->pAddressBuffers[count][i]=*pIP;
-                if (*pIP++ == '.') ++c;
-                if ( c == 4)
-                {
-                  pPDPListData->pAddressBuffers[count][i]=0;
-                  break;
-                }
-                ++i;
-           }
+            // first line returned by CGCONTRDP is for IPV4
+            snprintf(m_pPDPListData->pTypeBuffers[count], MAX_BUFFER_SIZE, "%s", "IP");
+            // Ip V4 cut after 4 dots.
+            cut = 4;
+        }
+        else
+        {
+            // second line returned by CGCONTRDP is for IPV6
+            snprintf(m_pPDPListData->pTypeBuffers[count], MAX_BUFFER_SIZE, "%s", "IPV6");
+            // Ip V6 cut after 16 dots.
+            cut = 16;
         }
 
-        //strncpy(pPDPListData->pAddressBuffers[count], szIP, MAX_BUFFER_SIZE);
-        pPDPListData->pPDPData[count].addresses = pPDPListData->pAddressBuffers[count];
+        m_pPDPListData->pPDPData[count].type = m_pPDPListData->pTypeBuffers[count];
+
+        {
+            //extract IP address
+            int i=0,c=0;
+            char *pIP = szIP;
+            while (*pIP)
+            {
+               if ( i >= MAX_BUFFER_SIZE )
+                   break;
+               m_pPDPListData->pAddressBuffers[count][i] = *pIP;
+               if (*pIP++ == '.')
+                   ++c;
+               if ( c == cut)
+               {
+                 m_pPDPListData->pAddressBuffers[count][i] = 0;
+                 break;
+               }
+               ++i;
+            }
+        }
+        m_pPDPListData->pPDPData[count].addresses = m_pPDPListData->pAddressBuffers[count];
 
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szGW, MAX_BUFFER_SIZE, pszRsp))
@@ -6108,22 +6129,22 @@ Continue:
         }
 
 
-        snprintf(pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s",
-                        szDNS1,szDNS2);
-        pPDPListData->pDnsesBuffers[count][MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+        snprintf(m_pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s",
+                        szDNS1, szDNS2);
+        m_pPDPListData->pDnsesBuffers[count][MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
 
-        pPDPListData->pPDPData[count].dnses = pPDPListData->pDnsesBuffers[count];
+        m_pPDPListData->pPDPData[count].dnses = m_pPDPListData->pDnsesBuffers[count];
 
         if (pChannelData)
         {
-          pChannelData->GetGateway(pPDPListData->pGatewaysBuffers[count],
+          pChannelData->GetGateway(m_pPDPListData->pGatewaysBuffers[count],
                                    MAX_BUFFER_SIZE);
         }
         else
         {
-            strcpy(pPDPListData->pGatewaysBuffers[count], szGW);
+            strcpy(m_pPDPListData->pGatewaysBuffers[count], szGW);
         }
-        pPDPListData->pPDPData[count].gateways = pPDPListData->pGatewaysBuffers[count];
+        m_pPDPListData->pPDPData[count].gateways = m_pPDPListData->pGatewaysBuffers[count];
 
 
         // Parse ,<P_CSCF_prim_addr>
@@ -6146,14 +6167,6 @@ Continue:
             goto Error;
         }
 
-
-        if ( nCID == 1 )
-        {
-                strncpy(m_szTmpIPAddress,pPDPListData->pAddressBuffers[count],MAX_BUFFER_SIZE);
-                strncpy(m_szTmpDNS,szDNS1,MAX_BUFFER_SIZE);
-                strncpy(m_szTmpGateway,szGW,MAX_BUFFER_SIZE);
-        }
-
         // entry complete
         ++count;
         RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - count:%d\r\n",count);
@@ -6162,21 +6175,6 @@ Continue:
 
 End:
 
-
-    if (count > 0)
-    {
-        rRspData.pData  = (void*) pPDPListData;
-        rRspData.uiDataSize = count * sizeof(RIL_Data_Call_Response_v6);
-
-        RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
-    }
-    else
-    {
-        free(pPDPListData);
-        pPDPListData = NULL;
-        rRspData.pData  = NULL;
-        rRspData.uiDataSize = 0;
-    }
     res = RRIL_RESULT_OK;
     RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Parse complete, found [%d] contexts.\r\n",
                  count);
@@ -6187,22 +6185,16 @@ End:
         {
             RIL_LOG_INFO("i=%d  status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" "
                 "ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
-                i, pPDPListData->pPDPData[i].status,
-                pPDPListData->pPDPData[i].suggestedRetryTime,
-                pPDPListData->pPDPData[i].cid, pPDPListData->pPDPData[i].active,
-                pPDPListData->pPDPData[i].type, pPDPListData->pPDPData[i].ifname,
-                pPDPListData->pPDPData[i].addresses, pPDPListData->pPDPData[i].dnses,
-                pPDPListData->pPDPData[i].gateways);
+                i, m_pPDPListData->pPDPData[i].status,
+                m_pPDPListData->pPDPData[i].suggestedRetryTime,
+                m_pPDPListData->pPDPData[i].cid, m_pPDPListData->pPDPData[i].active,
+                m_pPDPListData->pPDPData[i].type, m_pPDPListData->pPDPData[i].ifname,
+                m_pPDPListData->pPDPData[i].addresses, m_pPDPListData->pPDPData[i].dnses,
+                m_pPDPListData->pPDPData[i].gateways);
         }
     }
 
 Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pPDPListData);
-        pPDPListData = NULL;
-    }
-
     RIL_LOG_VERBOSE("CTEBase::ParseEstablishedPDPList() - Exit\r\n");
     return res;
 }

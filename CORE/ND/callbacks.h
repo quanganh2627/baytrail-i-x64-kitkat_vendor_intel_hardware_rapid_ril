@@ -81,4 +81,8 @@ void triggerManualNetworkSearch(void* param);
 //
 void triggerQueryCEER(void* param);
 
+//
+// Callback to request Established PDP list
+//
+void requestEstablishedPDPList(void* param);
 #endif

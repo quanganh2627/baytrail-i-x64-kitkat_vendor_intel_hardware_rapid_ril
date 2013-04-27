@@ -361,10 +361,19 @@ void CTE_XMM7160::PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
     if ( (CTE::GetTE().GetUiAct() == RADIO_TECH_LTE) &&  uiCID == 1 )
     {
         RIL_LOG_VERBOSE("CTE_XMM7160::PostSetupDataCallCmdHandler() set channel data\r\n");
+        char tmpbuf[MAX_IPADDR_SIZE+1] = {0};
+        char tmpbuf1[MAX_IPADDR_SIZE+1] = {0};
+        char tmpbuf2[MAX_IPADDR_SIZE+1] = {0};
+        char tmpbuf3[MAX_IPADDR_SIZE+1] = {0};
+
         pChannelData->SetDataState(E_DATA_STATE_ACTIVE);
-        pChannelData->SetIpAddress(m_szTmpIPAddress,"");
-        pChannelData->SetDNS(m_szTmpDNS,"","","");
-        pChannelData->SetGateway(m_szTmpGateway);
+        pChannelData->SetIpAddress(GetPDNFirstIpV4(uiCID, tmpbuf),
+                                   GetPDNSecIpV4(uiCID, tmpbuf1));
+        pChannelData->SetDNS(GetPDNFirstIpV4Dns(uiCID, tmpbuf),
+                             GetPDNSecIpV4Dns(uiCID, tmpbuf1),
+                             GetPDNFirstIpV6Dns(uiCID, tmpbuf2),
+                             GetPDNSecIpV6Dns(uiCID, tmpbuf3));
+        pChannelData->SetGateway(GetPDNGwIpV4(uiCID, tmpbuf1));
         CTE_XMM6360::SetupInterface(uiCID);
         HandleSetupDataCallSuccess(uiCID, rData.pRilToken);
     }

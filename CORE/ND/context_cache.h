@@ -66,7 +66,8 @@ public:
         {
             for(UINT32 i = 1; i < CACHE_LEN; i++)
             {
-                if(m_cache[i] && 0 == strcmp(apn, m_cache[i]))
+                // We check only APN Network identifier
+                if (m_cache[i] && (strcasestr(m_cache[i], apn) == m_cache[i]))
                     return TRUE;
             }
         }

@@ -33,12 +33,12 @@ UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_CHANGESIMPIN2,                       // 6
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION,       // 7
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_GETCURRENTCALLS,                     // 8
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_DIAL,                                // 9
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_DIAL,                                // 9
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_GETIMSI,                             // 10
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_HANGUP,                              // 11
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_HANGUPWAITINGORBACKGROUND,           // 12
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND,    // 13
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_SWITCHHOLDINGANDACTIVE,              // 14
+    RIL_CHANNEL_DLC6,  //ND_REQ_ID_SWITCHHOLDINGANDACTIVE,              // 14
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_CONFERENCE,                          // 15
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_UDUB,                                // 16
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_LASTCALLFAILCAUSE,                   // 17

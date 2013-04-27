@@ -263,3 +263,29 @@ void triggerQueryCEER(void* param)
     }
 }
 
+
+void requestEstablishedPDPList(void* param)
+{
+    REQUEST_DATA rReqData;
+    memset(&rReqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_LOG_VERBOSE("requestEstablishedPDPList - uiCID:%d\r\n", (UINT32)param);
+
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGCONTRDP=%d\r",
+            (UINT32)param))
+    {
+        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETUPDEFAULTPDP],
+                NULL, ND_REQ_ID_SETUPDEFAULTPDP,
+                rReqData, &CTE::ParseEstablishedPDPList);
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("requestEstablishedPDPList - "
+                        "Unable to queue AT+CGCONTRDP command!\r\n");
+                delete pCmd;
+            }
+        }
+    }
+
+}
