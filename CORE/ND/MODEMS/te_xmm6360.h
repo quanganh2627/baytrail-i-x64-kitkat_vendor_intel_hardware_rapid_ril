@@ -34,8 +34,6 @@ private:
     CTE_XMM6360(const CTE_XMM6360& rhs);  // Copy Constructor
     CTE_XMM6360& operator=(const CTE_XMM6360& rhs);  //  Assignment operator
 
-    int m_currentNetworkType;
-
 public:
     // modem overrides
 

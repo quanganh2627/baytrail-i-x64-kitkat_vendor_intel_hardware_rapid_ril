@@ -39,8 +39,7 @@
 
 
 CTE_XMM6360::CTE_XMM6360(CTE& cte)
-: CTE_XMM6260(cte),
-  m_currentNetworkType(-1)
+: CTE_XMM6260(cte)
 {
 }
 

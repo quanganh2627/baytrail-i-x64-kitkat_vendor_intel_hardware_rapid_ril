@@ -34,8 +34,6 @@ private:
     CTE_XMM7160(const CTE_XMM7160& rhs);  // Copy Constructor
     CTE_XMM7160& operator=(const CTE_XMM7160& rhs);  //  Assignment operator
 
-    int m_currentNetworkType;
-
 public:
     // modem overrides
     virtual char* GetBasicInitCommands(UINT32 uiChannelType);
