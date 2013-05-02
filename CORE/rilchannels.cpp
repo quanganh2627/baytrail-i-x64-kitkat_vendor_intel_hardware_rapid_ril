@@ -45,7 +45,7 @@ UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_SIGNALSTRENGTH,                      // 18
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_REGISTRATIONSTATE,                   // 19
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_GPRSREGISTRATIONSTATE,               // 20
-    RIL_CHANNEL_DLC2,  //ND_REQ_ID_OPERATOR,                            // 21
+    RIL_CHANNEL_DLC8,  //ND_REQ_ID_OPERATOR,                            // 21
     RIL_CHANNEL_ATCMD, //ND_REQ_ID_RADIOPOWER,                          // 22
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_DTMF,                                // 23
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_SENDSMS,                             // 24
