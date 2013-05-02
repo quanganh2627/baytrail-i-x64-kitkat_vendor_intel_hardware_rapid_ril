@@ -588,6 +588,16 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             }
             break;
 
+        case PREF_NET_TYPE_LTE_WCDMA: // LTE Preferred
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=4,2\r",
+                    sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::HandleNetworkType() - Can't "
+                        "construct szCmd1 networkType=%d\r\n", networkType);
+                goto Error;
+            }
+            break;
+
         default:
             RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                     "Undefined rat code: %d\r\n", networkType);
