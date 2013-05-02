@@ -5077,7 +5077,7 @@ RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA& rReqData,
      * an acceptable time for manual network search, data has to be disabled
      * before starting the manual network search.
      */
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGATT=0;+COPS=?;+CGATT=1\r"))
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGATT=0;+COPS=?\r"))
     {
         res = RRIL_RESULT_OK;
     }
@@ -9238,6 +9238,27 @@ RIL_RESULT_CODE CTEBase::ParseQueryIpAndDns(RESPONSE_DATA& rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseQueryIpAndDns() - Enter / Exit\r\n");
 
     return RRIL_RESULT_OK; // only supported at modem level
+}
+
+void CTEBase::PSAttach()
+{
+    RIL_LOG_VERBOSE("CTEBase::PSAttach() - Enter\r\n");
+
+    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYAVAILABLENETWORKS],
+            NULL, ND_REQ_ID_QUERYAVAILABLENETWORKS, "AT+CGATT=1\r");
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::PSAttach() - "
+                    "Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::PSAttach() - Exit\r\n");
 }
 
 void CTEBase::SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus)
