@@ -757,22 +757,19 @@ Done:
 
     if (bRetVal)
     {
-        if (!CTE::GetTE().GetModemOffInFlightModeState())
+        if (!GetModem())
         {
-            if (!GetModem())
-            {
-                RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : "
-                        "GetModem Resource failed\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : "
+                    "GetModem Resource failed\r\n");
 
-                CTE::GetTE().SetRestrictedMode(TRUE);
-            }
-            else
-            {
-                RIL_LOG_INFO("CSystemManager::InitializeSystem() : Waiting for "
-                        "System Initialization Complete event\r\n");
-                CTE::GetTE().SetRestrictedMode(FALSE);
-                CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
-            }
+            CTE::GetTE().SetRestrictedMode(TRUE);
+        }
+        else
+        {
+            RIL_LOG_INFO("CSystemManager::InitializeSystem() : Waiting for "
+                    "System Initialization Complete event\r\n");
+            CTE::GetTE().SetRestrictedMode(FALSE);
+            CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
         }
 
         RIL_LOG_INFO("CSystemManager::InitializeSystem() : Rapid Ril initialization completed\r\n");
