@@ -8174,8 +8174,6 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
     {
         if (IsPlatformShutDownOngoing())
         {
-            CSystemManager::GetInstance().CloseChannelPorts();
-
             //  Send shutdown request to MMgr
             if (!CSystemManager::GetInstance().SendRequestModemShutdown())
             {
