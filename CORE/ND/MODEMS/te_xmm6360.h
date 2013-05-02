@@ -36,6 +36,7 @@ private:
 
 public:
     // modem overrides
+    virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
 
     virtual BOOL PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
             UINT32 uiDataSize);
