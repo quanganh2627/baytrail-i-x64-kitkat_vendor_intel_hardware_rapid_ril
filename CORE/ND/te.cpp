@@ -8432,6 +8432,8 @@ void CTE::PostQueryAvailableNetworksCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostQueryAvailableNetworksCmdHandler() Enter\r\n");
 
+    m_pTEBaseInstance->PSAttach();
+
     if (NULL == rData.pRilToken)
     {
         RIL_LOG_CRITICAL("CTE::PostQueryAvailableNetworksCmdHandler() rData.pRilToken NULL!\r\n");

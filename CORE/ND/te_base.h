@@ -822,6 +822,9 @@ public:
     // Post command handler for RIL_REQUEST_DEACTIVATE_DATA_CALL request
     virtual void PostDeactivateDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
+    // Adds the PS attach command to command queue
+    virtual void PSAttach();
+
     // Get functions returning number of retry counts left for respective locks
     virtual int GetPinRetryCount() { return m_PinRetryCount.pin; };
     virtual int GetPin2RetryCount() { return m_PinRetryCount.pin2; };
