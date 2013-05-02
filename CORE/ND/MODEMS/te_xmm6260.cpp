@@ -6173,7 +6173,8 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
         {
             strcpy(szCmd, "AT+CHLD=8;+CGATT=0\r");
         }
-        else
+        else if (E_RADIO_OFF_REASON_AIRPLANE_MODE == radioOffReason
+                || E_RADIO_OFF_REASON_NONE == radioOffReason)
         {
             strcpy(szCmd, "AT+CFUN=4\r");
         }

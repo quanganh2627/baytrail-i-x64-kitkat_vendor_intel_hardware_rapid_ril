@@ -69,7 +69,7 @@ CTE::CTE(UINT32 modemType) :
     m_uiDtmfState(E_DTMF_STATE_STOP),
     m_ScreenState(SCREEN_STATE_UNKNOWN),
     m_RequestedRadioPower(RADIO_POWER_UNKNOWN),
-    m_RadioOffReason(E_RADIO_OFF_REASON_INIT),
+    m_RadioOffReason(E_RADIO_OFF_REASON_NONE),
     m_pRadioStateChangedEvent(NULL)
 {
     m_pTEBaseInstance = CreateModemTE(this);
@@ -2140,18 +2140,18 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         goto Error;
     }
 
-    if (sizeof(int*) != datalen)
+    if (2 * sizeof(int*) != datalen)
     {
         RIL_LOG_CRITICAL("CTE::RequestRadioPower() - Invalid data size.\r\n");
         goto Error;
     }
 
-    if (0 == *(int*)pData)
+    if (0 == ((int*)pData)[0])
     {
         RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio OFF\r\n");
         bTurnRadioOn = false;
-        m_RadioOffReason = IsPlatformShutDownRequested() ?
-                E_RADIO_OFF_REASON_SHUTDOWN : m_RadioOffReason;
+        m_RadioOffReason = ((int*)pData)[1];
+        RIL_LOG_INFO("CTE::RequestRadioPower() - mRadioOffReason:%d\r\n", m_RadioOffReason);
     }
     else
     {
@@ -7946,7 +7946,7 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
     }
     else
     {
-        if (IsPlatformShutDownOngoing())
+        if (E_RADIO_OFF_REASON_SHUTDOWN == m_RadioOffReason)
         {
             //  Send shutdown request to MMgr
             if (!CSystemManager::GetInstance().SendRequestModemShutdown())
@@ -7962,7 +7962,8 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
         {
             SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
 
-            if (GetModemOffInFlightModeState())
+            if (GetModemOffInFlightModeState()
+                    && E_RADIO_OFF_REASON_AIRPLANE_MODE == m_RadioOffReason)
             {
                 CSystemManager::GetInstance().ReleaseModem();
             }
