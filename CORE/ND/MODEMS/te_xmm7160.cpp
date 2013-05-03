@@ -530,9 +530,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
     switch (networkType)
     {
         case PREF_NET_TYPE_GSM_WCDMA: // WCDMA Preferred
-            // This hack should be reverted as soon as the UI patches are ready to
-            // be merged. Here we force tripple mode when WCDMA/GSM is selected.
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=6,2,1\r",
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=3,1\r",
                     sizeof(rReqData.szCmd1) ))
             {
                 RIL_LOG_CRITICAL("CTE_XMM7160::HandleNetworkType() - Can't "

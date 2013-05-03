@@ -657,6 +657,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     CChannel_Data* pChannelData = NULL;
     unsigned char* pszData = NULL;
     REQUEST_DATA rReqData;
+    UINT32 uiTemp = 0;
 
     szResponse = rszPointer;
 
@@ -780,6 +781,20 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME DEACT, cid=[%d]\r\n", uiCID);
         CTE::GetTE().RemoveActivatedContext(uiCID);
     }
+    // Format: "NW ACT <p_cid>, <cid>, <event_type>. Unsupported.
+    else if (FindAndSkipString(szStrExtract, "NW ACT", szStrExtract))
+    {
+        // nothing to do, since secondary PDP contexts are not supported
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV(): NW ACT event for secondary PDP "
+                "context ignored (unsupported)!\r\n");
+    }
+    // Format: "ME ACT <p_cid>, <cid>, <event_type>. Unsupported.
+    else if (FindAndSkipString(szStrExtract, "ME ACT", szStrExtract))
+    {
+        // nothing to do, since secondary PDP contexts are not supported
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME ACT event for secondary PDP "
+                "context ignored (unsupported)!\r\n");
+    }
     else if (FindAndSkipString(rszPointer, "NW CLASS", szStrExtract) ||
             FindAndSkipString(rszPointer, "ME CLASS", szStrExtract))
     {
@@ -837,21 +852,104 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         CTE::GetTE().CleanupAllDataConnections();
         CTE::GetTE().CompleteDataCallListChanged();
     }
+    // see new format: "ME PDN DEACT" below
     else if (FindAndSkipString(szStrExtract, "ME DEACT", szStrExtract))
     {
         RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT");
 
-        if (GetContextIdFromDeact(szStrExtract, uiCID))
+        // We need to differentiate between former format
+        // "ME DEACT <PDP_type>, <PDP_addr>, [<cid>]" and new format for
+        // secondary PDP contexts "ME DEACT <p_cid>, <cid>, <event_type>
+
+        // If first parameter is a string, former format
+        if (!ExtractUInt32(szStrExtract, uiTemp, szStrExtract))
         {
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT CID- %u", uiCID);
+            if (GetContextIdFromDeact(szStrExtract, uiCID))
+            {
+                RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT CID- %u", uiCID);
+            }
+        }
+        else // Otherwise, must be format for secondary PDP context
+        {
+            // nothing to do, since secondary PDP contexts are not supported
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT event for secondary PDP "
+                    "context ignored (unsupported)!\r\n");
         }
     }
+    // see new format: "NW PDN DEACT" below
     else if (FindAndSkipString(szStrExtract, "NW DEACT", szStrExtract))
     {
         RIL_LOG_INFO("CSilo_Network::ParseCGEV(): NW DEACT");
 
-        if (GetContextIdFromDeact(szStrExtract, uiCID))
+        // We need to differentiate between former format
+        // "NW DEACT <PDP_type>, <PDP_addr>, [<cid>]" and new format for
+        // secondary PDP contexts "NW DEACT <p_cid>, <cid>, <event_type>
+
+        // If first parameter is a string, former format
+        if (!ExtractUInt32(szStrExtract, uiTemp, szStrExtract))
         {
+            if (GetContextIdFromDeact(szStrExtract, uiCID))
+            {
+                pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+                if (NULL == pChannelData)
+                {
+                    //  This may occur using AT proxy during 3GPP conformance testing.
+                    //  Let normal processing occur.
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u],"
+                            " no data channel found!\r\n", uiCID);
+                }
+                else
+                {
+                    pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
+                    /*
+                     * @TODO: If fail cause is provided as part of NW DEACT,
+                     * map the fail cause to ril cause values and set it.
+                     */
+                    pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
+                    CTE::GetTE().CompleteDataCallListChanged();
+                }
+            }
+        }
+        else // Otherwise, must be format for secondary PDP context
+        {
+            // nothing to do, since secondary PDP contexts are not supported
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV(): NW DEACT event for secondary PDP "
+                    "context ignored (unsupported)!\r\n");
+        }
+    }
+    // Format: "ME PDN DEACT <cid>"
+    else if (FindAndSkipString(szStrExtract, "ME PDN DEACT", szStrExtract))
+    {
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME PDN DEACT");
+
+        if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - ME PDN DEACT, couldn't "
+                    "extract cid\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN DEACT, extracted "
+                    "cid=[%u]\r\n", uiCID);
+        }
+    }
+    // Format: "NW PDN DEACT, <cid>"
+    else if (FindAndSkipString(szStrExtract, "NW PDN DEACT", szStrExtract))
+    {
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV(): NW PDN DEACT");
+
+        if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - NW PDN DEACT, couldn't "
+                    "extract cid\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW PDN DEACT, extracted "
+                    "cid=[%u]\r\n", uiCID);
+
             pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
             if (NULL == pChannelData)
             {
@@ -864,7 +962,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             {
                 pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
                 /*
-                 * @TODO: If fail cause is provided as part of NW DEACT,
+                 * @TODO: If fail cause is provided as part of NW PDN DEACT,
                  * map the fail cause to ril cause values and set it.
                  */
                 pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);

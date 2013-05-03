@@ -97,7 +97,12 @@ public:
     virtual BOOL FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
                                                 UINT32 uiResultCode,
                                                 void* pResponse,
-                                                size_t responseLen) = 0;
+                                                size_t responseLen,
+                                                int callId = -1) = 0;
+
+    // Clear the command queue on initiailization not successful.
+    void ClearCommandQueue();
+
 protected:
     //  Init functions
     virtual BOOL    FinishInit() = 0;

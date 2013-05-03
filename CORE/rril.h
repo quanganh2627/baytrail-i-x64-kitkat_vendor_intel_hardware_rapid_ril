@@ -138,6 +138,14 @@ typedef struct
     char szGateways[MAX_IPADDR_SIZE];
 } S_DATA_CALL_INFO;
 
+// Pref network type request information cache.
+typedef struct
+{
+    RIL_Token token;
+    RIL_PreferredNetworkType type;
+    size_t datalen;
+} PREF_NET_TYPE_REQ_INFO;
+
 ///////////////////////////////////////////////////////////////////////////////
 // DTMF states
 //
@@ -145,8 +153,17 @@ enum
 {
     E_DTMF_STATE_START = 1,
     E_DTMF_STATE_STOP,
-    E_DTMF_STATE_FLUSH
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// Voice call state information
+//
+typedef struct
+{
+    int id;
+    int state;
+    BOOL bDtmfAllowed;
+} S_VOICECALL_STATE_INFO;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Data call states

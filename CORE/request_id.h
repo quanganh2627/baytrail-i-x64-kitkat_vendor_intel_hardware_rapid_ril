@@ -135,7 +135,10 @@ enum ND_REQ_ID_ID {
     ND_REQ_ID_HANGUPVT,                            // 115
     ND_REQ_ID_DIALVT,                              // 116
 #endif // M2_VT_FEATURE_ENABLED
-    ND_REQ_ID_TOTAL                                // 115 or 117
+#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
+    ND_REQ_ID_GET_SIM_SMS_STORAGE,                // 115 or 117
+#endif
+    ND_REQ_ID_TOTAL                                // 115 or 116, or 117
 };
 
 

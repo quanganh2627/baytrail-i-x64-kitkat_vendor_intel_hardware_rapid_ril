@@ -171,7 +171,7 @@ CSystemManager::~CSystemManager()
     m_bIsSystemInitialized = FALSE;
 
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before signal m_pExitRilEvent\r\n");
-    // signal the cancel event to kill the thread
+    // signal the cancel event to kill the command and response thread
     CEvent::Signal(m_pExitRilEvent);
 
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CloseChannelPorts\r\n");
@@ -349,11 +349,11 @@ BOOL CSystemManager::InitializeSystem()
         else
         {
             m_dataProfilePathAssignation[0] = apnType;
-            RIL_LOG_WARNING("CSystemManager::InitializeSystem() - ApnTypeThetered: %d...\r\n",
+            RIL_LOG_WARNING("CSystemManager::InitializeSystem() - ApnTypeDUN: %d...\r\n",
                     apnType);
         }
 
-        if (!repository.Read(g_szGroupModem, g_szApnTypeThetered, apnType))
+        if (!repository.Read(g_szGroupModem, g_szApnTypeDUN, apnType))
         {
             RIL_LOG_WARNING("CSystemManager::InitializeSystem() : Could not read network apn type"
                     " Tethered from repository\r\n");
@@ -944,8 +944,11 @@ void CSystemManager::ResetChannelInfo()
 
     CMutex::Lock(m_pSystemManagerMutex);
 
-    // signal the cancel event to kill the thread
-    CEvent::Signal(m_pExitRilEvent);
+    // signal the cancel event to kill the command and response thread
+    if (NULL != m_pExitRilEvent)
+    {
+        CEvent::Signal(m_pExitRilEvent);
+    }
 
     ResetChannelCompletedInit();
 
@@ -1122,6 +1125,22 @@ BOOL CSystemManager::OpenChannelPortsOnly()
         if (IsChannelUndefined(i))
             continue;
 
+        /*
+         * In flight mode, changing the WiFi state will result in MODEM_UP and NOTIFY_MODEM_SHUTDOWN
+         * received within few milliseconds. Upon receiving MODEM_UP, init thread will start
+         * opening the ports. Even upon receiving NOTIFY_MODEM_SHUTDOWN, port opening will
+         * continue. Port opening fails only if the mux closes the tty ports. Mux will close
+         * the tty only if the MMGR switches off/closes the ttyIFX0. Since it takes quite a long
+         * time for the port opening failure, it is better to check modem status before opening
+         * each port to avoid delays in cleaning up the resources.
+         */
+        if (E_MMGR_EVENT_MODEM_UP != CTE::GetTE().GetLastModemEvent())
+        {
+            RIL_LOG_CRITICAL("CSystemManager::OpenChannelPortsOnly() : Channel[%d] OpenPort()"
+                    " failed due to modem not up\r\n", i);
+            goto Done;
+        }
+
         if (!g_pRilChannel[i]->OpenPort())
         {
             RIL_LOG_CRITICAL("CSystemManager::OpenChannelPortsOnly() : Channel[%d] OpenPort()"
@@ -1152,6 +1171,12 @@ Done:
 void CSystemManager::CloseChannelPorts()
 {
     RIL_LOG_VERBOSE("CSystemManager::CloseChannelPorts() - Enter\r\n");
+
+    // signal the cancel event to kill the command and response thread
+    if (NULL != m_pExitRilEvent)
+    {
+        CEvent::Signal(m_pExitRilEvent);
+    }
 
     CMutex::Lock(m_pPortsManagerMutex);
 
@@ -1399,7 +1424,7 @@ void CSystemManager::StartModemInitializationThread()
             default:
             {
                 RIL_LOG_CRITICAL("CSystemManager::StartModemInitializationThread() -"
-                        " Exiting ril!\r\n");
+                        " Exiting modem initialization\r\n");
                 goto Done;
                 break;
             }
@@ -1858,7 +1883,8 @@ Error:
 void CSystemManager::CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID,
                                                 UINT32 uiResultCode,
                                                 void* pResponse,
-                                                size_t responseLen)
+                                                size_t responseLen,
+                                                int callId)
 {
     RIL_LOG_VERBOSE("CSystemManager::CompleteIdenticalRequests() - Enter\r\n");
 
@@ -1868,7 +1894,7 @@ void CSystemManager::CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqI
         if (NULL != pChannel)
         {
             pChannel->FindIdenticalRequestsAndSendResponses(uiReqID, uiResultCode,
-                    pResponse, responseLen);
+                    pResponse, responseLen, callId);
         }
     }
     RIL_LOG_VERBOSE("CSystemManager::CompleteIdenticalRequests() - Exit\r\n");

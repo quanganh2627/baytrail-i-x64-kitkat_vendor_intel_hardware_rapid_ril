@@ -131,9 +131,10 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
         //  something is wrong.  Let the modem status socket watchdog get
         //  a MODEM_UP when things are OK again.
 
+        CSystemManager::GetInstance().SetInitializationUnsuccessful();
+
         //  Close ports
         CSystemManager::GetInstance().CloseChannelPorts();
-        CSystemManager::GetInstance().SetInitializationUnsuccessful();
 
         if (eRadioError_ForceShutdown == eError)
         {
@@ -270,7 +271,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 break;
 
             case E_MMGR_EVENT_MODEM_OUT_OF_SERVICE:
-                // TODO: NEEDS TO BE VERIFIED
                 RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) MODEM OUT OF SERVICE\r\n");
 
                 CTE::GetTE().SetLastModemEvent(uiMMgrEvent);
@@ -283,8 +283,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 ModemResetUpdate();
 
                 CTE::GetTE().ResetInternalStates();
-
-                CSystemManager::Destroy();
 
                 // Don't exit the RRIL to avoid automatic restart: sleep for ever
                 RIL_LOG_INFO("ModemManagerEventHandler() -"
@@ -312,10 +310,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     ModemResetUpdate();
 
                     CTE::GetTE().ResetInternalStates();
-
-                    //  Close ports
-                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
                 // Retrieve the shutdown property
@@ -325,7 +319,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                     CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
 
-                    CSystemManager::Destroy();
                     while(1) { sleep(SLEEP_MS); }
                 }
                 else
@@ -354,8 +347,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                     CTE::GetTE().ResetInternalStates();
                 }
-
-                CSystemManager::Destroy();
 
                 // Don't exit the RRIL to avoid automatic restart: sleep for ever
                 // MMGR will reboot the platform

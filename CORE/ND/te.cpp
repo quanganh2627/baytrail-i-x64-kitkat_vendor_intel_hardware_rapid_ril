@@ -68,7 +68,8 @@ CTE::CTE(UINT32 modemType) :
     m_uiTimeoutWaitForInit(TIMEOUT_WAITFORINIT),
     m_uiTimeoutThresholdForRetry(TIMEOUT_THRESHOLDFORRETRY),
     m_uiDtmfState(E_DTMF_STATE_STOP),
-    m_ScreenState(SCREEN_STATE_UNKNOWN)
+    m_ScreenState(SCREEN_STATE_UNKNOWN),
+    m_pPrefNetTypeReqInfo(NULL)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -89,6 +90,12 @@ CTE::~CTE()
 {
     delete m_pTEBaseInstance;
     m_pTEBaseInstance = NULL;
+
+    if (m_pPrefNetTypeReqInfo)
+    {
+        free(m_pPrefNetTypeReqInfo);
+        m_pPrefNetTypeReqInfo = NULL;
+    }
 
     if (m_pDtmfStateAccess)
     {
@@ -179,13 +186,20 @@ BOOL CTE::IsRequestSupported(int requestId)
 
 BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
 {
-    BOOL bAllowed;
+    BOOL bAllowed = FALSE;
 
     switch (requestId)
     {
         case RIL_REQUEST_RADIO_POWER:
-            bAllowed = TRUE;
+        {
+            int modemState = GetLastModemEvent();
+            if (E_MMGR_EVENT_MODEM_OUT_OF_SERVICE != modemState
+                    && E_MMGR_NOTIFY_PLATFORM_REBOOT != modemState)
+            {
+                bAllowed = TRUE;
+            }
             break;
+        }
 
         default:
             bAllowed = FALSE;
@@ -267,7 +281,8 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
     return bAllowed;
 }
 
-RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
+RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken, void* pData,
+        size_t datalen)
 {
     RIL_LOG_INFO("CTE::HandleRequestWhenNoModem - REQID=%d, token=0x%08x\r\n",
             requestId, (int) hRilToken);
@@ -303,6 +318,38 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
 
             RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &cardStatus,
                     sizeof(RIL_CardStatus_v6));
+            break;
+
+        case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
+            eRetVal = RIL_E_GENERIC_FAILURE;
+
+            // Delay sending command if radio is off or modem not up
+            if ((RADIO_STATE_OFF == GetRadioState()
+                    || E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
+                    && NULL == m_pPrefNetTypeReqInfo)
+            {
+                if (NULL != pData
+                        && sizeof(RIL_PreferredNetworkType*) == datalen)
+                {
+                    RIL_LOG_INFO("CTE::HandleRequestWhenNoModem - Waiting for radioPower On "
+                            "before setting preferred network type...\r\n");
+
+                    RIL_PreferredNetworkType prefType = ((RIL_PreferredNetworkType*)pData)[0];
+
+                    m_pPrefNetTypeReqInfo = (PREF_NET_TYPE_REQ_INFO*)malloc(
+                                                        sizeof(PREF_NET_TYPE_REQ_INFO));
+                    if (m_pPrefNetTypeReqInfo)
+                    {
+                        // Save request info
+                        memset(m_pPrefNetTypeReqInfo, 0, sizeof(PREF_NET_TYPE_REQ_INFO));
+                        m_pPrefNetTypeReqInfo->token = hRilToken;
+                        m_pPrefNetTypeReqInfo->type = prefType;
+                        m_pPrefNetTypeReqInfo->datalen = datalen;
+
+                        eRetVal = RIL_E_SUCCESS;
+                    }
+                }
+            }
             break;
 
         default:
@@ -363,7 +410,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     //  If we're in the middle of Radio error or radio off request handling, spoof all commands.
     if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(requestId))
     {
-        eRetVal = HandleRequestWhenNoModem(requestId, hRilToken);
+        eRetVal = HandleRequestWhenNoModem(requestId, hRilToken, pData, datalen);
     }
     else if ((m_bRadioRequestPending || RADIO_STATE_OFF == GetRadioState())
             && !IsRequestAllowedInRadioOff(requestId))
@@ -1523,6 +1570,11 @@ RIL_RESULT_CODE CTE::RequestHangup(RIL_Token rilToken, void* pData, size_t datal
         }
     }
 
+    if (RRIL_RESULT_OK == res)
+    {
+        m_pTEBaseInstance->SetDtmfAllowed(m_pTEBaseInstance->GetCurrentCallId(), FALSE);
+    }
+
     RIL_LOG_VERBOSE("CTE::RequestHangup() - Exit\r\n");
     return res;
 }
@@ -1639,7 +1691,7 @@ RIL_RESULT_CODE CTE::RequestHangupForegroundResumeBackground(RIL_Token rilToken,
 
     if (RRIL_RESULT_OK == res)
     {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
+        m_pTEBaseInstance->SetDtmfAllowed(m_pTEBaseInstance->GetCurrentCallId(), FALSE);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestHangupForegroundResumeBackground() - Exit\r\n");
@@ -1699,7 +1751,7 @@ RIL_RESULT_CODE CTE::RequestSwitchHoldingAndActive(RIL_Token rilToken, void* pDa
 
     if (RRIL_RESULT_OK == res)
     {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
+        m_pTEBaseInstance->SetDtmfAllowed(m_pTEBaseInstance->GetCurrentCallId(), FALSE);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestSwitchHoldingAndActive() - Exit\r\n");
@@ -1755,7 +1807,7 @@ RIL_RESULT_CODE CTE::RequestConference(RIL_Token rilToken, void* pData, size_t d
 
     if (RRIL_RESULT_OK == res)
     {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
+        m_pTEBaseInstance->SetDtmfAllowed(m_pTEBaseInstance->GetCurrentCallId(), FALSE);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestConference() - Exit\r\n");
@@ -2131,7 +2183,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         goto Error;
     }
 
-    if (sizeof(int) != datalen)
+    if (sizeof(int*) != datalen)
     {
         RIL_LOG_CRITICAL("CTE::RequestRadioPower() - Invalid data size.\r\n");
         goto Error;
@@ -3690,6 +3742,7 @@ RIL_RESULT_CODE CTE::RequestDtmfStart(RIL_Token rilToken, void* pData, size_t da
 
         if (pCmd)
         {
+            pCmd->SetCallId(m_pTEBaseInstance->GetCurrentCallId());
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestDtmfStart() - Unable to add command to queue\r\n");
@@ -3744,6 +3797,7 @@ RIL_RESULT_CODE CTE::RequestDtmfStop(RIL_Token rilToken, void* pData, size_t dat
 
         if (pCmd)
         {
+            pCmd->SetCallId(m_pTEBaseInstance->GetCurrentCallId());
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestDtmfStop() - Unable to add command to queue\r\n");
@@ -3868,7 +3922,7 @@ RIL_RESULT_CODE CTE::RequestSeparateConnection(RIL_Token rilToken, void* pData, 
 
     if (RRIL_RESULT_OK == res)
     {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
+        m_pTEBaseInstance->SetDtmfAllowed(m_pTEBaseInstance->GetCurrentCallId(), FALSE);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestSeparateConnection() - Exit\r\n");
@@ -7470,7 +7524,7 @@ UINT32 CTE::GetDtmfState()
 }
 
 BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
-        BOOL bIsInitCommand)
+        BOOL bIsInitCommand, int callId)
 {
     RIL_Errno eRetVal = RIL_E_SUCCESS;
     BOOL bIsReqAllowed;
@@ -7481,6 +7535,7 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
     if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
     {
         bIsReqAllowed = FALSE;
+        eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
     }
     else if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(rilRequestId))
     {
@@ -7536,7 +7591,8 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
             bIsReqAllowed = FALSE;
             CMutex::Lock(m_pDtmfStateAccess);
 
-            if (E_DTMF_STATE_STOP == GetDtmfState())
+            if (E_DTMF_STATE_STOP == GetDtmfState()
+                    && m_pTEBaseInstance->IsDtmfAllowed(callId))
             {
                 SetDtmfState(E_DTMF_STATE_START);
                 bIsReqAllowed = TRUE;
@@ -7549,14 +7605,20 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
                     RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
                 }
 
-                if (E_DTMF_STATE_FLUSH == GetDtmfState())
+                /*
+                 * Incase of multi-party call, first call id in the multi-party
+                 * call is added as the call id for DTMF requests. So, if dtmf is
+                 * not allowed for the first call, then it implicitly means that DTMF
+                 * is not allowed for all the calls in the multi-party call.
+                 */
+                if (!m_pTEBaseInstance->IsDtmfAllowed(callId))
                 {
                     // Complete pending DTMF start and stop request
                     CSystemManager::CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0);
+                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
                     CSystemManager::CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0);
+                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
                     SetDtmfState(E_DTMF_STATE_STOP);
                 }
@@ -7572,7 +7634,8 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
             bIsReqAllowed = FALSE;
 
             int dtmfState = TestAndSetDtmfState(E_DTMF_STATE_STOP);
-            if (E_DTMF_STATE_START == dtmfState)
+            if (E_DTMF_STATE_START == dtmfState
+                    && m_pTEBaseInstance->IsDtmfAllowed(callId))
             {
                 bIsReqAllowed = TRUE;
             }
@@ -7584,14 +7647,14 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
                     RIL_onRequestComplete(rilToken, RIL_E_GENERIC_FAILURE, NULL, 0);
                 }
 
-                if (E_DTMF_STATE_FLUSH == dtmfState)
+                if (!m_pTEBaseInstance->IsDtmfAllowed(callId))
                 {
                     // Complete pending DTMF start and stop request
                     CSystemManager::CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0);
+                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
                     CSystemManager::CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0);
+                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
                 }
             }
             break;
@@ -8029,11 +8092,6 @@ void CTE::PostHangupCmdHandler(POST_CMD_HANDLER_DATA& rData)
         return;
     }
 
-    if (RRIL_RESULT_OK == rData.uiResultCode)
-    {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
-    }
-
     RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                                                 rData.pData, rData.uiDataSize);
 
@@ -8052,11 +8110,6 @@ void CTE::PostSwitchHoldingAndActiveCmdHandler(POST_CMD_HANDLER_DATA& rData)
 
     RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                                                 rData.pData, rData.uiDataSize);
-
-    if (RRIL_RESULT_OK == rData.uiResultCode)
-    {
-        SetDtmfState(E_DTMF_STATE_FLUSH);
-    }
 
     if (IsClearPendingCHLD() || RRIL_RESULT_OK != rData.uiResultCode)
     {
@@ -8167,6 +8220,25 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
         if (SCREEN_STATE_UNKNOWN != m_ScreenState)
         {
             m_pTEBaseInstance->HandleScreenStateReq(m_ScreenState);
+        }
+         // Send request to SetPreferredNetworkType if previously received before radio power on
+        if (NULL != m_pPrefNetTypeReqInfo)
+        {
+            RIL_LOG_INFO("CTE::PostRadioPower() - RadioPower On, Calling "
+                    "RequestSetPreferredNetworkType()...\r\n");
+
+            RIL_RESULT_CODE res = RequestSetPreferredNetworkType(
+                                            m_pPrefNetTypeReqInfo->token,
+                                            &m_pPrefNetTypeReqInfo->type,
+                                            m_pPrefNetTypeReqInfo->datalen);
+            if (RRIL_RESULT_OK != res)
+            {
+                RIL_LOG_CRITICAL("CTE::PostRadioPower() - "
+                        "RequestSetPreferredNetworkType failed!\r\n");
+            }
+
+            free(m_pPrefNetTypeReqInfo);
+            m_pPrefNetTypeReqInfo = NULL;
         }
 
         //  Turning on phone

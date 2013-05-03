@@ -96,7 +96,7 @@ extern const char   g_szModemResourceName[];
 extern const char   g_szIpcDataChannelMin[];
 extern const char   g_szHsiDataDirect[];
 extern const char   g_szApnTypeDefault[];
-extern const char   g_szApnTypeThetered[];
+extern const char   g_szApnTypeDUN[];
 extern const char   g_szApnTypeIMS[];
 extern const char   g_szApnTypeMMS[];
 extern const char   g_szApnTypeCBS[];

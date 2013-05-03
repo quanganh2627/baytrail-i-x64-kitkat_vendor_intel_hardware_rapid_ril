@@ -166,6 +166,9 @@ const char* g_szRequestNames[] =
     "HangupVT",                             // ND_REQ_ID_HANGUPVT 115
     "DialVT",                               // ND_REQ_ID_DIALVT 116
 #endif // M2_VT_FEATURE_ENABLED
+#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
+    "GetSimSmsStorage",                    // ND_REQ_GET_SIM_SMS_STORAGE 115 or 117
+#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
 };
 
 /////////////////////////////////////////////////
@@ -229,7 +232,7 @@ const char   g_szModemResourceName[]    = "ModemDataChannelResourceName";
 const char   g_szIpcDataChannelMin[]    = "IpcDataChannelMin";
 const char   g_szHsiDataDirect[]        = "HsiDataDirect";
 const char   g_szApnTypeDefault[]       = "ApnTypeDefault";
-const char   g_szApnTypeThetered[]      = "ApnTypeThetered";
+const char   g_szApnTypeDUN[]           = "ApnTypeDUN";
 const char   g_szApnTypeIMS[]           = "ApnTypeIMS";
 const char   g_szApnTypeMMS[]           = "ApnTypeMMS";
 const char   g_szApnTypeCBS[]           = "ApnTypeCBS";
