@@ -2397,21 +2397,6 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                     (const char**) pszRequest, uiDataSize);
             break;
 
-        case RIL_OEM_HOOK_STRING_GET_EXTENDED_REG_ERROR_CODE:
-            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_EXTENDED_REG_ERROR_CODE");
-            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+NEER\r"))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - "
-                        "RIL_OEM_HOOK_STRING_GET_EXTENDED_REG_ERROR_CODE -"
-                        " Can't construct szCmd1.\r\n");
-                goto Error;
-            }
-            //  Send this command on OEM channel.
-            uiRilChannel = RIL_CHANNEL_OEM;
-            res = RRIL_RESULT_OK;
-            break;
-
-
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
         case RIL_OEM_HOOK_STRING_SWAP_PS:
             {
@@ -2515,10 +2500,6 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
 
         case RIL_OEM_HOOK_STRING_GET_RF_POWER_CUTBACK_TABLE:
             res = ParseXRFCBT(pszRsp, rRspData);
-            break;
-
-        case RIL_OEM_HOOK_STRING_GET_EXTENDED_REG_ERROR_CODE:
-            res = ParseNEER(pszRsp, rRspData);
             break;
 
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
@@ -5026,62 +5007,6 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM6260::ParseNEER(const char* pszRsp, RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE_XMM6260::ParseNEER() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    P_ND_EXT_ERROR_CODE pResponse = NULL;
-
-    UINT32 uiReport = 0;
-
-    // Skip "+NEER: "
-    if (!FindAndSkipString(pszRsp, "+NEER:", pszRsp))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseNEER() - Could not skip \"+NEER: \".\r\n");
-        goto Error;
-    }
-
-    // Parse <report> (only if a # is in the returning string)
-    if (FindAndSkipString(pszRsp, "#", pszRsp))
-    {
-        // Get failure cause (if it exists)
-        if (!ExtractUInt32(pszRsp, uiReport, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseNEER() - Could not extract report.\r\n");
-            goto Error;
-        }
-    }
-
-    pResponse = (P_ND_EXT_ERROR_CODE) malloc(sizeof(S_ND_EXT_ERROR_CODE));
-    if (NULL == pResponse)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseNEER() - Could not allocate memory for response");
-        goto Error;
-    }
-    memset(pResponse, 0, sizeof(S_ND_EXT_ERROR_CODE));
-
-    RIL_LOG_INFO("CTE_XMM6260::ParseNEER() - report: %u\r\n", uiReport);
-
-    snprintf(pResponse->szService, sizeof(pResponse->szService) - 1, "%u", uiReport);
-
-    pResponse->sResponsePointer.pszService = pResponse->szService;
-
-    rRspData.pData   = (void*)pResponse;
-    rRspData.uiDataSize  = sizeof(S_ND_EXT_ERROR_CODE_PTR);
-
-    res = RRIL_RESULT_OK;
-
-Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pResponse);
-        pResponse = NULL;
-    }
-
-    RIL_LOG_VERBOSE("CTE_XMM6260::ParseNEER() - Exit\r\n");
-    return res;
-}
-
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
 RIL_RESULT_CODE CTE_XMM6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRspData)
 {
@@ -5969,7 +5894,7 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() - "
+        RIL_LOG_CRITICAL("CTE_XMM6260::DataConfigDown() - "
                 "Invalid CID=[%u], no data channel found!\r\n", uiCID);
         return FALSE;
     }

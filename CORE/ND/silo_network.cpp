@@ -730,18 +730,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             }
         }
     }
-    //  Format is "ME PDN DEACT, <cid>"
-    else if (FindAndSkipString(szStrExtract, "ME PDN DEACT", szStrExtract))
-    {
-        if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
-        {
-            goto Error;
-        }
-        RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN DEACT, cid=[%d]\r\n", uiCID);
-        CTE::GetTE().DataConfigDown(uiCID);
-    }
-    else if (FindAndSkipString(szStrExtract, "NW CLASS", szStrExtract) ||
-            FindAndSkipString(szStrExtract, "ME CLASS", szStrExtract))
+    else if (FindAndSkipString(rszPointer, "NW CLASS", szStrExtract) ||
+            FindAndSkipString(rszPointer, "ME CLASS", szStrExtract))
     {
         int pos = 0;
         int mt_class = 0;
@@ -790,8 +780,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             goto Error;
         }
     }
-    else if (FindAndSkipString(szStrExtract, "ME DETACH", szStrExtract) ||
-            FindAndSkipString(szStrExtract, "NW DETACH", szStrExtract))
+    else if (FindAndSkipString(rszPointer, "ME DETACH", rszPointer) ||
+            FindAndSkipString(rszPointer, "NW DETACH", rszPointer))
     {
         RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME or NW DETACH");
         CTE::GetTE().CleanupAllDataConnections();
@@ -804,7 +794,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         if (GetContextIdFromDeact(szStrExtract, uiCID))
         {
             RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT CID- %u", uiCID);
-            CTE::GetTE().DataConfigDown(uiCID);
         }
     }
     else if (FindAndSkipString(szStrExtract, "NW DEACT", szStrExtract))
@@ -829,9 +818,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                  * map the fail cause to ril cause values and set it.
                  */
                 pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
-
-                CTE::GetTE().DataConfigDown(uiCID);
-
                 CTE::GetTE().CompleteDataCallListChanged();
             }
         }

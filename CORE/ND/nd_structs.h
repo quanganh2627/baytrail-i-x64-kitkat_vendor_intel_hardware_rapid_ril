@@ -297,20 +297,6 @@ typedef struct
     char szService[MAX_SMS_TRANSPORT_MODE_SIZE];
 } S_ND_SMS_TRANSPORT_MODE, *P_ND_SMS_TRANSPORT_MODE;
 
-const UINT32 MAX_EXT_ERROR_CODE_SIZE = 5;
-
-typedef struct
-{
-    char* pszService;
-} S_ND_EXT_ERROR_CODE_PTR, *P_ND_EXT_ERROR_CODE_PTR;
-
-typedef struct
-{
-    S_ND_EXT_ERROR_CODE_PTR sResponsePointer;
-    char szService[MAX_EXT_ERROR_CODE_SIZE];
-} S_ND_EXT_ERROR_CODE, *P_ND_EXT_ERROR_CODE;
-
-
 //
 // Structs for retrieving the RF Power Cutback Table
 //
