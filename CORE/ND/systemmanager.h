@@ -79,6 +79,9 @@ public:
         return GetInstance().m_pModemBasicInitCompleteEvent;
     }
 
+    //  Get/Set functions.
+    CEvent* GetModemPoweredOffEvent() { return m_pModemPoweredOffEvent; }
+
     static CMutex* GetDataChannelAccessorMutex()
     {
         return GetInstance().m_pDataChannelAccessorMutex;
@@ -90,7 +93,8 @@ public:
     }
 
     void TriggerSimUnlockedEvent() const { CEvent::Signal(m_pSimUnlockedEvent); };
-    void TriggerModemPowerOnEvent() const { CEvent::Signal(m_pModemPowerOnEvent); };
+    void TriggerRadioPoweredOnEvent() const { CEvent::Signal(m_pRadioPoweredOnEvent); };
+    void TriggerModemPoweredOffEvent() const { CEvent::Signal(m_pModemPoweredOffEvent); };
     void TriggerInitStringCompleteEvent(UINT32 eChannel, eComInitIndex eInitIndex);
 
     BOOL IsInitializationSuccessful() const { return m_bIsSystemInitialized; };
@@ -99,7 +103,13 @@ public:
     void GetRequestInfo(REQ_ID reqID, REQ_INFO& rReqInfo);
 
     //  For resetting modem
+
+    /*
+     * Signals the command, response thread to exit and also stops the thread before
+     * closing the ports.
+     */
     void CloseChannelPorts();
+
     BOOL OpenChannelPortsOnly();
 
     BOOL SendRequestModemRecovery();
@@ -128,6 +138,8 @@ public:
 
     char* GetModemResourceName();
     int GetIpcDataChannelMin();
+
+    int GetCancelWaitPipeFd() { return m_cancelWaitPipeFds[0]; }
 
 private:
     // Framework Init Functions
@@ -165,7 +177,8 @@ private:
     CEvent* m_pExitRilEvent;
     CEvent* m_pModemBasicInitCompleteEvent;
     CEvent* m_pSimUnlockedEvent;
-    CEvent* m_pModemPowerOnEvent;
+    CEvent* m_pRadioPoweredOnEvent;
+    CEvent* m_pModemPoweredOffEvent;
     CEvent* m_pInitStringCompleteEvent;
     CEvent* m_pSysInitCompleteEvent;
 
@@ -195,6 +208,13 @@ private:
 
     CMutex* m_pSpoofCommandsStatusAccessMutex;
     CMutex* m_pTEAccessMutex;
+
+    /*
+     * This holds the read and write pipe descriptors. Upon data in read pipe
+     * descriptor, channel response thread will cancel the response polling and
+     * exit the response thread.
+     */
+    int m_cancelWaitPipeFds[2];
 };
 
 #endif // SYSTEMMANAGER

@@ -233,6 +233,21 @@ const int RIL_OEM_HOOK_STRING_SET_RF_POWER_CUTBACK_TABLE = 0x000000AC;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_GET_EXTENDED_REG_ERROR_CODE
+//  Command ID = 0x000000AD
+//
+//  This command get the extended error code of the failure in the last CS
+//  registration (AT+NEER).
+//
+//  "data" = NULL
+//  "response" - String containing the failure reason mapped to cause codes
+//               defined in TS 27.007
+//
+const int RIL_OEM_HOOK_STRING_GET_EXTENDED_REG_ERROR_CODE = 0x000000AD;
+
+///////////////////////////////////////////////////////////////////////////////
+
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
 
 //

@@ -57,6 +57,7 @@ typedef long                RIL_RESULT_CODE;
 #define MAX_PDP_TYPE_SIZE          (20)
 #define MAX_MDM_RESOURCE_NAME_SIZE (20)
 #define MAX_FDTIMER_SIZE           (5)
+#define MODEM_STATE_UNKNOWN        (-1)
 
 ///////////////////////////////////////////////////////////////////////////////
 // SIM related constants
@@ -73,6 +74,23 @@ const int SIM_COMMAND_UPDATE_RECORD = 220;
 const int SIM_COMMAND_STATUS = 242;
 const int SIM_COMMAND_RETRIEVE_DATA = 203;
 const int SIM_COMMAND_SET_DATA = 219;
+
+///////////////////////////////////////////////////////////////////////////////
+// Radio off reasons
+//
+enum
+{
+    E_RADIO_OFF_REASON_INIT,
+    E_RADIO_OFF_REASON_SHUTDOWN,
+    E_RADIO_OFF_REASON_AIRPLANE_MODE
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// radio power constants
+//
+const int RADIO_POWER_UNKNOWN = -1;
+const int RADIO_POWER_OFF = 0;
+const int RADIO_POWER_ON = 1;
 
 ///////////////////////////////////////////////////////////////////////////////
 // screen state constants

@@ -108,7 +108,7 @@ char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
     else if (RIL_CHANNEL_ATCMD == uiChannelType)
     {
         ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                "|+XGENDATA|+XPOW=0,0,0|+CFUN=4");
+                "|+XGENDATA|+XPOW=0,0,0");
 
         if (m_cte.IsVoiceCapable())
         {
@@ -2397,6 +2397,21 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                     (const char**) pszRequest, uiDataSize);
             break;
 
+        case RIL_OEM_HOOK_STRING_GET_EXTENDED_REG_ERROR_CODE:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_EXTENDED_REG_ERROR_CODE");
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+NEER\r"))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - "
+                        "RIL_OEM_HOOK_STRING_GET_EXTENDED_REG_ERROR_CODE -"
+                        " Can't construct szCmd1.\r\n");
+                goto Error;
+            }
+            //  Send this command on OEM channel.
+            uiRilChannel = RIL_CHANNEL_OEM;
+            res = RRIL_RESULT_OK;
+            break;
+
+
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
         case RIL_OEM_HOOK_STRING_SWAP_PS:
             {
@@ -2500,6 +2515,10 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
 
         case RIL_OEM_HOOK_STRING_GET_RF_POWER_CUTBACK_TABLE:
             res = ParseXRFCBT(pszRsp, rRspData);
+            break;
+
+        case RIL_OEM_HOOK_STRING_GET_EXTENDED_REG_ERROR_CODE:
+            res = ParseNEER(pszRsp, rRspData);
             break;
 
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
@@ -5007,6 +5026,62 @@ Error:
     return res;
 }
 
+RIL_RESULT_CODE CTE_XMM6260::ParseNEER(const char* pszRsp, RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseNEER() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    P_ND_EXT_ERROR_CODE pResponse = NULL;
+
+    UINT32 uiReport = 0;
+
+    // Skip "+NEER: "
+    if (!FindAndSkipString(pszRsp, "+NEER:", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseNEER() - Could not skip \"+NEER: \".\r\n");
+        goto Error;
+    }
+
+    // Parse <report> (only if a # is in the returning string)
+    if (FindAndSkipString(pszRsp, "#", pszRsp))
+    {
+        // Get failure cause (if it exists)
+        if (!ExtractUInt32(pszRsp, uiReport, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseNEER() - Could not extract report.\r\n");
+            goto Error;
+        }
+    }
+
+    pResponse = (P_ND_EXT_ERROR_CODE) malloc(sizeof(S_ND_EXT_ERROR_CODE));
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseNEER() - Could not allocate memory for response");
+        goto Error;
+    }
+    memset(pResponse, 0, sizeof(S_ND_EXT_ERROR_CODE));
+
+    RIL_LOG_INFO("CTE_XMM6260::ParseNEER() - report: %u\r\n", uiReport);
+
+    snprintf(pResponse->szService, sizeof(pResponse->szService) - 1, "%u", uiReport);
+
+    pResponse->sResponsePointer.pszService = pResponse->szService;
+
+    rRspData.pData   = (void*)pResponse;
+    rRspData.uiDataSize  = sizeof(S_ND_EXT_ERROR_CODE_PTR);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseNEER() - Exit\r\n");
+    return res;
+}
+
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
 RIL_RESULT_CODE CTE_XMM6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRspData)
 {
@@ -5018,7 +5093,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRsp
     {
         // Set the radio and SIM state as un available
         SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
-        SetRadioState(RRIL_RADIO_STATE_UNAVAILABLE);
+        SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
     }
     //  Todo: Handle error here.
 
@@ -5894,7 +5969,7 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
     pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::DataConfigDown() - "
+        RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() - "
                 "Invalid CID=[%u], no data channel found!\r\n", uiCID);
         return FALSE;
     }
@@ -6070,4 +6145,84 @@ RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::HandleScreenStateReq() - Exit\r\n");
     return res;
+}
+
+BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
+        BOOL bIsModemOffInFlightMode, char* pCmdBuffer, int cmdBufferLen)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetRadioPowerCommand() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    char szCmd[MAX_BUFFER_SIZE] = {'\0'};
+
+    if (NULL == pCmdBuffer || cmdBufferLen <= 0)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - Invalid buffer\r\n");
+
+        return bRet;
+    }
+
+#if !defined(M2_DUALSIM_FEATURE_ENABLED)
+    if (bTurnRadioOn)
+    {
+        strcpy(szCmd, "AT+CFUN=1;+XSIMSTATE?\r");
+    }
+    else
+    {
+        if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
+        {
+            strcpy(szCmd, "AT+CHLD=8;+CGATT=0\r");
+        }
+        else
+        {
+            strcpy(szCmd, "AT+CFUN=4\r");
+        }
+    }
+#else
+    // use SIM-specific property, depending on RIL instance
+    char szSimPowerOffStatePropName[MAX_PROP_VALUE] = {'\0'};
+    char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
+    UINT32 uiSimPoweredOff;
+    UINT32 uiFunMode;
+
+    if (g_szSIMID)
+    {
+        snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
+                "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - g_szSIMID is NULL\r\n");
+        goto Error;
+    }
+
+    // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
+    property_get(szSimPowerOffStatePropName, szSimPowerOffState, "");
+    uiSimPoweredOff = (strcmp(szSimPowerOffState, "true") == 0) ? 1 : 0;
+
+    // Power On (20) or flight mode (21)
+    uiFunMode = bTurnRadioOn ? 20 : 21;
+
+    if (!PrintStringNullTerminate(szCmd, sizeof(szCmd),
+            "AT+CFUN=%u,%u%s\r", uiFunMode, uiSimPoweredOff,
+            (uiFunMode == 20 && uiSimPoweredOff == 0) ? ";+XSIMSTATE?" : ""))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - Cannot create command\r\n");
+        goto Error;
+    }
+#endif
+
+    if (!CopyStringNullTerminate(pCmdBuffer, szCmd, cmdBufferLen))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - "
+                "Cannot copy command to output buffer\r\n");
+
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetRadioPowerCommand() - Exit\r\n");
+
+    return bRet;
 }

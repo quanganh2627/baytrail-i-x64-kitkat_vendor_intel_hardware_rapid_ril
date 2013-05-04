@@ -15,6 +15,7 @@
 #include "rillog.h"
 #include "file_ops.h"
 #include "util.h"
+#include "systemmanager.h"
 #include <fcntl.h>
 #include <cutils/sockets.h>
 #include <termios.h>
@@ -372,8 +373,9 @@ UINT32 CFile::GetFileAttributes(const char* pszFileName)
 
 BOOL CFile::WaitForEvent(UINT32& rdwFlags, UINT32 dwTimeoutInMS)
 {
-    struct pollfd fds[1] = { {0,0,0} };
+    struct pollfd fds[2] = { {0,0,0}, {0,0,0} };
     int nPollVal = 0;
+    const int NUM_FD = 2;
 
     rdwFlags = 0;
 
@@ -385,17 +387,19 @@ BOOL CFile::WaitForEvent(UINT32& rdwFlags, UINT32 dwTimeoutInMS)
 
     fds[0].fd = m_file;
     fds[0].events = POLLIN;
+    fds[1].fd = CSystemManager::GetInstance().GetCancelWaitPipeFd();
+    fds[1].events = POLLIN;
 
     if (WAIT_FOREVER == dwTimeoutInMS)
     {
-        nPollVal = poll(fds, 1, -1);
+        nPollVal = poll(fds, NUM_FD, -1);
     }
     else
     {
         RIL_LOG_INFO("CFile::WaitForEvent() : calling poll() on"
                 " fd=[%d]  timeout=[%d]ms\r\n", m_file, dwTimeoutInMS);
 
-        nPollVal = poll(fds, 1, dwTimeoutInMS);
+        nPollVal = poll(fds, NUM_FD, dwTimeoutInMS);
     }
 
     switch(nPollVal)
@@ -413,7 +417,13 @@ BOOL CFile::WaitForEvent(UINT32& rdwFlags, UINT32 dwTimeoutInMS)
 
         default:
             //  Got an event on the fd
-            if (fds[0].revents & POLLIN)
+            if (fds[1].revents & POLLIN)
+            {
+                // Received data in read pipe fd
+                RIL_LOG_INFO("CFile::WaitForEvent() : RECEIVED POLLIN on cancel wait pipe fd\r\n");
+                return FALSE;
+            }
+            else if (fds[0].revents & POLLIN)
             {
                 //  We received valid data
                 rdwFlags = FILE_EVENT_RXCHAR;
