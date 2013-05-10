@@ -54,10 +54,18 @@ RIL_RadioState CRadioState::GetRadioState()
 ///////////////////////////////////////////////////////////////////////////////
 void CRadioState::SetRadioState(const RRIL_Radio_State eRadioState)
 {
+    m_eRadioState = eRadioState;
+    RIL_LOG_INFO("CRadioState::SetRadioState() - RADIO STATE = %s\r\n", PrintState(m_eRadioState));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void CRadioState::SetRadioStateAndNotify(const RRIL_Radio_State eRadioState)
+{
     if (m_eRadioState != eRadioState) {
         m_eRadioState = eRadioState;
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, NULL, 0);
-        RIL_LOG_INFO("[RIL STATE] RADIO STATE = %s\r\n", PrintState(m_eRadioState));
+        RIL_LOG_INFO("CRadioState::SetRadioStateAndNotify() - RADIO STATE = %s\r\n",
+                PrintState(m_eRadioState));
     }
 }
 

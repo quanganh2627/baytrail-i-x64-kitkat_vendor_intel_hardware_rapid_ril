@@ -788,8 +788,6 @@ public:
     virtual RIL_RESULT_CODE ParseQueryIpAndDns(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseEnterDataState(RESPONSE_DATA& rRspData);
 
-    virtual RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
-
     virtual void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
     virtual UINT32 GetIncomingCallId();
 
@@ -799,6 +797,7 @@ public:
     virtual RIL_RadioState GetRadioState();
     virtual RRIL_SIM_State GetSIMState();
     virtual void SetRadioState(const RRIL_Radio_State eRadioState);
+    virtual void SetRadioStateAndNotify(const RRIL_Radio_State eRadioState);
     virtual void SetSIMState(const RRIL_SIM_State eSIMState);
 
     // Returns true on PIN entry required
@@ -822,6 +821,9 @@ public:
 
     // Post command handler for RIL_REQUEST_DEACTIVATE_DATA_CALL request
     virtual void PostDeactivateDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    // Adds the PS attach command to command queue
+    virtual void PSAttach();
 
     // Get functions returning number of retry counts left for respective locks
     virtual int GetPinRetryCount() { return m_PinRetryCount.pin; };
@@ -855,12 +857,17 @@ public:
     BOOL IsDtmfAllowed(int callId);
     void SetDtmfAllowed(int callId, BOOL bDtmfAllowed);
 
+    /*
+     * Get AT commands to power on/off the radio
+     */
+    virtual BOOL GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
+            BOOL bIsModemOffInFlightMode, /*INOUT*/ char* pCmdBuffer, int cmdBufferLen);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
 
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA& rRspData);
-    void DeactivateAllDataCalls();
 
     typedef struct
     {

@@ -233,6 +233,9 @@ public:
 
     virtual RIL_RESULT_CODE HandleScreenStateReq(int screenState);
 
+    virtual BOOL GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
+            BOOL bIsModemOffInFlightMode, char* pCmdBuffer, int cmdBufferLen);
+
 private:
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
                                                     const char** pszRequest,

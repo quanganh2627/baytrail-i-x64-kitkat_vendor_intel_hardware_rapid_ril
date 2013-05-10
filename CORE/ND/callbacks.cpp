@@ -27,25 +27,21 @@ void triggerRadioOffInd(void* param)
 {
     if (RADIO_STATE_UNAVAILABLE == CTE::GetTE().GetRadioState())
     {
-       CTE::GetTE().SetRadioState(RRIL_RADIO_STATE_OFF);
+       CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
     }
 }
 
 void triggerDataResumedInd(void* param)
 {
-    unsigned char szData[10];
-    int pos = 0;
     const int DATA_RESUMED = 1;
+    sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND data;
 
     CTE::GetTE().SetDataSuspended(FALSE);
 
-    memset(szData, 0, sizeof(szData));
+    data.command = RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND;
+    data.status = DATA_RESUMED;
 
-    convertIntToByteArrayAt(szData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
-    pos += sizeof(int);
-    convertIntToByteArrayAt(szData, DATA_RESUMED, pos);
-
-    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, szData,
+    RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)&data,
             sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
 }
 
@@ -54,17 +50,13 @@ void triggerDataSuspendInd(void* param)
     if (!CTE::GetTE().IsDataSuspended() || (RADIO_STATE_ON != CTE::GetTE().GetRadioState()))
         return;
 
-    unsigned char szData[10];
-    int pos = 0;
     const int DATA_SUSPENDED = 0;
+    sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND data;
 
-    memset(szData, 0, sizeof(szData));
+    data.command = RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND;
+    data.status = DATA_SUSPENDED;
 
-    convertIntToByteArrayAt(szData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
-    pos += sizeof(int);
-    convertIntToByteArrayAt(szData, DATA_SUSPENDED, pos);
-
-    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, szData,
+    RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)&data,
             sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
 }
 
