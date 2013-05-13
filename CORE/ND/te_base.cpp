@@ -315,6 +315,43 @@ char* CTEBase::GetUnlockInitCommands(UINT32 uiChannelType)
     return NULL;
 }
 
+const char* CTEBase::GetRegistrationInitString()
+{
+    return "+CREG=2|+CGREG=2";
+}
+
+const char* CTEBase::GetCsRegistrationReadString()
+{
+    return "AT+CREG=2;+CREG?;+CREG=0\r";
+}
+
+const char* CTEBase::GetPsRegistrationReadString()
+{
+    return "AT+CGREG=2;+CGREG?;+CGREG=0\r";
+}
+
+const char* CTEBase::GetLocationUpdateString(BOOL bIsLocationUpdateEnabled)
+{
+    return bIsLocationUpdateEnabled ? "AT+CREG=2\r" : "AT+CREG=1\r";
+}
+
+const char* CTEBase::GetScreenOnString()
+{
+    return "AT+CREG=2;+CGREG=2\r";
+}
+
+const char* CTEBase::GetScreenOffString()
+{
+    if (m_cte.IsLocationUpdatesEnabled())
+    {
+        return "AT+CGREG=1\r";
+    }
+    else
+    {
+        return "AT+CREG=1;+CGREG=1\r";
+    }
+}
+
 //
 // RIL_REQUEST_GET_SIM_STATUS 1
 //
@@ -1968,7 +2005,7 @@ RIL_RESULT_CODE CTEBase::CoreRegistrationState(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTEBase::CoreRegistrationState() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=2;+CREG?;+CREG=0\r",
+    if (CopyStringNullTerminate(rReqData.szCmd1, GetCsRegistrationReadString(),
             sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
@@ -2038,7 +2075,7 @@ RIL_RESULT_CODE CTEBase::CoreGPRSRegistrationState(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTEBase::CoreGPRSRegistrationState() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XREG=2;+XREG?;+XREG=0\r",
+    if (CopyStringNullTerminate(rReqData.szCmd1, GetPsRegistrationReadString(),
             sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
@@ -2067,7 +2104,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
     }
     memset(pGPRSRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
-    if (!m_cte.ParseXREG(pszRsp, FALSE, psRegStatus))
+    if (!m_cte.ParseCGREG(pszRsp, FALSE, psRegStatus))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR in parsing response.\r\n");
         goto Error;
@@ -7034,8 +7071,7 @@ RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA& rReqData,
     enableLocationUpdates = ((int*)pData)[0];
 
     if (!CopyStringNullTerminate(rReqData.szCmd1,
-            (1 == enableLocationUpdates) ? "AT+CREG=2\r" : "AT+CREG=1\r",
-            sizeof(rReqData.szCmd1)))
+            GetLocationUpdateString(enableLocationUpdates), sizeof(rReqData.szCmd1)))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - Cannot create command\r\n");
         goto Error;

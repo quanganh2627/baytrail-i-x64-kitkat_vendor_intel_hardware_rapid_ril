@@ -61,10 +61,15 @@ char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
     if (RIL_CHANNEL_URC == uiChannelType)
     {
         char szBasicInitCmd[] = "|+CSCS=\"UCS2\"|+XSIMSTATE=1|+XSIMSTATE?|+CTZU=1|+XNITZINFO=1|"
-                "+CREG=2|+XREG=2|+CGEREP=1,0|+XCSQ=1";
+                "+CGEREP=1,0|+XCSQ=1";
 
         ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
                 szBasicInitCmd);
+
+        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd), "|");
+
+        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                GetRegistrationInitString());
 
         if (m_cte.IsXDATASTATReportingEnabled())
         {
@@ -152,6 +157,33 @@ char* CTE_XMM6260::GetUnlockInitCommands(UINT32 uiChannelType)
 
     RIL_LOG_VERBOSE("CTE_XMM6260::GetUnlockInitCommands() - Exit\r\n");
     return strndup(szInitCmd, strlen(szInitCmd));
+}
+
+const char* CTE_XMM6260::GetRegistrationInitString()
+{
+    return "+CREG=2|+XREG=2";
+}
+
+const char* CTE_XMM6260::GetPsRegistrationReadString()
+{
+    return "AT+XREG=2;+XREG?;+XREG=0\r";
+}
+
+const char* CTE_XMM6260::GetScreenOnString()
+{
+    return "AT+CREG=2;+CGREG=0;+XREG=2;+XCSQ=1\r";
+}
+
+const char* CTE_XMM6260::GetScreenOffString()
+{
+    if (m_cte.IsLocationUpdatesEnabled())
+    {
+        return "AT+CGREG=1;+XREG=0;+XCSQ=0\r";
+    }
+    else
+    {
+        return "AT+CREG=1;+CGREG=1;+XREG=0;+XCSQ=0\r";
+    }
 }
 
 BOOL CTE_XMM6260::IsRequestSupported(int requestId)
@@ -380,6 +412,50 @@ RIL_RESULT_CODE CTE_XMM6260::ParseEnterSimPin(RESPONSE_DATA & rRspData)
     return CTEBase::ParseEnterSimPin(rRspData);
 }
 
+RIL_RESULT_CODE CTE_XMM6260::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseGPRSRegistrationState() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+
+    S_ND_GPRS_REG_STATUS psRegStatus;
+    P_ND_GPRS_REG_STATUS pGPRSRegStatus = NULL;
+
+    pGPRSRegStatus = (P_ND_GPRS_REG_STATUS)malloc(sizeof(S_ND_GPRS_REG_STATUS));
+    if (NULL == pGPRSRegStatus)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGPRSRegistrationState() -"
+                " Could not allocate memory for a S_ND_GPRS_REG_STATUS struct.\r\n");
+        goto Error;
+    }
+    memset(pGPRSRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
+
+    if (!m_cte.ParseXREG(pszRsp, FALSE, psRegStatus))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGPRSRegistrationState() - "
+                "ERROR in parsing response.\r\n");
+        goto Error;
+    }
+
+    m_cte.StoreRegistrationInfo(&psRegStatus, TRUE);
+    m_cte.CopyCachedRegistrationInfo(pGPRSRegStatus, TRUE);
+
+    rRspData.pData  = (void*)pGPRSRegStatus;
+    rRspData.uiDataSize = sizeof(S_ND_GPRS_REG_STATUS_POINTERS);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pGPRSRegStatus);
+        pGPRSRegStatus = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseGPRSRegistrationState() - Exit\r\n");
+    return res;
+}
 
 // RIL_REQUEST_SETUP_DATA_CALL 27
 RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA& rReqData,
@@ -6003,7 +6079,7 @@ RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)
     switch (screenState)
     {
         case SCREEN_STATE_ON:
-            if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CREG=2;+CGREG=0;+XREG=2;+XCSQ=1\r",
+            if (!CopyStringNullTerminate(reqData.szCmd1, GetScreenOnString(),
                     sizeof(reqData.szCmd1)))
             {
                 RIL_LOG_CRITICAL("CTE_XMM6260::HandleScreenStateReq() - Cannot create command\r\n");
@@ -6012,25 +6088,12 @@ RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)
             break;
 
         case SCREEN_STATE_OFF:
-            if (m_cte.IsLocationUpdatesEnabled())
+            if (!CopyStringNullTerminate(reqData.szCmd1, GetScreenOffString(),
+                    sizeof(reqData.szCmd1)))
             {
-                if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CGREG=1;+XREG=0;+XCSQ=0\r",
-                        sizeof(reqData.szCmd1)))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::HandleScreenStateReq() - "
-                            "Cannot create command\r\n");
-                    goto Error;
-                }
-            }
-            else
-            {
-                if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CREG=1;+CGREG=1;+XREG=0;+XCSQ=0\r",
-                        sizeof(reqData.szCmd1)))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::HandleScreenStateReq() - "
-                            "Cannot create command\r\n");
-                    goto Error;
-                }
+                RIL_LOG_CRITICAL("CTE_XMM6260::HandleScreenStateReq() - "
+                        "Cannot create command\r\n");
+                goto Error;
             }
             break;
 

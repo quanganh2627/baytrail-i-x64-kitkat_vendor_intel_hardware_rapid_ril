@@ -875,6 +875,13 @@ public:
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
 
+    virtual const char* GetRegistrationInitString();
+    virtual const char* GetCsRegistrationReadString();
+    virtual const char* GetPsRegistrationReadString();
+    virtual const char* GetLocationUpdateString(BOOL bIsLocationUpdateEnabled);
+    virtual const char* GetScreenOnString();
+    virtual const char* GetScreenOffString();
+
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA& rRspData);
 

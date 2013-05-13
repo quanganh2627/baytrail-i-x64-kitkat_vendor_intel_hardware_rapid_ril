@@ -77,14 +77,33 @@ char* CTE_XMM7160::GetBasicInitCommands(UINT32 uiChannelType)
                     szEnableIMS);
         }
 
-        // add to init string. +CEREG=2
-        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                "|+CEREG=2");
         free (pInitCmd);
     }
 
     RIL_LOG_VERBOSE("CTE_XMM7160::GetBasicInitCommands() - Exit\r\n");
     return strndup(szInitCmd, strlen(szInitCmd));
+}
+
+const char* CTE_XMM7160::GetRegistrationInitString()
+{
+    return "+CREG=3|+XREG=3|+CEREG=3";
+}
+
+const char* CTE_XMM7160::GetScreenOnString()
+{
+    return "AT+CREG=3;+CGREG=0;+XREG=3;+CEREG=3;+XCSQ=1\r";
+}
+
+const char* CTE_XMM7160::GetScreenOffString()
+{
+    if (m_cte.IsLocationUpdatesEnabled())
+    {
+        return "AT+CGREG=1;+CEREG=1;+XREG=0;+XCSQ=0\r";
+    }
+    else
+    {
+        return "AT+CREG=1;+CGREG=1;+CEREG=1;+XREG=0;+XCSQ=0\r";
+    }
 }
 
 // RIL_REQUEST_SETUP_DATA_CALL 27

@@ -441,14 +441,14 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     if (SILO_NETWORK_CGREG == regType)
     {
         //  The +CGREG case
-        //  Unsol is 1 and 5
-        if ((1 == nNumParams) || (5 == nNumParams))
+        //  Unsol is 1,5 and 7
+        if ((1 == nNumParams) || (5 == nNumParams) || (7 == nNumParams))
         {
             fUnSolicited = TRUE;
         }
-        else if ((2 == nNumParams) || (6 == nNumParams))
+        else if ((2 == nNumParams) || (6 == nNumParams) || (8 == nNumParams))
         {
-            //  Sol is 2 and 6
+            //  Sol is 2,6 and 8
             fUnSolicited = FALSE;
         }
         else
@@ -463,14 +463,14 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     else if (SILO_NETWORK_CREG == regType)
     {
         //  The +CREG case
-        //  Unsol is 1 and 4
-        if ((1 == nNumParams) || (4 == nNumParams))
+        //  Unsol is 1, 4 and 6
+        if ((1 == nNumParams) || (4 == nNumParams) || (6 == nNumParams))
         {
             fUnSolicited = TRUE;
         }
-        else if ((2 == nNumParams) || (5 == nNumParams))
+        else if ((2 == nNumParams) || (5 == nNumParams) || (7 == nNumParams))
         {
-            // sol is 2 and 5
+            // sol is 2,5 and 7
             fUnSolicited = FALSE;
         }
         else
@@ -508,8 +508,8 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     else if (SILO_NETWORK_XREG == regType)
     {
         //  The +XREG case
-        //  Unsol is 1,3 and 5
-        if ((1 == nNumParams) || (3 == nNumParams) || (5 == nNumParams))
+        //  Unsol is 1,3,5 and 8
+        if ((1 == nNumParams) || (3 == nNumParams) || (5 == nNumParams) || (8 == nNumParams))
         {
             fUnSolicited = TRUE;
         }
@@ -548,9 +548,11 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         }
         else if ((6 == nNumParams)) //  Sol is 6
 #else
-        else if ((2 == nNumParams) || (4 == nNumParams) || (6 == nNumParams)) //  Sol is 2,4 and 6
+        //  Sol is 2,4,6 and 9
+        else if ((2 == nNumParams) || (4 == nNumParams) || (6 == nNumParams) || (9 == nNumParams))
 #endif // M2_DUALSIM_FEATURE_ENABLED
         {
+            //  Sol is 2,4,6 and 9
             fUnSolicited = FALSE;
         }
         else

@@ -47,6 +47,31 @@ CTE_XMM6360::~CTE_XMM6360()
 {
 }
 
+const char* CTE_XMM6360::GetRegistrationInitString()
+{
+    return "+CREG=3|+XREG=3";
+}
+
+const char* CTE_XMM6360::GetCsRegistrationReadString()
+{
+    return "AT+CREG=3;+CREG?;+CREG=0\r";
+}
+
+const char* CTE_XMM6360::GetPsRegistrationReadString()
+{
+    return "AT+XREG=3;+XREG?;+XREG=0\r";
+}
+
+const char* CTE_XMM6360::GetLocationUpdateString(BOOL bIsLocationUpdateEnabled)
+{
+    return bIsLocationUpdateEnabled ? "AT+CREG=3\r" : "AT+CREG=1\r";
+}
+
+const char* CTE_XMM6360::GetScreenOnString()
+{
+    return "AT+CREG=3;+CGREG=0;+XREG=3;+XCSQ=1\r";
+}
+
 BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
                                                             UINT32 uiDataSize)
 {
