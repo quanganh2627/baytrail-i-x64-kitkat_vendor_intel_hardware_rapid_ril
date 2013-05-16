@@ -6678,13 +6678,6 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
         }
     }
 
-    // Skip "<postfix>"
-    if (!SkipRspEnd(rszPointer, szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not skip response postfix.\r\n");
-        goto Error;
-    }
-
     /*
      * In order to show emergency calls only, Android telephony stack expects
      * the registration status value to be one of 10,12,13,14. Add 10 to the
@@ -6714,6 +6707,13 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
                     snprintf(rCSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", uiCID);
     bRet = TRUE;
 Error:
+    // Skip "<postfix>"
+    if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not skip response postfix.\r\n");
+        goto Error;
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseCREG() - Exit\r\n");
     return bRet;
 }
@@ -6831,13 +6831,6 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
         }
     }
 
-    // Skip "<postfix>"
-    if (!SkipRspEnd(rszPointer, szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not skip response postfix.\r\n");
-        goto Error;
-    }
-
     snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);
     snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)rtAct);
     /*
@@ -6852,6 +6845,13 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
 
     bRet = TRUE;
 Error:
+    // Skip "<postfix>"
+    if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not skip response postfix.\r\n");
+        goto Error;
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseCGREG() - Exit\r\n");
     return bRet;
 }
@@ -6908,6 +6908,14 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
         goto Error;
     }
 
+    if (E_REGISTRATION_NOT_REGISTERED_NOT_SEARCHING == uiStatus
+        || E_REGISTRATION_NOT_REGISTERED_SEARCHING == uiStatus
+        || E_REGISTRATION_DENIED == uiStatus
+        || E_REGISTRATION_UNKNOWN == uiStatus)
+    {
+        goto Done;
+    }
+
     //  Parse <AcT>
     if (!SkipString(rszPointer, ",", rszPointer) ||
         !ExtractUInt32(rszPointer, uiAct, rszPointer))
@@ -6957,13 +6965,7 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
         SkipString(rszPointer, "\"", rszPointer);
     }
 
-    // Skip "<postfix>"
-    if (!SkipRspEnd(rszPointer, szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not skip response postfix.\r\n");
-        goto Error;
-    }
-
+Done:
     snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);
     snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
     /*
@@ -6978,6 +6980,13 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
 
     bRet = TRUE;
 Error:
+    // Skip "<postfix>"
+    if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not skip response postfix.\r\n");
+        goto Error;
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseXREG() - Exit\r\n");
     return bRet;
 }
@@ -7034,8 +7043,6 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
         goto Error;
     }
 
-
-
     // Do we have more to parse?
     if (SkipString(rszPointer, ",", rszPointer))
     {
@@ -7064,7 +7071,6 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
         SkipString(rszPointer, "\"", rszPointer);
     }
 
-
     // Do we have more to parse?
     if (SkipString(rszPointer, ",", rszPointer))
     {
@@ -7083,14 +7089,6 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
         RIL_LOG_CRITICAL("CTE::ParseCEREG() - uiAct=%d,%p\r\n",uiAct);
     }
 
-
-    // Skip "<postfix>"
-    if (!SkipRspEnd(rszPointer, szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not skip response postfix.\r\n");
-        goto Error;
-    }
-
     snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);
     snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
 
@@ -7102,6 +7100,13 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
 
     bRet = TRUE;
 Error:
+    // Skip "<postfix>"
+    if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not skip response postfix.\r\n");
+        goto Error;
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseCEREG() - Exit\r\n");
     return bRet;
 }

@@ -508,8 +508,8 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     else if (SILO_NETWORK_XREG == regType)
     {
         //  The +XREG case
-        //  Unsol is 3 and 5
-        if ((3 == nNumParams) || (5 == nNumParams))
+        //  Unsol is 1,3 and 5
+        if ((1 == nNumParams) || (3 == nNumParams) || (5 == nNumParams))
         {
             fUnSolicited = TRUE;
         }
@@ -548,7 +548,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         }
         else if ((6 == nNumParams)) //  Sol is 6
 #else
-        else if ((4 == nNumParams) || (6 == nNumParams)) //  Sol is 4 and 6
+        else if ((2 == nNumParams) || (4 == nNumParams) || (6 == nNumParams)) //  Sol is 2,4 and 6
 #endif // M2_DUALSIM_FEATURE_ENABLED
         {
             fUnSolicited = FALSE;
@@ -612,13 +612,13 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
             pRegStatusInfo = (void*) &psRegStatus;
         }
 
+        rszPointer -= strlen(m_szNewLine);
+
         if (!fRet)
             goto Error;
         else
             CTE::GetTE().StoreRegistrationInfo(pRegStatusInfo,
                     (SILO_NETWORK_CREG == regType) ? false : true);
-
-        rszPointer -= strlen(m_szNewLine);
 
         pResponse->SetUnsolicitedFlag(TRUE);
         pResponse->SetResultCode(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED);
