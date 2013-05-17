@@ -5297,14 +5297,26 @@ RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableNetworks() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    BOOL bConformance = FALSE;
+
+    property_get("persist.conformance", szConformanceProperty, NULL);
+
+    bConformance =
+            (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX)) ? TRUE : FALSE;
 
     /*
      * Since CS/PS signalling is given higher priority, manual network search may
      * get interrupted by CS/PS signalling from network. In order to get the response in
      * an acceptable time for manual network search, data has to be disabled
      * before starting the manual network search.
+     *
+     * Note: Conformance test 34.123 12.9.6 fails when PS detach is sent.
+     * Instead of sending PS detach, send deactivate all data calls when
+     * conformance property is set.
      */
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGATT=0;+COPS=?\r"))
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            bConformance ? "AT+CGACT=0;+COPS=?\r" : "AT+CGATT=0;+COPS=?\r"))
     {
         res = RRIL_RESULT_OK;
     }
