@@ -8214,7 +8214,13 @@ void CTE::PostQueryAvailableNetworksCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostQueryAvailableNetworksCmdHandler() Enter\r\n");
 
-    m_pTEBaseInstance->PSAttach();
+    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+
+    property_get("persist.conformance", szConformanceProperty, NULL);
+    if (0 != strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
+    {
+        m_pTEBaseInstance->PSAttach();
+    }
 
     if (NULL == rData.pRilToken)
     {
