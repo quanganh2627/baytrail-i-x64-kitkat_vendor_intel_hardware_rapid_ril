@@ -60,6 +60,11 @@ CSilo_Network::CSilo_Network(CChannel* pChannel)
 
     m_pATRspTable = pATRspTable;
 
+    m_PreviousXREGInfo.szState[0] = '\0';
+    m_PreviousXREGInfo.szAcT[0] = '\0';
+    m_PreviousXREGInfo.szLAC[0] = '\0';
+    m_PreviousXREGInfo.szCID[0] = '\0';
+
     RIL_LOG_VERBOSE("CSilo_Network::CSilo_Network() - Exit\r\n");
 }
 
@@ -575,6 +580,31 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         {
             fRet = CTE::GetTE().ParseXREG(rszPointer, fUnSolicited, psRegStatus);
             pRegStatusInfo = (void*) &psRegStatus;
+
+            if (fRet)
+            {
+                // if nothing changed or only band has changed
+                if ((0 == strncmp(m_PreviousXREGInfo.szState,
+                        psRegStatus.szStat, MAX_REG_STATUS_LENGTH))
+                        && (0 == strncmp(m_PreviousXREGInfo.szAcT,
+                        psRegStatus.szNetworkType, MAX_REG_STATUS_LENGTH))
+                        && (0 == strncmp(m_PreviousXREGInfo.szLAC,
+                        psRegStatus.szLAC, MAX_REG_STATUS_LENGTH))
+                        && (0 == strncmp(m_PreviousXREGInfo.szCID,
+                        psRegStatus.szCID, MAX_REG_STATUS_LENGTH)) )
+                {
+                    // ignore, since band not reported to Android
+                    pResponse->SetUnrecognizedFlag(TRUE);
+                }
+
+                // cache current XREG info
+                strncpy(m_PreviousXREGInfo.szState, psRegStatus.szStat,
+                        sizeof(psRegStatus.szStat));
+                strncpy(m_PreviousXREGInfo.szAcT, psRegStatus.szNetworkType,
+                        sizeof(psRegStatus.szNetworkType));
+                strncpy(m_PreviousXREGInfo.szLAC, psRegStatus.szLAC, sizeof(psRegStatus.szLAC));
+                strncpy(m_PreviousXREGInfo.szCID, psRegStatus.szCID, sizeof(psRegStatus.szCID));
+            }
         }
         else if (SILO_NETWORK_CEREG == regType)
         {

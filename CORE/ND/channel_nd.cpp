@@ -338,7 +338,7 @@ Error:
     postCmdHandler = rpCmd->GetPostCmdHandlerFcn();
     memset(&data, 0, sizeof(POST_CMD_HANDLER_DATA));
 
-    if (postCmdHandler)
+    if (postCmdHandler && NULL != rpCmd->GetATCmd1())
     {
         data.uiChannel = rpCmd->GetChannel();
         data.pRilToken = rpCmd->GetToken();

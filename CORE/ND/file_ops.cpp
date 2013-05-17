@@ -108,6 +108,7 @@ BOOL CFile::Open(   const char* pszFileName,
     BOOL fExists = FALSE;
     BOOL fFile = FALSE;
     int iAttr = 0;
+    struct timespec ts_start;
 
     if (m_fInitialized)
     {
@@ -190,7 +191,28 @@ BOOL CFile::Open(   const char* pszFileName,
             iAttr |= O_EXCL;
         }
 
-        m_file = open(pszFileName, iAttr);
+        clock_gettime(CLOCK_MONOTONIC, &ts_start);
+        while (1)
+        {
+            struct timespec ts_cur;
+            UINT32 msec_elapsed;
+
+            m_file = open(pszFileName, iAttr);
+
+            clock_gettime(CLOCK_MONOTONIC, &ts_cur);
+            msec_elapsed = (ts_cur.tv_sec - ts_start.tv_sec) * 1000 +
+                    (ts_cur.tv_nsec - ts_start.tv_nsec) / (int)1e6;
+
+            if ((m_file >= 0) ||                           /* open file correct */
+                ((errno != EAGAIN) && (errno != EINTR)) || /* or a non-recoverable error */
+                (msec_elapsed >= 1000))                    /* or time-out */
+            {
+                break;
+            }
+            RIL_LOG_INFO("CFile::Open() : Open failed, m_file=[%d], errno=[%d],[%s],"
+                    " retrying in 250ms\r\n", m_file, errno, strerror(errno));
+            usleep(250 * 1000);
+        }
 
         if (m_file < 0)
         {
