@@ -201,7 +201,7 @@ BOOL CFile::Open(   const char* pszFileName,
 
             clock_gettime(CLOCK_MONOTONIC, &ts_cur);
             msec_elapsed = (ts_cur.tv_sec - ts_start.tv_sec) * 1000 +
-                    (ts_cur.tv_nsec - ts_start.tv_nsec) / (int)1e6;
+                    (ts_cur.tv_nsec - ts_start.tv_nsec) / 1000;
 
             if ((m_file >= 0) ||                           /* open file correct */
                 ((errno != EAGAIN) && (errno != EINTR)) || /* or a non-recoverable error */
