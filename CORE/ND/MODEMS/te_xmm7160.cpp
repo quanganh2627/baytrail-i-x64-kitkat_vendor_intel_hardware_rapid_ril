@@ -918,7 +918,7 @@ RIL_RESULT_CODE CTE_XMM7160::CreateIMSConfigReq(REQUEST_DATA& rReqData,
             sImsApnInfo.szLoggerLevel);
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            "AT+XICFG=%s,%s,%s,%s,%s,%s,%s,%s,%s\r",
+            "AT+XICFG=\"%s\",\"%s\",%s,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%s\r",
             sImsApnInfo.szIMSApn,
             sImsApnInfo.szOutboundProxyName,
             sImsApnInfo.szOutboundProxyPort,
