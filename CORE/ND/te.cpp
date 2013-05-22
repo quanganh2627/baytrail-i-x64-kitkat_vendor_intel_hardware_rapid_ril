@@ -6685,7 +6685,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
              */
             rtAct = MapAccessTechnology(uiAct);
             CTE::GetTE().SetUiAct(rtAct);
-            RIL_LOG_CRITICAL("CTE::ParseCREG() - uiAct=%d\r\n",rtAct);
+            RIL_LOG_INFO("CTE::ParseCREG() - uiAct=%d\r\n",rtAct);
         }
     }
 
@@ -7097,7 +7097,7 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
         */
         uiAct = CTE::MapAccessTechnology(uiAct);
         CTE::GetTE().SetUiAct(uiAct);
-        RIL_LOG_CRITICAL("CTE::ParseCEREG() - uiAct=%d,%p\r\n",uiAct);
+        RIL_LOG_INFO("CTE::ParseCEREG() - uiAct=%d,%p\r\n",uiAct);
     }
 
     snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);

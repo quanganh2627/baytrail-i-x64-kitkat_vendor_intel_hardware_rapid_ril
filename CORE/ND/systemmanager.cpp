@@ -1686,8 +1686,14 @@ BOOL CSystemManager::MMgrConnectionInit()
 
         if (E_ERR_CLI_SUCCEED != mmgr_cli_connect(m_pMMgrLibHandle))
         {
-            RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() "
+            if (i+1 < NUM_LOOPS)
+                RIL_LOG_WARNING("CSystemManager::MMgrConnectionInit() "
                              "- Cannot connect to MMgr\r\n");
+            else
+                RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() "
+                             "- Cannot connect to MMgr after %d tries\r\n",
+                             NUM_LOOPS);
+
             Sleep(SLEEP_MS);
         }
         else
