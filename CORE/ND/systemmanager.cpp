@@ -666,6 +666,16 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetXDATASTATReporting(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szIMSCapable, iTemp))
+    {
+        CTE::GetTE().SetIMSCapable(iTemp == 1 ? TRUE : FALSE);
+    }
+
+    if (repository.Read(g_szGroupModem, g_szEnableSMSOverIP, iTemp))
+    {
+        CTE::GetTE().SetSMSOverIPCapable(iTemp == 1 ? TRUE : FALSE);
+    }
+
     //  Create and initialize the channels (don't open ports yet)
     if (!InitChannelPorts())
     {

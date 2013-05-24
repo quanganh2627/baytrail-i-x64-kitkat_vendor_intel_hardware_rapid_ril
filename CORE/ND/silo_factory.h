@@ -23,5 +23,6 @@ public:
     static CSilo* GetSiloNetwork(CChannel*);
     static CSilo* GetSiloPhonebook(CChannel*);
     static CSilo* GetSiloMISC(CChannel*);
+    static CSilo* GetSiloIMS(CChannel*);
 };
 

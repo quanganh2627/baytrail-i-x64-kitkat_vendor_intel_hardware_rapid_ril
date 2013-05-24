@@ -17,6 +17,7 @@
 #include "channelbase.h"
 #include "silo_factory.h"
 #include "channel_URC.h"
+#include "te.h"
 
 extern char* g_szURCPort;
 extern BOOL  g_bIsSocket;
@@ -120,12 +121,13 @@ BOOL CChannel_URC::AddSilos()
     RIL_LOG_VERBOSE("CChannel_URC::AddSilos() - Enter\r\n");
     BOOL bRet = FALSE;
 
-    //  URC channel contains 5 silos:
+    //  URC channel contains the following silos:
     //     Voice Silo
     //     Network Silo
     //     SMS Silo
     //     Phonebook Silo
     //     SIM Silo
+    //     IMS Silo
     CSilo* pSilo = NULL;
 
 
@@ -167,6 +169,17 @@ BOOL CChannel_URC::AddSilos()
         RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n",
                 m_uiRilChannel);
         goto Error;
+    }
+
+    if (CTE::GetTE().IsIMSCapable())
+    {
+        pSilo = CSilo_Factory::GetSiloIMS(this);
+        if (!pSilo || !AddSilo(pSilo))
+        {
+            RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_IMS\r\n",
+                    m_uiRilChannel);
+            goto Error;
+        }
     }
 
     bRet = TRUE;
