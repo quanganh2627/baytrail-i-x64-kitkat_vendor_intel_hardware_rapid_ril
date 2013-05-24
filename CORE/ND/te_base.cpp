@@ -2437,7 +2437,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
                      * sending CFUN=4 to make sure that android doesn't start sending requests
                      * considering that the radio is on.
                      */
-                    SetRadioState(RRIL_RADIO_STATE_OFF);
+                    SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
                 }
                 else if (E_RADIO_OFF_REASON_AIRPLANE_MODE == radioOffReason)
                 {
