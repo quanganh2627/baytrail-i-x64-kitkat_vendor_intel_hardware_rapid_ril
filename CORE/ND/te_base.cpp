@@ -2166,6 +2166,8 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
                 break;
 
             default:
+                // Modem might be already powered on when rapid ril is started.
+                // Acquiring of modem resource here is redundant.
                 if (!CSystemManager::GetInstance().GetModem())
                 {
                     RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - "
@@ -2196,29 +2198,24 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
                 {
                     // Do nothing. Actions will be taken on modem powered off event
                 }
-                else
+                else if (E_RADIO_OFF_REASON_NONE == radioOffReason)
                 {
                     /*
-                     * This is possible in 2 cases,
-                     *         - Airplane mode activation.
-                     *         - RADIO_POWER OFF sent on rild socket connected
-                     *
-                     * RADIO_POWER on on rild socket connected case is explained.
-                     *
-                     * This case is possible when rild is still running but the android
-                     * core services are killed(e.g: adb shell stop). When android core
-                     * services are restarted agsin(e.g: adb shell start) modem is
-                     * still UP. So, when framework requests for radio power off, send
-                     * modem specific radio power off commands and wait for radio state
-                     * changed event.Upon response, if modem off in flight modem is
-                     * supported, modem resource will be released thus resulting in
-                     * in modem powered down. Modem powered down in this case can only
-                     * be avoided if the reason for RADIO_POWER OFF(init or airplane
-                     * mode) is known. Even though modem is powered down, modem will be
-                     * powered upon RADIO_POWER on request.
+                     * This can happen when rild and mmgr is active but all the android core
+                     * services are stopped(adb shell stop) and restarted(adb shell start).
+                     * So, when the android core services are restarted again, POWER_OFF
+                     * will be issue when modem is up. Radio state is set even before
+                     * sending CFUN=4 to make sure that android doesn't start sending requests
+                     * considering that the radio is on.
                      */
+                    SetRadioState(RRIL_RADIO_STATE_OFF);
+                }
+                else if (E_RADIO_OFF_REASON_AIRPLANE_MODE == radioOffReason)
+                {
+                    // Do nothing. Actions will be taken on radio state changed event
                 }
                 break;
+
             case E_MMGR_EVENT_MODEM_DOWN:
                 if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
                 {
@@ -2226,14 +2223,15 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
                 }
 
                 /*
-                 * Since the reason for radio power off(init or airplane mode) is not
-                 * known, it is better to set the radio state to off and wait for
-                 * RADIO_POWER ON request to power on the modem.
+                 * If the radio power off reason is none or airplane mode, then
+                 * it is better to set the radio state to off and wait for
+                 * RADIO_POWER ON request.
                  */
                 SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
                 res = RRIL_RESULT_ERROR;
                 RIL_LOG_INFO("CTEBase::CoreRadioPower - Already in expected state\r\n");
                 break;
+
             default:
                 if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
                 {
@@ -5070,14 +5068,26 @@ RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableNetworks() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    BOOL bConformance = FALSE;
+
+    property_get("persist.conformance", szConformanceProperty, NULL);
+
+    bConformance =
+            (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX)) ? TRUE : FALSE;
 
     /*
      * Since CS/PS signalling is given higher priority, manual network search may
      * get interrupted by CS/PS signalling from network. In order to get the response in
      * an acceptable time for manual network search, data has to be disabled
      * before starting the manual network search.
+     *
+     * Note: Conformance test 34.123 12.9.6 fails when PS detach is sent.
+     * Instead of sending PS detach, send deactivate all data calls when
+     * conformance property is set.
      */
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGATT=0;+COPS=?\r"))
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            bConformance ? "AT+CGACT=0;+COPS=?\r" : "AT+CGATT=0;+COPS=?\r"))
     {
         res = RRIL_RESULT_OK;
     }
