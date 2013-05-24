@@ -71,7 +71,7 @@ char* CTE_XMM7160::GetBasicInitCommands(UINT32 uiChannelType)
             char szEnableIMS[MAX_BUFFER_SIZE] = {'\0'};
             PrintStringNullTerminate(szEnableIMS,
                     MAX_BUFFER_SIZE,
-                    "|+CISRVCC=1|+CIREP=1|+XISMSCFG=%d",
+                    "|+CISRVCC=1|+CIREP=1|+CIREG=1|+XISMSCFG=%d",
                     m_cte.IsSMSOverIPCapable() ? 1 : 0);
             ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
                     szEnableIMS);
