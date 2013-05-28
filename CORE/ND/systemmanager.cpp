@@ -774,19 +774,33 @@ Done:
 
     if (bRetVal)
     {
-        if (!GetModem())
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : "
-                    "GetModem Resource failed\r\n");
+        char cryptState[PROPERTY_VALUE_MAX] = {'\0'};
+        char voldDecryptState[PROPERTY_VALUE_MAX] = {'\0'};
 
-            CTE::GetTE().SetRestrictedMode(TRUE);
-        }
-        else
+        property_get("ro.crypto.state", cryptState, "");
+        property_get("vold.decrypt", voldDecryptState, "");
+
+        RIL_LOG_INFO("CSystemManager::InitializeSystem() : "
+                "cryptState: %s, decryptState: %s\r\n", cryptState, voldDecryptState);
+
+        if ((0 == strcmp(cryptState, "unencrypted"))
+                || ((0 == strcmp(cryptState, "encrypted"))
+                && (0 == strcmp(voldDecryptState, "trigger_restart_framework"))))
         {
-            RIL_LOG_INFO("CSystemManager::InitializeSystem() : Waiting for "
-                    "System Initialization Complete event\r\n");
-            CTE::GetTE().SetRestrictedMode(FALSE);
-            CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
+            if (!GetModem())
+            {
+                RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : "
+                        "GetModem Resource failed\r\n");
+
+                CTE::GetTE().SetRestrictedMode(TRUE);
+            }
+            else
+            {
+                RIL_LOG_INFO("CSystemManager::InitializeSystem() : Waiting for "
+                        "System Initialization Complete event\r\n");
+                CTE::GetTE().SetRestrictedMode(FALSE);
+                CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
+            }
         }
 
         RIL_LOG_INFO("CSystemManager::InitializeSystem() : Rapid Ril initialization completed\r\n");
