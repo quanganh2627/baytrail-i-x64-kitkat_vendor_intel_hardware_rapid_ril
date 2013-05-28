@@ -455,6 +455,8 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 {
                     RIL_LOG_INFO("E_MMGR_EVENT_MODEM_SHUTDOWN due to Flight mode\r\n");
 
+                    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+
                     PCache_SetUseCachedPIN(true);
                 }
 

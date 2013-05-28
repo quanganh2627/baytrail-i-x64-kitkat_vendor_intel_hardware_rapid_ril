@@ -108,6 +108,8 @@ public:
     virtual char* GetBasicInitCommands(UINT32 uiChannelType);
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
 
+    virtual int GetSIMAppType() { return m_nSimAppType; }
+
     virtual BOOL IsRequestSupported(int requestId);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
