@@ -5847,3 +5847,31 @@ Error:
 
     return bRet;
 }
+
+void CTE_XMM6260::HandleInternalDtmfStopReq()
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleInternalDtmfStopReq() - Enter\r\n");
+
+    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REQUESTDTMFSTOP],
+            NULL, ND_REQ_ID_REQUESTDTMFSTOP, "AT+XVTS\r");
+
+    if (pCmd)
+    {
+        pCmd->SetCallId(GetCurrentCallId());
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::HandleInternalDtmfStopReq() -"
+                    "Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::HandleInternalDtmfStopReq() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleInternalDtmfStopReq() - Exit\r\n");
+}

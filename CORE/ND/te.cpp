@@ -8864,14 +8864,6 @@ void CTE::PostDtmfStart(POST_CMD_HANDLER_DATA& rData)
                 rData.pData, rData.uiDataSize);
     }
 
-    if (RRIL_RESULT_OK != rData.uiResultCode)
-    {
-        RIL_LOG_INFO("CTE::PostDtmfStart() Before setting DTMF state - uiResultCode: %d\r\n",
-                rData.uiResultCode);
-
-        SetDtmfState(E_DTMF_STATE_STOP);
-    }
-
     RIL_LOG_VERBOSE("CTE::PostDtmfStart() Exit\r\n");
 }
 

@@ -860,6 +860,8 @@ protected:
     virtual const char* GetScreenOnString();
     virtual const char* GetScreenOffString();
 
+    virtual void HandleInternalDtmfStopReq();
+
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA& rRspData);
 
