@@ -296,6 +296,17 @@ typedef struct
     char szService[MAX_SMS_TRANSPORT_MODE_SIZE];
 } S_ND_SMS_TRANSPORT_MODE, *P_ND_SMS_TRANSPORT_MODE;
 
+typedef struct
+{
+    char* pszResponse;
+}  S_ND_SEND_AT_RESPONSE_PTR, *P_ND_SEND_AT_RESPONSE_PTR;
+
+typedef struct
+{
+    S_ND_SEND_AT_RESPONSE_PTR sResponsePointer;
+    char szResponse[1024];
+} S_ND_SEND_AT_RESPONSE, *P_ND_SEND_AT_RESPONSE;
+
 //
 // Structs for retrieving the RF Power Cutback Table
 //

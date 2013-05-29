@@ -318,6 +318,19 @@ const int RIL_OEM_HOOK_STRING_SWAP_PS = 0x000000B2;
 
 #endif // M2_DUALSIM_FEATURE_ENABLED
 
+//
+//  RIL_OEM_HOOK_STRING_SEND_AT
+//  Command ID = 0x000000B3
+//
+//  This command sends the string passed as first argument to the modem
+//  that allows to send arbitrary AT commands to the modem from JAVA.
+//
+//  "data" = A string containing the AT Command to be send.
+//  "response" = The raw response of the modem for the AT command.
+//
+const int RIL_OEM_HOOK_STRING_SEND_AT = 0x000000B3;
+
+
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
