@@ -245,6 +245,9 @@ const char   g_szApnTypeFOTA[]          = "ApnTypeFOTA";
 const char   g_szApnTypeSUPL[]          = "ApnTypeSUPL";
 const char   g_szApnTypeHIPRI[]         = "ApnTypeHIPRI";
 
+const char   g_szCustomAPNName[]        = "customAPNName";
+const char   g_szCustomAPNType[]        = "customAPNType";
+
 /////////////////////////////////////////////////
 
 const char   g_szGroupLogging[]                 = "Logging";

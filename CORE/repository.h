@@ -109,6 +109,9 @@ extern const char   g_szApnTypeFOTA[];
 extern const char   g_szApnTypeSUPL[];
 extern const char   g_szApnTypeHIPRI[];
 
+extern const char   g_szCustomAPNName[];
+extern const char   g_szCustomAPNType[];
+
 //////////////////////////////////////////////////////////////////////////
 
 extern const char   g_szGroupLogging[];
