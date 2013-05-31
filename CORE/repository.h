@@ -113,6 +113,7 @@ extern const char   g_szApnTypeHIPRI[];
 
 extern const char   g_szGroupLogging[];
 
+extern const char   g_szCallDropReporting[];
 extern const char   g_szLogLevel[];
 
 

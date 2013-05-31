@@ -36,6 +36,18 @@ enum {
     MODEM_TYPE_XMM7160
 };
 
+static const int MAX_NETWORK_DATA_SIZE = 50;
+
+enum LAST_NETWORK_DATA_ID {
+    LAST_NETWORK_XCSQ = 0,
+    LAST_NETWORK_CREG,
+    LAST_NETWORK_XREG,
+    LAST_NETWORK_OP_NAME_NUMERIC,
+    LAST_NETWORK_OP_NAME_SHORT,
+    LAST_NETWORK_LAC,
+    LAST_NETWORK_CID,
+    LAST_NETWORK_DATA_COUNT
+};
 
 class CTEBase;
 
@@ -749,6 +761,14 @@ public:
     {
         return m_bSMSOverIPCapable;
     }
+    void SaveCEER(const char* pszData);
+    const char* GetLastCEER() { return m_szLastCEER; }
+
+    void SaveXCELLINFO(const char* pszData);
+    const char* GetLastXCELLINFO() { return m_szLastXCELLINFO; }
+
+    void SaveNetworkData(LAST_NETWORK_DATA_ID id, const char* pszData);
+    const char* GetNetworkData(LAST_NETWORK_DATA_ID id) { return m_szLastNetworkData[id]; }
 
     void SetTimeoutCmdInit(UINT32 uiCmdInit) { m_uiTimeoutCmdInit = uiCmdInit; };
     UINT32 GetTimeoutCmdInit()     { return m_uiTimeoutCmdInit; };
@@ -1040,6 +1060,8 @@ public:
     RIL_RESULT_CODE CreateIMSConfigReq(REQUEST_DATA& rReqData,
             const char** pszRequest,
             const int nNumStrings);
+    void SetCallDropReportingState(BOOL bValue) { m_bCallDropReporting = bValue; };
+    BOOL GetCallDropReportingState() { return m_bCallDropReporting; };
 
 private:
     UINT32 m_uiModemType;
@@ -1170,6 +1192,14 @@ private:
     int m_RadioOffReason;
 
     CEvent* m_pRadioStateChangedEvent;
+
+    // For telephony crashtool report
+    BOOL m_bCallDropReporting;
+    char m_szNewLine[3];
+
+    char m_szLastNetworkData[LAST_NETWORK_DATA_COUNT][MAX_NETWORK_DATA_SIZE];
+    char m_szLastCEER[255];
+    char m_szLastXCELLINFO[512];
 };
 
 #endif

@@ -3563,6 +3563,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
+    const char* pszStart = pszRsp;
+    const char* pszEnd;
+    char szBackup[512];
 
     UINT32 nIndex = 0, nTotal = 0;
     UINT32 nLAC = 0, nCI = 0;
@@ -3572,6 +3575,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
 
     P_ND_N_CELL_DATA pCellData = NULL;
 
+    // Backup the XCELLINFO response string to report data on crashtool
+    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, 512, pszEnd);
+    m_cte.SaveXCELLINFO(szBackup);
 
     //  Data is either (according to C_AT_FS_SUNRISE_Rev6.0.pdf AT spec)
     //  GSM cells:
@@ -6116,7 +6122,8 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
         {
             strcpy(szCmd, "AT+CHLD=8;+CGATT=0\r");
         }
-        else
+        else if (E_RADIO_OFF_REASON_AIRPLANE_MODE == radioOffReason
+                || E_RADIO_OFF_REASON_NONE == radioOffReason)
         {
             strcpy(szCmd, "AT+CFUN=4\r");
         }

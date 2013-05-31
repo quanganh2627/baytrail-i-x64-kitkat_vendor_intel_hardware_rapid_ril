@@ -334,7 +334,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 }
 
                 // Retrieve the shutdown property
-                if (CTE::GetTE().IsPlatformShutDownRequested())
+                if (CTE::GetTE().IsPlatformShutDownOngoing())
                 {
                     RIL_LOG_INFO("E_MMGR_EVENT_MODEM_DOWN due to PLATFORM_SHUTDOWN\r\n");
 
@@ -451,7 +451,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 CSystemManager::GetInstance().SetInitializationUnsuccessful();
 
                 if (CTE::GetTE().GetModemOffInFlightModeState()
-                        && (RADIO_STATE_OFF == CTE::GetTE().GetRadioState()))
+                        && E_RADIO_OFF_REASON_AIRPLANE_MODE == CTE::GetTE().GetRadioOffReason())
                 {
                     RIL_LOG_INFO("E_MMGR_EVENT_MODEM_SHUTDOWN due to Flight mode\r\n");
 

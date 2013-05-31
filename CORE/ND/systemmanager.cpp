@@ -49,6 +49,7 @@
 #include "reset.h"
 #include "systemmanager.h"
 
+#include <cutils/properties.h>
 #include <cutils/sockets.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -304,6 +305,8 @@ BOOL CSystemManager::InitializeSystem()
 
     char szModem[MAX_MODEM_NAME_LEN];
     UINT32 uiModemType = MODEM_TYPE_UNKNOWN;
+
+    char szBuildTypeProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     // read the modem type used from repository
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
@@ -675,6 +678,20 @@ BOOL CSystemManager::InitializeSystem()
     {
         CTE::GetTE().SetSMSOverIPCapable(iTemp == 1 ? TRUE : FALSE);
     }
+    // Call drop reporting is available only for eng or userdebug build
+    if (property_get("ro.build.type", szBuildTypeProperty, NULL))
+    {
+        const char szTypeEng[] = "eng";
+        const char szTypeUserDebug[] = "userdebug";
+        if ((strncmp(szBuildTypeProperty, szTypeEng, strlen(szTypeEng)) == 0)
+                || (strncmp(szBuildTypeProperty, szTypeUserDebug, strlen(szTypeUserDebug)) == 0))
+        {
+            if (repository.Read(g_szGroupLogging, g_szCallDropReporting, iTemp))
+            {
+                CTE::GetTE().SetCallDropReportingState(iTemp == 1 ? TRUE : FALSE);
+            }
+        }
+    }
 
     //  Create and initialize the channels (don't open ports yet)
     if (!InitChannelPorts())
@@ -757,22 +774,19 @@ Done:
 
     if (bRetVal)
     {
-        if (!CTE::GetTE().GetModemOffInFlightModeState())
+        if (!GetModem())
         {
-            if (!GetModem())
-            {
-                RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : "
-                        "GetModem Resource failed\r\n");
+            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : "
+                    "GetModem Resource failed\r\n");
 
-                CTE::GetTE().SetRestrictedMode(TRUE);
-            }
-            else
-            {
-                RIL_LOG_INFO("CSystemManager::InitializeSystem() : Waiting for "
-                        "System Initialization Complete event\r\n");
-                CTE::GetTE().SetRestrictedMode(FALSE);
-                CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
-            }
+            CTE::GetTE().SetRestrictedMode(TRUE);
+        }
+        else
+        {
+            RIL_LOG_INFO("CSystemManager::InitializeSystem() : Waiting for "
+                    "System Initialization Complete event\r\n");
+            CTE::GetTE().SetRestrictedMode(FALSE);
+            CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
         }
 
         RIL_LOG_INFO("CSystemManager::InitializeSystem() : Rapid Ril initialization completed\r\n");
@@ -1672,8 +1686,14 @@ BOOL CSystemManager::MMgrConnectionInit()
 
         if (E_ERR_CLI_SUCCEED != mmgr_cli_connect(m_pMMgrLibHandle))
         {
-            RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() "
+            if (i+1 < NUM_LOOPS)
+                RIL_LOG_WARNING("CSystemManager::MMgrConnectionInit() "
                              "- Cannot connect to MMgr\r\n");
+            else
+                RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() "
+                             "- Cannot connect to MMgr after %d tries\r\n",
+                             NUM_LOOPS);
+
             Sleep(SLEEP_MS);
         }
         else

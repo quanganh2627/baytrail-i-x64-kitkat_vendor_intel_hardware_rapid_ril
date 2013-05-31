@@ -36,6 +36,7 @@
 #include "callbacks.h"
 #include "reset.h"
 #include "nd_util.h"
+#include "extract.h"
 
 CTE* CTE::m_pTEInstance = NULL;
 
@@ -73,8 +74,9 @@ CTE::CTE(UINT32 modemType) :
     m_ScreenState(SCREEN_STATE_UNKNOWN),
     m_pPrefNetTypeReqInfo(NULL),
     m_RequestedRadioPower(RADIO_POWER_UNKNOWN),
-    m_RadioOffReason(E_RADIO_OFF_REASON_INIT),
-    m_pRadioStateChangedEvent(NULL)
+    m_RadioOffReason(E_RADIO_OFF_REASON_NONE),
+    m_pRadioStateChangedEvent(NULL),
+    m_bCallDropReporting(FALSE)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -87,6 +89,15 @@ CTE::CTE(UINT32 modemType) :
 
     memset(&m_sCSStatus, 0, sizeof(S_ND_REG_STATUS));
     memset(&m_sPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
+
+    CopyStringNullTerminate(m_szNewLine, "\r\n", sizeof(m_szNewLine));
+
+    for (int i = 0; i < LAST_NETWORK_DATA_COUNT; i++)
+    {
+        m_szLastNetworkData[i][0] = '\0';
+    }
+    m_szLastCEER[0] = '\0';
+    m_szLastXCELLINFO[0] = '\0';
 
     m_pDtmfStateAccess = new CMutex();
 
@@ -2189,18 +2200,18 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         goto Error;
     }
 
-    if (sizeof(int*) != datalen)
+    if (2 * sizeof(int*) != datalen)
     {
         RIL_LOG_CRITICAL("CTE::RequestRadioPower() - Invalid data size.\r\n");
         goto Error;
     }
 
-    if (0 == *(int*)pData)
+    if (0 == ((int*)pData)[0])
     {
         RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio OFF\r\n");
         bTurnRadioOn = false;
-        m_RadioOffReason = IsPlatformShutDownRequested() ?
-                E_RADIO_OFF_REASON_SHUTDOWN : m_RadioOffReason;
+        m_RadioOffReason = ((int*)pData)[1];
+        RIL_LOG_INFO("CTE::RequestRadioPower() - mRadioOffReason:%d\r\n", m_RadioOffReason);
     }
     else
     {
@@ -6674,7 +6685,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
              */
             rtAct = MapAccessTechnology(uiAct);
             CTE::GetTE().SetUiAct(rtAct);
-            RIL_LOG_CRITICAL("CTE::ParseCREG() - uiAct=%d\r\n",rtAct);
+            RIL_LOG_INFO("CTE::ParseCREG() - uiAct=%d\r\n",rtAct);
         }
     }
 
@@ -7086,7 +7097,7 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
         */
         uiAct = CTE::MapAccessTechnology(uiAct);
         CTE::GetTE().SetUiAct(uiAct);
-        RIL_LOG_CRITICAL("CTE::ParseCEREG() - uiAct=%d,%p\r\n",uiAct);
+        RIL_LOG_INFO("CTE::ParseCEREG() - uiAct=%d,%p\r\n",uiAct);
     }
 
     snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);
@@ -7145,6 +7156,9 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         strncpy(m_sCSStatus.szStat, csRegStatus->szStat, sizeof(csRegStatus->szStat));
         strncpy(m_sCSStatus.szLAC, csRegStatus->szLAC, sizeof(csRegStatus->szLAC));
         strncpy(m_sCSStatus.szCID, csRegStatus->szCID, sizeof(csRegStatus->szCID));
+
+        SaveNetworkData(LAST_NETWORK_LAC, csRegStatus->szLAC);
+        SaveNetworkData(LAST_NETWORK_CID, csRegStatus->szCID);
 
         /*
          * 20111025: framework doesn't make use of technology information
@@ -8173,7 +8187,7 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
     }
     else
     {
-        if (IsPlatformShutDownOngoing())
+        if (E_RADIO_OFF_REASON_SHUTDOWN == m_RadioOffReason)
         {
             //  Send shutdown request to MMgr
             if (!CSystemManager::GetInstance().SendRequestModemShutdown())
@@ -8189,7 +8203,8 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
         {
             SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
 
-            if (GetModemOffInFlightModeState())
+            if (GetModemOffInFlightModeState()
+                    && E_RADIO_OFF_REASON_AIRPLANE_MODE == m_RadioOffReason)
             {
                 CSystemManager::GetInstance().ReleaseModem();
             }
@@ -8440,7 +8455,13 @@ void CTE::PostQueryAvailableNetworksCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostQueryAvailableNetworksCmdHandler() Enter\r\n");
 
-    m_pTEBaseInstance->PSAttach();
+    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+
+    property_get("persist.conformance", szConformanceProperty, NULL);
+    if (0 != strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
+    {
+        m_pTEBaseInstance->PSAttach();
+    }
 
     if (NULL == rData.pRilToken)
     {
@@ -8914,4 +8935,24 @@ RIL_RESULT_CODE CTE::CreateIMSConfigReq(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTE::CreateIMSConfigReq() - Enter/Exit\r\n");
     return m_pTEBaseInstance->CreateIMSConfigReq(rReqData,
                     pszRequest, nNumStrings);
+}
+void CTE::SaveCEER(const char* pszData)
+{
+    CopyStringNullTerminate(m_szLastCEER, pszData, 255);
+}
+
+void CTE::SaveNetworkData(LAST_NETWORK_DATA_ID id, const char* pszData)
+{
+    if (id >= LAST_NETWORK_DATA_COUNT)
+    {
+        return;
+    }
+
+    CopyStringNullTerminate(m_szLastNetworkData[id], pszData,
+            MAX_NETWORK_DATA_SIZE);
+}
+
+void CTE::SaveXCELLINFO(const char* pszData)
+{
+    CopyStringNullTerminate(m_szLastXCELLINFO, pszData, 512);
 }
