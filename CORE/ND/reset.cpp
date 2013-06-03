@@ -217,47 +217,44 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
             case E_MMGR_EVENT_MODEM_UP:
                 RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) MODEM_UP\r\n");
 
-                if (MODEM_STATE_UNKNOWN == previousModemState)
+                if (MODEM_STATE_UNKNOWN == previousModemState
+                    || E_MMGR_EVENT_MODEM_DOWN == previousModemState
+                    || E_MMGR_NOTIFY_MODEM_SHUTDOWN == previousModemState
+                    || E_MMGR_NOTIFY_MODEM_COLD_RESET == previousModemState
+                    || E_MMGR_NOTIFY_MODEM_WARM_RESET == previousModemState
+                    || E_MMGR_NOTIFY_CORE_DUMP == previousModemState)
                 {
-                    /*
-                     * This is the case where rild is killed and MODEM is still powered
-                     * on. It is better to start do a recovery so that the rapil ril
-                     * starts cleanly
-                     */
-                    if (!CSystemManager::GetInstance().SendRequestModemRecovery())
+                    RIL_LOG_INFO("ModemManagerEventHandler() - ResetChannelInfo\r\n");
+
+                    if (!CTE::GetTE().IsRadioRequestPending()
+                            && RADIO_STATE_UNAVAILABLE == CTE::GetTE().GetRadioState())
                     {
-                        RIL_LOG_CRITICAL("ModemManagerEventHandler() - CANNOT SEND "
-                            "MODEM RECOVERY REQUEST\r\n");
+                        /*
+                         * Needed as RIL_REQUEST_RADIO_POWER request is not received
+                         * after modem core dump, warm reset.
+                         */
+                        CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
                     }
+
+                    CSystemManager::GetInstance().ResetChannelInfo();
                 }
-                else
+
+                CTE::GetTE().SetLastModemEvent(receivedModemEvent);
+
+                //  Modem is alive, start initializing modem
+                RIL_LOG_INFO("ModemManagerEventHandler() -InitializeModem\r\n");
+
+                /*
+                 * MODEM_UP can be also received due to other mmgr clients powering
+                 * on the modem. Acquire the modem resource to service other clients
+                 * which might need sim access.
+                 *
+                 * Note: If device is in airplane mode but if the modem is powered
+                 * on due to CWS clients then the modem will be kept powered on but
+                 * radio will be in off state.
+                 */
+                if (CSystemManager::GetInstance().GetModem())
                 {
-                    if (E_MMGR_EVENT_MODEM_DOWN == previousModemState
-                        || E_MMGR_NOTIFY_MODEM_SHUTDOWN == previousModemState
-                        || E_MMGR_NOTIFY_MODEM_COLD_RESET == previousModemState
-                        || E_MMGR_NOTIFY_MODEM_WARM_RESET == previousModemState
-                        || E_MMGR_NOTIFY_CORE_DUMP == previousModemState)
-                    {
-                        RIL_LOG_INFO("ModemManagerEventHandler() - ResetChannelInfo\r\n");
-
-                        if (!CTE::GetTE().IsRadioRequestPending()
-                                && RADIO_STATE_UNAVAILABLE == CTE::GetTE().GetRadioState())
-                        {
-                            /*
-                             * Needed as RIL_REQUEST_RADIO_POWER request is not received
-                             * after modem core dump, warm reset.
-                             */
-                            CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
-                        }
-
-                        CSystemManager::GetInstance().ResetChannelInfo();
-                    }
-
-                    CTE::GetTE().SetLastModemEvent(receivedModemEvent);
-
-                    //  Modem is alive, start initializing modem
-                    RIL_LOG_INFO("ModemManagerEventHandler() -InitializeModem\r\n");
-
                     // launch modem init thread.
                     pContinueInitThread = new CThread(ContinueInitThreadProc, NULL,
                             THREAD_FLAGS_JOINABLE, 0);
