@@ -1063,6 +1063,8 @@ public:
     void SetCallDropReportingState(BOOL bValue) { m_bCallDropReporting = bValue; };
     BOOL GetCallDropReportingState() { return m_bCallDropReporting; };
 
+    RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
+
 private:
     UINT32 m_uiModemType;
 

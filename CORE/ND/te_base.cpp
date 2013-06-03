@@ -5334,26 +5334,16 @@ RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableNetworks() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
-    BOOL bConformance = FALSE;
-
-    property_get("persist.conformance", szConformanceProperty, NULL);
-
-    bConformance =
-            (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX)) ? TRUE : FALSE;
 
     /*
      * Since CS/PS signalling is given higher priority, manual network search may
      * get interrupted by CS/PS signalling from network. In order to get the response in
      * an acceptable time for manual network search, data has to be disabled
      * before starting the manual network search.
-     *
-     * Note: Conformance test 34.123 12.9.6 fails when PS detach is sent.
-     * Instead of sending PS detach, send deactivate all data calls when
-     * conformance property is set.
      */
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            bConformance ? "AT+CGACT=0;+COPS=?\r" : "AT+CGATT=0;+COPS=?\r"))
+    DeactivateAllDataCalls();
+
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS=?\r"))
     {
         res = RRIL_RESULT_OK;
     }
@@ -9810,6 +9800,57 @@ void CTEBase::PSAttach()
     }
 
     RIL_LOG_VERBOSE("CTEBase::PSAttach() - Exit\r\n");
+}
+
+void CTEBase::DeactivateAllDataCalls()
+{
+    RIL_LOG_VERBOSE("CTEBase::DeactivateAllDataCalls - Enter()\r\n");
+
+    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    BOOL bConformance = FALSE;
+
+    property_get("persist.conformance", szConformanceProperty, NULL);
+
+    bConformance =
+            (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX)) ? TRUE : FALSE;
+
+    /*
+     * Note: Conformance test 34.123 12.9.6 fails when PS detach is sent.
+     * Instead of sending PS detach, send deactivate all data calls when
+     * conformance property is set.
+     */
+    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL], NULL,
+            ND_REQ_ID_DEACTIVATEDATACALL, bConformance ? "AT+CGACT=0\r" : "AT+CGATT=0\r",
+            &CTE::ParseDeactivateAllDataCalls);
+
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::DeactivateAllDataCalls() - Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::DeactivateAllDataCalls() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::DeactivateAllDataCalls - Exit()\r\n");
+}
+
+RIL_RESULT_CODE CTEBase::ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseDeactivateAllDataCalls() - Enter\r\n");
+
+    CleanupAllDataConnections();
+    RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
+
+    RIL_LOG_VERBOSE("CTEBase::ParseDeactivateAllDataCalls() - Exit\r\n");
+    return RRIL_RESULT_OK;
 }
 
 void CTEBase::SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus)

@@ -9136,3 +9136,9 @@ void CTE::SaveXCELLINFO(const char* pszData)
 {
     CopyStringNullTerminate(m_szLastXCELLINFO, pszData, 512);
 }
+
+RIL_RESULT_CODE CTE::ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseDeactivateAllDataCalls() - Enter / Exit\r\n");
+    return m_pTEBaseInstance->ParseDeactivateAllDataCalls(rRspData);
+}

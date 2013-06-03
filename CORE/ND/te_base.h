@@ -872,6 +872,19 @@ public:
             const char** pszRequest,
             const int nNumStrings);
 
+    /*
+     * Sends CGACT=0 or CGATT=0 based on the conformance property.
+     * This function is called before sending manual network scan.
+     */
+    virtual void DeactivateAllDataCalls();
+
+    /*
+     * Upon response of CGACT or CGATT, all data connections will be
+     * cleanup and also data call list change will be notified to
+     * framework.
+     */
+    virtual RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
 
