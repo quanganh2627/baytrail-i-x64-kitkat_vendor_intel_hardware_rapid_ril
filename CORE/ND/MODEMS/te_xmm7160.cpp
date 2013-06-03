@@ -744,14 +744,21 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspDat
             break;
         }
 
-        case 3:     // WCDMA prefered
+        case 3:     // WCDMA preferred
         {
             pRat[0] = PREF_NET_TYPE_GSM_WCDMA;
             m_currentNetworkType = PREF_NET_TYPE_GSM_WCDMA;
             break;
         }
 
-        case 6:     // LTE prefered
+        case 4:     // LTE/WCDMA, LTE preferred
+        {
+            pRat[0] = PREF_NET_TYPE_LTE_WCDMA;
+            m_currentNetworkType = PREF_NET_TYPE_LTE_WCDMA;
+            break;
+        }
+
+        case 6:     // LTE/WCDMA/GSM, LTE preferred
         {
             pRat[0] = PREF_NET_TYPE_LTE_GSM_WCDMA;
             m_currentNetworkType = PREF_NET_TYPE_LTE_GSM_WCDMA;
