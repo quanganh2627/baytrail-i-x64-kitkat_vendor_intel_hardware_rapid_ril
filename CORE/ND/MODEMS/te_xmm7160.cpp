@@ -65,6 +65,8 @@ char* CTE_XMM7160::GetBasicInitCommands(UINT32 uiChannelType)
     if (pInitCmd != NULL)
     {
         strncpy(szInitCmd,pInitCmd,MAX_BUFFER_SIZE);
+        // Now ensure string is null terminated
+        szInitCmd[MAX_BUFFER_SIZE-1] = '\0';
 
         if (m_cte.IsIMSCapable())
         {

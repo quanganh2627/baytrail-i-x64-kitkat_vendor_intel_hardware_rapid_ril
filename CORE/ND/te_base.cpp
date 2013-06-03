@@ -6384,7 +6384,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         }
 
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szDNS1, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szDNS1, MAX_IPADDR_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract"
                              " Primary DNS.\r\n");
@@ -6392,7 +6392,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         }
 
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szDNS2, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szDNS2, MAX_IPADDR_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract "
                              "Secondary DNS.\r\n");
@@ -6421,7 +6421,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         // Parse ,<P_CSCF_prim_addr>
         // not used yet
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szCSCFPrimAddr, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szCSCFPrimAddr, MAX_IPADDR_SIZE, pszRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - WARNING: Could not extract "
                             "cscfp prim addr.\r\n");
@@ -6431,7 +6431,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         // Parse ,<P_CSCF_sec_addr>
         // not used yet
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szCSCFSecAddr, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szCSCFSecAddr, MAX_IPADDR_SIZE, pszRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - WARNING: Could not extract "
                             "cscfp sec addr.\r\n");
