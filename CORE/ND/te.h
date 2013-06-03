@@ -998,6 +998,8 @@ public:
      */
     void CompleteDataCallListChanged();
 
+    RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
+
 private:
     UINT32 m_uiModemType;
 
