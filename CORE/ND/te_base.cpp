@@ -2285,7 +2285,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
                                 " Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
                     }
-                    strncpy(pOpNames->szOpNameLong, szPlmnName, strlen(szPlmnName));
+                    CopyStringNullTerminate(pOpNames->szOpNameLong, szPlmnName, MAX_BUFFER_SIZE);
                     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Long Name: %s\r\n",
                             pOpNames->szOpNameLong);
                 }
@@ -2300,7 +2300,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
                                 " Could not extract the Short Format Operator Name.\r\n");
                         goto Error;
                     }
-                    strncpy(pOpNames->szOpNameShort, szPlmnName, strlen(szPlmnName));
+                    CopyStringNullTerminate(pOpNames->szOpNameShort, szPlmnName, MAX_BUFFER_SIZE);
                     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Short Name: %s\r\n",
                             pOpNames->szOpNameShort);
                 }
@@ -2315,7 +2315,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
                                 " Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
                     }
-                    strncpy(pOpNames->szOpNameNumeric, szPlmnName, strlen(szPlmnName));
+                    CopyStringNullTerminate(pOpNames->szOpNameNumeric, szPlmnName, MAX_BUFFER_SIZE);
                     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Numeric code: %s\r\n",
                             pOpNames->szOpNameNumeric);
                 }
