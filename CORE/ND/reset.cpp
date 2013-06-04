@@ -291,7 +291,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 CTE::GetTE().ResetInternalStates();
 
                 // Don't exit the RRIL to avoid automatic restart: sleep for ever
-                RIL_LOG_INFO("ModemManagerEventHandler() -"
+                RIL_LOG_CRITICAL("ModemManagerEventHandler() -"
                         " OUT_OF_SERVICE Now sleeping till reboot\r\n");
                 while(1) { sleep(SLEEP_MS); }
                 break;
@@ -357,7 +357,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 // Don't exit the RRIL to avoid automatic restart: sleep for ever
                 // MMGR will reboot the platform
-                RIL_LOG_INFO("ModemManagerEventHandler() - Now sleeping till reboot\r\n");
+                RIL_LOG_CRITICAL("ModemManagerEventHandler() - Now sleeping till reboot\r\n");
                 while(1) { sleep(SLEEP_MS); }
                 break;
 

@@ -2504,7 +2504,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
                 CEvent::Wait(CSystemManager::GetModemBasicInitCompleteEvent(),
                         WAIT_TIMEOUT_IN_MS))
         {
-            RIL_LOG_INFO("CTEBase::CoreRadioPower() - Timeout Waiting for"
+            RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - Timeout Waiting for"
                     "modem initialization completion event\r\n");
 
             /*
