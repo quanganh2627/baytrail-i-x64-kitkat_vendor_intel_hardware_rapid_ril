@@ -2227,30 +2227,46 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
     REQUEST_DATA reqData; // Not used
     char szResetActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
-
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE::RequestRadioPower() - Data pointer is NULL.\r\n");
         goto Error;
     }
 
-    if (2 * sizeof(int*) != datalen)
+    if (datalen >= (2 * sizeof(int*)))
     {
-        RIL_LOG_CRITICAL("CTE::RequestRadioPower() - Invalid data size.\r\n");
-        goto Error;
-    }
-
-    if (0 == ((int*)pData)[0])
-    {
-        RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio OFF\r\n");
-        bTurnRadioOn = false;
-        m_RadioOffReason = ((int*)pData)[1];
-        RIL_LOG_INFO("CTE::RequestRadioPower() - mRadioOffReason:%d\r\n", m_RadioOffReason);
+        if (0 == ((int*)pData)[0])
+        {
+            RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio OFF\r\n");
+            bTurnRadioOn = false;
+            m_RadioOffReason = ((int*)pData)[1];
+            RIL_LOG_INFO("CTE::RequestRadioPower() - mRadioOffReason:%d\r\n", m_RadioOffReason);
+        }
+        else
+        {
+            RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio ON\r\n");
+            bTurnRadioOn = true;
+        }
     }
     else
     {
-        RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio ON\r\n");
-        bTurnRadioOn = true;
+        RIL_LOG_CRITICAL("CTE::RequestRadioPower() - No Radio power reason supplied,"
+                "Fall back to default behavior\r\n");
+
+        if (0 == ((int*)pData)[0])
+        {
+            RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio OFF\r\n");
+            bTurnRadioOn = false;
+            m_RadioOffReason = IsPlatformShutDownRequested() ?
+                    E_RADIO_OFF_REASON_SHUTDOWN : m_RadioOffReason;
+            RIL_LOG_INFO("CTE::RequestRadioPower() - mRadioOffReason:%d\r\n", m_RadioOffReason);
+        }
+        else
+        {
+            RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio ON\r\n");
+            bTurnRadioOn = true;
+        }
+
     }
 
     if (property_get("gsm.radioreset", szResetActionProperty, "false")
