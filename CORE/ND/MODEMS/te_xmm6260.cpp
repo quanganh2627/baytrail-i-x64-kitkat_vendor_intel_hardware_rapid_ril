@@ -2141,6 +2141,15 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
 
     RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() - pszCid=[%s]\r\n", pszCid);
 
+    //  Get CID as UINT32.
+    if (sscanf(pszCid, "%u", &uiCID) == EOF)
+    {
+        // Error
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreDeactivateDataCall() -  cannot convert %s to int\r\n",
+                pszCid);
+        goto Error;
+    }
+
     if ( (RIL_VERSION >= 4) && (uiDataSize >= (2 * sizeof(char *))) )
     {
         pszReason = ((char**)pData)[1];
@@ -2153,30 +2162,19 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
         {
             // complete the request without sending the AT command to modem.
             res = RRIL_RESULT_OK_IMMEDIATE;
-            RIL_onRequestComplete(*(RIL_Token*)rReqData.pContextData, RIL_E_SUCCESS, NULL, 0);
+            DataConfigDown(uiCID);
             goto Error;
         }
         RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() - pszReason=[%s]\r\n", pszReason);
     }
 
-    //  Get CID as UINT32.
-    if (sscanf(pszCid, "%u", &uiCID) == EOF)
-    {
-        // Error
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreDeactivateDataCall() -  cannot convert %s to int\r\n",
-                pszCid);
-        goto Error;
-    }
-
     //  May 18,2011 - Don't call AT+CGACT=0,X if SIM was
     //  removed since context is already deactivated.
-    if (RRIL_SIM_STATE_NOT_READY == GetSIMState())
+    if (RRIL_SIM_STATE_ABSENT == GetSIMState())
     {
         RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() -"
-                " SIM LOCKED OR ABSENT!! no-op this command\r\n");
-        rReqData.szCmd1[0] = '\0';
-        res = RRIL_RESULT_OK;
-        rReqData.pContextData = (void*)((UINT32)0);
+                " SIM LOCKED OR ABSENT\r\n");
+        res = RRIL_RESULT_OK_IMMEDIATE;
 
         if (uiCID > 0 && uiCID <= MAX_PDP_CONTEXTS)
         {

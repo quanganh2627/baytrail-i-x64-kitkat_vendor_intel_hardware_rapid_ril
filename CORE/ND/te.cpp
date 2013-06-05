@@ -3226,10 +3226,14 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void* pData, 
     }
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
-    // send rilToken to CoreDeactivateDataCall in order to call RIL_onRequestComplete
-    reqData.pContextData = &rilToken;
+
     res = m_pTEBaseInstance->CoreDeactivateDataCall(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    if (RRIL_RESULT_OK_IMMEDIATE == res)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+        return RRIL_RESULT_OK;
+    }
+    else if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestDeactivateDataCall() -"
                 " Unable to create AT command data\r\n");
@@ -3265,7 +3269,7 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void* pData, 
         }
     }
 
-    if ((RRIL_RESULT_OK != res) && (RRIL_RESULT_OK_IMMEDIATE != res))
+    if (RRIL_RESULT_OK != res)
     {
         CleanRequestData(reqData);
     }
