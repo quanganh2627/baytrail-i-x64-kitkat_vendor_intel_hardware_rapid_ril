@@ -2557,6 +2557,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
             switch (dataState)
             {
                 case E_DATA_STATE_ACTIVATING:
+                case E_DATA_STATE_ACTIVE:
                     if (pChannelData->IsApnEqual(((char**)pData)[2]))
                     {
                         res = m_pTEBaseInstance->HandleSetupDefaultPDN(rilToken, pChannelData);

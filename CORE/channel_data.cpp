@@ -12,6 +12,19 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
+#include <stdio.h>
+
+// This is for socket-related calls.
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <linux/if_ether.h>
+#include <linux/gsmmux.h>
+
+// This is for close().
+#include <unistd.h>
+#include <wchar.h>
+
 #include "types.h"
 #include "rillog.h"
 #include "util.h"
@@ -21,6 +34,7 @@
 #include "rril.h"
 #include "te.h"
 #include "util.h"
+#include "data_util.h"
 
 extern char* g_szDataPort1;
 extern char* g_szDataPort2;
@@ -53,17 +67,7 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
 
-    m_szApn[0] = '\0';
-    m_szPdpType[0] = '\0';
-    m_szInterfaceName[0] = '\0';
-    m_szIpAddr[0] = '\0';
-    m_szIpAddr2[0] = '\0';
-    m_szDNS1[0] = '\0';
-    m_szDNS2[0] = '\0';
-    m_szIpV6DNS1[0] = '\0';
-    m_szIpV6DNS2[0] = '\0';
-    m_szIpV4Gateway[0] = '\0';
-    m_szIpV6Gateway[0] = '\0';
+    ResetDataCallInfo();
 
     CopyStringNullTerminate(m_szModemResourceName, RIL_DEFAULT_IPC_RESOURCE_NAME,
             sizeof(m_szModemResourceName));
@@ -497,6 +501,19 @@ void CChannel_Data::ResetDataCallInfo()
     }
 
     SetContextID(0);
+
+    m_szApn[0] = '\0';
+    m_szPdpType[0] = '\0';
+    m_szInterfaceName[0] = '\0';
+    m_szIpAddr[0] = '\0';
+    m_szIpAddr2[0] = '\0';
+    m_szDNS1[0] = '\0';
+    m_szDNS2[0] = '\0';
+    m_szIpV6DNS1[0] = '\0';
+    m_szIpV6DNS2[0] = '\0';
+    m_szIpV4Gateway[0] = '\0';
+    m_szIpV6Gateway[0] = '\0';
+
     RIL_LOG_VERBOSE("CChannel_Data::ResetDataCallInfo() - Exit\r\n");
 }
 
@@ -781,3 +798,142 @@ void CChannel_Data::GetDataCallInfo(S_DATA_CALL_INFO& rDataCallInfo)
 
     RIL_LOG_VERBOSE("CChannel_Data::GetDataCallInfo() - Exit\r\n");
 }
+
+int CChannel_Data::GetMuxControlChannel()
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetMuxControlChannel() - Enter\r\n");
+
+    int muxControlChannel = -1;
+    UINT32 uiRilChannel = GetRilChannel();
+
+    // Get the mux channel id corresponding to the control of the data channel
+    switch (uiRilChannel)
+    {
+        case RIL_CHANNEL_DATA1:
+            sscanf(g_szDataPort1, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA2:
+            sscanf(g_szDataPort2, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA3:
+            sscanf(g_szDataPort3, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA4:
+            sscanf(g_szDataPort4, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA5:
+            sscanf(g_szDataPort5, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        default:
+            RIL_LOG_CRITICAL("CChannel_Data::GetMuxControlChannel() - Unknown mux channel"
+                    "for RIL Channel [%u] \r\n", uiRilChannel);
+    }
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetMuxControlChannel() - Exit\r\n");
+
+    return muxControlChannel;
+}
+
+void CChannel_Data::RemoveInterface()
+{
+    RIL_LOG_VERBOSE("CChannel_Data::RemoveInterface() - Enter\r\n");
+
+    char szNetworkInterfaceName[MAX_INTERFACE_NAME_SIZE] = {'\0'};
+    CChannel_Data* pChannelData = NULL;
+    struct gsm_netconfig netconfig;
+    int fd = GetFD();
+    int ret = -1;
+    int s = -1;
+    UINT32 uiRilChannel = GetRilChannel();
+    BOOL bIsHSIDirect = IsHSIDirect();
+    int state = GetDataState();
+
+    GetInterfaceName(szNetworkInterfaceName, sizeof(szNetworkInterfaceName));
+
+    RIL_LOG_INFO("CChannel_Data::RemoveInterface() - szNetworkInterfaceName=[%s]\r\n",
+            szNetworkInterfaceName);
+
+    if (!bIsHSIDirect)
+    {
+        if (E_DATA_STATE_IDLE != state
+                && E_DATA_STATE_INITING != state
+                && E_DATA_STATE_ACTIVATING != state)
+        {
+            // Blocking TTY flow.
+            // Security in order to avoid IP data in response buffer.
+            // Not mandatory.
+            BlockAndFlushChannel(BLOCK_CHANNEL_BLOCK_TTY,
+                    FLUSH_CHANNEL_NO_FLUSH);
+        }
+
+        // Put the channel back into AT command mode
+        netconfig.adaption = 3;
+        netconfig.protocol = htons(ETH_P_IP);
+
+        if (fd >= 0)
+        {
+            RIL_LOG_INFO("CChannel_Data::RemoveInterface() -"
+                    " ***** PUTTING channel=[%u] in AT COMMAND MODE *****\r\n", uiRilChannel);
+            ret = ioctl(fd, GSMIOC_DISABLE_NET, &netconfig);
+        }
+    }
+    else
+    {
+        /*
+         * HSI inteface ENABLE/DISABLE can be done only by the HSI driver.
+         * Rapid RIL can only bring up or down the interface.
+         */
+        RIL_LOG_INFO("CChannel_Data::RemoveInterface() : Bring down hsi network interface\r\n");
+
+        // Open socket for ifconfig and setFlags commands
+        s = socket(AF_INET, SOCK_DGRAM, 0);
+        if (s < 0)
+        {
+            RIL_LOG_CRITICAL("CChannel_Data::RemoveInterface() : cannot open control socket "
+                    "(error %d / '%s')\n", errno, strerror(errno));
+            goto Error;
+        }
+
+        struct ifreq ifr;
+        memset(&ifr, 0, sizeof(struct ifreq));
+        strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
+        ifr.ifr_name[IFNAMSIZ-1] = '\0';
+
+        // set ipv4 address to 0.0.0.0 to unset ipv4 address,
+        // ipv6 addresses are automatically cleared
+        if (!setaddr(s, &ifr, "0.0.0.0"))
+        {
+            RIL_LOG_CRITICAL("CChannel_Data::RemoveInterface() : Error removing addr\r\n");
+        }
+
+        if (!setflags(s, &ifr, 0, IFF_UP))
+        {
+            RIL_LOG_CRITICAL("CChannel_Data::RemoveInterface() : Error setting flags\r\n");
+        }
+
+        if (close(s) < 0)
+        {
+            RIL_LOG_CRITICAL("CChannel_Data::RemoveInterface() : could not close control socket "
+                    "(error %d / '%s')\n", errno, strerror(errno));
+        }
+    }
+
+    RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%u\r\n", uiRilChannel);
+
+Error:
+    if (!bIsHSIDirect)
+    {
+        if (E_DATA_STATE_IDLE != state
+                && E_DATA_STATE_INITING != state
+                && E_DATA_STATE_ACTIVATING != state)
+        {
+            // Flush buffers and Unblock read thread.
+            // Security in order to avoid IP data in response buffer.
+            // Will unblock Channel read thread and TTY.
+            // Unblock read thread whatever the result is to avoid forever block
+            FlushAndUnblockChannel(UNBLOCK_CHANNEL_UNBLOCK_ALL,
+                    FLUSH_CHANNEL_FLUSH_ALL);
+        }
+    }
+}
+

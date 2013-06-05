@@ -234,7 +234,7 @@ public:
     virtual void HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken,
                                                     UINT32 uiResultCode);
 
-    virtual BOOL DataConfigDown(UINT32 uiCID);
+    virtual BOOL DataConfigDown(UINT32 uiCID, BOOL bForceCleanup = FALSE);
 
     virtual RIL_RESULT_CODE HandleScreenStateReq(int screenState);
 

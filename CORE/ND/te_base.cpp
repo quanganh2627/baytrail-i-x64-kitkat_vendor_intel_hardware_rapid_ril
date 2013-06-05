@@ -9752,7 +9752,7 @@ void CTEBase::CleanupAllDataConnections()
         {
             RIL_LOG_INFO("CTEBase::CleanupAllDataConnections() - Calling DataConfigDown  chnl=[%d],"
                     " cid=[%d]\r\n", i, pChannelData->GetContextID());
-            DataConfigDown(pChannelData->GetContextID());
+            DataConfigDown(pChannelData->GetContextID(), TRUE);
         }
     }
 

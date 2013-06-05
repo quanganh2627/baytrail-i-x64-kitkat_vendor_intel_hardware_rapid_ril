@@ -790,7 +790,15 @@ public:
     // Functions for configuring data connections
     virtual BOOL DataConfigUp(char* pszNetworkInterfaceName, CChannel_Data* pChannelData,
                                                 PDP_TYPE eDataConnectionType);
-    virtual BOOL DataConfigDown(UINT32 uiCID) = 0;
+
+    /*
+     * Removes the interface, puts the channels into AT command mode and
+     * resets the data call information of the channel matching the CID.
+     * If bForceCleanup is TRUE, then the data call information is reset
+     * even if the provided context ID is default PDN context ID.
+     */
+    virtual BOOL DataConfigDown(UINT32 uiCID, BOOL bForceCleanup = FALSE) = 0;
+
     virtual void CleanupAllDataConnections();
     virtual BOOL DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pChannelData);
     virtual BOOL DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pChannelData);

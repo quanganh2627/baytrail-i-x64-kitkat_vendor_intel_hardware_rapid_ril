@@ -32,7 +32,18 @@ public:
     //  public port interface
     BOOL OpenPort();
 
+    /*
+     * Resets the data call information such as context ID, data state,
+     * fail cause, apn, ip address, DNS, network interface, gateway and
+     * the pdp type. Based on modem type, also frees the HSI channel.
+     */
     void ResetDataCallInfo();
+
+    /*
+     * Based on the channel settings, brings down the hsi network interface
+     * or puts the channel back into AT command mode.
+     */
+    void RemoveInterface();
 
     // get / set functions
     void SetDataFailCause(int cause);
@@ -94,6 +105,8 @@ public:
 
     char* GetModemResourceName() { return m_szModemResourceName; }
     int GetIpcDataChannelMin() { return m_ipcDataChannelMin; }
+
+    int GetMuxControlChannel();
 
 private:
     int m_dataFailCause;

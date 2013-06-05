@@ -417,6 +417,127 @@ Error:
 }
 
 //
+// RIL_REQUEST_DEACTIVATE_DATA_CALL 41
+//
+RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
+                                                                void* pData,
+                                                                UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreDeactivateDataCall() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    char* pszCid = NULL;
+    char* pszReason = NULL;
+    UINT32 uiCID = 0;
+
+    if (uiDataSize < (1 * sizeof(char *)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() -"
+                " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() -"
+                " Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM7160::CoreDeactivateDataCall() - uiDataSize=[%d]\r\n", uiDataSize);
+
+    pszCid = ((char**)pData)[0];
+    if (pszCid == NULL || '\0' == pszCid[0])
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() - pszCid was NULL\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM7160::CoreDeactivateDataCall() - pszCid=[%s]\r\n", pszCid);
+
+    //  Get CID as UINT32.
+    if (sscanf(pszCid, "%u", &uiCID) == EOF)
+    {
+        // Error
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() -  cannot convert %s to int\r\n",
+                pszCid);
+        goto Error;
+    }
+
+    if (m_cte.IsEPSRegistered() && uiCID == DEFAULT_PDN_CID)
+    {
+        char* szModemResourceName = {'\0'};
+        int muxControlChannel = -1;
+        int hsiChannel = -1;
+        int ipcDataChannelMin = 0;
+        UINT32 uiRilChannel = 0;
+        CCommand* pCmd = NULL;
+        CChannel_Data* pChannelData = NULL;
+        UINT32* pCID = NULL;
+
+        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+        if (NULL == pChannelData)
+        {
+            RIL_LOG_INFO("CTE_XMM7160::CoreDeactivateDataCall() -"
+                    " No Data Channel for CID %u.\r\n", uiCID);
+            goto Error;
+        }
+
+        uiRilChannel = pChannelData->GetRilChannel();
+        hsiChannel = pChannelData->GetHSIChannel();
+
+        muxControlChannel = pChannelData->GetMuxControlChannel();
+        if (-1 == muxControlChannel)
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() - Unknown mux channel\r\n");
+            goto Error;
+        }
+
+        szModemResourceName = pChannelData->GetModemResourceName();
+        ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
+
+        if (ipcDataChannelMin > hsiChannel || RIL_MAX_NUM_IPC_CHANNEL <= hsiChannel )
+        {
+           RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() - Unknown HSI Channel [%d] \r\n",
+                    hsiChannel);
+           goto Error;
+        }
+
+        memset(&rReqData, 0, sizeof(REQUEST_DATA));
+
+        // When context is deactivated, disable the routing to avoid modem waking up AP
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+XDATACHANNEL=0,1,\"/mux/%d\",\"/%s/%d\",0,%d\r",
+                muxControlChannel, szModemResourceName, hsiChannel, uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() - cannot create XDATACHANNEL"
+                    "command\r\n");
+            goto Error;
+        }
+
+        pCID = (UINT32*)malloc(sizeof(UINT32));
+        if (NULL == pCID)
+        {
+            goto Error;
+        }
+
+        *pCID = uiCID;
+
+        rReqData.pContextData = (void*)pCID;
+        rReqData.cbContextData = sizeof(UINT32);
+        res = RRIL_RESULT_OK;
+    }
+    else
+    {
+        res = CTE_XMM6260::CoreDeactivateDataCall(rReqData, pData, uiDataSize);
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreDeactivateDataCall() - Exit\r\n");
+    return res;
+}
+
+//
 // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
@@ -878,6 +999,7 @@ RIL_RESULT_CODE CTE_XMM7160::HandleSetupDefaultPDN(RIL_Token rilToken,
     REQUEST_DATA reqData;
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
     CCommand* pCmd = NULL;
+    int dataState = pChannelData->GetDataState();
 
     pDataCallContextData =
             (S_SETUP_DATA_CALL_CONTEXT_DATA*)malloc(sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA));
@@ -924,15 +1046,36 @@ RIL_RESULT_CODE CTE_XMM7160::HandleSetupDefaultPDN(RIL_Token rilToken,
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    // NOTE: for LTE cmd1 for the already activated PDP shall be AT+XDATACHANNEL=...;AT+CGDATA.
-    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
-            "AT+XDATACHANNEL=1,1,\"/mux/%d\",\"/%s/%d\",0,%d;+CGDATA=\"M-RAW_IP\",%d\r",
-            muxControlChannel, szModemResourceName, hsiChannel,
-            pDataCallContextData->uiCID, pDataCallContextData->uiCID))
+    if (E_DATA_STATE_ACTIVATING == dataState)
     {
-        RIL_LOG_CRITICAL("CTE_XMM7160::HandleSetupDefaultPDN() - cannot create XDATACHANNEL"
-                "command\r\n");
-        goto Error;
+        /*
+         * ACTIVATING means that context is up but the routing is not enabled and also channel
+         * is not configured for Data.
+         */
+        if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+                "AT+XDATACHANNEL=1,1,\"/mux/%d\",\"/%s/%d\",0,%d;+CGDATA=\"M-RAW_IP\",%d\r",
+                muxControlChannel, szModemResourceName, hsiChannel,
+                pDataCallContextData->uiCID, pDataCallContextData->uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::HandleSetupDefaultPDN() - cannot create XDATACHANNEL"
+                    "command\r\n");
+            goto Error;
+        }
+    }
+    else if (E_DATA_STATE_ACTIVE == dataState)
+    {
+        /*
+         * ACTIVATE means that context is up and the channel is configured for data but the
+         * routing is disabled.
+         */
+        if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+                "AT+XDATACHANNEL=1,1,\"/mux/%d\",\"/%s/%d\",0,%d\r",
+                muxControlChannel, szModemResourceName, hsiChannel, pDataCallContextData->uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::HandleSetupDefaultPDN() - cannot create XDATACHANNEL"
+                    "command\r\n");
+            goto Error;
+        }
     }
 
     pCmd = new CCommand(uiRilChannel, rilToken, ND_REQ_ID_NONE, reqData,
@@ -1039,4 +1182,37 @@ Error:
     {
         HandleSetupDataCallSuccess(uiCID, rData.pRilToken);
     }
+}
+
+//
+//  Call this whenever data is disconnected
+//
+BOOL CTE_XMM7160::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::DataConfigDown() - Enter\r\n");
+
+    //  First check to see if uiCID is valid
+    if (uiCID > MAX_PDP_CONTEXTS || uiCID == 0)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::DataConfigDown() - Invalid CID = [%u]\r\n", uiCID);
+        return FALSE;
+    }
+
+    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::DataConfigDown() -"
+                " Invalid CID=[%u], no data channel found!\r\n", uiCID);
+        return FALSE;
+    }
+
+    pChannelData->RemoveInterface();
+
+    if (!m_cte.IsEPSRegistered() || uiCID != DEFAULT_PDN_CID || bForceCleanup)
+    {
+        pChannelData->ResetDataCallInfo();
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::DataConfigDown() EXIT\r\n");
+    return TRUE;
 }

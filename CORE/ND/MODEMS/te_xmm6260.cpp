@@ -5897,7 +5897,7 @@ Complete:
 //
 //  Call this whenever data is disconnected
 //
-BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
+BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::DataConfigDown() - Enter\r\n");
 
@@ -5908,79 +5908,19 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID)
         return FALSE;
     }
 
-    BOOL bRet = FALSE;
-    CChannel_Data* pChannelData = NULL;
-    struct gsm_netconfig netconfig;
-    int fd = -1;
-    int flags;
-    int ret = -1;
-    UINT32 uiChannel = 0;
-    int state;
-
-    //  See if CID passed in is valid
-    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
     if (NULL == pChannelData)
     {
-        RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() - "
-                "Invalid CID=[%u], no data channel found!\r\n", uiCID);
+        RIL_LOG_CRITICAL("CTE_XMM6260::DataConfigDown() -"
+                " Invalid CID=[%u], no data channel found!\r\n", uiCID);
         return FALSE;
     }
 
-    uiChannel = pChannelData->GetRilChannel();
-
-    // Reset ContextID to 0, to free up the channel for future use
-    RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() - ****** Setting chnl=[%u] to CID=[0] ******\r\n",
-            uiChannel);
-
-    state = pChannelData->GetDataState();
+    pChannelData->RemoveInterface();
     pChannelData->ResetDataCallInfo();
 
-    if (E_DATA_STATE_IDLE != state
-            && E_DATA_STATE_INITING != state
-            && E_DATA_STATE_ACTIVATING != state)
-    {
-        // Blocking TTY flow. Third security level in order to avoid IP data in response buffer.
-        // Not mandatory.
-        pChannelData->BlockAndFlushChannel(BLOCK_CHANNEL_BLOCK_TTY, FLUSH_CHANNEL_NO_FLUSH);
-    }
-
-    //  Put the channel back into AT command mode
-    netconfig.adaption = 3;
-    netconfig.protocol = htons(ETH_P_IP);
-
-    fd = pChannelData->GetFD();
-    if (fd >= 0)
-    {
-        RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() -"
-                " ***** PUTTING channel=[%u] in AT COMMAND MODE *****\r\n", uiChannel);
-        ret = ioctl(fd, GSMIOC_DISABLE_NET, &netconfig);
-    }
-    else
-    {
-        //  No FD.
-        RIL_LOG_CRITICAL("DataConfigDown() - Could not change Channel mode chnl=[%d] fd=[%d].\r\n",
-                                pChannelData->GetRilChannel(), fd);
-        goto Error;
-    }
-
-    bRet = TRUE;
-
-    RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%u\r\n", uiChannel);
-
-Error:
-    if (E_DATA_STATE_IDLE != state
-            && E_DATA_STATE_INITING != state
-            && E_DATA_STATE_ACTIVATING != state)
-    {
-        // Flush buffers and Unblock read thread.
-        // Security in order to avoid IP data in response buffer.
-        // Will unblock Channel read thread and TTY.
-        // Unblock read thread whatever the result is to avoid forever block
-        pChannelData->FlushAndUnblockChannel(UNBLOCK_CHANNEL_UNBLOCK_ALL, FLUSH_CHANNEL_FLUSH_ALL);
-    }
-
-    RIL_LOG_INFO("CTE_XMM6260::DataConfigDown() EXIT  bRet=[%d]\r\n", bRet);
-    return bRet;
+    RIL_LOG_VERBOSE("CTE_XMM6260::DataConfigDown() EXIT\r\n");
+    return TRUE;
 }
 
 RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)

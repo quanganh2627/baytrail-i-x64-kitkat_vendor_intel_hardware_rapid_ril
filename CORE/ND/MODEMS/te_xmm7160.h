@@ -62,6 +62,11 @@ public:
     virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA& rRspData);
     virtual void PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
+    // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
+    virtual RIL_RESULT_CODE CoreDeactivateDataCall(REQUEST_DATA& rReqData,
+                                                                void* pData,
+                                                                UINT32 uiDataSize);
+
     // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
     virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             void* pData, UINT32 uiDataSize);
@@ -95,6 +100,8 @@ public:
      * Upon failure, RIL_REEQUEST_SETUP_DATA_CALL request will be completed.
      */
     virtual void PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData);
+
+    virtual BOOL DataConfigDown(UINT32 uiCID, BOOL bForceCleanup = FALSE);
 
 protected:
 
