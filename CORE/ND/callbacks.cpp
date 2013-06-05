@@ -287,7 +287,7 @@ void triggerDropCallEvent(void* param)
     sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND data;
     char szBuffer[CRASHTOOL_BUFFER_SIZE];
 
-    BOOL bMobileRelease = (0 == (UINT32)param);
+    BOOL bMobileRelease = (1 == (UINT32)param);
 
     data.command = RIL_OEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND;
     data.type = CRASHTOOL_STATS;
