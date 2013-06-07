@@ -164,12 +164,12 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             break;
 
         case RIL_UNSOL_SIGNAL_STRENGTH:  // 1009
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIGNAL_STRENGTH\r\n");
+            RIL_LOG_VERBOSE("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIGNAL_STRENGTH\r\n");
             if (pData && dataSize)
             {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_signalStrength=%d\r\n",
+                RIL_LOG_VERBOSE("RIL_onUnsolicitedResponse() - GW_signalStrength=%d\r\n",
                         ((RIL_SignalStrength_v6*)pData)->GW_SignalStrength.signalStrength);
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - GW_bitErrorRate=%d\r\n",
+                RIL_LOG_VERBOSE("RIL_onUnsolicitedResponse() - GW_bitErrorRate=%d\r\n",
                         ((RIL_SignalStrength_v6*)pData)->GW_SignalStrength.bitErrorRate);
             }
             break;
@@ -400,7 +400,8 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
 
     if (bSendNotification)
     {
-        RIL_LOG_INFO("Calling gs_pRilEnv->OnUnsolicitedResponse()... id=%d\r\n", unsolResponseID);
+        RIL_LOG_VERBOSE("Calling gs_pRilEnv->OnUnsolicitedResponse()... id=%d\r\n",
+                unsolResponseID);
         gs_pRilEnv->OnUnsolicitedResponse(unsolResponseID, pData, dataSize);
     }
     else
