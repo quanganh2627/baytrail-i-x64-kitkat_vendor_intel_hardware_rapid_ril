@@ -258,33 +258,21 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Modem is alive, start initializing modem
                     RIL_LOG_INFO("ModemManagerEventHandler() -InitializeModem\r\n");
 
-                    /*
-                     * MODEM_UP can be also received due to other mmgr clients powering
-                     * on the modem. Acquire the modem resource to service other clients
-                     * which might need sim access.
-                     *
-                     * Note: If device is in airplane mode but if the modem is powered
-                     * on due to CWS clients then the modem will be kept powered on but
-                     * radio will be in off state.
-                     */
-                    if (CSystemManager::GetInstance().GetModem())
+                    // launch modem init thread.
+                    pContinueInitThread = new CThread(ContinueInitThreadProc, NULL,
+                            THREAD_FLAGS_JOINABLE, 0);
+                    if (!pContinueInitThread)
                     {
-                        // launch modem init thread.
-                        pContinueInitThread = new CThread(ContinueInitThreadProc, NULL,
-                                THREAD_FLAGS_JOINABLE, 0);
-                        if (!pContinueInitThread)
-                        {
-                            RIL_LOG_CRITICAL("ModemManagerEventHandler() -"
-                                    "pContinueInitThread is NULL\r\n");
-                            //  let's exit, init will restart us
-                            RIL_LOG_INFO("ModemManagerEventHandler() - CALLING EXIT\r\n");
-                            CSystemManager::Destroy();
-                            exit(0);
-                        }
-
-                        delete pContinueInitThread;
-                        pContinueInitThread = NULL;
+                        RIL_LOG_CRITICAL("ModemManagerEventHandler() -"
+                                "pContinueInitThread is NULL\r\n");
+                        //  let's exit, init will restart us
+                        RIL_LOG_INFO("ModemManagerEventHandler() - CALLING EXIT\r\n");
+                        CSystemManager::Destroy();
+                        exit(0);
                     }
+
+                    delete pContinueInitThread;
+                    pContinueInitThread = NULL;
                 }
                 break;
 
@@ -454,6 +442,8 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                         && E_RADIO_OFF_REASON_AIRPLANE_MODE == CTE::GetTE().GetRadioOffReason())
                 {
                     RIL_LOG_INFO("E_MMGR_EVENT_MODEM_SHUTDOWN due to Flight mode\r\n");
+
+                    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
 
                     PCache_SetUseCachedPIN(true);
                 }

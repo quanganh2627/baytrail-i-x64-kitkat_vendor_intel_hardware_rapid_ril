@@ -208,38 +208,43 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
         if (0 == strcmp(stPdpData.szPDPType, "IP"))
         {
             if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,1\r", uiCID, stPdpData.szPDPType,
-                stPdpData.szApn, uiCID))
+                    sizeof(rReqData.szCmd1),
+                    "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,1\r",
+                    uiCID, stPdpData.szPDPType,
+                    stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName,
+                    stPdpData.szPassword, uiCID))
             {
-                RIL_LOG_CRITICAL("CTE_INF_7160::CoreSetupDataCall() - cannot create CGDCONT command"
-                                 ", stPdpData.szPDPType\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
+                        " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
                 goto Error;
             }
-         }
+        }
         else if (0 == strcmp(stPdpData.szPDPType, "IPV6"))
-         {
+        {
             if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XDNS=%d,2\r", uiCID, stPdpData.szPDPType,
-                stPdpData.szApn, uiCID))
+                    sizeof(rReqData.szCmd1),
+                    "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,2\r",
+                    uiCID, stPdpData.szPDPType, stPdpData.szApn, uiCID, nPapChap,
+                    stPdpData.szUserName, stPdpData.szPassword, uiCID))
             {
-                RIL_LOG_CRITICAL("CTE_INF_7160::CoreSetupDataCall() - cannot create CGDCONT command"
-                                 ", stPdpData.szPDPType\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
+                        " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
                 goto Error;
             }
         }
         else if (0 == strcmp(stPdpData.szPDPType, "IPV4V6"))
         {
-            //  XDNS=3 is not supported by the modem so two commands +XDNS=1 and
-            // +XDNS=2 should be sent.
+            //  XDNS=3 is not supported by the modem so two commands +XDNS=1
+            //  and +XDNS=2 should be sent.
             if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
-                stPdpData.szApn, uiCID, uiCID))
+                    sizeof(rReqData.szCmd1),
+                    "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XGAUTH=%u,%d,\"%s\","
+                    "\"%s\";+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
+                    stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
+                    uiCID, uiCID))
             {
-                RIL_LOG_CRITICAL("CTE_INF_7160::CoreSetupDataCall() - cannot create CGDCONT command"
-                                 ", stPdpData.szPDPType\r\n");
+                RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
+                        " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
                 goto Error;
             }
         }
