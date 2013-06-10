@@ -273,7 +273,7 @@ public:
     virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
                                                          void* pData,
                                                          UINT32 uiDataSize,
-                                                         UINT32 uiCID);
+                                                         UINT32& uiCID);
 
     virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA& rRspData);
 
@@ -440,9 +440,6 @@ public:
                                                                  UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseLastDataCallFailCause(RESPONSE_DATA& rRspData);
-
-    // RIL_REQUEST_DATA_CALL_LIST 57
-    virtual RIL_RESULT_CODE ParseEstablishedPDPList(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_RESET_RADIO 58
     virtual RIL_RESULT_CODE CoreResetRadio(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
@@ -810,6 +807,8 @@ public:
     virtual BOOL HandleSilentPINEntry(void* pRilToken, void* pContextData, int dataSize);
     virtual RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
 
+    virtual RIL_RESULT_CODE ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData);
+
     // PIN retry count request and response handler
     virtual RIL_RESULT_CODE QueryPinRetryCount(REQUEST_DATA& rReqData,
                                                           void* pData,
@@ -885,6 +884,13 @@ public:
      * framework.
      */
     virtual RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
+
+    virtual RIL_RESULT_CODE HandleSetupDefaultPDN(RIL_Token rilToken,
+            CChannel_Data* pChannelData);
+    virtual RIL_RESULT_CODE ParseSetupDefaultPDN(RESPONSE_DATA& rRspData);
+    virtual void PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData);
+
+    virtual BOOL SetupInterface(UINT32 uiCID);
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);

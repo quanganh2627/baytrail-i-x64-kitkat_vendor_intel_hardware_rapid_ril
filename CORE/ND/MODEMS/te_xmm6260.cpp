@@ -398,7 +398,7 @@ Error:
 RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize,
-                                                           UINT32 uiCID)
+                                                           UINT32& uiCID)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -408,34 +408,18 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA& rReqData,
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
     CChannel_Data* pChannelData = NULL;
 
-    if (NULL == pData)
+    pChannelData = CChannel_Data::GetFreeChnl(uiCID);
+    if (NULL == pChannelData)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() - Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() - "
+                "****** No free data channels available ******\r\n");
         goto Error;
     }
-
-    if (uiDataSize < (6 * sizeof(char*)))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() -"
-                " Invalid data size. Was given %d bytes\r\n", uiDataSize);
-        goto Error;
-    }
-
-    RIL_LOG_INFO("CTE_XMM6260::CoreSetupDataCall() - uiDataSize=[%d]\r\n", uiDataSize);
 
     pDataCallContextData =
             (S_SETUP_DATA_CALL_CONTEXT_DATA*)malloc(sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA));
     if (NULL == pDataCallContextData)
     {
-        goto Error;
-    }
-
-    // Get Channel Data according to CID
-    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
-    if (NULL == pChannelData)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetupDataCall() - No Channel with context Id: %u\r\n",
-                uiCID);
         goto Error;
     }
 

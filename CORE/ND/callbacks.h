@@ -82,9 +82,9 @@ void triggerManualNetworkSearch(void* param);
 void triggerQueryCEER(void* param);
 
 //
-// Callback to request Established PDP list
+// Callback to query default PDN context parameters
 //
-void requestEstablishedPDPList(void* param);
+void triggerQueryDefaultPDNContextParams(void* param);
 
 //
 // Callback to trigger drop call data to crashtool

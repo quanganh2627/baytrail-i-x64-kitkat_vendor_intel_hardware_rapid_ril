@@ -20,6 +20,7 @@
 #include "repository.h"
 #include "rril.h"
 #include "te.h"
+#include "util.h"
 
 extern char* g_szDataPort1;
 extern char* g_szDataPort2;
@@ -52,6 +53,7 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
 
+    m_szApn[0] = '\0';
     m_szPdpType[0] = '\0';
     m_szInterfaceName[0] = '\0';
     m_szIpAddr[0] = '\0';
@@ -510,6 +512,34 @@ int CChannel_Data::GetDataFailCause()
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetDataFailCause() - Enter/Exit\r\n");
     return m_dataFailCause;
+}
+
+void CChannel_Data::SetApn(const char* pApn)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::SetApn() - Enter/Exit\r\n");
+
+    CopyStringNullTerminate(m_szApn, pApn, MAX_BUFFER_SIZE);
+}
+
+BOOL CChannel_Data::IsApnEqual(const char* pApn)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::IsApnEqual() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+
+    if (m_szApn[0] == '\0' || NULL == pApn)
+    {
+        bRet = FALSE;
+    }
+    else
+    {
+        if (NULL != strcasestr(m_szApn, pApn))
+        {
+            bRet = TRUE;
+        }
+    }
+
+    return bRet;
 }
 
 void CChannel_Data::SetPdpType(const char* pPdpType)

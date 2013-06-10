@@ -58,7 +58,6 @@ CTE::CTE(UINT32 modemType) :
     m_bIsClearPendingCHLD(FALSE),
     m_FastDormancyMode(FAST_DORMANCY_MODE_DEFAULT),
     m_uiMTU(MTU_SIZE),
-    m_uiAct(0),
     m_bVoiceCapable(TRUE),
     m_bSmsOverCSCapable(TRUE),
     m_bSmsOverPSCapable(TRUE),
@@ -76,7 +75,8 @@ CTE::CTE(UINT32 modemType) :
     m_RequestedRadioPower(RADIO_POWER_UNKNOWN),
     m_RadioOffReason(E_RADIO_OFF_REASON_NONE),
     m_pRadioStateChangedEvent(NULL),
-    m_bCallDropReporting(FALSE)
+    m_bCallDropReporting(FALSE),
+    m_uiDefaultPDNCid(0)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -2514,10 +2514,23 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     RIL_LOG_VERBOSE("CTE::RequestSetupDataCall() - Enter\r\n");
 
     REQUEST_DATA reqData;
-    RIL_RESULT_CODE res;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     UINT32 uiCID = 0;
     CChannel_Data* pChannelData = NULL;
     int retryTime = -1;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (datalen < (6 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() -"
+                " Invalid data size. Was given %d bytes\r\n", datalen);
+        goto Error;
+    }
 
     if (!IsSetupDataCallAllowed(retryTime))
     {
@@ -2532,35 +2545,41 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     }
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
-
-    //  Find free channel, and get the context ID that was set.
-    if (MODEM_TYPE_XMM6360 == m_uiModemType
-            || MODEM_TYPE_XMM7160 == m_uiModemType)
+    if (IsEPSRegistered())
     {
-        // Extract the data profile. it is the 2nd parameter of pData.
-        int dataProfile = -1;
+        pChannelData = CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
 
-        if (pData == NULL || datalen < (7 * sizeof(char*)))
+        if (NULL != pChannelData)
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() -"
-                    " ****** invalid parameter pData ******\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-            goto Error;
-        }
-        dataProfile = atoi(((char**)pData)[1]);
-        pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiCID, dataProfile);
-    }
-    else
-    {
-        pChannelData = CChannel_Data::GetFreeChnl(uiCID);
-    }
+            int dataState = pChannelData->GetDataState();
+            RIL_LOG_INFO("CTE::RequestSetupDataCall() - dataState: %d\r\n", dataState);
 
-    if (NULL == pChannelData)
-    {
-        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - "
-                "****** No free data channels available ******\r\n");
-        res = RIL_E_GENERIC_FAILURE;
-        goto Error;
+            switch (dataState)
+            {
+                case E_DATA_STATE_ACTIVATING:
+                    if (pChannelData->IsApnEqual(((char**)pData)[2]))
+                    {
+                        res = m_pTEBaseInstance->HandleSetupDefaultPDN(rilToken, pChannelData);
+                        if (RRIL_RESULT_OK == res)
+                        {
+                            /*
+                             * Provided APN matches with the default PDN APN. Interface bring
+                             * up is handled in modem specific classes.
+                             */
+                            return res;
+                        }
+                    }
+                    break;
+                case E_DATA_STATE_INITING:
+                    /*
+                     * TODO: Query default PDN context parameters. Currently,
+                     * default PDN context parameters reading is done on CGEV: ME PDN ACT.
+                     */
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     res = m_pTEBaseInstance->CoreSetupDataCall(reqData, pData, datalen, uiCID);
@@ -2569,10 +2588,19 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - Unable to create AT command data\r\n");
         goto Error;
     }
-
     else
     {
-        CCommand* pCmd = new CCommand(pChannelData->GetRilChannel(), rilToken,
+        CCommand* pCmd = NULL;
+
+        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+        if (NULL == pChannelData)
+        {
+            RIL_LOG_INFO("CTE::RequestSetupDataCall() -"
+                    " No Data Channel for CID %u.\r\n", uiCID);
+            goto Error;
+        }
+
+        pCmd = new CCommand(pChannelData->GetRilChannel(), rilToken,
                                         ND_REQ_ID_SETUPDEFAULTPDP, reqData,
                                         &CTE::ParseSetupDataCall,
                                         &CTE::PostSetupDataCallCmdHandler);
@@ -4196,13 +4224,6 @@ Error:
 
     RIL_LOG_VERBOSE("CTE::RequestDataCallList() - Exit\r\n");
     return RRIL_RESULT_OK;
-}
-
-RIL_RESULT_CODE CTE::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseEstablishedPDPList() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseEstablishedPDPList(rRspData);
 }
 
 //
@@ -6781,8 +6802,6 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
              */
             rtAct = MapAccessTechnology(uiAct);
             snprintf(rCSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)rtAct);
-            SetUiAct(rtAct);
-            RIL_LOG_INFO("CTE::ParseCREG() - uiAct=%d\r\n", rtAct);
         }
 
         // Extract ",cause_type and reject_cause" only if registration status is denied
@@ -7262,8 +7281,6 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
         * technology values.
         */
         uiAct = CTE::MapAccessTechnology(uiAct);
-        CTE::GetTE().SetUiAct(uiAct);
-        RIL_LOG_INFO("CTE::ParseCEREG() - uiAct=%d,%p\r\n", uiAct);
     }
 
     // Extract ",cause_type and reject_cause" only if registration status is denied
@@ -7441,22 +7458,30 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         {
             /*
              * Report the EPS registration status only after the default PDN context
-             * parameters are read. If EPS registration status is reported earlier,
-             * android telephony framework will trigger the SETUP_DATA_CALL request
-             * resulting in establishing a second pdp context even when the requested
-             * APN is the same as default PDN APN.
+             * parameters are read(i.e. Default PDN context is in ACTIVATING/ACTIVE state).
+             * If EPS registration status is reported earlier, android telephony framework
+             * will trigger the SETUP_DATA_CALL request resulting in establishing a second
+             * pdp context even when the requested SETUP_DATA_CALL is for the same APN as
+             * default PDN APN.
              */
-            if (HasActivatedContext())
+            CChannel_Data* pChannelData =
+                    CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
+            if (NULL != pChannelData)
             {
-                RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - HasActivatedContext\r\n");
-                strncpy(psRegStatus->szStat, m_sEPSStatus.szStat, sizeof(psRegStatus->szStat));
-                strncpy(psRegStatus->szLAC, m_sEPSStatus.szLAC, sizeof(psRegStatus->szLAC));
-                strncpy(psRegStatus->szCID, m_sEPSStatus.szCID, sizeof(psRegStatus->szCID));
-                strncpy(psRegStatus->szNetworkType, m_sEPSStatus.szNetworkType,
-                    sizeof(psRegStatus->szNetworkType));
-                strncpy(psRegStatus->szReasonDenied, m_sEPSStatus.szReasonDenied,
-                        sizeof(psRegStatus->szReasonDenied));
-
+                int dataState = pChannelData->GetDataState();
+                if (E_DATA_STATE_ACTIVATING == dataState
+                        || E_DATA_STATE_ACTIVE == dataState)
+                {
+                    RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - Default PDN ready\r\n");
+                    strncpy(psRegStatus->szStat, m_sPSStatus.szStat, sizeof(psRegStatus->szStat));
+                    // TAC is mapped to LAC
+                    strncpy(psRegStatus->szLAC, m_sPSStatus.szLAC, sizeof(psRegStatus->szLAC));
+                    strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
+                    strncpy(psRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
+                            sizeof(psRegStatus->szNetworkType));
+                    strncpy(psRegStatus->szReasonDenied, m_sPSStatus.szReasonDenied,
+                            sizeof(psRegStatus->szReasonDenied));
+                }
             }
         }
         else
@@ -7982,6 +8007,13 @@ BOOL CTE::TestAndSetSpoofCommandsStatus(BOOL bStatus)
 RIL_RESULT_CODE CTE::ParseSilentPinEntry(RESPONSE_DATA& rRspData)
 {
     return m_pTEBaseInstance->ParseSilentPinEntry(rRspData);
+}
+
+RIL_RESULT_CODE CTE::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseReadDefaultPDNContextParams() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseReadDefaultPDNContextParams(rRspData);
 }
 
 void CTE::PostCmdHandlerCompleteRequest(POST_CMD_HANDLER_DATA& rData)
@@ -9283,4 +9315,40 @@ RIL_RESULT_CODE CTE::CreateIMSConfigReq(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTE::CreateIMSConfigReq() - Enter/Exit\r\n");
     return m_pTEBaseInstance->CreateIMSConfigReq(rReqData,
                     ppszRequest, nNumStrings);
+}
+
+void CTE::PostReadDefaultPDNContextParams(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostReadDefaultPDNContextParams - Enter/Exit \r\n");
+
+    if (RIL_E_SUCCESS == rData.uiResultCode)
+    {
+        CChannel_Data* pChannelData =
+                CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
+        if (NULL != pChannelData)
+        {
+            pChannelData->SetDataState(E_DATA_STATE_ACTIVATING);
+        }
+
+        /*
+         * In case of LTE, actual data registration state is signalled only after default PDN
+         * context parameters are read. So, in order to force the framework to query the data
+         * registration state, RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED needs to be
+         * completed.
+         */
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
+    }
+}
+
+RIL_RESULT_CODE CTE::ParseSetupDefaultPDN(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseSetupDefaultPDN() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseSetupDefaultPDN(rRspData);
+}
+
+void CTE::PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostSetupDefaultPDN - Enter/Exit \r\n");
+    m_pTEBaseInstance->PostSetupDefaultPDN(rData);
 }

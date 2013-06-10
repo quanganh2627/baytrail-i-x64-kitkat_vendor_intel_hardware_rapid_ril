@@ -41,6 +41,9 @@ public:
     UINT32 GetContextID() const;
     BOOL SetContextID( UINT32 dwContextID );
 
+    void SetApn(const char* pApn);
+    BOOL IsApnEqual(const char* pApn);
+
     void SetPdpType(const char* pPdpType);
     void GetPdpType(char* pPdpType, const int maxSize);
 
@@ -96,6 +99,7 @@ private:
     UINT32 m_uiContextID;
     int m_dataState;
 
+    char m_szApn[MAX_BUFFER_SIZE];
     char m_szPdpType[MAX_PDP_TYPE_SIZE];
 
     char m_szInterfaceName[MAX_INTERFACE_NAME_SIZE];

@@ -21,7 +21,6 @@
 #include "sim_state.h"
 #include "types.h"
 #include "command.h"
-#include "context_cache.h"
 #include "initializer.h"
 
 static const UINT32 MAX_MODEM_NAME_LEN = 64;
@@ -350,7 +349,6 @@ public:
 
     // RIL_REQUEST_DATA_CALL_LIST 57
     RIL_RESULT_CODE RequestDataCallList(RIL_Token rilToken, void* pData, size_t datalen);
-    RIL_RESULT_CODE ParseEstablishedPDPList(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_RESET_RADIO 58
     RIL_RESULT_CODE RequestResetRadio(RIL_Token rilToken, void* pData, size_t datalen);
@@ -629,6 +627,8 @@ public:
     RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
 
     void StoreRegistrationInfo(void* pRegStruct, int regType);
+    RIL_RESULT_CODE ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData);
+
     void CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
     void ResetRegistrationCache();
 
@@ -637,11 +637,6 @@ public:
 
     void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
     UINT32 GetIncomingCallId();
-    BOOL SetActivatedContext(UINT32 cid, const char* apn) {
-                        return m_contextCache.SetActivatedContext(cid, apn); }
-    BOOL RemoveActivatedContext(UINT32 cid) { return m_contextCache.RemoveActivatedContext(cid); }
-    BOOL HasActivatedContext() const { return !m_contextCache.IsEmpty(); }
-    BOOL ContextActivated(const char* apn) const { return m_contextCache.ContextExists(apn); }
 
     void SetupDataCallOngoing(BOOL bStatus);
     BOOL IsSetupDataCallOnGoing();
@@ -690,9 +685,6 @@ public:
 
     void SetMTU(UINT32 uiMTU) { m_uiMTU = uiMTU; };
     UINT32 GetMTU() { return m_uiMTU; };
-
-    void SetUiAct(UINT32 uiAct) { m_uiAct = uiAct; };
-    UINT32 GetUiAct() { return m_uiAct; };
 
     void SetVoiceCapable(BOOL bIsVoiceCapable) { m_bVoiceCapable =  bIsVoiceCapable; }
     BOOL IsVoiceCapable() { return m_bVoiceCapable; }
@@ -1027,6 +1019,23 @@ public:
 
     BOOL IsEPSRegistered();
 
+    void SetDefaultPDNCid(UINT32 uiCid) { m_uiDefaultPDNCid = uiCid; }
+
+    /*
+     * Post Command handler function for the read default PDN
+     * context parameters request.
+     *
+     * Upon success, data state of default PDN will be set to E_DATA_STATE_ACTIVATING.
+     * Upon failure, no actions taken
+     */
+    void PostReadDefaultPDNContextParams(POST_CMD_HANDLER_DATA& rData);
+
+    // Parser function for setting up of default PDN.
+    RIL_RESULT_CODE ParseSetupDefaultPDN(RESPONSE_DATA& rRspData);
+
+    // Post command handler for setting up of default PDN.
+    void PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData);
+
 private:
     UINT32 m_uiModemType;
 
@@ -1035,7 +1044,6 @@ private:
     S_ND_GPRS_REG_STATUS m_sPSStatus;
     S_ND_REG_STATUS m_sCSStatus;
     S_ND_GPRS_REG_STATUS m_sEPSStatus;
-    CContextCache m_contextCache;
 
     // Flag used to store setup data call status
     BOOL m_bIsSetupDataCallOngoing;
@@ -1122,7 +1130,6 @@ private:
     // IPV4 and IPV6 traffic.
     static const UINT32 MTU_SIZE = 1358;
     UINT32 m_uiMTU;
-    UINT32 m_uiAct;
 
     BOOL m_bVoiceCapable;
     BOOL m_bSmsOverCSCapable;
@@ -1165,6 +1172,10 @@ private:
 
     // For telephony crashtool report
     BOOL m_bCallDropReporting;
+
+    // Default PDN context id
+    UINT32 m_uiDefaultPDNCid;
+
     char m_szNewLine[3];
 
     char m_szLastNetworkData[LAST_NETWORK_DATA_COUNT][MAX_NETWORK_DATA_SIZE];

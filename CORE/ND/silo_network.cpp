@@ -791,10 +791,16 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
         if (NULL == pChannelData)
         {
-            //  This may occur using AT proxy during 3GPP conformance testing.
-            //  Let normal processing occur.
-            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u],"
-                    " no data channel found!\r\n", uiCID);
+            const int DEFAULT_DATA_PROFILE = 0;
+
+            // This is possible for Default PDN
+            pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiCID, DEFAULT_DATA_PROFILE);
+            if (NULL != pChannelData)
+            {
+                pChannelData->SetDataState(E_DATA_STATE_INITING);
+                RIL_requestTimedCallback(triggerQueryDefaultPDNContextParams,
+                        (void*)pChannelData, 0, 0);
+            }
         }
 
         if (FindAndSkipString(szStrExtract, ",", szStrExtract))
@@ -847,7 +853,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                 }
             }
         }
-        RIL_requestTimedCallback(requestEstablishedPDPList, (void*)uiCID, 0, 0);
     }
     // Format: "NW ACT <p_cid>, <cid>, <event_type>. Unsupported.
     else if (FindAndSkipString(szStrExtract, "NW ACT", szStrExtract))
@@ -918,9 +923,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     {
         RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME or NW DETACH");
 
-        CTE::GetTE().RemoveActivatedContext(uiCID);
         CTE::GetTE().CleanupAllDataConnections();
-        CTE::GetTE().CompleteDataCallListChanged();
+        RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
     }
     // see new format: "ME PDN DEACT" below
     else if (FindAndSkipString(szStrExtract, "ME DEACT", szStrExtract))
@@ -1006,8 +1010,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN DEACT, extracted "
                     "cid=[%u]\r\n", uiCID);
         }
-
-        CTE::GetTE().RemoveActivatedContext(uiCID);
     }
     // Format: "NW PDN DEACT, <cid>"
     else if (FindAndSkipString(szStrExtract, "NW PDN DEACT", szStrExtract))

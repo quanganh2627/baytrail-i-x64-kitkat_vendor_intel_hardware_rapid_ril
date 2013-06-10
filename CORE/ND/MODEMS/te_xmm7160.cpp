@@ -38,10 +38,10 @@
 #include "data_util.h"
 #include "init7160.h"
 
-
 CTE_XMM7160::CTE_XMM7160(CTE& cte)
 : CTE_XMM6360(cte)
 {
+    m_cte.SetDefaultPDNCid(DEFAULT_PDN_CID);
 }
 
 CTE_XMM7160::~CTE_XMM7160()
@@ -187,7 +187,7 @@ Error:
 RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize,
-                                                           UINT32 uiCID)
+                                                           UINT32& uiCID)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetupDataCall() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -196,42 +196,11 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
     PdpData stPdpData;
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
     CChannel_Data* pChannelData = NULL;
-    BOOL bContextActivated = FALSE;
+    int dataProfile = -1;
 
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() - Data pointer is NULL.\r\n");
-        goto Error;
-    }
-
-    if (uiDataSize < (6 * sizeof(char*)))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
-                " Invalid data size. Was given %d bytes\r\n", uiDataSize);
-        goto Error;
-    }
-
-    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - uiDataSize=[%d],uiCID=[%d]\r\n",
-                 uiDataSize,uiCID);
-
-    pDataCallContextData =
-            (S_SETUP_DATA_CALL_CONTEXT_DATA*)malloc(sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA));
-    if (NULL == pDataCallContextData)
-    {
-        goto Error;
-    }
-
-    // Get Channel Data according to CID
-    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
-    if (NULL == pChannelData)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() - No Channel with context Id: %u\r\n",
-                uiCID);
-        goto Error;
-    }
+    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - uiDataSize=[%d]\r\n", uiDataSize);
 
     memset(&stPdpData, 0, sizeof(PdpData));
-    pDataCallContextData->uiCID = uiCID;
 
     // extract data
     stPdpData.szRadioTechnology = ((char**)pData)[0];  // not used
@@ -240,6 +209,24 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
     stPdpData.szUserName        = ((char**)pData)[3];
     stPdpData.szPassword        = ((char**)pData)[4];
     stPdpData.szPAPCHAP         = ((char**)pData)[5];
+
+    pDataCallContextData =
+            (S_SETUP_DATA_CALL_CONTEXT_DATA*)malloc(sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA));
+    if (NULL == pDataCallContextData)
+    {
+        goto Error;
+    }
+
+    dataProfile = atoi(stPdpData.szRILDataProfile);
+    pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiCID, dataProfile);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() - "
+                "****** No free data channels available ******\r\n");
+        goto Error;
+    }
+
+    pDataCallContextData->uiCID = uiCID;
 
     RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szRadioTechnology=[%s]\r\n",
             stPdpData.szRadioTechnology);
@@ -252,13 +239,6 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
             stPdpData.szPassword);
     RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n",
             stPdpData.szPAPCHAP);
-
-    bContextActivated = CTE::GetTE().ContextActivated(stPdpData.szApn);
-    if(bContextActivated)
-    {
-        RIL_LOG_INFO("CTE_INF_7160::CoreSetupDataCall() - context (apn=%s) "
-                     "has been activated by network!\r\n", stPdpData.szApn);
-    }
 
     // if user name is empty, always use no authentication
     if (stPdpData.szUserName == NULL || strlen(stPdpData.szUserName) == 0)
@@ -283,7 +263,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
 
     if (RIL_VERSION >= 4 && (uiDataSize >= (7 * sizeof(char*))))
     {
-        stPdpData.szPDPType         = ((char**)pData)[6];  // new in Android 2.3.4.
+        stPdpData.szPDPType = ((char**)pData)[6]; // new in Android 2.3.4.
         RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szPDPType=[%s]\r\n",
                 stPdpData.szPDPType);
     }
@@ -296,112 +276,55 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
         stPdpData.szPDPType = szIPV4V6;
     }
 
-
-    if(!bContextActivated)
+    //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
+    //  If not recognized, just use IPV4V6 as default.
+    if (0 == strcmp(stPdpData.szPDPType, "IP"))
     {
-        //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
-        //  If not recognized, just use IPV4V6 as default.
-        if (0 == strcmp(stPdpData.szPDPType, "IP"))
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,1\r",
+                uiCID, stPdpData.szPDPType,
+                stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName,
+                stPdpData.szPassword, uiCID))
         {
-            if (!PrintStringNullTerminate(rReqData.szCmd1,
-                    sizeof(rReqData.szCmd1),
-                    "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,1\r",
-                    uiCID, stPdpData.szPDPType,
-                    stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName,
-                    stPdpData.szPassword, uiCID))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
-                        " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-                goto Error;
-            }
+            RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
+                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            goto Error;
         }
-        else if (0 == strcmp(stPdpData.szPDPType, "IPV6"))
+    }
+    else if (0 == strcmp(stPdpData.szPDPType, "IPV6"))
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,2\r",
+                uiCID, stPdpData.szPDPType, stPdpData.szApn, uiCID, nPapChap,
+                stPdpData.szUserName, stPdpData.szPassword, uiCID))
         {
-            if (!PrintStringNullTerminate(rReqData.szCmd1,
-                    sizeof(rReqData.szCmd1),
-                    "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,2\r",
-                    uiCID, stPdpData.szPDPType, stPdpData.szApn, uiCID, nPapChap,
-                    stPdpData.szUserName, stPdpData.szPassword, uiCID))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
-                        " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-                goto Error;
-            }
+            RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
+                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            goto Error;
         }
-        else if (0 == strcmp(stPdpData.szPDPType, "IPV4V6"))
+    }
+    else if (0 == strcmp(stPdpData.szPDPType, "IPV4V6"))
+    {
+        //  XDNS=3 is not supported by the modem so two commands +XDNS=1
+        //  and +XDNS=2 should be sent.
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XGAUTH=%u,%d,\"%s\","
+                "\"%s\";+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
+                stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
+                uiCID, uiCID))
         {
-            //  XDNS=3 is not supported by the modem so two commands +XDNS=1
-            //  and +XDNS=2 should be sent.
-            if (!PrintStringNullTerminate(rReqData.szCmd1,
-                    sizeof(rReqData.szCmd1),
-                    "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XGAUTH=%u,%d,\"%s\","
-                    "\"%s\";+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
-                    stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
-                    uiCID, uiCID))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
-                        " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-                goto Error;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE_INF_7160::CoreSetupDataCall() - Wrong PDP type\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
+                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
             goto Error;
         }
     }
     else
     {
-        char* szModemResourceName = {'\0'};
-        int muxControlChannel = -1;
-        int hsiChannel = pChannelData->GetHSIChannel();
-        int ipcDataChannelMin = 0;
-        UINT32 uiRilChannel = pChannelData->GetRilChannel();
-
-        // Get the mux  channel id corresponding to the control of the data channel
-        switch (uiRilChannel)
-        {
-            case RIL_CHANNEL_DATA1:
-                sscanf(g_szDataPort1, "/dev/gsmtty%d", &muxControlChannel);
-                break;
-            case RIL_CHANNEL_DATA2:
-                sscanf(g_szDataPort2, "/dev/gsmtty%d", &muxControlChannel);
-                break;
-            case RIL_CHANNEL_DATA3:
-                sscanf(g_szDataPort3, "/dev/gsmtty%d", &muxControlChannel);
-                break;
-            case RIL_CHANNEL_DATA4:
-                sscanf(g_szDataPort4, "/dev/gsmtty%d", &muxControlChannel);
-                break;
-            case RIL_CHANNEL_DATA5:
-                sscanf(g_szDataPort5, "/dev/gsmtty%d", &muxControlChannel);
-                break;
-            default:
-                RIL_LOG_CRITICAL("CTE_INF_7160::CoreSetupDataCall() - Unknown mux channel"
-                    "for RIL Channel [%u] \r\n", uiRilChannel);
-                goto Error;
-        }
-
-        szModemResourceName = pChannelData->GetModemResourceName();
-        ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
-
-        if (ipcDataChannelMin > hsiChannel || RIL_MAX_NUM_IPC_CHANNEL <= hsiChannel )
-        {
-           RIL_LOG_CRITICAL("CTE_INF_7160::CoreSetupDataCall() - Unknown HSI Channel [%d] \r\n",
-                            hsiChannel);
-           goto Error;
-        }
-
-        // NOTE: for LTE cmd1 for the already activated PDP shall be AT+XDATACHANNEL=...;AT+CGDATA.
-        if (!PrintStringNullTerminate(rReqData.szCmd1,
-            sizeof(rReqData.szCmd1),
-            "AT+XDATACHANNEL=1,1,\"/mux/%d\",\"/%s/%d\",0,%d;+CGDATA=\"M-RAW_IP\",%d\r",
-            muxControlChannel,szModemResourceName,hsiChannel,uiCID,uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_INF_7160::CoreSetupDataCall() - cannot create XDATACHANNEL"
-                             "command\r\n");
-            goto Error;
-        }
+        RIL_LOG_CRITICAL("CTE_INF_7160::CoreSetupDataCall() - Wrong PDP type\r\n");
+        goto Error;
     }
 
     res = RRIL_RESULT_OK;
@@ -467,42 +390,17 @@ void CTE_XMM7160::PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
         goto Error;
     }
 
+    pChannelData->SetDataState(E_DATA_STATE_ACTIVATING);
 
-    RIL_LOG_VERBOSE("CTE_XMM7160::PostSetupDataCallCmdHandler() uiAct=%d\r\n",
-                    (CTE::GetTE().GetUiAct()));
-    if ( (CTE::GetTE().GetUiAct() == RADIO_TECH_LTE) &&  uiCID == 1 )
+    if (!CreatePdpContextActivateReq(rData.uiChannel, rData.pRilToken,
+                                        rData.uiRequestId, rData.pContextData,
+                                        rData.uiContextDataSize,
+                                        &CTE::ParsePdpContextActivate,
+                                        &CTE::PostPdpContextActivateCmdHandler))
     {
-        RIL_LOG_VERBOSE("CTE_XMM7160::PostSetupDataCallCmdHandler() set channel data\r\n");
-        char tmpbuf[MAX_IPADDR_SIZE+1] = {0};
-        char tmpbuf1[MAX_IPADDR_SIZE+1] = {0};
-        char tmpbuf2[MAX_IPADDR_SIZE+1] = {0};
-        char tmpbuf3[MAX_IPADDR_SIZE+1] = {0};
-
-        pChannelData->SetDataState(E_DATA_STATE_ACTIVE);
-        pChannelData->SetIpAddress(GetPDNFirstIpV4(uiCID, tmpbuf),
-                                   GetPDNSecIpV4(uiCID, tmpbuf1));
-        pChannelData->SetDNS(GetPDNFirstIpV4Dns(uiCID, tmpbuf),
-                             GetPDNSecIpV4Dns(uiCID, tmpbuf1),
-                             GetPDNFirstIpV6Dns(uiCID, tmpbuf2),
-                             GetPDNSecIpV6Dns(uiCID, tmpbuf3));
-        pChannelData->SetGateway(GetPDNGwIpV4(uiCID, tmpbuf1));
-        CTE_XMM6360::SetupInterface(uiCID);
-        HandleSetupDataCallSuccess(uiCID, rData.pRilToken);
-    }
-    else
-    {
-        pChannelData->SetDataState(E_DATA_STATE_ACTIVATING);
-
-        if (!CreatePdpContextActivateReq(rData.uiChannel, rData.pRilToken,
-                                            rData.uiRequestId, rData.pContextData,
-                                            rData.uiContextDataSize,
-                                            &CTE::ParsePdpContextActivate,
-                                            &CTE::PostPdpContextActivateCmdHandler))
-        {
-                RIL_LOG_INFO("CTE_XMM7160::PostSetupDataCallCmdHandler() -"
-                        " CreatePdpContextActivateReq failed\r\n");
-                goto Error;
-        }
+            RIL_LOG_INFO("CTE_XMM7160::PostSetupDataCallCmdHandler() -"
+                    " CreatePdpContextActivateReq failed\r\n");
+            goto Error;
     }
 
     bSuccess = TRUE;
@@ -517,7 +415,6 @@ Error:
 
     RIL_LOG_VERBOSE("CTE_XMM7160::PostSetupDataCallCmdHandler() Exit\r\n");
 }
-
 
 void CTE_XMM7160::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
 {
@@ -1044,4 +941,192 @@ RIL_RESULT_CODE CTE_XMM7160::CreateIMSConfigReq(REQUEST_DATA& rReqData,
 Error:
     RIL_LOG_VERBOSE("CTE_XMM7160::CreateIMSConfigReq() - Exit\r\n");
     return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::HandleSetupDefaultPDN(RIL_Token rilToken,
+        CChannel_Data* pChannelData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::HandleSetupDefaultPDN() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    char* szModemResourceName = {'\0'};
+    int muxControlChannel = -1;
+    int hsiChannel = pChannelData->GetHSIChannel();
+    int ipcDataChannelMin = 0;
+    UINT32 uiRilChannel = pChannelData->GetRilChannel();
+    REQUEST_DATA reqData;
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+    CCommand* pCmd = NULL;
+
+    pDataCallContextData =
+            (S_SETUP_DATA_CALL_CONTEXT_DATA*)malloc(sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA));
+    if (NULL == pDataCallContextData)
+    {
+        goto Error;
+    }
+
+    pDataCallContextData->uiCID = pChannelData->GetContextID();
+
+    // Get the mux channel id corresponding to the control of the data channel
+    switch (uiRilChannel)
+    {
+        case RIL_CHANNEL_DATA1:
+            sscanf(g_szDataPort1, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA2:
+            sscanf(g_szDataPort2, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA3:
+            sscanf(g_szDataPort3, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA4:
+            sscanf(g_szDataPort4, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        case RIL_CHANNEL_DATA5:
+            sscanf(g_szDataPort5, "/dev/gsmtty%d", &muxControlChannel);
+            break;
+        default:
+            RIL_LOG_CRITICAL("CTE_XMM7160::HandleSetupDefaultPDN() - Unknown mux channel"
+                    "for RIL Channel [%u] \r\n", uiRilChannel);
+            goto Error;
+    }
+
+    szModemResourceName = pChannelData->GetModemResourceName();
+    ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
+
+    if (ipcDataChannelMin > hsiChannel || RIL_MAX_NUM_IPC_CHANNEL <= hsiChannel )
+    {
+       RIL_LOG_CRITICAL("CTE_XMM7160::HandleSetupDefaultPDN() - Unknown HSI Channel [%d] \r\n",
+                hsiChannel);
+       goto Error;
+    }
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    // NOTE: for LTE cmd1 for the already activated PDP shall be AT+XDATACHANNEL=...;AT+CGDATA.
+    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+            "AT+XDATACHANNEL=1,1,\"/mux/%d\",\"/%s/%d\",0,%d;+CGDATA=\"M-RAW_IP\",%d\r",
+            muxControlChannel, szModemResourceName, hsiChannel,
+            pDataCallContextData->uiCID, pDataCallContextData->uiCID))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::HandleSetupDefaultPDN() - cannot create XDATACHANNEL"
+                "command\r\n");
+        goto Error;
+    }
+
+    pCmd = new CCommand(uiRilChannel, rilToken, ND_REQ_ID_NONE, reqData,
+            &CTE::ParseSetupDefaultPDN, &CTE::PostSetupDefaultPDN);
+
+    if (pCmd)
+    {
+        pCmd->SetContextData(pDataCallContextData);
+        pCmd->SetContextDataSize(sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA));
+
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::HandleSetupDefaultPDN() - "
+                    "Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+            goto Error;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::HandleSetupDefaultPDN() -"
+                " Unable to allocate memory for command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pDataCallContextData);
+        pDataCallContextData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::HandleSetupDefaultPDN() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseSetupDefaultPDN(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseSetupDefaultPDN() - Enter\r\n");
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseSetupDefaultPDN() - Exit\r\n");
+    return RRIL_RESULT_OK;
+}
+
+void CTE_XMM7160::PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::PostSetupDefaultPDN() Enter\r\n");
+
+    BOOL bSuccess = FALSE;
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+    UINT32 uiCID = 0;
+    CChannel_Data* pChannelData = NULL;
+    char tmpbuf[MAX_IPADDR_SIZE+1] = {'\0'};
+    char tmpbuf1[MAX_IPADDR_SIZE+1] = {'\0'};
+    char tmpbuf2[MAX_IPADDR_SIZE+1] = {'\0'};
+    char tmpbuf3[MAX_IPADDR_SIZE+1] = {'\0'};
+
+    if (NULL == rData.pContextData ||
+            sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA) != rData.uiContextDataSize)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::PostSetupDefaultPDN() - Invalid context data\r\n");
+        goto Error;
+    }
+
+    pDataCallContextData = (S_SETUP_DATA_CALL_CONTEXT_DATA*)rData.pContextData;
+    uiCID = pDataCallContextData->uiCID;
+
+    if (RIL_E_SUCCESS != rData.uiResultCode)
+    {
+        RIL_LOG_INFO("CTE_XMM7160::PostSetupDefaultPDN() - Failure\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM7160::PostSetupDefaultPDN() - CID=%d\r\n", uiCID);
+
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_INFO("CTE_XMM7160::PostSetupDefaultPDN() -"
+                " No Data Channel for CID %u.\r\n", uiCID);
+        goto Error;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::PostSetupDefaultPDN() set channel data\r\n");
+
+    pChannelData->SetDataState(E_DATA_STATE_ACTIVE);
+    pChannelData->SetIpAddress(GetPDNFirstIpV4(uiCID, tmpbuf),
+                               GetPDNSecIpV4(uiCID, tmpbuf1));
+    pChannelData->SetDNS(GetPDNFirstIpV4Dns(uiCID, tmpbuf),
+                         GetPDNSecIpV4Dns(uiCID, tmpbuf1),
+                         GetPDNFirstIpV6Dns(uiCID, tmpbuf2),
+                         GetPDNSecIpV6Dns(uiCID, tmpbuf3));
+    pChannelData->SetGateway(GetPDNGwIpV4(uiCID, tmpbuf1));
+
+    if (!SetupInterface(uiCID))
+    {
+        RIL_LOG_INFO("CTE_XMM7160::PostSetupDefaultPDN() - SetupInterface failed\r\n");
+        goto Error;
+    }
+
+    bSuccess = TRUE;
+
+Error:
+    free(rData.pContextData);
+    rData.pContextData = NULL;
+
+    if (!bSuccess)
+    {
+        HandleSetupDataCallFailure(uiCID, rData.pRilToken, rData.uiResultCode);
+    }
+    else
+    {
+        HandleSetupDataCallSuccess(uiCID, rData.pRilToken);
+    }
 }

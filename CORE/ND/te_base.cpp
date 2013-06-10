@@ -3065,7 +3065,7 @@ Error:
 // RIL_REQUEST_SETUP_DATA_CALL 27
 //
 RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA& rReqData, void* pData,
-                                            UINT32 uiDataSize, UINT32 uiCID)
+                                            UINT32 uiDataSize, UINT32& uiCID)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSetupDataCall() - Enter / Exit\r\n");
     return RIL_E_REQUEST_NOT_SUPPORTED; // only supported at modem level
@@ -6208,9 +6208,9 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
+RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseEstablishedPDPList() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -6228,13 +6228,12 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
 
     if (NULL == m_pPDPListData)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - memory not allocated for"
+        RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - memory not allocated for"
                          " P_ND_PDP_CONTEXT_DATA struct.\r\n");
         goto Error;
     }
 
-    RIL_LOG_VERBOSE("CTEBase::ParseEstablishedPDPList() - %s\r\n", pszRsp);
-
+    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - %s\r\n", pszRsp);
     // Parse +CGCONTRDP response, will return up to 2 lines of data (if MT has
     // dual stack capability. 1st line for IPV4 data, 2nd for IPV6
     count = 0;
@@ -6245,11 +6244,12 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
        // Parse <cid>
         if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract CID.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                    "Could not extract CID.\r\n");
             goto Error;
         }
 
-        //  Grab the pChannelData for this CID. Will be null for LTE
+        //  Grab the pChannelData for this CID.
         pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
 
         m_pPDPListData->pPDPData[count].cid = nCID;
@@ -6268,7 +6268,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractUInt32(pszRsp, nBearerID, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract"
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
                              " Bearer id.\r\n");
             goto Error;
         }
@@ -6277,24 +6277,16 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract APN.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                    "Could not extract APN.\r\n");
             goto Error;
         }
 
-        // Only do caching for LTE
-        if (CTE::GetTE().GetUiAct() == RADIO_TECH_LTE)
+        RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - "
+                "Add APN(%s) to cache.\r\n", szAPN);
+        if (NULL != pChannelData)
         {
-            if (strncmp(szAPN, "", MAX_BUFFER_SIZE) == 0)
-            {
-                RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - Warning APN"
-                        " not provided by network\r\n");
-            }
-            else
-            {
-                RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Add APN(%s) to cache.\r\n",
-                        szAPN);
-                CTE::GetTE().SetActivatedContext(nCID, szAPN);
-            }
+            pChannelData->SetApn(szAPN);
         }
 
         //  This is interface name (i.e. rmnet0)
@@ -6308,7 +6300,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
             if (m_pPDPListData->pIfnameBuffers[count][0] == '\0')
             {
                 // If ifname is empty forget the entry
-                RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - no ifname\r\n");
+                RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - no ifname\r\n");
                 continue;
             }
 
@@ -6338,7 +6330,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract"
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
                              " source address.\r\n");
             goto Error;
         }
@@ -6385,14 +6377,15 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szGW, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract Gateway.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                    "Could not extract Gateway.\r\n");
             goto Error;
         }
 
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szDNS1, MAX_IPADDR_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract"
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
                              " Primary DNS.\r\n");
             goto Error;
         }
@@ -6400,7 +6393,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szDNS2, MAX_IPADDR_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract "
                              "Secondary DNS.\r\n");
             goto Error;
         }
@@ -6429,8 +6422,8 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szCSCFPrimAddr, MAX_IPADDR_SIZE, pszRsp))
         {
-            RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - WARNING: Could not extract "
-                            "cscfp prim addr.\r\n");
+            RIL_LOG_WARNING("CTEBase::ParseReadDefaultPDNContextParams() - "
+                    "Could not extract cscfp prim addr.\r\n");
             goto Error;
         }
 
@@ -6439,20 +6432,20 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szCSCFSecAddr, MAX_IPADDR_SIZE, pszRsp))
         {
-            RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - WARNING: Could not extract "
+            RIL_LOG_WARNING("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract "
                             "cscfp sec addr.\r\n");
             goto Error;
         }
 
         // entry complete
         ++count;
-        RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - count:%d\r\n",count);
+        RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - count:%d\r\n",count);
     }
 
 End:
     res = RRIL_RESULT_OK;
-    RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Parse complete, found [%d] contexts.\r\n",
-                 count);
+    RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - Parse complete, "
+            "found [%d] contexts.\r\n", count);
 
     if (CRilLog::IsFullLogBuild())
     {
@@ -6470,7 +6463,7 @@ End:
     }
 
 Error:
-    RIL_LOG_VERBOSE("CTEBase::ParseEstablishedPDPList() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - Exit\r\n");
     return res;
 }
 
@@ -10606,4 +10599,30 @@ RIL_RESULT_CODE CTEBase::CreateIMSConfigReq(REQUEST_DATA& rReqData,
     RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;
     RIL_LOG_VERBOSE("CTEBase::CreateIMSConfigReq() - Exit\r\n");
     return res;
+}
+
+RIL_RESULT_CODE CTEBase::HandleSetupDefaultPDN(RIL_Token rilToken,
+        CChannel_Data* pChannelData)
+{
+    RIL_LOG_VERBOSE("CTEBase::HandleSetupDefaultPDN() - Enter / Exit\r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::ParseSetupDefaultPDN(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseSetupDefaultPDN - Enter/Exit \r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
+}
+
+void CTEBase::PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTEBase::PostSetupDefaultPDN - Enter/Exit \r\n");
+    // only suported at modem level
+}
+
+BOOL CTEBase::SetupInterface(UINT32 /*uiCID*/)
+{
+    RIL_LOG_VERBOSE("CTEBase::SetupInterface - Enter/Exit \r\n");
+    // only suported at modem level
+    return FALSE;
 }
