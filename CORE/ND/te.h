@@ -634,6 +634,10 @@ public:
 
     // REQ_ID_QUERY_SIM_SMS_STORE_STATUS
     RIL_RESULT_CODE ParseQuerySimSmsStoreStatus(RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
+                                                            const char* pszRsp,
+                                                            UINT32 uiIndex,
+                                                            UINT32 uiMode);
 
     void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
     UINT32 GetIncomingCallId();
@@ -1180,6 +1184,7 @@ private:
 
     char m_szLastNetworkData[LAST_NETWORK_DATA_COUNT][MAX_NETWORK_DATA_SIZE];
     char m_szLastCEER[255];
+    char m_cTerminator;
 };
 
 #endif

@@ -3558,36 +3558,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
-
-    UINT32 nIndex = 0, nTotal = 0;
-    UINT32 nLAC = 0, nCI = 0;
-    UINT32 nRSSI = 0;
-    UINT32 nScramblingCode = 0;
-    UINT32 nMode = 0;
+    UINT32 uiIndex = 0, uiMode = 0;
 
     P_ND_N_CELL_DATA pCellData = NULL;
-
-    //  Data is either (according to C_AT_FS_SUNRISE_Rev6.0.pdf AT spec)
-    //  GSM cells:
-    //  +XCELLINFO: 0,<MCC>,<MNC>,<LAC>,<CI>,<RxLev>,<BSIC>,<BCCH_Car>,<true_freq>,<t_advance>
-    //  +XCELLINFO: 1,<LAC>,<CI>,<RxLev>,<BSIC>,<BCCH_Car>
-    //  one row for each neighboring cell [0..6]
-    //  For GSM cells, according to ril.h, must return (LAC/CID , received RSSI)
-    //
-    //  UMTS FDD cells:
-    //  +XCELLINFO: 2,<MCC>,<MNC>,<LAC>,<UCI>,<scrambling_code>,<dl_frequency>,<ul_frequency>
-    //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
-    // If UMTS has any ACTIVE SET neighboring cell
-    //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
-    // One row
-    //                          // for each intra-frequency neighboring cell [1..32] for each
-    //                          // frequency [0..8] in BA list
-    //  For UMTS cells, according to ril.h, must return (Primary scrambling code ,
-    //  received signal code power)
-    //  NOTE that for first UMTS format above, there is no <rcsp> parameter.
-    //
-    //  A <type> of 0 or 1 = GSM.  A <type> of 2,3 = UMTS.
-
 
     pCellData = (P_ND_N_CELL_DATA)malloc(sizeof(S_ND_N_CELL_DATA));
     if (NULL == pCellData)
@@ -3600,287 +3573,54 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
 
 
     // Loop on +XCELLINFO until no more entries are found
-    nIndex = 0;
     while (FindAndSkipString(pszRsp, "+XCELLINFO: ", pszRsp))
     {
-        nTotal++;
-        if (RRIL_MAX_CELL_ID_COUNT == nTotal)
+        if (RRIL_MAX_CELL_ID_COUNT == uiIndex)
         {
             //  We're full.
             RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
                     " Exceeded max count = %d\r\n", RRIL_MAX_CELL_ID_COUNT);
-            goto Error;
+            break;
         }
 
-        //  Get <mode>
-        if (!ExtractUInt32(pszRsp, nMode, pszRsp))
+        // Get <mode>
+        if (!ExtractUInt32(pszRsp, uiMode, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGsmUmtsNeighboringCellInfo() -"
                     " cannot extract <mode>\r\n");
             goto Error;
         }
 
-        RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - nTotal=%d, found mode=%d\r\n",
-                nTotal, nMode);
-
-        switch(nMode)
+        RIL_LOG_INFO("CTE_XMM6260::ParseGsmUmtsNeighboringCellInfo() - found mode=%d\r\n",
+                uiMode);
+        RIL_RESULT_CODE result = RRIL_RESULT_ERROR;
+        switch (uiMode)
         {
-            case 0: // GSM  get (LAC/CI , RxLev)
-            {
-                //  <LAC> and <CI> are parameters 4 and 5
-                if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
-                    !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                    !FindAndSkipString(pszRsp, ",", pszRsp))
+            // GSM/UMTS cases
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+                result = m_cte.ParseGsmUmtsNeighboringCellInfo(pCellData,
+                        pszRsp, uiIndex, uiMode);
+                if (result == RRIL_RESULT_OK)
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode 0, cannot skip to LAC and CI\r\n");
-                    goto Error;
+                    // Connect the pointer
+                    pCellData->pnCellPointers[uiIndex] = &(pCellData->pnCellData[uiIndex]);
+                    uiIndex++;
+                    RIL_LOG_INFO("CTE_XMM6260::ParseGsmUmtsNeighboringCellInfo() - Index=%d\r\n",
+                            uiIndex);
                 }
-
-                //  Read <LAC> and <CI>
-                if (!ExtractUInt32(pszRsp, nLAC, pszRsp))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode 0, could not extract LAC\r\n");
-                    goto Error;
-                }
-                //  Read <CI>
-                if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, nCI, pszRsp)))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode 0, could not extract CI value\r\n");
-                    goto Error;
-                }
-                //  Read <RxLev>
-                if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, nRSSI, pszRsp)))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode 0, could not extract RSSI value\r\n");
-                    goto Error;
-                }
-
-                //  We now have what we want, copy to main structure.
-                pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
-
-                //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH,
-                        "%04X%04X", nLAC, nCI);
-
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                        " mode 0 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
-                        nIndex, pCellData->pnCellCIDBuffers[nIndex]);
-
-                //  rssi = <RxLev>
-
-                //  Convert RxLev to asu (0 to 31).
-                //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
-                //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
-
-                //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
-                //  like AT+CSQ response.
-                pCellData->pnCellData[nIndex].rssi = (int)(nRSSI / 2);
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                        " mode 0 GSM rxlev index=[%d]  rssi=[%d]\r\n",
-                        nIndex, pCellData->pnCellData[nIndex].rssi);
-            }
             break;
-
-            case 1: // GSM  get (LAC/CI , RxLev)
-            {
-                //  <LAC> and <CI> are parameters 2 and 3
-                //  Read <LAC> and <CI>
-                if (!SkipString(pszRsp, ",", pszRsp) ||
-                    !ExtractUInt32(pszRsp, nLAC, pszRsp))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode 1, could not extract LAC\r\n");
-                    goto Error;
-                }
-                //  Read <CI>
-                if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, nCI, pszRsp)))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode 1, could not extract CI value\r\n");
-                    goto Error;
-                }
-                //  Read <RxLev>
-                if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, nRSSI, pszRsp)))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode 1, could not extract RSSI value\r\n");
-                    goto Error;
-                }
-
-                //  We now have what we want, copy to main structure.
-                pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
-
-                //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH,
-                        "%04X%04X", nLAC, nCI);
-
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                        " mode 1 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
-                        nIndex, pCellData->pnCellCIDBuffers[nIndex]);
-
-                //  rssi = <RxLev>
-
-                //  May have to convert RxLev to asu (0 to 31).
-                //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
-                //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
-
-                //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
-                //  like AT+CSQ response.
-                pCellData->pnCellData[nIndex].rssi = (int)(nRSSI / 2);
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                        " mode 1 GSM rxlev index=[%d]  rssi=[%d]\r\n",
-                        nIndex, pCellData->pnCellData[nIndex].rssi);
-            }
-            break;
-
-            case 2: // UMTS  get (scrambling_code , rscp)
-            {
-                //  This can be either first case or second case.
-                //  Loop and count number of commas
-                char szBuf[MAX_BUFFER_SIZE] = {0};
-                const char* szDummy = pszRsp;
-                UINT32 nCommaCount = 0;
-                if (!ExtractUnquotedString(pszRsp, m_cTerminator, szBuf, MAX_BUFFER_SIZE, szDummy))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode 2, could not extract temp buf\r\n");
-                    goto Error;
-                }
-                for (UINT32 n=0; n<strlen(szBuf); n++)
-                {
-                    if (szBuf[n] == ',')
-                        nCommaCount++;
-                }
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                        " mode 2, found %d commas\r\n", nCommaCount);
-
-                if (6 != nCommaCount)
-                {
-                    //  Handle first case here
-                    //  <scrambling_code> is parameter 6
-                    if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp))
-                    {
-                        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                                " mode 2, could not skip to scrambling code\r\n");
-                        goto Error;
-                    }
-                    if (!ExtractUInt32(pszRsp, nScramblingCode, pszRsp))
-                    {
-                        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                                " mode 2, could not extract scrambling code\r\n");
-                        goto Error;
-                    }
-                    //  Cannot get <rscp> as it does not exist.
-                    //  We now have what we want, copy to main structure.
-                    //  cid = <scrambling code> as char *
-                    pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
-                    snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%08x",
-                            nScramblingCode);
-
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode 2 UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
-                            nIndex, pCellData->pnCellCIDBuffers[nIndex]);
-
-                    //  rssi = <rscp>
-                    //  Note that <rscp> value does not exist with this response.
-                    //  Set to 0 for now.
-                    pCellData->pnCellData[nIndex].rssi = 0;
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode 2 UMTS rscp index=[%d]  rssi=[%d]\r\n",
-                            nIndex, pCellData->pnCellData[nIndex].rssi);
-
-                    break;
-                }
-                else
-                {
-                    //  fall through to case 3 as it is parsed the same.
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " comma count = 6, drop to case 3\r\n");
-                }
-            }
-
-
-            case 3: // UMTS  get (scrambling_code , rscp)
-            {
-                //  scrabling_code is parameter 2
-                //  Read <scrambling_code>
-                if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, nScramblingCode, pszRsp)))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode %d, could not extract scrambling code\r\n", nMode);
-                    goto Error;
-                }
-
-                //  <rscp> is parameter 5
-                if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
-                    !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                    !FindAndSkipString(pszRsp, ",", pszRsp))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                           " mode %d, could not skip to rscp\r\n", nMode);
-                    goto Error;
-                }
-                //  read <rscp>
-                if (!ExtractUInt32(pszRsp, nRSSI, pszRsp))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                            " mode %d, could not extract rscp\r\n", nMode);
-                    goto Error;
-                }
-
-                //  We now have what we want, copy to main structure.
-                //  cid = <scrambling code> as char *
-                pCellData->pnCellData[nIndex].cid = pCellData->pnCellCIDBuffers[nIndex];
-                snprintf(pCellData->pnCellCIDBuffers[nIndex], CELL_ID_ARRAY_LENGTH, "%08x",
-                        nScramblingCode);
-
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                        " mode %d UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
-                        nMode, nIndex, pCellData->pnCellCIDBuffers[nIndex]);
-
-                //  rssi = <rscp>
-                //  Assume that rssi value is same as <rscp> value and no conversion needs to
-                //  be done.
-                pCellData->pnCellData[nIndex].rssi = (int)nRSSI;
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                        " mode %d UMTS rscp index=[%d]  rssi=[%d]\r\n",
-                        nMode, nIndex, pCellData->pnCellData[nIndex].rssi);
-            }
-            break;
-
             default:
-            {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
-                        " Invalid nMode=[%d]\r\n", nMode);
-                goto Error;
-            }
             break;
         }
-
-        //  Connect the pointer
-        pCellData->pnCellPointers[nIndex] = &(pCellData->pnCellData[nIndex]);
-
-        nIndex++;
     }
 
-
-    if (nTotal > 0)
+    if (uiIndex > 0)
     {
         rRspData.pData  = (void*)pCellData;
-        rRspData.uiDataSize = nTotal * sizeof(RIL_NeighboringCell*);
+        rRspData.uiDataSize = uiIndex * sizeof(RIL_NeighboringCell*);
     }
     else
     {
