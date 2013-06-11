@@ -1067,10 +1067,6 @@ void CTE_XMM7160::PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData)
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
     UINT32 uiCID = 0;
     CChannel_Data* pChannelData = NULL;
-    char tmpbuf[MAX_IPADDR_SIZE+1] = {'\0'};
-    char tmpbuf1[MAX_IPADDR_SIZE+1] = {'\0'};
-    char tmpbuf2[MAX_IPADDR_SIZE+1] = {'\0'};
-    char tmpbuf3[MAX_IPADDR_SIZE+1] = {'\0'};
 
     if (NULL == rData.pContextData ||
             sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA) != rData.uiContextDataSize)
@@ -1101,13 +1097,6 @@ void CTE_XMM7160::PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData)
     RIL_LOG_VERBOSE("CTE_XMM7160::PostSetupDefaultPDN() set channel data\r\n");
 
     pChannelData->SetDataState(E_DATA_STATE_ACTIVE);
-    pChannelData->SetIpAddress(GetPDNFirstIpV4(uiCID, tmpbuf),
-                               GetPDNSecIpV4(uiCID, tmpbuf1));
-    pChannelData->SetDNS(GetPDNFirstIpV4Dns(uiCID, tmpbuf),
-                         GetPDNSecIpV4Dns(uiCID, tmpbuf1),
-                         GetPDNFirstIpV6Dns(uiCID, tmpbuf2),
-                         GetPDNSecIpV6Dns(uiCID, tmpbuf3));
-    pChannelData->SetGateway(GetPDNGwIpV4(uiCID, tmpbuf1));
 
     if (!SetupInterface(uiCID))
     {

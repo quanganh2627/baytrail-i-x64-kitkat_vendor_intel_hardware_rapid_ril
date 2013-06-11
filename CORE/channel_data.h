@@ -61,8 +61,9 @@ public:
                                     char* pIpV6DNS1, const int maxIpV6DNS1Size,
                                     char* pIpV6DNS2, const int maxIpV6DNS2Size);
 
-    void SetGateway(const char* pIpGateway);
-    void GetGateway(char* pIpGateway, const int maxSize);
+    void SetGateway(const char* pIpV4Gateway, const char* pIpV6Gateway);
+    void GetGateway(char* pIpV4Gateway, const int maxIPv4GatewaySize,
+            char* pIpV6Gateway, const int maxIPv6GatewaySize);
 
     void SetDataState(int state);
     int GetDataState();
@@ -116,7 +117,8 @@ private:
     char m_szIpV6DNS1[MAX_IPADDR_SIZE];
     char m_szIpV6DNS2[MAX_IPADDR_SIZE];
 
-    char m_szIpGateways[MAX_IPADDR_SIZE];
+    char m_szIpV4Gateway[MAX_IPADDR_SIZE];
+    char m_szIpV6Gateway[MAX_IPADDR_SIZE];
 
     // used by 6360 and 7160 modems.
     int m_dataProfile;

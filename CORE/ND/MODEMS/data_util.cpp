@@ -22,6 +22,7 @@
 #include "rillog.h"
 #include "ril_result.h"
 #include "te.h"
+#include "util.h"
 
 int MapErrorCodeToRilDataFailCause(UINT32 uiCause)
 {
@@ -139,6 +140,81 @@ BOOL setmtu(int s, struct ifreq* ifr)
     return TRUE;
 }
 
+BOOL ExtractLocalAddressAndSubnetMask(char* pAddressAndSubnetMask,
+        char* pIPv4LocalAddr, UINT32 uiIPv4LocalAddrSize,
+        char* pIPv6LocalAddr, UINT32 uiIPv6LocalAddrSize,
+        char* pIPv4SubnetMask, UINT32 uiIPv4SubnetMaskSize,
+        char* pIPv6SubnetMask, UINT32 uiIPv6SubnetMaskSize)
+{
+    RIL_LOG_VERBOSE("ExtractLocalAddressAndSubnetMask() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+
+    //  Sanity checks
+    if ((NULL == pAddressAndSubnetMask) || (NULL == pIPv4LocalAddr) || (0 == uiIPv4LocalAddrSize)
+            || (NULL == pIPv6LocalAddr) || (0 == uiIPv6LocalAddrSize))
+    {
+        RIL_LOG_CRITICAL("ExtractLocalAddressAndSubnetMask() : Invalid inputs!\r\n");
+        return FALSE;
+    }
+
+    int nDot = 0;
+    char szSubnetMask[MAX_IPADDR_SIZE] = {'\0'};
+    char szAddress[MAX_IPADDR_SIZE] = {'\0'};
+
+    for (int i = 0; pAddressAndSubnetMask[i] != '\0'; i++)
+    {
+        if ('.' == pAddressAndSubnetMask[i])
+        {
+            nDot++;
+            switch (nDot)
+            {
+                case 4:
+                    CopyStringNullTerminate(szAddress, pAddressAndSubnetMask,
+                            MIN(i + 1, MAX_IPADDR_SIZE));
+                    CopyStringNullTerminate(szSubnetMask, pAddressAndSubnetMask + i + 1,
+                            MAX_IPADDR_SIZE);
+                    break;
+                case 16:
+                    // Note: Ipv6 address subnet mask overwrites the Ipv4 address and subnet mask
+                    CopyStringNullTerminate(szAddress, pAddressAndSubnetMask,
+                            MIN(i + 1, MAX_IPADDR_SIZE));
+                    CopyStringNullTerminate(szSubnetMask, pAddressAndSubnetMask + i + 1,
+                            MAX_IPADDR_SIZE);
+                    break;
+            }
+        }
+    }
+
+    if (!ConvertIPAddressToAndroidReadable(szAddress, pIPv4LocalAddr, uiIPv4LocalAddrSize,
+            pIPv6LocalAddr, uiIPv6LocalAddrSize))
+    {
+        RIL_LOG_CRITICAL("ExtractLocalAddressAndSubnetMask() - "
+                "Local address conversion failed\r\n");
+
+        goto Error;
+    }
+
+    if ((NULL == pIPv4SubnetMask) || (0 == uiIPv4SubnetMaskSize)
+            || (NULL == pIPv6SubnetMask) || (0 == uiIPv6SubnetMaskSize))
+    {
+        if (!ConvertIPAddressToAndroidReadable(szSubnetMask,
+                pIPv4SubnetMask, uiIPv4SubnetMaskSize, pIPv6SubnetMask, uiIPv6SubnetMaskSize))
+        {
+            RIL_LOG_CRITICAL("ExtractLocalAddressAndSubnetMask() - "
+                    "subnet mask conversion failed\r\n");
+
+            goto Error;
+        }
+    }
+
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("ExtractLocalAddressAndSubnetMask() - Exit\r\n");
+    return bRet;
+}
+
 // Helper function to convert IP addresses to Android-readable format.
 // szIpIn [IN] - The IP string to be converted
 // szIpOut [OUT] - The converted IPv4 address in Android-readable format if there is an IPv4 address.
@@ -185,13 +261,37 @@ BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
         }
     }
 
-    //  If 3 dots, IPv4.  If 15 dots, IPv6.  If 19 dots, then IPv4v6.
+    //  If 3 dots, IPv4. If 15 dots, IPv6. If 19 dots, then IPv4v6.
     switch(nDotCount)
     {
         case 3:
         {
-            //  IPv4 format.  Just copy to szIpOut.
-            strncpy(szIpOut, szIpIn, uiIpOutSize);
+            //  Extract a1...a4 into uiIP.
+            //  Then convert aAddress to szIpOut.
+            UINT32 uiIP[MAX_AIPV4_INDEX] = {'\0'};
+            if (EOF == sscanf(szIpIn, "%u.%u.%u.%u",
+                    &uiIP[0], &uiIP[1], &uiIP[2], &uiIP[3]))
+            {
+                RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
+                        " cannot sscanf into ipv4 format\r\n");
+                goto Error;
+            }
+
+            if (0 == uiIP[0] && 0 == uiIP[0] && 0 == uiIP[0] && 0 == uiIP[0])
+            {
+                RIL_LOG_INFO("ConvertIPAddressToAndroidReadable() -"
+                        "Invalid address - ignore\r\n");
+            }
+            else
+            {
+                if (snprintf(szIpOut, uiIpOutSize,
+                        "%u.%u.%u.%u", uiIP[0], uiIP[1], uiIP[2], uiIP[3]) <= 0)
+                {
+                    RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
+                            " error with snprintf() ipv4 part\r\n");
+                    goto Error;
+                }
+            }
         }
         break;
 
@@ -241,7 +341,6 @@ BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
                     goto Error;
                 }
             }
-
         }
         break;
 

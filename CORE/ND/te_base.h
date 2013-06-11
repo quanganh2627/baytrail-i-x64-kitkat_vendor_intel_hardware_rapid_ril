@@ -46,8 +46,6 @@ protected:
     S_PIN_RETRY_COUNT m_PinRetryCount;
     RIL_PinState m_ePin2State;
 
-    P_ND_PDP_CONTEXT_DATA m_pPDPListData;
-
 public:
     CTEBase(CTE& cte);
     virtual ~CTEBase();
@@ -57,54 +55,6 @@ private:
 
 public:
     virtual CInitializer* GetInitializer() = 0;
-
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the first ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNFirstIpV4Dns(UINT32 cid, char* ret);
-
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the second ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNSecIpV4Dns(UINT32 cid, char* ret);
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the first ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNFirstIpV6Dns(UINT32 cid, char* ret);
-
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the second ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNSecIpV6Dns(UINT32 cid, char* ret);
-
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the first ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNFirstIpV4(UINT32 cid, char* ret);
-
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the second ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNSecIpV4(UINT32 cid, char* ret);
-
-    //
-    // Member buffer contains one ip address.
-    // This function returns the gw ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNGwIpV4(UINT32 cid, char* ret);
 
     virtual char* GetBasicInitCommands(UINT32 uiChannelType);
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);

@@ -62,7 +62,8 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
     m_szDNS2[0] = '\0';
     m_szIpV6DNS1[0] = '\0';
     m_szIpV6DNS2[0] = '\0';
-    m_szIpGateways[0] = '\0';
+    m_szIpV4Gateway[0] = '\0';
+    m_szIpV6Gateway[0] = '\0';
 
     CopyStringNullTerminate(m_szModemResourceName, RIL_DEFAULT_IPC_RESOURCE_NAME,
             sizeof(m_szModemResourceName));
@@ -676,24 +677,36 @@ void CChannel_Data::GetDNS(char* pDNS1, const int maxDNS1Size,
     RIL_LOG_VERBOSE("CChannel_Data::GetDNS() - Exit\r\n");
 }
 
-void CChannel_Data::SetGateway(const char* pIpGateways)
+void CChannel_Data::SetGateway(const char* pIpV4Gateway, const char* pIpV6Gateway)
 {
     RIL_LOG_VERBOSE("CChannel_Data::SetGateway() - Enter\r\n");
 
-    strncpy(m_szIpGateways, pIpGateways, MAX_IPADDR_SIZE-1);
-    m_szIpGateways[MAX_IPADDR_SIZE-1] = '\0';
+    if (NULL != pIpV4Gateway)
+    {
+        CopyStringNullTerminate(m_szIpV4Gateway, pIpV4Gateway, MAX_IPADDR_SIZE);
+    }
+
+    if (NULL != pIpV6Gateway)
+    {
+        CopyStringNullTerminate(m_szIpV6Gateway, pIpV6Gateway, MAX_IPADDR_SIZE);
+    }
 
     RIL_LOG_VERBOSE("CChannel_Data::SetGateway() - Exit\r\n");
 }
 
-void CChannel_Data::GetGateway(char* pIpGateways, const int maxSize)
+void CChannel_Data::GetGateway(char* pIpV4Gateway, const int maxIpV4GatewaySize,
+        char* pIpV6Gateway, const int maxIpV6GatewaySize)
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetGateway() - Enter\r\n");
 
-    if (NULL != pIpGateways && 0 < maxSize)
+    if (NULL != pIpV4Gateway && 0 < maxIpV4GatewaySize)
     {
-        strncpy(pIpGateways, m_szIpGateways, maxSize-1);
-        pIpGateways[maxSize-1] = '\0';
+        CopyStringNullTerminate(pIpV4Gateway, m_szIpV4Gateway, maxIpV4GatewaySize);
+    }
+
+    if (NULL != pIpV4Gateway && 0 < maxIpV6GatewaySize)
+    {
+        CopyStringNullTerminate(pIpV6Gateway, m_szIpV6Gateway, maxIpV6GatewaySize);
     }
 
     RIL_LOG_VERBOSE("CChannel_Data::GetGateway() - Exit\r\n");
@@ -761,8 +774,8 @@ void CChannel_Data::GetDataCallInfo(S_DATA_CALL_INFO& rDataCallInfo)
     strncpy(rDataCallInfo.szIpV6DNS2, m_szIpV6DNS2, MAX_IPADDR_SIZE-1);
     rDataCallInfo.szIpV6DNS2[MAX_IPADDR_SIZE-1] = '\0';
 
-    strncpy(rDataCallInfo.szGateways, m_szIpGateways, MAX_IPADDR_SIZE-1);
-    rDataCallInfo.szGateways[MAX_IPADDR_SIZE-1] = '\0';
+    PrintStringNullTerminate(rDataCallInfo.szGateways, MAX_IPADDR_SIZE, "%s %s",
+            m_szIpV4Gateway, m_szIpV6Gateway);
 
     CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
