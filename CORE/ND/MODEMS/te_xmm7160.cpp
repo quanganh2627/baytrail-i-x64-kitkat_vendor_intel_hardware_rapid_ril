@@ -36,6 +36,7 @@
 #include "repository.h"
 #include "reset.h"
 #include "data_util.h"
+#include "init7160.h"
 
 
 CTE_XMM7160::CTE_XMM7160(CTE& cte)
@@ -47,43 +48,25 @@ CTE_XMM7160::~CTE_XMM7160()
 {
 }
 
-char* CTE_XMM7160::GetBasicInitCommands(UINT32 uiChannelType)
+CInitializer* CTE_XMM7160::GetInitializer()
 {
-    RIL_LOG_VERBOSE("CTE_XMM7160::GetBasicInitCommands() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE_XMM7160::GetInitializer() - Enter\r\n");
+    CInitializer* pRet = NULL;
 
-    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
-    char *pInitCmd = NULL;
-
-    pInitCmd = CTE_XMM6260::GetBasicInitCommands(uiChannelType);
-
-    if (RIL_CHANNEL_URC != uiChannelType)
+    RIL_LOG_INFO("CTE_XMM7160::GetInitializer() - Creating CInit7160 initializer\r\n");
+    m_pInitializer = new CInit7160();
+    if (NULL == m_pInitializer)
     {
-        RIL_LOG_VERBOSE("CTE_XMM7160::GetBasicInitCommands() - Exit.\r\n");
-        return pInitCmd;
+        RIL_LOG_CRITICAL("CTE_XMM7160::GetInitializer() - Failed to create a CInit7160 "
+                "initializer!\r\n");
+        goto Error;
     }
 
-    if (pInitCmd != NULL)
-    {
-        strncpy(szInitCmd,pInitCmd,MAX_BUFFER_SIZE);
-        // Now ensure string is null terminated
-        szInitCmd[MAX_BUFFER_SIZE-1] = '\0';
+    pRet = m_pInitializer;
 
-        if (m_cte.IsIMSCapable())
-        {
-            char szEnableIMS[MAX_BUFFER_SIZE] = {'\0'};
-            PrintStringNullTerminate(szEnableIMS,
-                    MAX_BUFFER_SIZE,
-                    "|+CISRVCC=1|+CIREP=1|+CIREG=1|+XISMSCFG=%d",
-                    m_cte.IsSMSOverIPCapable() ? 1 : 0);
-            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                    szEnableIMS);
-        }
-
-        free (pInitCmd);
-    }
-
-    RIL_LOG_VERBOSE("CTE_XMM7160::GetBasicInitCommands() - Exit\r\n");
-    return strndup(szInitCmd, strlen(szInitCmd));
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::GetInitializer() - Exit\r\n");
+    return pRet;
 }
 
 const char* CTE_XMM7160::GetRegistrationInitString()
@@ -307,8 +290,8 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
                 goto Error;
         }
 
-        szModemResourceName = CSystemManager::GetInstance().GetModemResourceName();
-        ipcDataChannelMin = CSystemManager::GetInstance().GetIpcDataChannelMin();
+        szModemResourceName = pChannelData->GetModemResourceName();
+        ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
 
         if (ipcDataChannelMin > hsiChannel || RIL_MAX_NUM_IPC_CHANNEL <= hsiChannel )
         {
@@ -522,7 +505,6 @@ Error:
 
     RIL_LOG_VERBOSE("CTE_XMM7160::HandleSetupDataCallSuccess() - Exit\r\n");
 }
-
 
 //
 // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
@@ -971,4 +953,3 @@ Error:
     RIL_LOG_VERBOSE("CTE_XMM7160::CreateIMSConfigReq() - Exit\r\n");
     return res;
 }
-

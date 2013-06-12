@@ -24,11 +24,10 @@ public:
     virtual ~CChannel_OEM();
 
     //  public port interface
-    BOOL    OpenPort();
+    BOOL OpenPort();
 
 protected:
-    BOOL    FinishInit();
-    BOOL    AddSilos();
+    BOOL FinishInit();
 };
 
 #endif  // RIL_CHANNEL_OEM_H

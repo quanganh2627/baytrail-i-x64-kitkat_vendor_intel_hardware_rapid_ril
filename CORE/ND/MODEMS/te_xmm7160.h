@@ -18,6 +18,7 @@
 #include "channel_data.h"
 
 class CEvent;
+class CInitializer;
 
 class CTE_XMM7160 : public CTE_XMM6360
 {
@@ -43,7 +44,8 @@ private:
 
 public:
     // modem overrides
-    virtual char* GetBasicInitCommands(UINT32 uiChannelType);
+
+    virtual CInitializer* GetInitializer();
 
     // RIL_REQUEST_SETUP_DATA_CALL 27
     virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,

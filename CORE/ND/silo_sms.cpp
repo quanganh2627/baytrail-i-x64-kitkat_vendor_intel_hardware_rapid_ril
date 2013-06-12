@@ -22,8 +22,8 @@
 
 //
 //
-CSilo_SMS::CSilo_SMS(CChannel* pChannel)
-: CSilo(pChannel)
+CSilo_SMS::CSilo_SMS(CChannel* pChannel, CSystemCapabilities* pSysCaps)
+: CSilo(pChannel, pSysCaps)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::CSilo_SMS() - Enter\r\n");
 
@@ -49,6 +49,77 @@ CSilo_SMS::~CSilo_SMS()
 {
     RIL_LOG_VERBOSE("CSilo_SMS::~CSilo_SMS() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_SMS::~CSilo_SMS() - Exit\r\n");
+}
+
+
+char* CSilo_SMS::GetBasicInitString()
+{
+    // sms silo-related channel basic init string
+    const char szSmsBasicInitString[] = "+CMGF=0";
+
+    if (m_pSystemCapabilities->IsSmsCapable())
+    {
+        if (!ConcatenateStringNullTerminate(m_szBasicInitString,
+                MAX_BUFFER_SIZE - strlen(m_szBasicInitString), szSmsBasicInitString))
+        {
+            RIL_LOG_CRITICAL("CSilo_SMS::GetBasicInitString() : Failed to copy basic init "
+                    "string!\r\n");
+            return NULL;
+        }
+    }
+    return m_szBasicInitString;
+}
+
+char* CSilo_SMS::GetUnlockInitString()
+{
+    // sms silo-related channel unlock init string
+    const char szSmsUnlockInitString[] = "+CSMS=1|+CGSMS=3";
+
+    if (m_pSystemCapabilities->IsSmsCapable())
+    {
+        if (!ConcatenateStringNullTerminate(m_szUnlockInitString,
+                MAX_BUFFER_SIZE - strlen(m_szUnlockInitString), szSmsUnlockInitString))
+        {
+            RIL_LOG_CRITICAL("CSilo_SMS::GetUnlockInitString() : Failed to copy unlock init "
+                    "string!\r\n");
+            return NULL;
+        }
+    }
+    return m_szUnlockInitString;
+}
+
+char* CSilo_SMS::GetURCInitString()
+{
+    // sms silo-related URC channel basic init string
+    const char szSmsURCInitString[] = "+CMGF=0|+CSCS=\"UCS2\"";
+    if (m_pSystemCapabilities->IsSmsCapable())
+    {
+        if (!ConcatenateStringNullTerminate(m_szURCInitString,
+                MAX_BUFFER_SIZE - strlen(m_szURCInitString), szSmsURCInitString))
+        {
+            RIL_LOG_CRITICAL("CSilo_SMS::GetURCInitString() : Failed to copy URC init "
+                    "string!\r\n");
+            return NULL;
+        }
+    }
+    return m_szURCInitString;
+}
+
+char* CSilo_SMS::GetURCUnlockInitString()
+{
+    // sms silo-related URC channel unlock init string
+    const char szSmsURCUnlockInitString[] = "+CNMI=2,2,2,1";
+    if (m_pSystemCapabilities->IsSmsCapable())
+    {
+        if (!ConcatenateStringNullTerminate(m_szURCUnlockInitString,
+                MAX_BUFFER_SIZE - strlen(m_szURCUnlockInitString), szSmsURCUnlockInitString))
+        {
+            RIL_LOG_CRITICAL("CSilo_SMS::GetURCUnlockInitString() : Failed to copy URC unlock "
+                    "init string!\r\n");
+            return NULL;
+        }
+    }
+    return m_szURCUnlockInitString;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

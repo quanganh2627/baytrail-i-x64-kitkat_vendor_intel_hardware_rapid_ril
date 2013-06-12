@@ -24,11 +24,10 @@ public:
     virtual ~CChannel_DLC6();
 
     //  public port interface
-    BOOL    OpenPort();
+    BOOL OpenPort();
 
 protected:
-    BOOL    FinishInit();
-    BOOL    AddSilos();
+    BOOL FinishInit();
 };
 
 #endif  // RIL_CHANNEL_DLC6_H

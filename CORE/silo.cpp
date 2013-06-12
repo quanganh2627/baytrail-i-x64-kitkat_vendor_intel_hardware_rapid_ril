@@ -16,18 +16,25 @@
 #include "extract.h"
 #include "channel_nd.h"
 #include "response.h"
+#include "systemcaps.h"
 #include "silo.h"
 
 //
 //
-CSilo::CSilo(CChannel* pChannel) :
+CSilo::CSilo(CChannel* pChannel, CSystemCapabilities* pSysCaps) :
     m_cTerminator('\r'),
     m_pChannel(pChannel),
+    m_pSystemCapabilities(pSysCaps),
     m_pATRspTable(NULL),
     m_pATRspTableExt(NULL)
 
 {
     CopyStringNullTerminate(m_szNewLine, "\r\n", sizeof(m_szNewLine));
+
+    m_szBasicInitString[0] = '\0';
+    m_szUnlockInitString[0] = '\0';
+    m_szURCInitString[0] = '\0';
+    m_szURCUnlockInitString[0] = '\0';
 }
 
 //

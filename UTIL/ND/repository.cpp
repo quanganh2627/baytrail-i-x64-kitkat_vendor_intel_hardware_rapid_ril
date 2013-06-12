@@ -227,8 +227,6 @@ const char   g_szSmsOverCSCapable[]             = "SmsOverCSCapable";
 const char   g_szSmsOverPSCapable[]             = "SmsOverPSCapable";
 const char   g_szStkCapable[]                   = "StkCapable";
 const char   g_szEnableXDATASTATURC[]           = "EnableXDATASTATReporting";
-
-// IMS dependent parameters
 const char   g_szIMSCapable[]                   = "IMSCapable";
 const char   g_szEnableSMSOverIP[]              = "EnableSMSOverIP";
 
@@ -255,6 +253,17 @@ const char   g_szGroupLogging[]                 = "Logging";
 const char   g_szCallDropReporting[]            = "CallDropReporting";
 const char   g_szLogLevel[]                     = "LogLevel";
 
+//////////////////////////////////////////////////////////////////////////
+
+const char   g_szGroupChannelSilos[]    = "ChannelSiloConfiguration";
+
+const char   g_szSilosATCmd[]           = "SilosATCmdChannel";
+const char   g_szSilosDLC2[]            = "SilosDLC2Channel";
+const char   g_szSilosDLC6[]            = "SilosDLC6Channel";
+const char   g_szSilosDLC8[]            = "SilosDLC8Channel";
+const char   g_szSilosURC[]             = "SilosURCChannel";
+const char   g_szSilosOEM[]             = "SilosOEMChannel";
+const char   g_szSilosData[]            = "SilosDataChannel";
 
 //////////////////////////////////////////////////////////////////////////
 // Structs and Enums.
@@ -373,7 +382,7 @@ BOOL CRepository::Read(const char* szGroup, const char* szKey, int& iRes)
     {
         char* remaining;
 
-        iRes = strtol(szBuf, &remaining, 10);
+        iRes = strtol(szBuf, &remaining, 0); // 0: base used is determined by format in sequence
         fRetVal = (szBuf != remaining);
     }
 

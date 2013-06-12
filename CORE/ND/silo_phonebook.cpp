@@ -19,8 +19,8 @@
 
 //
 //
-CSilo_Phonebook::CSilo_Phonebook(CChannel* pChannel)
-: CSilo(pChannel)
+CSilo_Phonebook::CSilo_Phonebook(CChannel* pChannel, CSystemCapabilities* pSysCaps)
+: CSilo(pChannel, pSysCaps)
 {
     RIL_LOG_VERBOSE("CSilo_Phonebook::CSilo_Phonebook() - Enter\r\n");
 

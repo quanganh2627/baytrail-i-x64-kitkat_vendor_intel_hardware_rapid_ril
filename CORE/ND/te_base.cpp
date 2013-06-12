@@ -32,11 +32,13 @@
 #include "data_util.h"
 #include <cutils/properties.h>
 #include "ril_result.h"
+#include "initializer.h"
 
 
 CTEBase::CTEBase(CTE& cte)
 : m_cte(cte),
   m_cTerminator('\r'),
+  m_pInitializer(NULL),
   m_nNetworkRegistrationType(0),
   m_nSimAppType(RIL_APPTYPE_UNKNOWN),
   m_ePin2State(RIL_PINSTATE_UNKNOWN)
@@ -74,6 +76,10 @@ CTEBase::CTEBase(CTE& cte)
 CTEBase::~CTEBase()
 {
     delete m_pPDPListData;
+
+    RIL_LOG_INFO("CTEBase::~CTEBase() - Deleting initializer\r\n");
+    delete m_pInitializer;
+    m_pInitializer = NULL;
 }
 
 char* CTEBase::GetPDNFirstIpV4Dns(UINT32 cid, char* ret)
@@ -270,8 +276,6 @@ char* CTEBase::GetPDNGwIpV4(UINT32 cid, char* ret)
 
     return ret;
 }
-
-
 
 BOOL CTEBase::IsRequestSupported(int requestId)
 {
@@ -2531,15 +2535,16 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
          * + modem basic initialization(1second).
          */
         UINT32 WAIT_TIMEOUT_IN_MS = 15000;
+        CEvent* pModemBasicInitCompleteEvent =
+                    CSystemManager::GetInstance().GetModemBasicInitCompleteEvent();
 
         RIL_LOG_INFO("CTEBase::CoreRadioPower() - Waiting for "
                 "modem initialization completion event\r\n");
 
-        CEvent::Reset(CSystemManager::GetModemBasicInitCompleteEvent());
+        CEvent::Reset(pModemBasicInitCompleteEvent);
 
         if (WAIT_EVENT_0_SIGNALED !=
-                CEvent::Wait(CSystemManager::GetModemBasicInitCompleteEvent(),
-                        WAIT_TIMEOUT_IN_MS))
+                CEvent::Wait(pModemBasicInitCompleteEvent, WAIT_TIMEOUT_IN_MS))
         {
             RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - Timeout Waiting for"
                     "modem initialization completion event\r\n");
@@ -2671,13 +2676,13 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
          *       request.
          */
         CEvent* pRadioStateChangedEvent = m_cte.GetRadioStateChangedEvent();
-        CEvent* pExitRilEvent = CSystemManager::GetCancelEvent();
+        CEvent* pCancelWaitEvent = CSystemManager::GetInstance().GetCancelWaitEvent();
 
-        if (NULL != pRadioStateChangedEvent && NULL != pExitRilEvent)
+        if (NULL != pRadioStateChangedEvent && NULL != pCancelWaitEvent)
         {
             CEvent::Reset(pRadioStateChangedEvent);
 
-            CEvent* rgpEvents[] = { pRadioStateChangedEvent, pExitRilEvent };
+            CEvent* rgpEvents[] = { pRadioStateChangedEvent, pCancelWaitEvent };
 
             CEvent::WaitForAnyEvent(2/*NumEvents*/, rgpEvents, WAIT_FOREVER);
         }
@@ -6201,8 +6206,6 @@ Error:
     return res;
 }
 
-
-
 RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseEstablishedPDPList() - Enter\r\n");
@@ -6229,6 +6232,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
     }
 
     RIL_LOG_VERBOSE("CTEBase::ParseEstablishedPDPList() - %s\r\n", pszRsp);
+
     // Parse +CGCONTRDP response, will return up to 2 lines of data (if MT has
     // dual stack capability. 1st line for IPV4 data, 2nd for IPV6
     count = 0;
@@ -6443,9 +6447,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - count:%d\r\n",count);
     }
 
-
 End:
-
     res = RRIL_RESULT_OK;
     RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Parse complete, found [%d] contexts.\r\n",
                  count);
@@ -6469,7 +6471,6 @@ Error:
     RIL_LOG_VERBOSE("CTEBase::ParseEstablishedPDPList() - Exit\r\n");
     return res;
 }
-
 
 //
 // RIL_REQUEST_RESET_RADIO 58
@@ -10586,7 +10587,7 @@ BOOL CTEBase::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
 }
 
 RIL_RESULT_CODE CTEBase::CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
-        const char** pszRequest,
+        const char** ppszRequest,
         const UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CreateIMSRegistrationReq() - Enter\r\n");
@@ -10596,7 +10597,7 @@ RIL_RESULT_CODE CTEBase::CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
 }
 
 RIL_RESULT_CODE CTEBase::CreateIMSConfigReq(REQUEST_DATA& rReqData,
-        const char** pszRequest,
+        const char** ppszRequest,
         const int nNumStrings)
 {
     RIL_LOG_VERBOSE("CTEBase::CreateIMSConfigReq() - Enter\r\n");

@@ -15,16 +15,15 @@
 #include "types.h"
 #include "rillog.h"
 #include "channelbase.h"
-#include "silo_factory.h"
 #include "channel_OEM.h"
 
 extern char* g_szOEMPort;
 extern BOOL  g_bIsSocket;
 
-//  Com init strings for this channel.
+// Init strings for this channel.
 //  OEM commands (diagnostic)
-INITSTRING_DATA OEMBasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0" };
-INITSTRING_DATA OEMUnlockInitString  = { "" };
+
+// Add any init cmd strings for this channel during PowerOn or Ready boot phase
 INITSTRING_DATA OEMPowerOnInitString = { "" };
 INITSTRING_DATA OEMReadyInitString   = { "" };
 
@@ -38,8 +37,8 @@ CChannel_OEM::CChannel_OEM(UINT32 uiChannel)
 CChannel_OEM::~CChannel_OEM()
 {
     RIL_LOG_VERBOSE("CChannel_OEM::~CChannel_OEM() - Enter\r\n");
-    delete []m_prisdModuleInit;
-    m_prisdModuleInit = NULL;
+    delete[] m_paInitCmdStrings;
+    m_paInitCmdStrings = NULL;
     RIL_LOG_VERBOSE("CChannel_OEM::~CChannel_OEM() - Exit\r\n");
 }
 
@@ -65,59 +64,23 @@ BOOL CChannel_OEM::FinishInit()
     BOOL bRet = FALSE;
 
     //  Init our channel AT init commands.
-    m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
-    if (!m_prisdModuleInit)
+    m_paInitCmdStrings = new INITSTRING_DATA[COM_MAX_INDEX];
+    if (!m_paInitCmdStrings)
     {
         RIL_LOG_CRITICAL("CChannel_OEM::FinishInit() - chnl=[%d] Could not create new"
                 " INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
-    m_prisdModuleInit[COM_BASIC_INIT_INDEX]     = OEMBasicInitString;
-    m_prisdModuleInit[COM_UNLOCK_INIT_INDEX]    = OEMUnlockInitString;
-    m_prisdModuleInit[COM_POWER_ON_INIT_INDEX]  = OEMPowerOnInitString;
-    m_prisdModuleInit[COM_READY_INIT_INDEX]     = OEMReadyInitString;
+    // Set the init command strings for this channel
+    m_paInitCmdStrings[COM_BASIC_INIT_INDEX].szCmd = m_szChannelBasicInitCmd;
+    m_paInitCmdStrings[COM_UNLOCK_INIT_INDEX].szCmd = m_szChannelUnlockInitCmd;
+
+    m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX] = OEMPowerOnInitString;
+    m_paInitCmdStrings[COM_READY_INIT_INDEX] = OEMReadyInitString;
 
     bRet = TRUE;
 Error:
     RIL_LOG_VERBOSE("CChannel_OEM::FinishInit() - Exit\r\n");
     return bRet;
 }
-
-//
-//  Add silos with this channel.
-//  Note that the CChannel destructor will destroy these CSilo objects.
-//
-BOOL CChannel_OEM::AddSilos()
-{
-    RIL_LOG_VERBOSE("CChannel_OEM::AddSilos() - Enter\r\n");
-    BOOL bRet = FALSE;
-
-    //  OEM channel contains 5 silos:
-    //     Voice Silo
-    //     Phonebook Silo
-    CSilo* pSilo = NULL;
-
-
-    pSilo = CSilo_Factory::GetSiloVoice(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_OEM::AddSilos() : chnl=[%d] Could not add CSilo_Voice\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloPhonebook(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_OEM::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    bRet = TRUE;
-Error:
-    RIL_LOG_VERBOSE("CChannel_OEM::AddSilos() - Exit\r\n");
-    return bRet;
-}
-

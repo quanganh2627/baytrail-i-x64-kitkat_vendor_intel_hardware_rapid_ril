@@ -14,9 +14,10 @@
 
 #include "types.h"
 #include "rillog.h"
+#include "util.h"
 #include "channelbase.h"
-#include "silo_factory.h"
 #include "channel_data.h"
+#include "repository.h"
 #include "rril.h"
 #include "te.h"
 
@@ -27,10 +28,10 @@ extern char* g_szDataPort4;
 extern char* g_szDataPort5;
 extern BOOL  g_bIsSocket;
 
-//  Init commands for this channel.
+// Init strings for this channel.
 //  GPRS/UMTS data (1st primary context)
-INITSTRING_DATA DataBasicInitString = { "E0V1Q0X4|+CMEE=1|S0=0" };
-INITSTRING_DATA DataUnlockInitString = { "" };
+
+// Add any init cmd strings for this channel during PowerOn or Ready boot phase
 INITSTRING_DATA DataPowerOnInitString = { "" };
 INITSTRING_DATA DataReadyInitString = { "" };
 
@@ -46,7 +47,8 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
 :   CChannel(uiChannel),
     m_dataFailCause(PDP_FAIL_NONE),
     m_uiContextID(0),
-    m_dataState(E_DATA_STATE_IDLE)
+    m_dataState(E_DATA_STATE_IDLE),
+    m_ipcDataChannelMin(RIL_DEFAULT_IPC_CHANNEL_MIN)
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
 
@@ -60,6 +62,9 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
     m_szIpV6DNS2[0] = '\0';
     m_szIpGateways[0] = '\0';
 
+    CopyStringNullTerminate(m_szModemResourceName, RIL_DEFAULT_IPC_RESOURCE_NAME,
+            sizeof(m_szModemResourceName));
+
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Exit\r\n");
 }
 
@@ -67,8 +72,8 @@ CChannel_Data::~CChannel_Data()
 {
     RIL_LOG_VERBOSE("CChannel_Data::~CChannel_Data() - Enter\r\n");
 
-    delete []m_prisdModuleInit;
-    m_prisdModuleInit = NULL;
+    delete[] m_paInitCmdStrings;
+    m_paInitCmdStrings = NULL;
 
     RIL_LOG_VERBOSE("CChannel_Data::~CChannel_Data() - Exit\r\n");
 }
@@ -128,61 +133,50 @@ BOOL CChannel_Data::OpenPort()
 BOOL CChannel_Data::FinishInit()
 {
     RIL_LOG_VERBOSE("CChannel_Data::FinishInit() - Enter\r\n");
+
     BOOL bRet = FALSE;
+    CRepository repository;
 
     //  Init our channel AT init commands.
-    m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
-    if (!m_prisdModuleInit)
+    m_paInitCmdStrings = new INITSTRING_DATA[COM_MAX_INDEX];
+    if (!m_paInitCmdStrings)
     {
         RIL_LOG_CRITICAL("CChannel_Data::FinishInit() : chnl=[%d] Could not create new "
                 "INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
-    m_prisdModuleInit[COM_BASIC_INIT_INDEX]     = DataBasicInitString;
-    m_prisdModuleInit[COM_UNLOCK_INIT_INDEX]    = DataUnlockInitString;
-    m_prisdModuleInit[COM_POWER_ON_INIT_INDEX]  = DataPowerOnInitString;
-    m_prisdModuleInit[COM_READY_INIT_INDEX]     = DataReadyInitString;
+    // Set the init command strings for this channel
+    m_paInitCmdStrings[COM_BASIC_INIT_INDEX].szCmd = m_szChannelBasicInitCmd;
+    m_paInitCmdStrings[COM_UNLOCK_INIT_INDEX].szCmd = m_szChannelUnlockInitCmd;
+
+    m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX] = DataPowerOnInitString;
+    m_paInitCmdStrings[COM_READY_INIT_INDEX] = DataReadyInitString;
+
+    // read the minimum data channel index
+    if (!repository.Read(g_szGroupModem, g_szIpcDataChannelMin, m_ipcDataChannelMin))
+    {
+        RIL_LOG_WARNING("CChannel_Data::FinishInit() : Could not read min"
+                " IPC Data channel from repository\r\n");
+        m_ipcDataChannelMin = RIL_DEFAULT_IPC_CHANNEL_MIN;
+    }
+
+    //  Grab the Modem data channel resource name
+    if (!repository.Read(g_szGroupModem, g_szModemResourceName, m_szModemResourceName,
+                MAX_MDM_RESOURCE_NAME_SIZE))
+    {
+        RIL_LOG_WARNING("CChannel_Data::FinishInit() - Could not read modem resource"
+                " name from repository, using default\r\n");
+        // Set default value.
+        CopyStringNullTerminate(m_szModemResourceName, RIL_DEFAULT_IPC_RESOURCE_NAME,
+                sizeof(m_szModemResourceName));
+    }
+    RIL_LOG_INFO("CChannel_Data::FinishInit() - m_szModemResourceName=[%s]\r\n",
+                m_szModemResourceName);
 
     bRet = TRUE;
 Error:
     RIL_LOG_VERBOSE("CChannel_Data::FinishInit() - Exit\r\n");
-    return bRet;
-}
-
-
-//
-//  Add silos with this channel.
-//  Note that the CChannel destructor will destroy these CSilo objects.
-//
-BOOL CChannel_Data::AddSilos()
-{
-    RIL_LOG_VERBOSE("CChannel_Data::AddSilos() - Enter\r\n");
-
-    //  Data1 channel contains 1 silo:
-    //    Data Silo
-    CSilo* pSilo = NULL;
-    BOOL bRet = FALSE;
-
-    pSilo = CSilo_Factory::GetSiloData(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : chnl=[%d] Could not add CSilo_Data\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloPhonebook(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_Data::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    bRet = TRUE;
-Error:
-    RIL_LOG_VERBOSE("CChannel_Data::AddSilos() - Exit\r\n");
     return bRet;
 }
 
@@ -193,7 +187,7 @@ CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 uiContextID)
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromContextID() - Enter\r\n");
 
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
@@ -212,7 +206,7 @@ CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 uiContextID)
     }
 
 Error:
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromContextID() - Exit\r\n");
     return pChannelData;
@@ -235,7 +229,7 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnlsRilHsi() - Enter\r\n");
 
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
 
@@ -245,13 +239,13 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
 
     int ipcDataChannelMin = 0;
 
-    ipcDataChannelMin = CSystemManager::GetInstance().GetIpcDataChannelMin();
-
     // First try to get a free RIL channel, then for class 1
     // or class 2 apn, try to get a hsi channel.
     pChannelData = CChannel_Data::GetFreeChnl(outCID);
     if (pChannelData != NULL)
     {
+        ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
+
         if (dataProfile >= 0 && dataProfile < NUMBER_OF_APN_PROFILE)
         {
             // According to the data profile class try to associate
@@ -308,7 +302,7 @@ Error:
         outCID = 0;
     }
 
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnlsRilHsi() - Exit\r\n");
     return pChannelData;
@@ -318,7 +312,7 @@ int CChannel_Data::GetFreeHSIChannel(UINT32 uiCID, int sIndex, int eIndex)
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Enter\r\n");
 
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     if (sIndex < 0 || eIndex > RIL_MAX_NUM_IPC_CHANNEL)
     {
@@ -332,12 +326,12 @@ int CChannel_Data::GetFreeHSIChannel(UINT32 uiCID, int sIndex, int eIndex)
         {
             g_uiHSIChannel[i] = uiCID ;
             RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Success - Exit\r\n");
-            CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+            CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
             return i;
         }
     }
 
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeHSIChannel() - Not Success - Exit\r\n");
     return -1;
@@ -347,7 +341,7 @@ bool CChannel_Data::FreeHSIChannel(UINT32 uiCID)
 {
     RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChannel() - Enter\r\n");
 
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     for (int i = 0; i < RIL_MAX_NUM_IPC_CHANNEL; i++)
     {
@@ -355,12 +349,12 @@ bool CChannel_Data::FreeHSIChannel(UINT32 uiCID)
         {
             g_uiHSIChannel[i] = 0 ;
             RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChannel() - Exit\r\n");
-            CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+            CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
             return true;
         }
     }
 
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     RIL_LOG_VERBOSE("CChannel_Data::FreeHSIChannel() - Exit\r\n");
     return false;
@@ -382,7 +376,7 @@ CChannel_Data* CChannel_Data::GetFreeChnl(UINT32& outCID)
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnl() - Enter\r\n");
 
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
@@ -414,7 +408,7 @@ Error:
         outCID = 0;
     }
 
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnl() - Exit\r\n");
     return pChannelData;
@@ -427,7 +421,7 @@ CChannel_Data* CChannel_Data::GetChnlFromRilChannelNumber(UINT32 index)
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromRilChannelNumber() - Enter\r\n");
 
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
     CChannel_Data* pChannelData = NULL;
@@ -446,7 +440,7 @@ CChannel_Data* CChannel_Data::GetChnlFromRilChannelNumber(UINT32 index)
     }
 
 Error:
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromRilChannelNumber() - Exit\r\n");
     return pChannelData;
@@ -458,11 +452,11 @@ UINT32 CChannel_Data::GetContextID() const
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetContextID() - Enter\r\n");
 
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     UINT32 nCID = m_uiContextID;
 
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     RIL_LOG_VERBOSE("CChannel_Data::GetContextID() - Exit\r\n");
     return nCID;
@@ -476,11 +470,11 @@ BOOL CChannel_Data::SetContextID(UINT32 dwContextID)
 {
     RIL_LOG_VERBOSE("CChannel_Data::SetContextID() - Enter\r\n");
 
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     m_uiContextID = dwContextID;
 
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     RIL_LOG_VERBOSE("CChannel_Data::SetContextID() - Exit\r\n");
     return TRUE;
@@ -679,11 +673,11 @@ void CChannel_Data::SetDataState(int state)
 {
     RIL_LOG_VERBOSE("CChannel_Data::SetDataState() - Enter\r\n");
 
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     m_dataState = state;
 
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     RIL_LOG_VERBOSE("CChannel_Data::SetDataState() - Exit\r\n");
 }
@@ -692,11 +686,11 @@ int CChannel_Data::GetDataState()
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetDataState() - Enter\r\n");
 
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     int state = m_dataState;
 
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     RIL_LOG_VERBOSE("CChannel_Data::GetDataState() - Exit\r\n");
     return state;
@@ -706,7 +700,7 @@ void CChannel_Data::GetDataCallInfo(S_DATA_CALL_INFO& rDataCallInfo)
 {
     RIL_LOG_VERBOSE("CChannel_Data::GetDataCallInfo() - Enter\r\n");
 
-    CMutex::Lock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     rDataCallInfo.failCause = m_dataFailCause;
     rDataCallInfo.uiCID = m_uiContextID;
@@ -740,7 +734,7 @@ void CChannel_Data::GetDataCallInfo(S_DATA_CALL_INFO& rDataCallInfo)
     strncpy(rDataCallInfo.szGateways, m_szIpGateways, MAX_IPADDR_SIZE-1);
     rDataCallInfo.szGateways[MAX_IPADDR_SIZE-1] = '\0';
 
-    CMutex::Unlock(CSystemManager::GetDataChannelAccessorMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
 
     RIL_LOG_VERBOSE("CChannel_Data::GetDataCallInfo() - Exit\r\n");
 }

@@ -22,6 +22,7 @@ class CSilo;
 class CResponse;
 class CChannel;
 class CRilHandle;
+class CSystemCapabilities;
 
 typedef BOOL (CSilo::*PFN_ATRSP_PARSE) (CResponse* const pResponse, const char*& rszPointer);
 
@@ -35,7 +36,7 @@ typedef struct atrsptable_tag
 class CSilo
 {
 public:
-    CSilo(CChannel* pChannel);
+    CSilo(CChannel* pChannel, CSystemCapabilities* pSysCaps);
     virtual ~CSilo();
 
     //  Called at beginning of CResponse::ParseUnsolicitedResponse().
@@ -50,11 +51,19 @@ public:
     virtual BOOL ParseUnsolicitedResponse(CResponse* const pResponse, const char*& rszPointer,
             BOOL& fGotoError);
 
+    // Functions to get silo-specific init strings
+    virtual char* GetBasicInitString() { return NULL; }
+    virtual char* GetUnlockInitString() { return NULL; }
+    virtual char* GetURCInitString() { return NULL; }
+    virtual char* GetURCUnlockInitString() { return NULL; }
+
 protected:
     char m_cTerminator;
     char m_szNewLine[3];
 
     CChannel* m_pChannel;
+
+    CSystemCapabilities* m_pSystemCapabilities;
 
     ATRSPTABLE* m_pATRspTable;
     ATRSPTABLE* m_pATRspTableExt;
@@ -63,8 +72,14 @@ protected:
     // the end of the parse tables.
     BOOL ParseNULL(CResponse* const pResponse, const char*& rszPointer);
 
-    //  General function to skip this response and flag as unrecognized.
+    // General function to skip this response and flag as unrecognized.
     BOOL ParseUnrecognized(CResponse* const pResponse, const char*& rszPointer);
+
+    // Store silo-specific init strings
+    char m_szBasicInitString[MAX_BUFFER_SIZE];
+    char m_szUnlockInitString[MAX_BUFFER_SIZE];
+    char m_szURCInitString[MAX_BUFFER_SIZE];
+    char m_szURCUnlockInitString[MAX_BUFFER_SIZE];
 
 private:
     // helper functions

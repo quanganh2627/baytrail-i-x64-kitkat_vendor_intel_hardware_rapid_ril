@@ -16,7 +16,7 @@
 #include "com_init_index.h"
 #include "port.h"
 #include "command.h"
-#include "com_init_index.h"
+#include "systemcaps.h"
 
 // forward declarations
 class CSilo;
@@ -40,8 +40,8 @@ struct INITSTRING_DATA
 // Structure to hold silos
 struct SILO_CONTAINER
 {
-    CSilo*  rgpSilos[MAX_SILOS];
-    UINT32  nSilos;
+    CSilo* rgpSilos[MAX_SILOS];
+    UINT32 nSilos;
 };
 
 class CChannelBase
@@ -57,37 +57,42 @@ private:
 
 public:
     //  Init functions
-    BOOL            InitChannel();
-    BOOL            StartChannelThreads();
-    BOOL            StopChannelThreads();
-    virtual UINT32  CommandThread();
-    virtual UINT32  ResponseThread();
+    BOOL Initialize();
+    BOOL StartChannelThreads();
+    BOOL StopChannelThreads();
+    virtual UINT32 CommandThread();
+    virtual UINT32 ResponseThread();
 
-    BOOL            SendModemConfigurationCommands(eComInitIndex eInitIndex);
+    BOOL AddSilo(CSilo *pSilo);
+
+    // Channel init command string functions
+    BOOL SendModemConfigurationCommands(eComInitIndex eInitIndex);
+    char* GetBasicInitCmd() { return m_szChannelBasicInitCmd; }
+    char* GetUnlockInitCmd() { return m_szChannelUnlockInitCmd; }
 
     // Public port interface
-    virtual BOOL    OpenPort() = 0;
-    BOOL            InitPort();
-    BOOL            ClosePort();
-    int             GetFD() { return m_Port.GetFD(); };
+    virtual BOOL OpenPort() = 0;
+    BOOL InitPort();
+    BOOL ClosePort();
+    int GetFD() { return m_Port.GetFD(); }
 
-    UINT32          GetRilChannel() const { return m_uiRilChannel; };
+    UINT32 GetRilChannel() const { return m_uiRilChannel; }
 
     //  Public framework functions
-    void            ClearCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = FALSE; };
+    void ClearCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = FALSE; }
 
-    BOOL            BlockReadThread();
-    BOOL            UnblockReadThread();
+    BOOL BlockReadThread();
+    BOOL UnblockReadThread();
 
     //  Public interfaces to notify all silos.
-    BOOL            ParseUnsolicitedResponse(CResponse*
-                                       const pResponse,
-                                       const char*& rszPointer,
-                                       BOOL& fGotoError);
+    BOOL ParseUnsolicitedResponse(CResponse*
+                                const pResponse,
+                                const char*& rszPointer,
+                                BOOL& fGotoError);
 
     //  General public functions
-    BOOL            IsCmdThreadBlockedOnRxQueue() const { return m_bCmdThreadBlockedOnRxQueue; };
-//    BOOL            FWaitingForRsp() const  { return m_fWaitingForRsp; };
+    BOOL IsCmdThreadBlockedOnRxQueue() const { return m_bCmdThreadBlockedOnRxQueue; }
+//    BOOL FWaitingForRsp() const  { return m_fWaitingForRsp; }
 
     /*
      * Goes through Tx queue, finds identical request IDs and completes
@@ -104,64 +109,64 @@ public:
 
 protected:
     //  Init functions
-    virtual BOOL    FinishInit() = 0;
-
-    //  Silo-related functions
-    virtual BOOL    AddSilos() = 0;
-    BOOL            AddSilo(CSilo *pSilo);
+    virtual BOOL FinishInit() = 0;
 
     // Protected port interface for inside of channel class
-    BOOL            WriteToPort(const char* pData, UINT32 uiBytesToWrite, UINT32& ruiBytesWritten);
-    BOOL            ReadFromPort(char* pszReadBuf, UINT32 uiReadBufSize, UINT32& ruiBytesRead);
-    BOOL            IsPortOpen();
-    BOOL            WaitForAvailableData(UINT32 uiTimeout);
+    BOOL WriteToPort(const char* pData, UINT32 uiBytesToWrite, UINT32& ruiBytesWritten);
+    BOOL ReadFromPort(char* pszReadBuf, UINT32 uiReadBufSize, UINT32& ruiBytesRead);
+    BOOL IsPortOpen();
+    BOOL WaitForAvailableData(UINT32 uiTimeout);
 
     //  Framework functions
-    virtual BOOL            SendCommand(CCommand*& rpCmd) = 0;
+    virtual BOOL SendCommand(CCommand*& rpCmd) = 0;
     virtual RIL_RESULT_CODE GetResponse(CCommand*& rpCmd, CResponse*& rpRsp) = 0;
-    virtual BOOL            ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp) = 0;
+    virtual BOOL ParseResponse(CCommand*& rpCmd, CResponse*& rpRsp) = 0;
 
     // Called at end of ResponseThread()
     // Give GPRS response thread a chance to handle Rx data in Data mode
-    virtual BOOL    ProcessModemData(char* szData, UINT32 uiRead) = 0;
+    virtual BOOL ProcessModemData(char* szData, UINT32 uiRead) = 0;
 
     //  Framework helper functions
-    void            SetCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = TRUE; }
-    BOOL            WaitForCommand();
+    void SetCmdThreadBlockedOnRxQueue() { m_bCmdThreadBlockedOnRxQueue = TRUE; }
+    BOOL WaitForCommand();
 
     char* GetTESpecificInitCommands(eComInitIndex eInitIndex);
 
 protected:
     //  Member variables
-    UINT32                          m_uiRilChannel;
+    UINT32 m_uiRilChannel;
 
-    UINT32                          m_bCmdThreadBlockedOnRxQueue : 1;
-    UINT32                          m_bTimeoutWaitingForResponse : 1;
-    UINT32                          m_fWaitingForRsp : 1;
-    UINT32                          m_fLastCommandTimedOut : 1;
-    UINT32                          m_fFinalInitOK : 1;
+    UINT32 m_bCmdThreadBlockedOnRxQueue : 1;
+    UINT32 m_bTimeoutWaitingForResponse : 1;
+    UINT32 m_fWaitingForRsp : 1;
+    UINT32 m_fLastCommandTimedOut : 1;
+    UINT32 m_fFinalInitOK : 1;
 
-    CThread*                        m_pCmdThread;
-    CThread*                        m_pReadThread;
+    CThread* m_pCmdThread;
+    CThread* m_pReadThread;
 
-    CEvent*                         m_pBlockReadThreadEvent;
-    BOOL                            m_bReadThreadBlocked;
+    CEvent* m_pBlockReadThreadEvent;
+    BOOL m_bReadThreadBlocked;
 
-    UINT32                          m_uiLockCommandQueue;
-    UINT32                          m_uiLockCommandQueueTimeout;
+    UINT32 m_uiLockCommandQueue;
+    UINT32 m_uiLockCommandQueueTimeout;
 
-    INITSTRING_DATA*                m_prisdModuleInit;
+    INITSTRING_DATA* m_paInitCmdStrings;
 
-    SILO_CONTAINER                  m_SiloContainer;
+    SILO_CONTAINER m_SiloContainer;
 
-    CPort                           m_Port;
+    CPort m_Port;
 
     //  When closing and opening the port (in case of AT command timeout),
     //  need to ignore possible invalid file descriptor errors while port is
     //  temporarily closed.
-    BOOL                            m_bPossibleInvalidFD;
-    CMutex*                         m_pPossibleInvalidFDMutex;
-    CMutex*                         m_pResponseObjectAccessMutex;
+    BOOL m_bPossibleInvalidFD;
+    CMutex* m_pPossibleInvalidFDMutex;
+    CMutex* m_pResponseObjectAccessMutex;
+
+    // channel init command strings
+    char m_szChannelBasicInitCmd[MAX_BUFFER_SIZE];
+    char m_szChannelUnlockInitCmd[MAX_BUFFER_SIZE];
 };
 
 #endif //RRIL_CHANNEL_H

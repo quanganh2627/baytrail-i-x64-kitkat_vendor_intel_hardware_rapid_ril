@@ -1,24 +1,15 @@
-/* silo_misc.cpp
-**
-** Copyright (C) Intel 2012
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** Description:
-**    Provides response handlers and parsing functions for misc features
-**
-** Author: Frederic Predon <frederic.predon@intel.com>
-*/
+////////////////////////////////////////////////////////////////////////////
+// silo_misc.cpp
+//
+// Copyright 2012 Intrinsyc Software International, Inc.  All rights reserved.
+// Patents pending in the United States of America and other jurisdictions.
+//
+//
+// Description:
+//    Provides response handlers and parsing functions for the misc-related
+//    RIL components.
+//
+/////////////////////////////////////////////////////////////////////////////
 
 #include "types.h"
 #include "rillog.h"
@@ -33,8 +24,8 @@
 
 //
 //
-CSilo_MISC::CSilo_MISC(CChannel* pChannel)
-: CSilo(pChannel)
+CSilo_MISC::CSilo_MISC(CChannel* pChannel, CSystemCapabilities* pSysCaps)
+: CSilo(pChannel, pSysCaps)
 {
     RIL_LOG_VERBOSE("CSilo_MISC::CSilo_MISC() - Enter\r\n");
 
@@ -56,6 +47,21 @@ CSilo_MISC::~CSilo_MISC()
 {
     RIL_LOG_VERBOSE("CSilo_MISC::~CSilo_MISC() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_MISC::~CSilo_MISC() - Exit\r\n");
+}
+
+char* CSilo_MISC::GetBasicInitString()
+{
+    // misc silo-related channel basic init string
+    const char szMiscBasicInitString[] = "+XGENDATA|+XPOW=0,0,0";
+
+    if (!ConcatenateStringNullTerminate(m_szBasicInitString,
+            MAX_BUFFER_SIZE - strlen(m_szBasicInitString), szMiscBasicInitString))
+    {
+        RIL_LOG_CRITICAL("CSilo_MISC::GetBasicInitString() : Failed to copy basic init "
+                "string!\r\n");
+        return NULL;
+    }
+    return m_szBasicInitString;
 }
 
 

@@ -16,20 +16,14 @@
 #include "rillog.h"
 #include "channelbase.h"
 #include "channel_atcmd.h"
-#include "silo_factory.h"
-#include "te.h"
 
 extern char* g_szCmdPort;
 extern BOOL  g_bIsSocket;
 
-//  Com init strings for this channel.
+// Init strings for this channel.
 //  Call control commands, misc commands
 
-INITSTRING_DATA* ATCmdBasicInitString;
-
-INITSTRING_DATA ATCmdDefBasicInitString = { "E0V1Q0X4|+CMEE=1|S0=0" };
-INITSTRING_DATA* ATCmdUnlockInitString;
-INITSTRING_DATA ATCmdDefUnlockInitString = { "" };
+// Add any init cmd strings for this channel during PowerOn or Ready boot phase
 INITSTRING_DATA ATCmdPowerOnInitString = { "" };
 INITSTRING_DATA ATCmdReadyInitString = { "" };
 
@@ -43,10 +37,9 @@ CChannel_ATCmd::CChannel_ATCmd(UINT32 uiChannel)
 CChannel_ATCmd::~CChannel_ATCmd()
 {
     RIL_LOG_VERBOSE("CChannel_ATCmd::~CChannel_ATCmd() - Enter\r\n");
-    delete []m_prisdModuleInit;
+    delete[] m_paInitCmdStrings;
     RIL_LOG_VERBOSE("CChannel_ATCmd::~CChannel_ATCmd() - Exit\r\n");
-    m_prisdModuleInit = NULL;
-
+    m_paInitCmdStrings = NULL;
 }
 
 //  Override from base class
@@ -71,100 +64,24 @@ BOOL CChannel_ATCmd::FinishInit()
     RIL_LOG_VERBOSE("CChannel_ATCmd::FinishInit() - Enter\r\n");
     BOOL bRet = FALSE;
 
-    //  Init our channel AT init commands.
-    m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
-    if (!m_prisdModuleInit)
+    // Init our channel AT init commands.
+    m_paInitCmdStrings = new INITSTRING_DATA[COM_MAX_INDEX];
+    if (!m_paInitCmdStrings)
     {
         RIL_LOG_CRITICAL("CChannel_ATCmd::FinishInit() : chnl=[%d] Could not create new "
                 "INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
-    ATCmdBasicInitString  = &ATCmdDefBasicInitString;
-    ATCmdUnlockInitString = &ATCmdDefUnlockInitString;
+    // Set the init command strings for this channel
+    m_paInitCmdStrings[COM_BASIC_INIT_INDEX].szCmd = m_szChannelBasicInitCmd;
+    m_paInitCmdStrings[COM_UNLOCK_INIT_INDEX].szCmd = m_szChannelUnlockInitCmd;
 
-    m_prisdModuleInit[COM_BASIC_INIT_INDEX]     = *ATCmdBasicInitString;
-    m_prisdModuleInit[COM_UNLOCK_INIT_INDEX]    = *ATCmdUnlockInitString;
-    m_prisdModuleInit[COM_POWER_ON_INIT_INDEX]  = ATCmdPowerOnInitString;
-    m_prisdModuleInit[COM_READY_INIT_INDEX]     = ATCmdReadyInitString;
+    m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX] = ATCmdPowerOnInitString;
+    m_paInitCmdStrings[COM_READY_INIT_INDEX] = ATCmdReadyInitString;
 
     bRet = TRUE;
-
 Error:
     RIL_LOG_VERBOSE("CChannel_ATCmd::FinishInit() - Exit\r\n");
     return bRet;
 }
-
-//
-//  Add silos with this channel.
-//  Note that the CChannel destructor will destroy these CSilo objects.
-//
-BOOL CChannel_ATCmd::AddSilos()
-{
-    RIL_LOG_VERBOSE("CChannel_ATCmd::AddSilos() - Enter\r\n");
-    BOOL bRet = FALSE;
-
-    //  ATCmd channel contains 6 silos:
-    //     Voice Silo
-    //     Network Silo
-    //     SMS Silo
-    //     Phonebook Silo
-    //     SIM Silo
-    //     MISC Silo
-    CSilo* pSilo = NULL;
-
-
-    pSilo = CSilo_Factory::GetSiloVoice(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_Voice\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloNetwork(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_Network\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloSMS(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_SMS\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloSIM(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_SIM\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloPhonebook(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloMISC(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_ATCmd::AddSilos() : chnl=[%d] Could not add CSilo_MISC\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    bRet = TRUE;
-Error:
-    RIL_LOG_VERBOSE("CChannel_ATCmd::AddSilos() - Exit\r\n");
-    return bRet;
-}
-

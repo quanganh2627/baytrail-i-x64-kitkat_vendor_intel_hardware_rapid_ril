@@ -88,8 +88,10 @@ public:
     int GetHSIChannel() { return m_hsiChannel; };
     BOOL IsHSIDirect() { return m_hsiDirect; };
 
-private:
+    char* GetModemResourceName() { return m_szModemResourceName; }
+    int GetIpcDataChannelMin() { return m_ipcDataChannelMin; }
 
+private:
     int m_dataFailCause;
     UINT32 m_uiContextID;
     int m_dataState;
@@ -117,10 +119,11 @@ private:
     BOOL m_hsiDirect;
     int m_hsiChannel;
 
+    char m_szModemResourceName[MAX_MDM_RESOURCE_NAME_SIZE];
+    int m_ipcDataChannelMin;
+
 protected:
     BOOL FinishInit();
-    BOOL AddSilos();
-
 };
 
 #endif  // RIL_CHANNEL_DATA_H

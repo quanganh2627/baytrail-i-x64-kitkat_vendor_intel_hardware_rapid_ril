@@ -35,7 +35,7 @@
 class CSilo_Data : public CSilo
 {
 public:
-    CSilo_Data(CChannel *pChannel);
+    CSilo_Data(CChannel *pChannel, CSystemCapabilities* pSysCaps);
     virtual ~CSilo_Data();
 
 protected:

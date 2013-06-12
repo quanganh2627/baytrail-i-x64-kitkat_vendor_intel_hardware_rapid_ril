@@ -42,20 +42,15 @@ LOCAL_SRC_FILES:= \
     response.cpp \
     request_info_table.cpp \
     thread_manager.cpp \
-    ND/silo_factory.cpp \
     ND/nd_util.cpp \
+    ND/MODEMS/initializer.cpp \
+    ND/MODEMS/init6260.cpp \
+    ND/MODEMS/init6360.cpp \
+    ND/MODEMS/init7160.cpp \
     ND/MODEMS/data_util.cpp \
     ND/MODEMS/te_xmm6260.cpp \
     ND/MODEMS/te_xmm6360.cpp \
-    ND/MODEMS/te_xmm7160.cpp \
-    ND/MODEMS/silo_voice_inf.cpp \
-    ND/MODEMS/silo_sim_inf.cpp \
-    ND/MODEMS/silo_sms_inf.cpp \
-    ND/MODEMS/silo_data_inf.cpp \
-    ND/MODEMS/silo_network_inf.cpp \
-    ND/MODEMS/silo_phonebook_inf.cpp \
-    ND/MODEMS/silo_misc_inf.cpp \
-    ND/MODEMS/silo_ims_inf.cpp
+    ND/MODEMS/te_xmm7160.cpp
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli
 

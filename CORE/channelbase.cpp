@@ -39,7 +39,7 @@ CChannelBase::CChannelBase(UINT32 uiChannel)
     m_bReadThreadBlocked(TRUE),
     m_uiLockCommandQueue(0),
     m_uiLockCommandQueueTimeout(0),
-    m_prisdModuleInit(NULL),
+    m_paInitCmdStrings(NULL),
     m_bPossibleInvalidFD(FALSE),
     m_pPossibleInvalidFDMutex(NULL),
     m_pResponseObjectAccessMutex(NULL)
@@ -47,6 +47,13 @@ CChannelBase::CChannelBase(UINT32 uiChannel)
     RIL_LOG_VERBOSE("CChannelBase::CChannelBase() - Enter\r\n");
 
     memset(&m_SiloContainer, 0, sizeof(SILO_CONTAINER));
+
+    m_szChannelBasicInitCmd[0] = '\0';
+    m_szChannelUnlockInitCmd[0] = '\0';
+
+    // default init string sent to all channels
+    ConcatenateStringNullTerminate(m_szChannelUnlockInitCmd,
+            MAX_BUFFER_SIZE - strlen(m_szChannelUnlockInitCmd), "E0V1Q0X4|+CMEE=1|S0=0");
 
     RIL_LOG_VERBOSE("CChannelBase::CChannelBase() - Exit\r\n");
 }
@@ -100,26 +107,26 @@ CChannelBase::~CChannelBase()
 }
 
 //
-//  Init our channel.
+// Initialize a channel
 //
-BOOL CChannelBase::InitChannel()
+BOOL CChannelBase::Initialize()
 {
-    RIL_LOG_VERBOSE("CChannelBase::InitChannel() - Enter\r\n");
+    RIL_LOG_VERBOSE("CChannelBase::Initialize() - Enter\r\n");
     BOOL bResult = FALSE;
 
     if (m_uiRilChannel >= g_uiRilChannelCurMax)
     {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] Channel is invalid!\r\n",
+        RIL_LOG_CRITICAL("CChannelBase::Initialize() - chnl=[%d] Channel is invalid!\r\n",
                 m_uiRilChannel);
-        goto Done;
+        goto Error;
     }
 
     m_pBlockReadThreadEvent = new CEvent(NULL, TRUE, TRUE);
     if (!m_pBlockReadThreadEvent)
     {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] Failed to create block read"
+        RIL_LOG_CRITICAL("CChannelBase::Initialize() - chnl=[%d] Failed to create block read"
                 " thread event!\r\n", m_uiRilChannel);
-        goto Done;
+        goto Error;
     }
     // Unblock read thread by default.
     UnblockReadThread();
@@ -127,35 +134,29 @@ BOOL CChannelBase::InitChannel()
     m_pPossibleInvalidFDMutex = new CMutex();
     if (!m_pPossibleInvalidFDMutex)
     {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] Failed to create"
+        RIL_LOG_CRITICAL("CChannelBase::Initialize() - chnl=[%d] Failed to create"
                 " m_pPossibleInvalidFDMutex!\r\n", m_uiRilChannel);
-        goto Done;
+        goto Error;
     }
 
     m_pResponseObjectAccessMutex = new CMutex();
     if (!m_pResponseObjectAccessMutex)
     {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%u] Failed to create "
+        RIL_LOG_CRITICAL("CChannelBase::Initialize() - chnl=[%u] Failed to create "
                 "m_pResponseObjectAccessMutex!\r\n", m_uiRilChannel);
-        goto Done;
+        goto Error;
     }
 
     if (!FinishInit())
     {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() - chnl=[%d] this->FinishInit() failed!\r\n",
+        RIL_LOG_CRITICAL("CChannelBase::Initialize() - chnl=[%d] FinishInit() failed!\r\n",
                 m_uiRilChannel);
-        goto Done;
-    }
-
-    if (!AddSilos())
-    {
-        RIL_LOG_CRITICAL("CChannelBase::InitChannel() -"
-                " chnl=[%d] this->RegisterSilos() failed!\r\n", m_uiRilChannel);
-        goto Done;
+        goto Error;
     }
 
     bResult = TRUE;
-Done:
+
+Error:
     if (!bResult)
     {
         delete m_pBlockReadThreadEvent;
@@ -167,7 +168,8 @@ Done:
         delete m_pResponseObjectAccessMutex;
         m_pResponseObjectAccessMutex = NULL;
     }
-    RIL_LOG_VERBOSE("CChannelBase::InitChannel() - Exit\r\n");
+
+    RIL_LOG_VERBOSE("CChannelBase::Initialize() - Exit\r\n");
     return bResult;
 }
 
@@ -372,7 +374,6 @@ BOOL CChannelBase::StopChannelThreads()
     return bResult;
 }
 
-
 void CChannelBase::ClearCommandQueue()
 {
     RIL_LOG_VERBOSE("CChannelBase::ClearCommandQueue() - Enter\r\n");
@@ -506,7 +507,8 @@ Done:
 
 BOOL CChannelBase::WaitForCommand()
 {
-    CEvent* rpEvents[] = {g_TxQueueEvent[m_uiRilChannel], CSystemManager::GetCancelEvent()};
+    CEvent* pCancelWaitEvent = CSystemManager::GetInstance().GetCancelWaitEvent();
+    CEvent* rpEvents[] = { g_TxQueueEvent[m_uiRilChannel], pCancelWaitEvent };
     UINT32 uiRet = WAIT_EVENT_0_SIGNALED;
 
     CEvent::Reset(g_TxQueueEvent[m_uiRilChannel]);
@@ -591,9 +593,9 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         goto Done;
     }
 
-    if (NULL == m_prisdModuleInit)
+    if (NULL == m_paInitCmdStrings)
     {
-        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : m_prisdModuleInit was"
+        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : m_paInitCmdStrings was"
                 " NULL!\r\n");
         goto Done;
     }
@@ -628,17 +630,17 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 
     // Add the hard-coded Init Commands to the Init String
 
-    if (NULL == m_prisdModuleInit[eInitIndex].szCmd)
+    if (NULL == m_paInitCmdStrings[eInitIndex].szCmd)
     {
         RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                " m_prisdModuleInit[%d].szCmd was NULL!\r\n", eInitIndex);
+                " m_paInitCmdStrings[%d].szCmd was NULL!\r\n", eInitIndex);
         goto Done;
     }
 
-    if (m_prisdModuleInit[eInitIndex].szCmd[0])
+    if (m_paInitCmdStrings[eInitIndex].szCmd[0])
     {
         if (!ConcatenateStringNullTerminate(szInit, szInitLen,
-                m_prisdModuleInit[eInitIndex].szCmd))
+                m_paInitCmdStrings[eInitIndex].szCmd))
         {
             RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szCmd failed"
                     "  eInitIndex=[%d]r\n", eInitIndex);
@@ -889,7 +891,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, pInitCommands))
             {
                 RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concatenate"
-                        "DataPath failed\r\n");
+                        " DataPath failed\r\n");
                 bSuccess = FALSE;
             }
 

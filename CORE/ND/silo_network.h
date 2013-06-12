@@ -31,8 +31,10 @@
 class CSilo_Network : public CSilo
 {
 public:
-    CSilo_Network(CChannel *pChannel);
+    CSilo_Network(CChannel *pChannel, CSystemCapabilities* pSysCaps);
     virtual ~CSilo_Network();
+
+    virtual char* GetURCInitString();
 
 protected:
     enum SILO_NETWORK_REGISTRATION_TYPES

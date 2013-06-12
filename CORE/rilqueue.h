@@ -183,76 +183,90 @@ BOOL CRilQueue<Object>::Enqueue(const Object& rObj, UINT32 uiPriority,
         m_pFront = newNode;
         m_pBack = newNode;
     }
-    else if (bFront)
-    {
-        ListNode* temp = m_pFront;
-        ListNode* newNode = new ListNode(rObj, uiPriority);
-        if (NULL == newNode)
-        {
-            RIL_LOG_CRITICAL("CRilQueue::Enqueue() - Cannot allocate memory new ListNode"
-                    " - front\r\n");
-            goto Error;
-        }
-        newNode->m_pNext = temp;
-        m_pFront = newNode;
-    }
     else
     {
-        if (m_uiMinPriority == uiPriority)
+        ListNode* node;
+        // check for existing object before inserting
+        for (node = m_pFront; node != NULL; node = node->m_pNext)
         {
+            if (rObj == node->m_Element)
+            {
+                RIL_LOG_WARNING("CRilQueue::Enqueue() - Existing object found in queue\r\n");
+                return true;
+            }
+        }
+
+        if (bFront)
+        {
+            ListNode* temp = m_pFront;
             ListNode* newNode = new ListNode(rObj, uiPriority);
             if (NULL == newNode)
             {
                 RIL_LOG_CRITICAL("CRilQueue::Enqueue() - Cannot allocate memory new ListNode"
-                        " - min priority\r\n");
+                        " - front\r\n");
                 goto Error;
             }
-            m_pBack->m_pNext = newNode;
-            m_pBack = newNode;
+            newNode->m_pNext = temp;
+            m_pFront = newNode;
         }
         else
         {
-            ListNode* node;
-            ListNode* previous;
-            for (previous = node = m_pFront;
-                 node != NULL && node->m_uiPriority >= uiPriority;
-                 previous = node, node = node->m_pNext);
-            if (NULL == node)
+            if (m_uiMinPriority == uiPriority)
             {
-                //  Insert at end of queue.
                 ListNode* newNode = new ListNode(rObj, uiPriority);
                 if (NULL == newNode)
                 {
                     RIL_LOG_CRITICAL("CRilQueue::Enqueue() - Cannot allocate memory new ListNode"
-                            " - end\r\n");
+                            " - min priority\r\n");
                     goto Error;
                 }
                 m_pBack->m_pNext = newNode;
                 m_pBack = newNode;
             }
-            else if (m_pFront == node)
-            {
-                //  Insert in front of queue.
-                ListNode* newNode = new ListNode(rObj, uiPriority, m_pFront);
-                if (NULL == newNode)
-                {
-                    RIL_LOG_CRITICAL("CRilQueue::Enqueue() - Cannot allocate memory new ListNode"
-                            " - front\r\n");
-                    goto Error;
-                }
-                m_pFront = newNode;
-            }
             else
             {
-                //  Insert in middle of queue.
-                ListNode* newNode = new ListNode(rObj, uiPriority, node);
-                if (NULL == newNode)
+                ListNode* node;
+                ListNode* previous;
+                for (previous = node = m_pFront;
+                     node != NULL && node->m_uiPriority >= uiPriority;
+                     previous = node, node = node->m_pNext);
+                if (NULL == node)
                 {
-                    RIL_LOG_CRITICAL("CRilQueue::Enqueue() - Cannot allocate memory new ListNode"
-                            " - middle\r\n");
-                    goto Error;
+                    //  Insert at end of queue.
+                    ListNode* newNode = new ListNode(rObj, uiPriority);
+                    if (NULL == newNode)
+                    {
+                        RIL_LOG_CRITICAL("CRilQueue::Enqueue() - Cannot allocate memory new "
+                                "ListNode - end\r\n");
+                        goto Error;
+                    }
+                    m_pBack->m_pNext = newNode;
+                    m_pBack = newNode;
                 }
-                previous->m_pNext = newNode;
+                else if (m_pFront == node)
+                {
+                    //  Insert in front of queue.
+                    ListNode* newNode = new ListNode(rObj, uiPriority, m_pFront);
+                    if (NULL == newNode)
+                    {
+                        RIL_LOG_CRITICAL("CRilQueue::Enqueue() - Cannot allocate memory new "
+                                "ListNode - front\r\n");
+                        goto Error;
+                    }
+                    m_pFront = newNode;
+                }
+                else
+                {
+                    //  Insert in middle of queue.
+                    ListNode* newNode = new ListNode(rObj, uiPriority, node);
+                    if (NULL == newNode)
+                    {
+                        RIL_LOG_CRITICAL("CRilQueue::Enqueue() - Cannot allocate memory new "
+                                "ListNode - middle\r\n");
+                        goto Error;
+                    }
+                    previous->m_pNext = newNode;
+                }
             }
         }
     }

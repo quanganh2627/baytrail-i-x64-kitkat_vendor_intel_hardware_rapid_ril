@@ -17,7 +17,6 @@
 #include "command.h"
 #include "response.h"
 #include "cmdcontext.h"
-#include "rildmain.h"
 #include "reset.h"
 #include "channel_nd.h"
 #include "te.h"
@@ -130,7 +129,7 @@ BOOL IsReqIDAbortable(UINT32 reqID)
 }
 
 //
-// Send an RIL command
+// Send a RIL command
 //
 BOOL CChannel::SendCommand(CCommand*& rpCmd)
 {
@@ -160,15 +159,6 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
     {
         // noop operation
         if (!ProcessNoop(pResponse))
-            goto Error;
-    }
-    //  Feb 10/2011 - No need to check for this in this Infineon modem.  This modem is always
-    //                responsive to AT commands.  However, if modem is being reset then
-    //                possibly need to spoof responses.
-    else if ( /*g_RadioState.IsRadioOff() && !rpCmd->IsHighPriority() */ FALSE )
-    {
-        // cannot send command as radio is off
-        if (!RejectRadioOff(pResponse))
             goto Error;
     }
     else
@@ -805,26 +795,6 @@ BOOL CChannel::ProcessNoop(CResponse*& rpResponse)
     return TRUE;
 }
 
-BOOL CChannel::RejectRadioOff(CResponse*& rpResponse)
-{
-    // the radio is off and this command cannot be sent
-    // in the current state
-
-    // allocate a new response
-    rpResponse = new CResponse(this);
-    if (NULL == rpResponse)
-    {
-        // signal critical error for low memory
-        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__);
-        return FALSE;
-    }
-
-    rpResponse->SetResultCode(RIL_E_RADIO_NOT_AVAILABLE);
-    rpResponse->SetUnsolicitedFlag(FALSE);
-
-    return TRUE;
-}
-
 //
 // Handle response to an AT command
 //
@@ -1073,7 +1043,8 @@ RIL_RESULT_CODE CChannel::ReadQueue(CResponse*& rpResponse, UINT32 uiTimeout)
 
     if (g_pRxQueue[m_uiRilChannel]->IsEmpty())
     {
-        CEvent* rgpEvents[] = {g_RxQueueEvent[m_uiRilChannel], CSystemManager::GetCancelEvent()};
+        CEvent* pCancelWaitEvent = CSystemManager::GetInstance().GetCancelWaitEvent();
+        CEvent* rgpEvents[] = {g_RxQueueEvent[m_uiRilChannel], pCancelWaitEvent};
 
         // wait for response
         //RIL_LOG_INFO("CChannel::ReadQueue() - QUEUE EMPTY, WAITING FOR RxQueueEvent...\r\n");

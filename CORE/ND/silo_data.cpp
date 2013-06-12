@@ -28,8 +28,8 @@
 
 //
 //
-CSilo_Data::CSilo_Data(CChannel* pChannel)
-: CSilo(pChannel)
+CSilo_Data::CSilo_Data(CChannel* pChannel, CSystemCapabilities* pSysCaps)
+: CSilo(pChannel, pSysCaps)
 {
     RIL_LOG_VERBOSE("CSilo_Data::CSilo_Data() - Enter\r\n");
 

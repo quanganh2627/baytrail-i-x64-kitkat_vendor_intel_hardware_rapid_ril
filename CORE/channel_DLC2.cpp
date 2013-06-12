@@ -15,16 +15,15 @@
 #include "types.h"
 #include "rillog.h"
 #include "channelbase.h"
-#include "silo_factory.h"
 #include "channel_DLC2.h"
 
 extern char* g_szDLC2Port;
 extern BOOL  g_bIsSocket;
 
-//  Com init strings for this channel.
+// Init strings for this channel.
 //  GPRS/UMTS management (GPRS attach/detach), network commands
-INITSTRING_DATA DLC2BasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0" };
-INITSTRING_DATA DLC2UnlockInitString  = { "" };
+
+// Add any init cmd strings for this channel during PowerOn or Ready boot phase
 INITSTRING_DATA DLC2PowerOnInitString = { "" };
 INITSTRING_DATA DLC2ReadyInitString   = { "" };
 
@@ -38,8 +37,8 @@ CChannel_DLC2::CChannel_DLC2(UINT32 uiChannel)
 CChannel_DLC2::~CChannel_DLC2()
 {
     RIL_LOG_VERBOSE("CChannel_DLC2::~CChannel_DLC2() - Enter\r\n");
-    delete []m_prisdModuleInit;
-    m_prisdModuleInit = NULL;
+    delete[] m_paInitCmdStrings;
+    m_paInitCmdStrings = NULL;
     RIL_LOG_VERBOSE("CChannel_DLC2::~CChannel_DLC2() - Exit\r\n");
 }
 
@@ -65,86 +64,23 @@ BOOL CChannel_DLC2::FinishInit()
     BOOL bRet = FALSE;
 
     //  Init our channel AT init commands.
-    m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
-    if (!m_prisdModuleInit)
+    m_paInitCmdStrings = new INITSTRING_DATA[COM_MAX_INDEX];
+    if (!m_paInitCmdStrings)
     {
         RIL_LOG_CRITICAL("CChannel_DLC2::FinishInit() - chnl=[%d] Could not create new "
                 "INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
-    m_prisdModuleInit[COM_BASIC_INIT_INDEX]     = DLC2BasicInitString;
-    m_prisdModuleInit[COM_UNLOCK_INIT_INDEX]    = DLC2UnlockInitString;
-    m_prisdModuleInit[COM_POWER_ON_INIT_INDEX]  = DLC2PowerOnInitString;
-    m_prisdModuleInit[COM_READY_INIT_INDEX]     = DLC2ReadyInitString;
+    // Set the init command strings for this channel
+    m_paInitCmdStrings[COM_BASIC_INIT_INDEX].szCmd = m_szChannelBasicInitCmd;
+    m_paInitCmdStrings[COM_UNLOCK_INIT_INDEX].szCmd = m_szChannelUnlockInitCmd;
+
+    m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX] = DLC2PowerOnInitString;
+    m_paInitCmdStrings[COM_READY_INIT_INDEX] = DLC2ReadyInitString;
 
     bRet = TRUE;
 Error:
     RIL_LOG_VERBOSE("CChannel_DLC2::FinishInit() - Exit\r\n");
     return bRet;
 }
-
-//
-//  Add silos with this channel.
-//  Note that the CChannel destructor will destroy these CSilo objects.
-//
-BOOL CChannel_DLC2::AddSilos()
-{
-    RIL_LOG_VERBOSE("CChannel_DLC2::AddSilos() - Enter\r\n");
-    BOOL bRet = FALSE;
-
-    //  DLC2 channel contains 5 silos:
-    //     Voice Silo
-    //     Network Silo
-    //     SMS Silo
-    //     Phonebook Silo
-    //     SIM Silo
-    CSilo* pSilo = NULL;
-
-
-    pSilo = CSilo_Factory::GetSiloVoice(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_Voice\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloNetwork(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_Network\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloSMS(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_SMS\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloSIM(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_SIM\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloPhonebook(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_DLC2::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    bRet = TRUE;
-Error:
-    RIL_LOG_VERBOSE("CChannel_DLC2::AddSilos() - Exit\r\n");
-    return bRet;
-}
-

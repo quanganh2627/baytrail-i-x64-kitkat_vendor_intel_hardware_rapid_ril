@@ -23,6 +23,7 @@
 
 class CChannel_Data;
 class CTE;
+class CInitializer;
 
 class CTEBase
 {
@@ -30,6 +31,7 @@ protected:
     CTE& m_cte;
     char m_cTerminator;
     char m_szNewLine[3];
+    CInitializer* m_pInitializer;
     char m_szNetworkInterfaceNamePrefix[MAX_BUFFER_SIZE];
     int m_nNetworkRegistrationType;  //  0 = automatic, 1 = manual
     char m_szManualMCCMNC[MAX_BUFFER_SIZE];  //  If manual, this holds the MCCMNC string.
@@ -47,15 +49,14 @@ protected:
     P_ND_PDP_CONTEXT_DATA m_pPDPListData;
 
 public:
-
     CTEBase(CTE& cte);
     virtual ~CTEBase();
 
 private:
-
     CTEBase();
 
 public:
+    virtual CInitializer* GetInitializer() = 0;
 
     //
     // Member buffer contains ip addresses separated by blank.
