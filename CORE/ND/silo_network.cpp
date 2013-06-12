@@ -905,7 +905,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             if (GetContextIdFromDeact(szStrExtract, uiCID))
             {
                 RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT CID- %u", uiCID);
-                CTE::GetTE().DataConfigDown(uiCID);
             }
         }
         else // Otherwise, must be format for secondary PDP context
@@ -977,7 +976,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         }
 
         CTE::GetTE().RemoveActivatedContext(uiCID);
-        CTE::GetTE().DataConfigDown(uiCID);
     }
     // Format: "NW PDN DEACT, <cid>"
     else if (FindAndSkipString(szStrExtract, "NW PDN DEACT", szStrExtract))
