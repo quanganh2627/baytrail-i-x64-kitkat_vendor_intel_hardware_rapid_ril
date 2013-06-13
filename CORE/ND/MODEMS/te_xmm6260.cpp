@@ -5772,24 +5772,39 @@ void CTE_XMM6260::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
 
     pChannelData->GetDataCallInfo(sDataCallInfo);
 
-    snprintf(szDNS, MAX_BUFFER_SIZE-1, "%s %s %s %s",
-                        sDataCallInfo.szDNS1, sDataCallInfo.szDNS2,
-                        sDataCallInfo.szIpV6DNS1, sDataCallInfo.szIpV6DNS2);
-    szDNS[MAX_BUFFER_SIZE-1] = '\0';
+    if (0 == strcmp(sDataCallInfo.szPdpType, "IPV4"))
+    {
+        PrintStringNullTerminate(szIPAddress, MAX_BUFFER_SIZE, "%s",
+                sDataCallInfo.szIpAddr1);
 
-    snprintf(szIPAddress, MAX_BUFFER_SIZE-1, "%s %s",
-                    sDataCallInfo.szIpAddr1, sDataCallInfo.szIpAddr2);
-    szIPAddress[MAX_BUFFER_SIZE-1] = '\0';
+        PrintStringNullTerminate(szDNS, MAX_BUFFER_SIZE, "%s %s",
+                sDataCallInfo.szDNS1, sDataCallInfo.szDNS2);
+    }
+    else if (0 == strcmp(sDataCallInfo.szPdpType, "IPV6"))
+    {
+        PrintStringNullTerminate(szIPAddress, MAX_BUFFER_SIZE, "%s",
+                sDataCallInfo.szIpAddr2);
 
-    strncpy(szGateway, sDataCallInfo.szGateways, MAX_IPADDR_SIZE-1);
-    szGateway[MAX_IPADDR_SIZE-1] = '\0';
+        PrintStringNullTerminate(szDNS, MAX_BUFFER_SIZE, "%s %s",
+                sDataCallInfo.szIpV6DNS1, sDataCallInfo.szIpV6DNS2);
+    }
+    else if (0 == strcmp(sDataCallInfo.szPdpType, "IPV4V6"))
+    {
+        PrintStringNullTerminate(szIPAddress, MAX_BUFFER_SIZE, "%s %s",
+                sDataCallInfo.szIpAddr1, sDataCallInfo.szIpAddr2);
 
-    strncpy(szPdpType, sDataCallInfo.szPdpType, MAX_PDP_TYPE_SIZE-1);
-    szPdpType[MAX_PDP_TYPE_SIZE-1] = '\0';
+        PrintStringNullTerminate(szDNS, MAX_BUFFER_SIZE, "%s %s %s %s",
+                sDataCallInfo.szDNS1, sDataCallInfo.szDNS2,
+                sDataCallInfo.szIpV6DNS1, sDataCallInfo.szIpV6DNS2);
+    }
 
-    strncpy(szInterfaceName, sDataCallInfo.szInterfaceName,
-                                            MAX_INTERFACE_NAME_SIZE-1);
-    szInterfaceName[MAX_INTERFACE_NAME_SIZE-1] = '\0';
+
+    CopyStringNullTerminate(szGateway, sDataCallInfo.szGateways, MAX_IPADDR_SIZE);
+
+    CopyStringNullTerminate(szPdpType, sDataCallInfo.szPdpType, MAX_PDP_TYPE_SIZE);
+
+    CopyStringNullTerminate(szInterfaceName, sDataCallInfo.szInterfaceName,
+            MAX_INTERFACE_NAME_SIZE);
 
     dataCallResp.status = sDataCallInfo.failCause;
     dataCallResp.suggestedRetryTime = -1;

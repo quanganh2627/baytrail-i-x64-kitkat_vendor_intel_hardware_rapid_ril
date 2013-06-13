@@ -62,8 +62,6 @@ public:
     virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA& rRspData);
     virtual void PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
-    virtual void HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken);
-
     // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
     virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             void* pData, UINT32 uiDataSize);
