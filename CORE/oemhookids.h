@@ -337,6 +337,41 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_MT_CLASS_IND
 //
 const int RIL_OEM_HOOK_RAW_UNSOL_MT_CLASS_IND = 0x000000D4;
 
+///////////////////////////////////////////////////////////////////////////////
+
+const int CRASHTOOL_NAME_SIZE         = 64;
+const int CRASHTOOL_NB_DATA           = 6;
+const int CRASHTOOL_BUFFER_SIZE       = 255;
+const int CRASHTOOL_LARGE_BUFFER_SIZE = 512;
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND
+{
+    int command;        // Command ID
+    int type;           // Event type (INFO, ERROR, STAT)
+    int nameSize;
+    char name[CRASHTOOL_NAME_SIZE];     // Event name
+    int dataSize[CRASHTOOL_NB_DATA];    // Real size of data0 to data5
+    char data0[CRASHTOOL_BUFFER_SIZE];  // Data size are based on the crashtool database
+    char data1[CRASHTOOL_BUFFER_SIZE];
+    char data2[CRASHTOOL_LARGE_BUFFER_SIZE];
+    char data3[CRASHTOOL_BUFFER_SIZE];
+    char data4[CRASHTOOL_LARGE_BUFFER_SIZE];
+    char data5[CRASHTOOL_LARGE_BUFFER_SIZE];
+} sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND;
+
+// Constant for the event type
+const int CRASHTOOL_INFO  = 0;
+const int CRASHTOOL_ERROR = 1;
+const int CRASHTOOL_STATS = 3;
+
+//
+//  OEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND
+//  Command ID = 0x000000D5
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_CHRASTOOL_EVENT_IND
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND = 0x000000D5;
+
 #pragma pack()
 
 /***********************************************************************/

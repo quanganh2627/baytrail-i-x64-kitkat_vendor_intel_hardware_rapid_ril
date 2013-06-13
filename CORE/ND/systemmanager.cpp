@@ -49,6 +49,7 @@
 #include "reset.h"
 #include "systemmanager.h"
 
+#include <cutils/properties.h>
 #include <cutils/sockets.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -304,6 +305,8 @@ BOOL CSystemManager::InitializeSystem()
 
     char szModem[MAX_MODEM_NAME_LEN];
     UINT32 uiModemType = MODEM_TYPE_UNKNOWN;
+
+    char szBuildTypeProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     // read the modem type used from repository
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
@@ -666,6 +669,21 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetXDATASTATReporting(iTemp == 1 ? TRUE : FALSE);
     }
 
+    // Call drop reporting is available only for eng or userdebug build
+    if (property_get("ro.build.type", szBuildTypeProperty, NULL))
+    {
+        const char szTypeEng[] = "eng";
+        const char szTypeUserDebug[] = "userdebug";
+        if ((strncmp(szBuildTypeProperty, szTypeEng, strlen(szTypeEng)) == 0)
+                || (strncmp(szBuildTypeProperty, szTypeUserDebug, strlen(szTypeUserDebug)) == 0))
+        {
+            if (repository.Read(g_szGroupLogging, g_szCallDropReporting, iTemp))
+            {
+                CTE::GetTE().SetCallDropReportingState(iTemp == 1 ? TRUE : FALSE);
+            }
+        }
+    }
+
     //  Create and initialize the channels (don't open ports yet)
     if (!InitChannelPorts())
     {
@@ -747,19 +765,33 @@ Done:
 
     if (bRetVal)
     {
-        if (!GetModem())
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : "
-                    "GetModem Resource failed\r\n");
+        char cryptState[PROPERTY_VALUE_MAX] = {'\0'};
+        char voldDecryptState[PROPERTY_VALUE_MAX] = {'\0'};
 
-            CTE::GetTE().SetRestrictedMode(TRUE);
-        }
-        else
+        property_get("ro.crypto.state", cryptState, "");
+        property_get("vold.decrypt", voldDecryptState, "");
+
+        RIL_LOG_INFO("CSystemManager::InitializeSystem() : "
+                "cryptState: %s, decryptState: %s\r\n", cryptState, voldDecryptState);
+
+        if ((0 == strcmp(cryptState, "unencrypted"))
+                || ((0 == strcmp(cryptState, "encrypted"))
+                && (0 == strcmp(voldDecryptState, "trigger_restart_framework"))))
         {
-            RIL_LOG_INFO("CSystemManager::InitializeSystem() : Waiting for "
-                    "System Initialization Complete event\r\n");
-            CTE::GetTE().SetRestrictedMode(FALSE);
-            CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
+            if (!GetModem())
+            {
+                RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : "
+                        "GetModem Resource failed\r\n");
+
+                CTE::GetTE().SetRestrictedMode(TRUE);
+            }
+            else
+            {
+                RIL_LOG_INFO("CSystemManager::InitializeSystem() : Waiting for "
+                        "System Initialization Complete event\r\n");
+                CTE::GetTE().SetRestrictedMode(FALSE);
+                CEvent::Wait(m_pSysInitCompleteEvent, WAIT_FOREVER);
+            }
         }
 
         RIL_LOG_INFO("CSystemManager::InitializeSystem() : Rapid Ril initialization completed\r\n");

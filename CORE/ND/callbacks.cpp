@@ -10,6 +10,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
+#include <stdio.h>
 #include "types.h"
 #include "command.h"
 #include "rildmain.h"
@@ -33,19 +34,15 @@ void triggerRadioOffInd(void* param)
 
 void triggerDataResumedInd(void* param)
 {
-    unsigned char szData[10];
-    int pos = 0;
     const int DATA_RESUMED = 1;
+    sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND data;
 
     CTE::GetTE().SetDataSuspended(FALSE);
 
-    memset(szData, 0, sizeof(szData));
+    data.command = RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND;
+    data.status = DATA_RESUMED;
 
-    convertIntToByteArrayAt(szData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
-    pos += sizeof(int);
-    convertIntToByteArrayAt(szData, DATA_RESUMED, pos);
-
-    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, szData,
+    RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)&data,
             sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
 }
 
@@ -54,17 +51,13 @@ void triggerDataSuspendInd(void* param)
     if (!CTE::GetTE().IsDataSuspended() || (RADIO_STATE_ON != CTE::GetTE().GetRadioState()))
         return;
 
-    unsigned char szData[10];
-    int pos = 0;
     const int DATA_SUSPENDED = 0;
+    sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND data;
 
-    memset(szData, 0, sizeof(szData));
+    data.command = RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND;
+    data.status = DATA_SUSPENDED;
 
-    convertIntToByteArrayAt(szData, RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND, pos);
-    pos += sizeof(int);
-    convertIntToByteArrayAt(szData, DATA_SUSPENDED, pos);
-
-    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, szData,
+    RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)&data,
             sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
 }
 
@@ -263,3 +256,71 @@ void triggerQueryCEER(void* param)
     }
 }
 
+// [in] param = 1 for mobile release and 0 for network release
+void triggerDropCallEvent(void* param)
+{
+    sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND data;
+    char szBuffer[CRASHTOOL_BUFFER_SIZE];
+
+    BOOL bMobileRelease = (1 == (UINT32)param);
+
+    data.command = RIL_OEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND;
+    data.type = CRASHTOOL_STATS;
+    PrintStringNullTerminate(data.name, CRASHTOOL_NAME_SIZE, "TFT_STAT_CDROP");
+    data.nameSize = strnlen(data.name, CRASHTOOL_NAME_SIZE);
+
+    // Pre-initialize all data size to 0
+    for (int i = 0; i < CRASHTOOL_NB_DATA; i++)
+    {
+        data.dataSize[i] = 0;
+    }
+
+    // See the definition of sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND in
+    // CORE/oemhookids.h for the raw unsol content.
+    if (bMobileRelease)
+    {
+        PrintStringNullTerminate(data.data0, CRASHTOOL_BUFFER_SIZE, "MOBILE RELEASE");
+        data.dataSize[0] = strnlen(data.data0, CRASHTOOL_BUFFER_SIZE);
+    }
+    else
+    {
+        data.dataSize[0] = snprintf(data.data0, CRASHTOOL_BUFFER_SIZE, "%s",
+                CTE::GetTE().GetLastCEER());
+    }
+
+    if (strlen(CTE::GetTE().GetNetworkData(LAST_NETWORK_CREG)) != 0)
+    {
+        data.dataSize[1] = snprintf(data.data1, CRASHTOOL_BUFFER_SIZE, "+CREG: %s;",
+                CTE::GetTE().GetNetworkData(LAST_NETWORK_CREG));
+    }
+
+    if (strlen(CTE::GetTE().GetNetworkData(LAST_NETWORK_XREG)) != 0)
+    {
+        data.dataSize[1] += snprintf(szBuffer, CRASHTOOL_BUFFER_SIZE - data.dataSize[1],
+                "+XREG: %s;", CTE::GetTE().GetNetworkData(LAST_NETWORK_XREG));
+        strncat(data.data1, szBuffer, CRASHTOOL_BUFFER_SIZE);
+    }
+
+    if (strlen(CTE::GetTE().GetNetworkData(LAST_NETWORK_XCSQ)) != 0)
+    {
+        data.dataSize[2] = snprintf(data.data2, CRASHTOOL_LARGE_BUFFER_SIZE, "+XCSQ: %s;",
+                CTE::GetTE().GetNetworkData(LAST_NETWORK_XCSQ));
+    }
+
+    data.dataSize[3] = snprintf(data.data3, CRASHTOOL_BUFFER_SIZE, "%s,%s,%s",
+            CTE::GetTE().GetNetworkData(LAST_NETWORK_OP_NAME_NUMERIC),
+            CTE::GetTE().GetNetworkData(LAST_NETWORK_LAC),
+            CTE::GetTE().GetNetworkData(LAST_NETWORK_CID));
+
+    data.dataSize[4] = snprintf(data.data4, CRASHTOOL_LARGE_BUFFER_SIZE, "%s",
+            CTE::GetTE().GetNetworkData(LAST_NETWORK_OP_NAME_SHORT));
+
+    if (strlen(CTE::GetTE().GetLastXCELLINFO()) != 0)
+    {
+        data.dataSize[5] = snprintf(data.data5, CRASHTOOL_LARGE_BUFFER_SIZE, "+XCELLINFO: %s",
+                        CTE::GetTE().GetLastXCELLINFO());
+    }
+
+    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, (void*)&data,
+            sizeof(sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND));
+}
