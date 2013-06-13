@@ -44,6 +44,12 @@ private:
                                        const char** pszRequest,
                                        const int nNumStrings);
 
+    // RIL_REQUEST_SET_BAND_MODE 65
+    virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA& rReqData,
+                                                       void* pData,
+                                                       UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSetBandMode(RESPONSE_DATA& rRspData);
+
 public:
     // modem overrides
 

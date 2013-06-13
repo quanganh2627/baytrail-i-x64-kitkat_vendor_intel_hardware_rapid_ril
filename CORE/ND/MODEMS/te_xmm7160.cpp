@@ -1216,3 +1216,23 @@ BOOL CTE_XMM7160::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
     RIL_LOG_VERBOSE("CTE_XMM7160::DataConfigDown() EXIT\r\n");
     return TRUE;
 }
+
+//
+// RIL_REQUEST_SET_BAND_MODE 65
+//
+RIL_RESULT_CODE CTE_XMM7160::CoreSetBandMode(REQUEST_DATA& rReqData,
+                                                         void* pData,
+                                                         UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetBandMode() - Enter\r\n");
+    // TODO: Change to +XACT usage when the modem is ready
+    return CTE_XMM6260::CoreSetBandMode(rReqData, pData, uiDataSize);
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseSetBandMode(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseSetBandMode() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseSetBandMode() - Exit\r\n");
+    return res;
+}
