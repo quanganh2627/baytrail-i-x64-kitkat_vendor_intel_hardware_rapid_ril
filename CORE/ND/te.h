@@ -726,9 +726,6 @@ public:
     void SaveCEER(const char* pszData);
     const char* GetLastCEER() { return m_szLastCEER; }
 
-    void SaveXCELLINFO(const char* pszData);
-    const char* GetLastXCELLINFO() { return m_szLastXCELLINFO; }
-
     void SaveNetworkData(LAST_NETWORK_DATA_ID id, const char* pszData);
     const char* GetNetworkData(LAST_NETWORK_DATA_ID id) { return m_szLastNetworkData[id]; }
 
@@ -1169,7 +1166,6 @@ private:
 
     char m_szLastNetworkData[LAST_NETWORK_DATA_COUNT][MAX_NETWORK_DATA_SIZE];
     char m_szLastCEER[255];
-    char m_szLastXCELLINFO[512];
 };
 
 #endif

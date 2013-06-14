@@ -97,7 +97,6 @@ CTE::CTE(UINT32 modemType) :
         m_szLastNetworkData[i][0] = '\0';
     }
     m_szLastCEER[0] = '\0';
-    m_szLastXCELLINFO[0] = '\0';
 
     m_pDtmfStateAccess = new CMutex();
 
@@ -9174,11 +9173,6 @@ void CTE::SaveNetworkData(LAST_NETWORK_DATA_ID id, const char* pszData)
 
     CopyStringNullTerminate(m_szLastNetworkData[id], pszData,
             MAX_NETWORK_DATA_SIZE);
-}
-
-void CTE::SaveXCELLINFO(const char* pszData)
-{
-    CopyStringNullTerminate(m_szLastXCELLINFO, pszData, 512);
 }
 
 RIL_RESULT_CODE CTE::ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData)
