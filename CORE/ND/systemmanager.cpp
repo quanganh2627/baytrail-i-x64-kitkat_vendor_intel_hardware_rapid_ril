@@ -1318,6 +1318,10 @@ BOOL CSystemManager::InitializeModem()
     BOOL bRetVal = TRUE;
     CThread* pModemThread = NULL;
 
+    // Reset the radio powered on and sim unlocked events to start fresh
+    CEvent::Reset(m_pRadioPoweredOnEvent);
+    CEvent::Reset(m_pSimUnlockedEvent);
+
     if (!SendModemInitCommands(COM_BASIC_INIT_INDEX))
     {
         RIL_LOG_CRITICAL("CSystemManager::InitializeModem() -"

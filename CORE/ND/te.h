@@ -1063,6 +1063,8 @@ public:
     void SetCallDropReportingState(BOOL bValue) { m_bCallDropReporting = bValue; };
     BOOL GetCallDropReportingState() { return m_bCallDropReporting; };
 
+    RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
+
 private:
     UINT32 m_uiModemType;
 
@@ -1145,6 +1147,9 @@ private:
 
     // Function to determine whether the SIMIO request is for FDN related SIM files
     BOOL isFDNRequest(int fileId);
+
+    LONG GetCsRegistrationState(char* pCsRegState);
+    LONG GetPsRegistrationState(char* pPsRegState);
 
     // initial value of Modem Autonomous Fast Dormancy (MAFD) mode
     static const int FAST_DORMANCY_MODE_DEFAULT = 2;

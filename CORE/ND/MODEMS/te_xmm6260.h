@@ -54,6 +54,9 @@ public:
 
     virtual RIL_RESULT_CODE ParseEnterSimPin(RESPONSE_DATA& rRspData);
 
+    // RIL_REQUEST_DATA_REGISTRATION_STATE 21
+    virtual RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA& rRspData);
+
     // RIL_REQUEST_SETUP_DATA_CALL 27
     virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
                                                          void* pData,
@@ -235,6 +238,14 @@ public:
 
     virtual BOOL GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
             BOOL bIsModemOffInFlightMode, char* pCmdBuffer, int cmdBufferLen);
+
+protected:
+
+    virtual const char* GetRegistrationInitString();
+    virtual const char* GetPsRegistrationReadString();
+
+    virtual const char* GetScreenOnString();
+    virtual const char* GetScreenOffString();
 
 private:
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,

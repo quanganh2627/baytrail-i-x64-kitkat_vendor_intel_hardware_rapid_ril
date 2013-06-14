@@ -315,6 +315,43 @@ char* CTEBase::GetUnlockInitCommands(UINT32 uiChannelType)
     return NULL;
 }
 
+const char* CTEBase::GetRegistrationInitString()
+{
+    return "+CREG=2|+CGREG=2";
+}
+
+const char* CTEBase::GetCsRegistrationReadString()
+{
+    return "AT+CREG=2;+CREG?;+CREG=0\r";
+}
+
+const char* CTEBase::GetPsRegistrationReadString()
+{
+    return "AT+CGREG=2;+CGREG?;+CGREG=0\r";
+}
+
+const char* CTEBase::GetLocationUpdateString(BOOL bIsLocationUpdateEnabled)
+{
+    return bIsLocationUpdateEnabled ? "AT+CREG=2\r" : "AT+CREG=1\r";
+}
+
+const char* CTEBase::GetScreenOnString()
+{
+    return "AT+CREG=2;+CGREG=2\r";
+}
+
+const char* CTEBase::GetScreenOffString()
+{
+    if (m_cte.IsLocationUpdatesEnabled())
+    {
+        return "AT+CGREG=1\r";
+    }
+    else
+    {
+        return "AT+CREG=1;+CGREG=1\r";
+    }
+}
+
 //
 // RIL_REQUEST_GET_SIM_STATUS 1
 //
@@ -1968,7 +2005,7 @@ RIL_RESULT_CODE CTEBase::CoreRegistrationState(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTEBase::CoreRegistrationState() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CREG=2;+CREG?;+CREG=0\r",
+    if (CopyStringNullTerminate(rReqData.szCmd1, GetCsRegistrationReadString(),
             sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
@@ -2038,7 +2075,7 @@ RIL_RESULT_CODE CTEBase::CoreGPRSRegistrationState(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTEBase::CoreGPRSRegistrationState() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XREG=2;+XREG?;+XREG=0\r",
+    if (CopyStringNullTerminate(rReqData.szCmd1, GetPsRegistrationReadString(),
             sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
@@ -2067,7 +2104,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
     }
     memset(pGPRSRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
-    if (!m_cte.ParseXREG(pszRsp, FALSE, psRegStatus))
+    if (!m_cte.ParseCGREG(pszRsp, FALSE, psRegStatus))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGPRSRegistrationState() - ERROR in parsing response.\r\n");
         goto Error;
@@ -2248,7 +2285,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
                                 " Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
                     }
-                    strncpy(pOpNames->szOpNameLong, szPlmnName, strlen(szPlmnName));
+                    CopyStringNullTerminate(pOpNames->szOpNameLong, szPlmnName, MAX_BUFFER_SIZE);
                     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Long Name: %s\r\n",
                             pOpNames->szOpNameLong);
                 }
@@ -2263,7 +2300,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
                                 " Could not extract the Short Format Operator Name.\r\n");
                         goto Error;
                     }
-                    strncpy(pOpNames->szOpNameShort, szPlmnName, strlen(szPlmnName));
+                    CopyStringNullTerminate(pOpNames->szOpNameShort, szPlmnName, MAX_BUFFER_SIZE);
                     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Short Name: %s\r\n",
                             pOpNames->szOpNameShort);
                 }
@@ -2278,7 +2315,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
                                 " Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
                     }
-                    strncpy(pOpNames->szOpNameNumeric, szPlmnName, strlen(szPlmnName));
+                    CopyStringNullTerminate(pOpNames->szOpNameNumeric, szPlmnName, MAX_BUFFER_SIZE);
                     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Numeric code: %s\r\n",
                             pOpNames->szOpNameNumeric);
                 }
@@ -2504,7 +2541,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
                 CEvent::Wait(CSystemManager::GetModemBasicInitCompleteEvent(),
                         WAIT_TIMEOUT_IN_MS))
         {
-            RIL_LOG_INFO("CTEBase::CoreRadioPower() - Timeout Waiting for"
+            RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - Timeout Waiting for"
                     "modem initialization completion event\r\n");
 
             /*
@@ -5297,26 +5334,16 @@ RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableNetworks() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
-    BOOL bConformance = FALSE;
-
-    property_get("persist.conformance", szConformanceProperty, NULL);
-
-    bConformance =
-            (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX)) ? TRUE : FALSE;
 
     /*
      * Since CS/PS signalling is given higher priority, manual network search may
      * get interrupted by CS/PS signalling from network. In order to get the response in
      * an acceptable time for manual network search, data has to be disabled
      * before starting the manual network search.
-     *
-     * Note: Conformance test 34.123 12.9.6 fails when PS detach is sent.
-     * Instead of sending PS detach, send deactivate all data calls when
-     * conformance property is set.
      */
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            bConformance ? "AT+CGACT=0;+COPS=?\r" : "AT+CGATT=0;+COPS=?\r"))
+    DeactivateAllDataCalls();
+
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS=?\r"))
     {
         res = RRIL_RESULT_OK;
     }
@@ -6357,7 +6384,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         }
 
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szDNS1, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szDNS1, MAX_IPADDR_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract"
                              " Primary DNS.\r\n");
@@ -6365,7 +6392,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         }
 
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szDNS2, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szDNS2, MAX_IPADDR_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract "
                              "Secondary DNS.\r\n");
@@ -6394,7 +6421,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         // Parse ,<P_CSCF_prim_addr>
         // not used yet
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szCSCFPrimAddr, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szCSCFPrimAddr, MAX_IPADDR_SIZE, pszRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - WARNING: Could not extract "
                             "cscfp prim addr.\r\n");
@@ -6404,7 +6431,7 @@ RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
         // Parse ,<P_CSCF_sec_addr>
         // not used yet
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szCSCFSecAddr, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szCSCFSecAddr, MAX_IPADDR_SIZE, pszRsp))
         {
             RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - WARNING: Could not extract "
                             "cscfp sec addr.\r\n");
@@ -7034,8 +7061,7 @@ RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA& rReqData,
     enableLocationUpdates = ((int*)pData)[0];
 
     if (!CopyStringNullTerminate(rReqData.szCmd1,
-            (1 == enableLocationUpdates) ? "AT+CREG=2\r" : "AT+CREG=1\r",
-            sizeof(rReqData.szCmd1)))
+            GetLocationUpdateString(enableLocationUpdates), sizeof(rReqData.szCmd1)))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSetLocationUpdates() - Cannot create command\r\n");
         goto Error;
@@ -9774,6 +9800,57 @@ void CTEBase::PSAttach()
     }
 
     RIL_LOG_VERBOSE("CTEBase::PSAttach() - Exit\r\n");
+}
+
+void CTEBase::DeactivateAllDataCalls()
+{
+    RIL_LOG_VERBOSE("CTEBase::DeactivateAllDataCalls - Enter()\r\n");
+
+    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    BOOL bConformance = FALSE;
+
+    property_get("persist.conformance", szConformanceProperty, NULL);
+
+    bConformance =
+            (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX)) ? TRUE : FALSE;
+
+    /*
+     * Note: Conformance test 34.123 12.9.6 fails when PS detach is sent.
+     * Instead of sending PS detach, send deactivate all data calls when
+     * conformance property is set.
+     */
+    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL], NULL,
+            ND_REQ_ID_DEACTIVATEDATACALL, bConformance ? "AT+CGACT=0\r" : "AT+CGATT=0\r",
+            &CTE::ParseDeactivateAllDataCalls);
+
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::DeactivateAllDataCalls() - Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::DeactivateAllDataCalls() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::DeactivateAllDataCalls - Exit()\r\n");
+}
+
+RIL_RESULT_CODE CTEBase::ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseDeactivateAllDataCalls() - Enter\r\n");
+
+    CleanupAllDataConnections();
+    RIL_onUnsolicitedResponse(RIL_UNSOL_DATA_CALL_LIST_CHANGED, NULL, 0);
+
+    RIL_LOG_VERBOSE("CTEBase::ParseDeactivateAllDataCalls() - Exit\r\n");
+    return RRIL_RESULT_OK;
 }
 
 void CTEBase::SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus)

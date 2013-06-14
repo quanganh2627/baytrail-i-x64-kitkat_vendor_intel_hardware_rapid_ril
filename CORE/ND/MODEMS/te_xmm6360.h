@@ -36,6 +36,7 @@ private:
 
 public:
     // modem overrides
+    virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
 
     virtual BOOL PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
             UINT32 uiDataSize);
@@ -50,6 +51,14 @@ public:
     virtual RIL_RESULT_CODE ParseBasebandVersion(RESPONSE_DATA& rRspData);
 
     virtual RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
+
+protected:
+
+    virtual const char* GetRegistrationInitString();
+    virtual const char* GetCsRegistrationReadString();
+    virtual const char* GetPsRegistrationReadString();
+    virtual const char* GetLocationUpdateString(BOOL bIsLocationUpdateEnabled);
+    virtual const char* GetScreenOnString();
 };
 
 #endif

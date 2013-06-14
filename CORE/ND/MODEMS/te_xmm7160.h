@@ -67,6 +67,12 @@ public:
     virtual BOOL IMSRegister(REQUEST_DATA& rReqData, void* pData,
                                                     UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseIMSRegister(RESPONSE_DATA & rRspData);
+
+protected:
+
+    virtual const char* GetRegistrationInitString();
+    virtual const char* GetScreenOnString();
+    virtual const char* GetScreenOffString();
 };
 
 #endif

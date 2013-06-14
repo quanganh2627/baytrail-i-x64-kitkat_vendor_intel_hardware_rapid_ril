@@ -47,6 +47,60 @@ CTE_XMM6360::~CTE_XMM6360()
 {
 }
 
+const char* CTE_XMM6360::GetRegistrationInitString()
+{
+    return "+CREG=3|+XREG=3";
+}
+
+const char* CTE_XMM6360::GetCsRegistrationReadString()
+{
+    return "AT+CREG=3;+CREG?;+CREG=0\r";
+}
+
+const char* CTE_XMM6360::GetPsRegistrationReadString()
+{
+    return "AT+XREG=3;+XREG?;+XREG=0\r";
+}
+
+const char* CTE_XMM6360::GetLocationUpdateString(BOOL bIsLocationUpdateEnabled)
+{
+    return bIsLocationUpdateEnabled ? "AT+CREG=3\r" : "AT+CREG=1\r";
+}
+
+const char* CTE_XMM6360::GetScreenOnString()
+{
+    return "AT+CREG=3;+CGREG=0;+XREG=3;+XCSQ=1\r";
+}
+
+char* CTE_XMM6360::GetUnlockInitCommands(UINT32 uiChannelType)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::GetUnlockInitCommands() - Enter\r\n");
+
+    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
+    char *pInitCmd = NULL;
+
+    pInitCmd = CTE_XMM6260::GetUnlockInitCommands(uiChannelType);
+
+    if (RIL_CHANNEL_URC != uiChannelType)
+    {
+        RIL_LOG_VERBOSE("CTE_XMM6360::GetUnlockInitCommands() - Exit.\r\n");
+        return pInitCmd;
+    }
+
+    if (pInitCmd != NULL)
+    {
+        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE, pInitCmd);
+
+        // add to init string. +CGAUTO=4
+        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                "|+CGAUTO=4");
+        free (pInitCmd);
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6360::GetUnlockInitCommands() - Exit\r\n");
+    return strndup(szInitCmd, strlen(szInitCmd));
+}
+
 BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
                                                             UINT32 uiDataSize)
 {
