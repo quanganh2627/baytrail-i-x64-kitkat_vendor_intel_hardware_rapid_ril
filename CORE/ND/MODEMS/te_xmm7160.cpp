@@ -907,7 +907,8 @@ RIL_RESULT_CODE CTE_XMM7160::CreateIMSConfigReq(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::CreateIMSConfigReq() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    S_IMS_APN_INFO sImsApnInfo;
+    char szXicfgCmd[MAX_BUFFER_SIZE] = {'\0'};
+    int xicfgParams[XICFG_N_PARAMS] = {0};
 
     if (pszRequest == NULL)
     {
@@ -915,65 +916,101 @@ RIL_RESULT_CODE CTE_XMM7160::CreateIMSConfigReq(REQUEST_DATA& rReqData,
         return res;
     }
 
-    // There should be 9 parameters and the request ID
-    if (nNumStrings < 10)
+    // There should be XICFG_N_PARAMS parameters and the request ID
+    if (nNumStrings < (XICFG_N_PARAMS + 1))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() :"
                 " received_size < required_size\r\n");
         return res;
     }
 
-    memset(&sImsApnInfo, 0, sizeof(S_IMS_APN_INFO));
-    strncpy(sImsApnInfo.szIMSApn, pszRequest[1], MAX_PARAM_LENGTH - 1);
-    strncpy(sImsApnInfo.szOutboundProxyName, pszRequest[2], MAX_PARAM_LENGTH - 1);
-    strncpy(sImsApnInfo.szOutboundProxyPort, pszRequest[3], MAX_PARAM_LENGTH - 1);
-    strncpy(sImsApnInfo.szPrivateUserId,pszRequest[4], MAX_PARAM_LENGTH - 1);
-    strncpy(sImsApnInfo.szHomeNWDomainName, pszRequest[5], MAX_PARAM_LENGTH - 1);
-    strncpy(sImsApnInfo.szAuthName, pszRequest[6], MAX_PARAM_LENGTH - 1);
-    strncpy(sImsApnInfo.szAuthPassword, pszRequest[7], MAX_PARAM_LENGTH - 1);
-    strncpy(sImsApnInfo.szAuthType, pszRequest[8], MAX_PARAM_LENGTH - 1);
-    strncpy(sImsApnInfo.szLoggerLevel, pszRequest[9], MAX_PARAM_LENGTH - 1);
+    xicfgParams[0] = E_XICFG_IMS_APN;
+    xicfgParams[1] = E_XICFG_PCSCF_ADDRESS;
+    xicfgParams[2] = E_XICFG_PCSCF_PORT;
+    xicfgParams[3] = E_XICFG_IMS_AUTH_MODE;
+    xicfgParams[4] = E_XICFG_PHONE_CONTEXT;
+    xicfgParams[5] = E_XICFG_LOCAL_BREAKOUT;
+    xicfgParams[6] = E_XICFG_XCAP_APN;
+    xicfgParams[7] = E_XICFG_XCAP_ROOT_URI;
+    xicfgParams[8] = E_XICFG_XCAP_USER_NAME;
+    xicfgParams[9] = E_XICFG_XCAP_USER_PASSWORD;
 
-    sImsApnInfo.szIMSApn[MAX_PARAM_LENGTH - 1] = '\0';
-    sImsApnInfo.szOutboundProxyName[MAX_PARAM_LENGTH - 1] = '\0';
-    sImsApnInfo.szOutboundProxyPort[MAX_PARAM_LENGTH - 1] = '\0';
-    sImsApnInfo.szPrivateUserId[MAX_PARAM_LENGTH - 1] = '\0';
-    sImsApnInfo.szHomeNWDomainName[MAX_PARAM_LENGTH - 1] = '\0';
-    sImsApnInfo.szAuthName[MAX_PARAM_LENGTH - 1] = '\0';
-    sImsApnInfo.szAuthPassword[MAX_PARAM_LENGTH - 1] = '\0';
-    sImsApnInfo.szAuthType[MAX_PARAM_LENGTH - 1] = '\0';
-    sImsApnInfo.szLoggerLevel[MAX_PARAM_LENGTH - 1] = '\0';
+    char szTemp1Xicfg[MAX_BUFFER_SIZE] = {'\0'};
+    char szTemp2Xicfg[MAX_BUFFER_SIZE] = {'\0'};
+    int nParams = 0;
 
-    if (0 == strncmp(sImsApnInfo.szIMSApn, "void", 4)) {
-        sImsApnInfo.szIMSApn[0] = '\0';
+    for (int i = 1; i <= XICFG_N_PARAMS; i++)
+    {
+        if ((pszRequest[i] != NULL) && (0 != strncmp(pszRequest[i], "default", 7)))
+        {   // The XICFG parameter is a numeric hence "" not required.
+            if (xicfgParams[i - 1] == E_XICFG_PCSCF_PORT ||
+                xicfgParams[i - 1] == E_XICFG_IMS_AUTH_MODE ||
+                xicfgParams[i - 1] == E_XICFG_LOCAL_BREAKOUT)
+            {
+                if (!PrintStringNullTerminate(szTemp1Xicfg,
+                                             MAX_BUFFER_SIZE,",%d,%s",
+                                             xicfgParams[i - 1], pszRequest[i]))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't add %s.\r\n",
+                                     pszRequest[i]);
+                    goto Error;
+                }
+            }
+            else
+            {   // The XICFG parameter is a string hence "" required.
+                if (!PrintStringNullTerminate(szTemp1Xicfg,
+                                              MAX_BUFFER_SIZE,",%d,\"%s\"",
+                                              xicfgParams[i - 1], pszRequest[i]))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't add %s.\r\n",
+                                     pszRequest[i]);
+                    goto Error;
+                }
+            }
+            if (!ConcatenateStringNullTerminate(szTemp2Xicfg,
+                                                MAX_BUFFER_SIZE - strlen(szTemp2Xicfg),
+                                                szTemp1Xicfg))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't add %s.\r\n",
+                                 szTemp1Xicfg);
+                goto Error;
+            }
+            nParams++;
+        }
     }
 
-    if (0 == strncmp(sImsApnInfo.szAuthPassword, "void", 4)) {
-        sImsApnInfo.szAuthPassword[0] = '\0';
+    if (nParams == 0)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - nParams=0\r\n");
+        goto Error;
     }
 
-    RIL_LOG_INFO("CTE_XMM7160::CreateIMSConfigReq() - IMS_APN=[%s %s %s %s %s %s %s %s %s]\r\n",
-            sImsApnInfo.szIMSApn,
-            sImsApnInfo.szOutboundProxyName,
-            sImsApnInfo.szOutboundProxyPort,
-            sImsApnInfo.szPrivateUserId,
-            sImsApnInfo.szHomeNWDomainName,
-            sImsApnInfo.szAuthName,
-            sImsApnInfo.szAuthPassword,
-            sImsApnInfo.szAuthType,
-            sImsApnInfo.szLoggerLevel);
+    if (!ConcatenateStringNullTerminate(szTemp2Xicfg, MAX_BUFFER_SIZE - strlen(szTemp2Xicfg),
+                                        "\r"))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't add %s.\r\n",
+                         "\r");
+        goto Error;
+    }
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            "AT+XICFG=\"%s\",\"%s\",%s,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%s\r",
-            sImsApnInfo.szIMSApn,
-            sImsApnInfo.szOutboundProxyName,
-            sImsApnInfo.szOutboundProxyPort,
-            sImsApnInfo.szPrivateUserId,
-            sImsApnInfo.szHomeNWDomainName,
-            sImsApnInfo.szAuthName,
-            sImsApnInfo.szAuthPassword,
-            sImsApnInfo.szAuthType,
-            sImsApnInfo.szLoggerLevel))
+    if (!PrintStringNullTerminate(szXicfgCmd,
+            MAX_BUFFER_SIZE,"AT+XICFG=%d,%d", XICFG_SET, nParams))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    if (!ConcatenateStringNullTerminate(szXicfgCmd, MAX_BUFFER_SIZE - strlen(szXicfgCmd),
+                                        szTemp2Xicfg))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM7160::CreateIMSConfigReq() - IMS_APN=[%s]\r\n",
+                 szXicfgCmd);
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), szXicfgCmd))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't construct szCmd1.\r\n");
         goto Error;

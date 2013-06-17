@@ -309,20 +309,28 @@ enum
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// IMS APN Info
+// XICFG parmameters
 //
-typedef struct
+enum
 {
-    char szIMSApn[MAX_PARAM_LENGTH];
-    char szOutboundProxyName[MAX_PARAM_LENGTH];
-    char szOutboundProxyPort[MAX_PARAM_LENGTH];
-    char szPrivateUserId[MAX_PARAM_LENGTH];
-    char szHomeNWDomainName[MAX_PARAM_LENGTH];
-    char szAuthName[MAX_PARAM_LENGTH];
-    char szAuthPassword[MAX_PARAM_LENGTH];
-    char szAuthType[MAX_PARAM_LENGTH];
-    char szLoggerLevel[MAX_PARAM_LENGTH];
-} S_IMS_APN_INFO;
+    E_XICFG_IMS_APN = 51,
+    E_XICFG_PCSCF_ADDRESS = 102,
+    E_XICFG_PCSCF_PORT = 101,
+    E_XICFG_IMS_AUTH_MODE = 150,
+    E_XICFG_PHONE_CONTEXT = 10,
+    E_XICFG_LOCAL_BREAKOUT = 52,
+    E_XICFG_XCAP_APN = 200,
+    E_XICFG_XCAP_ROOT_URI = 201,
+    E_XICFG_XCAP_USER_NAME = 202,
+    E_XICFG_XCAP_USER_PASSWORD = 203
+};
+///////////////////////////////////////////////////////////////////////////////
+// XICFG_SET : XICFG write command
+// XICFG_GET : XICFG read  command
+// XICFG number of parameters used in rril
+const int   XICFG_SET = 0;
+const int   XICFG_GET  = 1;
+const int   XICFG_N_PARAMS  = 10;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Notify / Result Codes (m_dwCode)
