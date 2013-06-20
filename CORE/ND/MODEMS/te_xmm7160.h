@@ -47,6 +47,11 @@ public:
 
     virtual CInitializer* GetInitializer();
 
+    // RIL_REQUEST_DATA_REGISTRATION_STATE 21
+    virtual RIL_RESULT_CODE CoreGPRSRegistrationState(REQUEST_DATA& rReqData,
+             void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA& rRspData);
+
     // RIL_REQUEST_SETUP_DATA_CALL 27
     virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
                                                          void* pData,
@@ -73,6 +78,8 @@ public:
 protected:
 
     virtual const char* GetRegistrationInitString();
+    virtual const char* GetPsRegistrationReadString();
+
     virtual const char* GetScreenOnString();
     virtual const char* GetScreenOffString();
 };

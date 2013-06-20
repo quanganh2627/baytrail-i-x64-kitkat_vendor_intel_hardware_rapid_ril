@@ -628,7 +628,7 @@ public:
 
     RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
 
-    void StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
+    void StoreRegistrationInfo(void* pRegStruct, int regType);
     void CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
     void ResetRegistrationCache();
 
@@ -1025,6 +1025,8 @@ public:
             const char** pszRequest,
             const int nNumStrings);
 
+    BOOL IsEPSRegistered();
+
 private:
     UINT32 m_uiModemType;
 
@@ -1032,6 +1034,7 @@ private:
     BOOL m_bPSStatusCached;
     S_ND_GPRS_REG_STATUS m_sPSStatus;
     S_ND_REG_STATUS m_sCSStatus;
+    S_ND_GPRS_REG_STATUS m_sEPSStatus;
     CContextCache m_contextCache;
 
     // Flag used to store setup data call status

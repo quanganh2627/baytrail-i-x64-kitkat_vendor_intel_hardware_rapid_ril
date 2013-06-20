@@ -74,6 +74,18 @@ const char* CTE_XMM7160::GetRegistrationInitString()
     return "+CREG=3|+XREG=3|+CEREG=3";
 }
 
+const char* CTE_XMM7160::GetPsRegistrationReadString()
+{
+    if (m_cte.IsEPSRegistered())
+    {
+        return "AT+CEREG=3;+CEREG?;+CEREG=0\r";
+    }
+    else
+    {
+        return "AT+XREG=3;+XREG?;+XREG=0\r";
+    }
+}
+
 const char* CTE_XMM7160::GetScreenOnString()
 {
     return "AT+CREG=3;+CGREG=0;+XREG=3;+CEREG=3;+XCSQ=1\r";
@@ -89,6 +101,86 @@ const char* CTE_XMM7160::GetScreenOffString()
     {
         return "AT+CREG=1;+CGREG=1;+CEREG=1;+XREG=0;+XCSQ=0\r";
     }
+}
+
+//
+// RIL_REQUEST_DATA_REGISTRATION_STATE 21
+//
+RIL_RESULT_CODE CTE_XMM7160::CoreGPRSRegistrationState(REQUEST_DATA& rReqData,
+        void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGPRSRegistrationState() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, GetPsRegistrationReadString(),
+            sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGPRSRegistrationState() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGPRSRegistrationState() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+    const char* pszDummy;
+
+    S_ND_GPRS_REG_STATUS psRegStatus;
+    P_ND_GPRS_REG_STATUS pGPRSRegStatus = NULL;
+
+    pGPRSRegStatus = (P_ND_GPRS_REG_STATUS)malloc(sizeof(S_ND_GPRS_REG_STATUS));
+    if (NULL == pGPRSRegStatus)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseGPRSRegistrationState() -"
+                " Could not allocate memory for a S_ND_GPRS_REG_STATUS struct.\r\n");
+        goto Error;
+    }
+    memset(pGPRSRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
+
+    if (FindAndSkipString(pszRsp, "+XREG: ", pszDummy))
+    {
+        if (!m_cte.ParseXREG(pszRsp, FALSE, psRegStatus))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseGPRSRegistrationState() - "
+                    "ERROR in parsing XREG response.\r\n");
+            goto Error;
+        }
+
+        m_cte.StoreRegistrationInfo(&psRegStatus, E_REGISTRATION_TYPE_XREG);
+    }
+    else if (FindAndSkipString(pszRsp, "+CEREG: ", pszDummy))
+    {
+        if (!m_cte.ParseCEREG(pszRsp, FALSE, psRegStatus))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseGPRSRegistrationState() - "
+                    "ERROR in parsing CEREG response.\r\n");
+            goto Error;
+        }
+
+        m_cte.StoreRegistrationInfo(&psRegStatus, E_REGISTRATION_TYPE_CEREG);
+    }
+
+    m_cte.CopyCachedRegistrationInfo(pGPRSRegStatus, TRUE);
+
+    rRspData.pData  = (void*)pGPRSRegStatus;
+    rRspData.uiDataSize = sizeof(S_ND_GPRS_REG_STATUS_POINTERS);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pGPRSRegStatus);
+        pGPRSRegStatus = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGPRSRegistrationState() - Exit\r\n");
+    return res;
 }
 
 // RIL_REQUEST_SETUP_DATA_CALL 27

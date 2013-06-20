@@ -89,6 +89,7 @@ CTE::CTE(UINT32 modemType) :
 
     memset(&m_sCSStatus, 0, sizeof(S_ND_REG_STATUS));
     memset(&m_sPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
+    memset(&m_sEPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
     CopyStringNullTerminate(m_szNewLine, "\r\n", sizeof(m_szNewLine));
 
@@ -6814,12 +6815,6 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
     {
         uiStatus += 10;
     }
-    else if (E_REGISTRATION_EMERGENCY_SERVICES_ONLY == uiStatus)
-    {
-        // Android do not manage the new value state +CREG 8, so we use the
-        // case 10 (0+10) which means no network but emergency call possible
-        uiStatus = 10;
-    }
 
     snprintf(rCSRegStatusInfo.szStat,        REG_STATUS_LENGTH, "%u", uiStatus);
     snprintf(rCSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)rtAct);
@@ -7283,7 +7278,8 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
                 goto Error;
             }
 
-            if (!ExtractUInt32(rszPointer, uiRejectCause, rszPointer))
+            if (!SkipString(rszPointer, ",", rszPointer)
+                    || !ExtractUInt32(rszPointer, uiRejectCause, rszPointer))
             {
                 RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not extract <reject_cause>.\r\n");
                 goto Error;
@@ -7316,7 +7312,7 @@ Error:
     return bRet;
 }
 
-void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
+void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
 {
     RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Enter\r\n");
 
@@ -7324,13 +7320,14 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
      * LAC and CID reported as part of the CS and PS registration status changed URCs
      * are supposed to be the same. But there is nothing wrong in keeping it separately.
      */
-    if (bPSStatus)
+    if (E_REGISTRATION_TYPE_CGREG == regType
+            || E_REGISTRATION_TYPE_XREG == regType)
     {
         P_ND_GPRS_REG_STATUS psRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
 
         RIL_LOG_INFO("[RIL STATE] GPRS REG STATUS = %s  RAT = %s\r\n",
-            PrintGPRSRegistrationInfo(psRegStatus->szStat),
-            PrintRAT(psRegStatus->szNetworkType));
+                PrintGPRSRegistrationInfo(psRegStatus->szStat),
+                PrintRAT(psRegStatus->szNetworkType));
 
         if (E_REGISTRATION_DENIED == GetPsRegistrationState(psRegStatus->szStat))
         {
@@ -7349,7 +7346,7 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         strncpy(m_sPSStatus.szReasonDenied, psRegStatus->szReasonDenied,
                 sizeof(psRegStatus->szReasonDenied));
     }
-    else
+    else if (E_REGISTRATION_TYPE_CREG == regType)
     {
         P_ND_REG_STATUS csRegStatus = (P_ND_REG_STATUS) pRegStruct;
 
@@ -7384,6 +7381,39 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         strncpy(m_sCSStatus.szReasonDenied, csRegStatus->szReasonDenied,
                 sizeof(csRegStatus->szReasonDenied));
     }
+    else if (E_REGISTRATION_TYPE_CEREG == regType)
+    {
+        /*
+         * LTE registration status information is mapped to the GPRS registration
+         * status information structure. Eventhough the registration status information
+         * structure is named as S_ND_GPRS_REG_STATUS, structure is for holding the
+         * basic data(either GPRS or LTE) registration status information.
+         *
+         * Note: Currently, TAC is mapped to LAC.
+         */
+        P_ND_GPRS_REG_STATUS epsRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
+
+        RIL_LOG_INFO("[RIL STATE] EPS REG STATUS = %s  RAT = %s\r\n",
+                PrintGPRSRegistrationInfo(epsRegStatus->szStat),
+                PrintRAT(epsRegStatus->szNetworkType));
+
+        if (E_REGISTRATION_DENIED == GetPsRegistrationState(epsRegStatus->szStat))
+        {
+            m_bPSStatusCached = FALSE;
+        }
+        else
+        {
+            m_bPSStatusCached = TRUE;
+        }
+
+        strncpy(m_sEPSStatus.szStat, epsRegStatus->szStat, sizeof(epsRegStatus->szStat));
+        strncpy(m_sEPSStatus.szLAC, epsRegStatus->szLAC, sizeof(epsRegStatus->szLAC));
+        strncpy(m_sEPSStatus.szCID, epsRegStatus->szCID, sizeof(epsRegStatus->szCID));
+        strncpy(m_sEPSStatus.szNetworkType, epsRegStatus->szNetworkType,
+                sizeof(epsRegStatus->szNetworkType));
+        strncpy(m_sEPSStatus.szReasonDenied, epsRegStatus->szReasonDenied,
+                sizeof(epsRegStatus->szReasonDenied));
+    }
 
     RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Exit\r\n");
 }
@@ -7398,19 +7428,33 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
 
         memset(psRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
-        // we only report the actual registration unless the conext cache has been populated,
-        // otherwise the CM would come back with a setup data call before the context cache is ready.
-        if((atoi(m_sPSStatus.szNetworkType) == RADIO_TECH_LTE))
+        /*
+         * Report the EPS registration status only when registered. In CSFB,
+         * EPSregistration status will be reported as not registered and
+         * 2G/3G registration status as registered. Order of the URCs is as
+         * follows:
+         * +XREG: 1
+         * +CREG: 1
+         * +CEREG: 0
+         */
+        if (IsEPSRegistered())
         {
+            /*
+             * Report the EPS registration status only after the default PDN context
+             * parameters are read. If EPS registration status is reported earlier,
+             * android telephony framework will trigger the SETUP_DATA_CALL request
+             * resulting in establishing a second pdp context even when the requested
+             * APN is the same as default PDN APN.
+             */
             if (HasActivatedContext())
             {
                 RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - HasActivatedContext\r\n");
-                strncpy(psRegStatus->szStat, m_sPSStatus.szStat, sizeof(psRegStatus->szStat));
-                strncpy(psRegStatus->szLAC, m_sPSStatus.szLAC, sizeof(psRegStatus->szLAC));
-                strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
-                strncpy(psRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
+                strncpy(psRegStatus->szStat, m_sEPSStatus.szStat, sizeof(psRegStatus->szStat));
+                strncpy(psRegStatus->szLAC, m_sEPSStatus.szLAC, sizeof(psRegStatus->szLAC));
+                strncpy(psRegStatus->szCID, m_sEPSStatus.szCID, sizeof(psRegStatus->szCID));
+                strncpy(psRegStatus->szNetworkType, m_sEPSStatus.szNetworkType,
                     sizeof(psRegStatus->szNetworkType));
-                strncpy(psRegStatus->szReasonDenied, m_sPSStatus.szReasonDenied,
+                strncpy(psRegStatus->szReasonDenied, m_sEPSStatus.szReasonDenied,
                         sizeof(psRegStatus->szReasonDenied));
 
             }
@@ -7444,7 +7488,18 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         P_ND_REG_STATUS csRegStatus = (P_ND_REG_STATUS) pRegStruct;
 
         memset(csRegStatus, 0, sizeof(S_ND_REG_STATUS));
-        strncpy(csRegStatus->szStat, m_sCSStatus.szStat, sizeof(csRegStatus->szStat));
+
+        if (E_REGISTRATION_EMERGENCY_SERVICES_ONLY == GetCsRegistrationState(m_sCSStatus.szStat))
+        {
+            // Android do not manage the new value state +CREG: 8, so we use the
+            // case 10 (0+10) which means no network but emergency call possible
+            snprintf(csRegStatus->szStat, REG_STATUS_LENGTH, "%u", 10);
+        }
+        else
+        {
+            strncpy(csRegStatus->szStat, m_sCSStatus.szStat, sizeof(csRegStatus->szStat));
+        }
+
         strncpy(csRegStatus->szLAC, m_sCSStatus.szLAC, sizeof(csRegStatus->szLAC));
         strncpy(csRegStatus->szCID, m_sCSStatus.szCID, sizeof(csRegStatus->szCID));
         strncpy(csRegStatus->szNetworkType, m_sCSStatus.szNetworkType,
@@ -7480,6 +7535,20 @@ LONG CTE::GetPsRegistrationState(char* pPsRegState)
     return strtol(pPsRegState, NULL, 10);
 }
 
+BOOL CTE::IsEPSRegistered()
+{
+    BOOL bRet = FALSE;
+    LONG regState = strtol(m_sEPSStatus.szStat, NULL, 10);
+
+    if (E_REGISTRATION_REGISTERED_HOME_NETWORK == regState
+            || E_REGISTRATION_REGISTERED_ROAMING == regState)
+    {
+        bRet = TRUE;
+    }
+
+    return bRet;
+}
+
 const char* CTE::PrintRegistrationInfo(char* szRegInfo) const
 {
     int nRegInfo = atoi(szRegInfo);
@@ -7499,8 +7568,21 @@ const char* CTE::PrintRegistrationInfo(char* szRegInfo) const
             return "UNKNOWN";
         case E_REGISTRATION_REGISTERED_ROAMING:
             return "REGISTERED, IN ROAMING";
-        case 10: // Android specific emergency possible
+        // applicable only when <AcT> indicates E-UTRAN
+        case E_REGISTRATION_REGISTERED_FOR_SMS_ONLY_HOME_NETWORK:
+            return "REGISTERED FOR SMS ONLY, HOME NETWORK";
+        // applicable only when <AcT> indicates E-UTRAN
+        case E_REGISTRATION_REGISTERED_FOR_SMS_ONLY_ROAMING:
+            return "REGISTERED FOR SMS ONLY, IN ROAMING";
+        // Used by IMC modems to indicate emergency call possible in CS network
+        case E_REGISTRATION_EMERGENCY_SERVICES_ONLY:
             return "EMERGENCY SERVICE ONLY";
+        // applicable only when <AcT> indicates E-UTRAN
+        case E_REGISTRATION_REGISTERED_FOR_CSFB_NP_HOME_NETWORK:
+            return "REGISTERED FOR CSFB NOT PREFERRED, HOME NETWORK";
+        // applicable only when <AcT> indicates E-UTRAN
+        case E_REGISTRATION_REGISTERED_FOR_CSFB_NP_ROAMING:
+            return "REGISTERED FOR CSFB NOT PREFERRED, IN ROAMING";
         default:
             return "UNKNOWN REG STATUS";
     }
@@ -7524,6 +7606,8 @@ const char* CTE::PrintGPRSRegistrationInfo(char* szGPRSInfo) const
             return "UNKNOWN";
         case E_REGISTRATION_REGISTERED_ROAMING:
             return "REGISTERED, IN ROAMING";
+        case E_REGISTRATION_EMERGENCY_SERVICES_ONLY:
+            return "ATTACHED FOR EMERGENCY BEARER SERVICES";
         default: return "UNKNOWN REG STATUS";
     }
 }

@@ -87,6 +87,18 @@ enum
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// Registration type constants. This is used in determining the parsing
+// function to be called, cache variable to be used etc.
+//
+enum
+{
+    E_REGISTRATION_TYPE_CREG = 0,
+    E_REGISTRATION_TYPE_CGREG,
+    E_REGISTRATION_TYPE_CEREG,
+    E_REGISTRATION_TYPE_XREG
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // radio power constants
 //
 const int RADIO_POWER_UNKNOWN = -1;
@@ -200,7 +212,7 @@ enum
 ///////////////////////////////////////////////////////////////////////////////
 // Registration States
 //
-// Check 3GPP 27.007 R10 section 7.2
+// Check 3GPP 27.007 R11 section 7.2
 enum
 {
     E_REGISTRATION_NOT_REGISTERED_NOT_SEARCHING = 0,
@@ -209,7 +221,11 @@ enum
     E_REGISTRATION_DENIED = 3,
     E_REGISTRATION_UNKNOWN = 4,
     E_REGISTRATION_REGISTERED_ROAMING = 5,
-    E_REGISTRATION_EMERGENCY_SERVICES_ONLY = 8
+    E_REGISTRATION_REGISTERED_FOR_SMS_ONLY_HOME_NETWORK = 6,
+    E_REGISTRATION_REGISTERED_FOR_SMS_ONLY_ROAMING = 7,
+    E_REGISTRATION_EMERGENCY_SERVICES_ONLY = 8,
+    E_REGISTRATION_REGISTERED_FOR_CSFB_NP_HOME_NETWORK = 9,
+    E_REGISTRATION_REGISTERED_FOR_CSFB_NP_ROAMING = 10
 };
 
 ///////////////////////////////////////////////////////////////////////////////

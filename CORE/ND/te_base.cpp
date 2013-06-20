@@ -2044,7 +2044,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    m_cte.StoreRegistrationInfo(&regStatus, FALSE);
+    m_cte.StoreRegistrationInfo(&regStatus, E_REGISTRATION_TYPE_CREG);
     m_cte.CopyCachedRegistrationInfo(pRegStatus, FALSE);
 
     // We cheat with the size here.
@@ -2114,7 +2114,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    m_cte.StoreRegistrationInfo(&psRegStatus, TRUE);
+    m_cte.StoreRegistrationInfo(&psRegStatus, E_REGISTRATION_TYPE_CGREG);
     m_cte.CopyCachedRegistrationInfo(pGPRSRegStatus, TRUE);
 
     // We cheat with the size here.

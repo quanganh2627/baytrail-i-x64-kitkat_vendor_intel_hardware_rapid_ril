@@ -391,7 +391,7 @@ Error:
 //  response) and will proceed appropriately.
 //
 BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const char*& rszPointer,
-                                            SILO_NETWORK_REGISTRATION_TYPES regType)
+                                            int regType)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Enter\r\n");
 
@@ -470,7 +470,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     //RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - nNumParams=[%d]\r\n", nNumParams);
 
 
-    if (SILO_NETWORK_CGREG == regType)
+    if (E_REGISTRATION_TYPE_CGREG == regType)
     {
         //  The +CGREG case
         //  Unsol is 1,5 and 7
@@ -492,7 +492,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CGREG paramcount=%d"
                 "  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
     }
-    else if (SILO_NETWORK_CREG == regType)
+    else if (E_REGISTRATION_TYPE_CREG == regType)
     {
         //  The +CREG case
         //  Unsol is 1, 4 and 6
@@ -514,17 +514,17 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CREG paramcount=%d"
                 "  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
     }
-    else if (SILO_NETWORK_CEREG == regType)
+    else if (E_REGISTRATION_TYPE_CEREG == regType)
     {
         //  The +CEREG case
-        //  Unsol is 1 and 4
-        if ((1 == nNumParams) || (4 == nNumParams))
+        //  Unsol is 1, 4 and 6
+        if ((1 == nNumParams) || (4 == nNumParams) || (6 == nNumParams))
         {
             fUnSolicited = TRUE;
         }
-        else if ((2 == nNumParams) || (5 == nNumParams))
+        else if ((2 == nNumParams) || (5 == nNumParams) || (7 == nNumParams))
         {
-            // sol is 2 and 5
+            // sol is 2,5 and 7
             fUnSolicited = FALSE;
         }
         else
@@ -537,7 +537,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
                 "  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
 
     }
-    else if (SILO_NETWORK_XREG == regType)
+    else if (E_REGISTRATION_TYPE_XREG == regType)
     {
         //  The +XREG case
         //  Unsol is 1,3,5 and 8
@@ -600,17 +600,17 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
 
     if (fUnSolicited)
     {
-        if (SILO_NETWORK_CGREG == regType)
+        if (E_REGISTRATION_TYPE_CGREG == regType)
         {
             fRet = CTE::GetTE().ParseCGREG(rszPointer, fUnSolicited, psRegStatus);
             pRegStatusInfo = (void*) &psRegStatus;
         }
-        else if (SILO_NETWORK_CREG == regType)
+        else if (E_REGISTRATION_TYPE_CREG == regType)
         {
             fRet = CTE::GetTE().ParseCREG(rszPointer, fUnSolicited, csRegStatus);
             pRegStatusInfo = (void*) &csRegStatus;
         }
-        else if (SILO_NETWORK_XREG == regType)
+        else if (E_REGISTRATION_TYPE_XREG == regType)
         {
             fRet = CTE::GetTE().ParseXREG(rszPointer, fUnSolicited, psRegStatus);
             pRegStatusInfo = (void*) &psRegStatus;
@@ -640,7 +640,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
                 strncpy(m_PreviousXREGInfo.szCID, psRegStatus.szCID, sizeof(psRegStatus.szCID));
             }
         }
-        else if (SILO_NETWORK_CEREG == regType)
+        else if (E_REGISTRATION_TYPE_CEREG == regType)
         {
             fRet = CTE::GetTE().ParseCEREG(rszPointer, fUnSolicited, psRegStatus);
             pRegStatusInfo = (void*) &psRegStatus;
@@ -651,8 +651,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         if (!fRet)
             goto Error;
         else
-            CTE::GetTE().StoreRegistrationInfo(pRegStatusInfo,
-                    (SILO_NETWORK_CREG == regType) ? false : true);
+            CTE::GetTE().StoreRegistrationInfo(pRegStatusInfo, regType);
 
         pResponse->SetUnsolicitedFlag(TRUE);
         pResponse->SetResultCode(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED);
@@ -688,7 +687,7 @@ BOOL CSilo_Network::ParseCREG(CResponse* const pResponse, const char*& rszPointe
     ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszEnd);
     CTE::GetTE().SaveNetworkData(LAST_NETWORK_CREG, szBackup);
 
-    return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_CREG);
+    return ParseRegistrationStatus(pResponse, rszPointer, E_REGISTRATION_TYPE_CREG);
 }
 
 //
@@ -696,7 +695,7 @@ BOOL CSilo_Network::ParseCREG(CResponse* const pResponse, const char*& rszPointe
 BOOL CSilo_Network::ParseCGREG(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseCGREG() - Enter / Exit\r\n");
-    return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_CGREG);
+    return ParseRegistrationStatus(pResponse, rszPointer, E_REGISTRATION_TYPE_CGREG);
 }
 
 //
@@ -714,7 +713,7 @@ BOOL CSilo_Network::ParseXREG(CResponse* const pResponse, const char*& rszPointe
     ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszEnd);
     CTE::GetTE().SaveNetworkData(LAST_NETWORK_XREG, szBackup);
 
-    return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_XREG);
+    return ParseRegistrationStatus(pResponse, rszPointer, E_REGISTRATION_TYPE_XREG);
 }
 
 //
@@ -722,7 +721,7 @@ BOOL CSilo_Network::ParseXREG(CResponse* const pResponse, const char*& rszPointe
 BOOL CSilo_Network::ParseCEREG(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseCEREG() - Enter / Exit\r\n");
-    return ParseRegistrationStatus(pResponse, rszPointer, SILO_NETWORK_CEREG);
+    return ParseRegistrationStatus(pResponse, rszPointer, E_REGISTRATION_TYPE_CEREG);
 }
 
 //
