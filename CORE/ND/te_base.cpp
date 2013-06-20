@@ -2118,13 +2118,13 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
 
     if (isEONSAvailable)
     {
-        strncpy(pOpNames->szOpNameLong, szEONSFullName, strlen(szEONSFullName));
-        strncpy(pOpNames->szOpNameShort, szEONSShortName, strlen(szEONSShortName));
+        CopyStringNullTerminate(pOpNames->szOpNameLong, szEONSFullName, MAX_BUFFER_SIZE);
+        CopyStringNullTerminate(pOpNames->szOpNameShort, szEONSShortName, MAX_BUFFER_SIZE);
     }
     else if (isNitzNameAvailable)
     {
-        strncpy(pOpNames->szOpNameLong, szFullName, strlen(szFullName));
-        strncpy(pOpNames->szOpNameShort, szShortName, strlen(szShortName));
+        CopyStringNullTerminate(pOpNames->szOpNameLong, szFullName, MAX_BUFFER_SIZE);
+        CopyStringNullTerminate(pOpNames->szOpNameShort, szShortName, MAX_BUFFER_SIZE);
     }
 
     pOpNames->sOpNamePtrs.pszOpNameLong    = pOpNames->szOpNameLong;

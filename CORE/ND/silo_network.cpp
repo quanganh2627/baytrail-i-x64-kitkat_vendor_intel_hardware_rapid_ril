@@ -758,7 +758,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             goto Error;
         }
         RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN DEACT, cid=[%d]\r\n", uiCID);
-        CTE::GetTE().DataConfigDown(uiCID);
     }
     else if (FindAndSkipString(szStrExtract, "NW CLASS", szStrExtract) ||
             FindAndSkipString(szStrExtract, "ME CLASS", szStrExtract))
@@ -824,7 +823,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         if (GetContextIdFromDeact(szStrExtract, uiCID))
         {
             RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT CID- %u", uiCID);
-            CTE::GetTE().DataConfigDown(uiCID);
         }
     }
     else if (FindAndSkipString(szStrExtract, "NW DEACT", szStrExtract))
