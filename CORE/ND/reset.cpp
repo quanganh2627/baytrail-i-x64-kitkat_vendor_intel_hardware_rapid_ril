@@ -114,10 +114,6 @@ void ModemResetUpdate()
 //  Alert MMGR to attempt a clean-up.
 void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszFileName)
 {
-    RIL_LOG_INFO("[RIL STATE] REQUEST RESET (RIL -> MMGR)"
-            " eError=[%s], file=[%s], line num=[%d]\r\n",
-            Print_eRadioError(eError), lpszFileName, uiLineNum);
-
     if (CTE::GetTE().IsPlatformShutDownOngoing())
     {
         RIL_LOG_INFO("do_request_clean_up() - "
@@ -140,8 +136,8 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
 
         if (E_MMGR_EVENT_MODEM_UP == CTE::GetTE().GetLastModemEvent())
         {
-            RIL_LOG_INFO("do_request_clean_up()"
-                    "- SendRequestModemRecovery, eError=[%d]\r\n", eError);
+            RIL_LOG_INFO("do_request_clean_up() - eError=[%s], file=[%s], line num=[%d]\r\n",
+                    Print_eRadioError(eError), lpszFileName, uiLineNum);
 
             //  Voice calls disconnected, no more data connections
             ModemResetUpdate();
@@ -244,33 +240,21 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 //  Modem is alive, start initializing modem
                 RIL_LOG_INFO("ModemManagerEventHandler() -InitializeModem\r\n");
 
-                /*
-                 * MODEM_UP can be also received due to other mmgr clients powering
-                 * on the modem. Acquire the modem resource to service other clients
-                 * which might need sim access.
-                 *
-                 * Note: If device is in airplane mode but if the modem is powered
-                 * on due to CWS clients then the modem will be kept powered on but
-                 * radio will be in off state.
-                 */
-                if (CSystemManager::GetInstance().GetModem())
+                // launch modem init thread.
+                pContinueInitThread = new CThread(ContinueInitThreadProc, NULL,
+                        THREAD_FLAGS_JOINABLE, 0);
+                if (!pContinueInitThread)
                 {
-                    // launch modem init thread.
-                    pContinueInitThread = new CThread(ContinueInitThreadProc, NULL,
-                            THREAD_FLAGS_JOINABLE, 0);
-                    if (!pContinueInitThread)
-                    {
-                        RIL_LOG_CRITICAL("ModemManagerEventHandler() -"
-                                "pContinueInitThread is NULL\r\n");
-                        //  let's exit, init will restart us
-                        RIL_LOG_INFO("ModemManagerEventHandler() - CALLING EXIT\r\n");
-                        CSystemManager::Destroy();
-                        exit(0);
-                    }
-
-                    delete pContinueInitThread;
-                    pContinueInitThread = NULL;
+                    RIL_LOG_CRITICAL("ModemManagerEventHandler() -"
+                            "pContinueInitThread is NULL\r\n");
+                    //  let's exit, init will restart us
+                    RIL_LOG_INFO("ModemManagerEventHandler() - CALLING EXIT\r\n");
+                    CSystemManager::Destroy();
+                    exit(0);
                 }
+
+                delete pContinueInitThread;
+                pContinueInitThread = NULL;
                 break;
 
             case E_MMGR_EVENT_MODEM_OUT_OF_SERVICE:
