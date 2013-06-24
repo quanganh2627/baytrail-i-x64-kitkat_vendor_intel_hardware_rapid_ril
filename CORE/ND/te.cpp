@@ -1013,7 +1013,7 @@ RIL_RESULT_CODE CTE::DelaySetPrefNetTypeRequest(void* pData, size_t datalen, RIL
 void CTE::SendSetPrefNetTypeRequest()
 {
     RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
-    RIL_Token rilToken = m_pPrefNetTypeReqInfo->token;
+    RIL_Token rilToken = NULL;
 
     // Send request to SetPreferredNetworkType if previously received before radio power on
     if (NULL != m_pPrefNetTypeReqInfo)
@@ -1021,6 +1021,7 @@ void CTE::SendSetPrefNetTypeRequest()
         RIL_LOG_INFO("CTE::SendSetPrefNetTypeRequest() - RadioPower On, Calling "
                 "RequestSetPreferredNetworkType()...\r\n");
 
+        rilToken = m_pPrefNetTypeReqInfo->token;
         res = RequestSetPreferredNetworkType(rilToken,
                                              (void*)&m_pPrefNetTypeReqInfo->type,
                                              m_pPrefNetTypeReqInfo->datalen);
