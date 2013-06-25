@@ -63,6 +63,7 @@ CSilo_Voice::CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         // Handle Call failed cause unsolicited notification here
         { "+XCEER: " , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallFailedCause },
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
+        { "+PBREADY"      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseUnrecognized },
         { ""              , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNULL }
     };
 
@@ -77,32 +78,22 @@ CSilo_Voice::~CSilo_Voice()
     RIL_LOG_VERBOSE("CSilo_Voice::~CSilo_Voice() - Enter / Exit\r\n");
 }
 
-
 char* CSilo_Voice::GetBasicInitString()
 {
-    // voice silo-related channel basic init string
-    const char szVoiceBasicInitString[] = "+XCALLNBMMI=1";
-
     if (m_pSystemCapabilities->IsVoiceCapable())
     {
+        // voice silo-related channel basic init string
+        const char szVoiceBasicInitString[] = "+XCALLNBMMI=1";
+
         if (!ConcatenateStringNullTerminate(m_szBasicInitString,
                 MAX_BUFFER_SIZE - strlen(m_szBasicInitString), szVoiceBasicInitString))
         {
-            RIL_LOG_CRITICAL("CSilo_Voice::GetBasicInitString() : Failed to copy basic init "
-                    "string!\r\n");
-            return NULL;
-        }
-    }
-    else
-    {
-        if (!ConcatenateStringNullTerminate(m_szBasicInitString,
-                MAX_BUFFER_SIZE - strlen(m_szBasicInitString), "+XCONFIG=3,0"))
-        {
-            RIL_LOG_CRITICAL("CSilo_Voice::GetBasicInitString() : Failed to copy XCONFIG to "
+            RIL_LOG_CRITICAL("CSilo_Voice::GetBasicInitString() : Failed to copy "
                     "basic init string!\r\n");
             return NULL;
         }
     }
+
     return m_szBasicInitString;
 }
 
@@ -121,6 +112,17 @@ char* CSilo_Voice::GetURCInitString()
             return NULL;
         }
     }
+    else
+    {
+        if (!ConcatenateStringNullTerminate(m_szURCInitString,
+                MAX_BUFFER_SIZE - strlen(m_szURCInitString), "|+XCONFIG=3,0"))
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::GetURCInitString() : Failed to copy XCONFIG to "
+                    "URC init string!\r\n");
+            return NULL;
+        }
+    }
+
     return m_szURCInitString;
 }
 

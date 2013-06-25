@@ -55,6 +55,12 @@ CSilo_Network::CSilo_Network(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "+CTZDST: "   , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
         { "+XNITZINFO"  , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXNITZINFO    },
         { "+PACSP1"     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
+        { "+PBREADY"    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
+        { "RING CTM"    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
+        { "RING"        , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
+        { "CTM CALL", (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
+        { "NO CTM CALL", (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
+        { "WAITING CALL CTM", (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
         { ""            , (PFN_ATRSP_PARSE)&CSilo_Network::ParseNULL         }
     };
 

@@ -35,6 +35,12 @@ CSilo_IMS::CSilo_IMS(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         // FIXME: Following strings to be confirmed and parsed.
         { "+IMSCALLSTAT: "   , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseNULL },
         { "+IMSSMSSTAT: "    , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseNULL },
+        { "+PBREADY"         , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseUnrecognized },
+        { "RING CTM"         , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseUnrecognized },
+        { "RING"             , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseUnrecognized },
+        { "CTM CALL", (PFN_ATRSP_PARSE)&CSilo_IMS::ParseUnrecognized },
+        { "NO CTM CALL", (PFN_ATRSP_PARSE)&CSilo_IMS::ParseUnrecognized },
+        { "WAITING CALL CTM", (PFN_ATRSP_PARSE)&CSilo_IMS::ParseUnrecognized },
         { ""                 , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseNULL }
     };
 

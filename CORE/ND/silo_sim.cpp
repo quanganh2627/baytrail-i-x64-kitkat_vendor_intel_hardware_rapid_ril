@@ -48,6 +48,12 @@ CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "+XSIM: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIM },
         { "+XLEMA: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLEMA },
         { "+XSIMSTATE: ", (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIMSTATE },
+        { "+PBREADY"   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "RING CTM"   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "RING"       , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "CTM CALL", (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "NO CTM CALL", (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "WAITING CALL CTM", (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
         { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
     };
 
