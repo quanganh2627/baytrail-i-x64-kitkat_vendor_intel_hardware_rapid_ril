@@ -437,7 +437,8 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     RIL_LOG_INFO("CTE::HandleRequest() - id=%d token: 0x%08x\r\n", requestId, (int) hRilToken);
 
     //  If we're in the middle of Radio error or radio off request handling, spoof all commands.
-    if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(requestId))
+    if ((GetSpoofCommandsStatus() ||  RADIO_STATE_UNAVAILABLE == GetRadioState())
+            && !IsRequestAllowedInSpoofState(requestId))
     {
         eRetVal = HandleRequestWhenNoModem(requestId, hRilToken);
     }

@@ -2532,9 +2532,11 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
         /*
          * This timeout is based on test results. Timeout is the sum of
          * time taken for powering up the modem(~6seconds) + opening of ports(<1second)
-         * + modem basic initialization(1second).
+         * + modem basic initialization(1second). In case of flashless modem, powering
+         * up the modem sometimes takes >10seconds. To make sure that the RADIO_POWER
+         * request gets processed successfully, increase the waiting timer to 20seconds.
          */
-        UINT32 WAIT_TIMEOUT_IN_MS = 15000;
+        UINT32 WAIT_TIMEOUT_IN_MS = 20000;
         CEvent* pModemBasicInitCompleteEvent =
                     CSystemManager::GetInstance().GetModemBasicInitCompleteEvent();
 
