@@ -46,7 +46,8 @@ int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE] = {0};
 
 
 CInitializer::CInitializer()
-: m_pModemBasicInitCompleteEvent(NULL),
+: m_pPortsManagerMutex(NULL),
+  m_pModemBasicInitCompleteEvent(NULL),
   m_pSimUnlockedEvent(NULL),
   m_pRadioPoweredOnEvent(NULL),
   m_pModemPoweredOffEvent(NULL),

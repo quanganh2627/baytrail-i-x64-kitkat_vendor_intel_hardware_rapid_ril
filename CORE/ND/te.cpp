@@ -1031,7 +1031,7 @@ void CTE::SendSetPrefNetTypeRequest()
                     "failed!\r\n");
         }
 
-        delete m_pPrefNetTypeReqInfo;
+        free(m_pPrefNetTypeReqInfo);
         m_pPrefNetTypeReqInfo = NULL;
     }
 

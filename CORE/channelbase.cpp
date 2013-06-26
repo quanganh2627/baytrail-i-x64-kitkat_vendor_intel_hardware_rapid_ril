@@ -42,7 +42,8 @@ CChannelBase::CChannelBase(UINT32 uiChannel)
     m_paInitCmdStrings(NULL),
     m_bPossibleInvalidFD(FALSE),
     m_pPossibleInvalidFDMutex(NULL),
-    m_pResponseObjectAccessMutex(NULL)
+    m_pResponseObjectAccessMutex(NULL),
+    m_bTimeoutWaitingForResponse(0)
 {
     RIL_LOG_VERBOSE("CChannelBase::CChannelBase() - Enter\r\n");
 
