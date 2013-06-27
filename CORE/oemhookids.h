@@ -273,6 +273,21 @@ const int RIL_OEM_HOOK_STRING_IMS_CONFIG = 0x000000AE;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_SET_DEFAULT_APN
+//  Command ID = 0x000000AF
+//
+//  This command sends the default APN to the modem (AT+CGDCONT)
+//
+//  "data" = An array of strings containing the APN description
+//           ((const char **)data)[0] - string parameter <default apn name>
+//           ((const char **)data)[1] - string parameter <apn type>
+//  "response" = NULL
+//
+const int RIL_OEM_HOOK_STRING_SET_DEFAULT_APN = 0x000000AF;
+
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
 
 //

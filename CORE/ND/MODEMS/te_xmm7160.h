@@ -44,6 +44,9 @@ private:
                                        const char** pszRequest,
                                        const int nNumStrings);
 
+    RIL_RESULT_CODE CreateSetDefaultApnReq(REQUEST_DATA& rReqData,
+            const char** pszRequest, const int nNumStrings);
+
     // RIL_REQUEST_SET_BAND_MODE 65
     virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA& rReqData,
                                                        void* pData,

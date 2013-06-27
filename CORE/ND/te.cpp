@@ -9656,4 +9656,3 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
 Error:
     return res;
 }
-
