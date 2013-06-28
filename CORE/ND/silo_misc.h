@@ -12,7 +12,9 @@
 /////////////////////////////////////////////////////////////////////////////
 //
 //  MISC silo class.  This class handles all network functionality including:
-//  -Thermal sensor notification
+//  - Get thermal sensor notification
+//  - Get device diagnostic metrics
+//  - Get IDC CWS info
 //
 
 #ifndef RRIL_SILO_MISC_H
@@ -34,6 +36,13 @@ protected:
     //  Parse notification functions here.
     virtual BOOL ParseXDRVI(CResponse* const pResponse, const char*& rszPointer);
 
+    virtual BOOL ParseXMETRIC(CResponse* const pResponse, const char*& rszPointer);
+
+    virtual BOOL ParseXNRTCWSI(CResponse* const pResponse, const char*& rszPointer);
+
+    // Parse the URCs (+XMETRIC, +XNRTCWS) needed for RF Coexistence
+    virtual BOOL ParseCoexURC(CResponse* const pResponse, const char*& rszPointer,
+                              const char* pUrcPrefix);
 };
 
 #endif // RRIL_SILO_MISC_H

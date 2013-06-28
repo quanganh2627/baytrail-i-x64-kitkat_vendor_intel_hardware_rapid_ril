@@ -444,6 +444,26 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_UNSOL_IMS_SUPPORT_STATUS
 //
 const int RIL_OEM_HOOK_RAW_UNSOL_IMS_SUPPORT_STATUS = 0x000000D7;
 
+///////////////////////////////////////////////////////////////////////////////
+
+const int COEX_INFO_BUFFER_SIZE = 100;
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_COEX_INFO
+{
+    int command; //  Command ID
+    int responseSize;
+    char response[COEX_INFO_BUFFER_SIZE]; // result string (entire URC content)
+} sOEM_HOOK_RAW_UNSOL_COEX_INFO;
+
+//
+//  OEM_HOOK_RAW_UNSOL_COEX_INFO
+//  Command ID = 0x000000D8
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_COEX_INFO
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_COEX_INFO = 0x000000D8;
+
+
 #pragma pack()
 
 /***********************************************************************/
