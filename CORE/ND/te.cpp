@@ -97,7 +97,6 @@ CTE::CTE(UINT32 modemType) :
         m_szLastNetworkData[i][0] = '\0';
     }
     m_szLastCEER[0] = '\0';
-    m_szLastXCELLINFO[0] = '\0';
 
     m_pDtmfStateAccess = new CMutex();
 
@@ -153,41 +152,49 @@ CTEBase* CTE::CreateModemTE(CTE* pTEInstance)
 // Creates the Modem specific TE Singlton Object
 void CTE::CreateTE(UINT32 modemType)
 {
-    CMutex::Lock(CSystemManager::GetTEAccessMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetTEAccessMutex());
     if (NULL == m_pTEInstance)
     {
         m_pTEInstance = new CTE(modemType);
         if (NULL == m_pTEInstance)
         {
-            CMutex::Unlock(CSystemManager::GetTEAccessMutex());
+            CMutex::Unlock(CSystemManager::GetInstance().GetTEAccessMutex());
             RIL_LOG_CRITICAL("CTE::CreateTE() - Unable to create terminal equipment!!!!!!"
                     " EXIT!\r\n");
             exit(0);
         }
     }
-    CMutex::Unlock(CSystemManager::GetTEAccessMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetTEAccessMutex());
+}
+
+//
+// Return an appropriate initializer compatible with the IPC used by the platform
+//
+CInitializer* CTE::GetInitializer()
+{
+    return m_pTEBaseInstance->GetInitializer();
 }
 
 CTE& CTE::GetTE()
 {
-    CMutex::Lock(CSystemManager::GetTEAccessMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetTEAccessMutex());
     if (NULL == m_pTEInstance)
     {
-        CMutex::Unlock(CSystemManager::GetTEAccessMutex());
+        CMutex::Unlock(CSystemManager::GetInstance().GetTEAccessMutex());
         RIL_LOG_CRITICAL("CTE::GetTE() - Unable to get terminal equipment!!!!!! EXIT!\r\n");
         exit(0);
     }
-    CMutex::Unlock(CSystemManager::GetTEAccessMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetTEAccessMutex());
     return *m_pTEInstance;
 }
 
 void CTE::DeleteTEObject()
 {
     RIL_LOG_INFO("CTE::DeleteTEObject() - Deleting TE instance\r\n");
-    CMutex::Lock(CSystemManager::GetTEAccessMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetTEAccessMutex());
     delete m_pTEInstance;
     m_pTEInstance = NULL;
-    CMutex::Unlock(CSystemManager::GetTEAccessMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetTEAccessMutex());
 }
 
 char* CTE::GetBasicInitCommands(UINT32 uiChannelType)
@@ -302,8 +309,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
     return bAllowed;
 }
 
-RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken, void* pData,
-        size_t datalen)
+RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
 {
     RIL_LOG_INFO("CTE::HandleRequestWhenNoModem - REQID=%d, token=0x%08x\r\n",
             requestId, (int) hRilToken);
@@ -375,38 +381,6 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken, void
         }
         break;
 
-        case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
-            eRetVal = RIL_E_GENERIC_FAILURE;
-
-            // Delay sending command if radio is off or modem not up
-            if ((RADIO_STATE_OFF == GetRadioState()
-                    || E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
-                    && NULL == m_pPrefNetTypeReqInfo)
-            {
-                if (NULL != pData
-                        && sizeof(RIL_PreferredNetworkType*) == datalen)
-                {
-                    RIL_LOG_INFO("CTE::HandleRequestWhenNoModem - Waiting for radioPower On "
-                            "before setting preferred network type...\r\n");
-
-                    RIL_PreferredNetworkType prefType = ((RIL_PreferredNetworkType*)pData)[0];
-
-                    m_pPrefNetTypeReqInfo = (PREF_NET_TYPE_REQ_INFO*)malloc(
-                                                        sizeof(PREF_NET_TYPE_REQ_INFO));
-                    if (m_pPrefNetTypeReqInfo)
-                    {
-                        // Save request info
-                        memset(m_pPrefNetTypeReqInfo, 0, sizeof(PREF_NET_TYPE_REQ_INFO));
-                        m_pPrefNetTypeReqInfo->token = hRilToken;
-                        m_pPrefNetTypeReqInfo->type = prefType;
-                        m_pPrefNetTypeReqInfo->datalen = datalen;
-
-                        eRetVal = RIL_E_SUCCESS;
-                    }
-                }
-            }
-            break;
-
         default:
             eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
             break;
@@ -465,7 +439,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     //  If we're in the middle of Radio error or radio off request handling, spoof all commands.
     if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(requestId))
     {
-        eRetVal = HandleRequestWhenNoModem(requestId, hRilToken, pData, datalen);
+        eRetVal = HandleRequestWhenNoModem(requestId, hRilToken);
     }
     else if ((m_bRadioRequestPending || RADIO_STATE_OFF == GetRadioState())
             && !IsRequestAllowedInRadioOff(requestId))
@@ -772,7 +746,15 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 break;
 
             case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:  // 73
-                eRetVal = RequestSetPreferredNetworkType(hRilToken, pData, datalen);
+                // Delay request if radio state is Off until it is On
+                if (RADIO_STATE_OFF == GetRadioState())
+                {
+                    eRetVal = DelaySetPrefNetTypeRequest(pData, datalen, hRilToken);
+                }
+                else
+                {
+                    eRetVal = RequestSetPreferredNetworkType(hRilToken, pData, datalen);
+                }
                 break;
 
             case RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE:  // 74
@@ -998,6 +980,63 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     if (RIL_E_SUCCESS != eRetVal)
     {
         RIL_onRequestComplete(hRilToken, (RIL_Errno)eRetVal, NULL, 0);
+    }
+}
+
+RIL_RESULT_CODE CTE::DelaySetPrefNetTypeRequest(void* pData, size_t datalen, RIL_Token hRilToken)
+{
+    RIL_RESULT_CODE eRetVal = RIL_E_GENERIC_FAILURE;
+
+    if (NULL != pData
+            && sizeof(RIL_PreferredNetworkType*) == datalen
+            && NULL == m_pPrefNetTypeReqInfo)
+    {
+        RIL_LOG_INFO("CTE::DelaySetPrefNetTypeRequest - Waiting for radioPower On "
+                "before setting preferred network type...\r\n");
+
+        m_pPrefNetTypeReqInfo = (PREF_NET_TYPE_REQ_INFO*)malloc(
+                                            sizeof(PREF_NET_TYPE_REQ_INFO));
+        if (m_pPrefNetTypeReqInfo)
+        {
+            // Save request info
+            memset(m_pPrefNetTypeReqInfo, 0, sizeof(PREF_NET_TYPE_REQ_INFO));
+            m_pPrefNetTypeReqInfo->token = hRilToken;
+            m_pPrefNetTypeReqInfo->type = ((RIL_PreferredNetworkType*)pData)[0];
+            m_pPrefNetTypeReqInfo->datalen = datalen;
+
+            eRetVal = RIL_E_SUCCESS;
+        }
+    }
+    return eRetVal;
+}
+
+void CTE::SendSetPrefNetTypeRequest()
+{
+    RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
+    RIL_Token rilToken = m_pPrefNetTypeReqInfo->token;
+
+    // Send request to SetPreferredNetworkType if previously received before radio power on
+    if (NULL != m_pPrefNetTypeReqInfo)
+    {
+        RIL_LOG_INFO("CTE::SendSetPrefNetTypeRequest() - RadioPower On, Calling "
+                "RequestSetPreferredNetworkType()...\r\n");
+
+        res = RequestSetPreferredNetworkType(rilToken,
+                                             (void*)&m_pPrefNetTypeReqInfo->type,
+                                             m_pPrefNetTypeReqInfo->datalen);
+        if (RRIL_RESULT_OK != res)
+        {
+            RIL_LOG_CRITICAL("CTE::SendSetPrefNetTypeRequest() - RequestSetPreferredNetworkType "
+                    "failed!\r\n");
+        }
+
+        delete m_pPrefNetTypeReqInfo;
+        m_pPrefNetTypeReqInfo = NULL;
+    }
+
+    if (RIL_E_SUCCESS != res)
+    {
+        RIL_onRequestComplete(rilToken, (RIL_Errno)res, NULL, 0);
     }
 }
 
@@ -2227,6 +2266,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
     REQUEST_DATA reqData; // Not used
     char szResetActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
+
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE::RequestRadioPower() - Data pointer is NULL.\r\n");
@@ -4154,7 +4194,6 @@ Error:
     RIL_LOG_VERBOSE("CTE::RequestDataCallList() - Exit\r\n");
     return RRIL_RESULT_OK;
 }
-
 
 RIL_RESULT_CODE CTE::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
 {
@@ -6740,7 +6779,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
             rtAct = MapAccessTechnology(uiAct);
             snprintf(rCSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)rtAct);
             SetUiAct(rtAct);
-            RIL_LOG_INFO("CTE::ParseCREG() - uiAct=%d\r\n",rtAct);
+            RIL_LOG_INFO("CTE::ParseCREG() - uiAct=%d\r\n", rtAct);
         }
 
         // Extract ",cause_type and reject_cause" only if registration status is denied
@@ -6817,10 +6856,10 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
     UINT32 uiLAC = 0;
     UINT32 uiCID = 0;
     UINT32 uiAct = 0;
-    RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
-    UINT32 uiRAC = 0;
     UINT32 uiCauseType = 0;
     UINT32 uiRejectCause = 0;
+    RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
+    UINT32 uiRAC = 0;
     BOOL bRet = false;
     char szNewLine[3] = "\r\n";
 
@@ -7134,7 +7173,6 @@ Error:
     return bRet;
 }
 
-
 BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
                               S_ND_GPRS_REG_STATUS& rPSRegStatusInfo)
 {
@@ -7228,7 +7266,7 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
         */
         uiAct = CTE::MapAccessTechnology(uiAct);
         CTE::GetTE().SetUiAct(uiAct);
-        RIL_LOG_INFO("CTE::ParseCEREG() - uiAct=%d,%p\r\n",uiAct);
+        RIL_LOG_INFO("CTE::ParseCEREG() - uiAct=%d,%p\r\n", uiAct);
     }
 
     // Extract ",cause_type and reject_cause" only if registration status is denied
@@ -7275,7 +7313,6 @@ Error:
     RIL_LOG_VERBOSE("CTE::ParseCEREG() - Exit\r\n");
     return bRet;
 }
-
 
 void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
 {
@@ -7748,10 +7785,10 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
                 if (!m_pTEBaseInstance->IsDtmfAllowed(callId))
                 {
                     // Complete pending DTMF start and stop request
-                    CSystemManager::CompleteIdenticalRequests(uiChannelId,
+                    CompleteIdenticalRequests(uiChannelId,
                             ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
-                    CSystemManager::CompleteIdenticalRequests(uiChannelId,
+                    CompleteIdenticalRequests(uiChannelId,
                             ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
                     SetDtmfState(E_DTMF_STATE_STOP);
@@ -7784,10 +7821,10 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
                 if (!m_pTEBaseInstance->IsDtmfAllowed(callId))
                 {
                     // Complete pending DTMF start and stop request
-                    CSystemManager::CompleteIdenticalRequests(uiChannelId,
+                    CompleteIdenticalRequests(uiChannelId,
                             ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
-                    CSystemManager::CompleteIdenticalRequests(uiChannelId,
+                    CompleteIdenticalRequests(uiChannelId,
                             ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
                 }
             }
@@ -7843,13 +7880,13 @@ BOOL CTE::isFDNRequest(int fileId)
 
 BOOL CTE::TestAndSetSpoofCommandsStatus(BOOL bStatus)
 {
-    CMutex::Lock(CSystemManager::GetSpoofCommandsStatusAccessMutex());
+    CMutex::Lock(CSystemManager::GetInstance().GetSpoofCommandsStatusAccessMutex());
     BOOL bPrevSpoofCommandsStatus = m_bSpoofCommandsStatus;
 
     if (m_bSpoofCommandsStatus != bStatus)
         m_bSpoofCommandsStatus = bStatus;
 
-    CMutex::Unlock(CSystemManager::GetSpoofCommandsStatusAccessMutex());
+    CMutex::Unlock(CSystemManager::GetInstance().GetSpoofCommandsStatusAccessMutex());
     return bPrevSpoofCommandsStatus;
 }
 
@@ -8251,7 +8288,7 @@ void CTE::PostSwitchHoldingAndActiveCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 " clearing all ND_REQ_ID_SWITCHHOLDINGANDACTIVE\r\n");
         SetClearPendingCHLDs(FALSE);
 
-        CSystemManager::CompleteIdenticalRequests(rData.uiChannel,
+        CompleteIdenticalRequests(rData.uiChannel,
                 ND_REQ_ID_SWITCHHOLDINGANDACTIVE, RIL_E_GENERIC_FAILURE, NULL, 0);
     }
 
@@ -8297,7 +8334,7 @@ void CTE::PostNetworkInfoCmdHandler(POST_CMD_HANDLER_DATA& rData)
         return;
     }
 
-    CSystemManager::CompleteIdenticalRequests(rData.uiChannel, rData.uiRequestId,
+    CompleteIdenticalRequests(rData.uiChannel, rData.uiRequestId,
             rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
 
     RIL_LOG_VERBOSE("CTE::PostNetworkInfoCmdHandler() Exit\r\n");
@@ -8353,28 +8390,15 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
 
     if (RADIO_POWER_ON == m_RequestedRadioPower)
     {
+        // Send request to SetPreferredNetworkType if previously received before radio power on
+        if (NULL != m_pPrefNetTypeReqInfo)
+        {
+            SendSetPrefNetTypeRequest();
+        }
+
         if (SCREEN_STATE_UNKNOWN != m_ScreenState)
         {
             m_pTEBaseInstance->HandleScreenStateReq(m_ScreenState);
-        }
-         // Send request to SetPreferredNetworkType if previously received before radio power on
-        if (NULL != m_pPrefNetTypeReqInfo)
-        {
-            RIL_LOG_INFO("CTE::PostRadioPower() - RadioPower On, Calling "
-                    "RequestSetPreferredNetworkType()...\r\n");
-
-            RIL_RESULT_CODE res = RequestSetPreferredNetworkType(
-                                            m_pPrefNetTypeReqInfo->token,
-                                            &m_pPrefNetTypeReqInfo->type,
-                                            m_pPrefNetTypeReqInfo->datalen);
-            if (RRIL_RESULT_OK != res)
-            {
-                RIL_LOG_CRITICAL("CTE::PostRadioPower() - "
-                        "RequestSetPreferredNetworkType failed!\r\n");
-            }
-
-            free(m_pPrefNetTypeReqInfo);
-            m_pPrefNetTypeReqInfo = NULL;
         }
 
         //  Turning on phone
@@ -8756,7 +8780,7 @@ void CTE::PostGetNeighboringCellIDs(POST_CMD_HANDLER_DATA& rData)
     RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                                     (void*)rData.pData, rData.uiDataSize);
 
-    CSystemManager::CompleteIdenticalRequests(rData.uiChannel,
+    CompleteIdenticalRequests(rData.uiChannel,
             rData.uiRequestId, rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
 
     RIL_LOG_VERBOSE("CTE::PostGetNeighboringCellIDs() Exit\r\n");
@@ -9101,6 +9125,26 @@ BOOL CTE::IsPlatformShutDownRequested()
     return s_bIsShutDownRequested;
 }
 
+void CTE::CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID,
+                                        UINT32 uiResultCode,
+                                        void* pResponse,
+                                        size_t responseLen,
+                                        int callId)
+{
+    RIL_LOG_VERBOSE("CTE::CompleteIdenticalRequests() - Enter\r\n");
+
+    if (uiChannelId < RIL_CHANNEL_MAX)
+    {
+        CChannel* pChannel = g_pRilChannel[uiChannelId];
+        if (NULL != pChannel)
+        {
+            pChannel->FindIdenticalRequestsAndSendResponses(uiReqID, uiResultCode,
+                    pResponse, responseLen, callId);
+        }
+    }
+    RIL_LOG_VERBOSE("CTE::CompleteIdenticalRequests() - Exit\r\n");
+}
+
 BOOL CTE::IsPlatformShutDownOngoing()
 {
     RIL_LOG_VERBOSE("CTE::IsPlatformShutDownOngoing() - Enter\r\n");
@@ -9115,23 +9159,6 @@ BOOL CTE::IsPlatformShutDownOngoing()
     return bIsPlatformShutDownOngoing;
 }
 
-RIL_RESULT_CODE CTE::CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
-        const char** pszRequest,
-        const UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("CTE::CreateIMSRegistrationReq() - Enter/Exit\r\n");
-    return m_pTEBaseInstance->CreateIMSRegistrationReq(rReqData,
-                    pszRequest, uiDataSize);
-}
-
-RIL_RESULT_CODE CTE::CreateIMSConfigReq(REQUEST_DATA& rReqData,
-        const char** pszRequest,
-        const int nNumStrings)
-{
-    RIL_LOG_VERBOSE("CTE::CreateIMSConfigReq() - Enter/Exit\r\n");
-    return m_pTEBaseInstance->CreateIMSConfigReq(rReqData,
-                    pszRequest, nNumStrings);
-}
 void CTE::SaveCEER(const char* pszData)
 {
     CopyStringNullTerminate(m_szLastCEER, pszData, 255);
@@ -9148,13 +9175,26 @@ void CTE::SaveNetworkData(LAST_NETWORK_DATA_ID id, const char* pszData)
             MAX_NETWORK_DATA_SIZE);
 }
 
-void CTE::SaveXCELLINFO(const char* pszData)
-{
-    CopyStringNullTerminate(m_szLastXCELLINFO, pszData, 512);
-}
-
 RIL_RESULT_CODE CTE::ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE::ParseDeactivateAllDataCalls() - Enter / Exit\r\n");
     return m_pTEBaseInstance->ParseDeactivateAllDataCalls(rRspData);
+}
+
+RIL_RESULT_CODE CTE::CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
+        const char** ppszRequest,
+        const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE::CreateIMSRegistrationReq() - Enter/Exit\r\n");
+    return m_pTEBaseInstance->CreateIMSRegistrationReq(rReqData,
+                    ppszRequest, uiDataSize);
+}
+
+RIL_RESULT_CODE CTE::CreateIMSConfigReq(REQUEST_DATA& rReqData,
+        const char** ppszRequest,
+        const int nNumStrings)
+{
+    RIL_LOG_VERBOSE("CTE::CreateIMSConfigReq() - Enter/Exit\r\n");
+    return m_pTEBaseInstance->CreateIMSConfigReq(rReqData,
+                    ppszRequest, nNumStrings);
 }

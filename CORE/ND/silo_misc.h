@@ -1,25 +1,19 @@
-/* silo_misc.h
-**
-** Copyright (C) Intel 2012
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** Description:
-**    Defines the CSilo_MISC class, which provides response handlers and
-**    parsing functions for the MISC features.
-**
-** Author: Frederic Predon <frederic.predon@intel.com>
-*/
+////////////////////////////////////////////////////////////////////////////
+// silo_misc.h
+//
+// Copyright 2012 Intrinsyc Software International, Inc.  All rights reserved.
+// Patents pending in the United States of America and other jurisdictions.
+//
+//
+// Description:
+//    Defines the CSilo_MISC class, which provides response handlers and
+//    parsing functions for the MISC features.
+//
+/////////////////////////////////////////////////////////////////////////////
+//
+//  MISC silo class.  This class handles all network functionality including:
+//  -Thermal sensor notification
+//
 
 #ifndef RRIL_SILO_MISC_H
 #define RRIL_SILO_MISC_H
@@ -31,8 +25,10 @@
 class CSilo_MISC : public CSilo
 {
 public:
-    CSilo_MISC(CChannel* pChannel);
+    CSilo_MISC(CChannel* pChannel, CSystemCapabilities* pSysCaps);
     virtual ~CSilo_MISC();
+
+    virtual char* GetBasicInitString();
 
 protected:
     //  Parse notification functions here.

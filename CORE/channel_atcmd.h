@@ -25,11 +25,10 @@ public:
     virtual ~CChannel_ATCmd();
 
     //  public port interface
-    BOOL    OpenPort();
+    BOOL OpenPort();
 
 protected:
-    BOOL    FinishInit();
-    BOOL    AddSilos();
+    BOOL FinishInit();
 };
 
 #endif // RIL_CHANNEL_ATCMD_H

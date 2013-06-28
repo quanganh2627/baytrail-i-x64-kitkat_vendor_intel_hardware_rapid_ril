@@ -31,8 +31,10 @@
 class CSilo_SIM : public CSilo
 {
 public:
-    CSilo_SIM(CChannel *pChannel);
+    CSilo_SIM(CChannel *pChannel, CSystemCapabilities* pSysCaps);
     virtual ~CSilo_SIM();
+
+    virtual char* GetURCInitString();
 
 protected:
     //  Parse notification functions here.

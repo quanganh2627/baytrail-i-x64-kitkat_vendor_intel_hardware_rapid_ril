@@ -36,6 +36,7 @@
 #include "repository.h"
 #include "reset.h"
 #include "data_util.h"
+#include "init6360.h"
 
 
 CTE_XMM6360::CTE_XMM6360(CTE& cte)
@@ -45,6 +46,44 @@ CTE_XMM6360::CTE_XMM6360(CTE& cte)
 
 CTE_XMM6360::~CTE_XMM6360()
 {
+}
+
+CInitializer* CTE_XMM6360::GetInitializer()
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::GetInitializer() - Enter\r\n");
+    CInitializer* pRet = NULL;
+
+    RIL_LOG_INFO("CTE_XMM6360::GetInitializer() - Creating CInit6360 initializer\r\n");
+    m_pInitializer = new CInit6360();
+    if (NULL == m_pInitializer)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::GetInitializer() - Failed to create a CInit6360 "
+                "initializer!\r\n");
+        goto Error;
+    }
+
+    pRet = m_pInitializer;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6360::GetInitializer() - Exit\r\n");
+    return pRet;
+}
+
+char* CTE_XMM6360::GetUnlockInitCommands(UINT32 uiChannelType)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::GetUnlockInitCommands() - Enter\r\n");
+
+    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
+
+    if (RIL_CHANNEL_URC == uiChannelType)
+    {
+        // add to init string. +CGAUTO=4
+        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+                "|+CGAUTO=4");
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6360::GetUnlockInitCommands() - Exit\r\n");
+    return strndup(szInitCmd, strlen(szInitCmd));
 }
 
 const char* CTE_XMM6360::GetRegistrationInitString()
@@ -70,35 +109,6 @@ const char* CTE_XMM6360::GetLocationUpdateString(BOOL bIsLocationUpdateEnabled)
 const char* CTE_XMM6360::GetScreenOnString()
 {
     return "AT+CREG=3;+CGREG=0;+XREG=3;+XCSQ=1\r";
-}
-
-char* CTE_XMM6360::GetUnlockInitCommands(UINT32 uiChannelType)
-{
-    RIL_LOG_VERBOSE("CTE_XMM6360::GetUnlockInitCommands() - Enter\r\n");
-
-    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
-    char *pInitCmd = NULL;
-
-    pInitCmd = CTE_XMM6260::GetUnlockInitCommands(uiChannelType);
-
-    if (RIL_CHANNEL_URC != uiChannelType)
-    {
-        RIL_LOG_VERBOSE("CTE_XMM6360::GetUnlockInitCommands() - Exit.\r\n");
-        return pInitCmd;
-    }
-
-    if (pInitCmd != NULL)
-    {
-        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE, pInitCmd);
-
-        // add to init string. +CGAUTO=4
-        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                "|+CGAUTO=4");
-        free (pInitCmd);
-    }
-
-    RIL_LOG_VERBOSE("CTE_XMM6360::GetUnlockInitCommands() - Exit\r\n");
-    return strndup(szInitCmd, strlen(szInitCmd));
 }
 
 BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
@@ -190,7 +200,7 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
        // Get the hsi channel id
         int hsiNetworkPath = -1;
 
-        ipcDataChannelMin = CSystemManager::GetInstance().GetIpcDataChannelMin();
+        ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
 
         if (ipcDataChannelMin <= hsiChannel && RIL_MAX_NUM_IPC_CHANNEL > hsiChannel)
         {
@@ -203,7 +213,7 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
            goto Error;
         }
 
-        szModemResourceName = CSystemManager::GetInstance().GetModemResourceName();
+        szModemResourceName = pChannelData->GetModemResourceName();
 
         if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
                 "AT+CGACT=1,%d;+XDATACHANNEL=1,1,\"/mux/%d\",\"/%s/%d\",0\r",
@@ -309,10 +319,17 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
     BOOL bIsHSIDirect = FALSE;
     int hsiChannel = -1;
     int ipcDataChannelMin = 0;
-
     UINT32 nw_if_pdp_mux_offset = 0;
 
-    ipcDataChannelMin = CSystemManager::GetInstance().GetIpcDataChannelMin();
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - No Data Channel for CID %u.\r\n",
+                                                                    uiCID);
+        goto Error;
+    }
+
+    ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
 
     if (ipcDataChannelMin > RIL_MAX_NUM_IPC_CHANNEL)
     {
@@ -322,14 +339,6 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
     }
 
     nw_if_pdp_mux_offset = (RIL_MAX_NUM_IPC_CHANNEL - ipcDataChannelMin);
-
-    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
-    if (NULL == pChannelData)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - No Data Channel for CID %u.\r\n",
-                                                                    uiCID);
-        goto Error;
-    }
 
     state = pChannelData->GetDataState();
     if (E_DATA_STATE_ACTIVE != state)

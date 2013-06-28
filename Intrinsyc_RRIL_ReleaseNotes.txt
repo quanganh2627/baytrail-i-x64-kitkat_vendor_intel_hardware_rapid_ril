@@ -1,6 +1,551 @@
 Intrinsyc RapidRIL for Google Android Release Notes
 ===================================================
 
+June 11, 2013 (M6.53 release for Clovertrail Phone PR2.0)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Clovertrail
+Phone PR2.0 device, Android version 4.2 (Jelly Bean).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external JB ABSP dated May 27, 2013 (ww21).
+- We are using the HSI interface.
+
+PR2.0 Setup
+===========
+FW DnX: SIGNED_CLVp_FWR_DnX_20.25.bin (from ww21 PR2.0 release)
+IFWI: IFWI_vF6.D5_CRAK_DEV.bin (from ww21 PR2.0 release)
+OS DnX: SIGNED_CLVp_OSR_DnX_20.25.bin (from ww21 PR2.0 release)
+OS Image: droidboot.img (from ww21 PR2.0 release)
+Modem Firmware: radio_firmware_6360.bin (from ww21 PR2.0 release - 1321.B)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch redhookbay-eng
+make flashfiles -j8
+
+
+Release Notes for M6.53
+========================
+
+1. Bugzilla 111412: CTE::ParseCREG shown as an error instead of an info.
+   -Change log message type from RIL_LOG_CRITICAL to RIL_LOG_INFO in te.cpp.
+
+2. Bugzilla 110046: Reduce error messages at RIL startup
+   -Re-Integrate patch 109013: Add missing line changes (change CRITICAL log messages
+    to INFO) in te.cpp from last release 6.52.
+
+3. Bugzilla 88840: Set preferred network type failing with error RADIO_NOT_AVAILABLE
+   -Fix implementation since some recent code changes have altered the code path (does not
+    fall into HandleRequestWhenNoModem().
+   -Remove check for MODEM_UP and move implementation into helper functions.
+
+4. Bugzilla 108270: Dont send PS detach when conformance property set
+   -Integrate patch 110019
+
+5. Bugzilla 110148: Fix issue in notifying radio off state
+   -Integrate patch 110325
+
+6. Bugzilla 110468: Send AT+CIREG to the modem at startup
+   -Integrate patch 109651
+   -Integrate with Alpha 1: Make change in CSilo_IMS::GetURCInitString (silo_ims.cpp)
+
+7. Bugzilla 111174: Acquire modem resource based on encrypted state
+   -Integrate patch 110706
+
+8. Bugzilla 107119: Update sim app state as unknown in radio off
+   -Integrate patch 110418
+
+9. Bugzilla 110126: Remove modem resource acquire done on MODEM_UP
+   -Integrate patch 110419
+
+10. Bugzilla 110554: Adding support for PDP context authentication in 7160
+    -Integrate patch 109666
+
+11. Bugzilla 110412: Change log info to log critical in case of error
+    -Integrate patch 111503
+
+12. Bugzilla 62327:  manage registration reject cause
+    -Integrate patch 107310
+    -Integrate with Alpha 1: Remove overrides for GetBasicInitCommands in 6360 and 7160.
+
+13. Bugzilla 104021: Add CGAUTO to unlock init command list
+    -Integrate patch 108732
+    -Integrate with Alpha 1: Re-add GetUnlockInitCommands for 6360.
+
+14. Bugzilla 110332: Add custom APN in modem init command
+    -Integrate patch 110372
+
+15. Bugzilla 113926: Fix issues in handling data call deactivation
+    -Integrate patch 111913
+
+16. Bugzilla 113055: Map LTE/WCDMA option to PREF_NET_TYPE_LTE_WCDMA
+    -Integrate patch 111388
+
+17. Bugzilla 113690: Fix issue in call drop reporting for mobile release case
+    -Integrate patch 111722
+
+18. Bugzilla 112904: Separate detach/deactivate and manual network scan
+    -Integrate patch 112102
+
+19. Bugzilla 113030: Remove modem recovery done on MODEM_UP event
+    -Integrate patch 112110
+
+20. Bugzilla 112951: Fix klockwork issues
+    -Integrate patch 111517
+
+21. Bugzilla 97854: Fixing klockwork issues
+    -Integrate patch 111442
+    -Integrate with Alpha 1: Change in CTE_XMM7160:GetBasicInitCommands not needed.
+
+22. Bugzilla 113358: Maintain backward compatibility of RequestRadioPower
+    -Integrate patch 111510
+
+23. Incorporate feedback for Alpha 1
+    -Define silo-related init strings in silos as const C-strings in function used instead
+     of #defines.
+
+
+Testing results:  (tested on Clovertrail Phone PR2.0)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+May 28, 2013 (M6.52 release for Clovertrail Phone PR2.0)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Clovertrail
+Phone PR2.0 device, Android version 4.2 (Jelly Bean).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external JB ABSP dated May 13, 2013 (ww19).
+- We are using the HSI interface.
+
+PR2.0 Setup
+===========
+FW DnX: SIGNED_CLVp_FWR_DnX_20.24.bin (from ww19 PR2.0 release)
+IFWI: IFWI_vF6.D4_CRAK_DEV.bin (from ww19 PR2.0 release)
+OS DnX: SIGNED_CLVp_OSR_DnX_20.24.bin (from ww19 PR2.0 release)
+OS Image: droidboot.img (from ww19 PR2.0 release)
+Modem Firmware: radio_firmware_6360.bin (from ww19 PR2.0 release - 1319.B)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch redhookbay-eng
+make flashfiles -j8
+
+
+Release Notes for M6.52
+========================
+
+1. Bugzilla 79333: Ensure object unicity in rilqueue
+   -Add check if object already exists before inserting it to the queue (Enqueue() function
+    in rilqueue.h).
+
+2. Sync external files from WW18 ABSP:
+   -Update: /hardware/ril/include/telephony/ril.h
+            /vendor/intel/clovertrail/board/redhookbay/rril/repository6360.txt
+
+3. Incorporate feedback for Alpha 1 changes
+
+4. Bugzilla 102058: Add radio off reason to RIL_REQUEST_RADIO_POWER
+   -Integrate patch 108619 (changes to ril.h)
+
+5. Bugzilla 105638: Handle EAGAIN and EINTR in TTY opening code
+   -Integrate patch 107655
+
+6. Bugzilla 107130: Fix bad nanosecond to milliseconds conversion in time-out computation
+   -Integrate patch 107656
+
+7. Bugzilla 92725: IMS modem centric integration
+   -Integrate patch 97150
+   -Add changes to integrate with Alpha 1.
+
+8. Bugzilla 108546: Update response pointer on parsing error
+   -Integrate patch 107891
+
+9. Bugzilla 102058: Handle radio power off request with reason
+   -Integrate patch 108509
+
+10. Bugzilla 105131: Acquire modem resource on rapid ril init
+    -Integrate patch 108643
+
+11. Bugzilla 105137: Change channel for operator query request
+    -Integrate patch 108644
+
+12. Bugzilla 110046: Reduce error messages at RIL startup
+    -Integrate patch 109013
+
+13. Bugzilla 101182: Add reporting of call drop event to crashtool
+    -Integrate patch 101388
+
+
+Testing results:  (tested on Clovertrail Phone PR2.0)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+May 14, 2013 (M6.51 release for Clovertrail Phone PR2.0)
+
+This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Clovertrail
+Phone PR2.0 device, Android version 4.2 (Jelly Bean).
+
+NOTES:
+- This release has been tested with basic sanity tests.
+- This release was built with Intel's external JB ABSP dated April 26, 2013 (ww17).
+- We are using the HSI interface.
+
+PR2.0 Setup
+===========
+FW DnX: SIGNED_CLVp_FWR_DnX_20.22.bin (from ww17 PR2.0 release)
+IFWI: IFWI_vF6.D2_CRAK_DEV.bin (from ww17 PR2.0 release)
+OS DnX: SIGNED_CLVp_OSR_DnX_20.22.bin (from ww17 PR2.0 release)
+OS Image: droidboot.img (from ww17 PR2.0 release)
+Modem Firmware: radio_firmware_6360.bin (from ww17 PR2.0 release - 1317.B)
+
+Build Steps used
+================
+source ./build/envsetup.sh
+lunch redhookbay-eng
+make flashfiles -j8
+
+
+Release Notes for M6.51
+========================
+
+1. Bugzilla 101253: Review unsolicited OEM hook command
+   -Integrate patch 101541
+
+2. Bugzilla 101367: Fix issues on AT+CCHO, AT+CCHC and AT+CGLA commands
+   -Integrate patch 102917
+
+3. Bugzilla 100743: Doesn't exit on MODEM_UP after MODEM_SHUTDOWN
+   -Integrate patch 104701
+
+4. Bugzilla 100212: Acquire modem resource on MODEM_UP event
+   -Integrate patch 104702
+
+5. Bugzilla 102797: Fix issue in parsing CGEV response
+   -Integrate patch 104690
+
+6. Bugzilla 102072: Handle platform shutdown cleanly
+   -Integrate patch 105986
+
+7. Bugzilla 103970: Stop channel threads before closing ports
+   -Integrate patch 105987
+
+8. Bugzilla 100042: Current network type not correctly set
+   -Integrate patch 105989
+
+9. Bugzilla 104993: Close channel ports only on modem events
+   -Integrate patch 105990
+
+10. Bugzilla 93450: PS Detach before manual network search
+    -Integrate patch 105991
+
+11. Bugzilla 104633: Request PS Attach after query available networks
+    -Integrate patch 105992
+
+12. Alpha 1 Re-arch Integration
+    -Add CInitializer class/subclasses to initialize modem, create channels and silos.
+     Get appropriate initializer in SystemManager based on modem type.
+    -Read silo configuration (bitmask) for each channel from repository.
+    -Move modem init commands/strings to silo-specific classes and create strings
+     dynamically when channels are created.
+    -Add CSystemCapabilities object and pass capabilities read from repository to
+     silo (replaces patch 91879, BZ 79396).
+    -Remove CSilo_Factory class.
+    -Move CompleteIdenticalRequests() function from SysMgr to CTE.
+    -Move variables m_ipcDataChannelMin (min. data channel index) and m_szModemResourceName
+     from SysMgr to channel_data (read from repository).
+
+
+Testing results:  (tested on Clovertrail Phone PR2.0)
+================
+
+1. Boot to steady-state (network registered, signal strength), No SIM PIN lock.
+   PASS
+
+2. Connect data, download data.
+   PASS
+
+3. Disconnect data (uncheck "Data enabled" checkbox).
+   Reconnect data (check "Data enabled" checkbox).
+   Download data.
+   PASS
+
+4. Go into Flight Mode.
+   PASS
+
+5. Exit Flight Mode.  Data should re-connect.  Download data.
+   PASS
+
+6. Switch technology from 3G -> 2G only.  Download data.
+   PASS
+
+7. Switch technology from 2G only -> 3G.  Download data.
+   PASS
+
+8. MO Voice call.  Local Hangup.
+   PASS
+
+9. MT Voice call.  Answer call. Remote Hangup.
+   PASS
+
+10. MT voice call, reject.  Caller should be sent to voice mail.
+    PASS
+
+11. MT voice call, answer call.  Put call on hold.  Hang up call on hold.
+    PASS
+
+12. MT voice call, answer call.  Put voice call on hold.  Ensure call is on hold.  Unhold.  Ensure call is active.
+    PASS
+
+13. Voice call, DTMF tones.
+    PASS
+
+14. Voice call, make 2nd voice call to another phone.  First call should be on hold.
+    Second call is active.
+    PASS
+
+15. Swap calls.  Now first call is active.  Second call should be on hold.
+    PASS.
+
+16. Join calls to make conference call.  Ensure conference call is active and working.
+    PASS.
+
+17. Conference call, DTMF tones.  Ensure DTMF tones working.
+    PASS.  (By design, no DTMF tones generated in conference call)
+    AT+XVTS=<dtmf> = +CME ERROR: 30
+    AT+XVTS        = +CME ERROR: 1
+
+18. Conference call, put conference call on hold.  Ensure conference call is on hold.
+    (The 2 connected parties should still hear each other, but not the device)
+    PASS.
+
+19. Detatch conference call.  Connect to call #1.  Call #2 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+20. Detatch conference call.  Connect to call #2.  Call #1 should be on hold.  Swap calls.  Join conference again.
+    PASS.
+
+21. Hangup a connected party in conference call.  Hangup call #1.  Call #2 should be active.  Hangup call #2.
+    PASS.
+
+22. Hangup a conference call.  While in conference call, hangup.  All parties should be hung up.
+    PASS.
+
+23. Send 2 SMSs to self.  (less than 160 characters)
+    PASS
+
+24. Send 2 multipart SMSs to self (more than 160 characters)
+    PASS
+
+25. Receive 2 multipart SMSs from another recipient (more than 160 characters)
+    PASS
+
+26. Send 2 short SMS (less than 160 characters) to multiple recipients.
+    PASS
+
+27. Send 2 long SMS (more than 160 characters) to multiple recipients.
+    PASS
+
+28. Send 2 MMSs to self.  (requires setting up MMS APN and data connection)
+    PASS
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 April 30, 2013 (M6.50 release for Clovertrail Phone PR2.0)
 
 This version of Intrinsyc RapidRIL (RRIL) is intended for the Intel Clovertrail

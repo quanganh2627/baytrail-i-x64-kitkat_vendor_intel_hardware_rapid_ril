@@ -36,8 +36,8 @@
 
 //
 //
-CSilo_Network::CSilo_Network(CChannel* pChannel)
-: CSilo(pChannel)
+CSilo_Network::CSilo_Network(CChannel* pChannel, CSystemCapabilities* pSysCaps)
+: CSilo(pChannel, pSysCaps)
 {
     RIL_LOG_VERBOSE("CSilo_Network::CSilo_Network() - Enter\r\n");
 
@@ -74,6 +74,32 @@ CSilo_Network::~CSilo_Network()
 {
     RIL_LOG_VERBOSE("CSilo_Network::~CSilo_Network() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_Network::~CSilo_Network() - Exit\r\n");
+}
+
+
+char* CSilo_Network::GetURCInitString()
+{
+    // network silo-related URC channel basic init string
+    const char szNetworkURCInitString[] = "+CTZU=1|+XNITZINFO=1|+CGEREP=1,0|+XCSQ=1";
+
+    if (!ConcatenateStringNullTerminate(m_szURCInitString,
+            MAX_BUFFER_SIZE - strlen(m_szURCInitString), szNetworkURCInitString))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to copy URC init "
+                "string!\r\n");
+        return NULL;
+    }
+    if (m_pSystemCapabilities->IsXDATASTATReportingEnabled())
+    {
+        if (!ConcatenateStringNullTerminate(m_szURCInitString,
+                MAX_BUFFER_SIZE - strlen(m_szURCInitString), "|+XDATASTAT=1"))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to concat "
+                    "XDATASTAT to URC init string!\r\n");
+            return NULL;
+        }
+    }
+    return m_szURCInitString;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -754,7 +780,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         else
         {
             RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN ACT , extracted cid=[%u]\r\n",
-            uiCID);
+                    uiCID);
         }
 
         pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
@@ -776,7 +802,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             else
             {
                 RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN ACT , extracted reason=[%u]\r\n",
-                uiReason);
+                        uiReason);
+
                 int failCause;
                 pResponse->SetUnsolicitedFlag(TRUE);
 

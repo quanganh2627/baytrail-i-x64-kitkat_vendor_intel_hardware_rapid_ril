@@ -91,8 +91,6 @@ extern const char   g_szSmsOverCSCapable[];
 extern const char   g_szSmsOverPSCapable[];
 extern const char   g_szStkCapable[];
 extern const char   g_szEnableXDATASTATURC[];
-
-// IMS dependent parameters
 extern const char   g_szIMSCapable[];
 extern const char   g_szEnableSMSOverIP[];
 
@@ -119,6 +117,17 @@ extern const char   g_szGroupLogging[];
 extern const char   g_szCallDropReporting[];
 extern const char   g_szLogLevel[];
 
+//////////////////////////////////////////////////////////////////////////
+
+extern const char   g_szGroupChannelSilos[];
+
+extern const char   g_szSilosATCmd[];
+extern const char   g_szSilosDLC2[];
+extern const char   g_szSilosDLC6[];
+extern const char   g_szSilosDLC8[];
+extern const char   g_szSilosURC[];
+extern const char   g_szSilosOEM[];
+extern const char   g_szSilosData[];
 
 //////////////////////////////////////////////////////////////////////////
 

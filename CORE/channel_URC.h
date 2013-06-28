@@ -24,12 +24,11 @@ public:
     virtual ~CChannel_URC();
 
     //  public port interface
-    BOOL    OpenPort();
+    BOOL OpenPort();
 
 protected:
-    void    ModemTimeSyncInit();
-    BOOL    FinishInit();
-    BOOL    AddSilos();
+    void ModemTimeSyncInit();
+    BOOL FinishInit();
 };
 
 #endif  // RIL_CHANNEL_URC_H

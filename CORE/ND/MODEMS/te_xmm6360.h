@@ -18,6 +18,7 @@
 #include "channel_data.h"
 
 class CEvent;
+class CInitializer;
 
 class CTE_XMM6360 : public CTE_XMM6260
 {
@@ -37,6 +38,8 @@ private:
 public:
     // modem overrides
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
+
+    virtual CInitializer* GetInitializer();
 
     virtual BOOL PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
             UINT32 uiDataSize);

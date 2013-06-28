@@ -22,6 +22,7 @@
 #include "types.h"
 #include "command.h"
 #include "context_cache.h"
+#include "initializer.h"
 
 static const UINT32 MAX_MODEM_NAME_LEN = 64;
 
@@ -73,6 +74,8 @@ public:
     static void DeleteTEObject();
     UINT32 GetModemType() { return m_uiModemType; };
 
+    CInitializer* GetInitializer();
+
     // Accessor functions for configuring data connections
     BOOL DataConfigDown(UINT32 uiCID);
     void CleanupAllDataConnections();
@@ -96,14 +99,17 @@ public:
 
     BOOL IsRequestSupported(int requestId);
     void HandleRequest(int requestID, void* pData, size_t datalen, RIL_Token hRilToken);
-    RIL_Errno HandleRequestWhenNoModem(int requestID, RIL_Token hRilToken,
-            void* pData = NULL, size_t datalen = 0);
+    RIL_Errno HandleRequestWhenNoModem(int requestID, RIL_Token hRilToken);
     RIL_Errno HandleRequestInRadioOff(int requestID, RIL_Token hRilToken);
 
     BOOL IsRequestAllowedInSpoofState(int requestId);
     BOOL IsRequestAllowedInRadioOff(int requestId);
     BOOL IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
             BOOL bIsInitCommand, int callId = 0);
+
+    // Calls FindIdenticalRequestsAndSendResponses on the given channel
+    static void CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID, UINT32 uiResultCode,
+            void* pResponse, size_t responseLen, int callId = -1);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
     RIL_RESULT_CODE RequestGetSimStatus(RIL_Token rilToken, void* pData, size_t datalen);
@@ -637,7 +643,6 @@ public:
     BOOL HasActivatedContext() const { return !m_contextCache.IsEmpty(); }
     BOOL ContextActivated(const char* apn) const { return m_contextCache.ContextExists(apn); }
 
-
     void SetupDataCallOngoing(BOOL bStatus);
     BOOL IsSetupDataCallOnGoing();
 
@@ -689,83 +694,37 @@ public:
     void SetUiAct(UINT32 uiAct) { m_uiAct = uiAct; };
     UINT32 GetUiAct() { return m_uiAct; };
 
-    void SetVoiceCapable(BOOL bIsVoiceCapable)
-    {
-        m_bVoiceCapable =  bIsVoiceCapable;
-    }
-
-    BOOL IsVoiceCapable()
-    {
-        return m_bVoiceCapable;
-    }
+    void SetVoiceCapable(BOOL bIsVoiceCapable) { m_bVoiceCapable =  bIsVoiceCapable; }
+    BOOL IsVoiceCapable() { return m_bVoiceCapable; }
 
     void SetSmsOverCSCapable(BOOL bIsSmsOverCSCapable)
     {
         m_bSmsOverCSCapable =  bIsSmsOverCSCapable;
     }
-
-    BOOL IsSmsOverCSCapable()
-    {
-        return m_bSmsOverCSCapable;
-    }
+    BOOL IsSmsOverCSCapable() { return m_bSmsOverCSCapable; }
 
     void SetSmsOverPSCapable(BOOL bIsSmsOverPSCapable)
     {
         m_bSmsOverPSCapable =  bIsSmsOverPSCapable;
     }
+    BOOL IsSmsOverPSCapable() { return m_bSmsOverPSCapable; }
 
-    BOOL IsSmsOverPSCapable()
-    {
-        return m_bSmsOverPSCapable;
-    }
-
-    void SetStkCapable(BOOL bIsStkCapable)
-    {
-        m_bStkCapable =  bIsStkCapable;
-    }
-
-    BOOL IsStkCapable()
-    {
-        return m_bStkCapable;
-    }
+    void SetStkCapable(BOOL bIsStkCapable) { m_bStkCapable =  bIsStkCapable; }
+    BOOL IsStkCapable() { return m_bStkCapable; }
 
     void SetRestrictedMode(BOOL bIsRetrictedMode) { m_bRestrictedMode = bIsRetrictedMode; }
     BOOL IsRestrictedMode() { return m_bRestrictedMode; }
 
-    void SetXDATASTATReporting(BOOL bEnable)
-    {
-        m_bXDATASTATEnabled =  bEnable;
-    }
+    void SetXDATASTATReporting(BOOL bEnable) { m_bXDATASTATEnabled =  bEnable; }
+    BOOL IsXDATASTATReportingEnabled() { return m_bXDATASTATEnabled; }
 
-    BOOL IsXDATASTATReportingEnabled()
-    {
-        return m_bXDATASTATEnabled;
-    }
+    void SetIMSCapable(BOOL bEnable) { m_bIMSCapable = bEnable; }
+    BOOL IsIMSCapable() { return m_bIMSCapable; }
+    void SetSMSOverIPCapable(BOOL bEnable) { m_bSMSOverIPCapable = bEnable; }
+    BOOL IsSMSOverIPCapable() { return m_bSMSOverIPCapable; }
 
-    void SetIMSCapable(BOOL bIsIMSCapable)
-    {
-        m_bIMSCapable = bIsIMSCapable;
-    }
-
-    BOOL IsIMSCapable()
-    {
-        return m_bIMSCapable;
-    }
-
-    void SetSMSOverIPCapable(BOOL bIsSMSOverIPCapable)
-    {
-        m_bSMSOverIPCapable =  bIsSMSOverIPCapable;
-    }
-
-    BOOL IsSMSOverIPCapable()
-    {
-        return m_bSMSOverIPCapable;
-    }
     void SaveCEER(const char* pszData);
     const char* GetLastCEER() { return m_szLastCEER; }
-
-    void SaveXCELLINFO(const char* pszData);
-    const char* GetLastXCELLINFO() { return m_szLastXCELLINFO; }
 
     void SaveNetworkData(LAST_NETWORK_DATA_ID id, const char* pszData);
     const char* GetNetworkData(LAST_NETWORK_DATA_ID id) { return m_szLastNetworkData[id]; }
@@ -1053,6 +1012,11 @@ public:
      */
     void CompleteDataCallListChanged();
 
+    void SetCallDropReportingState(BOOL bValue) { m_bCallDropReporting = bValue; }
+    BOOL GetCallDropReportingState() { return m_bCallDropReporting; }
+
+    RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
+
     RIL_RESULT_CODE CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
             const char** pszRequest,
             const UINT32 uiDataSize);
@@ -1060,10 +1024,6 @@ public:
     RIL_RESULT_CODE CreateIMSConfigReq(REQUEST_DATA& rReqData,
             const char** pszRequest,
             const int nNumStrings);
-    void SetCallDropReportingState(BOOL bValue) { m_bCallDropReporting = bValue; };
-    BOOL GetCallDropReportingState() { return m_bCallDropReporting; };
-
-    RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
 
 private:
     UINT32 m_uiModemType;
@@ -1165,9 +1125,7 @@ private:
     BOOL m_bSmsOverCSCapable;
     BOOL m_bSmsOverPSCapable;
     BOOL m_bStkCapable;
-
     BOOL m_bXDATASTATEnabled;
-
     BOOL m_bIMSCapable;
     BOOL m_bSMSOverIPCapable;
 
@@ -1189,6 +1147,10 @@ private:
 
     PREF_NET_TYPE_REQ_INFO* m_pPrefNetTypeReqInfo;
 
+    // Delay Set Preferred Network Type request when Radio state is Off until On
+    RIL_RESULT_CODE DelaySetPrefNetTypeRequest(void* pData, size_t datalen, RIL_Token hRilToken);
+    void SendSetPrefNetTypeRequest();
+
     // RADIO_POWER_UNKNOWN(-1), RADIO_POWER_OFF(0), RADIO_POWER_OFF(1)
     int m_RequestedRadioPower;
 
@@ -1204,7 +1166,6 @@ private:
 
     char m_szLastNetworkData[LAST_NETWORK_DATA_COUNT][MAX_NETWORK_DATA_SIZE];
     char m_szLastCEER[255];
-    char m_szLastXCELLINFO[512];
 };
 
 #endif

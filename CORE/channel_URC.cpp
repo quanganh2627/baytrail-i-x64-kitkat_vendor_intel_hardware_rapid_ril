@@ -15,17 +15,15 @@
 #include "types.h"
 #include "rillog.h"
 #include "channelbase.h"
-#include "silo_factory.h"
 #include "channel_URC.h"
-#include "te.h"
 
 extern char* g_szURCPort;
 extern BOOL  g_bIsSocket;
 
-//  Com init strings for this channel.
+// Init strings for this channel.
 //  All URCs go on this channel.
-INITSTRING_DATA URCBasicInitString   = { "E0V1Q0X4|+CMEE=1|S0=0" };
-INITSTRING_DATA URCUnlockInitString  = { "" };
+
+// Add any init cmd strings for this channel during PowerOn or Ready boot phase
 INITSTRING_DATA URCPowerOnInitString = { "" };
 INITSTRING_DATA URCReadyInitString   = { "" };
 char URCClockInitString[32];
@@ -40,8 +38,8 @@ CChannel_URC::CChannel_URC(UINT32 uiChannel)
 CChannel_URC::~CChannel_URC()
 {
     RIL_LOG_VERBOSE("CChannel_URC::~CChannel_URC() - Enter\r\n");
-    delete []m_prisdModuleInit;
-    m_prisdModuleInit = NULL;
+    delete[] m_paInitCmdStrings;
+    m_paInitCmdStrings = NULL;
     RIL_LOG_VERBOSE("CChannel_URC::~CChannel_URC() - Exit\r\n");
 }
 
@@ -78,7 +76,7 @@ void CChannel_URC::ModemTimeSyncInit()
 #endif
     memset(URCClockInitString, 0, sizeof(URCClockInitString));
     strftime(URCClockInitString, sizeof(URCClockInitString), "+CCLK=\"%y/%m/%d,%H:%M:%S\"", ptm);
-    m_prisdModuleInit[COM_POWER_ON_INIT_INDEX].szCmd = URCClockInitString;
+    m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX].szCmd = URCClockInitString;
 
     RIL_LOG_VERBOSE("CChannel_URC::ModemTimeSyncInit() - Exit\r\n");
 }
@@ -89,102 +87,26 @@ BOOL CChannel_URC::FinishInit()
     BOOL bRet = FALSE;
 
     //  Init our channel AT init commands.
-    m_prisdModuleInit = new INITSTRING_DATA[COM_MAX_INDEX];
-    if (!m_prisdModuleInit)
+    m_paInitCmdStrings = new INITSTRING_DATA[COM_MAX_INDEX];
+    if (!m_paInitCmdStrings)
     {
         RIL_LOG_CRITICAL("CChannel_URC::FinishInit() - chnl=[%d] Could not create new"
                 " INITSTRING_DATA\r\n", m_uiRilChannel);
         goto Error;
     }
 
-    m_prisdModuleInit[COM_BASIC_INIT_INDEX]     = URCBasicInitString;
-    m_prisdModuleInit[COM_UNLOCK_INIT_INDEX]    = URCUnlockInitString;
+    // Set the init command strings for this channel
+    m_paInitCmdStrings[COM_BASIC_INIT_INDEX].szCmd = m_szChannelBasicInitCmd;
+    m_paInitCmdStrings[COM_UNLOCK_INIT_INDEX].szCmd = m_szChannelUnlockInitCmd;
 #if 0
-    m_prisdModuleInit[COM_POWER_ON_INIT_INDEX]  = URCPowerOnInitString;
+    m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX] = URCPowerOnInitString;
 #else
     ModemTimeSyncInit();
 #endif
-    m_prisdModuleInit[COM_READY_INIT_INDEX]     = URCReadyInitString;
+    m_paInitCmdStrings[COM_READY_INIT_INDEX] = URCReadyInitString;
 
     bRet = TRUE;
 Error:
     RIL_LOG_VERBOSE("CChannel_URC::FinishInit() - Exit\r\n");
     return bRet;
 }
-
-//
-//  Add silos with this channel.
-//  Note that the CChannel destructor will destroy these CSilo objects.
-//
-BOOL CChannel_URC::AddSilos()
-{
-    RIL_LOG_VERBOSE("CChannel_URC::AddSilos() - Enter\r\n");
-    BOOL bRet = FALSE;
-
-    //  URC channel contains the following silos:
-    //     Voice Silo
-    //     Network Silo
-    //     SMS Silo
-    //     Phonebook Silo
-    //     SIM Silo
-    //     IMS Silo
-    CSilo* pSilo = NULL;
-
-
-    pSilo = CSilo_Factory::GetSiloVoice(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_Voice\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloNetwork(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_Network\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloSMS(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_SMS\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloSIM(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_SIM\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    pSilo = CSilo_Factory::GetSiloPhonebook(this);
-    if (!pSilo || !AddSilo(pSilo))
-    {
-        RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_Phonebook\r\n",
-                m_uiRilChannel);
-        goto Error;
-    }
-
-    if (CTE::GetTE().IsIMSCapable())
-    {
-        pSilo = CSilo_Factory::GetSiloIMS(this);
-        if (!pSilo || !AddSilo(pSilo))
-        {
-            RIL_LOG_CRITICAL("CChannel_URC::AddSilos() : chnl=[%d] Could not add CSilo_IMS\r\n",
-                    m_uiRilChannel);
-            goto Error;
-        }
-    }
-
-    bRet = TRUE;
-Error:
-    RIL_LOG_VERBOSE("CChannel_URC::AddSilos() - Exit\r\n");
-    return bRet;
-}
-

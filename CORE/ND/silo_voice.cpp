@@ -23,13 +23,10 @@
 #include "callbacks.h"
 #include "te.h"
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 //
 //
-CSilo_Voice::CSilo_Voice(CChannel* pChannel)
-: CSilo(pChannel),
+CSilo_Voice::CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps)
+: CSilo(pChannel, pSysCaps),
   m_uiCallId(0)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::CSilo_Voice() - Enter\r\n");
@@ -78,9 +75,72 @@ CSilo_Voice::CSilo_Voice(CChannel* pChannel)
 CSilo_Voice::~CSilo_Voice()
 {
     RIL_LOG_VERBOSE("CSilo_Voice::~CSilo_Voice() - Enter / Exit\r\n");
-
 }
 
+
+char* CSilo_Voice::GetBasicInitString()
+{
+    // voice silo-related channel basic init string
+    const char szVoiceBasicInitString[] = "+XCALLNBMMI=1";
+
+    if (m_pSystemCapabilities->IsVoiceCapable())
+    {
+        if (!ConcatenateStringNullTerminate(m_szBasicInitString,
+                MAX_BUFFER_SIZE - strlen(m_szBasicInitString), szVoiceBasicInitString))
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::GetBasicInitString() : Failed to copy basic init "
+                    "string!\r\n");
+            return NULL;
+        }
+    }
+    else
+    {
+        if (!ConcatenateStringNullTerminate(m_szBasicInitString,
+                MAX_BUFFER_SIZE - strlen(m_szBasicInitString), "+XCONFIG=3,0"))
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::GetBasicInitString() : Failed to copy XCONFIG to "
+                    "basic init string!\r\n");
+            return NULL;
+        }
+    }
+    return m_szBasicInitString;
+}
+
+char* CSilo_Voice::GetURCInitString()
+{
+    // voice silo-related URC channel basic init string
+    const char szVoiceURCInitString[] = "+XCALLSTAT=1|+CSSN=1,1";
+
+    if (m_pSystemCapabilities->IsVoiceCapable())
+    {
+        if (!ConcatenateStringNullTerminate(m_szURCInitString,
+                MAX_BUFFER_SIZE - strlen(m_szURCInitString), szVoiceURCInitString))
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::GetURCInitString() : Failed to copy URC init "
+                    "string!\r\n");
+            return NULL;
+        }
+    }
+    return m_szURCInitString;
+}
+
+char* CSilo_Voice::GetURCUnlockInitString()
+{
+    // voice silo-related URC channel unlock init string
+    const char szVoiceUnlockInitString[] = "+CUSD=1|+CRC=1|+CCWA=1";
+
+    if (m_pSystemCapabilities->IsVoiceCapable())
+    {
+        if (!ConcatenateStringNullTerminate(m_szURCUnlockInitString,
+                MAX_BUFFER_SIZE - strlen(m_szURCUnlockInitString), szVoiceUnlockInitString))
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::GetURCUnlockInitString() : Failed to copy URC "
+                    "unlock init string!\r\n");
+            return NULL;
+        }
+    }
+    return m_szURCUnlockInitString;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////

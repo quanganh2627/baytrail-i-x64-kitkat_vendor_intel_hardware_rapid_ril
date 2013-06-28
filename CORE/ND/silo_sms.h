@@ -31,8 +31,13 @@
 class CSilo_SMS : public CSilo
 {
 public:
-    CSilo_SMS(CChannel *pChannel);
+    CSilo_SMS(CChannel *pChannel, CSystemCapabilities* pSysCaps);
     virtual ~CSilo_SMS();
+
+    virtual char* GetBasicInitString();
+    virtual char* GetUnlockInitString();
+    virtual char* GetURCInitString();
+    virtual char* GetURCUnlockInitString();
 
 protected:
     enum SILO_SMS_MSG_TYPES

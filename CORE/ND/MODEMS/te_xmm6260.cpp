@@ -39,6 +39,7 @@
 #include "data_util.h"
 #include "rril.h"
 #include "callbacks.h"
+#include "init6260.h"
 
 
 CTE_XMM6260::CTE_XMM6260(CTE& cte)
@@ -52,6 +53,27 @@ CTE_XMM6260::~CTE_XMM6260()
 {
 }
 
+CInitializer* CTE_XMM6260::GetInitializer()
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetInitializer() - Enter\r\n");
+    CInitializer* pRet = NULL;
+
+    RIL_LOG_INFO("CTE_XMM6260::GetInitializer() - Creating CInit6260 initializer\r\n");
+    m_pInitializer = new CInit6260();
+    if (NULL == m_pInitializer)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetInitializer() - Failed to create a CInit6260 "
+                "initializer!\r\n");
+        goto Error;
+    }
+
+    pRet = m_pInitializer;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetInitializer() - Exit\r\n");
+    return pRet;
+}
+
 char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::GetBasicInitCommands() - Enter\r\n");
@@ -60,66 +82,8 @@ char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
 
     if (RIL_CHANNEL_URC == uiChannelType)
     {
-        char szBasicInitCmd[] = "|+CSCS=\"UCS2\"|+XSIMSTATE=1|+XSIMSTATE?|+CTZU=1|+XNITZINFO=1|"
-                "+CGEREP=1,0|+XCSQ=1";
-
-        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                szBasicInitCmd);
-
-        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd), "|");
-
         ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
                 GetRegistrationInitString());
-
-        if (m_cte.IsXDATASTATReportingEnabled())
-        {
-            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                    "|+XDATASTAT=1");
-        }
-
-        if (m_cte.IsVoiceCapable())
-        {
-            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                    "|+XCALLSTAT=1|+CSSN=1,1|+XLEMA=1");
-        }
-        else
-        {
-            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                    "|+XCONFIG=3,0");
-        }
-
-        if (m_cte.IsSmsOverCSCapable() || m_cte.IsSmsOverPSCapable())
-        {
-            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                    "|+CMGF=0");
-        }
-
-        if (!m_cte.IsStkCapable())
-        {
-            char szDisableStk[] = "|+XSATK=1,0";
-
-            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                    szDisableStk);
-        }
-    }
-    else if (RIL_CHANNEL_DLC6 == uiChannelType)
-    {
-        if (m_cte.IsSmsOverCSCapable() || m_cte.IsSmsOverPSCapable())
-        {
-            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                    "|+CMGF=0");
-        }
-    }
-    else if (RIL_CHANNEL_ATCMD == uiChannelType)
-    {
-        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                "|+XGENDATA|+XPOW=0,0,0");
-
-        if (m_cte.IsVoiceCapable())
-        {
-            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                    "|+XCALLNBMMI=1");
-        }
     }
 
     RIL_LOG_VERBOSE("CTE_XMM6260::GetBasicInitCommands() - Exit\r\n");
@@ -128,35 +92,8 @@ char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
 
 char* CTE_XMM6260::GetUnlockInitCommands(UINT32 uiChannelType)
 {
-    RIL_LOG_VERBOSE("CTE_XMM6260::GetUnlockInitCommands() - Enter\r\n");
-
-    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
-
-    if (RIL_CHANNEL_URC == uiChannelType)
-    {
-        if (m_cte.IsVoiceCapable())
-        {
-            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                    "|+CUSD=1|+CRC=1|+CCWA=1");
-        }
-
-        if (m_cte.IsSmsOverCSCapable() || m_cte.IsSmsOverPSCapable())
-        {
-            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                    "|+CNMI=2,2,2,1");
-        }
-    }
-    else if (RIL_CHANNEL_DLC6 == uiChannelType)
-    {
-        if (m_cte.IsSmsOverCSCapable() || m_cte.IsSmsOverPSCapable())
-        {
-            ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                    "|+CSMS=1|+CGSMS=3");
-        }
-    }
-
-    RIL_LOG_VERBOSE("CTE_XMM6260::GetUnlockInitCommands() - Exit\r\n");
-    return strndup(szInitCmd, strlen(szInitCmd));
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetUnlockInitCommands() - Enter / Exit\r\n");
+    return NULL;
 }
 
 const char* CTE_XMM6260::GetRegistrationInitString()
@@ -3637,9 +3574,6 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
-    const char* pszStart = pszRsp;
-    const char* pszEnd;
-    char szBackup[512];
 
     UINT32 nIndex = 0, nTotal = 0;
     UINT32 nLAC = 0, nCI = 0;
@@ -3648,10 +3582,6 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
     UINT32 nMode = 0;
 
     P_ND_N_CELL_DATA pCellData = NULL;
-
-    // Backup the XCELLINFO response string to report data on crashtool
-    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, 512, pszEnd);
-    m_cte.SaveXCELLINFO(szBackup);
 
     //  Data is either (according to C_AT_FS_SUNRISE_Rev6.0.pdf AT spec)
     //  GSM cells:

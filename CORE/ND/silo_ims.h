@@ -25,8 +25,10 @@
 class CSilo_IMS : public CSilo
 {
 public:
-    CSilo_IMS(CChannel *pChannel);
+    CSilo_IMS(CChannel *pChannel, CSystemCapabilities* pSysCaps);
     virtual ~CSilo_IMS();
+
+    virtual char* GetURCInitString();
 
 protected:
     //  Parse notification functions here.

@@ -21,8 +21,8 @@
 
 //
 //
-CSilo_IMS::CSilo_IMS(CChannel* pChannel)
-: CSilo(pChannel)
+CSilo_IMS::CSilo_IMS(CChannel* pChannel, CSystemCapabilities* pSysCaps)
+: CSilo(pChannel, pSysCaps)
 {
     RIL_LOG_VERBOSE("CSilo_IMS::CSilo_IMS() - Enter\r\n");
 
@@ -49,6 +49,26 @@ CSilo_IMS::~CSilo_IMS()
 {
     RIL_LOG_VERBOSE("CSilo_IMS::~CSilo_IMS() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_IMS::~CSilo_IMS() - Exit\r\n");
+}
+
+char* CSilo_IMS::GetURCInitString()
+{
+    if (m_pSystemCapabilities->IsIMSCapable())
+    {
+        char szEnableIMS[MAX_BUFFER_SIZE] = {'\0'};
+        PrintStringNullTerminate(szEnableIMS, MAX_BUFFER_SIZE,
+                "|+CISRVCC=1|+CIREP=1|+CIREG=1|+XISMSCFG=%d",
+                m_pSystemCapabilities->IsSMSOverIPCapable() ? 1 : 0);
+
+        if (!ConcatenateStringNullTerminate(m_szURCInitString,
+                MAX_BUFFER_SIZE - strlen(m_szURCInitString), szEnableIMS))
+        {
+            RIL_LOG_CRITICAL("CSilo_IMS::GetURCInitString() : Failed to concat CISRVCC "
+                    "CIREP XISMSCFG to URC init string!\r\n");
+            return NULL;
+        }
+    }
+    return m_szURCInitString;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

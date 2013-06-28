@@ -340,12 +340,6 @@ void triggerDropCallEvent(void* param)
     data.dataSize[4] = snprintf(data.data4, CRASHTOOL_LARGE_BUFFER_SIZE, "%s",
             CTE::GetTE().GetNetworkData(LAST_NETWORK_OP_NAME_SHORT));
 
-    if (strlen(CTE::GetTE().GetLastXCELLINFO()) != 0)
-    {
-        data.dataSize[5] = snprintf(data.data5, CRASHTOOL_LARGE_BUFFER_SIZE, "+XCELLINFO: %s",
-                        CTE::GetTE().GetLastXCELLINFO());
-    }
-
     RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, (void*)&data,
             sizeof(sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND));
 }

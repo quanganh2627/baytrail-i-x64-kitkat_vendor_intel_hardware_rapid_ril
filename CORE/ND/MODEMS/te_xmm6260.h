@@ -18,6 +18,7 @@
 #include "channel_data.h"
 
 class CEvent;
+class CInitializer;
 
 class CTE_XMM6260 : public CTEBase
 {
@@ -40,9 +41,10 @@ protected:
 
 public:
     // modem overrides
-
     virtual char* GetBasicInitCommands(UINT32 uiChannelType);
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
+
+    virtual CInitializer* GetInitializer();
 
     virtual BOOL IsRequestSupported(int requestId);
 

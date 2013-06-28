@@ -30,9 +30,9 @@
 
 //
 //
-CSilo_SIM::CSilo_SIM(CChannel* pChannel)
-: CSilo(pChannel),
-m_IsReadyForAttach(FALSE)
+CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
+: CSilo(pChannel, pSysCaps),
+  m_IsReadyForAttach(FALSE)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::CSilo_SIM() - Enter\r\n");
 
@@ -64,6 +64,33 @@ CSilo_SIM::~CSilo_SIM()
 {
     RIL_LOG_VERBOSE("CSilo_SIM::~CSilo_SIM() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_SIM::~CSilo_SIM() - Exit\r\n");
+}
+
+
+char* CSilo_SIM::GetURCInitString()
+{
+    // SIM silo-related URC channel basic init string
+    const char szSimURCInitString[] = "+XSIMSTATE=1|+XSIMSTATE?|+XLEMA=1";
+
+    if (!ConcatenateStringNullTerminate(m_szURCInitString,
+            MAX_BUFFER_SIZE - strlen(m_szURCInitString), szSimURCInitString))
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to copy URC init "
+                "string!\r\n");
+        return NULL;
+    }
+
+    if (m_pSystemCapabilities->IsStkCapable())
+    {
+        if (!ConcatenateStringNullTerminate(m_szURCInitString,
+                MAX_BUFFER_SIZE - strlen(m_szURCInitString), "|+XSATK=1,0"))
+        {
+            RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to concat XSATK to URC "
+                    "init string!\r\n");
+            return NULL;
+        }
+    }
+    return m_szURCInitString;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////

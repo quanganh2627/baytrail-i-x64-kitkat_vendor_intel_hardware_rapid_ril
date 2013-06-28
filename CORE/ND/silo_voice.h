@@ -38,8 +38,12 @@
 class CSilo_Voice : public CSilo
 {
 public:
-    CSilo_Voice(CChannel* pChannel);
+    CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps);
     virtual ~CSilo_Voice();
+
+    virtual char* GetBasicInitString();
+    virtual char* GetURCInitString();
+    virtual char* GetURCUnlockInitString();
 
 protected:
     //  Parse notification functions here.
