@@ -328,7 +328,8 @@ Error:
     postCmdHandler = rpCmd->GetPostCmdHandlerFcn();
     memset(&data, 0, sizeof(POST_CMD_HANDLER_DATA));
 
-    if (postCmdHandler && NULL != rpCmd->GetATCmd1())
+    if (postCmdHandler
+            && (NULL != rpCmd->GetATCmd1() || ND_REQ_ID_RADIOPOWER == rpCmd->GetRequestID()))
     {
         data.uiChannel = rpCmd->GetChannel();
         data.pRilToken = rpCmd->GetToken();
