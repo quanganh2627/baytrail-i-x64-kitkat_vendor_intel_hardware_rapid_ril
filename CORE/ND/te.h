@@ -743,6 +743,8 @@ public:
     UINT32 TestAndSetDtmfState(UINT32 uiDtmfState);
     UINT32 GetDtmfState();
 
+    BOOL TestAndSetDataCleanupStatus(BOOL bCleanupStatus);
+
     // This function will return true if sys.shutdown.requested is set to 0 or 1
     BOOL IsPlatformShutDownRequested();
 
@@ -1185,6 +1187,9 @@ private:
     char m_szLastNetworkData[LAST_NETWORK_DATA_COUNT][MAX_NETWORK_DATA_SIZE];
     char m_szLastCEER[255];
     char m_cTerminator;
+
+    BOOL m_bDataCleanupStatus;
+    CMutex* m_pDataCleanupStatusLock;
 };
 
 #endif

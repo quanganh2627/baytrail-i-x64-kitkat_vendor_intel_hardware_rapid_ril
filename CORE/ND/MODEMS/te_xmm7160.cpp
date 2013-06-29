@@ -427,8 +427,9 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     char* pszCid = NULL;
-    char* pszReason = NULL;
     UINT32 uiCID = 0;
+    const LONG REASON_RADIO_OFF = 1;
+    LONG reason = 0;
 
     if (uiDataSize < (1 * sizeof(char *)))
     {
@@ -461,6 +462,20 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
         // Error
         RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() -  cannot convert %s to int\r\n",
                 pszCid);
+        goto Error;
+    }
+
+    if ((RIL_VERSION >= 4) && (uiDataSize >= (2 * sizeof(char *))))
+    {
+        reason == GetDataDeactivateReason(((char**)pData)[1]);
+        RIL_LOG_INFO("CTE_XMM7160::CoreDeactivateDataCall() - reason=[%ld]\r\n", reason);
+    }
+
+    if (reason == REASON_RADIO_OFF || RRIL_SIM_STATE_ABSENT == GetSIMState())
+    {
+        // complete the request without sending the AT command to modem.
+        res = RRIL_RESULT_OK_IMMEDIATE;
+        DataConfigDown(uiCID, TRUE);
         goto Error;
     }
 
