@@ -188,7 +188,7 @@ BOOL CChannelBase::AddSilo(CSilo* pSilo)
         goto Done;
     }
 
-    if (MAX_SILOS > m_SiloContainer.nSilos)
+    if (SILO_MAX > m_SiloContainer.nSilos)
     {
         m_SiloContainer.rgpSilos[m_SiloContainer.nSilos++] = pSilo;
     }

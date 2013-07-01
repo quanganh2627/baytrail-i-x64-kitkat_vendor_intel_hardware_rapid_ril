@@ -37,12 +37,6 @@ CSilo_SMS::CSilo_SMS(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "+CMTI: "  , (PFN_ATRSP_PARSE)&CSilo_SMS::ParseCMTI },
         { "+CBMI: "  , (PFN_ATRSP_PARSE)&CSilo_SMS::ParseCBMI },
         { "+CDSI: "  , (PFN_ATRSP_PARSE)&CSilo_SMS::ParseCDSI },
-        { "+PBREADY" , (PFN_ATRSP_PARSE)&CSilo_SMS::ParseUnrecognized },
-        { "RING CTM" , (PFN_ATRSP_PARSE)&CSilo_SMS::ParseUnrecognized },
-        { "RING"     , (PFN_ATRSP_PARSE)&CSilo_SMS::ParseUnrecognized },
-        { "CTM CALL", (PFN_ATRSP_PARSE)&CSilo_SMS::ParseUnrecognized },
-        { "NO CTM CALL", (PFN_ATRSP_PARSE)&CSilo_SMS::ParseUnrecognized },
-        { "WAITING CALL CTM", (PFN_ATRSP_PARSE)&CSilo_SMS::ParseUnrecognized },
         { ""         , (PFN_ATRSP_PARSE)&CSilo_SMS::ParseNULL }
     };
 

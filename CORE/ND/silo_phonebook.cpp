@@ -28,11 +28,6 @@ CSilo_Phonebook::CSilo_Phonebook(CChannel* pChannel, CSystemCapabilities* pSysCa
     static ATRSPTABLE pATRspTable[] =
     {
         { "+PBREADY", (PFN_ATRSP_PARSE)&CSilo_Phonebook::ParseUnrecognized },
-        { "RING CTM", (PFN_ATRSP_PARSE)&CSilo_Phonebook::ParseUnrecognized },
-        { "RING", (PFN_ATRSP_PARSE)&CSilo_Phonebook::ParseUnrecognized },
-        { "CTM CALL", (PFN_ATRSP_PARSE)&CSilo_Phonebook::ParseUnrecognized },
-        { "NO CTM CALL", (PFN_ATRSP_PARSE)&CSilo_Phonebook::ParseUnrecognized },
-        { "WAITING CALL CTM", (PFN_ATRSP_PARSE)&CSilo_Phonebook::ParseUnrecognized },
         { ""        , (PFN_ATRSP_PARSE)&CSilo_Phonebook::ParseNULL }
     };
 

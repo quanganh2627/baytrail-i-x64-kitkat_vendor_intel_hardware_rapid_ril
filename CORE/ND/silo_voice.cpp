@@ -52,8 +52,6 @@ CSilo_Voice::CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps)
                 &CSilo_Voice::ParseUnrecognized },
         { "+XCALLINFO: "  , (PFN_ATRSP_PARSE)/*&CSilo_Voice::ParseCallProgressInformation*/
                 &CSilo_Voice::ParseUnrecognized },
-        { "RING CTM"      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseUnrecognized },
-        { "RING"          , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseUnrecognized },
         { "BUSY"          , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseBusy },
         { "NO ANSWER"     , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoAnswer },
         { "CTM CALL"      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCTMCall },
@@ -63,7 +61,6 @@ CSilo_Voice::CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         // Handle Call failed cause unsolicited notification here
         { "+XCEER: " , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallFailedCause },
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
-        { "+PBREADY"      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseUnrecognized },
         { ""              , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNULL }
     };
 

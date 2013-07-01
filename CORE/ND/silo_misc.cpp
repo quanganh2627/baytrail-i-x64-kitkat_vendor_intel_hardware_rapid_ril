@@ -36,12 +36,6 @@ CSilo_MISC::CSilo_MISC(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "+XDRVI: "   , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXDRVI  },
         { "+XMETRIC: "  , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXMETRIC },
         { "+XNRTCWSI: " , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXNRTCWSI },
-        { "+PBREADY"   , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseUnrecognized },
-        { "RING CTM"   , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseUnrecognized },
-        { "RING"       , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseUnrecognized },
-        { "CTM CALL", (PFN_ATRSP_PARSE)&CSilo_MISC::ParseUnrecognized },
-        { "NO CTM CALL", (PFN_ATRSP_PARSE)&CSilo_MISC::ParseUnrecognized },
-        { "WAITING CALL CTM", (PFN_ATRSP_PARSE)&CSilo_MISC::ParseUnrecognized },
         { ""           , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseNULL }
     };
 

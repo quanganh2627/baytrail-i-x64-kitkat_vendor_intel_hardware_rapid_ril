@@ -20,6 +20,7 @@ LOCAL_SRC_FILES:= \
     ND/silo_sms.cpp \
     ND/silo_misc.cpp \
     ND/silo_ims.cpp \
+    ND/silo_common.cpp \
     ND/channel_nd.cpp \
     channelbase.cpp \
     channel_atcmd.cpp \

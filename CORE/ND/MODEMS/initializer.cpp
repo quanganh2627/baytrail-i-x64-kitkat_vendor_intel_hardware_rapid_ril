@@ -36,6 +36,7 @@
 #include "silo_phonebook.h"
 #include "silo_misc.h"
 #include "silo_ims.h"
+#include "silo_common.h"
 #include "util.h"
 #include "initializer.h"
 
@@ -482,6 +483,8 @@ CChannel* CInitializer::CreateChannel(UINT32 eIndex)
 // Get the bitmask of silos for a channel from repository
 //
 // Returns a bitmask with format:
+//      bit 11: Common silo      1000 0000 0000
+//      bit 8-10: Reserved for new silos
 //      bit 7: IMS silo          1000 0000
 //      bit 6: Misc silo         0100 0000
 //      bit 5: Phonebook silo    0010 0000
@@ -491,25 +494,29 @@ CChannel* CInitializer::CreateChannel(UINT32 eIndex)
 //      bit 1: SIM silo          0000 0010
 //      bit 0: Voice silo        0000 0001
 //
-BYTE CInitializer::GetSiloConfig(UINT32 channel)
+int CInitializer::GetSiloConfig(UINT32 channel)
 {
     RIL_LOG_VERBOSE("CInitializer::GetSiloConfig() - Enter\r\n");
     CRepository repository;
     int siloConfig = 0;
 
     // default silo configurations
-    const BYTE DefSiloConfigATCmd = 0x77;
-    const BYTE DefSiloConfig = 0x37;
-    const BYTE DefSiloConfigData = 0x28;
+    const int DefSiloConfigATCmd = 0x840; // Misc and common silo
+    const int DefSiloConfigNetwork = 0x810; // Network and common silo
+    const int DefSiloConfigVoiceAndSms = 0x805; // Voice, SMS and common silo
+    const int DefSiloConfigSIM = 0x802; // SIM and common silo
+    const int DefSiloConfigURC = 0x877; // All silo's except Data and IMS
+    const int DefSiloConfigData = 0x808; // Data and common silo
+    const int DefSiloConfigCommon = 0x800; // common silo only
 
     // Array of repository channel key names, ordered according to rilchannels.h
     // and default silo configuration if not available in repository
     SILO_CONFIG chanSiloConfig[RIL_CHANNEL_MAX] = {
-        {g_szSilosATCmd, DefSiloConfigATCmd}, {g_szSilosDLC2, DefSiloConfig},
-        {g_szSilosDLC6,  DefSiloConfig},      {g_szSilosDLC8, DefSiloConfig},
-        {g_szSilosURC,   DefSiloConfig},      {g_szSilosOEM,  DefSiloConfig},
-        {g_szSilosData,  DefSiloConfigData},  {g_szSilosData, DefSiloConfigData},
-        {g_szSilosData,  DefSiloConfigData},  {g_szSilosData, DefSiloConfigData},
+        {g_szSilosATCmd, DefSiloConfigATCmd}, {g_szSilosDLC2, DefSiloConfigNetwork},
+        {g_szSilosDLC6,  DefSiloConfigVoiceAndSms}, {g_szSilosDLC8, DefSiloConfigSIM},
+        {g_szSilosURC,   DefSiloConfigURC}, {g_szSilosOEM,  DefSiloConfigCommon},
+        {g_szSilosData,  DefSiloConfigData}, {g_szSilosData, DefSiloConfigData},
+        {g_szSilosData,  DefSiloConfigData}, {g_szSilosData, DefSiloConfigData},
         {g_szSilosData,  DefSiloConfigData}
     };
 
@@ -524,23 +531,23 @@ BYTE CInitializer::GetSiloConfig(UINT32 channel)
             // set default silos for channel
             siloConfig = chanSiloConfig[channel].silosDefault;
             RIL_LOG_INFO("CInitializer::GetSiloConfig() : Using default silo config [0x%x] "
-                    "for chnl[%u]\r\n", (BYTE)siloConfig, channel);
+                    "for chnl[%u]\r\n", siloConfig, channel);
         }
     }
 
     RIL_LOG_INFO("CInitializer::GetSiloConfig() - chnl=[%u], siloConfig=[0x%x]\r\n",
-            channel, (BYTE)siloConfig);
+            channel, siloConfig);
 
 Error:
     RIL_LOG_VERBOSE("CInitializer::GetSiloConfig() - Exit\r\n");
-    return (BYTE)siloConfig;
+    return siloConfig;
 }
 
 BOOL CInitializer::CreateChannels(CSystemCapabilities* pSysCaps)
 {
     RIL_LOG_VERBOSE("CInitializer::CreateChannels() - Enter\r\n");
     BOOL bRet = FALSE;
-    BYTE siloConfig = 0;
+    int siloConfig = 0;
 
     CMutex::Lock(m_pPortsManagerMutex);
 
@@ -751,6 +758,9 @@ CSilo* CInitializer::CreateSilo(CChannel* pChannel, int siloType, CSystemCapabil
         case SILO_TYPE_IMS:
             pSilo = new CSilo_IMS(pChannel, pSysCaps);
             break;
+        case SILO_TYPE_COMMON:
+            pSilo = new CSilo_Common(pChannel, pSysCaps);
+            break;
         default:
             RIL_LOG_CRITICAL("CInitializer::CreateSilo() - Unknown silo type [%d]!\r\n", siloType);
             break;
@@ -764,7 +774,7 @@ CSilo* CInitializer::CreateSilo(CChannel* pChannel, int siloType, CSystemCapabil
 // Create silos for a channel, depending on silo config bitmask parameter
 // Note: The CChannelbase destructor will destroy these CSilo objects.
 //
-BOOL CInitializer::CreateSilos(CChannel* pChannel, BYTE siloConfig, CSystemCapabilities* pSysCaps)
+BOOL CInitializer::CreateSilos(CChannel* pChannel, int siloConfig, CSystemCapabilities* pSysCaps)
 {
     RIL_LOG_VERBOSE("CInitializer::CreateSilos() : ENTER\r\n");
     BOOL bRet = FALSE;
@@ -775,7 +785,7 @@ BOOL CInitializer::CreateSilos(CChannel* pChannel, BYTE siloConfig, CSystemCapab
     UINT32 uiRilChannel = pChannel->GetRilChannel();
     char* pszSiloInitString = NULL;
 
-    for (BYTE silo = 0; silo < MAX_SILOS; silo++)
+    for (int silo = 0; silo < SILO_MAX; silo++)
     {
         // only create a silo if set in siloConfig bitmask
         if (siloConfig & (1 << silo))
