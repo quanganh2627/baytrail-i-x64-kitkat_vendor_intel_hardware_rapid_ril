@@ -598,9 +598,6 @@ void CSystemManager::ResetChannelInfo()
 
     m_pInitializer->ResetChannelCompletedInit();
 
-    //  Close the COM ports
-    m_pInitializer->CloseChannelPorts();
-
     if (m_pCancelWaitEvent)
     {
         delete m_pCancelWaitEvent;
