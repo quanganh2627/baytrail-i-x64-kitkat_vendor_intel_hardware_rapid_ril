@@ -838,23 +838,22 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             {
                 RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
                         " Concat | failed\r\n");
-                goto Done;
+                bSuccess = FALSE;
             }
-
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, pInitCommands))
+            else if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, pInitCommands))
             {
                 RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concatenate"
                         " TE specific init commands failed\r\n");
                 bSuccess = FALSE;
             }
+        }
 
-            free(pInitCommands);
-            pInitCommands = NULL;
+        free(pInitCommands);
+        pInitCommands = NULL;
 
-            if (!bSuccess)
-            {
-                goto Done;
-            }
+        if (!bSuccess)
+        {
+            goto Done;
         }
     }
 

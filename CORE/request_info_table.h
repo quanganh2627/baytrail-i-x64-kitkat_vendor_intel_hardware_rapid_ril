@@ -15,6 +15,7 @@
 #include "types.h"
 #include "rril.h"
 #include "request_id.h"
+#include "sync_ops.h"
 
 struct REQ_INFO
 {
@@ -31,7 +32,8 @@ public:
     void GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo);
 
 private:
-    REQ_INFO*  m_rgpRequestInfos[REQ_ID_TOTAL];
+    REQ_INFO* m_rgpRequestInfos[REQ_ID_TOTAL];
+    CMutex* m_pCacheAccessMutex;
 };
 
 #endif // RRIL_REQUEST_INFO_TABLE_H

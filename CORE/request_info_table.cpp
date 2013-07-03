@@ -20,6 +20,7 @@
 CRequestInfoTable::CRequestInfoTable()
 {
     memset(m_rgpRequestInfos, 0x00, sizeof(REQ_INFO*) * REQ_ID_TOTAL);
+    m_pCacheAccessMutex = new CMutex();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -30,13 +31,16 @@ CRequestInfoTable::~CRequestInfoTable()
         delete m_rgpRequestInfos[i];
         m_rgpRequestInfos[i] = NULL;
     }
+    if (m_pCacheAccessMutex != NULL)
+    {
+        delete m_pCacheAccessMutex;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo)
 {
     RIL_LOG_VERBOSE("CRequestInfoTable::GetRequestInfo() - Enter\r\n");
-    REQ_INFO* pNewReqInfo = NULL;
 
     // Set defaults if we can't find the request id
     rReqInfo.uiTimeout = CTE::GetTE().GetTimeoutAPIDefault();
@@ -59,35 +63,21 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo)
         CRepository repository;
         int         iTemp = 0;
 
-        pNewReqInfo = new REQ_INFO;
-        if (!pNewReqInfo)
+        memset(&rReqInfo, 0, sizeof(rReqInfo));
+
+        if (repository.Read(g_szGroupRequestTimeouts, g_szRequestNames[requestID], iTemp))
         {
-            RIL_LOG_CRITICAL("CRequestInfoTable::GetRequestInfo() - Unable to allocate memory for"
-                    " a new REQ_INFO.\r\n");
-            goto Error;
-        }
-
-        memset(pNewReqInfo, 0, sizeof(REQ_INFO));
-
-        // Set up non-pre-defined strings
-
-        // Group Strings are constant, while Item Strings are Request-Dependent.
-        memset(g_szItemRequestTimeouts, 0, sizeof(g_szItemRequestTimeouts));
-        strncpy(g_szItemRequestTimeouts,   g_szRequestNames[requestID], MAX_REQUEST_ITEM_LENGTH-1);
-
-        if (repository.Read(g_szGroupRequestTimeouts, g_szItemRequestTimeouts, iTemp))
-        {
-            pNewReqInfo->uiTimeout = (UINT32)iTemp;
+            rReqInfo.uiTimeout = (UINT32)iTemp;
         }
         else
         {
-            pNewReqInfo->uiTimeout = CTE::GetTE().GetTimeoutAPIDefault();
+            rReqInfo.uiTimeout = CTE::GetTE().GetTimeoutAPIDefault();
         }
 
         // Use WAIT_FOREVER timeout if given time was 0
-        if (!pNewReqInfo->uiTimeout)
+        if (!rReqInfo.uiTimeout)
         {
-            pNewReqInfo->uiTimeout = WAIT_FOREVER;
+            rReqInfo.uiTimeout = WAIT_FOREVER;
         }
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
         else
@@ -98,7 +88,7 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo)
             {
                 case ND_REQ_ID_SETUPDEFAULTPDP: // +CGACT, +CGDATA, +CGDCONT, +CGPADDR, +XDNS
                 case ND_REQ_ID_DEACTIVATEDATACALL:
-                    pNewReqInfo->uiTimeout = 2 * pNewReqInfo->uiTimeout + 50000;
+                    rReqInfo.uiTimeout = 2 * rReqInfo.uiTimeout + 50000;
                     break;
 
                 // network commands
@@ -145,23 +135,38 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo)
                 case ND_REQ_ID_SMSBROADCASTACTIVATION:  // +CSCB
                 case ND_REQ_ID_GETNEIGHBORINGCELLIDS:   // +XCELLINFO
                 case ND_REQ_ID_REPORTSMSMEMORYSTATUS:   // +XTESM
-                    pNewReqInfo->uiTimeout = 2 * pNewReqInfo->uiTimeout + 10000;
+                    rReqInfo.uiTimeout = 2 * rReqInfo.uiTimeout + 10000;
                     break;
             }
         }
 #endif // M2_DUALSIM_FEATURE_ENABLED
 
-        // Cache the data we just read
-        m_rgpRequestInfos[requestID] = pNewReqInfo;
-        pNewReqInfo = NULL;
+        // Cache the data we just read (taking the cache access lock)
+        if (m_pCacheAccessMutex)
+        {
+            CMutex::Lock(m_pCacheAccessMutex);
+        }
+        // Recheck if the cache is still empty
+        if (NULL == m_rgpRequestInfos[requestID])
+        {
+            REQ_INFO* pNewReqInfo = new REQ_INFO;
+            if (NULL != pNewReqInfo)
+            {
+                *pNewReqInfo = rReqInfo;
+                m_rgpRequestInfos[requestID] = pNewReqInfo;
+            }
+        }
+        if (m_pCacheAccessMutex)
+        {
+            CMutex::Unlock(m_pCacheAccessMutex);
+        }
+    }
+    else
+    {
+        rReqInfo = *m_rgpRequestInfos[requestID];
     }
 
-    rReqInfo = *m_rgpRequestInfos[requestID];
-
 Error:
-    delete pNewReqInfo;
-    pNewReqInfo = NULL;
-
     RIL_LOG_INFO("CRequestInfoTable::GetRequestInfo() - RequestID 0x%X: Timeout [%d]\r\n",
                    requestID,
                    rReqInfo.uiTimeout);

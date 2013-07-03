@@ -40,8 +40,6 @@
 
 const char   g_szGroupRequestTimeouts[]        = "RequestTimeouts";
 
-char         g_szItemRequestTimeouts[MAX_REQUEST_ITEM_LENGTH];
-
 //  These strings are used for Request ID Parameters in repository.txt
 //  The strings must be in the same order as the Request IDs defined in request_id.h
 //

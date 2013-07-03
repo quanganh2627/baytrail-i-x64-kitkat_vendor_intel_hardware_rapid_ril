@@ -31,8 +31,6 @@
 #include "types.h"
 
 
-#define MAX_REQUEST_ITEM_LENGTH    64
-
 // define max FD timers
 #define MIN_FDDELAY_TIMER          1
 #define MIN_SCRI_TIMER             1
@@ -43,8 +41,6 @@
 // String Constants used for NVM Access
 
 extern const char   g_szGroupRequestTimeouts[];
-
-extern char         g_szItemRequestTimeouts[MAX_REQUEST_ITEM_LENGTH];
 
 extern const char*  g_szRequestNames[];
 
