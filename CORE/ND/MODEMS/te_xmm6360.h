@@ -41,6 +41,9 @@ public:
 
     virtual CInitializer* GetInitializer();
 
+    // RIL_REQUEST_SETUP_DATA_CALL 27
+    virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
+            void* pData, UINT32 uiDataSize, UINT32& uiCID);
     virtual BOOL PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
             UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseEnterDataState(RESPONSE_DATA& rRspData);
