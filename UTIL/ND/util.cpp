@@ -262,7 +262,6 @@ BOOL CopyStringNullTerminate(char* const pszOut, const char* pszIn, const UINT32
         if (cbOut <= cbIn)
         {
             fRet = FALSE;
-            pszOut[cbOut - 1] = '\0';
         }
     }
 
@@ -281,7 +280,7 @@ BOOL PrintStringNullTerminate(char* const pszOut, const UINT32 cbOut, const char
     va_list args;
     va_start(args, pszFormat);
 
-    iWritten = vsprintf(pszOut, pszFormat, args);
+    iWritten = vsnprintf(pszOut, cbOut, pszFormat, args);
 
     if (0 > iWritten)
     {
