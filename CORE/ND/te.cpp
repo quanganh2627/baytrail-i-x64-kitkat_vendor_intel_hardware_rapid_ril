@@ -2349,6 +2349,33 @@ Error:
     }
     else
     {
+        /*
+         * Timeout waiting for modem power on and initialization means
+         * that there is no change in radio state neither in rapid ril nor
+         * in android framework side. Since the requested radio state is
+         * not yet reached, device will remain in not registered state.
+         * In order to recover from this state, framework should be informed
+         * that the requested radio state is not yet reached. This can be
+         * done only by notifying the framework of radio state different
+         * from the current state. So, set the radio state to unavailable and
+         * notify the framework of the radio state change. Framework doesn't
+         * take any actions on radio unavailable state. In order to force
+         * the framework to take any action , set the radio state to off and
+         * notify it after 1seconds. This will force the framework to trigger
+         * RADIO_POWER request again with the desired power state.
+         *
+         * e.g.: Time out Sequence is described as follows:
+         *     RADIO_POWER ON request from framework.
+         *     Acquire modem resource.
+         *     Timeout waiting for MODEM_UP and initialization.
+         *     RADIO_POWER ON request completed.
+         *     SetRadioState to RADIO_UNAVAILABLE and notify framework.
+         *     After 1second, set radio state to RADIO_OFF and notify framework.
+         *     Framework will trigger RADIO_POWER ON request again
+         */
+        SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
+        RIL_requestTimedCallback(triggerRadioOffInd, NULL, 1, 0);
+
         if (IsRestrictedMode())
         {
             int mode = RIL_RESTRICTED_STATE_CS_ALL | RIL_RESTRICTED_STATE_PS_ALL;
@@ -8527,11 +8554,6 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
      */
     CleanupAllDataConnections();
 
-    if (NULL != m_pRadioStateChangedEvent)
-    {
-        CEvent::Signal(m_pRadioStateChangedEvent);
-    }
-
     if (RADIO_POWER_ON == m_RequestedRadioPower)
     {
         // Send request to SetPreferredNetworkType if previously received before radio power on
@@ -8573,6 +8595,11 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
                 CSystemManager::GetInstance().ReleaseModem();
             }
         }
+    }
+
+    if (NULL != m_pRadioStateChangedEvent)
+    {
+        CEvent::Signal(m_pRadioStateChangedEvent);
     }
 
     RIL_LOG_VERBOSE("CTE::PostRadioPower() Exit\r\n");

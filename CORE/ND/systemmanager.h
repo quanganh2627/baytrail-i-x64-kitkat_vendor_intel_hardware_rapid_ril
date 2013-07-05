@@ -155,6 +155,8 @@ private:
 
     BOOL m_bIsSystemInitialized;
 
+    BOOL m_bIsModemResourceAcquired;
+
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     UINT32 m_uiLastCallFailedCauseID;
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED

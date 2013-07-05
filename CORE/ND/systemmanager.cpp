@@ -105,7 +105,8 @@ CSystemManager::CSystemManager()
     m_pDataChannelAccessorMutex(NULL),
     m_pMMgrLibHandle(NULL),
     m_RequestInfoTable(),
-    m_bIsSystemInitialized(FALSE)
+    m_bIsSystemInitialized(FALSE),
+    m_bIsModemResourceAcquired(FALSE)
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     ,m_uiLastCallFailedCauseID(0)
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
@@ -1006,6 +1007,12 @@ BOOL CSystemManager::GetModem()
     BOOL bRet = FALSE;
     e_err_mmgr_cli_t errorCode;
 
+    if (m_bIsModemResourceAcquired)
+    {
+        RIL_LOG_INFO("CSystemManager::GetModem() - Modem resource already acquired\r\n");
+        return TRUE;
+    }
+
     if (m_pMMgrLibHandle)
     {
         RIL_LOG_INFO("CSystemManager::GetModem() - Getting modem resource\r\n");
@@ -1021,6 +1028,7 @@ BOOL CSystemManager::GetModem()
         else
         {
             RIL_LOG_INFO("CSystemManager::GetModem() - Modem resource get SUCCESSFUL\r\n");
+            m_bIsModemResourceAcquired = TRUE;
         }
     }
     else
@@ -1053,6 +1061,7 @@ BOOL CSystemManager::ReleaseModem()
         else
         {
             RIL_LOG_INFO("CSystemManager::ReleaseModem() - Modem resource release SUCCESSFUL\r\n");
+            m_bIsModemResourceAcquired = FALSE;
         }
     }
     else
