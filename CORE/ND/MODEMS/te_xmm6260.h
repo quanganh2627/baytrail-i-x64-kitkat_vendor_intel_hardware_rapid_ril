@@ -63,7 +63,7 @@ public:
     virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
                                                          void* pData,
                                                          UINT32 uiDataSize,
-                                                         UINT32 uiCID);
+                                                         UINT32& uiCID);
     virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SIM_IO 28
@@ -234,7 +234,7 @@ public:
     virtual void HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken,
                                                     UINT32 uiResultCode);
 
-    virtual BOOL DataConfigDown(UINT32 uiCID);
+    virtual BOOL DataConfigDown(UINT32 uiCID, BOOL bForceCleanup = FALSE);
 
     virtual RIL_RESULT_CODE HandleScreenStateReq(int screenState);
 

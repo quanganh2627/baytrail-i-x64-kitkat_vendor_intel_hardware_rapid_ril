@@ -46,8 +46,6 @@ protected:
     S_PIN_RETRY_COUNT m_PinRetryCount;
     RIL_PinState m_ePin2State;
 
-    P_ND_PDP_CONTEXT_DATA m_pPDPListData;
-
 public:
     CTEBase(CTE& cte);
     virtual ~CTEBase();
@@ -57,54 +55,6 @@ private:
 
 public:
     virtual CInitializer* GetInitializer() = 0;
-
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the first ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNFirstIpV4Dns(UINT32 cid, char* ret);
-
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the second ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNSecIpV4Dns(UINT32 cid, char* ret);
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the first ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNFirstIpV6Dns(UINT32 cid, char* ret);
-
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the second ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNSecIpV6Dns(UINT32 cid, char* ret);
-
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the first ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNFirstIpV4(UINT32 cid, char* ret);
-
-    //
-    // Member buffer contains ip addresses separated by blank.
-    // This function extract the second ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNSecIpV4(UINT32 cid, char* ret);
-
-    //
-    // Member buffer contains one ip address.
-    // This function returns the gw ip address from the buffer
-    // corresponding to the cid.
-    //
-    virtual char* GetPDNGwIpV4(UINT32 cid, char* ret);
 
     virtual char* GetBasicInitCommands(UINT32 uiChannelType);
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
@@ -273,7 +223,7 @@ public:
     virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
                                                          void* pData,
                                                          UINT32 uiDataSize,
-                                                         UINT32 uiCID);
+                                                         UINT32& uiCID);
 
     virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA& rRspData);
 
@@ -440,9 +390,6 @@ public:
                                                                  UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseLastDataCallFailCause(RESPONSE_DATA& rRspData);
-
-    // RIL_REQUEST_DATA_CALL_LIST 57
-    virtual RIL_RESULT_CODE ParseEstablishedPDPList(RESPONSE_DATA & rRspData);
 
     // RIL_REQUEST_RESET_RADIO 58
     virtual RIL_RESULT_CODE CoreResetRadio(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
@@ -810,6 +757,8 @@ public:
     virtual BOOL HandleSilentPINEntry(void* pRilToken, void* pContextData, int dataSize);
     virtual RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
 
+    virtual RIL_RESULT_CODE ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData);
+
     // PIN retry count request and response handler
     virtual RIL_RESULT_CODE QueryPinRetryCount(REQUEST_DATA& rReqData,
                                                           void* pData,
@@ -841,7 +790,15 @@ public:
     // Functions for configuring data connections
     virtual BOOL DataConfigUp(char* pszNetworkInterfaceName, CChannel_Data* pChannelData,
                                                 PDP_TYPE eDataConnectionType);
-    virtual BOOL DataConfigDown(UINT32 uiCID) = 0;
+
+    /*
+     * Removes the interface, puts the channels into AT command mode and
+     * resets the data call information of the channel matching the CID.
+     * If bForceCleanup is TRUE, then the data call information is reset
+     * even if the provided context ID is default PDN context ID.
+     */
+    virtual BOOL DataConfigDown(UINT32 uiCID, BOOL bForceCleanup = FALSE) = 0;
+
     virtual void CleanupAllDataConnections();
     virtual BOOL DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pChannelData);
     virtual BOOL DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pChannelData);
@@ -885,6 +842,13 @@ public:
      * framework.
      */
     virtual RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
+
+    virtual RIL_RESULT_CODE HandleSetupDefaultPDN(RIL_Token rilToken,
+            CChannel_Data* pChannelData);
+    virtual RIL_RESULT_CODE ParseSetupDefaultPDN(RESPONSE_DATA& rRspData);
+    virtual void PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData);
+
+    virtual BOOL SetupInterface(UINT32 uiCID);
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);

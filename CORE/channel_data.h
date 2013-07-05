@@ -32,7 +32,18 @@ public:
     //  public port interface
     BOOL OpenPort();
 
+    /*
+     * Resets the data call information such as context ID, data state,
+     * fail cause, apn, ip address, DNS, network interface, gateway and
+     * the pdp type. Based on modem type, also frees the HSI channel.
+     */
     void ResetDataCallInfo();
+
+    /*
+     * Based on the channel settings, brings down the hsi network interface
+     * or puts the channel back into AT command mode.
+     */
+    void RemoveInterface();
 
     // get / set functions
     void SetDataFailCause(int cause);
@@ -40,6 +51,9 @@ public:
 
     UINT32 GetContextID() const;
     BOOL SetContextID( UINT32 dwContextID );
+
+    void SetApn(const char* pApn);
+    BOOL IsApnEqual(const char* pApn);
 
     void SetPdpType(const char* pPdpType);
     void GetPdpType(char* pPdpType, const int maxSize);
@@ -58,8 +72,9 @@ public:
                                     char* pIpV6DNS1, const int maxIpV6DNS1Size,
                                     char* pIpV6DNS2, const int maxIpV6DNS2Size);
 
-    void SetGateway(const char* pIpGateway);
-    void GetGateway(char* pIpGateway, const int maxSize);
+    void SetGateway(const char* pIpV4Gateway, const char* pIpV6Gateway);
+    void GetGateway(char* pIpV4Gateway, const int maxIPv4GatewaySize,
+            char* pIpV6Gateway, const int maxIPv6GatewaySize);
 
     void SetDataState(int state);
     int GetDataState();
@@ -91,11 +106,14 @@ public:
     char* GetModemResourceName() { return m_szModemResourceName; }
     int GetIpcDataChannelMin() { return m_ipcDataChannelMin; }
 
+    int GetMuxControlChannel();
+
 private:
     int m_dataFailCause;
     UINT32 m_uiContextID;
     int m_dataState;
 
+    char m_szApn[MAX_BUFFER_SIZE];
     char m_szPdpType[MAX_PDP_TYPE_SIZE];
 
     char m_szInterfaceName[MAX_INTERFACE_NAME_SIZE];
@@ -112,7 +130,8 @@ private:
     char m_szIpV6DNS1[MAX_IPADDR_SIZE];
     char m_szIpV6DNS2[MAX_IPADDR_SIZE];
 
-    char m_szIpGateways[MAX_IPADDR_SIZE];
+    char m_szIpV4Gateway[MAX_IPADDR_SIZE];
+    char m_szIpV6Gateway[MAX_IPADDR_SIZE];
 
     // used by 6360 and 7160 modems.
     int m_dataProfile;

@@ -42,7 +42,8 @@ CChannelBase::CChannelBase(UINT32 uiChannel)
     m_paInitCmdStrings(NULL),
     m_bPossibleInvalidFD(FALSE),
     m_pPossibleInvalidFDMutex(NULL),
-    m_pResponseObjectAccessMutex(NULL)
+    m_pResponseObjectAccessMutex(NULL),
+    m_bTimeoutWaitingForResponse(0)
 {
     RIL_LOG_VERBOSE("CChannelBase::CChannelBase() - Enter\r\n");
 
@@ -52,8 +53,8 @@ CChannelBase::CChannelBase(UINT32 uiChannel)
     m_szChannelUnlockInitCmd[0] = '\0';
 
     // default init string sent to all channels
-    ConcatenateStringNullTerminate(m_szChannelUnlockInitCmd,
-            MAX_BUFFER_SIZE - strlen(m_szChannelUnlockInitCmd), "E0V1Q0X4|+CMEE=1|S0=0");
+    ConcatenateStringNullTerminate(m_szChannelBasicInitCmd,
+            MAX_BUFFER_SIZE - strlen(m_szChannelBasicInitCmd), "E0V1Q0X4|+CMEE=1|S0=0");
 
     RIL_LOG_VERBOSE("CChannelBase::CChannelBase() - Exit\r\n");
 }
@@ -584,7 +585,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Out of memory\r\n");
         goto Done;
     }
-    szInit[0] = NULL;
+    szInit[0] = '\0';
 
     if (eInitIndex >= COM_MAX_INDEX)
     {
@@ -886,12 +887,19 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         BOOL bSuccess = TRUE;
 
         pInitCommands = GetTESpecificInitCommands(eInitIndex);
-        if (NULL != pInitCommands)
+        if (NULL != pInitCommands && '\0' != pInitCommands[0])
         {
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
+                        " Concat | failed\r\n");
+                goto Done;
+            }
+
             if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, pInitCommands))
             {
                 RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concatenate"
-                        " DataPath failed\r\n");
+                        " TE specific init commands failed\r\n");
                 bSuccess = FALSE;
             }
 
@@ -906,6 +914,12 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     }
 
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : String [%s]\r\n", szInit);
+    if (NULL == szInit || '\0' == szInit[0])
+    {
+        bRetVal = TRUE;
+        CSystemManager::GetInstance().TriggerInitStringCompleteEvent(m_uiRilChannel, eInitIndex);
+        goto Done;
+    }
 
     // Now go through the string and break it up into individual commands separated by a '|'
     char  szCmd[MAX_BUFFER_SIZE];

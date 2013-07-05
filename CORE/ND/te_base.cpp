@@ -65,216 +65,13 @@ CTEBase::CTEBase(CTE& cte)
     memset(&m_IncomingCallInfo, 0, sizeof(m_IncomingCallInfo));
     memset(&m_PinRetryCount, -1, sizeof(m_PinRetryCount));
     memset(&m_VoiceCallInfo, -1, sizeof(m_VoiceCallInfo));
-
-    m_pPDPListData = (P_ND_PDP_CONTEXT_DATA) new S_ND_PDP_CONTEXT_DATA;
-    if (m_pPDPListData)
-    {
-       memset(m_pPDPListData, 0, sizeof(S_ND_PDP_CONTEXT_DATA));
-    }
 }
 
 CTEBase::~CTEBase()
 {
-    delete m_pPDPListData;
-
     RIL_LOG_INFO("CTEBase::~CTEBase() - Deleting initializer\r\n");
     delete m_pInitializer;
     m_pInitializer = NULL;
-}
-
-char* CTEBase::GetPDNFirstIpV4Dns(UINT32 cid, char* ret)
-{
-
-    char* pData;
-    char* pmv;
-    char tmpbuf[MAX_BUFFER_SIZE+1] = {0};
-    int contextId = (int) cid;
-
-    if (!m_pPDPListData || !ret)
-        return ret;
-
-    *ret = '\0';
-
-    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
-    {
-        if (m_pPDPListData->pPDPData[i].cid == contextId
-             && strcmp(m_pPDPListData->pTypeBuffers[i], "IP") == 0 )
-        {
-            pData = m_pPDPListData->pDnsesBuffers[i];
-            pmv = ret;
-            while (*pData && *pData != ' ')
-                *pmv++ = *pData++;
-            *pmv = '\0';
-            return ret;
-        }
-    }
-
-    return ret;
-}
-
-char* CTEBase::GetPDNSecIpV4Dns(UINT32 cid, char* ret)
-{
-    char* pData;
-    char* pmv;
-    char tmpbuf[MAX_BUFFER_SIZE+1] = {0};
-    int contextId = (int) cid;
-
-    if (!m_pPDPListData || !ret)
-        return ret;
-
-    *ret = '\0';
-
-    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
-    {
-        if (m_pPDPListData->pPDPData[i].cid == contextId
-             && strcmp(m_pPDPListData->pTypeBuffers[i], "IP") == 0)
-        {
-            pData = m_pPDPListData->pDnsesBuffers[i];
-            pmv = ret;
-            while (*pData && *pData++ != ' ');
-            while (*pData && *pData != ' ')
-                *pmv++ = *pData++;
-            *pmv = '\0';
-            return ret;
-        }
-    }
-
-    return ret;
-}
-
-char* CTEBase::GetPDNFirstIpV6Dns(UINT32 cid, char* ret)
-{
-    char* pData;
-    char* pmv;
-    int contextId = (int) cid;
-
-    if (!m_pPDPListData || !ret)
-        return ret;
-
-    *ret = '\0';
-
-    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
-    {
-        if (m_pPDPListData->pPDPData[i].cid == contextId
-             && strcmp(m_pPDPListData->pTypeBuffers[i], "IPV6") == 0)
-        {
-            pData = m_pPDPListData->pDnsesBuffers[i];
-            pmv = ret;
-            while (*pData && *pData != ' ')
-                *pmv++ = *pData++;
-            *pmv = '\0';
-            return ret;
-        }
-    }
-
-    return ret;
-}
-
-char* CTEBase::GetPDNSecIpV6Dns(UINT32 cid,char* ret)
-{
-    char* pData;
-    char* pmv;
-    int contextId = (int) cid;
-
-    if (!m_pPDPListData || !ret)
-        return ret;
-
-    *ret = '\0';
-
-    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
-    {
-        if (m_pPDPListData->pPDPData[i].cid == contextId
-             && strcmp(m_pPDPListData->pTypeBuffers[i], "IPV6") == 0)
-        {
-            pData = m_pPDPListData->pDnsesBuffers[i];
-            pmv = ret;
-            while (*pData && *pData++ != ' ');
-            while (*pData && *pData != ' ')
-                *pmv++ = *pData++;
-            *pmv = '\0';
-            return ret;
-        }
-    }
-
-    return ret;
-}
-
-char* CTEBase::GetPDNFirstIpV4(UINT32 cid, char* ret)
-{
-    char* pData;
-    char* pmv;
-    int contextId = (int) cid;
-
-    if (!m_pPDPListData || !ret)
-        return ret;
-
-    *ret = '\0';
-
-    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
-    {
-        if (m_pPDPListData->pPDPData[i].cid == contextId
-             && strcmp(m_pPDPListData->pTypeBuffers[i], "IP") == 0)
-        {
-            pData = m_pPDPListData->pAddressBuffers[i];
-            pmv = ret;
-            while (*pData && *pData != ' ')
-                *pmv++ = *pData++;
-            *pmv = '\0';
-            return ret;
-        }
-    }
-
-    return ret;
-}
-
-char* CTEBase::GetPDNSecIpV4(UINT32 cid, char* ret)
-{
-    char* pData;
-    char* pmv;
-    char tmpbuf[MAX_BUFFER_SIZE+1]={0};
-    int contextId = (int) cid;
-
-    if (!m_pPDPListData || !ret)
-        return ret;
-
-    *ret = '\0';
-
-    for (int i=0;i<MAX_PDP_CONTEXTS;i++)
-    {
-        if (m_pPDPListData->pPDPData[i].cid == contextId
-             && strcmp(m_pPDPListData->pTypeBuffers[i], "IP") == 0)
-        {
-            pData = m_pPDPListData->pAddressBuffers[i];
-            pmv = tmpbuf;
-            while (*pData && *pData++ != ' ');
-            while (*pData && *pData != ' ')
-                *pmv++ = *pData++;
-            *pmv = '\0';
-            return ret;
-        }
-    }
-
-    return ret;
-}
-
-char* CTEBase::GetPDNGwIpV4(UINT32 cid, char* ret)
-{
-    if (!m_pPDPListData || !ret)
-        return ret;
-
-    int contextId = (int) cid;
-
-    *ret = '\0';
-
-    for (int i = 0; i < MAX_PDP_CONTEXTS; i++)
-    {
-        if (m_pPDPListData->pPDPData[i].cid == contextId)
-        {
-            return m_pPDPListData->pGatewaysBuffers[i];
-        }
-    }
-
-    return ret;
 }
 
 BOOL CTEBase::IsRequestSupported(int requestId)
@@ -2044,7 +1841,7 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    m_cte.StoreRegistrationInfo(&regStatus, FALSE);
+    m_cte.StoreRegistrationInfo(&regStatus, E_REGISTRATION_TYPE_CREG);
     m_cte.CopyCachedRegistrationInfo(pRegStatus, FALSE);
 
     // We cheat with the size here.
@@ -2114,7 +1911,7 @@ RIL_RESULT_CODE CTEBase::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    m_cte.StoreRegistrationInfo(&psRegStatus, TRUE);
+    m_cte.StoreRegistrationInfo(&psRegStatus, E_REGISTRATION_TYPE_CGREG);
     m_cte.CopyCachedRegistrationInfo(pGPRSRegStatus, TRUE);
 
     // We cheat with the size here.
@@ -2532,9 +2329,11 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
         /*
          * This timeout is based on test results. Timeout is the sum of
          * time taken for powering up the modem(~6seconds) + opening of ports(<1second)
-         * + modem basic initialization(1second).
+         * + modem basic initialization(1second). In case of flashless modem, powering
+         * up the modem sometimes takes >10seconds. To make sure that the RADIO_POWER
+         * request gets processed successfully, increase the waiting timer to 20seconds.
          */
-        UINT32 WAIT_TIMEOUT_IN_MS = 15000;
+        UINT32 WAIT_TIMEOUT_IN_MS = 20000;
         CEvent* pModemBasicInitCompleteEvent =
                     CSystemManager::GetInstance().GetModemBasicInitCompleteEvent();
 
@@ -3063,7 +2862,7 @@ Error:
 // RIL_REQUEST_SETUP_DATA_CALL 27
 //
 RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA& rReqData, void* pData,
-                                            UINT32 uiDataSize, UINT32 uiCID)
+                                            UINT32 uiDataSize, UINT32& uiCID)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSetupDataCall() - Enter / Exit\r\n");
     return RIL_E_REQUEST_NOT_SUPPORTED; // only supported at modem level
@@ -6206,269 +6005,203 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTEBase::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
+RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseEstablishedPDPList() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
-    UINT32 nCID = 0;
-    UINT32 nBearerID = 0;
-    int count = 0;
-    char szIP[MAX_BUFFER_SIZE] = {0};
-    char szAPN[MAX_BUFFER_SIZE] = {0};
-    char szGW[MAX_BUFFER_SIZE] = {0};
-    char szDNS1[MAX_IPADDR_SIZE] = {0};
-    char szDNS2[MAX_IPADDR_SIZE] = {0};
-    char szCSCFPrimAddr[MAX_IPADDR_SIZE] = {0};
-    char szCSCFSecAddr[MAX_IPADDR_SIZE] = {0};
+    UINT32 uiCID = 0;
+    UINT32 uiBearerID = 0;
+    char szTmpBuffer[MAX_BUFFER_SIZE] = {'\0'};
+    CChannel_Data *pChannelData = NULL;
+    P_DEFAULT_PDN_CONTEXT_PARAMS pContextParams = NULL;
 
-    if (NULL == m_pPDPListData)
+    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - %s\r\n", pszRsp);
+
+    pContextParams =
+            (P_DEFAULT_PDN_CONTEXT_PARAMS)malloc(sizeof(S_DEFAULT_PDN_CONTEXT_PARAMS));
+    if (NULL == pContextParams)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - memory not allocated for"
-                         " P_ND_PDP_CONTEXT_DATA struct.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                "memory allocation failed\r\n");
         goto Error;
     }
 
-    RIL_LOG_VERBOSE("CTEBase::ParseEstablishedPDPList() - %s\r\n", pszRsp);
+    memset(pContextParams, 0 , sizeof(S_DEFAULT_PDN_CONTEXT_PARAMS));
 
     // Parse +CGCONTRDP response, will return up to 2 lines of data (if MT has
     // dual stack capability. 1st line for IPV4 data, 2nd for IPV6
-    count = 0;
     while (FindAndSkipString(pszRsp, "+CGCONTRDP:", pszRsp))
     {
-        CChannel_Data *pChannelData = NULL;
-
        // Parse <cid>
-        if (!ExtractUInt32(pszRsp, nCID, pszRsp) ||  ((nCID > MAX_PDP_CONTEXTS) || 0 == nCID ))
+        if (!ExtractUInt32(pszRsp, uiCID, pszRsp) ||  ((uiCID > MAX_PDP_CONTEXTS) || 0 == uiCID ))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract CID.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                    "Could not extract CID.\r\n");
             goto Error;
         }
 
-        //  Grab the pChannelData for this CID. Will be null for LTE
-        pChannelData = CChannel_Data::GetChnlFromContextID(nCID);
-
-        m_pPDPListData->pPDPData[count].cid = nCID;
-
-        // set active flag
-        m_pPDPListData->pPDPData[count].active = 1;
-
-        // set status
-        m_pPDPListData->pPDPData[count].status = PDP_FAIL_NONE;
-
-        // set suggestedRetryTime
-        m_pPDPListData->pPDPData[count].suggestedRetryTime = -1;
+        //  Grab the pChannelData for this CID.
+        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+        if (NULL == pChannelData)
+        {
+            goto Error;
+        }
 
         // Parse ,<bearer_id>
         // not used yet
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, nBearerID, pszRsp))
+            !ExtractUInt32(pszRsp, uiBearerID, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract"
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
                              " Bearer id.\r\n");
             goto Error;
         }
 
         // Skip over ,<APN>
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szAPN, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract APN.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                    "Could not extract APN.\r\n");
             goto Error;
         }
 
-        // Only do caching for LTE
-        if (CTE::GetTE().GetUiAct() == RADIO_TECH_LTE)
+        RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - "
+                "Set APN: %s for context Id: %u\r\n", szTmpBuffer, uiCID);
+        pChannelData->SetApn(szTmpBuffer);
+
+        if (!SkipString(pszRsp, ",", pszRsp)
+                || !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            if (strncmp(szAPN, "", MAX_BUFFER_SIZE) == 0)
-            {
-                RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - Warning APN"
-                        " not provided by network\r\n");
-            }
-            else
-            {
-                RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Add APN(%s) to cache.\r\n",
-                        szAPN);
-                CTE::GetTE().SetActivatedContext(nCID, szAPN);
-            }
-        }
-
-        //  This is interface name (i.e. rmnet0)
-        //  If interface name is <blank>, then java layer throws exception.
-
-        if (pChannelData)
-        {
-            pChannelData->GetInterfaceName( m_pPDPListData->pIfnameBuffers[count],
-                                            MAX_BUFFER_SIZE);
-
-            if (m_pPDPListData->pIfnameBuffers[count][0] == '\0')
-            {
-                // If ifname is empty forget the entry
-                RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - no ifname\r\n");
-                continue;
-            }
-
-            m_pPDPListData->pPDPData[count].ifname = m_pPDPListData->pIfnameBuffers[count];
-        }
-        else
-        {
-            //  The pChannelData may not be found due to the CID being set to 0 from
-            //  context deactivation, OR when the RAT is LTE.
-            //  Fill interface name based on CID
-            if (nCID > 0)
-            {
-                snprintf(m_pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s%d",
-                    m_szNetworkInterfaceNamePrefix, nCID-1);
-                m_pPDPListData->pPDPData[count].ifname = m_pPDPListData->pIfnameBuffers[count];
-            }
-            else
-            {
-                //  Just assume context ID of 1
-                snprintf(m_pPDPListData->pIfnameBuffers[count], MAX_BUFFER_SIZE, "%s0",
-                    m_szNetworkInterfaceNamePrefix);
-                m_pPDPListData->pPDPData[count].ifname = m_pPDPListData->pIfnameBuffers[count];
-            }
-        }
-
-        // Parse ,source addr and subnet
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szIP, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract"
-                             " source address.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
+                     " source address.\r\n");
             goto Error;
         }
 
-        int cut = 0;
-        if (count == 0)
+        /*
+         * If IPv4, then first line will have the IPv4 address.
+         * If IPv6, then first line will have the IPv6 address.
+         * If IPv4v6, then first line will have the IPv4 address and
+         * second line will have the IPv6 address.
+         */
+        if (!ExtractLocalAddressAndSubnetMask(szTmpBuffer, pContextParams->szIpV4Addr,
+                MAX_IPADDR_SIZE, pContextParams->szIpV6Addr, MAX_IPADDR_SIZE,
+                pContextParams->szIpv4SubnetMask, MAX_IPADDR_SIZE,
+                pContextParams->szIpv6SubnetMask, MAX_IPADDR_SIZE))
         {
-            // first line returned by CGCONTRDP is for IPV4
-            snprintf(m_pPDPListData->pTypeBuffers[count], MAX_BUFFER_SIZE, "%s", "IP");
-            // Ip V4 cut after 4 dots.
-            cut = 4;
-        }
-        else
-        {
-            // second line returned by CGCONTRDP is for IPV6
-            snprintf(m_pPDPListData->pTypeBuffers[count], MAX_BUFFER_SIZE, "%s", "IPV6");
-            // Ip V6 cut after 16 dots.
-            cut = 16;
-        }
-
-        m_pPDPListData->pPDPData[count].type = m_pPDPListData->pTypeBuffers[count];
-
-        {
-            //extract IP address
-            int i=0,c=0;
-            char *pIP = szIP;
-            while (*pIP)
-            {
-               if ( i >= MAX_BUFFER_SIZE )
-                   break;
-               m_pPDPListData->pAddressBuffers[count][i] = *pIP;
-               if (*pIP++ == '.')
-                   ++c;
-               if ( c == cut)
-               {
-                 m_pPDPListData->pAddressBuffers[count][i] = 0;
-                 break;
-               }
-               ++i;
-            }
-        }
-        m_pPDPListData->pPDPData[count].addresses = m_pPDPListData->pAddressBuffers[count];
-
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szGW, MAX_BUFFER_SIZE, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract Gateway.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                    "ExtractLocalAddressAndSubnetMask failed\r\n");
             goto Error;
         }
 
+        pChannelData->SetIpAddress(pContextParams->szIpV4Addr, pContextParams->szIpV6Addr);
+
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szDNS1, MAX_IPADDR_SIZE, pszRsp))
+                !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract"
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                    "Could not extract Gateway.\r\n");
+            goto Error;
+        }
+
+        if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4GatewayAddr,
+                MAX_IPADDR_SIZE, pContextParams->szIpV6GatewayAddr, MAX_IPADDR_SIZE))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                    "ConvertIPAddressToAndroidReadable - Ipv4/v6 Gateway address failed\r\n");
+            goto Error;
+        }
+
+        pChannelData->SetGateway(pContextParams->szIpV4GatewayAddr,
+                pContextParams->szIpV6GatewayAddr);
+
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
                              " Primary DNS.\r\n");
             goto Error;
         }
 
-        if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szDNS2, MAX_IPADDR_SIZE, pszRsp))
+        /*
+         * If IPv4, then first line will have the IPv4 address.
+         * If IPv6, then first line will have the IPv6 address.
+         * If IPv4v6, then first line will have the IPv4 address and
+         * second line will have the IPv6 address.
+         */
+        if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4DNS1,
+                MAX_IPADDR_SIZE, pContextParams->szIpV6DNS1, MAX_IPADDR_SIZE))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseEstablishedPDPList() - Could not extract "
-                             "Secondary DNS.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                    "ConvertIPAddressToAndroidReadable - Primary DNS IPv4/IPv6 "
+                    "conversion failed\r\n");
+
             goto Error;
         }
 
-
-        snprintf(m_pPDPListData->pDnsesBuffers[count], MAX_BUFFER_SIZE-1, "%s %s",
-                        szDNS1, szDNS2);
-        m_pPDPListData->pDnsesBuffers[count][MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
-
-        m_pPDPListData->pPDPData[count].dnses = m_pPDPListData->pDnsesBuffers[count];
-
-        if (pChannelData)
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-          pChannelData->GetGateway(m_pPDPListData->pGatewaysBuffers[count],
-                                   MAX_BUFFER_SIZE);
+            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract "
+                             "Secondary DNS.\r\n");
         }
         else
         {
-            strcpy(m_pPDPListData->pGatewaysBuffers[count], szGW);
+            /*
+             * If IPv4, then first line will have the IPv4 address.
+             * If IPv6, then first line will have the IPv6 address.
+             * If IPv4v6, then first line will have the IPv4 address and
+             * second line will have the IPv6 address.
+             */
+            if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4DNS2,
+                    MAX_IPADDR_SIZE, pContextParams->szIpV6DNS2, MAX_IPADDR_SIZE))
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                        "ConvertIPAddressToAndroidReadable - Secondary DNS IPv4/IPv6 "
+                        "conversion failed\r\n");
+
+                goto Error;
+            }
         }
-        m_pPDPListData->pPDPData[count].gateways = m_pPDPListData->pGatewaysBuffers[count];
 
+        pChannelData->SetDNS(pContextParams->szIpV4DNS1, pContextParams->szIpV6DNS1,
+                pContextParams->szIpV4DNS2, pContextParams->szIpV6DNS2);
 
-        // Parse ,<P_CSCF_prim_addr>
+        // Parse ,<P-CSCF_prim_addr>
         // not used yet
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szCSCFPrimAddr, MAX_IPADDR_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - WARNING: Could not extract "
-                            "cscfp prim addr.\r\n");
-            goto Error;
+            RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - "
+                    "Could not extract P-CSCF primary address.\r\n");
         }
 
-        // Parse ,<P_CSCF_sec_addr>
+        // Parse ,<P-CSCF_sec_addr>
         // not used yet
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szCSCFSecAddr, MAX_IPADDR_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_WARNING("CTEBase::ParseEstablishedPDPList() - WARNING: Could not extract "
-                            "cscfp sec addr.\r\n");
-            goto Error;
+            RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract "
+                    "P-CSCF sec addr.\r\n");
         }
-
-        // entry complete
-        ++count;
-        RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - count:%d\r\n",count);
     }
 
-End:
+    RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - "
+            "uiCID: %u, szIPv4Addr:%s, szIPv6Addr:%s, szIPv4GatewayAddr: %s, szIPv6GatewayAddr: %s,"
+            " szIPv4DNS1: %s, szIPv6DNS1: %s, szIPv4DNS2: %s, szIPv6DNS2: %s\r\n",
+            uiCID, pContextParams->szIpV4Addr, pContextParams->szIpV6Addr,
+            pContextParams->szIpV4GatewayAddr, pContextParams->szIpV6GatewayAddr,
+            pContextParams->szIpV4DNS1, pContextParams->szIpV6DNS1, pContextParams->szIpV4DNS2,
+            pContextParams->szIpV6DNS2);
+
     res = RRIL_RESULT_OK;
-    RIL_LOG_INFO("CTEBase::ParseEstablishedPDPList() - Parse complete, found [%d] contexts.\r\n",
-                 count);
-
-    if (CRilLog::IsFullLogBuild())
-    {
-        for (int i = 0; i < count; ++i)
-        {
-            RIL_LOG_INFO("i=%d  status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" "
-                "ifname=\"%s\" addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
-                i, m_pPDPListData->pPDPData[i].status,
-                m_pPDPListData->pPDPData[i].suggestedRetryTime,
-                m_pPDPListData->pPDPData[i].cid, m_pPDPListData->pPDPData[i].active,
-                m_pPDPListData->pPDPData[i].type, m_pPDPListData->pPDPData[i].ifname,
-                m_pPDPListData->pPDPData[i].addresses, m_pPDPListData->pPDPData[i].dnses,
-                m_pPDPListData->pPDPData[i].gateways);
-        }
-    }
-
 Error:
-    RIL_LOG_VERBOSE("CTEBase::ParseEstablishedPDPList() - Exit\r\n");
+    free (pContextParams);
+
+    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - Exit\r\n");
     return res;
 }
 
@@ -10019,7 +9752,7 @@ void CTEBase::CleanupAllDataConnections()
         {
             RIL_LOG_INFO("CTEBase::CleanupAllDataConnections() - Calling DataConfigDown  chnl=[%d],"
                     " cid=[%d]\r\n", i, pChannelData->GetContextID());
-            DataConfigDown(pChannelData->GetContextID());
+            DataConfigDown(pChannelData->GetContextID(), TRUE);
         }
     }
 
@@ -10069,6 +9802,7 @@ BOOL CTEBase::DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pCh
     BOOL bRet = FALSE;
     int s = -1;
     char szIpAddr[MAX_BUFFER_SIZE] = {'\0'};
+    char szGatewayAddr[MAX_IPADDR_SIZE] = {'\0'};
 
     if (NULL == pChannelData || NULL == pszNetworkInterfaceName)
     {
@@ -10122,21 +9856,25 @@ BOOL CTEBase::DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pCh
         }
     }
 
-    in_addr_t gw;
-    struct in_addr gwaddr;
-    in_addr_t addr;
-
-    RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : set default gateway to fake value\r\n");
-    if (inet_pton(AF_INET, szIpAddr, &addr) <= 0)
+    pChannelData->GetGateway(szGatewayAddr, MAX_IPADDR_SIZE, NULL, 0);
+    if (NULL == szGatewayAddr || 0 == strlen(szGatewayAddr))
     {
-        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : inet_pton() failed for %s!\r\n", szIpAddr);
-        goto Error;
-    }
-    gw = ntohl(addr) & 0xFFFFFF00;
-    gw |= 1;
-    gwaddr.s_addr = htonl(gw);
+        in_addr_t gw;
+        struct in_addr gwaddr;
+        in_addr_t addr;
 
-    pChannelData->SetGateway(inet_ntoa(gwaddr));
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : set default gateway to fake value\r\n");
+        if (inet_pton(AF_INET, szIpAddr, &addr) <= 0)
+        {
+            RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : inet_pton() failed for %s!\r\n", szIpAddr);
+            goto Error;
+        }
+        gw = ntohl(addr) & 0xFFFFFF00;
+        gw |= 1;
+        gwaddr.s_addr = htonl(gw);
+
+        pChannelData->SetGateway(inet_ntoa(gwaddr), NULL);
+    }
 
     bRet = TRUE;
 
@@ -10280,8 +10018,6 @@ BOOL CTEBase::DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pCh
     {
         RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6() : Cannot open [%s]\r\n", file_to_open);
     }
-
-    pChannelData->SetGateway("");
 
     bRet = TRUE;
 
@@ -10453,7 +10189,7 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
     gw |= 1;
     gwaddr.s_addr = htonl(gw);
 
-    pChannelData->SetGateway(inet_ntoa(gwaddr));
+    pChannelData->SetGateway(inet_ntoa(gwaddr), NULL);
 
     bRet = TRUE;
 
@@ -10604,4 +10340,30 @@ RIL_RESULT_CODE CTEBase::CreateIMSConfigReq(REQUEST_DATA& rReqData,
     RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;
     RIL_LOG_VERBOSE("CTEBase::CreateIMSConfigReq() - Exit\r\n");
     return res;
+}
+
+RIL_RESULT_CODE CTEBase::HandleSetupDefaultPDN(RIL_Token rilToken,
+        CChannel_Data* pChannelData)
+{
+    RIL_LOG_VERBOSE("CTEBase::HandleSetupDefaultPDN() - Enter / Exit\r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::ParseSetupDefaultPDN(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseSetupDefaultPDN - Enter/Exit \r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED;  // only suported at modem level
+}
+
+void CTEBase::PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTEBase::PostSetupDefaultPDN - Enter/Exit \r\n");
+    // only suported at modem level
+}
+
+BOOL CTEBase::SetupInterface(UINT32 /*uiCID*/)
+{
+    RIL_LOG_VERBOSE("CTEBase::SetupInterface - Enter/Exit \r\n");
+    // only suported at modem level
+    return FALSE;
 }

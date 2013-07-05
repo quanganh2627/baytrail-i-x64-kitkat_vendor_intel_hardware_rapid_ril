@@ -18,6 +18,7 @@
 #include "te.h"
 #include "util.h"
 #include "oemhookids.h"
+#include "channel_data.h"
 
 void notifyChangedCallState(void* param)
 {
@@ -256,24 +257,33 @@ void triggerQueryCEER(void* param)
     }
 }
 
-void requestEstablishedPDPList(void* param)
+void triggerQueryDefaultPDNContextParams(void* param)
 {
     REQUEST_DATA rReqData;
     memset(&rReqData, 0, sizeof(REQUEST_DATA));
+    CChannel_Data* pChannelData = NULL;
+    UINT32 uiCID = 0;
 
-    RIL_LOG_VERBOSE("requestEstablishedPDPList - uiCID:%d\r\n", (UINT32)param);
+    if (param == NULL)
+        return;
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGCONTRDP=%d\r",
-            (UINT32)param))
+    pChannelData = (CChannel_Data*)param;
+
+    uiCID = pChannelData->GetContextID();
+
+    RIL_LOG_VERBOSE("triggerQueryDefaultPDNContextParams - uiCID: %u\r\n", uiCID);
+
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGCONTRDP=%u\r",
+            uiCID))
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETUPDEFAULTPDP],
-                NULL, ND_REQ_ID_SETUPDEFAULTPDP,
-                rReqData, &CTE::ParseEstablishedPDPList);
+        CCommand* pCmd = new CCommand(pChannelData->GetRilChannel(), NULL, ND_REQ_ID_NONE,
+                rReqData, &CTE::ParseReadDefaultPDNContextParams,
+                &CTE::PostReadDefaultPDNContextParams);
         if (pCmd)
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("requestEstablishedPDPList - "
+                RIL_LOG_CRITICAL("triggerQueryDefaultPDNContextParams - "
                         "Unable to queue AT+CGCONTRDP command!\r\n");
                 delete pCmd;
             }

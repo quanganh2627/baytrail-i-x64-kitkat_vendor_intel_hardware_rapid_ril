@@ -58,7 +58,6 @@ CTE::CTE(UINT32 modemType) :
     m_bIsClearPendingCHLD(FALSE),
     m_FastDormancyMode(FAST_DORMANCY_MODE_DEFAULT),
     m_uiMTU(MTU_SIZE),
-    m_uiAct(0),
     m_bVoiceCapable(TRUE),
     m_bSmsOverCSCapable(TRUE),
     m_bSmsOverPSCapable(TRUE),
@@ -76,7 +75,9 @@ CTE::CTE(UINT32 modemType) :
     m_RequestedRadioPower(RADIO_POWER_UNKNOWN),
     m_RadioOffReason(E_RADIO_OFF_REASON_NONE),
     m_pRadioStateChangedEvent(NULL),
-    m_bCallDropReporting(FALSE)
+    m_bCallDropReporting(FALSE),
+    m_uiDefaultPDNCid(0),
+    m_cTerminator('\r')
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -89,6 +90,7 @@ CTE::CTE(UINT32 modemType) :
 
     memset(&m_sCSStatus, 0, sizeof(S_ND_REG_STATUS));
     memset(&m_sPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
+    memset(&m_sEPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
     CopyStringNullTerminate(m_szNewLine, "\r\n", sizeof(m_szNewLine));
 
@@ -437,7 +439,8 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     RIL_LOG_INFO("CTE::HandleRequest() - id=%d token: 0x%08x\r\n", requestId, (int) hRilToken);
 
     //  If we're in the middle of Radio error or radio off request handling, spoof all commands.
-    if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(requestId))
+    if ((GetSpoofCommandsStatus() ||  RADIO_STATE_UNAVAILABLE == GetRadioState())
+            && !IsRequestAllowedInSpoofState(requestId))
     {
         eRetVal = HandleRequestWhenNoModem(requestId, hRilToken);
     }
@@ -1013,7 +1016,7 @@ RIL_RESULT_CODE CTE::DelaySetPrefNetTypeRequest(void* pData, size_t datalen, RIL
 void CTE::SendSetPrefNetTypeRequest()
 {
     RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
-    RIL_Token rilToken = m_pPrefNetTypeReqInfo->token;
+    RIL_Token rilToken = NULL;
 
     // Send request to SetPreferredNetworkType if previously received before radio power on
     if (NULL != m_pPrefNetTypeReqInfo)
@@ -1021,6 +1024,7 @@ void CTE::SendSetPrefNetTypeRequest()
         RIL_LOG_INFO("CTE::SendSetPrefNetTypeRequest() - RadioPower On, Calling "
                 "RequestSetPreferredNetworkType()...\r\n");
 
+        rilToken = m_pPrefNetTypeReqInfo->token;
         res = RequestSetPreferredNetworkType(rilToken,
                                              (void*)&m_pPrefNetTypeReqInfo->type,
                                              m_pPrefNetTypeReqInfo->datalen);
@@ -1030,7 +1034,7 @@ void CTE::SendSetPrefNetTypeRequest()
                     "failed!\r\n");
         }
 
-        delete m_pPrefNetTypeReqInfo;
+        free(m_pPrefNetTypeReqInfo);
         m_pPrefNetTypeReqInfo = NULL;
     }
 
@@ -2511,10 +2515,23 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     RIL_LOG_VERBOSE("CTE::RequestSetupDataCall() - Enter\r\n");
 
     REQUEST_DATA reqData;
-    RIL_RESULT_CODE res;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     UINT32 uiCID = 0;
     CChannel_Data* pChannelData = NULL;
     int retryTime = -1;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - Data pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (datalen < (6 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() -"
+                " Invalid data size. Was given %d bytes\r\n", datalen);
+        goto Error;
+    }
 
     if (!IsSetupDataCallAllowed(retryTime))
     {
@@ -2529,35 +2546,42 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     }
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
-
-    //  Find free channel, and get the context ID that was set.
-    if (MODEM_TYPE_XMM6360 == m_uiModemType
-            || MODEM_TYPE_XMM7160 == m_uiModemType)
+    if (IsEPSRegistered())
     {
-        // Extract the data profile. it is the 2nd parameter of pData.
-        int dataProfile = -1;
+        pChannelData = CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
 
-        if (pData == NULL || datalen < (7 * sizeof(char*)))
+        if (NULL != pChannelData)
         {
-            RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() -"
-                    " ****** invalid parameter pData ******\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-            goto Error;
-        }
-        dataProfile = atoi(((char**)pData)[1]);
-        pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiCID, dataProfile);
-    }
-    else
-    {
-        pChannelData = CChannel_Data::GetFreeChnl(uiCID);
-    }
+            int dataState = pChannelData->GetDataState();
+            RIL_LOG_INFO("CTE::RequestSetupDataCall() - dataState: %d\r\n", dataState);
 
-    if (NULL == pChannelData)
-    {
-        RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - "
-                "****** No free data channels available ******\r\n");
-        res = RIL_E_GENERIC_FAILURE;
-        goto Error;
+            switch (dataState)
+            {
+                case E_DATA_STATE_ACTIVATING:
+                case E_DATA_STATE_ACTIVE:
+                    if (pChannelData->IsApnEqual(((char**)pData)[2]))
+                    {
+                        res = m_pTEBaseInstance->HandleSetupDefaultPDN(rilToken, pChannelData);
+                        if (RRIL_RESULT_OK == res)
+                        {
+                            /*
+                             * Provided APN matches with the default PDN APN. Interface bring
+                             * up is handled in modem specific classes.
+                             */
+                            return res;
+                        }
+                    }
+                    break;
+                case E_DATA_STATE_INITING:
+                    /*
+                     * TODO: Query default PDN context parameters. Currently,
+                     * default PDN context parameters reading is done on CGEV: ME PDN ACT.
+                     */
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     res = m_pTEBaseInstance->CoreSetupDataCall(reqData, pData, datalen, uiCID);
@@ -2566,10 +2590,19 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - Unable to create AT command data\r\n");
         goto Error;
     }
-
     else
     {
-        CCommand* pCmd = new CCommand(pChannelData->GetRilChannel(), rilToken,
+        CCommand* pCmd = NULL;
+
+        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+        if (NULL == pChannelData)
+        {
+            RIL_LOG_INFO("CTE::RequestSetupDataCall() -"
+                    " No Data Channel for CID %u.\r\n", uiCID);
+            goto Error;
+        }
+
+        pCmd = new CCommand(pChannelData->GetRilChannel(), rilToken,
                                         ND_REQ_ID_SETUPDEFAULTPDP, reqData,
                                         &CTE::ParseSetupDataCall,
                                         &CTE::PostSetupDataCallCmdHandler);
@@ -4193,13 +4226,6 @@ Error:
 
     RIL_LOG_VERBOSE("CTE::RequestDataCallList() - Exit\r\n");
     return RRIL_RESULT_OK;
-}
-
-RIL_RESULT_CODE CTE::ParseEstablishedPDPList(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseEstablishedPDPList() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseEstablishedPDPList(rRspData);
 }
 
 //
@@ -6778,8 +6804,6 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
              */
             rtAct = MapAccessTechnology(uiAct);
             snprintf(rCSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)rtAct);
-            SetUiAct(rtAct);
-            RIL_LOG_INFO("CTE::ParseCREG() - uiAct=%d\r\n", rtAct);
         }
 
         // Extract ",cause_type and reject_cause" only if registration status is denied
@@ -6811,12 +6835,6 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
     if (E_REGISTRATION_DENIED == uiStatus)
     {
         uiStatus += 10;
-    }
-    else if (E_REGISTRATION_EMERGENCY_SERVICES_ONLY == uiStatus)
-    {
-        // Android do not manage the new value state +CREG 8, so we use the
-        // case 10 (0+10) which means no network but emergency call possible
-        uiStatus = 10;
     }
 
     snprintf(rCSRegStatusInfo.szStat,        REG_STATUS_LENGTH, "%u", uiStatus);
@@ -7265,8 +7283,6 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
         * technology values.
         */
         uiAct = CTE::MapAccessTechnology(uiAct);
-        CTE::GetTE().SetUiAct(uiAct);
-        RIL_LOG_INFO("CTE::ParseCEREG() - uiAct=%d,%p\r\n", uiAct);
     }
 
     // Extract ",cause_type and reject_cause" only if registration status is denied
@@ -7281,7 +7297,8 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
                 goto Error;
             }
 
-            if (!ExtractUInt32(rszPointer, uiRejectCause, rszPointer))
+            if (!SkipString(rszPointer, ",", rszPointer)
+                    || !ExtractUInt32(rszPointer, uiRejectCause, rszPointer))
             {
                 RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not extract <reject_cause>.\r\n");
                 goto Error;
@@ -7314,7 +7331,7 @@ Error:
     return bRet;
 }
 
-void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
+void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
 {
     RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Enter\r\n");
 
@@ -7322,13 +7339,14 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
      * LAC and CID reported as part of the CS and PS registration status changed URCs
      * are supposed to be the same. But there is nothing wrong in keeping it separately.
      */
-    if (bPSStatus)
+    if (E_REGISTRATION_TYPE_CGREG == regType
+            || E_REGISTRATION_TYPE_XREG == regType)
     {
         P_ND_GPRS_REG_STATUS psRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
 
         RIL_LOG_INFO("[RIL STATE] GPRS REG STATUS = %s  RAT = %s\r\n",
-            PrintGPRSRegistrationInfo(psRegStatus->szStat),
-            PrintRAT(psRegStatus->szNetworkType));
+                PrintGPRSRegistrationInfo(psRegStatus->szStat),
+                PrintRAT(psRegStatus->szNetworkType));
 
         if (E_REGISTRATION_DENIED == GetPsRegistrationState(psRegStatus->szStat))
         {
@@ -7347,7 +7365,7 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         strncpy(m_sPSStatus.szReasonDenied, psRegStatus->szReasonDenied,
                 sizeof(psRegStatus->szReasonDenied));
     }
-    else
+    else if (E_REGISTRATION_TYPE_CREG == regType)
     {
         P_ND_REG_STATUS csRegStatus = (P_ND_REG_STATUS) pRegStruct;
 
@@ -7382,6 +7400,39 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         strncpy(m_sCSStatus.szReasonDenied, csRegStatus->szReasonDenied,
                 sizeof(csRegStatus->szReasonDenied));
     }
+    else if (E_REGISTRATION_TYPE_CEREG == regType)
+    {
+        /*
+         * LTE registration status information is mapped to the GPRS registration
+         * status information structure. Eventhough the registration status information
+         * structure is named as S_ND_GPRS_REG_STATUS, structure is for holding the
+         * basic data(either GPRS or LTE) registration status information.
+         *
+         * Note: Currently, TAC is mapped to LAC.
+         */
+        P_ND_GPRS_REG_STATUS epsRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
+
+        RIL_LOG_INFO("[RIL STATE] EPS REG STATUS = %s  RAT = %s\r\n",
+                PrintGPRSRegistrationInfo(epsRegStatus->szStat),
+                PrintRAT(epsRegStatus->szNetworkType));
+
+        if (E_REGISTRATION_DENIED == GetPsRegistrationState(epsRegStatus->szStat))
+        {
+            m_bPSStatusCached = FALSE;
+        }
+        else
+        {
+            m_bPSStatusCached = TRUE;
+        }
+
+        strncpy(m_sEPSStatus.szStat, epsRegStatus->szStat, sizeof(epsRegStatus->szStat));
+        strncpy(m_sEPSStatus.szLAC, epsRegStatus->szLAC, sizeof(epsRegStatus->szLAC));
+        strncpy(m_sEPSStatus.szCID, epsRegStatus->szCID, sizeof(epsRegStatus->szCID));
+        strncpy(m_sEPSStatus.szNetworkType, epsRegStatus->szNetworkType,
+                sizeof(epsRegStatus->szNetworkType));
+        strncpy(m_sEPSStatus.szReasonDenied, epsRegStatus->szReasonDenied,
+                sizeof(epsRegStatus->szReasonDenied));
+    }
 
     RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Exit\r\n");
 }
@@ -7396,21 +7447,43 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
 
         memset(psRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
-        // we only report the actual registration unless the conext cache has been populated,
-        // otherwise the CM would come back with a setup data call before the context cache is ready.
-        if((atoi(m_sPSStatus.szNetworkType) == RADIO_TECH_LTE))
+        /*
+         * Report the EPS registration status only when registered. In CSFB,
+         * EPSregistration status will be reported as not registered and
+         * 2G/3G registration status as registered. Order of the URCs is as
+         * follows:
+         * +XREG: 1
+         * +CREG: 1
+         * +CEREG: 0
+         */
+        if (IsEPSRegistered())
         {
-            if (HasActivatedContext())
+            /*
+             * Report the EPS registration status only after the default PDN context
+             * parameters are read(i.e. Default PDN context is in ACTIVATING/ACTIVE state).
+             * If EPS registration status is reported earlier, android telephony framework
+             * will trigger the SETUP_DATA_CALL request resulting in establishing a second
+             * pdp context even when the requested SETUP_DATA_CALL is for the same APN as
+             * default PDN APN.
+             */
+            CChannel_Data* pChannelData =
+                    CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
+            if (NULL != pChannelData)
             {
-                RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - HasActivatedContext\r\n");
-                strncpy(psRegStatus->szStat, m_sPSStatus.szStat, sizeof(psRegStatus->szStat));
-                strncpy(psRegStatus->szLAC, m_sPSStatus.szLAC, sizeof(psRegStatus->szLAC));
-                strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
-                strncpy(psRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
-                    sizeof(psRegStatus->szNetworkType));
-                strncpy(psRegStatus->szReasonDenied, m_sPSStatus.szReasonDenied,
-                        sizeof(psRegStatus->szReasonDenied));
-
+                int dataState = pChannelData->GetDataState();
+                if (E_DATA_STATE_ACTIVATING == dataState
+                        || E_DATA_STATE_ACTIVE == dataState)
+                {
+                    RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - Default PDN ready\r\n");
+                    strncpy(psRegStatus->szStat, m_sPSStatus.szStat, sizeof(psRegStatus->szStat));
+                    // TAC is mapped to LAC
+                    strncpy(psRegStatus->szLAC, m_sPSStatus.szLAC, sizeof(psRegStatus->szLAC));
+                    strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
+                    strncpy(psRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
+                            sizeof(psRegStatus->szNetworkType));
+                    strncpy(psRegStatus->szReasonDenied, m_sPSStatus.szReasonDenied,
+                            sizeof(psRegStatus->szReasonDenied));
+                }
             }
         }
         else
@@ -7442,7 +7515,18 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         P_ND_REG_STATUS csRegStatus = (P_ND_REG_STATUS) pRegStruct;
 
         memset(csRegStatus, 0, sizeof(S_ND_REG_STATUS));
-        strncpy(csRegStatus->szStat, m_sCSStatus.szStat, sizeof(csRegStatus->szStat));
+
+        if (E_REGISTRATION_EMERGENCY_SERVICES_ONLY == GetCsRegistrationState(m_sCSStatus.szStat))
+        {
+            // Android do not manage the new value state +CREG: 8, so we use the
+            // case 10 (0+10) which means no network but emergency call possible
+            snprintf(csRegStatus->szStat, REG_STATUS_LENGTH, "%u", 10);
+        }
+        else
+        {
+            strncpy(csRegStatus->szStat, m_sCSStatus.szStat, sizeof(csRegStatus->szStat));
+        }
+
         strncpy(csRegStatus->szLAC, m_sCSStatus.szLAC, sizeof(csRegStatus->szLAC));
         strncpy(csRegStatus->szCID, m_sCSStatus.szCID, sizeof(csRegStatus->szCID));
         strncpy(csRegStatus->szNetworkType, m_sCSStatus.szNetworkType,
@@ -7478,6 +7562,20 @@ LONG CTE::GetPsRegistrationState(char* pPsRegState)
     return strtol(pPsRegState, NULL, 10);
 }
 
+BOOL CTE::IsEPSRegistered()
+{
+    BOOL bRet = FALSE;
+    LONG regState = strtol(m_sEPSStatus.szStat, NULL, 10);
+
+    if (E_REGISTRATION_REGISTERED_HOME_NETWORK == regState
+            || E_REGISTRATION_REGISTERED_ROAMING == regState)
+    {
+        bRet = TRUE;
+    }
+
+    return bRet;
+}
+
 const char* CTE::PrintRegistrationInfo(char* szRegInfo) const
 {
     int nRegInfo = atoi(szRegInfo);
@@ -7497,8 +7595,21 @@ const char* CTE::PrintRegistrationInfo(char* szRegInfo) const
             return "UNKNOWN";
         case E_REGISTRATION_REGISTERED_ROAMING:
             return "REGISTERED, IN ROAMING";
-        case 10: // Android specific emergency possible
+        // applicable only when <AcT> indicates E-UTRAN
+        case E_REGISTRATION_REGISTERED_FOR_SMS_ONLY_HOME_NETWORK:
+            return "REGISTERED FOR SMS ONLY, HOME NETWORK";
+        // applicable only when <AcT> indicates E-UTRAN
+        case E_REGISTRATION_REGISTERED_FOR_SMS_ONLY_ROAMING:
+            return "REGISTERED FOR SMS ONLY, IN ROAMING";
+        // Used by IMC modems to indicate emergency call possible in CS network
+        case E_REGISTRATION_EMERGENCY_SERVICES_ONLY:
             return "EMERGENCY SERVICE ONLY";
+        // applicable only when <AcT> indicates E-UTRAN
+        case E_REGISTRATION_REGISTERED_FOR_CSFB_NP_HOME_NETWORK:
+            return "REGISTERED FOR CSFB NOT PREFERRED, HOME NETWORK";
+        // applicable only when <AcT> indicates E-UTRAN
+        case E_REGISTRATION_REGISTERED_FOR_CSFB_NP_ROAMING:
+            return "REGISTERED FOR CSFB NOT PREFERRED, IN ROAMING";
         default:
             return "UNKNOWN REG STATUS";
     }
@@ -7522,6 +7633,8 @@ const char* CTE::PrintGPRSRegistrationInfo(char* szGPRSInfo) const
             return "UNKNOWN";
         case E_REGISTRATION_REGISTERED_ROAMING:
             return "REGISTERED, IN ROAMING";
+        case E_REGISTRATION_EMERGENCY_SERVICES_ONLY:
+            return "ATTACHED FOR EMERGENCY BEARER SERVICES";
         default: return "UNKNOWN REG STATUS";
     }
 }
@@ -7896,6 +8009,13 @@ BOOL CTE::TestAndSetSpoofCommandsStatus(BOOL bStatus)
 RIL_RESULT_CODE CTE::ParseSilentPinEntry(RESPONSE_DATA& rRspData)
 {
     return m_pTEBaseInstance->ParseSilentPinEntry(rRspData);
+}
+
+RIL_RESULT_CODE CTE::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseReadDefaultPDNContextParams() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseReadDefaultPDNContextParams(rRspData);
 }
 
 void CTE::PostCmdHandlerCompleteRequest(POST_CMD_HANDLER_DATA& rData)
@@ -9198,3 +9318,317 @@ RIL_RESULT_CODE CTE::CreateIMSConfigReq(REQUEST_DATA& rReqData,
     return m_pTEBaseInstance->CreateIMSConfigReq(rReqData,
                     ppszRequest, nNumStrings);
 }
+
+void CTE::PostReadDefaultPDNContextParams(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostReadDefaultPDNContextParams - Enter/Exit \r\n");
+
+    if (RIL_E_SUCCESS == rData.uiResultCode)
+    {
+        CChannel_Data* pChannelData =
+                CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
+        if (NULL != pChannelData)
+        {
+            pChannelData->SetDataState(E_DATA_STATE_ACTIVATING);
+        }
+
+        /*
+         * In case of LTE, actual data registration state is signalled only after default PDN
+         * context parameters are read. So, in order to force the framework to query the data
+         * registration state, RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED needs to be
+         * completed.
+         */
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
+    }
+}
+
+RIL_RESULT_CODE CTE::ParseSetupDefaultPDN(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseSetupDefaultPDN() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseSetupDefaultPDN(rRspData);
+}
+
+void CTE::PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostSetupDefaultPDN - Enter/Exit \r\n");
+    m_pTEBaseInstance->PostSetupDefaultPDN(rData);
+}
+
+RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
+                                                    const char* pszRsp,
+                                                    UINT32 uiIndex,
+                                                    UINT32 uiMode)
+{
+    RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
+    UINT32 uiLAC = 0, uiCI = 0, uiRSSI = 0, uiScramblingCode = 0;
+    const char* pszStart = pszRsp;
+
+    //  Data is either (according to C_AT_FS_SUNRISE_Rev6.0.pdf AT spec)
+    //  GSM cells:
+    //  +XCELLINFO: 0,<MCC>,<MNC>,<LAC>,<CI>,<RxLev>,<BSIC>,<BCCH_Car>,<true_freq>,<t_advance>
+    //  +XCELLINFO: 1,<LAC>,<CI>,<RxLev>,<BSIC>,<BCCH_Car>
+    //  one row for each neighboring cell [0..6]
+    //  For GSM cells, according to ril.h, must return (LAC/CID , received RSSI)
+    //
+    //  UMTS FDD cells:
+    //  +XCELLINFO: 2,<MCC>,<MNC>,<LAC>,<UCI>,<scrambling_code>,<dl_frequency>,<ul_frequency>
+    //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+    // If UMTS has any ACTIVE SET neighboring cell
+    //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+    // One row
+    //                          // for each intra-frequency neighboring cell [1..32] for each
+    //                          // frequency [0..8] in BA list
+    //  For UMTS cells, according to ril.h, must return (Primary scrambling code ,
+    //  received signal code power)
+    //  NOTE that for first UMTS format above, there is no <rcsp> parameter.
+    //
+    //  A <type> of 0 or 1 = GSM.  A <type> of 2,3 = UMTS.
+
+
+    switch(uiMode)
+    {
+        case 0: // GSM  get (LAC/CI , RxLev)
+        {
+            //  <LAC> and <CI> are parameters 4 and 5
+            if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
+                    !FindAndSkipString(pszRsp, ",", pszRsp) ||
+                    !FindAndSkipString(pszRsp, ",", pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 0, cannot skip to LAC and CI\r\n");
+                goto Error;
+            }
+
+            //  Read <LAC> and <CI>
+            if (!ExtractUInt32(pszRsp, uiLAC, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 0, could not extract LAC\r\n");
+                goto Error;
+            }
+            //  Read <CI>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiCI, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 0, could not extract CI value\r\n");
+                goto Error;
+            }
+            //  Read <RxLev>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiRSSI, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 0, could not extract RSSI value\r\n");
+                goto Error;
+            }
+
+            //  We now have what we want, copy to main structure.
+            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
+
+            //  cid = upper 16 bits (LAC), lower 16 bits (CID)
+            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
+                    "%04X%04X", uiLAC, uiCI);
+            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                    " mode 0 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
+                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
+
+            //  rssi = <RxLev>
+
+            //  Convert RxLev to asu (0 to 31).
+            //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
+            //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
+            //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
+            //  like AT+CSQ response.
+            pCellData->pnCellData[uiIndex].rssi = (int)(uiRSSI / 2);
+            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                    " mode 0 GSM rxlev index=[%d]  rssi=[%d]\r\n",
+                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
+            res = RRIL_RESULT_OK;
+        }
+        break;
+
+        case 1: // GSM  get (LAC/CI , RxLev)
+        {
+            //  <LAC> and <CI> are parameters 2 and 3
+            //  Read <LAC> and <CI>
+            if (!SkipString(pszRsp, ",", pszRsp) ||
+                    !ExtractUInt32(pszRsp, uiLAC, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 1, could not extract LAC\r\n");
+                goto Error;
+            }
+            //  Read <CI>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiCI, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 1, could not extract CI value\r\n");
+                goto Error;
+            }
+            //  Read <RxLev>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiRSSI, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 1, could not extract RSSI value\r\n");
+                goto Error;
+            }
+            //  We now have what we want, copy to main structure.
+            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
+            //  cid = upper 16 bits (LAC), lower 16 bits (CID)
+            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
+                    "%04X%04X", uiLAC, uiCI);
+            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                    " mode 1 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
+                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
+            //  rssi = <RxLev>
+
+            //  May have to convert RxLev to asu (0 to 31).
+            //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
+            //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
+            //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
+            //  like AT+CSQ response.
+            pCellData->pnCellData[uiIndex].rssi = (int)(uiRSSI / 2);
+            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                    " mode 1 GSM rxlev index=[%d]  rssi=[%d]\r\n",
+                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
+            res = RRIL_RESULT_OK;
+        }
+        break;
+
+        case 2: // UMTS  get (scrambling_code , rscp)
+        {
+            //  This can be either first case or second case.
+            //  Loop and count number of commas
+            char szBuf[MAX_BUFFER_SIZE] = {0};
+            const char* szDummy = pszRsp;
+            UINT32 uiCommaCount = 0;
+            if (!ExtractUnquotedString(pszRsp, m_cTerminator, szBuf, MAX_BUFFER_SIZE, szDummy))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 2, could not extract temp buf\r\n");
+                goto Error;
+            }
+
+            for (UINT32 n=0; n < strlen(szBuf); n++)
+            {
+                if (szBuf[n] == ',')
+                    uiCommaCount++;
+            }
+            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                    " mode 2, found %d commas\r\n", uiCommaCount);
+
+            if (6 != uiCommaCount)
+            {
+                //  Handle first case here
+                //  <scrambling_code> is parameter 6
+                if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
+                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
+                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
+                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
+                        !FindAndSkipString(pszRsp, ",", pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                            " mode 2, could not skip to scrambling code\r\n");
+                    goto Error;
+                }
+                if (!ExtractUInt32(pszRsp, uiScramblingCode, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                            " mode 2, could not extract scrambling code\r\n");
+                    goto Error;
+                }
+                //  Cannot get <rscp> as it does not exist.
+                //  We now have what we want, copy to main structure.
+                //  cid = <scrambling code> as char *
+                pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
+                snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH, "%08x",
+                        uiScramblingCode);
+
+                RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 2 UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
+                        uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
+
+                //  rssi = <rscp>
+                //  Note that <rscp> value does not exist with this response.
+                //  Set to 0 for now.
+                pCellData->pnCellData[uiIndex].rssi = 0;
+                RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 2 UMTS rscp index=[%d]  rssi=[%d]\r\n",
+                        uiIndex, pCellData->pnCellData[uiIndex].rssi);
+                res = RRIL_RESULT_OK;
+                break;
+            }
+            else
+            {
+                //  fall through to case 3 as it is parsed the same.
+                RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " comma count = 6, drop to case 3\r\n");
+            }
+        }
+
+
+        case 3: // UMTS  get (scrambling_code , rscp)
+        {
+            //  scrabling_code is parameter 2
+            //  Read <scrambling_code>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiScramblingCode, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode %d, could not extract scrambling code\r\n", uiMode);
+                goto Error;
+            }
+            //  <rscp> is parameter 5
+            if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
+                    !FindAndSkipString(pszRsp, ",", pszRsp) ||
+                    !FindAndSkipString(pszRsp, ",", pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                       " mode %d, could not skip to rscp\r\n", uiMode);
+                goto Error;
+            }
+            //  read <rscp>
+            if (!ExtractUInt32(pszRsp, uiRSSI, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGetNeighboringCellIDs() -"
+                        " mode %d, could not extract rscp\r\n", uiMode);
+                goto Error;
+            }
+
+            //  We now have what we want, copy to main structure.
+            //  cid = <scrambling code> as char *
+            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
+            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH, "%08x",
+                    uiScramblingCode);
+
+            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                    " mode %d UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
+                    uiMode, uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
+
+            //  rssi = <rscp>
+            //  Assume that rssi value is same as <rscp> value and no conversion needs to
+            //  be done.
+            pCellData->pnCellData[uiIndex].rssi = (int)uiRSSI;
+            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                    " mode %d UMTS rscp index=[%d]  rssi=[%d]\r\n",
+                    uiMode, uiIndex, pCellData->pnCellData[uiIndex].rssi);
+            res = RRIL_RESULT_OK;
+        }
+        break;
+
+        default:
+        {
+            RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                    " Invalid nMode=[%d]\r\n", uiMode);
+            goto Error;
+        }
+        break;
+    }
+Error:
+    return res;
+}
+

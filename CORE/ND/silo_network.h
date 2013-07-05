@@ -37,18 +37,9 @@ public:
     virtual char* GetURCInitString();
 
 protected:
-    enum SILO_NETWORK_REGISTRATION_TYPES
-        {
-        SILO_NETWORK_CREG,
-        SILO_NETWORK_CGREG,
-        SILO_NETWORK_XREG,
-        SILO_NETWORK_CEREG
-        };
-
-protected:
     //  Parse notification functions here.
     virtual BOOL    ParseRegistrationStatus(CResponse* const pResponse, const char*& rszPointer,
-                                            SILO_NETWORK_REGISTRATION_TYPES regType);
+                                            int regType);
     virtual BOOL    ParseXNITZINFO(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseCREG(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseCGREG(CResponse* const pResponse, const char*& rszPointer);

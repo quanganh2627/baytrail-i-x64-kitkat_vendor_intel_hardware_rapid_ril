@@ -46,7 +46,8 @@ int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE] = {0};
 
 
 CInitializer::CInitializer()
-: m_pModemBasicInitCompleteEvent(NULL),
+: m_pPortsManagerMutex(NULL),
+  m_pModemBasicInitCompleteEvent(NULL),
   m_pSimUnlockedEvent(NULL),
   m_pRadioPoweredOnEvent(NULL),
   m_pModemPoweredOffEvent(NULL),
@@ -553,9 +554,9 @@ BOOL CInitializer::CreateChannels(CSystemCapabilities* pSysCaps)
         if (!siloConfig)
         {
             // no silos to add!
-            RIL_LOG_CRITICAL("CInitializer::CreateChannels() : chnl=[%d] No silos to add to "
+            RIL_LOG_INFO("CInitializer::CreateChannels() : chnl=[%d] No silos to add to "
                     "channel!\r\n", i);
-            goto Error;
+            continue;
         }
 
         // create silos for channel

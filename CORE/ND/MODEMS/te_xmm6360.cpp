@@ -152,29 +152,12 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
     hsiChannel =  pChannelData->GetHSIChannel();
     uiRilChannel = pChannelData->GetRilChannel();
 
-    // Get the mux  channel id corresponding to the control of the data channel
-    switch (uiRilChannel)
+    muxControlChannel = pChannelData->GetMuxControlChannel();
+    if (-1 == muxControlChannel)
     {
-        case RIL_CHANNEL_DATA1:
-            sscanf(g_szDataPort1, "/dev/gsmtty%d", &muxControlChannel);
-            break;
-        case RIL_CHANNEL_DATA2:
-            sscanf(g_szDataPort2, "/dev/gsmtty%d", &muxControlChannel);
-            break;
-        case RIL_CHANNEL_DATA3:
-            sscanf(g_szDataPort3, "/dev/gsmtty%d", &muxControlChannel);
-            break;
-        case RIL_CHANNEL_DATA4:
-            sscanf(g_szDataPort4, "/dev/gsmtty%d", &muxControlChannel);
-            break;
-        case RIL_CHANNEL_DATA5:
-            sscanf(g_szDataPort5, "/dev/gsmtty%d", &muxControlChannel);
-            break;
-        default:
-            RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() - Unknown mux channel"
-                    "for RIL Channel [%u] \r\n", uiRilChannel);
-            goto Error;
-        }
+        RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() - Unknown mux channel\r\n");
+        goto Error;
+    }
 
     if (!bIsHSIDirect)
     {
@@ -488,146 +471,6 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
 
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6360::SetupInterface() Exit\r\n");
-    return bRet;
-}
-
-//
-//  Call this whenever data is disconnected
-//
-BOOL CTE_XMM6360::DataConfigDown(UINT32 uiCID)
-{
-    RIL_LOG_VERBOSE("CTE_XMM6360::DataConfigDown() - Enter\r\n");
-
-    //  First check to see if uiCID is valid
-    if (uiCID > MAX_PDP_CONTEXTS || uiCID == 0)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() - Invalid CID = [%u]\r\n", uiCID);
-        return FALSE;
-    }
-
-    BOOL bRet = FALSE;
-    char szNetworkInterfaceName[MAX_INTERFACE_NAME_SIZE] = {'\0'};
-    CChannel_Data* pChannelData = NULL;
-    struct gsm_netconfig netconfig;
-    int fd = -1;
-    int ret = -1;
-    int s = -1;
-    UINT32 uiRilChannel = 0;
-    BOOL bIsHSIDirect = FALSE;
-    int state;
-
-    //  See if CID passed in is valid
-    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
-    if (NULL == pChannelData)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() -"
-                " Invalid CID=[%u], no data channel found!\r\n", uiCID);
-        return FALSE;
-    }
-
-    uiRilChannel = pChannelData->GetRilChannel();
-    bIsHSIDirect = pChannelData->IsHSIDirect();
-    pChannelData->GetInterfaceName(szNetworkInterfaceName,
-                                            sizeof(szNetworkInterfaceName));
-
-    RIL_LOG_INFO("CTE_XMM6360::DataConfigDown() - szNetworkInterfaceName=[%s]  CID=[%u]\r\n",
-                                                szNetworkInterfaceName, uiCID);
-
-    // Reset ContextID to 0, to free up the channel for future use
-    RIL_LOG_INFO("CTE_XMM6360::DataConfigDown() - ****** Setting chnl=[%u] to CID=[0] ******\r\n",
-                                                                uiRilChannel);
-
-    fd = pChannelData->GetFD();
-    state = pChannelData->GetDataState();
-
-    if (!bIsHSIDirect)
-    {
-        if (E_DATA_STATE_IDLE != state
-                && E_DATA_STATE_INITING != state
-                && E_DATA_STATE_ACTIVATING != state)
-        {
-            // Blocking TTY flow.
-            // Security in order to avoid IP data in response buffer.
-            // Not mandatory.
-            pChannelData->BlockAndFlushChannel(BLOCK_CHANNEL_BLOCK_TTY,
-                    FLUSH_CHANNEL_NO_FLUSH);
-        }
-
-        //  Put the channel back into AT command mode
-        netconfig.adaption = 3;
-        netconfig.protocol = htons(ETH_P_IP);
-
-        if (fd >= 0)
-        {
-            RIL_LOG_INFO("CTE_XMM6360::DataConfigDown() -"
-                    " ***** PUTTING channel=[%u] in AT COMMAND MODE *****\r\n", uiRilChannel);
-            ret = ioctl(fd, GSMIOC_DISABLE_NET, &netconfig);
-        }
-    }
-    else
-    {
-        /*
-         * HSI inteface ENABLE/DISABLE can be done only by the HSI driver.
-         * Rapid RIL can only bring up or down the interface.
-         */
-        RIL_LOG_INFO("CTE_XMM6360::DataConfigDown() : Bring down hsi network interface\r\n");
-
-        //  Open socket for ifconfig and setFlags commands
-        s = socket(AF_INET, SOCK_DGRAM, 0);
-        if (s < 0)
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() : cannot open control socket "
-                    "(error %d / '%s')\n", errno, strerror(errno));
-            goto Error;
-        }
-
-        struct ifreq ifr;
-        memset(&ifr, 0, sizeof(struct ifreq));
-        strncpy(ifr.ifr_name, szNetworkInterfaceName, IFNAMSIZ-1);
-        ifr.ifr_name[IFNAMSIZ-1] = '\0';
-
-        // set ipv4 address to 0.0.0.0 to unset ipv4 address,
-        // ipv6 addresses are automatically cleared
-        if (!setaddr(s, &ifr, "0.0.0.0"))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() : Error removing addr\r\n");
-        }
-
-        if (!setflags(s, &ifr, 0, IFF_UP))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() : Error setting flags\r\n");
-        }
-
-        if (close(s) < 0)
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::DataConfigDown() : could not close control socket "
-                    "(error %d / '%s')\n", errno, strerror(errno));
-        }
-    }
-    pChannelData->ResetDataCallInfo();
-
-    bRet = TRUE;
-
-    RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%d\r\n",
-            pChannelData->GetRilChannel());
-
-Error:
-    if (!bIsHSIDirect)
-    {
-        if (E_DATA_STATE_IDLE != state
-                && E_DATA_STATE_INITING != state
-                && E_DATA_STATE_ACTIVATING != state)
-        {
-            // Flush buffers and Unblock read thread.
-            // Security in order to avoid IP data in response buffer.
-            // Will unblock Channel read thread and TTY.
-            // Unblock read thread whatever the result is to avoid forever block
-            pChannelData->FlushAndUnblockChannel(UNBLOCK_CHANNEL_UNBLOCK_ALL,
-                    FLUSH_CHANNEL_FLUSH_ALL);
-        }
-    }
-
-    RIL_LOG_INFO("CTE_XMM6360::DataConfigDown() EXIT  bRet=[%d]\r\n", bRet);
     return bRet;
 }
 
