@@ -8132,7 +8132,7 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
 
                 cardStatus.num_applications = 1;
 
-                cardStatus.applications[0].app_type = RIL_APPTYPE_SIM;
+                cardStatus.applications[0].app_type = RIL_APPTYPE_UNKNOWN;
                 cardStatus.applications[0].app_state = RIL_APPSTATE_DETECTED;
                 cardStatus.applications[0].perso_substate =
                                                     RIL_PERSOSUBSTATE_UNKNOWN;
