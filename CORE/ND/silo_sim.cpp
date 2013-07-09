@@ -86,8 +86,15 @@ char* CSilo_SIM::GetURCInitString()
         return NULL;
     }
 
-    if (m_pSystemCapabilities->IsStkCapable())
+    if (!m_pSystemCapabilities->IsStkCapable())
     {
+        /*
+         * STK is disabled by sending all bytes of terminal profile set to 0.
+         * This is already taken care as part of nvm configuration file. In order
+         * to get the EAP-SIM authentication working, rapid ril needs to enable
+         * proactive fetching. By sending AT+XSATK=1,0, proactive fetching is enabled
+         * but the STK URCs are disabled.
+         */
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
                 MAX_BUFFER_SIZE - strlen(m_szURCInitString), "|+XSATK=1,0"))
         {
