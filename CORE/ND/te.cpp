@@ -2531,6 +2531,8 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     CChannel_Data* pChannelData = NULL;
     int retryTime = -1;
 
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - Data pointer is NULL.\r\n");
@@ -2556,7 +2558,6 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         return RRIL_RESULT_OK;
     }
 
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
     if (IsEPSRegistered())
     {
         pChannelData = CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
