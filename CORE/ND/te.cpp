@@ -266,6 +266,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_SET_TTY_MODE:
         case RIL_REQUEST_QUERY_TTY_MODE:
         case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
+        case RIL_REQUEST_GET_SIM_STATUS:
             if (E_MMGR_EVENT_MODEM_UP == GetLastModemEvent())
             {
                 bAllowed = TRUE;
@@ -276,7 +277,6 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
             }
             break;
 
-        case RIL_REQUEST_GET_SIM_STATUS:
         case RIL_REQUEST_ENTER_SIM_PIN:
         case RIL_REQUEST_ENTER_SIM_PUK:
         case RIL_REQUEST_ENTER_SIM_PIN2:
@@ -9683,4 +9683,16 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
     }
 Error:
     return res;
+}
+
+void CTE::HandleChannelsBasicInitComplete()
+{
+    RIL_LOG_VERBOSE("CTE::HandleChannelsBasicInitComplete() - Enter/Exit\r\n");
+    m_pTEBaseInstance->HandleChannelsBasicInitComplete();
+}
+
+RIL_RESULT_CODE CTE::ParseSimStateQuery(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseSimStateQuery() - Enter/Exit\r\n");
+    return m_pTEBaseInstance->ParseSimStateQuery(rRspData);
 }

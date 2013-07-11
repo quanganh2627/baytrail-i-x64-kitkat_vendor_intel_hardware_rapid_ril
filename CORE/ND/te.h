@@ -1042,6 +1042,16 @@ public:
     // Post command handler for setting up of default PDN.
     void PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData);
 
+    /*
+     * This function will be called on basic initialisation completion of
+     * all the channels. Trigger commands which return responses other than
+     * OK/CME ERROR.
+     */
+    void HandleChannelsBasicInitComplete();
+
+    // Parser function for sim status query.
+    RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);
+
 private:
     UINT32 m_uiModemType;
 

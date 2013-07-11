@@ -853,6 +853,10 @@ public:
 
     virtual BOOL SetupInterface(UINT32 uiCID);
 
+    virtual void HandleChannelsBasicInitComplete();
+
+    virtual RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
 

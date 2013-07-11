@@ -59,6 +59,7 @@ public:
     void TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIndex eInitIndex);
 
     void ResetChannelCompletedInit();
+    void ResetStartupEvents();
 
     CEvent* GetModemPoweredOffEvent() { return m_pModemPoweredOffEvent; }
     CEvent* GetModemBasicInitCompleteEvent() { return m_pModemBasicInitCompleteEvent; }
@@ -95,8 +96,6 @@ private:
     void SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
     BOOL IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
     BOOL VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex);
-
-    void ResetStartupEvents();
 
     CEvent* m_pModemBasicInitCompleteEvent;
     CEvent* m_pSimUnlockedEvent;

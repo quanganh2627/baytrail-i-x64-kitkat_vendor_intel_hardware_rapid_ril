@@ -586,7 +586,9 @@ void CSystemManager::ResetSystemState()
 {
     RIL_LOG_VERBOSE("CSystemManager::ResetSystemState() - Enter\r\n");
 
+    SetInitializationUnsuccessful();
     m_pInitializer->ResetChannelCompletedInit();
+    m_pInitializer->ResetStartupEvents();
 
     RIL_LOG_VERBOSE("CSystemManager::ResetSystemState() - Exit\r\n");
 }

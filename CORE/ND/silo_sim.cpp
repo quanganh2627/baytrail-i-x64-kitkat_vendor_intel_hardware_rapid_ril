@@ -47,7 +47,6 @@ CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "+XLOCK: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLOCK },
         { "+XSIM: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIM },
         { "+XLEMA: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLEMA },
-        { "+XSIMSTATE: ", (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIMSTATE },
         { "+PBREADY"   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
         { "RING CTM"   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
         { "RING"       , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
@@ -76,7 +75,7 @@ CSilo_SIM::~CSilo_SIM()
 char* CSilo_SIM::GetURCInitString()
 {
     // SIM silo-related URC channel basic init string
-    const char szSimURCInitString[] = "+XSIMSTATE=1|+XSIMSTATE?|+XLEMA=1";
+    const char szSimURCInitString[] = "+XSIMSTATE=1|+XLEMA=1";
 
     if (!ConcatenateStringNullTerminate(m_szURCInitString,
             MAX_BUFFER_SIZE - strlen(m_szURCInitString), szSimURCInitString))
@@ -816,162 +815,3 @@ Error:
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXLEMA() - Exit\r\n");
     return fRet;
 }
-
-
-BOOL CSilo_SIM::ParseXSIMSTATE(CResponse* const pResponse, const char*& rszPointer)
-{
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIMSTATE() - Enter\r\n");
-    BOOL fRet = FALSE;
-    const char* pszEnd = NULL;
-    UINT32 nMode = 0;
-    UINT32 nSIMState = 0;
-    UINT32 nPBReady = 0;
-    UINT32 nSIMSMSReady = 0;
-
-    if (pResponse == NULL)
-    {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() : pResponse was NULL\r\n");
-        goto Error;
-    }
-
-    // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
-    {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Extract "<nMode>"
-    if (!ExtractUInt32(rszPointer, nMode, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() - Could not parse nMode.\r\n");
-        goto Error;
-    }
-
-    // Extract ",<SIM state>"
-    if (!SkipString(rszPointer, ",", rszPointer) ||
-        !ExtractUInt32(rszPointer, nSIMState, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() - Could not parse nSIMState.\r\n");
-        goto Error;
-    }
-
-    // Extract ",<pbready>"
-    if (!SkipString(rszPointer, ",", rszPointer) ||
-        !ExtractUInt32(rszPointer, nPBReady, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() - Could not parse nPBReady.\r\n");
-        goto Error;
-    }
-
-    // Extract ",<SMS Ready>"
-    if (SkipString(rszPointer, ",", rszPointer))
-    {
-        if (!ExtractUInt32(rszPointer, nSIMSMSReady, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIMSTATE() - Could not parse <SMS Ready>.\r\n");
-            goto Error;
-        }
-    }
-
-    if (nSIMSMSReady)
-    {
-        triggerQuerySimSmsStoreStatus(NULL);
-    }
-
-    //  Skip the rest of the parameters (if any)
-    // Look for a "<postfix>" to be sure we got a whole message
-    FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer);
-
-    //  Back up over the "\r\n".
-    rszPointer -= strlen(m_szNewLine);
-
-    // Here we assume we don't have card error.
-    // This will be changed in case of nSIMState is 8.
-    CTE::GetTE().SetSimTechnicalProblem(FALSE);
-
-    /// @TODO: Need to revisit the XSIM and radio state mapping
-    switch (nSIMState)
-    {
-        /*
-         * XSIM: 3 will be received upon PIN related operations.
-         *
-         * For PIN related operation occuring after the SIM initialisation,
-         * no XSIM: 7 will be sent by modem. So, trigger the radio state
-         * change with SIM ready upon XSIM: 3.
-         *
-         * For PIN related operation occuring during the boot or before
-         * the SIM initialisation, then XSIM: 7 will be sent by modem. In this
-         * case, radio state  change with SIM ready will be sent upon the
-         * receival of XSIM: 7 event.
-         */
-        case 3: // PIN verified - Ready
-            if (m_IsReadyForAttach) {
-                RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - READY FOR ATTACH\r\n");
-                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
-            }
-            break;
-        /*
-         * XSIM: 10 and XSIM: 11 will be received when the SIM driver has
-         * lost contact of SIM and re-established the contact respectively.
-         * After XSIM: 10, either XSIM: 9 or XSIM: 11 will be received.
-         * So, no need to trigger SIM_NOT_READY on XSIM: 10. Incase of
-         * XSIM: 11, network registration will be restored by the modem
-         * itself.
-         */
-        case 10: // SIM Reactivating
-            break;
-        case 11: // SIM Reactivated
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
-            break;
-        /*
-         * XSIM: 2 means PIN verification not needed but not ready for attach.
-         * SIM_READY should be triggered only when the modem is ready
-         * to attach.(XSIM: 7 or XSIM: 3(in some specific case))
-         */
-        case 2:
-        case 6: // SIM Error
-            // The SIM is initialized, but modem is still in the process of it.
-            // we can inform Android that SIM is still not ready.
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM NOT READY\r\n");
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
-            break;
-        case 8: // SIM Technical problem
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
-            CTE::GetTE().SetSimTechnicalProblem(TRUE);
-            break;
-        case 7: // ready for attach (+COPS)
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - READY FOR ATTACH\r\n");
-            m_IsReadyForAttach = TRUE;
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
-            CSystemManager::GetInstance().TriggerSimUnlockedEvent();
-            break;
-        case 0: // SIM not present
-        case 9: // SIM Removed
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM REMOVED/NOT PRESENT\r\n");
-            m_IsReadyForAttach = FALSE;
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_ABSENT);
-            break;
-        case 14: // SIM powered off by modem
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIMSTATE() - SIM Powered off by modem\r\n");
-            m_IsReadyForAttach = FALSE;
-            // Fall through to notify Radio and Sim status
-        case 1: // PIN verification needed
-        case 4: // PUK verification needed
-        case 5: // SIM permanently blocked
-        case 99: // SIM state unknown
-        default:
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
-            break;
-    }
-
-    pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
-
-    fRet = TRUE;
-Error:
-    RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIMSTATE() - Exit\r\n");
-    return fRet;
-}
-
-

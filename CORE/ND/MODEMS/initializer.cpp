@@ -292,33 +292,45 @@ void CInitializer::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitInde
 {
     SetChannelCompletedInit(uiChannel, eInitIndex);
 
-    if (VerifyAllChannelsCompletedInit(COM_READY_INIT_INDEX))
+    switch (eInitIndex)
     {
-        RIL_LOG_VERBOSE("CInitializer::TriggerInitStringCompleteEvent() -"
-                " DEBUG: All channels complete ready init!\r\n");
-        CEvent::Signal(m_pInitStringCompleteEvent);
-    }
-    else if (VerifyAllChannelsCompletedInit(COM_UNLOCK_INIT_INDEX))
-    {
-        RIL_LOG_VERBOSE("CInitializer::TriggerInitStringCompleteEvent() -"
-                " DEBUG: All channels complete unlock init!\r\n");
-    }
-    else if (VerifyAllChannelsCompletedInit(COM_BASIC_INIT_INDEX))
-    {
-        RIL_LOG_INFO("CInitializer::TriggerInitStringCompleteEvent() -"
-                " DEBUG: All channels complete basic init!\r\n");
-        CEvent::Signal(m_pModemBasicInitCompleteEvent);
-    }
-    else if (VerifyAllChannelsCompletedInit(COM_POWER_ON_INIT_INDEX))
-    {
-        RIL_LOG_VERBOSE("CInitializer::TriggerInitStringCompleteEvent() -"
-                " DEBUG: All channels complete power on init!\r\n");
-    }
-    else
-    {
-        RIL_LOG_VERBOSE("CInitializer::TriggerInitStringCompleteEvent() -"
-                " DEBUG: Channel [%d] complete! Still waiting for other channels"
-                " to complete index [%d]!\r\n", uiChannel, eInitIndex);
+        case COM_READY_INIT_INDEX:
+            if (VerifyAllChannelsCompletedInit(COM_READY_INIT_INDEX))
+            {
+                RIL_LOG_VERBOSE("CInitializer::TriggerInitStringCompleteEvent() -"
+                        " DEBUG: All channels complete ready init!\r\n");
+                CEvent::Signal(m_pInitStringCompleteEvent);
+            }
+            break;
+        case COM_UNLOCK_INIT_INDEX:
+            if (VerifyAllChannelsCompletedInit(COM_UNLOCK_INIT_INDEX))
+            {
+                RIL_LOG_VERBOSE("CInitializer::TriggerInitStringCompleteEvent() -"
+                        " DEBUG: All channels complete unlock init!\r\n");
+            }
+            break;
+        case COM_BASIC_INIT_INDEX:
+            if (VerifyAllChannelsCompletedInit(COM_BASIC_INIT_INDEX))
+            {
+                RIL_LOG_INFO("CInitializer::TriggerInitStringCompleteEvent() -"
+                        " DEBUG: All channels complete basic init!\r\n");
+                CEvent::Signal(m_pModemBasicInitCompleteEvent);
+
+                CTE::GetTE().HandleChannelsBasicInitComplete();
+            }
+            break;
+        case COM_POWER_ON_INIT_INDEX:
+            if (VerifyAllChannelsCompletedInit(COM_POWER_ON_INIT_INDEX))
+            {
+                RIL_LOG_VERBOSE("CInitializer::TriggerInitStringCompleteEvent() -"
+                        " DEBUG: All channels complete power on init!\r\n");
+            }
+            break;
+        default:
+            RIL_LOG_VERBOSE("CInitializer::TriggerInitStringCompleteEvent() -"
+                    " DEBUG: Channel [%d] complete! Still waiting for other channels"
+                    " to complete index [%d]!\r\n", uiChannel, eInitIndex);
+            break;
     }
 }
 
@@ -1017,6 +1029,7 @@ Done:
 void CInitializer::ResetStartupEvents()
 {
     RIL_LOG_INFO("CInitializer::Resetting Startup events...\r\n");
+    CEvent::Reset(m_pModemBasicInitCompleteEvent);
     CEvent::Reset(m_pSimUnlockedEvent);
     CEvent::Reset(m_pRadioPoweredOnEvent);
     CEvent::Reset(m_pInitStringCompleteEvent);

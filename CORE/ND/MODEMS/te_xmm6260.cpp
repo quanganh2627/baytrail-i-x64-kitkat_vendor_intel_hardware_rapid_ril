@@ -5780,7 +5780,7 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
 #if !defined(M2_DUALSIM_FEATURE_ENABLED)
     if (bTurnRadioOn)
     {
-        strcpy(szCmd, "AT+CFUN=1;+XSIMSTATE?\r");
+        strcpy(szCmd, "AT+CFUN=1\r");
     }
     else
     {
@@ -5882,4 +5882,274 @@ void CTE_XMM6260::HandleInternalDtmfStopReq()
     }
 
     RIL_LOG_VERBOSE("CTE_XMM6260::HandleInternalDtmfStopReq() - Exit\r\n");
+}
+
+void CTE_XMM6260::HandleChannelsBasicInitComplete()
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleChannelsBasicInitComplete() - Enter\r\n");
+
+    if (!m_cte.IsRadioRequestPending()
+            && RADIO_STATE_UNAVAILABLE == GetRadioState())
+    {
+        /*
+         * Needed as RIL_REQUEST_RADIO_POWER request is not received
+         * after modem core dump, warm reset.
+         */
+        SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
+    }
+
+    QuerySimState();
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleChannelsBasicInitComplete() - Exit\r\n");
+}
+
+void CTE_XMM6260::QuerySimState()
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::QuerySimState() - Enter\r\n");
+
+    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETSIMSTATUS],
+            NULL, ND_REQ_ID_GETSIMSTATUS, "AT+XSIMSTATE?\r", &CTE::ParseSimStateQuery);
+
+    if (NULL != pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::QuerySimState() - "
+                    "Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::QuerySimState() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::QuerySimState() - Exit\r\n");
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseSimStateQuery(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseSimStateQuery() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+
+    if (FindAndSkipString(pszRsp, "+XSIMSTATE: ", pszRsp))
+    {
+        ParseXSIMSTATE(pszRsp);
+    }
+
+    if (FindAndSkipString(pszRsp, "+XLOCK: ", pszRsp))
+    {
+        ParseXLOCK(pszRsp);
+    }
+
+    // Skip "<postfix>"
+    if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimStateQuery - "
+                "Could not skip response postfix.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    return res;
+}
+
+BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXSIMSTATE() - Enter\r\n");
+
+    UINT32 uiMode = 0;
+    UINT32 uiSimState = 0;
+    UINT32 uiTemp = 0;
+    BOOL bRet = FALSE;
+
+    // Extract "<mode>"
+    if (!ExtractUInt32(rszPointer, uiMode, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXSIMSTATE() - Could not parse <mode>.\r\n");
+        goto Error;
+    }
+
+    // Extract ",<SIM state>"
+    if (!SkipString(rszPointer, ",", rszPointer) ||
+            !ExtractUInt32(rszPointer, uiSimState, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXSIMSTATE() - Could not parse <SIM state>.\r\n");
+        goto Error;
+    }
+
+    // Extract ",<pbready>"
+    if (!SkipString(rszPointer, ",", rszPointer) ||
+            !ExtractUInt32(rszPointer, uiTemp, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXSIMSTATE() - Could not parse <SIM PB Ready>.\r\n");
+        goto Error;
+    }
+
+    // Extract ",<SMS Ready>"
+    if (SkipString(rszPointer, ",", rszPointer))
+    {
+        if (!ExtractUInt32(rszPointer, uiTemp, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseXSIMSTATE() - Could not parse "
+                    "<SIM SMS Ready>.\r\n");
+            goto Error;
+        }
+    }
+
+    // Here we assume we don't have card error.
+    // This will be changed in case of nSIMState is 8.
+    m_cte.SetSimTechnicalProblem(FALSE);
+
+    switch (uiSimState)
+    {
+        /*
+         * XSIM: 10 and XSIM: 11 will be received when the SIM driver has
+         * lost contact of SIM and re-established the contact respectively.
+         * After XSIM: 10, either XSIM: 9 or XSIM: 11 will be received.
+         * So, no need to trigger SIM_NOT_READY on XSIM: 10. Incase of
+         * XSIM: 11, network registration will be restored by the modem
+         * itself.
+         */
+        case 10: // SIM Reactivating
+            break;
+        case 11: // SIM Reactivated
+            m_cte.SetSIMState(RRIL_SIM_STATE_READY);
+            break;
+        /*
+         * XSIM: 2 means PIN verification not needed but not ready for attach.
+         * SIM_READY should be triggered only when the modem is ready
+         * to attach.(XSIM: 7 or XSIM: 3(in some specific case))
+         */
+        case 2:
+        case 3:
+        case 6: // SIM Error
+            // The SIM is initialized, but modem is still in the process of it.
+            // we can inform Android that SIM is still not ready.
+            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM NOT READY\r\n");
+            m_cte.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+            break;
+        case 8: // SIM Technical problem
+            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
+            m_cte.SetSimTechnicalProblem(TRUE);
+            break;
+        case 7: // ready for attach (+COPS)
+            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - READY FOR ATTACH\r\n");
+            m_cte.SetSIMState(RRIL_SIM_STATE_READY);
+            CSystemManager::GetInstance().TriggerSimUnlockedEvent();
+            break;
+        case 0: // SIM not present
+        case 9: // SIM Removed
+            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM REMOVED/NOT PRESENT\r\n");
+            m_cte.SetSIMState(RRIL_SIM_STATE_ABSENT);
+            break;
+        case 14: // SIM powered off by modem
+        case 1: // PIN verification needed
+        case 4: // PUK verification needed
+        case 5: // SIM permanently blocked
+        case 99: // SIM state unknown
+        default:
+            m_cte.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+            break;
+    }
+
+    RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXSIMSTATE() - Exit\r\n");
+    return bRet;
+}
+
+BOOL CTE_XMM6260::ParseXLOCK(const char*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXLOCK() - Enter\r\n");
+
+    /*
+     * If the MT is waiting for any of the following passwords
+     * PH-NET PIN, PH-NETSUB PIN, PH-SP PIN then only XLOCK URC will be
+     * received.
+     */
+
+    BOOL bRet = FALSE;
+    int i = 0;
+
+    //  The number of locks returned by +XLOCK URC.
+    const int nMAX_LOCK_INFO = 5;
+
+    typedef struct
+    {
+        char fac[3];
+        UINT32 lock_state;
+        UINT32 lock_result;
+    } S_LOCK_INFO;
+
+    S_LOCK_INFO lock_info[nMAX_LOCK_INFO];
+
+    memset(lock_info, 0, sizeof(lock_info));
+
+    // Change the number to the number of facility locks supported via XLOCK URC.
+    while (i < nMAX_LOCK_INFO)
+    {
+        memset(lock_info[i].fac, '\0', sizeof(lock_info[i].fac));
+
+        // Extract "<fac>"
+        if (!ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac),
+                rszPointer))
+        {
+            RIL_LOG_INFO("CTE_XMM6260::ParseXLOCK() - Unable to find <fac>!\r\n");
+            goto Complete;
+        }
+
+        // Extract ",<Lock state>"
+        if (!SkipString(rszPointer, ",", rszPointer) ||
+            !ExtractUInt32(rszPointer, lock_info[i].lock_state, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseXLOCK() - Could not parse <lock state>.\r\n");
+            goto Error;
+        }
+
+        // Extract ",<Lock result>"
+        if (!SkipString(rszPointer, ",", rszPointer) ||
+            !ExtractUInt32(rszPointer, lock_info[i].lock_result, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseXLOCK() - Could not parse <lock result>.\r\n");
+            goto Error;
+        }
+
+        SkipString(rszPointer, ",", rszPointer);
+
+        i++;
+    }
+
+Complete:
+    i = 0;
+    // Change the number to the number of facility locks supported via XLOCK URC.
+    while (i < nMAX_LOCK_INFO)
+    {
+        RIL_LOG_INFO("lock:%s state:%d result:%d", lock_info[i].fac, lock_info[i].lock_state,
+                lock_info[i].lock_result);
+
+        /// @TODO: Need to revisit the lock state mapping.
+        if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
+                (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
+        {
+            m_cte.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+            RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+            break;
+        }
+        i++;
+    }
+
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXLOCK() - Exit\r\n");
+    return bRet;
 }

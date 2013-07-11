@@ -10359,3 +10359,16 @@ RIL_RESULT_CODE CTEBase::CreateSetDefaultApnReq(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTEBase::CreateSetDefaultApnReq() - Enter/Exit\r\n");
     return RRIL_RESULT_NOTSUPPORTED;
 }
+
+void CTEBase::HandleChannelsBasicInitComplete()
+{
+    RIL_LOG_VERBOSE("CTEBase::HandleChannelsBasicInitComplete() - Enter/Exit\r\n");
+    // should be derived in modem specific class
+}
+
+RIL_RESULT_CODE CTEBase::ParseSimStateQuery(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseSimStateQuery() - Enter/Exit\r\n");
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
