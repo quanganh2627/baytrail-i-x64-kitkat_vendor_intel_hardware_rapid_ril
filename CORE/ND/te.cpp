@@ -7487,13 +7487,13 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
                         || E_DATA_STATE_ACTIVE == dataState)
                 {
                     RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - Default PDN ready\r\n");
-                    strncpy(psRegStatus->szStat, m_sPSStatus.szStat, sizeof(psRegStatus->szStat));
+                    strncpy(psRegStatus->szStat, m_sEPSStatus.szStat, sizeof(psRegStatus->szStat));
                     // TAC is mapped to LAC
-                    strncpy(psRegStatus->szLAC, m_sPSStatus.szLAC, sizeof(psRegStatus->szLAC));
-                    strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
-                    strncpy(psRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
+                    strncpy(psRegStatus->szLAC, m_sEPSStatus.szLAC, sizeof(psRegStatus->szLAC));
+                    strncpy(psRegStatus->szCID, m_sEPSStatus.szCID, sizeof(psRegStatus->szCID));
+                    strncpy(psRegStatus->szNetworkType, m_sEPSStatus.szNetworkType,
                             sizeof(psRegStatus->szNetworkType));
-                    strncpy(psRegStatus->szReasonDenied, m_sPSStatus.szReasonDenied,
+                    strncpy(psRegStatus->szReasonDenied, m_sEPSStatus.szReasonDenied,
                             sizeof(psRegStatus->szReasonDenied));
                 }
             }
