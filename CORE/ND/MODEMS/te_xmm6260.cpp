@@ -123,6 +123,11 @@ const char* CTE_XMM6260::GetScreenOffString()
     }
 }
 
+LONG CTE_XMM6260::GetDataDeactivateReason(char* pszReason)
+{
+    return strtol(pszReason, NULL, 10);
+}
+
 BOOL CTE_XMM6260::IsRequestSupported(int requestId)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::IsRequestSupported() - Enter\r\n");
@@ -2034,8 +2039,9 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     char* pszCid = NULL;
-    char* pszReason = NULL;
     UINT32 uiCID = 0;
+    const LONG REASON_RADIO_OFF = 1;
+    LONG reason = 0;
 
     if (uiDataSize < (1 * sizeof(char *)))
     {
@@ -2071,36 +2077,18 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if ( (RIL_VERSION >= 4) && (uiDataSize >= (2 * sizeof(char *))) )
+    if ((RIL_VERSION >= 4) && (uiDataSize >= (2 * sizeof(char *))))
     {
-        pszReason = ((char**)pData)[1];
-        if (pszReason == NULL || '\0' == pszReason[0])
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6260::CoreDeactivateDataCall() - pszReason was NULL\r\n");
-            goto Error;
-        }
-        if (strlen(pszReason) == 1 && pszReason[0] == '1')
-        {
-            // complete the request without sending the AT command to modem.
-            res = RRIL_RESULT_OK_IMMEDIATE;
-            DataConfigDown(uiCID);
-            goto Error;
-        }
-        RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() - pszReason=[%s]\r\n", pszReason);
+        reason == GetDataDeactivateReason(((char**)pData)[1]);
+        RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() - reason=[%ld]\r\n", reason);
     }
 
-    //  May 18,2011 - Don't call AT+CGACT=0,X if SIM was
-    //  removed since context is already deactivated.
-    if (RRIL_SIM_STATE_ABSENT == GetSIMState())
+    if (reason == REASON_RADIO_OFF || RRIL_SIM_STATE_ABSENT == GetSIMState())
     {
-        RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() -"
-                " SIM LOCKED OR ABSENT\r\n");
+        // complete the request without sending the AT command to modem.
         res = RRIL_RESULT_OK_IMMEDIATE;
-
-        if (uiCID > 0 && uiCID <= MAX_PDP_CONTEXTS)
-        {
-            DataConfigDown(uiCID);
-        }
+        DataConfigDown(uiCID, TRUE);
+        goto Error;
     }
     else
     {
@@ -5790,7 +5778,20 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
     {
         if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
         {
-            strcpy(szCmd, "AT+CHLD=8;+CGATT=0\r");
+            char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+
+            property_get("persist.conformance", szConformanceProperty, NULL);
+            if (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
+            {
+                /*
+                 * Since sending of CFUN=4 results in few conformance test cases failing,
+                 * don't send any command to modem if conformance property is set.
+                 */
+            }
+            else
+            {
+                strcpy(szCmd, "AT+CFUN=4\r");
+            }
         }
         else if (E_RADIO_OFF_REASON_AIRPLANE_MODE == radioOffReason
                 || E_RADIO_OFF_REASON_NONE == radioOffReason)
@@ -5845,4 +5846,32 @@ Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::GetRadioPowerCommand() - Exit\r\n");
 
     return bRet;
+}
+
+void CTE_XMM6260::HandleInternalDtmfStopReq()
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleInternalDtmfStopReq() - Enter\r\n");
+
+    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REQUESTDTMFSTOP],
+            NULL, ND_REQ_ID_REQUESTDTMFSTOP, "AT+XVTS\r");
+
+    if (pCmd)
+    {
+        pCmd->SetCallId(GetCurrentCallId());
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::HandleInternalDtmfStopReq() -"
+                    "Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::HandleInternalDtmfStopReq() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleInternalDtmfStopReq() - Exit\r\n");
 }

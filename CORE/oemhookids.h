@@ -258,14 +258,15 @@ const int RIL_OEM_HOOK_STRING_IMS_REGISTRATION = 0x000000AD;
 //
 // "data" = An array of strings representing +XICFG parameters:
 //          ((const char **)data)[0] - string parameter <IMS_APN>
-//          ((const char **)data)[1] - string parameter <outbound_proxy_name>
-//          ((const char **)data)[2] - string parameter <outbound_proxy_port>
-//          ((const char **)data)[3] - string parameter <private_user_id>
-//          ((const char **)data)[4] - string parameter <home_network_domain_name>
-//          ((const char **)data)[5] - string parameter <XCAP_auth_username>
-//          ((const char **)data)[6] - string parameter <XCAP_auth_password>
-//          ((const char **)data)[7] - string parameter <XCAP_auth_type>
-//          ((const char **)data)[8] - string parameter <logger_level>
+//          ((const char **)data)[1] - string parameter <pcscf_address>
+//          ((const char **)data)[2] - string parameter <pcscf_port>
+//          ((const char **)data)[3] - string parameter <auth_mode>
+//          ((const char **)data)[4] - string parameter <phone_context>
+//          ((const char **)data)[5] - string parameter <localbreakout>
+//          ((const char **)data)[6] - string parameter <xcap_apn>
+//          ((const char **)data)[7] - string parameter <xcap_root_uri>
+//          ((const char **)data)[8] - string parameter <xcap_username>
+//          ((const char **)data)[9] - string parameter <xcap_password>
 //  "response" = NULL
 //
 const int RIL_OEM_HOOK_STRING_IMS_CONFIG = 0x000000AE;

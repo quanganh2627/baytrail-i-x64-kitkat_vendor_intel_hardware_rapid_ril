@@ -77,7 +77,9 @@ CTE::CTE(UINT32 modemType) :
     m_pRadioStateChangedEvent(NULL),
     m_bCallDropReporting(FALSE),
     m_uiDefaultPDNCid(0),
-    m_cTerminator('\r')
+    m_cTerminator('\r'),
+    m_bDataCleanupStatus(FALSE),
+    m_pDataCleanupStatusLock(NULL)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -103,6 +105,8 @@ CTE::CTE(UINT32 modemType) :
     m_pDtmfStateAccess = new CMutex();
 
     m_pRadioStateChangedEvent = new CEvent(NULL, TRUE);
+
+    m_pDataCleanupStatusLock = new CMutex();
 }
 
 CTE::~CTE()
@@ -124,6 +128,13 @@ CTE::~CTE()
         CMutex::Unlock(m_pDtmfStateAccess);
         delete m_pDtmfStateAccess;
         m_pDtmfStateAccess = NULL;
+    }
+
+    if (m_pDataCleanupStatusLock)
+    {
+        CMutex::Unlock(m_pDataCleanupStatusLock);
+        delete m_pDataCleanupStatusLock;
+        m_pDataCleanupStatusLock = NULL;
     }
 }
 
@@ -8003,6 +8014,18 @@ BOOL CTE::TestAndSetSpoofCommandsStatus(BOOL bStatus)
     return bPrevSpoofCommandsStatus;
 }
 
+BOOL CTE::TestAndSetDataCleanupStatus(BOOL bCleanupStatus)
+{
+    CMutex::Lock(m_pDataCleanupStatusLock);
+    BOOL bPrevDataCleanupStatus = m_bDataCleanupStatus;
+
+    m_bDataCleanupStatus =
+            m_bDataCleanupStatus != bCleanupStatus ? bCleanupStatus: m_bDataCleanupStatus;
+
+    CMutex::Unlock(m_pDataCleanupStatusLock);
+    return bPrevDataCleanupStatus;
+}
+
 //
 // Silent PIN Entry (sent internally)
 //
@@ -8841,14 +8864,6 @@ void CTE::PostDtmfStart(POST_CMD_HANDLER_DATA& rData)
                 rData.pData, rData.uiDataSize);
     }
 
-    if (RRIL_RESULT_OK != rData.uiResultCode)
-    {
-        RIL_LOG_INFO("CTE::PostDtmfStart() Before setting DTMF state - uiResultCode: %d\r\n",
-                rData.uiResultCode);
-
-        SetDtmfState(E_DTMF_STATE_STOP);
-    }
-
     RIL_LOG_VERBOSE("CTE::PostDtmfStart() Exit\r\n");
 }
 
@@ -9119,11 +9134,6 @@ int CTE::GetActiveDataCallInfoList(P_ND_PDP_CONTEXT_DATA pPDPListData)
     CChannel_Data* pChannelData = NULL;
     S_DATA_CALL_INFO sDataCallInfo;
     int noOfActivePDP = 0;
-    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
-    char szInterfaceName[MAX_INTERFACE_NAME_SIZE] = {'\0'};
-    char szIPAddress[MAX_BUFFER_SIZE] = {'\0'};
-    char szDNS[MAX_BUFFER_SIZE] = {'\0'};
-    char szGateway[MAX_IPADDR_SIZE] = {'\0'};
 
     for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
     {
@@ -9137,39 +9147,49 @@ int CTE::GetActiveDataCallInfoList(P_ND_PDP_CONTEXT_DATA pPDPListData)
         if (NULL != pChannelData &&
                         E_DATA_STATE_ACTIVE == pChannelData->GetDataState())
         {
+            memset(&sDataCallInfo, 0, sizeof(sDataCallInfo));
             pChannelData->GetDataCallInfo(sDataCallInfo);
 
-            snprintf(szDNS, MAX_BUFFER_SIZE-1, "%s %s %s %s",
-                                sDataCallInfo.szDNS1,
-                                sDataCallInfo.szDNS2,
-                                sDataCallInfo.szIpV6DNS1,
-                                sDataCallInfo.szIpV6DNS2);
-            szDNS[MAX_BUFFER_SIZE-1] = '\0';
+            PrintStringNullTerminate(pPDPListData->pDnsesBuffers[noOfActivePDP],
+                                             MAX_BUFFER_SIZE,
+                                             "%s %s %s %s",
+                                             sDataCallInfo.szDNS1,
+                                             sDataCallInfo.szDNS2,
+                                             sDataCallInfo.szIpV6DNS1,
+                                             sDataCallInfo.szIpV6DNS2);
 
-            snprintf(szIPAddress, MAX_BUFFER_SIZE-1, "%s %s",
-                            sDataCallInfo.szIpAddr1, sDataCallInfo.szIpAddr2);
-            szIPAddress[MAX_BUFFER_SIZE-1] = '\0';
+            PrintStringNullTerminate(pPDPListData->pAddressBuffers[noOfActivePDP],
+                                             MAX_BUFFER_SIZE,
+                                             "%s %s",
+                                             sDataCallInfo.szIpAddr1,
+                                             sDataCallInfo.szIpAddr2);
 
-            strncpy(szGateway, sDataCallInfo.szGateways, MAX_IPADDR_SIZE-1);
-            szGateway[MAX_IPADDR_SIZE-1] = '\0';
+            CopyStringNullTerminate(pPDPListData->pGatewaysBuffers[noOfActivePDP],
+                                            sDataCallInfo.szGateways,
+                                            MAX_BUFFER_SIZE);
 
-            strncpy(szPdpType, sDataCallInfo.szPdpType, MAX_PDP_TYPE_SIZE-1);
-            szPdpType[MAX_PDP_TYPE_SIZE-1] = '\0';
+            CopyStringNullTerminate(pPDPListData->pTypeBuffers[noOfActivePDP],
+                                            sDataCallInfo.szPdpType,
+                                            MAX_BUFFER_SIZE);
 
-            strncpy(szInterfaceName, sDataCallInfo.szInterfaceName,
-                                                    MAX_INTERFACE_NAME_SIZE-1);
-            szInterfaceName[MAX_INTERFACE_NAME_SIZE-1] = '\0';
+            CopyStringNullTerminate(pPDPListData->pIfnameBuffers[noOfActivePDP],
+                                            sDataCallInfo.szInterfaceName,
+                                            MAX_BUFFER_SIZE);
 
-            pPDPListData->pPDPData[noOfActivePDP].status =
-                                                    sDataCallInfo.failCause;
+            pPDPListData->pPDPData[noOfActivePDP].status = sDataCallInfo.failCause;
             pPDPListData->pPDPData[noOfActivePDP].suggestedRetryTime = -1;
             pPDPListData->pPDPData[noOfActivePDP].cid = sDataCallInfo.uiCID;
             pPDPListData->pPDPData[noOfActivePDP].active = 2;
-            pPDPListData->pPDPData[noOfActivePDP].type = szPdpType;
-            pPDPListData->pPDPData[noOfActivePDP].addresses = szIPAddress;
-            pPDPListData->pPDPData[noOfActivePDP].dnses = szDNS;
-            pPDPListData->pPDPData[noOfActivePDP].gateways = szGateway;
-            pPDPListData->pPDPData[noOfActivePDP].ifname = szInterfaceName;
+            pPDPListData->pPDPData[noOfActivePDP].type =
+                    pPDPListData->pTypeBuffers[noOfActivePDP];
+            pPDPListData->pPDPData[noOfActivePDP].addresses =
+                    pPDPListData->pAddressBuffers[noOfActivePDP];
+            pPDPListData->pPDPData[noOfActivePDP].dnses =
+                    pPDPListData->pDnsesBuffers[noOfActivePDP];
+            pPDPListData->pPDPData[noOfActivePDP].gateways =
+                    pPDPListData->pGatewaysBuffers[noOfActivePDP];
+            pPDPListData->pPDPData[noOfActivePDP].ifname =
+                    pPDPListData->pIfnameBuffers[noOfActivePDP];
 
             ++noOfActivePDP;
         }
@@ -9221,7 +9241,12 @@ BOOL CTE::DataConfigDown(UINT32 uiCID)
 void CTE::CleanupAllDataConnections()
 {
     RIL_LOG_VERBOSE("CTE::CleanupAllDataConnections() - Enter / Exit\r\n");
-    m_pTEBaseInstance->CleanupAllDataConnections();
+
+    if (!TestAndSetDataCleanupStatus(TRUE))
+    {
+        m_pTEBaseInstance->CleanupAllDataConnections();
+        TestAndSetDataCleanupStatus(FALSE);
+    }
 }
 
 BOOL CTE::IsPlatformShutDownRequested()

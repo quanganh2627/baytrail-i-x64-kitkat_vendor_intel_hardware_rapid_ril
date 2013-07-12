@@ -1534,11 +1534,13 @@ RIL_RESULT_CODE CTEBase::CoreSwitchHoldingAndActive(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSwitchHoldingAndActive() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    UINT32 uiDtmfState = m_cte.GetDtmfState();
 
-    if (CopyStringNullTerminate(rReqData.szCmd1,
-            (E_DTMF_STATE_START == uiDtmfState) ? "AT+XVTS;+CHLD=2\r" : "AT+CHLD=2\r",
-            sizeof(rReqData.szCmd1)))
+    if (E_DTMF_STATE_START == m_cte.GetDtmfState())
+    {
+        HandleInternalDtmfStopReq();
+    }
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=2\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -1565,11 +1567,12 @@ RIL_RESULT_CODE CTEBase::CoreConference(REQUEST_DATA& rReqData, void* pData, UIN
     RIL_LOG_VERBOSE("CTEBase::CoreConference() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    UINT32 uiDtmfState = m_cte.GetDtmfState();
+    if (E_DTMF_STATE_START == m_cte.GetDtmfState())
+    {
+        HandleInternalDtmfStopReq();
+    }
 
-    if (CopyStringNullTerminate(rReqData.szCmd1,
-            (E_DTMF_STATE_START == uiDtmfState) ? "AT+XVTS;+CHLD=3\r" : "AT+CHLD=3\r",
-            sizeof(rReqData.szCmd1)))
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=3\r", sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
@@ -5699,7 +5702,6 @@ RIL_RESULT_CODE CTEBase::CoreSeparateConnection(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTEBase::CoreSeparateConnection() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int callId = 0;
-    UINT32 uiDtmfState = m_cte.GetDtmfState();
 
     if (NULL == pData)
     {
@@ -5709,9 +5711,13 @@ RIL_RESULT_CODE CTEBase::CoreSeparateConnection(REQUEST_DATA& rReqData,
 
     callId = ((int *)pData)[0];
 
+    if (E_DTMF_STATE_START == m_cte.GetDtmfState())
+    {
+        HandleInternalDtmfStopReq();
+    }
+
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            (E_DTMF_STATE_START == uiDtmfState) ? "AT+XVTS;+CHLD=2%u\r" :"AT+CHLD=2%u\r",
-            callId))
+            "AT+CHLD=2%u\r", callId))
     {
         res = RRIL_RESULT_OK;
     }
@@ -10366,4 +10372,10 @@ BOOL CTEBase::SetupInterface(UINT32 /*uiCID*/)
     RIL_LOG_VERBOSE("CTEBase::SetupInterface - Enter/Exit \r\n");
     // only suported at modem level
     return FALSE;
+}
+
+void CTEBase::HandleInternalDtmfStopReq()
+{
+    RIL_LOG_VERBOSE("CTEBase::HandleInternalDtmfStopReq() - Enter/Exit\r\n");
+    // should be derived in modem specific class
 }
