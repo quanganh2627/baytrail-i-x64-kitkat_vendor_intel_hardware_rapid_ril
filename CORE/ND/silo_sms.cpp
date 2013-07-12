@@ -19,6 +19,7 @@
 #include "rildmain.h"
 #include "callbacks.h"
 #include "silo_sms.h"
+#include "te.h"
 
 //
 //
@@ -159,7 +160,7 @@ BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const char*& rszPo
 
     if (SILO_SMS_MSG_IN_SIM == msgType)
     {
-        triggerQuerySimSmsStoreStatus(NULL);
+        CTE::GetTE().TriggerQuerySimSmsStoreStatus();
     }
 
     if (pResponse == NULL)

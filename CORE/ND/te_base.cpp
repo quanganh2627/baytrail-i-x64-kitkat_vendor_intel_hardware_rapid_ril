@@ -10372,3 +10372,40 @@ RIL_RESULT_CODE CTEBase::ParseSimStateQuery(RESPONSE_DATA& rRspData)
     // should be derived in modem specific class
     return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
 }
+
+void CTEBase::HandleChannelsUnlockInitComplete()
+{
+    RIL_LOG_VERBOSE("CTEBase::HandleChannelsUnlockInitComplete() - Enter\r\n");
+
+    QuerySimSmsStoreStatus();
+
+    RIL_LOG_VERBOSE("CTEBase::HandleChannelsUnlockInitComplete() - Exit\r\n");
+}
+
+void CTEBase::QuerySimSmsStoreStatus()
+{
+    RIL_LOG_VERBOSE("CTEBase::QuerySimSmsStoreStatus() - Enter\r\n");
+
+    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS],
+            NULL, ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS, "AT+CPMS?\r",
+            &CTE::ParseQuerySimSmsStoreStatus);
+
+    if (NULL != pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::QuerySimSmsStoreStatus() - "
+                    "Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::QuerySimSmsStoreStatus() - Unable to allocate memory"
+                " for new command!\r\n");
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::QuerySimSmsStoreStatus() - Exit\r\n");
+}

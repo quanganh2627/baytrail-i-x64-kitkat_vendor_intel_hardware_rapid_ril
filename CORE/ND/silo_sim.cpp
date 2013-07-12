@@ -559,7 +559,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             break;
         case 12: // SIM SMS caching completed
             RIL_LOG_INFO("[RIL STATE] SIM SMS CACHING COMPLETED\r\n");
-            triggerQuerySimSmsStoreStatus(NULL);
+            CTE::GetTE().TriggerQuerySimSmsStoreStatus();
             break;
         case 0: // SIM not present
         case 9: // SIM Removed

@@ -57,11 +57,6 @@ void triggerSignalStrength(void* param);
 void triggerSMSAck(void* param);
 
 //
-// Callback to query sim sms store status
-//
-void triggerQuerySimSmsStoreStatus(void* param);
-
-//
 // Callback to send USSD notification
 //
 void triggerUSSDNotification(void* param);

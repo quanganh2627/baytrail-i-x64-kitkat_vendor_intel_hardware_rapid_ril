@@ -305,8 +305,9 @@ void CInitializer::TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitInde
         case COM_UNLOCK_INIT_INDEX:
             if (VerifyAllChannelsCompletedInit(COM_UNLOCK_INIT_INDEX))
             {
-                RIL_LOG_VERBOSE("CInitializer::TriggerInitStringCompleteEvent() -"
+                RIL_LOG_INFO("CInitializer::TriggerInitStringCompleteEvent() -"
                         " DEBUG: All channels complete unlock init!\r\n");
+                CTE::GetTE().HandleChannelsUnlockInitComplete();
             }
             break;
         case COM_BASIC_INIT_INDEX:

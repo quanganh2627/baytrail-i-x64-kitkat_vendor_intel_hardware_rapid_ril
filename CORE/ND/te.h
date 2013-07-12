@@ -103,6 +103,7 @@ public:
 
     BOOL IsRequestAllowedInSpoofState(int requestId);
     BOOL IsRequestAllowedInRadioOff(int requestId);
+    BOOL IsInternalRequestsAllowedInRadioOff(UINT32 uiRilRequestId);
     BOOL IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
             BOOL bIsInitCommand, int callId = 0);
 
@@ -1048,6 +1049,16 @@ public:
      * OK/CME ERROR.
      */
     void HandleChannelsBasicInitComplete();
+
+    /*
+     * This function will be called on unlock initialisation completion of
+     * all the channels. Trigger commands which return responses other than
+     * OK/CME ERROR.
+     */
+    void HandleChannelsUnlockInitComplete();
+
+    // Sends AT+CPMS? command to the modem
+    void TriggerQuerySimSmsStoreStatus();
 
     // Parser function for sim status query.
     RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);

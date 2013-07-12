@@ -7846,6 +7846,36 @@ UINT32 CTE::GetDtmfState()
     return m_uiDtmfState;
 }
 
+BOOL CTE::IsInternalRequestsAllowedInRadioOff(UINT32 uiRilRequestId)
+{
+    RIL_LOG_VERBOSE("CTE::IsInternalRequestsAllowedInRadioOff() - Enter\r\n");
+
+    BOOL bAllowed;
+
+    switch (uiRilRequestId)
+    {
+        case ND_REQ_ID_SILENT_PIN_ENTRY:
+            if (RRIL_SIM_STATE_NOT_READY == (int) GetSIMState())
+                bAllowed = TRUE;
+            else
+                bAllowed = FALSE;
+            break;
+        case ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS:
+            if (RRIL_SIM_STATE_READY == (int) GetSIMState())
+                bAllowed = TRUE;
+            else
+                bAllowed = FALSE;
+            break;
+
+        default:
+            bAllowed = FALSE;
+    }
+
+    RIL_LOG_VERBOSE("CTE::IsInternalRequestsAllowedInRadioOff() - Exit\r\n");
+    return bAllowed;
+}
+
+
 BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
         BOOL bIsInitCommand, int callId)
 {
@@ -7867,7 +7897,8 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
     }
     else if (RADIO_STATE_OFF == GetRadioState()
             && !IsRequestAllowedInRadioOff(rilRequestId)
-            && !bIsInitCommand)
+            && !bIsInitCommand
+            && !IsInternalRequestsAllowedInRadioOff(uiRequestId))
     {
         eRetVal = HandleRequestInRadioOff(rilRequestId, rilToken);
         bIsReqAllowed = FALSE;
@@ -9695,4 +9726,18 @@ RIL_RESULT_CODE CTE::ParseSimStateQuery(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE::ParseSimStateQuery() - Enter/Exit\r\n");
     return m_pTEBaseInstance->ParseSimStateQuery(rRspData);
+}
+
+void CTE::HandleChannelsUnlockInitComplete()
+{
+    RIL_LOG_VERBOSE("CTE::HandleChannelsUnlockInitComplete() - Enter\r\n");
+    m_pTEBaseInstance->HandleChannelsUnlockInitComplete();
+    RIL_LOG_VERBOSE("CTE::HandleChannelsUnlockInitComplete() - Exit\r\n");
+}
+
+void CTE::TriggerQuerySimSmsStoreStatus()
+{
+    RIL_LOG_VERBOSE("CTE::TriggerQuerySimSmsStoreStatus() - Enter\r\n");
+    m_pTEBaseInstance->QuerySimSmsStoreStatus();
+    RIL_LOG_VERBOSE("CTE::TriggerQuerySimSmsStoreStatus() - Exit\r\n");
 }
