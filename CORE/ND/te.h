@@ -1211,6 +1211,8 @@ private:
 
     BOOL m_bDataCleanupStatus;
     CMutex* m_pDataCleanupStatusLock;
+
+    void CompleteGetSimStatusRequest(RIL_Token hRilToken);
 };
 
 #endif

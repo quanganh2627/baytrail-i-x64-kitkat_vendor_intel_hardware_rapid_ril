@@ -346,53 +346,8 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
             break;
 
         case RIL_REQUEST_GET_SIM_STATUS:
-        {
-            RIL_CardStatus_v6 cardStatus;
-            int sim_state = m_pTEBaseInstance->GetSIMState();
-
-            // Fill in the default values
-            cardStatus.gsm_umts_subscription_app_index = -1;
-            cardStatus.cdma_subscription_app_index = -1;
-            cardStatus.ims_subscription_app_index = -1;
-            cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
-
-            if (RRIL_SIM_STATE_ABSENT == sim_state)
-            {
-                cardStatus.card_state = RIL_CARDSTATE_ABSENT;
-                cardStatus.num_applications = 0;
-            }
-            else if (RRIL_SIM_STATE_READY == sim_state
-                    || RRIL_SIM_STATE_NOT_READY == sim_state)
-            {
-                cardStatus.card_state = RIL_CARDSTATE_PRESENT;
-                cardStatus.num_applications = 1;
-                cardStatus.gsm_umts_subscription_app_index = 0;
-                cardStatus.applications[0].app_type =
-                        (RIL_AppType) m_pTEBaseInstance->GetSIMAppType();
-                cardStatus.applications[0].app_state = RIL_APPSTATE_UNKNOWN;
-                cardStatus.applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-                cardStatus.applications[0].aid_ptr = NULL;
-                cardStatus.applications[0].app_label_ptr = NULL;
-                cardStatus.applications[0].pin1_replaced = 0;
-                cardStatus.applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
-                cardStatus.applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
-#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
-                cardStatus.applications[0].pin1_num_retries = -1;
-                cardStatus.applications[0].puk1_num_retries = -1;
-                cardStatus.applications[0].pin2_num_retries = -1;
-                cardStatus.applications[0].puk2_num_retries = -1;
-#endif // M2_PIN_RETRIES_FEATURE_ENABLE
-            }
-            else
-            {
-                cardStatus.card_state = RIL_CARDSTATE_ERROR;
-                cardStatus.num_applications = 0;
-            }
-
-            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &cardStatus,
-                    sizeof(RIL_CardStatus_v6));
-        }
-        break;
+            CompleteGetSimStatusRequest(hRilToken);
+            break;
 
         default:
             eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
@@ -434,6 +389,10 @@ RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
         case RIL_REQUEST_OPERATOR:
         case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:
             eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
+            break;
+
+        case RIL_REQUEST_GET_SIM_STATUS:
+            CompleteGetSimStatusRequest(hRilToken);
             break;
 
         default:
@@ -9740,4 +9699,55 @@ void CTE::TriggerQuerySimSmsStoreStatus()
     RIL_LOG_VERBOSE("CTE::TriggerQuerySimSmsStoreStatus() - Enter\r\n");
     m_pTEBaseInstance->QuerySimSmsStoreStatus();
     RIL_LOG_VERBOSE("CTE::TriggerQuerySimSmsStoreStatus() - Exit\r\n");
+}
+
+void CTE::CompleteGetSimStatusRequest(RIL_Token hRilToken)
+{
+    RIL_LOG_VERBOSE("CTE::CompleteGetSimStatusRequest() - Enter\r\n");
+
+    RIL_CardStatus_v6 cardStatus;
+    int sim_state = m_pTEBaseInstance->GetSIMState();
+
+    // Fill in the default values
+    cardStatus.gsm_umts_subscription_app_index = -1;
+    cardStatus.cdma_subscription_app_index = -1;
+    cardStatus.ims_subscription_app_index = -1;
+    cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
+
+    if (RRIL_SIM_STATE_ABSENT == sim_state)
+    {
+        cardStatus.card_state = RIL_CARDSTATE_ABSENT;
+        cardStatus.num_applications = 0;
+    }
+    else if (RRIL_SIM_STATE_READY == sim_state
+            || RRIL_SIM_STATE_NOT_READY == sim_state)
+    {
+        cardStatus.card_state = RIL_CARDSTATE_PRESENT;
+        cardStatus.num_applications = 1;
+        cardStatus.gsm_umts_subscription_app_index = 0;
+        cardStatus.applications[0].app_type = RIL_APPTYPE_UNKNOWN;
+        cardStatus.applications[0].app_state = RIL_APPSTATE_UNKNOWN;
+        cardStatus.applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+        cardStatus.applications[0].aid_ptr = NULL;
+        cardStatus.applications[0].app_label_ptr = NULL;
+        cardStatus.applications[0].pin1_replaced = 0;
+        cardStatus.applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
+        cardStatus.applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+        cardStatus.applications[0].pin1_num_retries = -1;
+        cardStatus.applications[0].puk1_num_retries = -1;
+        cardStatus.applications[0].pin2_num_retries = -1;
+        cardStatus.applications[0].puk2_num_retries = -1;
+#endif // M2_PIN_RETRIES_FEATURE_ENABLE
+    }
+    else
+    {
+        cardStatus.card_state = RIL_CARDSTATE_ERROR;
+        cardStatus.num_applications = 0;
+    }
+
+    RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &cardStatus,
+            sizeof(RIL_CardStatus_v6));
+
+    RIL_LOG_VERBOSE("CTE::CompleteGetSimStatusRequest() - Exit\r\n");
 }
