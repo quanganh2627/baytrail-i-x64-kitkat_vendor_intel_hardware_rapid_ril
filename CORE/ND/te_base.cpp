@@ -6178,6 +6178,34 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
 
     res = RRIL_RESULT_OK;
 Error:
+    if (RRIL_RESULT_OK == res)
+    {
+        char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+
+        if (NULL != pContextParams)
+        {
+            if (pContextParams->szIpV6Addr[0] == '\0')
+            {
+                CopyStringNullTerminate(szPdpType, "IPV4", MAX_PDP_TYPE_SIZE);
+            }
+            else if (pContextParams->szIpV4Addr[0] == '\0')
+            {
+                CopyStringNullTerminate(szPdpType, "IPV6", MAX_PDP_TYPE_SIZE);
+            }
+            else
+            {
+                CopyStringNullTerminate(szPdpType, "IPV4V6", MAX_PDP_TYPE_SIZE);
+            }
+        }
+
+        if (NULL != pChannelData)
+        {
+            pChannelData->SetPdpType(szPdpType);
+        }
+
+        NotifyNetworkApnInfo();
+    }
+
     free (pContextParams);
 
     RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - Exit\r\n");
@@ -10408,4 +10436,32 @@ void CTEBase::QuerySimSmsStoreStatus()
     }
 
     RIL_LOG_VERBOSE("CTEBase::QuerySimSmsStoreStatus() - Exit\r\n");
+}
+
+void CTEBase::NotifyNetworkApnInfo()
+{
+    RIL_LOG_VERBOSE("CTEBase::NotifyNetworkApnInfo() - Enter\r\n");
+
+    CChannel_Data* pChannelData =
+            CChannel_Data::GetChnlFromContextID(m_cte.GetDefaultPDNCid());
+
+    if (NULL == pChannelData)
+    {
+        return;
+    }
+
+    sOEM_HOOK_RAW_UNSOL_NETWORK_APN_IND data;
+
+    memset(&data, 0, sizeof(sOEM_HOOK_RAW_UNSOL_NETWORK_APN_IND));
+
+    data.command = RIL_OEM_HOOK_RAW_UNSOL_NETWORK_APN_IND;
+    pChannelData->GetApn(data.szApn, MAX_APN_SIZE);
+    data.apnLength = strlen(data.szApn);
+    pChannelData->GetPdpType(data.szPdpType, MAX_PDP_TYPE_SIZE);
+    data.pdpTypeLength = strlen(data.szPdpType);
+
+    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, (void*)&data,
+            sizeof(sOEM_HOOK_RAW_UNSOL_NETWORK_APN_IND));
+
+    RIL_LOG_VERBOSE("CTEBase::NotifyNetworkApnInfo() - Exit\r\n");
 }

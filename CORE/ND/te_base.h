@@ -870,6 +870,7 @@ protected:
     virtual const char* GetScreenOffString();
 
     virtual void HandleInternalDtmfStopReq();
+    virtual void NotifyNetworkApnInfo();
 
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA& rRspData);

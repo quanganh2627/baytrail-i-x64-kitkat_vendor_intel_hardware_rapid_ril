@@ -1027,6 +1027,7 @@ public:
     BOOL IsEPSRegistered();
 
     void SetDefaultPDNCid(UINT32 uiCid) { m_uiDefaultPDNCid = uiCid; }
+    UINT32 GetDefaultPDNCid() { return m_uiDefaultPDNCid; }
 
     /*
      * Post Command handler function for the read default PDN

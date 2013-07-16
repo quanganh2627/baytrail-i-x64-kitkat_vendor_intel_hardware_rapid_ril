@@ -59,6 +59,7 @@ typedef long                RIL_RESULT_CODE;
 #define MAX_FDTIMER_SIZE           (5)
 #define MODEM_STATE_UNKNOWN        (-1)
 #define MAX_PARAM_LENGTH           (256)
+#define MAX_APN_SIZE               (101)
 
 ///////////////////////////////////////////////////////////////////////////////
 // SIM related constants

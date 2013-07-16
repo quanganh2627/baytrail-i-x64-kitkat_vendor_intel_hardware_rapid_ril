@@ -463,6 +463,18 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_COEX_INFO
 //
 const int RIL_OEM_HOOK_RAW_UNSOL_COEX_INFO = 0x000000D8;
 
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_NETWORK_APN_IND
+{
+    int command; // Command ID
+    int apnLength;
+    char szApn[MAX_APN_SIZE];
+    int pdpTypeLength;
+    char szPdpType[MAX_PDP_TYPE_SIZE];
+} sOEM_HOOK_RAW_UNSOL_NETWORK_APN_IND;
+
+const int RIL_OEM_HOOK_RAW_UNSOL_NETWORK_APN_IND = 0x000000D9;
 
 #pragma pack()
 
