@@ -217,7 +217,9 @@ const char   g_szNetworkInterfaceNamePrefix[]   = "NetworkInterfaceNamePrefix";
 const char   g_szMTU[]                          = "MTU";
 const char   g_szEnableCellInfo[]               = "EnableCellInfo";
 const char   g_szEnableModemOffInFlightMode[]   = "EnableModemOffInFlightMode";
+#if defined(CONFIGURE_3GDIV_DARP_IN_RIL)
 const char   g_szRxDiversity2GDARP[]            = "RxDiversity2GDARP";
+#endif // CONFIGURE_3GDIV_DARP_IN_RIL
 const char   g_szFDDelayTimer[]                 = "FDDelayTimer";
 const char   g_szSCRITimer[]                    = "SCRITimer";
 const char   g_szFDMode[]                       = "FDMode";
@@ -229,6 +231,8 @@ const char   g_szStkCapable[]                   = "StkCapable";
 const char   g_szEnableXDATASTATURC[]           = "EnableXDATASTATReporting";
 const char   g_szIMSCapable[]                   = "IMSCapable";
 const char   g_szEnableSMSOverIP[]              = "EnableSMSOverIP";
+const char   g_szSupportCGPIAF[]                = "SupportCGPIAF";
+const char   g_szImeiBlackList[]                = "ImeiBlackList";
 
 // used for 7x60 and 6360 modems
 const char   g_szModemResourceName[]    = "ModemDataChannelResourceName";

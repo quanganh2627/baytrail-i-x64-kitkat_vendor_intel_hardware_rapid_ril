@@ -449,6 +449,8 @@ RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
         case RIL_REQUEST_OPERATOR:
         case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:
         case RIL_REQUEST_OEM_HOOK_STRINGS:
+        case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC:
+        case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:
             eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
             break;
 
@@ -3716,7 +3718,8 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionAutomatic(RIL_Token rilToken,
                 rilToken,
                 ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC,
                 reqData,
-                &CTE::ParseSetNetworkSelectionAutomatic);
+                &CTE::ParseSetNetworkSelectionAutomatic,
+                &CTE::PostSetNetworkSelectionCmdHandler);
 
         if (pCmd)
         {
@@ -3773,7 +3776,8 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionManual(RIL_Token rilToken,
                 rilToken,
                 ND_REQ_ID_SETNETWORKSELECTIONMANUAL,
                 reqData,
-                &CTE::ParseSetNetworkSelectionManual);
+                &CTE::ParseSetNetworkSelectionManual,
+                &CTE::PostSetNetworkSelectionCmdHandler);
 
         if (pCmd)
         {
@@ -6983,27 +6987,31 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
     if (SkipString(rszPointer, ",", rszPointer))
     {
         // Extract "<lac>"
-        SkipString(rszPointer, "\"", rszPointer);
-        if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
+        if (SkipString(rszPointer, "\"", rszPointer))
         {
-            RIL_LOG_INFO("CTE::ParseCREG() - Could not extract <lac>.\r\n");
+            if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
+            {
+                RIL_LOG_INFO("CTE::ParseCREG() - Could not extract <lac>.\r\n");
+                goto Error;
+            }
+            SkipString(rszPointer, "\"", rszPointer);
         }
-        SkipString(rszPointer, "\"", rszPointer);
 
         // Extract ",<cid>"
-        if (!SkipString(rszPointer, ",", rszPointer))
+        if (SkipString(rszPointer, ",", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract \",<cid>\".\r\n");
-            goto Error;
+            if (SkipString(rszPointer, "\"", rszPointer))
+            {
+                if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
+                {
+                    RIL_LOG_INFO("CTE::ParseCREG() - Could not extract <cid>.\r\n");
+                    goto Error;
+                }
+                SkipString(rszPointer, "\"", rszPointer);
+            }
         }
-        SkipString(rszPointer, "\"", rszPointer);
-        if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
-         {
-             RIL_LOG_INFO("CTE::ParseCREG() - Could not extract <cid>.\r\n");
-         }
-        SkipString(rszPointer, "\"", rszPointer);
 
-        // Extract ",Act"
+        // Extract ",<Act>"
         if (SkipString(rszPointer, ",", rszPointer))
         {
             if (!ExtractUInt32(rszPointer, uiAct, rszPointer))
@@ -7136,26 +7144,31 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
     if (SkipString(rszPointer, ",", rszPointer))
     {
         // Extract "<lac>"
-        SkipString(rszPointer, "\"", rszPointer);
-        if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
+        if (SkipString(rszPointer, "\"", rszPointer))
         {
-            RIL_LOG_INFO("CTE::ParseCGREG() - Could not extract <lac>.\r\n");
+            if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
+            {
+                RIL_LOG_INFO("CTE::ParseCGREG() - Could not extract <lac>.\r\n");
+                goto Error;
+            }
+            SkipString(rszPointer, "\"", rszPointer);
         }
-        SkipString(rszPointer, "\"", rszPointer);
 
         // Extract ",<cid>"
-        if (!SkipString(rszPointer, ",", rszPointer))
+        if (SkipString(rszPointer, ",", rszPointer))
         {
-            RIL_LOG_INFO("CTE::ParseCGREG() - Could not extract \",<cid>\".\r\n");
+            if (SkipString(rszPointer, "\"", rszPointer))
+            {
+                if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
+                {
+                    RIL_LOG_INFO("CTE::ParseCGREG() - Could not extract <cid>.\r\n");
+                    goto Error;
+                }
+                SkipString(rszPointer, "\"", rszPointer);
+            }
         }
-        SkipString(rszPointer, "\"", rszPointer);
-        if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
-         {
-             RIL_LOG_INFO("CTE::ParseCGREG() - Could not extract <cid>.\r\n");
-         }
-        SkipString(rszPointer, "\"", rszPointer);
 
-        // Extract ",Act"
+        // Extract ",<Act>"
         if (SkipString(rszPointer, ",", rszPointer))
         {
             if (!ExtractUInt32(rszPointer, uiAct, rszPointer))
@@ -7168,42 +7181,40 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
              * technology values.
              */
             rtAct = MapAccessTechnology(uiAct);
+        }
 
-            // Extract ","
-            if (!SkipString(rszPointer, ",", rszPointer))
+        // Extract ",<rac>"
+        if (SkipString(rszPointer, ",", rszPointer))
+        {
+            if (SkipString(rszPointer, "\"", rszPointer))
             {
-                RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not extract ,<rac>.\r\n");
-                goto Error;
-            }
-
-            // Extract "<rac>"
-            SkipString(rszPointer, "\"", rszPointer);
-            if (!ExtractHexUInt32(rszPointer, uiRAC, rszPointer))
-            {
-                RIL_LOG_INFO("CTE::ParseCGREG() - Could not extract \",<rac>\".\r\n");
-            }
-
-            SkipString(rszPointer, "\"", rszPointer);
-
-            // Extract ",cause_type and reject_cause" only if registration status is denied
-            if (E_REGISTRATION_DENIED == uiStatus)
-            {
-                if (SkipString(rszPointer, ",", rszPointer))
+                if (!ExtractHexUInt32(rszPointer, uiRAC, rszPointer))
                 {
-                    if (!ExtractUInt32(rszPointer, uiCauseType, rszPointer))
-                    {
-                        RIL_LOG_CRITICAL("CTE::ParseCGREG() - "
-                                "Could not extract <cause_type>.\r\n");
-                        goto Error;
-                    }
+                    RIL_LOG_INFO("CTE::ParseCGREG() - Could not extract \",<rac>\".\r\n");
+                    goto Error;
+                }
+                SkipString(rszPointer, "\"", rszPointer);
+            }
+        }
 
-                    if (!SkipString(rszPointer, ",", rszPointer)
-                            || !ExtractUInt32(rszPointer, uiRejectCause, rszPointer))
-                    {
-                        RIL_LOG_CRITICAL("CTE::ParseCGREG() - "
-                                "Could not extract <reject_cause>.\r\n");
-                        goto Error;
-                    }
+        // Extract ",cause_type and reject_cause" only if registration status is denied
+        if (E_REGISTRATION_DENIED == uiStatus)
+        {
+            if (SkipString(rszPointer, ",", rszPointer))
+            {
+                if (!ExtractUInt32(rszPointer, uiCauseType, rszPointer))
+                {
+                    RIL_LOG_CRITICAL("CTE::ParseCGREG() - "
+                            "Could not extract <cause_type>.\r\n");
+                    goto Error;
+                }
+
+                if (!SkipString(rszPointer, ",", rszPointer)
+                        || !ExtractUInt32(rszPointer, uiRejectCause, rszPointer))
+                {
+                    RIL_LOG_CRITICAL("CTE::ParseCGREG() - "
+                            "Could not extract <reject_cause>.\r\n");
+                    goto Error;
                 }
             }
         }
@@ -7323,53 +7334,69 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
     if (SkipString(rszPointer, ",", rszPointer))
     {
         // Extract "<lac>"
-        SkipString(rszPointer, "\"", rszPointer);
-        if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
+        if (SkipString(rszPointer, "\"", rszPointer))
         {
-            RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <lac>.\r\n");
+            if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
+            {
+                RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <lac>.\r\n");
+                goto Error;
+            }
+            SkipString(rszPointer, "\"", rszPointer);
         }
-        SkipString(rszPointer, "\"", rszPointer);
 
         // Extract ",<cid>"
-        if (!SkipString(rszPointer, ",", rszPointer))
-        {
-            RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not extract \",<cid>\".\r\n");
-            goto Error;
-        }
-        SkipString(rszPointer, "\"", rszPointer);
-        if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
-         {
-             RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <cid>.\r\n");
-         }
-        SkipString(rszPointer, "\"", rszPointer);
-
-        // Extract "rac, cause_type and reject_cause"
         if (SkipString(rszPointer, ",", rszPointer))
         {
-            if (!ExtractUInt32(rszPointer, uiRAC, rszPointer))
+            if (SkipString(rszPointer, "\"", rszPointer))
+            {
+                if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
+                {
+                    RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <cid>.\r\n");
+                    goto Error;
+                }
+                SkipString(rszPointer, "\"", rszPointer);
+            }
+        }
+
+        // Extract ",<rac>"
+        if (SkipString(rszPointer, ",", rszPointer))
+        {
+            // Currently, <rac> is an integer type but may be a string type (hexidecimal)
+            // for future releases.
+            if (SkipString(rszPointer, "\"", rszPointer))
+            {
+                if (!ExtractHexUInt32(rszPointer, uiRAC, rszPointer))
+                {
+                    RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <rac> (hexadecimal).\r\n");
+                    goto Error;
+                }
+                SkipString(rszPointer, "\"", rszPointer);
+            }
+            else if (!ExtractUInt32(rszPointer, uiRAC, rszPointer))
             {
                 RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <rac>.\r\n");
+                goto Error;
             }
+        }
 
-            // Extract ",cause_type and reject_cause" only if registration status is denied
-            if (E_REGISTRATION_DENIED == uiStatus)
+        // Extract ",cause_type and reject_cause" only if registration status is denied
+        if (E_REGISTRATION_DENIED == uiStatus)
+        {
+            if (SkipString(rszPointer, ",", rszPointer))
             {
-                if (SkipString(rszPointer, ",", rszPointer))
+                if (!ExtractUInt32(rszPointer, uiCauseType, rszPointer))
                 {
-                    if (!ExtractUInt32(rszPointer, uiCauseType, rszPointer))
-                    {
-                        RIL_LOG_CRITICAL("CTE::ParseXREG() - "
-                                "Could not extract <cause_type>.\r\n");
-                        goto Error;
-                    }
+                    RIL_LOG_CRITICAL("CTE::ParseXREG() - "
+                            "Could not extract <cause_type>.\r\n");
+                    goto Error;
+                }
 
-                    if (!SkipString(rszPointer, ",", rszPointer)
-                            || !ExtractUInt32(rszPointer, uiRejectCause, rszPointer))
-                    {
-                        RIL_LOG_CRITICAL("CTE::ParseXREG() - "
-                                "Could not extract <reject_cause>.\r\n");
-                        goto Error;
-                    }
+                if (!SkipString(rszPointer, ",", rszPointer)
+                        || !ExtractUInt32(rszPointer, uiRejectCause, rszPointer))
+                {
+                    RIL_LOG_CRITICAL("CTE::ParseXREG() - "
+                            "Could not extract <reject_cause>.\r\n");
+                    goto Error;
                 }
             }
         }
@@ -7461,26 +7488,29 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
     if (SkipString(rszPointer, ",", rszPointer))
     {
         //  Parse <tac>
-        SkipString(rszPointer, "\"", rszPointer);
-        if (!ExtractHexUInt32(rszPointer, uiTac, rszPointer))
+        if (SkipString(rszPointer, "\"", rszPointer))
         {
-            RIL_LOG_INFO("CTE::ParseCEREG() - Could not extract <tac>\r\n");
+            if (!ExtractHexUInt32(rszPointer, uiTac, rszPointer))
+            {
+                RIL_LOG_INFO("CTE::ParseCEREG() - Could not extract <tac>\r\n");
+                goto Error;
+            }
+            SkipString(rszPointer, "\"", rszPointer);
         }
-        SkipString(rszPointer, "\"", rszPointer);
 
         // Extract ",<cid>"
-        if (!SkipString(rszPointer, ",", rszPointer))
+        if (SkipString(rszPointer, ",", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not extract \",<cid>\".\r\n");
-            goto Error;
+            if (SkipString(rszPointer, "\"", rszPointer))
+            {
+                if (!ExtractHexUInt32(rszPointer, uiCid, rszPointer))
+                {
+                    RIL_LOG_INFO("CTE::ParseCEREG() - Could not extract <cid>.\r\n");
+                    goto Error;
+                }
+                SkipString(rszPointer, "\"", rszPointer);
+            }
         }
-        SkipString(rszPointer, "\"", rszPointer);
-
-        if (!ExtractHexUInt32(rszPointer, uiCid, rszPointer))
-        {
-            RIL_LOG_INFO("CTE::ParseCEREG() - Could not extract <cid>.\r\n");
-        }
-        SkipString(rszPointer, "\"", rszPointer);
     }
 
     // Do we have more to parse?
@@ -8266,6 +8296,60 @@ BOOL CTE::TestAndSetDataCleanupStatus(BOOL bCleanupStatus)
 RIL_RESULT_CODE CTE::ParseSilentPinEntry(RESPONSE_DATA& rRspData)
 {
     return m_pTEBaseInstance->ParseSilentPinEntry(rRspData);
+}
+
+//
+// Create Extended Error Report request (called internally)
+//
+BOOL CTE::RequestQueryNEER(UINT32 uiChannel, RIL_Token rilToken, UINT32 uiReqId)
+{
+    RIL_LOG_VERBOSE("CTE::RequestQueryNEER() Enter\r\n");
+
+    BOOL bRet = FALSE;
+    REQUEST_DATA reqData;
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    if (!m_pTEBaseInstance->CreateQueryNEER(reqData))
+    {
+        RIL_LOG_CRITICAL("CTE::RequestQueryNEER() -Unable to create AT command data\r\n");
+        goto Error;
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
+                &CTE::ParseQueryNEER);
+        if (pCmd)
+        {
+            pCmd->SetHighPriority();
+
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestQueryNEER() -Unable to add command to queue\r\n");
+                delete pCmd;
+                pCmd = NULL;
+                goto Error;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestQueryNEER() - Unable to allocate memory "
+                    "for command\r\n");
+            goto Error;
+        }
+    }
+
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CTE::RequestQueryNEER() - Exit\r\n");
+    return bRet;
+}
+
+RIL_RESULT_CODE CTE::ParseQueryNEER(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseQueryNEER() - Enter / Exit\r\n");
+    return m_pTEBaseInstance->ParseQueryNEER(rRspData);
 }
 
 RIL_RESULT_CODE CTE::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData)
@@ -9425,6 +9509,43 @@ void CTE::PostFacilityLockRetryCount(POST_CMD_HANDLER_DATA& rData)
                                 (void*) &noOfRetries, sizeof(noOfRetries));
     }
     RIL_LOG_VERBOSE("CTE::PostFacilityLockRetryCount() Exit\r\n");
+}
+
+void CTE::PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostSetNetworkSelectionCmdHandler() Enter\r\n");
+
+    if (NULL == rData.pRilToken)
+    {
+        RIL_LOG_CRITICAL("CTE::PostSetNetworkSelectionCmdHandler() rData.pRilToken NULL!\r\n");
+        return;
+    }
+
+    // No need to handle ILLEGAL_SIM_OR_ME here since it is already handled in
+    // CResponse::RetrieveErrorCode
+    if (RIL_E_SUCCESS != rData.uiResultCode &&
+            RIL_E_ILLEGAL_SIM_OR_ME != rData.uiResultCode)
+    {
+        switch (rData.uiErrorCode)
+        {
+            case CME_ERROR_UKNOWN_ERROR: // 100
+            case CME_ERROR_UNSPECIFIED_GPRS_ERROR: // 148
+
+                // send +NEER command to get more info
+                if (!RequestQueryNEER(rData.uiChannel, rData.pRilToken, rData.uiRequestId))
+                {
+                    RIL_LOG_CRITICAL("CTE::PostSetNetworkSelectionCmdHandler() -"
+                            " RequestQueryNEER failed\r\n");
+                    return;
+                }
+                break;
+        }
+    }
+
+    RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                                                rData.pData, rData.uiDataSize);
+
+    RIL_LOG_VERBOSE("CTE::PostSetNetworkSelectionCmdHandler() Exit\r\n");
 }
 
 int CTE::GetActiveDataCallInfoList(P_ND_PDP_CONTEXT_DATA pPDPListData)

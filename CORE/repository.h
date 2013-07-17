@@ -77,7 +77,9 @@ extern const char   g_szNetworkInterfaceNamePrefix[];
 extern const char   g_szMTU[];
 extern const char   g_szEnableCellInfo[];
 extern const char   g_szEnableModemOffInFlightMode[];
+#if defined(CONFIGURE_3GDIV_DARP_IN_RIL)
 extern const char   g_szRxDiversity2GDARP[];
+#endif // CONFIGURE_3GDIV_DARP_IN_RIL
 extern const char   g_szFDDelayTimer[];
 extern const char   g_szSCRITimer[];
 extern const char   g_szFDMode[];
@@ -89,6 +91,8 @@ extern const char   g_szStkCapable[];
 extern const char   g_szEnableXDATASTATURC[];
 extern const char   g_szIMSCapable[];
 extern const char   g_szEnableSMSOverIP[];
+extern const char   g_szSupportCGPIAF[];
+extern const char   g_szImeiBlackList[];
 
 // used by 6360 and 7160 modems.
 extern const char   g_szModemResourceName[];

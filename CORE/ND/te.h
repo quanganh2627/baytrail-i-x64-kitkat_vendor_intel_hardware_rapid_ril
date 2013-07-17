@@ -726,6 +726,9 @@ public:
     void SetSMSOverIPCapable(BOOL bEnable) { m_bSMSOverIPCapable = bEnable; }
     BOOL IsSMSOverIPCapable() { return m_bSMSOverIPCapable; }
 
+    void SetSupportCGPIAF(BOOL bSupportCGPIAF) { m_bSupportCGPIAF =  bSupportCGPIAF; }
+    BOOL IsSupportCGPIAF() { return m_bSupportCGPIAF; }
+
     void SaveCEER(const char* pszData);
     const char* GetLastCEER() { return m_szLastCEER; }
 
@@ -775,6 +778,13 @@ public:
                                             UINT32 uiReqId = 0,
                                             PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn = NULL);
     RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
+
+    /*
+     * Create request for Extended Error Report for Location Update Reject
+     * during CS registration (called internally)
+     */
+    BOOL RequestQueryNEER(UINT32 uiChannel, RIL_Token rilToken, UINT32 uiReqId);
+    RIL_RESULT_CODE ParseQueryNEER(RESPONSE_DATA& rRspData);
 
     /*
      * Post Command handler function for valid ril requests and also for internal requests.
@@ -1018,6 +1028,15 @@ public:
     void PostGetCellInfoList(POST_CMD_HANDLER_DATA& rData);
 
     /*
+     *
+     * Post Command handler function for the RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC
+     * and RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL requests.
+     *
+     * Upon success/failure, completes the request
+     */
+    void PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
      * Gets the list of active data calls.
      *
      * pPDPListData - Contains the list of active data calls
@@ -1186,6 +1205,7 @@ private:
     BOOL m_bXDATASTATEnabled;
     BOOL m_bIMSCapable;
     BOOL m_bSMSOverIPCapable;
+    BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
 
     // Timeouts (in milliseconds)
     static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;

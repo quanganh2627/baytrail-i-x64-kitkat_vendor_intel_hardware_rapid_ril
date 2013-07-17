@@ -403,6 +403,11 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetSMSOverIPCapable(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szSupportCGPIAF, iTemp))
+    {
+        CTE::GetTE().SetSupportCGPIAF(iTemp == 1 ? TRUE : FALSE);
+    }
+
     // set system capabilities
     pSysCaps.SetSmsCapable(CTE::GetTE().IsSmsOverCSCapable()
             || CTE::GetTE().IsSmsOverPSCapable());

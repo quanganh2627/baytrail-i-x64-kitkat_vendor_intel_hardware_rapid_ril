@@ -259,6 +259,8 @@ public:
     virtual RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);
 
 protected:
+    virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);
 
     virtual const char* GetRegistrationInitString();
     virtual const char* GetPsRegistrationReadString();
@@ -298,9 +300,6 @@ private:
     RIL_RESULT_CODE ParseCGSMS(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseXRFCBT(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE HandleSendAtResponse(const char* pszRsp, RESPONSE_DATA& rRspData);
-    // internal response handlers
-    RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
-    RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);
 
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
     RIL_RESULT_CODE ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRspData);

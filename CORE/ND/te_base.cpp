@@ -4175,6 +4175,9 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA& rRspData)
         }
     }
 
+    // check for default flashed IMEI
+    CheckImeiBlacklist(szIMEI);
+
 Error:
     if (RRIL_RESULT_OK != res)
     {
@@ -4976,10 +4979,14 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionAutomatic(REQUEST_DATA& rReqData
     RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionAutomatic() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS=0\r"))
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS=0\r"))
     {
-        res = RRIL_RESULT_OK;
+        RIL_LOG_CRITICAL("CTEBase::CoreSetNetworkSelectionAutomatic() - Failed to write command "
+                "to buffer!\r\n");
+        goto Error;
     }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionAutomatic() - Exit\r\n");
@@ -5045,11 +5052,15 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionManual(REQUEST_DATA& rReqData,
     rReqData.pContextData = (void*)pTemp;
 
     //  Send AT command
-    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
             "AT+COPS=1,2,\"%s\"\r", pszNumeric))
     {
-        res = RRIL_RESULT_OK;
+        RIL_LOG_CRITICAL("CTEBase::CoreSetNetworkSelectionManual() - Failed to write command "
+                "to buffer!\r\n");
+        goto Error;
     }
+
+    res = RRIL_RESULT_OK;
 
 Error:
     if (res != RRIL_RESULT_OK)
@@ -9687,6 +9698,54 @@ Error:
 }
 
 //
+// Create CEER command string (called internally)
+//
+BOOL CTEBase::CreateQueryCEER(REQUEST_DATA& rReqData)
+{
+    RIL_LOG_VERBOSE("CTEBase::CreateQueryCEER() - Enter\r\n");
+    BOOL bRet = FALSE;
+
+    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CEER\r", sizeof(rReqData.szCmd1)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CreateQueryCEER() - Cannot create NEER command\r\n");
+        goto Error;
+    }
+
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::CreateQueryCEER() - Exit\r\n");
+    return bRet;
+}
+
+//
+// Parse response to CEER command (called internally)
+//
+RIL_RESULT_CODE CTEBase::ParseQueryCEER(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryCEER() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    UINT32 uiCause = 0;
+
+    if (ParseCEER(rRspData, uiCause))
+    {
+        RIL_LOG_INFO("CTEBase::ParseQueryCEER() - Cause= %d\r\n", uiCause);
+
+        switch (uiCause)
+        {
+            /*
+             * @TODO: Add cases for specific CEER causes and set the appropriate
+             *        result code. If no result code is returned, will default
+             *        to GENERIC_ERROR.
+             */
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryCEER() - Exit\r\n");
+    return res;
+}
+
+//
 // Parse Extended Error Report
 //
 BOOL CTEBase::ParseCEER(RESPONSE_DATA& rRspData, UINT32& rUICause)
@@ -9909,6 +9968,97 @@ RIL_RESULT_CODE CTEBase::ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData)
 
     RIL_LOG_VERBOSE("CTEBase::ParseDeactivateAllDataCalls() - Exit\r\n");
     return RRIL_RESULT_OK;
+}
+
+//
+// Create NEER command string (called internally)
+//
+BOOL CTEBase::CreateQueryNEER(REQUEST_DATA& rReqData)
+{
+    RIL_LOG_VERBOSE("CTEBase::CreateQueryNEER() - Enter\r\n");
+    BOOL bRet = FALSE;
+
+    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+NEER\r", sizeof(rReqData.szCmd1)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CreateQueryNEER() - Cannot create NEER command\r\n");
+        goto Error;
+    }
+
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::CreateQueryNEER() - Exit\r\n");
+    return bRet;
+}
+
+//
+// Parse response to NEER command (called internally)
+//
+RIL_RESULT_CODE CTEBase::ParseQueryNEER(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryNEER() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    UINT32 uiCause = 0;
+
+    if (ParseNEER(rRspData, uiCause))
+    {
+        RIL_LOG_INFO("CTEBase::ParseQueryNEER() - Cause= %d\r\n", uiCause);
+
+        switch (uiCause)
+        {
+            /*
+             * @TODO: Add cases for specific NEER causes and set the appropriate
+             *        result code. If no result code is returned, will default
+             *        to GENERIC_ERROR.
+             */
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryNEER() - Exit\r\n");
+    return res;
+}
+
+//
+// Parse Extended Error Report (called internally)
+//
+BOOL CTEBase::ParseNEER(RESPONSE_DATA& rRspData, UINT32& uiCause)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseNEER() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    const char* pszRsp = rRspData.szResponse;
+    uiCause = 0;
+
+    // Skip "+NEER: "
+    if (!FindAndSkipString(pszRsp, "+NEER: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseNEER() - Could not find +NEER in response.\r\n");
+        goto Error;
+    }
+
+    // Skip string upto "#"
+    if (FindAndSkipString(pszRsp, "#", pszRsp))
+    {
+        if (!ExtractUInt32(pszRsp, uiCause, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseNEER() - Could not extract failure cause.\r\n");
+            goto Error;
+        }
+        RIL_LOG_INFO("CTEBase::ParseNEER() - Cause= %u\r\n", uiCause);
+    }
+
+    // Skip "<postfix>"
+    if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseNEER() - Could not skip response postfix.\r\n");
+        goto Error;
+    }
+
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::ParseNEER() - Exit\r\n");
+    return bRet;
 }
 
 void CTEBase::SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus)
@@ -10681,6 +10831,48 @@ RIL_RESULT_CODE CTEBase::CreateIMSConfigReq(REQUEST_DATA& rReqData,
     RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;
     RIL_LOG_VERBOSE("CTEBase::CreateIMSConfigReq() - Exit\r\n");
     return res;
+}
+
+void CTEBase::CheckImeiBlacklist(char* szImei)
+{
+    CRepository repository;
+    char szImeiBlacklist[MAX_BUFFER_SIZE] = {'\0'};
+
+    if (NULL != szImei && szImei[0] != '\0')
+    {
+        // Read IMEI blacklist from repository
+        if (!repository.Read(g_szGroupModem, g_szImeiBlackList,
+                szImeiBlacklist, MAX_BUFFER_SIZE))
+        {
+            RIL_LOG_INFO("CTEBase::CheckImeiBlacklist() - No IMEI Blacklist found in "
+                    "repository\r\n");
+            return;
+        }
+
+        // Get first IMEI in blacklist
+        char* imei = strtok(szImeiBlacklist, " ");
+
+        while (NULL != imei)
+        {
+            // Compare IMEI with one in the blacklist
+            if (0 == strncmp(imei, szImei, strlen(szImei)))
+            {
+                RIL_LOG_CRITICAL("#############################################################"
+                        "#############\r\n");
+                RIL_LOG_CRITICAL("##                   WARNING  !!!                            "
+                        "           ##\r\n");
+                RIL_LOG_CRITICAL("##  DEFAULT FLASHED IMEI, it may be impossible to camp on "
+                        "live network  ##\r\n");
+                RIL_LOG_CRITICAL("#############################################################"
+                        "#############\r\n");
+
+                return;
+            }
+
+            // Get any other IMEIs
+            imei = strtok(NULL, " ");
+        }
+    }
 }
 
 RIL_RESULT_CODE CTEBase::HandleSetupDefaultPDN(RIL_Token rilToken,

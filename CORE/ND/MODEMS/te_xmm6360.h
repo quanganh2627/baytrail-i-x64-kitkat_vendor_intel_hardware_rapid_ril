@@ -37,6 +37,7 @@ private:
 
 public:
     // modem overrides
+    virtual char* GetBasicInitCommands(UINT32 uiChannelType);
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
 
     virtual CInitializer* GetInitializer();
@@ -57,6 +58,8 @@ public:
     virtual RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
 
 protected:
+    virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);
 
     virtual const char* GetRegistrationInitString();
     virtual const char* GetCsRegistrationReadString();

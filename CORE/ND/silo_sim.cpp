@@ -370,9 +370,29 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                         }
                     }
 
-                    //  Send out SIM_REFRESH notification
-                    RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)pSimRefreshResp,
-                                                sizeof(RIL_SimRefreshResponse_v7));
+                    /*
+                     * On SIM REFRESH INIT URC, don't notify Android with UNSOL_STK_EVENT_NOTIFY
+                     * and SIM_REFRESH.  Instead, set SIM state to not ready and trigger framework
+                     * to query SIM status.  Otherwise, SIM records will be read before SIM
+                     * refresh (init) is complete.  After XSIM: 7 is received, SIM_STATUS_CHANGED
+                     * will trigger SIM record fetching.
+                     */
+                    if (SIM_INIT == pSimRefreshResp->result)
+                    {
+                        CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
+
+                        // Trigger framework to query SIM status
+                        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+
+                        // ignore this response (UNSOL_STK_EVENT_NOTIFY)
+                        pResponse->SetUnrecognizedFlag(TRUE);
+                    }
+                    else
+                    {
+                        // Send out SIM_REFRESH notification
+                        RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)pSimRefreshResp,
+                                                    sizeof(RIL_SimRefreshResponse_v7));
+                    }
                 }
                 else
                 {

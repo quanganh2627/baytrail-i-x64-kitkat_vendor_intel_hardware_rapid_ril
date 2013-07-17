@@ -768,7 +768,16 @@ public:
     virtual void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
     virtual UINT32 GetIncomingCallId();
 
+    // Get Extended Error Report (called internally)
+    virtual BOOL CreateQueryCEER(REQUEST_DATA& rReqData);
     virtual BOOL ParseCEER(RESPONSE_DATA& rRspData, UINT32& rUICause);
+    virtual RIL_RESULT_CODE ParseQueryCEER(RESPONSE_DATA& rRspData);
+
+    // Get Extended Error Report for Location Update Reject
+    // during CS registration (called internally)
+    virtual BOOL CreateQueryNEER(REQUEST_DATA& rReqData);
+    virtual RIL_RESULT_CODE ParseQueryNEER(RESPONSE_DATA& rRspData);
+    virtual BOOL ParseNEER(RESPONSE_DATA& rRspData, UINT32& uiCause);
 
     // Manage SIM and Radio states
     virtual RIL_RadioState GetRadioState();
@@ -925,6 +934,9 @@ private:
     INCOMING_CALL_INFO m_IncomingCallInfo;
 
     S_VOICECALL_STATE_INFO m_VoiceCallInfo[RRIL_MAX_CALL_ID_COUNT];
+
+    // helper function to check if IMEI is in blacklist of default IMEIs
+    void CheckImeiBlacklist(char* szImei);
 };
 
 #endif

@@ -55,6 +55,13 @@ LOCAL_SRC_FILES:= \
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli librilutils
 
+# This macro is used to aid in the removal of 3G and DARP modem
+# configurations in RRIL. It will be kept enabled and later removed, with
+# accompanying code when other modifications are ready. This macro is also
+# set in /UTIL/ND/Android.mk
+ifeq ($(strip $(CONFIGURE_3GDIV_DARP_IN_RIL)),true)
+LOCAL_CFLAGS += -DCONFIGURE_3GDIV_DARP_IN_RIL
+endif
 
 # Activating this macro enables the optional Video Telephony feature
 ifeq ($(strip $(M2_VT_FEATURE_ENABLED)),true)
