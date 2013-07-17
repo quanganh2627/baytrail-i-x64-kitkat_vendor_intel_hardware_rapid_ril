@@ -106,6 +106,7 @@ public:
     BOOL IsInternalRequestsAllowedInRadioOff(UINT32 uiRilRequestId);
     BOOL IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
             BOOL bIsInitCommand, int callId = 0);
+    BOOL IsModemPowerOffRequest(int requestId, void* pData, size_t uiDataSize);
 
     // Calls FindIdenticalRequestsAndSendResponses on the given channel
     static void CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID, UINT32 uiResultCode,
@@ -753,16 +754,12 @@ public:
     // This function will return true if sys.shutdown.requested is set to 0 or 1
     BOOL IsPlatformShutDownRequested();
 
-    /*
-     * This function will return true if sys.shutdown.requested is set to 0 or 1 and
-     * m_RadioOffReason is E_RADIO_OFF_REASON_SHUTDOWN. m_RadioOffReason is set to
-     * if the RIL_REQUEST_RADIO_POWER request is for platform shutdown.
-     */
-    BOOL IsPlatformShutDownOngoing();
-
     BOOL IsRadioRequestPending() { return m_bRadioRequestPending; }
     int GetRequestedRadioPower() { return m_RequestedRadioPower; }
+
     int GetRadioOffReason() { return m_RadioOffReason; }
+    void SetRadioOffReason(int reason) { m_RadioOffReason = reason; }
+
     CEvent* GetRadioStateChangedEvent() { return m_pRadioStateChangedEvent; }
 
     // Resets all the internal states to default values
@@ -949,6 +946,17 @@ public:
      *               Also, DTMF state is updated.
      */
     void PostDtmfStop(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * Post Command handler function for the RIL_REQUEST_OEM_HOOK_STRINGS request.
+     *
+     * If the request is to power off the modem, then modem shutdown
+     * request will be sent to MMGR and will wait for modem powered off event
+     * to complete the request.
+     *
+     * For all other requests, request is completed.
+     */
+    void PostHookStrings(POST_CMD_HANDLER_DATA& rData);
 
     /*
      * Post Command handler function for the RIL_REQUEST_WRITE_SMS_TO_SIM request.

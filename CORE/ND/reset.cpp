@@ -114,7 +114,7 @@ void ModemResetUpdate()
 //  Alert MMGR to attempt a clean-up.
 void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszFileName)
 {
-    if (CTE::GetTE().IsPlatformShutDownOngoing())
+    if (CTE::GetTE().IsPlatformShutDownRequested())
     {
         RIL_LOG_INFO("do_request_clean_up() - "
                 "Ignore modem recovery request in platform shutdown\r\n");
@@ -362,7 +362,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 }
 
                 // Retrieve the shutdown property
-                if (CTE::GetTE().IsPlatformShutDownOngoing())
+                if (CTE::GetTE().IsPlatformShutDownRequested())
                 {
                     RIL_LOG_INFO("E_MMGR_EVENT_MODEM_DOWN due to PLATFORM_SHUTDOWN\r\n");
 
