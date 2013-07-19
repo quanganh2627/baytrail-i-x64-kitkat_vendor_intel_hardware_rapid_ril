@@ -2349,6 +2349,33 @@ Error:
     }
     else
     {
+        /*
+         * Timeout waiting for modem power on and initialization means
+         * that there is no change in radio state neither in rapid ril nor
+         * in android framework side. Since the requested radio state is
+         * not yet reached, device will remain in not registered state.
+         * In order to recover from this state, framework should be informed
+         * that the requested radio state is not yet reached. This can be
+         * done only by notifying the framework of radio state different
+         * from the current state. So, set the radio state to unavailable and
+         * notify the framework of the radio state change. Framework doesn't
+         * take any actions on radio unavailable state. In order to force
+         * the framework to take any action , set the radio state to off and
+         * notify it after 1seconds. This will force the framework to trigger
+         * RADIO_POWER request again with the desired power state.
+         *
+         * e.g.: Time out Sequence is described as follows:
+         *     RADIO_POWER ON request from framework.
+         *     Acquire modem resource.
+         *     Timeout waiting for MODEM_UP and initialization.
+         *     RADIO_POWER ON request completed.
+         *     SetRadioState to RADIO_UNAVAILABLE and notify framework.
+         *     After 1second, set radio state to RADIO_OFF and notify framework.
+         *     Framework will trigger RADIO_POWER ON request again
+         */
+        SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
+        RIL_requestTimedCallback(triggerRadioOffInd, NULL, 1, 0);
+
         if (IsRestrictedMode())
         {
             int mode = RIL_RESTRICTED_STATE_CS_ALL | RIL_RESTRICTED_STATE_PS_ALL;
@@ -2531,6 +2558,8 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     CChannel_Data* pChannelData = NULL;
     int retryTime = -1;
 
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
     if (NULL == pData)
     {
         RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() - Data pointer is NULL.\r\n");
@@ -2556,7 +2585,6 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         return RRIL_RESULT_OK;
     }
 
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
     if (IsEPSRegistered())
     {
         pChannelData = CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
@@ -7486,13 +7514,13 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
                         || E_DATA_STATE_ACTIVE == dataState)
                 {
                     RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - Default PDN ready\r\n");
-                    strncpy(psRegStatus->szStat, m_sPSStatus.szStat, sizeof(psRegStatus->szStat));
+                    strncpy(psRegStatus->szStat, m_sEPSStatus.szStat, sizeof(psRegStatus->szStat));
                     // TAC is mapped to LAC
-                    strncpy(psRegStatus->szLAC, m_sPSStatus.szLAC, sizeof(psRegStatus->szLAC));
-                    strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
-                    strncpy(psRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
+                    strncpy(psRegStatus->szLAC, m_sEPSStatus.szLAC, sizeof(psRegStatus->szLAC));
+                    strncpy(psRegStatus->szCID, m_sEPSStatus.szCID, sizeof(psRegStatus->szCID));
+                    strncpy(psRegStatus->szNetworkType, m_sEPSStatus.szNetworkType,
                             sizeof(psRegStatus->szNetworkType));
-                    strncpy(psRegStatus->szReasonDenied, m_sPSStatus.szReasonDenied,
+                    strncpy(psRegStatus->szReasonDenied, m_sEPSStatus.szReasonDenied,
                             sizeof(psRegStatus->szReasonDenied));
                 }
             }
@@ -8131,7 +8159,7 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
 
                 cardStatus.num_applications = 1;
 
-                cardStatus.applications[0].app_type = RIL_APPTYPE_SIM;
+                cardStatus.applications[0].app_type = RIL_APPTYPE_UNKNOWN;
                 cardStatus.applications[0].app_state = RIL_APPSTATE_DETECTED;
                 cardStatus.applications[0].perso_substate =
                                                     RIL_PERSOSUBSTATE_UNKNOWN;
@@ -8526,11 +8554,6 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
      */
     CleanupAllDataConnections();
 
-    if (NULL != m_pRadioStateChangedEvent)
-    {
-        CEvent::Signal(m_pRadioStateChangedEvent);
-    }
-
     if (RADIO_POWER_ON == m_RequestedRadioPower)
     {
         // Send request to SetPreferredNetworkType if previously received before radio power on
@@ -8572,6 +8595,11 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
                 CSystemManager::GetInstance().ReleaseModem();
             }
         }
+    }
+
+    if (NULL != m_pRadioStateChangedEvent)
+    {
+        CEvent::Signal(m_pRadioStateChangedEvent);
     }
 
     RIL_LOG_VERBOSE("CTE::PostRadioPower() Exit\r\n");
@@ -9656,4 +9684,3 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
 Error:
     return res;
 }
-

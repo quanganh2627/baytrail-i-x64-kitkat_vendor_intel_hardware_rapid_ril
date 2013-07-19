@@ -2351,33 +2351,6 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
             RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - Timeout Waiting for"
                     "modem initialization completion event\r\n");
 
-            /*
-             * Timeout waiting for modem power on and initialization means
-             * that there is no change in radio state neither in rapid ril nor
-             * in android framework side. Since the requested radio state is
-             * not yet reached, device will remain in not registered state.
-             * In order to recover from this state, framework should be informed
-             * that the requested radio state is not yet reached. This can be
-             * done only by notifying the framework of radio state different
-             * from the current state. So, set the radio state to unavailable and
-             * notify the framework of the radio state change. Framework doesn't
-             * take any actions on radio unavailable state. In order to force
-             * the framework to take any action , set the radio state to off and
-             * notify it after 1seconds. This will force the framework to trigger
-             * RADIO_POWER request again with the desired power state.
-             *
-             * e.g.: Time out Sequence is described as follows:
-             *     RADIO_POWER ON request from framework.
-             *     Acquire modem resource.
-             *     Timeout waiting for MODEM_UP and initialiation.
-             *     RADIO_POWER ON request completed.
-             *     SetRadioState to RADIO_UNAVAILABLE and notify framework.
-             *     After 1second, set radio state to RADIO_OFF and notify framework.
-             *     Framework will trigger RADIO_POWER ON request again
-             */
-            SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
-            RIL_requestTimedCallback(triggerRadioOffInd, NULL, 1, 0);
-
             res = RRIL_RESULT_ERROR;
             goto Error;
         }
@@ -10378,4 +10351,11 @@ void CTEBase::HandleInternalDtmfStopReq()
 {
     RIL_LOG_VERBOSE("CTEBase::HandleInternalDtmfStopReq() - Enter/Exit\r\n");
     // should be derived in modem specific class
+}
+
+RIL_RESULT_CODE CTEBase::CreateSetDefaultApnReq(REQUEST_DATA& rReqData,
+        const char** ppszRequest, const int nNumStrings)
+{
+    RIL_LOG_VERBOSE("CTEBase::CreateSetDefaultApnReq() - Enter/Exit\r\n");
+    return RRIL_RESULT_NOTSUPPORTED;
 }

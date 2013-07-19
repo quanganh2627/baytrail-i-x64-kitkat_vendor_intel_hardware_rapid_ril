@@ -574,11 +574,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     char szFDDelayTimer[MAX_BUFFER_SIZE] = {0};
     char szSCRITimer[MAX_BUFFER_SIZE] = {0};
 
-    // Data for custom APN
-    char szAPNCmdString[MAX_BUFFER_SIZE] = {0};
-    char szCustomAPNName[MAX_PARAM_LENGTH] = {0};
-    char szCustomAPNType[MAX_PDP_TYPE_SIZE] = {0};
-
     szInit = new char[szInitLen];
     if (!szInit)
     {
@@ -789,56 +784,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             goto Done;
         }
 
-        // Add custom APN in first modem init command, if any
-        if (repository.Read(g_szGroupModem, g_szCustomAPNType,
-                            szCustomAPNType, MAX_PDP_TYPE_SIZE))
-        {
-            // Check PDP type validity
-            if ((0 != strcmp(szCustomAPNType, "IP"))
-             && (0 != strcmp(szCustomAPNType, "IPV6"))
-             && (0 != strcmp(szCustomAPNType, "IPV4V6")))
-            {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : "
-                            "Wrong CustomAPNType, should be included in {IP,IPV6,IPV4V6}\r\n");
-            }
-            else
-            {
-                // Read APN name, could be empty string
-                if (!repository.Read(g_szGroupModem, g_szCustomAPNName,
-                                     szCustomAPNName, MAX_PARAM_LENGTH))
-                    szCustomAPNName[0] = '\0';
-
-                if (PrintStringNullTerminate(szAPNCmdString,
-                                      sizeof(szAPNCmdString),
-                                      "+CGDCONT=1,\"%s\",\"%s\"",
-                                      szCustomAPNType, szCustomAPNName))
-                {
-                    if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
-                    {
-                        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                                "Concat | failed\r\n");
-                        goto Done;
-                    }
-                    if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szAPNCmdString))
-                    {
-                        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                                "Concat CustomAPN failed\r\n");
-                        goto Done;
-                    }
-                }
-                else
-                {
-                    RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : "
-                                "Fail to create APN Cmd\r\n");
-                }
-            }
-        }
-        else
-        {
-            RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : "
-                            "CustomAPNType not found\r\n");
-        }
-
 #if defined(M2_VT_FEATURE_ENABLED)
         // for Video Telephony, set the the data path, depending on RIL instance
         //  If sim id == 0 or if sim id is not provided by RILD
@@ -893,23 +838,22 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             {
                 RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
                         " Concat | failed\r\n");
-                goto Done;
+                bSuccess = FALSE;
             }
-
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, pInitCommands))
+            else if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, pInitCommands))
             {
                 RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concatenate"
                         " TE specific init commands failed\r\n");
                 bSuccess = FALSE;
             }
+        }
 
-            free(pInitCommands);
-            pInitCommands = NULL;
+        free(pInitCommands);
+        pInitCommands = NULL;
 
-            if (!bSuccess)
-            {
-                goto Done;
-            }
+        if (!bSuccess)
+        {
+            goto Done;
         }
     }
 

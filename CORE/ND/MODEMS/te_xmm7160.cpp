@@ -1055,3 +1055,31 @@ RIL_RESULT_CODE CTE_XMM7160::ParseSetBandMode(RESPONSE_DATA & rRspData)
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseSetBandMode() - Exit\r\n");
     return res;
 }
+
+RIL_RESULT_CODE CTE_XMM7160::CreateSetDefaultApnReq(REQUEST_DATA& rReqData,
+        const char** pszRequest, const int numStrings)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateSetDefaultApnReq() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (numStrings != 3)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateSetDefaultApnReq() :"
+                " received_size != required_size\r\n");
+        return res;
+    }
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+CGDCONT=1,\"%s\",\"%s\"\r", pszRequest[2], pszRequest[1]))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateSetDefaultApnReq() - "
+                "Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateSetDefaultApnReq() - Exit\r\n");
+    return res;
+}

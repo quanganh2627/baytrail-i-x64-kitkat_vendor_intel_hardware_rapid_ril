@@ -830,6 +830,9 @@ public:
             const char** pszRequest,
             const int nNumStrings);
 
+    virtual RIL_RESULT_CODE CreateSetDefaultApnReq(REQUEST_DATA& rReqData,
+            const char** pszRequest, const int nNumStrings);
+
     /*
      * Sends CGACT=0 or CGATT=0 based on the conformance property.
      * This function is called before sending manual network scan.

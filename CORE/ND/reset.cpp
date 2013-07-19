@@ -164,9 +164,90 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void* CloseChannelPortsThreadProc(void* pParameter)
+{
+    RIL_LOG_INFO("CloseChannelPortsThreadProc() - Enter\r\n");
+
+    int* pMmgrEvent = (int*) pParameter;
+
+    CSystemManager::GetInstance().CloseChannelPorts();
+
+    if (NULL != pMmgrEvent)
+    {
+        switch (*pMmgrEvent)
+        {
+            case E_MMGR_NOTIFY_MODEM_SHUTDOWN:
+                CSystemManager::GetInstance().SendAckModemShutdown();
+                break;
+
+            case E_MMGR_NOTIFY_MODEM_COLD_RESET:
+                CSystemManager::GetInstance().SendAckModemColdReset();
+                break;
+
+            default:
+                // Do nothing
+                break;
+        }
+
+        delete pMmgrEvent;
+        pMmgrEvent = NULL;
+    }
+
+    RIL_LOG_INFO("CloseChannelPortsThreadProc() - EXIT\r\n");
+    return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void LaunchCloseChannelPortsThread(int mmgrEvent)
+{
+    CThread* pCloseChannelPortsThread = NULL;
+    BOOL bError = TRUE;
+    int* pMmgrEvent = new int;
+
+    if (NULL == pMmgrEvent)
+    {
+        RIL_LOG_CRITICAL("LaunchCloseChannelPortsThread() - pMmgrEvent is NULL\r\n");
+        goto Error;
+    }
+
+    *pMmgrEvent = mmgrEvent;
+
+    pCloseChannelPortsThread = new CThread(CloseChannelPortsThreadProc, pMmgrEvent,
+            THREAD_FLAGS_NONE, 0);
+    if (NULL == pCloseChannelPortsThread)
+    {
+        RIL_LOG_CRITICAL("LaunchCloseChannelPortsThread() -"
+                "pCloseChannelPortsThread is NULL\r\n");
+        goto Error;
+    }
+
+    bError = FALSE;
+
+    delete pCloseChannelPortsThread;
+    pCloseChannelPortsThread = NULL;
+
+Error:
+
+    if (bError)
+    {
+        delete pMmgrEvent;
+        pMmgrEvent = NULL;
+
+        RIL_LOG_INFO("LaunchCloseChannelPortsThread() - CALLING EXIT\r\n");
+        //  let's exit, init will restart us
+        CSystemManager::Destroy();
+        exit(0);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void* ContinueInitThreadProc(void* pVoid)
 {
     RIL_LOG_VERBOSE("ContinueInitThreadProc() - Enter\r\n");
+
+    CSystemManager::GetInstance().ResetChannelInfo();
 
     //  turn off spoof
     CTE::GetTE().SetSpoofCommandsStatus(FALSE);
@@ -195,6 +276,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
     CThread* pContinueInitThread = NULL;
     int receivedModemEvent = (int) param->id;
     const int SLEEP_MS = 10000;
+    int retValue = 0;
 
     //  Store the previous modem's state.  Only handle the toggle of the modem state.
     int previousModemState = CTE::GetTE().GetLastModemEvent();
@@ -231,8 +313,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                          */
                         CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
                     }
-
-                    CSystemManager::GetInstance().ResetChannelInfo();
                 }
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
@@ -297,9 +377,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     ModemResetUpdate();
 
                     CTE::GetTE().ResetInternalStates();
-
-                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
                 // Retrieve the shutdown property
@@ -365,12 +442,12 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     ModemResetUpdate();
 
                     CTE::GetTE().ResetInternalStates();
-
-                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
 
-                CSystemManager::GetInstance().SendAckModemColdReset();
+                // Set to -1. This will force the client library not to send ACK to mmgr
+                retValue = -1;
+
+                LaunchCloseChannelPortsThread(receivedModemEvent);
                 break;
 
             case E_MMGR_NOTIFY_MODEM_WARM_RESET:
@@ -404,10 +481,9 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     ModemResetUpdate();
 
                     CTE::GetTE().ResetInternalStates();
-
-                    RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                    CSystemManager::GetInstance().CloseChannelPorts();
                 }
+
+                LaunchCloseChannelPortsThread(receivedModemEvent);
                 break;
 
             case E_MMGR_NOTIFY_MODEM_SHUTDOWN:
@@ -431,10 +507,10 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().ResetInternalStates();
 
-                RIL_LOG_INFO("ModemManagerEventHandler() - Closing channel ports\r\n");
-                CSystemManager::GetInstance().CloseChannelPorts();
+                // Set to -1. This will force the client library not to send ACK to mmgr
+                retValue = -1;
 
-                CSystemManager::GetInstance().SendAckModemShutdown();
+                LaunchCloseChannelPortsThread(receivedModemEvent);
                 break;
 
             default:
@@ -444,7 +520,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
     }
 
     RIL_LOG_VERBOSE("ModemManagerEventHandler() - Exit\r\n");
-    return 0;
+    return retValue;
 }
 
 

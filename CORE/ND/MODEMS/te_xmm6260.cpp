@@ -2434,6 +2434,13 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                     (const char**) pszRequest, nNumStrings);
             break;
 
+        case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_DEFAULT_APN");
+            // Send this command on ATCMD channel
+            uiRilChannel = RIL_CHANNEL_ATCMD;
+            res = CreateSetDefaultApnReq(rReqData, (const char**) pszRequest, nNumStrings);
+            break;
+
         default:
             RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
                     " ERROR: Received unknown uiCommand=[0x%X]\r\n", uiCommand);
@@ -2507,6 +2514,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_SET_RF_POWER_CUTBACK_TABLE:
         case RIL_OEM_HOOK_STRING_IMS_REGISTRATION:
         case RIL_OEM_HOOK_STRING_IMS_CONFIG:
+        case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
             break;
