@@ -204,7 +204,7 @@ BOOL CSilo_MISC::ParseCoexURC(CResponse* const pResponse, const char*& rszPointe
 
     BOOL fRet = FALSE;
     char szExtInfo[MAX_BUFFER_SIZE] = {0};
-    sOEM_HOOK_RAW_UNSOL_COEX_INFO* pData;
+    sOEM_HOOK_RAW_UNSOL_COEX_INFO* pData = NULL;
 
     if (NULL == pResponse)
     {
