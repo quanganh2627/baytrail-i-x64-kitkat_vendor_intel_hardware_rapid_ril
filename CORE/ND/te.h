@@ -639,6 +639,10 @@ public:
                                                             const char* pszRsp,
                                                             UINT32 uiIndex,
                                                             UINT32 uiMode);
+    RIL_RESULT_CODE ParseLteNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
+                                                            const char* pszRsp,
+                                                            UINT32 uiIndex,
+                                                            UINT32 uiMode);
 
     void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
     UINT32 GetIncomingCallId();

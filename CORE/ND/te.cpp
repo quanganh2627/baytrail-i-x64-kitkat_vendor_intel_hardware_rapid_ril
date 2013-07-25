@@ -9404,7 +9404,7 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
                                                     UINT32 uiMode)
 {
     RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
-    UINT32 uiLAC = 0, uiCI = 0, uiRSSI = 0, uiScramblingCode = 0;
+    UINT32 uiLAC = 0, uiCI = 0, uiRSSI = 0, uiScramblingCode = 0, uiMcc = 0, uiMnc = 0;
     const char* pszStart = pszRsp;
 
     //  Data is either (according to C_AT_FS_SUNRISE_Rev6.0.pdf AT spec)
@@ -9428,23 +9428,32 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
     //
     //  A <type> of 0 or 1 = GSM.  A <type> of 2,3 = UMTS.
 
-
-    switch(uiMode)
+    switch (uiMode)
     {
-        case 0: // GSM  get (LAC/CI , RxLev)
+        case 0: // GSM  get (MCC, MNC LAC/CI , RxLev)
         {
-            //  <LAC> and <CI> are parameters 4 and 5
-            if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
-                    !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                    !FindAndSkipString(pszRsp, ",", pszRsp))
+
+            //  Read <MCC>
+            if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiMcc, pszRsp)))
             {
                 RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 0, cannot skip to LAC and CI\r\n");
+                        " mode 0, could not extract MCC value\r\n");
                 goto Error;
             }
 
-            //  Read <LAC> and <CI>
-            if (!ExtractUInt32(pszRsp, uiLAC, pszRsp))
+            //  Read <MNC>
+            if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiMnc, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 0, could not extract MNC value\r\n");
+                goto Error;
+            }
+
+            //  Read <LAC>
+            if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiLAC, pszRsp)))
             {
                 RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
                         " mode 0, could not extract LAC\r\n");
@@ -9466,28 +9475,21 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
                         " mode 0, could not extract RSSI value\r\n");
                 goto Error;
             }
-
-            //  We now have what we want, copy to main structure.
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-
-            //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
-                    "%04X%04X", uiLAC, uiCI);
+            pCellData->pnCellData[uiIndex].isServingCell = 1;
+            pCellData->pnCellData[uiIndex].cellInfoType = RIL_CELL_INFO_TYPE_GSM;
+            pCellData->pnCellData[uiIndex].signalStrength.GW_SignalStrength.signalStrength
+                     = (int)(uiRSSI / 2);
+            pCellData->pnCellData[uiIndex].signalStrength.GW_SignalStrength.bitErrorRate = 0;
+            pCellData->pnCellData[uiIndex].CellIdentity.gsm.lac = uiLAC;
+            pCellData->pnCellData[uiIndex].CellIdentity.gsm.cid = uiCI;
+            pCellData->pnCellData[uiIndex].CellIdentity.gsm.mnc = uiMnc;
+            pCellData->pnCellData[uiIndex].CellIdentity.gsm.mcc = uiMcc;
             RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode 0 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
-                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
-
-            //  rssi = <RxLev>
-
-            //  Convert RxLev to asu (0 to 31).
-            //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
-            //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
-            //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
-            //  like AT+CSQ response.
-            pCellData->pnCellData[uiIndex].rssi = (int)(uiRSSI / 2);
-            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode 0 GSM rxlev index=[%d]  rssi=[%d]\r\n",
-                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
+                    " mode 0 GSM LAC,CID MNC MCC index=[%d] cid=[%d] lac[%d] mnc[%d] mcc[%d]\r\n",
+                    uiIndex, pCellData->pnCellData[uiIndex].CellIdentity.gsm.cid,
+                    pCellData->pnCellData[uiIndex].CellIdentity.gsm.lac,
+                    pCellData->pnCellData[uiIndex].CellIdentity.gsm.mnc,
+                    pCellData->pnCellData[uiIndex].CellIdentity.gsm.mcc);
             res = RRIL_RESULT_OK;
         }
         break;
@@ -9519,30 +9521,27 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
                         " mode 1, could not extract RSSI value\r\n");
                 goto Error;
             }
-            //  We now have what we want, copy to main structure.
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-            //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
-                    "%04X%04X", uiLAC, uiCI);
-            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode 1 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
-                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
-            //  rssi = <RxLev>
 
-            //  May have to convert RxLev to asu (0 to 31).
-            //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
-            //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
-            //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
-            //  like AT+CSQ response.
-            pCellData->pnCellData[uiIndex].rssi = (int)(uiRSSI / 2);
+            pCellData->pnCellData[uiIndex].isServingCell = 0;
+            pCellData->pnCellData[uiIndex].cellInfoType = RIL_CELL_INFO_TYPE_GSM;
+            pCellData->pnCellData[uiIndex].signalStrength.GW_SignalStrength.signalStrength
+                     = (int)(uiRSSI / 2);
+            pCellData->pnCellData[uiIndex].signalStrength.GW_SignalStrength.bitErrorRate = 0;
+            pCellData->pnCellData[uiIndex].CellIdentity.gsm.lac = uiLAC;
+            pCellData->pnCellData[uiIndex].CellIdentity.gsm.cid = uiCI;
+            pCellData->pnCellData[uiIndex].CellIdentity.gsm.mnc = INT_MAX;
+            pCellData->pnCellData[uiIndex].CellIdentity.gsm.mcc = INT_MAX;
             RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode 1 GSM rxlev index=[%d]  rssi=[%d]\r\n",
-                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
+                    " mode 0 GSM LAC,CID MCC MNC index=[%d] cid=[%d] lac[%d] mnc[%d] mcc[%d]\r\n",
+                    uiIndex, pCellData->pnCellData[uiIndex].CellIdentity.gsm.cid,
+                    pCellData->pnCellData[uiIndex].CellIdentity.gsm.lac,
+                    pCellData->pnCellData[uiIndex].CellIdentity.gsm.mnc,
+                    pCellData->pnCellData[uiIndex].CellIdentity.gsm.mcc);
             res = RRIL_RESULT_OK;
         }
         break;
 
-        case 2: // UMTS  get (scrambling_code , rscp)
+        case 2: // UMTS  get (MCC, MNC, scrambling_code , rscp)
         {
             //  This can be either first case or second case.
             //  Loop and count number of commas
@@ -9567,41 +9566,79 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
             if (6 != uiCommaCount)
             {
                 //  Handle first case here
-                //  <scrambling_code> is parameter 6
-                if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp))
+                //  +XCELLINFO:
+                //      2,<MCC>,<MNC>,<LAC>,<UCI>,<scrambling_code>,<dl_frequency>,<ul_frequency>
+                //  +XCELLINFO:
+                //       2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+                // If UMTS has any ACTIVE SET neighboring cell
+                //  +XCELLINFO:
+                //       3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+
+                //  Read <MCC>
+                if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
+                        (!ExtractUInt32(pszRsp, uiMcc, pszRsp)))
                 {
                     RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                            " mode 2, could not skip to scrambling code\r\n");
+                            " mode 0, could not extract Mcc value\r\n");
                     goto Error;
                 }
-                if (!ExtractUInt32(pszRsp, uiScramblingCode, pszRsp))
+
+                //  Read <MNC>
+                if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
+                        (!ExtractUInt32(pszRsp, uiMnc, pszRsp)))
+                {
+                    RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                            " mode 0, could not extract MNC value\r\n");
+                    goto Error;
+                }
+
+                //  Read <LAC>
+                if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
+                        (!ExtractUInt32(pszRsp, uiLAC, pszRsp)))
+                {
+                    RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                            " mode 0, could not extract LAC\r\n");
+                    goto Error;
+                }
+
+                //  Read <CI>
+                if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                        (!ExtractUInt32(pszRsp, uiCI, pszRsp)))
+                {
+                    RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                            " mode 1, could not extract CI value\r\n");
+                    goto Error;
+                }
+
+                if ((!FindAndSkipString(pszRsp, ",", pszRsp)) &&
+                        (!ExtractUInt32(pszRsp, uiScramblingCode, pszRsp)))
                 {
                     RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
                             " mode 2, could not extract scrambling code\r\n");
                     goto Error;
                 }
-                //  Cannot get <rscp> as it does not exist.
-                //  We now have what we want, copy to main structure.
-                //  cid = <scrambling code> as char *
-                pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-                snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH, "%08x",
-                        uiScramblingCode);
 
-                RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 2 UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
-                        uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
-
+                pCellData->pnCellData[uiIndex].isServingCell = 1;
+                pCellData->pnCellData[uiIndex].cellInfoType = RIL_CELL_INFO_TYPE_WCDMA;
                 //  rssi = <rscp>
                 //  Note that <rscp> value does not exist with this response.
                 //  Set to 0 for now.
-                pCellData->pnCellData[uiIndex].rssi = 0;
+                pCellData->pnCellData[uiIndex].signalStrength.GW_SignalStrength.signalStrength = 99;
+                pCellData->pnCellData[uiIndex].signalStrength.GW_SignalStrength.bitErrorRate = 0;
+                pCellData->pnCellData[uiIndex].CellIdentity.wcdma.lac = uiLAC;
+                pCellData->pnCellData[uiIndex].CellIdentity.wcdma.cid = uiCI;
+                pCellData->pnCellData[uiIndex].CellIdentity.wcdma.psc = uiScramblingCode;
+                pCellData->pnCellData[uiIndex].CellIdentity.wcdma.mnc = uiMnc;
+                pCellData->pnCellData[uiIndex].CellIdentity.wcdma.mcc = uiMcc;
                 RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 2 UMTS rscp index=[%d]  rssi=[%d]\r\n",
-                        uiIndex, pCellData->pnCellData[uiIndex].rssi);
+                        " mode 2 UMTS LAC,CID MCC MNC, ScrCode"
+                        " index=[%d]  cid=[%d] lac[%d] mnc[%d] mcc[%d] scrCode[%d]\r\n",
+                        uiIndex, pCellData->pnCellData[uiIndex].CellIdentity.wcdma.cid,
+                        pCellData->pnCellData[uiIndex].CellIdentity.wcdma.lac,
+                        pCellData->pnCellData[uiIndex].CellIdentity.wcdma.mnc,
+                        pCellData->pnCellData[uiIndex].CellIdentity.wcdma.mcc,
+                        pCellData->pnCellData[uiIndex].CellIdentity.wcdma.psc);
+
                 res = RRIL_RESULT_OK;
                 break;
             }
@@ -9610,12 +9647,17 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
                 //  fall through to case 3 as it is parsed the same.
                 RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
                         " comma count = 6, drop to case 3\r\n");
+                pCellData->pnCellData[uiIndex].isServingCell = 1;
             }
         }
 
 
         case 3: // UMTS  get (scrambling_code , rscp)
         {
+            //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+            // If UMTS has any ACTIVE SET neighboring cell
+            //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+
             //  scrabling_code is parameter 2
             //  Read <scrambling_code>
             if ((!SkipString(pszRsp, ",", pszRsp)) ||
@@ -9642,23 +9684,23 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
                 goto Error;
             }
 
-            //  We now have what we want, copy to main structure.
-            //  cid = <scrambling code> as char *
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH, "%08x",
-                    uiScramblingCode);
-
-            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode %d UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
-                    uiMode, uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
-
-            //  rssi = <rscp>
-            //  Assume that rssi value is same as <rscp> value and no conversion needs to
-            //  be done.
-            pCellData->pnCellData[uiIndex].rssi = (int)uiRSSI;
-            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode %d UMTS rscp index=[%d]  rssi=[%d]\r\n",
-                    uiMode, uiIndex, pCellData->pnCellData[uiIndex].rssi);
+            pCellData->pnCellData[uiIndex].cellInfoType = RIL_CELL_INFO_TYPE_WCDMA;
+            pCellData->pnCellData[uiIndex].isServingCell = 0;
+            pCellData->pnCellData[uiIndex].signalStrength.GW_SignalStrength.signalStrength = uiRSSI;
+            pCellData->pnCellData[uiIndex].signalStrength.GW_SignalStrength.bitErrorRate;
+            pCellData->pnCellData[uiIndex].CellIdentity.wcdma.lac = INT_MAX;
+            pCellData->pnCellData[uiIndex].CellIdentity.wcdma.cid = INT_MAX;
+            pCellData->pnCellData[uiIndex].CellIdentity.wcdma.psc = uiScramblingCode;
+            pCellData->pnCellData[uiIndex].CellIdentity.wcdma.mnc = INT_MAX;
+            pCellData->pnCellData[uiIndex].CellIdentity.wcdma.mcc = INT_MAX;
+                RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                        " mode 2/3 UMTS LAC,CID MCC MNC, ScrCode"
+                        " index=[%d]  cid=[%d] lac[%d] mnc[%d] mcc[%d] scrCode[%d]\r\n",
+                        uiIndex, pCellData->pnCellData[uiIndex].CellIdentity.wcdma.cid,
+                        pCellData->pnCellData[uiIndex].CellIdentity.wcdma.lac,
+                        pCellData->pnCellData[uiIndex].CellIdentity.wcdma.mnc,
+                        pCellData->pnCellData[uiIndex].CellIdentity.wcdma.mcc,
+                        pCellData->pnCellData[uiIndex].CellIdentity.wcdma.psc);
             res = RRIL_RESULT_OK;
         }
         break;
@@ -9666,6 +9708,217 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
         default:
         {
             RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
+                    " Invalid nMode=[%d]\r\n", uiMode);
+            goto Error;
+        }
+        break;
+    }
+Error:
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseLteNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
+                                                    const char* pszRsp,
+                                                    UINT32 uiIndex,
+                                                    UINT32 uiMode)
+{
+    RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
+    UINT32 uiTAC = 0, uiCI = 0, uiMcc =0, uiMnc = 0, uiEARFCN = 0;
+    UINT32 uiPhyCI = 0, uiRSRQ = 0, uiRSRP = 0, uiRSSNR =0, uiTA = 0;
+    const char* pszStart = pszRsp;
+
+
+    //  LTE cells:
+    //  +XCELLINFO: 5,<MCC>,<MNC>,<CI>,<PCI>,<TAC>,<rsrp>,<rsrq>,<rssnr>,<ta>
+    //  +XCELLINFO: 6,<EARFCN>,<PhyCI>,<rsrp>,<rsrq>,
+
+    switch (uiMode)
+    {
+        case 5:
+        {
+
+            //  Read <MCC>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiMcc, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 5, could not extract MCC value\r\n");
+                goto Error;
+            }
+
+            //  Read <MNC>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiMnc, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 5, could not extract MNC value\r\n");
+                goto Error;
+            }
+
+            //  Read <CI>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiCI, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 5, could not extract CI value\r\n");
+                goto Error;
+            }
+
+            //  Read <phyCI>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiPhyCI, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 5, could not extract PhyCI value\r\n");
+                goto Error;
+            }
+
+            //  Read <TAC>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiTAC, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 5, could not extract TAC\r\n");
+                goto Error;
+            }
+
+            //  Read <RSRP>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiRSRP, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 5, could not extract RSRP value\r\n");
+                goto Error;
+            }
+
+            //  Read <RSRQ>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiRSRQ, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 5, could not extract RSRQ value\r\n");
+                goto Error;
+            }
+
+            //  Read <RSSNR>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiRSSNR, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 5, could not extract RSSNR value\r\n");
+                goto Error;
+            }
+
+            //  Read <TA>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiTA, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 5, could not extract TA value\r\n");
+                goto Error;
+            }
+
+            pCellData->pnCellData[uiIndex].isServingCell = 1;
+            pCellData->pnCellData[uiIndex].cellInfoType = RIL_CELL_INFO_TYPE_LTE;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.signalStrength = 99;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rsrp = uiRSRP;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rsrq = uiRSRQ;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rssnr = uiRSSNR;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.cqi = INT_MAX;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.timingAdvance = uiTA;
+            pCellData->pnCellData[uiIndex].CellIdentity.lte.tac = uiTAC;
+            pCellData->pnCellData[uiIndex].CellIdentity.lte.cid = uiCI;
+            pCellData->pnCellData[uiIndex].CellIdentity.lte.pcid = uiPhyCI;
+            pCellData->pnCellData[uiIndex].CellIdentity.lte.mnc = uiMnc;
+            pCellData->pnCellData[uiIndex].CellIdentity.lte.mcc = uiMcc;
+            RIL_LOG_INFO("CTE::ParseLteNeighboringCellInfo() -"
+                    " mode 5 LTE TAC/CID/MNC/MCC/RSRP/RSRQ/TA/RSSNR "
+                    "index=[%d] cid=[%d] tac[%d] mnc[%d] mcc[%d] [rsrp[%d] rsrq[%d]"
+                    " ta[%d] rssnr[%d] Phyci[%d] \r\n",
+                    uiIndex, pCellData->pnCellData[uiIndex].CellIdentity.lte.cid,
+                    pCellData->pnCellData[uiIndex].CellIdentity.lte.tac,
+                    pCellData->pnCellData[uiIndex].CellIdentity.lte.mnc,
+                    pCellData->pnCellData[uiIndex].CellIdentity.lte.mcc,
+                    pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rsrp,
+                    pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rsrq,
+                    pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.timingAdvance,
+                    pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rssnr,
+                    pCellData->pnCellData[uiIndex].CellIdentity.lte.pcid);
+            res = RRIL_RESULT_OK;
+        }
+        break;
+
+        case 6:
+        {
+            //  +XCELLINFO: 6,<EARFCN>,<PCI>,<rsrp>,<rsrq>,
+            // Extract EARFCN
+            // This parameter is not used yet
+            if (!SkipString(pszRsp, ",", pszRsp) ||
+                    !ExtractUInt32(pszRsp, uiEARFCN, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 6, could not extract EARFCN\r\n");
+                goto Error;
+            }
+
+            // Extract PhyCI
+            if (!SkipString(pszRsp, ",", pszRsp) ||
+                    !ExtractUInt32(pszRsp, uiPhyCI, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 6, could not extract PhyCI\r\n");
+                goto Error;
+            }
+            //  Read <RSRP>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiRSRP, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 6, could not extract RSRP value\r\n");
+                goto Error;
+            }
+            //  Read <RSRQ>
+            if ((!SkipString(pszRsp, ",", pszRsp)) ||
+                    (!ExtractUInt32(pszRsp, uiRSRQ, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
+                        " mode 6, could not extract RSRQ value\r\n");
+                goto Error;
+            }
+
+            pCellData->pnCellData[uiIndex].isServingCell = 0;
+            pCellData->pnCellData[uiIndex].cellInfoType = RIL_CELL_INFO_TYPE_LTE;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.signalStrength = 99;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rsrp = uiRSRP;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rsrq = uiRSRQ;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rssnr = INT_MAX;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.cqi = INT_MAX;
+            pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.timingAdvance = INT_MAX;
+            pCellData->pnCellData[uiIndex].CellIdentity.lte.tac = INT_MAX;
+            pCellData->pnCellData[uiIndex].CellIdentity.lte.cid = INT_MAX;
+            pCellData->pnCellData[uiIndex].CellIdentity.lte.pcid = uiPhyCI;
+            pCellData->pnCellData[uiIndex].CellIdentity.lte.mnc = INT_MAX;
+            pCellData->pnCellData[uiIndex].CellIdentity.lte.mcc = INT_MAX;
+            RIL_LOG_INFO("CTE::ParseLteNeighboringCellInfo() -"
+                    " mode 6 LTE TAC/CID/MNC/MCC/RSRP/RSRQ/TA/RSSNR "
+                    "index=[%d] cid=[%d] tac[%d] mnc[%d] mcc[%d] [rsrp[%d] rsrq[%d]"
+                    " ta[%d] rssnr[%d] Phyci[%d] \r\n",
+                    uiIndex, pCellData->pnCellData[uiIndex].CellIdentity.lte.cid,
+                    pCellData->pnCellData[uiIndex].CellIdentity.lte.tac,
+                    pCellData->pnCellData[uiIndex].CellIdentity.lte.mnc,
+                    pCellData->pnCellData[uiIndex].CellIdentity.lte.mcc,
+                    pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rsrp,
+                    pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rsrq,
+                    pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.timingAdvance,
+                    pCellData->pnCellData[uiIndex].signalStrength.LTE_SignalStrength.rssnr,
+                    pCellData->pnCellData[uiIndex].CellIdentity.lte.pcid);
+            res = RRIL_RESULT_OK;
+        }
+        break;
+
+        default:
+        {
+            RIL_LOG_CRITICAL("CTE::ParseLteNeighboringCellInfo() -"
                     " Invalid nMode=[%d]\r\n", uiMode);
             goto Error;
         }
