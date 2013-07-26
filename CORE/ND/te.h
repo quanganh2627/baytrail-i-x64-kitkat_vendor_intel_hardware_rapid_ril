@@ -103,6 +103,7 @@ public:
 
     BOOL IsRequestAllowedInSpoofState(int requestId);
     BOOL IsRequestAllowedInRadioOff(int requestId);
+    BOOL IsInternalRequestsAllowedInRadioOff(UINT32 uiRilRequestId);
     BOOL IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
             BOOL bIsInitCommand, int callId = 0);
 
@@ -1026,6 +1027,7 @@ public:
     BOOL IsEPSRegistered();
 
     void SetDefaultPDNCid(UINT32 uiCid) { m_uiDefaultPDNCid = uiCid; }
+    UINT32 GetDefaultPDNCid() { return m_uiDefaultPDNCid; }
 
     /*
      * Post Command handler function for the read default PDN
@@ -1041,6 +1043,26 @@ public:
 
     // Post command handler for setting up of default PDN.
     void PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     * This function will be called on basic initialisation completion of
+     * all the channels. Trigger commands which return responses other than
+     * OK/CME ERROR.
+     */
+    void HandleChannelsBasicInitComplete();
+
+    /*
+     * This function will be called on unlock initialisation completion of
+     * all the channels. Trigger commands which return responses other than
+     * OK/CME ERROR.
+     */
+    void HandleChannelsUnlockInitComplete();
+
+    // Sends AT+CPMS? command to the modem
+    void TriggerQuerySimSmsStoreStatus();
+
+    // Parser function for sim status query.
+    RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);
 
 private:
     UINT32 m_uiModemType;
@@ -1190,6 +1212,8 @@ private:
 
     BOOL m_bDataCleanupStatus;
     CMutex* m_pDataCleanupStatusLock;
+
+    void CompleteGetSimStatusRequest(RIL_Token hRilToken);
 };
 
 #endif

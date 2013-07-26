@@ -266,6 +266,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_SET_TTY_MODE:
         case RIL_REQUEST_QUERY_TTY_MODE:
         case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
+        case RIL_REQUEST_GET_SIM_STATUS:
             if (E_MMGR_EVENT_MODEM_UP == GetLastModemEvent())
             {
                 bAllowed = TRUE;
@@ -276,7 +277,6 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
             }
             break;
 
-        case RIL_REQUEST_GET_SIM_STATUS:
         case RIL_REQUEST_ENTER_SIM_PIN:
         case RIL_REQUEST_ENTER_SIM_PUK:
         case RIL_REQUEST_ENTER_SIM_PIN2:
@@ -346,53 +346,8 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
             break;
 
         case RIL_REQUEST_GET_SIM_STATUS:
-        {
-            RIL_CardStatus_v6 cardStatus;
-            int sim_state = m_pTEBaseInstance->GetSIMState();
-
-            // Fill in the default values
-            cardStatus.gsm_umts_subscription_app_index = -1;
-            cardStatus.cdma_subscription_app_index = -1;
-            cardStatus.ims_subscription_app_index = -1;
-            cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
-
-            if (RRIL_SIM_STATE_ABSENT == sim_state)
-            {
-                cardStatus.card_state = RIL_CARDSTATE_ABSENT;
-                cardStatus.num_applications = 0;
-            }
-            else if (RRIL_SIM_STATE_READY == sim_state
-                    || RRIL_SIM_STATE_NOT_READY == sim_state)
-            {
-                cardStatus.card_state = RIL_CARDSTATE_PRESENT;
-                cardStatus.num_applications = 1;
-                cardStatus.gsm_umts_subscription_app_index = 0;
-                cardStatus.applications[0].app_type =
-                        (RIL_AppType) m_pTEBaseInstance->GetSIMAppType();
-                cardStatus.applications[0].app_state = RIL_APPSTATE_UNKNOWN;
-                cardStatus.applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-                cardStatus.applications[0].aid_ptr = NULL;
-                cardStatus.applications[0].app_label_ptr = NULL;
-                cardStatus.applications[0].pin1_replaced = 0;
-                cardStatus.applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
-                cardStatus.applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
-#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
-                cardStatus.applications[0].pin1_num_retries = -1;
-                cardStatus.applications[0].puk1_num_retries = -1;
-                cardStatus.applications[0].pin2_num_retries = -1;
-                cardStatus.applications[0].puk2_num_retries = -1;
-#endif // M2_PIN_RETRIES_FEATURE_ENABLE
-            }
-            else
-            {
-                cardStatus.card_state = RIL_CARDSTATE_ERROR;
-                cardStatus.num_applications = 0;
-            }
-
-            RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &cardStatus,
-                    sizeof(RIL_CardStatus_v6));
-        }
-        break;
+            CompleteGetSimStatusRequest(hRilToken);
+            break;
 
         default:
             eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
@@ -434,6 +389,10 @@ RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
         case RIL_REQUEST_OPERATOR:
         case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:
             eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
+            break;
+
+        case RIL_REQUEST_GET_SIM_STATUS:
+            CompleteGetSimStatusRequest(hRilToken);
             break;
 
         default:
@@ -7846,6 +7805,36 @@ UINT32 CTE::GetDtmfState()
     return m_uiDtmfState;
 }
 
+BOOL CTE::IsInternalRequestsAllowedInRadioOff(UINT32 uiRilRequestId)
+{
+    RIL_LOG_VERBOSE("CTE::IsInternalRequestsAllowedInRadioOff() - Enter\r\n");
+
+    BOOL bAllowed;
+
+    switch (uiRilRequestId)
+    {
+        case ND_REQ_ID_SILENT_PIN_ENTRY:
+            if (RRIL_SIM_STATE_NOT_READY == (int) GetSIMState())
+                bAllowed = TRUE;
+            else
+                bAllowed = FALSE;
+            break;
+        case ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS:
+            if (RRIL_SIM_STATE_READY == (int) GetSIMState())
+                bAllowed = TRUE;
+            else
+                bAllowed = FALSE;
+            break;
+
+        default:
+            bAllowed = FALSE;
+    }
+
+    RIL_LOG_VERBOSE("CTE::IsInternalRequestsAllowedInRadioOff() - Exit\r\n");
+    return bAllowed;
+}
+
+
 BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
         BOOL bIsInitCommand, int callId)
 {
@@ -7867,7 +7856,8 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
     }
     else if (RADIO_STATE_OFF == GetRadioState()
             && !IsRequestAllowedInRadioOff(rilRequestId)
-            && !bIsInitCommand)
+            && !bIsInitCommand
+            && !IsInternalRequestsAllowedInRadioOff(uiRequestId))
     {
         eRetVal = HandleRequestInRadioOff(rilRequestId, rilToken);
         bIsReqAllowed = FALSE;
@@ -9683,4 +9673,81 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
     }
 Error:
     return res;
+}
+
+void CTE::HandleChannelsBasicInitComplete()
+{
+    RIL_LOG_VERBOSE("CTE::HandleChannelsBasicInitComplete() - Enter/Exit\r\n");
+    m_pTEBaseInstance->HandleChannelsBasicInitComplete();
+}
+
+RIL_RESULT_CODE CTE::ParseSimStateQuery(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseSimStateQuery() - Enter/Exit\r\n");
+    return m_pTEBaseInstance->ParseSimStateQuery(rRspData);
+}
+
+void CTE::HandleChannelsUnlockInitComplete()
+{
+    RIL_LOG_VERBOSE("CTE::HandleChannelsUnlockInitComplete() - Enter\r\n");
+    m_pTEBaseInstance->HandleChannelsUnlockInitComplete();
+    RIL_LOG_VERBOSE("CTE::HandleChannelsUnlockInitComplete() - Exit\r\n");
+}
+
+void CTE::TriggerQuerySimSmsStoreStatus()
+{
+    RIL_LOG_VERBOSE("CTE::TriggerQuerySimSmsStoreStatus() - Enter\r\n");
+    m_pTEBaseInstance->QuerySimSmsStoreStatus();
+    RIL_LOG_VERBOSE("CTE::TriggerQuerySimSmsStoreStatus() - Exit\r\n");
+}
+
+void CTE::CompleteGetSimStatusRequest(RIL_Token hRilToken)
+{
+    RIL_LOG_VERBOSE("CTE::CompleteGetSimStatusRequest() - Enter\r\n");
+
+    RIL_CardStatus_v6 cardStatus;
+    int sim_state = m_pTEBaseInstance->GetSIMState();
+
+    // Fill in the default values
+    cardStatus.gsm_umts_subscription_app_index = -1;
+    cardStatus.cdma_subscription_app_index = -1;
+    cardStatus.ims_subscription_app_index = -1;
+    cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
+
+    if (RRIL_SIM_STATE_ABSENT == sim_state)
+    {
+        cardStatus.card_state = RIL_CARDSTATE_ABSENT;
+        cardStatus.num_applications = 0;
+    }
+    else if (RRIL_SIM_STATE_READY == sim_state
+            || RRIL_SIM_STATE_NOT_READY == sim_state)
+    {
+        cardStatus.card_state = RIL_CARDSTATE_PRESENT;
+        cardStatus.num_applications = 1;
+        cardStatus.gsm_umts_subscription_app_index = 0;
+        cardStatus.applications[0].app_type = RIL_APPTYPE_UNKNOWN;
+        cardStatus.applications[0].app_state = RIL_APPSTATE_UNKNOWN;
+        cardStatus.applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+        cardStatus.applications[0].aid_ptr = NULL;
+        cardStatus.applications[0].app_label_ptr = NULL;
+        cardStatus.applications[0].pin1_replaced = 0;
+        cardStatus.applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
+        cardStatus.applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+        cardStatus.applications[0].pin1_num_retries = -1;
+        cardStatus.applications[0].puk1_num_retries = -1;
+        cardStatus.applications[0].pin2_num_retries = -1;
+        cardStatus.applications[0].puk2_num_retries = -1;
+#endif // M2_PIN_RETRIES_FEATURE_ENABLE
+    }
+    else
+    {
+        cardStatus.card_state = RIL_CARDSTATE_ERROR;
+        cardStatus.num_applications = 0;
+    }
+
+    RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &cardStatus,
+            sizeof(RIL_CardStatus_v6));
+
+    RIL_LOG_VERBOSE("CTE::CompleteGetSimStatusRequest() - Exit\r\n");
 }

@@ -116,6 +116,9 @@ public:
 
     void ResetChannelInfo();
 
+    // Internal Init helper functions
+    void ResetSystemState();
+
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     void SetLastCallFailedCauseID(UINT32 nID) { m_uiLastCallFailedCauseID = nID; }
     UINT32 GetLastCallFailedCauseID() const { return m_uiLastCallFailedCauseID; }
@@ -131,9 +134,6 @@ private:
     void DeleteQueues();
 
     BOOL MMgrConnectionInit();
-
-    // Internal Init helper functions
-    void ResetSystemState();
 
     // RIL Component Initialization functions (called by system init function)
     BOOL InitializeSim();

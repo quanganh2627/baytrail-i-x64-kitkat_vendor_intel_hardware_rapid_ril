@@ -17,6 +17,7 @@
 #include "port.h"
 #include "command.h"
 #include "systemcaps.h"
+#include "initializer.h"
 
 // forward declarations
 class CSilo;
@@ -25,8 +26,6 @@ class CThread;
 // forward declarations
 class CSilo;
 class CThread;
-
-const UINT32 MAX_SILOS = 8;
 
 #define MAX_COM_PORT_NAME_LENGTH  64
 
@@ -40,7 +39,7 @@ struct INITSTRING_DATA
 // Structure to hold silos
 struct SILO_CONTAINER
 {
-    CSilo* rgpSilos[MAX_SILOS];
+    CSilo* rgpSilos[SILO_MAX];
     UINT32 nSilos;
 };
 

@@ -131,26 +131,6 @@ void triggerSMSAck(void* param)
     }
 }
 
-void triggerQuerySimSmsStoreStatus(void* param)
-{
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS],
-                             NULL, REQ_ID_NONE, "AT+CPMS?\r", &CTE::ParseQuerySimSmsStoreStatus);
-
-    if (pCmd)
-    {
-        if (!CCommand::AddCmdToQueue(pCmd))
-        {
-            RIL_LOG_CRITICAL("triggerQuerySimSmsStoreStatus() - Unable to queue command!\r\n");
-            delete pCmd;
-            pCmd = NULL;
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("triggerQuerySimSmsStoreStatus() - Unable to allocate memory for new command!\r\n");
-    }
-}
-
 void triggerUSSDNotification(void* param)
 {
     P_ND_USSD_STATUS pUssdStatus = (P_ND_USSD_STATUS)param;

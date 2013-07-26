@@ -29,7 +29,10 @@ enum SILO_TYPE {
     SILO_TYPE_NETWORK,
     SILO_TYPE_PHONEBOOK,
     SILO_TYPE_MISC,
-    SILO_TYPE_IMS
+    SILO_TYPE_IMS,
+    // 8, 9 and 10 reserved for new silos
+    SILO_TYPE_COMMON = 11,
+    SILO_MAX = 12
 };
 
 class CInitializer
@@ -51,7 +54,7 @@ public:
     BOOL OpenChannelPortsOnly();
     void CloseChannelPorts();
 
-    BOOL CreateSilos(CChannel* pChannel, BYTE siloConfig, CSystemCapabilities* pSysCaps);
+    BOOL CreateSilos(CChannel* pChannel, int siloConfig, CSystemCapabilities* pSysCaps);
 
     void TriggerSimUnlockedEvent() { CEvent::Signal(m_pSimUnlockedEvent); }
     void TriggerModemPoweredOffEvent() const { CEvent::Signal(m_pModemPoweredOffEvent); }
@@ -59,6 +62,7 @@ public:
     void TriggerInitStringCompleteEvent(UINT32 uiChannel, eComInitIndex eInitIndex);
 
     void ResetChannelCompletedInit();
+    void ResetStartupEvents();
 
     CEvent* GetModemPoweredOffEvent() { return m_pModemPoweredOffEvent; }
     CEvent* GetModemBasicInitCompleteEvent() { return m_pModemBasicInitCompleteEvent; }
@@ -72,7 +76,7 @@ private:
 
     struct SILO_CONFIG {
         const char* channel; // channel repository key name
-        int silosDefault;    // default silo config
+        int silosDefault; // default silo config
     };
 
     // This mutex manages the access to ports as a whole
@@ -84,7 +88,7 @@ private:
     BOOL IsChannelUndefined(int channel);
 
     CSilo* CreateSilo(CChannel* pChannel, int siloType, CSystemCapabilities* pSysCaps);
-    BYTE GetSiloConfig(UINT32 channel);
+    int GetSiloConfig(UINT32 channel);
 
     // Modem initialization helper functions (called by component init functions)
     BOOL SendModemInitCommands(eComInitIndex eInitIndex);
@@ -95,8 +99,6 @@ private:
     void SetChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
     BOOL IsChannelCompletedInit(UINT32 uiChannel, eComInitIndex eInitIndex);
     BOOL VerifyAllChannelsCompletedInit(eComInitIndex eInitIndex);
-
-    void ResetStartupEvents();
 
     CEvent* m_pModemBasicInitCompleteEvent;
     CEvent* m_pSimUnlockedEvent;

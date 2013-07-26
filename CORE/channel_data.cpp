@@ -539,6 +539,18 @@ void CChannel_Data::SetApn(const char* pApn)
     CopyStringNullTerminate(m_szApn, pApn, MAX_BUFFER_SIZE);
 }
 
+void CChannel_Data::GetApn(char* pApn, const int maxSize)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetApn() - Enter\r\n");
+
+    if (NULL != pApn && 0 < maxSize)
+    {
+        CopyStringNullTerminate(pApn, m_szApn, maxSize);
+    }
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetApn() - Exit\r\n");
+}
+
 BOOL CChannel_Data::IsApnEqual(const char* pApn)
 {
     RIL_LOG_VERBOSE("CChannel_Data::IsApnEqual() - Enter\r\n");

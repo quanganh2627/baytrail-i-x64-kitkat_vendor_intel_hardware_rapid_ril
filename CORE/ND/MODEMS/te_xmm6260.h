@@ -241,6 +241,10 @@ public:
     virtual BOOL GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
             BOOL bIsModemOffInFlightMode, char* pCmdBuffer, int cmdBufferLen);
 
+    virtual void HandleChannelsBasicInitComplete();
+
+    virtual RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);
+
 protected:
 
     virtual const char* GetRegistrationInitString();
@@ -252,6 +256,8 @@ protected:
     virtual LONG GetDataDeactivateReason(char* pszReason);
 
     virtual void HandleInternalDtmfStopReq();
+
+    virtual void QuerySimState();
 
 private:
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
@@ -284,6 +290,8 @@ private:
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
     RIL_RESULT_CODE ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRspData);
 #endif // M2_DUALSIM_FEATURE_ENABLED
+    BOOL ParseXSIMSTATE(const char*& rszPointer);
+    BOOL ParseXLOCK(const char*& rszPointer);
 };
 
 #endif

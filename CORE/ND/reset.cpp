@@ -295,26 +295,6 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
             case E_MMGR_EVENT_MODEM_UP:
                 RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) MODEM_UP\r\n");
 
-                if (MODEM_STATE_UNKNOWN == previousModemState
-                    || E_MMGR_EVENT_MODEM_DOWN == previousModemState
-                    || E_MMGR_NOTIFY_MODEM_SHUTDOWN == previousModemState
-                    || E_MMGR_NOTIFY_MODEM_COLD_RESET == previousModemState
-                    || E_MMGR_NOTIFY_MODEM_WARM_RESET == previousModemState
-                    || E_MMGR_NOTIFY_CORE_DUMP == previousModemState)
-                {
-                    RIL_LOG_INFO("ModemManagerEventHandler() - ResetChannelInfo\r\n");
-
-                    if (!CTE::GetTE().IsRadioRequestPending()
-                            && RADIO_STATE_UNAVAILABLE == CTE::GetTE().GetRadioState())
-                    {
-                        /*
-                         * Needed as RIL_REQUEST_RADIO_POWER request is not received
-                         * after modem core dump, warm reset.
-                         */
-                        CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
-                    }
-                }
-
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
                 //  Modem is alive, start initializing modem
@@ -345,6 +325,8 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 //  Spoof commands from now on
                 CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
+                CSystemManager::GetInstance().ResetSystemState();
+
                 //  Inform Android of new state
                 //  Voice calls disconnected, no more data connections
                 ModemResetUpdate();
@@ -367,7 +349,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
-                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
+                    CSystemManager::GetInstance().ResetSystemState();
 
                     // Needed for resetting registration states in framework
                     CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
@@ -402,7 +384,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
-                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
+                    CSystemManager::GetInstance().ResetSystemState();
 
                     // Needed for resetting registration states in framework
                     CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
@@ -432,7 +414,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
-                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
+                    CSystemManager::GetInstance().ResetSystemState();
 
                     // Needed for resetting registration states in framework
                     CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
@@ -471,7 +453,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                     //  Spoof commands from now on
                     CTE::GetTE().SetSpoofCommandsStatus(TRUE);
 
-                    CSystemManager::GetInstance().SetInitializationUnsuccessful();
+                    CSystemManager::GetInstance().ResetSystemState();
 
                     // Needed for resetting registration states in framework
                     CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
@@ -493,7 +475,8 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 //  Spoof commands from now on
                 CTE::GetTE().SetSpoofCommandsStatus(TRUE);
-                CSystemManager::GetInstance().SetInitializationUnsuccessful();
+
+                CSystemManager::GetInstance().ResetSystemState();
 
                 if (CTE::GetTE().GetModemOffInFlightModeState()
                         && E_RADIO_OFF_REASON_AIRPLANE_MODE == CTE::GetTE().GetRadioOffReason())

@@ -53,6 +53,7 @@ public:
     BOOL SetContextID( UINT32 dwContextID );
 
     void SetApn(const char* pApn);
+    void GetApn(char* pApn, const int maxSize);
     BOOL IsApnEqual(const char* pApn);
 
     void SetPdpType(const char* pPdpType);
