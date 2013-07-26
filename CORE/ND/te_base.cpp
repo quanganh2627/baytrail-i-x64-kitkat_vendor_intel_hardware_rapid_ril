@@ -6146,8 +6146,8 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
             }
         }
 
-        pChannelData->SetDNS(pContextParams->szIpV4DNS1, pContextParams->szIpV6DNS1,
-                pContextParams->szIpV4DNS2, pContextParams->szIpV6DNS2);
+        pChannelData->SetDNS(pContextParams->szIpV4DNS1, pContextParams->szIpV4DNS2,
+                pContextParams->szIpV6DNS1, pContextParams->szIpV6DNS2);
 
         // Parse ,<P-CSCF_prim_addr>
         // not used yet
