@@ -859,6 +859,8 @@ public:
     virtual RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);
     virtual void QuerySimSmsStoreStatus();
 
+    virtual BOOL IsInCall();
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
 

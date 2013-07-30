@@ -7446,15 +7446,16 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         memset(psRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
         /*
-         * Report the EPS registration status only when registered. In CSFB,
-         * EPSregistration status will be reported as not registered and
-         * 2G/3G registration status as registered. Order of the URCs is as
-         * follows:
-         * +XREG: 1
-         * +CREG: 1
-         * +CEREG: 0
+         * In MO/MT CSFB voice call, camped access technology is reported via
+         * XREG URC. In order to show the camped access technology during voice
+         * call, copy the cached data registration state from m_sPSStatus(3G registation
+         * cache).
+         *
+         * If the device is not in voice call and registered to EPS network, then
+         * copy the cached data registration state from m_sEPSStatus(EPS registration
+         * cache).
          */
-        if (IsEPSRegistered())
+        if (IsEPSRegistered() && !m_pTEBaseInstance->IsInCall())
         {
             /*
              * Report the EPS registration status only after the default PDN context
@@ -7486,7 +7487,7 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
         }
         else
         {
-            RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() !LTE\r\n");
+            RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - not on LTE\r\n");
             strncpy(psRegStatus->szStat, m_sPSStatus.szStat, sizeof(psRegStatus->szStat));
             strncpy(psRegStatus->szLAC, m_sPSStatus.szLAC, sizeof(psRegStatus->szLAC));
             strncpy(psRegStatus->szCID, m_sPSStatus.szCID, sizeof(psRegStatus->szCID));
