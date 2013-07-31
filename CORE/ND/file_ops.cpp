@@ -191,7 +191,7 @@ BOOL CFile::Open(   const char* pszFileName,
             iAttr |= O_EXCL;
         }
 
-        clock_gettime(CLOCK_MONOTONIC, &ts_start);
+        clock_gettime(CLOCK_BOOTTIME, &ts_start);
         while (1)
         {
             struct timespec ts_cur;
@@ -199,7 +199,7 @@ BOOL CFile::Open(   const char* pszFileName,
 
             m_file = open(pszFileName, iAttr);
 
-            clock_gettime(CLOCK_MONOTONIC, &ts_cur);
+            clock_gettime(CLOCK_BOOTTIME, &ts_cur);
             msec_elapsed = (ts_cur.tv_sec - ts_start.tv_sec) * 1000 +
                     (ts_cur.tv_nsec - ts_start.tv_nsec) / (int)1e6;
 
