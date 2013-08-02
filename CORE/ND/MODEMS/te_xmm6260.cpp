@@ -967,7 +967,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseDns(RESPONSE_DATA & rRspData)
             }
         }
 
-        pChannelData->SetDNS(szIpDNS1, szIpV6DNS1, szIpDNS2, szIpV6DNS2);
+        pChannelData->SetDNS(szIpDNS1, szIpDNS2, szIpV6DNS1, szIpV6DNS2);
 
         res = RRIL_RESULT_OK;
     }
