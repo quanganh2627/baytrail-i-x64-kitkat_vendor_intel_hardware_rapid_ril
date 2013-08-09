@@ -10310,6 +10310,23 @@ BOOL CTEBase::IsDtmfAllowed(int callId)
     return FALSE;
 }
 
+BOOL CTEBase::IsInCall()
+{
+    BOOL bIsInCall = FALSE;
+
+    for (UINT32 i = 0; i < RRIL_MAX_CALL_ID_COUNT; i++)
+    {
+        if (-1 != m_VoiceCallInfo[i].state
+                && E_CALL_STATUS_DISCONNECTED != m_VoiceCallInfo[i].state)
+        {
+            bIsInCall = TRUE;
+            break;
+        }
+    }
+
+    return bIsInCall;
+}
+
 void CTEBase::SetDtmfAllowed(int callId, BOOL bDtmfAllowed)
 {
     for (UINT32 i = 0; i < RRIL_MAX_CALL_ID_COUNT; i++)

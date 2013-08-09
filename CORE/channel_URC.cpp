@@ -74,9 +74,18 @@ void CChannel_URC::ModemTimeSyncInit()
 #else
     ptm = localtime(&t);
 #endif
-    memset(URCClockInitString, 0, sizeof(URCClockInitString));
-    strftime(URCClockInitString, sizeof(URCClockInitString), "+CCLK=\"%y/%m/%d,%H:%M:%S\"", ptm);
-    m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX].szCmd = URCClockInitString;
+    if (ptm != NULL)
+    {
+        memset(URCClockInitString, 0, sizeof(URCClockInitString));
+        strftime(URCClockInitString, sizeof(URCClockInitString),
+                "+CCLK=\"%y/%m/%d,%H:%M:%S\"", ptm);
+        m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX].szCmd = URCClockInitString;
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CChannel_URC::ModemTimeSyncInit() - localtime error");
+        m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX] = URCPowerOnInitString;
+    }
 
     RIL_LOG_VERBOSE("CChannel_URC::ModemTimeSyncInit() - Exit\r\n");
 }

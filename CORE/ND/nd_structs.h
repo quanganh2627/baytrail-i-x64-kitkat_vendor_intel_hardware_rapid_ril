@@ -121,7 +121,6 @@ typedef struct
 {
     RIL_NeighboringCell*     pnCellPointers      [RRIL_MAX_CELL_ID_COUNT];
     RIL_NeighboringCell      pnCellData          [RRIL_MAX_CELL_ID_COUNT];
-    char                     pnCellCIDBuffers    [RRIL_MAX_CELL_ID_COUNT][CELL_ID_ARRAY_LENGTH];
 } S_ND_N_CELL_DATA, *P_ND_N_CELL_DATA;
 
 
