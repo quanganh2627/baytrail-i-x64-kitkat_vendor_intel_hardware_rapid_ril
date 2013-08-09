@@ -32,6 +32,7 @@ CSilo_IMS::CSilo_IMS(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "+CIREPI: "        , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseCIREPI  },
         { "+CIREPH: "        , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseCIREPH  },
         { "+CIREGU: "        , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseCIREGU },
+        { "+XISRVCC: "       , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseXISRVCC },
         // FIXME: Following strings to be confirmed and parsed.
         { "+IMSCALLSTAT: "   , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseNULL },
         { "+IMSSMSSTAT: "    , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseNULL },
@@ -224,5 +225,45 @@ BOOL CSilo_IMS::ParseCIREGU(CResponse* const pResponse, const char*& rszPointer)
 
 Error:
     RIL_LOG_VERBOSE("CSilo_IMS::ParseCIREGU() - Exit\r\n");
+    return fRet;
+}
+
+//
+// IMS-SRVCC sync notification
+//
+BOOL CSilo_IMS::ParseXISRVCC(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_IMS::ParseXISRVCC() - Enter\r\n");
+
+    BOOL   fRet     = FALSE;
+    UINT32 uiSrvccInfo = 0;
+    char   szAlpha[MAX_BUFFER_SIZE];
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_IMS::ParseXISRVCC() - pResponse is NULL.\r\n");
+        goto Error;
+    }
+
+    // Throw out the alpha chars if there are any
+    (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
+
+    // Parse "<srvcc_ho_status>"
+    if (!ExtractUInt32(rszPointer, uiSrvccInfo, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_IMS::ParseXISRVCC() - Could not parse SRVCC "
+                "status indication\r\n");
+        goto Error;
+    }
+
+    // Debug only, not expected to be broadcasted
+    RIL_LOG_VERBOSE("CSilo_IMS::ParseXISRVCC() - XISRVCC=[%u]\r\n", uiSrvccInfo);
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RRIL_RESULT_OK);
+
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_IMS::ParseXISRVCC() - Exit\r\n");
     return fRet;
 }
