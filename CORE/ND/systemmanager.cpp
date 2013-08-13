@@ -761,17 +761,6 @@ BOOL CSystemManager::MMgrConnectionInit()
     if (E_ERR_CLI_SUCCEED !=
           mmgr_cli_subscribe_event(m_pMMgrLibHandle,
                                      ModemManagerEventHandler,
-                                     E_MMGR_NOTIFY_MODEM_WARM_RESET))
-    {
-        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
-                         " Cannot subscribe notification %d\n",
-                          E_MMGR_NOTIFY_MODEM_WARM_RESET);
-        goto out;
-    }
-
-    if (E_ERR_CLI_SUCCEED !=
-          mmgr_cli_subscribe_event(m_pMMgrLibHandle,
-                                     ModemManagerEventHandler,
                                      E_MMGR_NOTIFY_MODEM_COLD_RESET))
     {
         RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
