@@ -2266,7 +2266,19 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
             case E_MMGR_EVENT_MODEM_UP:
                 if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
                 {
-                    // Do nothing. Actions will be taken on modem powered off event
+                    if (RADIO_STATE_ON != GetRadioState())
+                    {
+                        if (CSystemManager::GetInstance().SendRequestModemShutdown())
+                        {
+                            WaitForModemPowerOffEvent();
+                        }
+
+                        res = RRIL_RESULT_ERROR;
+                    }
+                    else
+                    {
+                        // Do nothing. Actions will be taken on modem powered off event
+                    }
                 }
                 else if (E_RADIO_OFF_REASON_NONE == radioOffReason)
                 {
@@ -2316,6 +2328,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
 
         if (RRIL_RESULT_ERROR == res)
         {
+            res = RRIL_RESULT_OK;
             goto Error;
         }
     }
@@ -2395,31 +2408,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
 
     if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
     {
-        /*
-         * Incase of platform shutdown, wait for modem powered off event.
-         * Modem powered off event will be signalled on MODEM_DOWN event.
-         *
-         * Platform shutdown sequence is as follows:
-         *     - RADIO_POWER OFF request with property sys.shutdown.requested
-         *       set to 0 or 1.
-         *     - Add modem specific RADIO_POWER OFF commands added to command
-         *       queue and wait for modem powered off event.
-         *     - Channel specific command thread will sent the command to modem.
-         *     - Upon response, send modem shutdown request to MMGR.
-         *     -  Upon MODEM_SHUTDOWN notification modem event, acknowledge
-         *     - Upon MODEM_DOWN event, set the radio state to OFF and signal
-         *       modem powered off.
-         *     - Modem powere d off event will unblock the ril request handling
-         *       thread. Once unblocked, RADIO_POWER OFF request will be completed.
-         */
-        CEvent* pModemPoweredOffEvent =
-                CSystemManager::GetInstance().GetModemPoweredOffEvent();
-        if (NULL != pModemPoweredOffEvent)
-        {
-            CEvent::Reset(pModemPoweredOffEvent);
-
-            CEvent::Wait(pModemPoweredOffEvent, WAIT_FOREVER);
-        }
+        WaitForModemPowerOffEvent();
     }
     else
     {
@@ -10481,4 +10470,118 @@ void CTEBase::NotifyNetworkApnInfo()
             sizeof(sOEM_HOOK_RAW_UNSOL_NETWORK_APN_IND));
 
     RIL_LOG_VERBOSE("CTEBase::NotifyNetworkApnInfo() - Exit\r\n");
+}
+
+RIL_RESULT_CODE CTEBase::CreateModemPowerOffReq(REQUEST_DATA& rReqData)
+{
+    RIL_LOG_VERBOSE("CTEBase::CreateModemPowerOffReq() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    m_cte.SetRadioOffReason(E_RADIO_OFF_REASON_SHUTDOWN);
+
+    switch (m_cte.GetLastModemEvent())
+    {
+        case E_MMGR_EVENT_MODEM_UP:
+            /*
+             * If the modem is UP and
+             *     - Radio state is OFF or UNAVAILABLE
+             *         Request MMGR to power off the modem and wait for modem
+             *         power off event which will be signalled on MODEM_DOWN event.
+             *     - Radio state is ON
+             *         Create the modem power off request by getting the modem specific
+             *         radio power off command. Do nothing, actions will be taken upon
+             *         the response of radio power off command from modem.
+             */
+
+            if (RADIO_STATE_ON != GetRadioState())
+            {
+                if (CSystemManager::GetInstance().SendRequestModemShutdown())
+                {
+                    WaitForModemPowerOffEvent();
+                }
+
+                SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
+                res = RRIL_RESULT_ERROR;
+            }
+            break;
+
+        case E_MMGR_NOTIFY_MODEM_SHUTDOWN:
+        {
+            RIL_LOG_INFO("CTEBase::CreateModemPowerOffReq - Modem power off ongoing\r\n");
+
+            /*
+             * Modem power off is ongoing, so wait for modem power off event which
+             * will be signalled on MODEM_DOWN event.
+             */
+            WaitForModemPowerOffEvent();
+
+            RIL_LOG_INFO("CTEBase::CreateModemPowerOffReq - Modem power off done\r\n");
+            res = RRIL_RESULT_ERROR;
+        }
+        break;
+
+        case E_MMGR_EVENT_MODEM_DOWN:
+            /*
+             * Modem is already in powered off state, set the radio state and also
+             * complete the modem power off request.
+             */
+
+            SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
+            res = RRIL_RESULT_ERROR;
+            RIL_LOG_INFO("CTEBase::CreateModemPowerOffReq - Already in expected state\r\n");
+            break;
+
+        default:
+            SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
+            res = RRIL_RESULT_ERROR;
+            RIL_LOG_INFO("CTEBase::CreateModemPowerOffReq - Error in handling RADIO_POWER OFF\r\n");
+            break;
+    }
+
+    if (RRIL_RESULT_ERROR == res)
+    {
+        goto Error;
+    }
+
+    if (!GetRadioPowerCommand(FALSE, E_RADIO_OFF_REASON_SHUTDOWN,
+            m_cte.GetModemOffInFlightModeState(), rReqData.szCmd1, sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_ERROR;
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTEBase::CreateModemPowerOffReq() - Exit\r\n");
+    return res;
+}
+
+void CTEBase::WaitForModemPowerOffEvent()
+{
+    /*
+     * In case of platform shutdown, wait for modem powered off event.
+     * Modem powered off event will be signalled on MODEM_DOWN event.
+     *
+     * Platform shutdown sequence is as follows:
+     *     - Modem power off request is received with property
+     *       sys.shutdown.requested set to 0 or 1.
+     *     - Add modem specific RADIO_POWER OFF commands added to command
+     *       queue and wait for modem powered off event.
+     *     - Channel specific command thread will sent the command to modem.
+     *     - Upon response, send modem shutdown request to MMGR.
+     *     - Upon MODEM_SHUTDOWN notification modem event, acknowledge
+     *     - Upon MODEM_DOWN event, set the radio state to OFF and signal
+     *       modem powered off.
+     *     - Modem powered off event will unblock the ril request handling
+     *       thread. Once unblocked, respective modem power off ril request
+     *       will be completed.
+     */
+    CEvent* pModemPoweredOffEvent =
+            CSystemManager::GetInstance().GetModemPoweredOffEvent();
+    if (NULL != pModemPoweredOffEvent)
+    {
+        CEvent::Reset(pModemPoweredOffEvent);
+        CEvent::Wait(pModemPoweredOffEvent, WAIT_FOREVER);
+    }
 }

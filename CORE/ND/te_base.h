@@ -874,8 +874,20 @@ protected:
     virtual void HandleInternalDtmfStopReq();
     virtual void NotifyNetworkApnInfo();
 
+    /*
+     * Based on the radio state and modem state, modem power off request
+     * will be created.
+     */
+    virtual RIL_RESULT_CODE CreateModemPowerOffReq(REQUEST_DATA& rReqData);
+
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA& rRspData);
+
+    /*
+     * Wait for the modem power off event which will be triggered on MODEM_DOWN
+     * event from MMGR.
+     */
+    void WaitForModemPowerOffEvent();
 
     typedef struct
     {

@@ -2441,6 +2441,22 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             res = CreateSetDefaultApnReq(rReqData, (const char**) pszRequest, nNumStrings);
             break;
 
+        case RIL_OEM_HOOK_STRING_POWEROFF_MODEM:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_POWEROFF_MODEM");
+            if (m_cte.IsPlatformShutDownRequested())
+            {
+                uiRilChannel = g_arChannelMapping[ND_REQ_ID_RADIOPOWER];
+                rReqData.pContextData = (void*)uiCommand;
+                res = CreateModemPowerOffReq(rReqData);
+            }
+            else
+            {
+                /*
+                 * If request is issued out of platform shutdown, don't handle
+                 * the request.
+                 */
+            }
+        break;
         default:
             RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
                     " ERROR: Received unknown uiCommand=[0x%X]\r\n", uiCommand);
@@ -2515,6 +2531,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_IMS_REGISTRATION:
         case RIL_OEM_HOOK_STRING_IMS_CONFIG:
         case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
+        case RIL_OEM_HOOK_STRING_POWEROFF_MODEM:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
             break;

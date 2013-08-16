@@ -288,6 +288,21 @@ const int RIL_OEM_HOOK_STRING_IMS_CONFIG = 0x000000AE;
 //
 const int RIL_OEM_HOOK_STRING_SET_DEFAULT_APN = 0x000000AF;
 
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_POWEROFF_MODEM
+//  Command ID = 0x000000B0
+//
+//  This command powers off the modem. This command should be issued only
+//  as part of platform shutdown request. Command is not handled if it is issued
+//  outside platform shutdown.
+//
+//  "data" = NULL
+//  "response" = NULL
+//
+const int RIL_OEM_HOOK_STRING_POWEROFF_MODEM = 0x000000B0;
+
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
 
 //

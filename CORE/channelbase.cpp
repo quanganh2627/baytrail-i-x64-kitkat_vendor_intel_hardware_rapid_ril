@@ -990,7 +990,7 @@ UINT32 CChannelBase::ResponseThread()
                 m_uiRilChannel);
         if (!WaitForAvailableData(WAIT_FOREVER))
         {
-            if (CTE::GetTE().IsPlatformShutDownOngoing()
+            if (CTE::GetTE().IsPlatformShutDownRequested()
                     || CTE::GetTE().GetSpoofCommandsStatus())
             {
                 // If we are in platform shutdown or spoof mode, don't report error in this case.

@@ -322,6 +322,64 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
     return bAllowed;
 }
 
+BOOL CTE::IsModemPowerOffRequest(int requestId, void* pData, size_t uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE::IsModemPowerOffRequest - ENTER\r\n");
+
+    char** pszRequest = ((char**)pData);
+    UINT32 uiCommand = 0;
+    BOOL bRet = FALSE;
+
+    if (RIL_REQUEST_OEM_HOOK_STRINGS != requestId)
+    {
+        goto Error;
+    }
+
+    if (pszRequest == NULL || '\0' == pszRequest[0])
+    {
+        RIL_LOG_CRITICAL("CTE::IsModemPowerOffRequest() - pszRequest was NULL\r\n");
+        goto Error;
+    }
+
+    if ((uiDataSize < (1 * sizeof(char *))) || (0 != (uiDataSize % sizeof(char*))))
+    {
+        RIL_LOG_CRITICAL("CTE::IsModemPowerOffRequest() -"
+                " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    // Get command
+    if (sscanf(pszRequest[0], "%u", &uiCommand) == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE::IsModemPowerOffRequest() - cannot convert %s to int\r\n",
+                pszRequest);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE::IsModemPowerOffRequest(), uiCommand: %u", uiCommand);
+
+    switch (uiCommand)
+    {
+        case RIL_OEM_HOOK_STRING_POWEROFF_MODEM:
+        {
+            int modemState = GetLastModemEvent();
+            if (E_MMGR_EVENT_MODEM_OUT_OF_SERVICE != modemState
+                    && E_MMGR_NOTIFY_PLATFORM_REBOOT != modemState)
+            {
+                bRet = TRUE;
+            }
+            break;
+        }
+
+        default:
+        break;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CTE::IsModemPowerOffRequest - Exit\r\n");
+    return bRet;
+}
+
 RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
 {
     RIL_LOG_INFO("CTE::HandleRequestWhenNoModem - REQID=%d, token=0x%08x\r\n",
@@ -388,6 +446,7 @@ RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
         case RIL_REQUEST_DATA_REGISTRATION_STATE:
         case RIL_REQUEST_OPERATOR:
         case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:
+        case RIL_REQUEST_OEM_HOOK_STRINGS:
             eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
             break;
 
@@ -410,12 +469,14 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 
     //  If we're in the middle of Radio error or radio off request handling, spoof all commands.
     if ((GetSpoofCommandsStatus() ||  RADIO_STATE_UNAVAILABLE == GetRadioState())
-            && !IsRequestAllowedInSpoofState(requestId))
+            && !IsRequestAllowedInSpoofState(requestId)
+            && !IsModemPowerOffRequest(requestId, pData, datalen))
     {
         eRetVal = HandleRequestWhenNoModem(requestId, hRilToken);
     }
     else if ((m_bRadioRequestPending || RADIO_STATE_OFF == GetRadioState())
-            && !IsRequestAllowedInRadioOff(requestId))
+            && !IsRequestAllowedInRadioOff(requestId)
+            && !IsModemPowerOffRequest(requestId, pData, datalen))
     {
         eRetVal = HandleRequestInRadioOff(requestId, hRilToken);
     }
@@ -4335,6 +4396,7 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
 {
     RIL_LOG_VERBOSE("CTE::RequestHookStrings() - Enter\r\n");
 
+    UINT32 uiCommand = 0;
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
@@ -4351,8 +4413,20 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
     }
     else
     {
-        CCommand* pCmd = new CCommand(uiRilChannel, rilToken, ND_REQ_ID_OEMHOOKSTRINGS,
-                reqData, &CTE::ParseHookStrings);
+        uiCommand = (UINT32)reqData.pContextData;
+        UINT32 uiReqID = ND_REQ_ID_OEMHOOKSTRINGS;
+        if (RIL_OEM_HOOK_STRING_POWEROFF_MODEM == (int) uiCommand)
+        {
+            /*
+             * Request Id is assigned to ND_REQ_ID_RADIOPOWER in order to use
+             * the same request timeout value as ND_REQ_ID_RADIOPOWER and also
+             * to allow this request always.
+             */
+            uiReqID = ND_REQ_ID_RADIOPOWER;
+        }
+
+        CCommand* pCmd = new CCommand(uiRilChannel, rilToken, uiReqID,
+                reqData, &CTE::ParseHookStrings, &CTE::PostHookStrings);
 
         if (pCmd)
         {
@@ -4371,6 +4445,27 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
                     "Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
+    }
+
+    if (RIL_OEM_HOOK_STRING_POWEROFF_MODEM == (int) uiCommand)
+    {
+        if (RRIL_RESULT_OK == res)
+        {
+            CEvent* pModemPoweredOffEvent =
+                    CSystemManager::GetInstance().GetModemPoweredOffEvent();
+            if (NULL != pModemPoweredOffEvent)
+            {
+                CEvent::Reset(pModemPoweredOffEvent);
+
+                CEvent::Wait(pModemPoweredOffEvent, WAIT_FOREVER);
+            }
+        }
+        else
+        {
+            res = RRIL_RESULT_OK;
+        }
+
+        RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestHookStrings() - Exit\r\n");
@@ -7863,7 +7958,7 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
         eRetVal = HandleRequestInRadioOff(rilRequestId, rilToken);
         bIsReqAllowed = FALSE;
     }
-    else if (IsPlatformShutDownOngoing())
+    else if (IsPlatformShutDownRequested())
     {
         /*
          * If there is data or voice call, then the framwork will
@@ -8571,7 +8666,12 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
             {
                 RIL_LOG_CRITICAL("CTE::PostRadioPower() - CANNOT SEND MODEM SHUTDOWN REQUEST\r\n");
 
-                //  Socket could have been closed by MMGR.
+                /*
+                 * Even if modem power off request fails, close the channel ports
+                 * and complete the modem power off ril request
+                 */
+                CSystemManager::GetInstance().CloseChannelPorts();
+
                 CSystemManager::GetInstance().TriggerModemPoweredOffEvent();
                 SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
             }
@@ -8897,6 +8997,46 @@ void CTE::PostDtmfStop(POST_CMD_HANDLER_DATA& rData)
     }
 
     RIL_LOG_VERBOSE("CTE::PostDtmfStop() Exit\r\n");
+}
+
+void CTE::PostHookStrings(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostHookStrings() Enter\r\n");
+
+    if (NULL == rData.pRilToken)
+    {
+        RIL_LOG_CRITICAL("CTE::PostHookStrings() rData.pRilToken NULL!\r\n");
+        return;
+    }
+
+    UINT32 uiCommand = (UINT32)rData.pContextData;
+    if (RIL_OEM_HOOK_STRING_POWEROFF_MODEM == (int) uiCommand)
+    {
+        // Send shutdown request to MMgr
+        if (!CSystemManager::GetInstance().SendRequestModemShutdown())
+        {
+            RIL_LOG_CRITICAL("CTE::PostHookStrings() - CANNOT SEND MODEM SHUTDOWN REQUEST\r\n");
+
+            /*
+             * Even if modem power off request fails, close the channel ports
+             * and complete the modem power off ril request
+             */
+            CSystemManager::GetInstance().CloseChannelPorts();
+
+            SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
+            CSystemManager::GetInstance().TriggerModemPoweredOffEvent();
+        }
+
+        // Incase of modem off, request will be completed in the CoreHookStrings function
+        // on modem powered off event or on request handling error.
+    }
+    else
+    {
+        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                rData.pData, rData.uiDataSize);
+    }
+
+    RIL_LOG_VERBOSE("CTE::PostHookStrings() Exit\r\n");
 }
 
 void CTE::PostWriteSmsToSimCmdHandler(POST_CMD_HANDLER_DATA& rData)
@@ -9307,20 +9447,6 @@ void CTE::CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID,
         }
     }
     RIL_LOG_VERBOSE("CTE::CompleteIdenticalRequests() - Exit\r\n");
-}
-
-BOOL CTE::IsPlatformShutDownOngoing()
-{
-    RIL_LOG_VERBOSE("CTE::IsPlatformShutDownOngoing() - Enter\r\n");
-
-    BOOL bIsPlatformShutDownOngoing = FALSE;
-
-    if (IsPlatformShutDownRequested() && (E_RADIO_OFF_REASON_SHUTDOWN == m_RadioOffReason))
-    {
-        bIsPlatformShutDownOngoing = TRUE;
-    }
-
-    return bIsPlatformShutDownOngoing;
 }
 
 void CTE::SaveCEER(const char* pszData)
