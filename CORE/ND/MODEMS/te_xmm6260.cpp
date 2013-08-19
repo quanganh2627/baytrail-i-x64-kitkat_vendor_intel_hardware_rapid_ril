@@ -3614,12 +3614,12 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
         // Get <mode>
         if (!ExtractUInt32(pszRsp, uiMode, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGsmUmtsNeighboringCellInfo() -"
                     " cannot extract <mode>\r\n");
             goto Error;
         }
 
-        RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - found mode=%d\r\n",
+        RIL_LOG_INFO("CTE_XMM6260::ParseGsmUmtsNeighboringCellInfo() - found mode=%d\r\n",
                 uiMode);
         RIL_RESULT_CODE result = RRIL_RESULT_ERROR;
         switch (uiMode)
@@ -3636,7 +3636,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetNeighboringCellIDs(RESPONSE_DATA & rRspData
                     // Connect the pointer
                     pCellData->pnCellPointers[uiIndex] = &(pCellData->pnCellData[uiIndex]);
                     uiIndex++;
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - Index=%d\r\n",
+                    RIL_LOG_INFO("CTE_XMM6260::ParseGsmUmtsNeighboringCellInfo() - Index=%d\r\n",
                             uiIndex);
                 }
             break;

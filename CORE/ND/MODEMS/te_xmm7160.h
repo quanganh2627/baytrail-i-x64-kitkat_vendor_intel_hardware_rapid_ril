@@ -53,7 +53,6 @@ private:
                                                        UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetBandMode(RESPONSE_DATA& rRspData);
 
-    virtual RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData);
 public:
     // modem overrides
 
