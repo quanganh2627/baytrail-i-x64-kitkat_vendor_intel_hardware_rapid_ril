@@ -9566,7 +9566,7 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
             {
                 RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
                         " mode 0, could not extract MCC value\r\n");
-                //goto Error;
+                goto Error;
             }
 
             //  Read <MNC>
@@ -9575,7 +9575,7 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
             {
                 RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
                         " mode 0, could not extract MNC value\r\n");
-                //goto Error;
+                goto Error;
             }
 
             //  Read <LAC>
@@ -9707,7 +9707,7 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
                 {
                     RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
                             " mode 0, could not extract Mcc value\r\n");
-                    //goto Error;
+                    goto Error;
                 }
 
                 //  Read <MNC>
@@ -9716,7 +9716,7 @@ RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
                 {
                     RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
                             " mode 0, could not extract MNC value\r\n");
-                    //goto Error;
+                    goto Error;
                 }
 
                 //  Read <LAC>
