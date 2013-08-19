@@ -86,4 +86,5 @@ void triggerQueryDefaultPDNContextParams(void* param);
 //
 void triggerDropCallEvent(void* param);
 
+void triggerCellInfoList (void* param);
 #endif

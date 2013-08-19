@@ -6760,16 +6760,114 @@ RIL_RESULT_CODE CTEBase::CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
     return res;
 }
 
+RIL_RESULT_CODE CTEBase::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
+                                                            const char* pszRsp,
+                                                            UINT32 uiIndex,
+                                                            UINT32 uiMode)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseNeighboringCellInfo() - Enter\r\n");
+
+    // this is modem dependent, to be implemented in te_xmmxxx.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseNeighboringCellInfo() - Exit\r\n");
+    return res;
+
+}
+
 RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseGetNeighboringCellIDs() - Enter\r\n");
 
-    // this is modem dependent, to be implemented in te_inf_6260.cpp
-    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+    UINT32 uiIndex = 0, uiMode = 0;
 
-    RIL_LOG_VERBOSE("CTEBase::ParseGetNeighboringCellIDs() - Exit\r\n");
+    P_ND_N_CELL_DATA pCellData = NULL;
+
+    pCellData = (P_ND_N_CELL_DATA)malloc(sizeof(S_ND_N_CELL_DATA));
+    if (NULL == pCellData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseGetNeighboringCellIDs() -"
+                " Could not allocate memory for a S_ND_N_CELL_DATA struct.\r\n");
+        goto Error;
+    }
+    memset(pCellData, 0, sizeof(S_ND_N_CELL_DATA));
+
+
+    // Loop on +XCELLINFO until no more entries are found
+    while (FindAndSkipString(pszRsp, "+XCELLINFO: ", pszRsp))
+    {
+        if (RRIL_MAX_CELL_ID_COUNT == uiIndex)
+        {
+            //  We're full.
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                    " Exceeded max count = %d\r\n", RRIL_MAX_CELL_ID_COUNT);
+            break;
+        }
+
+        // Get <mode>
+        if (!ExtractUInt32(pszRsp, uiMode, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+                    " cannot extract <mode>\r\n");
+            goto Error;
+        }
+
+        RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - found mode=%d\r\n",
+                uiMode);
+        RIL_RESULT_CODE result = RRIL_RESULT_ERROR;
+        switch (uiMode)
+        {
+            // GSM/UMTS/LTE
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 5:
+            case 6:
+                result = ParseNeighboringCellInfo(pCellData, pszRsp, uiIndex, uiMode);
+                if (result == RRIL_RESULT_OK)
+                {
+                    // Connect the pointer
+                    pCellData->pnCellPointers[uiIndex] = &(pCellData->pnCellData[uiIndex]);
+                    uiIndex++;
+                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - Index=%d\r\n",
+                            uiIndex);
+                }
+            break;
+            default:
+            break;
+        }
+    }
+
+    if (uiIndex > 0)
+    {
+        rRspData.pData  = (void*)pCellData;
+        rRspData.uiDataSize = uiIndex * sizeof(RIL_NeighboringCell*);
+    }
+    else
+    {
+        rRspData.pData  = NULL;
+        rRspData.uiDataSize = 0;
+        free(pCellData);
+        pCellData = NULL;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pCellData);
+        pCellData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseGetNeighboringCellIDs() - Exit\r\n");
     return res;
 }
+
+
 
 //
 // RIL_REQUEST_SET_LOCATION_UPDATES 76
@@ -8145,7 +8243,237 @@ Error:
 }
 
 //
-// RIL_REQUEST_SIM_TRANSMIT_BASIC 109
+// RIL_REQUEST_GET_CELL_INFO_LIST 109
+//
+RIL_RESULT_CODE CTEBase::CoreGetCellInfoList(REQUEST_DATA& rReqData,
+                                                              void* pData,
+                                                              UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreGetCellInfoList() - Enter\r\n");
+
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreGetCellInfoList() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
+                                                    const char* pszRsp,
+                                                    UINT32 uiIndex,
+                                                    UINT32 uiMode)
+{
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCellInfo() - Enter\r\n");
+    // this is modem dependent, to be implemented in te_xmmxxx.cpp
+    RIL_RESULT_CODE res = RIL_E_REQUEST_NOT_SUPPORTED;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseCellInfo() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseCellInfoList() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    UINT32 uiIndex = 0, uiMode = 0;
+    const char* pszRsp = rRspData.szResponse;
+
+    P_ND_N_CELL_INFO_DATA pCellData = NULL;
+
+    pCellData = (P_ND_N_CELL_INFO_DATA)malloc(sizeof(S_ND_N_CELL_INFO_DATA));
+    if (NULL == pCellData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseCellInfoList() -"
+                " Could not allocate memory for a S_ND_N_CELL_INFO_DATA struct.\r\n");
+        goto Error;
+    }
+    memset(pCellData, 0, sizeof(S_ND_N_CELL_INFO_DATA));
+
+
+    // Loop on +XCELLINFO until no more entries are found
+    while (FindAndSkipString(pszRsp, "+XCELLINFO: ", pszRsp))
+    {
+        if (RRIL_MAX_CELL_ID_COUNT == uiIndex)
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseCellInfoList() -"
+                    " Exceeded max count = %d\r\n", RRIL_MAX_CELL_ID_COUNT);
+            break;
+        }
+
+        // Get <mode>
+        if (!ExtractUInt32(pszRsp, uiMode, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseCellInfoList() -"
+                    " cannot extract <mode>\r\n");
+            goto Error;
+        }
+
+        RIL_LOG_INFO("CTEBase::ParseCellInfoList() - found mode=%d\r\n",
+                uiMode);
+        RIL_RESULT_CODE result = RRIL_RESULT_ERROR;
+        switch (uiMode)
+        {
+            // GSM/UMTS/LTE cases
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 5:
+            case 6:
+                // Call the TE specific parsing function
+                result = ParseCellInfo(pCellData, pszRsp, uiIndex, uiMode);
+
+                if (result == RRIL_RESULT_OK)
+                {
+                    uiIndex++;
+                    RIL_LOG_INFO("CTEBase::ParseCellInfoList() - Index=%d\r\n", uiIndex);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    res = RRIL_RESULT_OK;
+
+    RIL_LOG_INFO("CTEBase::ParseCellInfoList() - isUnsol=%d\r\n",isUnsol);
+    if (!isUnsol)
+    {
+        if (uiIndex > 0)
+        {
+            rRspData.pData  = (void*)pCellData;
+            rRspData.uiDataSize = uiIndex * sizeof(RIL_CellInfo);
+        }
+        else
+        {
+            rRspData.pData  = NULL;
+            rRspData.uiDataSize = 0;
+            free(pCellData);
+            pCellData = NULL;
+        }
+
+    }
+    else
+    {
+        // Unsolcited CELL INFO LIST
+        if (uiIndex > 0)
+        {
+            RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST, (void*)pCellData->pnCellData,
+                    (sizeof(RIL_CellInfo) * uiIndex));
+            // restart the timer now with the latest rate setting
+            if (!m_cte.IsCellInfoTimerRunning())
+            {
+                UINT32 uiNewRate = m_cte.GetCellInfoListRate();
+                m_cte.SetCellInfoTimerRunning(TRUE);
+                RIL_LOG_INFO("Restarting timer cellinfo list @ %d millisec\r\n",uiNewRate);
+                RIL_requestTimedCallback(triggerCellInfoList, (void*)uiNewRate, (uiNewRate/1000), 0);
+            }
+        }
+        else
+        {
+            free(pCellData);
+            pCellData = NULL;
+        }
+
+    }
+
+Error:
+
+    if (RRIL_RESULT_OK != res || isUnsol)
+    {
+        free(pCellData);
+        pCellData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::ParseGetCellInfoList() - Exit\r\n");
+    return res;
+}
+
+//
+// RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE 110
+//
+RIL_RESULT_CODE CTEBase::CoreSetCellInfoListRate(REQUEST_DATA& rReqData,
+                                                            void* pData,
+                                                            UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreSetCellInfoListRate() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    UINT32 uiPreviousRate = m_cte.GetCellInfoListRate();
+    UINT32 uiNewRate = 60000; // default timer value in milli seconds
+
+    if (pData != NULL)
+    {
+        uiNewRate = ((int*)pData)[0];
+        // Value = 0, report when one of the information changes
+        // Value = INT_MAX, no reports
+        // else rril rate is once in 60 seonds, when the information has changed
+        if (uiNewRate != INT_MAX && uiNewRate > 0)
+        {
+            if (uiPreviousRate != uiNewRate)
+            {
+                uiNewRate = uiNewRate < 60000 ? 60000 : uiNewRate;
+            }
+        }
+
+        RIL_LOG_INFO("CTEBase::CoreSetCellInfoListRate() - "
+                "uiNewRate =%d uiPreviousRate = %d\r\n",
+                 uiNewRate, uiPreviousRate);
+    }
+    else
+    {
+        RIL_LOG_WARNING("CTEBase::CoreGetCellInfoList() - pData[0] is NULL!\r\n");
+        return res;
+    }
+
+    RestartUnsolCellInfoListTimer(uiNewRate);
+
+    res = RRIL_RESULT_OK;
+
+    RIL_LOG_VERBOSE("CTEBase::CoreGetCellInfoList() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseSetCellInfoListRate(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseSetCellInfoListRate() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseSetCellInfoListRate() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseUnsolCellInfoListRate(RESPONSE_DATA& rRspData)
+{
+   RIL_LOG_VERBOSE("CTEBase::ParseUnsolCellInfoListRate() - Enter\r\n");
+
+   return ParseCellInfoList(rRspData, TRUE);
+}
+
+void CTEBase::RestartUnsolCellInfoListTimer(UINT32 uiNewRate)
+{
+    RIL_LOG_VERBOSE("CTEBase::RestartUnsolCellInfoListTimer() - Enter\r\n");
+
+    m_cte.SetCellInfoListRate(uiNewRate);
+
+    // Start timer to query for CELLINFO  only if the value of >0 and != INT_MAX
+    // TODO: value 0 needs to qury cellinfo when there is a change detected.
+    if (uiNewRate != INT_MAX && uiNewRate > 0)
+    {
+        if (!m_cte.IsCellInfoTimerRunning())
+        {
+            m_cte.SetCellInfoTimerRunning(TRUE);
+            RIL_LOG_INFO("CTEBase::RestartUnsolCellInfoListTimer() -"
+                    "for %d milliseconds\r\n",uiNewRate);
+            RIL_requestTimedCallback(triggerCellInfoList, (void*)uiNewRate, (uiNewRate/1000), 0);
+        }
+
+    }
+}
+
+//
+// RIL_REQUEST_SIM_TRANSMIT_BASIC 111
 //
 RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA& rReqData,
                                                          void* pData,
@@ -8379,7 +8707,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SIM_OPEN_CHANNEL 110
+// RIL_REQUEST_SIM_OPEN_CHANNEL 112
 //
 RIL_RESULT_CODE CTEBase::CoreSimOpenChannel(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -8567,7 +8895,7 @@ Error:
 
 
 //
-// RIL_REQUEST_SIM_CLOSE_CHANNEL 111
+// RIL_REQUEST_SIM_CLOSE_CHANNEL 113
 //
 RIL_RESULT_CODE CTEBase::CoreSimCloseChannel(REQUEST_DATA& rReqData,
                                                         void* pData,
@@ -8699,7 +9027,7 @@ Error:
 
 
 //
-// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 112
+// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 114
 //
 RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA& rReqData,
                                                            void* pData,
@@ -9014,7 +9342,7 @@ Error:
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //
-// RIL_REQUEST_HANGUP_VT 113
+// RIL_REQUEST_HANGUP_VT 115
 //
 RIL_RESULT_CODE CTEBase::CoreHangupVT(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -9073,7 +9401,7 @@ RIL_RESULT_CODE CTEBase::ParseHangupVT(RESPONSE_DATA& rRspData)
 
 
 //
-// RIL_REQUEST_DIAL_VT 114
+// RIL_REQUEST_DIAL_VT 116
 //
 RIL_RESULT_CODE CTEBase::CoreDialVT(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -9147,7 +9475,7 @@ RIL_RESULT_CODE CTEBase::ParseDialVT(RESPONSE_DATA& rRspData)
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
 //
-// RIL_REQUEST_GET_SIM_SMS_STORAGE 115
+// RIL_REQUEST_GET_SIM_SMS_STORAGE 117
 //
 RIL_RESULT_CODE CTEBase::CoreGetSimSmsStorage(REQUEST_DATA& rReqData,
                                                          void* pData,

@@ -53,7 +53,7 @@ LOCAL_SRC_FILES:= \
     ND/MODEMS/te_xmm6360.cpp \
     ND/MODEMS/te_xmm7160.cpp
 
-LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli
+LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli librilutils
 
 
 # Activating this macro enables the optional Video Telephony feature

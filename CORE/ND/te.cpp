@@ -79,7 +79,9 @@ CTE::CTE(UINT32 modemType) :
     m_uiDefaultPDNCid(0),
     m_cTerminator('\r'),
     m_bDataCleanupStatus(FALSE),
-    m_pDataCleanupStatusLock(NULL)
+    m_pDataCleanupStatusLock(NULL),
+    m_nCellInfoListRate(INT_MAX),
+    m_bIsCellInfoTimerRunning(FALSE)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -486,6 +488,8 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     }
     else
     {
+        const int CELLINFO_EN_DEFAULT = 1;
+        int nEnableCellInfo = CELLINFO_EN_DEFAULT;
         switch (requestId)
         {
             case RIL_REQUEST_GET_SIM_STATUS:  // 1
@@ -798,9 +802,6 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
             case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:  // 75
             {
                 CRepository repository;
-                const int CELLINFO_EN_DEFAULT = 1;
-                int nEnableCellInfo = CELLINFO_EN_DEFAULT;
-
                 if (!repository.Read(g_szGroupModem, g_szEnableCellInfo, nEnableCellInfo))
                 {
                     nEnableCellInfo = CELLINFO_EN_DEFAULT;
@@ -950,9 +951,47 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 eRetVal = RequestVoiceRadioTech(hRilToken, pData, datalen);
                 break;
 
+            case RIL_REQUEST_GET_CELL_INFO_LIST:  // 109
+                {
+                    CRepository repository;
+                    if (!repository.Read(g_szGroupModem, g_szEnableCellInfo, nEnableCellInfo))
+                    {
+                        nEnableCellInfo = CELLINFO_EN_DEFAULT;
+                    }
+
+                    if (nEnableCellInfo)
+                    {
+                        eRetVal = RequestGetCellInfoList(hRilToken, pData, datalen);
+                    }
+                    else
+                    {
+                        RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                    }
+                }
+                break;
+
+            case RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE:  // 110
+                {
+                    CRepository repository;
+                    if (!repository.Read(g_szGroupModem, g_szEnableCellInfo, nEnableCellInfo))
+                    {
+                        nEnableCellInfo = CELLINFO_EN_DEFAULT;
+                    }
+
+                    if (nEnableCellInfo)
+                    {
+                        eRetVal = RequestSetCellInfoListRate(hRilToken, pData, datalen);
+                    }
+                    else
+                    {
+                        RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                    }
+                }
+                break;
+
             //  ************************* END OF REGULAR REQUESTS *******************************
 
-            case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 109
+            case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 111
 #if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimTransmitBasic(hRilToken, pData, datalen);
 #else
@@ -960,7 +999,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 #endif
                 break;
 
-            case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 110
+            case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 112
 #if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimOpenChannel(hRilToken, pData, datalen);
 #else
@@ -968,7 +1007,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 #endif
                 break;
 
-            case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 111
+            case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 113
 #if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimCloseChannel(hRilToken, pData, datalen);
 #else
@@ -976,7 +1015,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 #endif
                 break;
 
-            case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 112
+            case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 114
 #if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimTransmitChannel(hRilToken, pData, datalen);
 #else
@@ -986,11 +1025,11 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 
 #if defined(M2_VT_FEATURE_ENABLED)
 
-            case RIL_REQUEST_HANGUP_VT:  // 113
+            case RIL_REQUEST_HANGUP_VT:  // 115
                 eRetVal = RequestHangupVT(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_DIAL_VT:  // 114
+            case RIL_REQUEST_DIAL_VT:  // 116
                 eRetVal = RequestDialVT(hRilToken, pData, datalen);
                 break;
 
@@ -998,7 +1037,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
 
-            case RIL_REQUEST_GET_SIM_SMS_STORAGE:  // 115
+            case RIL_REQUEST_GET_SIM_SMS_STORAGE:  // 115 or 117
                 eRetVal = RequestGetSimSmsStorage(hRilToken, pData, datalen);
                 break;
 
@@ -6426,8 +6465,89 @@ RIL_RESULT_CODE CTE::ParseVoiceRadioTech(RESPONSE_DATA& rRspData)
     return m_pTEBaseInstance->ParseVoiceRadioTech(rRspData);
 }
 
+
 //
-// RIL_REQUEST_SIM_TRANSMIT_BASIC 109
+// RIL_REQUEST_GET_CELL_INFO_LIST 109
+//
+RIL_RESULT_CODE CTE::RequestGetCellInfoList(RIL_Token rilToken, void* pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestGetCellInfoList() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetCellInfoList(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
+                " Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(
+                            g_arChannelMapping[ND_REQ_ID_GETCELLINFOLIST],
+                            rilToken, ND_REQ_ID_GETCELLINFOLIST, reqData,
+                            &CTE::ParseGetCellInfoList,
+                            &CTE::PostGetCellInfoList);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
+                        " Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
+                    " Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestGetCellInfoList() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseGetCellInfoList(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseGetCellInfoList() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseCellInfoList(rRspData);
+}
+
+//
+// RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE 110
+//
+RIL_RESULT_CODE CTE::RequestSetCellInfoListRate(RIL_Token rilToken, void* pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestSetCellInfoListRate() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetCellInfoListRate(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSetCellInfoListRate() -"
+                " Unable to set the timer for cellinfoListRate\r\n");
+    }
+    else
+    {
+        RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestSetCellInfoListRate() - Exit\r\n");
+    return res;
+}
+
+
+//
+// RIL_REQUEST_SIM_TRANSMIT_BASIC 111
 //
 RIL_RESULT_CODE CTE::RequestSimTransmitBasic(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6477,7 +6597,7 @@ RIL_RESULT_CODE CTE::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_OPEN_CHANNEL 110
+// RIL_REQUEST_SIM_OPEN_CHANNEL 112
 //
 RIL_RESULT_CODE CTE::RequestSimOpenChannel(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6527,7 +6647,7 @@ RIL_RESULT_CODE CTE::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_CLOSE_CHANNEL 111
+// RIL_REQUEST_SIM_CLOSE_CHANNEL 113
 //
 RIL_RESULT_CODE CTE::RequestSimCloseChannel(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6577,7 +6697,7 @@ RIL_RESULT_CODE CTE::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 112
+// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 114
 //
 RIL_RESULT_CODE CTE::RequestSimTransmitChannel(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6630,7 +6750,7 @@ RIL_RESULT_CODE CTE::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //
-// RIL_REQUEST_HANGUP_VT 113
+// RIL_REQUEST_HANGUP_VT 115
 //
 RIL_RESULT_CODE CTE::RequestHangupVT(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6681,7 +6801,7 @@ RIL_RESULT_CODE CTE::ParseHangupVT(RESPONSE_DATA& rRspData)
 
 
 //
-// RIL_REQUEST_DIAL_VT 114
+// RIL_REQUEST_DIAL_VT 116
 //
 RIL_RESULT_CODE CTE::RequestDialVT(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6734,7 +6854,7 @@ RIL_RESULT_CODE CTE::ParseDialVT(RESPONSE_DATA& rRspData)
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
 //
-// RIL_REQUEST_GET_SIM_SMS_STORAGE 115
+// RIL_REQUEST_GET_SIM_SMS_STORAGE 117
 //
 RIL_RESULT_CODE CTE::RequestGetSimSmsStorage(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -9080,6 +9200,25 @@ void CTE::PostGetNeighboringCellIDs(POST_CMD_HANDLER_DATA& rData)
     RIL_LOG_VERBOSE("CTE::PostGetNeighboringCellIDs() Exit\r\n");
 }
 
+void CTE::PostGetCellInfoList(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostGetCellInfoList() Enter\r\n");
+
+    if (NULL == rData.pRilToken)
+    {
+        RIL_LOG_CRITICAL("CTE::PostGetCellInfoList() rData.pRilToken NULL!\r\n");
+        return;
+    }
+
+    RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                                    (void*)rData.pData, rData.uiDataSize);
+
+    CompleteIdenticalRequests(rData.uiChannel,
+            rData.uiRequestId, rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
+
+    RIL_LOG_VERBOSE("CTE::PostGetCellInfoList() Exit\r\n");
+}
+
 void CTE::PostSetLocationUpdates(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostSetLocationUpdates() Enter\r\n");
@@ -9525,283 +9664,6 @@ void CTE::PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData)
     m_pTEBaseInstance->PostSetupDefaultPDN(rData);
 }
 
-RIL_RESULT_CODE CTE::ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
-                                                    const char* pszRsp,
-                                                    UINT32 uiIndex,
-                                                    UINT32 uiMode)
-{
-    RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
-    UINT32 uiLAC = 0, uiCI = 0, uiRSSI = 0, uiScramblingCode = 0;
-    const char* pszStart = pszRsp;
-
-    //  Data is either (according to C_AT_FS_SUNRISE_Rev6.0.pdf AT spec)
-    //  GSM cells:
-    //  +XCELLINFO: 0,<MCC>,<MNC>,<LAC>,<CI>,<RxLev>,<BSIC>,<BCCH_Car>,<true_freq>,<t_advance>
-    //  +XCELLINFO: 1,<LAC>,<CI>,<RxLev>,<BSIC>,<BCCH_Car>
-    //  one row for each neighboring cell [0..6]
-    //  For GSM cells, according to ril.h, must return (LAC/CID , received RSSI)
-    //
-    //  UMTS FDD cells:
-    //  +XCELLINFO: 2,<MCC>,<MNC>,<LAC>,<UCI>,<scrambling_code>,<dl_frequency>,<ul_frequency>
-    //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
-    // If UMTS has any ACTIVE SET neighboring cell
-    //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
-    // One row
-    //                          // for each intra-frequency neighboring cell [1..32] for each
-    //                          // frequency [0..8] in BA list
-    //  For UMTS cells, according to ril.h, must return (Primary scrambling code ,
-    //  received signal code power)
-    //  NOTE that for first UMTS format above, there is no <rcsp> parameter.
-    //
-    //  A <type> of 0 or 1 = GSM.  A <type> of 2,3 = UMTS.
-
-
-    switch(uiMode)
-    {
-        case 0: // GSM  get (LAC/CI , RxLev)
-        {
-            //  <LAC> and <CI> are parameters 4 and 5
-            if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
-                    !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                    !FindAndSkipString(pszRsp, ",", pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 0, cannot skip to LAC and CI\r\n");
-                goto Error;
-            }
-
-            //  Read <LAC> and <CI>
-            if (!ExtractUInt32(pszRsp, uiLAC, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 0, could not extract LAC\r\n");
-                goto Error;
-            }
-            //  Read <CI>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiCI, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 0, could not extract CI value\r\n");
-                goto Error;
-            }
-            //  Read <RxLev>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSSI, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 0, could not extract RSSI value\r\n");
-                goto Error;
-            }
-
-            //  We now have what we want, copy to main structure.
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-
-            //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
-                    "%04X%04X", uiLAC, uiCI);
-            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode 0 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
-                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
-
-            //  rssi = <RxLev>
-
-            //  Convert RxLev to asu (0 to 31).
-            //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
-            //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
-            //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
-            //  like AT+CSQ response.
-            pCellData->pnCellData[uiIndex].rssi = (int)(uiRSSI / 2);
-            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode 0 GSM rxlev index=[%d]  rssi=[%d]\r\n",
-                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
-            res = RRIL_RESULT_OK;
-        }
-        break;
-
-        case 1: // GSM  get (LAC/CI , RxLev)
-        {
-            //  <LAC> and <CI> are parameters 2 and 3
-            //  Read <LAC> and <CI>
-            if (!SkipString(pszRsp, ",", pszRsp) ||
-                    !ExtractUInt32(pszRsp, uiLAC, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 1, could not extract LAC\r\n");
-                goto Error;
-            }
-            //  Read <CI>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiCI, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 1, could not extract CI value\r\n");
-                goto Error;
-            }
-            //  Read <RxLev>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSSI, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 1, could not extract RSSI value\r\n");
-                goto Error;
-            }
-            //  We now have what we want, copy to main structure.
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-            //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
-                    "%04X%04X", uiLAC, uiCI);
-            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode 1 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
-                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
-            //  rssi = <RxLev>
-
-            //  May have to convert RxLev to asu (0 to 31).
-            //  For GSM, it is in "asu" ranging from 0 to 31 (dBm = -113 + 2*asu)
-            //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
-            //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
-            //  like AT+CSQ response.
-            pCellData->pnCellData[uiIndex].rssi = (int)(uiRSSI / 2);
-            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode 1 GSM rxlev index=[%d]  rssi=[%d]\r\n",
-                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
-            res = RRIL_RESULT_OK;
-        }
-        break;
-
-        case 2: // UMTS  get (scrambling_code , rscp)
-        {
-            //  This can be either first case or second case.
-            //  Loop and count number of commas
-            char szBuf[MAX_BUFFER_SIZE] = {0};
-            const char* szDummy = pszRsp;
-            UINT32 uiCommaCount = 0;
-            if (!ExtractUnquotedString(pszRsp, m_cTerminator, szBuf, MAX_BUFFER_SIZE, szDummy))
-            {
-                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 2, could not extract temp buf\r\n");
-                goto Error;
-            }
-
-            for (UINT32 n=0; n < strlen(szBuf); n++)
-            {
-                if (szBuf[n] == ',')
-                    uiCommaCount++;
-            }
-            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode 2, found %d commas\r\n", uiCommaCount);
-
-            if (6 != uiCommaCount)
-            {
-                //  Handle first case here
-                //  <scrambling_code> is parameter 6
-                if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                        !FindAndSkipString(pszRsp, ",", pszRsp))
-                {
-                    RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                            " mode 2, could not skip to scrambling code\r\n");
-                    goto Error;
-                }
-                if (!ExtractUInt32(pszRsp, uiScramblingCode, pszRsp))
-                {
-                    RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                            " mode 2, could not extract scrambling code\r\n");
-                    goto Error;
-                }
-                //  Cannot get <rscp> as it does not exist.
-                //  We now have what we want, copy to main structure.
-                //  cid = <scrambling code> as char *
-                pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-                snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH, "%08x",
-                        uiScramblingCode);
-
-                RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 2 UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
-                        uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
-
-                //  rssi = <rscp>
-                //  Note that <rscp> value does not exist with this response.
-                //  Set to 0 for now.
-                pCellData->pnCellData[uiIndex].rssi = 0;
-                RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode 2 UMTS rscp index=[%d]  rssi=[%d]\r\n",
-                        uiIndex, pCellData->pnCellData[uiIndex].rssi);
-                res = RRIL_RESULT_OK;
-                break;
-            }
-            else
-            {
-                //  fall through to case 3 as it is parsed the same.
-                RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " comma count = 6, drop to case 3\r\n");
-            }
-        }
-
-
-        case 3: // UMTS  get (scrambling_code , rscp)
-        {
-            //  scrabling_code is parameter 2
-            //  Read <scrambling_code>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiScramblingCode, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                        " mode %d, could not extract scrambling code\r\n", uiMode);
-                goto Error;
-            }
-            //  <rscp> is parameter 5
-            if (!FindAndSkipString(pszRsp, ",", pszRsp) ||
-                    !FindAndSkipString(pszRsp, ",", pszRsp) ||
-                    !FindAndSkipString(pszRsp, ",", pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                       " mode %d, could not skip to rscp\r\n", uiMode);
-                goto Error;
-            }
-            //  read <rscp>
-            if (!ExtractUInt32(pszRsp, uiRSSI, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE::ParseGetNeighboringCellIDs() -"
-                        " mode %d, could not extract rscp\r\n", uiMode);
-                goto Error;
-            }
-
-            //  We now have what we want, copy to main structure.
-            //  cid = <scrambling code> as char *
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH, "%08x",
-                    uiScramblingCode);
-
-            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode %d UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
-                    uiMode, uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
-
-            //  rssi = <rscp>
-            //  Assume that rssi value is same as <rscp> value and no conversion needs to
-            //  be done.
-            pCellData->pnCellData[uiIndex].rssi = (int)uiRSSI;
-            RIL_LOG_INFO("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " mode %d UMTS rscp index=[%d]  rssi=[%d]\r\n",
-                    uiMode, uiIndex, pCellData->pnCellData[uiIndex].rssi);
-            res = RRIL_RESULT_OK;
-        }
-        break;
-
-        default:
-        {
-            RIL_LOG_CRITICAL("CTE::ParseGsmUmtsNeighboringCellInfo() -"
-                    " Invalid nMode=[%d]\r\n", uiMode);
-            goto Error;
-        }
-        break;
-    }
-Error:
-    return res;
-}
-
 void CTE::HandleChannelsBasicInitComplete()
 {
     RIL_LOG_VERBOSE("CTE::HandleChannelsBasicInitComplete() - Enter/Exit\r\n");
@@ -9878,3 +9740,21 @@ void CTE::CompleteGetSimStatusRequest(RIL_Token hRilToken)
 
     RIL_LOG_VERBOSE("CTE::CompleteGetSimStatusRequest() - Exit\r\n");
 }
+
+// RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE 110
+RIL_RESULT_CODE CTE::ParseUnsolCellInfoListRate(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseGetCellInfoListRate() - Enter / Exit\r\n");
+    return m_pTEBaseInstance->ParseUnsolCellInfoListRate(rRspData);
+}
+
+void CTE::PostUnsolCellInfoListRate(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostUnsolCellInfoListRate() - Enter / Exit\r\n");
+    // restart the timer in case of error.
+    if (rData.uiResultCode == RRIL_RESULT_ERROR)
+    {
+        m_pTEBaseInstance->RestartUnsolCellInfoListTimer(m_nCellInfoListRate);
+    }
+}
+

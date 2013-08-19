@@ -14,7 +14,7 @@
 #define RRIL_TE_XMM7160_H
 
 #include "te_xmm6360.h"
-#include "rril.h"
+#include "nd_structs.h"
 #include "channel_data.h"
 
 class CEvent;
@@ -103,6 +103,16 @@ public:
     virtual void PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData);
 
     virtual BOOL DataConfigDown(UINT32 uiCID, BOOL bForceCleanup = FALSE);
+
+    virtual RIL_RESULT_CODE ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
+                                                            const char* pszRsp,
+                                                            UINT32 uiIndex,
+                                                            UINT32 uiMode);
+
+    virtual RIL_RESULT_CODE ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
+                                                       const char* pszRsp,
+                                                       UINT32 uiIndex,
+                                                       UINT32 uiMode);
 
 protected:
 

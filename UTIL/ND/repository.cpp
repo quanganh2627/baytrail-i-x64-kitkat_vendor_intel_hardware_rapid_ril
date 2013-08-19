@@ -160,12 +160,14 @@ const char* g_szRequestNames[] =
     "VoiceRadioTech",                       // ND_REQ_ID_VOICERADIOTECH 112
     "SilentPinEntry",                       // ND_REQ_ID_SILENT_PIN_ENTRY 113
     "AckIncomingSmsWithPdu",                // ND_REQ_ID_ACKINCOMINGSMSWITHPDU 114
+    "GetCellInfoList"                       // ND_REQ_ID_GETCELLINFOLIST 115
+    "SetCellInfoListRate"                   // ND_REQ_ID_SETCELLINFOLISTRATE 116
 #if defined(M2_VT_FEATURE_ENABLED)
-    "HangupVT",                             // ND_REQ_ID_HANGUPVT 115
-    "DialVT",                               // ND_REQ_ID_DIALVT 116
+    "HangupVT",                             // ND_REQ_ID_HANGUPVT 117
+    "DialVT",                               // ND_REQ_ID_DIALVT 118
 #endif // M2_VT_FEATURE_ENABLED
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    "GetSimSmsStorage",                    // ND_REQ_GET_SIM_SMS_STORAGE 115 or 117
+    "GetSimSmsStorage",                    // ND_REQ_GET_SIM_SMS_STORAGE 117 or 119
 #endif // M2_GET_SIM_SMS_STORAGE_ENABLED
 };
 

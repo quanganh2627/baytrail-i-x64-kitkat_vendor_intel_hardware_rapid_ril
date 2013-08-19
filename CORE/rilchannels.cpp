@@ -139,11 +139,13 @@ UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL] =
     RIL_CHANNEL_DLC2,  //ND_REQ_ID_VOICERADIOTECH                       // 112
     RIL_CHANNEL_DLC8,  //ND_REQ_ID_SILENT_PIN_ENTRY                     // 113
     RIL_CHANNEL_DLC6,  //ND_REQ_ID_ACKINCOMINGSMSWITHPDU                // 114
+    RIL_CHANNEL_DLC2, // ND_REQ_ID_GETCELLINFOLIST                      // 115
+    RIL_CHANNEL_DLC2, // ND_REQ_ID_SETCELLINFOLISTRATE                  // 116
 #if defined(M2_VT_FEATURE_ENABLED)
-    RIL_CHANNEL_DLC6, //ND_REQ_ID_HANGUPVT                              // 115
-    RIL_CHANNEL_ATCMD, //ND_REQ_ID_DIALVT                               // 116
+    RIL_CHANNEL_DLC6, //ND_REQ_ID_HANGUPVT                              // 117
+    RIL_CHANNEL_ATCMD, //ND_REQ_ID_DIALVT                               // 118
 #endif  // M2_VT_FEATURE_ENABLED
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    RIL_CHANNEL_DLC6, // ND_REQ_ID GET_SIM_SMS_STORAGE                  // 115 or 117
+    RIL_CHANNEL_DLC6, // ND_REQ_ID GET_SIM_SMS_STORAGE                  // 117 or 119
 #endif
 };

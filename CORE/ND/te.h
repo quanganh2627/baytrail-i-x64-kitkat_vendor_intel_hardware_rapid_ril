@@ -586,34 +586,43 @@ public:
     RIL_RESULT_CODE RequestVoiceRadioTech(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseVoiceRadioTech(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_BASIC 109
+    // RIL_REQUEST_GET_CELL_INFO_LIST 109
+    RIL_RESULT_CODE RequestGetCellInfoList(RIL_Token rilToken, void* pData, size_t datalen);
+    RIL_RESULT_CODE ParseGetCellInfoList(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE 110
+    RIL_RESULT_CODE RequestSetCellInfoListRate(RIL_Token rilToken, void* pData, size_t datalen);
+    RIL_RESULT_CODE ParseUnsolCellInfoListRate(RESPONSE_DATA& rRspData);
+    void PostUnsolCellInfoListRate(POST_CMD_HANDLER_DATA& rData);
+
+    // RIL_REQUEST_SIM_TRANSMIT_BASIC 111
     RIL_RESULT_CODE RequestSimTransmitBasic(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitBasic(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_OPEN_CHANNEL 110
+    // RIL_REQUEST_SIM_OPEN_CHANNEL 112
     RIL_RESULT_CODE RequestSimOpenChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_CLOSE_CHANNEL 111
+    // RIL_REQUEST_SIM_CLOSE_CHANNEL 113
     RIL_RESULT_CODE RequestSimCloseChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 112
+    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 114
     RIL_RESULT_CODE RequestSimTransmitChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA& rRspData);
 
 #if defined(M2_VT_FEATURE_ENABLED)
-    // RIL_REQUEST_HANGUP_VT 113
+    // RIL_REQUEST_HANGUP_VT 115
     RIL_RESULT_CODE RequestHangupVT(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseHangupVT(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DIAL_VT 114
+    // RIL_REQUEST_DIAL_VT 116
     RIL_RESULT_CODE RequestDialVT(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseDialVT(RESPONSE_DATA& rRspData);
 #endif // M2_VT_FEATURE_ENABLED
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    // RIL_REQUEST_GET_SIM_SMS_STORAGE 115
+    // RIL_REQUEST_GET_SIM_SMS_STORAGE 117
     RIL_RESULT_CODE RequestGetSimSmsStorage(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseGetSimSmsStorage(RESPONSE_DATA& rRspData);
 #endif // M2_GET_SIM_SMS_STORAGE_ENABLED
@@ -636,10 +645,6 @@ public:
 
     // REQ_ID_QUERY_SIM_SMS_STORE_STATUS
     RIL_RESULT_CODE ParseQuerySimSmsStoreStatus(RESPONSE_DATA& rRspData);
-    RIL_RESULT_CODE ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
-                                                            const char* pszRsp,
-                                                            UINT32 uiIndex,
-                                                            UINT32 uiMode);
 
     void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
     UINT32 GetIncomingCallId();
@@ -744,6 +749,11 @@ public:
     void SetDtmfState(UINT32 uiDtmfState);
     UINT32 TestAndSetDtmfState(UINT32 uiDtmfState);
     UINT32 GetDtmfState();
+
+    UINT32 GetCellInfoListRate() { return m_nCellInfoListRate; };
+    void SetCellInfoListRate(UINT32 uiRate) { m_nCellInfoListRate = uiRate; };
+    BOOL IsCellInfoTimerRunning() { return m_bIsCellInfoTimerRunning; };
+    void SetCellInfoTimerRunning(BOOL aValue) { m_bIsCellInfoTimerRunning = aValue; };
 
     BOOL TestAndSetDataCleanupStatus(BOOL bCleanupStatus);
 
@@ -1005,6 +1015,8 @@ public:
      */
     void PostFacilityLockRetryCount(POST_CMD_HANDLER_DATA& rData);
 
+    void PostGetCellInfoList(POST_CMD_HANDLER_DATA& rData);
+
     /*
      * Gets the list of active data calls.
      *
@@ -1220,6 +1232,9 @@ private:
 
     BOOL m_bDataCleanupStatus;
     CMutex* m_pDataCleanupStatusLock;
+
+    UINT32 m_nCellInfoListRate;
+    BOOL m_bIsCellInfoTimerRunning;
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
 };

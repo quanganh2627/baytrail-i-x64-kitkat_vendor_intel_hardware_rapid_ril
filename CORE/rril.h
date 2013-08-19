@@ -13,7 +13,7 @@
 #define RRIL_RRIL_H
 
 #include <telephony/ril.h>
-
+#include <telephony/librilutils.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // Typedefs
