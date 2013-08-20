@@ -536,6 +536,15 @@ static void* mainLoop(void* param)
     // Initialize logging class
     CRilLog::Init(g_szSIMID);
 
+    // Initialize helper thread that processes MMGR callbacks
+    if (!CDeferThread::Init())
+    {
+        RIL_LOG_CRITICAL("mainLoop() - InitModemManagerEventHelpers() FAILED\r\n");
+
+        dwRet = 0;
+        goto Error;
+    }
+
     // Create and start system manager
     if (!CSystemManager::GetInstance().InitializeSystem())
     {

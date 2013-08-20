@@ -13,8 +13,32 @@
 #ifndef RRIL_RESET_H
 #define RRIL_RESET_H
 
-
+#include "rilqueue.h"
 #include "mmgr_cli.h"
+
+class CResetQueueNode
+{
+public:
+    virtual ~CResetQueueNode() { /* none */ }
+    virtual void Execute() = 0;
+};
+
+class CDeferThread
+{
+public:
+    static BOOL Init();
+    static BOOL QueueWork(CResetQueueNode* pNode, BOOL bNeedDeferring);
+
+    static BOOL DequeueWork(CResetQueueNode*& pNode) { return m_pResetQueue->Dequeue(pNode); }
+    static void Lock()   { CMutex::Lock(m_pThreadStartLock); }
+    static void Unlock() { CMutex::Unlock(m_pThreadStartLock); }
+    static void SetThreadFinished() { m_bIsThreadRunning = FALSE; }
+
+private:
+    static CRilQueue<CResetQueueNode*>* m_pResetQueue;
+    static CMutex* m_pThreadStartLock;
+    static BOOL m_bIsThreadRunning;
+};
 
 enum eRadioError
 {
