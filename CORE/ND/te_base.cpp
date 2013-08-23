@@ -13,6 +13,7 @@
 
 #include <wchar.h>
 #include <limits.h>
+#include <cutils/properties.h>
 
 #include "types.h"
 #include "rillog.h"
@@ -454,7 +455,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA& rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int* pnRetries = NULL;
     const char* pszRsp = rRspData.szResponse;
-    char szUICCID[MAX_PROP_VALUE] = {0};
+    char szUICCID[PROPERTY_VALUE_MAX] = {0};
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -477,7 +478,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA& rRspData)
 
         if (SkipString(pszRsp, "+CCID: ", pszRsp))
         {
-            if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+            if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, PROPERTY_VALUE_MAX, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot parse UICC ID\r\n");
                 szUICCID[0] = '\0';
@@ -806,7 +807,7 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA& rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
-    char szUICCID[MAX_PROP_VALUE] = {0};
+    char szUICCID[PROPERTY_VALUE_MAX] = {0};
     int* pnRetries = NULL;
 
     pnRetries = (int*)malloc(sizeof(int));
@@ -827,7 +828,7 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA& rRspData)
 
     if (SkipString(pszRsp, "+CCID: ", pszRsp))
     {
-        if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+        if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, PROPERTY_VALUE_MAX, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot parse UICC ID\r\n");
             szUICCID[0] = '\0';
@@ -1380,18 +1381,18 @@ RIL_RESULT_CODE CTEBase::ParseGetImsi(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    szSerialNumber = (char*)malloc(MAX_PROP_VALUE);
+    szSerialNumber = (char*)malloc(PROPERTY_VALUE_MAX);
     if (NULL == szSerialNumber)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImsi() -"
                 " Could not allocate memory for a %u-char string.\r\n", MAX_BUFFER_SIZE);
         goto Error;
     }
-    memset(szSerialNumber, 0x00, MAX_PROP_VALUE);
+    memset(szSerialNumber, 0x00, PROPERTY_VALUE_MAX);
 
     // Parse "<prefix><serial_number><postfix>"
     if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp) ||
-        !ExtractUnquotedString(pszRsp, m_cTerminator, szSerialNumber, MAX_PROP_VALUE, pszRsp) ||
+        !ExtractUnquotedString(pszRsp, m_cTerminator, szSerialNumber, PROPERTY_VALUE_MAX, pszRsp) ||
         !SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImsi() - Could not extract the IMSI string.\r\n");
@@ -4123,15 +4124,15 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA& rRspData)
 
     const char* szRsp = rRspData.szResponse;
     char szBuildTypeProperty[PROPERTY_VALUE_MAX] = {'\0'};
-    char * szIMEI = (char*)malloc(MAX_PROP_VALUE);
+    char* szIMEI = (char*)malloc(PROPERTY_VALUE_MAX);
 
     if (NULL == szIMEI)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImei() -"
-                " Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
+                " Could not allocate memory for a %u-char string.\r\n", PROPERTY_VALUE_MAX);
         goto Error;
     }
-    memset(szIMEI, 0, MAX_PROP_VALUE);
+    memset(szIMEI, 0, PROPERTY_VALUE_MAX);
 
     if (!SkipRspStart(szRsp, m_szNewLine, szRsp))
     {
@@ -4139,7 +4140,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImei(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    if (!ExtractUnquotedString(szRsp, m_cTerminator, szIMEI, MAX_PROP_VALUE, szRsp))
+    if (!ExtractUnquotedString(szRsp, m_cTerminator, szIMEI, PROPERTY_VALUE_MAX, szRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImei() - Could not find unquoted string\r\n");
         goto Error;
@@ -4213,7 +4214,7 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA& rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     const char* szRsp = rRspData.szResponse;
-    char* szIMEISV = (char*)malloc(MAX_PROP_VALUE);
+    char* szIMEISV = (char*)malloc(PROPERTY_VALUE_MAX);
     char szSV[MAX_BUFFER_SIZE] = {0};
     char szSVDigits[MAX_BUFFER_SIZE] = {0};
     int nIndex = 0;
@@ -4221,10 +4222,10 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA& rRspData)
     if (NULL == szIMEISV)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImeisv() -"
-                " Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
+                " Could not allocate memory for a %u-char string.\r\n", PROPERTY_VALUE_MAX);
         goto Error;
     }
-    memset(szIMEISV, 0, MAX_PROP_VALUE);
+    memset(szIMEISV, 0, PROPERTY_VALUE_MAX);
 
     //  Skip over <prefix> if there.
     if (!SkipRspStart(szRsp, m_szNewLine, szRsp))
@@ -4262,7 +4263,8 @@ RIL_RESULT_CODE CTEBase::ParseGetImeisv(RESPONSE_DATA& rRspData)
     }
 
     //  Copy 2 digits SV into szIMEISV
-    if (!PrintStringNullTerminate(szIMEISV, MAX_PROP_VALUE, "%c%c", szSVDigits[0], szSVDigits[1]))
+    if (!PrintStringNullTerminate(szIMEISV, PROPERTY_VALUE_MAX,
+            "%c%c", szSVDigits[0], szSVDigits[1]))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetImeisv() - Could not copy string szIMEISV\r\n");
         goto Error;
@@ -4757,7 +4759,7 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA& rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
-    char szUICCID[MAX_PROP_VALUE] = {0};
+    char szUICCID[PROPERTY_VALUE_MAX] = {0};
     int* pnRetries = NULL;
     UINT32 uiCause;
 
@@ -4794,7 +4796,7 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA& rRspData)
 
         if (SkipString(pszRsp, "+CCID: ", pszRsp))
         {
-            if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, MAX_PROP_VALUE, pszRsp))
+            if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, PROPERTY_VALUE_MAX, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - Cannot parse UICC ID\r\n");
                 szUICCID[0] = '\0';
@@ -5608,14 +5610,14 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA& rRspData)
     const char* pszRsp = rRspData.szResponse;
 
     char szTemp[MAX_BUFFER_SIZE] = {0};
-    char* szBasebandVersion = (char*)malloc(MAX_PROP_VALUE);
+    char* szBasebandVersion = (char*)malloc(PROPERTY_VALUE_MAX);
     if (NULL == szBasebandVersion)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() -"
-                " Could not allocate memory for a %u-char string.\r\n", MAX_PROP_VALUE);
+                " Could not allocate memory for a %u-char string.\r\n", PROPERTY_VALUE_MAX);
         goto Error;
     }
-    memset(szBasebandVersion, 0x00, MAX_PROP_VALUE);
+    memset(szBasebandVersion, 0x00, PROPERTY_VALUE_MAX);
 
     if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
     {
@@ -5633,7 +5635,7 @@ RIL_RESULT_CODE CTEBase::ParseBasebandVersion(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    if (!PrintStringNullTerminate(szBasebandVersion, MAX_PROP_VALUE, "%s", szTemp))
+    if (!PrintStringNullTerminate(szBasebandVersion, PROPERTY_VALUE_MAX, "%s", szTemp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseBasebandVersion() -"
                 " Could not create szBasebandVersion\r\n");

@@ -28,7 +28,6 @@
 #include "te_base.h"
 #include <sys/ioctl.h>
 #include <cutils/properties.h>
-#include <sys/system_properties.h>
 
 #include <cutils/sockets.h>
 #include <fcntl.h>
@@ -805,29 +804,29 @@ ePCache_Code encrypt(const char* szInput, const int nInputLen, const char* szKey
 
     //  Now write pInput somewhere....
     const int HEX_BUF_SIZE = 8;  // 8 chars to code our uint32 buffer in hex ASCII
-    char szEncryptedBuf[MAX_PROP_VALUE] = {0};
+    char szEncryptedBuf[PROPERTY_VALUE_MAX] = {0};
     for (int i = 0; i < BUF_LEN; i++)
     {
         char szPrint[HEX_BUF_SIZE+1] = {0};    //  +1 for C-string
         snprintf(szPrint, HEX_BUF_SIZE+1, "%08X", buf[i]);
         szPrint[HEX_BUF_SIZE] = '\0';  //  KW fix
 
-        strncat(szEncryptedBuf, szPrint, (MAX_PROP_VALUE-1) - strlen(szEncryptedBuf));
-        szEncryptedBuf[MAX_PROP_VALUE-1] = '\0';  //  KW fix
+        strncat(szEncryptedBuf, szPrint, (PROPERTY_VALUE_MAX-1) - strlen(szEncryptedBuf));
+        szEncryptedBuf[PROPERTY_VALUE_MAX-1] = '\0';  //  KW fix
     }
 
     //  Store in property
-    char szCachedPinProp[MAX_PROP_VALUE] = {0};
+    char szCachedPinProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.cachedpin" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szCachedPinProp, szRIL_cachedpin, MAX_PROP_VALUE-1);
-        szCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szCachedPinProp, szRIL_cachedpin, PROPERTY_VALUE_MAX-1);
+        szCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_cachedpin, g_szSIMID);
+        snprintf(szCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cachedpin, g_szSIMID);
     }
 
     if (0 != property_set(szCachedPinProp, szEncryptedBuf))
@@ -877,19 +876,19 @@ ePCache_Code decrypt(char* szOut, const char* szKey)
     UINT32 buf[BUF_LEN] = {0};
 
     //  Get encrypted string from property...
-    char szEncryptedBuf[MAX_PROP_VALUE] = {0};
+    char szEncryptedBuf[PROPERTY_VALUE_MAX] = {0};
 
-    char szCachedPinProp[MAX_PROP_VALUE] = {0};
+    char szCachedPinProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.cachedpin" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szCachedPinProp, szRIL_cachedpin, MAX_PROP_VALUE-1);
-        szCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szCachedPinProp, szRIL_cachedpin, PROPERTY_VALUE_MAX-1);
+        szCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_cachedpin, g_szSIMID);
+        snprintf(szCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cachedpin, g_szSIMID);
     }
     if (!property_get(szCachedPinProp, szEncryptedBuf, ""))
     {
@@ -960,17 +959,17 @@ ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN)
     //  TODO: Remove this log statement when complete
     RIL_LOG_INFO("PCache_Store_PIN() Enter - szUICC=[%s], szPIN=[%s]\r\n", szUICC, szPIN);
 
-    char szCachedUiccProp[MAX_PROP_VALUE] = {0};
+    char szCachedUiccProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.cacheduicc" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szCachedUiccProp, szRIL_cacheduicc, MAX_PROP_VALUE-1);
-        szCachedUiccProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szCachedUiccProp, szRIL_cacheduicc, PROPERTY_VALUE_MAX-1);
+        szCachedUiccProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szCachedUiccProp, MAX_PROP_VALUE, "%s%s", szRIL_cacheduicc, g_szSIMID);
+        snprintf(szCachedUiccProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cacheduicc, g_szSIMID);
     }
 
     if (NULL == szUICC || '\0' == szUICC[0] || 0 != property_set(szCachedUiccProp, szUICC))
@@ -998,7 +997,7 @@ ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN)
 //
 ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN)
 {
-    char szUICCCached[MAX_PROP_VALUE];
+    char szUICCCached[PROPERTY_VALUE_MAX];
     RIL_LOG_INFO("PCache_Get_PIN - Enter\r\n");
 
     if (NULL == szUICC || NULL == szPIN || '\0' == szUICC[0])
@@ -1007,17 +1006,17 @@ ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN)
         return PIN_INVALID_UICC;
     }
 
-    char szCachedUiccProp[MAX_PROP_VALUE] = {0};
+    char szCachedUiccProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.cacheduicc" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szCachedUiccProp, szRIL_cacheduicc, MAX_PROP_VALUE-1);
-        szCachedUiccProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szCachedUiccProp, szRIL_cacheduicc, PROPERTY_VALUE_MAX-1);
+        szCachedUiccProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szCachedUiccProp, MAX_PROP_VALUE, "%s%s", szRIL_cacheduicc, g_szSIMID);
+        snprintf(szCachedUiccProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cacheduicc, g_szSIMID);
     }
 
     if (!property_get(szCachedUiccProp, szUICCCached, ""))
@@ -1070,21 +1069,21 @@ ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN)
 //
 ePCache_Code PCache_Clear()
 {
-    char szCachedPinProp[MAX_PROP_VALUE] = {0};
-    char szCachedUiccProp[MAX_PROP_VALUE] = {0};
+    char szCachedPinProp[PROPERTY_VALUE_MAX] = {0};
+    char szCachedUiccProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.cachedpin", "ril.cacheduicc" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szCachedPinProp, szRIL_cachedpin, MAX_PROP_VALUE-1);
-        szCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
-        strncpy(szCachedUiccProp, szRIL_cacheduicc, MAX_PROP_VALUE-1);
-        szCachedUiccProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szCachedPinProp, szRIL_cachedpin, PROPERTY_VALUE_MAX-1);
+        szCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
+        strncpy(szCachedUiccProp, szRIL_cacheduicc, PROPERTY_VALUE_MAX-1);
+        szCachedUiccProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_cachedpin, g_szSIMID);
-        snprintf(szCachedUiccProp, MAX_PROP_VALUE, "%s%s", szRIL_cacheduicc, g_szSIMID);
+        snprintf(szCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cachedpin, g_szSIMID);
+        snprintf(szCachedUiccProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cacheduicc, g_szSIMID);
     }
     if (0 != property_set(szCachedUiccProp, ""))
     {
@@ -1116,17 +1115,17 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
 {
     RIL_LOG_INFO("PCache_SetUseCachedPIN - Enter bFlag=[%d]\r\n", bFlag);
 
-    char szUseCachedPinProp[MAX_PROP_VALUE] = {0};
+    char szUseCachedPinProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.usecachedpin" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szUseCachedPinProp, szRIL_usecachedpin, MAX_PROP_VALUE-1);
-        szUseCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szUseCachedPinProp, szRIL_usecachedpin, PROPERTY_VALUE_MAX-1);
+        szUseCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szUseCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_usecachedpin, g_szSIMID);
+        snprintf(szUseCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_usecachedpin, g_szSIMID);
     }
 
     if (bFlag && (RRIL_SIM_STATE_READY == CTE::GetTE().GetSIMState()))
@@ -1162,20 +1161,20 @@ bool PCache_GetUseCachedPIN()
     RIL_LOG_INFO("PCache_GetUseCachedPIN - Enter\r\n");
     bool bRet = false;
 
-    char szUseCachedPinProp[MAX_PROP_VALUE] = {0};
+    char szUseCachedPinProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.usecachedpin" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szUseCachedPinProp, szRIL_usecachedpin, MAX_PROP_VALUE-1);
-        szUseCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szUseCachedPinProp, szRIL_usecachedpin, PROPERTY_VALUE_MAX-1);
+        szUseCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szUseCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_usecachedpin, g_szSIMID);
+        snprintf(szUseCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_usecachedpin, g_szSIMID);
     }
 
-    char szProp[MAX_PROP_VALUE] = {0};
+    char szProp[PROPERTY_VALUE_MAX] = {0};
 
     if (!property_get(szUseCachedPinProp, szProp, ""))
     {

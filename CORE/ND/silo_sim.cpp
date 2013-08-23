@@ -26,7 +26,6 @@
 #include "te.h"
 
 #include <cutils/properties.h>
-#include <sys/system_properties.h>
 
 //
 //
@@ -814,18 +813,18 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
     //  In that case, set property!
     if (uiIndex == uiTotalCnt)
     {
-        char szEccListProp[MAX_PROP_VALUE] = {0};
+        char szEccListProp[PROPERTY_VALUE_MAX] = {0};
 
         //  If sim id == 0 or if sim id is not provided by RILD, then continue
         //  to use "ril.ecclist" property name.
         if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
         {
-            strncpy(szEccListProp, szRIL_ECCLIST, MAX_PROP_VALUE-1);
-            szEccListProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+            strncpy(szEccListProp, szRIL_ECCLIST, PROPERTY_VALUE_MAX-1);
+            szEccListProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
         }
         else
         {
-            snprintf(szEccListProp, MAX_PROP_VALUE, "%s%s", szRIL_ECCLIST, g_szSIMID);
+            snprintf(szEccListProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_ECCLIST, g_szSIMID);
         }
 
         RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - uiIndex == uiTotalCnt == %d\r\n", uiTotalCnt);

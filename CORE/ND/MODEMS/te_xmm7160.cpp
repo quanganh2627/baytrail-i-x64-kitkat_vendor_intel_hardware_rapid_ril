@@ -11,8 +11,6 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <wchar.h>
-#include <cutils/properties.h>
-#include <sys/system_properties.h>
 
 //  This is for socket-related calls.
 #include <sys/ioctl.h>
