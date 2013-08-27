@@ -917,6 +917,10 @@ ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN)
     {
         RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached uicc prop %s\r\n",
                 szCachedUiccProp);
+
+        // Cached PIN is not available, set the flag to mark this
+        PCache_SetUseCachedPIN(false);
+
         return PIN_NO_PIN_AVAILABLE;
     }
 
