@@ -6270,6 +6270,319 @@ Error:
     return res;
 }
 
+RIL_RESULT_CODE CTEBase::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseReadBearerTFTParams() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+
+    char szTmpBuffer[MAX_BUFFER_SIZE] = {'\0'};
+    CChannel_Data *pChannelData = NULL;
+    sOEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS* pTFTParams = NULL;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseReadBearerTFTParams() - %s\r\n", pszRsp);
+
+    pTFTParams = (sOEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS*)
+            malloc(sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS));
+
+    if (NULL == pTFTParams)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "memory allocation failed\r\n");
+        goto Error;
+    }
+
+    memset(pTFTParams, 0 , sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS));
+
+    pTFTParams->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS;
+
+    // Parse +CGTFTRDP response, will return up to 2 lines of data (if MT has
+    // dual stack capability. 1st line for IPV4 data, 2nd for IPV6
+    if (!FindAndSkipString(pszRsp, "+CGTFTRDP:", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "+CGTFTRDP not found in response\r\n");
+        goto Error;
+    }
+
+    // Parse <p_cid>
+    if (!ExtractUInt32(pszRsp, pTFTParams->uiPcid, pszRsp) ||
+        ((pTFTParams->uiPcid > MAX_PDP_CONTEXTS) || 0 == pTFTParams->uiPcid ))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract PCID.\r\n");
+        goto Error;
+    }
+
+    // Parse <cid>
+    if (!ExtractUInt32(pszRsp, pTFTParams->uiCid, pszRsp) ||
+        ((pTFTParams->uiCid > MAX_PDP_CONTEXTS) || 0 == pTFTParams->uiCid ))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract CID.\r\n");
+        goto Error;
+    }
+
+    // Parse <packet filter identifier>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, pTFTParams->uiPacketFilterIdentifier, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - Could not extract"
+                    " packet filter identifier.\r\n");
+        goto Error;
+    }
+
+    // Parse <evaluation precedence index>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, pTFTParams->uiEvaluationPrecedenceIndex, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract evaluation precedence index.\r\n");
+        goto Error;
+    }
+
+    // Parse <source address and subnet mask>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract source address and subnet mask.\r\n");
+        goto Error;
+    }
+
+    /*
+    * If IPv4, then first line will have the IPv4 address.
+    * If IPv6, then first line will have the IPv6 address.
+    * If IPv4v6, then first line will have the IPv4 address and
+    * second line will have the IPv6 address.
+    */
+    if (!ExtractLocalAddressAndSubnetMask(szTmpBuffer, pTFTParams->szSourceIpV4Addr,
+            MAX_IPADDR_SIZE, pTFTParams->szSourceIpV6Addr, MAX_IPADDR_SIZE,
+            pTFTParams->szSourceIpv4SubnetMask, MAX_IPADDR_SIZE,
+            pTFTParams->szSourceIpv6SubnetMask, MAX_IPADDR_SIZE))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "ExtractLocalAddressAndSubnetMask failed\r\n");
+        goto Error;
+    }
+
+    // Parse <protocol number>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, pTFTParams->uiProtocolNumber, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract protocol number.\r\n");
+        goto Error;
+    }
+
+    // Parse <destination port range>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractQuotedString(pszRsp, pTFTParams->szDestinationPortRange, MAX_BUFFER_SIZE, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract destination port range.\r\n");
+        goto Error;
+    }
+
+    // Parse <source port range>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractQuotedString(pszRsp, pTFTParams->szSourcePortRange, MAX_BUFFER_SIZE, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract source port range.\r\n");
+        goto Error;
+    }
+
+    // Parse <spi>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractHexUInt32(pszRsp, pTFTParams->uiIpSecParamIndex, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract spi.\r\n");
+        goto Error;
+    }
+
+    // Parse <tos>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractQuotedString(pszRsp, pTFTParams->szTOS, MAX_BUFFER_SIZE, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract tos.\r\n");
+        goto Error;
+    }
+
+    // Parse <flow label>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractHexUInt32(pszRsp, pTFTParams->uiFlowLabel, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract flow label.\r\n");
+        goto Error;
+    }
+
+    // Parse <direction>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, pTFTParams->uiDirection, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract direction.\r\n");
+        goto Error;
+    }
+
+    // Parse <NW packet filter identifier>
+    if (!SkipString(pszRsp, ",", pszRsp) ||
+        !ExtractUInt32(pszRsp, pTFTParams->uiNwPacketFilterIdentifier, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
+                "Could not extract NW packet filter identifier.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTEBase::ParseReadBearerTFTParams() - "
+            "uiCID: %u, uiPacketFilterIdentifier: %u, uiEvaluationPrecedenceIndex: %u, "
+            "szSourceIpV4Addr: %s, szSourceIpV6Addr: %s, "
+            "szSourceIpv4SubnetMask: %s, szSourceIpv6SubnetMask: %s, "
+            "uiProtocolNumber: %u, szDestinationPortRange: %s,"
+            "szSourcePortRange: %s, uiIpSecParamIndex: %u, szTOS: %s, "
+            "uiFlowLabel: %u, uiDirection: %u, uiNwPacketFilterIdentifier: %u\r\n",
+            pTFTParams->uiCid, pTFTParams->uiPacketFilterIdentifier,
+            pTFTParams->uiEvaluationPrecedenceIndex,
+            pTFTParams->szSourceIpV4Addr, pTFTParams->szSourceIpV6Addr,
+            pTFTParams->szSourceIpv4SubnetMask, pTFTParams->szSourceIpv6SubnetMask,
+            pTFTParams->uiProtocolNumber, pTFTParams->szDestinationPortRange,
+            pTFTParams->szSourcePortRange, pTFTParams->uiIpSecParamIndex,
+            pTFTParams->szTOS, pTFTParams->uiFlowLabel, pTFTParams->uiDirection,
+            pTFTParams->uiNwPacketFilterIdentifier);
+
+    res = RRIL_RESULT_OK;
+
+    RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pTFTParams,
+            sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS));
+Error:
+
+    RIL_LOG_VERBOSE("CTEBase::ParseReadBearerTFTParams() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseReadBearerQOSParams(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseReadBearerQOSParams() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char * pszRsp = rRspData.szResponse;
+
+    char szTmpBuffer[MAX_BUFFER_SIZE] = {'\0'};
+    CChannel_Data *pChannelData = NULL;
+    sOEM_HOOK_RAW_UNSOL_BEARER_QOS_PARAMS* pQOSParams = NULL;
+
+    RIL_LOG_VERBOSE("CTEBase::ParseReadBearerQOSParams() - %s\r\n", pszRsp);
+
+    pQOSParams = (sOEM_HOOK_RAW_UNSOL_BEARER_QOS_PARAMS*)
+            malloc(sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_QOS_PARAMS));
+
+    if (NULL == pQOSParams)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerQOSParams() - "
+                "memory allocation failed\r\n");
+        goto Error;
+    }
+
+    memset(pQOSParams, 0 , sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_QOS_PARAMS));
+
+    pQOSParams->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_QOS_PARAMS;
+
+    if (!FindAndSkipString(pszRsp, "+CGEQOS:", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerQOSParams() - "
+                "+CGTFTRDP not found in response\r\n");
+        goto Error;
+    }
+
+    // Parse <p_cid>
+    if (!ExtractUInt32(pszRsp, pQOSParams->uiPcid, pszRsp) ||
+        ((pQOSParams->uiPcid > MAX_PDP_CONTEXTS) || 0 == pQOSParams->uiPcid ))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerQOSParams() - "
+                "Could not extract PCID.\r\n");
+        goto Error;
+    }
+
+    // Parse <cid>
+    if (!ExtractUInt32(pszRsp, pQOSParams->uiCid, pszRsp) ||
+        ((pQOSParams->uiCid > MAX_PDP_CONTEXTS) || 0 == pQOSParams->uiCid ))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerQOSParams() - "
+                "Could not extract CID.\r\n");
+        goto Error;
+    }
+
+    // Parse <qci>
+    if (!ExtractUInt32(pszRsp, pQOSParams->uiQci, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerQOSParams() - "
+                "Could not extract qci.\r\n");
+        goto Error;
+    }
+
+    // if QCI is in Guaranted bit rate range ( [1 - 4] )
+    if (pQOSParams->uiQci >= 1 && pQOSParams->uiQci <= 4)
+    {
+        // Parse <DL_GBR>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, pQOSParams->uiDlGbr, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseReadBearerQOSParams() - Could not extract"
+                        " DL_GBR.\r\n");
+            goto Error;
+        }
+
+        // Parse <UL_GBR>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, pQOSParams->uiUlGbr, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseReadBearerQOSParams() - Could not extract"
+                        " UL_GBR.\r\n");
+            goto Error;
+        }
+
+        // Parse <DL_MBR>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, pQOSParams->uiDlMbr, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseReadBearerQOSParams() - Could not extract"
+                        " DL_MBR.\r\n");
+            goto Error;
+        }
+
+        // Parse <UL_MBR>
+        if (!SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, pQOSParams->uiUlMbr, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseReadBearerQOSParams() - Could not extract"
+                        " UL_MBR.\r\n");
+            goto Error;
+        }
+    }
+
+    RIL_LOG_INFO("CTEBase::ParseReadBearerQOSParams() - "
+            "uiQci: %u, uiDlGbr: %u, "
+            "uiUlGbr: %u, uiDlMbr: %u, "
+            "uiUlMbr: %u\r\n",
+            pQOSParams->uiQci, pQOSParams->uiDlGbr,
+            pQOSParams->uiUlGbr, pQOSParams->uiDlMbr,
+            pQOSParams->uiUlMbr);
+
+    res = RRIL_RESULT_OK;
+
+    RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pQOSParams,
+            sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_QOS_PARAMS));
+Error:
+
+    RIL_LOG_VERBOSE("CTEBase::ParseReadBearerQOSParams() - Exit\r\n");
+    return res;
+}
+
 //
 // RIL_REQUEST_RESET_RADIO 58
 //

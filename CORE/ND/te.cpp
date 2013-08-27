@@ -8345,6 +8345,20 @@ RIL_RESULT_CODE CTE::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData)
     return m_pTEBaseInstance->ParseReadDefaultPDNContextParams(rRspData);
 }
 
+RIL_RESULT_CODE CTE::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseReadBearerTFTParams() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseReadBearerTFTParams(rRspData);
+}
+
+RIL_RESULT_CODE CTE::ParseReadBearerQOSParams(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseReadBearerQOSParams() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseReadBearerQOSParams(rRspData);
+}
+
 void CTE::PostCmdHandlerCompleteRequest(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostCmdHandlerCompleteRequest() Enter\r\n");

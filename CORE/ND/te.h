@@ -615,6 +615,9 @@ public:
     void StoreRegistrationInfo(void* pRegStruct, int regType);
     RIL_RESULT_CODE ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData);
 
+    RIL_RESULT_CODE ParseReadBearerTFTParams(RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseReadBearerQOSParams(RESPONSE_DATA& rRspData);
+
     void CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
     void ResetRegistrationCache();
 
