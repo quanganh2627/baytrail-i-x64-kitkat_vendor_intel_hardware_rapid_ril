@@ -251,12 +251,6 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
                             rpCmd->GetRequestID());
             }
 
-            if (!CRilLog::IsFullLogBuild() && 0 == numRetries)
-            {
-                rpCmd->FreeATCmd1();
-                pATCommand = NULL;
-            }
-
             // retrieve response from modem
             resCode = GetResponse(rpCmd, pResponse);
 
@@ -300,6 +294,11 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
                         goto Error;
                     }
                 }
+            }
+            if (0 == numRetries)
+            {
+                rpCmd->FreeATCmd1();
+                pATCommand = NULL;
             }
         } while (--numRetries >= 0);
     }
@@ -501,12 +500,9 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
                         m_uiRilChannel, uiBytesWritten, rpCmd->GetRequestID());
         }
 
-        if (!CRilLog::IsFullLogBuild())
-        {
-            // No retry mechanism, free the command buffer
-            rpCmd->FreeATCmd2();
-            pATCommand = NULL;
-        }
+        // No retry mechanism, free the command buffer
+        rpCmd->FreeATCmd2();
+        pATCommand = NULL;
 
         // wait for the secondary response
         delete rpResponse;
