@@ -512,8 +512,8 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
     }
 
     // Here we assume we don't have card error.
-    // This will be changed in case we received XSIM=8.
-    CTE::GetTE().SetSimTechnicalProblem(FALSE);
+    // This will be changed in case we received XSIM=6.
+    CTE::GetTE().SetSimError(FALSE);
 
     /// @TODO: Need to revisit the XSIM and radio state mapping
     switch (nSIMState)
@@ -555,15 +555,15 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
          * to attach.(XSIM: 7 or XSIM: 3(in some specific case))
          */
         case 2:
-        case 6: // SIM Error
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM NOT READY\r\n");
             CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
             break;
-        case 8: // SIM Technical problem
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM TECHNICAL PROBLEM\r\n");
-            CTE::GetTE().SetSimTechnicalProblem(TRUE);
+        case 6: // SIM Error
+            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM ERROR\r\n");
+            CTE::GetTE().SetSimError(TRUE);
+            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
             break;
         case 7: // ready for attach (+COPS)
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
@@ -571,6 +571,10 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
+        case 8:
+            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
+            // Do not notify framework for +XSIM: 8
+            return TRUE;
         case 12: // SIM SMS caching completed
             RIL_LOG_INFO("[RIL STATE] SIM SMS CACHING COMPLETED\r\n");
             CTE::GetTE().TriggerQuerySimSmsStoreStatus();

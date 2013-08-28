@@ -52,7 +52,7 @@ CTE::CTE(UINT32 modemType) :
     m_enableLocationUpdates(0),
     m_bRestrictedMode(FALSE),
     m_bRadioRequestPending(FALSE),
-    m_bIsSimTechnicalProblem(FALSE),
+    m_bIsSimError(FALSE),
     m_bIsManualNetworkSearchOn(FALSE),
     m_bIsDataSuspended(FALSE),
     m_bIsClearPendingCHLD(FALSE),
@@ -8004,7 +8004,7 @@ void CTE::ResetInternalStates()
     m_bCSStatusCached = FALSE;
     m_bPSStatusCached = FALSE;
     m_bIsSetupDataCallOngoing = FALSE;
-    m_bIsSimTechnicalProblem = FALSE;
+    m_bIsSimError = FALSE;
     m_bIsManualNetworkSearchOn = FALSE;
     m_bIsClearPendingCHLD = FALSE;
     m_bIsDataSuspended = FALSE;
@@ -8392,7 +8392,15 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
     cardStatus.cdma_subscription_app_index = -1;
     cardStatus.ims_subscription_app_index = -1;
     cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
-    cardStatus.card_state = RIL_CARDSTATE_PRESENT;
+    // Report card state error for SIM error state (6) from +XSIM and +XSIMSTATE
+    if (IsSimError())
+    {
+        cardStatus.card_state = RIL_CARDSTATE_ERROR;
+    }
+    else
+    {
+        cardStatus.card_state = RIL_CARDSTATE_PRESENT;
+    }
     cardStatus.num_applications = 1;
     cardStatus.applications[0].app_state = RIL_APPSTATE_DETECTED;
     cardStatus.applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
@@ -8437,16 +8445,6 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 cardStatus.ims_subscription_app_index = -1;
                 cardStatus.universal_pin_state = RIL_PINSTATE_UNKNOWN;
 
-                // for XSIM 8 (SIM technical problem), report cardstate error
-                if (IsSimTechnicalProblem())
-                {
-                    cardStatus.card_state = RIL_CARDSTATE_ERROR;
-                }
-                else
-                {
-                    cardStatus.card_state = RIL_CARDSTATE_PRESENT;
-                }
-
                 cardStatus.num_applications = 1;
 
                 cardStatus.applications[0].app_type = RIL_APPTYPE_UNKNOWN;
@@ -8476,7 +8474,6 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 cardStatus.ims_subscription_app_index = -1;
                 cardStatus.universal_pin_state =
                                             RIL_PINSTATE_ENABLED_PERM_BLOCKED;
-                cardStatus.card_state = RIL_CARDSTATE_PRESENT;
                 cardStatus.num_applications = 0;
             }
             break;

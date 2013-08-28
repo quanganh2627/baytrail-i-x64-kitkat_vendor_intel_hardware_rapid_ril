@@ -6253,8 +6253,8 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
     }
 
     // Here we assume we don't have card error.
-    // This will be changed in case of nSIMState is 8.
-    m_cte.SetSimTechnicalProblem(FALSE);
+    // This will be changed in case of nSIMState is 6.
+    m_cte.SetSimError(FALSE);
 
     switch (uiSimState)
     {
@@ -6278,21 +6278,25 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
          */
         case 2:
         case 3:
-        case 6: // SIM Error
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
             RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM NOT READY\r\n");
             m_cte.SetSIMState(RRIL_SIM_STATE_NOT_READY);
             break;
-        case 8: // SIM Technical problem
-            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
-            m_cte.SetSimTechnicalProblem(TRUE);
+        case 6: // SIM Error
+            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM ERROR\r\n");
+            m_cte.SetSimError(TRUE);
+            m_cte.SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
             break;
         case 7: // ready for attach (+COPS)
             RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - READY FOR ATTACH\r\n");
             m_cte.SetSIMState(RRIL_SIM_STATE_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
+        case 8: // SIM Technical problem
+            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
+            // Do not notify framework for +XSIM: 8
+            return TRUE;
         case 0: // SIM not present
         case 9: // SIM Removed
             RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM REMOVED/NOT PRESENT\r\n");

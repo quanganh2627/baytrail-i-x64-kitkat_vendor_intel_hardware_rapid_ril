@@ -670,11 +670,11 @@ public:
     void SetModemOffInFlightModeState(BOOL bValue) { m_bModemOffInFlightMode = bValue; };
     BOOL GetModemOffInFlightModeState() { return m_bModemOffInFlightMode; };
 
-    void SetSimTechnicalProblem(BOOL bIsTechnicalProblem)
+    void SetSimError(BOOL bIsError)
     {
-        m_bIsSimTechnicalProblem = bIsTechnicalProblem;
+        m_bIsSimError = bIsError;
     }
-    BOOL IsSimTechnicalProblem() { return m_bIsSimTechnicalProblem; };
+    BOOL IsSimError() { return m_bIsSimError; };
 
     void SetManualNetworkSearchOn(BOOL bIsManualSearchOn)
     {
@@ -1144,10 +1144,10 @@ private:
     BOOL m_bRadioRequestPending;
 
     /*
-     * Flag is used to store sim technical problem.
+     * Flag is used to store sim error problem.
      * If TRUE, card_state will be reported as error.
      */
-    BOOL m_bIsSimTechnicalProblem;
+    BOOL m_bIsSimError;
 
     /*
      * Flag is used to store the manual network search status
