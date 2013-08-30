@@ -2457,6 +2457,18 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                  */
             }
         break;
+        case RIL_OEM_HOOK_STRING_SEND_AT:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SEND_AT");
+            if (!PrintStringNullTerminate(rReqData.szCmd1,
+                    sizeof(rReqData.szCmd1), pszRequest[1]))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - "
+                       "RIL_OEM_HOOK_STRING_SEND_AT - Can't construct szCmd1.\r\n");
+                goto Error;
+            }
+            res = RRIL_RESULT_OK;
+            break;
+
         default:
             RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
                     " ERROR: Received unknown uiCommand=[0x%X]\r\n", uiCommand);
@@ -2524,6 +2536,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
             res = ParseXRFCBT(pszRsp, rRspData);
             break;
 
+        case RIL_OEM_HOOK_STRING_SEND_AT:
+            res = HandleSendAtResponse(pszRsp, rRspData);
+            break;
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
         case RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS:
         case RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE:
@@ -4690,6 +4705,39 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseCGSMS() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::HandleSendAtResponse(const char* pszRsp,
+RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleSendAtResponse() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    P_ND_SEND_AT_RESPONSE pResponse = NULL;
+
+    pResponse = (P_ND_SEND_AT_RESPONSE) malloc(sizeof(S_ND_SEND_AT_RESPONSE));
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::HandleSendAtResponse() -"
+                "Could not allocate memory for response");
+        goto Error;
+    }
+    memset(pResponse, 0, sizeof(S_ND_SEND_AT_RESPONSE));
+    strncpy(pResponse->szResponse, pszRsp, sizeof(pResponse->szResponse) - 1);
+
+    pResponse->sResponsePointer.pszResponse = pResponse->szResponse;
+    rRspData.pData = (void*)pResponse;
+    rRspData.uiDataSize = sizeof(S_ND_SEND_AT_RESPONSE_PTR);
+
+    res = RRIL_RESULT_OK;
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleSendAtResponse() - Exit\r\n");
     return res;
 }
 
