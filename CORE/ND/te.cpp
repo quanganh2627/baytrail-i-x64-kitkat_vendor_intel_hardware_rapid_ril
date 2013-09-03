@@ -7660,6 +7660,24 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
                 sizeof(epsRegStatus->szReasonDenied));
     }
 
+    const int CELLINFO_EN_DEFAULT = 1;
+    int nEnableCellInfo = CELLINFO_EN_DEFAULT;
+    // If cell info rate is 0 and Cell info is enabled, query cell info
+    CRepository repository;
+    if (repository.Read(g_szGroupModem, g_szEnableCellInfo, nEnableCellInfo))
+    {
+        if (nEnableCellInfo)
+        {
+            UINT32 uiNewRate = GetCellInfoListRate();
+            if (!IsCellInfoTimerRunning() && (uiNewRate == 0))
+            {
+                RIL_LOG_INFO("CTEBase::StoreRegistrationInfo() - read cell info now!\r\n");
+                SetCellInfoTimerRunning(TRUE);
+                RIL_requestTimedCallback(triggerCellInfoList, (void*)uiNewRate, 0, 0);
+            }
+        }
+    }
+
     RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Exit\r\n");
 }
 
