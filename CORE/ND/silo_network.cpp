@@ -642,13 +642,13 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
 
         rszPointer -= strlen(m_szNewLine);
 
-        if (!fRet)
-            goto Error;
-        else
+        if (fRet)
+        {
             CTE::GetTE().StoreRegistrationInfo(pRegStatusInfo, regType);
+            pResponse->SetResultCode(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED);
+        }
 
         pResponse->SetUnsolicitedFlag(TRUE);
-        pResponse->SetResultCode(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED);
         fRet = TRUE;
     }
     else
