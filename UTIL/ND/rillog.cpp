@@ -16,6 +16,17 @@
 #include <utils/Log.h>
 #include <cutils/properties.h>
 
+/*
+ * Simplified macro to send a radio log message using a given tag and level.
+ */
+#ifndef RLOG
+#if LOG_NDEBUG
+#define RLOG(level, tag, ...)   ((void)0)
+#else
+#define RLOG(level, tag, ...) ((void)__android_log_buf_print(LOG_ID_RADIO, level, tag, __VA_ARGS__))
+#endif
+#endif
+
 UINT8 CRilLog::m_uiFlags = 0x00;
 BOOL  CRilLog::m_bInitialized = FALSE;
 BOOL  CRilLog::m_bFullLogBuild = FALSE;
@@ -29,7 +40,7 @@ void CRilLog::Init(char* szSIMID)
 
     if (szSIMID != NULL)
     {
-        ALOG(LOG_ERROR, "RILR", "SIM ID value : %s", szSIMID);
+        RLOGE("SIM ID value : %s", szSIMID);
         strncpy(m_szSIMID, szSIMID, sizeof(m_szSIMID)-1);
         m_szSIMID[sizeof(m_szSIMID)-1] = '\0';  // KW fix
     }
@@ -94,11 +105,11 @@ void CRilLog::Verbose(const char* const szFormatString, ...)
         if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
         {
             snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
-            ALOG(LOG_DEBUG, szNewTag, "%s", szLogText);
+            RLOG(ANDROID_LOG_DEBUG, szNewTag, "%s", szLogText);
         }
         else
         {
-            LOGD("%s", szLogText);
+            RLOGD("%s", szLogText);
         }
     }
 }
@@ -118,11 +129,11 @@ void CRilLog::Info(const char* const szFormatString, ...)
         if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
         {
             snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
-            ALOG(LOG_INFO, szNewTag, "%s", szLogText);
+            RLOG(ANDROID_LOG_INFO, szNewTag, "%s", szLogText);
         }
         else
         {
-            LOGI("%s", szLogText);
+            RLOGI("%s", szLogText);
         }
     }
 }
@@ -142,11 +153,11 @@ void CRilLog::Warning(const char* const szFormatString, ...)
         if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
         {
             snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
-            ALOG(LOG_WARN, szNewTag, "%s", szLogText);
+            RLOG(ANDROID_LOG_WARN, szNewTag, "%s", szLogText);
         }
         else
         {
-            LOGW("%s", szLogText);
+            RLOGW("%s", szLogText);
         }
     }
 }
@@ -166,11 +177,11 @@ void CRilLog::Critical(const char* const szFormatString, ...)
         if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
         {
             snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
-            ALOG(LOG_ERROR, szNewTag, "%s", szLogText);
+            RLOG(ANDROID_LOG_ERROR, szNewTag, "%s", szLogText);
         }
         else
         {
-            LOGE("%s", szLogText);
+            RLOGE("%s", szLogText);
         }
     }
 }
