@@ -1188,6 +1188,7 @@ private:
 
     LONG GetCsRegistrationState(char* pCsRegState);
     LONG GetPsRegistrationState(char* pPsRegState);
+    LONG GetCurrentAct();
 
     // initial value of Modem Autonomous Fast Dormancy (MAFD) mode
     static const int FAST_DORMANCY_MODE_DEFAULT = 2;
