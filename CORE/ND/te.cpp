@@ -2063,6 +2063,7 @@ RIL_RESULT_CODE CTE::RequestLastCallFailCause(RIL_Token rilToken, void* pData, s
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestLastCallFailCause() -"
