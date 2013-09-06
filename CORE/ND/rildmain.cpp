@@ -368,7 +368,14 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-
+        case RIL_UNSOL_CELL_INFO_LIST: //1035
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CELL_INFO_LIST\r\n");
+            if (pData && dataSize)
+            {
+                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - "
+                        "RIL_UNSOL_CELL_INFO_LIST data size=[%d]\r\n", dataSize);
+            }
+            break;
         //  ************************* END OF REGULAR NOTIFICATIONS *******************************
 
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
@@ -506,7 +513,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.53 for Android 4.2 (Build June 11/2013)";
+    return "Intrinsyc Rapid-RIL M6.55 for Android 4.2 (Build August 6/2013)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

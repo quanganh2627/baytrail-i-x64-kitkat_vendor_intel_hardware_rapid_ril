@@ -14,7 +14,7 @@
 #define RRIL_TE_XMM6260_H
 
 #include "te_base.h"
-#include "rril.h"
+#include "nd_structs.h"
 #include "channel_data.h"
 
 class CEvent;
@@ -148,7 +148,10 @@ public:
     virtual RIL_RESULT_CODE CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
                                                                  void* pData,
                                                                  UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
+                                                            const char* pszRsp,
+                                                            UINT32 uiIndex,
+                                                            UINT32 uiMode);
 
     // RIL_REQUEST_SET_TTY_MODE 80
     virtual RIL_RESULT_CODE CoreSetTtyMode(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
@@ -174,6 +177,16 @@ public:
 
     // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
     virtual RIL_RESULT_CODE ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_GET_CELL_INFO_LIST 109
+    virtual RIL_RESULT_CODE CoreGetCellInfoList(REQUEST_DATA& rReqData,
+                                                           void* pData,
+                                                           UINT32 uiDataSize);
+
+    virtual RIL_RESULT_CODE ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
+                                                           const char* pszRsp,
+                                                           UINT32 uiIndex,
+                                                           UINT32 uiMode);
 
     // internal response handlers
     virtual RIL_RESULT_CODE ParsePdpContextActivate(RESPONSE_DATA& rRspData);
@@ -246,6 +259,8 @@ public:
     virtual RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);
 
 protected:
+    virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);
 
     virtual const char* GetRegistrationInitString();
     virtual const char* GetPsRegistrationReadString();
@@ -285,9 +300,7 @@ private:
     RIL_RESULT_CODE ParseCGSMS(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseXRFCBT(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE HandleSendAtResponse(const char* pszRsp, RESPONSE_DATA& rRspData);
-    // internal response handlers
-    RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
-    RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);
+
 #if defined(M2_DUALSIM_FEATURE_ENABLED)
     RIL_RESULT_CODE ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRspData);
 #endif // M2_DUALSIM_FEATURE_ENABLED

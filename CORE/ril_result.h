@@ -29,11 +29,13 @@
 #define CME_ERROR_SIM_PUK2_REQUIRED                         18
 #define CME_ERROR_NO_NETWORK_SERVICE                        30
 #define CME_ERROR_NETWORK_PUK_REQUIRED                      41
+#define CME_ERROR_UKNOWN_ERROR                              100
 #define CME_ERROR_ILLEGAL_MS                                103
 #define CME_ERROR_ILLEGAL_ME                                106
 #define CME_ERROR_PLMN_NOT_ALLOWED                          111
 #define CME_ERROR_LOCATION_NOT_ALLOWED                      112
 #define CME_ERROR_ROAMING_NOT_ALLOWED                       113
+#define CME_ERROR_UNSPECIFIED_GPRS_ERROR                    148
 
 
 // CMS error codes are mapped to 3GPP spec

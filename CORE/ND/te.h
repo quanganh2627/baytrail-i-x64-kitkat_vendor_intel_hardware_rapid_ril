@@ -586,34 +586,43 @@ public:
     RIL_RESULT_CODE RequestVoiceRadioTech(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseVoiceRadioTech(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_BASIC 109
+    // RIL_REQUEST_GET_CELL_INFO_LIST 109
+    RIL_RESULT_CODE RequestGetCellInfoList(RIL_Token rilToken, void* pData, size_t datalen);
+    RIL_RESULT_CODE ParseGetCellInfoList(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE 110
+    RIL_RESULT_CODE RequestSetCellInfoListRate(RIL_Token rilToken, void* pData, size_t datalen);
+    RIL_RESULT_CODE ParseUnsolCellInfoListRate(RESPONSE_DATA& rRspData);
+    void PostUnsolCellInfoListRate(POST_CMD_HANDLER_DATA& rData);
+
+    // RIL_REQUEST_SIM_TRANSMIT_BASIC 111
     RIL_RESULT_CODE RequestSimTransmitBasic(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitBasic(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_OPEN_CHANNEL 110
+    // RIL_REQUEST_SIM_OPEN_CHANNEL 112
     RIL_RESULT_CODE RequestSimOpenChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_CLOSE_CHANNEL 111
+    // RIL_REQUEST_SIM_CLOSE_CHANNEL 113
     RIL_RESULT_CODE RequestSimCloseChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 112
+    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 114
     RIL_RESULT_CODE RequestSimTransmitChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA& rRspData);
 
 #if defined(M2_VT_FEATURE_ENABLED)
-    // RIL_REQUEST_HANGUP_VT 113
+    // RIL_REQUEST_HANGUP_VT 115
     RIL_RESULT_CODE RequestHangupVT(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseHangupVT(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DIAL_VT 114
+    // RIL_REQUEST_DIAL_VT 116
     RIL_RESULT_CODE RequestDialVT(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseDialVT(RESPONSE_DATA& rRspData);
 #endif // M2_VT_FEATURE_ENABLED
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    // RIL_REQUEST_GET_SIM_SMS_STORAGE 115
+    // RIL_REQUEST_GET_SIM_SMS_STORAGE 117
     RIL_RESULT_CODE RequestGetSimSmsStorage(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseGetSimSmsStorage(RESPONSE_DATA& rRspData);
 #endif // M2_GET_SIM_SMS_STORAGE_ENABLED
@@ -636,14 +645,6 @@ public:
 
     // REQ_ID_QUERY_SIM_SMS_STORE_STATUS
     RIL_RESULT_CODE ParseQuerySimSmsStoreStatus(RESPONSE_DATA& rRspData);
-    RIL_RESULT_CODE ParseGsmUmtsNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
-                                                            const char* pszRsp,
-                                                            UINT32 uiIndex,
-                                                            UINT32 uiMode);
-    RIL_RESULT_CODE ParseLteNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
-                                                            const char* pszRsp,
-                                                            UINT32 uiIndex,
-                                                            UINT32 uiMode);
 
     void SetIncomingCallStatus(UINT32 uiCallId, UINT32 uiStatus);
     UINT32 GetIncomingCallId();
@@ -669,11 +670,11 @@ public:
     void SetModemOffInFlightModeState(BOOL bValue) { m_bModemOffInFlightMode = bValue; };
     BOOL GetModemOffInFlightModeState() { return m_bModemOffInFlightMode; };
 
-    void SetSimTechnicalProblem(BOOL bIsTechnicalProblem)
+    void SetSimError(BOOL bIsError)
     {
-        m_bIsSimTechnicalProblem = bIsTechnicalProblem;
+        m_bIsSimError = bIsError;
     }
-    BOOL IsSimTechnicalProblem() { return m_bIsSimTechnicalProblem; };
+    BOOL IsSimError() { return m_bIsSimError; };
 
     void SetManualNetworkSearchOn(BOOL bIsManualSearchOn)
     {
@@ -725,6 +726,9 @@ public:
     void SetSMSOverIPCapable(BOOL bEnable) { m_bSMSOverIPCapable = bEnable; }
     BOOL IsSMSOverIPCapable() { return m_bSMSOverIPCapable; }
 
+    void SetSupportCGPIAF(BOOL bSupportCGPIAF) { m_bSupportCGPIAF =  bSupportCGPIAF; }
+    BOOL IsSupportCGPIAF() { return m_bSupportCGPIAF; }
+
     void SaveCEER(const char* pszData);
     const char* GetLastCEER() { return m_szLastCEER; }
 
@@ -749,6 +753,11 @@ public:
     UINT32 TestAndSetDtmfState(UINT32 uiDtmfState);
     UINT32 GetDtmfState();
 
+    UINT32 GetCellInfoListRate() { return m_nCellInfoListRate; };
+    void SetCellInfoListRate(UINT32 uiRate) { m_nCellInfoListRate = uiRate; };
+    BOOL IsCellInfoTimerRunning() { return m_bIsCellInfoTimerRunning; };
+    void SetCellInfoTimerRunning(BOOL aValue) { m_bIsCellInfoTimerRunning = aValue; };
+
     BOOL TestAndSetDataCleanupStatus(BOOL bCleanupStatus);
 
     // This function will return true if sys.shutdown.requested is set to 0 or 1
@@ -769,6 +778,13 @@ public:
                                             UINT32 uiReqId = 0,
                                             PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn = NULL);
     RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
+
+    /*
+     * Create request for Extended Error Report for Location Update Reject
+     * during CS registration (called internally)
+     */
+    BOOL RequestQueryNEER(UINT32 uiChannel, RIL_Token rilToken, UINT32 uiReqId);
+    RIL_RESULT_CODE ParseQueryNEER(RESPONSE_DATA& rRspData);
 
     /*
      * Post Command handler function for valid ril requests and also for internal requests.
@@ -1009,6 +1025,17 @@ public:
      */
     void PostFacilityLockRetryCount(POST_CMD_HANDLER_DATA& rData);
 
+    void PostGetCellInfoList(POST_CMD_HANDLER_DATA& rData);
+
+    /*
+     *
+     * Post Command handler function for the RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC
+     * and RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL requests.
+     *
+     * Upon success/failure, completes the request
+     */
+    void PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
     /*
      * Gets the list of active data calls.
      *
@@ -1117,10 +1144,10 @@ private:
     BOOL m_bRadioRequestPending;
 
     /*
-     * Flag is used to store sim technical problem.
+     * Flag is used to store sim error problem.
      * If TRUE, card_state will be reported as error.
      */
-    BOOL m_bIsSimTechnicalProblem;
+    BOOL m_bIsSimError;
 
     /*
      * Flag is used to store the manual network search status
@@ -1178,6 +1205,7 @@ private:
     BOOL m_bXDATASTATEnabled;
     BOOL m_bIMSCapable;
     BOOL m_bSMSOverIPCapable;
+    BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
 
     // Timeouts (in milliseconds)
     static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;
@@ -1224,6 +1252,9 @@ private:
 
     BOOL m_bDataCleanupStatus;
     CMutex* m_pDataCleanupStatusLock;
+
+    UINT32 m_nCellInfoListRate;
+    BOOL m_bIsCellInfoTimerRunning;
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
 };

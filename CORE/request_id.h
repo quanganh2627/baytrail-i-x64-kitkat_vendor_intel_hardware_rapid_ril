@@ -131,14 +131,16 @@ enum ND_REQ_ID_ID {
     ND_REQ_ID_VOICERADIOTECH,                      // 112
     ND_REQ_ID_SILENT_PIN_ENTRY,                    // 113
     ND_REQ_ID_ACKINCOMINGSMSWITHPDU,               // 114
+    ND_REQ_ID_GETCELLINFOLIST,                     // 115
+    ND_REQ_ID_SETCELLINFOLISTRATE,                 // 116
 #if defined(M2_VT_FEATURE_ENABLED)
-    ND_REQ_ID_HANGUPVT,                            // 115
-    ND_REQ_ID_DIALVT,                              // 116
+    ND_REQ_ID_HANGUPVT,                            // 117
+    ND_REQ_ID_DIALVT,                              // 118
 #endif // M2_VT_FEATURE_ENABLED
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    ND_REQ_ID_GET_SIM_SMS_STORAGE,                // 115 or 117
+    ND_REQ_ID_GET_SIM_SMS_STORAGE,                 // 117 or 119
 #endif
-    ND_REQ_ID_TOTAL                                // 115 or 116, or 117
+    ND_REQ_ID_TOTAL                                // 117 or 118, 119 or 120
 };
 
 

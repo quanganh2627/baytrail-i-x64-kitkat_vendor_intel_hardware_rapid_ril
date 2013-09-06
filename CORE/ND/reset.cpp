@@ -432,16 +432,8 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
                 LaunchCloseChannelPortsThread(receivedModemEvent);
                 break;
 
-            case E_MMGR_NOTIFY_MODEM_WARM_RESET:
             case E_MMGR_NOTIFY_CORE_DUMP:
-                if (E_MMGR_NOTIFY_MODEM_WARM_RESET == receivedModemEvent)
-                {
-                    RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) MODEM_WARM_RESET\r\n");
-                }
-                else
-                {
-                    RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) E_MMGR_NOTIFY_CORE_DUMP\r\n");
-                }
+                RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) E_MMGR_NOTIFY_CORE_DUMP\r\n");
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 

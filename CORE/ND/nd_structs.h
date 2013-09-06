@@ -121,8 +121,13 @@ typedef struct
 {
     RIL_NeighboringCell*     pnCellPointers      [RRIL_MAX_CELL_ID_COUNT];
     RIL_NeighboringCell      pnCellData          [RRIL_MAX_CELL_ID_COUNT];
+    char                     pnCellCIDBuffers    [RRIL_MAX_CELL_ID_COUNT][CELL_ID_ARRAY_LENGTH];
 } S_ND_N_CELL_DATA, *P_ND_N_CELL_DATA;
 
+typedef struct
+{
+    RIL_CellInfo      pnCellData[RRIL_MAX_CELL_ID_COUNT];
+} S_ND_N_CELL_INFO_DATA, *P_ND_N_CELL_INFO_DATA;
 
 #define REG_STATUS_LENGTH 8
 

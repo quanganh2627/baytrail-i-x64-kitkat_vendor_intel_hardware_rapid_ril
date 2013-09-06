@@ -403,6 +403,11 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetSMSOverIPCapable(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szSupportCGPIAF, iTemp))
+    {
+        CTE::GetTE().SetSupportCGPIAF(iTemp == 1 ? TRUE : FALSE);
+    }
+
     // set system capabilities
     pSysCaps.SetSmsCapable(CTE::GetTE().IsSmsOverCSCapable()
             || CTE::GetTE().IsSmsOverPSCapable());
@@ -750,17 +755,6 @@ BOOL CSystemManager::MMgrConnectionInit()
         RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
                          " Cannot subscribe event %d\n",
                           E_MMGR_EVENT_MODEM_OUT_OF_SERVICE);
-        goto out;
-    }
-
-    if (E_ERR_CLI_SUCCEED !=
-          mmgr_cli_subscribe_event(m_pMMgrLibHandle,
-                                     ModemManagerEventHandler,
-                                     E_MMGR_NOTIFY_MODEM_WARM_RESET))
-    {
-        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
-                         " Cannot subscribe notification %d\n",
-                          E_MMGR_NOTIFY_MODEM_WARM_RESET);
         goto out;
     }
 

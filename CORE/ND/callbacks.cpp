@@ -333,3 +333,52 @@ void triggerDropCallEvent(void* param)
     RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, (void*)&data,
             sizeof(sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND));
 }
+
+void triggerCellInfoList(void* param)
+{
+    // Get the CellInfo rate and compare.
+    // if the newly set rate is less or equal,continue reading cellinfo from modem
+    // if it is more, then start a new timed call back with the difference in timeout
+    RIL_LOG_VERBOSE("triggerCellInfoList- Enter\r\n");
+    UINT32 uiTeRate = CTE::GetTE().GetCellInfoListRate();
+    UINT32 uiRate = (UINT32)param;
+    RIL_LOG_INFO("triggerCellInfoList- StoredRate %d Rate with callback %d\r\n", uiTeRate, uiRate);
+    // the settings have changed to not to report CELLINFO
+    // TODO: 0 to check for changed values and report
+    if (0 == uiTeRate || INT_MAX == uiTeRate)
+    {
+        CTE::GetTE().SetCellInfoTimerRunning(FALSE);
+        RIL_LOG_INFO("triggerCellInfoList- Unsol cell info disabled: %d\r\n", uiTeRate);
+    }
+    else if (uiTeRate <= uiRate)
+    {
+        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETCELLINFOLIST],
+                NULL, REQ_ID_NONE, "AT+XCELLINFO?\r", &CTE::ParseUnsolCellInfoListRate,
+                &CTE::PostUnsolCellInfoListRate);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("triggerCellInfoList() - Unable to queue command!\r\n");
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("triggerCellInfoList() - "
+                    "Unable to allocate memory for new command!\r\n");
+        }
+        CTE::GetTE().SetCellInfoTimerRunning(FALSE);
+    }
+    else
+    {
+         if (uiTeRate > uiRate)
+         {
+             RIL_requestTimedCallback(triggerCellInfoList,
+                   (void*)uiTeRate, (uiTeRate - uiRate), 0);
+         }
+    }
+    RIL_LOG_VERBOSE("triggerCellInfoList- Exit\r\n");
+}

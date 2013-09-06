@@ -30,6 +30,7 @@ extern char* g_szSIMID;
 
 CChannelBase::CChannelBase(UINT32 uiChannel)
   : m_uiRilChannel(uiChannel),
+    m_bTimeoutWaitingForResponse(0),
     m_fWaitingForRsp(FALSE),
     m_fLastCommandTimedOut(FALSE),
     m_fFinalInitOK(FALSE),
@@ -42,8 +43,7 @@ CChannelBase::CChannelBase(UINT32 uiChannel)
     m_paInitCmdStrings(NULL),
     m_bPossibleInvalidFD(FALSE),
     m_pPossibleInvalidFDMutex(NULL),
-    m_pResponseObjectAccessMutex(NULL),
-    m_bTimeoutWaitingForResponse(0)
+    m_pResponseObjectAccessMutex(NULL)
 {
     RIL_LOG_VERBOSE("CChannelBase::CChannelBase() - Enter\r\n");
 
@@ -560,6 +560,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     CRepository  repository;
     char         szTemp[MAX_BUFFER_SIZE];
 
+#if defined(CONFIGURE_3GDIV_DARP_IN_RIL)
     //  Data for RxDiversity
     char szRxDiversityCmdString[MAX_BUFFER_SIZE] = {0};
     const int RXDIVERSITY_EN_DEFAULT = 0;
@@ -568,6 +569,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     int nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
     BOOL bIgnoreDARPParam = FALSE;
     char szRxDivProperty[PROPERTY_VALUE_MAX] = {'\0'};
+#endif // CONFIGURE_3GDIV_DARP_IN_RIL
 
     // Data for Fast Dormancy Mode
     char szFDCmdString[MAX_BUFFER_SIZE] = {0};
@@ -723,6 +725,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             goto Done;
         }
 
+#if defined(CONFIGURE_3GDIV_DARP_IN_RIL)
         // Read the RX DIV property
         property_get("ro.spid.telephony.rxdiv", szRxDivProperty, "0");
         nRxDiversity3GEnable = (szRxDivProperty[0] == '1') ? 1 : 0;
@@ -783,6 +786,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                     " Concat szRxDiversityString failed\r\n");
             goto Done;
         }
+#endif // CONFIGURE_3GDIV_DARP_IN_RIL
 
 #if defined(M2_VT_FEATURE_ENABLED)
         // for Video Telephony, set the the data path, depending on RIL instance

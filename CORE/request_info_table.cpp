@@ -133,7 +133,8 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo)
                 case ND_REQ_ID_SENDSMSEXPECTMORE:       // +CMMS, +CMGS
                 case ND_REQ_ID_GETBROADCASTSMSCONFIG:   // +CSCB?
                 case ND_REQ_ID_SMSBROADCASTACTIVATION:  // +CSCB
-                case ND_REQ_ID_GETNEIGHBORINGCELLIDS:   // +XCELLINFO
+                case ND_REQ_ID_GETNEIGHBORINGCELLIDS:   // +XCELLINFO?
+                case ND_REQ_ID_GETCELLINFOLIST:         // +XCELLINFO?
                 case ND_REQ_ID_REPORTSMSMEMORYSTATUS:   // +XTESM
                     rReqInfo.uiTimeout = 2 * rReqInfo.uiTimeout + 10000;
                     break;

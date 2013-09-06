@@ -69,6 +69,40 @@ Error:
     return pRet;
 }
 
+char* CTE_XMM6360::GetBasicInitCommands(UINT32 uiChannelType)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::GetBasicInitCommands() - Enter\r\n");
+
+    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
+    char* pInitCmd = NULL;
+
+    pInitCmd = CTE_XMM6260::GetBasicInitCommands(uiChannelType);
+    if (NULL == pInitCmd)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::GetBasicInitCommands() - Failed to get the "
+                "basic init cmd string!\r\n");
+        goto Done;
+    }
+
+    // Add any XMM6360-specific init strings
+    //
+    if (RIL_CHANNEL_ATCMD == uiChannelType)
+    {
+        // Set IPV6 address format: Use IPv6 colon-notation, subnet prefix CIDR notation,
+        //  leading zeros omitted, zero compression
+        CopyStringNullTerminate(szInitCmd, "|+CGPIAF=1,1,0,1", sizeof(szInitCmd));
+    }
+    else if (RIL_CHANNEL_URC == uiChannelType)
+    {
+        CopyStringNullTerminate(szInitCmd, pInitCmd, sizeof(szInitCmd));
+    }
+
+Done:
+    free(pInitCmd);
+    RIL_LOG_VERBOSE("CTE_XMM6360::GetBasicInitCommands() - Exit\r\n");
+    return strndup(szInitCmd, strlen(szInitCmd));
+}
+
 char* CTE_XMM6360::GetUnlockInitCommands(UINT32 uiChannelType)
 {
     RIL_LOG_VERBOSE("CTE_XMM6360::GetUnlockInitCommands() - Enter\r\n");
@@ -743,4 +777,345 @@ RIL_RadioTechnology CTE_XMM6360::MapAccessTechnology(UINT32 uiStdAct)
     }
     RIL_LOG_VERBOSE("CTE_XMM6360::MapAccessTechnology() EXIT  rtAct=[%u]\r\n", (UINT32)rtAct);
     return rtAct;
+}
+
+//
+// Response to AT+CGPADDR=<CID>
+//
+RIL_RESULT_CODE CTE_XMM6360::ParseIpAddress(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseIpAddress() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* szRsp = rRspData.szResponse;
+    UINT32 uiCID;
+
+    // Parse prefix
+    if (!FindAndSkipString(szRsp, "+CGPADDR: ", szRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() -"
+                " Unable to parse \"+CGPADDR\" prefix.!\r\n");
+        goto Error;
+    }
+
+    // Parse <cid>
+    if (!ExtractUInt32(szRsp, uiCID, szRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() - Unable to parse <cid>!\r\n");
+        goto Error;
+    }
+
+    if (uiCID > 0)
+    {
+        //  The response could come back as:
+        //      +CGPADDR: <cid>,<PDP_Addr1>,<PDP_Addr2>
+        //  PDP_Addr1 could be in IPv4, or IPv6.  PDP_Addr2 is present only for IPv4v6
+        //  in which case PDP_Addr1 is IPv4 and PDP_Addr2 is IPv6.
+        //
+        //  When +CGPIAF is set (CGPIAF=1,1,0,1), the returned address format
+        //  is the expected format by Android.
+        //    IPV4: a1.a2.a3.a4
+        //    IPV6: a1a2:a3a4:a5a6:a7a8:a9a10:a11a12:a13a14:a15a16
+
+        char szPdpAddr[MAX_IPADDR_SIZE] = {'\0'};
+        char szIpAddr1[MAX_IPADDR_SIZE] = {'\0'}; // IPV4
+        char szIpAddr2[MAX_IPADDR_SIZE] = {'\0'}; // IPV6
+        int state = E_DATA_STATE_IDLE;
+
+        CChannel_Data* pChannelData =
+                CChannel_Data::GetChnlFromContextID(uiCID);
+        if (NULL == pChannelData)
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() - No Data Channel for CID %u.\r\n",
+                    uiCID);
+            goto Error;
+        }
+
+        state = pChannelData->GetDataState();
+        if (E_DATA_STATE_ACTIVE != state)
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() - Wrong data state: %d\r\n",
+                    state);
+            goto Error;
+        }
+
+        // Allow reverting to old implementation for IMC IPV6 AT commands when using CGPIAF
+        if (m_cte.IsSupportCGPIAF())
+        {
+            //  Extract ,<Pdp_Addr1>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                    !ExtractQuotedString(szRsp, szIpAddr1, MAX_IPADDR_SIZE, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() -"
+                        " Unable to parse <PDP_addr1>!\r\n");
+                goto Error;
+            }
+
+            //  Extract ,<PDP_Addr2>
+            if (SkipString(szRsp, ",", szRsp))
+            {
+                if (!ExtractQuotedString(szRsp, szIpAddr2, MAX_IPADDR_SIZE, szRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() -"
+                            " Unable to parse <PDP_addr2>!\r\n");
+                    goto Error;
+                }
+
+                RIL_LOG_INFO("CTE_XMM6360::ParseIpAddress() - IPV4 address: %s\r\n", szIpAddr1);
+                RIL_LOG_INFO("CTE_XMM6360::ParseIpAddress() - IPV6 address: %s\r\n", szIpAddr2);
+            }
+        }
+        else
+        {
+            //  Extract ,<Pdp_Addr1>
+            if (!SkipString(szRsp, ",", szRsp) ||
+                !ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() - "
+                        "Unable to parse <PDP_addr1>!\r\n");
+                goto Error;
+            }
+
+            //  The AT+CGPADDR command doesn't return IPV4V6 format
+            if (!ConvertIPAddressToAndroidReadable(szPdpAddr, szIpAddr1, MAX_IPADDR_SIZE,
+                    szIpAddr2, MAX_IPADDR_SIZE))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() -"
+                        " ConvertIPAddressToAndroidReadable failed!\r\n");
+                goto Error;
+            }
+
+            //  Extract ,<PDP_Addr2>
+            //  Converted address is in szIpAddr2.
+            if (SkipString(szRsp, ",", szRsp))
+            {
+                if (!ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() -"
+                            " Unable to parse <PDP_addr2>!\r\n");
+                    goto Error;
+                }
+
+                //  The AT+CGPADDR command doesn't return IPV4V6 format.
+                if (!ConvertIPAddressToAndroidReadable(szPdpAddr, szIpAddr1, MAX_IPADDR_SIZE,
+                        szIpAddr2, MAX_IPADDR_SIZE))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() -"
+                            " ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
+                    goto Error;
+                }
+
+                //  Extract ,<PDP_Addr2>
+                //  Converted address is in pChannelData->m_szIpAddr2.
+                if (SkipString(szRsp, ",", szRsp))
+                {
+                    if (!ExtractQuotedString(szRsp, szPdpAddr, MAX_IPADDR_SIZE, szRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() -"
+                                " Unable to parse <PDP_addr2>!\r\n");
+                        goto Error;
+                    }
+
+                    //  The AT+CGPADDR command doesn't return IPV4V6 format
+                    //  Use a dummy IPV4 address as only an IPV6 address is expected here
+                    char szDummyIpAddr[MAX_IPADDR_SIZE];
+                    szDummyIpAddr[0] = '\0';
+
+                    if (!ConvertIPAddressToAndroidReadable(szPdpAddr,
+                            szDummyIpAddr, MAX_IPADDR_SIZE, szIpAddr2, MAX_IPADDR_SIZE))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() -"
+                                " ConvertIPAddressToAndroidReadable failed! m_szIpAddr2\r\n");
+                        goto Error;
+                    }
+
+                RIL_LOG_INFO("CTE_XMM6360::ParseIpAddress() - IPV4 address: %s\r\n", szIpAddr1);
+                RIL_LOG_INFO("CTE_XMM6360::ParseIpAddress() - IPV6 address: %s\r\n", szIpAddr2);
+                }
+            }
+        }
+
+        pChannelData->SetIpAddress(szIpAddr1, szIpAddr2);
+        res = RRIL_RESULT_OK;
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseIpAddress() - uiCID=[%u] not valid!\r\n", uiCID);
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseIpAddress() - Exit\r\n");
+    return res;
+}
+
+//
+// Response to AT+XDNS?
+//
+RIL_RESULT_CODE CTE_XMM6360::ParseDns(RESPONSE_DATA & rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseDns() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* szRsp = rRspData.szResponse;
+    UINT32 uiCID = 0;
+    char szDNS[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpDNS1[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpDNS2[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpV6DNS1[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpV6DNS2[MAX_IPADDR_SIZE] = {'\0'};
+    CChannel_Data* pChannelData = NULL;
+    int state = E_DATA_STATE_IDLE;
+
+    // Parse "+XDNS: "
+    while (FindAndSkipString(szRsp, "+XDNS: ", szRsp))
+    {
+        // Parse <cid>
+        if (!ExtractUInt32(szRsp, uiCID, szRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::ParseDns() - Unable to parse <cid>!\r\n");
+            continue;
+        }
+
+        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+        if (NULL == pChannelData)
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::ParseDns() - No Data Channel for CID %u.\r\n",
+                    uiCID);
+            continue;
+        }
+
+        state = pChannelData->GetDataState();
+        if (E_DATA_STATE_ACTIVE != state)
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::ParseDns() - Wrong data state: %d\r\n",
+                    state);
+            continue;
+        }
+
+        //  The response could come back as:
+        //    +XDNS: <cid>,<Primary_DNS>,<Secondary_DNS>
+        //  Primary_DNS and Secondary_DNS could be in IPV4, IPV6, or IPV4V6 format.
+        //
+        //  When +CGPIAF is set (CGPIAF=1,1,0,1), the returned address format
+        //  is the expected format by Android.
+        //    IPV4: a1.a2.a3.a4
+        //    IPV6: a1a2:a3a4:a5a6:a7a8:a9a10:a11a12:a13a14:a15a16
+        //    IPV4V6: a1a2:a3a4:a5a6:a7a8:a9a10:a11a12:a13a14:a15a16:a17a18:a19a20
+
+        // Parse <primary DNS>
+        if (SkipString(szRsp, ",", szRsp))
+        {
+            // Allow reverting to old implementation for IMC IPV6 AT commands when using CGPIAF
+            if (m_cte.IsSupportCGPIAF())
+            {
+                if (!ExtractQuotedString(szRsp, szIpDNS1, MAX_IPADDR_SIZE, szRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6360::ParseDns() - Unable to extact szDNS 1!\r\n");
+                    continue;
+                }
+
+                RIL_LOG_INFO("CTE_XMM6360::ParseDns() - Primary DNS server: %s\r\n", szIpDNS1);
+            }
+            else
+            {
+                if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6360::ParseDns() - Unable to extact szDNS 1!\r\n");
+                    continue;
+                }
+
+                //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
+                if (!ConvertIPAddressToAndroidReadable(szDNS,
+                                                        szIpDNS1,
+                                                        MAX_IPADDR_SIZE,
+                                                        szIpV6DNS1,
+                                                        MAX_IPADDR_SIZE))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6360::ParseDns() -"
+                            " ConvertIPAddressToAndroidReadable failed! m_szDNS1\r\n");
+                    continue;
+                }
+
+                RIL_LOG_INFO("CTE_XMM6360::ParseDns() - szIpDNS1: %s\r\n", szIpDNS1);
+
+                if (strlen(szIpV6DNS1) > 0)
+                {
+                    RIL_LOG_INFO("CTE_XMM6360::ParseDns() - szIpV6DNS1: %s\r\n", szIpV6DNS1);
+                }
+                else
+                {
+                    RIL_LOG_INFO("CTE_XMM6360::ParseDns() - szIpV6DNS1: <NONE>\r\n");
+                }
+            }
+        }
+
+        // Parse <secondary DNS>
+        if (SkipString(szRsp, ",", szRsp))
+        {
+            if (m_cte.IsSupportCGPIAF())
+            {
+                if (!ExtractQuotedString(szRsp, szIpDNS2, MAX_IPADDR_SIZE, szRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6360::ParseDns() - Unable to extact szDNS 2!\r\n");
+                    continue;
+                }
+
+                RIL_LOG_INFO("CTE_XMM6360::ParseDns() - Secondary DNS server: %s\r\n", szIpDNS2);
+            }
+            else
+            {
+                if (!ExtractQuotedString(szRsp, szDNS, MAX_IPADDR_SIZE, szRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6360::ParseDns() - Unable to extact szDNS 2!\r\n");
+                    continue;
+                }
+
+                //  Now convert to Android-readable format (and split IPv4v6 parts (if applicable)
+                if (!ConvertIPAddressToAndroidReadable(szDNS,
+                                                        szIpDNS2,
+                                                        MAX_IPADDR_SIZE,
+                                                        szIpV6DNS2,
+                                                        MAX_IPADDR_SIZE))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6360::ParseDns() -"
+                            " ConvertIPAddressToAndroidReadable failed! szIpDNS2\r\n");
+                    continue;
+                }
+
+                RIL_LOG_INFO("CTE_XMM6360::ParseDns() - szIpDNS2: %s\r\n", szIpDNS2);
+
+                if (strlen(szIpV6DNS2) > 0)
+                {
+                    RIL_LOG_INFO("CTE_XMM6360::ParseDns() - szIpV6DNS2: %s\r\n", szIpV6DNS2);
+                }
+                else
+                {
+                    RIL_LOG_INFO("CTE_XMM6360::ParseDns() - szIpV6DNS2: <NONE>\r\n");
+                }
+            }
+        }
+
+        if (m_cte.IsSupportCGPIAF())
+        {
+            // For IPV6 addresses, copy to szIpV6DNS variables and set szIpDNS ones to empty
+            if (strstr(szIpDNS1, ":"))
+            {
+                RIL_LOG_INFO("CTE_XMM6360::ParseDns() - IPV6 DNS addresses\r\n");
+
+                CopyStringNullTerminate(szIpV6DNS1, szIpDNS1, MAX_IPADDR_SIZE);
+                szIpDNS1[0] = '\0';
+
+                CopyStringNullTerminate(szIpV6DNS2, szIpDNS2, MAX_IPADDR_SIZE);
+                szIpDNS2[0] = '\0';
+            }
+        }
+
+        pChannelData->SetDNS(szIpDNS1, szIpDNS2, szIpV6DNS1, szIpV6DNS2);
+
+        res = RRIL_RESULT_OK;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseDns() - Exit\r\n");
+    return res;
 }

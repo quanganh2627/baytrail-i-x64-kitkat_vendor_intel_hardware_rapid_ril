@@ -160,12 +160,14 @@ const char* g_szRequestNames[] =
     "VoiceRadioTech",                       // ND_REQ_ID_VOICERADIOTECH 112
     "SilentPinEntry",                       // ND_REQ_ID_SILENT_PIN_ENTRY 113
     "AckIncomingSmsWithPdu",                // ND_REQ_ID_ACKINCOMINGSMSWITHPDU 114
+    "GetCellInfoList"                       // ND_REQ_ID_GETCELLINFOLIST 115
+    "SetCellInfoListRate"                   // ND_REQ_ID_SETCELLINFOLISTRATE 116
 #if defined(M2_VT_FEATURE_ENABLED)
-    "HangupVT",                             // ND_REQ_ID_HANGUPVT 115
-    "DialVT",                               // ND_REQ_ID_DIALVT 116
+    "HangupVT",                             // ND_REQ_ID_HANGUPVT 117
+    "DialVT",                               // ND_REQ_ID_DIALVT 118
 #endif // M2_VT_FEATURE_ENABLED
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    "GetSimSmsStorage",                    // ND_REQ_GET_SIM_SMS_STORAGE 115 or 117
+    "GetSimSmsStorage",                    // ND_REQ_GET_SIM_SMS_STORAGE 117 or 119
 #endif // M2_GET_SIM_SMS_STORAGE_ENABLED
 };
 
@@ -215,7 +217,9 @@ const char   g_szNetworkInterfaceNamePrefix[]   = "NetworkInterfaceNamePrefix";
 const char   g_szMTU[]                          = "MTU";
 const char   g_szEnableCellInfo[]               = "EnableCellInfo";
 const char   g_szEnableModemOffInFlightMode[]   = "EnableModemOffInFlightMode";
+#if defined(CONFIGURE_3GDIV_DARP_IN_RIL)
 const char   g_szRxDiversity2GDARP[]            = "RxDiversity2GDARP";
+#endif // CONFIGURE_3GDIV_DARP_IN_RIL
 const char   g_szFDDelayTimer[]                 = "FDDelayTimer";
 const char   g_szSCRITimer[]                    = "SCRITimer";
 const char   g_szFDMode[]                       = "FDMode";
@@ -227,6 +231,8 @@ const char   g_szStkCapable[]                   = "StkCapable";
 const char   g_szEnableXDATASTATURC[]           = "EnableXDATASTATReporting";
 const char   g_szIMSCapable[]                   = "IMSCapable";
 const char   g_szEnableSMSOverIP[]              = "EnableSMSOverIP";
+const char   g_szSupportCGPIAF[]                = "SupportCGPIAF";
+const char   g_szImeiBlackList[]                = "ImeiBlackList";
 
 // used for 7x60 and 6360 modems
 const char   g_szModemResourceName[]    = "ModemDataChannelResourceName";
