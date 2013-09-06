@@ -87,4 +87,10 @@ void triggerQueryDefaultPDNContextParams(void* param);
 void triggerDropCallEvent(void* param);
 
 void triggerCellInfoList (void* param);
+
+//
+// Callback to trigger SIM application error
+//
+void triggerSIMAppError(void* param);
+
 #endif
