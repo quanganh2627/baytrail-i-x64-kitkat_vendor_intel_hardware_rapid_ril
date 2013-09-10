@@ -40,6 +40,11 @@ BOOL SkipRspEnd(const char* szStart, const char* szSkip, const char*& rszEnd);
 // and sets rszEnd to the first character after the pattern.
 BOOL FindAndSkipRspEnd(const char* szStart, const char* szSkip, const char*& rszEnd);
 
+// Parses the given cmdStr and extracts arguments separated by a colon ','.
+// Inserts arguments into given char pointers' array.
+UINT32 FindRspArgs(const char* pszCmdStr, const char* pszEndLine, char** aPtrArgs,
+                                                                 UINT32 uinMaxArgs);
+
 // Takes the digits in szStart and stores them into a UINT32. If a space follows the last
 // digit it will also be consumed. Returns TRUE if at least one digit is found.
 BOOL ExtractUInt32(const char* szStart, UINT32& rnValue, const char*& rszEnd);
