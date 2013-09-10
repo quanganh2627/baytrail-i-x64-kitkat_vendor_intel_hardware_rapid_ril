@@ -994,6 +994,9 @@ ePCache_Code PCache_Clear()
 // Input: boolean true if use cached pin, false if not.
 // Output: {OK},{NOK}
 //
+// If the SIM is not ready, the PIN caching is not
+// enabled whatever the input value.
+//
 ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
 {
     RIL_LOG_INFO("PCache_SetUseCachedPIN - Enter bFlag=[%d]\r\n", bFlag);
@@ -1011,7 +1014,7 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
         snprintf(szUseCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_usecachedpin, g_szSIMID);
     }
 
-    if (bFlag)
+    if (bFlag && (RRIL_SIM_STATE_READY == CTE::GetTE().GetSIMState()))
     {
         if (0 != property_set(szUseCachedPinProp, "1"))
         {
