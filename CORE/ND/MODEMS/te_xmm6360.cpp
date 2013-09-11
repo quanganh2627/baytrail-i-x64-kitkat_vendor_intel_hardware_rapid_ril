@@ -88,9 +88,12 @@ char* CTE_XMM6360::GetBasicInitCommands(UINT32 uiChannelType)
     //
     if (RIL_CHANNEL_ATCMD == uiChannelType)
     {
-        // Set IPV6 address format: Use IPv6 colon-notation, subnet prefix CIDR notation,
-        //  leading zeros omitted, zero compression
-        CopyStringNullTerminate(szInitCmd, "|+CGPIAF=1,1,0,1", sizeof(szInitCmd));
+        if (m_cte.IsSupportCGPIAF())
+        {
+            // Set IPV6 address format: Use IPv6 colon-notation, subnet prefix CIDR notation,
+            //  leading zeros omitted, zero compression
+            CopyStringNullTerminate(szInitCmd, "|+CGPIAF=1,1,0,1", sizeof(szInitCmd));
+        }
     }
     else if (RIL_CHANNEL_URC == uiChannelType)
     {
