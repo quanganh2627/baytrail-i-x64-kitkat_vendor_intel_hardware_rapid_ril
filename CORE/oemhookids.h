@@ -504,6 +504,18 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_NETWORK_APN_IND
 
 const int RIL_OEM_HOOK_RAW_UNSOL_NETWORK_APN_IND = 0x000000D9;
 
+///////////////////////////////////////////////////////////////////////////////
+
+const int SIM_APP_ERROR_SIZE = 4;   // SW1 and SW2 in hex format: 6FXX, 9240, ...
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_SIM_APP_ERR_IND
+{
+    int command; // Command ID
+    char szSimError[SIM_APP_ERROR_SIZE+1];
+} sOEM_HOOK_RAW_UNSOL_SIM_APP_ERR_IND;
+
+const int RIL_OEM_HOOK_RAW_UNSOL_SIM_APP_ERR_IND = 0x000000DA;
+
 #pragma pack()
 
 /***********************************************************************/

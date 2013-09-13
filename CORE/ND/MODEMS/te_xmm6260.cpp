@@ -6217,6 +6217,7 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
     UINT32 uiSimState = 0;
     UINT32 uiTemp = 0;
     BOOL bRet = FALSE;
+    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     // Extract "<mode>"
     if (!ExtractUInt32(rszPointer, uiMode, rszPointer))
@@ -6295,8 +6296,16 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
             break;
         case 8: // SIM Technical problem
             RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
-            // Do not notify framework for +XSIM: 8
-            return TRUE;
+            // Do not notify framework for +XSIM: 8 except for conformance case
+            property_get("persist.conformance", szConformanceProperty, NULL);
+            if (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
+            {
+                // +XSIMSTATE: 8 is for 6FXX error type
+                char code[] = "6FXX";
+                triggerSIMAppError(code);
+            }
+            bRet = TRUE;
+            goto Error;
         case 0: // SIM not present
         case 9: // SIM Removed
             RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM REMOVED/NOT PRESENT\r\n");

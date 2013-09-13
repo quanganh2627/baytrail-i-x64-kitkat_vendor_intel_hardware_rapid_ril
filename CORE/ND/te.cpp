@@ -6992,7 +6992,6 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
             if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
             {
                 RIL_LOG_INFO("CTE::ParseCREG() - Could not extract <lac>.\r\n");
-                goto Error;
             }
             SkipString(rszPointer, "\"", rszPointer);
         }
@@ -7005,7 +7004,6 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
                 if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
                 {
                     RIL_LOG_INFO("CTE::ParseCREG() - Could not extract <cid>.\r\n");
-                    goto Error;
                 }
                 SkipString(rszPointer, "\"", rszPointer);
             }
@@ -7035,14 +7033,12 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
                 if (!ExtractUInt32(rszPointer, uiCauseType, rszPointer))
                 {
                     RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract <cause_type>.\r\n");
-                    goto Error;
                 }
 
                 if (!SkipString(rszPointer, ",", rszPointer)
                         || !ExtractUInt32(rszPointer, uiRejectCause, rszPointer))
                 {
                     RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract <reject_cause>.\r\n");
-                    goto Error;
                 }
             }
         }
@@ -7149,7 +7145,6 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
             if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
             {
                 RIL_LOG_INFO("CTE::ParseCGREG() - Could not extract <lac>.\r\n");
-                goto Error;
             }
             SkipString(rszPointer, "\"", rszPointer);
         }
@@ -7162,7 +7157,6 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
                 if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
                 {
                     RIL_LOG_INFO("CTE::ParseCGREG() - Could not extract <cid>.\r\n");
-                    goto Error;
                 }
                 SkipString(rszPointer, "\"", rszPointer);
             }
@@ -7191,7 +7185,6 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
                 if (!ExtractHexUInt32(rszPointer, uiRAC, rszPointer))
                 {
                     RIL_LOG_INFO("CTE::ParseCGREG() - Could not extract \",<rac>\".\r\n");
-                    goto Error;
                 }
                 SkipString(rszPointer, "\"", rszPointer);
             }
@@ -7206,7 +7199,6 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
                 {
                     RIL_LOG_CRITICAL("CTE::ParseCGREG() - "
                             "Could not extract <cause_type>.\r\n");
-                    goto Error;
                 }
 
                 if (!SkipString(rszPointer, ",", rszPointer)
@@ -7214,7 +7206,6 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
                 {
                     RIL_LOG_CRITICAL("CTE::ParseCGREG() - "
                             "Could not extract <reject_cause>.\r\n");
-                    goto Error;
                 }
             }
         }
@@ -7339,7 +7330,6 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
             if (!ExtractHexUInt32(rszPointer, uiLAC, rszPointer))
             {
                 RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <lac>.\r\n");
-                goto Error;
             }
             SkipString(rszPointer, "\"", rszPointer);
         }
@@ -7352,7 +7342,6 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
                 if (!ExtractHexUInt32(rszPointer, uiCID, rszPointer))
                 {
                     RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <cid>.\r\n");
-                    goto Error;
                 }
                 SkipString(rszPointer, "\"", rszPointer);
             }
@@ -7368,14 +7357,12 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
                 if (!ExtractHexUInt32(rszPointer, uiRAC, rszPointer))
                 {
                     RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <rac> (hexadecimal).\r\n");
-                    goto Error;
                 }
                 SkipString(rszPointer, "\"", rszPointer);
             }
             else if (!ExtractUInt32(rszPointer, uiRAC, rszPointer))
             {
                 RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <rac>.\r\n");
-                goto Error;
             }
         }
 
@@ -7388,7 +7375,6 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
                 {
                     RIL_LOG_CRITICAL("CTE::ParseXREG() - "
                             "Could not extract <cause_type>.\r\n");
-                    goto Error;
                 }
 
                 if (!SkipString(rszPointer, ",", rszPointer)
@@ -7396,7 +7382,6 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
                 {
                     RIL_LOG_CRITICAL("CTE::ParseXREG() - "
                             "Could not extract <reject_cause>.\r\n");
-                    goto Error;
                 }
             }
         }
@@ -7493,7 +7478,6 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
             if (!ExtractHexUInt32(rszPointer, uiTac, rszPointer))
             {
                 RIL_LOG_INFO("CTE::ParseCEREG() - Could not extract <tac>\r\n");
-                goto Error;
             }
             SkipString(rszPointer, "\"", rszPointer);
         }
@@ -7506,7 +7490,6 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
                 if (!ExtractHexUInt32(rszPointer, uiCid, rszPointer))
                 {
                     RIL_LOG_INFO("CTE::ParseCEREG() - Could not extract <cid>.\r\n");
-                    goto Error;
                 }
                 SkipString(rszPointer, "\"", rszPointer);
             }
@@ -7686,21 +7669,22 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
 
     if (bPSStatus)
     {
+        int currentAct = GetCurrentAct();
         P_ND_GPRS_REG_STATUS psRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
 
         memset(psRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
         /*
-         * In MO/MT CSFB voice call, camped access technology is reported via
-         * XREG URC. In order to show the camped access technology during voice
-         * call, copy the cached data registration state from m_sPSStatus(3G registation
-         * cache).
+         * Copy the cached EPS registration status only if the device is EPS registered,
+         * current access technology is LTE and default PDN context parameters are read.
          *
-         * If the device is not in voice call and registered to EPS network, then
-         * copy the cached data registration state from m_sEPSStatus(EPS registration
-         * cache).
+         * Note: When the device is EPS registered but if the current access technology is
+         * not known, then EPS registration status will be updated as the data registration
+         * state to the telephony framework. This is possible when the device is in screen
+         * off state.
          */
-        if (IsEPSRegistered() && !m_pTEBaseInstance->IsInCall())
+        if (IsEPSRegistered() && (RADIO_TECH_LTE == currentAct
+                || RADIO_TECH_UNKNOWN == currentAct))
         {
             /*
              * Report the EPS registration status only after the default PDN context
@@ -7773,7 +7757,9 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
 
         strncpy(csRegStatus->szLAC, m_sCSStatus.szLAC, sizeof(csRegStatus->szLAC));
         strncpy(csRegStatus->szCID, m_sCSStatus.szCID, sizeof(csRegStatus->szCID));
-        strncpy(csRegStatus->szNetworkType, m_sCSStatus.szNetworkType,
+        // Always copy the access technology received as part of XREG URC as it reports
+        // access technology also during call.
+        strncpy(csRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
                 sizeof(csRegStatus->szNetworkType));
         strncpy(csRegStatus->szReasonDenied, m_sCSStatus.szReasonDenied,
                 sizeof(csRegStatus->szReasonDenied));
@@ -7818,6 +7804,11 @@ BOOL CTE::IsEPSRegistered()
     }
 
     return bRet;
+}
+
+LONG CTE::GetCurrentAct()
+{
+    return strtol(m_sPSStatus.szNetworkType, NULL, 10);
 }
 
 const char* CTE::PrintRegistrationInfo(char* szRegInfo) const

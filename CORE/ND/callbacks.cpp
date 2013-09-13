@@ -382,3 +382,15 @@ void triggerCellInfoList(void* param)
     }
     RIL_LOG_VERBOSE("triggerCellInfoList- Exit\r\n");
 }
+
+void triggerSIMAppError(void* param)
+{
+    sOEM_HOOK_RAW_UNSOL_SIM_APP_ERR_IND data;
+
+    data.command = RIL_OEM_HOOK_RAW_UNSOL_SIM_APP_ERR_IND;
+    PrintStringNullTerminate(data.szSimError, SIM_APP_ERROR_SIZE+1, (char*)param);
+
+    RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)&data,
+            sizeof(sOEM_HOOK_RAW_UNSOL_SIM_APP_ERR_IND));
+}
+
