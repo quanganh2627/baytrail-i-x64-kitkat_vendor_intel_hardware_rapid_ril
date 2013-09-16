@@ -408,6 +408,11 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetSupportCGPIAF(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szModeOfOperation, iTemp))
+    {
+        CTE::GetTE().SetModeOfOperation((UINT32)iTemp);
+    }
+
     // set system capabilities
     pSysCaps.SetSmsCapable(CTE::GetTE().IsSmsOverCSCapable()
             || CTE::GetTE().IsSmsOverPSCapable());
@@ -416,6 +421,7 @@ BOOL CSystemManager::InitializeSystem()
     pSysCaps.SetXDATASTATReporting(CTE::GetTE().IsXDATASTATReportingEnabled());
     pSysCaps.SetIMSCapable(CTE::GetTE().IsIMSCapable());
     pSysCaps.SetSMSOverIPCapable(CTE::GetTE().IsSMSOverIPCapable());
+    pSysCaps.SetModeOfOperation(CTE::GetTE().GetModeOfOperation());
 
     // Call drop reporting is available only for eng or userdebug build
     if (property_get("ro.build.type", szBuildTypeProperty, NULL))
