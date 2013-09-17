@@ -16,6 +16,7 @@
 #include "file_ops.h"
 #include "util.h"
 #include "systemmanager.h"
+#include "reset.h"
 #include <fcntl.h>
 #include <cutils/sockets.h>
 #include <termios.h>
@@ -50,9 +51,12 @@ timeval msFromNowToTimeval(UINT32 msInFuture)
     return FutureTime;
 }
 
+const char* const CFile::NULL_FILENAME = "<null>";
+
 CFile::CFile() :
     m_file(-1),
-    m_fInitialized(FALSE) {};
+    m_fInitialized(FALSE),
+    m_pszFileName(NULL) {};
 
 CFile::~CFile()
 {
@@ -65,6 +69,7 @@ CFile::~CFile()
 
         m_fInitialized = FALSE;
     }
+    free(m_pszFileName);
 }
 
 BOOL CFile::OpenSocket(const char* pszSocketName)
@@ -238,6 +243,15 @@ BOOL CFile::Open(   const char* pszFileName,
         m_fInitialized = TRUE;
     }
 
+    if (m_fInitialized)
+    {
+        m_pszFileName = (char *) strdup(pszFileName);
+        if (m_pszFileName == NULL)
+        {
+            RIL_LOG_CRITICAL("CFile::Open() - could not allocate memory\r\n");
+        }
+    }
+
 Error:
     RIL_LOG_VERBOSE("CFile::Open() - Exit m_fInitialized=[%d]\r\n", m_fInitialized);
     return m_fInitialized;
@@ -251,7 +265,8 @@ BOOL CFile::Close()
         return FALSE;
     }
 
-    RIL_LOG_INFO("CFile::Close() - Closing %d\r\n", m_file);
+    RIL_LOG_INFO("CFile::Close() - Closing %d - file name=[%s]\r\n", m_file, GetPrintName());
+
     if (0 > close(m_file))
     {
         RIL_LOG_CRITICAL("CFile::Close() : Error when closing file\r\n");
@@ -273,6 +288,9 @@ BOOL CFile::Write(const void* pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesWr
 
     if (!m_fInitialized)
     {
+        CModemRestart::SaveRequestReason(3, "File write error",
+                "file is not open", m_pszFileName);
+
         RIL_LOG_CRITICAL("CFile::Write() : File is not open!\r\n");
         return FALSE;
     }
@@ -287,6 +305,9 @@ BOOL CFile::Write(const void* pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesWr
                 writeAttempt++;
                 if (writeAttempt > MAX_WRITE_ATTEMPT)
                 {
+                    CModemRestart::SaveRequestReason(3, "File write error",
+                            "channel open time-out", m_pszFileName);
+
                     RIL_LOG_CRITICAL("CFile::Write() : Write failed - Channel still not open\r\n");
                     return FALSE;
                 }
@@ -305,8 +326,12 @@ BOOL CFile::Write(const void* pBuffer, UINT32 dwBytesToWrite, UINT32 &rdwBytesWr
             break;
 
             default:
+                CModemRestart::SaveRequestReason(3, "File write error", strerror(errno),
+                        m_pszFileName);
+
                 RIL_LOG_CRITICAL("CFile::Write() : Error during write process!"
-                        "  errno=[%d] [%s]\r\n", errno, strerror(errno));
+                        "  fd=[%d] file name=[%s] errno=[%d] [%s]\r\n", m_file, GetPrintName(),
+                        errno, strerror(errno));
                 return FALSE;
         }
     }
@@ -323,6 +348,8 @@ BOOL CFile::Read(void* pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
 
     if (!m_fInitialized)
     {
+        CModemRestart::SaveRequestReason(3, "File read error", "file is not open", m_pszFileName);
+
         RIL_LOG_CRITICAL("CFile::Read() : File is not open!\r\n");
         return FALSE;
     }
@@ -331,8 +358,12 @@ BOOL CFile::Read(void* pBuffer, UINT32 dwBytesToRead, UINT32 &rdwBytesRead)
     {
         if (errno != EAGAIN)
         {
-            RIL_LOG_CRITICAL("CFile::Read() : Error during read process!"
-                    "  errno=[%d] [%s]\r\n", errno, strerror(errno));
+            CModemRestart::SaveRequestReason(3, "File read error", strerror(errno), m_pszFileName);
+
+            RIL_LOG_CRITICAL("CFile::Write() : Error during read process!"
+                    "  fd=[%d] file name=[%s] errno=[%d] [%s]\r\n", m_file, GetPrintName(),
+                    errno, strerror(errno));
+
             return FALSE;
         }
 
@@ -403,6 +434,7 @@ BOOL CFile::WaitForEvent(UINT32& rdwFlags, UINT32 dwTimeoutInMS)
 
     if (m_file < 0)
     {
+        CModemRestart::SaveRequestReason(3, "File is not valid", "", m_pszFileName);
         RIL_LOG_CRITICAL("CFile::WaitForEvent() : m_file is not valid");
         return FALSE;
     }
@@ -427,8 +459,10 @@ BOOL CFile::WaitForEvent(UINT32& rdwFlags, UINT32 dwTimeoutInMS)
     switch(nPollVal)
     {
         case -1:
+            CModemRestart::SaveRequestReason(3, "Polling error", strerror(errno), m_pszFileName);
             //  Error
-            RIL_LOG_CRITICAL("CFile::WaitForEvent() : polling error [%d] [%s]\r\n",
+            RIL_LOG_CRITICAL("CFile::WaitForEvent() : polling error"
+                    "  fd=[%d] file name=[%s] errno=[%d] [%s]\r\n", m_file, GetPrintName(),
                     errno, strerror(errno));
             return FALSE;
 
@@ -441,6 +475,9 @@ BOOL CFile::WaitForEvent(UINT32& rdwFlags, UINT32 dwTimeoutInMS)
             //  Got an event on the fd
             if (fds[1].revents & POLLIN)
             {
+                // Note: this should never be actually lead to a recovery request
+                CModemRestart::SaveRequestReason(3, "Cancel wait pipe signalled", "",
+                        m_pszFileName);
                 // Received data in read pipe fd
                 RIL_LOG_INFO("CFile::WaitForEvent() : RECEIVED POLLIN on cancel wait pipe fd\r\n");
                 return FALSE;
@@ -458,6 +495,8 @@ BOOL CFile::WaitForEvent(UINT32& rdwFlags, UINT32 dwTimeoutInMS)
             }
             else if (fds[0].revents & POLLNVAL)
             {
+                // Note: this should never be actually lead to a recovery request
+                CModemRestart::SaveRequestReason(3, "POLLNVAL on fd", "", m_pszFileName);
                 RIL_LOG_CRITICAL("CFile::WaitForEvent() : **** RECEIVED POLLNVAL on fd=[%d]\r\n",
                         m_file);
 

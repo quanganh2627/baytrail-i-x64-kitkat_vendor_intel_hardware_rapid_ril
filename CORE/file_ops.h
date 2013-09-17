@@ -69,6 +69,8 @@ public:
 
     static int GetFD(CFile* pFile);
 
+    static inline char* GetName(CFile* pFile) { return pFile->m_pszFileName; }
+
 private:
 
     BOOL  Open(const char* pszFileName, UINT32 dwAccessFlags, UINT32 dwOpenFlags,
@@ -85,10 +87,15 @@ private:
 
     BOOL    OpenSocket(const char* pszSocketName);
 
+    static const char* const NULL_FILENAME;
+    inline const char* GetPrintName()
+            { return m_pszFileName == NULL ? NULL_FILENAME : m_pszFileName; }
+
     int    m_file;
 
     BOOL   m_fInitialized;
 
+    char*  m_pszFileName;
 };
 
 #endif // __file_ops_h__

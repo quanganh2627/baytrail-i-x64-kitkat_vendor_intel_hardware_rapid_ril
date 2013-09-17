@@ -86,7 +86,8 @@ protected:
     virtual BOOL ProcessModemData(char* szData, UINT32 uiRead);
 
     //  Handle the timeout scenario (ABORT command, PING)
-    virtual BOOL HandleTimeout(CCommand*& rpCmd, CResponse*& rpRsp);
+    virtual BOOL HandleTimeout(CCommand*& rpCmd, CResponse*& rpRsp,
+            UINT32 uiCmdIndex);
 
     //  Helper function to determine whether to send phase 2 of a command
     BOOL SendCommandPhase2(const UINT32 uiResCode, const UINT32 uiReqID) const;
@@ -99,6 +100,9 @@ private:
 
     //  helper function to close and open the port.
     void CloseOpenPort();
+
+    //  helper function to request modem restart due to command time-out
+    void RequestCleanUpOnCommandTimeout(CCommand* rpCmd, UINT32 uiCmdIndex);
 
 protected:
     CResponse* m_pResponse;

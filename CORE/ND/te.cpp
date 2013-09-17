@@ -2468,9 +2468,14 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
             && (false == bTurnRadioOn))
     {
         property_set("gsm.radioreset", "false");
-
         RIL_LOG_INFO("CTE::RequestRadioPower() - Reset requested, do clean-up request\r\n");
-        do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+
+        /*
+         * In case of data stall, fill the operator in cause[2] so as to keep a single CrashTool
+         * signature for all data stalls.
+         */
+        DO_REQUEST_CLEAN_UP(3, "Data stall", "",
+                GetNetworkData(LAST_NETWORK_OP_NAME_NUMERIC));
     }
     else
     {

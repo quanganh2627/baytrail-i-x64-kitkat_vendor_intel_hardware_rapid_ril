@@ -536,6 +536,9 @@ static void* mainLoop(void* param)
     // Initialize logging class
     CRilLog::Init(g_szSIMID);
 
+    // Initialize storage mechanism for error causes
+    CModemRestart::Init();
+
     // Initialize helper thread that processes MMGR callbacks
     if (!CDeferThread::Init())
     {
@@ -561,6 +564,8 @@ Error:
     {
         RIL_LOG_CRITICAL("mainLoop() - RIL Initialization FAILED\r\n");
 
+        CModemRestart::Destroy();
+        CDeferThread::Destroy();
         CSystemManager::Destroy();
     }
 

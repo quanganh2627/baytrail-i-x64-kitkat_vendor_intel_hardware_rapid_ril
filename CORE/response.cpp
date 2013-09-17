@@ -460,7 +460,7 @@ BOOL CResponse::SetData(void* pData, const UINT32 nSize, const BOOL fCpyMem)
             if (!m_pData)
             {
                 // Critically low on memory
-                do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__);
+                DO_REQUEST_CLEAN_UP(1, "Out of memory");
                 goto Error;
             }
             memcpy(m_pData, pData, nSize);

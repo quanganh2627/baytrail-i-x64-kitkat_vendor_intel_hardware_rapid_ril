@@ -35,12 +35,208 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-
 ///////////////////////////////////////////////////////////
-//  HELPER CLASSES
+// Helper static class to handle modem recovery
 //
+int CModemRestart::m_nStoredCauses;
+mmgr_cli_recovery_cause_t* CModemRestart::m_pStoredCauses;
+CMutex* CModemRestart::m_pErrorCauseMutex;
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
+BOOL CModemRestart::Init()
+{
+    m_nStoredCauses = 0;
+    m_pErrorCauseMutex = new CMutex();
+    m_pStoredCauses = (mmgr_cli_recovery_cause_t*) malloc(MMGR_CLI_MAX_RECOVERY_CAUSES *
+            sizeof(mmgr_cli_recovery_cause_t));
+
+    if ((m_pErrorCauseMutex == NULL) || (m_pStoredCauses == NULL))
+    {
+        RIL_LOG_CRITICAL("CModemRestart::Init() - could not allocate memory\r\n");
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+void CModemRestart::Destroy()
+{
+    free(m_pStoredCauses);
+    m_pStoredCauses = NULL;
+
+    delete m_pErrorCauseMutex;
+    m_pErrorCauseMutex = NULL;
+}
+
+void CModemRestart::RequestModemRestart(int lineNum, const char* pszFileName,
+        int nParams, ...)
+{
+    RIL_LOG_VERBOSE("CModemRestart::RequestModemRestart() - ENTER\r\n");
+
+    if (CTE::GetTE().IsPlatformShutDownRequested())
+    {
+        RIL_LOG_INFO("CModemRestart::RequestModemRestart() - "
+                "Ignore modem recovery request in platform shutdown\r\n");
+        return;
+    }
+
+    CMutex::Lock(m_pErrorCauseMutex);
+
+    // If Spoof commands, log and return
+    if (CTE::GetTE().TestAndSetSpoofCommandsStatus(TRUE))
+    {
+        RIL_LOG_INFO("CModemRestart::RequestModemRestart() - ignore recovery request.\r\n");
+    }
+    else
+    {
+        //  Doesn't matter what the error is, we are notifying MMGR that
+        //  something is wrong. Let the modem status socket watchdog get
+        //  a MODEM_UP when things are OK again.
+
+        CSystemManager::GetInstance().SetInitializationUnsuccessful();
+
+        if (E_MMGR_EVENT_MODEM_UP == CTE::GetTE().GetLastModemEvent())
+        {
+            RIL_LOG_INFO("CModemRestart::RequestModemRestart() - "
+                    "file=[%s], line num=[%d] num params=[%d]\r\n",
+                    pszFileName, lineNum, nParams);
+
+            // If user provides recovery reasons, put them in recovery storage to
+            // share code between both use cases.
+            if (nParams >= 0)
+            {
+                CleanRequestReason();
+
+                if (nParams > MMGR_CLI_MAX_RECOVERY_CAUSES)
+                {
+                    RIL_LOG_WARNING("CModemRestart::RequestModemRestart() - "
+                                    "too many causes %d, truncating to %d\r\n",
+                                    nParams, MMGR_CLI_MAX_RECOVERY_CAUSES);
+                    nParams = MMGR_CLI_MAX_RECOVERY_CAUSES;
+                }
+
+                va_list ap;
+                va_start(ap, nParams);
+                StoreRequestReason(nParams, ap);
+                va_end(ap);
+            }
+
+            // Store in last recovery cause position (4) - if available - the file / line number
+            if (m_nStoredCauses < MMGR_CLI_MAX_RECOVERY_CAUSES)
+            {
+                for (int i = m_nStoredCauses; i < (MMGR_CLI_MAX_RECOVERY_CAUSES - 1); i++)
+                {
+                    m_pStoredCauses[i].cause = NULL;
+                }
+                m_pStoredCauses[MMGR_CLI_MAX_RECOVERY_CAUSES - 1].cause =
+                        (char*) malloc(PATH_MAX + MAX_STRING_SIZE_FOR_INT + 1);
+                snprintf(m_pStoredCauses[MMGR_CLI_MAX_RECOVERY_CAUSES - 1].cause,
+                        PATH_MAX + MAX_STRING_SIZE_FOR_INT,
+                        "%s:%d", pszFileName, lineNum);
+                m_pStoredCauses[MMGR_CLI_MAX_RECOVERY_CAUSES - 1].
+                        cause[PATH_MAX + MAX_STRING_SIZE_FOR_INT] = '\0';
+                m_nStoredCauses = MMGR_CLI_MAX_RECOVERY_CAUSES;
+            }
+
+            // MMGR API expects length field to be filled in. Replace also all NULL pointers
+            // with empty strings.
+            for (int i = 0; i < m_nStoredCauses; i++)
+            {
+                if (m_pStoredCauses[i].cause == NULL)
+                {
+                    m_pStoredCauses[i].cause = (char*) malloc(1);
+                    m_pStoredCauses[i].cause[0] = '\0';
+                    m_pStoredCauses[i].len = 1;
+                }
+                else
+                {
+                    m_pStoredCauses[i].len = strlen(m_pStoredCauses[i].cause) + 1;
+                }
+            }
+
+            //  Voice calls disconnected, no more data connections
+            ModemResetUpdate();
+
+            // Needed for resetting registration states in framework
+            CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
+
+            //  Send recovery request to MMgr
+            if (!CSystemManager::GetInstance().SendRequestModemRecovery(m_pStoredCauses,
+                    m_nStoredCauses))
+            {
+                RIL_LOG_CRITICAL("CModemRestart::RequestModemRestart() - CANNOT SEND "
+                        "MODEM RESTART REQUEST\r\n");
+            }
+        }
+        else
+        {
+            RIL_LOG_INFO("CModemRestart::RequestModemRestart() - "
+                    "received in modem_state != E_MMGR_EVENT_MODEM_UP state\r\n");
+        }
+    }
+
+    CleanRequestReason();
+
+    CMutex::Unlock(m_pErrorCauseMutex);
+
+    RIL_LOG_VERBOSE("CModemRestart::RequestModemRestart() - EXIT\r\n");
+}
+
+void CModemRestart::CleanRequestReason()
+{
+    for (int i = 0; i < m_nStoredCauses; i++)
+    {
+        free(m_pStoredCauses[i].cause);
+    }
+    m_nStoredCauses = 0;
+}
+
+void CModemRestart::StoreRequestReason(int nParams, va_list ap)
+{
+    m_nStoredCauses = nParams;
+    for (int i = 0; i < nParams; i++)
+    {
+        char* cause = va_arg(ap, char*);
+
+        if (cause == NULL)
+        {
+            m_pStoredCauses[i].cause = NULL;
+        }
+        else
+        {
+            m_pStoredCauses[i].cause = strdup(cause);
+            if (m_pStoredCauses[i].cause == NULL)
+            {
+                m_nStoredCauses = i;
+                RIL_LOG_CRITICAL("CModemRestart::StoreRequestReason() - "
+                        "failure to allocate memory\r\n");
+                break;
+            }
+        }
+    }
+}
+
+void CModemRestart::SaveRequestReason(int nParams, ...)
+{
+    CMutex::Lock(m_pErrorCauseMutex);
+
+    CleanRequestReason();
+
+    if (nParams > MMGR_CLI_MAX_RECOVERY_CAUSES)
+    {
+        RIL_LOG_WARNING("CModemRestart::SaveRequestReason() - "
+                "too many causes %d, truncating to %d\r\n",
+                nParams, MMGR_CLI_MAX_RECOVERY_CAUSES);
+        nParams = MMGR_CLI_MAX_RECOVERY_CAUSES;
+    }
+
+    va_list ap;
+    va_start(ap, nParams);
+    StoreRequestReason(nParams, ap);
+    va_end(ap);
+
+    CMutex::Unlock(m_pErrorCauseMutex);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //  Class handling modem shutdown
 class CResetQueueNodeModemShutdown : public CResetQueueNode
@@ -214,7 +410,7 @@ void CResetQueueNodeModemUp::Execute()
     {
         RIL_LOG_CRITICAL("CResetQueueNodeModemUp::Execute() - "
                 "MODEM_UP handling failed, try a restart\r\n");
-        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
+        DO_REQUEST_CLEAN_UP(1, "CSystemManager::ContinueInit failed");
     }
     else
     {
@@ -247,6 +443,15 @@ BOOL CDeferThread::Init()
     }
 
     return TRUE;
+}
+
+void CDeferThread::Destroy()
+{
+    delete m_pResetQueue;
+    m_pResetQueue = NULL;
+
+    delete m_pThreadStartLock;
+    m_pThreadStartLock = NULL;
 }
 
 BOOL CDeferThread::QueueWork(CResetQueueNode* pNode, BOOL bNeedDeferring)
@@ -360,36 +565,13 @@ static void* MMGRDeferredEventTreadProc(void* /* pDummy */)
     return NULL;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//  Helper function to print the error code for cleanup
-const char* Print_eRadioError(eRadioError e)
-{
-    switch(e)
-    {
-        case eRadioError_ForceShutdown:
-            return "eRadioError_ForceShutdown";
-            break;
-        case eRadioError_RequestCleanup:
-            return "eRadioError_RequestCleanup";
-            break;
-        case eRadioError_LowMemory:
-            return "eRadioError_LowMemory";
-            break;
-        case eRadioError_ChannelDead:
-            return "eRadioError_ChannelDead";
-            break;
-        case eRadioError_InitFailure:
-            return "eRadioError_InitFailure";
-            break;
-        case eRadioError_OpenPortFailure:
-            return "eRadioError_OpenPortFailure";
-            break;
-        default:
-            return "unknown eRadioError value";
-            break;
-    }
-}
+///////////////////////////////////////////////////////////
+//  GLOBAL VARIABLES
+//
+
+///////////////////////////////////////////////////////////
+// FUNCTION DEFINITIONS
+//
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -423,60 +605,6 @@ void ModemResetUpdate()
     RIL_LOG_VERBOSE("ModemResetUpdate() - Exit\r\n");
 }
 
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-//  RIL has detected something is wrong with the modem.
-//  Alert MMGR to attempt a clean-up.
-void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszFileName)
-{
-    if (CTE::GetTE().IsPlatformShutDownRequested())
-    {
-        RIL_LOG_INFO("do_request_clean_up() - "
-                "Ignore modem recovery request in platform shutdown\r\n");
-        return;
-    }
-
-    // If Spoof commands, log and return
-    if (CTE::GetTE().TestAndSetSpoofCommandsStatus(TRUE))
-    {
-        RIL_LOG_INFO("do_request_clean_up() - ignore recovery request.\r\n");
-    }
-    else
-    {
-        //  Doesn't matter what the error is, we are notifying MMGR that
-        //  something is wrong.  Let the modem status socket watchdog get
-        //  a MODEM_UP when things are OK again.
-
-        CSystemManager::GetInstance().SetInitializationUnsuccessful();
-
-        if (E_MMGR_EVENT_MODEM_UP == CTE::GetTE().GetLastModemEvent())
-        {
-            RIL_LOG_INFO("do_request_clean_up() - eError=[%s], file=[%s], line num=[%d]\r\n",
-                    Print_eRadioError(eError), lpszFileName, uiLineNum);
-
-            //  Voice calls disconnected, no more data connections
-            ModemResetUpdate();
-
-            // Needed for resetting registration states in framework
-            CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
-
-            //  Send recovery request to MMgr
-            if (!CSystemManager::GetInstance().SendRequestModemRecovery())
-            {
-                RIL_LOG_CRITICAL("do_request_clean_up() - CANNOT SEND "
-                        "MODEM RESTART REQUEST\r\n");
-            }
-        }
-        else
-        {
-            RIL_LOG_INFO("do_request_clean_up() - "
-                "received in modem_state != E_MMGR_EVENT_MODEM_UP state\r\n");
-        }
-    }
-
-    RIL_LOG_VERBOSE("do_request_clean_up() - EXIT\r\n");
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////

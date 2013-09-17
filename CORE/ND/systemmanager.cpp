@@ -871,13 +871,15 @@ out:
 
 
 //  Send recovery request to MMgr
-BOOL CSystemManager::SendRequestModemRecovery()
+BOOL CSystemManager::SendRequestModemRecovery(mmgr_cli_recovery_cause_t* pCauses, int nCauses)
 {
     RIL_LOG_INFO("CSystemManager::SendRequestModemRecovery() - ENTER\r\n");
     BOOL bRet = FALSE;
     mmgr_cli_requests_t request;
 
     MMGR_CLI_INIT_REQUEST(request, E_MMGR_REQUEST_MODEM_RECOVERY);
+    request.len = nCauses * sizeof(mmgr_cli_recovery_cause_t);
+    request.data = pCauses;
 
     if (m_pMMgrLibHandle)
     {
