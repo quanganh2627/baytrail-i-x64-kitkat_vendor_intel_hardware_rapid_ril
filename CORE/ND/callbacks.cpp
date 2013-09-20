@@ -344,14 +344,15 @@ void triggerCellInfoList(void* param)
     UINT32 uiRate = (UINT32)param;
     RIL_LOG_INFO("triggerCellInfoList- StoredRate %d Rate with callback %d\r\n", uiTeRate, uiRate);
     // the settings have changed to not to report CELLINFO
-    // TODO: 0 to check for changed values and report
-    if (0 == uiTeRate || INT_MAX == uiTeRate)
+    if (INT_MAX == uiTeRate)
     {
         CTE::GetTE().SetCellInfoTimerRunning(FALSE);
         RIL_LOG_INFO("triggerCellInfoList- Unsol cell info disabled: %d\r\n", uiTeRate);
     }
     else if (uiTeRate <= uiRate)
     {
+        // The rate setting has not changed while waiting for time out
+        // read the cell information and report to framework
         CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETCELLINFOLIST],
                 NULL, REQ_ID_NONE, "AT+XCELLINFO?\r", &CTE::ParseUnsolCellInfoListRate,
                 &CTE::PostUnsolCellInfoListRate);
@@ -374,10 +375,11 @@ void triggerCellInfoList(void* param)
     }
     else
     {
+         // A new rate setting, re run the timer for the difference
          if (uiTeRate > uiRate)
          {
              RIL_requestTimedCallback(triggerCellInfoList,
-                   (void*)uiTeRate, (uiTeRate - uiRate), 0);
+                   (void*)uiTeRate, ((uiTeRate - uiRate)/1000), 0);
          }
     }
     RIL_LOG_VERBOSE("triggerCellInfoList- Exit\r\n");

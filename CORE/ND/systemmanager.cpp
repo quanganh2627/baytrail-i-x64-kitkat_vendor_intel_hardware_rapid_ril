@@ -850,7 +850,8 @@ BOOL CSystemManager::SendRequestModemRecovery()
     RIL_LOG_INFO("CSystemManager::SendRequestModemRecovery() - ENTER\r\n");
     BOOL bRet = FALSE;
     mmgr_cli_requests_t request;
-    request.id = E_MMGR_REQUEST_MODEM_RECOVERY;
+
+    MMGR_CLI_INIT_REQUEST(request, E_MMGR_REQUEST_MODEM_RECOVERY);
 
     if (m_pMMgrLibHandle)
     {
@@ -888,7 +889,8 @@ BOOL CSystemManager::SendRequestModemShutdown()
     RIL_LOG_INFO("CSystemManager::SendRequestModemShutdown() - ENTER\r\n");
     BOOL bRet = FALSE;
     mmgr_cli_requests_t request;
-    request.id = E_MMGR_REQUEST_FORCE_MODEM_SHUTDOWN;
+
+    MMGR_CLI_INIT_REQUEST(request, E_MMGR_REQUEST_FORCE_MODEM_SHUTDOWN);
 
     if (m_pMMgrLibHandle)
     {
@@ -926,7 +928,8 @@ BOOL CSystemManager::SendAckModemShutdown()
     RIL_LOG_INFO("CSystemManager::SendAckModemShutdown() - ENTER\r\n");
     BOOL bRet = FALSE;
     mmgr_cli_requests_t request;
-    request.id = E_MMGR_ACK_MODEM_SHUTDOWN;
+
+    MMGR_CLI_INIT_REQUEST(request, E_MMGR_ACK_MODEM_SHUTDOWN);
 
     if (m_pMMgrLibHandle)
     {
@@ -964,7 +967,8 @@ BOOL CSystemManager::SendAckModemColdReset()
     RIL_LOG_INFO("CSystemManager::SendAckModemColdReset() - ENTER\r\n");
     BOOL bRet = FALSE;
     mmgr_cli_requests_t request;
-    request.id = E_MMGR_ACK_MODEM_COLD_RESET;
+
+    MMGR_CLI_INIT_REQUEST(request, E_MMGR_ACK_MODEM_COLD_RESET);
 
     if (m_pMMgrLibHandle)
     {

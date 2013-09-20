@@ -22,6 +22,7 @@
 #include "types.h"
 #include "command.h"
 #include "initializer.h"
+#include "cellInfo_cache.h"
 
 static const UINT32 MAX_MODEM_NAME_LEN = 64;
 
@@ -757,6 +758,14 @@ public:
     void SetCellInfoListRate(UINT32 uiRate) { m_nCellInfoListRate = uiRate; };
     BOOL IsCellInfoTimerRunning() { return m_bIsCellInfoTimerRunning; };
     void SetCellInfoTimerRunning(BOOL aValue) { m_bIsCellInfoTimerRunning = aValue; };
+    BOOL updateCellInfoCache(P_ND_N_CELL_INFO_DATA pData, const INT32 aItemsCount)
+    {
+        return m_CellInfoCache.updateCache(pData, aItemsCount);
+    }
+    BOOL getCellInfo(P_ND_N_CELL_INFO_DATA pRetData)
+    {
+       return m_CellInfoCache.getCellInfo(pRetData);
+    }
 
     BOOL TestAndSetDataCleanupStatus(BOOL bCleanupStatus);
 
@@ -1111,6 +1120,7 @@ private:
     S_ND_GPRS_REG_STATUS m_sPSStatus;
     S_ND_REG_STATUS m_sCSStatus;
     S_ND_GPRS_REG_STATUS m_sEPSStatus;
+    CellInfoCache m_CellInfoCache;
 
     // Flag used to store setup data call status
     BOOL m_bIsSetupDataCallOngoing;

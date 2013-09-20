@@ -8321,8 +8321,8 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
             goto Error;
         }
 
-        RIL_LOG_INFO("CTEBase::ParseCellInfoList() - found mode=%d\r\n",
-                uiMode);
+        RIL_LOG_INFO("CTEBase::ParseCellInfoList() - found mode=%d isUnsol = %d\r\n",
+                uiMode, isUnsol);
         RIL_RESULT_CODE result = RRIL_RESULT_ERROR;
         switch (uiMode)
         {
@@ -8348,7 +8348,6 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
     }
     res = RRIL_RESULT_OK;
 
-    RIL_LOG_INFO("CTEBase::ParseCellInfoList() - isUnsol=%d\r\n",isUnsol);
     if (!isUnsol)
     {
         if (uiIndex > 0)
@@ -8368,17 +8367,16 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
     else
     {
         // Unsolcited CELL INFO LIST
+        // update the list only if there is a change in the information
+        // compare the read values with the cellinfo cache and if the values
+        // are different, report RIL_UNSOL_CELL_INFO_LIST
         if (uiIndex > 0)
         {
-            RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST, (void*)pCellData->pnCellData,
-                    (sizeof(RIL_CellInfo) * uiIndex));
-            // restart the timer now with the latest rate setting
-            if (!m_cte.IsCellInfoTimerRunning())
+            if (m_cte.updateCellInfoCache(pCellData, uiIndex))
             {
-                UINT32 uiNewRate = m_cte.GetCellInfoListRate();
-                m_cte.SetCellInfoTimerRunning(TRUE);
-                RIL_LOG_INFO("Restarting timer cellinfo list @ %d millisec\r\n",uiNewRate);
-                RIL_requestTimedCallback(triggerCellInfoList, (void*)uiNewRate, (uiNewRate/1000), 0);
+                RIL_LOG_VERBOSE("CTEBase::ParseCellInfoList() - updated cache\r\n");
+                RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST,
+                        (void*)pCellData->pnCellData, (sizeof(RIL_CellInfo) * uiIndex));
             }
         }
         else
@@ -8387,6 +8385,12 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
             pCellData = NULL;
         }
 
+        // restart the timer now with the latest rate setting.
+        if (!m_cte.IsCellInfoTimerRunning())
+        {
+            UINT32 uiNewRate = m_cte.GetCellInfoListRate();
+            RestartUnsolCellInfoListTimer(uiNewRate);
+        }
     }
 
 Error:
@@ -8437,6 +8441,7 @@ RIL_RESULT_CODE CTEBase::CoreSetCellInfoListRate(REQUEST_DATA& rReqData,
         return res;
     }
 
+    m_cte.SetCellInfoListRate(uiNewRate);
     RestartUnsolCellInfoListTimer(uiNewRate);
 
     res = RRIL_RESULT_OK;
@@ -8466,10 +8471,7 @@ void CTEBase::RestartUnsolCellInfoListTimer(UINT32 uiNewRate)
 {
     RIL_LOG_VERBOSE("CTEBase::RestartUnsolCellInfoListTimer() - Enter\r\n");
 
-    m_cte.SetCellInfoListRate(uiNewRate);
-
     // Start timer to query for CELLINFO  only if the value of >0 and != INT_MAX
-    // TODO: value 0 needs to qury cellinfo when there is a change detected.
     if (uiNewRate != INT_MAX && uiNewRate > 0)
     {
         if (!m_cte.IsCellInfoTimerRunning())

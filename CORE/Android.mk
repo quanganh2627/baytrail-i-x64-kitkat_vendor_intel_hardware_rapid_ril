@@ -8,6 +8,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES:= \
     ND/te_base.cpp \
     ND/te.cpp \
+    ND/cellInfo_cache.cpp \
     ND/systemmanager.cpp \
     ND/radio_state.cpp \
     ND/sim_state.cpp \
