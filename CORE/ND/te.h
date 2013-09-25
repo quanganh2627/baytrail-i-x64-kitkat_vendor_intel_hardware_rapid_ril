@@ -1108,6 +1108,9 @@ public:
     // Parser function for sim status query.
     RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);
 
+    UINT32 GetPinCacheMode() { return m_uiPinCacheMode; }
+    void SetPinCacheMode(UINT32 uiPinCacheMode) { m_uiPinCacheMode = uiPinCacheMode; }
+
 private:
     UINT32 m_uiModemType;
 
@@ -1271,6 +1274,8 @@ private:
 
     UINT32 m_nCellInfoListRate;
     BOOL m_bIsCellInfoTimerRunning;
+
+    UINT32 m_uiPinCacheMode;
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
 };

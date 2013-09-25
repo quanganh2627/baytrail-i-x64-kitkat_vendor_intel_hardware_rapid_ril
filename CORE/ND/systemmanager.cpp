@@ -366,6 +366,11 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetMTU((UINT32)iTemp);
     }
 
+    if (repository.Read(g_szGroupModem, g_szPinCacheMode, iTemp))
+    {
+        CTE::GetTE().SetPinCacheMode((UINT32)iTemp);
+    }
+
     // store initial value of Fast Dormancy Mode
     if (repository.Read(g_szGroupModem, g_szFDMode, iTemp))
     {
@@ -443,6 +448,7 @@ BOOL CSystemManager::InitializeSystem()
     pSysCaps.SetSMSOverIPCapable(CTE::GetTE().IsSMSOverIPCapable());
     pSysCaps.SetModeOfOperation(CTE::GetTE().GetModeOfOperation());
 
+
     // Call drop reporting is available only for eng or userdebug build
     if (property_get("ro.build.type", szBuildTypeProperty, NULL))
     {
@@ -516,6 +522,26 @@ Done:
                 || ((0 == strcmp(cryptState, "encrypted"))
                 && (0 == strcmp(voldDecryptState, "trigger_restart_framework"))))
         {
+            char szWakeSrc[PROPERTY_VALUE_MAX] = {'\0'};
+
+            if (property_get("ro.boot.wakesrc", szWakeSrc, "") > 0)
+            {
+                const int WAKE_KERNEL_WATCHDOG_RESET = 0x08;
+                const int WAKE_SECURITY_WATCHDOG_RESET = 0x09;
+
+                LONG wakeSrc = strtol(szWakeSrc, NULL, 16);
+                if (wakeSrc != WAKE_KERNEL_WATCHDOG_RESET
+                        && wakeSrc != WAKE_SECURITY_WATCHDOG_RESET)
+                {
+                    PCache_Clear();
+                }
+            }
+            else
+            {
+                RIL_LOG_INFO("CSystemManager::InitializeSystem(): wake src not known\r\n");
+                PCache_Clear();
+            }
+
             if (!GetModem())
             {
                 RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() : "

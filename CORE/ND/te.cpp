@@ -87,7 +87,8 @@ CTE::CTE(UINT32 modemType) :
     m_bDataCleanupStatus(FALSE),
     m_pDataCleanupStatusLock(NULL),
     m_nCellInfoListRate(INT_MAX),
-    m_bIsCellInfoTimerRunning(FALSE)
+    m_bIsCellInfoTimerRunning(FALSE),
+    m_uiPinCacheMode(E_PIN_CACHE_MODE_FS)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -8591,7 +8592,7 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
         {
             RIL_CardStatus_v6* pCardStatus = (RIL_CardStatus_v6*) rData.pData;
             if (m_pTEBaseInstance->IsPinEnabled(pCardStatus)
-                    && PCache_GetUseCachedPIN() && m_pTEBaseInstance->GetPinRetryCount() > 2)
+                    && m_pTEBaseInstance->GetPinRetryCount() > 2)
             {
                 BOOL bRet = m_pTEBaseInstance->HandleSilentPINEntry(rData.pRilToken, NULL, 0);
                 if (bRet)
@@ -9434,9 +9435,6 @@ void CTE::PostSilentPinRetryCmdHandler(POST_CMD_HANDLER_DATA& rData)
         PCache_Clear();
     }
 
-    //  Don't use PIN next time. This will be set to TRUE only on modem issue.
-    PCache_SetUseCachedPIN(false);
-
     // This will make the framework to trigger GET_SIM_STATUS and QUERY_FACILITY_LOCK requests
     RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
 
@@ -9985,4 +9983,3 @@ void CTE::PostUnsolCellInfoListRate(POST_CMD_HANDLER_DATA& rData)
         m_pTEBaseInstance->RestartUnsolCellInfoListTimer(m_nCellInfoListRate);
     }
 }
-

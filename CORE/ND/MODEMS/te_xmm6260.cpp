@@ -6435,6 +6435,7 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
         case 0: // SIM not present
         case 9: // SIM Removed
             RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM REMOVED/NOT PRESENT\r\n");
+            PCache_Clear();
             m_cte.SetSIMState(RRIL_SIM_STATE_ABSENT);
             break;
         case 14: // SIM powered off by modem

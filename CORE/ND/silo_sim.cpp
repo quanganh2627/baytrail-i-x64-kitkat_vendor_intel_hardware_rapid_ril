@@ -24,6 +24,7 @@
 #include "silo_sim.h"
 #include "callbacks.h"
 #include "te.h"
+#include "reset.h"
 
 #include <cutils/properties.h>
 
@@ -577,6 +578,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM REMOVED/NOT PRESENT\r\n");
             m_bReadyForAttach = FALSE;
             m_bRefreshWithUSIMInit = FALSE;
+            PCache_Clear();
             CTE::GetTE().SetSIMState(RRIL_SIM_STATE_ABSENT);
             break;
         case 14: // SIM powered off by modem

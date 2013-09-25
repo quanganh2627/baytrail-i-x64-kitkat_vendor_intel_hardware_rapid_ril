@@ -60,6 +60,7 @@ extern const char   g_szGroupRILSettings[];
 extern const char   g_szTimeoutThresholdForRetry[];
 extern const char   g_szOpenPortRetries[];
 extern const char   g_szOpenPortInterval[];
+extern const char   g_szPinCacheMode[];
 
 /////////////////////////////////////////////////
 

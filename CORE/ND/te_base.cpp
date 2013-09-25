@@ -471,29 +471,25 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA& rRspData)
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
 
-    // Cache the PIN code only if we are not silently entering it
-    if (!PCache_GetUseCachedPIN())
+    // Parse "<prefix>+CCID: <ICCID><postfix>"
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
+
+    if (SkipString(pszRsp, "+CCID: ", pszRsp))
     {
-        // Parse "<prefix>+CCID: <ICCID><postfix>"
-        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
-
-        if (SkipString(pszRsp, "+CCID: ", pszRsp))
+        if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, PROPERTY_VALUE_MAX, pszRsp))
         {
-            if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, PROPERTY_VALUE_MAX, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot parse UICC ID\r\n");
-                szUICCID[0] = '\0';
-            }
-
-            SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
+            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot parse UICC ID\r\n");
+            szUICCID[0] = '\0';
         }
 
-        //  Cache PIN1 value
-        PCache_Store_PIN(szUICCID, m_szPIN);
-
-        //  Clear it locally.
-        memset(m_szPIN, 0, MAX_PIN_SIZE);
+        SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
     }
+
+    //  Cache PIN1 value
+    PCache_Store_PIN(szUICCID, m_szPIN);
+
+    //  Clear it locally.
+    memset(m_szPIN, 0, MAX_PIN_SIZE);
 
     res = RRIL_RESULT_OK;
 
@@ -4824,27 +4820,6 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA& rRspData)
     {
         return (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
     }
-
-    pnRetries = (int*)malloc(sizeof(int));
-    if (NULL == pnRetries)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - Could not alloc int\r\n");
-        goto Error;
-    }
-
-    //  Unknown number of retries remaining
-    *pnRetries = (int)-1;
-
-    rRspData.pData    = (void*) pnRetries;
-    rRspData.uiDataSize   = sizeof(int*);
-
-    //  Cache PIN1 value
-    RIL_LOG_INFO("CTEBase::ParseSetFacilityLock() - PIN code: %s\r\n", m_szPIN);
-    if (0 == strcmp(m_szPIN, "CLR"))
-    {
-        PCache_Clear();
-        PCache_SetUseCachedPIN(false);
-    }
     else
     {
         // Parse "<prefix>+CCID: <ICCID><postfix>"
@@ -4860,9 +4835,41 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA& rRspData)
 
             SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
         }
-
-        PCache_Store_PIN(szUICCID, m_szPIN);
     }
+
+    pnRetries = (int*)malloc(sizeof(int));
+    if (NULL == pnRetries)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - Could not alloc int\r\n");
+        goto Error;
+    }
+
+    //  Unknown number of retries remaining
+    *pnRetries = -1;
+
+    rRspData.pData = pnRetries;
+    rRspData.uiDataSize = sizeof(int*);
+
+    if (NULL != rRspData.pContextData
+            && rRspData.cbContextData == sizeof(S_SET_FACILITY_LOCK_CONTEXT_DATA))
+    {
+        /*
+         * Context Data will be set only for SC(SIM CARD) and FD(Fixed Dialing) locks.
+         * This is because modem only supports retry count information for SC and FD
+         * locks via XPINCNT.
+         *
+         * Note: No point in calling this on success but ril documentation not clear
+         */
+        S_SET_FACILITY_LOCK_CONTEXT_DATA* pContextData =
+                (S_SET_FACILITY_LOCK_CONTEXT_DATA*) rRspData.pContextData;
+
+        if ((0 == strncmp(pContextData->szFacilityLock, "SC", 2))
+                && (0 != strcmp(m_szPIN, "CLR")))
+        {
+            PCache_Store_PIN(szUICCID, m_szPIN);
+        }
+    }
+
     //  Clear it locally.
     memset(m_szPIN, 0, MAX_PIN_SIZE);
 

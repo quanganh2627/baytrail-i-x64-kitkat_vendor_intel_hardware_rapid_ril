@@ -187,6 +187,7 @@ const char   g_szGroupRILSettings[]            = "RILSettings";
 const char   g_szTimeoutThresholdForRetry[]    = "TimeoutThresholdForRetry";
 const char   g_szOpenPortRetries[]             = "OpenPortRetries";
 const char   g_szOpenPortInterval[]            = "OpenPortInterval";
+const char   g_szPinCacheMode[]                = "PinCacheMode";
 
 /////////////////////////////////////////////////
 

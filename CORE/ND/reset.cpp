@@ -34,6 +34,17 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/stat.h>
+
+static const char* const PIN_CACHE_FILE_FS = "/config/telephony/dump";
+static const char* const PIN_CACHE_DUMP_FILE = "/sys/kernel/modem_nvram/dump";
+static const char* const PIN_CACHE_SIZE_FILE = "/sys/kernel/modem_nvram/size";
+static const char* const PIN_CACHE_CLEAR_FILE = "/sys/kernel/modem_nvram/clear";
+
+// ENCRYPTED_PIN_SIZE should be multiple of 4.
+static const int ENCRYPTED_PIN_SIZE = 20;
+static const int UICCID_SIZE = 10;
+static const int CACHED_UICCID_PIN_SIZE = UICCID_SIZE + ENCRYPTED_PIN_SIZE;
 
 ///////////////////////////////////////////////////////////
 // Helper static class to handle modem recovery
@@ -268,8 +279,6 @@ void CResetQueueNodeModemShutdown::Execute()
         RIL_LOG_INFO("E_MMGR_EVENT_MODEM_SHUTDOWN due to Flight mode\r\n");
 
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
-
-        PCache_SetUseCachedPIN(true);
     }
 
     CTE::GetTE().ResetInternalStates();
@@ -287,27 +296,23 @@ void CResetQueueNodeModemShutdown::Execute()
 class CResetQueueNodeModemDown : public CResetQueueNode
 {
 public:
-    CResetQueueNodeModemDown(BOOL bUseCachedPin,
-            BOOL bDoStateReset,
+    CResetQueueNodeModemDown(BOOL bDoStateReset,
             BOOL bClosePorts,
             BOOL bSendCloseResetAck,
             BOOL bIsPlatformShutdown);
     void Execute();
 
 private:
-    BOOL m_bUseCachedPin;
     BOOL m_bDoStateReset;
     BOOL m_bClosePorts;
     BOOL m_bSendColdResetAck;
     BOOL m_bIsPlatformShutdown;
 };
 
-CResetQueueNodeModemDown::CResetQueueNodeModemDown(BOOL bUseCachedPin,
-        BOOL bDoStateReset,
+CResetQueueNodeModemDown::CResetQueueNodeModemDown(BOOL bDoStateReset,
         BOOL bClosePorts,
         BOOL bSendCloseResetAck,
         BOOL bIsPlatformShutdown) :
-    m_bUseCachedPin(bUseCachedPin),
     m_bDoStateReset(bDoStateReset),
     m_bClosePorts(bClosePorts),
     m_bSendColdResetAck(bSendCloseResetAck),
@@ -318,12 +323,6 @@ CResetQueueNodeModemDown::CResetQueueNodeModemDown(BOOL bUseCachedPin,
 void CResetQueueNodeModemDown::Execute()
 {
     RIL_LOG_VERBOSE("CResetQueueNodeModemDown::Execute() - Enter\r\n");
-
-    //  Set local flag to use cached PIN next time
-    if (m_bUseCachedPin)
-    {
-        PCache_SetUseCachedPIN(true);
-    }
 
     if (m_bDoStateReset)
     {
@@ -666,7 +665,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
-                CDeferThread::QueueWork(new CResetQueueNodeModemDown(FALSE,
+                CDeferThread::QueueWork(new CResetQueueNodeModemDown(
                         E_MMGR_NOTIFY_MODEM_SHUTDOWN != previousModemState,
                         FALSE, FALSE,
                         CTE::GetTE().IsPlatformShutDownRequested()), FALSE);
@@ -682,7 +681,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
-                CDeferThread::QueueWork(new CResetQueueNodeModemDown(FALSE,
+                CDeferThread::QueueWork(new CResetQueueNodeModemDown(
                         E_MMGR_EVENT_MODEM_DOWN != previousModemState,
                         FALSE, FALSE, FALSE), FALSE);
 
@@ -697,7 +696,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
-                CDeferThread::QueueWork(new CResetQueueNodeModemDown(TRUE,
+                CDeferThread::QueueWork(new CResetQueueNodeModemDown(
                         E_MMGR_EVENT_MODEM_DOWN != previousModemState,
                         TRUE, TRUE, FALSE), TRUE);
 
@@ -710,7 +709,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
-                CDeferThread::QueueWork(new CResetQueueNodeModemDown(TRUE,
+                CDeferThread::QueueWork(new CResetQueueNodeModemDown(
                         E_MMGR_EVENT_MODEM_DOWN != previousModemState,
                         TRUE, FALSE, FALSE), TRUE);
                 break;
@@ -743,21 +742,21 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//  XXTEA encryption / decryption algorithm.
-//  Code source is from http://en.wikipedia.org/wiki/XXTEA
+// XXTEA encryption / decryption algorithm.
+// Code source is from http://en.wikipedia.org/wiki/XXTEA
 
 #define DELTA 0x9e3779b9
 #define MX (((z>>5^y<<2) + (y>>3^z<<4)) ^ ((sum^y) + (key[(p&3)^e] ^ z)))
 
-//  btea: Encrypt or decrypt int array v of length n with 4-integer array key
+// btea: Encrypt or decrypt int array v of length n with 4-integer array key
 //
-//  Parameters:
-//  UINT32 array v [in/out] : UINT32 array to be encrypted or decrypted
-//  int n [in] : Number of integers in array v.  If n is negative, then decrypt.
-//  UINT32 array key [in] : UINT32 array of size 4 that contains key to encrypt or decrypt
+// Parameters:
+// UINT32 array v [in/out] : UINT32 array to be encrypted or decrypted
+// int n [in] : Number of integers in array v.  If n is negative, then decrypt.
+// UINT32 array key [in] : UINT32 array of size 4 that contains key to encrypt or decrypt
 //
-//  Return values:
-//  None
+// Return values:
+// None
 void btea(UINT32* v, int n, UINT32 const key[4])
 {
     UINT32 y, z, sum;
@@ -806,274 +805,336 @@ void btea(UINT32* v, int n, UINT32 const key[4])
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//  This function is a helper for the btea() function.  It converts a string to an 4-integer array
-//  to be passed in as the key to the btea() function.
+// This function is a helper for the btea() function.  It converts a string to an 4-integer array
+// to be passed in as the key to the btea() function.
 //
-//  Parameters:
-//  string szKey [in] : string to be converted to 4-integer array
-//  UINT32 array pKey [out] : 4-integer array of szKey (to be passed into btea function)
-//                                  Array must be allocated by caller.
+// Parameters:
+// string pszKey [in] : string to be converted to 4-integer array
+// UINT32 array pKey [out] : 4-integer array of szKey (to be passed into btea function)
+//                                 Array must be allocated by caller.
 //
-//  Return values:
-//  PIN_INVALID_UICC if error with szKey
-//  PIN_NOK if any other error
-//  PIN_OK if operation is successful
-ePCache_Code ConvertKeyToInt4(const char* szKey, UINT32* pKey)
+// Return values:
+// PIN_INVALID_UICC if error with pszKey
+// PIN_NOK if any other error
+// PIN_OK if operation is successful
+ePCache_Code ConvertKeyToInt4(const char* pszKey, UINT32* pKey)
 {
-    //  Check inputs
-    if ( (NULL == szKey) || (strlen(szKey) > 32))
+    // Check inputs
+    if (NULL == pszKey || strlen(pszKey) > 32)
     {
-        RIL_LOG_CRITICAL("ConvertKeyToInt4() - szKey invalid\r\n");
         return PIN_INVALID_UICC;
     }
 
     if (NULL == pKey)
     {
-        RIL_LOG_CRITICAL("ConvertKeyToInt4() - pKey invalid\r\n");
         return PIN_NOK;
     }
 
-    //  Algorithm:
-    //  Take szKey, and prepend '0's to make 32 character string
+    // Algorithm:
+    // Take pszKey, and prepend '0's to make 32 character string
     char szBuf[33] = {0};
 
-    int len = (int)strlen(szKey);
+    int len = (int)strlen(pszKey);
     int diff = 32 - len;
 
-    //  Front-fill buffer
-    for (int i=0; i<diff; i++)
+    // Front-fill buffer
+    for (int i = 0; i < diff; i++)
     {
         szBuf[i] = '0';
     }
 
-    strncat(szBuf, szKey, 32-strlen(szBuf));
+    strncat(szBuf, pszKey, 32 - strlen(szBuf));
     szBuf[32] = '\0';  //  KW fix
-    //RIL_LOG_INFO("**********%s\r\n", szBuf);
 
-    //  Now we have szBuf in format "0000.... <UICC>" which is exactly 32 characters.
-    //  Take chunks of 8 characters, use atoi on it.  Store atoi value in pKey.
-
-    for (int i=0; i<4; i++)
+    // Now we have szBuf in format "0000.... <UICC>" which is exactly 32 characters.
+    // Take chunks of 8 characters, use atoi on it.  Store atoi value in pKey.
+    for (int i = 0; i < 4; i++)
     {
         char szChunk[9] = {0};
-        strncpy(szChunk, &szBuf[i*8], 8);
+        strncpy(szChunk, &szBuf[i * 8], 8);
         pKey[i] = atoi(szChunk);
     }
 
-    //  Print key
-    //RIL_LOG_INFO("key:\r\n");
-    //for (int i=0; i<4; i++)
-    //{
-    //    RIL_LOG_INFO("    key[%d]=0x%08X\r\n", i, pKey[i]);
-    //}
-
     return PIN_OK;
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//  This function is a wrapper for the btea() function.  Encrypt szInput string, with key szKey.
-//  Store the encrypted string as HEX-ASCII in storage location.
+// This function is a wrapper for the btea() function.  Encrypt szInput string, with key pszKey.
+// Store the encrypted string as HEX-ASCII in storage location.
 //
-//  Parameters:
-//  string szInput [in] : string to be encrypted
-//  int nInputLen [in] : number of characters to encrypt (max value is MAX_PIN_SIZE-1)
-//  string szKey [in] : key to encrypt szInput with
+// Parameters:
+// string pszInput [in] : string to be encrypted
+// int nInputLen [in] : number of characters to encrypt (max value is MAX_PIN_SIZE-1)
+// string pszKey [in] : key to encrypt szInput with
+// string pFile [in] : file name with full patch containing the encrypted string
 //
-//  Return values:
-//  PIN_NOK if error
-//  PIN_OK if operation successful
-ePCache_Code encrypt(const char* szInput, const int nInputLen, const char* szKey)
+// Return values:
+// PIN_NOK if error
+// PIN_OK if operation successful
+ePCache_Code encrypt(const char* pszInput, const int nInputLen, const char* pszKey,
+        const char* pFile)
 {
-    //  Check inputs
-    if ( (NULL == szInput) || ('\0' == szInput[0]) || (0 == nInputLen)
-            || (MAX_PIN_SIZE - 1 < nInputLen) || (NULL == szKey) )
+    ePCache_Code res = PIN_NOK;
+    const int BUF_LEN = ENCRYPTED_PIN_SIZE / 2;
+    UINT16 buf[BUF_LEN] = {0};
+    UINT32 key[4] = {0};
+    BYTE encryptedBuf[CACHED_UICCID_PIN_SIZE] = {0};
+    int writeFd = -1;
+    ssize_t bytesWritten = 0;
+
+    // Check inputs
+    if (NULL == pszInput || '\0' == pszInput[0] || 0 == nInputLen
+            || (MAX_PIN_SIZE - 1 < nInputLen) || NULL == pszKey)
     {
-        RIL_LOG_CRITICAL("encrypt() - Inputs are invalid!\r\n");
-        return PIN_NOK;
+        goto Error;
     }
 
-    //  The buffer len is the max of nInputLen (MAX_PIN_SIZE-1)
-    //  +1 to have at least 1 salt element (see below)
-    const int BUF_LEN = MAX_PIN_SIZE - 1 + 1;
-    UINT32 buf[BUF_LEN] = {0};
+    writeFd = open(pFile, O_WRONLY);
+    if (0 > writeFd)
+    {
+        goto Error;
+    }
 
-    //  generate random salt
+    // generate random salt
     srand((UINT32) time(NULL));
 
-    //  Front-fill the int buffer with random salt (first bits of int is FF
-    //  so we can identify later)
-    for (int i=0; i < BUF_LEN-nInputLen; i++)
+    // Front-fill the int buffer with random salt (first bits of int is FF
+    // so we can identify later)
+    for (int i = 0; i < BUF_LEN - nInputLen; i++)
     {
-        int nRand = rand();
-        nRand = (nRand << 16);
-        nRand = (nRand + rand());
-        nRand = (nRand | 0xFF000000);
-        buf[i] = (UINT32)nRand;
+        buf[i] = rand() | 0xFF00;
     }
 
-    //  Copy the ASCII values after the random salt in the buffer.
-    for (int i=0; i < nInputLen; i++)
+    // Copy the ASCII values after the random salt in the buffer.
+    for (int i = 0; i < nInputLen; i++)
     {
-        buf[i+(BUF_LEN-nInputLen)] = (UINT32)szInput[i];
+        buf[i + (BUF_LEN - nInputLen)] = (UINT16)pszInput[i];
     }
 
     // Convert the UICC to format suitable for btea
-    UINT32 key[4] = {0};
-    if (PIN_OK != ConvertKeyToInt4(szKey, key))
+    if (PIN_OK != ConvertKeyToInt4(pszKey, key))
     {
-        RIL_LOG_CRITICAL("encrypt() - ConvertKeyToInt4() failed!\r\n");
-        return PIN_NOK;
+        goto Error;
     }
 
-    //  Encrypt all buffer including the random salt
-    btea(buf, BUF_LEN, key);
+    // Encrypt all buffer including the random salt
+    btea((UINT32*)buf, BUF_LEN / 2, key);
 
-    //  Now write pInput somewhere....
-    const int HEX_BUF_SIZE = 8;  // 8 chars to code our uint32 buffer in hex ASCII
-    char szEncryptedBuf[PROPERTY_VALUE_MAX] = {0};
-    for (int i = 0; i < BUF_LEN; i++)
+    for (int i = 0; i < UICCID_SIZE; i++)
     {
-        char szPrint[HEX_BUF_SIZE+1] = {0};    //  +1 for C-string
-        snprintf(szPrint, HEX_BUF_SIZE+1, "%08X", buf[i]);
-        szPrint[HEX_BUF_SIZE] = '\0';  //  KW fix
-
-        strncat(szEncryptedBuf, szPrint, (PROPERTY_VALUE_MAX-1) - strlen(szEncryptedBuf));
-        szEncryptedBuf[PROPERTY_VALUE_MAX-1] = '\0';  //  KW fix
+        encryptedBuf[i] = SemiByteCharsToByte(pszKey[i*2], pszKey[i*2+1]);
     }
 
-    //  Store in property
-    char szCachedPinProp[PROPERTY_VALUE_MAX] = {0};
-    //  If sim id == 0 or if sim id is not provided by RILD, then continue
-    //  to use "ril.cachedpin" property name.
-    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
+    // Copy the encrypted data to buffer
+    memcpy(encryptedBuf + UICCID_SIZE, buf, BUF_LEN * sizeof(UINT16));
+
+    if ((NULL != g_szSIMID) && ('1' == g_szSIMID[0]))
     {
-        strncpy(szCachedPinProp, szRIL_cachedpin, PROPERTY_VALUE_MAX-1);
-        szCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
-    }
-    else
-    {
-        snprintf(szCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cachedpin, g_szSIMID);
+        if (lseek(writeFd, CACHED_UICCID_PIN_SIZE, SEEK_SET) < CACHED_UICCID_PIN_SIZE)
+        {
+            goto Error;
+        }
     }
 
-    if (0 != property_set(szCachedPinProp, szEncryptedBuf))
+    bytesWritten = write(writeFd, encryptedBuf, CACHED_UICCID_PIN_SIZE);
+    if (bytesWritten < CACHED_UICCID_PIN_SIZE)
     {
-        property_set(szCachedPinProp, "");
-        RIL_LOG_CRITICAL("encrypt() - Cannot store property %s szEncryptedBuf\r\n",
-                szCachedPinProp);
-        return PIN_NOK;
+        goto Error;
     }
 
-    return PIN_OK;
+    res = PIN_OK;
+Error:
+    if (0 <= writeFd)
+    {
+        if (0 > close(writeFd))
+        {
+            res = PIN_NOK;
+        }
+    }
+
+    return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-//  This function is a wrapper for the btea() function.  Decrypt szInput string from storage location,
-//  with string szKey.
+// This function is a wrapper for the btea() function.  Decrypt pin cached in storage location
+// with string pszKey.
 //
-//  Parameters:
-//  string szOut [out] : the decrypted string.  It is up to caller to allocate szOut and make sure
-//                       szOut is buffer size is large enough.
-//  string szKey [in] : key to decrypt the encrypted string from storage location with.
+// Parameters:
+// string pszOut [out] : the decrypted string.  It is up to caller to allocate pszOut and make
+//                         sure pszOut is buffer size is large enough.
+// string pszKey [in] : key to decrypt the encrypted string from storage location with.
 //
-//  Return values:
-//  PIN_WRONG_INTEGRITY if decrypted text doesn't pass integrity checks
-//  PIN_NOK if inputs are invalid
-//  PIN_OK if operation successful
-ePCache_Code decrypt(char* szOut, const char* szKey)
+// string pFile [in] : file name with full patch containing the encrypted string
+//
+// Return values:
+// PIN_NO_PIN_AVAILABLE if PIN is not cached
+// PIN_WRONG_INTEGRITY if decrypted text doesn't pass integrity checks
+// PIN_NOK if inputs are invalid
+// PIN_INVALID_UICC
+// PIN_OK if operation successful
+ePCache_Code decrypt(char* pszOut, const char* pszKey, const char* pFile)
 {
-    if ( (NULL == szOut) || (NULL == szKey) )
-    {
-        RIL_LOG_CRITICAL("decrypt() - invalid inputs\r\n");
-        return PIN_NOK;
-    }
-
-    //RIL_LOG_INFO("decrypt() - szKey=[%s]\r\n", szKey);
-
-    // Convert the UICC to format suitable for btea
+    ePCache_Code ret = PIN_NOK;
     UINT32 key[4] = {0};
-    if (PIN_OK != ConvertKeyToInt4(szKey, key))
+    const int BUF_LEN = ENCRYPTED_PIN_SIZE / 2;
+    UINT16 buf[ENCRYPTED_PIN_SIZE] = {0};
+    BYTE szEncryptedBuf[CACHED_UICCID_PIN_SIZE] = {0};
+    BYTE uiccID[UICCID_SIZE] = {0};
+    ssize_t bytesRead = 0;
+    int readFd = -1;
+    char* pChar = NULL;
+
+    if (NULL == pszOut || NULL == pszKey)
     {
-        RIL_LOG_CRITICAL("decrypt() - ConvertKeyToInt4() error!\r\n");
-        return PIN_NOK;
+        goto Error;
     }
 
-    const int BUF_LEN = 9;
-    UINT32 buf[BUF_LEN] = {0};
-
-    //  Get encrypted string from property...
-    char szEncryptedBuf[PROPERTY_VALUE_MAX] = {0};
-
-    char szCachedPinProp[PROPERTY_VALUE_MAX] = {0};
-    //  If sim id == 0 or if sim id is not provided by RILD, then continue
-    //  to use "ril.cachedpin" property name.
-    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
+    readFd = open(pFile, O_RDONLY);
+    if (0 > readFd)
     {
-        strncpy(szCachedPinProp, szRIL_cachedpin, PROPERTY_VALUE_MAX-1);
-        szCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
+        ret = PIN_NO_PIN_AVAILABLE;
+        goto Error;
     }
     else
     {
-        snprintf(szCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cachedpin, g_szSIMID);
-    }
-    if (!property_get(szCachedPinProp, szEncryptedBuf, ""))
-    {
-        RIL_LOG_CRITICAL("decrypt() - cannot retrieve cached uicc\r\n");
-        return PIN_NO_PIN_AVAILABLE;
+        if ((NULL != g_szSIMID) && ('1' == g_szSIMID[0]))
+        {
+            if (lseek(readFd, CACHED_UICCID_PIN_SIZE, SEEK_SET) < CACHED_UICCID_PIN_SIZE)
+            {
+                ret = PIN_NO_PIN_AVAILABLE;
+                goto Error;
+            }
+        }
+
+        bytesRead = read(readFd, szEncryptedBuf, CACHED_UICCID_PIN_SIZE);
     }
 
-    //RIL_LOG_INFO("decrypt() - szEncryptedBuf = %s\r\n", szEncryptedBuf);
+    if (bytesRead < CACHED_UICCID_PIN_SIZE)
+    {
+        ret = PIN_NO_PIN_AVAILABLE;
+        goto Error;
+    }
+
+    // Convert the UICC to format suitable for btea
+    if (PIN_OK != ConvertKeyToInt4(pszKey, key))
+    {
+        goto Error;
+    }
+
+    for (int i = 0; i < UICCID_SIZE; i++)
+    {
+        uiccID[i] = SemiByteCharsToByte(pszKey[i*2], pszKey[i*2+1]);
+    }
+
+    // Check if the PIN is cached for the UICC identifier provided.
+    if (0 != memcmp(uiccID, szEncryptedBuf, UICCID_SIZE))
+    {
+        ret = PIN_INVALID_UICC;
+        goto Error;
+    }
+
+    // Copy the encrypted buffer to local buffer
+    memcpy(buf, szEncryptedBuf + UICCID_SIZE, ENCRYPTED_PIN_SIZE);
+
+    // Actual decryption
+    btea((UINT32*)buf, (-1 * BUF_LEN / 2), key);
+
+    pChar = &(pszOut[0]);
+
+    // We have our decrypted buffer. Figure out if it was successful and
+    // throw away the random salt.
     for (int i = 0; i < BUF_LEN; i++)
     {
-        char szPrint[9] = {0};
-        strncpy(szPrint, &szEncryptedBuf[i*8], 8);
-        sscanf(szPrint, "%08X", &(buf[i]));
-    }
-
-    //RIL_LOG_INFO("Buffer before decryption:\r\n");
-    //for (int i = 0; i < BUF_LEN; i++)
-    //{
-    //    RIL_LOG_INFO("    buf[%d]=0x%08X\r\n", i, buf[i]);
-    //}
-
-    //  Actual decryption
-    btea(buf, (-1 * BUF_LEN), key);
-
-    //  Print decrypted buffer
-    //RIL_LOG_INFO("Buffer after decryption:\r\n");
-    //for (int i=0; i<BUF_LEN; i++)
-    //{
-    //    RIL_LOG_INFO("    buf[%d]=0x%08X\r\n", i, buf[i]);
-    //}
-
-    char* pChar = &(szOut[0]);
-
-    // We have our decrypted buffer.  Figure out if it was successful and
-    //  throw away the random salt.
-    for (int i=0; i<BUF_LEN; i++)
-    {
-        if (0xFF000000 == (buf[i] & 0xFF000000))
+        if (0xFF00 == (buf[i] & 0xFF00))
         {
             // it was random salt, discard
             continue;
         }
         else if (buf[i] >= '0' && buf[i] <= '9')
         {
-            //  valid ASCII numeric character
+            // valid ASCII numeric character
             *pChar = (char)buf[i];
             pChar++;
         }
         else
         {
-            //  bad decoding
-            RIL_LOG_CRITICAL("decrypt() - integrity failed! i=%d\r\n", i);
-            return PIN_WRONG_INTEGRITY;
+            // bad decoding
+            ret = PIN_WRONG_INTEGRITY;
+            goto Error;
         }
     }
 
-    return PIN_OK;
+    ret = PIN_OK;
+Error:
+    if (0 <= readFd)
+    {
+        if (0 > close(readFd))
+        {
+            ret = PIN_NOK;
+        }
+    }
+    return ret;
+}
+
+BOOL IsRequiredCacheAvailable()
+{
+    int fd = -1;
+    BOOL bRet = FALSE;
+    UINT32 uiPinCacheMode = CTE::GetTE().GetPinCacheMode();
+
+    if (E_PIN_CACHE_MODE_NVRAM == uiPinCacheMode)
+    {
+        long availableCacheSize = -1;
+
+        fd = open(PIN_CACHE_SIZE_FILE, O_RDONLY);
+        if (0 > fd)
+        {
+            goto Error;
+        }
+        else
+        {
+            char buffer[4] = {'\0'};
+            if (read(fd, &buffer, (sizeof(buffer) - 1)) > 0)
+            {
+                availableCacheSize = strtol(buffer, NULL, 0);
+            }
+
+            close(fd);
+        }
+
+        int maxCacheSizeNeeded = CACHED_UICCID_PIN_SIZE;
+        if ((NULL != g_szSIMID) && ('1' == g_szSIMID[0]))
+        {
+            maxCacheSizeNeeded *= 2;
+        }
+
+        // If expected cache size is not available, return error.
+        if (availableCacheSize < maxCacheSizeNeeded)
+        {
+            goto Error;
+        }
+    }
+    else if (E_PIN_CACHE_MODE_FS == uiPinCacheMode)
+    {
+        fd = open(PIN_CACHE_FILE_FS, O_CREAT | O_WRONLY, S_IWUSR | S_IRUSR);
+        if (0 > fd)
+        {
+            goto Error;
+        }
+
+        close(fd);
+    }
+    else
+    {
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    return bRet;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1082,39 +1143,30 @@ ePCache_Code decrypt(char* szOut, const char* szKey)
 // Input: UICC Id, PIN code
 // Output: {OK},{NOK}
 //
-ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN)
+ePCache_Code PCache_Store_PIN(const char* pszUICC, const char* pszPIN)
 {
-    //  TODO: Remove this log statement when complete
-    RIL_LOG_INFO("PCache_Store_PIN() Enter - szUICC=[%s], szPIN=[%s]\r\n", szUICC, szPIN);
+    ePCache_Code ret = PIN_NOK;
 
-    char szCachedUiccProp[PROPERTY_VALUE_MAX] = {0};
-    //  If sim id == 0 or if sim id is not provided by RILD, then continue
-    //  to use "ril.cacheduicc" property name.
-    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
+    if (IsRequiredCacheAvailable())
     {
-        strncpy(szCachedUiccProp, szRIL_cacheduicc, PROPERTY_VALUE_MAX-1);
-        szCachedUiccProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
-    }
-    else
-    {
-        snprintf(szCachedUiccProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cacheduicc, g_szSIMID);
-    }
+        if (NULL != pszUICC && '\0' != pszUICC[0] && NULL != pszPIN && '\0' != pszPIN[0])
+        {
+            UINT32 uiPinCacheMode = CTE::GetTE().GetPinCacheMode();
 
-    if (NULL == szUICC || '\0' == szUICC[0] || 0 != property_set(szCachedUiccProp, szUICC))
-    {
-        RIL_LOG_CRITICAL("PCache_Store_PIN() - Cannot store uicc\r\n");
-        return PIN_NOK;
-    }
-
-    if (NULL == szPIN || '\0' == szPIN[0])
-    {
-        property_set(szCachedUiccProp, "");
-        RIL_LOG_CRITICAL("PCache_Store_PIN() - Cannot store pin\r\n");
-        return PIN_NOK;
+            if (E_PIN_CACHE_MODE_NVRAM == uiPinCacheMode)
+            {
+                ret = encrypt(pszPIN, strnlen(pszPIN, MAX_PIN_SIZE - 1), pszUICC,
+                        PIN_CACHE_DUMP_FILE);
+            }
+            else if (E_PIN_CACHE_MODE_FS == uiPinCacheMode)
+            {
+                ret = encrypt(pszPIN, strnlen(pszPIN, MAX_PIN_SIZE - 1), pszUICC,
+                        PIN_CACHE_FILE_FS);
+            }
+        }
     }
 
-    //  Encrypt PIN, store in Android system property
-    return encrypt(szPIN, MIN(strlen(szPIN), MAX_PIN_SIZE-1), szUICC);
+    return ret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1123,69 +1175,24 @@ ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN)
 // Input: UICC Id
 // Output: {NOK, invalid UICC},{NOK, wrong integrity},{NOK, No PIN available},{OK}
 //
-ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN)
+ePCache_Code PCache_Get_PIN(const char* pszUICC, char* pszPIN)
 {
-    char szUICCCached[PROPERTY_VALUE_MAX];
-    RIL_LOG_INFO("PCache_Get_PIN - Enter\r\n");
+    ePCache_Code ret = PIN_NOK;
 
-    if (NULL == szUICC || NULL == szPIN || '\0' == szUICC[0])
+    if (NULL != pszUICC && '\0' != pszUICC[0] && NULL != pszPIN)
     {
-        RIL_LOG_CRITICAL("PCache_Get_PIN() - szUICC or szPIN are invalid\r\n");
-        return PIN_INVALID_UICC;
+        UINT32 uiPinCacheMode = CTE::GetTE().GetPinCacheMode();
+
+        if (E_PIN_CACHE_MODE_NVRAM == uiPinCacheMode)
+        {
+            ret = decrypt(pszPIN, pszUICC, PIN_CACHE_DUMP_FILE);
+        }
+        else if (E_PIN_CACHE_MODE_FS == uiPinCacheMode)
+        {
+            ret = decrypt(pszPIN, pszUICC, PIN_CACHE_FILE_FS);
+        }
     }
 
-    char szCachedUiccProp[PROPERTY_VALUE_MAX] = {0};
-    //  If sim id == 0 or if sim id is not provided by RILD, then continue
-    //  to use "ril.cacheduicc" property name.
-    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
-    {
-        strncpy(szCachedUiccProp, szRIL_cacheduicc, PROPERTY_VALUE_MAX-1);
-        szCachedUiccProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
-    }
-    else
-    {
-        snprintf(szCachedUiccProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cacheduicc, g_szSIMID);
-    }
-
-    if (!property_get(szCachedUiccProp, szUICCCached, ""))
-    {
-        RIL_LOG_CRITICAL("PCache_Get_PIN() - cannot retrieve cached uicc prop %s\r\n",
-                szCachedUiccProp);
-
-        // Cached PIN is not available, set the flag to mark this
-        PCache_SetUseCachedPIN(false);
-
-        return PIN_NO_PIN_AVAILABLE;
-    }
-
-    if ('\0' == szUICCCached[0])
-    {
-        RIL_LOG_CRITICAL("PCache_Get_PIN() - szUICCCached is empty!\r\n");
-        return PIN_NO_PIN_AVAILABLE;
-    }
-
-    if (0 != strcmp(szUICCCached, szUICC))
-    {
-        RIL_LOG_CRITICAL("PCache_Get_PIN() - bad uicc\r\n");
-        return PIN_INVALID_UICC;
-    }
-
-    //  Retrieve encrypted PIN from Android property, and decrypt it.
-    ePCache_Code ret = decrypt(szPIN, szUICC);
-
-    if ('\0' == szPIN[0])
-    {
-        RIL_LOG_CRITICAL("PCache_Get_PIN() - szPIN is empty!\r\n");
-        return PIN_NO_PIN_AVAILABLE;
-    }
-    else if (PIN_OK != ret)
-    {
-        RIL_LOG_CRITICAL("PCache_Get_PIN() - decrypt() error = %d\r\n", ret);
-    }
-    else
-    {
-        RIL_LOG_INFO("PCache_Get_PIN - Retrieved PIN=[%s]\r\n", szPIN);
-    }
     return ret;
 }
 
@@ -1193,127 +1200,28 @@ ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Clear PIN code cache.
 // Input: None
-// Output: {OK},{NOK}
+// Output: None
 //
-ePCache_Code PCache_Clear()
+void PCache_Clear()
 {
-    char szCachedPinProp[PROPERTY_VALUE_MAX] = {0};
-    char szCachedUiccProp[PROPERTY_VALUE_MAX] = {0};
-    //  If sim id == 0 or if sim id is not provided by RILD, then continue
-    //  to use "ril.cachedpin", "ril.cacheduicc" property name.
-    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
-    {
-        strncpy(szCachedPinProp, szRIL_cachedpin, PROPERTY_VALUE_MAX-1);
-        szCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
-        strncpy(szCachedUiccProp, szRIL_cacheduicc, PROPERTY_VALUE_MAX-1);
-        szCachedUiccProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
-    }
-    else
-    {
-        snprintf(szCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cachedpin, g_szSIMID);
-        snprintf(szCachedUiccProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cacheduicc, g_szSIMID);
-    }
-    if (0 != property_set(szCachedUiccProp, ""))
-    {
-        RIL_LOG_CRITICAL("PCache_Clear() - Cannot clear uicc cache\r\n");
-        return PIN_NOK;
-    }
+    UINT32 uiPinCacheMode = CTE::GetTE().GetPinCacheMode();
 
-    if (0 != property_set(szCachedPinProp, ""))
+    if (E_PIN_CACHE_MODE_NVRAM == uiPinCacheMode)
     {
-        RIL_LOG_CRITICAL("PCache_Clear() - Cannot clear pin cache\r\n");
-        return PIN_NOK;
-    }
-
-    RIL_LOG_INFO("PCache_Clear() - Cached cleared!\r\n");
-
-    return PIN_OK;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Set or clear local flag to use cached pin or not.
-// Input: boolean true if use cached pin, false if not.
-// Output: {OK},{NOK}
-//
-// If the SIM is not ready, the PIN caching is not
-// enabled whatever the input value.
-//
-ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
-{
-    RIL_LOG_INFO("PCache_SetUseCachedPIN - Enter bFlag=[%d]\r\n", bFlag);
-
-    char szUseCachedPinProp[PROPERTY_VALUE_MAX] = {0};
-    //  If sim id == 0 or if sim id is not provided by RILD, then continue
-    //  to use "ril.usecachedpin" property name.
-    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
-    {
-        strncpy(szUseCachedPinProp, szRIL_usecachedpin, PROPERTY_VALUE_MAX-1);
-        szUseCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
-    }
-    else
-    {
-        snprintf(szUseCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_usecachedpin, g_szSIMID);
-    }
-
-    if (bFlag && (RRIL_SIM_STATE_READY == CTE::GetTE().GetSIMState()))
-    {
-        if (0 != property_set(szUseCachedPinProp, "1"))
+        int fd = open(PIN_CACHE_CLEAR_FILE, O_WRONLY);
+        if (0 <= fd)
         {
-            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n",
-                    szUseCachedPinProp, bFlag);
-            return PIN_NOK;
+            BOOL bClear = TRUE;
+            write(fd, &bClear, sizeof(bClear));
+            close(fd);
         }
     }
-    else
+    else if (E_PIN_CACHE_MODE_FS == uiPinCacheMode)
     {
-        if (0 != property_set(szUseCachedPinProp, ""))
+        int fd = open(PIN_CACHE_FILE_FS, O_CREAT | O_TRUNC | O_WRONLY, S_IWUSR | S_IRUSR);
+        if (0 <= fd)
         {
-            RIL_LOG_CRITICAL("pCache_SetUseCachedPIN - cannot set %s  bFlag=[%d]\r\n",
-                    szUseCachedPinProp, bFlag);
-            return PIN_NOK;
+            close(fd);
         }
     }
-
-    return PIN_OK;
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Get local flag to use cached pin or not.
-// Input:
-// Output: bool - true if flag is set to use cached pin, false if not (or error).
-//
-bool PCache_GetUseCachedPIN()
-{
-    RIL_LOG_INFO("PCache_GetUseCachedPIN - Enter\r\n");
-    bool bRet = false;
-
-    char szUseCachedPinProp[PROPERTY_VALUE_MAX] = {0};
-    //  If sim id == 0 or if sim id is not provided by RILD, then continue
-    //  to use "ril.usecachedpin" property name.
-    if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
-    {
-        strncpy(szUseCachedPinProp, szRIL_usecachedpin, PROPERTY_VALUE_MAX-1);
-        szUseCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
-    }
-    else
-    {
-        snprintf(szUseCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_usecachedpin, g_szSIMID);
-    }
-
-    char szProp[PROPERTY_VALUE_MAX] = {0};
-
-    if (!property_get(szUseCachedPinProp, szProp, ""))
-    {
-        RIL_LOG_WARNING("PCache_GetUseCachedPIN - cannot get %s\r\n", szUseCachedPinProp);
-        return false;
-    }
-
-    bRet = (0 == strcmp(szProp, "1"));
-
-    RIL_LOG_INFO("PCache_GetUseCachedPIN - Exit  bRet=[%d]\r\n", bRet);
-
-    return bRet;
-}
-
