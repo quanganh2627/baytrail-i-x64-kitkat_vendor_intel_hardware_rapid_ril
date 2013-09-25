@@ -76,7 +76,7 @@ const char* CTE_XMM7160::GetPsRegistrationReadString()
 {
     if (m_cte.IsEPSRegistered())
     {
-        return "AT+CEREG=3;+CEREG?;+CEREG=0\r";
+        return "AT+CEREG=3;+XREG=3;+CEREG?;+XREG?;+CEREG=0;+XREG=0;\r";
     }
     else
     {
@@ -140,6 +140,18 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
     }
     memset(pGPRSRegStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
+    if (FindAndSkipString(pszRsp, "+CEREG: ", pszDummy))
+    {
+        if (!m_cte.ParseCEREG(pszRsp, FALSE, psRegStatus))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseGPRSRegistrationState() - "
+                    "ERROR in parsing CEREG response.\r\n");
+            goto Error;
+        }
+
+        m_cte.StoreRegistrationInfo(&psRegStatus, E_REGISTRATION_TYPE_CEREG);
+    }
+
     if (FindAndSkipString(pszRsp, "+XREG: ", pszDummy))
     {
         if (!m_cte.ParseXREG(pszRsp, FALSE, psRegStatus))
@@ -150,17 +162,6 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
         }
 
         m_cte.StoreRegistrationInfo(&psRegStatus, E_REGISTRATION_TYPE_XREG);
-    }
-    else if (FindAndSkipString(pszRsp, "+CEREG: ", pszDummy))
-    {
-        if (!m_cte.ParseCEREG(pszRsp, FALSE, psRegStatus))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::ParseGPRSRegistrationState() - "
-                    "ERROR in parsing CEREG response.\r\n");
-            goto Error;
-        }
-
-        m_cte.StoreRegistrationInfo(&psRegStatus, E_REGISTRATION_TYPE_CEREG);
     }
 
     m_cte.CopyCachedRegistrationInfo(pGPRSRegStatus, TRUE);
