@@ -2434,6 +2434,18 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                     (const char**) pszRequest, nNumStrings);
             break;
 
+        case RIL_OEM_HOOK_STRING_IMS_CALL_STATUS:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_CALL_STATUS");
+            res = SetCallImsAvailable(rReqData,
+                    (const char**) pszRequest, nNumStrings);
+            break;
+
+        case RIL_OEM_HOOK_STRING_IMS_SMS_STATUS:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_SMS_STATUS");
+            res = SetSmsImsAvailable(rReqData,
+                    (const char**) pszRequest, nNumStrings);
+            break;
+
         case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_DEFAULT_APN");
             // Send this command on ATCMD channel
@@ -2545,6 +2557,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_SET_RF_POWER_CUTBACK_TABLE:
         case RIL_OEM_HOOK_STRING_IMS_REGISTRATION:
         case RIL_OEM_HOOK_STRING_IMS_CONFIG:
+        case RIL_OEM_HOOK_STRING_IMS_CALL_STATUS:
+        case RIL_OEM_HOOK_STRING_IMS_SMS_STATUS:
         case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
         case RIL_OEM_HOOK_STRING_POWEROFF_MODEM:
             // no need for a parse function as this AT command only returns "OK"
@@ -4602,6 +4616,98 @@ RIL_RESULT_CODE CTE_XMM6260::CreateSetRFPowerCutbackTableReq(REQUEST_DATA& rReqD
     res = RRIL_RESULT_OK;
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::CreateSetRFPowerCutbackTableReq() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::SetCallImsAvailable(REQUEST_DATA& rReqData,
+        const char** pszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::SetCallImsAvailable() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int callStatus;
+
+    if (pszRequest == NULL || '\0' == pszRequest[0])
+    {
+        RIL_LOG_CRITICAL("CTE_XMM260::SetCallImsAvailable()"
+                " - invalid input parameter pszRequest \r\n");
+        goto Error;
+    }
+
+    if (uiDataSize < (2 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::SetCallImsAvailable()"
+            ": received_size < required_size\r\n");
+        goto Error;
+    }
+
+    if (sscanf(pszRequest[1], "%d", &callStatus) == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::SetCallImsAvailable()"
+            " - cannot convert %s to int\r\n", pszRequest);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM6260::SetCallImsAvailable() - callStatus=[%d]\r\n",
+        callStatus);
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CAVIMS=%d\r",
+            callStatus))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::SetCallImsAvailable()"
+            " - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::SetCallImsAvailable() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::SetSmsImsAvailable(REQUEST_DATA& rReqData,
+        const char** pszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::SetSmsImsAvailable() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int smsStatus;
+
+    if (pszRequest == NULL || '\0' == pszRequest[0])
+    {
+        RIL_LOG_CRITICAL("CTE_XMM260::SetSmsImsAvailable()"
+                " - invalid input parameter pszRequest \r\n");
+        goto Error;
+    }
+
+    if (uiDataSize < (2 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::SetSmsImsAvailable()"
+            ": received_size < required_size\r\n");
+        goto Error;
+    }
+
+    if (sscanf(pszRequest[1], "%d", &smsStatus) == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::SetSmsImsAvailable()"
+            " - cannot convert %s to int\r\n", pszRequest);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM6260::SetSmsImsAvailable() - smsStatus=[%d]\r\n",
+        smsStatus);
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CASIMS=%d\r",
+            smsStatus))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::SetSmsImsAvailable()"
+            " - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::SetSmsImsAvailable() - Exit\r\n");
     return res;
 }
 

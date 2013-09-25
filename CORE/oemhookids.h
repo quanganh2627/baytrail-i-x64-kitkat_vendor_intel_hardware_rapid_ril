@@ -330,6 +330,31 @@ const int RIL_OEM_HOOK_STRING_SWAP_PS = 0x000000B2;
 //
 const int RIL_OEM_HOOK_STRING_SEND_AT = 0x000000B3;
 
+//
+//  RIL_OEM_HOOK_STRING_IMS_CALL_AVAILABLE
+//  Command ID = 0x000000B4
+//
+//  This command sends the availability of Call IMS to the modem.
+//
+//  "data" = 0 : Voice calls with the IMS are not available
+//           1 : Voice calls with the IMS are available.
+//  "response" = null.
+//
+const int RIL_OEM_HOOK_STRING_IMS_CALL_STATUS = 0x000000B4;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_IMS_SMS_AVAILABLE
+//  Command ID = 0x000000B5
+//
+//  This command sends the availability of SMS IMS to the modem.
+//
+//  "data" = 0 : SMS using IMS is not available
+//           1 : SMS using IMS is available.
+//  "response" = null.
+//
+const int RIL_OEM_HOOK_STRING_IMS_SMS_STATUS = 0x000000B5;
 
 ///////////////////////////////////////////////////////////////////////////////
 
