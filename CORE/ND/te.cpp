@@ -270,6 +270,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_QUERY_TTY_MODE:
         case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
         case RIL_REQUEST_GET_SIM_STATUS:
+        case RIL_REQUEST_OEM_HOOK_STRINGS:
             if (E_MMGR_EVENT_MODEM_UP == GetLastModemEvent())
             {
                 bAllowed = TRUE;
