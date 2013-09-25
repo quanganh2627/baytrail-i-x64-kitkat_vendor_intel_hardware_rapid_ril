@@ -31,9 +31,7 @@
 //
 //
 CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
-: CSilo(pChannel, pSysCaps),
-  m_bReadyForAttach(FALSE),
-  m_bRefreshWithUSIMInit(FALSE)
+: CSilo(pChannel, pSysCaps)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::CSilo_SIM() - Enter\r\n");
 
@@ -402,9 +400,9 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                      */
                     if (SIM_INIT == pSimRefreshResp->result)
                     {
-                        CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
+                        CTE::GetTE().SetSimAppState(RIL_APPSTATE_UNKNOWN);
 
-                        m_bRefreshWithUSIMInit = TRUE;
+                        CTE::GetTE().SetRefreshWithUsimInitOn(TRUE);
                     }
                     else
                     {
@@ -500,7 +498,10 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIM() - Enter\r\n");
     BOOL fRet = FALSE;
-    UINT32 nSIMState = 0;
+    const char* pszEnd = NULL;
+    UINT32 uiSIMState = 0;
+    BOOL bNotifySimStatusChange = TRUE;
+    int oldAppState = CTE::GetTE().GetSimAppState();
 
     if (pResponse == NULL)
     {
@@ -511,142 +512,25 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
     pResponse->SetUnsolicitedFlag(TRUE);
 
     // Extract "<SIM state>"
-    if (!ExtractUInt32(rszPointer, nSIMState, rszPointer))
+    if (!ExtractUInt32(rszPointer, uiSIMState, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIM() - Could not parse nSIMState.\r\n");
         goto Error;
     }
 
-    // Here we assume we don't have card error.
-    // This will be changed in case we received XSIM=6.
-    CTE::GetTE().SetSimError(FALSE);
+    CTE::GetTE().HandleSimState(uiSIMState, bNotifySimStatusChange);
 
-    /// @TODO: Need to revisit the XSIM and radio state mapping
-    switch (nSIMState)
+    if (RIL_APPSTATE_UNKNOWN != CTE::GetTE().GetSimAppState()
+            && RIL_APPSTATE_UNKNOWN == oldAppState)
     {
-        /*
-         * XSIM: 3 will be received upon PIN related operations.
-         *
-         * For PIN related operation occuring after the SIM initialisation,
-         * no XSIM: 7 will be sent by modem. So, trigger the radio state
-         * change with SIM ready upon XSIM: 3.
-         *
-         * For PIN related operation occuring during the boot or before
-         * the SIM initialisation, then XSIM: 7 will be sent by modem. In this
-         * case, radio state  change with SIM ready will be sent upon the
-         * receival of XSIM: 7 event.
-         */
-        case 3: // PIN verified - Ready
-            if (m_bReadyForAttach)
-            {
-                RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
-                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
-            }
-            break;
-        /*
-         * XSIM: 10 and XSIM: 11 will be received when the SIM driver has
-         * lost contact of SIM and re-established the contact respectively.
-         * After XSIM: 10, either XSIM: 9 or XSIM: 11 will be received.
-         * So, no need to trigger SIM_NOT_READY on XSIM: 10. Incase of
-         * XSIM: 11, network registration will be restored by the modem
-         * itself.
-         */
-        case 10: // SIM Reactivating
-            break;
-        case 11: // SIM Reactivated
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
-            break;
-        /*
-         * XSIM: 2 means PIN verification not needed but not ready for attach.
-         * SIM_READY should be triggered only when the modem is ready
-         * to attach.(XSIM: 7 or XSIM: 3(in some specific case))
-         */
-        case 2:
-            // The SIM is initialized, but modem is still in the process of it.
-            // we can inform Android that SIM is still not ready.
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM NOT READY\r\n");
-            m_bReadyForAttach = FALSE;
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
-            break;
-        case 6: // SIM Error
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM ERROR\r\n");
-            CTE::GetTE().SetSimError(TRUE);
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
-            break;
-        case 7: // ready for attach (+COPS)
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
-            m_bReadyForAttach = TRUE;
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
-            CSystemManager::GetInstance().TriggerSimUnlockedEvent();
-            break;
-        case 8: // SIM application error
-        {
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM TECHNICAL PROBLEM\r\n");
-            // +XSIM: 8 is for 6FXX error type
-            const char error[] = "6FXX";
-            triggerSIMAppError(error);
-            fRet = TRUE;
-            goto Error;
-        }
-        case 12: // SIM SMS caching completed
-            RIL_LOG_INFO("[RIL STATE] SIM SMS CACHING COMPLETED\r\n");
-            CTE::GetTE().TriggerQuerySimSmsStoreStatus();
-            break;
-        case 0: // SIM not present
-        case 9: // SIM Removed
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM REMOVED/NOT PRESENT\r\n");
-            m_bReadyForAttach = FALSE;
-            m_bRefreshWithUSIMInit = FALSE;
-            PCache_Clear();
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_ABSENT);
-            break;
-        case 14: // SIM powered off by modem
-            RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM Powered off by modem\r\n");
-            m_bReadyForAttach = FALSE;
-            // Fall through to notify Radio and Sim status
-        case 1: // PIN verification needed
-        case 4: // PUK verification needed
-        case 5: // SIM permanently blocked
-        default:
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
-            break;
-    }
-
-    if (m_bRefreshWithUSIMInit)
-    {
-        if (m_bReadyForAttach)
-        {
-            RIL_SimRefreshResponse_v7 simRefreshResp;
-
-            simRefreshResp.result = SIM_INIT;
-            simRefreshResp.ef_id = 0;
-            simRefreshResp.aid = NULL;
-
-            m_bRefreshWithUSIMInit = FALSE;
-
-            // Send out SIM_REFRESH notification
-            RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)&simRefreshResp,
-                    sizeof(RIL_SimRefreshResponse_v7));
-
-            pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
-        }
-        else
-        {
-            /*
-             * Incase of REFRESH with USIM INIT, once the refresh is done on the modem side,
-             * then XSIM: 2 and XSIM: 7 will be sent by modem. Notifying framework of SIM status
-             * change on XSIM: 2 will result in framework querying the SIM status. It is highly
-             * possible that XSIM: 7 will be received even before the SIM status change is queried
-             * from modem. So, if REFRESH with USIM init is active, it is better not to notify
-             * the SIM status change on XSIM: 2 to avoid unnecessary requests between AP and modem.
-             * Even if the SIM related requests are sent by framework on SIM not ready, rapid ril's
-             * internal sim state will complete the SIM requests with error.
-             */
-        }
+        RIL_requestTimedCallback(triggerQueryUiccInfo, NULL, 0, 0);
     }
     else
     {
-        pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
+        if (bNotifySimStatusChange)
+        {
+            pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
+        }
     }
 
     fRet = TRUE;
@@ -669,6 +553,8 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
     BOOL fRet = FALSE;
     int i = 0;
     BOOL bIsDataValid = FALSE;
+    int perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+
     //  The number of locks returned by +XLOCK URC.
     const int nMAX_LOCK_INFO = 5;
 
@@ -738,14 +624,34 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
             RIL_LOG_INFO("lock:%s state:%d result:%d", lock_info[i].fac, lock_info[i].lock_state,
                             lock_info[i].lock_result);
 
-            /// @TODO: Need to revisit the lock state mapping.
-            if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
-               (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
+            if (0 == strncmp(lock_info[i].fac, "PN", 2))
             {
-                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
-                pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
+                if (lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1)
+                {
+                    perso_substate =  RIL_PERSOSUBSTATE_SIM_NETWORK;
+                }
+                else if (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2)
+                {
+                    perso_substate = RIL_PERSOSUBSTATE_SIM_NETWORK_PUK;
+                }
+
+                if (RIL_PERSOSUBSTATE_UNKNOWN != perso_substate)
+                {
+                    CTE::GetTE().SetPersonalisationSubState(perso_substate);
+                    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
+                }
                 break;
             }
+            else
+            {
+                if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
+                        (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
+                {
+                    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
+                    break;
+                }
+            }
+
             i++;
         }
     }

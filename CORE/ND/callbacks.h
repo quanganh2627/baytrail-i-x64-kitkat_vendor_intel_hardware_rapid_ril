@@ -98,4 +98,9 @@ void triggerSIMAppError(const void* param);
 //
 void triggerCellBroadcastActivation(void* param);
 
+//
+// Callback to query Uicc information
+//
+void triggerQueryUiccInfo(void* param);
+
 #endif

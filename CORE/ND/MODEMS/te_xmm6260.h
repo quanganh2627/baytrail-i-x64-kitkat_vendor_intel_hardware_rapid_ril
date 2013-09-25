@@ -39,7 +39,6 @@ private:
 
 protected:
     int m_currentNetworkType;
-    char m_szUICCID[PROPERTY_VALUE_MAX];
 
 public:
     // modem overrides
@@ -51,12 +50,8 @@ public:
     virtual BOOL IsRequestSupported(int requestId);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
-    virtual RIL_RESULT_CODE CoreGetSimStatus(REQUEST_DATA& rReqData,
-                                                        void* pData,
-                                                        UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseGetSimStatus(RESPONSE_DATA& rRspData);
-
-    virtual RIL_RESULT_CODE ParseEnterSimPin(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE CoreGetSimStatus(REQUEST_DATA& rReqData, void* pData,
+            UINT32 uiDataSize);
 
     // RIL_REQUEST_DATA_REGISTRATION_STATE 21
     virtual RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA& rRspData);
@@ -262,9 +257,22 @@ public:
 
     virtual const char* GetSignalStrengthReportingString();
 
+    virtual void QueryUiccInfo();
+
+    virtual RIL_RESULT_CODE ParseQueryActiveApplicationType(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseQueryAvailableApplications(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseQueryIccId(RESPONSE_DATA& rRspData);
+
+    virtual void HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange);
+
 protected:
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);
+
+    virtual RIL_RESULT_CODE ParseXUICC(const char*& pszRsp);
+    virtual RIL_RESULT_CODE ParseCUAD(const char*& pszRsp);
+    virtual RIL_RESULT_CODE ParseCCID(const char*& pszRsp);
+    virtual RIL_RESULT_CODE ParseXPINCNT(const char*& pszRsp);
 
     virtual const char* GetRegistrationInitString();
     virtual const char* GetPsRegistrationReadString();
@@ -276,6 +284,10 @@ protected:
 
     virtual void HandleInternalDtmfStopReq();
 
+    virtual void QueryActiveApplicationType();
+    virtual void QueryAvailableApplications();
+    virtual void QueryIccId();
+    virtual void QueryPinRetryCount();
     virtual void QuerySimState();
 
 private:

@@ -336,7 +336,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
         RIL_LOG_INFO("CTE_XMM7160::CoreDeactivateDataCall() - reason=[%ld]\r\n", reason);
     }
 
-    if (reason == REASON_RADIO_OFF || RRIL_SIM_STATE_ABSENT == GetSIMState())
+    if (reason == REASON_RADIO_OFF || RIL_APPSTATE_READY != GetSimAppState())
     {
         // complete the request without sending the AT command to modem.
         res = RRIL_RESULT_OK_IMMEDIATE;

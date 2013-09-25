@@ -278,7 +278,11 @@ void CResetQueueNodeModemShutdown::Execute()
     {
         RIL_LOG_INFO("E_MMGR_EVENT_MODEM_SHUTDOWN due to Flight mode\r\n");
 
-        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+        CTE::GetTE().ResetCardStatus(FALSE);
+
+        // Inform Android of new state
+        // Voice calls, data connections, sim state etc
+        ModemResetUpdate();
     }
 
     CTE::GetTE().ResetInternalStates();
@@ -333,6 +337,8 @@ void CResetQueueNodeModemDown::Execute()
 
         // Needed for resetting registration states in framework
         CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
+
+        CTE::GetTE().ResetCardStatus(FALSE);
 
         //  Inform Android of new state
         //  Voice calls disconnected, no more data connections
