@@ -686,12 +686,6 @@ public:
     // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
     virtual RIL_RESULT_CODE ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_VOICE_RADIO_TECH 108
-    virtual RIL_RESULT_CODE CoreVoiceRadioTech(REQUEST_DATA& rReqData,
-                                                          void* pData,
-                                                          UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseVoiceRadioTech(RESPONSE_DATA& rRspData);
-
     // RIL_REQUEST_GET_CELL_INFO_LIST 109
     virtual RIL_RESULT_CODE CoreGetCellInfoList(REQUEST_DATA& rReqData,
                                                            void* pData,
