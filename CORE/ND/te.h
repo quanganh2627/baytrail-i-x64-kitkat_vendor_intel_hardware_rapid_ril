@@ -23,32 +23,7 @@
 #include "command.h"
 #include "initializer.h"
 #include "cellInfo_cache.h"
-
-static const UINT32 MAX_MODEM_NAME_LEN = 64;
-
-static const char* szXMM6260 = "XMM6260";
-static const char* szXMM6360 = "XMM6360";
-static const char* szXMM7160 = "XMM7160";
-
-enum {
-    MODEM_TYPE_UNKNOWN,
-    MODEM_TYPE_XMM6260,
-    MODEM_TYPE_XMM6360,
-    MODEM_TYPE_XMM7160
-};
-
-static const int MAX_NETWORK_DATA_SIZE = 50;
-
-enum LAST_NETWORK_DATA_ID {
-    LAST_NETWORK_XCSQ = 0,
-    LAST_NETWORK_CREG,
-    LAST_NETWORK_XREG,
-    LAST_NETWORK_OP_NAME_NUMERIC,
-    LAST_NETWORK_OP_NAME_SHORT,
-    LAST_NETWORK_LAC,
-    LAST_NETWORK_CID,
-    LAST_NETWORK_DATA_COUNT
-};
+#include "constants.h"
 
 class CTEBase;
 
@@ -701,6 +676,9 @@ public:
     void SetVoiceCapable(BOOL bIsVoiceCapable) { m_bVoiceCapable =  bIsVoiceCapable; }
     BOOL IsVoiceCapable() { return m_bVoiceCapable; }
 
+    void SetModeOfOperation(UINT32 uiModeOfOperation) { m_uiModeOfOperation =  uiModeOfOperation; }
+    UINT32 GetModeOfOperation() { return m_uiModeOfOperation; }
+
     void SetSmsOverCSCapable(BOOL bIsSmsOverCSCapable)
     {
         m_bSmsOverCSCapable =  bIsSmsOverCSCapable;
@@ -1217,6 +1195,11 @@ private:
     BOOL m_bIMSCapable;
     BOOL m_bSMSOverIPCapable;
     BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
+
+    /*
+     * Value used to store mode of operation ID for AT+CEMODE command.
+     */
+    UINT32 m_uiModeOfOperation;
 
     // Timeouts (in milliseconds)
     static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;

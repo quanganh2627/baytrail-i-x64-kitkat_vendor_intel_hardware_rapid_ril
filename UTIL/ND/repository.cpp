@@ -233,6 +233,7 @@ const char   g_szIMSCapable[]                   = "IMSCapable";
 const char   g_szEnableSMSOverIP[]              = "EnableSMSOverIP";
 const char   g_szSupportCGPIAF[]                = "SupportCGPIAF";
 const char   g_szImeiBlackList[]                = "ImeiBlackList";
+const char   g_szModeOfOperation[]              = "ModeOfOperation";
 
 // used for 7x60 and 6360 modems
 const char   g_szModemResourceName[]    = "ModemDataChannelResourceName";

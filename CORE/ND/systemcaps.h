@@ -15,6 +15,7 @@
 #define RRIL_SYSTEMCAPS_H
 
 #include "types.h"
+#include "constants.h"
 
 class CSystemCapabilities
 {
@@ -24,7 +25,8 @@ public:
                             m_bStkCapable(TRUE),
                             m_bXDATASTATEnabled(FALSE),
                             m_bIMSCapable(FALSE),
-                            m_bSMSOverIPCapable(FALSE) {}
+                            m_bSMSOverIPCapable(FALSE),
+                            m_uiModeOfOperation(MODE_CS_PS_VOICE_CENTRIC) {}
 
     BOOL IsVoiceCapable() { return m_bVoiceCapable; }
     BOOL IsSmsCapable() { return m_bSmsCapable; }
@@ -32,6 +34,7 @@ public:
     BOOL IsXDATASTATReportingEnabled() { return m_bXDATASTATEnabled; }
     BOOL IsIMSCapable() { return m_bIMSCapable; }
     BOOL IsSMSOverIPCapable() { return m_bSMSOverIPCapable; }
+    UINT32 GetModeOfOperation() { return m_uiModeOfOperation; }
 
     void SetVoiceCapable(BOOL bIsVoiceCapable) { m_bVoiceCapable = bIsVoiceCapable; }
     void SetSmsCapable(BOOL bIsSmsCapable) { m_bSmsCapable = bIsSmsCapable; }
@@ -40,6 +43,7 @@ public:
                         { m_bXDATASTATEnabled = bIsXDATASTATReporting; }
     void SetIMSCapable(BOOL bIsIMSCapable) { m_bIMSCapable = bIsIMSCapable; }
     void SetSMSOverIPCapable(BOOL bSMSOverIPCapable) { m_bSMSOverIPCapable = bSMSOverIPCapable; }
+    void SetModeOfOperation(UINT32 uiModeOfOperation) { m_uiModeOfOperation = uiModeOfOperation; }
 
 private:
     BOOL m_bVoiceCapable;
@@ -48,6 +52,7 @@ private:
     BOOL m_bXDATASTATEnabled;
     BOOL m_bIMSCapable;
     BOOL m_bSMSOverIPCapable;
+    UINT32 m_uiModeOfOperation;
 };
 
 #endif // RRIL_SYSTEMCAPS_H

@@ -93,6 +93,7 @@ extern const char   g_szIMSCapable[];
 extern const char   g_szEnableSMSOverIP[];
 extern const char   g_szSupportCGPIAF[];
 extern const char   g_szImeiBlackList[];
+extern const char   g_szModeOfOperation[];
 
 // used by 6360 and 7160 modems.
 extern const char   g_szModemResourceName[];
