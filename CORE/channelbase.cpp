@@ -571,11 +571,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     char szRxDivProperty[PROPERTY_VALUE_MAX] = {'\0'};
 #endif // CONFIGURE_3GDIV_DARP_IN_RIL
 
-    // Data for Fast Dormancy Mode
-    char szFDCmdString[MAX_BUFFER_SIZE] = {0};
-    char szFDDelayTimer[MAX_BUFFER_SIZE] = {0};
-    char szSCRITimer[MAX_BUFFER_SIZE] = {0};
-
     szInit = new char[szInitLen];
     if (!szInit)
     {
@@ -676,6 +671,11 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 
         if (strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
         {
+            // Data for Fast Dormancy Mode
+            char szFDCmdString[MAX_BUFFER_SIZE] = {0};
+            char szFDDelayTimer[MAX_BUFFER_SIZE] = {0};
+            char szSCRITimer[MAX_BUFFER_SIZE] = {0};
+
             // Read Fast Dormancy Timers from repository
             repository.ReadFDParam(g_szGroupModem, g_szFDDelayTimer,
                     szFDDelayTimer, MAX_BUFFER_SIZE, MIN_FDDELAY_TIMER, MAX_FDDELAY_TIMER);
@@ -688,7 +688,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                 case E_FD_MODE_ALWAYS_ON :
                     if (!PrintStringNullTerminate(szFDCmdString,
                                           sizeof(szFDCmdString),
-                                          "+XFDOR=2,%s,%s",
+                                          "|+XFDOR=2,%s,%s",
                                          szFDDelayTimer, szSCRITimer))
                     {
                         RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
@@ -701,7 +701,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                  default :
                     if (!PrintStringNullTerminate(szFDCmdString,
                                           sizeof(szFDCmdString),
-                                          "+XFDOR=3"))
+                                          "|+XFDOR=3"))
                     {
                             RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
                                     "Cannot create Fast Dormancy command\r\n");
@@ -709,20 +709,13 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                     }
                     break;
             }
-        }
 
-        // Add FD command to init string
-        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
-        {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                    "Concat | failed\r\n");
-            goto Done;
-        }
-        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szFDCmdString))
-        {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                    "Concat szFDCmdString failed\r\n");
-            goto Done;
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szFDCmdString))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
+                        "Concat szFDCmdString failed\r\n");
+                goto Done;
+            }
         }
 
 #if defined(CONFIGURE_3GDIV_DARP_IN_RIL)
