@@ -89,6 +89,7 @@ const char   g_szSupportedModem[]               = "SupportedModem";
 const char   g_szNetworkInterfaceNamePrefix[]   = "NetworkInterfaceNamePrefix";
 const char   g_szMTU[]                          = "MTU";
 const char   g_szEnableCellInfo[]               = "EnableCellInfo";
+const char   g_szEnableCipheringInd[]           = "EnableCipheringInd";
 const char   g_szEnableModemOffInFlightMode[]   = "EnableModemOffInFlightMode";
 const char   g_szFDDelayTimer[]                 = "FDDelayTimer";
 const char   g_szSCRITimer[]                    = "SCRITimer";

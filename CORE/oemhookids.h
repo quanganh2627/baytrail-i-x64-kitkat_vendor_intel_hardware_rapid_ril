@@ -627,6 +627,23 @@ typedef struct
 //
 const int RIL_OEM_HOOK_RAW_UNSOL_BEARER_DEACT = 0x000000DE;
 
+///////////////////////////////////////////////////////////////////////////////
+
+//
+// OEM_HOOK_RAW_UNSOL_CIPHERING_IND
+// Command ID = 0x000000DF
+// Values for cipheringStatus are
+// 1 for ON and 0 for OFF
+//
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_CIPHERING_IND
+{
+    int command; // Command ID
+    int cipheringStatus;
+} sOEM_HOOK_RAW_UNSOL_CIPHERING_IND;
+
+const int RIL_OEM_HOOK_RAW_UNSOL_CIPHERING_IND = 0x000000DF;
+
 #pragma pack()
 
 /***********************************************************************/

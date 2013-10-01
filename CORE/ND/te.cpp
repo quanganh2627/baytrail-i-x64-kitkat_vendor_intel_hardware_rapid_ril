@@ -87,7 +87,8 @@ CTE::CTE(UINT32 modemType) :
     m_pDataCleanupStatusLock(NULL),
     m_nCellInfoListRate(INT_MAX),
     m_bIsCellInfoTimerRunning(FALSE),
-    m_uiPinCacheMode(E_PIN_CACHE_MODE_FS)
+    m_uiPinCacheMode(E_PIN_CACHE_MODE_FS),
+    m_CurrentCipheringStatus(3) // by default set to ciphered
 {
     m_pTEBaseInstance = CreateModemTE(this);
 

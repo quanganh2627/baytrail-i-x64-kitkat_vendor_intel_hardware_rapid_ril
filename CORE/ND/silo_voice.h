@@ -69,6 +69,7 @@ protected:
     virtual BOOL    ParseCTMCall(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseNoCTMCall(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseWaitingCallCTM(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseXUCCI(CResponse* const pResponse, const char*& rszPointer);
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     virtual BOOL    ParseCallFailedCause(CResponse* const pResponse, const char*& rszPointer);
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED

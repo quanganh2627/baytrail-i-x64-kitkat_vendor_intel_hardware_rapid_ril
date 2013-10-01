@@ -18,6 +18,7 @@
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
 #include <linux/gsmmux.h>
+#include <cutils/properties.h>
 
 #include "types.h"
 #include "nd_structs.h"
@@ -65,6 +66,46 @@ CInitializer* CTE_XMM7160::GetInitializer()
 Error:
     RIL_LOG_VERBOSE("CTE_XMM7160::GetInitializer() - Exit\r\n");
     return pRet;
+}
+
+char* CTE_XMM7160::GetUnlockInitCommands(UINT32 uiChannelType)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::GetUnlockInitCommands() - Enter\r\n");
+
+    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
+    char* pUnlockInitCmd = NULL;
+
+    pUnlockInitCmd = CTE_XMM6360::GetUnlockInitCommands(uiChannelType);
+    if (pUnlockInitCmd != NULL)
+    {
+        // copy base class init command
+        CopyStringNullTerminate(szInitCmd, pUnlockInitCmd, sizeof(szInitCmd));
+        free(pUnlockInitCmd);
+    }
+
+    if (RIL_CHANNEL_URC == uiChannelType)
+    {
+        char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+        BOOL bConformance = FALSE;
+        // read the conformance property
+        property_get("persist.conformance", szConformanceProperty, NULL);
+        bConformance =
+                (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX)) ? TRUE : FALSE;
+
+        // read the property enabling ciphering
+        CRepository repository;
+        int uiEnableCipheringInd = 1;
+        if (!repository.Read(g_szGroupModem, g_szEnableCipheringInd, uiEnableCipheringInd))
+        {
+            RIL_LOG_VERBOSE("CTE_XMM7160::GetUnlockInitCommands()- Repository read failed!\r\n");
+        }
+
+        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE,
+                (bConformance || (uiEnableCipheringInd != 0)) ? "|+XUCCI=1" : "|+XUCCI=0");
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::GetUnlockInitCommands() - Exit\r\n");
+    return strndup(szInitCmd, strlen(szInitCmd));
 }
 
 const char* CTE_XMM7160::GetRegistrationInitString()
