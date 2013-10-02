@@ -134,15 +134,10 @@ BOOL CellInfoCache::updateCache(const P_ND_N_CELL_INFO_DATA pData, const INT32 a
     BOOL ret = FALSE;
 
     RIL_LOG_VERBOSE("CellInfoCache::updateCache() - aItemsCount %d \r\n",aItemsCount);
-    if (aItemsCount > RRIL_MAX_CELL_ID_COUNT)
+    if (NULL == pData || aItemsCount > RRIL_MAX_CELL_ID_COUNT)
     {
+        RIL_LOG_INFO("CellInfoCache::updateCache() - Invalid data\r\n");
         goto Error;
-    }
-    // error, set cache to empty
-    if (pData == NULL)
-    {
-        ret = TRUE;
-        RIL_LOG_INFO("CellInfoCache::updateCache() - pData = NULL\r\n");
     }
     else
     {

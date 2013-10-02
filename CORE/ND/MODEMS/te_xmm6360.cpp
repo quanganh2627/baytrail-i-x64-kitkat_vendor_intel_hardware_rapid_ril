@@ -708,6 +708,13 @@ RIL_RESULT_CODE CTE_XMM6360::ParseBasebandVersion(RESPONSE_DATA& rRspData)
      * zero termination (cf comment above sscanf code).
      */
     char* pszBasebandVersion = (char*) malloc(PROPERTY_VALUE_MAX + 1);
+    if (NULL == pszBasebandVersion)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseBasebandVersion() - Could not allocate memory"
+                "for pszBasebandVersion\r\n");
+        goto Error;
+    }
+
     memset(pszBasebandVersion, 0, PROPERTY_VALUE_MAX + 1);
 
     /* Modem version is what is reported between '*' in the +XGENDATA reply:
