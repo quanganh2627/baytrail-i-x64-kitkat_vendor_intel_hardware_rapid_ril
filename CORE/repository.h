@@ -77,9 +77,6 @@ extern const char   g_szNetworkInterfaceNamePrefix[];
 extern const char   g_szMTU[];
 extern const char   g_szEnableCellInfo[];
 extern const char   g_szEnableModemOffInFlightMode[];
-#if defined(CONFIGURE_3GDIV_DARP_IN_RIL)
-extern const char   g_szRxDiversity2GDARP[];
-#endif // CONFIGURE_3GDIV_DARP_IN_RIL
 extern const char   g_szFDDelayTimer[];
 extern const char   g_szSCRITimer[];
 extern const char   g_szFDMode[];
