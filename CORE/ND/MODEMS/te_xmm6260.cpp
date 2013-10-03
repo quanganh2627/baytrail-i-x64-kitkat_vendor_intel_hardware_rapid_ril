@@ -12,7 +12,6 @@
 
 #include <wchar.h>
 #include <cutils/properties.h>
-#include <sys/system_properties.h>
 
 //  This is for socket-related calls.
 #include <sys/ioctl.h>
@@ -321,7 +320,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseGetSimStatus(RESPONSE_DATA& rRspData)
 
         if (SkipString(pszRsp, "+CCID: ", pszRsp))
         {
-            if (!ExtractUnquotedString(pszRsp, m_cTerminator, m_szUICCID, MAX_PROP_VALUE, pszRsp))
+            if (!ExtractUnquotedString(pszRsp, m_cTerminator,
+                    m_szUICCID, PROPERTY_VALUE_MAX, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetSimStatus() - Cannot parse UICC ID\r\n");
                 m_szUICCID[0] = '\0';
@@ -6058,14 +6058,14 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
     }
 #else
     // use SIM-specific property, depending on RIL instance
-    char szSimPowerOffStatePropName[MAX_PROP_VALUE] = {'\0'};
+    char szSimPowerOffStatePropName[PROPERTY_VALUE_MAX] = {'\0'};
     char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
     UINT32 uiSimPoweredOff;
     UINT32 uiFunMode;
 
     if (g_szSIMID)
     {
-        snprintf(szSimPowerOffStatePropName, MAX_PROP_VALUE,
+        snprintf(szSimPowerOffStatePropName, PROPERTY_VALUE_MAX,
                 "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
     }
     else

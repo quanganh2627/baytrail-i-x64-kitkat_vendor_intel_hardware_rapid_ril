@@ -28,7 +28,6 @@
 #include "te_base.h"
 #include <sys/ioctl.h>
 #include <cutils/properties.h>
-#include <sys/system_properties.h>
 
 #include <cutils/sockets.h>
 #include <fcntl.h>
@@ -38,12 +37,329 @@
 
 
 ///////////////////////////////////////////////////////////
-//  GLOBAL VARIABLES
+//  HELPER CLASSES
 //
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  Class handling modem shutdown
+class CResetQueueNodeModemShutdown : public CResetQueueNode
+{
+public:
+    CResetQueueNodeModemShutdown(BOOL is_flight_mode);
+    void Execute();
+
+private:
+    BOOL m_bIsFlightMode;
+};
+
+CResetQueueNodeModemShutdown::CResetQueueNodeModemShutdown(BOOL is_flight_mode) :
+    m_bIsFlightMode(is_flight_mode)
+{ /* none */
+}
+
+void CResetQueueNodeModemShutdown::Execute()
+{
+    RIL_LOG_VERBOSE("CResetQueueNodeModemShutdown::Execute() - Enter\r\n");
+
+    //  Spoof commands from now on
+    CTE::GetTE().SetSpoofCommandsStatus(TRUE);
+
+    CSystemManager::GetInstance().ResetSystemState();
+
+    if (m_bIsFlightMode)
+    {
+        RIL_LOG_INFO("E_MMGR_EVENT_MODEM_SHUTDOWN due to Flight mode\r\n");
+
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+
+        PCache_SetUseCachedPIN(true);
+    }
+
+    CTE::GetTE().ResetInternalStates();
+
+    CSystemManager::GetInstance().CloseChannelPorts();
+
+    CSystemManager::GetInstance().SendAckModemShutdown();
+
+    RIL_LOG_VERBOSE("CResetQueueNodeModemShutdown::Execute() - EXIT\r\n");
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  Class handling various modem down scenarios (core dump, MRESET, down, ...)
+class CResetQueueNodeModemDown : public CResetQueueNode
+{
+public:
+    CResetQueueNodeModemDown(BOOL use_cached_pin,
+            BOOL do_state_reset,
+            BOOL close_ports,
+            BOOL send_cold_reset_ack,
+            BOOL is_platform_shutdown);
+    void Execute();
+
+private:
+    BOOL m_bUseCachedPin;
+    BOOL m_bDoStateReset;
+    BOOL m_bClosePorts;
+    BOOL m_bSendColdResetAck;
+    BOOL m_bIsPlatformShutdown;
+};
+
+CResetQueueNodeModemDown::CResetQueueNodeModemDown(BOOL use_cached_pin,
+        BOOL do_state_reset,
+        BOOL close_ports,
+        BOOL send_cold_reset_ack,
+        BOOL is_platform_shutdown) :
+    m_bUseCachedPin(use_cached_pin),
+    m_bDoStateReset(do_state_reset),
+    m_bClosePorts(close_ports),
+    m_bSendColdResetAck(send_cold_reset_ack),
+    m_bIsPlatformShutdown(is_platform_shutdown)
+{ /* none */
+}
+
+void CResetQueueNodeModemDown::Execute()
+{
+    RIL_LOG_VERBOSE("CResetQueueNodeModemDown::Execute() - Enter\r\n");
+
+    //  Set local flag to use cached PIN next time
+    if (m_bUseCachedPin)
+    {
+        PCache_SetUseCachedPIN(true);
+    }
+
+    if (m_bDoStateReset)
+    {
+        //  Spoof commands from now on
+        CTE::GetTE().SetSpoofCommandsStatus(TRUE);
+
+        CSystemManager::GetInstance().ResetSystemState();
+
+        // Needed for resetting registration states in framework
+        CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
+
+        //  Inform Android of new state
+        //  Voice calls disconnected, no more data connections
+        ModemResetUpdate();
+
+        CTE::GetTE().ResetInternalStates();
+    }
+
+    if (m_bClosePorts)
+    {
+        CSystemManager::GetInstance().CloseChannelPorts();
+    }
+
+    if (m_bSendColdResetAck)
+    {
+        CSystemManager::GetInstance().SendAckModemColdReset();
+    }
+
+    if (m_bIsPlatformShutdown)
+    {
+        RIL_LOG_INFO("E_MMGR_EVENT_MODEM_DOWN due to PLATFORM_SHUTDOWN\r\n");
+
+        CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
+
+        CSystemManager::GetInstance().TriggerModemPoweredOffEvent();
+    }
+    RIL_LOG_VERBOSE("CResetQueueNodeModemDown::Execute() - EXIT\r\n");
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  Class handling modem out of service case
+class CResetQueueNodeModemOutOfService : public CResetQueueNode
+{
+public:
+    void Execute();
+};
+
+void CResetQueueNodeModemOutOfService::Execute()
+{
+    RIL_LOG_VERBOSE("CResetQueueNodeModemOutOfService::Execute() - Enter\r\n");
+
+    //  Spoof commands from now on
+    CTE::GetTE().SetSpoofCommandsStatus(TRUE);
+
+    CSystemManager::GetInstance().ResetSystemState();
+
+    //  Inform Android of new state
+    //  Voice calls disconnected, no more data connections
+    ModemResetUpdate();
+
+    CTE::GetTE().ResetInternalStates();
+
+    RIL_LOG_VERBOSE("CResetQueueNodeModemOutOfService::Execute() - EXIT\r\n");
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  Class handling modem up case
+class CResetQueueNodeModemUp : public CResetQueueNode
+{
+public:
+    void Execute();
+};
+
+void CResetQueueNodeModemUp::Execute()
+{
+    RIL_LOG_VERBOSE("CResetQueueNodeModemUp::Execute() - Enter\r\n");
+
+    CSystemManager::GetInstance().ResetChannelInfo();
+
+    //  turn off spoof
+    CTE::GetTE().SetSpoofCommandsStatus(FALSE);
+
+    if (!CSystemManager::GetInstance().ContinueInit())
+    {
+        RIL_LOG_CRITICAL("CResetQueueNodeModemUp::Execute() - "
+                "MODEM_UP handling failed, try a restart\r\n");
+        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
+    }
+    else
+    {
+        RIL_LOG_INFO("CResetQueueNodeModemUp::Execute() - Open ports OK\r\n");
+    }
+
+    RIL_LOG_VERBOSE("CResetQueueNodeModemUp::Execute() - EXIT\r\n");
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  Static class handling deferring thread
+
+static void* MMGRDeferredEventTreadProc(void* pDummy);
+
+CRilQueue<CResetQueueNode*>* CDeferThread::m_pResetQueue = NULL;
+CMutex* CDeferThread::m_pThreadStartLock = NULL;
+BOOL CDeferThread::m_bIsThreadRunning = FALSE;
+
+BOOL CDeferThread::Init()
+{
+    CThread* pMMGREventHelperThread = NULL;
+
+    m_pResetQueue = new CRilQueue<CResetQueueNode*>(TRUE);
+    m_pThreadStartLock = new CMutex();
+
+    if ((m_pResetQueue == NULL) || (m_pThreadStartLock == NULL))
+    {
+        RIL_LOG_CRITICAL("CDeferThread::Init() - could not allocate memory\r\n");
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+BOOL CDeferThread::QueueWork(CResetQueueNode* pNode, BOOL bNeedDeferring)
+{
+    if (pNode == NULL)
+    {
+        RIL_LOG_CRITICAL("CDeferThread::QueueWork() - could not allocate memory\r\n");
+        return FALSE;
+    }
+
+    CMutex::Lock(m_pThreadStartLock);
+    if (m_bIsThreadRunning)
+    {
+        /* If a worker thread is still running, queue the node to have it executed in the
+         * currently running thread (usage of the lock guarantees that the thread will not
+         * exit while the node is being queued).
+         *
+         * Note that in this case the activity will be ran in the deferred thread (even if not
+         * required) to guarantee sequential processing.
+         */
+        if (!m_pResetQueue->Enqueue(pNode))
+        {
+            RIL_LOG_CRITICAL("CDeferThread::QueueWork() - could not queue node\r\n");
+            delete pNode;
+            CMutex::Unlock(m_pThreadStartLock);
+            return FALSE;
+        }
+    }
+    else
+    {
+        if (bNeedDeferring)
+        {
+            /* Need to start a new worker thread to handle the new deferred activity and so to
+             * queue the node to get it processed in the worker thread.
+             */
+            if (!m_pResetQueue->Enqueue(pNode))
+            {
+                RIL_LOG_CRITICAL("CDeferThread::QueueWork() - could not queue node\r\n");
+                delete pNode;
+                CMutex::Unlock(m_pThreadStartLock);
+                return FALSE;
+            }
+
+            /* Start the worker thread */
+            CThread* pMMGREventHelperThread = new CThread(MMGRDeferredEventTreadProc, NULL,
+                    THREAD_FLAGS_NONE, 0);
+            if (NULL == pMMGREventHelperThread)
+            {
+                RIL_LOG_CRITICAL("CDeferThread::QueueWork() - could not create helper thread\r\n");
+                CResetQueueNode *pNode;
+                m_pResetQueue->Dequeue(pNode);
+                delete pNode;
+                CMutex::Unlock(m_pThreadStartLock);
+                return FALSE;
+            }
+            m_bIsThreadRunning = TRUE;
+
+            delete pMMGREventHelperThread;
+            pMMGREventHelperThread = NULL;
+        }
+        else
+        {
+            /* As no other MMGR activity is running, we can run this activity in the main MMGR
+             * event thread as it does not require deferring to a separate thread.
+             */
+            pNode->Execute();
+            delete pNode;
+        }
+    }
+    CMutex::Unlock(m_pThreadStartLock);
+
+    return TRUE;
+}
 
 ///////////////////////////////////////////////////////////
 // FUNCTION DEFINITIONS
 //
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//  Main code of helper thread that handles deferred MMGR event processing
+static void* MMGRDeferredEventTreadProc(void* /* pDummy */)
+{
+    RIL_LOG_INFO("MMGRDeferredEventTreadProc() - ENTER");
+
+    while (1)
+    {
+        CResetQueueNode *pNode;
+
+        CDeferThread::Lock();
+        if (CDeferThread::DequeueWork(pNode))
+        {
+            CDeferThread::Unlock();
+            if (pNode == NULL)
+            {
+                break;
+            }
+            pNode->Execute();
+            delete pNode;
+        }
+        else
+        {
+            CDeferThread::SetThreadFinished();
+            CDeferThread::Unlock();
+            break;
+        }
+    }
+
+    RIL_LOG_INFO("MMGRDeferredEventTreadProc() - EXIT");
+
+    return NULL;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //  Helper function to print the error code for cleanup
@@ -164,110 +480,6 @@ void do_request_clean_up(eRadioError eError, UINT32 uiLineNum, const char* lpszF
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void* CloseChannelPortsThreadProc(void* pParameter)
-{
-    RIL_LOG_INFO("CloseChannelPortsThreadProc() - Enter\r\n");
-
-    int* pMmgrEvent = (int*) pParameter;
-
-    CSystemManager::GetInstance().CloseChannelPorts();
-
-    if (NULL != pMmgrEvent)
-    {
-        switch (*pMmgrEvent)
-        {
-            case E_MMGR_NOTIFY_MODEM_SHUTDOWN:
-                CSystemManager::GetInstance().SendAckModemShutdown();
-                break;
-
-            case E_MMGR_NOTIFY_MODEM_COLD_RESET:
-                CSystemManager::GetInstance().SendAckModemColdReset();
-                break;
-
-            default:
-                // Do nothing
-                break;
-        }
-
-        delete pMmgrEvent;
-        pMmgrEvent = NULL;
-    }
-
-    RIL_LOG_INFO("CloseChannelPortsThreadProc() - EXIT\r\n");
-    return NULL;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void LaunchCloseChannelPortsThread(int mmgrEvent)
-{
-    CThread* pCloseChannelPortsThread = NULL;
-    BOOL bError = TRUE;
-    int* pMmgrEvent = new int;
-
-    if (NULL == pMmgrEvent)
-    {
-        RIL_LOG_CRITICAL("LaunchCloseChannelPortsThread() - pMmgrEvent is NULL\r\n");
-        goto Error;
-    }
-
-    *pMmgrEvent = mmgrEvent;
-
-    pCloseChannelPortsThread = new CThread(CloseChannelPortsThreadProc, pMmgrEvent,
-            THREAD_FLAGS_NONE, 0);
-    if (NULL == pCloseChannelPortsThread)
-    {
-        RIL_LOG_CRITICAL("LaunchCloseChannelPortsThread() -"
-                "pCloseChannelPortsThread is NULL\r\n");
-        goto Error;
-    }
-
-    bError = FALSE;
-
-    delete pCloseChannelPortsThread;
-    pCloseChannelPortsThread = NULL;
-
-Error:
-
-    if (bError)
-    {
-        delete pMmgrEvent;
-        pMmgrEvent = NULL;
-
-        RIL_LOG_INFO("LaunchCloseChannelPortsThread() - CALLING EXIT\r\n");
-        //  let's exit, init will restart us
-        CSystemManager::Destroy();
-        exit(0);
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void* ContinueInitThreadProc(void* pVoid)
-{
-    RIL_LOG_VERBOSE("ContinueInitThreadProc() - Enter\r\n");
-
-    CSystemManager::GetInstance().ResetChannelInfo();
-
-    //  turn off spoof
-    CTE::GetTE().SetSpoofCommandsStatus(FALSE);
-
-    if (!CSystemManager::GetInstance().ContinueInit())
-    {
-        RIL_LOG_CRITICAL("ContinueInitThreadProc() - Continue init failed, try a restart\r\n");
-        do_request_clean_up(eRadioError_OpenPortFailure, __LINE__, __FILE__);
-    }
-    else
-    {
-        RIL_LOG_INFO("ContinueInitThreadProc() - Open ports OK\r\n");
-    }
-
-    RIL_LOG_VERBOSE("ContinueInitThreadProc() - EXIT\r\n");
-    return NULL;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
 //  This method handles MMgr events and notifications
 int ModemManagerEventHandler(mmgr_cli_event_t* param)
 {
@@ -297,24 +509,15 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
-                //  Modem is alive, start initializing modem
-                RIL_LOG_INFO("ModemManagerEventHandler() -InitializeModem\r\n");
-
-                // launch modem init thread.
-                pContinueInitThread = new CThread(ContinueInitThreadProc, NULL,
-                        THREAD_FLAGS_JOINABLE, 0);
-                if (!pContinueInitThread)
+                if (!CDeferThread::QueueWork(new CResetQueueNodeModemUp(), TRUE))
                 {
                     RIL_LOG_CRITICAL("ModemManagerEventHandler() -"
-                            "pContinueInitThread is NULL\r\n");
+                            "failed to defer MODEM_UP processing\r\n");
                     //  let's exit, init will restart us
                     RIL_LOG_INFO("ModemManagerEventHandler() - CALLING EXIT\r\n");
                     CSystemManager::Destroy();
                     exit(0);
                 }
-
-                delete pContinueInitThread;
-                pContinueInitThread = NULL;
                 break;
 
             case E_MMGR_EVENT_MODEM_OUT_OF_SERVICE:
@@ -322,16 +525,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
-                //  Spoof commands from now on
-                CTE::GetTE().SetSpoofCommandsStatus(TRUE);
-
-                CSystemManager::GetInstance().ResetSystemState();
-
-                //  Inform Android of new state
-                //  Voice calls disconnected, no more data connections
-                ModemResetUpdate();
-
-                CTE::GetTE().ResetInternalStates();
+                CDeferThread::QueueWork(new CResetQueueNodeModemOutOfService(), FALSE);
 
                 // Don't exit the RRIL to avoid automatic restart: sleep for ever
                 RIL_LOG_CRITICAL("ModemManagerEventHandler() -"
@@ -344,32 +538,13 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
-                if (E_MMGR_NOTIFY_MODEM_SHUTDOWN != previousModemState)
-                {
-                    //  Spoof commands from now on
-                    CTE::GetTE().SetSpoofCommandsStatus(TRUE);
+                CDeferThread::QueueWork(new CResetQueueNodeModemDown(FALSE,
+                        E_MMGR_NOTIFY_MODEM_SHUTDOWN != previousModemState,
+                        FALSE, FALSE,
+                        CTE::GetTE().IsPlatformShutDownRequested()), FALSE);
 
-                    CSystemManager::GetInstance().ResetSystemState();
-
-                    // Needed for resetting registration states in framework
-                    CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
-
-                    //  Inform Android of new state
-                    //  Voice calls disconnected, no more data connections
-                    ModemResetUpdate();
-
-                    CTE::GetTE().ResetInternalStates();
-                }
-
-                // Retrieve the shutdown property
                 if (CTE::GetTE().IsPlatformShutDownRequested())
                 {
-                    RIL_LOG_INFO("E_MMGR_EVENT_MODEM_DOWN due to PLATFORM_SHUTDOWN\r\n");
-
-                    CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
-
-                    CSystemManager::GetInstance().TriggerModemPoweredOffEvent();
-
                     while(1) { sleep(SLEEP_MS); }
                 }
                 break;
@@ -379,21 +554,9 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
-                if (E_MMGR_EVENT_MODEM_DOWN != previousModemState)
-                {
-                    //  Spoof commands from now on
-                    CTE::GetTE().SetSpoofCommandsStatus(TRUE);
-
-                    CSystemManager::GetInstance().ResetSystemState();
-
-                    // Needed for resetting registration states in framework
-                    CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
-
-                    // Voice calls disconnected, no more data connections
-                    ModemResetUpdate();
-
-                    CTE::GetTE().ResetInternalStates();
-                }
+                CDeferThread::QueueWork(new CResetQueueNodeModemDown(FALSE,
+                        E_MMGR_EVENT_MODEM_DOWN != previousModemState,
+                        FALSE, FALSE, FALSE), FALSE);
 
                 // Don't exit the RRIL to avoid automatic restart: sleep for ever
                 // MMGR will reboot the platform
@@ -406,30 +569,12 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
-                //  Set local flag to use cached PIN next time
-                PCache_SetUseCachedPIN(true);
-
-                if (E_MMGR_EVENT_MODEM_DOWN != previousModemState)
-                {
-                    //  Spoof commands from now on
-                    CTE::GetTE().SetSpoofCommandsStatus(TRUE);
-
-                    CSystemManager::GetInstance().ResetSystemState();
-
-                    // Needed for resetting registration states in framework
-                    CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
-
-                    //  Inform Android of new state
-                    //  Voice calls disconnected, no more data connections
-                    ModemResetUpdate();
-
-                    CTE::GetTE().ResetInternalStates();
-                }
+                CDeferThread::QueueWork(new CResetQueueNodeModemDown(TRUE,
+                        E_MMGR_EVENT_MODEM_DOWN != previousModemState,
+                        TRUE, TRUE, FALSE), TRUE);
 
                 // Set to -1. This will force the client library not to send ACK to mmgr
                 retValue = -1;
-
-                LaunchCloseChannelPortsThread(receivedModemEvent);
                 break;
 
             case E_MMGR_NOTIFY_CORE_DUMP:
@@ -437,56 +582,25 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
-                //  Set local flag to use cached PIN next time
-                PCache_SetUseCachedPIN(true);
-
-                if (E_MMGR_EVENT_MODEM_DOWN != previousModemState)
-                {
-                    //  Spoof commands from now on
-                    CTE::GetTE().SetSpoofCommandsStatus(TRUE);
-
-                    CSystemManager::GetInstance().ResetSystemState();
-
-                    // Needed for resetting registration states in framework
-                    CTE::GetTE().SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
-
-                    //  Inform Android of new state
-                    //  Voice calls disconnected, no more data connections
-                    ModemResetUpdate();
-
-                    CTE::GetTE().ResetInternalStates();
-                }
-
-                LaunchCloseChannelPortsThread(receivedModemEvent);
+                CDeferThread::QueueWork(new CResetQueueNodeModemDown(TRUE,
+                        E_MMGR_EVENT_MODEM_DOWN != previousModemState,
+                        TRUE, FALSE, FALSE), TRUE);
                 break;
 
             case E_MMGR_NOTIFY_MODEM_SHUTDOWN:
+            {
                 RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) MODEM_SHUTDOWN\r\n");
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 
-                //  Spoof commands from now on
-                CTE::GetTE().SetSpoofCommandsStatus(TRUE);
-
-                CSystemManager::GetInstance().ResetSystemState();
-
-                if (CTE::GetTE().GetModemOffInFlightModeState()
-                        && E_RADIO_OFF_REASON_AIRPLANE_MODE == CTE::GetTE().GetRadioOffReason())
-                {
-                    RIL_LOG_INFO("E_MMGR_EVENT_MODEM_SHUTDOWN due to Flight mode\r\n");
-
-                    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
-
-                    PCache_SetUseCachedPIN(true);
-                }
-
-                CTE::GetTE().ResetInternalStates();
+                BOOL is_flight_mode = CTE::GetTE().GetModemOffInFlightModeState()
+                        && (E_RADIO_OFF_REASON_AIRPLANE_MODE == CTE::GetTE().GetRadioOffReason());
+                CDeferThread::QueueWork(new CResetQueueNodeModemShutdown(is_flight_mode), TRUE);
 
                 // Set to -1. This will force the client library not to send ACK to mmgr
                 retValue = -1;
-
-                LaunchCloseChannelPortsThread(receivedModemEvent);
                 break;
+            }
 
             default:
                 RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) UNKNOWN [%d]\r\n", receivedModemEvent);
@@ -690,29 +804,29 @@ ePCache_Code encrypt(const char* szInput, const int nInputLen, const char* szKey
 
     //  Now write pInput somewhere....
     const int HEX_BUF_SIZE = 8;  // 8 chars to code our uint32 buffer in hex ASCII
-    char szEncryptedBuf[MAX_PROP_VALUE] = {0};
+    char szEncryptedBuf[PROPERTY_VALUE_MAX] = {0};
     for (int i = 0; i < BUF_LEN; i++)
     {
         char szPrint[HEX_BUF_SIZE+1] = {0};    //  +1 for C-string
         snprintf(szPrint, HEX_BUF_SIZE+1, "%08X", buf[i]);
         szPrint[HEX_BUF_SIZE] = '\0';  //  KW fix
 
-        strncat(szEncryptedBuf, szPrint, (MAX_PROP_VALUE-1) - strlen(szEncryptedBuf));
-        szEncryptedBuf[MAX_PROP_VALUE-1] = '\0';  //  KW fix
+        strncat(szEncryptedBuf, szPrint, (PROPERTY_VALUE_MAX-1) - strlen(szEncryptedBuf));
+        szEncryptedBuf[PROPERTY_VALUE_MAX-1] = '\0';  //  KW fix
     }
 
     //  Store in property
-    char szCachedPinProp[MAX_PROP_VALUE] = {0};
+    char szCachedPinProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.cachedpin" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szCachedPinProp, szRIL_cachedpin, MAX_PROP_VALUE-1);
-        szCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szCachedPinProp, szRIL_cachedpin, PROPERTY_VALUE_MAX-1);
+        szCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_cachedpin, g_szSIMID);
+        snprintf(szCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cachedpin, g_szSIMID);
     }
 
     if (0 != property_set(szCachedPinProp, szEncryptedBuf))
@@ -762,19 +876,19 @@ ePCache_Code decrypt(char* szOut, const char* szKey)
     UINT32 buf[BUF_LEN] = {0};
 
     //  Get encrypted string from property...
-    char szEncryptedBuf[MAX_PROP_VALUE] = {0};
+    char szEncryptedBuf[PROPERTY_VALUE_MAX] = {0};
 
-    char szCachedPinProp[MAX_PROP_VALUE] = {0};
+    char szCachedPinProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.cachedpin" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szCachedPinProp, szRIL_cachedpin, MAX_PROP_VALUE-1);
-        szCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szCachedPinProp, szRIL_cachedpin, PROPERTY_VALUE_MAX-1);
+        szCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_cachedpin, g_szSIMID);
+        snprintf(szCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cachedpin, g_szSIMID);
     }
     if (!property_get(szCachedPinProp, szEncryptedBuf, ""))
     {
@@ -845,17 +959,17 @@ ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN)
     //  TODO: Remove this log statement when complete
     RIL_LOG_INFO("PCache_Store_PIN() Enter - szUICC=[%s], szPIN=[%s]\r\n", szUICC, szPIN);
 
-    char szCachedUiccProp[MAX_PROP_VALUE] = {0};
+    char szCachedUiccProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.cacheduicc" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szCachedUiccProp, szRIL_cacheduicc, MAX_PROP_VALUE-1);
-        szCachedUiccProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szCachedUiccProp, szRIL_cacheduicc, PROPERTY_VALUE_MAX-1);
+        szCachedUiccProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szCachedUiccProp, MAX_PROP_VALUE, "%s%s", szRIL_cacheduicc, g_szSIMID);
+        snprintf(szCachedUiccProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cacheduicc, g_szSIMID);
     }
 
     if (NULL == szUICC || '\0' == szUICC[0] || 0 != property_set(szCachedUiccProp, szUICC))
@@ -883,7 +997,7 @@ ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN)
 //
 ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN)
 {
-    char szUICCCached[MAX_PROP_VALUE];
+    char szUICCCached[PROPERTY_VALUE_MAX];
     RIL_LOG_INFO("PCache_Get_PIN - Enter\r\n");
 
     if (NULL == szUICC || NULL == szPIN || '\0' == szUICC[0])
@@ -892,17 +1006,17 @@ ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN)
         return PIN_INVALID_UICC;
     }
 
-    char szCachedUiccProp[MAX_PROP_VALUE] = {0};
+    char szCachedUiccProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.cacheduicc" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szCachedUiccProp, szRIL_cacheduicc, MAX_PROP_VALUE-1);
-        szCachedUiccProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szCachedUiccProp, szRIL_cacheduicc, PROPERTY_VALUE_MAX-1);
+        szCachedUiccProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szCachedUiccProp, MAX_PROP_VALUE, "%s%s", szRIL_cacheduicc, g_szSIMID);
+        snprintf(szCachedUiccProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cacheduicc, g_szSIMID);
     }
 
     if (!property_get(szCachedUiccProp, szUICCCached, ""))
@@ -955,21 +1069,21 @@ ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN)
 //
 ePCache_Code PCache_Clear()
 {
-    char szCachedPinProp[MAX_PROP_VALUE] = {0};
-    char szCachedUiccProp[MAX_PROP_VALUE] = {0};
+    char szCachedPinProp[PROPERTY_VALUE_MAX] = {0};
+    char szCachedUiccProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.cachedpin", "ril.cacheduicc" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szCachedPinProp, szRIL_cachedpin, MAX_PROP_VALUE-1);
-        szCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
-        strncpy(szCachedUiccProp, szRIL_cacheduicc, MAX_PROP_VALUE-1);
-        szCachedUiccProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szCachedPinProp, szRIL_cachedpin, PROPERTY_VALUE_MAX-1);
+        szCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
+        strncpy(szCachedUiccProp, szRIL_cacheduicc, PROPERTY_VALUE_MAX-1);
+        szCachedUiccProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_cachedpin, g_szSIMID);
-        snprintf(szCachedUiccProp, MAX_PROP_VALUE, "%s%s", szRIL_cacheduicc, g_szSIMID);
+        snprintf(szCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cachedpin, g_szSIMID);
+        snprintf(szCachedUiccProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_cacheduicc, g_szSIMID);
     }
     if (0 != property_set(szCachedUiccProp, ""))
     {
@@ -1001,17 +1115,17 @@ ePCache_Code PCache_SetUseCachedPIN(bool bFlag)
 {
     RIL_LOG_INFO("PCache_SetUseCachedPIN - Enter bFlag=[%d]\r\n", bFlag);
 
-    char szUseCachedPinProp[MAX_PROP_VALUE] = {0};
+    char szUseCachedPinProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.usecachedpin" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szUseCachedPinProp, szRIL_usecachedpin, MAX_PROP_VALUE-1);
-        szUseCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szUseCachedPinProp, szRIL_usecachedpin, PROPERTY_VALUE_MAX-1);
+        szUseCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szUseCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_usecachedpin, g_szSIMID);
+        snprintf(szUseCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_usecachedpin, g_szSIMID);
     }
 
     if (bFlag && (RRIL_SIM_STATE_READY == CTE::GetTE().GetSIMState()))
@@ -1047,20 +1161,20 @@ bool PCache_GetUseCachedPIN()
     RIL_LOG_INFO("PCache_GetUseCachedPIN - Enter\r\n");
     bool bRet = false;
 
-    char szUseCachedPinProp[MAX_PROP_VALUE] = {0};
+    char szUseCachedPinProp[PROPERTY_VALUE_MAX] = {0};
     //  If sim id == 0 or if sim id is not provided by RILD, then continue
     //  to use "ril.usecachedpin" property name.
     if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
     {
-        strncpy(szUseCachedPinProp, szRIL_usecachedpin, MAX_PROP_VALUE-1);
-        szUseCachedPinProp[MAX_PROP_VALUE-1] = '\0'; // KW fix
+        strncpy(szUseCachedPinProp, szRIL_usecachedpin, PROPERTY_VALUE_MAX-1);
+        szUseCachedPinProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
     }
     else
     {
-        snprintf(szUseCachedPinProp, MAX_PROP_VALUE, "%s%s", szRIL_usecachedpin, g_szSIMID);
+        snprintf(szUseCachedPinProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_usecachedpin, g_szSIMID);
     }
 
-    char szProp[MAX_PROP_VALUE] = {0};
+    char szProp[PROPERTY_VALUE_MAX] = {0};
 
     if (!property_get(szUseCachedPinProp, szProp, ""))
     {

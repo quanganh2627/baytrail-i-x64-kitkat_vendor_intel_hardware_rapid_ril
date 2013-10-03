@@ -13,6 +13,8 @@
 #ifndef RRIL_TE_XMM6260_H
 #define RRIL_TE_XMM6260_H
 
+#include <cutils/properties.h>
+
 #include "te_base.h"
 #include "nd_structs.h"
 #include "channel_data.h"
@@ -37,7 +39,7 @@ private:
 
 protected:
     int m_currentNetworkType;
-    char m_szUICCID[MAX_PROP_VALUE];
+    char m_szUICCID[PROPERTY_VALUE_MAX];
 
 public:
     // modem overrides

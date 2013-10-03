@@ -48,7 +48,6 @@ typedef long                RIL_RESULT_CODE;
 // Maximum length for various buffers and string parameters
 //
 #define MAX_BUFFER_SIZE            (1024)
-#define MAX_PROP_VALUE             (81)
 #define MAX_PIN_SIZE               (9)
 #define MAX_FACILITY_CODE          (5)
 #define MAX_IPADDR_SIZE            (255)
