@@ -50,7 +50,8 @@ protected:
     char m_szECCList[MAX_BUFFER_SIZE];
 
 private:
-    BOOL m_IsReadyForAttach;
+    BOOL m_bReadyForAttach;
+    BOOL m_bRefreshWithUSIMInit;
 };
 
 #endif // RRIL_SILO_SIM_H

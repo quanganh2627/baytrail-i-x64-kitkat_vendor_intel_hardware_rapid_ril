@@ -79,6 +79,7 @@ public:
 
     BOOL IsRequestAllowedInSpoofState(int requestId);
     BOOL IsRequestAllowedInRadioOff(int requestId);
+    BOOL IsRequestAllowedInSimNotReady(int requestId);
     BOOL IsInternalRequestsAllowedInRadioOff(UINT32 uiRilRequestId);
     BOOL IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
             BOOL bIsInitCommand, int callId = 0);

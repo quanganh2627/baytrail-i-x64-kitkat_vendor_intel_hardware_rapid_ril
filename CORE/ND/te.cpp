@@ -326,6 +326,40 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
     return bAllowed;
 }
 
+BOOL CTE::IsRequestAllowedInSimNotReady(int requestId)
+{
+    BOOL bAllowed;
+
+    switch (requestId)
+    {
+        case RIL_REQUEST_GET_IMSI:
+        case RIL_REQUEST_SIM_IO:
+        case RIL_REQUEST_SIM_TRANSMIT_BASIC:
+        case RIL_REQUEST_SIM_OPEN_CHANNEL:
+        case RIL_REQUEST_SIM_CLOSE_CHANNEL:
+        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:
+        case RIL_REQUEST_WRITE_SMS_TO_SIM:
+        case RIL_REQUEST_DELETE_SMS_ON_SIM:
+        case RIL_REQUEST_GET_SMSC_ADDRESS:
+        case RIL_REQUEST_SET_SMSC_ADDRESS:
+        case RIL_REQUEST_ISIM_AUTHENTICATION:
+        case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:
+        case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:
+        case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
+        case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
+#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
+        case RIL_REQUEST_GET_SIM_SMS_STORAGE:
+#endif
+            bAllowed = FALSE;
+            break;
+
+        default:
+            bAllowed = TRUE;
+    }
+
+    return bAllowed;
+}
+
 BOOL CTE::IsModemPowerOffRequest(int requestId, void* pData, size_t uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE::IsModemPowerOffRequest - ENTER\r\n");
@@ -485,6 +519,11 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
             && !IsModemPowerOffRequest(requestId, pData, datalen))
     {
         eRetVal = HandleRequestInRadioOff(requestId, hRilToken);
+    }
+    else if (RRIL_SIM_STATE_NOT_READY == GetSIMState()
+            && !IsRequestAllowedInSimNotReady(requestId))
+    {
+        eRetVal = RIL_E_GENERIC_FAILURE;
     }
     else if (!m_pTEBaseInstance->IsRequestSupported(requestId))
     {
