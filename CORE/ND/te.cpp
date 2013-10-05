@@ -270,6 +270,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_QUERY_TTY_MODE:
         case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
         case RIL_REQUEST_GET_SIM_STATUS:
+        case RIL_REQUEST_OEM_HOOK_STRINGS:
             if (E_MMGR_EVENT_MODEM_UP == GetLastModemEvent())
             {
                 bAllowed = TRUE;
@@ -2063,6 +2064,7 @@ RIL_RESULT_CODE CTE::RequestLastCallFailCause(RIL_Token rilToken, void* pData, s
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestLastCallFailCause() -"
@@ -5846,7 +5848,12 @@ RIL_RESULT_CODE CTE::RequestGsmSetBroadcastSmsConfig(RIL_Token rilToken,
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGsmSetBroadcastSmsConfig(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    if (RRIL_RESULT_OK_IMMEDIATE == res)
+    {
+        res = RRIL_RESULT_OK;
+        RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
+    }
+    else if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestGsmSetBroadcastSmsConfig() -"
                 " Unable to create AT command data\r\n");
@@ -6427,49 +6434,18 @@ RIL_RESULT_CODE CTE::RequestVoiceRadioTech(RIL_Token rilToken, void* pData, size
     }
     else
     {
-        res = m_pTEBaseInstance->CoreVoiceRadioTech(reqData, pData, datalen);
-        if (RRIL_RESULT_OK != res)
-        {
-            RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() -"
-                    " Unable to create AT command data\r\n");
-        }
-        else
-        {
-            CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_VOICERADIOTECH], rilToken,
-                                            ND_REQ_ID_VOICERADIOTECH, reqData,
-                                            &CTE::ParseVoiceRadioTech);
+        // for now the voice radio technology is arbitrarily hardcoded to one
+        // of the defined GSM RIL_RadioTechnology values defined in ril.h
+        // It is used by Android to differentiate between CDMA or GSM radio technologies.
+        // See RIL_REQUEST_VOICE_RADIO_TECH in ril.h for more info.
+        int voiceRadioTech = RADIO_TECH_GSM;
 
-            if (pCmd)
-            {
-                if (!CCommand::AddCmdToQueue(pCmd))
-                {
-                    RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() -"
-                            " Unable to add command to queue\r\n");
-                    res = RIL_E_GENERIC_FAILURE;
-                    delete pCmd;
-                    pCmd = NULL;
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CTE::RequestVoiceRadioTech() - '"
-                        "Unable to allocate memory for command\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-            }
-        }
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, &voiceRadioTech, sizeof(int*));
     }
 
     RIL_LOG_VERBOSE("CTE::RequestVoiceRadioTech() - Exit\r\n");
     return res;
 }
-
-RIL_RESULT_CODE CTE::ParseVoiceRadioTech(RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseVoiceRadioTech() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseVoiceRadioTech(rRspData);
-}
-
 
 //
 // RIL_REQUEST_GET_CELL_INFO_LIST 109

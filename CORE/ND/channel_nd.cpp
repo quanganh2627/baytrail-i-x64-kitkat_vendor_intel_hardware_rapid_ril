@@ -158,8 +158,8 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
     if (NULL == rpCmd->GetATCmd1())
     {
         // noop operation
-        if (!ProcessNoop(pResponse))
-            goto Error;
+        bResult = TRUE;
+        goto Error;
     }
     else
     {
@@ -327,15 +327,14 @@ Error:
     postCmdHandler = rpCmd->GetPostCmdHandlerFcn();
     memset(&data, 0, sizeof(POST_CMD_HANDLER_DATA));
 
-    if (postCmdHandler
-            && (NULL != rpCmd->GetATCmd1() || ND_REQ_ID_RADIOPOWER == rpCmd->GetRequestID()))
+    if (postCmdHandler)
     {
         data.uiChannel = rpCmd->GetChannel();
         data.pRilToken = rpCmd->GetToken();
         data.pContextData = rpCmd->GetContextData();
         data.uiContextDataSize = rpCmd->GetContextDataSize();
         data.uiRequestId = rpCmd->GetRequestID();
-        data.uiResultCode = RRIL_RESULT_ERROR;
+        data.uiResultCode = RRIL_RESULT_OK;
 
         if (NULL != pResponse)
         {

@@ -22,6 +22,7 @@
 #include "silo_voice.h"
 #include "callbacks.h"
 #include "te.h"
+#include "oemhookids.h"
 
 //
 //
@@ -169,7 +170,6 @@ BOOL CSilo_Voice::ParseNoCarrier(CResponse* const pResponse, const char*& rszPoi
     }
 
     pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
 
     fRet = TRUE;
 Error:
@@ -319,6 +319,7 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
     const char* szDummy = NULL;
     UINT32 uiID = 0;
     UINT32 uiStat = 0;
+    sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED* pData = NULL;
 
     if (pResponse == NULL)
     {
@@ -383,12 +384,42 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
             CTE::GetTE().SetIncomingCallStatus(0, uiStat);
             // set the flag to clear all pending chld requests
             CTE::GetTE().SetClearPendingCHLDs(TRUE);
+
+            pData = (sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED*)malloc(
+                    sizeof(sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED));
+            if (NULL != pData)
+            {
+                memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED));
+
+                pData->command = RIL_OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED;
+                pData->callId = uiID;
+
+                if (pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED),
+                        FALSE))
+                {
+                    pResponse->SetUnsolicitedFlag(TRUE);
+                    pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+                    break;
+                }
+            }
             // Fall through
         default:
             pResponse->SetUnsolicitedFlag(TRUE);
             pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
             break;
     }
+
+    // Look for a "<postfix>"
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : Could not find response end\r\n");
+        goto Error;
+    }
+
+    // Walk back over the <CR>
+    rszPointer -= strlen(m_szNewLine);
+
+    fRet = TRUE;
 
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     //  If <stat> = 6 (6 is disconnected), store in CSystemManager.
@@ -424,20 +455,13 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
 
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
-
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
+Error:
+    if (!fRet)
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : Could not find response end\r\n");
-        goto Error;
+        free(pData);
+        pData = NULL;
     }
 
-    // Walk back over the <CR>
-    rszPointer -= strlen(m_szNewLine);
-
-    fRet = TRUE;
-
-Error:
     RIL_LOG_VERBOSE("CSilo_Voice::ParseXCALLSTAT() - Exit\r\n");
     return fRet;
 }

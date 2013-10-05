@@ -560,7 +560,6 @@ public:
 
     // RIL_REQUEST_VOICE_RADIO_TECH 108
     RIL_RESULT_CODE RequestVoiceRadioTech(RIL_Token rilToken, void* pData, size_t datalen);
-    RIL_RESULT_CODE ParseVoiceRadioTech(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_GET_CELL_INFO_LIST 109
     RIL_RESULT_CODE RequestGetCellInfoList(RIL_Token rilToken, void* pData, size_t datalen);

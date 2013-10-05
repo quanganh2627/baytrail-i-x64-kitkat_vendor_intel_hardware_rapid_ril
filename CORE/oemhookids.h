@@ -516,6 +516,24 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_SIM_APP_ERR_IND
 
 const int RIL_OEM_HOOK_RAW_UNSOL_SIM_APP_ERR_IND = 0x000000DA;
 
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED
+{
+    int command; // Command ID
+    int callId; // call ID
+} sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED;
+
+//
+//  OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED
+//  Command ID = 0x000000DB
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED = 0x000000DB;
+
+///////////////////////////////////////////////////////////////////////////////
+
 #pragma pack()
 
 /***********************************************************************/
