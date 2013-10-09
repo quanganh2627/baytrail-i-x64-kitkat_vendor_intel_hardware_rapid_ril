@@ -106,13 +106,23 @@ public:
         (bTimedOut ? (m_uiFlags |= E_RSP_FLAG_TIMEDOUT) : (m_uiFlags &= ~E_RSP_FLAG_TIMEDOUT));
     }
 
+    BOOL IsIgnoreFlag() const
+    {
+        return (m_uiFlags & E_RSP_FLAG_IGNORE) ? TRUE : FALSE;
+    }
+    void SetIgnoreFlag(const BOOL bIgnore)
+    {
+        bIgnore ? (m_uiFlags |= E_RSP_FLAG_IGNORE) : (m_uiFlags &= ~E_RSP_FLAG_IGNORE);
+    }
+
 private:
     enum
     {
         E_RSP_FLAG_UNSOLICITED  = 0x00000001,
         E_RSP_FLAG_UNRECOGNIZED = 0x00000002,
         E_RSP_FLAG_CORRUPT      = 0x00000004,
-        E_RSP_FLAG_TIMEDOUT     = 0x00000008
+        E_RSP_FLAG_TIMEDOUT     = 0x00000008,
+        E_RSP_FLAG_IGNORE       = 0x00000010
     };
 
     BOOL IsUnsolicitedResponse();

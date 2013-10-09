@@ -622,7 +622,10 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
                         psRegStatus.szCID, MAX_REG_STATUS_LENGTH)) )
                 {
                     // ignore, since band not reported to Android
-                    pResponse->SetUnrecognizedFlag(TRUE);
+                    rszPointer -= strlen(m_szNewLine);
+                    pResponse->SetUnsolicitedFlag(TRUE);
+                    pResponse->SetIgnoreFlag(TRUE);
+                    goto Error;
                 }
 
                 // cache current XREG info
