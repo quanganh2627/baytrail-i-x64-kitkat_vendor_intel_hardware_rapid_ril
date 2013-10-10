@@ -9141,11 +9141,11 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
 
         if (202 == nCause)
         {
-            return RIL_E_MISSING_RESOURCE;
+            rRspData.uiResultCode = RIL_E_MISSING_RESOURCE;
         }
         else if (200 == nCause)
         {
-            return RIL_E_INVALID_PARAMETER;
+            rRspData.uiResultCode = RIL_E_INVALID_PARAMETER;
         }
         else if (203 == nCause)
         {
@@ -9167,22 +9167,22 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
                  (0x6A == nRes1 && 0x86 == nRes2) ||
                  (0x6A == nRes1 && 0x81 == nRes2) )
             {
-                return RIL_E_MISSING_RESOURCE;
+                rRspData.uiResultCode = RIL_E_MISSING_RESOURCE;
             }
             else if (0x6A == nRes1 && 0x82 == nRes2)
             {
-                return RIL_E_NO_SUCH_ELEMENT;
+                rRspData.uiResultCode = RIL_E_NO_SUCH_ELEMENT;
             }
             else
             {
                 //  None of the above
-                return RIL_E_GENERIC_FAILURE;
+                rRspData.uiResultCode = RIL_E_GENERIC_FAILURE;
             }
         }
         else
         {
             //  nCause none of the above
-            return RIL_E_GENERIC_FAILURE;
+            rRspData.uiResultCode = RIL_E_GENERIC_FAILURE;
         }
     }
     else
@@ -9214,12 +9214,11 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
 
         *pnChannelId = nChannelId;
 
-        res = RRIL_RESULT_OK;
-
         rRspData.pData   = (void*)pnChannelId;
         rRspData.uiDataSize  = sizeof(int*);
     }
 
+    res = RRIL_RESULT_OK;
 Error:
     if (RRIL_RESULT_OK != res)
     {
@@ -9316,11 +9315,11 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
 
         if (202 == nCause)
         {
-            return RIL_E_MISSING_RESOURCE;
+            rRspData.uiResultCode = RIL_E_MISSING_RESOURCE;
         }
         else if (200 == nCause)
         {
-            return RIL_E_INVALID_PARAMETER;
+            rRspData.uiResultCode = RIL_E_INVALID_PARAMETER;
         }
         else if (203 == nCause)
         {
@@ -9340,18 +9339,18 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
 
             if (0x68 == nRes1 && 0x81 == nRes2)
             {
-                return RIL_E_INVALID_PARAMETER;
+                rRspData.uiResultCode = RIL_E_INVALID_PARAMETER;
             }
             else
             {
                 //  None of the above
-                return RIL_E_GENERIC_FAILURE;
+                rRspData.uiResultCode = RIL_E_GENERIC_FAILURE;
             }
         }
         else
         {
             // nCause none of the above
-            return RIL_E_GENERIC_FAILURE;
+            rRspData.uiResultCode = RIL_E_GENERIC_FAILURE;
         }
     }
 
@@ -9524,7 +9523,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
 
         if (200 == nCause)
         {
-            return RIL_E_INVALID_PARAMETER;
+            rRspData.uiResultCode = RIL_E_INVALID_PARAMETER;
         }
         else if (203 == nCause)
         {
@@ -9544,18 +9543,18 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
 
             if (0x68 == nRes1 && 0x81 == nRes2)
             {
-                return RIL_E_INVALID_PARAMETER;
+                rRspData.uiResultCode = RIL_E_INVALID_PARAMETER;
             }
             else
             {
                 //  None of the above
-                return RIL_E_GENERIC_FAILURE;
+                rRspData.uiResultCode = RIL_E_GENERIC_FAILURE;
             }
         }
         else
         {
             // nCause none of the above
-            return RIL_E_GENERIC_FAILURE;
+            rRspData.uiResultCode = RIL_E_GENERIC_FAILURE;
         }
     }
     else
@@ -9659,10 +9658,9 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
 
         rRspData.pData   = (void*)pResponse;
         rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
-
-        res = RRIL_RESULT_OK;
     }
 
+    res = RRIL_RESULT_OK;
 Error:
     if (RRIL_RESULT_OK != res)
     {

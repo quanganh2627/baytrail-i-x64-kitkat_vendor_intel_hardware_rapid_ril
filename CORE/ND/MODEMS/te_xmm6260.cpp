@@ -4808,7 +4808,11 @@ RIL_RESULT_CODE CTE_XMM6260::ParseXDRV(const char* pszRsp, RESPONSE_DATA& rRspDa
     }
 
     // XDRV Result should be XDRV_RESULT_OK (0) otherwise this is an error
-    if (uiXdrvResult) goto Error;
+    if (uiXdrvResult)
+    {
+        rRspData.uiResultCode = RIL_E_GENERIC_FAILURE;
+        return RRIL_RESULT_OK;
+    }
 
     if (GET_THERMAL_SENSOR == uiIpcChrTempGet)
     {
