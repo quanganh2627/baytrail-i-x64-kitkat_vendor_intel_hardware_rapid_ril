@@ -76,10 +76,12 @@ public:
     void HandleRequest(int requestID, void* pData, size_t datalen, RIL_Token hRilToken);
     RIL_Errno HandleRequestWhenNoModem(int requestID, RIL_Token hRilToken);
     RIL_Errno HandleRequestInRadioOff(int requestID, RIL_Token hRilToken);
+    RIL_Errno HandleRequestWhenNotRegistered(int requestID, RIL_Token hRilToken);
 
     BOOL IsRequestAllowedInSpoofState(int requestId);
     BOOL IsRequestAllowedInRadioOff(int requestId);
     BOOL IsRequestAllowedInSimNotReady(int requestId);
+    BOOL IsRequestAllowedWhenNotRegistered(int requestId);
     BOOL IsInternalRequestsAllowedInRadioOff(UINT32 uiRilRequestId);
     BOOL IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
             BOOL bIsInitCommand, int callId = 0);
@@ -1177,6 +1179,7 @@ private:
     // Function to determine whether the SIMIO request is for FDN related SIM files
     BOOL isFDNRequest(int fileId);
 
+    BOOL IsRegistered();
     LONG GetCsRegistrationState(char* pCsRegState);
     LONG GetPsRegistrationState(char* pPsRegState);
     LONG GetCurrentAct();

@@ -360,6 +360,23 @@ BOOL CTE::IsRequestAllowedInSimNotReady(int requestId)
     return bAllowed;
 }
 
+BOOL CTE::IsRequestAllowedWhenNotRegistered(int requestId)
+{
+    BOOL bAllowed = FALSE;
+
+    switch (requestId)
+    {
+        case RIL_REQUEST_OPERATOR:
+            break;
+
+        default:
+            bAllowed = TRUE;
+            break;
+    }
+
+    return bAllowed;
+}
+
 BOOL CTE::IsModemPowerOffRequest(int requestId, void* pData, size_t uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE::IsModemPowerOffRequest - ENTER\r\n");
@@ -502,6 +519,32 @@ RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
     return eRetVal;
 }
 
+RIL_Errno CTE::HandleRequestWhenNotRegistered(int requestId, RIL_Token hRilToken)
+{
+    RIL_LOG_INFO("CTE::HandleRequestWhenNotRegistered - REQID=%d, token=0x%08x\r\n",
+            requestId, (int) hRilToken);
+
+    RIL_Errno eRetVal = RIL_E_SUCCESS;
+
+    /*
+     * If request is not allowed when modem is not registered on a netwrk, return immediately
+     * with specific error code to stop command from being sent to modem (to save time and
+     * resources).
+     */
+    switch (requestId)
+    {
+        case RIL_REQUEST_OPERATOR:
+            eRetVal = RIL_E_OP_NOT_ALLOWED_BEFORE_REG_TO_NW;
+            break;
+
+        default:
+            eRetVal = RIL_E_GENERIC_FAILURE;
+            break;
+    }
+
+    return eRetVal;
+}
+
 void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hRilToken)
 {
     RIL_RESULT_CODE eRetVal = RIL_E_SUCCESS;
@@ -528,6 +571,10 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     else if (!m_pTEBaseInstance->IsRequestSupported(requestId))
     {
         eRetVal = RIL_E_REQUEST_NOT_SUPPORTED;
+    }
+    else if (!IsRegistered() && !IsRequestAllowedWhenNotRegistered(requestId))
+    {
+        eRetVal = HandleRequestWhenNotRegistered(requestId, hRilToken);
     }
     else
     {
@@ -7813,6 +7860,26 @@ void CTE::ResetRegistrationCache()
 {
     m_bCSStatusCached = FALSE;
     m_bPSStatusCached = FALSE;
+}
+
+BOOL CTE::IsRegistered()
+{
+    BOOL bRet = FALSE;
+    LONG csRegState = strtol(m_sCSStatus.szStat, NULL, 10);
+    LONG psRegState = strtol(m_sPSStatus.szStat, NULL, 10);
+    LONG epsRegState = strtol(m_sEPSStatus.szStat, NULL, 10);
+
+    if (E_REGISTRATION_REGISTERED_HOME_NETWORK == csRegState
+            || E_REGISTRATION_REGISTERED_ROAMING == csRegState
+            || E_REGISTRATION_REGISTERED_HOME_NETWORK == psRegState
+            || E_REGISTRATION_REGISTERED_ROAMING == psRegState
+            || E_REGISTRATION_REGISTERED_HOME_NETWORK == epsRegState
+            || E_REGISTRATION_REGISTERED_ROAMING == epsRegState)
+    {
+        bRet = TRUE;
+    }
+
+    return bRet;
 }
 
 LONG CTE::GetCsRegistrationState(char* pCsRegState)
