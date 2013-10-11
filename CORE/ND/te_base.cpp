@@ -35,6 +35,7 @@
 #include "ril_result.h"
 #include "initializer.h"
 
+#define AT_MAXARGS 20
 
 CTEBase::CTEBase(CTE& cte)
 : m_cte(cte),
@@ -1043,209 +1044,258 @@ Error:
     return res;
 }
 
+/**
+This function is handling the response of RIL_REQUEST_GET_CURRENT_CALLS request.
+It parses the AT string response of the cmd AT+CLCC.
+
+@param[in, out] rRspData Contains parsed values.
+@return A long value's result code.
+*/
 RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseGetCurrentCalls() - Enter\r\n");
-
-    UINT32 nValue;
-    UINT32 nUsed = 0;
-    UINT32 nAllocated = 0;
-
-    const char* szRsp = rRspData.szResponse;
-    const char* szDummy = rRspData.szResponse;
-    char szAddress[MAX_BUFFER_SIZE];
-
     RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
-
-    BOOL bSuccess;
-
+    UINT32 uiValue;
+    UINT32 uinUsed = 0;
+    UINT32 uinArgPtrs = 0;
+    const char* pszRsp = rRspData.szResponse;
+    const char* pTmpPtr = NULL;
+    char szAddress[MAX_BUFFER_SIZE];
+    char* aPtrArgs[AT_MAXARGS];
     P_ND_CALL_LIST_DATA pCallListData = NULL;
-    int  nCalls = 0;
 
-    // Parse "<prefix>"
-    if (!SkipRspStart(szRsp, m_szNewLine, szRsp))
+    if (!pszRsp)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() - Couldn't find rsp start\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() - String to parse is NULL\r\n");
         goto Error;
     }
 
-    // Count up how many calls are in progress
-    while (FindAndSkipString(szDummy, "+CLCC: ", szDummy))
-    {
-        nCalls++;
-    }
+    RIL_LOG_VERBOSE("CTEBase::ParseGetCurrentCalls() - Parsing[%s]\r\n", pszRsp);
 
-    if (nCalls >= RRIL_MAX_CALL_ID_COUNT)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() -"
-                " Can't process %d calls due to insufficient space.\r\n", nCalls);
-        goto Error;
-    }
-    else
-    {
-        RIL_LOG_INFO("CTEBase::ParseGetCurrentCalls() - Found %d calls\r\n", nCalls);
-    }
+    /*
+     * Parsing of AT response for +CLCC, list of current calls.
+     * REF: 3GPP 27.007 v10.3.0
+     * [+CLCC: <idx>,<dir>,<stat>,<mode>,<mpty>[,<number>,<type>[,<alpha>
+     * [,<priority>[,<cli_validty>]]]]<cr><lf>[+CLCC:...]<cr><lf>OK<cr><lf>
+     *
+     * <idx> : integer index
+     * <dir> : 0 (MO) or 1 (MT)
+     * <stat> : 0..5 (active, held, dialing, alerting, incoming, waiting)
+     * <mode> : 0,1,3 or 9 (Voice, Data, Voice-Data, Unknown)
+     * <mpty> : 0 (not multiparty) 1 (multiparty/conference)
+     * [<number>, : Double quoted string phone number,
+     * <type>] : Integer identifying the format of <number>.
+     * [<alpha>] : String corresponding to number in phonebook
+     * The following parameters are not used by current implementation.
+     * However, they are parsed by parser but skipped.
+     * [<priority>] : Digit indicating the eMLPP priority level of the call
+     * [<cli_validity>] : 0..4 (Id indicating why number does not contain a
+     * calling party BCD number).
+     */
 
-    //  If we have zero calls, don't allocate data.
-    if (nCalls >= 1)
+    // Search for first +CLCC line (ended by <cr><lf> characters)
+    if (FindAndSkipString(pszRsp, "+CLCC:", pszRsp))
     {
+        // Allocates the response structure
         pCallListData = (P_ND_CALL_LIST_DATA)malloc(sizeof(S_ND_CALL_LIST_DATA));
         if (NULL == pCallListData)
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() -"
-                    " Could not allocate memory for a S_ND_CALL_LIST_DATA struct.\r\n");
+            RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() - "
+                    "ERROR malloc S_ND_CALL_LIST_DATA\r\n");
             goto Error;
         }
         memset(pCallListData, 0, sizeof(S_ND_CALL_LIST_DATA));
-
-        // Parse "+CLCC: "
-        while (FindAndSkipString(szRsp, "+CLCC: ", szRsp))
-        {
-            // Parse "<id>"
-            if (!ExtractUInt32(szRsp, nValue, szRsp))
-            {
-                goto Continue;
-            }
-
-            pCallListData->pCallData[nUsed].index = nValue;
-
-            // Parse ",<direction>"
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractUpperBoundedUInt32(szRsp, 2, nValue, szRsp))
-            {
-                goto Continue;
-            }
-
-            pCallListData->pCallData[nUsed].isMT = nValue;
-
-            // Parse ",<status>"
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractUInt32(szRsp, nValue, szRsp))
-            {
-                goto Continue;
-            }
-
-            pCallListData->pCallData[nUsed].state = (RIL_CallState)nValue;
-
-            // Parse ",<type>"
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractUInt32(szRsp, nValue, szRsp))
-            {
-                goto Continue;
-            }
-
-            // If nValue is non-zero, then we are not in a voice call
-            pCallListData->pCallData[nUsed].isVoice = nValue ? FALSE : TRUE;
-            pCallListData->pCallData[nUsed].isVoicePrivacy = 0; // not used in GSM
-
-
-            // Parse ",<multiparty>"
-            if (!SkipString(szRsp, ",", szRsp) ||
-                !ExtractUpperBoundedUInt32(szRsp, 2, nValue, szRsp))
-            {
-                goto Continue;
-            }
-
-            pCallListData->pCallData[nUsed].isMpty = nValue;
-
-            // Parse ","
-            if (SkipString(szRsp, ",", szRsp))
-            {
-                // Parse "<address>,<type>"
-                if (ExtractQuotedString(szRsp, szAddress, MAX_BUFFER_SIZE, szRsp))
-                {
-                    pCallListData->pCallData[nUsed].number =
-                            pCallListData->pCallNumberBuffers[nUsed];
-                    strncpy(pCallListData->pCallNumberBuffers[nUsed], szAddress, MAX_BUFFER_SIZE);
-
-                    // if address string empty, private number
-                    if (szAddress[0] == '\0')
-                    {
-                        // restrict name & number presentation
-                        pCallListData->pCallData[nUsed].numberPresentation = 1;
-                        pCallListData->pCallData[nUsed].namePresentation = 1;
-                    }
-                    else
-                    {
-                        // allow number presentation
-                        pCallListData->pCallData[nUsed].numberPresentation = 0;
-                    }
-                }
-
-                if (!SkipString(szRsp, ",", szRsp) ||
-                    !ExtractUpperBoundedUInt32(szRsp, 0x100, nValue, szRsp))
-                {
-                    goto Continue;
-                }
-
-                pCallListData->pCallData[nUsed].toa = nValue;
-
-                // Parse ","
-                if (SkipString(szRsp, ",", szRsp))
-                {
-                    // Parse "<description>"
-                    //WCHAR description[MAX_BUFFER_SIZE];
-                    //if (!ExtractQuotedUnicodeHexStringToUnicode(szRsp,
-                    //         description, MAX_BUFFER_SIZE, szRsp))
-                    char description[MAX_BUFFER_SIZE];
-                    if (!ExtractQuotedString(szRsp, description, MAX_BUFFER_SIZE, szRsp))
-                    {
-                        RIL_LOG_WARNING("CTEBase::ParseGetCurrentCalls() -"
-                                " WARNING: Failed to extract call name\r\n");
-                        goto Continue;
-                    }
-                    else
-                    {
-                        int i;
-                        for (i = 0;
-                             i < MAX_BUFFER_SIZE && description[i];
-                             pCallListData->pCallNameBuffers[nUsed][i] =
-                                     (char) description[i], ++i);
-
-                        if (i < MAX_BUFFER_SIZE)
-                        {
-                            pCallListData->pCallNameBuffers[nUsed][i] = '\0';
-                        }
-                        else
-                        {
-                            pCallListData->pCallNameBuffers[nUsed][MAX_BUFFER_SIZE - 1] = '\0';
-                            RIL_LOG_WARNING("CTEBase::ParseGetCurrentCalls() -"
-                                    " WARNING: Buffer overflow in name buffer\r\n");
-                        }
-
-                         pCallListData->pCallData[nUsed].name =
-                                 pCallListData->pCallNameBuffers[nUsed];
-                         pCallListData->pCallData[nUsed].namePresentation = 0;
-                    }
-                }
-            }
-
-            pCallListData->pCallData[nUsed].als = 0;
-
-            pCallListData->pCallPointers[nUsed] = &(pCallListData->pCallData[nUsed]);
-
-            // Increment the array index
-            nUsed++;
-
-Continue:
-            // Find "<postfix>"
-            bSuccess = SkipRspEnd(szRsp, m_szNewLine, szRsp);
-
-            // Note: WaveCom euro radios forget to include the <cr><lf> between +CLCC lines,
-            // so for wavecom don't worry if we don't find these characters
-            if (!bSuccess)
-            {
-                goto Error;
-            }
-        }
-
-        rRspData.pData  = (void*)pCallListData;
-        rRspData.uiDataSize = nUsed * sizeof(RIL_Call*);
     }
     else
     {
-        //  No calls
-        rRspData.pData = NULL;
+        RIL_LOG_VERBOSE("CTEBase::ParseGetCurrentCalls() - "
+                "ERROR Could not find +CLCC line\r\n");
+        goto Continue;
+    }
+
+    // INFO: szRsp points to first char after "+CLCC:"
+    // Loop on +CLCC lines
+    do
+    {
+        // Retrieve an array of pointers to the different response's arguments.
+        uinArgPtrs = FindRspArgs(pszRsp, m_szNewLine, aPtrArgs, AT_MAXARGS);
+        RIL_LOG_VERBOSE("CTEBase::ParseGetCurrentCalls() - "
+                "FOUND %d arguments\r\n", uinArgPtrs);
+
+        // Check mandatory arguments
+        if (uinArgPtrs < 5)
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() - "
+                    "ERROR Not enough arguments for +CLCC response\r\n");
+            goto Error;
+        }
+
+        // Parse "<idx>"
+        if (!ExtractUInt32(aPtrArgs[0], uiValue, pTmpPtr))
+        {
+            // Error on mandatory argument
+            goto Error;
+        }
+
+        pCallListData->pCallData[uinUsed].index = uiValue;
+
+        // Parse ",<dir>"
+        if (!ExtractUpperBoundedUInt32(aPtrArgs[1], 2, uiValue, pTmpPtr))
+        {
+            // Error on mandatory argument
+            goto Error;
+        }
+        pCallListData->pCallData[uinUsed].isMT = uiValue;
+
+        // Parse ",<stat>"
+        if (!ExtractUInt32(aPtrArgs[2], uiValue, pTmpPtr))
+        {
+            // Error on mandatory argument
+            goto Error;
+        }
+        pCallListData->pCallData[uinUsed].state = (RIL_CallState)uiValue;
+
+        // Parse ",<mode>"
+        if (!ExtractUInt32(aPtrArgs[3], uiValue, pTmpPtr))
+        {
+            // Error on mandatory argument
+            goto Error;
+        }
+        // If uiValue is non-zero, then we are not in a voice call
+        pCallListData->pCallData[uinUsed].isVoice = uiValue ? FALSE : TRUE;
+        pCallListData->pCallData[uinUsed].isVoicePrivacy = 0; // not used in GSM
+
+        // Parse ",<mpty>"
+        if (!ExtractUpperBoundedUInt32(aPtrArgs[4], 2, uiValue, pTmpPtr))
+        {
+            // Error on mandatory argument
+            goto Error;
+        }
+        pCallListData->pCallData[uinUsed].isMpty = uiValue;
+        // END of mandatory arguments
+
+        if (uinArgPtrs >= 7)
+        {
+            // <number> and <type>
+            if (ExtractQuotedString(aPtrArgs[5], szAddress, MAX_BUFFER_SIZE, pTmpPtr))
+            {
+                pCallListData->pCallData[uinUsed].number =
+                        pCallListData->pCallNumberBuffers[uinUsed];
+                strncpy(pCallListData->pCallNumberBuffers[uinUsed], szAddress, MAX_BUFFER_SIZE);
+
+                // if address string empty, private number
+                if (szAddress[0] == '\0')
+                {
+                    // restrict name & number presentation
+                    pCallListData->pCallData[uinUsed].numberPresentation = 1;
+                    pCallListData->pCallData[uinUsed].namePresentation = 1;
+                }
+                else
+                {
+                    // allow number presentation
+                    pCallListData->pCallData[uinUsed].numberPresentation = 0;
+                }
+                // Parse ",<type>"
+                if (ExtractUpperBoundedUInt32(aPtrArgs[6], 0x100, uiValue, pTmpPtr))
+                {
+                    pCallListData->pCallData[uinUsed].toa = uiValue;
+                }
+                else
+                {
+                    RIL_LOG_VERBOSE("\t<type>=No value found\r\n");
+                }
+            }
+            else
+            {
+                RIL_LOG_VERBOSE("\t<Number><type>=No value found\r\n");
+            }
+        }
+        if (uinArgPtrs >= 8)
+        {
+            // <alpha>
+            char szDescription[MAX_BUFFER_SIZE];
+            if (ExtractQuotedString(aPtrArgs[7], szDescription, MAX_BUFFER_SIZE, pTmpPtr))
+            {
+                int i;
+                // Copying byte by byte...
+                for (i = 0;
+                     i < MAX_BUFFER_SIZE && szDescription[i];
+                     pCallListData->pCallNameBuffers[uinUsed][i] =
+                             (char) szDescription[i], ++i);
+
+                if (i < MAX_BUFFER_SIZE)
+                {
+                    pCallListData->pCallNameBuffers[uinUsed][i] = '\0';
+                }
+                else
+                {
+                    pCallListData->pCallNameBuffers[uinUsed][MAX_BUFFER_SIZE - 1] = '\0';
+                    RIL_LOG_WARNING("CTEBase::ParseGetCurrentCalls() - "
+                            "WARNING: Buffer overflow in name buffer\r\n");
+                }
+
+                 pCallListData->pCallData[uinUsed].name =
+                         pCallListData->pCallNameBuffers[uinUsed];
+                 pCallListData->pCallData[uinUsed].namePresentation = 0;
+            }
+            else
+            {
+                RIL_LOG_VERBOSE("\t<Description>=No value found\r\n");
+            }
+        }
+        if (uinArgPtrs >= 9)
+        {
+            // <priority>
+            // Parameter not used in current implementation
+            if (!ExtractUInt32(aPtrArgs[8], uiValue, pTmpPtr))
+            {
+                RIL_LOG_VERBOSE("\t<Priority>=No value found\r\n");
+            }
+        }
+        if (uinArgPtrs >= 10)
+        {
+            // <cli_validity>
+            // Parameter not used in current implementation
+            if (!ExtractUInt32(aPtrArgs[9], uiValue, pTmpPtr))
+            {
+                RIL_LOG_VERBOSE("\t<cli_validity>=No value found\r\n");
+            }
+        }
+
+        // Indicates the call 'line' used (Default: 0 = line 1)
+        pCallListData->pCallData[uinUsed].als = 0;
+        pCallListData->pCallPointers[uinUsed] = &(pCallListData->pCallData[uinUsed]);
+
+        // Increment the array index
+        uinUsed++;
+    } while ((uinUsed < RRIL_MAX_CALL_ID_COUNT)
+             && (FindAndSkipString(pszRsp, "+CLCC:", pszRsp)));
+
+    if (uinUsed >= RRIL_MAX_CALL_ID_COUNT)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() - "
+                "Too many ongoing calls:%d\r\n", uinUsed);
+        goto Error;
+    }
+
+Continue:
+    if (pCallListData)
+    {
+        if (uinUsed > 0)
+        {
+            rRspData.pData  = (void*)pCallListData;
+            rRspData.uiDataSize = uinUsed * sizeof(RIL_Call*);
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() - "
+                    "No argument in +CLCC response\r\n");
+            goto Error;
+        }
+    }
+    else
+    {
+        RIL_LOG_VERBOSE("CTEBase::ParseGetCurrentCalls() - No calls.\r\n");
+        rRspData.pData  = NULL;
         rRspData.uiDataSize = 0;
     }
 
@@ -1254,7 +1304,7 @@ Continue:
     if (pCallListData != NULL)
     {
         UINT32 uiCallState;
-        for (UINT32 i = 0; i < nUsed; i++)
+        for (UINT32 i = 0; i < uinUsed; i++)
         {
             m_VoiceCallInfo[i].id = pCallListData->pCallData[i].index;
             m_VoiceCallInfo[i].state = pCallListData->pCallData[i].state;
@@ -1271,6 +1321,8 @@ Continue:
             {
                 m_VoiceCallInfo[i].bDtmfAllowed = FALSE;
             }
+            RIL_LOG_VERBOSE("CTEBase::ParseGetCurrentCalls() - "
+                    "Call[%d]: State:%d\r\n", m_VoiceCallInfo[i].id, uiCallState);
         }
     }
 
@@ -1279,12 +1331,16 @@ Continue:
 Error:
     if (RRIL_RESULT_OK != res)
     {
+        RIL_LOG_CRITICAL("CTEBase::ParseGetCurrentCalls() - "
+                "Error parsing +CLCC response\r\n");
         free(pCallListData);
         pCallListData = NULL;
+        rRspData.pData  = NULL;
+        rRspData.uiDataSize = 0;
     }
 
-
-    RIL_LOG_VERBOSE("CTEBase::ParseGetCurrentCalls() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetCurrentCalls() - "
+            "Exit with result:%d\r\n", res);
     return res;
 }
 

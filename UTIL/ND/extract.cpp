@@ -132,6 +132,61 @@ BOOL FindAndSkipRspEnd(const char* szStart, const char* szSkip, const char*& rsz
     return fRet;
 }
 
+/**
+  Parses the given string and create an array of pointers to
+  arguments separated by a colon ',' in the source string.
+
+  @param[in]        pszCmdStr Source string to parse.
+  @param[in]        pszEndLine End of line string marker.
+  @param[in,out]    aPtrArgs Array of pointers to arguments in source string.
+                              Array allocated by caller.
+  @param[in]        uinMaxArgs Number max of pointers available in argPtrs array.
+  @return Number of arguments separated by ',' found.
+*/
+UINT32 FindRspArgs(const char* pszCmdStr, const char* pszEndLine, char** aPtrArgs,
+                                                                UINT32 uinMaxArgs)
+{
+    const char* pszCurPtr = pszCmdStr;
+    const char* pszPrevPtr = pszCmdStr;
+    const char* pszEndPtr = NULL;
+    UINT32 uinPtrArg = 0;
+
+    if ((pszCmdStr == NULL) || (pszEndLine == NULL) || (aPtrArgs == NULL))
+    {
+        RIL_LOG_CRITICAL("FindRspArgs() - Error: Bad parameters.\r\n");
+        return 0;
+    }
+
+    // Search for end of AT line (usually <cr><lf>)
+    if(!FindAndSkipRspEnd(pszCurPtr, pszEndLine, pszEndPtr))
+    {
+        RIL_LOG_CRITICAL("FindRspArgs() - Error: Cannot find end rsp marker.\r\n");
+        return 0;
+    }
+
+    // Loop on "," characters
+    // Until end of line (end of rsp marker)
+    uinPtrArg = 0;
+    while((uinPtrArg < uinMaxArgs)
+            && (FindAndSkipString(pszCurPtr, ",", pszCurPtr))
+            && (pszCurPtr < pszEndPtr))
+    {
+        aPtrArgs[uinPtrArg] = (char*)pszPrevPtr;
+        uinPtrArg++;
+        pszPrevPtr = pszCurPtr;
+    }
+
+    // Check number of arguments and
+    // a minimum of 2 args when using a ","
+    if ((uinPtrArg < uinMaxArgs-1) && (uinPtrArg > 0))
+    {
+        // No more ",", catch last argument
+        aPtrArgs[uinPtrArg] = (char*)pszPrevPtr;
+        uinPtrArg++;
+    }
+    return uinPtrArg;
+}
+
 // Takes the digits in szStart and stores them into a UINT32. If a space follows the last
 // digit it will also be consumed. Returns TRUE if at least one digit is found.
 BOOL ExtractUInt32(const char* szStart, UINT32& rnValue, const char*& rszEnd)
