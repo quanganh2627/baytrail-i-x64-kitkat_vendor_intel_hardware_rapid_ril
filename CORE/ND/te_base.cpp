@@ -11430,3 +11430,31 @@ void CTEBase::WaitForModemPowerOffEvent()
         CEvent::Wait(pModemPoweredOffEvent, WAIT_FOREVER);
     }
 }
+
+//
+// Sets automatic response for network initiated context activation (called internally)
+//
+void CTEBase::SetAutomaticResponseforNwInitiatedContext()
+{
+    RIL_LOG_VERBOSE("CTEBase::SetAutomaticResponseforNwInitiatedContext() Enter\r\n");
+
+    CCommand* pCmd = new CCommand(RIL_CHANNEL_OEM, NULL, REQ_ID_NONE, "AT+CGAUTO=1\r");
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::SetAutomaticResponseforNwInitiatedContext() - "
+                    "Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::SetAutomaticResponseforNwInitiatedContext() - "
+                "Unable to allocate memory for command\r\n");
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::SetAutomaticResponseforNwInitiatedContext() - Exit\r\n");
+}

@@ -713,6 +713,13 @@ public:
     void SetSupportCGPIAF(BOOL bSupportCGPIAF) { m_bSupportCGPIAF =  bSupportCGPIAF; }
     BOOL IsSupportCGPIAF() { return m_bSupportCGPIAF; }
 
+    void SetNwInitiatedContextActSupport(BOOL bNwInitiatedContextActSupport)
+    {
+        m_bNwInitiatedContextActSupport =  bNwInitiatedContextActSupport;
+    }
+
+    BOOL IsNwInitiatedContextActSupported() { return m_bNwInitiatedContextActSupport; }
+
     void SaveCEER(const char* pszData);
     const char* GetLastCEER() { return m_szLastCEER; }
 
@@ -1201,7 +1208,7 @@ private:
     BOOL m_bIMSCapable;
     BOOL m_bSMSOverIPCapable;
     BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
-
+    BOOL m_bNwInitiatedContextActSupport;
     /*
      * Value used to store mode of operation ID for AT+CEMODE command.
      */
