@@ -35,7 +35,6 @@ CSilo_Voice::CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps)
     // AT Response Table
     static ATRSPTABLE pATRspTable[] =
     {
-        { "NO CARRIER"  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCarrier },
         { "+CRING: "      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseExtRing },
         { "DISCONNECT"  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseDISCONNECT },
         { "+XCALLSTAT: "  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseXCALLSTAT },
@@ -147,38 +146,6 @@ char* CSilo_Voice::GetURCUnlockInitString()
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-//
-//
-//
-BOOL CSilo_Voice::ParseNoCarrier(CResponse* const pResponse, const char*& rszPointer)
-{
-    RIL_LOG_VERBOSE("CSilo_Voice::ParseNoCarrier() - Enter\r\n");
-    const char* szDummy;
-    BOOL fRet = FALSE;
-
-    if (pResponse == NULL)
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoCarrier() : pResponse was NULL\r\n");
-        goto Error;
-    }
-
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoCarrier() : Could not find response end\r\n");
-        goto Error;
-    }
-
-    pResponse->SetUnsolicitedFlag(TRUE);
-
-    fRet = TRUE;
-Error:
-    RIL_LOG_VERBOSE("CSilo_Voice::ParseNoCarrier() - Exit\r\n");
-    return fRet;
-}
-
-//
-//
 BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseExtRing() - Enter\r\n");

@@ -48,7 +48,6 @@ public:
 protected:
     //  Parse notification functions here.
 
-    virtual BOOL    ParseNoCarrier(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseExtRing(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseConnect(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseCallWaitingInfo(CResponse* const pResponse, const char*& rszPointer);
