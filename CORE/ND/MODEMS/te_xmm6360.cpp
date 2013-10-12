@@ -147,7 +147,8 @@ const char* CTE_XMM6360::GetLocationUpdateString(BOOL bIsLocationUpdateEnabled)
 
 const char* CTE_XMM6360::GetScreenOnString()
 {
-    return "AT+CREG=3;+CGREG=0;+XREG=3;+XCSQ=1\r";
+    return m_cte.IsSignalStrengthReportEnabled()
+            ? "AT+CREG=3;+CGREG=0;+XREG=3;+XCSQ=1\r" : "AT+CREG=3;+CGREG=0;+XREG=3\r";
 }
 
 // RIL_REQUEST_SETUP_DATA_CALL 27

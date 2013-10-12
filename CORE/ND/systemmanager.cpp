@@ -413,6 +413,11 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetNwInitiatedContextActSupport(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szEnableSignalStrengthURC, iTemp))
+    {
+        CTE::GetTE().SetSignalStrengthReporting(iTemp == 1 ? TRUE : FALSE);
+    }
+
     if (repository.Read(g_szGroupModem, g_szModeOfOperation, iTemp))
     {
         CTE::GetTE().SetModeOfOperation((UINT32)iTemp);

@@ -80,7 +80,7 @@ CSilo_Network::~CSilo_Network()
 char* CSilo_Network::GetURCInitString()
 {
     // network silo-related URC channel basic init string
-    const char szNetworkURCInitString[] = "+CTZU=1|+XNITZINFO=1|+CGEREP=1,0|+XCSQ=1";
+    const char szNetworkURCInitString[] = "+CTZU=1|+XNITZINFO=1|+CGEREP=1,0";
 
     if (!ConcatenateStringNullTerminate(m_szURCInitString,
             MAX_BUFFER_SIZE - strlen(m_szURCInitString), szNetworkURCInitString))
@@ -89,6 +89,17 @@ char* CSilo_Network::GetURCInitString()
                 "string!\r\n");
         return NULL;
     }
+
+    if (CTE::GetTE().IsSignalStrengthReportEnabled())
+    {
+        if (!ConcatenateStringNullTerminate(m_szURCInitString, MAX_BUFFER_SIZE, "|+XCSQ=1"))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to concat "
+                    "XCSQ to URC init string!\r\n");
+            return NULL;
+        }
+    }
+
     if (m_pSystemCapabilities->IsXDATASTATReportingEnabled())
     {
         if (!ConcatenateStringNullTerminate(m_szURCInitString,

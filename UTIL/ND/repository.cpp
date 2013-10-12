@@ -230,6 +230,7 @@ const char   g_szIMSCapable[]                   = "IMSCapable";
 const char   g_szEnableSMSOverIP[]              = "EnableSMSOverIP";
 const char   g_szSupportCGPIAF[]                = "SupportCGPIAF";
 const char   g_szNwInitiatedContextAct[]        = "NwInitiatedContextAct";
+const char   g_szEnableSignalStrengthURC[]      = "EnableSignalStrengthReporting";
 const char   g_szImeiBlackList[]                = "ImeiBlackList";
 const char   g_szModeOfOperation[]              = "ModeOfOperation";
 

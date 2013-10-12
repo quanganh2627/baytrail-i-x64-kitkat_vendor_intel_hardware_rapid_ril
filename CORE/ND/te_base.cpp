@@ -6680,7 +6680,10 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA& rRspData)
          * This will result in quite a few traffic between AP and BP when the screen
          * state is changed frequently.
          */
-        triggerSignalStrength(NULL);
+        if (m_cte.IsSignalStrengthReportEnabled())
+        {
+            triggerSignalStrength(NULL);
+        }
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
     }
 
