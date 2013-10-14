@@ -264,6 +264,11 @@ BOOL CSystemManager::InitializeSystem()
             RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using XMM7160\r\n");
             uiModemType = MODEM_TYPE_XMM7160;
         }
+        else if (0 == strcmp(szModem, szXMM7260))
+        {
+            RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using XMM7260\r\n");
+            uiModemType = MODEM_TYPE_XMM7260;
+        }
         else
         {
             RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unknown modem type-"
