@@ -1050,13 +1050,15 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             sOEM_HOOK_RAW_UNSOL_BEARER_DEACT* pNwDeact =
                     (sOEM_HOOK_RAW_UNSOL_BEARER_DEACT*)malloc(
                     sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
+            if (NULL != pNwDeact)
+            {
+                pNwDeact->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_DEACT;
+                pNwDeact->uiCid = uiCID;
+                pNwDeact->uiPcid = uiPCID;
 
-            pNwDeact->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_DEACT;
-            pNwDeact->uiCid = uiCID;
-            pNwDeact->uiPcid = uiPCID;
-
-            RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pNwDeact,
-                    sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
+                RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pNwDeact,
+                        sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
+            }
         }
     }
     // Format: "ME PDN DEACT <cid>"

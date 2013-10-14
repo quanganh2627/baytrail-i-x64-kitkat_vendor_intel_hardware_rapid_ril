@@ -6378,7 +6378,7 @@ RIL_RESULT_CODE CTEBase::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
 
     // Parse <destination port range>
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractQuotedString(pszRsp, pTFTParams->szDestinationPortRange, MAX_BUFFER_SIZE, pszRsp))
+        !ExtractQuotedString(pszRsp, pTFTParams->szDestinationPortRange, MAX_IPADDR_SIZE, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
                 "Could not extract destination port range.\r\n");
@@ -6387,7 +6387,7 @@ RIL_RESULT_CODE CTEBase::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
 
     // Parse <source port range>
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractQuotedString(pszRsp, pTFTParams->szSourcePortRange, MAX_BUFFER_SIZE, pszRsp))
+        !ExtractQuotedString(pszRsp, pTFTParams->szSourcePortRange, MAX_IPADDR_SIZE, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
                 "Could not extract source port range.\r\n");
@@ -6405,7 +6405,7 @@ RIL_RESULT_CODE CTEBase::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
 
     // Parse <tos>
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractQuotedString(pszRsp, pTFTParams->szTOS, MAX_BUFFER_SIZE, pszRsp))
+        !ExtractQuotedString(pszRsp, pTFTParams->szTOS, MAX_IPADDR_SIZE, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
                 "Could not extract tos.\r\n");
