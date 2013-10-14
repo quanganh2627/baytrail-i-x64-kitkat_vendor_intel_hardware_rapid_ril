@@ -7172,7 +7172,8 @@ RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
-    UINT32 uiIndex = 0, uiMode = 0;
+    UINT32 uiIndex = 0;
+    UINT32 uiMode = 0;
 
     P_ND_N_CELL_DATA pCellData = NULL;
 
@@ -8620,7 +8621,8 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
     RIL_LOG_VERBOSE("CTEBase::ParseCellInfoList() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    UINT32 uiIndex = 0, uiMode = 0;
+    UINT32 uiIndex = 0;
+    UINT32 uiMode = 0;
     const char* pszRsp = rRspData.szResponse;
 
     P_ND_N_CELL_INFO_DATA pCellData = NULL;
@@ -8694,7 +8696,6 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
             free(pCellData);
             pCellData = NULL;
         }
-
     }
     else
     {
@@ -8704,7 +8705,7 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
         // are different, report RIL_UNSOL_CELL_INFO_LIST
         if (uiIndex > 0)
         {
-            if (m_cte.updateCellInfoCache(pCellData, uiIndex))
+            if (m_cte.updateCellInfoCache(pCellData, (INT32)uiIndex))
             {
                 RIL_LOG_VERBOSE("CTEBase::ParseCellInfoList() - updated cache\r\n");
                 RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST,
