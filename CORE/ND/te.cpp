@@ -8331,6 +8331,7 @@ BOOL CTE::isRetryPossible(UINT32 uiErrorCode)
         case CMS_ERROR_SIM_ABSENT:
         case CMS_ERROR_MO_SMS_REJECTED_BY_SIM_MO_SMS_CONTROL:
         case CMS_ERROR_CM_SERVICE_REJECT_FROM_NETWORK:
+        case CMS_ERROR_TIMER_EXPIRY:
         case CMS_ERROR_IMSI_DETACH_INITIATED:
             return FALSE;
         default:
