@@ -66,7 +66,7 @@ public:
      * Goes through Tx queue, finds identical request IDs and completes
      * ril request with the provided result code and response.
      */
-    virtual BOOL FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
+    virtual BOOL FindIdenticalRequestsAndSendResponses(int reqID,
                                                         UINT32 uiResultCode,
                                                         void* pResponse,
                                                         size_t responseLen,
@@ -90,7 +90,7 @@ protected:
             UINT32 uiCmdIndex);
 
     //  Helper function to determine whether to send phase 2 of a command
-    BOOL SendCommandPhase2(const UINT32 uiResCode, const UINT32 uiReqID) const;
+    BOOL SendCommandPhase2(const UINT32 uiResCode, const int reqID) const;
 
 private:
     // Helper functions

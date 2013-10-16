@@ -2433,9 +2433,8 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
      * request is completed in RequestRadioPower function in te.cpp with the valid
      * RIL_Token.
      */
-    pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER],
-            NULL, ND_REQ_ID_RADIOPOWER, szCmd, &CTE::ParseRadioPower,
-            &CTE::PostRadioPower);
+    pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_RADIO_POWER].uiChannel,
+            NULL, RIL_REQUEST_RADIO_POWER, szCmd, &CTE::ParseRadioPower, &CTE::PostRadioPower);
 
     if (pCmd)
     {
@@ -7259,8 +7258,6 @@ Error:
     return res;
 }
 
-
-
 //
 // RIL_REQUEST_SET_LOCATION_UPDATES 76
 //
@@ -10237,8 +10234,9 @@ void CTEBase::PSAttach()
 {
     RIL_LOG_VERBOSE("CTEBase::PSAttach() - Enter\r\n");
 
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYAVAILABLENETWORKS],
-            NULL, ND_REQ_ID_QUERYAVAILABLENETWORKS, "AT+CGATT=1\r");
+    CCommand* pCmd = new CCommand(
+            g_pReqInfo[RIL_REQUEST_QUERY_AVAILABLE_NETWORKS].uiChannel,
+            NULL, RIL_REQUEST_QUERY_AVAILABLE_NETWORKS, "AT+CGATT=1\r");
     if (pCmd)
     {
         pCmd->SetHighPriority();
@@ -10271,8 +10269,8 @@ void CTEBase::DeactivateAllDataCalls()
      * Instead of sending PS detach, send deactivate all data calls when
      * conformance property is set.
      */
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL], NULL,
-            ND_REQ_ID_DEACTIVATEDATACALL, bConformance ? "AT+CGACT=0\r" : "AT+CGATT=0\r",
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DEACTIVATE_DATA_CALL].uiChannel,
+            NULL, RIL_REQUEST_DEACTIVATE_DATA_CALL, bConformance ? "AT+CGACT=0\r" : "AT+CGATT=0\r",
             &CTE::ParseDeactivateAllDataCalls);
 
     if (pCmd)
@@ -11275,8 +11273,9 @@ void CTEBase::QuerySimSmsStoreStatus()
 {
     RIL_LOG_VERBOSE("CTEBase::QuerySimSmsStoreStatus() - Enter\r\n");
 
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS],
-            NULL, ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS, "AT+CPMS?\r",
+    CCommand* pCmd = new CCommand(
+            g_ReqInternal[E_REQ_IDX_QUERY_SIM_SMS_STORE_STATUS].reqInfo.uiChannel,
+            NULL, g_ReqInternal[E_REQ_IDX_QUERY_SIM_SMS_STORE_STATUS].reqId, "AT+CPMS?\r",
             &CTE::ParseQuerySimSmsStoreStatus);
 
     if (NULL != pCmd)
@@ -11448,7 +11447,7 @@ void CTEBase::SetAutomaticResponseforNwInitiatedContext(POST_CMD_HANDLER_DATA& r
 {
     RIL_LOG_VERBOSE("CTEBase::SetAutomaticResponseforNwInitiatedContext() Enter\r\n");
 
-    CCommand* pCmd = new CCommand(RIL_CHANNEL_OEM, NULL, rData.uiRequestId, "AT+CGAUTO=1\r");
+    CCommand* pCmd = new CCommand(RIL_CHANNEL_OEM, NULL, rData.requestId, "AT+CGAUTO=1\r");
     if (pCmd)
     {
         pCmd->SetHighPriority();

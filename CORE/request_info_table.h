@@ -14,13 +14,8 @@
 #define RRIL_REQUEST_INFO_TABLE_H
 #include "types.h"
 #include "rril.h"
-#include "request_id.h"
+#include "request_info.h"
 #include "sync_ops.h"
-
-struct REQ_INFO
-{
-    UINT32 uiTimeout;
-};
 
 class CRequestInfoTable
 {
@@ -29,10 +24,10 @@ public:
     CRequestInfoTable();
     ~CRequestInfoTable();
 
-    void GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo);
+    void GetRequestInfo(int requestID, REQ_INFO& rReqInfo);
 
 private:
-    REQ_INFO* m_rgpRequestInfos[REQ_ID_TOTAL];
+    REQ_INFO** m_rgpRequestInfos;
     CMutex* m_pCacheAccessMutex;
 };
 

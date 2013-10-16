@@ -31,14 +31,14 @@ class CCommand
 public:
     CCommand(   UINT32 uiChannel,
                 RIL_Token token,
-                UINT32 uiReqId,
+                int reqId,
                 const char* pszATCmd,
                 PFN_TE_PARSE pParseFcn = NULL,
                 PFN_TE_POSTCMDHANDLER pHandlerFcn = NULL);
 
     CCommand(   UINT32 uiChannel,
                 RIL_Token token,
-                UINT32 uiReqId,
+                int reqId,
                 const char* pszATCmd1,
                 const char* pszATCmd2,
                 PFN_TE_PARSE pParseFcn = NULL,
@@ -46,7 +46,7 @@ public:
 
     CCommand(   UINT32 uiChannel,
                 RIL_Token token,
-                UINT32 uiReqId,
+                int reqId,
                 REQUEST_DATA reqData,
                 PFN_TE_PARSE pParseFcn = NULL,
                 PFN_TE_POSTCMDHANDLER pHandlerFcn = NULL);
@@ -62,7 +62,7 @@ private:
 public:
     UINT32              GetChannel()        { return m_uiChannel;   };
     RIL_Token           GetToken()          { return m_token;       };
-    UINT32              GetRequestID()      { return m_uiReqId;     };
+    int                 GetRequestID()      { return m_reqId;     };
     char*               GetATCmd1()         { return m_pszATCmd1;   };
     char*               GetATCmd2()         { return m_pszATCmd2;   };
     PFN_TE_PARSE        GetParseFcn()       { return m_pParseFcn;   };
@@ -100,7 +100,7 @@ private:
 
     UINT32              m_uiChannel;
     RIL_Token           m_token;
-    UINT32              m_uiReqId;
+    int                 m_reqId;
     char*               m_pszATCmd1;
     char*               m_pszATCmd2;
     PFN_TE_PARSE        m_pParseFcn;

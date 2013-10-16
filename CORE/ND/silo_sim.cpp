@@ -649,6 +649,7 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
 
     BOOL fRet = FALSE;
     int i = 0;
+    BOOL bIsDataValid = FALSE;
     //  The number of locks returned by +XLOCK URC.
     const int nMAX_LOCK_INFO = 5;
 
@@ -677,27 +678,30 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
         memset(lock_info[i].fac, '\0', sizeof(lock_info[i].fac));
 
         // Extract "<fac>"
-        if (!ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac),
+        if (ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac),
                 rszPointer))
         {
+            // Extract ",<Lock state>"
+            if (!SkipString(rszPointer, ",", rszPointer) ||
+                !ExtractUInt32(rszPointer, lock_info[i].lock_state, rszPointer))
+            {
+                RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Could not parse <lock state>.\r\n");
+                goto Error;
+            }
+
+            // Extract ",<Lock result>"
+            if (!SkipString(rszPointer, ",", rszPointer) ||
+                !ExtractUInt32(rszPointer, lock_info[i].lock_result, rszPointer))
+            {
+                RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Could not parse <lock result>.\r\n");
+                goto Error;
+            }
+
+            bIsDataValid = TRUE;
+        }
+        else
+        {
             RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() - Unable to find <fac>!\r\n");
-            goto complete;
-        }
-
-        // Extract ",<Lock state>"
-        if (!SkipString(rszPointer, ",", rszPointer) ||
-            !ExtractUInt32(rszPointer, lock_info[i].lock_state, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Could not parse <lock state>.\r\n");
-            goto Error;
-        }
-
-        // Extract ",<Lock result>"
-        if (!SkipString(rszPointer, ",", rszPointer) ||
-            !ExtractUInt32(rszPointer, lock_info[i].lock_result, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Could not parse <lock result>.\r\n");
-            goto Error;
         }
 
         SkipString(rszPointer, ",", rszPointer);
@@ -705,23 +709,26 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
         i++;
     }
 
-complete:
-    i = 0;
-    // Change the number to the number of facility locks supported via XLOCK URC.
-    while (i < nMAX_LOCK_INFO)
+    if (bIsDataValid)
     {
-        RIL_LOG_INFO("lock:%s state:%d result:%d", lock_info[i].fac, lock_info[i].lock_state,
-                        lock_info[i].lock_result);
+        i = 0;
 
-        /// @TODO: Need to revisit the lock state mapping.
-        if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
-           (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
+        // notify Android if SIM lock state has changed
+        while (i < nMAX_LOCK_INFO)
         {
-            CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
-            pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
-            break;
+            RIL_LOG_INFO("lock:%s state:%d result:%d", lock_info[i].fac, lock_info[i].lock_state,
+                            lock_info[i].lock_result);
+
+            /// @TODO: Need to revisit the lock state mapping.
+            if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
+               (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
+            {
+                CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
+                pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
+                break;
+            }
+            i++;
         }
-        i++;
     }
 
     fRet = TRUE;

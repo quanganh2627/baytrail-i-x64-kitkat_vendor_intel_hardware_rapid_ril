@@ -36,7 +36,6 @@
 #include "ril_result.h"
 #include "callbacks.h"
 #include "reset.h"
-#include "nd_util.h"
 #include "extract.h"
 
 CTE* CTE::m_pTEInstance = NULL;
@@ -1211,9 +1210,9 @@ RIL_RESULT_CODE CTE::RequestGetSimStatus(RIL_Token rilToken, void* pData, size_t
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETSIMSTATUS], rilToken,
-                                        ND_REQ_ID_GETSIMSTATUS, reqData, &CTE::ParseGetSimStatus,
-                                        &CTE::PostGetSimStatusCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_SIM_STATUS].uiChannel,
+                rilToken, RIL_REQUEST_GET_SIM_STATUS, reqData, &CTE::ParseGetSimStatus,
+                &CTE::PostGetSimStatusCmdHandler);
 
         if (pCmd)
         {
@@ -1263,9 +1262,9 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin(RIL_Token rilToken, void* pData, size_t 
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_ENTERSIMPIN], rilToken,
-                                        ND_REQ_ID_ENTERSIMPIN, reqData, &CTE::ParseEnterSimPin,
-                                        &CTE::PostSimPinCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_ENTER_SIM_PIN].uiChannel,
+                rilToken, RIL_REQUEST_ENTER_SIM_PIN, reqData, &CTE::ParseEnterSimPin,
+                &CTE::PostSimPinCmdHandler);
 
         if (pCmd)
         {
@@ -1315,9 +1314,9 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk(RIL_Token rilToken, void* pData, size_t 
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_ENTERSIMPUK], rilToken,
-                                        ND_REQ_ID_ENTERSIMPUK, reqData, &CTE::ParseEnterSimPuk,
-                                        &CTE::PostSimPinCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_ENTER_SIM_PUK].uiChannel,
+                rilToken, RIL_REQUEST_ENTER_SIM_PUK, reqData, &CTE::ParseEnterSimPuk,
+                &CTE::PostSimPinCmdHandler);
 
         if (pCmd)
         {
@@ -1367,11 +1366,9 @@ RIL_RESULT_CODE CTE::RequestEnterSimPin2(RIL_Token rilToken, void* pData, size_t
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_ENTERSIMPIN2], rilToken,
-                                                                    ND_REQ_ID_ENTERSIMPIN2,
-                                                                    reqData,
-                                                                    &CTE::ParseEnterSimPin2,
-                                                                    &CTE::PostSimPin2CmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_ENTER_SIM_PIN2].uiChannel,
+                rilToken, RIL_REQUEST_ENTER_SIM_PIN2, reqData, &CTE::ParseEnterSimPin2,
+                &CTE::PostSimPin2CmdHandler);
 
         if (pCmd)
         {
@@ -1422,11 +1419,9 @@ RIL_RESULT_CODE CTE::RequestEnterSimPuk2(RIL_Token rilToken, void* pData, size_t
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_ENTERSIMPUK2], rilToken,
-                                                                    ND_REQ_ID_ENTERSIMPUK2,
-                                                                    reqData,
-                                                                    &CTE::ParseEnterSimPuk2,
-                                                                    &CTE::PostSimPin2CmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_ENTER_SIM_PUK2].uiChannel,
+                rilToken, RIL_REQUEST_ENTER_SIM_PUK2, reqData, &CTE::ParseEnterSimPuk2,
+                &CTE::PostSimPin2CmdHandler);
 
         if (pCmd)
         {
@@ -1477,11 +1472,9 @@ RIL_RESULT_CODE CTE::RequestChangeSimPin(RIL_Token rilToken, void* pData, size_t
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_CHANGESIMPIN], rilToken,
-                                                                    ND_REQ_ID_CHANGESIMPIN,
-                                                                    reqData,
-                                                                    &CTE::ParseChangeSimPin,
-                                                                    &CTE::PostSimPinCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_CHANGE_SIM_PIN].uiChannel,
+                rilToken, RIL_REQUEST_CHANGE_SIM_PIN, reqData, &CTE::ParseChangeSimPin,
+                &CTE::PostSimPinCmdHandler);
 
         if (pCmd)
         {
@@ -1533,9 +1526,9 @@ RIL_RESULT_CODE CTE::RequestChangeSimPin2(RIL_Token rilToken, void* pData, size_
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_CHANGESIMPIN2], rilToken,
-                                        ND_REQ_ID_CHANGESIMPIN2, reqData, &CTE::ParseChangeSimPin2,
-                                        &CTE::PostSimPin2CmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_CHANGE_SIM_PIN2].uiChannel,
+                rilToken, RIL_REQUEST_CHANGE_SIM_PIN2, reqData, &CTE::ParseChangeSimPin2,
+                &CTE::PostSimPin2CmdHandler);
 
         if (pCmd)
         {
@@ -1591,10 +1584,10 @@ RIL_RESULT_CODE CTE::RequestEnterNetworkDepersonalization(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION],
-                                    rilToken, ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION, reqData,
-                                    &CTE::ParseEnterNetworkDepersonalization,
-                                    &CTE::PostNtwkPersonalizationCmdHandler);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION].uiChannel,
+                rilToken, RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION, reqData,
+                &CTE::ParseEnterNetworkDepersonalization, &CTE::PostNtwkPersonalizationCmdHandler);
 
         if (pCmd)
         {
@@ -1646,9 +1639,9 @@ RIL_RESULT_CODE CTE::RequestGetCurrentCalls(RIL_Token rilToken, void* pData, siz
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETCURRENTCALLS],
-                                rilToken, ND_REQ_ID_GETCURRENTCALLS, reqData,
-                                &CTE::ParseGetCurrentCalls, &CTE::PostGetCurrentCallsCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_CURRENT_CALLS].uiChannel,
+                rilToken, RIL_REQUEST_GET_CURRENT_CALLS, reqData, &CTE::ParseGetCurrentCalls,
+                &CTE::PostGetCurrentCallsCmdHandler);
 
         if (pCmd)
         {
@@ -1699,8 +1692,8 @@ RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void* pData, size_t datalen
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DIAL], rilToken,
-                ND_REQ_ID_DIAL, reqData, &CTE::ParseDial, &CTE::PostDialCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DIAL].uiChannel,
+                rilToken, RIL_REQUEST_DIAL, reqData, &CTE::ParseDial, &CTE::PostDialCmdHandler);
 
         if (pCmd)
         {
@@ -1748,8 +1741,8 @@ RIL_RESULT_CODE CTE::RequestGetImsi(RIL_Token rilToken, void* pData, size_t data
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETIMSI], rilToken,
-                ND_REQ_ID_GETIMSI, reqData, &CTE::ParseGetImsi);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_IMSI].uiChannel,
+                 rilToken, RIL_REQUEST_GET_IMSI, reqData, &CTE::ParseGetImsi);
 
         if (pCmd)
         {
@@ -1796,9 +1789,9 @@ RIL_RESULT_CODE CTE::RequestHangup(RIL_Token rilToken, void* pData, size_t datal
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_HANGUP], rilToken,
-                                        ND_REQ_ID_HANGUP, reqData, &CTE::ParseHangup,
-                                        &CTE::PostHangupCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_HANGUP].uiChannel,
+                rilToken, RIL_REQUEST_HANGUP, reqData, &CTE::ParseHangup,
+                &CTE::PostHangupCmdHandler);
 
         if (pCmd)
         {
@@ -1855,9 +1848,10 @@ RIL_RESULT_CODE CTE::RequestHangupWaitingOrBackground(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_HANGUPWAITINGORBACKGROUND],
-                                        rilToken, ND_REQ_ID_HANGUPWAITINGORBACKGROUND, reqData,
-                                        &CTE::ParseHangupWaitingOrBackground);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND].uiChannel,
+                rilToken, RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND, reqData,
+                &CTE::ParseHangupWaitingOrBackground);
 
         if (pCmd)
         {
@@ -1912,10 +1906,9 @@ RIL_RESULT_CODE CTE::RequestHangupForegroundResumeBackground(RIL_Token rilToken,
     else
     {
         CCommand* pCmd = new CCommand(
-                g_arChannelMapping[ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND],
-                rilToken, ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND,
-                reqData, &CTE::ParseHangupForegroundResumeBackground,
-                &CTE::PostHangupCmdHandler);
+                g_pReqInfo[RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND].uiChannel,
+                rilToken, RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND, reqData,
+                &CTE::ParseHangupForegroundResumeBackground, &CTE::PostHangupCmdHandler);
 
         if (pCmd)
         {
@@ -1972,10 +1965,10 @@ RIL_RESULT_CODE CTE::RequestSwitchHoldingAndActive(RIL_Token rilToken, void* pDa
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SWITCHHOLDINGANDACTIVE],
-                                        rilToken, ND_REQ_ID_SWITCHHOLDINGANDACTIVE, reqData,
-                                        &CTE::ParseSwitchHoldingAndActive,
-                                        &CTE::PostSwitchHoldingAndActiveCmdHandler);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE].uiChannel,
+                rilToken, RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE, reqData,
+                &CTE::ParseSwitchHoldingAndActive, &CTE::PostSwitchHoldingAndActiveCmdHandler);
 
         if (pCmd)
         {
@@ -2030,9 +2023,9 @@ RIL_RESULT_CODE CTE::RequestConference(RIL_Token rilToken, void* pData, size_t d
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_CONFERENCE], rilToken,
-                                        ND_REQ_ID_CONFERENCE, reqData, &CTE::ParseConference,
-                                        &CTE::PostConferenceCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_CONFERENCE].uiChannel,
+                rilToken, RIL_REQUEST_CONFERENCE, reqData, &CTE::ParseConference,
+                &CTE::PostConferenceCmdHandler);
 
         if (pCmd)
         {
@@ -2086,8 +2079,8 @@ RIL_RESULT_CODE CTE::RequestUdub(RIL_Token rilToken, void* pData, size_t datalen
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_UDUB], rilToken,
-                 ND_REQ_ID_UDUB, reqData, &CTE::ParseUdub);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_UDUB].uiChannel,
+                rilToken, RIL_REQUEST_UDUB, reqData, &CTE::ParseUdub);
 
         if (pCmd)
         {
@@ -2135,8 +2128,10 @@ RIL_RESULT_CODE CTE::RequestLastCallFailCause(RIL_Token rilToken, void* pData, s
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_LASTCALLFAILCAUSE], rilToken,
-                ND_REQ_ID_LASTCALLFAILCAUSE, reqData, &CTE::ParseLastCallFailCause);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_LAST_CALL_FAIL_CAUSE].uiChannel,
+                rilToken, RIL_REQUEST_LAST_CALL_FAIL_CAUSE, reqData,
+                &CTE::ParseLastCallFailCause);
 
         if (pCmd)
         {
@@ -2186,8 +2181,8 @@ RIL_RESULT_CODE CTE::RequestSignalStrength(RIL_Token rilToken, void* pData, size
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIGNALSTRENGTH], rilToken,
-                ND_REQ_ID_SIGNALSTRENGTH, reqData, &CTE::ParseSignalStrength);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIGNAL_STRENGTH].uiChannel,
+                rilToken, RIL_REQUEST_SIGNAL_STRENGTH, reqData, &CTE::ParseSignalStrength);
 
         if (pCmd)
         {
@@ -2254,10 +2249,10 @@ RIL_RESULT_CODE CTE::RequestRegistrationState(RIL_Token rilToken, void* pData, s
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REGISTRATIONSTATE], rilToken,
-                                        ND_REQ_ID_REGISTRATIONSTATE, reqData,
-                                        &CTE::ParseRegistrationState,
-                                        &CTE::PostNetworkInfoCmdHandler);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_VOICE_REGISTRATION_STATE].uiChannel,
+                rilToken, RIL_REQUEST_VOICE_REGISTRATION_STATE, reqData,
+                &CTE::ParseRegistrationState, &CTE::PostNetworkInfoCmdHandler);
 
         if (pCmd)
         {
@@ -2325,11 +2320,10 @@ RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void* pDat
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GPRSREGISTRATIONSTATE],
-                                        rilToken,
-                                        ND_REQ_ID_GPRSREGISTRATIONSTATE, reqData,
-                                        &CTE::ParseGPRSRegistrationState,
-                                        &CTE::PostNetworkInfoCmdHandler);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_DATA_REGISTRATION_STATE].uiChannel,
+                rilToken, RIL_REQUEST_DATA_REGISTRATION_STATE, reqData,
+                &CTE::ParseGPRSRegistrationState, &CTE::PostNetworkInfoCmdHandler);
 
         if (pCmd)
         {
@@ -2378,9 +2372,8 @@ RIL_RESULT_CODE CTE::RequestOperator(RIL_Token rilToken, void* pData, size_t dat
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_OPERATOR], rilToken,
-                                        ND_REQ_ID_OPERATOR, reqData, &CTE::ParseOperator,
-                                        &CTE::PostOperator);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_OPERATOR].uiChannel,
+                rilToken, RIL_REQUEST_OPERATOR, reqData, &CTE::ParseOperator, &CTE::PostOperator);
 
         if (pCmd)
         {
@@ -2559,8 +2552,8 @@ RIL_RESULT_CODE CTE::RequestDtmf(RIL_Token rilToken, void* pData, size_t datalen
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DTMF], rilToken,
-                ND_REQ_ID_DTMF, reqData, &CTE::ParseDtmf);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DTMF].uiChannel,
+                 rilToken, RIL_REQUEST_DTMF, reqData, &CTE::ParseDtmf);
 
         if (pCmd)
         {
@@ -2607,9 +2600,9 @@ RIL_RESULT_CODE CTE::RequestSendSms(RIL_Token rilToken, void* pData, size_t data
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SENDSMS], rilToken,
-                                        ND_REQ_ID_SENDSMS, reqData, &CTE::ParseSendSms,
-                                        &CTE::PostSendSmsCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SEND_SMS].uiChannel,
+                rilToken, RIL_REQUEST_SEND_SMS, reqData, &CTE::ParseSendSms,
+                &CTE::PostSendSmsCmdHandler);
 
         if (pCmd)
         {
@@ -2656,9 +2649,10 @@ RIL_RESULT_CODE CTE::RequestSendSmsExpectMore(RIL_Token rilToken, void* pData, s
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SENDSMSEXPECTMORE], rilToken,
-                                        ND_REQ_ID_SENDSMSEXPECTMORE, reqData,
-                                        &CTE::ParseSendSmsExpectMore, &CTE::PostSendSmsCmdHandler);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_SEND_SMS_EXPECT_MORE].uiChannel,
+                rilToken, RIL_REQUEST_SEND_SMS_EXPECT_MORE, reqData,
+                &CTE::ParseSendSmsExpectMore, &CTE::PostSendSmsCmdHandler);
 
         if (pCmd)
         {
@@ -2787,9 +2781,8 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         }
 
         pCmd = new CCommand(pChannelData->GetRilChannel(), rilToken,
-                                        ND_REQ_ID_SETUPDEFAULTPDP, reqData,
-                                        &CTE::ParseSetupDataCall,
-                                        &CTE::PostSetupDataCallCmdHandler);
+                RIL_REQUEST_SETUP_DATA_CALL, reqData, &CTE::ParseSetupDataCall,
+                &CTE::PostSetupDataCallCmdHandler);
 
         if (pCmd)
         {
@@ -2853,9 +2846,8 @@ RIL_RESULT_CODE CTE::RequestSimIo(RIL_Token rilToken, void* pData, size_t datale
     }
     else
     {
-        pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIMIO], rilToken,
-                                        ND_REQ_ID_SIMIO, reqData, &CTE::ParseSimIo,
-                                        &CTE::PostSimIOCmdHandler);
+        pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIM_IO].uiChannel,
+                rilToken, RIL_REQUEST_SIM_IO, reqData, &CTE::ParseSimIo, &CTE::PostSimIOCmdHandler);
 
         if (pCmd)
         {
@@ -2906,8 +2898,8 @@ RIL_RESULT_CODE CTE::RequestSendUssd(RIL_Token rilToken, void* pData, size_t dat
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SENDUSSD],
-                rilToken, ND_REQ_ID_SENDUSSD, reqData, &CTE::ParseSendUssd);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SEND_USSD].uiChannel,
+                rilToken, RIL_REQUEST_SEND_USSD, reqData, &CTE::ParseSendUssd);
 
         if (pCmd)
         {
@@ -2954,8 +2946,8 @@ RIL_RESULT_CODE CTE::RequestCancelUssd(RIL_Token rilToken, void* pData, size_t d
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_CANCELUSSD],
-                rilToken, ND_REQ_ID_CANCELUSSD, reqData, &CTE::ParseCancelUssd);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_CANCEL_USSD].uiChannel,
+                rilToken, RIL_REQUEST_CANCEL_USSD, reqData, &CTE::ParseCancelUssd);
 
         if (pCmd)
         {
@@ -3002,8 +2994,8 @@ RIL_RESULT_CODE CTE::RequestGetClir(RIL_Token rilToken, void* pData, size_t data
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETCLIR], rilToken,
-                ND_REQ_ID_GETCLIR, reqData, &CTE::ParseGetClir);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_CLIR].uiChannel,
+                rilToken, RIL_REQUEST_GET_CLIR, reqData, &CTE::ParseGetClir);
 
         if (pCmd)
         {
@@ -3050,8 +3042,8 @@ RIL_RESULT_CODE CTE::RequestSetClir(RIL_Token rilToken, void* pData, size_t data
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETCLIR], rilToken,
-                ND_REQ_ID_SETCLIR, reqData, &CTE::ParseSetClir);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SET_CLIR].uiChannel,
+                rilToken, RIL_REQUEST_SET_CLIR, reqData, &CTE::ParseSetClir);
 
         if (pCmd)
         {
@@ -3099,10 +3091,9 @@ RIL_RESULT_CODE CTE::RequestQueryCallForwardStatus(RIL_Token rilToken, void* pDa
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYCALLFORWARDSTATUS],
-                rilToken,
-                ND_REQ_ID_QUERYCALLFORWARDSTATUS,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_QUERY_CALL_FORWARD_STATUS].uiChannel,
+                rilToken, RIL_REQUEST_QUERY_CALL_FORWARD_STATUS, reqData,
                 &CTE::ParseQueryCallForwardStatus);
 
         if (pCmd)
@@ -3152,8 +3143,8 @@ RIL_RESULT_CODE CTE::RequestSetCallForward(RIL_Token rilToken, void* pData, size
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETCALLFORWARD], rilToken,
-                ND_REQ_ID_SETCALLFORWARD, reqData, &CTE::ParseSetCallForward);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SET_CALL_FORWARD].uiChannel,
+                rilToken, RIL_REQUEST_SET_CALL_FORWARD, reqData, &CTE::ParseSetCallForward);
 
         if (pCmd)
         {
@@ -3202,8 +3193,8 @@ RIL_RESULT_CODE CTE::RequestQueryCallWaiting(RIL_Token rilToken, void* pData, si
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYCALLWAITING],
-                rilToken, ND_REQ_ID_QUERYCALLWAITING, reqData, &CTE::ParseQueryCallWaiting);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_QUERY_CALL_WAITING].uiChannel,
+                rilToken, RIL_REQUEST_QUERY_CALL_WAITING, reqData, &CTE::ParseQueryCallWaiting);
 
         if (pCmd)
         {
@@ -3252,8 +3243,8 @@ RIL_RESULT_CODE CTE::RequestSetCallWaiting(RIL_Token rilToken, void* pData, size
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETCALLWAITING],
-                rilToken, ND_REQ_ID_SETCALLWAITING, reqData, &CTE::ParseSetCallWaiting);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SET_CALL_WAITING].uiChannel,
+                rilToken, RIL_REQUEST_SET_CALL_WAITING, reqData, &CTE::ParseSetCallWaiting);
 
         if (pCmd)
         {
@@ -3302,8 +3293,8 @@ RIL_RESULT_CODE CTE::RequestSmsAcknowledge(RIL_Token rilToken, void* pData, size
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SMSACKNOWLEDGE],
-                rilToken, ND_REQ_ID_SMSACKNOWLEDGE, reqData, &CTE::ParseSmsAcknowledge);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SMS_ACKNOWLEDGE].uiChannel,
+                rilToken, RIL_REQUEST_SMS_ACKNOWLEDGE, reqData, &CTE::ParseSmsAcknowledge);
 
         if (pCmd)
         {
@@ -3352,8 +3343,8 @@ RIL_RESULT_CODE CTE::RequestGetImei(RIL_Token rilToken, void* pData, size_t data
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETIMEI],
-                rilToken, ND_REQ_ID_GETIMEI, reqData, &CTE::ParseGetImei);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_IMEI].uiChannel,
+                rilToken, RIL_REQUEST_GET_IMEI, reqData, &CTE::ParseGetImei);
 
         if (pCmd)
         {
@@ -3400,8 +3391,8 @@ RIL_RESULT_CODE CTE::RequestGetImeisv(RIL_Token rilToken, void* pData, size_t da
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETIMEISV],
-                rilToken, ND_REQ_ID_GETIMEISV, reqData, &CTE::ParseGetImeisv);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_IMEISV].uiChannel,
+                rilToken, RIL_REQUEST_GET_IMEISV, reqData, &CTE::ParseGetImeisv);
 
         if (pCmd)
         {
@@ -3450,8 +3441,8 @@ RIL_RESULT_CODE CTE::RequestAnswer(RIL_Token rilToken, void* pData, size_t datal
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_ANSWER],
-                rilToken, ND_REQ_ID_ANSWER, reqData, &CTE::ParseAnswer);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_ANSWER].uiChannel,
+                rilToken, RIL_REQUEST_ANSWER, reqData, &CTE::ParseAnswer);
 
         if (pCmd)
         {
@@ -3514,10 +3505,10 @@ RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void* pData, 
     else
     {
         CCommand* pCmd = new CCommand(
-                            g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL],
-                            rilToken, ND_REQ_ID_DEACTIVATEDATACALL, reqData,
-                            &CTE::ParseDeactivateDataCall,
-                            &CTE::PostDeactivateDataCallCmdHandler);
+                g_pReqInfo[RIL_REQUEST_DEACTIVATE_DATA_CALL].uiChannel,
+                rilToken, RIL_REQUEST_DEACTIVATE_DATA_CALL, reqData,
+                &CTE::ParseDeactivateDataCall,
+                &CTE::PostDeactivateDataCallCmdHandler);
 
         if (pCmd)
         {
@@ -3575,8 +3566,10 @@ RIL_RESULT_CODE CTE::RequestQueryFacilityLock(RIL_Token rilToken, void* pData, s
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYFACILITYLOCK],
-                rilToken, ND_REQ_ID_QUERYFACILITYLOCK, reqData, &CTE::ParseQueryFacilityLock);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_QUERY_FACILITY_LOCK].uiChannel,
+                rilToken, RIL_REQUEST_QUERY_FACILITY_LOCK, reqData,
+                &CTE::ParseQueryFacilityLock);
 
         if (pCmd)
         {
@@ -3629,10 +3622,9 @@ RIL_RESULT_CODE CTE::RequestSetFacilityLock(RIL_Token rilToken, void* pData, siz
     }
     else
     {
-        pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETFACILITYLOCK], rilToken,
-                                        ND_REQ_ID_SETFACILITYLOCK, reqData,
-                                        &CTE::ParseSetFacilityLock,
-                                        &CTE::PostSetFacilityLockCmdHandler);
+        pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SET_FACILITY_LOCK].uiChannel,
+                rilToken, RIL_REQUEST_SET_FACILITY_LOCK, reqData, &CTE::ParseSetFacilityLock,
+                &CTE::PostSetFacilityLockCmdHandler);
 
         if (pCmd)
         {
@@ -3688,9 +3680,10 @@ RIL_RESULT_CODE CTE::RequestChangeBarringPassword(RIL_Token rilToken, void* pDat
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_CHANGEBARRINGPASSWORD],
-                rilToken, ND_REQ_ID_CHANGEBARRINGPASSWORD,
-                reqData, &CTE::ParseChangeBarringPassword);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_CHANGE_BARRING_PASSWORD].uiChannel,
+                rilToken, RIL_REQUEST_CHANGE_BARRING_PASSWORD, reqData,
+                &CTE::ParseChangeBarringPassword);
 
         if (pCmd)
         {
@@ -3742,10 +3735,10 @@ RIL_RESULT_CODE CTE::RequestQueryNetworkSelectionMode(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYNETWORKSELECTIONMODE],
-                                        rilToken, ND_REQ_ID_QUERYNETWORKSELECTIONMODE, reqData,
-                                        &CTE::ParseQueryNetworkSelectionMode,
-                                        &CTE::PostNetworkInfoCmdHandler);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE].uiChannel,
+                rilToken, RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE, reqData,
+                &CTE::ParseQueryNetworkSelectionMode, &CTE::PostNetworkInfoCmdHandler);
 
         if (pCmd)
         {
@@ -3798,10 +3791,9 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionAutomatic(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC],
-                rilToken,
-                ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC].uiChannel,
+                rilToken, RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC, reqData,
                 &CTE::ParseSetNetworkSelectionAutomatic,
                 &CTE::PostSetNetworkSelectionCmdHandler);
 
@@ -3856,10 +3848,9 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionManual(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETNETWORKSELECTIONMANUAL],
-                rilToken,
-                ND_REQ_ID_SETNETWORKSELECTIONMANUAL,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL].uiChannel,
+                rilToken, RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL, reqData,
                 &CTE::ParseSetNetworkSelectionManual,
                 &CTE::PostSetNetworkSelectionCmdHandler);
 
@@ -3918,11 +3909,11 @@ RIL_RESULT_CODE CTE::RequestQueryAvailableNetworks(RIL_Token rilToken, void* pDa
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYAVAILABLENETWORKS],
-                                        rilToken,
-                                        ND_REQ_ID_QUERYAVAILABLENETWORKS, reqData,
-                                        &CTE::ParseQueryAvailableNetworks,
-                                        &CTE::PostQueryAvailableNetworksCmdHandler);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_QUERY_AVAILABLE_NETWORKS].uiChannel,
+                rilToken, RIL_REQUEST_QUERY_AVAILABLE_NETWORKS, reqData,
+                &CTE::ParseQueryAvailableNetworks,
+                &CTE::PostQueryAvailableNetworksCmdHandler);
 
         if (pCmd)
         {
@@ -3981,8 +3972,8 @@ RIL_RESULT_CODE CTE::RequestDtmfStart(RIL_Token rilToken, void* pData, size_t da
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REQUESTDTMFSTART], NULL,
-                ND_REQ_ID_REQUESTDTMFSTART, reqData, &CTE::ParseDtmfStart, &CTE::PostDtmfStart);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DTMF_START].uiChannel,
+                NULL, RIL_REQUEST_DTMF_START, reqData, &CTE::ParseDtmfStart, &CTE::PostDtmfStart);
 
         if (pCmd)
         {
@@ -4036,8 +4027,8 @@ RIL_RESULT_CODE CTE::RequestDtmfStop(RIL_Token rilToken, void* pData, size_t dat
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REQUESTDTMFSTOP], NULL,
-                ND_REQ_ID_REQUESTDTMFSTOP, reqData, &CTE::ParseDtmfStop, &CTE::PostDtmfStop);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DTMF_STOP].uiChannel,
+                NULL, RIL_REQUEST_DTMF_STOP, reqData, &CTE::ParseDtmfStop, &CTE::PostDtmfStop);
 
         if (pCmd)
         {
@@ -4090,8 +4081,8 @@ RIL_RESULT_CODE CTE::RequestBasebandVersion(RIL_Token rilToken, void* pData, siz
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_BASEBANDVERSION],
-                rilToken, ND_REQ_ID_BASEBANDVERSION, reqData, &CTE::ParseBasebandVersion);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_BASEBAND_VERSION].uiChannel,
+                rilToken, RIL_REQUEST_BASEBAND_VERSION, reqData, &CTE::ParseBasebandVersion);
 
         if (pCmd)
         {
@@ -4141,8 +4132,10 @@ RIL_RESULT_CODE CTE::RequestSeparateConnection(RIL_Token rilToken, void* pData, 
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SEPERATECONNECTION],
-                rilToken, ND_REQ_ID_SEPERATECONNECTION, reqData, &CTE::ParseSeparateConnection);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_SEPARATE_CONNECTION].uiChannel,
+                rilToken, RIL_REQUEST_SEPARATE_CONNECTION, reqData,
+                &CTE::ParseSeparateConnection);
 
         if (pCmd)
         {
@@ -4197,8 +4190,8 @@ RIL_RESULT_CODE CTE::RequestSetMute(RIL_Token rilToken, void* pData, size_t data
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETMUTE],
-                rilToken, ND_REQ_ID_SETMUTE, reqData, &CTE::ParseSetMute);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SET_MUTE].uiChannel,
+                rilToken, RIL_REQUEST_SET_MUTE, reqData, &CTE::ParseSetMute);
 
         if (pCmd)
         {
@@ -4246,8 +4239,8 @@ RIL_RESULT_CODE CTE::RequestGetMute(RIL_Token rilToken, void* pData, size_t data
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETMUTE],
-                rilToken, ND_REQ_ID_GETMUTE, reqData, &CTE::ParseGetMute);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_MUTE].uiChannel,
+                rilToken, RIL_REQUEST_GET_MUTE, reqData, &CTE::ParseGetMute);
 
         if (pCmd)
         {
@@ -4294,8 +4287,8 @@ RIL_RESULT_CODE CTE::RequestQueryClip(RIL_Token rilToken, void* pData, size_t da
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYCLIP],
-                rilToken, ND_REQ_ID_QUERYCLIP, reqData, &CTE::ParseQueryClip);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_QUERY_CLIP].uiChannel,
+                rilToken, RIL_REQUEST_QUERY_CLIP, reqData, &CTE::ParseQueryClip);
 
         if (pCmd)
         {
@@ -4344,8 +4337,10 @@ RIL_RESULT_CODE CTE::RequestLastDataCallFailCause(RIL_Token rilToken, void* pDat
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_LASTPDPFAILCAUSE],
-                rilToken, ND_REQ_ID_LASTPDPFAILCAUSE, reqData, &CTE::ParseLastDataCallFailCause);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE].uiChannel,
+                rilToken, RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE, reqData,
+                &CTE::ParseLastDataCallFailCause);
 
         if (pCmd)
         {
@@ -4431,8 +4426,8 @@ RIL_RESULT_CODE CTE::RequestResetRadio(RIL_Token rilToken, void* pData, size_t d
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_RESETRADIO],
-                rilToken, ND_REQ_ID_RESETRADIO, reqData, &CTE::ParseResetRadio);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_RESET_RADIO].uiChannel,
+                rilToken, RIL_REQUEST_RESET_RADIO, reqData, &CTE::ParseResetRadio);
 
         if (pCmd)
         {
@@ -4476,7 +4471,7 @@ RIL_RESULT_CODE CTE::RequestHookRaw(RIL_Token rilToken, void* pData, size_t data
     //  CoreHookRaw API chooses what RIL Channel to send command on.
     //  Channel is passed back through uiChannel parameter.
     //  Default is value defined in rilchannels.cpp.
-    UINT32 uiRilChannel = g_arChannelMapping[ND_REQ_ID_OEMHOOKRAW];
+    UINT32 uiRilChannel = g_pReqInfo[RIL_REQUEST_OEM_HOOK_RAW].uiChannel;
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHookRaw(reqData, pData, datalen, uiRilChannel);
     if (RRIL_RESULT_OK != res)
@@ -4485,7 +4480,7 @@ RIL_RESULT_CODE CTE::RequestHookRaw(RIL_Token rilToken, void* pData, size_t data
     }
     else
     {
-        CCommand* pCmd = new CCommand(uiRilChannel, rilToken, ND_REQ_ID_OEMHOOKRAW,
+        CCommand* pCmd = new CCommand(uiRilChannel, rilToken, RIL_REQUEST_OEM_HOOK_RAW,
                 reqData, &CTE::ParseHookRaw);
 
         if (pCmd)
@@ -4530,7 +4525,7 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
     //  CoreHookStrings API chooses what RIL Channel to send command on.
     //  Channel is passed back through uiChannel parameter.
     //  Default is value defined in rilchannels.cpp.
-    UINT32 uiRilChannel = g_arChannelMapping[ND_REQ_ID_OEMHOOKSTRINGS];
+    UINT32 uiRilChannel = g_pReqInfo[RIL_REQUEST_OEM_HOOK_STRINGS].uiChannel;
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHookStrings(reqData,
             pData, datalen, uiRilChannel);
@@ -4541,18 +4536,18 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
     else
     {
         uiCommand = (UINT32)reqData.pContextData;
-        UINT32 uiReqID = ND_REQ_ID_OEMHOOKSTRINGS;
+        int reqID = RIL_REQUEST_OEM_HOOK_STRINGS;
         if (RIL_OEM_HOOK_STRING_POWEROFF_MODEM == (int) uiCommand)
         {
             /*
-             * Request Id is assigned to ND_REQ_ID_RADIOPOWER in order to use
-             * the same request timeout value as ND_REQ_ID_RADIOPOWER and also
+             * Request Id is assigned to RIL_REQUEST_RADIO_POWER in order to use
+             * the same request timeout value as RIL_REQUEST_RADIO_POWER and also
              * to allow this request always.
              */
-            uiReqID = ND_REQ_ID_RADIOPOWER;
+            reqID = RIL_REQUEST_RADIO_POWER;
         }
 
-        CCommand* pCmd = new CCommand(uiRilChannel, rilToken, uiReqID,
+        CCommand* pCmd = new CCommand(uiRilChannel, rilToken, reqID,
                 reqData, &CTE::ParseHookStrings, &CTE::PostHookStrings);
 
         if (pCmd)
@@ -4672,10 +4667,9 @@ RIL_RESULT_CODE CTE::RequestSetSuppSvcNotification(RIL_Token rilToken, void* pDa
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETSUPPSVCNOTIFICATION],
-                rilToken,
-                ND_REQ_ID_SETSUPPSVCNOTIFICATION,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION].uiChannel,
+                rilToken, RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION, reqData,
                 &CTE::ParseSetSuppSvcNotification);
 
         if (pCmd)
@@ -4725,9 +4719,9 @@ RIL_RESULT_CODE CTE::RequestWriteSmsToSim(RIL_Token rilToken, void* pData, size_
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_WRITESMSTOSIM], rilToken,
-                                        ND_REQ_ID_WRITESMSTOSIM, reqData, &CTE::ParseWriteSmsToSim,
-                                        &CTE::PostWriteSmsToSimCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_WRITE_SMS_TO_SIM].uiChannel,
+                rilToken, RIL_REQUEST_WRITE_SMS_TO_SIM, reqData, &CTE::ParseWriteSmsToSim,
+                &CTE::PostWriteSmsToSimCmdHandler);
 
         if (pCmd)
         {
@@ -4776,8 +4770,8 @@ RIL_RESULT_CODE CTE::RequestDeleteSmsOnSim(RIL_Token rilToken, void* pData, size
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DELETESMSONSIM],
-                rilToken, ND_REQ_ID_DELETESMSONSIM, reqData, &CTE::ParseDeleteSmsOnSim);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DELETE_SMS_ON_SIM].uiChannel,
+                rilToken, RIL_REQUEST_DELETE_SMS_ON_SIM, reqData, &CTE::ParseDeleteSmsOnSim);
 
         if (pCmd)
         {
@@ -4826,8 +4820,8 @@ RIL_RESULT_CODE CTE::RequestSetBandMode(RIL_Token rilToken, void* pData, size_t 
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETBANDMODE],
-                rilToken, ND_REQ_ID_SETBANDMODE, reqData, &CTE::ParseSetBandMode);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SET_BAND_MODE].uiChannel,
+                rilToken, RIL_REQUEST_SET_BAND_MODE, reqData, &CTE::ParseSetBandMode);
 
         if (pCmd)
         {
@@ -4876,10 +4870,9 @@ RIL_RESULT_CODE CTE::RequestQueryAvailableBandMode(RIL_Token rilToken, void* pDa
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYAVAILABLEBANDMODE],
-                rilToken,
-                ND_REQ_ID_QUERYAVAILABLEBANDMODE,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE].uiChannel,
+                rilToken, RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE, reqData,
                 &CTE::ParseQueryAvailableBandMode);
 
         if (pCmd)
@@ -4929,8 +4922,8 @@ RIL_RESULT_CODE CTE::RequestStkGetProfile(RIL_Token rilToken, void* pData, size_
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_STKGETPROFILE],
-                rilToken, ND_REQ_ID_STKGETPROFILE, reqData, &CTE::ParseStkGetProfile);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_STK_GET_PROFILE].uiChannel,
+                rilToken, RIL_REQUEST_STK_GET_PROFILE, reqData, &CTE::ParseStkGetProfile);
 
         if (pCmd)
         {
@@ -4979,8 +4972,8 @@ RIL_RESULT_CODE CTE::RequestStkSetProfile(RIL_Token rilToken, void* pData, size_
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_STKSETPROFILE],
-                rilToken, ND_REQ_ID_STKSETPROFILE, reqData, &CTE::ParseStkSetProfile);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_STK_SET_PROFILE].uiChannel,
+                rilToken, RIL_REQUEST_STK_SET_PROFILE, reqData, &CTE::ParseStkSetProfile);
 
         if (pCmd)
         {
@@ -5031,10 +5024,9 @@ RIL_RESULT_CODE CTE::RequestStkSendEnvelopeCommand(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_STKSENDENVELOPECOMMAND],
-                rilToken,
-                ND_REQ_ID_STKSENDENVELOPECOMMAND,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND].uiChannel,
+                rilToken, RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND, reqData,
                 &CTE::ParseStkSendEnvelopeCommand);
 
         if (pCmd)
@@ -5087,10 +5079,9 @@ RIL_RESULT_CODE CTE::RequestStkSendTerminalResponse(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_STKSENDTERMINALRESPONSE],
-                rilToken,
-                ND_REQ_ID_STKSENDTERMINALRESPONSE,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE].uiChannel,
+                rilToken, RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE, reqData,
                 &CTE::ParseStkSendTerminalResponse);
 
         if (pCmd)
@@ -5145,10 +5136,8 @@ RIL_RESULT_CODE CTE::RequestStkHandleCallSetupRequestedFromSim(RIL_Token rilToke
     else
     {
         CCommand* pCmd = new CCommand(
-                g_arChannelMapping[ND_REQ_ID_STKHANDLECALLSETUPREQUESTEDFROMSIM],
-                rilToken,
-                ND_REQ_ID_STKHANDLECALLSETUPREQUESTEDFROMSIM,
-                reqData,
+                g_pReqInfo[RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM].uiChannel,
+                rilToken, RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM, reqData,
                 &CTE::ParseStkHandleCallSetupRequestedFromSim);
 
         if (pCmd)
@@ -5199,10 +5188,9 @@ RIL_RESULT_CODE CTE::RequestExplicitCallTransfer(RIL_Token rilToken, void* pData
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_EXPLICITCALLTRANSFER],
-                rilToken,
-                ND_REQ_ID_EXPLICITCALLTRANSFER,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_EXPLICIT_CALL_TRANSFER].uiChannel,
+                rilToken, RIL_REQUEST_EXPLICIT_CALL_TRANSFER, reqData,
                 &CTE::ParseExplicitCallTransfer);
 
         if (pCmd)
@@ -5256,10 +5244,9 @@ RIL_RESULT_CODE CTE::RequestSetPreferredNetworkType(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETPREFERREDNETWORKTYPE],
-                rilToken,
-                ND_REQ_ID_SETPREFERREDNETWORKTYPE,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE].uiChannel,
+                rilToken, RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE, reqData,
                 &CTE::ParseSetPreferredNetworkType);
 
         if (pCmd)
@@ -5312,10 +5299,9 @@ RIL_RESULT_CODE CTE::RequestGetPreferredNetworkType(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETPREFERREDNETWORKTYPE],
-                rilToken,
-                ND_REQ_ID_GETPREFERREDNETWORKTYPE,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE].uiChannel,
+                rilToken, RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE, reqData,
                 &CTE::ParseGetPreferredNetworkType);
 
         if (pCmd)
@@ -5367,10 +5353,9 @@ RIL_RESULT_CODE CTE::RequestGetNeighboringCellIDs(RIL_Token rilToken, void* pDat
     else
     {
         CCommand* pCmd = new CCommand(
-                            g_arChannelMapping[ND_REQ_ID_GETNEIGHBORINGCELLIDS],
-                            rilToken, ND_REQ_ID_GETNEIGHBORINGCELLIDS, reqData,
-                            &CTE::ParseGetNeighboringCellIDs,
-                            &CTE::PostGetNeighboringCellIDs);
+                g_pReqInfo[RIL_REQUEST_GET_NEIGHBORING_CELL_IDS].uiChannel,
+                rilToken, RIL_REQUEST_GET_NEIGHBORING_CELL_IDS, reqData,
+                &CTE::ParseGetNeighboringCellIDs, &CTE::PostGetNeighboringCellIDs);
 
         if (pCmd)
         {
@@ -5432,10 +5417,9 @@ RIL_RESULT_CODE CTE::RequestSetLocationUpdates(RIL_Token rilToken, void* pData,
     else
     {
         CCommand* pCmd = new CCommand(
-                g_arChannelMapping[ND_REQ_ID_SETLOCATIONUPDATES], rilToken,
-                ND_REQ_ID_SETLOCATIONUPDATES, reqData,
-                &CTE::ParseSetLocationUpdates,
-                &CTE::PostSetLocationUpdates);
+                g_pReqInfo[RIL_REQUEST_SET_LOCATION_UPDATES].uiChannel,
+                rilToken, RIL_REQUEST_SET_LOCATION_UPDATES, reqData,
+                &CTE::ParseSetLocationUpdates, &CTE::PostSetLocationUpdates);
 
         if (pCmd)
         {
@@ -5491,8 +5475,10 @@ RIL_RESULT_CODE CTE::RequestCdmaSetSubscription(RIL_Token rilToken, void* pData,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_CDMASETSUBSCRIPTION],
-                rilToken, ND_REQ_ID_CDMASETSUBSCRIPTION, reqData, &CTE::ParseCdmaSetSubscription);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE].uiChannel,
+                rilToken, RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE, reqData,
+                &CTE::ParseCdmaSetSubscription);
 
         if (pCmd)
         {
@@ -5544,10 +5530,9 @@ RIL_RESULT_CODE CTE::RequestCdmaSetRoamingPreference(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_CDMASETROAMINGPREFERENCE],
-                rilToken,
-                ND_REQ_ID_CDMASETROAMINGPREFERENCE,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE].uiChannel,
+                rilToken, RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE, reqData,
                 &CTE::ParseCdmaSetRoamingPreference);
 
         if (pCmd)
@@ -5601,10 +5586,9 @@ RIL_RESULT_CODE CTE::RequestCdmaQueryRoamingPreference(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_CDMAQUERYROAMINGPREFERENCE],
-                rilToken,
-                ND_REQ_ID_CDMAQUERYROAMINGPREFERENCE,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE].uiChannel,
+                rilToken, RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE, reqData,
                 &CTE::ParseCdmaQueryRoamingPreference);
 
         if (pCmd)
@@ -5654,8 +5638,8 @@ RIL_RESULT_CODE CTE::RequestSetTtyMode(RIL_Token rilToken, void* pData, size_t d
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETTTYMODE],
-                rilToken, ND_REQ_ID_SETTTYMODE, reqData, &CTE::ParseSetTtyMode);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SET_TTY_MODE].uiChannel,
+                rilToken, RIL_REQUEST_SET_TTY_MODE, reqData, &CTE::ParseSetTtyMode);
 
         if (pCmd)
         {
@@ -5702,8 +5686,8 @@ RIL_RESULT_CODE CTE::RequestQueryTtyMode(RIL_Token rilToken, void* pData, size_t
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYTTYMODE],
-                rilToken, ND_REQ_ID_QUERYTTYMODE, reqData, &CTE::ParseQueryTtyMode);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_QUERY_TTY_MODE].uiChannel,
+                rilToken, RIL_REQUEST_QUERY_TTY_MODE, reqData, &CTE::ParseQueryTtyMode);
 
         if (pCmd)
         {
@@ -5880,10 +5864,9 @@ RIL_RESULT_CODE CTE::RequestGsmGetBroadcastSmsConfig(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETBROADCASTSMSCONFIG],
-                rilToken,
-                ND_REQ_ID_GETBROADCASTSMSCONFIG,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG].uiChannel,
+                rilToken, RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG, reqData,
                 &CTE::ParseGsmGetBroadcastSmsConfig);
 
         if (pCmd)
@@ -5941,10 +5924,9 @@ RIL_RESULT_CODE CTE::RequestGsmSetBroadcastSmsConfig(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETBROADCASTSMSCONFIG],
-                rilToken,
-                ND_REQ_ID_SETBROADCASTSMSCONFIG,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG].uiChannel,
+                rilToken, RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG, reqData,
                 &CTE::ParseGsmSetBroadcastSmsConfig);
 
         if (pCmd)
@@ -5998,10 +5980,9 @@ RIL_RESULT_CODE CTE::RequestGsmSmsBroadcastActivation(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SMSBROADCASTACTIVATION],
-                rilToken,
-                ND_REQ_ID_SMSBROADCASTACTIVATION,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION].uiChannel,
+                rilToken, RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION, reqData,
                 &CTE::ParseGsmSmsBroadcastActivation);
 
         if (pCmd)
@@ -6195,8 +6176,8 @@ RIL_RESULT_CODE CTE::RequestGetSmscAddress(RIL_Token rilToken, void* pData, size
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETSMSCADDRESS],
-                rilToken, ND_REQ_ID_GETSMSCADDRESS, reqData, &CTE::ParseGetSmscAddress);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_SMSC_ADDRESS].uiChannel,
+                rilToken, RIL_REQUEST_GET_SMSC_ADDRESS, reqData, &CTE::ParseGetSmscAddress);
 
         if (pCmd)
         {
@@ -6245,8 +6226,8 @@ RIL_RESULT_CODE CTE::RequestSetSmscAddress(RIL_Token rilToken, void* pData, size
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SETSMSCADDRESS],
-                rilToken, ND_REQ_ID_SETSMSCADDRESS, reqData, &CTE::ParseSetSmscAddress);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SET_SMSC_ADDRESS].uiChannel,
+                rilToken, RIL_REQUEST_SET_SMSC_ADDRESS, reqData, &CTE::ParseSetSmscAddress);
 
         if (pCmd)
         {
@@ -6297,10 +6278,9 @@ RIL_RESULT_CODE CTE::RequestReportSmsMemoryStatus(RIL_Token rilToken, void* pDat
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REPORTSMSMEMORYSTATUS],
-                rilToken,
-                ND_REQ_ID_REPORTSMSMEMORYSTATUS,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_REPORT_SMS_MEMORY_STATUS].uiChannel,
+                rilToken, RIL_REQUEST_REPORT_SMS_MEMORY_STATUS, reqData,
                 &CTE::ParseReportSmsMemoryStatus);
 
         if (pCmd)
@@ -6353,10 +6333,9 @@ RIL_RESULT_CODE CTE::RequestReportStkServiceRunning(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REPORTSTKSERVICEISRUNNING],
-                rilToken,
-                ND_REQ_ID_REPORTSTKSERVICEISRUNNING,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING].uiChannel,
+                rilToken, RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING, reqData,
                 &CTE::ParseReportStkServiceRunning);
 
         if (pCmd)
@@ -6409,9 +6388,10 @@ RIL_RESULT_CODE CTE::RequestAckIncomingGsmSmsWithPdu(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_ACKINCOMINGSMSWITHPDU], rilToken,
-                                        ND_REQ_ID_ACKINCOMINGSMSWITHPDU, reqData,
-                                        &CTE::ParseAckIncomingGsmSmsWithPdu);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU].uiChannel,
+                rilToken, RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU, reqData,
+                &CTE::ParseAckIncomingGsmSmsWithPdu);
 
         if (pCmd)
         {
@@ -6463,9 +6443,10 @@ RIL_RESULT_CODE CTE::RequestStkSendEnvelopeWithStatus(RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_STKSENDENVELOPECOMMAND],
-                                        rilToken, ND_REQ_ID_STKSENDENVELOPECOMMAND,
-                                        reqData, &CTE::ParseStkSendEnvelopeWithStatus);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS].uiChannel,
+                rilToken, RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS, reqData,
+                &CTE::ParseStkSendEnvelopeWithStatus);
 
         if (pCmd)
         {
@@ -6547,10 +6528,9 @@ RIL_RESULT_CODE CTE::RequestGetCellInfoList(RIL_Token rilToken, void* pData, siz
     else
     {
         CCommand* pCmd = new CCommand(
-                            g_arChannelMapping[ND_REQ_ID_GETCELLINFOLIST],
-                            rilToken, ND_REQ_ID_GETCELLINFOLIST, reqData,
-                            &CTE::ParseGetCellInfoList,
-                            &CTE::PostGetCellInfoList);
+                g_pReqInfo[RIL_REQUEST_GET_CELL_INFO_LIST].uiChannel,
+                rilToken, RIL_REQUEST_GET_CELL_INFO_LIST, reqData,
+                &CTE::ParseGetCellInfoList, &CTE::PostGetCellInfoList);
 
         if (pCmd)
         {
@@ -6625,8 +6605,8 @@ RIL_RESULT_CODE CTE::RequestSimTransmitBasic(RIL_Token rilToken, void* pData, si
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIMTRANSMITBASIC],
-                rilToken, ND_REQ_ID_SIMTRANSMITBASIC, reqData, &CTE::ParseSimTransmitBasic);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIM_TRANSMIT_BASIC].uiChannel,
+                rilToken, RIL_REQUEST_SIM_TRANSMIT_BASIC, reqData, &CTE::ParseSimTransmitBasic);
 
         if (pCmd)
         {
@@ -6675,8 +6655,8 @@ RIL_RESULT_CODE CTE::RequestSimOpenChannel(RIL_Token rilToken, void* pData, size
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIMOPENCHANNEL],
-                rilToken, ND_REQ_ID_SIMOPENCHANNEL, reqData, &CTE::ParseSimOpenChannel);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIM_OPEN_CHANNEL].uiChannel,
+                rilToken, RIL_REQUEST_SIM_OPEN_CHANNEL, reqData, &CTE::ParseSimOpenChannel);
 
         if (pCmd)
         {
@@ -6725,8 +6705,8 @@ RIL_RESULT_CODE CTE::RequestSimCloseChannel(RIL_Token rilToken, void* pData, siz
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIMCLOSECHANNEL],
-                rilToken, ND_REQ_ID_SIMCLOSECHANNEL, reqData, &CTE::ParseSimCloseChannel);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIM_CLOSE_CHANNEL].uiChannel,
+                rilToken, RIL_REQUEST_SIM_CLOSE_CHANNEL, reqData, &CTE::ParseSimCloseChannel);
 
         if (pCmd)
         {
@@ -6776,8 +6756,10 @@ RIL_RESULT_CODE CTE::RequestSimTransmitChannel(RIL_Token rilToken, void* pData, 
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIMTRANSMITCHANNEL],
-                rilToken, ND_REQ_ID_SIMTRANSMITCHANNEL, reqData, &CTE::ParseSimTransmitChannel);
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_SIM_TRANSMIT_CHANNEL].uiChannel,
+                rilToken, RIL_REQUEST_SIM_TRANSMIT_CHANNEL, reqData,
+                &CTE::ParseSimTransmitChannel);
 
         if (pCmd)
         {
@@ -6828,9 +6810,9 @@ RIL_RESULT_CODE CTE::RequestHangupVT(RIL_Token rilToken, void* pData, size_t dat
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_HANGUPVT], rilToken,
-                                        ND_REQ_ID_HANGUPVT, reqData, &CTE::ParseHangupVT,
-                                        &CTE::PostHangupCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_HANGUP_VT].uiChannel,
+                rilToken, RIL_REQUEST_HANGUP_VT, reqData, &CTE::ParseHangupVT,
+                &CTE::PostHangupCmdHandler);
 
         if (pCmd)
         {
@@ -6879,9 +6861,9 @@ RIL_RESULT_CODE CTE::RequestDialVT(RIL_Token rilToken, void* pData, size_t datal
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DIALVT], rilToken,
-                                        ND_REQ_ID_DIALVT, reqData, &CTE::ParseDialVT,
-                                        &CTE::PostDialCmdHandler);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DIAL_VT].uiChannel,
+                rilToken, RIL_REQUEST_DIAL_VT, reqData, &CTE::ParseDialVT,
+                &CTE::PostDialCmdHandler);
 
         if (pCmd)
         {
@@ -6932,10 +6914,9 @@ RIL_RESULT_CODE CTE::RequestGetSimSmsStorage(RIL_Token rilToken, void* pData, si
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS],
-                rilToken,
-                ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS,
-                reqData,
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_GET_SIM_SMS_STORAGE].uiChannel,
+                rilToken, RIL_REQUEST_GET_SIM_SMS_STORAGE, reqData,
                 &CTE::ParseGetSimSmsStorage);
 
         if (pCmd)
@@ -7999,7 +7980,7 @@ const char* CTE::PrintRAT(char* szRAT) const
 
 
 //
-// ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS (sent internally)
+// QUERY_SIM_SMS_STORE_STATUS (sent internally)
 //
 RIL_RESULT_CODE CTE::ParseQuerySimSmsStoreStatus(RESPONSE_DATA& rRspData)
 {
@@ -8139,21 +8120,21 @@ UINT32 CTE::GetDtmfState()
     return m_uiDtmfState;
 }
 
-BOOL CTE::IsInternalRequestsAllowedInRadioOff(UINT32 uiRilRequestId)
+BOOL CTE::IsInternalRequestsAllowedInRadioOff(int requestId)
 {
     RIL_LOG_VERBOSE("CTE::IsInternalRequestsAllowedInRadioOff() - Enter\r\n");
 
     BOOL bAllowed;
 
-    switch (uiRilRequestId)
+    switch (requestId)
     {
-        case ND_REQ_ID_SILENT_PIN_ENTRY:
+        case E_REQ_ID_INTERNAL_SILENT_PIN_ENTRY:
             if (RRIL_SIM_STATE_NOT_READY == (int) GetSIMState())
                 bAllowed = TRUE;
             else
                 bAllowed = FALSE;
             break;
-        case ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS:
+        case E_REQ_ID_INTERNAL_QUERY_SIM_SMS_STORE_STATUS:
             if (RRIL_SIM_STATE_READY == (int) GetSIMState())
                 bAllowed = TRUE;
             else
@@ -8169,13 +8150,11 @@ BOOL CTE::IsInternalRequestsAllowedInRadioOff(UINT32 uiRilRequestId)
 }
 
 
-BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
+BOOL CTE::IsRequestAllowed(int requestId, RIL_Token rilToken, UINT32 uiChannelId,
         BOOL bIsInitCommand, int callId)
 {
     RIL_Errno eRetVal = RIL_E_SUCCESS;
     BOOL bIsReqAllowed;
-
-    int rilRequestId = MapVendorRequestIdToRil(uiRequestId);
 
     //  If we're in the middle of TriggerRadioError(), spoof all commands.
     if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
@@ -8183,17 +8162,17 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
         bIsReqAllowed = FALSE;
         eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
     }
-    else if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(rilRequestId))
+    else if (GetSpoofCommandsStatus() && !IsRequestAllowedInSpoofState(requestId))
     {
-        eRetVal = HandleRequestWhenNoModem(rilRequestId, rilToken);
+        eRetVal = HandleRequestWhenNoModem(requestId, rilToken);
         bIsReqAllowed = FALSE;
     }
     else if (RADIO_STATE_OFF == GetRadioState()
-            && !IsRequestAllowedInRadioOff(rilRequestId)
+            && !IsRequestAllowedInRadioOff(requestId)
             && !bIsInitCommand
-            && !IsInternalRequestsAllowedInRadioOff(uiRequestId))
+            && !IsInternalRequestsAllowedInRadioOff(requestId))
     {
-        eRetVal = HandleRequestInRadioOff(rilRequestId, rilToken);
+        eRetVal = HandleRequestInRadioOff(requestId, rilToken);
         bIsReqAllowed = FALSE;
     }
     else if (IsPlatformShutDownRequested())
@@ -8204,14 +8183,14 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
          * radio power off request. So, allow only requests which
          * are sent to hangup the voice/data call.
          */
-        if (ND_REQ_ID_RADIOPOWER == uiRequestId
-                || ND_REQ_ID_HANGUP == uiRequestId
-                || ND_REQ_ID_HANGUPWAITINGORBACKGROUND == uiRequestId
-                || ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND == uiRequestId
+        if (RIL_REQUEST_RADIO_POWER == requestId
+                || RIL_REQUEST_HANGUP == requestId
+                || RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND == requestId
+                || RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND == requestId
 #if defined(M2_VT_FEATURE_ENABLED)
-                || ND_REQ_ID_HANGUPVT == uiRequestId
+                || RIL_REQUEST_HANGUP_VT == requestId
 #endif
-                || ND_REQ_ID_DEACTIVATEDATACALL == uiRequestId)
+                || RIL_REQUEST_DEACTIVATE_DATA_CALL == requestId)
         {
             bIsReqAllowed = TRUE;
         }
@@ -8230,10 +8209,10 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
         RIL_onRequestComplete(rilToken, (RIL_Errno)eRetVal, NULL, 0);
     }
 
-    switch (uiRequestId)
+    switch (requestId)
     {
-        case ND_REQ_ID_REQUESTDTMFSTART:
-            RIL_LOG_INFO("CTE::IsRequestAllowed() - ND_REQ_ID_REQUESTDTMFSTART\r\n");
+        case RIL_REQUEST_DTMF_START:
+            RIL_LOG_INFO("CTE::IsRequestAllowed() - RIL_REQUEST_DTMF_START\r\n");
 
             bIsReqAllowed = FALSE;
             CMutex::Lock(m_pDtmfStateAccess);
@@ -8262,10 +8241,10 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
                 {
                     // Complete pending DTMF start and stop request
                     CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
+                            RIL_REQUEST_DTMF_START, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
                     CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
+                            RIL_REQUEST_DTMF_STOP, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
                     SetDtmfState(E_DTMF_STATE_STOP);
                 }
@@ -8274,9 +8253,9 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
             CMutex::Unlock(m_pDtmfStateAccess);
             break;
 
-        case ND_REQ_ID_REQUESTDTMFSTOP:
+        case RIL_REQUEST_DTMF_STOP:
         {
-            RIL_LOG_INFO("CTE::IsRequestAllowed() - ND_REQ_ID_REQUESTDTMFSTOP\r\n");
+            RIL_LOG_INFO("CTE::IsRequestAllowed() - RIL_REQUEST_DTMF_STOP\r\n");
 
             bIsReqAllowed = FALSE;
 
@@ -8298,10 +8277,10 @@ BOOL CTE::IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChan
                 {
                     // Complete pending DTMF start and stop request
                     CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTART, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
+                            RIL_REQUEST_DTMF_START, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
 
                     CompleteIdenticalRequests(uiChannelId,
-                            ND_REQ_ID_REQUESTDTMFSTOP, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
+                            RIL_REQUEST_DTMF_STOP, RIL_E_GENERIC_FAILURE, NULL, 0, callId);
                 }
             }
             break;
@@ -8390,7 +8369,7 @@ RIL_RESULT_CODE CTE::ParseSilentPinEntry(RESPONSE_DATA& rRspData)
 //
 // Create Extended Error Report request (called internally)
 //
-BOOL CTE::RequestQueryNEER(UINT32 uiChannel, RIL_Token rilToken, UINT32 uiReqId)
+BOOL CTE::RequestQueryNEER(UINT32 uiChannel, RIL_Token rilToken, int reqId)
 {
     RIL_LOG_VERBOSE("CTE::RequestQueryNEER() Enter\r\n");
 
@@ -8406,7 +8385,7 @@ BOOL CTE::RequestQueryNEER(UINT32 uiChannel, RIL_Token rilToken, UINT32 uiReqId)
     }
     else
     {
-        CCommand* pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
+        CCommand* pCmd = new CCommand(uiChannel, rilToken, reqId, reqData,
                 &CTE::ParseQueryNEER);
         if (pCmd)
         {
@@ -8469,7 +8448,7 @@ void CTE::PostCmdHandlerCompleteRequest(POST_CMD_HANDLER_DATA& rData)
     if (NULL == rData.pRilToken)
     {
         RIL_LOG_INFO("CTE::PostCmdHandlerCompleteRequest() RilToken NULL -"
-                " May be internal request, RequestID: %u\r\n", rData.uiRequestId);
+                " May be internal request, RequestID: %d\r\n", rData.requestId);
         return;
     }
 
@@ -8693,7 +8672,7 @@ void CTE::PostSimPinCmdHandler(POST_CMD_HANDLER_DATA& rData)
         RIL_RESULT_CODE res = RequestSimPinRetryCount(rData.pRilToken,
                                                     (void*) pResultCode,
                                                     sizeof(UINT32),
-                                                    rData.uiRequestId,
+                                                    rData.requestId,
                                                     &CTE::PostSimPinRetryCount);
         if (RRIL_RESULT_OK == res)
         {
@@ -8846,11 +8825,11 @@ void CTE::PostSwitchHoldingAndActiveCmdHandler(POST_CMD_HANDLER_DATA& rData)
     if (IsClearPendingCHLD() || RRIL_RESULT_OK != rData.uiResultCode)
     {
         RIL_LOG_VERBOSE("CTE::PostSwitchHoldingAndActiveCmdHandler()"
-                " clearing all ND_REQ_ID_SWITCHHOLDINGANDACTIVE\r\n");
+                " clearing all RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE\r\n");
         SetClearPendingCHLDs(FALSE);
 
         CompleteIdenticalRequests(rData.uiChannel,
-                ND_REQ_ID_SWITCHHOLDINGANDACTIVE, RIL_E_GENERIC_FAILURE, NULL, 0);
+                RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE, RIL_E_GENERIC_FAILURE, NULL, 0);
     }
 
     RIL_LOG_VERBOSE("CTE::PostSwitchHoldingAndActiveCmdHandler() Exit\r\n");
@@ -8895,7 +8874,7 @@ void CTE::PostNetworkInfoCmdHandler(POST_CMD_HANDLER_DATA& rData)
         return;
     }
 
-    CompleteIdenticalRequests(rData.uiChannel, rData.uiRequestId,
+    CompleteIdenticalRequests(rData.uiChannel, rData.requestId,
             rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
 
     RIL_LOG_VERBOSE("CTE::PostNetworkInfoCmdHandler() Exit\r\n");
@@ -9206,7 +9185,7 @@ void CTE::PostSetFacilityLockCmdHandler(POST_CMD_HANDLER_DATA& rData)
 
         RIL_RESULT_CODE res = RequestSimPinRetryCount(rData.pRilToken, pContextData,
                                                 sizeof(S_SET_FACILITY_LOCK_CONTEXT_DATA),
-                                                rData.uiRequestId,
+                                                rData.requestId,
                                                 &CTE::PostFacilityLockRetryCount);
         if (RRIL_RESULT_OK == res)
         {
@@ -9379,7 +9358,7 @@ void CTE::PostGetNeighboringCellIDs(POST_CMD_HANDLER_DATA& rData)
                                     (void*)rData.pData, rData.uiDataSize);
 
     CompleteIdenticalRequests(rData.uiChannel,
-            rData.uiRequestId, rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
+            rData.requestId, rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
 
     RIL_LOG_VERBOSE("CTE::PostGetNeighboringCellIDs() Exit\r\n");
 }
@@ -9398,7 +9377,7 @@ void CTE::PostGetCellInfoList(POST_CMD_HANDLER_DATA& rData)
                                     (void*)rData.pData, rData.uiDataSize);
 
     CompleteIdenticalRequests(rData.uiChannel,
-            rData.uiRequestId, rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
+            rData.requestId, rData.uiResultCode, (void*)rData.pData, rData.uiDataSize);
 
     RIL_LOG_VERBOSE("CTE::PostGetCellInfoList() Exit\r\n");
 }
@@ -9442,14 +9421,14 @@ void CTE::PostSilentPinRetryCmdHandler(POST_CMD_HANDLER_DATA& rData)
 }
 
 RIL_RESULT_CODE CTE::RequestSimPinRetryCount(RIL_Token rilToken, void* pData, size_t datalen,
-                                    UINT32 uiReqId, PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn)
+                                    int reqId, PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn)
 {
     RIL_LOG_VERBOSE("CTE::RequestSimPinRetryCount() - Enter\r\n");
 
     REQUEST_DATA reqData;
     RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
 
-    if (0 == uiReqId)
+    if (0 == reqId)
     {
         RIL_LOG_CRITICAL("CTE::RequestSimPinRetryCount() - reqId is 0\r\n");
         return res;
@@ -9463,8 +9442,8 @@ RIL_RESULT_CODE CTE::RequestSimPinRetryCount(RIL_Token rilToken, void* pData, si
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_arChannelMapping[uiReqId], rilToken, uiReqId, reqData,
-                                        &CTE::ParseSimPinRetryCount, pPostCmdHandlerFcn);
+        CCommand* pCmd = new CCommand(g_pReqInfo[reqId].uiChannel, rilToken, reqId,
+                                        reqData, &CTE::ParseSimPinRetryCount, pPostCmdHandlerFcn);
 
         if (NULL != pCmd)
         {
@@ -9518,20 +9497,20 @@ void CTE::PostSimPinRetryCount(POST_CMD_HANDLER_DATA& rData)
 
     if (RIL_E_SUCCESS == rData.uiResultCode)
     {
-        switch (rData.uiRequestId)
+        switch (rData.requestId)
         {
-            case ND_REQ_ID_ENTERSIMPIN:
-            case ND_REQ_ID_CHANGESIMPIN:
+            case RIL_REQUEST_ENTER_SIM_PIN:
+            case RIL_REQUEST_CHANGE_SIM_PIN:
                 noOfRetries = m_pTEBaseInstance->GetPinRetryCount();
                 break;
-            case ND_REQ_ID_ENTERSIMPIN2:
-            case ND_REQ_ID_CHANGESIMPIN2:
+            case RIL_REQUEST_ENTER_SIM_PIN2:
+            case RIL_REQUEST_CHANGE_SIM_PIN2:
                 noOfRetries = m_pTEBaseInstance->GetPin2RetryCount();
                 break;
-            case ND_REQ_ID_ENTERSIMPUK:
+            case RIL_REQUEST_ENTER_SIM_PUK:
                 noOfRetries = m_pTEBaseInstance->GetPukRetryCount();
                 break;
-            case ND_REQ_ID_ENTERSIMPUK2:
+            case RIL_REQUEST_ENTER_SIM_PUK2:
                 noOfRetries = m_pTEBaseInstance->GetPuk2RetryCount();
                 break;
             default:
@@ -9637,7 +9616,7 @@ void CTE::PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData)
             case CME_ERROR_UNSPECIFIED_GPRS_ERROR: // 148
 
                 // send +NEER command to get more info
-                if (!RequestQueryNEER(rData.uiChannel, rData.pRilToken, rData.uiRequestId))
+                if (!RequestQueryNEER(rData.uiChannel, rData.pRilToken, rData.requestId))
                 {
                     RIL_LOG_CRITICAL("CTE::PostSetNetworkSelectionCmdHandler() -"
                             " RequestQueryNEER failed\r\n");
@@ -9794,7 +9773,7 @@ BOOL CTE::IsPlatformShutDownRequested()
     return s_bIsShutDownRequested;
 }
 
-void CTE::CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID,
+void CTE::CompleteIdenticalRequests(UINT32 uiChannelId, int reqID,
                                         UINT32 uiResultCode,
                                         void* pResponse,
                                         size_t responseLen,
@@ -9807,7 +9786,7 @@ void CTE::CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID,
         CChannel* pChannel = g_pRilChannel[uiChannelId];
         if (NULL != pChannel)
         {
-            pChannel->FindIdenticalRequestsAndSendResponses(uiReqID, uiResultCode,
+            pChannel->FindIdenticalRequestsAndSendResponses(reqID, uiResultCode,
                     pResponse, responseLen, callId);
         }
     }

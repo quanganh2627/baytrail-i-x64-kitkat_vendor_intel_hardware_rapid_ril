@@ -94,7 +94,7 @@ public:
     BOOL IsInitializationSuccessful() const { return m_bIsSystemInitialized; }
     void SetInitializationUnsuccessful() { m_bIsSystemInitialized = FALSE; }
 
-    void GetRequestInfo(REQ_ID reqID, REQ_INFO& rReqInfo);
+    void GetRequestInfo(int reqID, REQ_INFO& rReqInfo);
 
     /*
      * Signals the command, response thread to exit and also stops the thread before

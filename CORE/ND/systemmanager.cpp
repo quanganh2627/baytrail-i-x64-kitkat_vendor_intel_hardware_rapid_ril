@@ -742,7 +742,7 @@ BOOL CSystemManager::IsExitRequestSignalled() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void CSystemManager::GetRequestInfo(REQ_ID reqID, REQ_INFO& rReqInfo)
+void CSystemManager::GetRequestInfo(int reqID, REQ_INFO& rReqInfo)
 {
     m_RequestInfoTable.GetRequestInfo(reqID, rReqInfo);
 }

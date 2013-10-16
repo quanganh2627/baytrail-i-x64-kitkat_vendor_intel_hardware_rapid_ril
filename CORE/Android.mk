@@ -40,11 +40,10 @@ LOCAL_SRC_FILES:= \
     ND/thread_ops.cpp \
     cmdcontext.cpp \
     command.cpp \
-    rilchannels.cpp \
+    request_info.cpp \
     response.cpp \
     request_info_table.cpp \
     thread_manager.cpp \
-    ND/nd_util.cpp \
     ND/MODEMS/initializer.cpp \
     ND/MODEMS/init6260.cpp \
     ND/MODEMS/init6360.cpp \

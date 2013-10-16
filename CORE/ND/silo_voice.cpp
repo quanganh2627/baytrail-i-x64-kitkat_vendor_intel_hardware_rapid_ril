@@ -369,8 +369,8 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
         //  We need to queue AT+XCEER command
         //  Let RIL framework handle the +XCEER response as a notification.  No parse function needed here.
         CCommand* pCmd = NULL;
-        pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_LASTCALLFAILCAUSE],
-                NULL, ND_REQ_ID_LASTCALLFAILCAUSE, "AT+XCEER\r");
+        pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_LAST_CALL_FAIL_CAUSE].uiChannel,
+                                NULL, RIL_REQUEST_LAST_CALL_FAIL_CAUSE, "AT+XCEER\r");
         if (pCmd)
         {
             if (!CCommand::AddCmdToQueue(pCmd))

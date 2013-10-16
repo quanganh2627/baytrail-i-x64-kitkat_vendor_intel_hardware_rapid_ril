@@ -18,13 +18,13 @@
 
 CCommand::CCommand( UINT32 uiChannel,
                     RIL_Token token,
-                    UINT32 uiReqId,
+                    int reqId,
                     const char* pszATCmd,
                     PFN_TE_PARSE pParseFcn,
                     PFN_TE_POSTCMDHANDLER pHandlerFcn) :
     m_uiChannel(RIL_CHANNEL_ATCMD),
     m_token(token),
-    m_uiReqId(uiReqId),
+    m_reqId(reqId),
     m_pszATCmd1(NULL),
     m_pszATCmd2(NULL),
     m_pParseFcn(pParseFcn),
@@ -65,14 +65,14 @@ CCommand::CCommand( UINT32 uiChannel,
 
 CCommand::CCommand( UINT32 uiChannel,
                     RIL_Token token,
-                    UINT32 uiReqId,
+                    int reqId,
                     const char* pszATCmd1,
                     const char* pszATCmd2,
                     PFN_TE_PARSE pParseFcn,
                     PFN_TE_POSTCMDHANDLER pHandlerFcn) :
     m_uiChannel(RIL_CHANNEL_ATCMD),
     m_token(token),
-    m_uiReqId(uiReqId),
+    m_reqId(reqId),
     m_pszATCmd1(NULL),
     m_pszATCmd2(NULL),
     m_pParseFcn(pParseFcn),
@@ -125,13 +125,13 @@ CCommand::CCommand( UINT32 uiChannel,
 
 CCommand::CCommand( UINT32 uiChannel,
                     RIL_Token token,
-                    UINT32 uiReqId,
+                    int reqId,
                     REQUEST_DATA reqData,
                     PFN_TE_PARSE pParseFcn,
                     PFN_TE_POSTCMDHANDLER pHandlerFcn) :
     m_uiChannel(RIL_CHANNEL_ATCMD),
     m_token(token),
-    m_uiReqId(uiReqId),
+    m_reqId(reqId),
     m_pszATCmd1(NULL),
     m_pszATCmd2(NULL),
     m_pParseFcn(pParseFcn),
@@ -217,7 +217,7 @@ BOOL CCommand::AddCmdToQueue(CCommand*& rpCmd, BOOL bFront /*=false*/)
         memset(&reqInfo, 0, sizeof(reqInfo));
 
         // Get the info about this API
-        CSystemManager::GetInstance().GetRequestInfo((REQ_ID)rpCmd->GetRequestID(), reqInfo);
+        CSystemManager::GetInstance().GetRequestInfo(rpCmd->GetRequestID(), reqInfo);
 
         //  A value of "0" for uiTimeout will use the retrieved request info from the registry.
         if (0 == rpCmd->GetTimeout())

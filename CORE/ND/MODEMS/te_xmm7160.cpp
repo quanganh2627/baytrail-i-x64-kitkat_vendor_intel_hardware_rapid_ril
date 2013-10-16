@@ -919,7 +919,7 @@ RIL_RESULT_CODE CTE_XMM7160::HandleSetupDefaultPDN(RIL_Token rilToken,
         }
     }
 
-    pCmd = new CCommand(uiRilChannel, rilToken, ND_REQ_ID_NONE, reqData,
+    pCmd = new CCommand(uiRilChannel, rilToken, REQ_ID_NONE, reqData,
             &CTE::ParseSetupDefaultPDN, &CTE::PostSetupDefaultPDN);
 
     if (pCmd)

@@ -74,7 +74,7 @@ typedef struct s_post_cmd_handler_data
 
     unsigned int uiContextDataSize; // Size in bytes of the context data object
 
-    unsigned int uiRequestId;       // Corresponding RIL request ID
+    int requestId;                  // Corresponding RIL request ID
 
     unsigned int uiResultCode;      // Result code for the AT command sent
 
