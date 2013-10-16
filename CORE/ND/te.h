@@ -1128,6 +1128,11 @@ public:
      */
     void AcceptOrRejectNwInitiatedContext();
 
+    // Returns the signal strength reporting string used to enable signal strength URC
+    const char* GetSignalStrengthReportingString();
+
+    RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
+
 private:
     UINT32 m_uiModemType;
 

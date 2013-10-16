@@ -58,6 +58,11 @@ public:
                                                        UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetBandMode(RESPONSE_DATA& rRspData);
 
+    // RIL_REQUEST_SIGNAL_STRENGTH 19
+    virtual RIL_RESULT_CODE CoreSignalStrength(REQUEST_DATA& rReqData,
+            void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSignalStrength(RESPONSE_DATA& rRspData);
+
     // RIL_REQUEST_DATA_REGISTRATION_STATE 21
     virtual RIL_RESULT_CODE CoreGPRSRegistrationState(REQUEST_DATA& rReqData,
              void* pData, UINT32 uiDataSize);
@@ -76,6 +81,9 @@ public:
     virtual RIL_RESULT_CODE CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
             void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData);
+
+    // RIL_UNSOL_SIGNAL_STRENGTH  1009
+    virtual RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData);
 
     virtual BOOL IMSRegister(REQUEST_DATA& rReqData, void* pData,
                                                     UINT32 uiDataSize);
@@ -118,6 +126,10 @@ public:
                                                        UINT32 uiMode);
 
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
+
+    virtual const char* GetSignalStrengthReportingString();
+
+    virtual RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
 protected:
 
     virtual const char* GetRegistrationInitString();
@@ -125,6 +137,8 @@ protected:
 
     virtual const char* GetScreenOnString();
     virtual const char* GetScreenOffString();
+
+    virtual void QuerySignalStrength();
 };
 
 #endif

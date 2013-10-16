@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <limits.h>
+#include <math.h>
 
 #include "types.h"
 #include "rillog.h"
@@ -45,6 +46,7 @@ CSilo_Network::CSilo_Network(CChannel* pChannel, CSystemCapabilities* pSysCaps)
     static ATRSPTABLE pATRspTable[] =
     {
         { "+XCSQ:"      , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCSQ         },
+        { "+XCESQI:"    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCESQI       },
         { "+CREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCREG         },
         { "+CGREG: "    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGREG        },
         { "+XREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXREG         },
@@ -92,11 +94,22 @@ char* CSilo_Network::GetURCInitString()
 
     if (CTE::GetTE().IsSignalStrengthReportEnabled())
     {
-        if (!ConcatenateStringNullTerminate(m_szURCInitString, MAX_BUFFER_SIZE, "|+XCSQ=1"))
+        const char* pszSignalStrengthURC = CTE::GetTE().GetSignalStrengthReportingString();
+        if (NULL != pszSignalStrengthURC)
         {
-            RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to concat "
-                    "XCSQ to URC init string!\r\n");
-            return NULL;
+            if (!ConcatenateStringNullTerminate(m_szURCInitString, MAX_BUFFER_SIZE, "|"))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() - concat of | failed\r\n");
+                return NULL;
+            }
+
+            if (!ConcatenateStringNullTerminate(m_szURCInitString, MAX_BUFFER_SIZE,
+                    pszSignalStrengthURC))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to copy signal"
+                        " strength URC string!\r\n");
+                return NULL;
+            }
         }
     }
 
@@ -1408,6 +1421,64 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCSQ() - Exit\r\n");
+    return bRet;
+}
+
+//
+//
+BOOL CSilo_Network::ParseXCESQI(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXCESQI() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    const char* pszDummy = NULL;
+    const char* pszStart = NULL;
+    char szBackup[MAX_NETWORK_DATA_SIZE] = {0};
+    RIL_SignalStrength_v6* pSigStrData = NULL;
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCESQI() - pResponse is NULL\r\n");
+        goto Error;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszDummy))
+    {
+        // This isn't a complete notification -- no need to parse it
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCESQI() - Failed to find rsp end!\r\n");
+        goto Error;
+    }
+
+    // Backup the XCESQI response string to report data on crashtool
+    pszStart = rszPointer;
+    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszDummy);
+    CTE::GetTE().SaveNetworkData(LAST_NETWORK_XCSQ, szBackup);
+
+    pSigStrData = CTE::GetTE().ParseXCESQ(rszPointer, TRUE);
+    if (NULL == pSigStrData)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCESQI() -"
+                " Could not allocate memory for RIL_SignalStrength_v6.\r\n");
+        goto Error;
+    }
+
+    if (!pResponse->SetData((void*)pSigStrData, sizeof(RIL_SignalStrength_v6), FALSE))
+    {
+        goto Error;
+    }
+
+    pResponse->SetResultCode(RIL_UNSOL_SIGNAL_STRENGTH);
+    bRet = TRUE;
+Error:
+    if (!bRet)
+    {
+        free(pSigStrData);
+        pSigStrData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXCESQI() - Exit\r\n");
     return bRet;
 }
 

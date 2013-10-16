@@ -48,6 +48,7 @@ protected:
     virtual BOOL    ParseCGEV(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseXCSQ(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseXDATASTAT(CResponse* const pResponse, const char* &rszPointer);
+    virtual BOOL    ParseXCESQI(CResponse* const pResponse, const char*& rszPointer);
 
 private:
     BOOL GetContextIdFromDeact(const char* pData, UINT32& uiCID);

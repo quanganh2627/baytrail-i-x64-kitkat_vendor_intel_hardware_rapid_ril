@@ -129,6 +129,11 @@ const char* CTE_XMM6260::GetScreenOffString()
     }
 }
 
+const char* CTE_XMM6260::GetSignalStrengthReportingString()
+{
+    return "+XCSQ=1";
+}
+
 LONG CTE_XMM6260::GetDataDeactivateReason(char* pszReason)
 {
     return strtol(pszReason, NULL, 10);

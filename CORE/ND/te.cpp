@@ -10108,3 +10108,13 @@ void CTE::AcceptOrRejectNwInitiatedContext()
                 " Unable to allocate memory for command\r\n");
     }
 }
+
+const char* CTE::GetSignalStrengthReportingString()
+{
+    return m_pTEBaseInstance->GetSignalStrengthReportingString();
+}
+
+RIL_SignalStrength_v6* CTE::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
+{
+    return m_pTEBaseInstance->ParseXCESQ(rszPointer, bUnsolicited);
+}

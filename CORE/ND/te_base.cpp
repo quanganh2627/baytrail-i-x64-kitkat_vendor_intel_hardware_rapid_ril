@@ -162,6 +162,11 @@ const char* CTEBase::GetScreenOffString()
     }
 }
 
+const char* CTEBase::GetSignalStrengthReportingString()
+{
+    return NULL;
+}
+
 //
 // RIL_REQUEST_GET_SIM_STATUS 1
 //
@@ -1812,22 +1817,6 @@ RIL_RESULT_CODE CTEBase::CoreSignalStrength(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSignalStrength() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-#if defined(SIMULATE_UNSOL_MODEM_RESET)
-    //  NOTE: Uncomment this block to simulate unsolicited modem reset
-    static int nCount = 0;
-    nCount++;
-    RIL_LOG_INFO("COUNT = %d\r\n", nCount);
-    if (nCount == 4)
-    {
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=15\r", sizeof(rReqData.szCmd1)))
-        {
-            res = RRIL_RESULT_OK;
-        }
-    }
-    else
-
-#endif // SIMULATE_UNSOL_MODEM_RESET
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSQ\r", sizeof(rReqData.szCmd1)))
     {
@@ -6701,7 +6690,7 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA& rRspData)
          */
         if (m_cte.IsSignalStrengthReportEnabled())
         {
-            triggerSignalStrength(NULL);
+            QuerySignalStrength();
         }
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
     }
@@ -11443,4 +11432,30 @@ void CTEBase::PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData)
     RIL_LOG_VERBOSE("CTEBase::PostInternalDtmfStopReq() Enter\r\n");
     CEvent::Signal(m_pDtmfStopReqEvent);
     RIL_LOG_VERBOSE("CTEBase::PostInternalDtmfStopReq() Exit\r\n");
+}
+
+void CTEBase::QuerySignalStrength()
+{
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIGNAL_STRENGTH].uiChannel, NULL,
+            RIL_REQUEST_SIGNAL_STRENGTH, "AT+CSQ\r", &CTE::ParseUnsolicitedSignalStrength);
+
+    if (pCmd)
+    {
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::QuerySignalStrength() - Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::QuerySignalStrength() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+}
+
+RIL_SignalStrength_v6* CTEBase::ParseXCESQ(const char*& /*rszPointer*/, const BOOL /*bUnsolicited*/)
+{
+    return NULL;
 }

@@ -901,6 +901,10 @@ public:
     // Post handler for internal DTMF stop request
     virtual void PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData);
 
+    virtual const char* GetSignalStrengthReportingString();
+
+    virtual RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
 
@@ -924,6 +928,8 @@ protected:
      * Deactivates all data calls. This function is called before sending manual network scan.
      */
     virtual void DeactivateAllDataCalls();
+
+    virtual void QuerySignalStrength();
 
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA& rRspData);

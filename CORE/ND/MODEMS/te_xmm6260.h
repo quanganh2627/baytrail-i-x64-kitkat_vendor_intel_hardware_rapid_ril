@@ -260,6 +260,8 @@ public:
 
     virtual RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);
 
+    virtual const char* GetSignalStrengthReportingString();
+
 protected:
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);

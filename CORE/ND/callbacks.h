@@ -47,11 +47,6 @@ void triggerDataSuspendInd(void* param);
 void triggerHangup(UINT32 uiCallId);
 
 //
-// Callback to trigger signal strength update
-//
-void triggerSignalStrength(void* param);
-
-//
 // Callback to send incoming SMS acknowledgement
 //
 void triggerSMSAck(void* param);
