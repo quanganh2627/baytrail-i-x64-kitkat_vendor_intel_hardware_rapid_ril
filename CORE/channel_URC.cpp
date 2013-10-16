@@ -26,7 +26,6 @@ extern BOOL  g_bIsSocket;
 // Add any init cmd strings for this channel during PowerOn or Ready boot phase
 INITSTRING_DATA URCPowerOnInitString = { "" };
 INITSTRING_DATA URCReadyInitString   = { "" };
-char URCClockInitString[32];
 
 CChannel_URC::CChannel_URC(UINT32 uiChannel)
 : CChannel(uiChannel)
@@ -59,37 +58,6 @@ BOOL CChannel_URC::OpenPort()
     return bRetVal;
 }
 
-void CChannel_URC::ModemTimeSyncInit()
-{
-    RIL_LOG_VERBOSE("CChannel_URC::ModemTimeSyncInit() - Enter\r\n");
-#if defined(HAVE_LOCALTIME_R)
-    struct tm tm;
-#endif
-    struct tm* ptm;
-    time_t t;
-
-    time(&t);
-#if defined(HAVE_LOCALTIME_R)
-    ptm = localtime_r(&t, &tm);
-#else
-    ptm = localtime(&t);
-#endif
-    if (ptm != NULL)
-    {
-        memset(URCClockInitString, 0, sizeof(URCClockInitString));
-        strftime(URCClockInitString, sizeof(URCClockInitString),
-                "+CCLK=\"%y/%m/%d,%H:%M:%S\"", ptm);
-        m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX].szCmd = URCClockInitString;
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CChannel_URC::ModemTimeSyncInit() - localtime error");
-        m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX] = URCPowerOnInitString;
-    }
-
-    RIL_LOG_VERBOSE("CChannel_URC::ModemTimeSyncInit() - Exit\r\n");
-}
-
 BOOL CChannel_URC::FinishInit()
 {
     RIL_LOG_VERBOSE("CChannel_URC::FinishInit() - Enter\r\n");
@@ -107,11 +75,7 @@ BOOL CChannel_URC::FinishInit()
     // Set the init command strings for this channel
     m_paInitCmdStrings[COM_BASIC_INIT_INDEX].szCmd = m_szChannelBasicInitCmd;
     m_paInitCmdStrings[COM_UNLOCK_INIT_INDEX].szCmd = m_szChannelUnlockInitCmd;
-#if 0
     m_paInitCmdStrings[COM_POWER_ON_INIT_INDEX] = URCPowerOnInitString;
-#else
-    ModemTimeSyncInit();
-#endif
     m_paInitCmdStrings[COM_READY_INIT_INDEX] = URCReadyInitString;
 
     bRet = TRUE;

@@ -780,6 +780,41 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         }
     }
 
+    // Set the real time clock
+    if ((COM_POWER_ON_INIT_INDEX == eInitIndex) && (RIL_CHANNEL_URC == m_uiRilChannel))
+    {
+#if defined(HAVE_LOCALTIME_R)
+        struct tm tm;
+#endif
+        struct tm* ptm;
+        time_t t;
+
+        time(&t);
+#if defined(HAVE_LOCALTIME_R)
+        ptm = localtime_r(&t, &tm);
+#else
+        ptm = localtime(&t);
+#endif
+        if (ptm != NULL)
+        {
+            char URCClockInitString[32];
+            memset(URCClockInitString, 0, sizeof(URCClockInitString));
+            strftime(URCClockInitString, sizeof(URCClockInitString),
+                    "|+CCLK=\"%y/%m/%d,%H:%M:%S\"", ptm);
+
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, URCClockInitString))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
+                        " Concat DataPath failed\r\n");
+                goto Done;
+            }
+        }
+        else
+        {
+            RIL_LOG_WARNING("CChannelBase::SendModemConfigurationCommands() - localtime error");
+        }
+    }
+
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : String [%s]\r\n", szInit);
     if (NULL == szInit || '\0' == szInit[0])
     {
