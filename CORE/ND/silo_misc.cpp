@@ -77,7 +77,6 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_MISC::ParseXDRVI() - Enter\r\n");
     BOOL   fRet = FALSE;
-    const char* pszEnd = NULL;
     sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND* pData = NULL;
     UINT32 nIpcChrGrp;
     UINT32 nIpcChrTempThresholdInd;
@@ -91,12 +90,7 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse* const pResponse, const char*& rszPointer)
         goto Error;
     }
 
-    // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
-    {
-        RIL_LOG_CRITICAL("CSilo_MISC::ParseXDRVI() : Could not find response end\r\n");
-        goto Error;
-    }
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Extract "<IPC_CHR_GRP>"
     if (!ExtractUInt32(rszPointer, nIpcChrGrp, rszPointer))
@@ -155,7 +149,6 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse* const pResponse, const char*& rszPointer)
     pData->nSensorId = nSensorId;
     pData->nTemp = nTemp;
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
     if (!pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND), FALSE))
@@ -164,9 +157,6 @@ BOOL CSilo_MISC::ParseXDRVI(CResponse* const pResponse, const char*& rszPointer)
     }
 
     fRet = TRUE;
-
-    rszPointer = pszEnd - strlen(m_szNewLine);
-
 Error:
     if (!fRet)
     {
@@ -212,6 +202,8 @@ BOOL CSilo_MISC::ParseCoexURC(CResponse* const pResponse, const char*& rszPointe
         goto Error;
     }
 
+    pResponse->SetUnsolicitedFlag(TRUE);
+
     // Performing a backup of the URC string (rszPointer) into szExtInfo, to not modify rszPointer
     ExtractUnquotedString(rszPointer, '\r', szExtInfo, MAX_BUFFER_SIZE, rszPointer);
 
@@ -252,7 +244,6 @@ BOOL CSilo_MISC::ParseCoexURC(CResponse* const pResponse, const char*& rszPointe
     pData->command = RIL_OEM_HOOK_RAW_UNSOL_COEX_INFO;
     pData->responseSize = strnlen(pData->response, COEX_INFO_BUFFER_SIZE);
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
     if (!pResponse->SetData((void*)pData,
@@ -262,7 +253,6 @@ BOOL CSilo_MISC::ParseCoexURC(CResponse* const pResponse, const char*& rszPointe
     }
 
     fRet = TRUE;
-
 Error:
     if (!fRet)
     {

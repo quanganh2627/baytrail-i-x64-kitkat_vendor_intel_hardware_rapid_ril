@@ -124,7 +124,7 @@ BOOL CResponse::IsCompleteResponse()
 BOOL CResponse::IsUnsolicitedResponse()
 {
     BOOL bRet = FALSE;
-    BOOL fDummy = FALSE;
+    BOOL bGotoError = FALSE;
     const char* szPointer = m_szBuffer;
 
     RIL_LOG_VERBOSE("CResponse::IsUnsolicitedResponse() : Enter\r\n");
@@ -132,20 +132,23 @@ BOOL CResponse::IsUnsolicitedResponse()
     // Parse "<prefix>" if it exists.
     SkipRspStart(szPointer, m_szNewLine, szPointer);
 
-    if (m_pChannel->ParseUnsolicitedResponse(this, szPointer, fDummy))
+    SetUnsolicitedFlag(FALSE);
+
+    m_pChannel->ParseUnsolicitedResponse(this, szPointer, bGotoError);
+
+    if (IsUnsolicitedFlag())
     {
-        // unsolicited response parsed correctly; verify
-        // string contains cr-lf
-        if (!SkipRspEnd(szPointer, m_szNewLine, szPointer))
+        bRet = TRUE;
+        if (!FindAndSkipRspEnd(szPointer, m_szNewLine, szPointer))
         {
             RIL_LOG_CRITICAL("CResponse::IsUnsolicitedResponse() - chnl=[%d] no CRLF at end of"
                     " response: \"%s\"\r\n", m_pChannel->GetRilChannel(),
                     CRLFExpandedString(szPointer, strlen(szPointer)).GetString());
-            goto Error;
         }
-        m_uiResponseEndMarker = szPointer - m_szBuffer;
-        SetUnsolicitedFlag(TRUE);
-        bRet = TRUE;
+        else
+        {
+            m_uiResponseEndMarker = szPointer - m_szBuffer;
+        }
     }
 
 Error:

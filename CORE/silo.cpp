@@ -162,19 +162,8 @@ BOOL CSilo::ParseUnrecognized(CResponse* const pResponse, const char*& rszPointe
         goto Error;
     }
 
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        // This isn't a complete registration notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo::ParseUnrecognized() chnl=[%d] - Failed to find postfix"
-                " in the response.\r\n", m_pChannel->GetRilChannel());
-        goto Error;
-    }
-
-    //  Back up over the "\r\n".
-    rszPointer -= strlen(m_szNewLine);
-
     //  Flag as unrecognized.
+    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetUnrecognizedFlag(TRUE);
 
     fRet = TRUE;

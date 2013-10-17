@@ -118,6 +118,8 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
         goto Error;
     }
 
+    pResponse->SetUnsolicitedFlag(TRUE);
+
     // Look for a "<postfix>" to be sure we got a whole message
     if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
     {
@@ -157,7 +159,6 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
 
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Hex String: \"%s\".\r\n", pszProactiveCmd);
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_STK_PROACTIVE_COMMAND);
 
     if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char) * uiLength, FALSE))
@@ -201,6 +202,8 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
         goto Error;
     }
 
+    pResponse->SetUnsolicitedFlag(TRUE);
+
     // Look for a "<postfix>" to be sure we got the whole message
     if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
     {
@@ -238,8 +241,6 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     pszProactiveCmd[uiLength-1] = '\0';
 
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Hex String: \"%s\".\r\n", pszProactiveCmd);
-
-    pResponse->SetUnsolicitedFlag(TRUE);
 
     //  Need to see if this is a SIM_REFRESH command.
     //  Check for "8103", jump next byte and verify if followed by "01".
@@ -433,7 +434,6 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const char*& rs
 {
     RIL_LOG_INFO("CSilo_SIM::ParseTermRespConfirm() - Enter\r\n");
     BOOL fRet = FALSE;
-    const char* pszEnd = NULL;
     UINT32 uiStatus1;
     UINT32 uiStatus2;
 
@@ -443,12 +443,7 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const char*& rs
         goto Error;
     }
 
-    // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
-    {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseTermRespConfirm() : Could not find response end\r\n");
-        goto Error;
-    }
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Extract "<sw1>"
     if (!ExtractUInt32(rszPointer, uiStatus1, rszPointer))
@@ -471,7 +466,6 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const char*& rs
 
     if (uiStatus1 == 0x90 && uiStatus2 == 0x00)
     {
-        pResponse->SetUnsolicitedFlag(TRUE);
         pResponse->SetResultCode(RIL_UNSOL_STK_SESSION_END);
     }
 
@@ -486,7 +480,6 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIM() - Enter\r\n");
     BOOL fRet = FALSE;
-    const char* pszEnd = NULL;
     UINT32 nSIMState = 0;
     char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
@@ -496,12 +489,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
         goto Error;
     }
 
-    // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
-    {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXSIM() : Could not find response end\r\n");
-        goto Error;
-    }
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Extract "<SIM state>"
     if (!ExtractUInt32(rszPointer, nSIMState, rszPointer))
@@ -607,8 +595,6 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             break;
     }
 
-    pResponse->SetUnsolicitedFlag(TRUE);
-
     if (m_bRefreshWithUSIMInit)
     {
         if (m_bReadyForAttach)
@@ -665,8 +651,6 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
 
     BOOL fRet = FALSE;
     int i = 0;
-    const char* pszEnd = NULL;
-
     //  The number of locks returned by +XLOCK URC.
     const int nMAX_LOCK_INFO = 5;
 
@@ -685,12 +669,7 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
         goto Error;
     }
 
-    // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
-    {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() : Could not find response end\r\n");
-        goto Error;
-    }
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     memset(lock_info, 0, sizeof(lock_info));
 
@@ -729,18 +708,6 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
     }
 
 complete:
-    // Look for "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLOCK() - Could not extract response postfix.\r\n");
-        goto Error;
-    }
-
-    // Walk back over the <CR><LF>
-    rszPointer -= strlen(m_szNewLine);
-
-    pResponse->SetUnsolicitedFlag(TRUE);
-
     i = 0;
     // Change the number to the number of facility locks supported via XLOCK URC.
     while (i < nMAX_LOCK_INFO)
@@ -771,12 +738,10 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXLEMA() - Enter\r\n");
     BOOL fRet = FALSE;
-    const char* pszEnd = NULL;
     UINT32 uiIndex = 0;
     UINT32 uiTotalCnt = 0;
     char szECCItem[MAX_BUFFER_SIZE] = {0};
     const char szRIL_ECCLIST[] = "ril.ecclist";
-
 
     if (pResponse == NULL)
     {
@@ -784,12 +749,7 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
         goto Error;
     }
 
-    // Look for a "<postfix>" to be sure we got a whole message
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
-    {
-        RIL_LOG_CRITICAL("CSilo_SIM::ParseXLEMA() : Could not find response end\r\n");
-        goto Error;
-    }
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Extract "<index>"
     if (!ExtractUInt32(rszPointer, uiIndex, rszPointer))
@@ -815,14 +775,6 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
 
     RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - Found ECC item=[%d] out of [%d]  ECC=[%s]\r\n",
             uiIndex, uiTotalCnt, szECCItem);
-
-    //  Skip the rest of the parameters (if any)
-    // Look for a "<postfix>" to be sure we got a whole message
-    FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer);
-
-    //  Back up over the "\r\n".
-    rszPointer -= strlen(m_szNewLine);
-
 
     //  If the uiIndex is 1, then assume reading first ECC code.
     //  Clear the master list and store the code.
@@ -870,9 +822,6 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
                 m_szECCList);
         property_set(szEccListProp, m_szECCList);
     }
-
-    //  Flag as unrecognized.
-    //pResponse->SetUnrecognizedFlag(TRUE);
 
     fRet = TRUE;
 Error:
