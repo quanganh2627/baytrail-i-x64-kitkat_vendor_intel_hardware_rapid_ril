@@ -82,6 +82,11 @@ void triggerQueryCEER(void* param);
 void triggerQueryDefaultPDNContextParams(void* param);
 
 //
+// Callback to query bearer parameters
+//
+void triggerQueryBearerParams(void* param);
+
+//
 // Callback to trigger drop call data to crashtool
 //
 void triggerDropCallEvent(void* param);

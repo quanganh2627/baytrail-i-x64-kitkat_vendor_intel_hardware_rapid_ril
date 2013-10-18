@@ -46,15 +46,15 @@
 class CResetQueueNodeModemShutdown : public CResetQueueNode
 {
 public:
-    CResetQueueNodeModemShutdown(BOOL is_flight_mode);
+    CResetQueueNodeModemShutdown(BOOL bIsFlightMode);
     void Execute();
 
 private:
     BOOL m_bIsFlightMode;
 };
 
-CResetQueueNodeModemShutdown::CResetQueueNodeModemShutdown(BOOL is_flight_mode) :
-    m_bIsFlightMode(is_flight_mode)
+CResetQueueNodeModemShutdown::CResetQueueNodeModemShutdown(BOOL bIsFlightMode) :
+    m_bIsFlightMode(bIsFlightMode)
 { /* none */
 }
 
@@ -91,11 +91,11 @@ void CResetQueueNodeModemShutdown::Execute()
 class CResetQueueNodeModemDown : public CResetQueueNode
 {
 public:
-    CResetQueueNodeModemDown(BOOL use_cached_pin,
-            BOOL do_state_reset,
-            BOOL close_ports,
-            BOOL send_cold_reset_ack,
-            BOOL is_platform_shutdown);
+    CResetQueueNodeModemDown(BOOL bUseCachedPin,
+            BOOL bDoStateReset,
+            BOOL bClosePorts,
+            BOOL bSendCloseResetAck,
+            BOOL bIsPlatformShutdown);
     void Execute();
 
 private:
@@ -106,16 +106,16 @@ private:
     BOOL m_bIsPlatformShutdown;
 };
 
-CResetQueueNodeModemDown::CResetQueueNodeModemDown(BOOL use_cached_pin,
-        BOOL do_state_reset,
-        BOOL close_ports,
-        BOOL send_cold_reset_ack,
-        BOOL is_platform_shutdown) :
-    m_bUseCachedPin(use_cached_pin),
-    m_bDoStateReset(do_state_reset),
-    m_bClosePorts(close_ports),
-    m_bSendColdResetAck(send_cold_reset_ack),
-    m_bIsPlatformShutdown(is_platform_shutdown)
+CResetQueueNodeModemDown::CResetQueueNodeModemDown(BOOL bUseCachedPin,
+        BOOL bDoStateReset,
+        BOOL bClosePorts,
+        BOOL bSendCloseResetAck,
+        BOOL bIsPlatformShutdown) :
+    m_bUseCachedPin(bUseCachedPin),
+    m_bDoStateReset(bDoStateReset),
+    m_bClosePorts(bClosePorts),
+    m_bSendColdResetAck(bSendCloseResetAck),
+    m_bIsPlatformShutdown(bIsPlatformShutdown)
 { /* none */
 }
 

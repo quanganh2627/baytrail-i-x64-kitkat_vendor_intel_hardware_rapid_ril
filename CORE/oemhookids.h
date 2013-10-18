@@ -330,6 +330,31 @@ const int RIL_OEM_HOOK_STRING_SWAP_PS = 0x000000B2;
 //
 const int RIL_OEM_HOOK_STRING_SEND_AT = 0x000000B3;
 
+//
+//  RIL_OEM_HOOK_STRING_IMS_CALL_AVAILABLE
+//  Command ID = 0x000000B4
+//
+//  This command sends the availability of Call IMS to the modem.
+//
+//  "data" = 0 : Voice calls with the IMS are not available
+//           1 : Voice calls with the IMS are available.
+//  "response" = null.
+//
+const int RIL_OEM_HOOK_STRING_IMS_CALL_STATUS = 0x000000B4;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_IMS_SMS_AVAILABLE
+//  Command ID = 0x000000B5
+//
+//  This command sends the availability of SMS IMS to the modem.
+//
+//  "data" = 0 : SMS using IMS is not available
+//           1 : SMS using IMS is available.
+//  "response" = null.
+//
+const int RIL_OEM_HOOK_STRING_IMS_SMS_STATUS = 0x000000B5;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -533,6 +558,74 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED
 const int RIL_OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED = 0x000000DB;
 
 ///////////////////////////////////////////////////////////////////////////////
+
+typedef struct
+{
+    int command; //  Command ID
+    UINT32 uiPcid;
+    UINT32 uiCid;
+    UINT32 uiPacketFilterIdentifier;
+    UINT32 uiEvaluationPrecedenceIndex;
+    char szSourceIpV4Addr[MAX_IPADDR_SIZE];
+    char szSourceIpV6Addr[MAX_IPADDR_SIZE];
+    char szSourceIpv4SubnetMask[MAX_IPADDR_SIZE];
+    char szSourceIpv6SubnetMask[MAX_IPADDR_SIZE];
+    UINT32 uiProtocolNumber;
+    char szDestinationPortRange[MAX_IPADDR_SIZE];
+    char szSourcePortRange[MAX_IPADDR_SIZE];
+    UINT32 uiIpSecParamIndex;
+    char szTOS[MAX_IPADDR_SIZE];
+    UINT32 uiFlowLabel;
+    UINT32 uiDirection;
+    UINT32 uiNwPacketFilterIdentifier;
+} sOEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS;
+
+//
+//  OEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS
+//  Command ID = 0x000000E0
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS = 0x000000DC;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct
+{
+    int command; //  Command ID
+    UINT32 uiPcid;
+    UINT32 uiCid;
+    UINT32 uiQci;
+    UINT32 uiDlGbr;
+    UINT32 uiUlGbr;
+    UINT32 uiDlMbr;
+    UINT32 uiUlMbr;
+} sOEM_HOOK_RAW_UNSOL_BEARER_QOS_PARAMS;
+
+//
+//  OEM_HOOK_RAW_UNSOL_BEARER_QOS_PARAMS
+//  Command ID = 0x000000E1
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_BEARER_QOS_PARAMS
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_BEARER_QOS_PARAMS = 0x000000DD;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct
+{
+    int command; //  Command ID
+    UINT32 uiPcid;
+    UINT32 uiCid;
+} sOEM_HOOK_RAW_UNSOL_BEARER_DEACT;
+
+//
+//  OEM_HOOK_RAW_UNSOL_BEARER_DEACT
+//  Command ID = 0x000000E2
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_BEARER_DEACT
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_BEARER_DEACT = 0x000000DE;
 
 #pragma pack()
 

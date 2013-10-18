@@ -622,7 +622,10 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
                         psRegStatus.szCID, MAX_REG_STATUS_LENGTH)) )
                 {
                     // ignore, since band not reported to Android
-                    pResponse->SetUnrecognizedFlag(TRUE);
+                    rszPointer -= strlen(m_szNewLine);
+                    pResponse->SetUnsolicitedFlag(TRUE);
+                    pResponse->SetIgnoreFlag(TRUE);
+                    goto Error;
                 }
 
                 // cache current XREG info
@@ -728,8 +731,10 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     const char* szStrExtract = NULL;
     const char* szResponse = NULL;
     char* pszCommaBuffer = NULL;
+    UINT32 uiPCID = 0;
     UINT32 uiCID = 0;
     UINT32 uiReason = 0;
+    UINT32 uiEvent = 0;
     UINT32 uiLength = 0;
     CChannel_Data* pChannelData = NULL;
     sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND* pData = NULL;
@@ -772,23 +777,23 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     //  Format is "ME PDN ACT, <cid>[, <reason>]"
     if (FindAndSkipString(szStrExtract, "ME PDN ACT", szStrExtract))
     {
-        if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
+        if (!ExtractUInt32(szStrExtract, uiPCID, szStrExtract))
         {
             goto Error;
         }
         else
         {
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN ACT , extracted cid=[%u]\r\n",
-                    uiCID);
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN ACT , extracted pcid=[%u]\r\n",
+                    uiPCID);
         }
 
-        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+        pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
         if (NULL == pChannelData)
         {
             const int DEFAULT_DATA_PROFILE = 0;
 
             // This is possible for Default PDN
-            pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiCID, DEFAULT_DATA_PROFILE);
+            pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiPCID, DEFAULT_DATA_PROFILE);
             if (NULL != pChannelData)
             {
                 pChannelData->SetDataState(E_DATA_STATE_INITING);
@@ -848,12 +853,71 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             }
         }
     }
-    // Format: "NW ACT <p_cid>, <cid>, <event_type>. Unsupported.
+    // Format: "NW ACT <p_cid>, <cid>, <event_type>.
     else if (FindAndSkipString(szStrExtract, "NW ACT", szStrExtract))
     {
-        // nothing to do, since secondary PDP contexts are not supported
-        RIL_LOG_INFO("CSilo_Network::ParseCGEV(): NW ACT event for secondary PDP "
-                "context ignored (unsupported)!\r\n");
+        if (!ExtractUInt32(szStrExtract, uiPCID, szStrExtract))
+        {
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW ACT , extracted pcid=[%u]\r\n",
+                    uiPCID);
+
+            if (FindAndSkipString(szStrExtract, ",", szStrExtract))
+            {
+                if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
+                {
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
+                    goto Error;
+                }
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
+                goto Error;
+            }
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW ACT, extracted cid=[%u]\r\n",
+                    uiCID);
+            if (FindAndSkipString(szStrExtract, ",", szStrExtract))
+            {
+                if (!ExtractUInt32(szStrExtract, uiEvent, szStrExtract))
+                {
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Couldn't extract event\r\n");
+                    goto Error;
+                }
+            }
+
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW ACT, extracted event=[%u]\r\n",
+                            uiEvent);
+
+            pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
+            if (NULL != pChannelData)
+            {
+                pChannelData->GetHSIChannel();
+                void** callbackParams = new void*[3];
+                if (callbackParams != NULL) {
+                    callbackParams[0] = (void*)uiPCID;
+                    callbackParams[1] = (void*)uiCID;
+                    callbackParams[2] = (void*)pChannelData;
+                    RIL_requestTimedCallback(triggerQueryBearerParams,
+                            (void*)callbackParams, 0, 0);
+                }
+                else
+                {
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - "
+                            "cannot allocate callbackParams\r\n");
+                    goto Error;
+                }
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid PCID=[%u],"
+                        " no data channel found!\r\n", uiPCID);
+                goto Error;
+            }
+        }
     }
     // Format: "ME ACT <p_cid>, <cid>, <event_type>. Unsupported.
     else if (FindAndSkipString(szStrExtract, "ME ACT", szStrExtract))
@@ -932,9 +996,9 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         // If first parameter is a string, former format
         if (!ExtractUInt32(szStrExtract, uiTemp, szStrExtract))
         {
-            if (GetContextIdFromDeact(szStrExtract, uiCID))
+            if (GetContextIdFromDeact(szStrExtract, uiPCID))
             {
-                RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT CID- %u", uiCID);
+                RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT CID- %u", uiPCID);
             }
         }
         else // Otherwise, must be format for secondary PDP context
@@ -944,48 +1008,55 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                     "context ignored (unsupported)!\r\n");
         }
     }
-    // see new format: "NW PDN DEACT" below
+    // see new format: "NW DEACT" below
     else if (FindAndSkipString(szStrExtract, "NW DEACT", szStrExtract))
     {
-        RIL_LOG_INFO("CSilo_Network::ParseCGEV(): NW DEACT");
-
-        // We need to differentiate between former format
-        // "NW DEACT <PDP_type>, <PDP_addr>, [<cid>]" and new format for
-        // secondary PDP contexts "NW DEACT <p_cid>, <cid>, <event_type>
-
-        // If first parameter is a string, former format
-        if (!ExtractUInt32(szStrExtract, uiTemp, szStrExtract))
+        if (!ExtractUInt32(szStrExtract, uiPCID, szStrExtract))
         {
-            if (GetContextIdFromDeact(szStrExtract, uiCID))
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW DEACT , extracted pcid=[%u]\r\n",
+                    uiPCID);
+
+            if (FindAndSkipString(szStrExtract, ",", szStrExtract))
             {
-                pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
-                if (NULL == pChannelData)
+                if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
                 {
-                    //  This may occur using AT proxy during 3GPP conformance testing.
-                    //  Let normal processing occur.
-                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u],"
-                            " no data channel found!\r\n", uiCID);
-                }
-                else
-                {
-                    pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
-                    /*
-                     * @TODO: If fail cause is provided as part of NW DEACT,
-                     * map the fail cause to ril cause values and set it.
-                     */
-                    pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
-
-                    CTE::GetTE().DataConfigDown(uiCID);
-
-                    CTE::GetTE().CompleteDataCallListChanged();
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
+                    goto Error;
                 }
             }
-        }
-        else // Otherwise, must be format for secondary PDP context
-        {
-            // nothing to do, since secondary PDP contexts are not supported
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV(): NW DEACT event for secondary PDP "
-                    "context ignored (unsupported)!\r\n");
+            else
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
+                goto Error;
+            }
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW DEACT, extracted cid=[%u]\r\n",
+                    uiCID);
+            if (FindAndSkipString(szStrExtract, ",", szStrExtract))
+            {
+                if (!ExtractUInt32(szStrExtract, uiEvent, szStrExtract))
+                {
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Couldn't extract event\r\n");
+                    goto Error;
+                }
+            }
+
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW DEACT, extracted event=[%u]\r\n",
+                            uiEvent);
+
+            sOEM_HOOK_RAW_UNSOL_BEARER_DEACT* pNwDeact =
+                    (sOEM_HOOK_RAW_UNSOL_BEARER_DEACT*)malloc(
+                    sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
+
+            pNwDeact->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_DEACT;
+            pNwDeact->uiCid = uiCID;
+            pNwDeact->uiPcid = uiPCID;
+
+            RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pNwDeact,
+                    sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
         }
     }
     // Format: "ME PDN DEACT <cid>"
@@ -993,7 +1064,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     {
         RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME PDN DEACT");
 
-        if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
+        if (!ExtractUInt32(szStrExtract, uiPCID, szStrExtract))
         {
             RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - ME PDN DEACT, couldn't "
                     "extract cid\r\n");
@@ -1002,7 +1073,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         else
         {
             RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN DEACT, extracted "
-                    "cid=[%u]\r\n", uiCID);
+                    "cid=[%u]\r\n", uiPCID);
         }
     }
     // Format: "NW PDN DEACT, <cid>"
@@ -1010,7 +1081,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     {
         RIL_LOG_INFO("CSilo_Network::ParseCGEV(): NW PDN DEACT");
 
-        if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
+        if (!ExtractUInt32(szStrExtract, uiPCID, szStrExtract))
         {
             RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - NW PDN DEACT, couldn't "
                     "extract cid\r\n");
@@ -1019,15 +1090,15 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         else
         {
             RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW PDN DEACT, extracted "
-                    "cid=[%u]\r\n", uiCID);
+                    "cid=[%u]\r\n", uiPCID);
 
-            pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+            pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
             if (NULL == pChannelData)
             {
                 //  This may occur using AT proxy during 3GPP conformance testing.
                 //  Let normal processing occur.
                 RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u],"
-                        " no data channel found!\r\n", uiCID);
+                        " no data channel found!\r\n", uiPCID);
             }
             else
             {
@@ -1038,7 +1109,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                  */
                 pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
 
-                CTE::GetTE().DataConfigDown(uiCID);
+                CTE::GetTE().DataConfigDown(uiPCID);
 
                 CTE::GetTE().CompleteDataCallListChanged();
             }

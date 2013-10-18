@@ -31,7 +31,8 @@
 //
 CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
 : CSilo(pChannel, pSysCaps),
-  m_IsReadyForAttach(FALSE)
+  m_bReadyForAttach(FALSE),
+  m_bRefreshWithUSIMInit(FALSE)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::CSilo_SIM() - Enter\r\n");
 
@@ -370,27 +371,25 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                     }
 
                     /*
-                     * On SIM REFRESH INIT URC, don't notify Android with UNSOL_STK_EVENT_NOTIFY
-                     * and SIM_REFRESH.  Instead, set SIM state to not ready and trigger framework
-                     * to query SIM status.  Otherwise, SIM records will be read before SIM
-                     * refresh (init) is complete.  After XSIM: 7 is received, SIM_STATUS_CHANGED
-                     * will trigger SIM record fetching.
+                     * On REFRESH with USIM INIT, if rapid ril notifies the framework of REFRESH,
+                     * framework will issues requests to read SIM files. REFRESH notification from
+                     * modem is to indicate that REFRESH is ongoing but not yet completed. REFRESH
+                     * with USIM INIT completion is based on sim status reported via XSIM URC. So,
+                     * upon REFRESH with USIM init, don't notify the framework of SIM REFRESH but
+                     * set the internal sim state to NOT READY inorder to restrict SIM related
+                     * requests during the SIM REFRESH handling on modem side.
                      */
                     if (SIM_INIT == pSimRefreshResp->result)
                     {
                         CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
 
-                        // Trigger framework to query SIM status
-                        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
-
-                        // ignore this response (UNSOL_STK_EVENT_NOTIFY)
-                        pResponse->SetUnrecognizedFlag(TRUE);
+                        m_bRefreshWithUSIMInit = TRUE;
                     }
                     else
                     {
                         // Send out SIM_REFRESH notification
                         RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)pSimRefreshResp,
-                                                    sizeof(RIL_SimRefreshResponse_v7));
+                                sizeof(RIL_SimRefreshResponse_v7));
                     }
                 }
                 else
@@ -531,7 +530,8 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
          * receival of XSIM: 7 event.
          */
         case 3: // PIN verified - Ready
-            if (m_IsReadyForAttach) {
+            if (m_bReadyForAttach)
+            {
                 RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
                 CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
             }
@@ -558,6 +558,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             // The SIM is initialized, but modem is still in the process of it.
             // we can inform Android that SIM is still not ready.
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM NOT READY\r\n");
+            m_bReadyForAttach = FALSE;
             CTE::GetTE().SetSIMState(RRIL_SIM_STATE_NOT_READY);
             break;
         case 6: // SIM Error
@@ -567,7 +568,7 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             break;
         case 7: // ready for attach (+COPS)
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - READY FOR ATTACH\r\n");
-            m_IsReadyForAttach = TRUE;
+            m_bReadyForAttach = TRUE;
             CTE::GetTE().SetSIMState(RRIL_SIM_STATE_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
@@ -590,12 +591,13 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
         case 0: // SIM not present
         case 9: // SIM Removed
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM REMOVED/NOT PRESENT\r\n");
-            m_IsReadyForAttach = FALSE;
+            m_bReadyForAttach = FALSE;
+            m_bRefreshWithUSIMInit = FALSE;
             CTE::GetTE().SetSIMState(RRIL_SIM_STATE_ABSENT);
             break;
         case 14: // SIM powered off by modem
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM Powered off by modem\r\n");
-            m_IsReadyForAttach = FALSE;
+            m_bReadyForAttach = FALSE;
             // Fall through to notify Radio and Sim status
         case 1: // PIN verification needed
         case 4: // PUK verification needed
@@ -606,7 +608,43 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
     }
 
     pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
+
+    if (m_bRefreshWithUSIMInit)
+    {
+        if (m_bReadyForAttach)
+        {
+            RIL_SimRefreshResponse_v7 simRefreshResp;
+
+            simRefreshResp.result = SIM_INIT;
+            simRefreshResp.ef_id = 0;
+            simRefreshResp.aid = NULL;
+
+            m_bRefreshWithUSIMInit = FALSE;
+
+            // Send out SIM_REFRESH notification
+            RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)&simRefreshResp,
+                    sizeof(RIL_SimRefreshResponse_v7));
+
+            pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
+        }
+        else
+        {
+            /*
+             * Incase of REFRESH with USIM INIT, once the refresh is done on the modem side,
+             * then XSIM: 2 and XSIM: 7 will be sent by modem. Notifying framework of SIM status
+             * change on XSIM: 2 will result in framework querying the SIM status. It is highly
+             * possible that XSIM: 7 will be received even before the SIM status change is queried
+             * from modem. So, if REFRESH with USIM init is active, it is better not to notify
+             * the SIM status change on XSIM: 2 to avoid unnecessary requests between AP and modem.
+             * Even if the SIM related requests are sent by framework on SIM not ready, rapid ril's
+             * internal sim state will complete the SIM requests with error.
+             */
+        }
+    }
+    else
+    {
+        pResponse->SetResultCode(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED);
+    }
 
     fRet = TRUE;
 Error:

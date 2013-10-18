@@ -408,6 +408,11 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetSupportCGPIAF(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szNwInitiatedContextAct, iTemp))
+    {
+        CTE::GetTE().SetNwInitiatedContextActSupport(iTemp == 1 ? TRUE : FALSE);
+    }
+
     if (repository.Read(g_szGroupModem, g_szModeOfOperation, iTemp))
     {
         CTE::GetTE().SetModeOfOperation((UINT32)iTemp);

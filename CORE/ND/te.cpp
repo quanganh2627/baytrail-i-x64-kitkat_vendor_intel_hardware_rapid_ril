@@ -65,6 +65,8 @@ CTE::CTE(UINT32 modemType) :
     m_bXDATASTATEnabled(FALSE),
     m_bIMSCapable(FALSE),
     m_bSMSOverIPCapable(FALSE),
+    m_bSupportCGPIAF(FALSE),
+    m_bNwInitiatedContextActSupport(FALSE),
     m_uiModeOfOperation(MODE_CS_PS_VOICE_CENTRIC),
     m_uiTimeoutCmdInit(TIMEOUT_INITIALIZATION_COMMAND),
     m_uiTimeoutAPIDefault(TIMEOUT_API_DEFAULT),
@@ -326,6 +328,57 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
     return bAllowed;
 }
 
+BOOL CTE::IsRequestAllowedInSimNotReady(int requestId)
+{
+    BOOL bAllowed;
+
+    switch (requestId)
+    {
+        case RIL_REQUEST_GET_IMSI:
+        case RIL_REQUEST_SIM_IO:
+        case RIL_REQUEST_SIM_TRANSMIT_BASIC:
+        case RIL_REQUEST_SIM_OPEN_CHANNEL:
+        case RIL_REQUEST_SIM_CLOSE_CHANNEL:
+        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:
+        case RIL_REQUEST_WRITE_SMS_TO_SIM:
+        case RIL_REQUEST_DELETE_SMS_ON_SIM:
+        case RIL_REQUEST_GET_SMSC_ADDRESS:
+        case RIL_REQUEST_SET_SMSC_ADDRESS:
+        case RIL_REQUEST_ISIM_AUTHENTICATION:
+        case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:
+        case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:
+        case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
+        case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
+#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
+        case RIL_REQUEST_GET_SIM_SMS_STORAGE:
+#endif
+            bAllowed = FALSE;
+            break;
+
+        default:
+            bAllowed = TRUE;
+    }
+
+    return bAllowed;
+}
+
+BOOL CTE::IsRequestAllowedWhenNotRegistered(int requestId)
+{
+    BOOL bAllowed = FALSE;
+
+    switch (requestId)
+    {
+        case RIL_REQUEST_OPERATOR:
+            break;
+
+        default:
+            bAllowed = TRUE;
+            break;
+    }
+
+    return bAllowed;
+}
+
 BOOL CTE::IsModemPowerOffRequest(int requestId, void* pData, size_t uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE::IsModemPowerOffRequest - ENTER\r\n");
@@ -468,6 +521,32 @@ RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
     return eRetVal;
 }
 
+RIL_Errno CTE::HandleRequestWhenNotRegistered(int requestId, RIL_Token hRilToken)
+{
+    RIL_LOG_INFO("CTE::HandleRequestWhenNotRegistered - REQID=%d, token=0x%08x\r\n",
+            requestId, (int) hRilToken);
+
+    RIL_Errno eRetVal = RIL_E_SUCCESS;
+
+    /*
+     * If request is not allowed when modem is not registered on a netwrk, return immediately
+     * with specific error code to stop command from being sent to modem (to save time and
+     * resources).
+     */
+    switch (requestId)
+    {
+        case RIL_REQUEST_OPERATOR:
+            eRetVal = RIL_E_OP_NOT_ALLOWED_BEFORE_REG_TO_NW;
+            break;
+
+        default:
+            eRetVal = RIL_E_GENERIC_FAILURE;
+            break;
+    }
+
+    return eRetVal;
+}
+
 void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hRilToken)
 {
     RIL_RESULT_CODE eRetVal = RIL_E_SUCCESS;
@@ -486,9 +565,18 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     {
         eRetVal = HandleRequestInRadioOff(requestId, hRilToken);
     }
+    else if (RRIL_SIM_STATE_NOT_READY == GetSIMState()
+            && !IsRequestAllowedInSimNotReady(requestId))
+    {
+        eRetVal = RIL_E_GENERIC_FAILURE;
+    }
     else if (!m_pTEBaseInstance->IsRequestSupported(requestId))
     {
         eRetVal = RIL_E_REQUEST_NOT_SUPPORTED;
+    }
+    else if (!IsRegistered() && !IsRequestAllowedWhenNotRegistered(requestId))
+    {
+        eRetVal = HandleRequestWhenNotRegistered(requestId, hRilToken);
     }
     else
     {
@@ -6888,7 +6976,6 @@ RIL_RESULT_CODE CTE::ParseGetSimSmsStorage(RESPONSE_DATA& rRspData)
 }
 #endif // M2_GET_SIM_SMS_STORAGE_ENABLED
 
-
 //
 // RIL_UNSOL_SIGNAL_STRENGTH  1009
 //
@@ -7777,6 +7864,26 @@ void CTE::ResetRegistrationCache()
     m_bPSStatusCached = FALSE;
 }
 
+BOOL CTE::IsRegistered()
+{
+    BOOL bRet = FALSE;
+    LONG csRegState = strtol(m_sCSStatus.szStat, NULL, 10);
+    LONG psRegState = strtol(m_sPSStatus.szStat, NULL, 10);
+    LONG epsRegState = strtol(m_sEPSStatus.szStat, NULL, 10);
+
+    if (E_REGISTRATION_REGISTERED_HOME_NETWORK == csRegState
+            || E_REGISTRATION_REGISTERED_ROAMING == csRegState
+            || E_REGISTRATION_REGISTERED_HOME_NETWORK == psRegState
+            || E_REGISTRATION_REGISTERED_ROAMING == psRegState
+            || E_REGISTRATION_REGISTERED_HOME_NETWORK == epsRegState
+            || E_REGISTRATION_REGISTERED_ROAMING == epsRegState)
+    {
+        bRet = TRUE;
+    }
+
+    return bRet;
+}
+
 LONG CTE::GetCsRegistrationState(char* pCsRegState)
 {
     return strtol(pCsRegState, NULL, 10);
@@ -8343,6 +8450,20 @@ RIL_RESULT_CODE CTE::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData)
     RIL_LOG_VERBOSE("CTE::ParseReadDefaultPDNContextParams() - Enter / Exit\r\n");
 
     return m_pTEBaseInstance->ParseReadDefaultPDNContextParams(rRspData);
+}
+
+RIL_RESULT_CODE CTE::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseReadBearerTFTParams() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseReadBearerTFTParams(rRspData);
+}
+
+RIL_RESULT_CODE CTE::ParseReadBearerQOSParams(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseReadBearerQOSParams() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseReadBearerQOSParams(rRspData);
 }
 
 void CTE::PostCmdHandlerCompleteRequest(POST_CMD_HANDLER_DATA& rData)
@@ -9502,6 +9623,14 @@ void CTE::PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData)
     {
         RIL_LOG_CRITICAL("CTE::PostSetNetworkSelectionCmdHandler() rData.pRilToken NULL!\r\n");
         return;
+    }
+
+    if (RIL_E_SUCCESS == rData.uiResultCode)
+    {
+        if (IsNwInitiatedContextActSupported())
+        {
+            m_pTEBaseInstance->SetAutomaticResponseforNwInitiatedContext();
+        }
     }
 
     // No need to handle ILLEGAL_SIM_OR_ME here since it is already handled in

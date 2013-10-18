@@ -954,10 +954,16 @@ BOOL CChannel::ProcessResponse(CResponse*& rpResponse)
     BOOL bResult = FALSE;
 
     RIL_LOG_VERBOSE("CChannel::ProcessResponse : chnl=[%d] Enter\r\n", m_uiRilChannel);
-    if (rpResponse->IsUnrecognizedFlag())
+
+    if (rpResponse->IsIgnoreFlag())
+    {
+        RIL_LOG_INFO("CChannel::ProcessResponse : chnl=[%u] Ignoring %s\r\n", m_uiRilChannel,
+                CRLFExpandedString(rpResponse->Data(), rpResponse->Size()).GetString());
+    }
+    else if (rpResponse->IsUnrecognizedFlag())
     {
         // garbage in buffer, discard
-        RIL_LOG_INFO("CChannel::ProcessResponse : chnl=[%d] Unidentified response size [%d]"
+        RIL_LOG_INFO("CChannel::ProcessResponse : chnl=[%d] Unidentified response, size [%d]"
                        "  %s\r\n", m_uiRilChannel, rpResponse->Size(),
                        CRLFExpandedString(rpResponse->Data(), rpResponse->Size()).GetString());
     }

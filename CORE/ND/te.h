@@ -76,9 +76,12 @@ public:
     void HandleRequest(int requestID, void* pData, size_t datalen, RIL_Token hRilToken);
     RIL_Errno HandleRequestWhenNoModem(int requestID, RIL_Token hRilToken);
     RIL_Errno HandleRequestInRadioOff(int requestID, RIL_Token hRilToken);
+    RIL_Errno HandleRequestWhenNotRegistered(int requestID, RIL_Token hRilToken);
 
     BOOL IsRequestAllowedInSpoofState(int requestId);
     BOOL IsRequestAllowedInRadioOff(int requestId);
+    BOOL IsRequestAllowedInSimNotReady(int requestId);
+    BOOL IsRequestAllowedWhenNotRegistered(int requestId);
     BOOL IsInternalRequestsAllowedInRadioOff(UINT32 uiRilRequestId);
     BOOL IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
             BOOL bIsInitCommand, int callId = 0);
@@ -615,6 +618,9 @@ public:
     void StoreRegistrationInfo(void* pRegStruct, int regType);
     RIL_RESULT_CODE ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData);
 
+    RIL_RESULT_CODE ParseReadBearerTFTParams(RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseReadBearerQOSParams(RESPONSE_DATA& rRspData);
+
     void CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus);
     void ResetRegistrationCache();
 
@@ -706,6 +712,13 @@ public:
 
     void SetSupportCGPIAF(BOOL bSupportCGPIAF) { m_bSupportCGPIAF =  bSupportCGPIAF; }
     BOOL IsSupportCGPIAF() { return m_bSupportCGPIAF; }
+
+    void SetNwInitiatedContextActSupport(BOOL bNwInitiatedContextActSupport)
+    {
+        m_bNwInitiatedContextActSupport =  bNwInitiatedContextActSupport;
+    }
+
+    BOOL IsNwInitiatedContextActSupported() { return m_bNwInitiatedContextActSupport; }
 
     void SaveCEER(const char* pszData);
     const char* GetLastCEER() { return m_szLastCEER; }
@@ -1173,6 +1186,7 @@ private:
     // Function to determine whether the SIMIO request is for FDN related SIM files
     BOOL isFDNRequest(int fileId);
 
+    BOOL IsRegistered();
     LONG GetCsRegistrationState(char* pCsRegState);
     LONG GetPsRegistrationState(char* pPsRegState);
     LONG GetCurrentAct();
@@ -1194,7 +1208,7 @@ private:
     BOOL m_bIMSCapable;
     BOOL m_bSMSOverIPCapable;
     BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
-
+    BOOL m_bNwInitiatedContextActSupport;
     /*
      * Value used to store mode of operation ID for AT+CEMODE command.
      */

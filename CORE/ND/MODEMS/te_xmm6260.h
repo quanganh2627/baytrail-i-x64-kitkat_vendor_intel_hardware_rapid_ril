@@ -295,6 +295,12 @@ private:
     RIL_RESULT_CODE CreateDebugScreenReq(REQUEST_DATA& rReqData,
                                           const char** pszRequest,
                                           const UINT32 uiDataSize);
+    RIL_RESULT_CODE SetCallImsAvailable(REQUEST_DATA& rReqData,
+                                        const char** pszRequest,
+                                        const UINT32 uiDataSize);
+    RIL_RESULT_CODE SetSmsImsAvailable(REQUEST_DATA& rReqData,
+                                        const char** pszRequest,
+                                        const UINT32 uiDataSize);
     RIL_RESULT_CODE ParseXGATR(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseXDRV(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseCGED(const char* pszRsp, RESPONSE_DATA& rRspData);

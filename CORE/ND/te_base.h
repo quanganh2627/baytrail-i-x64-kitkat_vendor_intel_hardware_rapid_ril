@@ -789,6 +789,9 @@ public:
 
     virtual RIL_RESULT_CODE ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData);
 
+    virtual RIL_RESULT_CODE ParseReadBearerTFTParams(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseReadBearerQOSParams(RESPONSE_DATA& rRspData);
+
     // PIN retry count request and response handler
     virtual RIL_RESULT_CODE QueryPinRetryCount(REQUEST_DATA& rReqData,
                                                           void* pData,
@@ -890,6 +893,9 @@ public:
     virtual void QuerySimSmsStoreStatus();
 
     virtual BOOL IsInCall();
+
+    // Sets automatic response for network initiated context activation (called internally)
+    virtual void SetAutomaticResponseforNwInitiatedContext();
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);

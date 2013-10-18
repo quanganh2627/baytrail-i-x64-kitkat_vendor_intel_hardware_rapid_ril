@@ -271,6 +271,62 @@ void triggerQueryDefaultPDNContextParams(void* param)
     }
 }
 
+void triggerQueryBearerParams(void* param)
+{
+    REQUEST_DATA rReqDataTFT;
+    REQUEST_DATA rReqDataQOS;
+    memset(&rReqDataTFT, 0, sizeof(REQUEST_DATA));
+    memset(&rReqDataQOS, 0, sizeof(REQUEST_DATA));
+    CChannel_Data* pChannelData = NULL;
+    UINT32 uiPCID = 0;
+    UINT32 uiCID = 0;
+    void** callbackParams = NULL;
+
+    if (param == NULL)
+        return;
+
+    callbackParams = (void**)param;
+    uiPCID = (UINT32)callbackParams[0];
+    uiCID = (UINT32)callbackParams[1];
+    pChannelData = (CChannel_Data*)callbackParams[2];
+
+    delete callbackParams;
+
+    RIL_LOG_VERBOSE("triggerQueryBearerParams - uiPCID: %u, uiCID: %u\r\n", uiPCID, uiCID);
+
+    if (PrintStringNullTerminate(rReqDataTFT.szCmd1, sizeof(rReqDataTFT.szCmd1), "AT+CGTFTRDP=%u\r",
+            uiCID))
+    {
+        CCommand* pCmdTFT = new CCommand(pChannelData->GetRilChannel(), NULL, ND_REQ_ID_NONE,
+                rReqDataTFT, &CTE::ParseReadBearerTFTParams);
+        if (pCmdTFT)
+        {
+            if (!CCommand::AddCmdToQueue(pCmdTFT))
+            {
+                RIL_LOG_CRITICAL("triggerQueryBearerParams - "
+                        "Unable to queue AT+CGTFTRDP command!\r\n");
+                delete pCmdTFT;
+            }
+        }
+    }
+
+    if (PrintStringNullTerminate(rReqDataQOS.szCmd1, sizeof(rReqDataQOS.szCmd1), "AT+CGEQOS=%u\r",
+            uiCID))
+    {
+        CCommand* pCmdQOS = new CCommand(pChannelData->GetRilChannel(), NULL, ND_REQ_ID_NONE,
+                rReqDataQOS, &CTE::ParseReadBearerQOSParams);
+        if (pCmdQOS)
+        {
+            if (!CCommand::AddCmdToQueue(pCmdQOS))
+            {
+                RIL_LOG_CRITICAL("triggerQueryBearerParams - "
+                        "Unable to queue AT+CGEQOS command!\r\n");
+                delete pCmdQOS;
+            }
+        }
+    }
+}
+
 // [in] param = 1 for mobile release and 0 for network release
 void triggerDropCallEvent(void* param)
 {

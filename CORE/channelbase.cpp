@@ -560,17 +560,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     CRepository  repository;
     char         szTemp[MAX_BUFFER_SIZE];
 
-#if defined(CONFIGURE_3GDIV_DARP_IN_RIL)
-    //  Data for RxDiversity
-    char szRxDiversityCmdString[MAX_BUFFER_SIZE] = {0};
-    const int RXDIVERSITY_EN_DEFAULT = 0;
-    const int RXDIVERSITY_DARP_DEFAULT = 1;
-    int nRxDiversity3GEnable = RXDIVERSITY_EN_DEFAULT;
-    int nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
-    BOOL bIgnoreDARPParam = FALSE;
-    char szRxDivProperty[PROPERTY_VALUE_MAX] = {'\0'};
-#endif // CONFIGURE_3GDIV_DARP_IN_RIL
-
     szInit = new char[szInitLen];
     if (!szInit)
     {
@@ -717,69 +706,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                 goto Done;
             }
         }
-
-#if defined(CONFIGURE_3GDIV_DARP_IN_RIL)
-        // Read the RX DIV property
-        property_get("ro.spid.telephony.rxdiv", szRxDivProperty, "0");
-        nRxDiversity3GEnable = (szRxDivProperty[0] == '1') ? 1 : 0;
-
-        if (nRxDiversity3GEnable)
-        {
-            // Read 2G DARP mode setting from repository
-            if (repository.Read(g_szGroupModem, g_szRxDiversity2GDARP, nRxDiversity2GDARP))
-            {
-                // no parameter
-                if (-1 == nRxDiversity2GDARP)
-                {
-                    bIgnoreDARPParam = TRUE;
-                }
-            }
-            else
-            {
-                // 2G DARP parameter is missing, set to default value
-                nRxDiversity2GDARP = RXDIVERSITY_DARP_DEFAULT;
-            }
-        }
-
-        if (bIgnoreDARPParam)
-        {
-            if (!PrintStringNullTerminate(szRxDiversityCmdString,
-                                          sizeof(szRxDiversityCmdString),
-                                          "+XRXDIV=%d",
-                                          nRxDiversity3GEnable))
-            {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                        " Cannot create XRXDIV command\r\n");
-                goto Done;
-            }
-        }
-        else
-        {
-            if (!PrintStringNullTerminate(szRxDiversityCmdString,
-                                          sizeof(szRxDiversityCmdString),
-                                          "+XRXDIV=%d,%d",
-                                          nRxDiversity3GEnable,
-                                          nRxDiversity2GDARP))
-            {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                        "Cannot create XRXDIV command\r\n");
-                goto Done;
-            }
-        }
-
-        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
-        {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                    "Concat | failed\r\n");
-            goto Done;
-        }
-        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szRxDiversityCmdString))
-        {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                    " Concat szRxDiversityString failed\r\n");
-            goto Done;
-        }
-#endif // CONFIGURE_3GDIV_DARP_IN_RIL
 
 #if defined(M2_VT_FEATURE_ENABLED)
         // for Video Telephony, set the the data path, depending on RIL instance
