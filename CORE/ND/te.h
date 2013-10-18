@@ -723,6 +723,9 @@ public:
     void SetSignalStrengthReporting(BOOL bEnable) { m_bSignalStrengthReporting = bEnable; }
     BOOL IsSignalStrengthReportEnabled() { return m_bSignalStrengthReporting; }
 
+    void SetCellInfoEnabled(BOOL bCellInfoEnabled) { m_bCellInfoEnabled = bCellInfoEnabled; }
+    BOOL IsCellInfoEnabled() { return m_bCellInfoEnabled; }
+
     void SaveCEER(const char* pszData);
     const char* GetLastCEER() { return m_szLastCEER; }
 
@@ -1213,6 +1216,7 @@ private:
     BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
     BOOL m_bNwInitiatedContextActSupport;
     BOOL m_bSignalStrengthReporting;
+    BOOL m_bCellInfoEnabled;
 
     /*
      * Value used to store mode of operation ID for AT+CEMODE command.

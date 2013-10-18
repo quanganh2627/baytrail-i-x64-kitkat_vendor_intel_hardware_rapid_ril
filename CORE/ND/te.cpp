@@ -69,6 +69,7 @@ CTE::CTE(UINT32 modemType) :
     m_bSupportCGPIAF(FALSE),
     m_bNwInitiatedContextActSupport(FALSE),
     m_bSignalStrengthReporting(FALSE),
+    m_bCellInfoEnabled(TRUE),
     m_uiModeOfOperation(MODE_CS_PS_VOICE_CENTRIC),
     m_uiTimeoutCmdInit(TIMEOUT_INITIALIZATION_COMMAND),
     m_uiTimeoutAPIDefault(TIMEOUT_API_DEFAULT),
@@ -586,8 +587,6 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     }
     else
     {
-        const int CELLINFO_EN_DEFAULT = 1;
-        int nEnableCellInfo = CELLINFO_EN_DEFAULT;
         switch (requestId)
         {
             case RIL_REQUEST_GET_SIM_STATUS:  // 1
@@ -899,13 +898,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 
             case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:  // 75
             {
-                CRepository repository;
-                if (!repository.Read(g_szGroupModem, g_szEnableCellInfo, nEnableCellInfo))
-                {
-                    nEnableCellInfo = CELLINFO_EN_DEFAULT;
-                }
-
-                if (nEnableCellInfo)
+                if (IsCellInfoEnabled())
                 {
                     eRetVal = RequestGetNeighboringCellIDs(hRilToken, pData, datalen);
                 }
@@ -1051,13 +1044,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 
             case RIL_REQUEST_GET_CELL_INFO_LIST:  // 109
                 {
-                    CRepository repository;
-                    if (!repository.Read(g_szGroupModem, g_szEnableCellInfo, nEnableCellInfo))
-                    {
-                        nEnableCellInfo = CELLINFO_EN_DEFAULT;
-                    }
-
-                    if (nEnableCellInfo)
+                    if (IsCellInfoEnabled())
                     {
                         eRetVal = RequestGetCellInfoList(hRilToken, pData, datalen);
                     }
@@ -1070,13 +1057,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 
             case RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE:  // 110
                 {
-                    CRepository repository;
-                    if (!repository.Read(g_szGroupModem, g_szEnableCellInfo, nEnableCellInfo))
-                    {
-                        nEnableCellInfo = CELLINFO_EN_DEFAULT;
-                    }
-
-                    if (nEnableCellInfo)
+                    if (IsCellInfoEnabled())
                     {
                         eRetVal = RequestSetCellInfoListRate(hRilToken, pData, datalen);
                     }
@@ -7730,21 +7711,15 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
                 sizeof(epsRegStatus->szReasonDenied));
     }
 
-    const int CELLINFO_EN_DEFAULT = 1;
-    int nEnableCellInfo = CELLINFO_EN_DEFAULT;
     // If cell info rate is 0 and Cell info is enabled, query cell info
-    CRepository repository;
-    if (repository.Read(g_szGroupModem, g_szEnableCellInfo, nEnableCellInfo))
+    if (IsCellInfoEnabled())
     {
-        if (nEnableCellInfo)
+        UINT32 uiNewRate = GetCellInfoListRate();
+        if (!IsCellInfoTimerRunning() && (uiNewRate == 0))
         {
-            UINT32 uiNewRate = GetCellInfoListRate();
-            if (!IsCellInfoTimerRunning() && (uiNewRate == 0))
-            {
-                RIL_LOG_INFO("CTEBase::StoreRegistrationInfo() - read cell info now!\r\n");
-                SetCellInfoTimerRunning(TRUE);
-                RIL_requestTimedCallback(triggerCellInfoList, (void*)uiNewRate, 0, 0);
-            }
+            RIL_LOG_INFO("CTEBase::StoreRegistrationInfo() - read cell info now!\r\n");
+            SetCellInfoTimerRunning(TRUE);
+            RIL_requestTimedCallback(triggerCellInfoList, (void*)uiNewRate, 0, 0);
         }
     }
 

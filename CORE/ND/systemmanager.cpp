@@ -423,6 +423,11 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetSignalStrengthReporting(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szEnableCellInfo, iTemp))
+    {
+        CTE::GetTE().SetCellInfoEnabled(iTemp == 1 ? TRUE : FALSE);
+    }
+
     if (repository.Read(g_szGroupModem, g_szModeOfOperation, iTemp))
     {
         CTE::GetTE().SetModeOfOperation((UINT32)iTemp);
