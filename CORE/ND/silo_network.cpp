@@ -839,7 +839,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                 else
                 {
                     RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - reason unknown\r\n");
-                    failCause = PDP_FAIL_ERROR_UNSPECIFIED;
+                    failCause = PDP_FAIL_NONE;
                 }
 
                 if (NULL != pChannelData)

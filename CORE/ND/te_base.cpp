@@ -6244,7 +6244,7 @@ Error:
         {
             if (pContextParams->szIpV6Addr[0] == '\0')
             {
-                CopyStringNullTerminate(szPdpType, "IPV4", MAX_PDP_TYPE_SIZE);
+                CopyStringNullTerminate(szPdpType, "IP", MAX_PDP_TYPE_SIZE);
             }
             else if (pContextParams->szIpV4Addr[0] == '\0')
             {

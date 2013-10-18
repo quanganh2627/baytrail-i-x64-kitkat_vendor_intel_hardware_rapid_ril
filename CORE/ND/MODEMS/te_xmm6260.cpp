@@ -5814,7 +5814,7 @@ BOOL CTE_XMM6260::SetupInterface(UINT32 uiCID)
     if (szIpAddr2[0] == '\0')
     {
         eDataConnectionType = PDP_TYPE_IPV4;
-        strcpy(szPdpType, "IPV4");
+        strcpy(szPdpType, "IP");
     }
     else if (szIpAddr[0] == '\0')
     {
@@ -5874,7 +5874,7 @@ void CTE_XMM6260::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
 
     pChannelData->GetDataCallInfo(sDataCallInfo);
 
-    if (0 == strcmp(sDataCallInfo.szPdpType, "IPV4"))
+    if (0 == strcmp(sDataCallInfo.szPdpType, "IP"))
     {
         PrintStringNullTerminate(szIPAddress, MAX_BUFFER_SIZE, "%s",
                 sDataCallInfo.szIpAddr1);
