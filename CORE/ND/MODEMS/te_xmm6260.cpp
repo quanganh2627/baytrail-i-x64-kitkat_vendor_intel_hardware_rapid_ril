@@ -857,18 +857,19 @@ RIL_RESULT_CODE CTE_XMM6260::ParseDns(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* szRsp = rRspData.szResponse;
-    UINT32 uiCID = 0;
-    char szDNS[MAX_IPADDR_SIZE] = {'\0'};
-    char szIpDNS1[MAX_IPADDR_SIZE] = {'\0'};
-    char szIpDNS2[MAX_IPADDR_SIZE] = {'\0'};
-    char szIpV6DNS1[MAX_IPADDR_SIZE] = {'\0'};
-    char szIpV6DNS2[MAX_IPADDR_SIZE] = {'\0'};
-    CChannel_Data* pChannelData = NULL;
-    int state;
 
     // Parse "+XDNS: "
     while (FindAndSkipString(szRsp, "+XDNS: ", szRsp))
     {
+        UINT32 uiCID = 0;
+        char szDNS[MAX_IPADDR_SIZE] = {'\0'};
+        char szIpDNS1[MAX_IPADDR_SIZE] = {'\0'};
+        char szIpDNS2[MAX_IPADDR_SIZE] = {'\0'};
+        char szIpV6DNS1[MAX_IPADDR_SIZE] = {'\0'};
+        char szIpV6DNS2[MAX_IPADDR_SIZE] = {'\0'};
+        CChannel_Data* pChannelData = NULL;
+        int state;
+
         // Parse <cid>
         if (!ExtractUInt32(szRsp, uiCID, szRsp))
         {
