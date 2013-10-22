@@ -91,7 +91,8 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             && RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED != unsolResponseID
             && RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED != unsolResponseID
             && RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED != unsolResponseID
-            && RIL_UNSOL_DATA_CALL_LIST_CHANGED != unsolResponseID)
+            && RIL_UNSOL_DATA_CALL_LIST_CHANGED != unsolResponseID
+            && RIL_UNSOL_OEM_HOOK_RAW != unsolResponseID)
     {
         RIL_LOG_INFO("RIL_onUnsolicitedResponse() - ignoring id=%d due to "
                 "radio on/off requested\r\n", unsolResponseID);
