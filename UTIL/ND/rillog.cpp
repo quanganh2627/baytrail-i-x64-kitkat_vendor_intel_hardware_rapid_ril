@@ -61,7 +61,7 @@ void CRilLog::Init(char* szSIMID)
 
     if (repository.Read(g_szGroupLogging, g_szLogLevel, iLogLevel))
     {
-        LOGI("Log level [%d]\r\n", iLogLevel);
+        RLOGI("Log level [%d]\r\n", iLogLevel);
         switch(iLogLevel)
         {
             case 1: // Verbose
