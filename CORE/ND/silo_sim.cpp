@@ -481,7 +481,6 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXSIM() - Enter\r\n");
     BOOL fRet = FALSE;
     UINT32 nSIMState = 0;
-    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     if (pResponse == NULL)
     {
@@ -561,17 +560,14 @@ BOOL CSilo_SIM::ParseXSIM(CResponse* const pResponse, const char*& rszPointer)
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
         case 8: // SIM application error
+        {
             RIL_LOG_INFO("CSilo_SIM::ParseXSIM() - SIM TECHNICAL PROBLEM\r\n");
-            // Do not notify framework for +XSIM: 8 except for conformance case
-            property_get("persist.conformance", szConformanceProperty, NULL);
-            if (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
-            {
-                // +XSIM: 8 is for 6FXX error type
-                char error[] = "6FXX";
-                triggerSIMAppError(error);
-            }
+            // +XSIM: 8 is for 6FXX error type
+            const char error[] = "6FXX";
+            triggerSIMAppError(error);
             fRet = TRUE;
             goto Error;
+        }
         case 12: // SIM SMS caching completed
             RIL_LOG_INFO("[RIL STATE] SIM SMS CACHING COMPLETED\r\n");
             CTE::GetTE().TriggerQuerySimSmsStoreStatus();

@@ -441,7 +441,7 @@ void triggerCellInfoList(void* param)
     RIL_LOG_VERBOSE("triggerCellInfoList- Exit\r\n");
 }
 
-void triggerSIMAppError(void* param)
+void triggerSIMAppError(const void* param)
 {
     sOEM_HOOK_RAW_UNSOL_SIM_APP_ERR_IND data;
 
