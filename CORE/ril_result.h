@@ -52,6 +52,7 @@
 #define CMS_ERROR_ACM_MAX                                   564
 #define CMS_ERROR_CALLED_PARTY_BLACKLISTED                  581
 #define CMS_ERROR_CM_SERVICE_REJECT_FROM_NETWORK            623
+#define CMS_ERROR_TIMER_EXPIRY                              625
 #define CMS_ERROR_IMSI_DETACH_INITIATED                     626
 #define CMS_ERROR_NUMBER_INCORRECT                          680
 

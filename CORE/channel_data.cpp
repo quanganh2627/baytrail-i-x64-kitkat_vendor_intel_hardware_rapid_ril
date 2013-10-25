@@ -494,8 +494,10 @@ void CChannel_Data::ResetDataCallInfo()
     SetDataFailCause(PDP_FAIL_NONE);
     SetDataState(E_DATA_STATE_IDLE);
 
-    if (MODEM_TYPE_XMM7160 == CTE::GetTE().GetModemType()
-            || MODEM_TYPE_XMM6360 == CTE::GetTE().GetModemType())
+    UINT32 uiModemType = CTE::GetTE().GetModemType();
+    if (MODEM_TYPE_XMM6360 == uiModemType
+            || MODEM_TYPE_XMM7160 == uiModemType
+            || MODEM_TYPE_XMM7260 == uiModemType)
     {
         FreeHSIChannel(m_uiContextID);
     }

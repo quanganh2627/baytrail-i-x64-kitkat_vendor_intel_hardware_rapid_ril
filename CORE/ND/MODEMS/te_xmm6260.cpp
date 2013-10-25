@@ -107,18 +107,25 @@ const char* CTE_XMM6260::GetPsRegistrationReadString()
 
 const char* CTE_XMM6260::GetScreenOnString()
 {
-    return "AT+CREG=2;+CGREG=0;+XREG=2;+XCSQ=1\r";
+    if (m_cte.IsSignalStrengthReportEnabled())
+    {
+        return "AT+CREG=2;+CGREG=0;+XREG=2;+XCSQ=1\r";
+    }
+
+    return "AT+CREG=2;+CGREG=0;+XREG=2\r";
 }
 
 const char* CTE_XMM6260::GetScreenOffString()
 {
     if (m_cte.IsLocationUpdatesEnabled())
     {
-        return "AT+CGREG=1;+XREG=0;+XCSQ=0\r";
+        return m_cte.IsSignalStrengthReportEnabled()
+                ? "AT+CGREG=1;+XREG=0;+XCSQ=0\r" : "AT+CGREG=1;+XREG=0\r";
     }
     else
     {
-        return "AT+CREG=1;+CGREG=1;+XREG=0;+XCSQ=0\r";
+        return m_cte.IsSignalStrengthReportEnabled()
+                ? "AT+CREG=1;+CGREG=1;+XREG=0;+XCSQ=0\r" : "AT+CREG=1;+CGREG=1;+XREG=0\r";
     }
 }
 

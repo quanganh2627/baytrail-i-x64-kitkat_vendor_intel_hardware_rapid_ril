@@ -17,12 +17,14 @@ static const UINT32 MAX_MODEM_NAME_LEN = 64;
 static const char* szXMM6260 = "XMM6260";
 static const char* szXMM6360 = "XMM6360";
 static const char* szXMM7160 = "XMM7160";
+static const char* szXMM7260 = "XMM7260";
 
 enum {
     MODEM_TYPE_UNKNOWN,
     MODEM_TYPE_XMM6260,
     MODEM_TYPE_XMM6360,
-    MODEM_TYPE_XMM7160
+    MODEM_TYPE_XMM7160,
+    MODEM_TYPE_XMM7260
 };
 
 enum {

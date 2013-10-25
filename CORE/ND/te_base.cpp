@@ -6378,7 +6378,7 @@ RIL_RESULT_CODE CTEBase::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
 
     // Parse <destination port range>
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractQuotedString(pszRsp, pTFTParams->szDestinationPortRange, MAX_BUFFER_SIZE, pszRsp))
+        !ExtractQuotedString(pszRsp, pTFTParams->szDestinationPortRange, MAX_IPADDR_SIZE, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
                 "Could not extract destination port range.\r\n");
@@ -6387,7 +6387,7 @@ RIL_RESULT_CODE CTEBase::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
 
     // Parse <source port range>
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractQuotedString(pszRsp, pTFTParams->szSourcePortRange, MAX_BUFFER_SIZE, pszRsp))
+        !ExtractQuotedString(pszRsp, pTFTParams->szSourcePortRange, MAX_IPADDR_SIZE, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
                 "Could not extract source port range.\r\n");
@@ -6405,7 +6405,7 @@ RIL_RESULT_CODE CTEBase::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
 
     // Parse <tos>
     if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractQuotedString(pszRsp, pTFTParams->szTOS, MAX_BUFFER_SIZE, pszRsp))
+        !ExtractQuotedString(pszRsp, pTFTParams->szTOS, MAX_IPADDR_SIZE, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
                 "Could not extract tos.\r\n");
@@ -6680,7 +6680,10 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA& rRspData)
          * This will result in quite a few traffic between AP and BP when the screen
          * state is changed frequently.
          */
-        triggerSignalStrength(NULL);
+        if (m_cte.IsSignalStrengthReportEnabled())
+        {
+            triggerSignalStrength(NULL);
+        }
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
     }
 

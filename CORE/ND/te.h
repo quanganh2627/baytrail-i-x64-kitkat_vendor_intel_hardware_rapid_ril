@@ -720,6 +720,9 @@ public:
 
     BOOL IsNwInitiatedContextActSupported() { return m_bNwInitiatedContextActSupport; }
 
+    void SetSignalStrengthReporting(BOOL bEnable) { m_bSignalStrengthReporting = bEnable; }
+    BOOL IsSignalStrengthReportEnabled() { return m_bSignalStrengthReporting; }
+
     void SaveCEER(const char* pszData);
     const char* GetLastCEER() { return m_szLastCEER; }
 
@@ -1209,6 +1212,8 @@ private:
     BOOL m_bSMSOverIPCapable;
     BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
     BOOL m_bNwInitiatedContextActSupport;
+    BOOL m_bSignalStrengthReporting;
+
     /*
      * Value used to store mode of operation ID for AT+CEMODE command.
      */

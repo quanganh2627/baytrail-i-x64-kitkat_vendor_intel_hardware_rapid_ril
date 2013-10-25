@@ -32,6 +32,7 @@
 #include "te_xmm6260.h"
 #include "te_xmm6360.h"
 #include "te_xmm7160.h"
+#include "te_xmm7260.h"
 #include "ril_result.h"
 #include "callbacks.h"
 #include "reset.h"
@@ -67,6 +68,7 @@ CTE::CTE(UINT32 modemType) :
     m_bSMSOverIPCapable(FALSE),
     m_bSupportCGPIAF(FALSE),
     m_bNwInitiatedContextActSupport(FALSE),
+    m_bSignalStrengthReporting(FALSE),
     m_uiModeOfOperation(MODE_CS_PS_VOICE_CENTRIC),
     m_uiTimeoutCmdInit(TIMEOUT_INITIALIZATION_COMMAND),
     m_uiTimeoutAPIDefault(TIMEOUT_API_DEFAULT),
@@ -158,6 +160,10 @@ CTEBase* CTE::CreateModemTE(CTE* pTEInstance)
         case MODEM_TYPE_XMM7160:
             RIL_LOG_INFO("CTE::CreateModemTE() - Using XMM7160\r\n");
             return new CTE_XMM7160(*pTEInstance);
+
+        case MODEM_TYPE_XMM7260:
+            RIL_LOG_INFO("CTE::CreateModemTE() - Using XMM7260\r\n");
+            return new CTE_XMM7260(*pTEInstance);
 
         default: // unsupported modem
             RIL_LOG_INFO("CTE::CreateModemTE() - No modem specified, returning NULL\r\n");
@@ -8331,6 +8337,7 @@ BOOL CTE::isRetryPossible(UINT32 uiErrorCode)
         case CMS_ERROR_SIM_ABSENT:
         case CMS_ERROR_MO_SMS_REJECTED_BY_SIM_MO_SMS_CONTROL:
         case CMS_ERROR_CM_SERVICE_REJECT_FROM_NETWORK:
+        case CMS_ERROR_TIMER_EXPIRY:
         case CMS_ERROR_IMSI_DETACH_INITIATED:
             return FALSE;
         default:

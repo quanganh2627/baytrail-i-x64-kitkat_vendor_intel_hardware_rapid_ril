@@ -49,10 +49,12 @@ LOCAL_SRC_FILES:= \
     ND/MODEMS/init6260.cpp \
     ND/MODEMS/init6360.cpp \
     ND/MODEMS/init7160.cpp \
+    ND/MODEMS/init7260.cpp \
     ND/MODEMS/data_util.cpp \
     ND/MODEMS/te_xmm6260.cpp \
     ND/MODEMS/te_xmm6360.cpp \
-    ND/MODEMS/te_xmm7160.cpp
+    ND/MODEMS/te_xmm7160.cpp \
+    ND/MODEMS/te_xmm7260.cpp
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli librilutils
 

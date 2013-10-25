@@ -37,14 +37,19 @@ private:
     CTE_XMM7160(const CTE_XMM7160& rhs);  // Copy Constructor
     CTE_XMM7160& operator=(const CTE_XMM7160& rhs);  //  Assignment operator
 
-    RIL_RESULT_CODE CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
+public:
+    // modem overrides
+
+    virtual CInitializer* GetInitializer();
+
+    virtual RIL_RESULT_CODE CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
                                             const char** pszRequest,
                                             const UINT32 uiDataSize);
-    RIL_RESULT_CODE CreateIMSConfigReq(REQUEST_DATA& rReqData,
+    virtual RIL_RESULT_CODE CreateIMSConfigReq(REQUEST_DATA& rReqData,
                                        const char** pszRequest,
                                        const int nNumStrings);
 
-    RIL_RESULT_CODE CreateSetDefaultApnReq(REQUEST_DATA& rReqData,
+    virtual RIL_RESULT_CODE CreateSetDefaultApnReq(REQUEST_DATA& rReqData,
             const char** pszRequest, const int nNumStrings);
 
     // RIL_REQUEST_SET_BAND_MODE 65
@@ -52,11 +57,6 @@ private:
                                                        void* pData,
                                                        UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetBandMode(RESPONSE_DATA& rRspData);
-
-public:
-    // modem overrides
-
-    virtual CInitializer* GetInitializer();
 
     // RIL_REQUEST_DATA_REGISTRATION_STATE 21
     virtual RIL_RESULT_CODE CoreGPRSRegistrationState(REQUEST_DATA& rReqData,
