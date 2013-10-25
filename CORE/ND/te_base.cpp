@@ -11437,11 +11437,11 @@ void CTEBase::WaitForModemPowerOffEvent()
 //
 // Sets automatic response for network initiated context activation (called internally)
 //
-void CTEBase::SetAutomaticResponseforNwInitiatedContext()
+void CTEBase::SetAutomaticResponseforNwInitiatedContext(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTEBase::SetAutomaticResponseforNwInitiatedContext() Enter\r\n");
 
-    CCommand* pCmd = new CCommand(RIL_CHANNEL_OEM, NULL, REQ_ID_NONE, "AT+CGAUTO=1\r");
+    CCommand* pCmd = new CCommand(RIL_CHANNEL_OEM, NULL, rData.uiRequestId, "AT+CGAUTO=1\r");
     if (pCmd)
     {
         pCmd->SetHighPriority();

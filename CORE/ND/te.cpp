@@ -9588,7 +9588,7 @@ void CTE::PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData)
     {
         if (IsNwInitiatedContextActSupported())
         {
-            m_pTEBaseInstance->SetAutomaticResponseforNwInitiatedContext();
+            m_pTEBaseInstance->SetAutomaticResponseforNwInitiatedContext(rData);
         }
     }
 
