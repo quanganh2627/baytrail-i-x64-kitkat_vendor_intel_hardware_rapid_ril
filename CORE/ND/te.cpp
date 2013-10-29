@@ -7126,6 +7126,15 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
 
     bRet = TRUE;
 Error:
+    if (!bUnSolicited)
+    {
+        // Skip "<postfix>"
+        if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not skip response postfix.\r\n");
+        }
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseCREG() - Exit\r\n");
     return bRet;
 }
@@ -7277,6 +7286,15 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
 
     bRet = TRUE;
 Error:
+    if (!bUnSolicited)
+    {
+        // Skip "<postfix>"
+        if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not skip response postfix.\r\n");
+        }
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseCGREG() - Exit\r\n");
     return bRet;
 }
@@ -7447,6 +7465,15 @@ Done:
 
     bRet = TRUE;
 Error:
+    if (!bUnSolicited)
+    {
+        // Skip "<postfix>"
+        if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not skip response postfix.\r\n");
+        }
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseXREG() - Exit\r\n");
     return bRet;
 }
@@ -7581,6 +7608,15 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
 
     bRet = TRUE;
 Error:
+    if (!bUnSolicited)
+    {
+        // Skip "<postfix>"
+        if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not skip response postfix.\r\n");
+        }
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseCEREG() - Exit\r\n");
     return bRet;
 }
