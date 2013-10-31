@@ -98,9 +98,6 @@ private:
     BOOL ProcessResponse(CResponse*& rpRsp);
     BOOL ProcessNoop(CResponse*& rpRsp);
 
-    //  helper function to close and open the port.
-    void CloseOpenPort();
-
     //  helper function to request modem restart due to command time-out
     void RequestCleanUpOnCommandTimeout(CCommand* rpCmd, UINT32 uiCmdIndex);
 

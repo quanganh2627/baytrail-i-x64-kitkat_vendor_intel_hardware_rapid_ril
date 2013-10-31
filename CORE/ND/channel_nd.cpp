@@ -275,6 +275,12 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
                 //  Our response is complete!
                 break;
             }
+            else if (resCode == RRIL_E_MODEM_RESET)
+            {
+                //  The modem was reset in the GetResponse call, exit the loop, no need to attempt
+                //  a retry.
+                break;
+            }
             else
             {
                 //  Our response timed out, retry if we can
@@ -431,7 +437,10 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
                     " timeout=[%d]ms No response for requestId TX [%d] *****\r\n",
                     m_uiRilChannel, rpCmd->GetTimeout(), rpCmd->GetRequestID());
 
-        HandleTimeout(rpCmd, rpResponse, 1 /* Cmd Index */);
+        if (HandleTimeout(rpCmd, rpResponse, 1 /* Cmd Index */))
+        {
+            resCode = RRIL_E_MODEM_RESET;
+        }
         goto Error;
     }
     else if (RIL_E_SUCCESS != resCode)
@@ -503,7 +512,10 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
                         " timeout=[%d]ms No response to requestID [%d] *****\r\n",
                         m_uiRilChannel, rpCmd->GetTimeout(), rpCmd->GetRequestID());
 
-            HandleTimeout(rpCmd, rpResponse, 2 /* Cmd Index */);
+            if (HandleTimeout(rpCmd, rpResponse, 2 /* Cmd Index */))
+            {
+                resCode = RRIL_E_MODEM_RESET;
+            }
             goto Error;
         }
         else if (RIL_E_SUCCESS != resCode)
@@ -569,34 +581,6 @@ BOOL CChannel::SendCommandPhase2(const UINT32 uiResCode,
     return bSendPhase2;
 }
 
-//  Helper function to close and open the port
-//  Uses m_pPossibleInvalidFDMutex mutex, since reponse thread may receive data while
-//  port is closed.
-void CChannel::CloseOpenPort()
-{
-    CMutex::Lock(m_pPossibleInvalidFDMutex);
-    m_bPossibleInvalidFD = TRUE;
-    RIL_LOG_INFO("CChannel::CloseOpenPort() - chnl=[%d] m_bPossibleInvalidFD=TRUE\r\n",
-            m_uiRilChannel);
-    CMutex::Unlock(m_pPossibleInvalidFDMutex);
-
-    //  AT command is non-abortable.  Just Close DLC and Open DLC here.
-    RIL_LOG_INFO("CChannel::CloseOpenPort() - chnl=[%d] Closing port\r\n", m_uiRilChannel);
-    g_pRilChannel[m_uiRilChannel]->ClosePort();
-
-    RIL_LOG_INFO("CChannel::CloseOpenPort() - chnl=[%d] Opening port\r\n", m_uiRilChannel);
-    g_pRilChannel[m_uiRilChannel]->OpenPort();
-
-    RIL_LOG_INFO("CChannel::CloseOpenPort() - chnl=[%d] Calling InitPort()\r\n", m_uiRilChannel);
-    g_pRilChannel[m_uiRilChannel]->InitPort();
-
-    CMutex::Lock(m_pPossibleInvalidFDMutex);
-    m_bPossibleInvalidFD = FALSE;
-    RIL_LOG_INFO("CChannel::CloseOpenPort() - chnl=[%d] m_bPossibleInvalidFD=FALSE\r\n",
-            m_uiRilChannel);
-    CMutex::Unlock(m_pPossibleInvalidFDMutex);
-}
-
 // Helper function to request modem restart due to command time-out
 void CChannel::RequestCleanUpOnCommandTimeout(CCommand* rpCmd, UINT32 uiCmdIndex)
 {
@@ -618,32 +602,24 @@ void CChannel::RequestCleanUpOnCommandTimeout(CCommand* rpCmd, UINT32 uiCmdIndex
 //
 //  This function handles the timeout mechanism.
 //  If timeout, send ABORT.  Then send PING.
+//
+//  Function returns TRUE if the modem has been reset.
 BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse,
         UINT32 uiCmdIndex)
 {
     RIL_LOG_VERBOSE("CChannel::HandleTimeout() - Enter\r\n");
 
-    // New retry mechanism.
-    //
-    //-If there is AT command timeout, check to see if AT command is abortable or not.
-    //  -If AT command is abortable:
+    //  -If there is AT command timeout, check to see if AT command is abortable or not.
+    //   If AT command is abortable:
     //     -Send ABORT command, wait for ABORT response.
-    //     -If ABORT timeout, Close and Open the port.
-    //     -If ABORT response received, assume modem is alive.
-    //   -"Ping" the modem with simple AT command.
-    //     -If "Ping" timeout, assume modem is dead.  Request clean up from STMD.
-    //     -If "Ping" response received, assume modem is alive.  Re-send original AT command.
-    //        -Also must send channel init commands if port was closed and opened.
-    //
-    //  -If AT command is non-abortable:
-    //     -Close and Open the port.
-    //   -"Ping" the modem with simple AT command.
-    //     -If "Ping" timeout, assume modem is dead.  Request clean up from STMD.
-    //     -If "Ping" response received, assume modem is alive.  Re-send original AT command.
-    //        -Also must send channel init commands for this particular channel.
+    //        -If ABORT timeout, assume modem is dead. Request clean up from MMGR. Quit processing.
+    //        -If ABORT response received, continue with Ping processing.
+    //  -"Ping" the modem with simple AT command.
+    //     -If "Ping" timeout, assume modem is dead.  Request clean up from MMGR. Quit processing.
+    //     -If "Ping" response received, assume modem is alive.
+    //  - If command can be retried and no MMGR clean-up requested, re-send original AT command.
 
-
-    BOOL bRet = TRUE;
+    BOOL bNeedModemCleanUp = FALSE;
     const UINT32 PING_TIMEOUT = 3000;  // PING timeout in ms.
     char szABORTCmd[] = "AT\x1b\r";  //  AT<esc>\r
     char szPINGCmd[] = "ATE0V1;+CMEE=1\r";
@@ -651,7 +627,6 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse,
     UINT32 uiBytesWritten = 0;
     CResponse* pRspTemp = NULL;
     RIL_RESULT_CODE resTmp = RIL_E_SUCCESS;
-    BOOL bCloseOpenPort = FALSE;
 
     //  Is AT command abortable?  If so, send ABORT command.
     if ( IsReqIDAbortable(rpCmd->GetRequestID()) )
@@ -668,24 +643,17 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse,
         if (pRspTemp && pRspTemp->IsTimedOutFlag())
         {
             //  ABORTED timeout
-            //  Close DLC and Open DLC here
             RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] ABORT command timed out!!\r\n",
                     m_uiRilChannel);
-
-            CloseOpenPort();
-            bCloseOpenPort = TRUE;
         }
         else if (RIL_E_SUCCESS != resTmp)
         {
             RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] Failed read from queue during"
                     " ABORTED !\r\n", m_uiRilChannel);
 
-            if (NULL != pRspTemp)
-            {
-                delete pRspTemp;
-                pRspTemp = NULL;
-            }
-            return FALSE;
+            bNeedModemCleanUp = TRUE;
+
+            goto Error;
         }
         else
         {
@@ -695,14 +663,6 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse,
         }
         delete pRspTemp;
         pRspTemp = NULL;
-    }
-    else
-    {
-        //  Non-abortable AT command.
-
-        //  Close and open DLC.
-        CloseOpenPort();
-        bCloseOpenPort = TRUE;
     }
 
     //  "ping" modem to see if still alive
@@ -728,41 +688,36 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse,
                 "  Assume MODEM IS DEAD!\r\n", m_uiRilChannel);
         RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] request clean up\r\n",
                 m_uiRilChannel);
-        RequestCleanUpOnCommandTimeout(rpCmd, uiCmdIndex);
+
+        bNeedModemCleanUp = TRUE;
     }
     else if (RIL_E_SUCCESS != resTmp)
     {
         RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] Failed read from queue during"
-                " PING 1\r\n", m_uiRilChannel);
+                " PING !\r\n", m_uiRilChannel);
 
-        if (NULL != pRspTemp)
-        {
-            delete pRspTemp;
-            pRspTemp = NULL;
-        }
-
-        return FALSE;
+        bNeedModemCleanUp = TRUE;
     }
     else
     {
         //  Received response to PING
-        RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] Recevied response to PING"
+        RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] Received response to PING"
                 " command!!\r\n", m_uiRilChannel);
 
         //  Modem is alive.  Let calling function handle the retry attempt.
     }
+
+Error:
+    if (bNeedModemCleanUp)
+    {
+        RequestCleanUpOnCommandTimeout(rpCmd, uiCmdIndex);
+    }
+
     delete pRspTemp;
     pRspTemp = NULL;
 
-    //  If we closed and opened the port, then we need to re-send the init commands for
-    //  this channel.
-    if (bCloseOpenPort)
-    {
-        SendModemConfigurationCommands(COM_BASIC_INIT_INDEX);
-    }
-
-    RIL_LOG_VERBOSE("CChannel::HandleTimeout() - Exit  bRet=[%d]\r\n", bRet);
-    return bRet;
+    RIL_LOG_VERBOSE("CChannel::HandleTimeout() - Exit  bRet=[%d]\r\n", bNeedModemCleanUp);
+    return bNeedModemCleanUp;
 }
 
 

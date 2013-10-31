@@ -367,6 +367,7 @@ const int   XICFG_N_PARAMS  = 10;
 #define RRIL_E_TIMED_OUT                            (0x00001005)
 #define RRIL_E_CANCELLED                            (0x00001006)
 #define RRIL_E_RADIOOFF                             (0x00001007)
+#define RRIL_E_MODEM_RESET                          (0x00001008)
 
 
 ///////////////////////////////////////////////////////////////////////////////
