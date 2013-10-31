@@ -102,7 +102,7 @@ public:
      */
     void CloseChannelPorts() { m_pInitializer->CloseChannelPorts(); }
 
-    BOOL SendRequestModemRecovery();
+    BOOL SendRequestModemRecovery(mmgr_cli_recovery_cause_t* pCauses, int nCauses);
     BOOL SendRequestModemShutdown();
     BOOL SendAckModemShutdown();
     BOOL SendAckModemColdReset();

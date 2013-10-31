@@ -91,7 +91,8 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             && RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED != unsolResponseID
             && RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED != unsolResponseID
             && RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED != unsolResponseID
-            && RIL_UNSOL_DATA_CALL_LIST_CHANGED != unsolResponseID)
+            && RIL_UNSOL_DATA_CALL_LIST_CHANGED != unsolResponseID
+            && RIL_UNSOL_OEM_HOOK_RAW != unsolResponseID)
     {
         RIL_LOG_INFO("RIL_onUnsolicitedResponse() - ignoring id=%d due to "
                 "radio on/off requested\r\n", unsolResponseID);
@@ -520,7 +521,7 @@ static const char* getVersion(void)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static void* mainLoop(void* param)
 {
-    LOGI("mainLoop() - Enter\r\n");
+    RLOGI("mainLoop() - Enter\r\n");
 
     UINT32 dwRet = 1;
 
@@ -535,6 +536,9 @@ static void* mainLoop(void* param)
 
     // Initialize logging class
     CRilLog::Init(g_szSIMID);
+
+    // Initialize storage mechanism for error causes
+    CModemRestart::Init();
 
     // Initialize helper thread that processes MMGR callbacks
     if (!CDeferThread::Init())
@@ -561,6 +565,8 @@ Error:
     {
         RIL_LOG_CRITICAL("mainLoop() - RIL Initialization FAILED\r\n");
 
+        CModemRestart::Destroy();
+        CDeferThread::Destroy();
         CSystemManager::Destroy();
     }
 
@@ -614,34 +620,34 @@ static bool RIL_SetGlobals(int argc, char** argv)
             case 's':
                 g_szCmdPort  = optarg;
                 g_bIsSocket = TRUE;
-                LOGI("RIL_SetGlobals() - Using socket \"%s\"\r\n", g_szCmdPort);
+                RLOGI("RIL_SetGlobals() - Using socket \"%s\"\r\n", g_szCmdPort);
             break;
 
             // This should be the non-emulator case.
             case 'a':
                 g_szCmdPort = optarg;
-                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for AT channel chnl=[%d] -a\r\n",
+                RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for AT channel chnl=[%d] -a\r\n",
                         g_szCmdPort, RIL_CHANNEL_ATCMD);
             break;
 
             // This should be the non-emulator case.
             case 'n':
                 g_szDLC2Port = optarg;
-                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Network channel chnl=[%d]"
+                RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Network channel chnl=[%d]"
                         " -n\r\n", g_szDLC2Port, RIL_CHANNEL_DLC2);
             break;
 
             // This should be the non-emulator case.
             case 'm':
                 g_szDLC6Port = optarg;
-                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Messaging channel chnl=[%d]"
+                RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Messaging channel chnl=[%d]"
                         " -m\r\n", g_szDLC6Port, RIL_CHANNEL_DLC6);
             break;
 
             // This should be the non-emulator case.
             case 'c':
                 g_szDLC8Port = optarg;
-                LOGI("RIL_SetGlobals() -"
+                RLOGI("RIL_SetGlobals() -"
                         " Using tty device \"%s\" for SIM/USIM Card channel chnl=[%d]"
                         " -c\r\n", g_szDLC8Port, RIL_CHANNEL_DLC8);
             break;
@@ -649,21 +655,21 @@ static bool RIL_SetGlobals(int argc, char** argv)
             // This should be the non-emulator case.
             case 'u':
                 g_szURCPort = optarg;
-                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for URC channel chnl=[%d] -u\r\n",
+                RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for URC channel chnl=[%d] -u\r\n",
                         g_szURCPort, RIL_CHANNEL_URC);
             break;
 
             // This should be the non-emulator case.
             case 'o':
                 g_szOEMPort = optarg;
-                LOGI("RIL_SetGlobals() - Using tty device \"%s\" for OEM channel chnl=[%d] -u\r\n",
+                RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for OEM channel chnl=[%d] -u\r\n",
                         g_szOEMPort, RIL_CHANNEL_OEM);
             break;
 
             // This should be the non-emulator case.
             case 'i':
                 g_szSIMID = optarg;
-                LOGI("RIL_SetGlobals() - Using SIMID \"%s\" for all channels\r\n", g_szSIMID);
+                RLOGI("RIL_SetGlobals() - Using SIMID \"%s\" for all channels\r\n", g_szSIMID);
             break;
 
             // This should be the non-emulator case.
@@ -672,7 +678,7 @@ static bool RIL_SetGlobals(int argc, char** argv)
             case 'd':
                 if (uiDataPortIndex >= g_uiRilChannelUpperLimit)
                 {
-                    LOGI("RIL_SetGlobals() - Too many RIL data channels!  uiDataPortIndex=%d,"
+                    RLOGI("RIL_SetGlobals() - Too many RIL data channels!  uiDataPortIndex=%d,"
                             " Upper Limit=%d\r\n", uiDataPortIndex, g_uiRilChannelUpperLimit);
                     usage(argv[0]);
                     return false;
@@ -683,31 +689,31 @@ static bool RIL_SetGlobals(int argc, char** argv)
                     {
                         case RIL_CHANNEL_DATA1:
                             g_szDataPort1 = optarg;
-                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
+                            RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
                                     " chnl=[%d] -d\r\n", g_szDataPort1, RIL_CHANNEL_DATA1);
                             break;
 
                         case RIL_CHANNEL_DATA2:
                             g_szDataPort2 = optarg;
-                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
+                            RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
                                     " chnl=[%d] -d\r\n", g_szDataPort2, RIL_CHANNEL_DATA2);
                             break;
 
                         case RIL_CHANNEL_DATA3:
                             g_szDataPort3 = optarg;
-                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
+                            RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
                                     " chnl=[%d] -d\r\n", g_szDataPort3, RIL_CHANNEL_DATA3);
                             break;
 
                         case RIL_CHANNEL_DATA4:
                             g_szDataPort4 = optarg;
-                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
+                            RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
                                     " chnl=[%d] -d\r\n", g_szDataPort4, RIL_CHANNEL_DATA4);
                             break;
 
                         case RIL_CHANNEL_DATA5:
                             g_szDataPort5 = optarg;
-                            LOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
+                            RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
                                     " chnl=[%d] -d\r\n", g_szDataPort5, RIL_CHANNEL_DATA5);
                             break;
 
@@ -728,14 +734,14 @@ static bool RIL_SetGlobals(int argc, char** argv)
     g_uiRilChannelCurMax = uiDataPortIndex;
     if (g_uiRilChannelCurMax > g_uiRilChannelUpperLimit)
     {
-        LOGE("RIL_SetGlobals() - g_uiRilChannelCurMax = %d higher than g_uiRilChannelUpperLimit ="
+        RLOGE("RIL_SetGlobals() - g_uiRilChannelCurMax = %d higher than g_uiRilChannelUpperLimit ="
                 " %d\r\n", g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
         usage(argv[0]);
         return false;
     }
     else
     {
-        LOGI("RIL_SetGlobals() - g_uiRilChannelCurMax = %d  g_uiRilChannelUpperLimit = %d\r\n",
+        RLOGI("RIL_SetGlobals() - g_uiRilChannelCurMax = %d  g_uiRilChannelUpperLimit = %d\r\n",
                 g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
     }
 

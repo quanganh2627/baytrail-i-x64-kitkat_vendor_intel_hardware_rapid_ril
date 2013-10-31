@@ -163,6 +163,8 @@ BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const char*& rszPo
         goto Error;
     }
 
+    pResponse->SetUnsolicitedFlag(TRUE);
+
     pIndex = (int*)malloc(sizeof(int));
     if (NULL == pIndex)
     {
@@ -183,7 +185,6 @@ BOOL CSilo_SMS::ParseMessageInSim(CResponse* const pResponse, const char*& rszPo
         goto Error;
     }
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NEW_SMS_ON_SIM);
 
     *pIndex = Index;
@@ -225,6 +226,8 @@ BOOL CSilo_SMS::ParseCMT(CResponse* const pResponse, const char*& rszPointer)
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCMT() - pResponse is NULL.\r\n");
         goto Error;
     }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Throw out the alpha chars if there are any
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
@@ -277,7 +280,6 @@ BOOL CSilo_SMS::ParseCMT(CResponse* const pResponse, const char*& rszPointer)
 
     RIL_LOG_INFO("CSilo_SMS::ParseCMT() - PDU String: \"%s\".\r\n", szPDU);
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NEW_SMS);
 
     if (!pResponse->SetData((void*)szPDU, sizeof(char) * uiLength, FALSE))
@@ -318,6 +320,8 @@ BOOL CSilo_SMS::ParseCBM(CResponse* const pResponse, const char*& rszPointer)
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCBM() - pResponse is NULL.\r\n");
         goto Error;
     }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Throw out the alpha chars if there are any
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
@@ -375,7 +379,6 @@ BOOL CSilo_SMS::ParseCBM(CResponse* const pResponse, const char*& rszPointer)
 
     pByteBuffer[bytesUsed] = '\0';
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS);
 
     if (!pResponse->SetData(pByteBuffer, bytesUsed, FALSE))
@@ -417,6 +420,8 @@ BOOL CSilo_SMS::ParseCDS(CResponse* const pResponse, const char*& rszPointer)
         RIL_LOG_CRITICAL("CSilo_SMS::ParseCDS() - pResponse is NULL.\r\n");
         goto Error;
     }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Throw out the alpha chars if there are any
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
@@ -467,7 +472,6 @@ BOOL CSilo_SMS::ParseCDS(CResponse* const pResponse, const char*& rszPointer)
 
     RIL_LOG_INFO("CSilo_SMS::ParseCDS() - PDU String: \"%s\".\r\n", szPDU);
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT);
 
     if (!pResponse->SetData((void*) szPDU, sizeof(char) * uiLength, FALSE))

@@ -11,6 +11,8 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
+#include <stdio.h>
+
 #include "types.h"
 #include "util.h"
 #include "thread_manager.h"
@@ -424,7 +426,7 @@ UINT32 CChannelBase::CommandThread()
     {
         RIL_LOG_CRITICAL("CChannelBase::CommandThread() - Invalid channel value: %d\r\n",
                 m_uiRilChannel);
-        return NULL;
+        return 0;
     }
 
     CThreadManager::RegisterThread();
@@ -503,7 +505,7 @@ Done:
     }
 
     RIL_LOG_VERBOSE("CChannelBase::CommandThread() - Exit\r\n");
-    return NULL;
+    return 0;
 }
 
 BOOL CChannelBase::WaitForCommand()
@@ -780,6 +782,41 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         }
     }
 
+    // Set the real time clock
+    if ((COM_POWER_ON_INIT_INDEX == eInitIndex) && (RIL_CHANNEL_URC == m_uiRilChannel))
+    {
+#if defined(HAVE_LOCALTIME_R)
+        struct tm tm;
+#endif
+        struct tm* ptm;
+        time_t t;
+
+        time(&t);
+#if defined(HAVE_LOCALTIME_R)
+        ptm = localtime_r(&t, &tm);
+#else
+        ptm = localtime(&t);
+#endif
+        if (ptm != NULL)
+        {
+            char URCClockInitString[32];
+            memset(URCClockInitString, 0, sizeof(URCClockInitString));
+            strftime(URCClockInitString, sizeof(URCClockInitString),
+                    "|+CCLK=\"%y/%m/%d,%H:%M:%S\"", ptm);
+
+            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, URCClockInitString))
+            {
+                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
+                        " Concat DataPath failed\r\n");
+                goto Done;
+            }
+        }
+        else
+        {
+            RIL_LOG_WARNING("CChannelBase::SendModemConfigurationCommands() - localtime error");
+        }
+    }
+
     RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : String [%s]\r\n", szInit);
     if (NULL == szInit || '\0' == szInit[0])
     {
@@ -854,8 +891,15 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 Done:
     if (!bRetVal)
     {
+        char szChannel[MAX_STRING_SIZE_FOR_INT] = { '\0' };
+        snprintf(szChannel, MAX_STRING_SIZE_FOR_INT - 1, "%u", m_uiRilChannel);
+
+        RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() - "
+                "chnl=[%d] Cannot send channel init cmds."
+                "  Request modem restart !\r\n", m_uiRilChannel);
+
         // Couldn't send an init string -- trigger radio error
-        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__);
+        DO_REQUEST_CLEAN_UP(3, "Could not send init string", "", szChannel);
     }
 
     delete[] szInit;
@@ -892,8 +936,7 @@ UINT32 CChannelBase::ResponseThread()
         {
             RIL_LOG_CRITICAL("CChannelBase::ResponseThread() - chnl=[%d] uiReadError > = %d!"
                     " Trigger radio error!\r\n", m_uiRilChannel, MAX_READERROR);
-            do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
-
+            DO_REQUEST_CLEAN_UP(); // Reason saved in WaitForAvailableData
 
             // the modem is down and we're switching off, so no need to hang around
             // listening on the COM port, bail out now
@@ -935,7 +978,7 @@ UINT32 CChannelBase::ResponseThread()
                 {
                     RIL_LOG_CRITICAL("CChannelBase::ResponseThread() chnl=[%d] - Port closed,"
                             " requesting cleanup\r\n", m_uiRilChannel);
-                    do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+                    DO_REQUEST_CLEAN_UP(1, "Port closed");
                     break;
                 }
             }
@@ -974,8 +1017,8 @@ UINT32 CChannelBase::ResponseThread()
                 }
                 else
                 {
-                    // read() < 0, call do_request_clean_up()
-                    do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+                    // read() < 0, call DO_REQUEST_CLEAN_UP()
+                    DO_REQUEST_CLEAN_UP(); // Reason saved in 'ReadFromPort'
                     //  exit thread
                     return 0;
                 }
@@ -987,7 +1030,7 @@ UINT32 CChannelBase::ResponseThread()
                 {
                     if (CTE::GetTE().GetSpoofCommandsStatus())
                     {
-                        // If we are in "spoof" mode this means that a call to do_request_clean_up
+                        // If we are in "spoof" mode this means that a call to DO_REQUEST_CLEAN_UP()
                         // was done. In this case, we must exit the thread to end the RRIL.
                         return 0;
                     }

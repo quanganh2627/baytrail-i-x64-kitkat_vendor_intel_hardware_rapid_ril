@@ -15,6 +15,8 @@
 //       any long-running operations.  Ideally the Execute function should
 //       just set a flag or trigger an event.
 
+#include <stdio.h>
+
 #include "types.h"
 #include "rril.h"
 #include "sync_ops.h"
@@ -77,9 +79,15 @@ void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
 
         if (!bRes)
         {
-            RIL_LOG_CRITICAL("CContextInitString::Execute() - Shutting Down!\r\n");
+            char szIndex[MAX_STRING_SIZE_FOR_INT] = { '\0' };
+            char szChannel[MAX_STRING_SIZE_FOR_INT] = { '\0' };
+            snprintf(szIndex, MAX_STRING_SIZE_FOR_INT - 1, "%d", (int) m_eInitIndex);
+            snprintf(szChannel, MAX_STRING_SIZE_FOR_INT - 1, "%u", m_uiChannel);
+
+            RIL_LOG_CRITICAL("CContextInitString::Execute() - "
+                    "Init command send failed, set system state as uninitialized !\r\n");
             CSystemManager::GetInstance().SetInitializationUnsuccessful();
-            do_request_clean_up(eRadioError_InitFailure, __LINE__, __FILE__);
+            DO_REQUEST_CLEAN_UP(4, "Init command failed", "", szIndex, szChannel);
         }
         else
         {

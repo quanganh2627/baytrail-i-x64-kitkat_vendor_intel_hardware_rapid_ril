@@ -6244,7 +6244,7 @@ Error:
         {
             if (pContextParams->szIpV6Addr[0] == '\0')
             {
-                CopyStringNullTerminate(szPdpType, "IPV4", MAX_PDP_TYPE_SIZE);
+                CopyStringNullTerminate(szPdpType, "IP", MAX_PDP_TYPE_SIZE);
             }
             else if (pContextParams->szIpV4Addr[0] == '\0')
             {
@@ -7792,24 +7792,24 @@ RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA& rReqData,
     RIL_GSM_BroadcastSmsConfigInfo** ppConfigInfo = (RIL_GSM_BroadcastSmsConfigInfo**)pData;
     m_vBroadcastSmsConfigInfo.clear();
 
-    if ( (0 == uiDataSize) || (0 != (uiDataSize % sizeof(RIL_GSM_BroadcastSmsConfigInfo *))) )
+    if ((0 != uiDataSize) && (0 != (uiDataSize % sizeof(RIL_GSM_BroadcastSmsConfigInfo**))))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() -"
                 " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
-    if (NULL == pData)
+    if (0 != uiDataSize && NULL == pData)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreGsmSetBroadcastSmsConfig() -"
                 " Passed data pointer was NULL\r\n");
         goto Error;
     }
 
-    nConfigInfos = uiDataSize / sizeof(RIL_GSM_BroadcastSmsConfigInfo *);
+    nConfigInfos = uiDataSize / sizeof(RIL_GSM_BroadcastSmsConfigInfo**);
     RIL_LOG_INFO("CTEBase::CoreGsmSetBroadcastSmsConfig() - nConfigInfos = %d.\r\n", nConfigInfos);
 
-    for (int i=0; i<nConfigInfos; i++)
+    for (int i = 0; i < nConfigInfos; i++)
     {
         m_vBroadcastSmsConfigInfo.push_back(*(ppConfigInfo[i]));
     }

@@ -123,7 +123,6 @@ char* CSilo_Network::GetURCInitString()
 BOOL CSilo_Network::ParseXNITZINFO(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXNITZINFO() - Enter\r\n");
-    const char* szDummy;
     BOOL fRet = FALSE;
     const int TIME_ZONE_SIZE = 5;
     const int DATE_TIME_SIZE = 20;
@@ -152,13 +151,7 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse* const pResponse, const char*& rszP
         goto Error;
     }
 
-    //  Check to see if we have a complete XNITZINFO notification.
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
-    {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - This isn't a complete registration"
-                " notification -- no need to parse it!\r\n");
-        goto Error;
-    }
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     //  Skip  ":",
     if (!SkipString(rszPointer,":", rszPointer))
@@ -348,8 +341,6 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse* const pResponse, const char*& rszP
         {
             goto Error;
         }
-
-        pResponse->SetUnsolicitedFlag(TRUE);
     }
     else
     {
@@ -605,6 +596,8 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
 
     if (fUnSolicited)
     {
+        pResponse->SetUnsolicitedFlag(TRUE);
+
         if (E_REGISTRATION_TYPE_CGREG == regType)
         {
             fRet = CTE::GetTE().ParseCGREG(rszPointer, fUnSolicited, psRegStatus);
@@ -632,9 +625,6 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
                         && (0 == strncmp(m_PreviousXREGInfo.szCID,
                         psRegStatus.szCID, MAX_REG_STATUS_LENGTH)) )
                 {
-                    // ignore, since band not reported to Android
-                    rszPointer -= strlen(m_szNewLine);
-                    pResponse->SetUnsolicitedFlag(TRUE);
                     pResponse->SetIgnoreFlag(TRUE);
                     goto Error;
                 }
@@ -654,15 +644,12 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
             pRegStatusInfo = (void*) &psRegStatus;
         }
 
-        rszPointer -= strlen(m_szNewLine);
-
         if (fRet)
         {
             CTE::GetTE().StoreRegistrationInfo(pRegStatusInfo, regType);
             pResponse->SetResultCode(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED);
         }
 
-        pResponse->SetUnsolicitedFlag(TRUE);
         fRet = TRUE;
     }
     else
@@ -759,6 +746,9 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - pResponse is NULL\r\n");
         goto Error;
     }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+
     if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szResponse))
     {
         // This isn't a complete registration notification -- no need to parse it
@@ -849,7 +839,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                 else
                 {
                     RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - reason unknown\r\n");
-                    failCause = PDP_FAIL_ERROR_UNSPECIFIED;
+                    failCause = PDP_FAIL_NONE;
                 }
 
                 if (NULL != pChannelData)
@@ -978,7 +968,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         pData->command = RIL_OEM_HOOK_RAW_UNSOL_MT_CLASS_IND;
         pData->mt_class = mt_class;
 
-        pResponse->SetUnsolicitedFlag(TRUE);
         pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
         if (!pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_MT_CLASS_IND),
@@ -1186,7 +1175,6 @@ Error:
 BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXDATASTAT() - Enter\r\n");
-    const char* szResponse = NULL;
     BOOL bRet = FALSE;
     UINT32 uiDataStatus = 0;
     sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND* pData = NULL;
@@ -1198,12 +1186,7 @@ BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char*& rszP
         goto Error;
     }
 
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szResponse))
-    {
-        // This isn't a complete notification -- no need to parse it
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXDATASTAT: Failed to find rsp end!\r\n");
-        goto Error;
-    }
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     if (!ExtractUInt32(rszPointer, uiDataStatus, rszPointer))
     {
@@ -1234,7 +1217,6 @@ BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char*& rszP
             pData->command = RIL_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND;
             pData->status = uiDataStatus;
 
-            pResponse->SetUnsolicitedFlag(TRUE);
             pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
             if (!pResponse->SetData((void*)pData,
@@ -1280,6 +1262,8 @@ BOOL CSilo_Network::ParseXCSQ(CResponse* const pResponse, const char*& rszPointe
         RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() - pResponse is NULL\r\n");
         goto Error;
     }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     pSigStrData = (RIL_SignalStrength_v6*)malloc(sizeof(RIL_SignalStrength_v6));
     if (NULL == pSigStrData)
@@ -1329,7 +1313,6 @@ BOOL CSilo_Network::ParseXCSQ(CResponse* const pResponse, const char*& rszPointe
     pSigStrData->LTE_SignalStrength.rssnr=INT_MAX;
     pSigStrData->LTE_SignalStrength.cqi=INT_MAX;
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_SIGNAL_STRENGTH);
 
     if (!pResponse->SetData((void*)pSigStrData, sizeof(RIL_SignalStrength_v6), FALSE))
@@ -1371,6 +1354,8 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rs
         goto Error;
     }
 
+    pResponse->SetUnsolicitedFlag(TRUE);
+
     // Extract "<state>"
     if (!ExtractUInt32(rszPointer, uiState, rszPointer))
     {
@@ -1400,7 +1385,6 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rs
          goto Error;
     }
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
     if (!pResponse->SetData((void*)&commandId, sizeof(UINT32), TRUE))

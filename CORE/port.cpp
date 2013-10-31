@@ -214,6 +214,9 @@ BOOL CPort::Read(char* pszReadBuf, UINT32 uiReadBufSize, UINT32& ruiBytesRead)
     }
     else
     {
+        CModemRestart::SaveRequestReason(3, "Port read error", "port is not open",
+                CFile::GetName(m_pFile));
+
         RIL_LOG_CRITICAL("CPort::Read() - Port is not open!\r\n");
     }
 
@@ -241,11 +244,14 @@ BOOL CPort::Write(const char* pszWriteBuf, const UINT32 uiBytesToWrite, UINT32& 
     }
     else
     {
+        CModemRestart::SaveRequestReason(3, "Port write error", "port is not open",
+                CFile::GetName(m_pFile));
+
         RIL_LOG_CRITICAL("CPort::Write() - Port is not open!\r\n");
     }
 
-    return fRet;
     RIL_LOG_VERBOSE("CPort::Write() - Exit\r\n");
+    return fRet;
 }
 
 BOOL CPort::OpenPort(const char* pszFileName)
@@ -367,6 +373,7 @@ BOOL CPort::WaitForAvailableData(UINT32 uiTimeout)
     }
     else
     {
+        CModemRestart::SaveRequestReason(3, "Port is not open", "", CFile::GetName(m_pFile));
         RIL_LOG_CRITICAL("CPort::WaitForAvailableData() - Port is not open!\r\n");
     }
 

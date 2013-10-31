@@ -11,6 +11,8 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
+#include <stdio.h>
+
 #include "types.h"
 #include "rillog.h"
 #include "thread_ops.h"
@@ -237,7 +239,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
                     RIL_LOG_CRITICAL("CChannel::SendCommand() - write() = -1, chnl=[%d] Error"
                             " writing requestId: %d\r\n", m_uiRilChannel, rpCmd->GetRequestID());
 
-                do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+                DO_REQUEST_CLEAN_UP(); // Reason saved in WriteToPort
             }
 
             if (nCmd1Length != uiBytesWritten)
@@ -284,21 +286,16 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
                 else
                 {
                     //  If this was last attempt and we timed out, and this was an init command,
-                    //  then reset modem.  Signal clean up to STMD.
+                    //  then reset modem.  Signal clean up to MMGR.
                     if (rpCmd->IsInitCommand())
                     {
                         RIL_LOG_CRITICAL("CChannel::SendCommand() - ***** chnl=[%d] Init command"
                                 " timed-out. Reset modem! *****\r\n", m_uiRilChannel);
-
-                        do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+                        // In this case, it's always AT command 1 that is sent
+                        RequestCleanUpOnCommandTimeout(rpCmd, 1 /* Cmd Index */);
                         goto Error;
                     }
                 }
-            }
-            if (0 == numRetries)
-            {
-                rpCmd->FreeATCmd1();
-                pATCommand = NULL;
             }
         } while (--numRetries >= 0);
     }
@@ -410,7 +407,7 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
         RIL_LOG_INFO("COUNT = %d\r\n", nCount);
         if (nCount == 4)
         {
-            do_request_clean_up(eRadioError_ChannelDead, __LINE__, __FILE__);
+            DO_REQUEST_CLEAN_UP(1, "Radio reboot test");
             goto Error;
         }
     }
@@ -420,30 +417,21 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
 
     if (rpResponse && rpResponse->IsTimedOutFlag())
     {
-        if (NULL == pATCommand)
+        if ((CRilLog::IsFullLogBuild()) && (pATCommand != NULL))
         {
+            CRLFExpandedString cmd(pATCommand, strlen(pATCommand));
+            const char* pPrintStr = cmd.GetString();
+
             RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** Command timed out chnl=[%d]!"
-                    " timeout=[%d]ms No response to TX [(null)] *****\r\n", m_uiRilChannel,
-                    rpCmd->GetTimeout());
+                    " timeout=[%d]ms No response to TX [%s] *****\r\n", m_uiRilChannel,
+                    rpCmd->GetTimeout(), pPrintStr);
         }
         else
-        {
-            if (CRilLog::IsFullLogBuild())
-            {
-                CRLFExpandedString cmd(pATCommand, strlen(pATCommand));
-                const char* pPrintStr = cmd.GetString();
+            RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** Command timed out chnl=[%d]!"
+                    " timeout=[%d]ms No response for requestId TX [%d] *****\r\n",
+                    m_uiRilChannel, rpCmd->GetTimeout(), rpCmd->GetRequestID());
 
-                RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** Command timed out chnl=[%d]!"
-                        " timeout=[%d]ms No response to TX [%s] *****\r\n", m_uiRilChannel,
-                        rpCmd->GetTimeout(), pPrintStr);
-            }
-            else
-                RIL_LOG_CRITICAL("CChannel::GetResponse() - ***** Command timed out chnl=[%d]!"
-                        " timeout=[%d]ms No response for requestId TX [%d] *****\r\n",
-                        m_uiRilChannel, rpCmd->GetTimeout(), rpCmd->GetRequestID());
-        }
-
-        HandleTimeout(rpCmd, rpResponse);
+        HandleTimeout(rpCmd, rpResponse, 1 /* Cmd Index */);
         goto Error;
     }
     else if (RIL_E_SUCCESS != resCode)
@@ -499,10 +487,6 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
                         m_uiRilChannel, uiBytesWritten, rpCmd->GetRequestID());
         }
 
-        // No retry mechanism, free the command buffer
-        rpCmd->FreeATCmd2();
-        pATCommand = NULL;
-
         // wait for the secondary response
         delete rpResponse;
         rpResponse = NULL;
@@ -519,7 +503,7 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
                         " timeout=[%d]ms No response to requestID [%d] *****\r\n",
                         m_uiRilChannel, rpCmd->GetTimeout(), rpCmd->GetRequestID());
 
-            HandleTimeout(rpCmd, rpResponse);
+            HandleTimeout(rpCmd, rpResponse, 2 /* Cmd Index */);
             goto Error;
         }
         else if (RIL_E_SUCCESS != resCode)
@@ -613,10 +597,29 @@ void CChannel::CloseOpenPort()
     CMutex::Unlock(m_pPossibleInvalidFDMutex);
 }
 
+// Helper function to request modem restart due to command time-out
+void CChannel::RequestCleanUpOnCommandTimeout(CCommand* rpCmd, UINT32 uiCmdIndex)
+{
+    const char* pszCmdString = uiCmdIndex == 1 ?
+            rpCmd->GetATCmd1() :
+            rpCmd->GetATCmd2();
+    char szTimeOut[MAX_STRING_SIZE_FOR_INT] = { '\0' };
+    char szChannel[MAX_STRING_SIZE_FOR_INT] = { '\0' };
+    if ((!CRilLog::IsFullLogBuild()) || (pszCmdString == NULL))
+    {
+        pszCmdString  = "<AT cmd>";
+    }
+    CRLFExpandedString cmd(pszCmdString, strlen(pszCmdString));
+    snprintf(szTimeOut, MAX_STRING_SIZE_FOR_INT - 1, "%u", rpCmd->GetTimeout());
+    snprintf(szChannel, MAX_STRING_SIZE_FOR_INT - 1, "%u", m_uiRilChannel);
+    DO_REQUEST_CLEAN_UP(3, cmd.GetString(), szTimeOut, szChannel);
+}
+
 //
 //  This function handles the timeout mechanism.
 //  If timeout, send ABORT.  Then send PING.
-BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
+BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse,
+        UINT32 uiCmdIndex)
 {
     RIL_LOG_VERBOSE("CChannel::HandleTimeout() - Enter\r\n");
 
@@ -675,7 +678,7 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
         else if (RIL_E_SUCCESS != resTmp)
         {
             RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] Failed read from queue during"
-                    " ABORTED 1\r\n", m_uiRilChannel);
+                    " ABORTED !\r\n", m_uiRilChannel);
 
             if (NULL != pRspTemp)
             {
@@ -687,7 +690,7 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
         else
         {
             //  Received response to ABORTED
-            RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] Recevied response to ABORT"
+            RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] Received response to ABORT"
                     " command!!\r\n", m_uiRilChannel);
         }
         delete pRspTemp;
@@ -720,13 +723,12 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
     if (pRspTemp && pRspTemp->IsTimedOutFlag())
     {
         //  PING timeout
-        //  Assume modem is dead!  Signal STMD to request cleanup.
+        //  Assume modem is dead!  Signal MMGR to request cleanup.
         RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] PING attempt timed out!!"
                 "  Assume MODEM IS DEAD!\r\n", m_uiRilChannel);
         RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] request clean up\r\n",
                 m_uiRilChannel);
-
-        do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
+        RequestCleanUpOnCommandTimeout(rpCmd, uiCmdIndex);
     }
     else if (RIL_E_SUCCESS != resTmp)
     {
@@ -756,15 +758,7 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse)
     //  this channel.
     if (bCloseOpenPort)
     {
-        if (!SendModemConfigurationCommands(COM_BASIC_INIT_INDEX))
-        {
-            RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] Cannot send channel init cmds."
-                    "  Assume MODEM IS DEAD!\r\n", m_uiRilChannel);
-            RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] request clean up\r\n",
-                    m_uiRilChannel);
-
-            do_request_clean_up(eRadioError_RequestCleanup, __LINE__, __FILE__);
-        }
+        SendModemConfigurationCommands(COM_BASIC_INIT_INDEX);
     }
 
     RIL_LOG_VERBOSE("CChannel::HandleTimeout() - Exit  bRet=[%d]\r\n", bRet);
@@ -780,7 +774,7 @@ BOOL CChannel::ProcessNoop(CResponse*& rpResponse)
     if (NULL == rpResponse)
     {
         // signal critical error for low memory
-        do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__);
+        DO_REQUEST_CLEAN_UP(1, "Out of memory");
         return FALSE;
     }
 
@@ -896,7 +890,7 @@ BOOL CChannel::ProcessModemData(char* szRxBytes, UINT32 uiRxBytesSize)
         if (!m_pResponse)
         {
             // critically low on memory
-            do_request_clean_up(eRadioError_LowMemory, __LINE__, __FILE__);
+            DO_REQUEST_CLEAN_UP(1, "Out of memory");
             goto Error;
         }
     }

@@ -67,21 +67,12 @@ BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const char*& rszPoin
 {
     RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Enter\r\n");
 
-    const char* szDummy;
     BOOL fRet = FALSE;
-
     CChannel_Data* pChannelData = NULL;
 
     if (pResponse == NULL)
     {
         RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() : pResponse was NULL\r\n");
-        goto Error;
-    }
-
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
-    {
-        RIL_LOG_CRITICAL("CSilo_Data::ParseNoCarrier() : Could not find response end\r\n");
         goto Error;
     }
 

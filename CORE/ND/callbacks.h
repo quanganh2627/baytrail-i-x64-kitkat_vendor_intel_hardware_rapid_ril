@@ -96,6 +96,6 @@ void triggerCellInfoList (void* param);
 //
 // Callback to trigger SIM application error
 //
-void triggerSIMAppError(void* param);
+void triggerSIMAppError(const void* param);
 
 #endif

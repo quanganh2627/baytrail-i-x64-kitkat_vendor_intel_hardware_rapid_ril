@@ -160,6 +160,8 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
         goto Error;
     }
 
+    pResponse->SetUnsolicitedFlag(TRUE);
+
     // Make sure this is a complete notification
     if(!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
     {
@@ -174,21 +176,11 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
         goto Error;
     }
 
-    // Skip to end
-    if(!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseExtRing() : Couldn't find end of notification\r\n");
-        goto Error;
-    }
-    // Walk back over the <CR>
-    rszPointer -= strlen(m_szNewLine);
-
     //  Determine what kind of RING this is.
     if (0 == strcmp(szType, "VOICE") || 0 == strcmp(szType, "CTM"))
     {
         //  Normal case, just send ring notification.
         RIL_LOG_INFO("CSilo_Voice::ParseExtRing() : Incoming voice call\r\n");
-        pResponse->SetUnsolicitedFlag(TRUE);
         pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
 
         /*
@@ -206,7 +198,6 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
         //  TODO: Send notification for video telephony incoming call
         //        For now, just do normal ring
 #if defined(M2_VT_FEATURE_ENABLED)
-        pResponse->SetUnsolicitedFlag(TRUE);
         pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
 
         /*
@@ -216,7 +207,7 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
          */
         notifyChangedCallState(NULL);
 #else
-        pResponse->SetUnrecognizedFlag(TRUE);
+        pResponse->SetIgnoreFlag(TRUE);
 
         triggerHangup(m_uiCallId);
 #endif // M2_VT_FEATURE_ENABLED
@@ -226,7 +217,7 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
     {
         //  Unknown incoming ring
         RIL_LOG_INFO("CSilo_Voice::ParseExtRing() : Unknown incoming call type=[%s]\r\n", szType);
-        pResponse->SetUnrecognizedFlag(TRUE);
+        pResponse->SetIgnoreFlag(TRUE);
         triggerHangup(m_uiCallId);
     }
     fRet = TRUE;
@@ -252,16 +243,6 @@ BOOL CSilo_Voice::ParseConnect(CResponse* const pResponse, const char*& rszPoint
         RIL_LOG_CRITICAL("CSilo_Voice::ParseConnect() : pResponse was NULL\r\n");
         goto Error;
     }
-
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseConnect() : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Walk back over the <CR>
-    rszPointer -= strlen(m_szNewLine);
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
@@ -293,6 +274,8 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
         RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : pResponse was NULL\r\n");
         goto Error;
     }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Look for a "<postfix>"
     if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
@@ -328,7 +311,7 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
              * For waiting call, +CCWA: provides the call type.
              */
             m_uiCallId = uiID;
-            pResponse->SetUnrecognizedFlag(TRUE);
+            pResponse->SetIgnoreFlag(TRUE);
             break;
 
         case E_CALL_STATUS_ACTIVE:
@@ -342,7 +325,6 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
                 CTE::GetTE().SetIncomingCallStatus(uiID, uiStat);
             }
 
-            pResponse->SetUnsolicitedFlag(TRUE);
             pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
             break;
 
@@ -364,27 +346,15 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
                 if (pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED),
                         FALSE))
                 {
-                    pResponse->SetUnsolicitedFlag(TRUE);
                     pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
                     break;
                 }
             }
             // Fall through
         default:
-            pResponse->SetUnsolicitedFlag(TRUE);
             pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
             break;
     }
-
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Walk back over the <CR>
-    rszPointer -= strlen(m_szNewLine);
 
     fRet = TRUE;
 
@@ -489,6 +459,8 @@ BOOL CSilo_Voice::ParseCallWaitingInfo(CResponse* const pResponse, const char*& 
         UINT32 uiType = 0;
         UINT32 uiClass = 0;
 
+        pResponse->SetUnsolicitedFlag(TRUE);
+
         // Look for a "<postfix>"
         if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pDummy))
         {
@@ -520,35 +492,18 @@ BOOL CSilo_Voice::ParseCallWaitingInfo(CResponse* const pResponse, const char*& 
             goto Error;
         }
 
-        if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseCallWaitingInfo() :"
-                    " Could not find response end\r\n");
-            goto Error;
-        }
-
         switch (uiClass)
         {
             case 1: // Voice
-                pResponse->SetUnsolicitedFlag(TRUE);
                 pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
                 break;
             default:
-                pResponse->SetUnrecognizedFlag(TRUE);
+                pResponse->SetIgnoreFlag(TRUE);
                 triggerHangup(m_uiCallId);
                 break;
         }
 
-        // Walk back over the <CR><LF>
-        rszPointer -= strlen(m_szNewLine);
-
-
         fRet = TRUE;
-    }
-    else
-    {
-        //  This is a solicited response
-        pResponse->SetUnsolicitedFlag(FALSE);
     }
 
 Error:
@@ -808,7 +763,6 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
     UINT32 uiDataStringLen = 0;
     UINT32 uiDCS = 0;
     UINT32 uiAllocSize = 0;
-    const char* szDummy;
     BOOL fRet = FALSE;
 
     if (pResponse == NULL)
@@ -817,12 +771,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
         goto Error;
     }
 
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
-    {
-        // This isn't a complete USSD notification -- no need to parse it
-        goto Error;
-    }
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Extract "<status>"
     if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
@@ -868,20 +817,6 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
 
         // Reduce -1 to get the actual length
         uiDataStringLen--;
-
-        //  New for Medfield R2
-        //  There's an extra <lf> in here, skip over it.
-        // Look for a "<postfix>"
-        if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseUSSDInfo() : cannot find the end postfix!!\r\n");
-            goto Error;
-        }
-        else
-        {
-            //  Back up over the "\r\n".
-            rszPointer -= strlen(m_szNewLine);
-        }
 
         //  Allocate blob.
         pUssdStatus = (P_ND_USSD_STATUS) malloc(sizeof(S_ND_USSD_STATUS));
@@ -954,8 +889,6 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
         uiAllocSize = 2 * sizeof(char*);
     }
 
-
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_ON_USSD);
 
     if (!pResponse->SetData((void*)pUssdStatus, uiAllocSize, FALSE))
@@ -984,7 +917,6 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseConnLineIdPresentation - Enter\r\n");
     BOOL fRet = FALSE;
-    const char* szDummy;
     UINT32 uiStatusPresentation = 0;
     UINT32 uiStatusService = 0;
     P_ND_USSD_STATUS pUssdStatus = NULL;
@@ -997,14 +929,7 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
         goto Error;
     }
 
-    // Look for a "<postfix>" to make sure we got the whole message
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
-    {
-        // This isn't a complete USSD notification -- no need to parse it
-        RIL_LOG_INFO("CSilo_Voice::ParseConnLineIdPresentation() : Couldn't find response"
-                " end\r\n");
-        goto Error;
-    }
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Extract "<n>"
     if (!ExtractUInt32(rszPointer, uiStatusPresentation, rszPointer))
@@ -1058,7 +983,6 @@ BOOL CSilo_Voice::ParseConnLineIdPresentation(CResponse* const pResponse, const 
 
     RIL_LOG_VERBOSE("CSilo_Voice::ParseConnLineIdPresentation() - %s\r\n", pUssdStatus->szMessage);
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_ON_USSD);
 
     if (!pResponse->SetData((void*)pUssdStatus, 2 * sizeof(char*), FALSE))
@@ -1099,13 +1023,7 @@ BOOL CSilo_Voice::ParseConnLineIdRestriction(CResponse* const pResponse, const c
         goto Error;
     }
 
-    // Look for a "<postfix>" to make sure we got the whole message
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
-    {
-        // This isn't a complete USSD notification -- no need to parse it
-        RIL_LOG_INFO("CSilo_Voice::ParseConnLineIdRestriction() : Couldn't find response end\r\n");
-        goto Error;
-    }
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Extract "<status>"
     if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
@@ -1149,7 +1067,6 @@ BOOL CSilo_Voice::ParseConnLineIdRestriction(CResponse* const pResponse, const c
 
     RIL_LOG_VERBOSE("CSilo_Voice::ParseConnLineIdRestriction() - %s\r\n", pUssdStatus->szMessage);
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_ON_USSD);
 
     if (!pResponse->SetData((void*)pUssdStatus, 2 * sizeof(char*), FALSE))
@@ -1209,16 +1126,6 @@ BOOL CSilo_Voice::ParseDISCONNECT(CResponse* const pResponse, const char*& rszPo
         goto Error;
     }
 
-    // Look for a "<postfix>"
-    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseDISCONNECT() : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Walk back over the <CR>
-    rszPointer -= strlen(m_szNewLine);
-
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
 
@@ -1242,16 +1149,6 @@ BOOL CSilo_Voice::ParseBusy(CResponse* const pResponse, const char*& rszPointer)
         goto Error;
     }
 
-    // Skip to the next <postfix>
-    if(!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseBusy() : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Walk back over the <CR>
-    rszPointer -= strlen(m_szNewLine);
-
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
     fRet = TRUE;
@@ -1272,16 +1169,6 @@ BOOL CSilo_Voice::ParseNoAnswer(CResponse* const pResponse, const char*& rszPoin
         RIL_LOG_CRITICAL("CSilo_Voice::ParseNoAnswer() : pResponse was NULL\r\n");
         goto Error;
     }
-
-    // Skip to the next <postfix>
-    if(!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoAnswer() : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Walk back over the <CR>
-    rszPointer -= strlen(m_szNewLine);
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
@@ -1305,16 +1192,6 @@ BOOL CSilo_Voice::ParseCTMCall(CResponse* const pResponse, const char*& rszPoint
         goto Error;
     }
 
-    // Skip to the next <postfix>
-    if(!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCTMCall() : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Walk back over the <CR>
-    rszPointer -= strlen(m_szNewLine);
-
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
     fRet = TRUE;
@@ -1335,16 +1212,6 @@ BOOL CSilo_Voice::ParseNoCTMCall(CResponse* const pResponse, const char*& rszPoi
         RIL_LOG_CRITICAL("CSilo_Voice::ParseNoCTMCall() : pResponse was NULL\r\n");
         goto Error;
     }
-
-    // Skip to the next <postfix>
-    if(!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseNoCTMCall() : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Walk back over the <CR>
-    rszPointer -= strlen(m_szNewLine);
 
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
@@ -1367,16 +1234,6 @@ BOOL CSilo_Voice::ParseWaitingCallCTM(CResponse* const pResponse, const char*& r
         goto Error;
     }
 
-    // Skip to the next <postfix>
-    if(!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseWaitingCallCTM() : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Walk back over the <CR>
-    rszPointer -= strlen(m_szNewLine);
-
     pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
     fRet = TRUE;
@@ -1394,7 +1251,6 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
 
     BOOL fRet = FALSE;
     int* pFailedCauseData = NULL;
-    const char* szDummy = NULL;
     UINT32 uiDummy = 0;
     UINT32 uiCause = 0;
     UINT32 uiID = 0;
@@ -1405,12 +1261,7 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
         goto Error;
     }
 
-    // Do we have a complete notification?
-    if(!FindAndSkipRspEnd(rszPointer, m_szNewLine, szDummy))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : Incomplete notification\r\n");
-        goto Error;
-    }
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     pFailedCauseData = (int*)malloc(2 * sizeof(int));
     if (!pFailedCauseData)
@@ -1435,16 +1286,6 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
         goto Error;
     }
 
-    // Skip to the next <postfix>
-    if(!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : Could not find response end\r\n");
-        goto Error;
-    }
-
-    // Walk back over the <CR>
-    rszPointer -= strlen(m_szNewLine);
-
     //  Now we have ID and cause
     uiID = CSystemManager::GetInstance().GetLastCallFailedCauseID();
     RIL_LOG_INFO("CSilo_Voice::ParseCallFailedCause() :"
@@ -1453,7 +1294,6 @@ BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& 
     RIL_LOG_INFO("CSilo_Voice::ParseCallFailedCause() : ***** SENDING NOTIFICATION=[%d]"
             " ******\r\n", RIL_UNSOL_CALL_FAILED_CAUSE);
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_CALL_FAILED_CAUSE);
 
     //  TODO: Set call id = pData[0]

@@ -646,7 +646,7 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
     if (szIpAddr2[0] == '\0')
     {
         eDataConnectionType = PDP_TYPE_IPV4;
-        strcpy(szPdpType, "IPV4");
+        strcpy(szPdpType, "IP");
     }
     else if (szIpAddr[0] == '\0')
     {

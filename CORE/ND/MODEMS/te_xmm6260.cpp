@@ -5814,7 +5814,7 @@ BOOL CTE_XMM6260::SetupInterface(UINT32 uiCID)
     if (szIpAddr2[0] == '\0')
     {
         eDataConnectionType = PDP_TYPE_IPV4;
-        strcpy(szPdpType, "IPV4");
+        strcpy(szPdpType, "IP");
     }
     else if (szIpAddr[0] == '\0')
     {
@@ -5874,7 +5874,7 @@ void CTE_XMM6260::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
 
     pChannelData->GetDataCallInfo(sDataCallInfo);
 
-    if (0 == strcmp(sDataCallInfo.szPdpType, "IPV4"))
+    if (0 == strcmp(sDataCallInfo.szPdpType, "IP"))
     {
         PrintStringNullTerminate(szIPAddress, MAX_BUFFER_SIZE, "%s",
                 sDataCallInfo.szIpAddr1);
@@ -6334,7 +6334,6 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
     UINT32 uiSimState = 0;
     UINT32 uiTemp = 0;
     BOOL bRet = FALSE;
-    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
     // Extract "<mode>"
     if (!ExtractUInt32(rszPointer, uiMode, rszPointer))
@@ -6411,18 +6410,15 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
             m_cte.SetSIMState(RRIL_SIM_STATE_READY);
             CSystemManager::GetInstance().TriggerSimUnlockedEvent();
             break;
-        case 8: // SIM Technical problem
+        case 8: // SIM application error
+        {
             RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
-            // Do not notify framework for +XSIM: 8 except for conformance case
-            property_get("persist.conformance", szConformanceProperty, NULL);
-            if (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
-            {
-                // +XSIMSTATE: 8 is for 6FXX error type
-                char code[] = "6FXX";
-                triggerSIMAppError(code);
-            }
+            // +XSIMSTATE: 8 is for 6FXX error type
+            const char code[] = "6FXX";
+            triggerSIMAppError(code);
             bRet = TRUE;
             goto Error;
+        }
         case 0: // SIM not present
         case 9: // SIM Removed
             RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM REMOVED/NOT PRESENT\r\n");

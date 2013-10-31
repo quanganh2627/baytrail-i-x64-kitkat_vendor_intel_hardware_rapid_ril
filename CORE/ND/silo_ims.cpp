@@ -96,6 +96,8 @@ BOOL CSilo_IMS::ParseCIREPI(CResponse* const pResponse, const char*& rszPointer)
         goto Error;
     }
 
+    pResponse->SetUnsolicitedFlag(TRUE);
+
     // Throw out the alpha chars if there are any
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
 
@@ -112,7 +114,7 @@ BOOL CSilo_IMS::ParseCIREPI(CResponse* const pResponse, const char*& rszPointer)
 
     // Framework will trigger IMS registration depending on this information.
     RIL_LOG_INFO("CSilo_IMS::ParseCIREPI() - CIREPI=[%d]\r\n", uiNwimsvops);
-    pResponse->SetUnsolicitedFlag(TRUE);
+
     pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
     if (!pResponse->SetData((void*)&data,
@@ -122,7 +124,6 @@ BOOL CSilo_IMS::ParseCIREPI(CResponse* const pResponse, const char*& rszPointer)
     }
 
     fRet = TRUE;
-
 Error:
     RIL_LOG_VERBOSE("CSilo_IMS::ParseCIREPI() - Exit\r\n");
     return fRet;
@@ -145,6 +146,8 @@ BOOL CSilo_IMS::ParseCIREPH(CResponse* const pResponse, const char*& rszPointer)
         goto Error;
     }
 
+    pResponse->SetUnsolicitedFlag(TRUE);
+
     // Throw out the alpha chars if there are any
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
 
@@ -158,11 +161,8 @@ BOOL CSilo_IMS::ParseCIREPH(CResponse* const pResponse, const char*& rszPointer)
 
     // Debug only, not expected to be broadcasted
     RIL_LOG_INFO("CSilo_IMS::ParseCIREPH() - CIREPH=[%d]\r\n", uiSRVCCH);
-    pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RRIL_RESULT_OK);
 
     fRet = TRUE;
-
 Error:
     RIL_LOG_VERBOSE("CSilo_IMS::ParseCIREPH() - Exit\r\n");
     return fRet;
@@ -188,6 +188,8 @@ BOOL CSilo_IMS::ParseCIREGU(CResponse* const pResponse, const char*& rszPointer)
         goto Error;
     }
 
+    pResponse->SetUnsolicitedFlag(TRUE);
+
     // Throw out the alpha chars if there are any
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
 
@@ -212,7 +214,6 @@ BOOL CSilo_IMS::ParseCIREGU(CResponse* const pResponse, const char*& rszPointer)
 
     RIL_LOG_VERBOSE("CSilo_IMS::ParseCIREGU() - CIREGU=[%d]\r\n", uiRegInfo);
 
-    pResponse->SetUnsolicitedFlag(TRUE);
     pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
 
     if (!pResponse->SetData((void*)&data,
@@ -222,7 +223,6 @@ BOOL CSilo_IMS::ParseCIREGU(CResponse* const pResponse, const char*& rszPointer)
     }
 
     fRet = TRUE;
-
 Error:
     RIL_LOG_VERBOSE("CSilo_IMS::ParseCIREGU() - Exit\r\n");
     return fRet;
@@ -245,6 +245,8 @@ BOOL CSilo_IMS::ParseXISRVCC(CResponse* const pResponse, const char*& rszPointer
         goto Error;
     }
 
+    pResponse->SetUnsolicitedFlag(TRUE);
+
     // Throw out the alpha chars if there are any
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
 
@@ -258,11 +260,8 @@ BOOL CSilo_IMS::ParseXISRVCC(CResponse* const pResponse, const char*& rszPointer
 
     // Debug only, not expected to be broadcasted
     RIL_LOG_VERBOSE("CSilo_IMS::ParseXISRVCC() - XISRVCC=[%u]\r\n", uiSrvccInfo);
-    pResponse->SetUnsolicitedFlag(TRUE);
-    pResponse->SetResultCode(RRIL_RESULT_OK);
 
     fRet = TRUE;
-
 Error:
     RIL_LOG_VERBOSE("CSilo_IMS::ParseXISRVCC() - Exit\r\n");
     return fRet;
