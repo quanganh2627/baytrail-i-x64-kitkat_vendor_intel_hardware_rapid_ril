@@ -9758,10 +9758,10 @@ void CTE::CompleteDataCallListChanged()
     RIL_LOG_VERBOSE("CTE::CompleteDataCallListChanged() - Exit\r\n");
 }
 
-BOOL CTE::DataConfigDown(UINT32 uiCID)
+BOOL CTE::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
 {
     RIL_LOG_VERBOSE("CTE::DataConfigDown() - Enter / Exit\r\n");
-    return m_pTEBaseInstance->DataConfigDown(uiCID);
+    return m_pTEBaseInstance->DataConfigDown(uiCID, bForceCleanup);
 }
 
 void CTE::CleanupAllDataConnections()

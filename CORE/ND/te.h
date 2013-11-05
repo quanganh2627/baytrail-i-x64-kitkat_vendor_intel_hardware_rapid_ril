@@ -52,7 +52,7 @@ public:
     CInitializer* GetInitializer();
 
     // Accessor functions for configuring data connections
-    BOOL DataConfigDown(UINT32 uiCID);
+    BOOL DataConfigDown(UINT32 uiCID, BOOL bForceCleanup);
     void CleanupAllDataConnections();
 
     BOOL ParseCREG(const char*& rszPointer,

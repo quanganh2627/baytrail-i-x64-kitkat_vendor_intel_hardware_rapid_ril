@@ -1115,7 +1115,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                  */
                 pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
 
-                CTE::GetTE().DataConfigDown(uiPCID);
+                CTE::GetTE().DataConfigDown(uiPCID, TRUE);
 
                 CTE::GetTE().CompleteDataCallListChanged();
             }
@@ -1188,7 +1188,7 @@ void CSilo_Network::HandleMEDeactivation(const UINT32 uiCID)
         pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
         pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
 
-        CTE::GetTE().DataConfigDown(uiCID);
+        CTE::GetTE().DataConfigDown(uiCID, TRUE);
 
         CTE::GetTE().CompleteDataCallListChanged();
     }
