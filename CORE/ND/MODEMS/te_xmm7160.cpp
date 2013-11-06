@@ -314,8 +314,6 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
         rReqData.pContextData = (void*)pCID;
         rReqData.cbContextData = sizeof(UINT32);
         res = RRIL_RESULT_OK;
-
-        pChannelData->SetDataState(E_DATA_STATE_DEACTIVATING);
     }
     else
     {
