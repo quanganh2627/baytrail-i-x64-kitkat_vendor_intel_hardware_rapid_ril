@@ -48,6 +48,9 @@ CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "+XLOCK: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLOCK },
         { "+XSIM: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIM },
         { "+XLEMA: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLEMA },
+        { "+CUSATEND"  , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "+CUSATP"    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
+        { "+CUSATS"    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
         { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
     };
 
