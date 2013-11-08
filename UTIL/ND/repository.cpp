@@ -160,8 +160,8 @@ const char* g_szRequestNames[] =
     "VoiceRadioTech",                       // ND_REQ_ID_VOICERADIOTECH 112
     "SilentPinEntry",                       // ND_REQ_ID_SILENT_PIN_ENTRY 113
     "AckIncomingSmsWithPdu",                // ND_REQ_ID_ACKINCOMINGSMSWITHPDU 114
-    "GetCellInfoList"                       // ND_REQ_ID_GETCELLINFOLIST 115
-    "SetCellInfoListRate"                   // ND_REQ_ID_SETCELLINFOLISTRATE 116
+    "GetCellInfoList",                      // ND_REQ_ID_GETCELLINFOLIST 115
+    "SetCellInfoListRate",                  // ND_REQ_ID_SETCELLINFOLISTRATE 116
 #if defined(M2_VT_FEATURE_ENABLED)
     "HangupVT",                             // ND_REQ_ID_HANGUPVT 117
     "DialVT",                               // ND_REQ_ID_DIALVT 118

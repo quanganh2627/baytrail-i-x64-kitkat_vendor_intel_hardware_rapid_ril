@@ -999,6 +999,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             if (GetContextIdFromDeact(szStrExtract, uiPCID))
             {
                 RIL_LOG_INFO("CSilo_Network::ParseCGEV(): ME DEACT CID- %u", uiPCID);
+
+                HandleMEDeactivation(uiPCID);
             }
         }
         else // Otherwise, must be format for secondary PDP context
@@ -1076,6 +1078,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         {
             RIL_LOG_INFO("CSilo_Network::ParseCGEV() - ME PDN DEACT, extracted "
                     "cid=[%u]\r\n", uiPCID);
+
+            HandleMEDeactivation(uiPCID);
         }
     }
     // Format: "NW PDN DEACT, <cid>"
@@ -1111,7 +1115,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                  */
                 pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
 
-                CTE::GetTE().DataConfigDown(uiPCID);
+                CTE::GetTE().DataConfigDown(uiPCID, TRUE);
 
                 CTE::GetTE().CompleteDataCallListChanged();
             }
@@ -1170,6 +1174,26 @@ Error:
     RIL_LOG_INFO("CSilo_Network::GetContextIdFromDeact() - Exit\r\n");
     return bRet;
 }
+
+void CSilo_Network::HandleMEDeactivation(const UINT32 uiCID)
+{
+    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::HandleMEDeactivation() - Invalid cid=[%u],"
+                " no data channel found!\r\n", uiCID);
+    }
+    else if (E_DATA_STATE_DEACTIVATING != pChannelData->GetDataState())
+    {
+        pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
+        pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
+
+        CTE::GetTE().DataConfigDown(uiCID, TRUE);
+
+        CTE::GetTE().CompleteDataCallListChanged();
+    }
+}
+
 //
 //
 BOOL CSilo_Network::ParseXDATASTAT(CResponse* const pResponse, const char*& rszPointer)

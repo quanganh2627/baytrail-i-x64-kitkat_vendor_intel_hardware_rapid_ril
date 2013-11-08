@@ -857,18 +857,19 @@ RIL_RESULT_CODE CTE_XMM6260::ParseDns(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* szRsp = rRspData.szResponse;
-    UINT32 uiCID = 0;
-    char szDNS[MAX_IPADDR_SIZE] = {'\0'};
-    char szIpDNS1[MAX_IPADDR_SIZE] = {'\0'};
-    char szIpDNS2[MAX_IPADDR_SIZE] = {'\0'};
-    char szIpV6DNS1[MAX_IPADDR_SIZE] = {'\0'};
-    char szIpV6DNS2[MAX_IPADDR_SIZE] = {'\0'};
-    CChannel_Data* pChannelData = NULL;
-    int state;
 
     // Parse "+XDNS: "
     while (FindAndSkipString(szRsp, "+XDNS: ", szRsp))
     {
+        UINT32 uiCID = 0;
+        char szDNS[MAX_IPADDR_SIZE] = {'\0'};
+        char szIpDNS1[MAX_IPADDR_SIZE] = {'\0'};
+        char szIpDNS2[MAX_IPADDR_SIZE] = {'\0'};
+        char szIpV6DNS1[MAX_IPADDR_SIZE] = {'\0'};
+        char szIpV6DNS2[MAX_IPADDR_SIZE] = {'\0'};
+        CChannel_Data* pChannelData = NULL;
+        int state;
+
         // Parse <cid>
         if (!ExtractUInt32(szRsp, uiCID, szRsp))
         {
@@ -2049,6 +2050,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
     UINT32 uiCID = 0;
     const LONG REASON_RADIO_OFF = 1;
     LONG reason = 0;
+    CChannel_Data* pChannelData = NULL;
 
     if (uiDataSize < (1 * sizeof(char *)))
     {
@@ -2107,15 +2109,26 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
 
         *pCID = uiCID;
 
-        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
                 "AT+CGACT=0,%s\r", pszCid))
         {
-            res = RRIL_RESULT_OK;
+            free(pCID);
+            pCID = NULL;
+            goto Error;
         }
+        else
+        {
+            // Set the context of this command to the CID (for multiple context support).
+            rReqData.pContextData = (void*)pCID;
+            rReqData.cbContextData = sizeof(UINT32);
+        }
+    }
 
-        //  Set the context of this command to the CID (for multiple context support).
-        rReqData.pContextData = (void*)pCID;
-        rReqData.cbContextData = sizeof(UINT32);
+    res = RRIL_RESULT_OK;
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL != pChannelData)
+    {
+        pChannelData->SetDataState(E_DATA_STATE_DEACTIVATING);
     }
 
 Error:

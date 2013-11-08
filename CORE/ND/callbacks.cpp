@@ -410,8 +410,8 @@ void triggerCellInfoList(void* param)
         // The rate setting has not changed while waiting for time out
         // read the cell information and report to framework
         CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETCELLINFOLIST],
-                NULL, REQ_ID_NONE, "AT+XCELLINFO?\r", &CTE::ParseUnsolCellInfoListRate,
-                &CTE::PostUnsolCellInfoListRate);
+                NULL, ND_REQ_ID_GETCELLINFOLIST, "AT+XCELLINFO?\r",
+                &CTE::ParseUnsolCellInfoListRate, &CTE::PostUnsolCellInfoListRate);
 
         if (pCmd)
         {

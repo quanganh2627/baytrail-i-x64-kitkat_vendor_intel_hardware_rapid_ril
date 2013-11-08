@@ -895,7 +895,7 @@ public:
     virtual BOOL IsInCall();
 
     // Sets automatic response for network initiated context activation (called internally)
-    virtual void SetAutomaticResponseforNwInitiatedContext();
+    virtual void SetAutomaticResponseforNwInitiatedContext(POST_CMD_HANDLER_DATA& rData);
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);

@@ -7126,6 +7126,15 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
 
     bRet = TRUE;
 Error:
+    if (!bUnSolicited)
+    {
+        // Skip "<postfix>"
+        if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not skip response postfix.\r\n");
+        }
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseCREG() - Exit\r\n");
     return bRet;
 }
@@ -7277,6 +7286,15 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
 
     bRet = TRUE;
 Error:
+    if (!bUnSolicited)
+    {
+        // Skip "<postfix>"
+        if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not skip response postfix.\r\n");
+        }
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseCGREG() - Exit\r\n");
     return bRet;
 }
@@ -7447,6 +7465,15 @@ Done:
 
     bRet = TRUE;
 Error:
+    if (!bUnSolicited)
+    {
+        // Skip "<postfix>"
+        if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not skip response postfix.\r\n");
+        }
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseXREG() - Exit\r\n");
     return bRet;
 }
@@ -7581,6 +7608,15 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
 
     bRet = TRUE;
 Error:
+    if (!bUnSolicited)
+    {
+        // Skip "<postfix>"
+        if (!FindAndSkipRspEnd(rszPointer, szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not skip response postfix.\r\n");
+        }
+    }
+
     RIL_LOG_VERBOSE("CTE::ParseCEREG() - Exit\r\n");
     return bRet;
 }
@@ -9588,7 +9624,7 @@ void CTE::PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData)
     {
         if (IsNwInitiatedContextActSupported())
         {
-            m_pTEBaseInstance->SetAutomaticResponseforNwInitiatedContext();
+            m_pTEBaseInstance->SetAutomaticResponseforNwInitiatedContext(rData);
         }
     }
 
@@ -9722,10 +9758,10 @@ void CTE::CompleteDataCallListChanged()
     RIL_LOG_VERBOSE("CTE::CompleteDataCallListChanged() - Exit\r\n");
 }
 
-BOOL CTE::DataConfigDown(UINT32 uiCID)
+BOOL CTE::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
 {
     RIL_LOG_VERBOSE("CTE::DataConfigDown() - Enter / Exit\r\n");
-    return m_pTEBaseInstance->DataConfigDown(uiCID);
+    return m_pTEBaseInstance->DataConfigDown(uiCID, bForceCleanup);
 }
 
 void CTE::CleanupAllDataConnections()

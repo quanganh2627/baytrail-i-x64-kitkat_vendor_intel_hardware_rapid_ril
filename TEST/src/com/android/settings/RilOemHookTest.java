@@ -57,7 +57,7 @@ public class RilOemHookTest extends Activity
         mPhone = ((PhoneProxy)PhoneFactory.getDefaultPhone()).getActivePhone();
 
         //  Register for OEM raw notification.
-        mCM = ((PhoneBase)mPhone).mCM;
+        mCM = ((PhoneBase)mPhone).mCi;
     }
 
 
