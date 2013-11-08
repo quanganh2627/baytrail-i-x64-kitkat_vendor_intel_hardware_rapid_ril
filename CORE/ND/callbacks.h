@@ -98,4 +98,9 @@ void triggerCellInfoList (void* param);
 //
 void triggerSIMAppError(const void* param);
 
+//
+// Callback to trigger cell broadcast activation request
+//
+void triggerCellBroadcastActivation(void* param);
+
 #endif

@@ -1116,6 +1116,8 @@ public:
     UINT32 GetCurrentCipheringStatus() { return m_CurrentCipheringStatus; }
     void SetCurrentCipheringStatus(UINT32 status) { m_CurrentCipheringStatus = status; }
 
+    void HandleCellBroadcastActivation();
+
 private:
     UINT32 m_uiModemType;
 
@@ -1282,6 +1284,9 @@ private:
     UINT32 m_CurrentCipheringStatus;
 
     UINT32 m_uiPinCacheMode;
+
+    BOOL m_bCbsActivationTimerRunning;
+    int m_CbsActivate;
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
 };
