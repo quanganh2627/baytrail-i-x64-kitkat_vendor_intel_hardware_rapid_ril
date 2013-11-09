@@ -2088,7 +2088,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
 
     if ((RIL_VERSION >= 4) && (uiDataSize >= (2 * sizeof(char *))))
     {
-        reason == GetDataDeactivateReason(((char**)pData)[1]);
+        reason = GetDataDeactivateReason(((char**)pData)[1]);
         RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() - reason=[%ld]\r\n", reason);
     }
 

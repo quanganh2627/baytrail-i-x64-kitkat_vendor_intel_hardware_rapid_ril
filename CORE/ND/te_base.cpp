@@ -6048,9 +6048,9 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseReadContextParams() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -6061,13 +6061,13 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
     CChannel_Data *pChannelData = NULL;
     P_DEFAULT_PDN_CONTEXT_PARAMS pContextParams = NULL;
 
-    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - %s\r\n", pszRsp);
+    RIL_LOG_VERBOSE("CTEBase::ParseReadContextParams() - %s\r\n", pszRsp);
 
     pContextParams =
             (P_DEFAULT_PDN_CONTEXT_PARAMS)malloc(sizeof(S_DEFAULT_PDN_CONTEXT_PARAMS));
     if (NULL == pContextParams)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+        RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                 "memory allocation failed\r\n");
         goto Error;
     }
@@ -6081,7 +6081,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
        // Parse <cid>
         if (!ExtractUInt32(pszRsp, uiCID, pszRsp) ||  ((uiCID > MAX_PDP_CONTEXTS) || 0 == uiCID ))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "Could not extract CID.\r\n");
             goto Error;
         }
@@ -6098,7 +6098,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractUInt32(pszRsp, uiBearerID, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - Could not extract"
                              " Bearer id.\r\n");
             goto Error;
         }
@@ -6107,19 +6107,19 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "Could not extract APN.\r\n");
             goto Error;
         }
 
-        RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - "
+        RIL_LOG_INFO("CTEBase::ParseReadContextParams() - "
                 "Set APN: %s for context Id: %u\r\n", szTmpBuffer, uiCID);
         pChannelData->SetApn(szTmpBuffer);
 
         if (!SkipString(pszRsp, ",", pszRsp)
                 || !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - Could not extract"
                      " source address.\r\n");
             goto Error;
         }
@@ -6135,7 +6135,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
                 pContextParams->szIpv4SubnetMask, MAX_IPADDR_SIZE,
                 pContextParams->szIpv6SubnetMask, MAX_IPADDR_SIZE))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "ExtractLocalAddressAndSubnetMask failed\r\n");
             goto Error;
         }
@@ -6145,7 +6145,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
                 !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "Could not extract Gateway.\r\n");
             goto Error;
         }
@@ -6153,7 +6153,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4GatewayAddr,
                 MAX_IPADDR_SIZE, pContextParams->szIpV6GatewayAddr, MAX_IPADDR_SIZE))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "ConvertIPAddressToAndroidReadable - Ipv4/v6 Gateway address failed\r\n");
             goto Error;
         }
@@ -6164,7 +6164,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - Could not extract"
                              " Primary DNS.\r\n");
             goto Error;
         }
@@ -6178,7 +6178,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4DNS1,
                 MAX_IPADDR_SIZE, pContextParams->szIpV6DNS1, MAX_IPADDR_SIZE))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "ConvertIPAddressToAndroidReadable - Primary DNS IPv4/IPv6 "
                     "conversion failed\r\n");
 
@@ -6188,7 +6188,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - Could not extract "
                              "Secondary DNS.\r\n");
         }
         else
@@ -6202,7 +6202,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
             if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4DNS2,
                     MAX_IPADDR_SIZE, pContextParams->szIpV6DNS2, MAX_IPADDR_SIZE))
             {
-                RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                         "ConvertIPAddressToAndroidReadable - Secondary DNS IPv4/IPv6 "
                         "conversion failed\r\n");
 
@@ -6218,7 +6218,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_INFO("CTEBase::ParseReadContextParams() - "
                     "Could not extract P-CSCF primary address.\r\n");
         }
 
@@ -6227,12 +6227,12 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract "
+            RIL_LOG_INFO("CTEBase::ParseReadContextParams() - Could not extract "
                     "P-CSCF sec addr.\r\n");
         }
     }
 
-    RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - "
+    RIL_LOG_INFO("CTEBase::ParseReadContextParams() - "
             "uiCID: %u, szIPv4Addr:%s, szIPv6Addr:%s, szIPv4GatewayAddr: %s, szIPv6GatewayAddr: %s,"
             " szIPv4DNS1: %s, szIPv6DNS1: %s, szIPv4DNS2: %s, szIPv6DNS2: %s\r\n",
             uiCID, pContextParams->szIpV4Addr, pContextParams->szIpV6Addr,
@@ -6272,7 +6272,7 @@ Error:
 
     free (pContextParams);
 
-    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseReadContextParams() - Exit\r\n");
     return res;
 }
 

@@ -258,7 +258,7 @@ void triggerQueryDefaultPDNContextParams(void* param)
             uiCID))
     {
         CCommand* pCmd = new CCommand(pChannelData->GetRilChannel(), NULL, REQ_ID_NONE,
-                rReqData, &CTE::ParseReadDefaultPDNContextParams,
+                rReqData, &CTE::ParseReadContextParams,
                 &CTE::PostReadDefaultPDNContextParams);
         if (pCmd)
         {

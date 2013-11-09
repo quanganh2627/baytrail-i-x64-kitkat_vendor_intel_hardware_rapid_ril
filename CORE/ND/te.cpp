@@ -8420,11 +8420,11 @@ RIL_RESULT_CODE CTE::ParseQueryNEER(RESPONSE_DATA& rRspData)
     return m_pTEBaseInstance->ParseQueryNEER(rRspData);
 }
 
-RIL_RESULT_CODE CTE::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTE::ParseReadContextParams(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTE::ParseReadDefaultPDNContextParams() - Enter / Exit\r\n");
+    RIL_LOG_VERBOSE("CTE::ParseReadContextParams() - Enter / Exit\r\n");
 
-    return m_pTEBaseInstance->ParseReadDefaultPDNContextParams(rRspData);
+    return m_pTEBaseInstance->ParseReadContextParams(rRspData);
 }
 
 RIL_RESULT_CODE CTE::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
