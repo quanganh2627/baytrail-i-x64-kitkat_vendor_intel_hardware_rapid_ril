@@ -1431,6 +1431,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UI
     char szImg[] = "img";
     char* pszPath = NULL;
     S_SIM_IO_CONTEXT_DATA* pContextData = NULL;
+    char szAid[MAX_AID_SIZE] = {'\0'};
 
     if (NULL == pData)
     {
@@ -1472,6 +1473,36 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UI
         pContextData->command = pSimIOArgs->command;
         rReqData.pContextData = pContextData;
         rReqData.cbContextData = sizeof(S_SIM_IO_CONTEXT_DATA);
+    }
+
+    GetSimAppId(RIL_APPTYPE_ISIM, szAid, sizeof(szAid));
+
+    if (RIL_APPSTATE_READY == GetIsimAppState() && NULL != pSimIOArgs->aidPtr
+            && (0 == strcmp(pSimIOArgs->aidPtr, szAid)))
+    {
+        int sessionId = GetSessionId(RIL_APPTYPE_ISIM);
+        POST_CMD_HANDLER_DATA data;
+        memset(&data, 0, sizeof(data));
+        data.uiChannel = g_pReqInfo[RIL_REQUEST_SIM_IO].uiChannel;
+        data.requestId = RIL_REQUEST_SIM_IO;
+
+        CEvent::Reset(m_pUiccOpenLogicalChannelEvent);
+
+        if (-1 == sessionId && OpenLogicalChannel(data, szAid))
+        {
+            CEvent::Wait(m_pUiccOpenLogicalChannelEvent, WAIT_FOREVER);
+        }
+
+        sessionId = GetSessionId(RIL_APPTYPE_ISIM);
+        if (-1 == sessionId)
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::CoreSimIo() - OpenLogicalChannel failed\r\n");
+            goto Error;
+        }
+        else
+        {
+            return HandleSimIO(pSimIOArgs, rReqData, sessionId);
+        }
     }
 
     switch (pSimIOArgs->fileid)
@@ -1611,9 +1642,11 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSimIo(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    if (!SkipString(pszRsp, "+CRSM: ", pszRsp))
+    if (!SkipString(pszRsp, "+CRSM: ", pszRsp)
+            && !SkipString(pszRsp, "+CRLA: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() - Could not skip over \"+CRSM: \".\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimIo() - Could not skip over \"+CRSM: \""
+                "\"+CRLA: \"\r\n");
         goto Error;
     }
 

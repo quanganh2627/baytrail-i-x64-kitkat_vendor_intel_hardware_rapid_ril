@@ -137,6 +137,7 @@ typedef struct
     int appType;
     char szAid[MAX_AID_SIZE];
     char szAppLabel[MAX_APP_LABEL_SIZE];
+    int sessionId;
 } S_ND_SIM_APP_INFO;
 
 typedef struct
@@ -167,7 +168,7 @@ typedef struct
 } S_SET_FACILITY_LOCK_CONTEXT_DATA;
 
 ///////////////////////////////////////////////////////////////////////////////
-// Facility Lock Context data
+// SIM IO Context data
 //
 typedef struct
 {

@@ -1140,6 +1140,8 @@ public:
     void HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange);
     void SetRefreshWithUsimInitOn(BOOL bOngoing);
 
+    void PostInternalOpenLogicalChannel(POST_CMD_HANDLER_DATA& rData);
+
 private:
     UINT32 m_uiModemType;
 

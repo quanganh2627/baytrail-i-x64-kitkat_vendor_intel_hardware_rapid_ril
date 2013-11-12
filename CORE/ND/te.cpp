@@ -10035,3 +10035,17 @@ void CTE::SetRefreshWithUsimInitOn(BOOL bOn)
 {
     m_pTEBaseInstance->SetRefreshWithUsimInitOn(bOn);
 }
+
+void CTE::PostInternalOpenLogicalChannel(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostInternalOpenLogicalChannel() Enter\r\n");
+
+    if (RIL_E_SUCCESS == rData.uiResultCode && sizeof(int) == rData.uiDataSize)
+    {
+        m_pTEBaseInstance->SetSessionId(RIL_APPTYPE_ISIM, *((int*)rData.pData));
+    }
+
+    m_pTEBaseInstance->TriggerUiccOpenLogicalChannelEvent();
+
+    RIL_LOG_VERBOSE("CTE::PostInternalOpenLogicalChannel() - Exit\r\n");
+}
