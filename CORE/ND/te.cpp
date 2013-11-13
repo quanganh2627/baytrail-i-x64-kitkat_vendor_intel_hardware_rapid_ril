@@ -1071,9 +1071,18 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 }
                 break;
 
+            case RIL_REQUEST_SET_INITIAL_ATTACH_APN: // 111
+                eRetVal = RequestSetInitialAttachApn(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_IMS_REGISTRATION_STATE: // 112
+            case RIL_REQUEST_IMS_SEND_SMS: // 113
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+                break;
+
             //  ************************* END OF REGULAR REQUESTS *******************************
 
-            case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 111
+            case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 114
 #if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimTransmitBasic(hRilToken, pData, datalen);
 #else
@@ -1081,7 +1090,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 #endif
                 break;
 
-            case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 112
+            case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 115
 #if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimOpenChannel(hRilToken, pData, datalen);
 #else
@@ -1089,7 +1098,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 #endif
                 break;
 
-            case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 113
+            case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 116
 #if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimCloseChannel(hRilToken, pData, datalen);
 #else
@@ -1097,7 +1106,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 #endif
                 break;
 
-            case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 114
+            case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 117
 #if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimTransmitChannel(hRilToken, pData, datalen);
 #else
@@ -1107,11 +1116,11 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 
 #if defined(M2_VT_FEATURE_ENABLED)
 
-            case RIL_REQUEST_HANGUP_VT:  // 115
+            case RIL_REQUEST_HANGUP_VT:  // 118
                 eRetVal = RequestHangupVT(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_DIAL_VT:  // 116
+            case RIL_REQUEST_DIAL_VT:  // 119
                 eRetVal = RequestDialVT(hRilToken, pData, datalen);
                 break;
 
@@ -1119,7 +1128,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
 
-            case RIL_REQUEST_GET_SIM_SMS_STORAGE:  // 115 or 117
+            case RIL_REQUEST_GET_SIM_SMS_STORAGE:  // 118 or 120
                 eRetVal = RequestGetSimSmsStorage(hRilToken, pData, datalen);
                 break;
 
@@ -10023,4 +10032,53 @@ void CTE::HandleCellBroadcastActivation()
     }
 
     RIL_LOG_VERBOSE("CTE::HandleCellBroadcastActivation() - Exit\r\n");
+}
+
+RIL_RESULT_CODE CTE::RequestSetInitialAttachApn(RIL_Token rilToken, void* pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestSetInitialAttachApn() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetInitialAttachApn(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSetInitialAttachApn() -"
+                " Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_SET_INITIAL_ATTACH_APN].uiChannel,
+                rilToken, RIL_REQUEST_SET_INITIAL_ATTACH_APN, reqData,
+                &CTE::ParseSetInitialAttachApn);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestSetInitialAttachApn() -"
+                        " Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestSetInitialAttachApn() -"
+                    " Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestSetInitialAttachApn() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseSetInitialAttachApn(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseSetInitialAttachApn() - Enter / Exit\r\n");
+    return m_pTEBaseInstance->ParseSetInitialAttachApn(rRspData);
 }

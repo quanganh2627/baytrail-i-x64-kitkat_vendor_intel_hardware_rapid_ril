@@ -573,34 +573,42 @@ public:
     RIL_RESULT_CODE ParseUnsolCellInfoListRate(RESPONSE_DATA& rRspData);
     void PostUnsolCellInfoListRate(POST_CMD_HANDLER_DATA& rData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_BASIC 111
+    // RIL_REQUEST_SET_INITIAL_ATTACH_APN: // 111
+    RIL_RESULT_CODE RequestSetInitialAttachApn(RIL_Token rilToken, void* pData, size_t datalen);
+    RIL_RESULT_CODE ParseSetInitialAttachApn(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_IMS_REGISTRATION_STATE: // 112
+    // RIL_REQUEST_IMS_SEND_SMS: // 113
+    // TODO
+
+    // RIL_REQUEST_SIM_TRANSMIT_BASIC 114
     RIL_RESULT_CODE RequestSimTransmitBasic(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitBasic(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_OPEN_CHANNEL 112
+    // RIL_REQUEST_SIM_OPEN_CHANNEL 115
     RIL_RESULT_CODE RequestSimOpenChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_CLOSE_CHANNEL 113
+    // RIL_REQUEST_SIM_CLOSE_CHANNEL 116
     RIL_RESULT_CODE RequestSimCloseChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 114
+    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 117
     RIL_RESULT_CODE RequestSimTransmitChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA& rRspData);
 
 #if defined(M2_VT_FEATURE_ENABLED)
-    // RIL_REQUEST_HANGUP_VT 115
+    // RIL_REQUEST_HANGUP_VT 118
     RIL_RESULT_CODE RequestHangupVT(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseHangupVT(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DIAL_VT 116
+    // RIL_REQUEST_DIAL_VT 119
     RIL_RESULT_CODE RequestDialVT(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseDialVT(RESPONSE_DATA& rRspData);
 #endif // M2_VT_FEATURE_ENABLED
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    // RIL_REQUEST_GET_SIM_SMS_STORAGE 117
+    // RIL_REQUEST_GET_SIM_SMS_STORAGE 118 or 120
     RIL_RESULT_CODE RequestGetSimSmsStorage(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseGetSimSmsStorage(RESPONSE_DATA& rRspData);
 #endif // M2_GET_SIM_SMS_STORAGE_ENABLED

@@ -1531,3 +1531,49 @@ Error:
     return res;
 
 }
+
+// RIL_REQUEST_SET_INITIAL_ATTACH_APN: // 111
+RIL_RESULT_CODE CTE_XMM7160::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
+                                                   void* pData,
+                                                   UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetInitialAttachApn() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_InitialAttachApn* pTemp = NULL;
+
+    if (pData == NULL)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetInitialAttachApn() - "
+                "pData is NULL \r\n");
+        goto Error;
+    }
+
+    if (sizeof(RIL_InitialAttachApn) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetInitialAttachApn() - "
+                "pData size if wrong\r\n");
+        goto Error;
+    }
+
+    pTemp = (RIL_InitialAttachApn*) pData;
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+CGDCONT=1,\"%s\",\"%s\"\r", pTemp->protocol, pTemp->apn))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetInitialAttachApn() - "
+                "Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetInitialAttachApn() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseSetInitialAttachApn(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseSetInitialAttachApn() - Enter / Exit\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    return res;
+}
