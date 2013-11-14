@@ -820,9 +820,6 @@ public:
     // Post command handler for RIL_REQUEST_DEACTIVATE_DATA_CALL request
     virtual void PostDeactivateDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
-    // Adds the PS attach command to command queue
-    virtual void PSAttach();
-
     // Get functions returning number of retry counts left for respective locks
     virtual int GetPinRetryCount() { return m_PinRetryCount.pin; };
     virtual int GetPin2RetryCount() { return m_PinRetryCount.pin2; };
@@ -880,12 +877,6 @@ public:
             const char** pszRequest, const int nNumStrings);
 
     /*
-     * Sends CGACT=0 or CGATT=0 based on the conformance property.
-     * This function is called before sending manual network scan.
-     */
-    virtual void DeactivateAllDataCalls();
-
-    /*
      * Upon response of CGACT or CGATT, all data connections will be
      * cleanup and also data call list change will be notified to
      * framework.
@@ -928,6 +919,11 @@ protected:
      * will be created.
      */
     virtual RIL_RESULT_CODE CreateModemPowerOffReq(REQUEST_DATA& rReqData);
+
+    /*
+     * Deactivates all data calls. This function is called before sending manual network scan.
+     */
+    virtual void DeactivateAllDataCalls();
 
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA& rRspData);

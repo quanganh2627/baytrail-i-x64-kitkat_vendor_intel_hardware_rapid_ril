@@ -803,6 +803,12 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             }
         }
 
+        if (NULL != pChannelData)
+        {
+            // Reset fail cause
+            pChannelData->SetDataFailCause(PDP_FAIL_NONE);
+        }
+
         if (FindAndSkipString(szStrExtract, ",", szStrExtract))
         {
             if (!ExtractUInt32(szStrExtract, uiReason, szStrExtract))

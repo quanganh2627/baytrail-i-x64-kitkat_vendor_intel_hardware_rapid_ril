@@ -10264,47 +10264,12 @@ RIL_RESULT_CODE CTEBase::ParseQueryIpAndDns(RESPONSE_DATA& rRspData)
     return RRIL_RESULT_OK; // only supported at modem level
 }
 
-void CTEBase::PSAttach()
-{
-    RIL_LOG_VERBOSE("CTEBase::PSAttach() - Enter\r\n");
-
-    CCommand* pCmd = new CCommand(
-            g_pReqInfo[RIL_REQUEST_QUERY_AVAILABLE_NETWORKS].uiChannel,
-            NULL, RIL_REQUEST_QUERY_AVAILABLE_NETWORKS, "AT+CGATT=1\r");
-    if (pCmd)
-    {
-        pCmd->SetHighPriority();
-        if (!CCommand::AddCmdToQueue(pCmd))
-        {
-            RIL_LOG_CRITICAL("CTEBase::PSAttach() - "
-                    "Unable to add command to queue\r\n");
-            delete pCmd;
-            pCmd = NULL;
-        }
-    }
-
-    RIL_LOG_VERBOSE("CTEBase::PSAttach() - Exit\r\n");
-}
-
 void CTEBase::DeactivateAllDataCalls()
 {
     RIL_LOG_VERBOSE("CTEBase::DeactivateAllDataCalls - Enter()\r\n");
 
-    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
-    BOOL bConformance = FALSE;
-
-    property_get("persist.conformance", szConformanceProperty, NULL);
-
-    bConformance =
-            (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX)) ? TRUE : FALSE;
-
-    /*
-     * Note: Conformance test 34.123 12.9.6 fails when PS detach is sent.
-     * Instead of sending PS detach, send deactivate all data calls when
-     * conformance property is set.
-     */
     CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DEACTIVATE_DATA_CALL].uiChannel,
-            NULL, RIL_REQUEST_DEACTIVATE_DATA_CALL, bConformance ? "AT+CGACT=0\r" : "AT+CGATT=0\r",
+            NULL, RIL_REQUEST_DEACTIVATE_DATA_CALL, "AT+CGACT=0\r",
             &CTE::ParseDeactivateAllDataCalls);
 
     if (pCmd)
