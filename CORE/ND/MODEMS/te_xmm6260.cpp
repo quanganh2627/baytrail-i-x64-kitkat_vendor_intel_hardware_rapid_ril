@@ -3984,7 +3984,48 @@ RIL_RESULT_CODE CTE_XMM6260::CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
 RIL_RESULT_CODE CTE_XMM6260::ParseReportStkServiceRunning(RESPONSE_DATA & rRspData)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseReportStkServiceRunning() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+    UINT32 uiCmeError = 0;
+
+    if (pszRsp == NULL)
+     {
+         RIL_LOG_CRITICAL("CTE_XMM6260::ParseReportStkServiceRunning() -"
+                 " ERROR:NO Response string...\r\n");
+         goto Error;
+     }
+
+    // Parse <prefix>
+    if (SkipString(pszRsp, m_szNewLine, pszRsp))
+    {
+        // Search for "+CME ERROR: " after prefix
+        if (SkipString(pszRsp, "+CME ERROR: ", pszRsp))
+        {
+            if (!ExtractUInt32(pszRsp, uiCmeError, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseReportStkServiceRunning() -"
+                        " Could not find CME  argument.\r\n");
+                goto Error;
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseReportStkServiceRunning() -"
+                        " CME ERROR: %u \r\n", uiCmeError);
+                goto Error;
+            }
+        }
+    }
+
+    if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseReportStkServiceRunning - "
+                "Could not skip response postfix.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseReportStkServiceRunning() - Exit\r\n");
     return res;
 }

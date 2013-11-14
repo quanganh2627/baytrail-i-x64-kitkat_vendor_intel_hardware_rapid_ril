@@ -6419,6 +6419,9 @@ RIL_RESULT_CODE CTE::RequestReportStkServiceRunning(RIL_Token rilToken,
 
         if (pCmd)
         {
+            // Method SetAlwaysParse() is called to parse the intermediate
+            // response when error is received.
+            pCmd->SetAlwaysParse();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestReportStkServiceRunning() -"

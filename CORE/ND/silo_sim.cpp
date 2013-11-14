@@ -46,10 +46,10 @@ CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "+XLOCK: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLOCK },
         { "+XSIM: "    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXSIM },
         { "+XLEMA: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseXLEMA },
-        { "+CUSATEND"  , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
-        { "+CUSATP"    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
-        { "+CUSATS"    , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseUnrecognized },
-        { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
+        { "+CUSATS: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationCusats },
+        { "+CUSATP: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationCusatp },
+        { "+CUSATEND"   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationCusatend },
+        { ""            , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
     };
 
     m_pATRspTable = pATRspTable;
@@ -126,10 +126,12 @@ char* CSilo_SIM::GetURCInitString()
 BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rszPointer)
 {
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATI() - Enter\r\n");
+
     char* pszProactiveCmd = NULL;
     UINT32 uiLength = 0;
     const char* pszEnd = NULL;
     BOOL fRet = FALSE;
+    UINT32 uiModemType = CTE::GetTE().GetModemType();
 
     if (pResponse == NULL)
     {
@@ -138,6 +140,13 @@ BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rsz
     }
 
     pResponse->SetUnsolicitedFlag(TRUE);
+
+    if (MODEM_TYPE_XMM7260 <= uiModemType)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATI() - +SATI not expected for : "
+                " %u \r\n", uiModemType);
+        goto Error;
+    }
 
     // Look for a "<postfix>" to be sure we got a whole message
     if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
@@ -214,6 +223,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     UINT32 uiFileTagLength = 0;
     char szRefreshType[3] = {0};
     RIL_SimRefreshResponse_v7* pSimRefreshResp = NULL;
+    UINT32 uiModemType = CTE::GetTE().GetModemType();
 
     if (pResponse == NULL)
     {
@@ -222,6 +232,13 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     }
 
     pResponse->SetUnsolicitedFlag(TRUE);
+
+    if (MODEM_TYPE_XMM7260 <= uiModemType)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() - +SATN not expected for : "
+                " %u \r\n", uiModemType);
+        goto Error;
+    }
 
     // Look for a "<postfix>" to be sure we got the whole message
     if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
@@ -461,6 +478,7 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const char*& rs
     BOOL fRet = FALSE;
     UINT32 uiStatus1;
     UINT32 uiStatus2;
+    UINT32 uiModemType = CTE::GetTE().GetModemType();
 
     if (pResponse == NULL)
     {
@@ -469,6 +487,13 @@ BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const char*& rs
     }
 
     pResponse->SetUnsolicitedFlag(TRUE);
+
+    if (MODEM_TYPE_XMM7260 <= uiModemType)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseTermRespConfirm() - +SATF not expected for : "
+                " %u \r\n", uiModemType);
+        goto Error;
+    }
 
     // Extract "<sw1>"
     if (!ExtractUInt32(rszPointer, uiStatus1, rszPointer))
@@ -763,5 +788,124 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
     fRet = TRUE;
 Error:
     RIL_LOG_VERBOSE("CSilo_SIM::ParseXLEMA() - Exit\r\n");
+    return fRet;
+}
+
+
+BOOL CSilo_SIM::ParseIndicationCusats(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusats() - Enter\r\n");
+    BOOL fRet = FALSE;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationCusats() : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusats() - Exit\r\n");
+    return fRet;
+}
+
+BOOL CSilo_SIM::ParseIndicationCusatp(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatp() - Enter\r\n");
+    char* pszProactiveCmd = NULL;
+    UINT32 uiLength = 0;
+    const char* pszEnd = NULL;
+    BOOL fRet = FALSE;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationCusatp() : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatp() : Resp:%s\r\n", rszPointer);
+
+    // Look for a "<postfix>" to be sure we got a whole message
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszEnd))
+    {
+        // incomplete message notification
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationCusatp() : Could not find response end\r\n");
+        goto Error;
+    }
+    else
+    {
+        // PDU is followed by m_szNewLine, so look for m_szNewLine and use its
+        // position to determine length of PDU string.
+
+        // Calculate PDU length + NULL byte
+        uiLength = ((UINT32)(pszEnd - rszPointer)) - strlen(m_szNewLine) + 1;
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatp() - Calculated PDU String length: %u"
+                " chars.\r\n", uiLength);
+    }
+
+    pszProactiveCmd = (char*)malloc(sizeof(char) * uiLength);
+    if (NULL == pszProactiveCmd)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationCusatp() - Could not alloc mem for"
+                " command.\r\n");
+        goto Error;
+    }
+    memset(pszProactiveCmd, 0, sizeof(char) * uiLength);
+
+    // Parse <"hex_string">
+    if (!ExtractQuotedString(rszPointer, pszProactiveCmd, uiLength, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationCusatp() - Could not parse hex String.\r\n");
+        goto Error;
+    }
+
+    // Ensure NULL termination
+    pszProactiveCmd[uiLength-1] = '\0';
+
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatp() - Hex String: \"%s\".\r\n", pszProactiveCmd);
+
+    pResponse->SetResultCode(RIL_UNSOL_STK_PROACTIVE_COMMAND);
+
+    if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char) * uiLength, FALSE))
+    {
+        goto Error;
+    }
+
+    fRet = TRUE;
+
+Error:
+    if (!fRet)
+    {
+        free(pszProactiveCmd);
+        pszProactiveCmd = NULL;
+    }
+
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatp() - Exit\r\n");
+    return fRet;
+}
+
+
+BOOL CSilo_SIM::ParseIndicationCusatend(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatend() - Enter\r\n");
+    BOOL fRet = FALSE;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationCusatend() : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+    pResponse->SetResultCode(RIL_UNSOL_STK_SESSION_END);
+
+    fRet = TRUE;
+
+Error:
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatend() - Exit\r\n");
     return fRet;
 }

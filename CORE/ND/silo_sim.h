@@ -46,6 +46,10 @@ protected:
     virtual BOOL    ParseXLOCK(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL    ParseXLEMA(CResponse* const pResponse, const char*& rszPointer);
 
+    virtual BOOL    ParseIndicationCusats(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseIndicationCusatp(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL    ParseIndicationCusatend(CResponse* const pResponse, const char*& rszPointer);
+
     //  Emergency Call Codes list
     char m_szECCList[MAX_BUFFER_SIZE];
 };

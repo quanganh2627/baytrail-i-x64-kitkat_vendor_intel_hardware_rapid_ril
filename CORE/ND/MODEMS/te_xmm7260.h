@@ -37,6 +37,35 @@ public:
     // modem overrides
 
     virtual CInitializer* GetInitializer();
+
+    // RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
+    virtual RIL_RESULT_CODE CoreStkSendEnvelopeCommand(REQUEST_DATA& rReqData,
+                                                                  void* pData,
+                                                                  UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkSendEnvelopeCommand(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
+    virtual RIL_RESULT_CODE CoreStkSendTerminalResponse(REQUEST_DATA& rReqData,
+                                                                   void* pData,
+                                                                   UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseStkSendTerminalResponse(RESPONSE_DATA& rRspData);
+
+        // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
+    virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
+                                                                   void* pData,
+                                                                   UINT32 uiDataSize);
+
+    virtual BOOL ParseActivateUsatProfile(const char* szResponse);
+    virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+    virtual RIL_RESULT_CODE ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData);
+
+private:
+
+    BOOL ParseEnvelopCommandResponse(const char* pszResponse, char* pszEnvelopResp,
+            UINT32* puiBusy, UINT32* puiSw1, UINT32* puiSw2);
+
 };
 
 #endif
