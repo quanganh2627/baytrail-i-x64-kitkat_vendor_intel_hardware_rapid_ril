@@ -174,7 +174,6 @@ BOOL CTEBase::IsRequestSupported(int requestId)
         case RIL_REQUEST_CDMA_GET_SUBSCRIPTION_SOURCE: // 104 - CDMA, not supported
             return FALSE;
         case RIL_REQUEST_RESET_RADIO: // 58 - not supported
-        case RIL_REQUEST_ISIM_AUTHENTICATION: // 105 - not supported
             return FALSE;
         default:
             return TRUE;
@@ -8529,6 +8528,27 @@ RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA& rRspData)
     // this is modem dependent, to be implemented in te_inf_6260.cpp
     return RIL_E_REQUEST_NOT_SUPPORTED;
 }
+
+//
+// RIL_REQUEST_ISIM_AUTHENTICATE 105
+//
+RIL_RESULT_CODE CTEBase::CoreISimAuthenticate(REQUEST_DATA& rReqData,
+                                                                void* pData,
+                                                                UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreISimAuthenticate() - Enter / Exit\r\n");
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+RIL_RESULT_CODE CTEBase::ParseISimAuthenticate(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseISimAuthenticate() - Enter / Exit\r\n");
+    // this is modem dependent, to be implemented in te_inf_6260.cpp
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+
 
 //
 // RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU 106

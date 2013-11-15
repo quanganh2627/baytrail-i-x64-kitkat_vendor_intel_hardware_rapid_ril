@@ -548,6 +548,12 @@ public:
                                                           size_t datalen);
     RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA& rRspData);
 
+    // RIL_REQUEST_ISIM_AUTHENTICATION 105
+    RIL_RESULT_CODE RequestISimAuthenticate(RIL_Token rilToken,
+                                                           void* pData,
+                                                           size_t datalen);
+    RIL_RESULT_CODE ParseISimAuthenticate(RESPONSE_DATA& rRspData);
+
     // RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU 106
     RIL_RESULT_CODE RequestAckIncomingGsmSmsWithPdu(RIL_Token rilToken,
                                                            void* pData,

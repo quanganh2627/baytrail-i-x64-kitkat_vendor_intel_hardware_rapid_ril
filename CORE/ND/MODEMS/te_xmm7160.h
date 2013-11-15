@@ -85,6 +85,11 @@ public:
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     virtual RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData);
 
+    // RIL_REQUEST_ISIM_AUTHETICATE 105
+    virtual RIL_RESULT_CODE CoreISimAuthenticate(REQUEST_DATA& rReqData,
+             void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseISimAuthenticate(RESPONSE_DATA& rRspData);
+
     virtual BOOL IMSRegister(REQUEST_DATA& rReqData, void* pData,
                                                     UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseIMSRegister(RESPONSE_DATA & rRspData);

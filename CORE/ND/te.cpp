@@ -1020,8 +1020,8 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_ISIM_AUTHENTICATION:  // 105 - not supported
-                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+            case RIL_REQUEST_ISIM_AUTHENTICATION:  // 105
+                eRetVal = RequestISimAuthenticate(hRilToken, pData, datalen);
                 break;
 
             case RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU:  // 106
@@ -3393,6 +3393,58 @@ RIL_RESULT_CODE CTE::ParseGetImei(RESPONSE_DATA& rRspData)
 
     return m_pTEBaseInstance->ParseGetImei(rRspData);
 }
+
+//
+// RIL_REQUEST_GET_IMEISV 39
+//
+RIL_RESULT_CODE CTE::RequestISimAuthenticate(RIL_Token rilToken, void* pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestISimAuthenticate() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreISimAuthenticate(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestISimAuthenticate() - Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_ISIM_AUTHENTICATION].uiChannel,
+                rilToken, RIL_REQUEST_ISIM_AUTHENTICATION, reqData, &CTE::ParseISimAuthenticate);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestISimAuthenticate() - Unable to add command "
+                                 "to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestISimAuthenticate() -"
+                    " Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::RequestISimAuthenticate() - Exit\r\n");
+    return res;
+}
+
+
+RIL_RESULT_CODE CTE::ParseISimAuthenticate(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseISimAuthenticate() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseISimAuthenticate(rRspData);
+}
+
 
 //
 // RIL_REQUEST_GET_IMEISV 39

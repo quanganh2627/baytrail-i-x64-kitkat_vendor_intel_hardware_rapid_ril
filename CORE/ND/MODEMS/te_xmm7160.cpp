@@ -1847,3 +1847,180 @@ Error:
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseUnsolicitedSignalStrength() - Exit\r\n");
     return res;
 }
+
+//
+// RIL_REQUEST_ISIM_AUTHENTICATE 106
+//
+RIL_RESULT_CODE CTE_XMM7160::CoreISimAuthenticate(REQUEST_DATA& rReqData,
+                                                                void* pData,
+                                                                UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreISimAuthenticate() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    char szAutn[AUTN_LENGTH+1]; //32 bytes + null terminated
+    char szRand[RAND_LENGTH+1]; //32 bytes + null terminated
+    char* pszInput = (char*) pData;
+    int nChannelId = 0; // Use default channel ( USIM ) for now. may need to use the one
+                        // for ISIM.
+    int nContext = 1;   // 1 is USIM security context. ( see CAT Spec )
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreISimAuthenticate() - Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+
+    CopyStringNullTerminate(szAutn, pszInput, sizeof(szAutn));
+    CopyStringNullTerminate(szRand, pszInput+AUTN_LENGTH, sizeof(szRand));
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+XAUTH=%u,%u,\"%s\",\"%s\"\r", nChannelId, nContext, szRand, szAutn))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreISimAuthenticate() - Cannot create XAUTH command -"
+                " szRand=%s, szAutn=%s\r\n",szRand,szAutn);
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreISimAuthenticate() - Exit\r\n");
+
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseISimAuthenticate(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseISimAuthenticate() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+    int reslen = 0;
+    char * pszResult = NULL;
+    UINT32 uiStatus;
+    char szRes[MAX_BUFFER_SIZE];
+    char szCk[MAX_BUFFER_SIZE];
+    char szIk[MAX_BUFFER_SIZE];
+    char szKc[MAX_BUFFER_SIZE];
+
+    memset(szRes, '\0', sizeof(szRes));
+    memset(szCk, '\0', sizeof(szCk));
+    memset(szIk, '\0', sizeof(szIk));
+    memset(szKc, '\0', sizeof(szKc));
+
+    if (NULL == rRspData.szResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                " Response String pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (FindAndSkipString(pszRsp, "+XAUTH: ", pszRsp))
+    {
+        if (!ExtractUInt32(pszRsp, uiStatus, pszRsp)) {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                    " Error parsing status.\r\n");
+            goto Error;
+        }
+
+        if ((uiStatus == 0)||(uiStatus == 1))
+        {
+            // Success, need to parse the extra parameters...
+            if (!SkipString(pszRsp, ",", pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                                 " Error parsing status.\r\n");
+                goto Error;
+            }
+
+            if (!ExtractQuotedString(pszRsp, szRes, sizeof(szRes), pszRsp)) {
+                RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                                 " Error parsing Res.\r\n");
+                goto Error;
+            }
+
+            if (uiStatus == 0)
+            {
+                // This is success, so we need to get CK, IK, KC
+                if (!SkipString(pszRsp, ",", pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                                     " Error parsing Res.\r\n");
+                    goto Error;
+                }
+
+                if (!ExtractQuotedString(pszRsp, szCk, sizeof(szCk), pszRsp)) {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                                     " Error parsing CK.\r\n");
+                    goto Error;
+                }
+                if (!SkipString(pszRsp, ",", pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                                     " Error parsing CK.\r\n");
+                    goto Error;
+                }
+
+                if (!ExtractQuotedString(pszRsp, szIk, sizeof(szIk), pszRsp)) {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                                     " Error parsing IK.\r\n");
+                    goto Error;
+                }
+                if (!SkipString(pszRsp, ",", pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                                     " Error parsing IK.\r\n");
+                    goto Error;
+                }
+
+                if (!ExtractQuotedString(pszRsp, szKc, sizeof(szKc), pszRsp)) {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                                     " Error parsing Kc.\r\n");
+                    goto Error;
+                }
+            }
+
+            // Log the result for debug
+            RIL_LOG_VERBOSE("CTE_XMM7160::ParseISimAuthenticate - Res/Auts -"
+                            " =%s\r\n", szRes);
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                " Error searching +XAUTH:.\r\n");
+        goto Error;
+    }
+
+    if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                " Could not extract the response end.\r\n");
+        goto Error;
+    }
+
+    // reslen = 3 bytes for the status (int), 4 bytes for the :, and the rest + 1 for
+    // the carriage return...
+    reslen = 3 + 4 + strlen(szRes) + strlen(szCk) + strlen(szIk) + strlen(szKc) + 1;
+    pszResult = (char *) malloc(reslen);
+    if (!pszResult)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                " Could not allocate memory for result string.\r\n");
+        goto Error;
+    }
+    if (!PrintStringNullTerminate(pszResult, reslen,
+                                  "%d:%s:%s:%s:%s", uiStatus, szRes, szCk, szIk, szKc))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseISimAuthenticate() -"
+                " Error creating response string.\r\n");
+        goto Error;
+    }
+    rRspData.pData = (void *) pszResult;
+    rRspData.uiDataSize = reslen;
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseISimAuthenticate() - Exit\r\n");
+    return res;
+}

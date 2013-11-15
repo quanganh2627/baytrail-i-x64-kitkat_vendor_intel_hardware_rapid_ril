@@ -680,6 +680,12 @@ public:
                                                                    UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA& rRspData);
 
+    // RIL_REQUEST_ISIM_AUTHENTICATE 105
+    virtual RIL_RESULT_CODE CoreISimAuthenticate(REQUEST_DATA& rReqData,
+                                                                    void* pData,
+                                                                    UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseISimAuthenticate(RESPONSE_DATA& rRspData);
+
     // RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU 106
     virtual RIL_RESULT_CODE CoreAckIncomingGsmSmsWithPdu(REQUEST_DATA& rReqData,
                                                                     void* pData,
