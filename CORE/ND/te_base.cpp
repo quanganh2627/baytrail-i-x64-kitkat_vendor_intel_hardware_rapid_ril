@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////////////////
+#////////////////////////////////////////////////////////////////////////////
 // te_base.cpp
 //
 // Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
@@ -6209,31 +6209,69 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
                 pContextParams->szIpV6DNS1, pContextParams->szIpV6DNS2);
 
         // Parse ,<P-CSCF_prim_addr>
-        // not used yet
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_IPADDR_SIZE, pszRsp))
         {
             RIL_LOG_INFO("CTEBase::ParseReadContextParams() - "
                     "Could not extract P-CSCF primary address.\r\n");
         }
+        else
+        {
+            /*
+             * If IPv4, then first line will have the IPv4 address.
+             * If IPv6, then first line will have the IPv6 address.
+             * If IPv4v6, then first line will have the IPv4 address and
+             * second line will have the IPv6 address.
+             */
+            if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4PCSCF1,
+                    MAX_IPADDR_SIZE, pContextParams->szIpV6PCSCF1, MAX_IPADDR_SIZE))
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
+                        "ConvertIPAddressToAndroidReadable - Primary PCSCF IPv4/IPv6 "
+                        "conversion failed\r\n");
+
+                goto Error;
+            }
+        }
 
         // Parse ,<P-CSCF_sec_addr>
-        // not used yet
         if (!SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
+            !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_IPADDR_SIZE, pszRsp))
         {
             RIL_LOG_INFO("CTEBase::ParseReadContextParams() - Could not extract "
                     "P-CSCF sec addr.\r\n");
         }
+        else
+        {
+            /*
+             * If IPv4, then first line will have the IPv4 address.
+             * If IPv6, then first line will have the IPv6 address.
+             * If IPv4v6, then first line will have the IPv4 address and
+             * second line will have the IPv6 address.
+             */
+            if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4PCSCF2,
+                    MAX_IPADDR_SIZE, pContextParams->szIpV6PCSCF2, MAX_IPADDR_SIZE))
+            {
+                RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
+                        "ConvertIPAddressToAndroidReadable - Secondary PCSCF IPv4/IPv6 "
+                        "conversion failed\r\n");
+
+                goto Error;
+            }
+        }
+        pChannelData->SetPcscf(pContextParams->szIpV4PCSCF1, pContextParams->szIpV4PCSCF2,
+                pContextParams->szIpV6PCSCF1, pContextParams->szIpV6PCSCF2);
     }
 
     RIL_LOG_INFO("CTEBase::ParseReadContextParams() - "
             "uiCID: %u, szIPv4Addr:%s, szIPv6Addr:%s, szIPv4GatewayAddr: %s, szIPv6GatewayAddr: %s,"
-            " szIPv4DNS1: %s, szIPv6DNS1: %s, szIPv4DNS2: %s, szIPv6DNS2: %s\r\n",
+            " szIPv4DNS1: %s, szIPv6DNS1: %s, szIPv4DNS2: %s, szIPv6DNS2: %s,"
+            " szIPv4PCSCF1: %s, szIPv6PCSCF1: %s, szIPv4PCSCF2: %s, szIPv6PCSCF2: %s\r\n",
             uiCID, pContextParams->szIpV4Addr, pContextParams->szIpV6Addr,
             pContextParams->szIpV4GatewayAddr, pContextParams->szIpV6GatewayAddr,
             pContextParams->szIpV4DNS1, pContextParams->szIpV6DNS1, pContextParams->szIpV4DNS2,
-            pContextParams->szIpV6DNS2);
+            pContextParams->szIpV6DNS2, pContextParams->szIpV4PCSCF1, pContextParams->szIpV6PCSCF1,
+            pContextParams->szIpV4PCSCF2, pContextParams->szIpV6PCSCF2);
 
     res = RRIL_RESULT_OK;
 Error:

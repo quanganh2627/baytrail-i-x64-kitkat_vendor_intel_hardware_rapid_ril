@@ -4549,7 +4549,7 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHookStrings(reqData,
             pData, datalen, uiRilChannel);
-    if (RRIL_RESULT_OK != res)
+    if (RRIL_RESULT_OK != res && RRIL_RESULT_OK_IMMEDIATE != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestHookStrings() - Unable to create AT command data\r\n");
     }
@@ -4609,7 +4609,14 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
 
         RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
     }
-
+    // When a hook strings implementation returns RRIL_RESULT_OK_IMMEDIATE,
+    // the return data has to be passed through reqData.pContextData2 and
+    // the len in reqData.cbContextData2
+    if (res == RRIL_RESULT_OK_IMMEDIATE)
+    {
+        RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, reqData.pContextData2,
+                reqData.cbContextData2);
+    }
     RIL_LOG_VERBOSE("CTE::RequestHookStrings() - Exit\r\n");
     return res;
 }

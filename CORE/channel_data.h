@@ -72,6 +72,12 @@ public:
                                     char* pDNS2, const int maxDNS2Size,
                                     char* pIpV6DNS1, const int maxIpV6DNS1Size,
                                     char* pIpV6DNS2, const int maxIpV6DNS2Size);
+    void SetPcscf(const char* pPCSCF1, const char* pPCSCF2,
+                    const char* pIpV6PCSCF1, const char* pIpV6PCSCF2);
+    void GetPcscf(char* pPCSCF1, const int maxpPcscf1Size,
+                    char* pPCSCF2, const int maxpPcscf2Size,
+                    char* pIpV6PCSCF1, const int maxpIpV6PCSCF1Size,
+                    char* pIpV6PCSCF2, const int maxpIpV6PCSCF2Size);
 
     void SetGateway(const char* pIpV4Gateway, const char* pIpV6Gateway);
     void GetGateway(char* pIpV4Gateway, const int maxIPv4GatewaySize,
@@ -86,6 +92,7 @@ public:
     // helper functions to convert ContextID, Dlci and Channel
     //
     static CChannel_Data* GetChnlFromContextID(UINT32 dwContextID);
+    static CChannel_Data* GetChnlFromIfName(const char * ifName);
     static CChannel_Data* GetChnlFromRilChannelNumber(UINT32 index);
 
     // used by 6360 and 7160 modems.
@@ -123,6 +130,14 @@ private:
     char m_szIpAddr[MAX_IPADDR_SIZE];
     char m_szDNS1[MAX_IPADDR_SIZE];
     char m_szDNS2[MAX_IPADDR_SIZE];
+
+    //Local storage of PCSCF addresses
+    char m_szPCSCF1[MAX_IPADDR_SIZE];
+    char m_szPCSCF2[MAX_IPADDR_SIZE];
+
+    //Local storage of PCSCF addresses
+    char m_szIpV6PCSCF1[MAX_IPADDR_SIZE];
+    char m_szIpV6PCSCF2[MAX_IPADDR_SIZE];
 
     //  For IPV4V6, there could be 2 IP addresses
     char m_szIpAddr2[MAX_IPADDR_SIZE];

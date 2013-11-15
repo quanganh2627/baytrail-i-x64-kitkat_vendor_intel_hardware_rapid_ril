@@ -188,6 +188,41 @@ Error:
 }
 
 //
+//  Returns a pointer to the channel linked to the given interface name
+//
+CChannel_Data* CChannel_Data::GetChnlFromIfName(const char * ifName)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromIfName() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+
+    extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
+    CChannel_Data* pChannelData = NULL;
+
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
+    {
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
+
+        CChannel_Data* pTemp = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+        if (pTemp)
+        {
+            char szTempName[MAX_INTERFACE_NAME_SIZE];
+            pTemp->GetInterfaceName(szTempName, MAX_INTERFACE_NAME_SIZE);
+            if (!strncmp(szTempName, ifName, MAX_INTERFACE_NAME_SIZE)) {
+                pChannelData = pTemp;
+                break;
+            }
+        }
+    }
+
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromIfName() - Exit\r\n");
+    return pChannelData;
+}
+
+//
 //  Returns a pointer to the channel linked to the given context ID
 //
 CChannel_Data* CChannel_Data::GetChnlFromContextID(UINT32 uiContextID)
@@ -706,6 +741,64 @@ void CChannel_Data::GetDNS(char* pDNS1, const int maxDNS1Size,
     }
 
     RIL_LOG_VERBOSE("CChannel_Data::GetDNS() - Exit\r\n");
+}
+
+void CChannel_Data::SetPcscf(const char* pPCSCF1, const char* pPCSCF2,
+                               const char* pIpV6PCSCF1, const char* pIpV6PCSCF2)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::SetPcscf() - Enter\r\n");
+
+    if (NULL != pPCSCF1)
+    {
+        CopyStringNullTerminate(m_szPCSCF1, pPCSCF1, MAX_IPADDR_SIZE);
+    }
+
+    if (NULL != pPCSCF2)
+    {
+        CopyStringNullTerminate(m_szPCSCF2, pPCSCF2, MAX_IPADDR_SIZE);
+    }
+
+    if (NULL != pIpV6PCSCF1)
+    {
+        CopyStringNullTerminate(m_szIpV6PCSCF1, pIpV6PCSCF1, MAX_IPADDR_SIZE);
+    }
+
+    if (NULL != pIpV6PCSCF2)
+    {
+        CopyStringNullTerminate(m_szIpV6PCSCF2, pIpV6PCSCF2, MAX_IPADDR_SIZE);
+    }
+
+    RIL_LOG_VERBOSE("CChannel_Data::SetPcscf() - Exit\r\n");
+}
+
+void CChannel_Data::GetPcscf(char* pPCSCF1, const int maxPcscf1Size,
+                               char* pPCSCF2, const int maxPcscf2Size,
+                               char* pIpV6PCSCF1, const int maxIpV6Pcscf1Size,
+                               char* pIpV6PCSCF2, const int maxIpV6Pcscf2Size)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetPcscf() - Enter\r\n");
+
+    if (NULL != pPCSCF1 && 0 < maxPcscf1Size)
+    {
+        CopyStringNullTerminate(pPCSCF1, m_szPCSCF1, maxPcscf1Size);
+    }
+
+    if (NULL != pPCSCF2 && 0 < maxPcscf2Size)
+    {
+        CopyStringNullTerminate(pPCSCF2, m_szPCSCF2, maxPcscf2Size);
+    }
+
+    if (NULL != pIpV6PCSCF1 && 0 < maxIpV6Pcscf1Size)
+    {
+        CopyStringNullTerminate(pIpV6PCSCF1, m_szIpV6PCSCF1, maxIpV6Pcscf1Size);
+    }
+
+    if (NULL != pIpV6PCSCF2 && 0 < maxIpV6Pcscf2Size)
+    {
+        CopyStringNullTerminate(pIpV6PCSCF2, m_szIpV6PCSCF2, maxIpV6Pcscf2Size);
+    }
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetPcscf() - Exit\r\n");
 }
 
 void CChannel_Data::SetGateway(const char* pIpV4Gateway, const char* pIpV6Gateway)

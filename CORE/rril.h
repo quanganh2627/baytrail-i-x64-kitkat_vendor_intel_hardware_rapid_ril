@@ -218,6 +218,10 @@ typedef struct
     char szIpV6DNS2[MAX_IPADDR_SIZE];
     char szIpV4GatewayAddr[MAX_IPADDR_SIZE];
     char szIpV6GatewayAddr[MAX_IPADDR_SIZE];
+    char szIpV4PCSCF1[MAX_IPADDR_SIZE];
+    char szIpV4PCSCF2[MAX_IPADDR_SIZE];
+    char szIpV6PCSCF1[MAX_IPADDR_SIZE];
+    char szIpV6PCSCF2[MAX_IPADDR_SIZE];
 } S_DEFAULT_PDN_CONTEXT_PARAMS, *P_DEFAULT_PDN_CONTEXT_PARAMS;
 
 // Pref network type request information cache.

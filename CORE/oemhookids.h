@@ -358,6 +358,19 @@ const int RIL_OEM_HOOK_STRING_IMS_SMS_STATUS = 0x000000B5;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_IMS_GET_PCSCF
+//  Command ID = 0x000000B6
+//
+//  This command get the PDN PCSCF addresses for ims
+//
+//  "data" = A string, the interface name for which we want to get PCSCF from
+//  "response" = 3 strings, [0] : the CID of the PDN
+//                          [1] : the first PCSCF address.
+//                          [2] : the second PCSCF address.
+//
+const int RIL_OEM_HOOK_STRING_IMS_GET_PCSCF = 0x000000B6;
+
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID

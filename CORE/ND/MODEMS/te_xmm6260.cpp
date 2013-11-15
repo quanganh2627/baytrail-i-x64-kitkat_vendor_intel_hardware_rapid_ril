@@ -2344,6 +2344,12 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                     (const char**) pszRequest, nNumStrings);
             break;
 
+        case RIL_OEM_HOOK_STRING_IMS_GET_PCSCF:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_GET_PCSCF");
+            res = GetPcscf(rReqData,
+                    (const char**) pszRequest, nNumStrings);
+            break;
+
         case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_DEFAULT_APN");
             // Send this command on ATCMD channel
@@ -2385,7 +2391,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             goto Error;
     }
 
-    if (RRIL_RESULT_OK != res)
+    if (RRIL_RESULT_OK != res && RRIL_RESULT_OK_IMMEDIATE != res)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() :"
                 " Can't create OEM HOOK String request uiCommand: 0x%X", uiCommand);
@@ -4604,6 +4610,67 @@ RIL_RESULT_CODE CTE_XMM6260::SetSmsImsAvailable(REQUEST_DATA& rReqData,
     res = RRIL_RESULT_OK;
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::SetSmsImsAvailable() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::GetPcscf(REQUEST_DATA& rReqData,
+        const char** pszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetPcscf() - Enter\r\n");
+    CChannel_Data *pChannelData = NULL;
+    P_ND_GET_PCSCF_RESPONSE pResponse = NULL;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int cid;
+
+    if (pszRequest[1] == NULL)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetPcscf()"
+            " - invalid ifname\r\n");
+        goto Error;
+    }
+
+    pChannelData = CChannel_Data::GetChnlFromIfName(pszRequest[1]);
+
+    if (pChannelData == NULL)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetPcscf()"
+            " - channel data not found for %s\r\n", pszRequest[1]);
+        goto Error;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetPcscf() - cid=[%d]\r\n",
+            pChannelData->GetContextID());
+
+    pResponse = (P_ND_GET_PCSCF_RESPONSE) malloc(sizeof(S_ND_GET_PCSCF_RESPONSE));
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPscsf() -"
+                "Could not allocate memory for response");
+        goto Error;
+    }
+
+    memset(pResponse, 0, sizeof(S_ND_GET_PCSCF_RESPONSE));
+    snprintf(pResponse->szCid, REG_STATUS_LENGTH, "%d", pChannelData->GetContextID());
+    pChannelData->GetPcscf(pResponse->szPcscf1, MAX_IPADDR_SIZE,
+            pResponse->szPcscf2, MAX_IPADDR_SIZE,
+            pResponse->szIpV6Pcscf1, MAX_IPADDR_SIZE,
+            pResponse->szIpV6Pcscf2, MAX_IPADDR_SIZE);
+
+    pResponse->sResponsePointer.pszCid = pResponse->szCid;
+    pResponse->sResponsePointer.pszPcscf1 = pResponse->szPcscf1;
+    pResponse->sResponsePointer.pszPcscf2 = pResponse->szPcscf2;
+    pResponse->sResponsePointer.pszIpV6Pcscf1 = pResponse->szIpV6Pcscf1;
+    pResponse->sResponsePointer.pszIpV6Pcscf2 = pResponse->szIpV6Pcscf2;
+
+    // Response data are passed in pContextData2 and len in cbContextData2
+    // when response is immediate.
+    rReqData.pContextData2 = (void *)pResponse;
+    rReqData.cbContextData2 = sizeof(S_ND_GET_PCSCF_RESPONSE_PTR);
+
+    res = RRIL_RESULT_OK_IMMEDIATE;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetPcscf() - Exit\r\n");
     return res;
 }
 
