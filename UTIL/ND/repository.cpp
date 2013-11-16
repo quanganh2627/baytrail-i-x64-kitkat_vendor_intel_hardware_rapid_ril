@@ -119,6 +119,7 @@ const char   g_szApnTypeCBS[]           = "ApnTypeCBS";
 const char   g_szApnTypeFOTA[]          = "ApnTypeFOTA";
 const char   g_szApnTypeSUPL[]          = "ApnTypeSUPL";
 const char   g_szApnTypeHIPRI[]         = "ApnTypeHIPRI";
+const char   g_szApnTypeEmergency[]     = "ApnTypeEmergency";
 
 /////////////////////////////////////////////////
 

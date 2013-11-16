@@ -159,6 +159,7 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetupDataCall(REQUEST_DATA& rReqData,
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
     CChannel_Data* pChannelData = NULL;
     int dataProfile = -1;
+    int nEmergencyFlag = 0 ; // 1: emergency pdn
 
     RIL_LOG_INFO("CTE_XMM6360::CoreSetupDataCall() - uiDataSize=[%u]\r\n", uiDataSize);
 
@@ -230,6 +231,11 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetupDataCall(REQUEST_DATA& rReqData,
                 stPdpData.szPDPType);
     }
 
+    if (dataProfile == RIL_DATA_PROFILE_EMERGENCY)
+    {
+        nEmergencyFlag = 1;
+    }
+
     //
     //  IP type is passed in dynamically.
     if (NULL == stPdpData.szPDPType)
@@ -244,9 +250,9 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetupDataCall(REQUEST_DATA& rReqData,
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,1\r",
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,1\r",
                 uiCID, stPdpData.szPDPType,
-                stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName,
+                stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap, stPdpData.szUserName,
                 stPdpData.szPassword, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
@@ -258,8 +264,8 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetupDataCall(REQUEST_DATA& rReqData,
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,2\r",
-                uiCID, stPdpData.szPDPType, stPdpData.szApn, uiCID, nPapChap,
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,2\r",
+                uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap,
                 stPdpData.szUserName, stPdpData.szPassword, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
@@ -273,9 +279,9 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetupDataCall(REQUEST_DATA& rReqData,
         //  and +XDNS=2 should be sent.
         if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0;+XGAUTH=%u,%d,\"%s\","
+                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0,,%d;+XGAUTH=%u,%d,\"%s\","
                 "\"%s\";+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
-                stPdpData.szApn, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
+                stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
                 uiCID, uiCID))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
@@ -559,6 +565,9 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
             break;
         case RIL_DATA_PROFILE_HIPRI:
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_HIPRI;
+            break;
+        case RIL_DATA_PROFILE_EMERGENCY:
+            networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_EMERGENCY;
             break;
         default:
             RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - Unknown Data Profile [%d] \r\n",

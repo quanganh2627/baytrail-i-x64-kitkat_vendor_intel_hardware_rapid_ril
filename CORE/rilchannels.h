@@ -25,7 +25,7 @@ extern UINT32 g_uiRilChannelUpperLimit;
 extern UINT32 g_uiRilChannelCurMax;
 
 // Number of apn profile
-#define NUMBER_OF_APN_PROFILE 8
+#define NUMBER_OF_APN_PROFILE 9
 
 // Number of channels able to carry data.
 #define RIL_MAX_NUM_IPC_CHANNEL     5
