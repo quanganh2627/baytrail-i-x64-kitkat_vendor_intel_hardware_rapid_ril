@@ -55,6 +55,12 @@ char* g_szURCPort = NULL;
 char* g_szOEMPort = NULL;
 char* g_szSIMID = NULL;
 
+// Upper limit on number of RIL channels to create
+UINT32 g_uiRilChannelUpperLimit = RIL_CHANNEL_MAX;
+
+// Current RIL channel index maximum (depends on number of data channels created)
+UINT32 g_uiRilChannelCurMax = 0;
+
 static const RIL_RadioFunctions gs_callbacks =
 {
     RIL_VERSION,
@@ -514,7 +520,7 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
-    return "Intrinsyc Rapid-RIL M6.55 for Android 4.2 (Build August 6/2013)";
+    return "Intrinsyc Rapid-RIL M6.59 for Android 4.2 (Build September 17/2013)";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -610,7 +616,7 @@ static bool RIL_SetGlobals(int argc, char** argv)
 
     property_get("persist.dual_sim", szDualSim , "none");
     g_uiRilChannelUpperLimit = RIL_CHANNEL_MAX;
-    g_arChannelMapping = g_arChannelMappingDefault;
+    g_pReqInfo = (REQ_INFO*)g_ReqInfoDefault;
 
     while (-1 != (opt = getopt(argc, argv, "d:s:a:n:m:c:u:o:i:")))
     {

@@ -471,29 +471,25 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA& rRspData)
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
 
-    // Cache the PIN code only if we are not silently entering it
-    if (!PCache_GetUseCachedPIN())
+    // Parse "<prefix>+CCID: <ICCID><postfix>"
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
+
+    if (SkipString(pszRsp, "+CCID: ", pszRsp))
     {
-        // Parse "<prefix>+CCID: <ICCID><postfix>"
-        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
-
-        if (SkipString(pszRsp, "+CCID: ", pszRsp))
+        if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, PROPERTY_VALUE_MAX, pszRsp))
         {
-            if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, PROPERTY_VALUE_MAX, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot parse UICC ID\r\n");
-                szUICCID[0] = '\0';
-            }
-
-            SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
+            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot parse UICC ID\r\n");
+            szUICCID[0] = '\0';
         }
 
-        //  Cache PIN1 value
-        PCache_Store_PIN(szUICCID, m_szPIN);
-
-        //  Clear it locally.
-        memset(m_szPIN, 0, MAX_PIN_SIZE);
+        SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
     }
+
+    //  Cache PIN1 value
+    PCache_Store_PIN(szUICCID, m_szPIN);
+
+    //  Clear it locally.
+    memset(m_szPIN, 0, MAX_PIN_SIZE);
 
     res = RRIL_RESULT_OK;
 
@@ -2437,9 +2433,8 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
      * request is completed in RequestRadioPower function in te.cpp with the valid
      * RIL_Token.
      */
-    pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_RADIOPOWER],
-            NULL, ND_REQ_ID_RADIOPOWER, szCmd, &CTE::ParseRadioPower,
-            &CTE::PostRadioPower);
+    pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_RADIO_POWER].uiChannel,
+            NULL, RIL_REQUEST_RADIO_POWER, szCmd, &CTE::ParseRadioPower, &CTE::PostRadioPower);
 
     if (pCmd)
     {
@@ -4824,27 +4819,6 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA& rRspData)
     {
         return (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
     }
-
-    pnRetries = (int*)malloc(sizeof(int));
-    if (NULL == pnRetries)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - Could not alloc int\r\n");
-        goto Error;
-    }
-
-    //  Unknown number of retries remaining
-    *pnRetries = (int)-1;
-
-    rRspData.pData    = (void*) pnRetries;
-    rRspData.uiDataSize   = sizeof(int*);
-
-    //  Cache PIN1 value
-    RIL_LOG_INFO("CTEBase::ParseSetFacilityLock() - PIN code: %s\r\n", m_szPIN);
-    if (0 == strcmp(m_szPIN, "CLR"))
-    {
-        PCache_Clear();
-        PCache_SetUseCachedPIN(false);
-    }
     else
     {
         // Parse "<prefix>+CCID: <ICCID><postfix>"
@@ -4860,9 +4834,41 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA& rRspData)
 
             SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
         }
-
-        PCache_Store_PIN(szUICCID, m_szPIN);
     }
+
+    pnRetries = (int*)malloc(sizeof(int));
+    if (NULL == pnRetries)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - Could not alloc int\r\n");
+        goto Error;
+    }
+
+    //  Unknown number of retries remaining
+    *pnRetries = -1;
+
+    rRspData.pData = pnRetries;
+    rRspData.uiDataSize = sizeof(int*);
+
+    if (NULL != rRspData.pContextData
+            && rRspData.cbContextData == sizeof(S_SET_FACILITY_LOCK_CONTEXT_DATA))
+    {
+        /*
+         * Context Data will be set only for SC(SIM CARD) and FD(Fixed Dialing) locks.
+         * This is because modem only supports retry count information for SC and FD
+         * locks via XPINCNT.
+         *
+         * Note: No point in calling this on success but ril documentation not clear
+         */
+        S_SET_FACILITY_LOCK_CONTEXT_DATA* pContextData =
+                (S_SET_FACILITY_LOCK_CONTEXT_DATA*) rRspData.pContextData;
+
+        if ((0 == strncmp(pContextData->szFacilityLock, "SC", 2))
+                && (0 != strcmp(m_szPIN, "CLR")))
+        {
+            PCache_Store_PIN(szUICCID, m_szPIN);
+        }
+    }
+
     //  Clear it locally.
     memset(m_szPIN, 0, MAX_PIN_SIZE);
 
@@ -6042,9 +6048,9 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseReadContextParams() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
@@ -6055,13 +6061,13 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
     CChannel_Data *pChannelData = NULL;
     P_DEFAULT_PDN_CONTEXT_PARAMS pContextParams = NULL;
 
-    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - %s\r\n", pszRsp);
+    RIL_LOG_VERBOSE("CTEBase::ParseReadContextParams() - %s\r\n", pszRsp);
 
     pContextParams =
             (P_DEFAULT_PDN_CONTEXT_PARAMS)malloc(sizeof(S_DEFAULT_PDN_CONTEXT_PARAMS));
     if (NULL == pContextParams)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+        RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                 "memory allocation failed\r\n");
         goto Error;
     }
@@ -6075,7 +6081,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
        // Parse <cid>
         if (!ExtractUInt32(pszRsp, uiCID, pszRsp) ||  ((uiCID > MAX_PDP_CONTEXTS) || 0 == uiCID ))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "Could not extract CID.\r\n");
             goto Error;
         }
@@ -6092,7 +6098,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractUInt32(pszRsp, uiBearerID, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - Could not extract"
                              " Bearer id.\r\n");
             goto Error;
         }
@@ -6101,19 +6107,19 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "Could not extract APN.\r\n");
             goto Error;
         }
 
-        RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - "
+        RIL_LOG_INFO("CTEBase::ParseReadContextParams() - "
                 "Set APN: %s for context Id: %u\r\n", szTmpBuffer, uiCID);
         pChannelData->SetApn(szTmpBuffer);
 
         if (!SkipString(pszRsp, ",", pszRsp)
                 || !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - Could not extract"
                      " source address.\r\n");
             goto Error;
         }
@@ -6129,7 +6135,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
                 pContextParams->szIpv4SubnetMask, MAX_IPADDR_SIZE,
                 pContextParams->szIpv6SubnetMask, MAX_IPADDR_SIZE))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "ExtractLocalAddressAndSubnetMask failed\r\n");
             goto Error;
         }
@@ -6139,7 +6145,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
                 !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "Could not extract Gateway.\r\n");
             goto Error;
         }
@@ -6147,7 +6153,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4GatewayAddr,
                 MAX_IPADDR_SIZE, pContextParams->szIpV6GatewayAddr, MAX_IPADDR_SIZE))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "ConvertIPAddressToAndroidReadable - Ipv4/v6 Gateway address failed\r\n");
             goto Error;
         }
@@ -6158,7 +6164,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract"
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - Could not extract"
                              " Primary DNS.\r\n");
             goto Error;
         }
@@ -6172,7 +6178,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4DNS1,
                 MAX_IPADDR_SIZE, pContextParams->szIpV6DNS1, MAX_IPADDR_SIZE))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "ConvertIPAddressToAndroidReadable - Primary DNS IPv4/IPv6 "
                     "conversion failed\r\n");
 
@@ -6182,7 +6188,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract "
+            RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - Could not extract "
                              "Secondary DNS.\r\n");
         }
         else
@@ -6196,7 +6202,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
             if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4DNS2,
                     MAX_IPADDR_SIZE, pContextParams->szIpV6DNS2, MAX_IPADDR_SIZE))
             {
-                RIL_LOG_CRITICAL("CTEBase::ParseReadDefaultPDNContextParams() - "
+                RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                         "ConvertIPAddressToAndroidReadable - Secondary DNS IPv4/IPv6 "
                         "conversion failed\r\n");
 
@@ -6212,7 +6218,7 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - "
+            RIL_LOG_INFO("CTEBase::ParseReadContextParams() - "
                     "Could not extract P-CSCF primary address.\r\n");
         }
 
@@ -6221,12 +6227,12 @@ RIL_RESULT_CODE CTEBase::ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspDat
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
-            RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - Could not extract "
+            RIL_LOG_INFO("CTEBase::ParseReadContextParams() - Could not extract "
                     "P-CSCF sec addr.\r\n");
         }
     }
 
-    RIL_LOG_INFO("CTEBase::ParseReadDefaultPDNContextParams() - "
+    RIL_LOG_INFO("CTEBase::ParseReadContextParams() - "
             "uiCID: %u, szIPv4Addr:%s, szIPv6Addr:%s, szIPv4GatewayAddr: %s, szIPv6GatewayAddr: %s,"
             " szIPv4DNS1: %s, szIPv6DNS1: %s, szIPv4DNS2: %s, szIPv6DNS2: %s\r\n",
             uiCID, pContextParams->szIpV4Addr, pContextParams->szIpV6Addr,
@@ -6266,7 +6272,7 @@ Error:
 
     free (pContextParams);
 
-    RIL_LOG_VERBOSE("CTEBase::ParseReadDefaultPDNContextParams() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseReadContextParams() - Exit\r\n");
     return res;
 }
 
@@ -7166,7 +7172,8 @@ RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
-    UINT32 uiIndex = 0, uiMode = 0;
+    UINT32 uiIndex = 0;
+    UINT32 uiMode = 0;
 
     P_ND_N_CELL_DATA pCellData = NULL;
 
@@ -7251,8 +7258,6 @@ Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseGetNeighboringCellIDs() - Exit\r\n");
     return res;
 }
-
-
 
 //
 // RIL_REQUEST_SET_LOCATION_UPDATES 76
@@ -8616,7 +8621,8 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
     RIL_LOG_VERBOSE("CTEBase::ParseCellInfoList() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    UINT32 uiIndex = 0, uiMode = 0;
+    UINT32 uiIndex = 0;
+    UINT32 uiMode = 0;
     const char* pszRsp = rRspData.szResponse;
 
     P_ND_N_CELL_INFO_DATA pCellData = NULL;
@@ -8690,7 +8696,6 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
             free(pCellData);
             pCellData = NULL;
         }
-
     }
     else
     {
@@ -8700,7 +8705,7 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
         // are different, report RIL_UNSOL_CELL_INFO_LIST
         if (uiIndex > 0)
         {
-            if (m_cte.updateCellInfoCache(pCellData, uiIndex))
+            if (m_cte.updateCellInfoCache(pCellData, (INT32)uiIndex))
             {
                 RIL_LOG_VERBOSE("CTEBase::ParseCellInfoList() - updated cache\r\n");
                 RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST,
@@ -10230,8 +10235,9 @@ void CTEBase::PSAttach()
 {
     RIL_LOG_VERBOSE("CTEBase::PSAttach() - Enter\r\n");
 
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERYAVAILABLENETWORKS],
-            NULL, ND_REQ_ID_QUERYAVAILABLENETWORKS, "AT+CGATT=1\r");
+    CCommand* pCmd = new CCommand(
+            g_pReqInfo[RIL_REQUEST_QUERY_AVAILABLE_NETWORKS].uiChannel,
+            NULL, RIL_REQUEST_QUERY_AVAILABLE_NETWORKS, "AT+CGATT=1\r");
     if (pCmd)
     {
         pCmd->SetHighPriority();
@@ -10264,8 +10270,8 @@ void CTEBase::DeactivateAllDataCalls()
      * Instead of sending PS detach, send deactivate all data calls when
      * conformance property is set.
      */
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL], NULL,
-            ND_REQ_ID_DEACTIVATEDATACALL, bConformance ? "AT+CGACT=0\r" : "AT+CGATT=0\r",
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DEACTIVATE_DATA_CALL].uiChannel,
+            NULL, RIL_REQUEST_DEACTIVATE_DATA_CALL, bConformance ? "AT+CGACT=0\r" : "AT+CGATT=0\r",
             &CTE::ParseDeactivateAllDataCalls);
 
     if (pCmd)
@@ -11268,8 +11274,9 @@ void CTEBase::QuerySimSmsStoreStatus()
 {
     RIL_LOG_VERBOSE("CTEBase::QuerySimSmsStoreStatus() - Enter\r\n");
 
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS],
-            NULL, ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS, "AT+CPMS?\r",
+    CCommand* pCmd = new CCommand(
+            g_ReqInternal[E_REQ_IDX_QUERY_SIM_SMS_STORE_STATUS].reqInfo.uiChannel,
+            NULL, g_ReqInternal[E_REQ_IDX_QUERY_SIM_SMS_STORE_STATUS].reqId, "AT+CPMS?\r",
             &CTE::ParseQuerySimSmsStoreStatus);
 
     if (NULL != pCmd)
@@ -11441,7 +11448,7 @@ void CTEBase::SetAutomaticResponseforNwInitiatedContext(POST_CMD_HANDLER_DATA& r
 {
     RIL_LOG_VERBOSE("CTEBase::SetAutomaticResponseforNwInitiatedContext() Enter\r\n");
 
-    CCommand* pCmd = new CCommand(RIL_CHANNEL_OEM, NULL, rData.uiRequestId, "AT+CGAUTO=1\r");
+    CCommand* pCmd = new CCommand(RIL_CHANNEL_OEM, NULL, rData.requestId, "AT+CGAUTO=1\r");
     if (pCmd)
     {
         pCmd->SetHighPriority();

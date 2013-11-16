@@ -19,53 +19,96 @@
 ///////////////////////////////////////////////////////////////////////////////
 CRequestInfoTable::CRequestInfoTable()
 {
-    memset(m_rgpRequestInfos, 0x00, sizeof(REQ_INFO*) * REQ_ID_TOTAL);
+    m_rgpRequestInfos = new REQ_INFO* [REQ_ID_TOTAL];
+
+    if (m_rgpRequestInfos != NULL)
+    {
+        memset(m_rgpRequestInfos, 0x00, REQ_ID_TOTAL * sizeof(REQ_INFO*));
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CRequestInfoTable::CRequestInfoTable() - \r\n"
+                "Couldn't allocate m_rgpRequestInfos");
+    }
     m_pCacheAccessMutex = new CMutex();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 CRequestInfoTable::~CRequestInfoTable()
 {
-    for (int i = 0; i < REQ_ID_TOTAL; i++)
+    if (m_rgpRequestInfos != NULL)
     {
-        delete m_rgpRequestInfos[i];
-        m_rgpRequestInfos[i] = NULL;
-    }
-    if (m_pCacheAccessMutex != NULL)
-    {
-        delete m_pCacheAccessMutex;
+        for (int i = 0; i < REQ_ID_TOTAL; i++)
+        {
+            delete m_rgpRequestInfos[i];
+            m_rgpRequestInfos[i] = NULL;
+        }
+
+        delete[] m_rgpRequestInfos;
+
+        if (m_pCacheAccessMutex != NULL)
+        {
+            delete m_pCacheAccessMutex;
+        }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo)
+void CRequestInfoTable::GetRequestInfo(int requestID, REQ_INFO& rReqInfo)
 {
     RIL_LOG_VERBOSE("CRequestInfoTable::GetRequestInfo() - Enter\r\n");
 
     // Set defaults if we can't find the request id
     rReqInfo.uiTimeout = CTE::GetTE().GetTimeoutAPIDefault();
 
-    if (REQ_ID_NONE == requestID)
+    if (m_rgpRequestInfos == NULL)
+    {
+        RIL_LOG_INFO("CRequestInfoTable::GetRequestInfo() - m_rgpRequestInfos is NULL\r\n");
+        goto Error;
+    }
+    else if (REQ_ID_NONE == requestID)
     {
         RIL_LOG_INFO("CRequestInfoTable::GetRequestInfo() - Request ID NONE given; assigning"
                 " default values.\r\n");
         goto Error;
     }
-    else if ((requestID >= REQ_ID_TOTAL) || (requestID < 0))
+    else if ((requestID >= REQ_ID_TOTAL && requestID < INTERNAL_REQ_ID_START) || (requestID < 0))
     {
-        RIL_LOG_CRITICAL("CRequestInfoTable::GetRequestInfo() - Invalid request ID [0x%X]\r\n",
+        RIL_LOG_CRITICAL("CRequestInfoTable::GetRequestInfo() - Invalid request ID [0x%x]\r\n",
                 requestID);
         goto Error;
     }
 
-    if (NULL == m_rgpRequestInfos[requestID])
+    // Internal request
+    if (requestID >= INTERNAL_REQ_ID_START)
     {
+        int index = requestID - INTERNAL_REQ_ID_START;
+
         CRepository repository;
-        int         iTemp = 0;
+        int iTemp = 0;
 
         memset(&rReqInfo, 0, sizeof(rReqInfo));
 
-        if (repository.Read(g_szGroupRequestTimeouts, g_szRequestNames[requestID], iTemp))
+        rReqInfo.uiTimeout = CTE::GetTE().GetTimeoutAPIDefault();
+
+        if (index < INTERNAL_REQ_ID_TOTAL)
+        {
+            if (repository.Read(g_szGroupRequestTimeouts, g_ReqInternal[index].reqInfo.szName,
+                    iTemp))
+            {
+                rReqInfo.uiTimeout = (UINT32)iTemp;
+            }
+        }
+    }
+    // Request from ril
+    else if (NULL == m_rgpRequestInfos[requestID])
+    {
+        CRepository repository;
+        int iTemp = 0;
+
+        memset(&rReqInfo, 0, sizeof(rReqInfo));
+
+        if (repository.Read(g_szGroupRequestTimeouts, g_pReqInfo[requestID].szName, iTemp))
         {
             rReqInfo.uiTimeout = (UINT32)iTemp;
         }
@@ -84,58 +127,58 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo)
         {
             // Timeout values need to be extended for DSDS capable modems,
             // depending on type of command (ie. network/non-network)
-            switch ((UINT32)requestID)
+            switch (requestID)
             {
-                case ND_REQ_ID_SETUPDEFAULTPDP: // +CGACT, +CGDATA, +CGDCONT, +CGPADDR, +XDNS
-                case ND_REQ_ID_DEACTIVATEDATACALL:
+                case RIL_REQUEST_SETUP_DATA_CALL: // +CGACT, +CGDATA, +CGDCONT, +CGPADDR, +XDNS
+                case RIL_REQUEST_DEACTIVATE_DATA_CALL:
                     rReqInfo.uiTimeout = 2 * rReqInfo.uiTimeout + 50000;
                     break;
 
                 // network commands
-                case ND_REQ_ID_QUERYCALLFORWARDSTATUS:  // +CCFC
-                case ND_REQ_ID_SETCALLFORWARD:          // +CCFC
-                case ND_REQ_ID_QUERYCALLWAITING:        // +CCWA
-                case ND_REQ_ID_SETCALLWAITING:          // +CCWA
-                case ND_REQ_ID_RADIOPOWER:              // +CFUN
-                case ND_REQ_ID_PDPCONTEXTLIST:          // +CGACT?
-                case ND_REQ_ID_HANGUP:                  // +CHLD
-                case ND_REQ_ID_HANGUPWAITINGORBACKGROUND: // +CHLD
-                case ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND: // +CHLD
-                case ND_REQ_ID_SWITCHHOLDINGANDACTIVE:  // +CHLD
-                case ND_REQ_ID_CONFERENCE:              // +CHLD
-                case ND_REQ_ID_UDUB:                    // +CHLD
-                case ND_REQ_ID_SEPERATECONNECTION:      // +CHLD
-                case ND_REQ_ID_EXPLICITCALLTRANSFER:    // +CHLD
-                case ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION: // +CLCK
-                case ND_REQ_ID_QUERYFACILITYLOCK:       // +CLCK
-                case ND_REQ_ID_SETFACILITYLOCK:         // +CLCK
-                case ND_REQ_ID_GETCLIR:                 // +CLIR?
-                case ND_REQ_ID_SETCLIR:                 // +CLIR
-                case ND_REQ_ID_SENDSMS:                 // +CMGS
-                case ND_REQ_ID_SMSACKNOWLEDGE:          // +CNMA
-                case ND_REQ_ID_OPERATOR:                // +XCOPS
-                case ND_REQ_ID_QUERYNETWORKSELECTIONMODE: // +COPS?
-                case ND_REQ_ID_QUERYAVAILABLENETWORKS:  // +COPS=?
-                case ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC: // +COPS
-                case ND_REQ_ID_SETNETWORKSELECTIONMANUAL: // +COPS
-                case ND_REQ_ID_SENDUSSD:                // +CUSD
-                case ND_REQ_ID_CANCELUSSD:              // +CUSD
-                case ND_REQ_ID_STKHANDLECALLSETUPREQUESTEDFROMSIM: // +SATD
-                case ND_REQ_ID_REQUESTDTMFSTART:        // +XVTS
-                case ND_REQ_ID_REQUESTDTMFSTOP:         // +XVTS
-                case ND_REQ_ID_DIAL:                    // ATD
+                case RIL_REQUEST_QUERY_CALL_FORWARD_STATUS: // +CCFC
+                case RIL_REQUEST_SET_CALL_FORWARD:          // +CCFC
+                case RIL_REQUEST_QUERY_CALL_WAITING:        // +CCWA
+                case RIL_REQUEST_SET_CALL_WAITING:          // +CCWA
+                case RIL_REQUEST_RADIO_POWER:               // +CFUN
+                case RIL_REQUEST_DATA_CALL_LIST:            // +CGACT?
+                case RIL_REQUEST_HANGUP:                    // +CHLD
+                case RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND: // +CHLD
+                case RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND: // +CHLD
+                case RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE: // +CHLD
+                case RIL_REQUEST_CONFERENCE:                // +CHLD
+                case RIL_REQUEST_UDUB:                      // +CHLD
+                case RIL_REQUEST_SEPARATE_CONNECTION:       // +CHLD
+                case RIL_REQUEST_EXPLICIT_CALL_TRANSFER:    // +CHLD
+                case RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION: // +CLCK
+                case RIL_REQUEST_QUERY_FACILITY_LOCK:       // +CLCK
+                case RIL_REQUEST_SET_FACILITY_LOCK:         // +CLCK
+                case RIL_REQUEST_GET_CLIR:                  // +CLIR?
+                case RIL_REQUEST_SET_CLIR:                  // +CLIR
+                case RIL_REQUEST_SEND_SMS:                  // +CMGS
+                case RIL_REQUEST_SMS_ACKNOWLEDGE:           // +CNMA
+                case RIL_REQUEST_OPERATOR:                  // +XCOPS
+                case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE: // +COPS?
+                case RIL_REQUEST_QUERY_AVAILABLE_NETWORKS:  // +COPS=?
+                case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC: // +COPS
+                case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL: // +COPS
+                case RIL_REQUEST_SEND_USSD:                 // +CUSD
+                case RIL_REQUEST_CANCEL_USSD:               // +CUSD
+                case RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM: // +SATD
+                case RIL_REQUEST_DTMF_START:                // +XVTS
+                case RIL_REQUEST_DTMF_STOP:                 // +XVTS
+                case RIL_REQUEST_DIAL:                      // ATD
 #if defined(M2_VT_FEATURE_ENABLED)
-                case ND_REQ_ID_DIALVT:                  // ATD
-                case ND_REQ_ID_HANGUPVT:                // ATH
+                case RIL_REQUEST_DIAL_VT:                   // ATD
+                case RIL_REQUEST_HANGUP_VT:                 // ATH
 #endif // M2_VT_FEATURE_ENABLED
                 // non-network cmds requiring response
-                case ND_REQ_ID_DELETESMSONSIM:          // +CMGD
-                case ND_REQ_ID_SENDSMSEXPECTMORE:       // +CMMS, +CMGS
-                case ND_REQ_ID_GETBROADCASTSMSCONFIG:   // +CSCB?
-                case ND_REQ_ID_SMSBROADCASTACTIVATION:  // +CSCB
-                case ND_REQ_ID_GETNEIGHBORINGCELLIDS:   // +XCELLINFO?
-                case ND_REQ_ID_GETCELLINFOLIST:         // +XCELLINFO?
-                case ND_REQ_ID_REPORTSMSMEMORYSTATUS:   // +XTESM
+                case RIL_REQUEST_DELETE_SMS_ON_SIM:         // +CMGD
+                case RIL_REQUEST_SEND_SMS_EXPECT_MORE:      // +CMMS, +CMGS
+                case RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG: // +CSCB?
+                case RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION: // +CSCB
+                case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:  // +XCELLINFO
+                case RIL_REQUEST_GET_CELL_INFO_LIST:        // +XCELLINFO
+                case RIL_REQUEST_REPORT_SMS_MEMORY_STATUS:  // +XTESM
                     rReqInfo.uiTimeout = 2 * rReqInfo.uiTimeout + 10000;
                     break;
             }
@@ -168,9 +211,8 @@ void CRequestInfoTable::GetRequestInfo(REQ_ID requestID, REQ_INFO& rReqInfo)
     }
 
 Error:
-    RIL_LOG_INFO("CRequestInfoTable::GetRequestInfo() - RequestID 0x%X: Timeout [%d]\r\n",
-                   requestID,
-                   rReqInfo.uiTimeout);
+    RIL_LOG_INFO("CRequestInfoTable::GetRequestInfo() - RequestID %d: Timeout [%u]\r\n",
+            requestID, rReqInfo.uiTimeout);
 
     RIL_LOG_VERBOSE("CRequestInfoTable::GetRequestInfo() - Exit\r\n");
 }

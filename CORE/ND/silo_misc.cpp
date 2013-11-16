@@ -168,7 +168,6 @@ Error:
     return fRet;
 }
 
-
 BOOL CSilo_MISC::ParseXMETRIC(CResponse* const pResponse, const char*& rszPointer)
 {
     // We have to prepend the URC name to its value

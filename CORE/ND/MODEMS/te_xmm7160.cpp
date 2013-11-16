@@ -202,6 +202,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
     char* pszCid = NULL;
     UINT32 uiCID = 0;
     const LONG REASON_RADIO_OFF = 1;
+    const LONG REASON_PDP_RESET = 2;
     LONG reason = 0;
 
     if (uiDataSize < (1 * sizeof(char *)))
@@ -240,7 +241,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
 
     if ((RIL_VERSION >= 4) && (uiDataSize >= (2 * sizeof(char *))))
     {
-        reason == GetDataDeactivateReason(((char**)pData)[1]);
+        reason = GetDataDeactivateReason(((char**)pData)[1]);
         RIL_LOG_INFO("CTE_XMM7160::CoreDeactivateDataCall() - reason=[%ld]\r\n", reason);
     }
 
@@ -252,7 +253,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (m_cte.IsEPSRegistered() && uiCID == DEFAULT_PDN_CID)
+    if (reason != REASON_PDP_RESET && m_cte.IsEPSRegistered() && uiCID == DEFAULT_PDN_CID)
     {
         char* szModemResourceName = {'\0'};
         int muxControlChannel = -1;
@@ -314,8 +315,6 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
         rReqData.pContextData = (void*)pCID;
         rReqData.cbContextData = sizeof(UINT32);
         res = RRIL_RESULT_OK;
-
-        pChannelData->SetDataState(E_DATA_STATE_DEACTIVATING);
     }
     else
     {
@@ -828,6 +827,29 @@ Error:
     return res;
 }
 
+BOOL CTE_XMM7160::QueryIpAndDns(REQUEST_DATA& rReqData, UINT32 uiCID)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::QueryIpAndDns() - Enter\r\n");
+    BOOL bRet = FALSE;
+
+    if (uiCID != 0)
+    {
+        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+CGCONTRDP=%u\r", uiCID))
+        {
+            bRet = TRUE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::QueryIpAndDns() - Exit\r\n");
+    return bRet;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseQueryIpAndDns(RESPONSE_DATA& rRspData)
+{
+    return ParseReadContextParams(rRspData);
+}
+
 RIL_RESULT_CODE CTE_XMM7160::HandleSetupDefaultPDN(RIL_Token rilToken,
         CChannel_Data* pChannelData)
 {
@@ -921,7 +943,7 @@ RIL_RESULT_CODE CTE_XMM7160::HandleSetupDefaultPDN(RIL_Token rilToken,
         }
     }
 
-    pCmd = new CCommand(uiRilChannel, rilToken, ND_REQ_ID_NONE, reqData,
+    pCmd = new CCommand(uiRilChannel, rilToken, REQ_ID_NONE, reqData,
             &CTE::ParseSetupDefaultPDN, &CTE::PostSetupDefaultPDN);
 
     if (pCmd)

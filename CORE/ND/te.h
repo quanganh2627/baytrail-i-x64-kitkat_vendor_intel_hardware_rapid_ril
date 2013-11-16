@@ -82,13 +82,13 @@ public:
     BOOL IsRequestAllowedInRadioOff(int requestId);
     BOOL IsRequestAllowedInSimNotReady(int requestId);
     BOOL IsRequestAllowedWhenNotRegistered(int requestId);
-    BOOL IsInternalRequestsAllowedInRadioOff(UINT32 uiRilRequestId);
-    BOOL IsRequestAllowed(UINT32 uiRequestId, RIL_Token rilToken, UINT32 uiChannelId,
+    BOOL IsInternalRequestsAllowedInRadioOff(int requestId);
+    BOOL IsRequestAllowed(int requestId, RIL_Token rilToken, UINT32 uiChannelId,
             BOOL bIsInitCommand, int callId = 0);
     BOOL IsModemPowerOffRequest(int requestId, void* pData, size_t uiDataSize);
 
     // Calls FindIdenticalRequestsAndSendResponses on the given channel
-    static void CompleteIdenticalRequests(UINT32 uiChannelId, UINT32 uiReqID, UINT32 uiResultCode,
+    static void CompleteIdenticalRequests(UINT32 uiChannelId, int reqID, UINT32 uiResultCode,
             void* pResponse, size_t responseLen, int callId = -1);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
@@ -616,7 +616,7 @@ public:
     RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
 
     void StoreRegistrationInfo(void* pRegStruct, int regType);
-    RIL_RESULT_CODE ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseReadContextParams(RESPONSE_DATA& rRspData);
 
     RIL_RESULT_CODE ParseReadBearerTFTParams(RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseReadBearerQOSParams(RESPONSE_DATA& rRspData);
@@ -780,7 +780,7 @@ public:
     void ResetInternalStates();
 
     RIL_RESULT_CODE RequestSimPinRetryCount(RIL_Token rilToken, void* pData, size_t datalen,
-                                            UINT32 uiReqId = 0,
+                                            int reqId = 0,
                                             PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn = NULL);
     RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
 
@@ -788,7 +788,7 @@ public:
      * Create request for Extended Error Report for Location Update Reject
      * during CS registration (called internally)
      */
-    BOOL RequestQueryNEER(UINT32 uiChannel, RIL_Token rilToken, UINT32 uiReqId);
+    BOOL RequestQueryNEER(UINT32 uiChannel, RIL_Token rilToken, int reqId);
     RIL_RESULT_CODE ParseQueryNEER(RESPONSE_DATA& rRspData);
 
     /*
@@ -1108,6 +1108,9 @@ public:
     // Parser function for sim status query.
     RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);
 
+    UINT32 GetPinCacheMode() { return m_uiPinCacheMode; }
+    void SetPinCacheMode(UINT32 uiPinCacheMode) { m_uiPinCacheMode = uiPinCacheMode; }
+
 private:
     UINT32 m_uiModemType;
 
@@ -1271,6 +1274,8 @@ private:
 
     UINT32 m_nCellInfoListRate;
     BOOL m_bIsCellInfoTimerRunning;
+
+    UINT32 m_uiPinCacheMode;
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
 };

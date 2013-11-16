@@ -40,136 +40,8 @@
 
 const char   g_szGroupRequestTimeouts[]        = "RequestTimeouts";
 
-//  These strings are used for Request ID Parameters in repository.txt
-//  The strings must be in the same order as the Request IDs defined in request_id.h
-//
-const char* g_szRequestNames[] =
-{
-    "GetSimStatus",                         // ND_REQ_ID_GETSIMSTATUS 0
-    "EnterSimPin",                          // ND_REQ_ID_ENTERSIMPIN 1
-    "EnterSimPuk",                          // ND_REQ_ID_ENTERSIMPUK 2
-    "EnterSimPin2",                         // ND_REQ_ID_ENTERSIMPIN2 3
-    "EnterSimPuk2",                         // ND_REQ_ID_ENTERSIMPUK2 4
-    "ChangeSimPin",                         // ND_REQ_ID_CHANGESIMPIN 5
-    "ChangeSimPin2",                        // ND_REQ_ID_CHANGESIMPIN2 6
-    "EnterNetworkDepersonalization",        // ND_REQ_ID_ENTERNETWORKDEPERSONALIZATION 7
-    "GetCurrentCalls",                      // ND_REQ_ID_GETCURRENTCALLS 8
-    "Dial",                                 // ND_REQ_ID_DIAL 9
-    "GetIMSI",                              // ND_REQ_ID_GETIMSI 10
-    "Hangup",                               // ND_REQ_ID_HANGUP 11
-    "HangupWaitingOrBackground",            // ND_REQ_ID_HANGUPWAITINGORBACKGROUND 12
-    "HangupForegroundResumeBackground",     // ND_REQ_ID_HANGUPFOREGROUNDRESUMEBACKGROUND 13
-    "SwitchHoldingAndActive",               // ND_REQ_ID_SWITCHHOLDINGANDACTIVE 14
-    "Conference",                           // ND_REQ_ID_CONFERENCE 15
-    "UDUB",                                 // ND_REQ_ID_UDUB 16
-    "LastCallFailCause",                    // ND_REQ_ID_LASTCALLFAILCAUSE 17
-    "SignalStrength",                       // ND_REQ_ID_SIGNALSTRENGTH 18
-    "RegistrationState",                    // ND_REQ_ID_REGISTRATIONSTATE 19
-    "GprsRegistrationState",                // ND_REQ_ID_GPRSREGISTRATIONSTATE 20
-    "Operator",                             // ND_REQ_ID_OPERATOR 21
-    "RadioPower",                           // ND_REQ_ID_RADIOPOWER 22
-    "Dtmf",                                 // ND_REQ_ID_DTMF 23
-    "SendSms",                              // ND_REQ_ID_SENDSMS 24
-    "SendSmsExpectMore",                    // ND_REQ_ID_SENDSMSEXPECTMORE 25
-    "SetupDefaultPDP",                      // ND_REQ_ID_SETUPDEFAULTPDP 26
-    "SimIO",                                // ND_REQ_ID_SIMIO 27
-    "SendUSSD",                             // ND_REQ_ID_SENDUSSD 28
-    "CancelUSSD",                           // ND_REQ_ID_CANCELUSSD 29
-    "GetCLIR",                              // ND_REQ_ID_GETCLIR 30
-    "SetCLIR",                              // ND_REQ_ID_SETCLIR 31
-    "QueryCallForwardStatus",               // ND_REQ_ID_QUERYCALLFORWARDSTATUS 32
-    "SetCallForward",                       // ND_REQ_ID_SETCALLFORWARD 33
-    "QueryCallWaiting",                     // ND_REQ_ID_QUERYCALLWAITING 34
-    "SetCallWaiting",                       // ND_REQ_ID_SETCALLWAITING 35
-    "SmsAcknowledge",                       // ND_REQ_ID_SMSACKNOWLEDGE 36
-    "GetIMEI",                              // ND_REQ_ID_GETIMEI 37
-    "GetIMEISV",                            // ND_REQ_ID_GETIMEISV 38
-    "Answer",                               // ND_REQ_ID_ANSWER 39
-    "DeactivateDataCall",                   // ND_REQ_ID_DEACTIVATEDATACALL 40
-    "QueryFacilityLock",                    // ND_REQ_ID_QUERYFACILITYLOCK 41
-    "SetFacilityLock",                      // ND_REQ_ID_SETFACILITYLOCK 42
-    "ChangeBarringPassword",                // ND_REQ_ID_CHANGEBARRINGPASSWORD 43
-    "QueryNetworkSelectionMode",            // ND_REQ_ID_QUERYNETWORKSELECTIONMODE 44
-    "SetNetworkSelectionAutomatic",         // ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC 45
-    "SetNetworkSelectionManual",            // ND_REQ_ID_SETNETWORKSELECTIONMANUAL 46
-    "QueryAvailableNetworks",               // ND_REQ_ID_QUERYAVAILABLENETWORKS 47
-    "RequestDtmfStart",                     // ND_REQ_ID_REQUESTDTMFSTART 48
-    "RequestDtmfStop",                      // ND_REQ_ID_REQUESTDTMFSTOP 49
-    "BasebandVersion",                      // ND_REQ_ID_BASEBANDVERSION 50
-    "SeperateConnection",                   // ND_REQ_ID_SEPERATECONNECTION 51
-    "SetMute",                              // ND_REQ_ID_SETMUTE 52
-    "GetMute",                              // ND_REQ_ID_GETMUTE 53
-    "QueryCLIP",                            // ND_REQ_ID_QUERYCLIP 54
-    "LastPdpFailCause",                     // ND_REQ_ID_LASTPDPFAILCAUSE 55
-    "PdpContextList",                       // ND_REQ_ID_PDPCONTEXTLIST 56
-    "ResetRadio",                           // ND_REQ_ID_RESETRADIO 57
-    "OemHookRaw",                           // ND_REQ_ID_OEMHOOKRAW 58
-    "OemHookStrings",                       // ND_REQ_ID_OEMHOOKSTRINGS 59
-    "ScreenState",                          // ND_REQ_ID_SCREENSTATE 60
-    "SetSuppSvcNotification",               // ND_REQ_ID_SETSUPPSVCNOTIFICATION 61
-    "WriteSmsToSim",                        // ND_REQ_ID_WRITESMSTOSIM 62
-    "DeleteSmsOnSim",                       // ND_REQ_ID_DELETESMSONSIM 63
-    "SetBandMode",                          // ND_REQ_ID_SETBANDMODE 64
-    "QueryAvailableBandMode",               // ND_REQ_ID_QUERYAVAILABLEBANDMODE 65
-    "StkGetProfile",                        // ND_REQ_ID_STKGETPROFILE 66
-    "StkSetProfile",                        // ND_REQ_ID_STKSETPROFILE 67
-    "StkSendEnvelopeCommand",               // ND_REQ_ID_STKSENDENVELOPECOMMAND 68
-    "StkSendTerminalResponse",              // ND_REQ_ID_STKSENDTERMINALRESPONSE 69
-    "StkHandleCallSetupRequestedFromSim",   // ND_REQ_ID_STKHANDLECALLSETUPREQUESTEDFROMSIM 70
-    "ExplicitCallTransfer",                 // ND_REQ_ID_EXPLICITCALLTRANSFER 71
-    "SetPreferredNetworkType",              // ND_REQ_ID_SETPREFERREDNETWORKTYPE 72
-    "GetPreferredNetworkType",              // ND_REQ_ID_GETPREFERREDNETWORKTYPE 73
-    "GetNeighboringCellIDs",                // ND_REQ_ID_GETNEIGHBORINGCELLIDS 74
-    "SetLocationUpdates",                   // ND_REQ_ID_SETLOCATIONUPDATES 75
-    "CdmaSetSubscription",                  // ND_REQ_ID_CDMASETSUBSCRIPTION 76
-    "CdmaSetRoamingPreference",             // ND_REQ_ID_CDMASETROAMINGPREFERENCE 77
-    "CdmaQueryRoamingPreference",           // ND_REQ_ID_CDMAQUERYROAMINGPREFERENCE 78
-    "SetTtyMode",                           // ND_REQ_ID_SETTTYMODE 79
-    "QueryTtyMode",                         // ND_REQ_ID_QUERYTTYMODE 80
-    "CdmaSetPreferredVoicePrivacyMode",     // ND_REQ_ID_CDMASETPREFERREDVOICEPRIVACYMODE 81
-    "CdmaQueryPreferredVoicePrivacyMode",   // ND_REQ_ID_CDMAQUERYPREFERREDVOICEPRIVACYMODE 82
-    "CdmaFlash",                            // ND_REQ_ID_CDMAFLASH 83
-    "CdmaBurstDtmf",                        // ND_REQ_ID_CDMABURSTDTMF 84
-    "CdmaValidateKey",                      // ND_REQ_ID_CDMAVALIDATEAKEY 85
-    "CdmaSendSms",                          // ND_REQ_ID_CDMASENDSMS 86
-    "CdmaSmsAcknowledge",                   // ND_REQ_ID_CDMASMSACKNOWLEDGE 87
-    "GetBroadcastSmsConfig",                // ND_REQ_ID_GETBROADCASTSMSCONFIG 88
-    "SetBroadcastSmsConfig",                // ND_REQ_ID_SETBROADCASTSMSCONFIG 89
-    "SmsBroadcastActivation",               // ND_REQ_ID_SMSBROADCASTACTIVATION 90
-    "CdmaGetBroadcastSmsConfig",            // ND_REQ_ID_CDMAGETBROADCASTSMSCONFIG 91
-    "CdmaSetBroadcastSmsConfig",            // ND_REQ_ID_CDMASETBROADCASTSMSCONFIG 92
-    "CdmaSmsBroadcastActivation",           // ND_REQ_ID_CDMASMSBROADCASTACTIVATION 93
-    "CdmaSubscription",                     // ND_REQ_ID_CDMASUBSCRIPTION 94
-    "CdmaWriteSmsToRuim",                   // ND_REQ_ID_CDMAWRITESMSTORUIM 95
-    "CdmaDeleteSmsOnRuim",                  // ND_REQ_ID_CDMADELETESMSONRUIM 96
-    "DeviceIdentity",                       // ND_REQ_ID_DEVICEIDENTITY 97
-    "ExitEmergencyCallBackMode",            // ND_REQ_ID_EXITEMERGENCYCALLBACKMODE 98
-    "GetSmscAddress",                       // ND_REQ_ID_GETSMSCADDRESS 99
-    "SetSmscAddress",                       // ND_REQ_ID_SETSMSCADDRESS 100
-    "ReportSmsMemoryStatus",                // ND_REQ_ID_REPORTSMSMEMORYSTATUS 101
-    "ReportStkServiceIsRunning",            // ND_REQ_ID_REPORTSTKSERVICEISRUNNING 102
-    "GetIPAddress",                         // ND_REQ_ID_GETIPADDRESS 103
-    "GetDNS",                               // ND_REQ_ID_GETDNS 104
-    "QueryPin2",                            // ND_REQ_ID_QUERYPIN2 105
-    "PdpContextListUnsol",                  // ND_REQ_ID_PDPCONTEXTLIST_UNSOL 106
-    "SimTransmitBasic",                     // ND_REQ_ID_SIMTRANSMITBASIC 107
-    "SimOpenChannel",                       // ND_REQ_ID_SIMOPENCHANNEL 108
-    "SimCloseChannel",                      // ND_REQ_ID_SIMCLOSECHANNEL 109
-    "SimTransmitChannel",                   // ND_REQ_ID_SIMTRANSMITCHANNEL 110
-    "QuerySimSmsStoreStatus",               // ND_REQ_ID_QUERY_SIM_SMS_STORE_STATUS 111
-    "VoiceRadioTech",                       // ND_REQ_ID_VOICERADIOTECH 112
-    "SilentPinEntry",                       // ND_REQ_ID_SILENT_PIN_ENTRY 113
-    "AckIncomingSmsWithPdu",                // ND_REQ_ID_ACKINCOMINGSMSWITHPDU 114
-    "GetCellInfoList",                      // ND_REQ_ID_GETCELLINFOLIST 115
-    "SetCellInfoListRate",                  // ND_REQ_ID_SETCELLINFOLISTRATE 116
-#if defined(M2_VT_FEATURE_ENABLED)
-    "HangupVT",                             // ND_REQ_ID_HANGUPVT 117
-    "DialVT",                               // ND_REQ_ID_DIALVT 118
-#endif // M2_VT_FEATURE_ENABLED
-#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    "GetSimSmsStorage",                    // ND_REQ_GET_SIM_SMS_STORAGE 117 or 119
-#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
-};
+// See request_info.h for the request names used in setting request
+// parameters (ie. timeouts, retries) in repository.txt
 
 /////////////////////////////////////////////////
 
@@ -187,6 +59,7 @@ const char   g_szGroupRILSettings[]            = "RILSettings";
 const char   g_szTimeoutThresholdForRetry[]    = "TimeoutThresholdForRetry";
 const char   g_szOpenPortRetries[]             = "OpenPortRetries";
 const char   g_szOpenPortInterval[]            = "OpenPortInterval";
+const char   g_szPinCacheMode[]                = "PinCacheMode";
 
 /////////////////////////////////////////////////
 

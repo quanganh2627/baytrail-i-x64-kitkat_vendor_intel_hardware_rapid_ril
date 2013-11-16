@@ -85,15 +85,7 @@ enum ePCache_Code
 
 ePCache_Code PCache_Store_PIN(const char* szUICC, const char* szPIN);
 ePCache_Code PCache_Get_PIN(const char* szUICC, char* szPIN);
-ePCache_Code PCache_Clear();
-
-ePCache_Code PCache_SetUseCachedPIN(bool bFlag);
-bool PCache_GetUseCachedPIN();
-
-const char szRIL_usecachedpin[] = "ril.usecachedpin";
-const char szRIL_cachedpin[] = "ril.cachedpin";
-const char szRIL_cacheduicc[] = "ril.cacheduicc";
-
+void PCache_Clear();
 
 #endif // RRIL_RESET_H
 

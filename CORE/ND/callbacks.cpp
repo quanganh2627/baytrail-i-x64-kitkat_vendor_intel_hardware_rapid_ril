@@ -74,8 +74,8 @@ void triggerHangup(UINT32 uiCallId)
         return;
     }
 
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_HANGUP],
-            NULL, REQ_ID_NONE, rReqData);
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_HANGUP].uiChannel,
+                                    NULL, REQ_ID_NONE, rReqData);
     if (pCmd)
     {
         if (!CCommand::AddCmdToQueue(pCmd, TRUE))
@@ -93,8 +93,9 @@ void triggerHangup(UINT32 uiCallId)
 
 void triggerSignalStrength(void* param)
 {
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SIGNALSTRENGTH], NULL, REQ_ID_NONE,
-            "AT+CSQ\r", &CTE::ParseUnsolicitedSignalStrength);
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIGNAL_STRENGTH].uiChannel,
+                                    NULL, REQ_ID_NONE, "AT+CSQ\r",
+                                    &CTE::ParseUnsolicitedSignalStrength);
 
     if (pCmd)
     {
@@ -113,8 +114,8 @@ void triggerSignalStrength(void* param)
 
 void triggerSMSAck(void* param)
 {
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SMSACKNOWLEDGE],
-            NULL, REQ_ID_NONE, "AT+CNMA=1\r");
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SMS_ACKNOWLEDGE].uiChannel,
+                                    NULL, REQ_ID_NONE, "AT+CNMA=1\r");
 
     if (pCmd)
     {
@@ -173,8 +174,8 @@ void triggerDeactivateDataCall(void* param)
     rReqData.pContextData = pCID;
     rReqData.cbContextData = sizeof(UINT32);
 
-    pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_DEACTIVATEDATACALL],
-                            NULL, ND_REQ_ID_DEACTIVATEDATACALL, rReqData,
+    pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DEACTIVATE_DATA_CALL].uiChannel,
+                            NULL, RIL_REQUEST_DEACTIVATE_DATA_CALL, rReqData,
                             &CTE::ParseDeactivateDataCall,
                             &CTE::PostDeactivateDataCallCmdHandler);
 
@@ -256,8 +257,8 @@ void triggerQueryDefaultPDNContextParams(void* param)
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGCONTRDP=%u\r",
             uiCID))
     {
-        CCommand* pCmd = new CCommand(pChannelData->GetRilChannel(), NULL, ND_REQ_ID_NONE,
-                rReqData, &CTE::ParseReadDefaultPDNContextParams,
+        CCommand* pCmd = new CCommand(pChannelData->GetRilChannel(), NULL, REQ_ID_NONE,
+                rReqData, &CTE::ParseReadContextParams,
                 &CTE::PostReadDefaultPDNContextParams);
         if (pCmd)
         {
@@ -297,7 +298,7 @@ void triggerQueryBearerParams(void* param)
     if (PrintStringNullTerminate(rReqDataTFT.szCmd1, sizeof(rReqDataTFT.szCmd1), "AT+CGTFTRDP=%u\r",
             uiCID))
     {
-        CCommand* pCmdTFT = new CCommand(pChannelData->GetRilChannel(), NULL, ND_REQ_ID_NONE,
+        CCommand* pCmdTFT = new CCommand(pChannelData->GetRilChannel(), NULL, REQ_ID_NONE,
                 rReqDataTFT, &CTE::ParseReadBearerTFTParams);
         if (pCmdTFT)
         {
@@ -313,7 +314,7 @@ void triggerQueryBearerParams(void* param)
     if (PrintStringNullTerminate(rReqDataQOS.szCmd1, sizeof(rReqDataQOS.szCmd1), "AT+CGEQOS=%u\r",
             uiCID))
     {
-        CCommand* pCmdQOS = new CCommand(pChannelData->GetRilChannel(), NULL, ND_REQ_ID_NONE,
+        CCommand* pCmdQOS = new CCommand(pChannelData->GetRilChannel(), NULL, REQ_ID_NONE,
                 rReqDataQOS, &CTE::ParseReadBearerQOSParams);
         if (pCmdQOS)
         {
@@ -409,8 +410,8 @@ void triggerCellInfoList(void* param)
     {
         // The rate setting has not changed while waiting for time out
         // read the cell information and report to framework
-        CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETCELLINFOLIST],
-                NULL, ND_REQ_ID_GETCELLINFOLIST, "AT+XCELLINFO?\r",
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_CELL_INFO_LIST].uiChannel,
+                NULL, RIL_REQUEST_GET_CELL_INFO_LIST, "AT+XCELLINFO?\r",
                 &CTE::ParseUnsolCellInfoListRate, &CTE::PostUnsolCellInfoListRate);
 
         if (pCmd)

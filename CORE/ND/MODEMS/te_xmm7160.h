@@ -81,6 +81,9 @@ public:
                                                     UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseIMSRegister(RESPONSE_DATA & rRspData);
 
+    virtual BOOL QueryIpAndDns(REQUEST_DATA& rReqData, UINT32 uiCID);
+    virtual RIL_RESULT_CODE ParseQueryIpAndDns(RESPONSE_DATA& rRspData);
+
     /*
      * AT commands to configure the channel for default PDN and also to put the
      * channel in data mode is added to the command queue.

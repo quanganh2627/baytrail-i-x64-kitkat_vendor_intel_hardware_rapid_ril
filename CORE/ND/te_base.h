@@ -787,7 +787,7 @@ public:
     virtual BOOL HandleSilentPINEntry(void* pRilToken, void* pContextData, int dataSize);
     virtual RIL_RESULT_CODE ParseSilentPinEntry(RESPONSE_DATA& rRspData);
 
-    virtual RIL_RESULT_CODE ParseReadDefaultPDNContextParams(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseReadContextParams(RESPONSE_DATA& rRspData);
 
     virtual RIL_RESULT_CODE ParseReadBearerTFTParams(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseReadBearerQOSParams(RESPONSE_DATA& rRspData);

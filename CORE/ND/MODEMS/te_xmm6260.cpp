@@ -2088,7 +2088,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
 
     if ((RIL_VERSION >= 4) && (uiDataSize >= (2 * sizeof(char *))))
     {
-        reason == GetDataDeactivateReason(((char**)pData)[1]);
+        reason = GetDataDeactivateReason(((char**)pData)[1]);
         RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() - reason=[%ld]\r\n", reason);
     }
 
@@ -2477,7 +2477,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_POWEROFF_MODEM");
             if (m_cte.IsPlatformShutDownRequested())
             {
-                uiRilChannel = g_arChannelMapping[ND_REQ_ID_RADIOPOWER];
+                uiRilChannel = g_pReqInfo[RIL_REQUEST_RADIO_POWER].uiChannel;
                 rReqData.pContextData = (void*)uiCommand;
                 res = CreateModemPowerOffReq(rReqData);
             }
@@ -3643,7 +3643,6 @@ RIL_RESULT_CODE CTE_XMM6260::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData
     //
     //  A <type> of 0 or 1 = GSM.  A <type> of 2,3 = UMTS.
 
-
     switch(uiMode)
     {
         case 0: // GSM  get (LAC/CI , RxLev)
@@ -3827,7 +3826,6 @@ RIL_RESULT_CODE CTE_XMM6260::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData
                         " comma count = 6, drop to case 3\r\n");
             }
         }
-
 
         case 3: // UMTS  get (scrambling_code , rscp)
         {
@@ -5178,9 +5176,9 @@ BOOL CTE_XMM6260::HandleSilentPINEntry(void* pRilToken, void* /*pContextData*/, 
             goto Error;
         }
 
-        pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SILENT_PIN_ENTRY], pRilToken,
-                            ND_REQ_ID_SILENT_PIN_ENTRY, szCmd, &CTE::ParseSilentPinEntry,
-                            &CTE::PostSilentPinRetryCmdHandler);
+        pCmd = new CCommand(g_ReqInternal[E_REQ_IDX_SILENT_PIN_ENTRY].reqInfo.uiChannel,
+                                pRilToken, g_ReqInternal[E_REQ_IDX_SILENT_PIN_ENTRY].reqId, szCmd,
+                                &CTE::ParseSilentPinEntry, &CTE::PostSilentPinRetryCmdHandler);
         if (pCmd)
         {
             if (!CCommand::AddCmdToQueue(pCmd, TRUE))
@@ -5314,7 +5312,7 @@ void CTE_XMM6260::PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
     pChannelData->SetDataState(E_DATA_STATE_ACTIVATING);
 
     if (!CreatePdpContextActivateReq(rData.uiChannel, rData.pRilToken,
-                                    rData.uiRequestId, rData.pContextData,
+                                    rData.requestId, rData.pContextData,
                                     rData.uiContextDataSize,
                                     &CTE::ParsePdpContextActivate,
                                     &CTE::PostPdpContextActivateCmdHandler))
@@ -5382,7 +5380,7 @@ void CTE_XMM6260::PostPdpContextActivateCmdHandler(POST_CMD_HANDLER_DATA& rData)
 
     pChannelData->SetDataState(E_DATA_STATE_ACTIVE);
     if (!CreateQueryIpAndDnsReq(rData.uiChannel, rData.pRilToken,
-                                    rData.uiRequestId, rData.pContextData,
+                                    rData.requestId, rData.pContextData,
                                     rData.uiContextDataSize,
                                     &CTE::ParseQueryIpAndDns,
                                     &CTE::PostQueryIpAndDnsCmdHandler))
@@ -5448,7 +5446,7 @@ void CTE_XMM6260::PostQueryIpAndDnsCmdHandler(POST_CMD_HANDLER_DATA& rData)
     }
 
     if (!CreateEnterDataStateReq(rData.uiChannel, rData.pRilToken,
-                                    rData.uiRequestId, rData.pContextData,
+                                    rData.requestId, rData.pContextData,
                                     rData.uiContextDataSize,
                                     &CTE::ParseEnterDataState,
                                     &CTE::PostEnterDataStateCmdHandler))
@@ -5576,7 +5574,7 @@ Error:
 
 BOOL CTE_XMM6260::CreatePdpContextActivateReq(UINT32 uiChannel,
                                             RIL_Token rilToken,
-                                            UINT32 uiReqId, void* pData,
+                                            int reqId, void* pData,
                                             UINT32 uiDataSize,
                                             PFN_TE_PARSE pParseFcn,
                                             PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn)
@@ -5596,7 +5594,7 @@ BOOL CTE_XMM6260::CreatePdpContextActivateReq(UINT32 uiChannel,
     }
     else
     {
-        CCommand* pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
+        CCommand* pCmd = new CCommand(uiChannel, rilToken, reqId, reqData,
                                                 pParseFcn, pPostCmdHandlerFcn);
         if (pCmd)
         {
@@ -5627,7 +5625,7 @@ Error:
 }
 
 BOOL CTE_XMM6260::CreateQueryIpAndDnsReq(UINT32 uiChannel, RIL_Token rilToken,
-                                            UINT32 uiReqId, void* pData,
+                                            int reqId, void* pData,
                                             UINT32 uiDataSize,
                                             PFN_TE_PARSE pParseFcn,
                                             PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn)
@@ -5655,7 +5653,7 @@ BOOL CTE_XMM6260::CreateQueryIpAndDnsReq(UINT32 uiChannel, RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
+        CCommand* pCmd = new CCommand(uiChannel, rilToken, reqId, reqData,
                                                 pParseFcn, pPostCmdHandlerFcn);
         if (pCmd)
         {
@@ -5686,7 +5684,7 @@ Error:
 }
 
 BOOL CTE_XMM6260::CreateEnterDataStateReq(UINT32 uiChannel, RIL_Token rilToken,
-                                            UINT32 uiReqId, void* pData,
+                                            int reqId, void* pData,
                                             UINT32 uiDataSize,
                                             PFN_TE_PARSE pParseFcn,
                                             PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn)
@@ -5714,7 +5712,7 @@ BOOL CTE_XMM6260::CreateEnterDataStateReq(UINT32 uiChannel, RIL_Token rilToken,
     }
     else
     {
-        CCommand* pCmd = new CCommand(uiChannel, rilToken, uiReqId, reqData,
+        CCommand* pCmd = new CCommand(uiChannel, rilToken, reqId, reqData,
                                                 pParseFcn, pPostCmdHandlerFcn);
         if (pCmd)
         {
@@ -6115,8 +6113,8 @@ RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)
 
     res = RRIL_RESULT_OK;
 
-    pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_SCREENSTATE],
-            NULL, ND_REQ_ID_SCREENSTATE, reqData, &CTE::ParseScreenState);
+    pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SCREEN_STATE].uiChannel,
+                            NULL, RIL_REQUEST_SCREEN_STATE, reqData, &CTE::ParseScreenState);
 
     if (pCmd)
     {
@@ -6239,8 +6237,8 @@ void CTE_XMM6260::HandleInternalDtmfStopReq()
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::HandleInternalDtmfStopReq() - Enter\r\n");
 
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_REQUESTDTMFSTOP],
-            NULL, ND_REQ_ID_REQUESTDTMFSTOP, "AT+XVTS\r");
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DTMF_STOP].uiChannel,
+                                    NULL, RIL_REQUEST_DTMF_STOP, "AT+XVTS\r");
 
     if (pCmd)
     {
@@ -6286,8 +6284,9 @@ void CTE_XMM6260::QuerySimState()
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::QuerySimState() - Enter\r\n");
 
-    CCommand* pCmd = new CCommand(g_arChannelMapping[ND_REQ_ID_GETSIMSTATUS],
-            NULL, ND_REQ_ID_GETSIMSTATUS, "AT+XSIMSTATE?\r", &CTE::ParseSimStateQuery);
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_SIM_STATUS].uiChannel,
+                                    NULL, RIL_REQUEST_GET_SIM_STATUS, "AT+XSIMSTATE?\r",
+                                    &CTE::ParseSimStateQuery);
 
     if (NULL != pCmd)
     {
@@ -6435,6 +6434,7 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
         case 0: // SIM not present
         case 9: // SIM Removed
             RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM REMOVED/NOT PRESENT\r\n");
+            PCache_Clear();
             m_cte.SetSIMState(RRIL_SIM_STATE_ABSENT);
             break;
         case 14: // SIM powered off by modem
@@ -6467,6 +6467,7 @@ BOOL CTE_XMM6260::ParseXLOCK(const char*& rszPointer)
 
     BOOL bRet = FALSE;
     int i = 0;
+    BOOL bIsDataValid = FALSE;
 
     //  The number of locks returned by +XLOCK URC.
     const int nMAX_LOCK_INFO = 5;
@@ -6488,27 +6489,30 @@ BOOL CTE_XMM6260::ParseXLOCK(const char*& rszPointer)
         memset(lock_info[i].fac, '\0', sizeof(lock_info[i].fac));
 
         // Extract "<fac>"
-        if (!ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac),
+        if (ExtractQuotedString(rszPointer, lock_info[i].fac, sizeof(lock_info[i].fac),
                 rszPointer))
         {
+            // Extract ",<Lock state>"
+            if (!SkipString(rszPointer, ",", rszPointer) ||
+                !ExtractUInt32(rszPointer, lock_info[i].lock_state, rszPointer))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseXLOCK() - Could not parse <lock state>.\r\n");
+                goto Error;
+            }
+
+            // Extract ",<Lock result>"
+            if (!SkipString(rszPointer, ",", rszPointer) ||
+                !ExtractUInt32(rszPointer, lock_info[i].lock_result, rszPointer))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseXLOCK() - Could not parse <lock result>.\r\n");
+                goto Error;
+            }
+
+            bIsDataValid = TRUE;
+        }
+        else
+        {
             RIL_LOG_INFO("CTE_XMM6260::ParseXLOCK() - Unable to find <fac>!\r\n");
-            goto Complete;
-        }
-
-        // Extract ",<Lock state>"
-        if (!SkipString(rszPointer, ",", rszPointer) ||
-            !ExtractUInt32(rszPointer, lock_info[i].lock_state, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseXLOCK() - Could not parse <lock state>.\r\n");
-            goto Error;
-        }
-
-        // Extract ",<Lock result>"
-        if (!SkipString(rszPointer, ",", rszPointer) ||
-            !ExtractUInt32(rszPointer, lock_info[i].lock_result, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseXLOCK() - Could not parse <lock result>.\r\n");
-            goto Error;
         }
 
         SkipString(rszPointer, ",", rszPointer);
@@ -6516,23 +6520,26 @@ BOOL CTE_XMM6260::ParseXLOCK(const char*& rszPointer)
         i++;
     }
 
-Complete:
-    i = 0;
-    // Change the number to the number of facility locks supported via XLOCK URC.
-    while (i < nMAX_LOCK_INFO)
+    if (bIsDataValid)
     {
-        RIL_LOG_INFO("lock:%s state:%d result:%d", lock_info[i].fac, lock_info[i].lock_state,
-                lock_info[i].lock_result);
+        i = 0;
 
-        /// @TODO: Need to revisit the lock state mapping.
-        if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
-                (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
+        // notify Android if SIM lock state has changed
+        while (i < nMAX_LOCK_INFO)
         {
-            m_cte.SetSIMState(RRIL_SIM_STATE_NOT_READY);
-            RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
-            break;
+            RIL_LOG_INFO("lock:%s state:%d result:%d", lock_info[i].fac, lock_info[i].lock_state,
+                    lock_info[i].lock_result);
+
+            /// @TODO: Need to revisit the lock state mapping.
+            if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
+                    (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
+            {
+                m_cte.SetSIMState(RRIL_SIM_STATE_NOT_READY);
+                RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+                break;
+            }
+            i++;
         }
-        i++;
     }
 
     bRet = TRUE;

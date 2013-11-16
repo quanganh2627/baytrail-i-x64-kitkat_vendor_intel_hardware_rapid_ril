@@ -56,37 +56,36 @@ UINT32 GetAbortTimeout(UINT32 reqID)
 
     switch(reqID)
     {
-        case ND_REQ_ID_QUERYNETWORKSELECTIONMODE:   // Test COPS?
-        case ND_REQ_ID_QUERYAVAILABLENETWORKS:      // Test COPS=?
+        case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:  // Read COPS?
+        case RIL_REQUEST_QUERY_AVAILABLE_NETWORKS:      // Test COPS=?
             timeout = 22000;
             break;
 
-        case ND_REQ_ID_OPERATOR:                    // Set XCOPS=
-        case ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC:// Set COPS=
-        case ND_REQ_ID_SETNETWORKSELECTIONMANUAL:   // Set COPS=
+        case RIL_REQUEST_OPERATOR:                      // Read XCOPS
+        case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC:   // Set COPS=
+        case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:  // Set COPS=
             timeout = 42000;
             break;
 
-        case ND_REQ_ID_QUERYCALLFORWARDSTATUS:      // Set CCFC=
-        case ND_REQ_ID_SETCALLFORWARD:              // Set CCFC=
+        case RIL_REQUEST_QUERY_CALL_FORWARD_STATUS: // Read CCFC
+        case RIL_REQUEST_SET_CALL_FORWARD:          // Set CCFC=
             timeout = 37000;
             break;
 
-        case ND_REQ_ID_QUERYCLIP:                   // Read CLIP
+        case RIL_REQUEST_QUERY_CLIP:                // Read CLIP
             timeout = 37000;
             break;
 
-        case ND_REQ_ID_GETCLIR:                     // Read CLIR
-        case ND_REQ_ID_SETCLIR:                     // Read CLIR
+        case RIL_REQUEST_GET_CLIR:                  // Read CLIR
+        case RIL_REQUEST_SET_CLIR:                  // Set CLIR
             timeout = 37000;
             break;
 
-        case ND_REQ_ID_PDPCONTEXTLIST:              // Read CGACT
+        case RIL_REQUEST_DATA_CALL_LIST:            // Read CGACT
             timeout = 2000;
             break;
 
-        case ND_REQ_ID_DEACTIVATEDATACALL:          // Set CGACT
-        case ND_REQ_ID_PDPCONTEXTLIST_UNSOL:        // Set CGACT
+        case RIL_REQUEST_DEACTIVATE_DATA_CALL:      // Set CGACT
             timeout = 2000;
             break;
 
@@ -107,19 +106,18 @@ BOOL IsReqIDAbortable(UINT32 reqID)
 
     switch(reqID)
     {
-        case ND_REQ_ID_QUERYNETWORKSELECTIONMODE:   // Test COPS?
-        case ND_REQ_ID_QUERYAVAILABLENETWORKS:      // Test COPS=?
-        case ND_REQ_ID_OPERATOR:                    // Set XCOPS=
-        case ND_REQ_ID_SETNETWORKSELECTIONAUTOMATIC:// Set COPS=
-        case ND_REQ_ID_SETNETWORKSELECTIONMANUAL:   // Set COPS=
-        case ND_REQ_ID_QUERYCALLFORWARDSTATUS:      // Set CCFC=
-        case ND_REQ_ID_SETCALLFORWARD:              // Set CCFC=
-        case ND_REQ_ID_QUERYCLIP:                   // Read CLIP
-        case ND_REQ_ID_GETCLIR:                     // Read CLIR
-        case ND_REQ_ID_SETCLIR:                     // Read CLIR
-        case ND_REQ_ID_PDPCONTEXTLIST:              // Read CGACT
-        case ND_REQ_ID_DEACTIVATEDATACALL:          // Set CGACT
-        case ND_REQ_ID_PDPCONTEXTLIST_UNSOL:        // Set CGACT
+        case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:  // Read COPS?
+        case RIL_REQUEST_QUERY_AVAILABLE_NETWORKS:      // Test COPS=?
+        case RIL_REQUEST_OPERATOR:                      // Read XCOPS
+        case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC:// Set COPS=
+        case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:  // Set COPS=
+        case RIL_REQUEST_QUERY_CALL_FORWARD_STATUS:     // Read CCFC
+        case RIL_REQUEST_SET_CALL_FORWARD:              // Set CCFC=
+        case RIL_REQUEST_QUERY_CLIP:                    // Read CLIP
+        case RIL_REQUEST_GET_CLIR:                      // Read CLIR
+        case RIL_REQUEST_SET_CLIR:                      // Set CLIR
+        case RIL_REQUEST_DATA_CALL_LIST:                // Read CGACT
+        case RIL_REQUEST_DEACTIVATE_DATA_CALL:          // Set CGACT
             bIsAbortable = TRUE;
             break;
 
@@ -155,7 +153,7 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
     }
 
     RIL_LOG_VERBOSE("CChannel::SendCommand() - DEBUG: chnl=[%d] Executing command with ID="
-            "[0x%08X,%d]\r\n", m_uiRilChannel, rpCmd->GetRequestID(), (int)rpCmd->GetRequestID());
+            "[0x%x,%d]\r\n", m_uiRilChannel, rpCmd->GetRequestID(), rpCmd->GetRequestID());
 
     if (NULL == rpCmd->GetATCmd1())
     {
@@ -336,7 +334,7 @@ Error:
         data.pRilToken = rpCmd->GetToken();
         data.pContextData = rpCmd->GetContextData();
         data.uiContextDataSize = rpCmd->GetContextDataSize();
-        data.uiRequestId = rpCmd->GetRequestID();
+        data.requestId = rpCmd->GetRequestID();
         data.uiResultCode = RRIL_RESULT_OK;
 
         if (NULL != pResponse)
@@ -359,7 +357,7 @@ Error:
         data.pRilToken = rpCmd->GetToken();
         data.pContextData = rpCmd->GetContextData();
         data.uiContextDataSize = rpCmd->GetContextDataSize();
-        data.uiRequestId = rpCmd->GetRequestID();
+        data.requestId = rpCmd->GetRequestID();
         data.uiResultCode = RRIL_RESULT_ERROR;
 
         if (NULL != pResponse)
@@ -407,7 +405,7 @@ RIL_RESULT_CODE CChannel::GetResponse(CCommand*& rpCmd, CResponse*& rpResponse)
 #if defined(SIMULATE_MODEM_RESET)
     //  This is for testing purposes only. (radio reboot)
     static int nCount = 0;
-    if (ND_REQ_ID_SIGNALSTRENGTH == rpCmd->GetRequestID())
+    if (RIL_REQUEST_SIGNAL_STRENGTH == rpCmd->GetRequestID())
     {
         nCount++;
         RIL_LOG_INFO("COUNT = %d\r\n", nCount);
@@ -537,34 +535,34 @@ Error:
 
 //  Helper function to determine whether to send phase 2 of a command
 BOOL CChannel::SendCommandPhase2(const UINT32 uiResCode,
-                                    const UINT32 uiReqID) const
+                                    const int reqID) const
 {
     BOOL bSendPhase2 = TRUE;
 
 #if defined(M2_VT_FEATURE_ENABLED)
     //  VT_HANGUP request (since we don't care about a possible error)
-    if (ND_REQ_ID_HANGUPVT == uiReqID)
+    if (RIL_REQUEST_HANGUP_VT == reqID)
         return TRUE;
 #endif // M2_VT_FEATURE_ENABLED
 
     //  Is our request ID in the special list?
-    switch (uiReqID)
+    switch (reqID)
     {
-        case ND_REQ_ID_SIMOPENCHANNEL:
-        case ND_REQ_ID_SIMCLOSECHANNEL:
-        case ND_REQ_ID_SIMTRANSMITCHANNEL:
-        case ND_REQ_ID_SENDUSSD:
-        case ND_REQ_ID_GETCLIR:
-        case ND_REQ_ID_SETCLIR:
-        case ND_REQ_ID_QUERYCALLFORWARDSTATUS:
-        case ND_REQ_ID_SETCALLFORWARD:
-        case ND_REQ_ID_QUERYCALLWAITING:
-        case ND_REQ_ID_SETCALLWAITING:
-        case ND_REQ_ID_QUERYFACILITYLOCK:
-        case ND_REQ_ID_SETFACILITYLOCK:
-        case ND_REQ_ID_CHANGEBARRINGPASSWORD:
-        case ND_REQ_ID_QUERYCLIP:
-        case ND_REQ_ID_SETUPDEFAULTPDP:
+        case RIL_REQUEST_SIM_OPEN_CHANNEL:
+        case RIL_REQUEST_SIM_CLOSE_CHANNEL:
+        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:
+        case RIL_REQUEST_SEND_USSD:
+        case RIL_REQUEST_GET_CLIR:
+        case RIL_REQUEST_SET_CLIR:
+        case RIL_REQUEST_QUERY_CALL_FORWARD_STATUS:
+        case RIL_REQUEST_SET_CALL_FORWARD:
+        case RIL_REQUEST_QUERY_CALL_WAITING:
+        case RIL_REQUEST_SET_CALL_WAITING:
+        case RIL_REQUEST_QUERY_FACILITY_LOCK:
+        case RIL_REQUEST_SET_FACILITY_LOCK:
+        case RIL_REQUEST_CHANGE_BARRING_PASSWORD:
+        case RIL_REQUEST_QUERY_CLIP:
+        case RIL_REQUEST_SETUP_DATA_CALL:
             if (RIL_E_SUCCESS == uiResCode)
                 bSendPhase2 = FALSE;
             else
@@ -775,7 +773,7 @@ Error:
     return bResult;
 }
 
-BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
+BOOL CChannel::FindIdenticalRequestsAndSendResponses(int reqID,
                                                         UINT32 uiResultCode,
                                                         void* pResponse,
                                                         size_t responseLen,
@@ -791,7 +789,7 @@ BOOL CChannel::FindIdenticalRequestsAndSendResponses(UINT32 uiReqID,
 
     for (int i = 0; i < numOfCommands; i++)
     {
-        if (pCmdArray[i]->GetRequestID() == uiReqID
+        if (pCmdArray[i]->GetRequestID() == reqID
                 && pCmdArray[i]->GetCallId() == callId)
         {
             //  Dequeue the object, send the response and then free the CCommand.

@@ -15,8 +15,6 @@
 
 #pragma once
 
-#include "request_id.h"
-
 //  List channels here (one per COM port)
 #define RIL_CHANNEL_MAX 11
 
@@ -74,9 +72,4 @@ extern UINT32 g_uiRilChannelCurMax;
 // TODO - currently allow up to one reserved channel (e.g., for direct audio use).
 // Set this to -1 or a number greater than RIL_CHANNEL_MAX if there is no reserved channel
 #define RIL_CHANNEL_RESERVED 555
-
-
-//  Channel mapping array
-extern UINT32* g_arChannelMapping;
-extern UINT32 g_arChannelMappingDefault[REQ_ID_TOTAL];
 
