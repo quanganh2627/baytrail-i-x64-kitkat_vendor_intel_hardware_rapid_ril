@@ -10,8 +10,10 @@ LOCAL_SRC_FILES:= \
     util.cpp \
     repository.cpp
 
+LOCAL_IMPORT_C_INCLUDE_DIRS_FROM_SHARED_LIBRARIES += libtcs
+
 LOCAL_SHARED_LIBRARIES := \
-    libutils libcutils libmmgrcli
+    libutils libcutils libmmgrcli libtcs
 
 # Activating this macro enables the optional Video Telephony feature
 ifeq ($(strip $(M2_VT_FEATURE_ENABLED)),true)
