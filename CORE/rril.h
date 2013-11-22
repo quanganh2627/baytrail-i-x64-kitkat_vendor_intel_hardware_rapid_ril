@@ -14,7 +14,7 @@
 
 #include <telephony/ril.h>
 #include <telephony/librilutils.h>
-
+#include <cutils/properties.h>
 ///////////////////////////////////////////////////////////////////////////////
 // Typedefs
 //
