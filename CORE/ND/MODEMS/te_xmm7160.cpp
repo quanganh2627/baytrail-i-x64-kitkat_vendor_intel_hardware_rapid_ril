@@ -817,7 +817,7 @@ BOOL CTE_XMM7160::QueryIpAndDns(REQUEST_DATA& rReqData, UINT32 uiCID)
     if (uiCID != 0)
     {
         if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                "AT+CGCONTRDP=%u\r", uiCID))
+                "AT+CGCONTRDP=%u;+CGPADDR=%u;+XDNS?\r", uiCID, uiCID))
         {
             bRet = TRUE;
         }
@@ -829,7 +829,12 @@ BOOL CTE_XMM7160::QueryIpAndDns(REQUEST_DATA& rReqData, UINT32 uiCID)
 
 RIL_RESULT_CODE CTE_XMM7160::ParseQueryIpAndDns(RESPONSE_DATA& rRspData)
 {
-    return ParseReadContextParams(rRspData);
+    if ( RRIL_RESULT_OK != ParseReadContextParams(rRspData))
+    {
+        RIL_LOG_INFO("CTE_XMM7160::ParseQueryIpAndDns() - ParseReadContextParams failed\r\n");
+    }
+
+    return CTE_XMM6260::ParseQueryIpAndDns(rRspData);
 }
 
 RIL_RESULT_CODE CTE_XMM7160::HandleSetupDefaultPDN(RIL_Token rilToken,
