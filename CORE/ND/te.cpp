@@ -9929,7 +9929,8 @@ void CTE::CompleteGetSimStatusRequest(RIL_Token hRilToken)
         cardStatus.card_state = RIL_CARDSTATE_PRESENT;
         cardStatus.num_applications = 1;
         cardStatus.gsm_umts_subscription_app_index = 0;
-        cardStatus.applications[0].app_type = RIL_APPTYPE_UNKNOWN;
+        cardStatus.applications[0].app_type =
+                (RIL_AppType) m_pTEBaseInstance->GetSIMAppType();
         cardStatus.applications[0].app_state = RIL_APPSTATE_UNKNOWN;
         cardStatus.applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
         cardStatus.applications[0].aid_ptr = NULL;
