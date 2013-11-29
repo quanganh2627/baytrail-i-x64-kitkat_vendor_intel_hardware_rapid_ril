@@ -77,6 +77,7 @@ extern const char   g_szSupportedModem[];
 extern const char   g_szNetworkInterfaceNamePrefix[];
 extern const char   g_szMTU[];
 extern const char   g_szEnableCellInfo[];
+extern const char   g_szEnableCipheringInd[];
 extern const char   g_szEnableModemOffInFlightMode[];
 extern const char   g_szFDDelayTimer[];
 extern const char   g_szSCRITimer[];

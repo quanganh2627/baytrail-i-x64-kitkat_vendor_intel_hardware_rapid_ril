@@ -18,6 +18,7 @@
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
 #include <linux/gsmmux.h>
+#include <cutils/properties.h>
 
 #include "types.h"
 #include "nd_structs.h"
@@ -65,6 +66,46 @@ CInitializer* CTE_XMM7160::GetInitializer()
 Error:
     RIL_LOG_VERBOSE("CTE_XMM7160::GetInitializer() - Exit\r\n");
     return pRet;
+}
+
+char* CTE_XMM7160::GetUnlockInitCommands(UINT32 uiChannelType)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::GetUnlockInitCommands() - Enter\r\n");
+
+    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
+    char* pUnlockInitCmd = NULL;
+
+    pUnlockInitCmd = CTE_XMM6360::GetUnlockInitCommands(uiChannelType);
+    if (pUnlockInitCmd != NULL)
+    {
+        // copy base class init command
+        CopyStringNullTerminate(szInitCmd, pUnlockInitCmd, sizeof(szInitCmd));
+        free(pUnlockInitCmd);
+    }
+
+    if (RIL_CHANNEL_URC == uiChannelType)
+    {
+        char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+        BOOL bConformance = FALSE;
+        // read the conformance property
+        property_get("persist.conformance", szConformanceProperty, NULL);
+        bConformance =
+                (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX)) ? TRUE : FALSE;
+
+        // read the property enabling ciphering
+        CRepository repository;
+        int uiEnableCipheringInd = 1;
+        if (!repository.Read(g_szGroupModem, g_szEnableCipheringInd, uiEnableCipheringInd))
+        {
+            RIL_LOG_VERBOSE("CTE_XMM7160::GetUnlockInitCommands()- Repository read failed!\r\n");
+        }
+
+        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE,
+                (bConformance || (uiEnableCipheringInd != 0)) ? "|+XUCCI=1" : "|+XUCCI=0");
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::GetUnlockInitCommands() - Exit\r\n");
+    return strndup(szInitCmd, strlen(szInitCmd));
 }
 
 const char* CTE_XMM7160::GetRegistrationInitString()
@@ -250,71 +291,12 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
         // complete the request without sending the AT command to modem.
         res = RRIL_RESULT_OK_IMMEDIATE;
         DataConfigDown(uiCID, TRUE);
-        goto Error;
     }
-
-    if (reason != REASON_PDP_RESET && m_cte.IsEPSRegistered() && uiCID == DEFAULT_PDN_CID)
+    else if (reason != REASON_PDP_RESET && m_cte.IsEPSRegistered() && uiCID == DEFAULT_PDN_CID)
     {
-        char* szModemResourceName = {'\0'};
-        int muxControlChannel = -1;
-        int hsiChannel = -1;
-        int ipcDataChannelMin = 0;
-        UINT32 uiRilChannel = 0;
-        CCommand* pCmd = NULL;
-        CChannel_Data* pChannelData = NULL;
-        UINT32* pCID = NULL;
-
-        pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
-        if (NULL == pChannelData)
-        {
-            RIL_LOG_INFO("CTE_XMM7160::CoreDeactivateDataCall() -"
-                    " No Data Channel for CID %u.\r\n", uiCID);
-            goto Error;
-        }
-
-        uiRilChannel = pChannelData->GetRilChannel();
-        hsiChannel = pChannelData->GetHSIChannel();
-
-        muxControlChannel = pChannelData->GetMuxControlChannel();
-        if (-1 == muxControlChannel)
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() - Unknown mux channel\r\n");
-            goto Error;
-        }
-
-        szModemResourceName = pChannelData->GetModemResourceName();
-        ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
-
-        if (ipcDataChannelMin > hsiChannel || RIL_MAX_NUM_IPC_CHANNEL <= hsiChannel )
-        {
-           RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() - Unknown HSI Channel [%d] \r\n",
-                    hsiChannel);
-           goto Error;
-        }
-
-        memset(&rReqData, 0, sizeof(REQUEST_DATA));
-
-        // When context is deactivated, disable the routing to avoid modem waking up AP
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                "AT+XDATACHANNEL=0,1,\"/mux/%d\",\"/%s/%d\",0,%d\r",
-                muxControlChannel, szModemResourceName, hsiChannel, uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() - cannot create XDATACHANNEL"
-                    "command\r\n");
-            goto Error;
-        }
-
-        pCID = (UINT32*)malloc(sizeof(UINT32));
-        if (NULL == pCID)
-        {
-            goto Error;
-        }
-
-        *pCID = uiCID;
-
-        rReqData.pContextData = (void*)pCID;
-        rReqData.cbContextData = sizeof(UINT32);
-        res = RRIL_RESULT_OK;
+        // complete the request without sending the AT command to modem.
+        res = RRIL_RESULT_OK_IMMEDIATE;
+        DataConfigDown(uiCID, FALSE);
     }
     else
     {
@@ -929,18 +911,7 @@ RIL_RESULT_CODE CTE_XMM7160::HandleSetupDefaultPDN(RIL_Token rilToken,
     }
     else if (E_DATA_STATE_ACTIVE == dataState)
     {
-        /*
-         * ACTIVATE means that context is up and the channel is configured for data but the
-         * routing is disabled.
-         */
-        if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
-                "AT+XDATACHANNEL=1,1,\"/mux/%d\",\"/%s/%d\",0,%d\r",
-                muxControlChannel, szModemResourceName, hsiChannel, pDataCallContextData->uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::HandleSetupDefaultPDN() - cannot create XDATACHANNEL"
-                    "command\r\n");
-            goto Error;
-        }
+        // Dont send any command to modem. Default PDN is already active
     }
 
     pCmd = new CCommand(uiRilChannel, rilToken, REQ_ID_NONE, reqData,

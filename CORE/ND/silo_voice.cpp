@@ -57,6 +57,7 @@ CSilo_Voice::CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "CTM CALL"      , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCTMCall },
         { "NO CTM CALL"   , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCTMCall },
         { "WAITING CALL CTM" , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseWaitingCallCTM },
+        { "+XUCCI: ", (PFN_ATRSP_PARSE)&CSilo_Voice::ParseXUCCI },
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
         // Handle Call failed cause unsolicited notification here
         { "+XCEER: " , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallFailedCause },
@@ -1320,3 +1321,134 @@ Error:
 }
 
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
+
+//
+// Parsing function for
+// +XUCCI: <RAT>, <conn_status>, <ciphering_status>, <domain>, <key_status>, <key_domain>
+//
+BOOL CSilo_Voice::ParseXUCCI(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseXUCCI() - Enter\r\n");
+
+    BOOL fRet = FALSE;
+    UINT32 uiCipheringStatus = 0;
+    UINT32 uiDomain = 0;
+    UINT32 uiKeyStatus = 0;
+    UINT32 uiKeyDomain = 0;
+    UINT32 uiCurrRat = 0; // 1; GSM, 2: UMTS, 3: LTE
+    UINT32 uiConnState = 0;
+    sOEM_HOOK_RAW_UNSOL_CIPHERING_IND* pData = NULL;
+    UINT32 uiCurrStatus = CTE::GetTE().GetCurrentCipheringStatus();
+    UINT32 uiPrevStatus = uiCurrStatus;
+
+    if (pResponse == NULL)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : pResponse was NULL\r\n");
+        goto end;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+
+    // Response format is
+    // +XUCCI: <RAT>,<Conn_Status>,<Ciphering_Status>,<Domain>,
+    // <key_Status>, <Key_Context>
+
+    //  Extract <current rat>
+    if (!ExtractUInt32(rszPointer, uiCurrRat, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract current rat\r\n");
+        goto end;
+    }
+
+    //  Extract ,<conn status>
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiConnState, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract connection state\r\n");
+        goto end;
+    }
+
+    //  Extract, <ciphering status>
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiCipheringStatus, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract uiCipheringStatus\r\n");
+        goto end;
+    }
+
+    //  Extract ,<domain>
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiDomain, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract uiDomain\r\n");
+        goto end;
+    }
+
+    //  Extract ,<key status>
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiKeyStatus, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract uiKeyStatus\r\n");
+        goto end;
+    }
+
+    //  Extract ,<Key domain>
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiKeyDomain, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract uiKeyDomain\r\n");
+        goto end;
+    }
+
+    RIL_LOG_INFO("CSilo_Voice::ParseXUCCI() :"
+            " Ciphering Status = %u and Domain = %u RAT = %u\r\n",
+             uiCipheringStatus, uiDomain, uiCurrRat);
+
+    switch (uiDomain)
+    {
+    case 0: // CS domain
+        uiCurrStatus = (uiCipheringStatus == 0)
+                ? uiCurrStatus & ~(1 << 0) : uiCurrStatus | (1 << 0);
+        break;
+    case 1: // PS domain
+        uiCurrStatus = (uiCipheringStatus == 0)
+                ? uiCurrStatus & ~(1 << 1) : uiCurrStatus | (1 << 1);
+        break;
+    case 2: // Both PS and CS domain
+       uiCurrStatus = (uiCipheringStatus == 1) ? 3 : 0;
+       break;
+    default:
+        break;
+    }
+
+    pData = (sOEM_HOOK_RAW_UNSOL_CIPHERING_IND*)malloc(
+            sizeof(sOEM_HOOK_RAW_UNSOL_CIPHERING_IND));
+
+    // send ciphering indications only if there is a change in ciphering
+    // status and the change is that ciphering is not active
+    if (pData != NULL
+            && ((uiCurrStatus == 3) != (uiPrevStatus == 3)))
+    {
+        memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_CIPHERING_IND));
+        pData->command = RIL_OEM_HOOK_RAW_UNSOL_CIPHERING_IND;
+        pData->cipheringStatus = (uiCurrStatus == 3) ? 1 : 0;
+        // store the new values
+        CTE::GetTE().SetCurrentCipheringStatus(uiCurrStatus);
+
+        if (pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_CIPHERING_IND), FALSE))
+        {
+            pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+        }
+    }
+
+    fRet = TRUE;
+
+end:
+    if (!fRet)
+    {
+         free(pData);
+         pData = NULL;
+    }
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseXUCCI() - Exit\r\n");
+    return fRet;
+}

@@ -7856,7 +7856,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
     {
         int fBcActivate = 0;
 
-        if (sizeof(int*) != uiDataSize)
+        if (sizeof(int) != uiDataSize)
         {
             RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() -"
                     " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
@@ -7870,7 +7870,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
             goto Error;
         }
 
-        fBcActivate = ((int*)pData)[0];
+        fBcActivate = *((int*)pData);
         RIL_LOG_INFO("CTEBase::CoreGsmSmsBroadcastActivation() - fBcActivate=[%u]\r\n",
                 fBcActivate);
 

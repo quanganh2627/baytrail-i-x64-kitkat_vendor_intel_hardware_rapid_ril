@@ -453,3 +453,7 @@ void triggerSIMAppError(const void* param)
             sizeof(sOEM_HOOK_RAW_UNSOL_SIM_APP_ERR_IND));
 }
 
+void triggerCellBroadcastActivation(void* /*param*/)
+{
+    CTE::GetTE().HandleCellBroadcastActivation();
+}

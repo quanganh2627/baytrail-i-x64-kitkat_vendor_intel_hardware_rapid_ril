@@ -117,6 +117,7 @@ public:
                                                        UINT32 uiIndex,
                                                        UINT32 uiMode);
 
+    virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
 protected:
 
     virtual const char* GetRegistrationInitString();

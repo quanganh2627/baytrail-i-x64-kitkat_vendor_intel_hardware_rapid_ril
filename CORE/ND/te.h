@@ -1110,6 +1110,13 @@ public:
 
     UINT32 GetPinCacheMode() { return m_uiPinCacheMode; }
     void SetPinCacheMode(UINT32 uiPinCacheMode) { m_uiPinCacheMode = uiPinCacheMode; }
+    // store for ciphering indication.
+    // 0x00000001 = CS ciphering ON
+    // 0x00000002 = PS ciphering ON
+    UINT32 GetCurrentCipheringStatus() { return m_CurrentCipheringStatus; }
+    void SetCurrentCipheringStatus(UINT32 status) { m_CurrentCipheringStatus = status; }
+
+    void HandleCellBroadcastActivation();
 
 private:
     UINT32 m_uiModemType;
@@ -1274,8 +1281,12 @@ private:
 
     UINT32 m_nCellInfoListRate;
     BOOL m_bIsCellInfoTimerRunning;
+    UINT32 m_CurrentCipheringStatus;
 
     UINT32 m_uiPinCacheMode;
+
+    BOOL m_bCbsActivationTimerRunning;
+    int m_CbsActivate;
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
 };

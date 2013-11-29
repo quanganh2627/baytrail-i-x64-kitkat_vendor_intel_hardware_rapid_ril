@@ -87,7 +87,10 @@ CTE::CTE(UINT32 modemType) :
     m_pDataCleanupStatusLock(NULL),
     m_nCellInfoListRate(INT_MAX),
     m_bIsCellInfoTimerRunning(FALSE),
-    m_uiPinCacheMode(E_PIN_CACHE_MODE_FS)
+    m_uiPinCacheMode(E_PIN_CACHE_MODE_FS),
+    m_CurrentCipheringStatus(3), // by default set to ciphered
+    m_bCbsActivationTimerRunning(FALSE),
+    m_CbsActivate(-1)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -5968,43 +5971,43 @@ RIL_RESULT_CODE CTE::RequestGsmSmsBroadcastActivation(RIL_Token rilToken,
 {
     RIL_LOG_VERBOSE("CTE::RequestGsmSmsBroadcastActivation() - Enter\r\n");
 
-    REQUEST_DATA reqData;
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
+    int activate = -1;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGsmSmsBroadcastActivation(reqData,
-            pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    if (sizeof(int*) != datalen)
     {
         RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() -"
-                " Unable to create AT command data\r\n");
+                " Passed data size mismatch. Found %d bytes\r\n", datalen);
+        goto Error;
     }
-    else
+
+    if (NULL == pData)
     {
-        CCommand* pCmd = new CCommand(
-                g_pReqInfo[RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION].uiChannel,
-                rilToken, RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION, reqData,
-                &CTE::ParseGsmSmsBroadcastActivation);
-
-        if (pCmd)
-        {
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() -"
-                        " Unable to add command to queue\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() -"
-                    " Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-        }
+        RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() -"
+                " Passed data pointer was NULL\r\n");
+        goto Error;
     }
 
-    RIL_LOG_VERBOSE("CTE::RequestGsmSmsBroadcastActivation() - Exit\r\n");
+    activate = ((int*)pData)[0];
+    if (0 != activate && 1 != activate)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() - invalid input\r\n");
+        goto Error;
+    }
+
+    m_CbsActivate = activate;
+
+    if (RRIL_SIM_STATE_READY == GetSIMState() && !m_bCbsActivationTimerRunning)
+    {
+        m_bCbsActivationTimerRunning = TRUE;
+        RIL_requestTimedCallback(triggerCellBroadcastActivation, NULL, 0, 100000);
+    }
+
+    RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
+
+    res = RRIL_RESULT_OK;
+
+Error:
     return res;
 }
 
@@ -9884,6 +9887,13 @@ RIL_RESULT_CODE CTE::ParseSimStateQuery(RESPONSE_DATA& rRspData)
 void CTE::HandleChannelsUnlockInitComplete()
 {
     RIL_LOG_VERBOSE("CTE::HandleChannelsUnlockInitComplete() - Enter\r\n");
+
+    if (!m_bCbsActivationTimerRunning && -1 != m_CbsActivate)
+    {
+        m_bCbsActivationTimerRunning = TRUE;
+        RIL_requestTimedCallback(triggerCellBroadcastActivation, NULL, 0, 100000);
+    }
+
     m_pTEBaseInstance->HandleChannelsUnlockInitComplete();
     RIL_LOG_VERBOSE("CTE::HandleChannelsUnlockInitComplete() - Exit\r\n");
 }
@@ -9961,4 +9971,55 @@ void CTE::PostUnsolCellInfoListRate(POST_CMD_HANDLER_DATA& rData)
     {
         m_pTEBaseInstance->RestartUnsolCellInfoListTimer(m_nCellInfoListRate);
     }
+}
+
+void CTE::HandleCellBroadcastActivation()
+{
+    RIL_LOG_VERBOSE("CTE::HandleCellBroadcastActivation() - Enter\r\n");
+
+    m_bCbsActivationTimerRunning = FALSE;
+
+    if (-1 == m_CbsActivate || E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
+    {
+        return;
+    }
+
+    REQUEST_DATA reqData;
+    // m_CbsActivate will always hold the last requested value
+    int activate = m_CbsActivate;
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGsmSmsBroadcastActivation(reqData,
+            &activate, sizeof(int));
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::HandleCellBroadcastActivation() -"
+                " Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION].uiChannel,
+                NULL, RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION, reqData,
+                &CTE::ParseGsmSmsBroadcastActivation);
+
+        if (NULL == pCmd)
+        {
+            RIL_LOG_CRITICAL("CTE::HandleCellBroadcastActivation() -"
+                    " Unable to allocate memory for command\r\n");
+        }
+        else
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::HandleCellBroadcastActivation() -"
+                        " Unable to add command to queue\r\n");
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::HandleCellBroadcastActivation() - Exit\r\n");
 }
