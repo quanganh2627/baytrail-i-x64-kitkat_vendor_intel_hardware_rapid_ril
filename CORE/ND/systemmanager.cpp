@@ -106,7 +106,8 @@ CSystemManager::CSystemManager()
     m_pMMgrLibHandle(NULL),
     m_RequestInfoTable(),
     m_bIsSystemInitialized(FALSE),
-    m_bIsModemResourceAcquired(FALSE)
+    m_bIsModemResourceAcquired(FALSE),
+    m_bIsDeviceDecrypted(FALSE)
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     ,m_uiLastCallFailedCauseID(0)
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
@@ -509,18 +510,7 @@ Done:
 
     if (bRetVal)
     {
-        char cryptState[PROPERTY_VALUE_MAX] = {'\0'};
-        char voldDecryptState[PROPERTY_VALUE_MAX] = {'\0'};
-
-        property_get("ro.crypto.state", cryptState, "");
-        property_get("vold.decrypt", voldDecryptState, "");
-
-        RIL_LOG_INFO("CSystemManager::InitializeSystem() : "
-                "cryptState: %s, decryptState: %s\r\n", cryptState, voldDecryptState);
-
-        if ((0 == strcmp(cryptState, "unencrypted"))
-                || ((0 == strcmp(cryptState, "encrypted"))
-                && (0 == strcmp(voldDecryptState, "trigger_restart_framework"))))
+        if (IsDeviceDecrypted())
         {
             char szWakeSrc[PROPERTY_VALUE_MAX] = {'\0'};
 
@@ -1128,4 +1118,27 @@ BOOL CSystemManager::ReleaseModem()
 Error:
     RIL_LOG_INFO("CSystemManager::ReleaseModem() - EXIT\r\n");
     return bRet;
+}
+
+BOOL CSystemManager::IsDeviceDecrypted()
+{
+    RIL_LOG_VERBOSE("CSystemManager::IsDeviceDecrypted() - Enter\r\n");
+
+    if (!m_bIsDeviceDecrypted)
+    {
+        char cryptState[PROPERTY_VALUE_MAX] = {'\0'};
+        char voldDecryptState[PROPERTY_VALUE_MAX] = {'\0'};
+
+        property_get("ro.crypto.state", cryptState, "");
+        property_get("vold.decrypt", voldDecryptState, "");
+        if ((0 == strcmp(cryptState, "unencrypted"))
+                || ((0 == strcmp(cryptState, "encrypted"))
+                && (0 == strcmp(voldDecryptState, "trigger_restart_framework"))))
+        {
+            m_bIsDeviceDecrypted = TRUE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CSystemManager::IsDeviceDecrypted() - Exit\r\n");
+    return m_bIsDeviceDecrypted;
 }

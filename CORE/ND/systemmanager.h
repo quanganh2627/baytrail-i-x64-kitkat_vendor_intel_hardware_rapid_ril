@@ -128,6 +128,9 @@ public:
 
     int GetCancelWaitPipeFd() { return m_pInitializer->GetCancelWaitPipeFd(); }
 
+    // This function will return true if device is not encrypted or decrypted.
+    BOOL IsDeviceDecrypted();
+
 private:
     // Framework Init Functions
     BOOL CreateQueues();
@@ -156,6 +159,8 @@ private:
     BOOL m_bIsSystemInitialized;
 
     BOOL m_bIsModemResourceAcquired;
+
+    BOOL m_bIsDeviceDecrypted;
 
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     UINT32 m_uiLastCallFailedCauseID;
