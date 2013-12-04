@@ -73,7 +73,7 @@ CSilo_SIM::~CSilo_SIM()
 char* CSilo_SIM::GetURCInitString()
 {
     // SIM silo-related URC channel basic init string
-    const char szSimURCInitString[] = "+XSIMSTATE=1|+XLEMA=1";
+    const char szSimURCInitString[] = "+XLEMA=1";
 
     if (!ConcatenateStringNullTerminate(m_szURCInitString,
             MAX_BUFFER_SIZE - strlen(m_szURCInitString), szSimURCInitString))
@@ -81,6 +81,22 @@ char* CSilo_SIM::GetURCInitString()
         RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to copy URC init "
                 "string!\r\n");
         return NULL;
+    }
+
+    /*
+     * If the device is encrypted but not yet decrypted, then modem have been powered
+     * on for emergency call. Don't enable sim status reporting as this results in
+     * emergency call getting disconnected due to airplane mode activated by CryptKeeper
+     * on configuration changes.
+     */
+    if (CSystemManager::GetInstance().IsDeviceDecrypted())
+    {
+        if (!ConcatenateStringNullTerminate(m_szURCInitString, MAX_BUFFER_SIZE, "|+XSIMSTATE=1"))
+        {
+            RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to copy XSIMSTATE to URC"
+                    " init string!\r\n");
+            return NULL;
+        }
     }
 
     if (!m_pSystemCapabilities->IsStkCapable())

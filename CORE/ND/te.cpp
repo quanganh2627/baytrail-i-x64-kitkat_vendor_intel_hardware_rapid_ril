@@ -1215,6 +1215,18 @@ RIL_RESULT_CODE CTE::RequestGetSimStatus(RIL_Token rilToken, void* pData, size_t
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
+    /*
+     * If the device is encrypted but not yet decrypted, then modem have been powered
+     * on for emergency call. Don't query sim status from modem as this results in emergency
+     * call getting disconnected due to airplane mode activated by CryptKeeper on configuration
+     * changes. When device is not yet decrypted, then complete the sim status with default values.
+     */
+    if (!CSystemManager::GetInstance().IsDeviceDecrypted())
+    {
+        CompleteGetSimStatusRequest(rilToken);
+        return RRIL_RESULT_OK;
+    }
+
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetSimStatus(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
