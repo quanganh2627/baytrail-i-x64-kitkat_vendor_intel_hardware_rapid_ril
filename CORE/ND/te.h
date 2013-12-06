@@ -578,7 +578,7 @@ public:
     RIL_RESULT_CODE ParseUnsolCellInfoListRate(RESPONSE_DATA& rRspData);
     void PostUnsolCellInfoListRate(POST_CMD_HANDLER_DATA& rData);
 
-    // RIL_REQUEST_SET_INITIAL_ATTACH_APN: // 111
+    // RIL_REQUEST_SET_INITIAL_ATTACH_APN 111
     RIL_RESULT_CODE RequestSetInitialAttachApn(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSetInitialAttachApn(RESPONSE_DATA& rRspData);
 
@@ -783,6 +783,8 @@ public:
 
     // Resets all the internal states to default values
     void ResetInternalStates();
+
+    void ResetInitialAttachApn();
 
     RIL_RESULT_CODE RequestSimPinRetryCount(RIL_Token rilToken, void* pData, size_t datalen,
                                             int reqId = 0,
@@ -1047,6 +1049,15 @@ public:
     void PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
     /*
+     *
+     * Post Command handler function for the RIL_REQUEST_SET_INITIAL_ATTACH_APN request.
+     *
+     * Upon success/failure, completes the request and also restores the saved network
+     * selection mode.
+     */
+    void PostSetInitialAttachApnCmdHandler(POST_CMD_HANDLER_DATA& rData);
+
+    /*
      * Gets the list of active data calls.
      *
      * pPDPListData - Contains the list of active data calls
@@ -1150,6 +1161,9 @@ public:
     void SetRefreshWithUsimInitOn(BOOL bOngoing);
 
     void PostInternalOpenLogicalChannel(POST_CMD_HANDLER_DATA& rData);
+
+    RIL_RESULT_CODE ParseDeregister(RESPONSE_DATA& rRspData);
+    void PostDeregisterCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
 private:
     UINT32 m_uiModemType;

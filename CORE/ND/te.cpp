@@ -3864,36 +3864,18 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionAutomatic(RIL_Token rilToken,
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetNetworkSelectionAutomatic(reqData,
             pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    if (RRIL_RESULT_OK == res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionAutomatic() -"
-                " Unable to create AT command data\r\n");
-    }
-    else
-    {
-        CCommand* pCmd = new CCommand(
+        res = m_pTEBaseInstance->RestoreSavedNetworkSelectionMode(rilToken,
                 g_pReqInfo[RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC].uiChannel,
-                rilToken, RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC, reqData,
                 &CTE::ParseSetNetworkSelectionAutomatic,
                 &CTE::PostSetNetworkSelectionCmdHandler);
+    }
 
-        if (pCmd)
-        {
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionAutomatic() -"
-                        " Unable to add command to queue\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionAutomatic() -"
-                    " Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-        }
+    if (RRIL_RESULT_OK_IMMEDIATE == res)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+        res = RRIL_RESULT_OK;
     }
 
     RIL_LOG_VERBOSE("CTE::RequestSetNetworkSelectionAutomatic() - Exit\r\n");
@@ -3921,36 +3903,18 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionManual(RIL_Token rilToken,
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetNetworkSelectionManual(reqData,
             pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    if (RRIL_RESULT_OK == res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionManual() -"
-                " Unable to create AT command data\r\n");
-    }
-    else
-    {
-        CCommand* pCmd = new CCommand(
+        res = m_pTEBaseInstance->RestoreSavedNetworkSelectionMode(rilToken,
                 g_pReqInfo[RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL].uiChannel,
-                rilToken, RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL, reqData,
                 &CTE::ParseSetNetworkSelectionManual,
                 &CTE::PostSetNetworkSelectionCmdHandler);
+    }
 
-        if (pCmd)
-        {
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionManual() - "
-                        "Unable to add command to queue\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE::RequestSetNetworkSelectionManual() -"
-                    " Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-        }
+    if (RRIL_RESULT_OK_IMMEDIATE == res)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+        res = RRIL_RESULT_OK;
     }
 
     RIL_LOG_VERBOSE("CTE::RequestSetNetworkSelectionManual() - Exit\r\n");
@@ -8224,6 +8188,11 @@ void CTE::ResetInternalStates()
     m_bRadioRequestPending = FALSE;
 }
 
+void CTE::ResetInitialAttachApn()
+{
+    m_pTEBaseInstance->ResetInitialAttachApn();
+}
+
 BOOL CTE::IsSetupDataCallAllowed(int& retryTime)
 {
     BOOL bAllowed = TRUE;
@@ -8641,6 +8610,11 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
     m_pTEBaseInstance->CopyCardStatus(cardStatus);
 
     RIL_onRequestComplete(rData.pRilToken, RIL_E_SUCCESS, &cardStatus, sizeof(RIL_CardStatus_v6));
+
+    if (RIL_APPSTATE_UNKNOWN == m_pTEBaseInstance->GetSimAppState())
+    {
+        m_pTEBaseInstance->ResetInitialAttachApn();
+    }
 
     FreeCardStatusPointers(cardStatus);
 
@@ -9936,6 +9910,10 @@ void CTE::CompleteGetSimStatusRequest(RIL_Token hRilToken)
 
     RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &cardStatus, sizeof(RIL_CardStatus_v6));
 
+    if (RIL_APPSTATE_UNKNOWN == m_pTEBaseInstance->GetSimAppState())
+    {
+        m_pTEBaseInstance->ResetInitialAttachApn();
+    }
     FreeCardStatusPointers(cardStatus);
 
     RIL_LOG_VERBOSE("CTE::CompleteGetSimStatusRequest() - Exit\r\n");
@@ -10013,24 +9991,36 @@ RIL_RESULT_CODE CTE::RequestSetInitialAttachApn(RIL_Token rilToken, void* pData,
 {
     RIL_LOG_VERBOSE("CTE::RequestSetInitialAttachApn() - Enter\r\n");
 
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     REQUEST_DATA reqData;
+
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetInitialAttachApn(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    res = m_pTEBaseInstance->CoreSetInitialAttachApn(reqData, pData, datalen);
+    if (RRIL_RESULT_OK_IMMEDIATE == res)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+        return RRIL_RESULT_OK;
+    }
+    else if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestSetInitialAttachApn() -"
                 " Unable to create AT command data\r\n");
     }
     else
     {
+        /*
+         * For command timeout, timeout value used for RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL
+         * request is used.
+         */
         CCommand* pCmd = new CCommand(
                 g_pReqInfo[RIL_REQUEST_SET_INITIAL_ATTACH_APN].uiChannel,
-                rilToken, RIL_REQUEST_SET_INITIAL_ATTACH_APN, reqData,
-                &CTE::ParseSetInitialAttachApn);
+                rilToken, RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL, reqData,
+                &CTE::ParseDeregister, &CTE::PostDeregisterCmdHandler);
 
         if (pCmd)
         {
+            pCmd->SetHighPriority();
             if (!CCommand::AddCmdToQueue(pCmd))
             {
                 RIL_LOG_CRITICAL("CTE::RequestSetInitialAttachApn() -"
@@ -10056,6 +10046,42 @@ RIL_RESULT_CODE CTE::ParseSetInitialAttachApn(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE::ParseSetInitialAttachApn() - Enter / Exit\r\n");
     return m_pTEBaseInstance->ParseSetInitialAttachApn(rRspData);
+}
+
+RIL_RESULT_CODE CTE::ParseDeregister(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseDeregister() - Enter / Exit\r\n");
+    return RRIL_RESULT_OK;
+}
+
+void CTE::PostDeregisterCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostDeregisterCmdHandler() - Enter\r\n");
+
+    if (NULL == rData.pRilToken)
+    {
+        return;
+    }
+
+    m_pTEBaseInstance->SetInitialAttachApn(rData.pRilToken, 0);
+
+    RIL_LOG_VERBOSE("CTE::PostDeregisterCmdHandler() - Exit\r\n");
+}
+
+
+void CTE::PostSetInitialAttachApnCmdHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostSetInitialAttachApnCmdHandler() - Enter\r\n");
+
+    if (NULL != rData.pRilToken)
+    {
+        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+                (void*)rData.pData, rData.uiDataSize);
+    }
+
+    m_pTEBaseInstance->RestoreSavedNetworkSelectionMode(NULL, rData.uiChannel, NULL, NULL);
+
+    RIL_LOG_VERBOSE("CTE::PostSetInitialAttachApnCmdHandler() - Exit\r\n");
 }
 
 void CTE::PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData)

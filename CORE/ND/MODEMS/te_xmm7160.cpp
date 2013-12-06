@@ -171,6 +171,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
     CChannel_Data* pChannelData = NULL;
     int dataProfile = -1;
     int nEmergencyFlag = 0 ; // 1: emergency pdn
+    UINT32 uiDnsMode = 0;
 
     RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - uiDataSize=[%u]\r\n", uiDataSize);
 
@@ -255,54 +256,23 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
         stPdpData.szPDPType = szIPV4V6;
     }
 
+    //  IP type is passed in dynamically.
+    if (NULL == stPdpData.szPDPType)
+    {
+        //  hard-code "IPV4V6" (this is the default)
+        CopyStringNullTerminate(stPdpData.szPDPType, PDPTYPE_IPV4V6, sizeof(stPdpData.szPDPType));
+    }
+
     //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
     //  If not recognized, just use IPV4V6 as default.
-    if (0 == strcmp(stPdpData.szPDPType, "IP"))
+    uiDnsMode = GetXDNSMode(stPdpData.szPDPType);
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
+            uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap,
+            stPdpData.szUserName, stPdpData.szPassword, uiCID, uiDnsMode))
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,1\r",
-                uiCID, stPdpData.szPDPType,
-                stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap, stPdpData.szUserName,
-                stPdpData.szPassword, uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
-                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-            goto Error;
-        }
-    }
-    else if (0 == strcmp(stPdpData.szPDPType, "IPV6"))
-    {
-        if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,2\r",
-                uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap,
-                stPdpData.szUserName, stPdpData.szPassword, uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
-                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-            goto Error;
-        }
-    }
-    else if (0 == strcmp(stPdpData.szPDPType, "IPV4V6"))
-    {
-        //  XDNS=3 is not supported by the modem so two commands +XDNS=1
-        //  and +XDNS=2 should be sent.
-        if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0,,%d;+XGAUTH=%u,%d,\"%s\","
-                "\"%s\";+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
-                stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap, stPdpData.szUserName,
-                stPdpData.szPassword, uiCID, uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
-                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-            goto Error;
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CTE_INF_7160::CoreSetupDataCall() - Wrong PDP type\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
+                " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
         goto Error;
     }
 

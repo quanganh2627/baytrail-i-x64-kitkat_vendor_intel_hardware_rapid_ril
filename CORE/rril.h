@@ -116,6 +116,15 @@ enum
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// Network selection mode constants
+//
+enum
+{
+    E_NETWORK_SELECTION_MODE_AUTOMATIC = 0,
+    E_NETWORK_SELECTION_MODE_MANUAL = 1
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // radio power constants
 //
 const int RADIO_POWER_UNKNOWN = -1;
@@ -159,6 +168,25 @@ typedef struct
     int puk;
     int puk2;
 } S_PIN_RETRY_COUNT;
+
+///////////////////////////////////////////////////////////////////////////////
+// Network selection mode parameters
+//
+const int MAX_OPERATOR_NUMERIC_SIZE = 10;
+typedef struct
+{
+    int mode;
+    char szOperatorNumeric[MAX_OPERATOR_NUMERIC_SIZE];
+} S_NETWORK_SELECTION_MODE_PARAMS;
+
+///////////////////////////////////////////////////////////////////////////////
+// Network selection mode parameters
+//
+typedef struct
+{
+    char szApn[MAX_APN_SIZE];
+    char szPdpType[MAX_PDP_TYPE_SIZE];
+} S_INITIAL_ATTACH_APN_PARAMS;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Facility Lock Context data

@@ -253,7 +253,7 @@ const REQ_INFO g_ReqInfoDefault[] =
     // RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE 110
     { "SetCellInfoListRate", RIL_CHANNEL_OEM, 0 },
     // RIL_REQUEST_SET_INITIAL_ATTACH_APN 111
-    { "SetInitialAttachApn", RIL_CHANNEL_DATA1, 0},
+    { "SetInitialAttachApn", RIL_CHANNEL_DLC2, 0},
     // RIL_REQUEST_IMS_REGISTRATION_STATE 112
     { "GetImsRegistrationState", RIL_CHANNEL_RESERVED, 0},
     // RIL_REQUEST_IMS_SEND_SMS 113
