@@ -707,42 +707,53 @@ public:
 
     void RestartUnsolCellInfoListTimer(UINT32 uiNewRate);
 
-    // RIL_REQUEST_SIM_TRANSMIT_BASIC 111
+    // RIL_REQUEST_SET_INITIAL_ATTACH_APN: // 111
+    virtual RIL_RESULT_CODE CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
+                                                                 void* pData,
+                                                                 UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSetInitialAttachApn(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_IMS_REGISTRATION_STATE: // 112
+    // RIL_REQUEST_IMS_SEND_SMS: // 113
+    // TODO
+
+
+    // RIL_REQUEST_SIM_TRANSMIT_BASIC 114
     virtual RIL_RESULT_CODE CoreSimTransmitBasic(REQUEST_DATA& rReqData,
                                                             void* pData,
                                                             UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimTransmitBasic(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_OPEN_CHANNEL 112
+    // RIL_REQUEST_SIM_OPEN_CHANNEL 115
     virtual RIL_RESULT_CODE CoreSimOpenChannel(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_CLOSE_CHANNEL 113
+    // RIL_REQUEST_SIM_CLOSE_CHANNEL 116
     virtual RIL_RESULT_CODE CoreSimCloseChannel(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 114
+    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 117
     virtual RIL_RESULT_CODE CoreSimTransmitChannel(REQUEST_DATA& rReqData,
                                                               void* pData,
                                                               UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA& rRspData);
 
 #if defined(M2_VT_FEATURE_ENABLED)
-    // RIL_REQUEST_HANGUP_VT 115
+    // RIL_REQUEST_HANGUP_VT 118
     virtual RIL_RESULT_CODE CoreHangupVT(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseHangupVT(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DIAL_VT 116
+    // RIL_REQUEST_DIAL_VT 119
     virtual RIL_RESULT_CODE CoreDialVT(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDialVT(RESPONSE_DATA& rRspData);
 #endif // M2_VT_FEATURE_ENABLED
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    // RIL_REQUEST_GET_SIM_SMS_STORAGE 117
+    // RIL_REQUEST_GET_SIM_SMS_STORAGE 118 or 120
     virtual RIL_RESULT_CODE CoreGetSimSmsStorage(REQUEST_DATA& rReqData,
                                                             void* pData,
                                                             UINT32 uiDataSize);

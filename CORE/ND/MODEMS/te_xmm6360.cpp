@@ -370,7 +370,7 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
                 uiCID, muxControlChannel, muxDataChannel))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -"
-                    "  cannot create CGDATA command\r\n");
+                    "  cannot create CGACT command\r\n");
             goto Error;
         }
     }
@@ -406,7 +406,7 @@ BOOL CTE_XMM6360::PdpContextActivate(REQUEST_DATA& rReqData, void* pData,
                 szModemResourceName, hsiNetworkPath))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::PdpContextActivate() -"
-                    "  cannot create CGDATA command\r\n");
+                    "  cannot create CGACT command\r\n");
             goto Error;
         }
     }
