@@ -290,6 +290,8 @@ protected:
     virtual void QueryPinRetryCount();
     virtual void QuerySimState();
 
+    virtual UINT32 GetXDNSMode(const char* pszPdpType);
+
 private:
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
                                                     const char** pszRequest,

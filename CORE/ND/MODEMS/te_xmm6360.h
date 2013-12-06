@@ -71,6 +71,8 @@ protected:
     virtual const char* GetPsRegistrationReadString();
     virtual const char* GetLocationUpdateString(BOOL bIsLocationUpdateEnabled);
     virtual const char* GetScreenOnString();
+
+    virtual BOOL GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData);
 };
 
 #endif

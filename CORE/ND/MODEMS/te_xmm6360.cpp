@@ -153,13 +153,13 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetupDataCall(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetupDataCall() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    char szIPV4V6[] = "IPV4V6";
     int nPapChap = 0; // no auth
     PdpData stPdpData;
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
     CChannel_Data* pChannelData = NULL;
     int dataProfile = -1;
     int nEmergencyFlag = 0 ; // 1: emergency pdn
+    UINT32 uiDnsMode = 0;
 
     RIL_LOG_INFO("CTE_XMM6360::CoreSetupDataCall() - uiDataSize=[%u]\r\n", uiDataSize);
 
@@ -241,57 +241,19 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetupDataCall(REQUEST_DATA& rReqData,
     if (NULL == stPdpData.szPDPType)
     {
         //  hard-code "IPV4V6" (this is the default)
-        stPdpData.szPDPType = szIPV4V6;
+        CopyStringNullTerminate(stPdpData.szPDPType, PDPTYPE_IPV4V6, sizeof(stPdpData.szPDPType));
     }
 
     //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
     //  If not recognized, just use IPV4V6 as default.
-    if (0 == strcmp(stPdpData.szPDPType, "IP"))
+    uiDnsMode = GetXDNSMode(stPdpData.szPDPType);
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
+            uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap,
+            stPdpData.szUserName, stPdpData.szPassword, uiCID, uiDnsMode))
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,1\r",
-                uiCID, stPdpData.szPDPType,
-                stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap, stPdpData.szUserName,
-                stPdpData.szPassword, uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
-                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-            goto Error;
-        }
-    }
-    else if (0 == strcmp(stPdpData.szPDPType, "IPV6"))
-    {
-        if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,2\r",
-                uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap,
-                stPdpData.szUserName, stPdpData.szPassword, uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
-                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-            goto Error;
-        }
-    }
-    else if (0 == strcmp(stPdpData.szPDPType, "IPV4V6"))
-    {
-        //  XDNS=3 is not supported by the modem so two commands +XDNS=1
-        //  and +XDNS=2 should be sent.
-        if (!PrintStringNullTerminate(rReqData.szCmd1,
-                sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0,,%d;+XGAUTH=%u,%d,\"%s\","
-                "\"%s\";+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
-                stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
-                uiCID, uiCID))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
-                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-            goto Error;
-        }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CTE_INF_7160::CoreSetupDataCall() - Wrong PDP type\r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
+                " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
         goto Error;
     }
 
@@ -650,17 +612,17 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
     if (szIpAddr2[0] == '\0')
     {
         eDataConnectionType = PDP_TYPE_IPV4;
-        strcpy(szPdpType, "IP");
+        strcpy(szPdpType, PDPTYPE_IP);
     }
     else if (szIpAddr[0] == '\0')
     {
         eDataConnectionType = PDP_TYPE_IPV6;
-        strcpy(szPdpType, "IPV6");
+        strcpy(szPdpType, PDPTYPE_IPV6);
     }
     else
     {
         eDataConnectionType = PDP_TYPE_IPV4V6;
-        strcpy(szPdpType, "IPV4V6");
+        strcpy(szPdpType, PDPTYPE_IPV4V6);
     }
 
     pChannelData->SetPdpType(szPdpType);
@@ -1174,49 +1136,32 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
 
     pTemp = (RIL_InitialAttachApn*) pData;
 
-    if (NULL == pTemp->protocol)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - Invalid input\r\n");
-        goto Error;
-    }
+    CopyStringNullTerminate(m_InitialAttachApnParams.szApn,
+            pTemp->apn, sizeof(m_InitialAttachApnParams.szApn));
 
-    if (0 == strcmp(pTemp->protocol, "IP"))
+    if (NULL == pTemp->protocol || pTemp->protocol[0] == '\0')
     {
-        uiMode = 1;
-    }
-    else if (0 == strcmp(pTemp->protocol, "IPV6"))
-    {
-        uiMode = 2;
-    }
-    else if (0 == strcmp(pTemp->protocol, "IPV4V6"))
-    {
-        uiMode = 3;
+        CopyStringNullTerminate(m_InitialAttachApnParams.szPdpType,
+                PDPTYPE_IPV4V6, sizeof(m_InitialAttachApnParams.szPdpType));
     }
     else
     {
-        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - Invalid protocol\r\n");
+        CopyStringNullTerminate(m_InitialAttachApnParams.szPdpType,
+                pTemp->protocol, sizeof(m_InitialAttachApnParams.szPdpType));
+    }
+
+    if (RIL_APPSTATE_READY != GetSimAppState())
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - SIM not ready\r\n");
+        res = RRIL_RESULT_OK_IMMEDIATE;
         goto Error;
     }
 
-    if (NULL == pTemp->apn)
+    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+COPS=2\r", sizeof(rReqData.szCmd1)))
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=1,\"%s\";+XDNS=1,%u\r", pTemp->protocol, uiMode))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - "
-                    "Can't construct szCmd1.\r\n");
-            goto Error;
-        }
-    }
-    else
-    {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=1,\"%s\",\"%s\";+XDNS=1,%u\r", pTemp->protocol, pTemp->apn, uiMode))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - "
-                    "Can't construct szCmd1.\r\n");
-            goto Error;
-        }
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - cannot copy deregister"
+                "command \r\n");
+        goto Error;
     }
 
     res = RRIL_RESULT_OK;
@@ -1231,4 +1176,31 @@ RIL_RESULT_CODE CTE_XMM6360::ParseSetInitialAttachApn(RESPONSE_DATA& rRspData)
     RIL_LOG_VERBOSE("CTE_XMM6360::ParseSetInitialAttachApn() - Enter / Exit\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
     return res;
+}
+
+BOOL CTE_XMM6360::GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData)
+{
+    UINT32 uiMode = GetXDNSMode(m_InitialAttachApnParams.szPdpType);
+
+    if ('\0' == m_InitialAttachApnParams.szApn[0])
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=1,\"%s\";+XDNS=1,%u\r", m_InitialAttachApnParams.szPdpType, uiMode))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::GetSetInitialAttachApnReqData() - "
+                    "Can't construct szCmd1.\r\n");
+        }
+    }
+    else
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=1,\"%s\",\"%s\";+XDNS=1,%u\r", m_InitialAttachApnParams.szPdpType,
+                m_InitialAttachApnParams.szApn, uiMode))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::GetSetInitialAttachApnReqData() - "
+                    "Can't construct szCmd1.\r\n");
+        }
+    }
+
+    return TRUE;
 }

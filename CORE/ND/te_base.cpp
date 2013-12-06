@@ -38,11 +38,14 @@
 #define AT_MAXARGS 20
 #define WAIT_TIMEOUT_DTMF_STOP 20000
 
+const char* CTEBase::PDPTYPE_IPV4V6 = "IPV4V6";
+const char* CTEBase::PDPTYPE_IPV6 = "IPV6";
+const char* CTEBase::PDPTYPE_IP = "IP";
+
 CTEBase::CTEBase(CTE& cte)
 : m_cte(cte),
   m_cTerminator('\r'),
   m_pInitializer(NULL),
-  m_nNetworkRegistrationType(0),
   m_ePin2State(RIL_PINSTATE_UNKNOWN),
   m_pDtmfStopReqEvent(NULL),
   m_bReadyForAttach(FALSE),
@@ -66,7 +69,6 @@ CTEBase::CTEBase(CTE& cte)
         RIL_LOG_INFO("CTEBase::CTEBase() - m_szNetworkInterfaceNamePrefix=[%s]\r\n",
                 m_szNetworkInterfaceNamePrefix);
     }
-    memset(m_szManualMCCMNC, 0, MAX_BUFFER_SIZE);
     memset(m_szPIN, 0, MAX_PIN_SIZE);
     memset(&m_IncomingCallInfo, 0, sizeof(m_IncomingCallInfo));
     memset(&m_PinRetryCount, -1, sizeof(m_PinRetryCount));
@@ -76,6 +78,8 @@ CTEBase::CTEBase(CTE& cte)
     m_pCardStatusUpdateLock = new CMutex();
 
     m_pUiccOpenLogicalChannelEvent = new CEvent(NULL, TRUE);
+
+    ResetInitialAttachApn();
 
     ResetCardStatus(TRUE);
 }
@@ -126,6 +130,9 @@ void CTEBase::ResetCardStatus(BOOL bForceReset)
     }
 
     CMutex::Unlock(m_pCardStatusUpdateLock);
+
+    m_NetworkSelectionModeParams.mode = -1;
+    m_NetworkSelectionModeParams.szOperatorNumeric[0] = '\0';
 }
 
 CTEBase::~CTEBase()
@@ -5033,33 +5040,17 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionAutomatic(REQUEST_DATA& rReqData
                                                                      UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionAutomatic() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS=0\r"))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreSetNetworkSelectionAutomatic() - Failed to write command "
-                "to buffer!\r\n");
-        goto Error;
-    }
+    m_NetworkSelectionModeParams.mode = E_NETWORK_SELECTION_MODE_AUTOMATIC;
 
-    res = RRIL_RESULT_OK;
-
-Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionAutomatic() - Exit\r\n");
-    return res;
+    return RRIL_RESULT_OK;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetNetworkSelectionAutomatic(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseSetNetworkSelectionAutomatic() - Enter\r\n");
-
-    m_nNetworkRegistrationType = 0;
-    m_szManualMCCMNC[0] = '\0';
-
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
-
-    RIL_LOG_VERBOSE("CTEBase::ParseSetNetworkSelectionAutomatic() - Exit\r\n");
-    return res;
+    RIL_LOG_VERBOSE("CTEBase::ParseSetNetworkSelectionAutomatic() - Enter / Exit\r\n");
+    return RRIL_RESULT_OK;
 }
 
 //
@@ -5073,7 +5064,6 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionManual(REQUEST_DATA& rReqData,
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     const char* pszNumeric = NULL;
-    char* pTemp = NULL;
 
     if (sizeof(char*) != uiDataSize)
     {
@@ -5091,74 +5081,21 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionManual(REQUEST_DATA& rReqData,
 
     pszNumeric = (char*)pData;
 
-    //  Prepare to copy this to context for parse function
-    pTemp = new char[MAX_BUFFER_SIZE];
-    if (!pTemp)
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreSetNetworkSelectionManual() - Cannot allocate memory\r\n");
-        goto Error;
-    }
-
-    if (!CopyStringNullTerminate(pTemp, pszNumeric, MAX_BUFFER_SIZE))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreSetNetworkSelectionManual() -"
-                " Cannot CopyStringNullTerminate pszNumeric\r\n");
-        goto Error;
-    }
-    rReqData.pContextData = (void*)pTemp;
-
-    //  Send AT command
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            "AT+COPS=1,2,\"%s\"\r", pszNumeric))
-    {
-        RIL_LOG_CRITICAL("CTEBase::CoreSetNetworkSelectionManual() - Failed to write command "
-                "to buffer!\r\n");
-        goto Error;
-    }
+    m_NetworkSelectionModeParams.mode = E_NETWORK_SELECTION_MODE_MANUAL;
+    CopyStringNullTerminate(m_NetworkSelectionModeParams.szOperatorNumeric,
+            pszNumeric, sizeof(m_NetworkSelectionModeParams.szOperatorNumeric));
 
     res = RRIL_RESULT_OK;
 
 Error:
-    if (res != RRIL_RESULT_OK)
-    {
-        delete []pTemp;
-        pTemp = NULL;
-        rReqData.pContextData = NULL;
-    }
     RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionManual() - Exit\r\n");
     return res;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetNetworkSelectionManual(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseSetNetworkSelectionManual() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    //  Extract from context
-    char* pTemp = (char*)rRspData.pContextData;
-    if (!pTemp)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSetNetworkSelectionManual() -"
-                " Cannot extract pContextData\r\n");
-        goto Error;
-    }
-
-    if (!CopyStringNullTerminate(m_szManualMCCMNC, pTemp, MAX_BUFFER_SIZE))
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSetNetworkSelectionManual() -"
-                " Cannot CopyStringNullTerminate pTemp\r\n");
-        goto Error;
-    }
-    m_nNetworkRegistrationType = 1;
-
-    delete[] pTemp;
-    pTemp = NULL;
-
-    res = RRIL_RESULT_OK;
-Error:
-    RIL_LOG_VERBOSE("CTEBase::ParseSetNetworkSelectionManual() - Exit\r\n");
-    return res;
+    RIL_LOG_VERBOSE("CTEBase::ParseSetNetworkSelectionManual() - Enter / Exit\r\n");
+    return RRIL_RESULT_OK;
 }
 
 //
@@ -6287,15 +6224,15 @@ Error:
         {
             if (pContextParams->szIpV6Addr[0] == '\0')
             {
-                CopyStringNullTerminate(szPdpType, "IP", MAX_PDP_TYPE_SIZE);
+                CopyStringNullTerminate(szPdpType, PDPTYPE_IP, sizeof(szPdpType));
             }
             else if (pContextParams->szIpV4Addr[0] == '\0')
             {
-                CopyStringNullTerminate(szPdpType, "IPV6", MAX_PDP_TYPE_SIZE);
+                CopyStringNullTerminate(szPdpType, PDPTYPE_IPV6, sizeof(szPdpType));
             }
             else
             {
-                CopyStringNullTerminate(szPdpType, "IPV4V6", MAX_PDP_TYPE_SIZE);
+                CopyStringNullTerminate(szPdpType, PDPTYPE_IPV4V6, sizeof(szPdpType));
             }
         }
 
@@ -8876,7 +8813,7 @@ void CTEBase::RestartUnsolCellInfoListTimer(int newRate)
     }
 }
 
-// RIL_REQUEST_SET_INITIAL_ATTACH_APN: // 111
+// RIL_REQUEST_SET_INITIAL_ATTACH_APN 111
 RIL_RESULT_CODE CTEBase::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
                                                                  void* pData,
                                                                  UINT32 uiDataSize)
@@ -12054,4 +11991,143 @@ RIL_RESULT_CODE CTEBase::HandleSimIO(RIL_SIM_IO_v6* pSimIOArgs, REQUEST_DATA& rR
 Error:
     RIL_LOG_VERBOSE("CTEBase::HandleSimIO() - Exit\r\n");
     return res;
+}
+
+void CTEBase::ResetInitialAttachApn()
+{
+    m_InitialAttachApnParams.szApn[0] = '\0';
+    m_InitialAttachApnParams.szPdpType[0] = '\0';
+}
+
+RIL_RESULT_CODE CTEBase::RestoreSavedNetworkSelectionMode(RIL_Token rilToken, UINT32 uiChannel,
+        PFN_TE_PARSE pParseFcn, PFN_TE_POSTCMDHANDLER pHandlerFcn)
+{
+    RIL_LOG_VERBOSE("CTEBase::RestoreSavedNetworkSelectionMode() - Enter\r\n");
+
+    if (m_InitialAttachApnParams.szPdpType[0] == '\0')
+    {
+        /*
+         * Initial attach apn can't be set as android telephony framework hasn't provided
+         * initial attach apn parameters. Network selection mode will be restored once
+         * the initial attach apn is set.
+         */
+        RIL_LOG_INFO("CTEBase::RestoreSavedNetworkSelectionMode() - "
+                "initial attach apn not set\r\n");
+        return RRIL_RESULT_OK_IMMEDIATE;
+    }
+
+    char szCmd[MAX_BUFFER_SIZE] = {0};
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int requestId = RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC;
+    CCommand* pCmd = NULL;
+
+    if (m_NetworkSelectionModeParams.mode == E_NETWORK_SELECTION_MODE_AUTOMATIC)
+    {
+        if (!CopyStringNullTerminate(szCmd, "AT+COPS=0\r", sizeof(szCmd)))
+        {
+            RIL_LOG_CRITICAL("CTEBase::RestoreSavedNetworkSelectionMode() - "
+                    "Failed to write command to buffer!\r\n");
+            goto Error;
+        }
+    }
+    else if (m_NetworkSelectionModeParams.mode == E_NETWORK_SELECTION_MODE_MANUAL
+            && strlen(m_NetworkSelectionModeParams.szOperatorNumeric) > 0)
+    {
+        requestId = RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL;
+
+        if (!PrintStringNullTerminate(szCmd, sizeof(szCmd),
+                "AT+COPS=1,2,\"%s\"\r", m_NetworkSelectionModeParams.szOperatorNumeric))
+        {
+            RIL_LOG_CRITICAL("CTEBase::RestoreSavedNetworkSelectionMode() - "
+                    "Failed to write command to buffer!\r\n");
+            goto Error;
+        }
+    }
+    else
+    {
+        /*
+         * Network selection mode parameters are not set. This is possible when the
+         * network selection request is not yet sent by Android Telephony framework.
+         */
+        res = RRIL_RESULT_OK;
+        goto Error;
+    }
+
+    pCmd = new CCommand(uiChannel, rilToken, requestId, szCmd, pParseFcn, pHandlerFcn);
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::RestoreSavedNetworkSelectionMode() -"
+                    " Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+            goto Error;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::RestoreSavedNetworkSelectionMode() -"
+                " Unable to allocate memory for command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTEBase::RestoreSavedNetworkSelectionMode() - Exit\r\n");
+    return res;
+}
+
+BOOL CTEBase::GetSetInitialAttachApnReqData(REQUEST_DATA& /*rReqData*/)
+{
+    return TRUE;
+}
+
+void CTEBase::SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel)
+{
+    RIL_LOG_VERBOSE("CTEBase::SetInitialAttachApn() - Enter\r\n");
+
+    if (m_InitialAttachApnParams.szPdpType[0] == '\0')
+    {
+        /*
+         * Initial attach apn can't be set as android telephony framework hasn't provided
+         * initial attach apn parameters.
+         */
+        return;
+    }
+
+    if (0 == uiChannel)
+    {
+        uiChannel = g_pReqInfo[RIL_REQUEST_SET_INITIAL_ATTACH_APN].uiChannel;
+    }
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    if (!GetSetInitialAttachApnReqData(reqData))
+    {
+        return;
+    }
+
+    CCommand* pCmd = new CCommand(uiChannel, rilToken, RIL_REQUEST_SET_INITIAL_ATTACH_APN,
+            reqData, &CTE::ParseSetInitialAttachApn, &CTE::PostSetInitialAttachApnCmdHandler);
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::SetInitialAttachApn() -"
+                    " Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::SetInitialAttachApn() -"
+                " Unable to allocate memory for command\r\n");
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::SetInitialAttachApn() - Exit\r\n");
 }

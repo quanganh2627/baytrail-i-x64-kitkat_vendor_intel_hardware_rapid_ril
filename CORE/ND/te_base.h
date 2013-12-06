@@ -32,8 +32,6 @@ protected:
     char m_szNewLine[3];
     CInitializer* m_pInitializer;
     char m_szNetworkInterfaceNamePrefix[MAX_BUFFER_SIZE];
-    int m_nNetworkRegistrationType;  //  0 = automatic, 1 = manual
-    char m_szManualMCCMNC[MAX_BUFFER_SIZE];  //  If manual, this holds the MCCMNC string.
     char m_szPIN[MAX_PIN_SIZE];
     android::Vector<RIL_GSM_BroadcastSmsConfigInfo> m_vBroadcastSmsConfigInfo;
     // This tracks the radio state and handles notifications
@@ -50,6 +48,12 @@ protected:
     BOOL m_bRefreshWithUSIMInitOn;
 
     CEvent* m_pUiccOpenLogicalChannelEvent;
+    S_NETWORK_SELECTION_MODE_PARAMS m_NetworkSelectionModeParams;
+    S_INITIAL_ATTACH_APN_PARAMS m_InitialAttachApnParams;
+
+    static const char* PDPTYPE_IPV4V6;
+    static const char* PDPTYPE_IPV6;
+    static const char* PDPTYPE_IP;
 
 public:
     CTEBase(CTE& cte);
@@ -947,6 +951,13 @@ public:
         CEvent::Signal(m_pUiccOpenLogicalChannelEvent);
     }
 
+    void ResetInitialAttachApn();
+
+    virtual RIL_RESULT_CODE RestoreSavedNetworkSelectionMode(RIL_Token rilToken, UINT32 uiChannel,
+            PFN_TE_PARSE pParseFcn = NULL, PFN_TE_POSTCMDHANDLER pHandlerFcn = NULL);
+
+    virtual void SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);
 
@@ -974,6 +985,8 @@ protected:
     virtual void QuerySignalStrength();
 
     virtual BOOL ParseEFdir(const char* pszResponseString, const UINT32 uiResponseStringLen);
+
+    virtual BOOL GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData);
 
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA& rRspData);
