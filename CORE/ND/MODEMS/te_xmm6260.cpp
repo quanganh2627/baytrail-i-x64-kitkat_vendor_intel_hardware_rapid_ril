@@ -6238,7 +6238,8 @@ void CTE_XMM6260::HandleInternalDtmfStopReq()
     RIL_LOG_VERBOSE("CTE_XMM6260::HandleInternalDtmfStopReq() - Enter\r\n");
 
     CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DTMF_STOP].uiChannel,
-                                    NULL, RIL_REQUEST_DTMF_STOP, "AT+XVTS\r");
+                                    NULL, RIL_REQUEST_DTMF_STOP, "AT+XVTS\r",
+                                    NULL, &CTE::PostInternalDtmfStopReq);
 
     if (pCmd)
     {

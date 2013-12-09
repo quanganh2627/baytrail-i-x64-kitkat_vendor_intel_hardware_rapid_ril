@@ -1126,6 +1126,9 @@ public:
 
     void HandleCellBroadcastActivation();
 
+    // Post handler for internal DTMF stop request
+    void PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData);
+
 private:
     UINT32 m_uiModemType;
 

@@ -36,6 +36,7 @@
 #include "initializer.h"
 
 #define AT_MAXARGS 20
+#define WAIT_TIMEOUT_DTMF_STOP 20000
 
 CTEBase::CTEBase(CTE& cte)
 : m_cte(cte),
@@ -43,7 +44,8 @@ CTEBase::CTEBase(CTE& cte)
   m_pInitializer(NULL),
   m_nNetworkRegistrationType(0),
   m_nSimAppType(RIL_APPTYPE_UNKNOWN),
-  m_ePin2State(RIL_PINSTATE_UNKNOWN)
+  m_ePin2State(RIL_PINSTATE_UNKNOWN),
+  m_pDtmfStopReqEvent(NULL)
 {
     CRepository repository;
     strcpy(m_szNetworkInterfaceNamePrefix, "");
@@ -67,6 +69,8 @@ CTEBase::CTEBase(CTE& cte)
     memset(&m_IncomingCallInfo, 0, sizeof(m_IncomingCallInfo));
     memset(&m_PinRetryCount, -1, sizeof(m_PinRetryCount));
     memset(&m_VoiceCallInfo, -1, sizeof(m_VoiceCallInfo));
+
+    m_pDtmfStopReqEvent = new CEvent(NULL, TRUE);
 }
 
 CTEBase::~CTEBase()
@@ -74,6 +78,9 @@ CTEBase::~CTEBase()
     RIL_LOG_INFO("CTEBase::~CTEBase() - Deleting initializer\r\n");
     delete m_pInitializer;
     m_pInitializer = NULL;
+
+    delete m_pDtmfStopReqEvent;
+    m_pDtmfStopReqEvent = NULL;
 }
 
 BOOL CTEBase::IsRequestSupported(int requestId)
@@ -1590,7 +1597,9 @@ RIL_RESULT_CODE CTEBase::CoreSwitchHoldingAndActive(REQUEST_DATA& rReqData,
 
     if (E_DTMF_STATE_START == m_cte.GetDtmfState())
     {
+        CEvent::Reset(m_pDtmfStopReqEvent);
         HandleInternalDtmfStopReq();
+        CEvent::Wait(m_pDtmfStopReqEvent, WAIT_TIMEOUT_DTMF_STOP);
     }
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=2\r", sizeof(rReqData.szCmd1)))
@@ -1622,7 +1631,9 @@ RIL_RESULT_CODE CTEBase::CoreConference(REQUEST_DATA& rReqData, void* pData, UIN
 
     if (E_DTMF_STATE_START == m_cte.GetDtmfState())
     {
+        CEvent::Reset(m_pDtmfStopReqEvent);
         HandleInternalDtmfStopReq();
+        CEvent::Wait(m_pDtmfStopReqEvent, WAIT_TIMEOUT_DTMF_STOP);
     }
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=3\r", sizeof(rReqData.szCmd1)))
@@ -5750,7 +5761,9 @@ RIL_RESULT_CODE CTEBase::CoreSeparateConnection(REQUEST_DATA& rReqData,
 
     if (E_DTMF_STATE_START == m_cte.GetDtmfState())
     {
+        CEvent::Reset(m_pDtmfStopReqEvent);
         HandleInternalDtmfStopReq();
+        CEvent::Wait(m_pDtmfStopReqEvent, WAIT_TIMEOUT_DTMF_STOP);
     }
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
@@ -11487,4 +11500,11 @@ void CTEBase::SetAutomaticResponseforNwInitiatedContext(POST_CMD_HANDLER_DATA& r
     }
 
     RIL_LOG_VERBOSE("CTEBase::SetAutomaticResponseforNwInitiatedContext() - Exit\r\n");
+}
+
+void CTEBase::PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTEBase::PostInternalDtmfStopReq() Enter\r\n");
+    CEvent::Signal(m_pDtmfStopReqEvent);
+    RIL_LOG_VERBOSE("CTEBase::PostInternalDtmfStopReq() Exit\r\n");
 }
