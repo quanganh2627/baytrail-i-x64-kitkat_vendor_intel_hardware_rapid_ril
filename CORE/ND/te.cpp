@@ -63,7 +63,6 @@ CTE::CTE(UINT32 modemType) :
     m_bStkCapable(TRUE),
     m_bXDATASTATEnabled(FALSE),
     m_bIMSCapable(FALSE),
-    m_bSMSOverIPCapable(FALSE),
     m_bSupportCGPIAF(FALSE),
     m_bSignalStrengthReporting(FALSE),
     m_bCellInfoEnabled(TRUE),

@@ -712,8 +712,6 @@ public:
 
     void SetIMSCapable(BOOL bEnable) { m_bIMSCapable = bEnable; }
     BOOL IsIMSCapable() { return m_bIMSCapable; }
-    void SetSMSOverIPCapable(BOOL bEnable) { m_bSMSOverIPCapable = bEnable; }
-    BOOL IsSMSOverIPCapable() { return m_bSMSOverIPCapable; }
 
     void SetSupportCGPIAF(BOOL bSupportCGPIAF) { m_bSupportCGPIAF =  bSupportCGPIAF; }
     BOOL IsSupportCGPIAF() { return m_bSupportCGPIAF; }
@@ -1240,7 +1238,6 @@ private:
     BOOL m_bStkCapable;
     BOOL m_bXDATASTATEnabled;
     BOOL m_bIMSCapable;
-    BOOL m_bSMSOverIPCapable;
     BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
     BOOL m_bSignalStrengthReporting;
     BOOL m_bCellInfoEnabled;

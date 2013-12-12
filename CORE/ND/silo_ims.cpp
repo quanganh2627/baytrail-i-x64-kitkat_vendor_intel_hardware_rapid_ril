@@ -58,13 +58,12 @@ char* CSilo_IMS::GetURCInitString()
     {
         char szEnableIMS[MAX_BUFFER_SIZE] = {'\0'};
         PrintStringNullTerminate(szEnableIMS, MAX_BUFFER_SIZE,
-                "|+XICFG=0,1,50,1|+CISRVCC=1|+CIREP=1|+CIREG=1|+XISMSCFG=%d",
-                m_pSystemCapabilities->IsSMSOverIPCapable() ? 1 : 0);
+                "|+XICFG=0,1,50,1|+CISRVCC=1|+CIREP=1|+CIREG=1|+XISMSCFG=1");
 
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
                 MAX_BUFFER_SIZE - strlen(m_szURCInitString), szEnableIMS))
         {
-            RIL_LOG_CRITICAL("CSilo_IMS::GetURCInitString() : Failed to concat CISRVCC "
+            RIL_LOG_CRITICAL("CSilo_IMS::GetURCInitString() : Failed to concat XICFG CISRVCC "
                     "CIREP XISMSCFG to URC init string!\r\n");
             return NULL;
         }
