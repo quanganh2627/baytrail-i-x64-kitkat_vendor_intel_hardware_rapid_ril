@@ -33,6 +33,7 @@
 #include "rril.h"
 #include "repository.h"
 #include "rillog.h"
+#include "tcs.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -155,6 +156,7 @@ enum
 //////////////////////////////////////////////////////////////////////////
 // Class-Specific Strings
 
+static const char* REPO_DIR = "/system/etc/rril/";
 static const char* REPO_FILE = "/system/etc/rril/repository.txt";
 static const char* REPO_TMP_FILE = "/system/etc/rril/repository.tmp";
 static const char* GROUP_MARKER = "Group";
@@ -166,6 +168,7 @@ static const int   GROUP_MARKER_LEN = 5;
 
 struct CRepository::CRepLock CRepository::m_stLock = {{0}, {0}, 0, 0};
 bool CRepository::m_bInitialized = FALSE;
+char CRepository::m_cRepoPath[MAX_MODEM_NAME_LEN];
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -183,6 +186,9 @@ BOOL CRepository::Init()
 {
     m_bInitialized = FALSE;
 
+    tcs_handle_t* h = NULL;
+    tcs_cfg_t* cfg = NULL;
+
     CRepository::m_stLock.iReaders = 0;
     CRepository::m_stLock.iReadWaiters = 0;
 
@@ -198,7 +204,35 @@ BOOL CRepository::Init()
 
     m_bInitialized = TRUE;
 
+    snprintf(m_cRepoPath, MAX_MODEM_NAME_LEN, "%s", REPO_FILE);
+
+    h = tcs_init();
+    if (!h)
+    {
+        //Failed to init TCS
+         goto Error;
+    }
+
+    cfg = tcs_get_config(h);
+    if (!cfg)
+    {
+         //Failed to get current configuration
+         goto Error;
+    }
+
+    //Update repository path
+    snprintf(m_cRepoPath, MAX_MODEM_NAME_LEN, "%srepository%s.txt", REPO_DIR, cfg->mdm_info.name);
+
 Error:
+    if (h)
+        tcs_dispose(h);
+    //in case tcs init/get config failed, release the mutex
+    if ((m_bInitialized) && ((!h) || (!cfg)))
+    {
+        pthread_mutex_destroy(&m_stLock.stLock);
+        pthread_cond_destroy(&m_stLock.stRead);
+        m_bInitialized = FALSE;
+    }
     return m_bInitialized;
 }
 
@@ -219,14 +253,21 @@ BOOL CRepository::OpenRepositoryFile()
     BOOL fRetVal = FALSE;
 
     m_iLine = 1;
-    m_iFd   = open(REPO_FILE, O_RDONLY);
+    m_iFd   = open(m_cRepoPath, O_RDONLY);
 
     if (m_iFd < 0)
     {
-        int iErrCode = errno;
-        RIL_LOG_CRITICAL("CRepository::OpenRepositoryFile() - Could not open file \"%s\" - %s\r\n",
-                REPO_FILE, strerror(iErrCode));
-        goto Error;
+        //Try to open repository file using old format and update the file path
+        snprintf(m_cRepoPath, MAX_MODEM_NAME_LEN, "%s", REPO_FILE);
+        m_iFd = open(m_cRepoPath, O_RDONLY);
+
+        if (m_iFd < 0)
+        {
+            int iErrCode = errno;
+            RIL_LOG_CRITICAL("OpenRepositoryFile()-Could not open file \"%s\" - %s\r\n",
+                m_cRepoPath, strerror(iErrCode));
+            goto Error;
+        }
     }
 
     // seek to beginning of file

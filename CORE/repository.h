@@ -29,6 +29,7 @@
 
 #include <pthread.h>
 #include "types.h"
+#include "constants.h"
 
 
 // define max FD timers
@@ -193,9 +194,10 @@ private:
     static const int MAX_LINE_LEN = 256;    // maximum length for a line in the NVM file
 
 private:
-    int m_iFd;                   // file descriptor
-    int m_iLine;                 // current line in file
-    static bool m_bInitialized;  // TRUE if repository initialized, FALSE otherwise
+    int m_iFd;                                    // file descriptor
+    int m_iLine;                                  // current line in file
+    static bool m_bInitialized;                   // TRUE if repository initialized, FALSE otherwise
+    static char  m_cRepoPath[MAX_MODEM_NAME_LEN]; // repository path
 };
 
 #endif // RRIL_REPOSITORY_H
