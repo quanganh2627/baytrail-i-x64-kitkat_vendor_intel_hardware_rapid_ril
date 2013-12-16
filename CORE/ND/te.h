@@ -1122,6 +1122,12 @@ public:
     // Post handler for internal DTMF stop request
     void PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData);
 
+    /*
+     * If the device is LTE registered, then network initiated contexts will be accepted.
+     * If the device is not LTE registered; then network initiated contexts will be rejected.
+     */
+    void AcceptOrRejectNwInitiatedContext();
+
 private:
     UINT32 m_uiModemType;
 

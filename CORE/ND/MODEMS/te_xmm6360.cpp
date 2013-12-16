@@ -113,9 +113,7 @@ char* CTE_XMM6360::GetUnlockInitCommands(UINT32 uiChannelType)
 
     if (RIL_CHANNEL_URC == uiChannelType)
     {
-        // add to init string. +CGAUTO=4
-        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
-                "|+CGAUTO=4");
+        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE, "|+CGAUTO=0");
     }
 
     RIL_LOG_VERBOSE("CTE_XMM6360::GetUnlockInitCommands() - Exit\r\n");

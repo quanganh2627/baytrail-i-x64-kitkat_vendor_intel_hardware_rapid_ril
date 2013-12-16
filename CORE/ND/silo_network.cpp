@@ -893,6 +893,16 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW ACT, extracted event=[%u]\r\n",
                             uiEvent);
 
+            if (1 == uiEvent)
+            {
+                /*
+                 * Note: This is a temporary solution to get the conformance test case
+                 * passed. If the NW initiated connection needs to be used across applications
+                 * then framework should be informed once the NW intiated context is activated.
+                 */
+                CTE::GetTE().AcceptOrRejectNwInitiatedContext();
+            }
+
             pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
             if (NULL != pChannelData)
             {

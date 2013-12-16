@@ -10091,3 +10091,28 @@ void CTE::PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData)
     RIL_LOG_VERBOSE("CTE::PostInternalDtmfStopReq() - Enter / Exit\r\n");
     m_pTEBaseInstance->PostInternalDtmfStopReq(rData);
 }
+
+void CTE::AcceptOrRejectNwInitiatedContext()
+{
+    CCommand* pCmd = new CCommand(
+            g_pReqInfo[RIL_REQUEST_DEACTIVATE_DATA_CALL].uiChannel, NULL,
+            RIL_REQUEST_DEACTIVATE_DATA_CALL,
+            IsEPSRegistered() ? "AT+CGANS=1\r": "AT+CGANS=0\r");
+
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE::AcceptNwInitiatedContext() -"
+                    " Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_INFO("CTE::AcceptNwInitiatedContext() -"
+                " Unable to allocate memory for command\r\n");
+    }
+}
