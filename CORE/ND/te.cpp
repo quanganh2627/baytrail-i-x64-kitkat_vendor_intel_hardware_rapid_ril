@@ -66,7 +66,6 @@ CTE::CTE(UINT32 modemType) :
     m_bIMSCapable(FALSE),
     m_bSMSOverIPCapable(FALSE),
     m_bSupportCGPIAF(FALSE),
-    m_bNwInitiatedContextActSupport(FALSE),
     m_bSignalStrengthReporting(FALSE),
     m_bCellInfoEnabled(TRUE),
     m_uiModeOfOperation(MODE_CS_PS_VOICE_CENTRIC),
@@ -9619,14 +9618,6 @@ void CTE::PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData)
     {
         RIL_LOG_CRITICAL("CTE::PostSetNetworkSelectionCmdHandler() rData.pRilToken NULL!\r\n");
         return;
-    }
-
-    if (RIL_E_SUCCESS == rData.uiResultCode)
-    {
-        if (IsNwInitiatedContextActSupported())
-        {
-            m_pTEBaseInstance->SetAutomaticResponseforNwInitiatedContext(rData);
-        }
     }
 
     // No need to handle ILLEGAL_SIM_OR_ME here since it is already handled in

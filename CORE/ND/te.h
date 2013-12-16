@@ -721,13 +721,6 @@ public:
     void SetSupportCGPIAF(BOOL bSupportCGPIAF) { m_bSupportCGPIAF =  bSupportCGPIAF; }
     BOOL IsSupportCGPIAF() { return m_bSupportCGPIAF; }
 
-    void SetNwInitiatedContextActSupport(BOOL bNwInitiatedContextActSupport)
-    {
-        m_bNwInitiatedContextActSupport =  bNwInitiatedContextActSupport;
-    }
-
-    BOOL IsNwInitiatedContextActSupported() { return m_bNwInitiatedContextActSupport; }
-
     void SetSignalStrengthReporting(BOOL bEnable) { m_bSignalStrengthReporting = bEnable; }
     BOOL IsSignalStrengthReportEnabled() { return m_bSignalStrengthReporting; }
 
@@ -1235,7 +1228,6 @@ private:
     BOOL m_bIMSCapable;
     BOOL m_bSMSOverIPCapable;
     BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
-    BOOL m_bNwInitiatedContextActSupport;
     BOOL m_bSignalStrengthReporting;
     BOOL m_bCellInfoEnabled;
 

@@ -907,9 +907,6 @@ public:
 
     virtual BOOL IsInCall();
 
-    // Sets automatic response for network initiated context activation (called internally)
-    virtual void SetAutomaticResponseforNwInitiatedContext(POST_CMD_HANDLER_DATA& rData);
-
     // Post handler for internal DTMF stop request
     virtual void PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData);
 
