@@ -694,3 +694,33 @@ Error:
 
     return bRet;
 }
+/**
+ * Utility function to translate Hexadecimal array (characters) onto byte array (numeric values).
+ *
+ * @param szHexArray An allocated string of hexadecimal characters.
+ * @param uiLength Length of Hex array.
+ * @param szByteArray An allocated bytes/UINT8 array.
+ * @return true if extraction went well
+ */
+BOOL extractByteArrayFromString(const char* szHexArray, const UINT32 uiLength, UINT8* szByteArray)
+{
+    char szOneByte[3];
+    UINT32 uiVal = 0;
+    UINT32 uiCount = 0;
+
+    for (UINT32 i = 0; i < uiLength-1; i += 2)
+    {
+        szOneByte[0] = szHexArray[i];
+        szOneByte[1] = szHexArray[i+1];
+        szOneByte[2] = '\0';
+        // Several solution here, strtol could be used (maybe cleaner than scanf)
+        int ret = sscanf(szOneByte, "%02x", &uiVal);
+        if (ret == EOF) return FALSE;
+
+        szByteArray[uiCount] = (UINT8)uiVal; // ex: convert 'D0' chars onto 1 byte D0
+
+        uiCount++;
+    }
+
+    return TRUE;
+}

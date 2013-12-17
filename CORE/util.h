@@ -947,3 +947,6 @@ void convertIntToByteArray(unsigned char* outByteArray, int value);
 // convert an Integer into a byte array in Big Endian format starting at 'position'
 void convertIntToByteArrayAt(unsigned char* outByteArray, int value, int position);
 
+// Utility function to translate Hexadecimal array (characters) onto byte array (numeric values)
+BOOL extractByteArrayFromString(const char* szHexArray, const UINT32 uiLength, UINT8* szByteArray);
+

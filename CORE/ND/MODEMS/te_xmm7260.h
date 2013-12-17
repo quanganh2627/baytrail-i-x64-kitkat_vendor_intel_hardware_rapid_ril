@@ -61,6 +61,15 @@ public:
     // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
     virtual RIL_RESULT_CODE ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData);
 
+    // RIL_REQUEST_STK_GET_PROFILE
+    virtual RIL_RESULT_CODE CoreStkGetProfile(REQUEST_DATA& rReqData,
+                                                void* pData,
+                                                UINT32 uiDataSize);
+    // RIL_REQUEST_STK_SET_PROFILE
+    virtual RIL_RESULT_CODE CoreStkSetProfile(REQUEST_DATA& rReqData,
+                                                void* pData,
+                                                UINT32 uiDataSize);
+
 private:
 
     BOOL ParseEnvelopCommandResponse(const char* pszResponse, char* pszEnvelopResp,

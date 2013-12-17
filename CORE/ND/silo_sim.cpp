@@ -25,6 +25,7 @@
 #include "callbacks.h"
 #include "te.h"
 #include "reset.h"
+#include "ccatprofile.h"
 
 #include <cutils/properties.h>
 
@@ -56,6 +57,8 @@ CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
 
     memset(m_szECCList, 0, sizeof(m_szECCList));
 
+    m_pCatProfile = new CCatProfile();
+
     RIL_LOG_VERBOSE("CSilo_SIM::CSilo_SIM() - Exit\r\n");
 }
 
@@ -64,6 +67,8 @@ CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
 CSilo_SIM::~CSilo_SIM()
 {
     RIL_LOG_VERBOSE("CSilo_SIM::~CSilo_SIM() - Enter\r\n");
+    delete[] m_pCatProfile;
+    m_pCatProfile = NULL;
     RIL_LOG_VERBOSE("CSilo_SIM::~CSilo_SIM() - Exit\r\n");
 }
 
@@ -122,6 +127,64 @@ char* CSilo_SIM::GetURCInitString()
 ///////////////////////////////////////////////////////////////////////////////////////////////
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * This method checks if the proactive command PDU received is handled by AP and so reported to
+ * Android as a proactive command, else it will be considered as a notification.
+ * It uses the C-AT Profile class to find out if it is an indication URC or
+ * a notification URC.
+ * First, the TE profile must be set to the CAT Profile utility class.
+ * Then, URC is parsed.
+ * Finally, the ProactiveCommandInfo structure gives the type of URC.
+ *
+ * @param szUrcPointer : The URC string received through +CUSATP command.
+ * @param puiCmdId : The command id
+ * @return true is the received command is a proactive command
+ */
+BOOL CSilo_SIM::IsProactiveCmd(const char* szUrcPointer, UINT8* puiCmdId)
+{
+    BOOL bRet = FALSE;
+    CCatProfile::ProactiveCommandInfo info;
+    UINT32 uiProfileLength = 0;
+    // Default TE profile, if AT+CUSATR is not used.
+    const char* szTEProfile = "29E09721610F00186900001FE01FFFE6C70B0000070508002100000000180000";
+
+    if (!szUrcPointer)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::IsProactiveCmd() - ERROR NULL PARAMETER!\r\n");
+        goto Error;
+    }
+
+    // Read profile if not already set
+    if (m_pCatProfile->IsTeProfileSet() == FALSE)
+    {
+        uiProfileLength = strlen(szTEProfile);
+        m_pCatProfile->SetTeProfile(szTEProfile, uiProfileLength);
+    }
+
+    // Parse given URC
+    RIL_LOG_INFO("CSilo_SIM::IsProactiveCmd() : GOT URC:%s\r\n", szUrcPointer);
+
+    if (m_pCatProfile->ExtractPduInfo(szUrcPointer, strlen(szUrcPointer), &info))
+    {
+        bRet = info.isProactiveCmd;
+    }
+    else
+    {
+        // No proactive command was found in URC.
+        // For safety return TRUE to assume this is, indeed, a Proactive command.
+        bRet = TRUE;
+    }
+
+    *puiCmdId = info.uiCommandId;
+
+    RIL_LOG_INFO("CSilo_SIM::IsProactiveCmd() : RETURN:%d\r\n", bRet);
+
+    return bRet;
+
+Error:
+    return FALSE;
+}
 
 BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rszPointer)
 {
@@ -214,15 +277,6 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     UINT32 uiLength = 0;
     const char* pszEnd = NULL;
     BOOL fRet = FALSE;
-    char* pRefresh = NULL;
-    char* pFileTag = NULL;
-    char szRefreshCmd[] = "8103";
-    char szFileTag[] = "92";
-    char szFileTagLength[3] = {0};
-    char szFileID[5] = {0};
-    UINT32 uiFileTagLength = 0;
-    char szRefreshType[3] = {0};
-    RIL_SimRefreshResponse_v7* pSimRefreshResp = NULL;
     UINT32 uiModemType = CTE::GetTE().GetModemType();
 
     if (pResponse == NULL)
@@ -278,30 +332,64 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
 
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Hex String: \"%s\".\r\n", pszProactiveCmd);
 
+    ParsePduForRefresh(pszProactiveCmd);
+
+    // Normal STK Event notify
+    pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);
+
+    if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char) * uiLength, FALSE))
+    {
+        goto Error;
+    }
+
+    fRet = TRUE;
+
+Error:
+    if (!fRet)
+    {
+        free(pszProactiveCmd);
+        pszProactiveCmd = NULL;
+    }
+
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Exit\r\n");
+    return fRet;
+}
+
+void CSilo_SIM::ParsePduForRefresh(const char* pszPdu)
+{
+    RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - Enter\r\n");
+    char* pRefresh = NULL;
+    char* pFileTag = NULL;
+    char szFileTag[] = "92";
+    char szFileTagLength[3] = {0};
+    char szFileID[5] = {0};
+    UINT32 uiFileTagLength = 0;
+    char szRefreshCmd[] = "8103";
+    char szRefreshType[3] = {0};
+    RIL_SimRefreshResponse_v7* pSimRefreshResp = NULL;
+    UINT32 uiPduLength = strlen(pszPdu);
+
     //  Need to see if this is a SIM_REFRESH command.
     //  Check for "8103", jump next byte and verify if followed by "01".
-    pRefresh = strstr(pszProactiveCmd, szRefreshCmd);
+    pRefresh = strstr(pszPdu, szRefreshCmd);
     if (pRefresh)
     {
-        UINT32 uiPos = pRefresh - pszProactiveCmd;
-        //RIL_LOG_INFO("uiPos = %d\r\n", uiPos);
+        UINT32 uiPos = pRefresh - pszPdu;
 
         uiPos += strlen(szRefreshCmd);
-        //RIL_LOG_INFO("uiPos = %d  uiLength=%d\r\n", uiPos, uiLength);
-        if ( (uiPos + 6) < uiLength)  // 6 is next byte plus "01" plus type of SIM refresh
+        if ( (uiPos + 6) < uiPduLength)  // 6 is next byte plus "01" plus type of SIM refresh
         {
             //  Skip next byte
             uiPos += 2;
             //RIL_LOG_INFO("uiPos = %d\r\n", uiPos);
 
-            if (0 == strncmp(&pszProactiveCmd[uiPos], "01", 2))
+            if (0 == strncmp(&pszPdu[uiPos], "01", 2))
             {
                 //  Skip to type of SIM refresh
                 uiPos += 2;
-                //RIL_LOG_INFO("uiPos = %d\r\n", uiPos);
 
                 //  See what our SIM Refresh command is
-                strncpy(szRefreshType, &pszProactiveCmd[uiPos], 2);
+                strncpy(szRefreshType, &pszPdu[uiPos], 2);
                 uiPos += 2;
 
                 RIL_LOG_INFO("*** We found %s SIM_REFRESH   type=[%s]***\r\n",
@@ -337,7 +425,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                               (0 == strncmp(szRefreshType, "06", 2)) )
                     {
                         //  SIM_RESET
-                        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - SIM_RESET\r\n");
+                        RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - SIM_RESET\r\n");
                         /*
                          * Incase of IMC SUNRISE platform, SIM_RESET refresh
                          * is handled on the modem side. If the Android telephony
@@ -352,7 +440,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                               (0 == strncmp(szRefreshType, "07", 2)) )
                     {
                         //  SIM_FILE_UPDATE
-                        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - SIM_FILE_UPDATE\r\n");
+                        RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - SIM_FILE_UPDATE\r\n");
                         pSimRefreshResp->result = SIM_FILE_UPDATE;
                         /*
                          * The steering of roaming refresh case is handled on the modem
@@ -363,35 +451,31 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                         //  Tough part here - need to read file ID(s)
                         //  Android looks for EF_MBDN 0x6FC7 or EF_MAILBOX_CPHS 0x6F17
                         //  File tag is "92".  Just look for "92" from uiPos.
-                        if ('\0' != pszProactiveCmd[uiPos])
+                        if ('\0' != pszPdu[uiPos])
                         {
                             //  Look for "92"
-                            pFileTag = strstr(&pszProactiveCmd[uiPos], szFileTag);
+                            pFileTag = strstr(&pszPdu[uiPos], szFileTag);
                             if (pFileTag)
                             {
                                 //  Found "92" somewhere in rest of string
-                                uiPos = pFileTag - pszProactiveCmd;
+                                uiPos = pFileTag - pszPdu;
                                 uiPos += strlen(szFileTag);
                                 RIL_LOG_INFO("FOUND FileTag uiPos now = %d\r\n", uiPos);
-                                if (uiPos < uiLength)
+                                if (uiPos < uiPduLength)
                                 {
                                     //  Read length of tag
-                                    strncpy(szFileTagLength, &pszProactiveCmd[uiPos], 2);
-                                    //RIL_LOG_INFO("file tag length = %s\r\n", szFileTagLength);
+                                    strncpy(szFileTagLength, &pszPdu[uiPos], 2);
                                     uiFileTagLength = (UINT8)SemiByteCharsToByte(
                                             szFileTagLength[0], szFileTagLength[1]);
                                     RIL_LOG_INFO("file tag length = %d\r\n", uiFileTagLength);
                                     uiPos += 2;  //  we read the tag length
                                     uiPos += (uiFileTagLength * 2);
-                                    //RIL_LOG_INFO("uiPos is now end hopefully = %d
-                                    //         "uilength=%d\r\n", uiPos, uiLength);
 
-                                    if (uiPos <= uiLength)
+                                    if (uiPos <= uiPduLength)
                                     {
                                         //  Read last 2 bytes (last 4 characters) of tag
                                         uiPos -= 4;
-                                        //RIL_LOG_INFO("uiPos before reading fileID=%d\r\n", uiPos);
-                                        strncpy(szFileID, &pszProactiveCmd[uiPos], 4);
+                                        strncpy(szFileID, &pszPdu[uiPos], 4);
                                         RIL_LOG_INFO("szFileID[%s]\r\n", szFileID);
 
                                         //  Convert hex string to int
@@ -437,7 +521,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                 }
                 else
                 {
-                    RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationSATN() -"
+                    RIL_LOG_CRITICAL("CSilo_SIM::ParsePduForRefresh() -"
                             " cannot allocate pInts\r\n");
                 }
             }
@@ -445,31 +529,11 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
     }
 
 event_notify:
-    //  Normal STK Event notify
-    pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);
-
-    if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char) * uiLength, FALSE))
-    {
-        goto Error;
-    }
 
     free(pSimRefreshResp);
     pSimRefreshResp = NULL;
 
-    fRet = TRUE;
-
-Error:
-    if (!fRet)
-    {
-        free(pszProactiveCmd);
-        pszProactiveCmd = NULL;
-
-        free(pSimRefreshResp);
-        pSimRefreshResp = NULL;
-    }
-
-    RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - Exit\r\n");
-    return fRet;
+    RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - Exit\r\n");
 }
 
 BOOL CSilo_SIM::ParseTermRespConfirm(CResponse* const pResponse, const char*& rszPointer)
@@ -818,6 +882,7 @@ BOOL CSilo_SIM::ParseIndicationCusatp(CResponse* const pResponse, const char*& r
     UINT32 uiLength = 0;
     const char* pszEnd = NULL;
     BOOL fRet = FALSE;
+    UINT8 uiCmdTag = 0;
 
     if (pResponse == NULL)
     {
@@ -868,7 +933,25 @@ BOOL CSilo_SIM::ParseIndicationCusatp(CResponse* const pResponse, const char*& r
 
     RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatp() - Hex String: \"%s\".\r\n", pszProactiveCmd);
 
-    pResponse->SetResultCode(RIL_UNSOL_STK_PROACTIVE_COMMAND);
+    if (IsProactiveCmd(pszProactiveCmd, &uiCmdTag))
+    {
+        pResponse->SetResultCode(RIL_UNSOL_STK_PROACTIVE_COMMAND);
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationCUSATP() - IS A PROACTIVE COMMAND.\r\n",
+                pszProactiveCmd);
+    }
+    else
+    {
+        pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationCUSATP() - IS AN EVENT NOTIFICATION.\r\n",
+                pszProactiveCmd);
+    }
+
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCUSATP() - CmdId:0x%X\r\n", uiCmdTag);
+
+    if (uiCmdTag == CCatProfile::REFRESH)
+    {
+        ParsePduForRefresh(pszProactiveCmd);
+    }
 
     if (!pResponse->SetData((void*) pszProactiveCmd, sizeof(char) * uiLength, FALSE))
     {

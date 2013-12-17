@@ -225,6 +225,28 @@ Error:
 }
 
 //
+// RIL_REQUEST_STK_GET_PROFILE
+//
+RIL_RESULT_CODE CTE_XMM7260::CoreStkGetProfile(REQUEST_DATA& rReqData,
+                                                           void* pData,
+                                                           UINT32 uiDataSize)
+{
+    RIL_LOG_INFO("CTE_XMM7260::CoreStkGetProfile() - Enter/Exit\r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+//
+// RIL_REQUEST_STK_SET_PROFILE
+//
+RIL_RESULT_CODE CTE_XMM7260::CoreStkSetProfile(REQUEST_DATA& rReqData,
+                                                           void* pData,
+                                                           UINT32 uiDataSize)
+{
+    RIL_LOG_INFO("CTE_XMM7260::CoreStkSetProfile() - Enter/Exit\r\n");
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+//
 // RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
 //
 RIL_RESULT_CODE CTE_XMM7260::CoreStkSendTerminalResponse(REQUEST_DATA& rReqData,

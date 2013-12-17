@@ -27,6 +27,7 @@
 
 #include "silo.h"
 
+class CCatProfile;
 
 class CSilo_SIM : public CSilo
 {
@@ -52,6 +53,13 @@ protected:
 
     //  Emergency Call Codes list
     char m_szECCList[MAX_BUFFER_SIZE];
+
+private:
+    BOOL IsProactiveCmd(const char* szUrcPointer, UINT8* puiCmdId);
+    void ParsePduForRefresh(const char* pszPdu);
+
+private:
+    CCatProfile* m_pCatProfile;
 };
 
 #endif // RRIL_SILO_SIM_H
