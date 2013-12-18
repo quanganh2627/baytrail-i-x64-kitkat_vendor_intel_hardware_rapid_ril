@@ -213,7 +213,13 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
         triggerHangup(m_uiCallId);
 #endif // M2_VT_FEATURE_ENABLED
     }
-
+    else if (NULL != strstr(szType, "GPRS"))
+    {
+        RIL_LOG_INFO("CSilo_Voice::ParseExtRing() : NW initiated PDP context or"
+                " dedicated EPS bearer\r\n");
+        pResponse->SetIgnoreFlag(TRUE);
+        CTE::GetTE().AcceptOrRejectNwInitiatedContext();
+    }
     else
     {
         //  Unknown incoming ring
