@@ -1023,55 +1023,9 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     // see new format: "NW DEACT" below
     else if (FindAndSkipString(szStrExtract, "NW DEACT", szStrExtract))
     {
-        if (!ExtractUInt32(szStrExtract, uiPCID, szStrExtract))
-        {
-            goto Error;
-        }
-        else
-        {
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW DEACT , extracted pcid=[%u]\r\n",
-                    uiPCID);
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV(): NW DEACT");
 
-            if (FindAndSkipString(szStrExtract, ",", szStrExtract))
-            {
-                if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
-                {
-                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
-                    goto Error;
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
-                goto Error;
-            }
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW DEACT, extracted cid=[%u]\r\n",
-                    uiCID);
-            if (FindAndSkipString(szStrExtract, ",", szStrExtract))
-            {
-                if (!ExtractUInt32(szStrExtract, uiEvent, szStrExtract))
-                {
-                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Couldn't extract event\r\n");
-                    goto Error;
-                }
-            }
-
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW DEACT, extracted event=[%u]\r\n",
-                            uiEvent);
-
-            sOEM_HOOK_RAW_UNSOL_BEARER_DEACT* pNwDeact =
-                    (sOEM_HOOK_RAW_UNSOL_BEARER_DEACT*)malloc(
-                    sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
-            if (NULL != pNwDeact)
-            {
-                pNwDeact->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_DEACT;
-                pNwDeact->uiCid = uiCID;
-                pNwDeact->uiPcid = uiPCID;
-
-                RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pNwDeact,
-                        sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
-            }
-        }
+        HandleNwDeact(szStrExtract);
     }
     // Format: "ME PDN DEACT <cid>"
     else if (FindAndSkipString(szStrExtract, "ME PDN DEACT", szStrExtract))
@@ -1183,6 +1137,90 @@ BOOL CSilo_Network::GetContextIdFromDeact(const char* pData, UINT32& uiCID)
 Error:
     RIL_LOG_INFO("CSilo_Network::GetContextIdFromDeact() - Exit\r\n");
     return bRet;
+}
+
+void CSilo_Network::HandleNwDeact(const char*& szStrExtract)
+{
+    UINT32 uiPCID = 0;
+    UINT32 uiCID = 0;
+    UINT32 uiEvent = 0;
+
+    // We need to differentiate between former format
+    // "NW DEACT <PDP_type>, <PDP_addr>, [<cid>]" and new format for
+    // secondary PDP contexts "NW DEACT <p_cid>, <cid>, <event_type>
+
+    // If first parameter is a string, former format
+    if (!ExtractUInt32(szStrExtract, uiPCID, szStrExtract))
+    {
+        GetContextIdFromDeact(szStrExtract, uiCID);
+    }
+    else
+    {
+        RIL_LOG_INFO("CSilo_Network::HandleNwDeact() - NW DEACT , extracted pcid=[%u]\r\n",
+                uiPCID);
+
+        if (FindAndSkipString(szStrExtract, ",", szStrExtract))
+        {
+            if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
+                return;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::HandleNwDeact() - couldn't extract cid\r\n");
+            return;
+        }
+        RIL_LOG_INFO("CSilo_Network::HandleNwDeact() - NW DEACT, extracted cid=[%u]\r\n",
+                uiCID);
+        if (FindAndSkipString(szStrExtract, ",", szStrExtract))
+        {
+            if (!ExtractUInt32(szStrExtract, uiEvent, szStrExtract))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::HandleNwDeact() - Couldn't extract event\r\n");
+                return;
+            }
+        }
+
+        RIL_LOG_INFO("CSilo_Network::HandleNwDeact() - NW DEACT, extracted event=[%u]\r\n",
+                        uiEvent);
+
+        sOEM_HOOK_RAW_UNSOL_BEARER_DEACT* pNwDeact =
+                (sOEM_HOOK_RAW_UNSOL_BEARER_DEACT*)malloc(
+                sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
+        if (NULL != pNwDeact)
+        {
+            pNwDeact->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_DEACT;
+            pNwDeact->uiCid = uiCID;
+            pNwDeact->uiPcid = uiPCID;
+
+            RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pNwDeact,
+                    sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
+        }
+    }
+
+    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        //  This may occur using AT proxy during 3GPP conformance testing.
+        //  Let normal processing occur.
+        RIL_LOG_CRITICAL("CSilo_Network::HandleNwDeact() - Invalid CID=[%u],"
+                " no data channel found!\r\n", uiCID);
+    }
+    else
+    {
+        pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
+        /*
+         * @TODO: If fail cause is provided as part of NW DEACT,
+         * map the fail cause to ril cause values and set it.
+         */
+        pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
+
+        CTE::GetTE().DataConfigDown(uiCID, TRUE);
+
+        CTE::GetTE().CompleteDataCallListChanged();
+    }
 }
 
 void CSilo_Network::HandleMEDeactivation(const UINT32 uiCID)
