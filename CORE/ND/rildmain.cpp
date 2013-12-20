@@ -273,21 +273,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             break;
 
         case RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED:  // 1019
-            /*
-             * If the device is encrypted but not yet decrypted, then modem have been powered
-             * on for emergency call. Don't report sim status as this results in emergency call
-             * getting disconnected due to airplane mode activated by CryptKeeper on configuration
-             * changes.
-             */
-            if (CSystemManager::GetInstance().IsDeviceDecrypted())
-            {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - "
-                        "RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED\r\n");
-            }
-            else
-            {
-                bSendNotification = FALSE;
-            }
+            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED\r\n");
             break;
 
         case RIL_UNSOL_RESPONSE_CDMA_NEW_SMS:  // 1020 - CDMA, not supported
