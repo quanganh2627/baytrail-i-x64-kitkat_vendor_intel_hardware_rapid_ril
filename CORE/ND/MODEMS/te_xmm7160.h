@@ -116,10 +116,6 @@ public:
                                                        const char* pszRsp,
                                                        UINT32 uiIndex,
                                                        UINT32 uiMode);
-    virtual RIL_RESULT_CODE CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
-                                                               void* pData,
-                                                               UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSetInitialAttachApn(RESPONSE_DATA& rRspData);
 
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
 protected:

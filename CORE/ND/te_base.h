@@ -46,6 +46,8 @@ protected:
     S_PIN_RETRY_COUNT m_PinRetryCount;
     RIL_PinState m_ePin2State;
 
+    CEvent* m_pDtmfStopReqEvent;
+
 public:
     CTEBase(CTE& cte);
     virtual ~CTEBase();
@@ -907,6 +909,9 @@ public:
 
     // Sets automatic response for network initiated context activation (called internally)
     virtual void SetAutomaticResponseforNwInitiatedContext(POST_CMD_HANDLER_DATA& rData);
+
+    // Post handler for internal DTMF stop request
+    virtual void PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData);
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
