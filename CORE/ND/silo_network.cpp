@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <limits.h>
+#include <math.h>
 
 #include "types.h"
 #include "rillog.h"
@@ -45,6 +46,7 @@ CSilo_Network::CSilo_Network(CChannel* pChannel, CSystemCapabilities* pSysCaps)
     static ATRSPTABLE pATRspTable[] =
     {
         { "+XCSQ:"      , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCSQ         },
+        { "+XCESQI:"    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCESQI       },
         { "+CREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCREG         },
         { "+CGREG: "    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGREG        },
         { "+XREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXREG         },
@@ -92,11 +94,22 @@ char* CSilo_Network::GetURCInitString()
 
     if (CTE::GetTE().IsSignalStrengthReportEnabled())
     {
-        if (!ConcatenateStringNullTerminate(m_szURCInitString, MAX_BUFFER_SIZE, "|+XCSQ=1"))
+        const char* pszSignalStrengthURC = CTE::GetTE().GetSignalStrengthReportingString();
+        if (NULL != pszSignalStrengthURC)
         {
-            RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to concat "
-                    "XCSQ to URC init string!\r\n");
-            return NULL;
+            if (!ConcatenateStringNullTerminate(m_szURCInitString, MAX_BUFFER_SIZE, "|"))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() - concat of | failed\r\n");
+                return NULL;
+            }
+
+            if (!ConcatenateStringNullTerminate(m_szURCInitString, MAX_BUFFER_SIZE,
+                    pszSignalStrengthURC))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to copy signal"
+                        " strength URC string!\r\n");
+                return NULL;
+            }
         }
     }
 
@@ -803,6 +816,12 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             }
         }
 
+        if (NULL != pChannelData)
+        {
+            // Reset fail cause
+            pChannelData->SetDataFailCause(PDP_FAIL_NONE);
+        }
+
         if (FindAndSkipString(szStrExtract, ",", szStrExtract))
         {
             if (!ExtractUInt32(szStrExtract, uiReason, szStrExtract))
@@ -892,6 +911,16 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
 
             RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW ACT, extracted event=[%u]\r\n",
                             uiEvent);
+
+            if (1 == uiEvent)
+            {
+                /*
+                 * Note: This is a temporary solution to get the conformance test case
+                 * passed. If the NW initiated connection needs to be used across applications
+                 * then framework should be informed once the NW intiated context is activated.
+                 */
+                CTE::GetTE().AcceptOrRejectNwInitiatedContext();
+            }
 
             pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
             if (NULL != pChannelData)
@@ -1013,55 +1042,9 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     // see new format: "NW DEACT" below
     else if (FindAndSkipString(szStrExtract, "NW DEACT", szStrExtract))
     {
-        if (!ExtractUInt32(szStrExtract, uiPCID, szStrExtract))
-        {
-            goto Error;
-        }
-        else
-        {
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW DEACT , extracted pcid=[%u]\r\n",
-                    uiPCID);
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV(): NW DEACT");
 
-            if (FindAndSkipString(szStrExtract, ",", szStrExtract))
-            {
-                if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
-                {
-                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
-                    goto Error;
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
-                goto Error;
-            }
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW DEACT, extracted cid=[%u]\r\n",
-                    uiCID);
-            if (FindAndSkipString(szStrExtract, ",", szStrExtract))
-            {
-                if (!ExtractUInt32(szStrExtract, uiEvent, szStrExtract))
-                {
-                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Couldn't extract event\r\n");
-                    goto Error;
-                }
-            }
-
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW DEACT, extracted event=[%u]\r\n",
-                            uiEvent);
-
-            sOEM_HOOK_RAW_UNSOL_BEARER_DEACT* pNwDeact =
-                    (sOEM_HOOK_RAW_UNSOL_BEARER_DEACT*)malloc(
-                    sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
-            if (NULL != pNwDeact)
-            {
-                pNwDeact->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_DEACT;
-                pNwDeact->uiCid = uiCID;
-                pNwDeact->uiPcid = uiPCID;
-
-                RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pNwDeact,
-                        sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
-            }
-        }
+        HandleNwDeact(szStrExtract);
     }
     // Format: "ME PDN DEACT <cid>"
     else if (FindAndSkipString(szStrExtract, "ME PDN DEACT", szStrExtract))
@@ -1173,6 +1156,90 @@ BOOL CSilo_Network::GetContextIdFromDeact(const char* pData, UINT32& uiCID)
 Error:
     RIL_LOG_INFO("CSilo_Network::GetContextIdFromDeact() - Exit\r\n");
     return bRet;
+}
+
+void CSilo_Network::HandleNwDeact(const char*& szStrExtract)
+{
+    UINT32 uiPCID = 0;
+    UINT32 uiCID = 0;
+    UINT32 uiEvent = 0;
+
+    // We need to differentiate between former format
+    // "NW DEACT <PDP_type>, <PDP_addr>, [<cid>]" and new format for
+    // secondary PDP contexts "NW DEACT <p_cid>, <cid>, <event_type>
+
+    // If first parameter is a string, former format
+    if (!ExtractUInt32(szStrExtract, uiPCID, szStrExtract))
+    {
+        GetContextIdFromDeact(szStrExtract, uiCID);
+    }
+    else
+    {
+        RIL_LOG_INFO("CSilo_Network::HandleNwDeact() - NW DEACT , extracted pcid=[%u]\r\n",
+                uiPCID);
+
+        if (FindAndSkipString(szStrExtract, ",", szStrExtract))
+        {
+            if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
+                return;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::HandleNwDeact() - couldn't extract cid\r\n");
+            return;
+        }
+        RIL_LOG_INFO("CSilo_Network::HandleNwDeact() - NW DEACT, extracted cid=[%u]\r\n",
+                uiCID);
+        if (FindAndSkipString(szStrExtract, ",", szStrExtract))
+        {
+            if (!ExtractUInt32(szStrExtract, uiEvent, szStrExtract))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::HandleNwDeact() - Couldn't extract event\r\n");
+                return;
+            }
+        }
+
+        RIL_LOG_INFO("CSilo_Network::HandleNwDeact() - NW DEACT, extracted event=[%u]\r\n",
+                        uiEvent);
+
+        sOEM_HOOK_RAW_UNSOL_BEARER_DEACT* pNwDeact =
+                (sOEM_HOOK_RAW_UNSOL_BEARER_DEACT*)malloc(
+                sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
+        if (NULL != pNwDeact)
+        {
+            pNwDeact->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_DEACT;
+            pNwDeact->uiCid = uiCID;
+            pNwDeact->uiPcid = uiPCID;
+
+            RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pNwDeact,
+                    sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
+        }
+    }
+
+    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        //  This may occur using AT proxy during 3GPP conformance testing.
+        //  Let normal processing occur.
+        RIL_LOG_CRITICAL("CSilo_Network::HandleNwDeact() - Invalid CID=[%u],"
+                " no data channel found!\r\n", uiCID);
+    }
+    else
+    {
+        pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
+        /*
+         * @TODO: If fail cause is provided as part of NW DEACT,
+         * map the fail cause to ril cause values and set it.
+         */
+        pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
+
+        CTE::GetTE().DataConfigDown(uiCID, TRUE);
+
+        CTE::GetTE().CompleteDataCallListChanged();
+    }
 }
 
 void CSilo_Network::HandleMEDeactivation(const UINT32 uiCID)
@@ -1354,6 +1421,64 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCSQ() - Exit\r\n");
+    return bRet;
+}
+
+//
+//
+BOOL CSilo_Network::ParseXCESQI(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXCESQI() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    const char* pszDummy = NULL;
+    const char* pszStart = NULL;
+    char szBackup[MAX_NETWORK_DATA_SIZE] = {0};
+    RIL_SignalStrength_v6* pSigStrData = NULL;
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCESQI() - pResponse is NULL\r\n");
+        goto Error;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+
+    if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, pszDummy))
+    {
+        // This isn't a complete notification -- no need to parse it
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCESQI() - Failed to find rsp end!\r\n");
+        goto Error;
+    }
+
+    // Backup the XCESQI response string to report data on crashtool
+    pszStart = rszPointer;
+    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszDummy);
+    CTE::GetTE().SaveNetworkData(LAST_NETWORK_XCSQ, szBackup);
+
+    pSigStrData = CTE::GetTE().ParseXCESQ(rszPointer, TRUE);
+    if (NULL == pSigStrData)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCESQI() -"
+                " Could not allocate memory for RIL_SignalStrength_v6.\r\n");
+        goto Error;
+    }
+
+    if (!pResponse->SetData((void*)pSigStrData, sizeof(RIL_SignalStrength_v6), FALSE))
+    {
+        goto Error;
+    }
+
+    pResponse->SetResultCode(RIL_UNSOL_SIGNAL_STRENGTH);
+    bRet = TRUE;
+Error:
+    if (!bRet)
+    {
+        free(pSigStrData);
+        pSigStrData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXCESQI() - Exit\r\n");
     return bRet;
 }
 

@@ -11,6 +11,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <wchar.h>
+#include <math.h>
 
 //  This is for socket-related calls.
 #include <sys/ioctl.h>
@@ -129,7 +130,7 @@ const char* CTE_XMM7160::GetScreenOnString()
 {
     if (m_cte.IsSignalStrengthReportEnabled())
     {
-        return "AT+CREG=3;+CGREG=0;+XREG=3;+CEREG=3;+XCSQ=1\r";
+        return "AT+CREG=3;+CGREG=0;+XREG=3;+CEREG=3;+XCESQ=1\r";
     }
     return "AT+CREG=3;+CGREG=0;+XREG=3;+CEREG=3\r";
 }
@@ -139,14 +140,63 @@ const char* CTE_XMM7160::GetScreenOffString()
     if (m_cte.IsLocationUpdatesEnabled())
     {
         return m_cte.IsSignalStrengthReportEnabled() ?
-                "AT+CGREG=1;+CEREG=1;+XREG=0;+XCSQ=0\r" : "AT+CGREG=1;+CEREG=1;+XREG=0\r";
+                "AT+CGREG=1;+CEREG=1;+XREG=0;+XCESQ=0\r" : "AT+CGREG=1;+CEREG=1;+XREG=0\r";
     }
     else
     {
         return m_cte.IsSignalStrengthReportEnabled() ?
-                "AT+CREG=1;+CGREG=1;+CEREG=1;+XREG=0;+XCSQ=0\r" :
+                "AT+CREG=1;+CGREG=1;+CEREG=1;+XREG=0;+XCESQ=0\r" :
                 "AT+CREG=1;+CGREG=1;+CEREG=1;+XREG=0\r";
     }
+}
+
+const char* CTE_XMM7160::GetSignalStrengthReportingString()
+{
+    return "+XCESQ=1";
+}
+
+//
+// RIL_REQUEST_SIGNAL_STRENGTH 19
+//
+RIL_RESULT_CODE CTE_XMM7160::CoreSignalStrength(REQUEST_DATA& rReqData,
+        void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreSignalStrength() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCESQ?\r", sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreSignalStrength() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseSignalStrength(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseSignalStrength() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_SignalStrength_v6* pSigStrData = NULL;
+    const char* pszRsp = rRspData.szResponse;
+
+    pSigStrData = ParseXCESQ(pszRsp, FALSE);
+    if (NULL == pSigStrData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseSignalStrength() -"
+                " Could not allocate memory for RIL_SignalStrength_v6.\r\n");
+        goto Error;
+    }
+
+    rRspData.pData   = (void*)pSigStrData;
+    rRspData.uiDataSize  = sizeof(RIL_SignalStrength_v6);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseSignalStrength() - Exit\r\n");
+    return res;
 }
 
 //
@@ -1530,4 +1580,262 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
 Error:
     return res;
 
+}
+
+RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseXCESQ() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    UINT32 uiMode = 0;
+    UINT32 uiRxlev = 0; // received signal strength level
+    UINT32 uiBer = 0; // channel bit error rate
+    UINT32 uiRscp = 0; // Received signal code power
+    // ratio of the received energy per PN chip to the total received power spectral density
+    UINT32 uiEc = 0;
+    UINT32 uiRsrq = 0; // Reference signal received quality
+    UINT32 uiRsrp = 0; // Reference signal received power
+    UINT32 uiRssnr = 0; // Radio signal strength Noise Ratio value
+    RIL_SignalStrength_v6* pSigStrData = NULL;
+
+    if (!bUnsolicited)
+    {
+        // Parse "<prefix>+XCESQ: <n>,<rxlev>,<ber>,<rscp>,<ecno>,<rsrq>,<rsrp>,<rssnr><postfix>"
+        if (!SkipRspStart(rszPointer, m_szNewLine, rszPointer)
+                || !SkipString(rszPointer, "+XCESQ: ", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseUnsolicitedSignalStrength() - "
+                    "Could not find AT response.\r\n");
+            goto Error;
+        }
+
+        if (!ExtractUInt32(rszPointer, uiMode, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseUnsolicitedSignalStrength() - "
+                    "Could not extract <mode>\r\n");
+            goto Error;
+        }
+
+        if (!SkipString(rszPointer, ",", rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract , before uiRxlev\r\n");
+            goto Error;
+        }
+    }
+
+    if (!ExtractUInt32(rszPointer, uiRxlev, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rxlev>\r\n");
+        goto Error;
+    }
+
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiBer, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <ber>\r\n");
+        goto Error;
+    }
+
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiRscp, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rscp>\r\n");
+        goto Error;
+    }
+
+    // Not used
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiEc, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <ecno>\r\n");
+        goto Error;
+    }
+
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiRsrq, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rsrq>\r\n");
+        goto Error;
+    }
+
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiRsrp, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rsrp>.\r\n");
+        goto Error;
+    }
+
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiRssnr, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - "
+                "Could not extract <rssnr>.\r\n");
+        goto Error;
+    }
+
+    if (!bUnsolicited)
+    {
+        if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() -"
+                    " Could not extract the response end.\r\n");
+            goto Error;
+        }
+    }
+
+    pSigStrData = (RIL_SignalStrength_v6*)malloc(sizeof(RIL_SignalStrength_v6));
+    if (NULL == pSigStrData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() -"
+                " Could not allocate memory for RIL_SignalStrength_v6.\r\n");
+        goto Error;
+    }
+
+    // reset to default values
+    pSigStrData->GW_SignalStrength.signalStrength = -1;
+    pSigStrData->GW_SignalStrength.bitErrorRate   = -1;
+    pSigStrData->CDMA_SignalStrength.dbm = -1;
+    pSigStrData->CDMA_SignalStrength.ecio = -1;
+    pSigStrData->EVDO_SignalStrength.dbm = -1;
+    pSigStrData->EVDO_SignalStrength.ecio = -1;
+    pSigStrData->EVDO_SignalStrength.signalNoiseRatio = -1;
+    pSigStrData->LTE_SignalStrength.signalStrength = -1;
+    pSigStrData->LTE_SignalStrength.rsrp = INT_MAX;
+    pSigStrData->LTE_SignalStrength.rsrq = INT_MAX;
+    pSigStrData->LTE_SignalStrength.rssnr = INT_MAX;
+    pSigStrData->LTE_SignalStrength.cqi = INT_MAX;
+
+    /*
+     * If the current serving cell is GERAN cell, then <rxlev> and <ber> are set to
+     * valid values.
+     * For <rxlev>, valid values are 0 to 63.
+     * For <ber>, valid values are 0 to 7.
+     * If the current service cell is not GERAN cell, then <rxlev> and <ber> are set
+     * to value 99.
+     *
+     * If the current serving cell is UTRA cell, then <rscp> is set to valid value.
+     * For <rscp>, valid values are 0 to 96.
+     * If the current service cell is not UTRA cell, then <rscp> is set to value 255.
+     *
+     * If the current serving cell is E-UTRA cell, then <rsrq> and <rsrp> are set to
+     * valid values.
+     * For <rsrq>, valid values are 0 to 34.
+     * For <rsrp>, valid values are 0 to 97.
+     * If the current service cell is not E-UTRA cell, then <rsrq> and <rsrp> are set
+     * to value 255.
+     */
+    if (99 != uiRxlev)
+    {
+        /*
+         * As <rxlev> reported as part of XCESQ is not in line with the <rssi> reported
+         * as part of AT+CSQ and also what android expects, following conversion is done.
+         */
+        if (uiRxlev <= 57)
+        {
+            uiRxlev = floor(uiRxlev / 2) + 2;
+        }
+        else
+        {
+            uiRxlev = 31;
+        }
+
+        pSigStrData->GW_SignalStrength.signalStrength = uiRxlev;
+        pSigStrData->GW_SignalStrength.bitErrorRate   = uiBer;
+    }
+    else if (255 != uiRscp)
+    {
+        /*
+         * As <rscp> reported as part of XCESQ is not in line with the <rssi> reported
+         * as part of AT+CSQ and also what android expects, following conversion is done.
+         */
+        if (uiRscp <= 7)
+        {
+            uiRscp = 0;
+        }
+        else if (uiRscp <= 67)
+        {
+            uiRscp = floor((uiRscp - 6) / 2);
+        }
+        else
+        {
+            uiRscp = 31;
+        }
+
+        pSigStrData->GW_SignalStrength.signalStrength = uiRscp;
+    }
+    else if (255 != uiRsrq && 255 != uiRsrp)
+    {
+        pSigStrData->LTE_SignalStrength.rsrp = uiRsrp;
+        pSigStrData->LTE_SignalStrength.rsrq = uiRsrq;
+        pSigStrData->LTE_SignalStrength.rssnr = uiRssnr;
+    }
+    else
+    {
+        RIL_LOG_INFO("CTE_XMM7160::ParseXCESQ - "
+                "pSigStrData set to default values\r\n");
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pSigStrData);
+        pSigStrData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseXCESQ - Exit()\r\n");
+    return pSigStrData;
+}
+
+void CTE_XMM7160::QuerySignalStrength()
+{
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIGNAL_STRENGTH].uiChannel, NULL,
+            RIL_REQUEST_SIGNAL_STRENGTH, "AT+XCESQ?\r", &CTE::ParseUnsolicitedSignalStrength);
+
+    if (pCmd)
+    {
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::QuerySignalStrength() - Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::QuerySignalStrength() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+}
+
+//
+// RIL_UNSOL_SIGNAL_STRENGTH  1009
+//
+RIL_RESULT_CODE CTE_XMM7160::ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseUnsolicitedSignalStrength() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_SignalStrength_v6* pSigStrData = NULL;
+    const char* pszRsp = rRspData.szResponse;
+
+    pSigStrData = ParseXCESQ(pszRsp, FALSE);
+    if (NULL == pSigStrData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseUnsolicitedSignalStrength() -"
+                " parsing failed\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+    RIL_onUnsolicitedResponse(RIL_UNSOL_SIGNAL_STRENGTH, (void*)pSigStrData,
+            sizeof(RIL_SignalStrength_v6));
+
+Error:
+    free(pSigStrData);
+    pSigStrData = NULL;
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseUnsolicitedSignalStrength() - Exit\r\n");
+    return res;
 }

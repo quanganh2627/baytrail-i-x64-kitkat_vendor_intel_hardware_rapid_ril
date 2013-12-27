@@ -66,7 +66,6 @@ CTE::CTE(UINT32 modemType) :
     m_bIMSCapable(FALSE),
     m_bSMSOverIPCapable(FALSE),
     m_bSupportCGPIAF(FALSE),
-    m_bNwInitiatedContextActSupport(FALSE),
     m_bSignalStrengthReporting(FALSE),
     m_bCellInfoEnabled(TRUE),
     m_uiModeOfOperation(MODE_CS_PS_VOICE_CENTRIC),
@@ -9244,14 +9243,6 @@ void CTE::PostQueryAvailableNetworksCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostQueryAvailableNetworksCmdHandler() Enter\r\n");
 
-    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
-
-    property_get("persist.conformance", szConformanceProperty, NULL);
-    if (0 != strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
-    {
-        m_pTEBaseInstance->PSAttach();
-    }
-
     if (NULL == rData.pRilToken)
     {
         RIL_LOG_CRITICAL("CTE::PostQueryAvailableNetworksCmdHandler() rData.pRilToken NULL!\r\n");
@@ -9619,14 +9610,6 @@ void CTE::PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData)
     {
         RIL_LOG_CRITICAL("CTE::PostSetNetworkSelectionCmdHandler() rData.pRilToken NULL!\r\n");
         return;
-    }
-
-    if (RIL_E_SUCCESS == rData.uiResultCode)
-    {
-        if (IsNwInitiatedContextActSupported())
-        {
-            m_pTEBaseInstance->SetAutomaticResponseforNwInitiatedContext(rData);
-        }
     }
 
     // No need to handle ILLEGAL_SIM_OR_ME here since it is already handled in
@@ -10099,4 +10082,39 @@ void CTE::PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostInternalDtmfStopReq() - Enter / Exit\r\n");
     m_pTEBaseInstance->PostInternalDtmfStopReq(rData);
+}
+
+void CTE::AcceptOrRejectNwInitiatedContext()
+{
+    CCommand* pCmd = new CCommand(
+            g_pReqInfo[RIL_REQUEST_DEACTIVATE_DATA_CALL].uiChannel, NULL,
+            RIL_REQUEST_DEACTIVATE_DATA_CALL,
+            IsEPSRegistered() ? "AT+CGANS=1\r": "AT+CGANS=0\r");
+
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE::AcceptNwInitiatedContext() -"
+                    " Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_INFO("CTE::AcceptNwInitiatedContext() -"
+                " Unable to allocate memory for command\r\n");
+    }
+}
+
+const char* CTE::GetSignalStrengthReportingString()
+{
+    return m_pTEBaseInstance->GetSignalStrengthReportingString();
+}
+
+RIL_SignalStrength_v6* CTE::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
+{
+    return m_pTEBaseInstance->ParseXCESQ(rszPointer, bUnsolicited);
 }

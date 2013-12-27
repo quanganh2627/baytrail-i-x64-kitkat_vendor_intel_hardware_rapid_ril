@@ -721,13 +721,6 @@ public:
     void SetSupportCGPIAF(BOOL bSupportCGPIAF) { m_bSupportCGPIAF =  bSupportCGPIAF; }
     BOOL IsSupportCGPIAF() { return m_bSupportCGPIAF; }
 
-    void SetNwInitiatedContextActSupport(BOOL bNwInitiatedContextActSupport)
-    {
-        m_bNwInitiatedContextActSupport =  bNwInitiatedContextActSupport;
-    }
-
-    BOOL IsNwInitiatedContextActSupported() { return m_bNwInitiatedContextActSupport; }
-
     void SetSignalStrengthReporting(BOOL bEnable) { m_bSignalStrengthReporting = bEnable; }
     BOOL IsSignalStrengthReportEnabled() { return m_bSignalStrengthReporting; }
 
@@ -1129,6 +1122,17 @@ public:
     // Post handler for internal DTMF stop request
     void PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData);
 
+    /*
+     * If the device is LTE registered, then network initiated contexts will be accepted.
+     * If the device is not LTE registered; then network initiated contexts will be rejected.
+     */
+    void AcceptOrRejectNwInitiatedContext();
+
+    // Returns the signal strength reporting string used to enable signal strength URC
+    const char* GetSignalStrengthReportingString();
+
+    RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
+
 private:
     UINT32 m_uiModemType;
 
@@ -1235,7 +1239,6 @@ private:
     BOOL m_bIMSCapable;
     BOOL m_bSMSOverIPCapable;
     BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
-    BOOL m_bNwInitiatedContextActSupport;
     BOOL m_bSignalStrengthReporting;
     BOOL m_bCellInfoEnabled;
 

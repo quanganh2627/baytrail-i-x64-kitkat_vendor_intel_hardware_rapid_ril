@@ -95,7 +95,6 @@ extern const char   g_szSupportCGPIAF[];
 extern const char   g_szEnableSignalStrengthURC[];
 extern const char   g_szImeiBlackList[];
 extern const char   g_szModeOfOperation[];
-extern const char   g_szNwInitiatedContextAct[];
 
 // used by 6360 and 7160 modems.
 extern const char   g_szModemResourceName[];

@@ -162,6 +162,11 @@ const char* CTEBase::GetScreenOffString()
     }
 }
 
+const char* CTEBase::GetSignalStrengthReportingString()
+{
+    return NULL;
+}
+
 //
 // RIL_REQUEST_GET_SIM_STATUS 1
 //
@@ -1812,22 +1817,6 @@ RIL_RESULT_CODE CTEBase::CoreSignalStrength(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSignalStrength() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-#if defined(SIMULATE_UNSOL_MODEM_RESET)
-    //  NOTE: Uncomment this block to simulate unsolicited modem reset
-    static int nCount = 0;
-    nCount++;
-    RIL_LOG_INFO("COUNT = %d\r\n", nCount);
-    if (nCount == 4)
-    {
-        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CFUN=15\r", sizeof(rReqData.szCmd1)))
-        {
-            res = RRIL_RESULT_OK;
-        }
-    }
-    else
-
-#endif // SIMULATE_UNSOL_MODEM_RESET
 
     if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CSQ\r", sizeof(rReqData.szCmd1)))
     {
@@ -6701,7 +6690,7 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA& rRspData)
          */
         if (m_cte.IsSignalStrengthReportEnabled())
         {
-            triggerSignalStrength(NULL);
+            QuerySignalStrength();
         }
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
     }
@@ -10264,47 +10253,12 @@ RIL_RESULT_CODE CTEBase::ParseQueryIpAndDns(RESPONSE_DATA& rRspData)
     return RRIL_RESULT_OK; // only supported at modem level
 }
 
-void CTEBase::PSAttach()
-{
-    RIL_LOG_VERBOSE("CTEBase::PSAttach() - Enter\r\n");
-
-    CCommand* pCmd = new CCommand(
-            g_pReqInfo[RIL_REQUEST_QUERY_AVAILABLE_NETWORKS].uiChannel,
-            NULL, RIL_REQUEST_QUERY_AVAILABLE_NETWORKS, "AT+CGATT=1\r");
-    if (pCmd)
-    {
-        pCmd->SetHighPriority();
-        if (!CCommand::AddCmdToQueue(pCmd))
-        {
-            RIL_LOG_CRITICAL("CTEBase::PSAttach() - "
-                    "Unable to add command to queue\r\n");
-            delete pCmd;
-            pCmd = NULL;
-        }
-    }
-
-    RIL_LOG_VERBOSE("CTEBase::PSAttach() - Exit\r\n");
-}
-
 void CTEBase::DeactivateAllDataCalls()
 {
     RIL_LOG_VERBOSE("CTEBase::DeactivateAllDataCalls - Enter()\r\n");
 
-    char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
-    BOOL bConformance = FALSE;
-
-    property_get("persist.conformance", szConformanceProperty, NULL);
-
-    bConformance =
-            (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX)) ? TRUE : FALSE;
-
-    /*
-     * Note: Conformance test 34.123 12.9.6 fails when PS detach is sent.
-     * Instead of sending PS detach, send deactivate all data calls when
-     * conformance property is set.
-     */
     CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DEACTIVATE_DATA_CALL].uiChannel,
-            NULL, RIL_REQUEST_DEACTIVATE_DATA_CALL, bConformance ? "AT+CGACT=0\r" : "AT+CGATT=0\r",
+            NULL, RIL_REQUEST_DEACTIVATE_DATA_CALL, "AT+CGACT=0\r",
             &CTE::ParseDeactivateAllDataCalls);
 
     if (pCmd)
@@ -11473,38 +11427,35 @@ void CTEBase::WaitForModemPowerOffEvent()
         CEvent::Wait(pModemPoweredOffEvent, WAIT_FOREVER);
     }
 }
-
-//
-// Sets automatic response for network initiated context activation (called internally)
-//
-void CTEBase::SetAutomaticResponseforNwInitiatedContext(POST_CMD_HANDLER_DATA& rData)
+void CTEBase::PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData)
 {
-    RIL_LOG_VERBOSE("CTEBase::SetAutomaticResponseforNwInitiatedContext() Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::PostInternalDtmfStopReq() Enter\r\n");
+    CEvent::Signal(m_pDtmfStopReqEvent);
+    RIL_LOG_VERBOSE("CTEBase::PostInternalDtmfStopReq() Exit\r\n");
+}
 
-    CCommand* pCmd = new CCommand(RIL_CHANNEL_OEM, NULL, rData.requestId, "AT+CGAUTO=1\r");
+void CTEBase::QuerySignalStrength()
+{
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIGNAL_STRENGTH].uiChannel, NULL,
+            RIL_REQUEST_SIGNAL_STRENGTH, "AT+CSQ\r", &CTE::ParseUnsolicitedSignalStrength);
+
     if (pCmd)
     {
-        pCmd->SetHighPriority();
         if (!CCommand::AddCmdToQueue(pCmd))
         {
-            RIL_LOG_CRITICAL("CTEBase::SetAutomaticResponseforNwInitiatedContext() - "
-                    "Unable to add command to queue\r\n");
+            RIL_LOG_CRITICAL("CTEBase::QuerySignalStrength() - Unable to queue command!\r\n");
             delete pCmd;
             pCmd = NULL;
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CTEBase::SetAutomaticResponseforNwInitiatedContext() - "
-                "Unable to allocate memory for command\r\n");
+        RIL_LOG_CRITICAL("CTEBase::QuerySignalStrength() - "
+                "Unable to allocate memory for new command!\r\n");
     }
-
-    RIL_LOG_VERBOSE("CTEBase::SetAutomaticResponseforNwInitiatedContext() - Exit\r\n");
 }
 
-void CTEBase::PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData)
+RIL_SignalStrength_v6* CTEBase::ParseXCESQ(const char*& /*rszPointer*/, const BOOL /*bUnsolicited*/)
 {
-    RIL_LOG_VERBOSE("CTEBase::PostInternalDtmfStopReq() Enter\r\n");
-    CEvent::Signal(m_pDtmfStopReqEvent);
-    RIL_LOG_VERBOSE("CTEBase::PostInternalDtmfStopReq() Exit\r\n");
+    return NULL;
 }
