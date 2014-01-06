@@ -692,6 +692,10 @@ BOOL convertGsmToUtf8HexString(BYTE* pAlphaBuffer, int offset, const int length,
 
     bRet = TRUE;
 Error:
-    pszUtf8HexString[utf8Count] = '\0';
+    if (NULL != pszUtf8HexString)
+    {
+        pszUtf8HexString[utf8Count] = '\0';
+    }
+
     return bRet;
 }

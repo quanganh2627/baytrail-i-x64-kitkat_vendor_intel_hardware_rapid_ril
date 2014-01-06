@@ -7072,7 +7072,10 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCUAD(const char*& pszRsp)
 
     res = RRIL_RESULT_OK;
 Error:
-    FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp);
+    if (NULL != pszRsp)
+    {
+        FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp);
+    }
 
     delete[] pszResponseString;
     pszResponseString = NULL;
