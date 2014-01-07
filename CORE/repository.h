@@ -108,6 +108,9 @@ extern const char   g_szApnTypeSUPL[];
 extern const char   g_szApnTypeHIPRI[];
 extern const char   g_szApnTypeEmergency[];
 
+// used for SATK
+extern const char g_szTeProfile[];
+
 //////////////////////////////////////////////////////////////////////////
 
 extern const char   g_szGroupLogging[];

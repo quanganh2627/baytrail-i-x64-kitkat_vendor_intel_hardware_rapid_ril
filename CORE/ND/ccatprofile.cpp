@@ -14,6 +14,7 @@
 #include "ccatprofile.h"
 #include "extract.h"
 #include "util.h"
+#include "repository.h"
 
 CCatProfile::ProfileItem CCatProfile::s_proactiveUICCTable[] =
 {
@@ -137,7 +138,7 @@ CCatProfile::CCatProfile()
  : m_isTeProfileSet(FALSE)
 {
     RIL_LOG_VERBOSE("CCatProfile::CCatProfile() - Enter\r\n");
-
+    InitTeProfile();
     // Mapping of a profile string.
     // Focused on proactive commands.
 }
@@ -288,3 +289,31 @@ Error:
     RIL_LOG_CRITICAL("CCatProfile::ExtractPduInfo() : Return:%d\r\n", bRet);
     return bRet;
 }
+
+void CCatProfile::InitTeProfile()
+{
+    RIL_LOG_INFO("CCatProfile::InitTeProfile() - Enter\r\n");
+    CRepository repository;
+    const char* DEFAULT_TE_PROFILE
+            = "0000000000000000000000000000000000000000000000000000000000000000";
+    UINT32 uiProfileLength = strlen(DEFAULT_TE_PROFILE);
+    char szTeProfile[MAX_BUFFER_SIZE] = {'\0'};
+
+    if (IsTeProfileSet() == FALSE)
+    {
+        // Read the Te profile from repository.txt
+        if (!repository.Read(g_szGroupModem, g_szTeProfile, szTeProfile, MAX_BUFFER_SIZE))
+        {
+            SetTeProfile(DEFAULT_TE_PROFILE, uiProfileLength);
+            RIL_LOG_CRITICAL("CCatProfile::InitTeProfile() - "
+                    "No TE profile found in repository\r\n");
+        }
+        else
+        {
+            SetTeProfile(szTeProfile, strlen(szTeProfile));
+        }
+    }
+
+    RIL_LOG_INFO("CCatProfile::InitTeProfile() - Exit\r\n");
+}
+

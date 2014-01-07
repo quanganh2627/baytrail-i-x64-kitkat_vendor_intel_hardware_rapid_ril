@@ -121,6 +121,9 @@ const char   g_szApnTypeSUPL[]          = "ApnTypeSUPL";
 const char   g_szApnTypeHIPRI[]         = "ApnTypeHIPRI";
 const char   g_szApnTypeEmergency[]     = "ApnTypeEmergency";
 
+// used for SATK
+const char   g_szTeProfile[]             = "TeProfile";
+
 /////////////////////////////////////////////////
 
 const char   g_szGroupLogging[]                 = "Logging";

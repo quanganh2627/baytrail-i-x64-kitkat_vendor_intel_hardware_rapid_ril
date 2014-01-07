@@ -141,6 +141,7 @@ private:
     // USAT command ID table
     static ProfileItem s_proactiveUICCTable[];
 
+    void InitTeProfile();
 };
 
 #endif // CCATPROFILE_H

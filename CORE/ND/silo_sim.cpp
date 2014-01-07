@@ -145,21 +145,11 @@ BOOL CSilo_SIM::IsProactiveCmd(const char* szUrcPointer, UINT8* puiCmdId)
 {
     BOOL bRet = FALSE;
     CCatProfile::ProactiveCommandInfo info;
-    UINT32 uiProfileLength = 0;
-    // Default TE profile, if AT+CUSATR is not used.
-    const char* szTEProfile = "29E09721610F00186900001FE01FFFE6C70B0000070508002100000000180000";
 
     if (!szUrcPointer)
     {
         RIL_LOG_CRITICAL("CSilo_SIM::IsProactiveCmd() - ERROR NULL PARAMETER!\r\n");
         goto Error;
-    }
-
-    // Read profile if not already set
-    if (m_pCatProfile->IsTeProfileSet() == FALSE)
-    {
-        uiProfileLength = strlen(szTEProfile);
-        m_pCatProfile->SetTeProfile(szTEProfile, uiProfileLength);
     }
 
     // Parse given URC
