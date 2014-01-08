@@ -2263,6 +2263,8 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
     BOOL bModemOffInFlightMode = m_cte.GetModemOffInFlightModeState();
     BOOL bTurnRadioOn = (0 == ((int*)pData)[0]) ? FALSE : TRUE;
 
+    CEvent* pRadioStateChangedEvent = m_cte.GetRadioStateChangedEvent();
+
     if (bTurnRadioOn)
     {
         switch (m_cte.GetLastModemEvent())
@@ -2412,6 +2414,16 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
     }
 
     /*
+     * The RadioStateChangedEvent is triggered in the PostRadioPower function.
+     * To avoid to be blocked in the wait of this event, we need to reset it before the sending
+     * of the AT and not just before to perform the wait
+     */
+    if (NULL != pRadioStateChangedEvent)
+    {
+        CEvent::Reset(pRadioStateChangedEvent);
+    }
+
+    /*
      * Note: RIL_Token is not provided as part of the command creation.
      * If the RIL_REQUEST_RADIO_POWER is for platform shutdown, then the
      * main thread(request handling thread) waits for ModemPoweredOffEvent.
@@ -2480,13 +2492,10 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
          *     - Upon radio state changed event complete the RADIO_POWER ON
          *       request.
          */
-        CEvent* pRadioStateChangedEvent = m_cte.GetRadioStateChangedEvent();
         CEvent* pCancelWaitEvent = CSystemManager::GetInstance().GetCancelWaitEvent();
 
         if (NULL != pRadioStateChangedEvent && NULL != pCancelWaitEvent)
         {
-            CEvent::Reset(pRadioStateChangedEvent);
-
             CEvent* rgpEvents[] = { pRadioStateChangedEvent, pCancelWaitEvent };
 
             CEvent::WaitForAnyEvent(2/*NumEvents*/, rgpEvents, WAIT_FOREVER);
