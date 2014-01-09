@@ -2711,6 +2711,8 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     UINT32 uiCID = 0;
     CChannel_Data* pChannelData = NULL;
     int retryTime = -1;
+    char* pszDataProfile = NULL;
+    int dataProfile = -1;
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
@@ -2727,6 +2729,9 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         goto Error;
     }
 
+    pszDataProfile = ((char**)pData)[1];
+    dataProfile = atoi(pszDataProfile);
+
     if (!IsSetupDataCallAllowed(retryTime))
     {
         RIL_Data_Call_Response_v6 dataCallResp;
@@ -2739,7 +2744,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         return RRIL_RESULT_OK;
     }
 
-    if (IsEPSRegistered())
+    if (IsEPSRegistered() && RIL_DATA_PROFILE_DEFAULT == dataProfile)
     {
         pChannelData = CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
 
