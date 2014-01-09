@@ -84,7 +84,7 @@ char* CSilo_Voice::GetBasicInitString()
         const char szVoiceBasicInitString[] = "+XCALLNBMMI=1";
 
         if (!ConcatenateStringNullTerminate(m_szBasicInitString,
-                MAX_BUFFER_SIZE - strlen(m_szBasicInitString), szVoiceBasicInitString))
+                sizeof(m_szBasicInitString), szVoiceBasicInitString))
         {
             RIL_LOG_CRITICAL("CSilo_Voice::GetBasicInitString() : Failed to copy "
                     "basic init string!\r\n");
@@ -103,7 +103,7 @@ char* CSilo_Voice::GetURCInitString()
     if (m_pSystemCapabilities->IsVoiceCapable())
     {
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
-                MAX_BUFFER_SIZE - strlen(m_szURCInitString), szVoiceURCInitString))
+                sizeof(m_szURCInitString), szVoiceURCInitString))
         {
             RIL_LOG_CRITICAL("CSilo_Voice::GetURCInitString() : Failed to copy URC init "
                     "string!\r\n");
@@ -113,7 +113,7 @@ char* CSilo_Voice::GetURCInitString()
     else
     {
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
-                MAX_BUFFER_SIZE - strlen(m_szURCInitString), "|+XCONFIG=3,0"))
+                sizeof(m_szURCInitString), "|+XCONFIG=3,0"))
         {
             RIL_LOG_CRITICAL("CSilo_Voice::GetURCInitString() : Failed to copy XCONFIG to "
                     "URC init string!\r\n");
@@ -132,7 +132,7 @@ char* CSilo_Voice::GetURCUnlockInitString()
     if (m_pSystemCapabilities->IsVoiceCapable())
     {
         if (!ConcatenateStringNullTerminate(m_szURCUnlockInitString,
-                MAX_BUFFER_SIZE - strlen(m_szURCUnlockInitString), szVoiceUnlockInitString))
+                sizeof(m_szURCUnlockInitString), szVoiceUnlockInitString))
         {
             RIL_LOG_CRITICAL("CSilo_Voice::GetURCUnlockInitString() : Failed to copy URC "
                     "unlock init string!\r\n");

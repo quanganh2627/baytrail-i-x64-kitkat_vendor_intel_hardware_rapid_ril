@@ -56,7 +56,7 @@ CChannelBase::CChannelBase(UINT32 uiChannel)
 
     // default init string sent to all channels
     ConcatenateStringNullTerminate(m_szChannelBasicInitCmd,
-            MAX_BUFFER_SIZE - strlen(m_szChannelBasicInitCmd), "E0V1Q0X4|+CMEE=1|S0=0");
+            sizeof(m_szChannelBasicInitCmd), "E0V1Q0X4|+CMEE=1|S0=0");
 
     RIL_LOG_VERBOSE("CChannelBase::CChannelBase() - Exit\r\n");
 }

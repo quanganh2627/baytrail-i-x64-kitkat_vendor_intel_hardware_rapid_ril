@@ -74,7 +74,7 @@ char* CSilo_SIM::GetURCInitString()
     const char szSimURCInitString[] = "+XLEMA=1";
 
     if (!ConcatenateStringNullTerminate(m_szURCInitString,
-            MAX_BUFFER_SIZE - strlen(m_szURCInitString), szSimURCInitString))
+            sizeof(m_szURCInitString), szSimURCInitString))
     {
         RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to copy URC init "
                 "string!\r\n");
@@ -89,7 +89,8 @@ char* CSilo_SIM::GetURCInitString()
      */
     if (CSystemManager::GetInstance().IsDeviceDecrypted())
     {
-        if (!ConcatenateStringNullTerminate(m_szURCInitString, MAX_BUFFER_SIZE, "|+XSIMSTATE=1"))
+        if (!ConcatenateStringNullTerminate(m_szURCInitString,
+                sizeof(m_szURCInitString), "|+XSIMSTATE=1"))
         {
             RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to copy XSIMSTATE to URC"
                     " init string!\r\n");
@@ -107,7 +108,7 @@ char* CSilo_SIM::GetURCInitString()
          * but the STK URCs are disabled.
          */
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
-                MAX_BUFFER_SIZE - strlen(m_szURCInitString), "|+XSATK=1,0"))
+                sizeof(m_szURCInitString), "|+XSATK=1,0"))
         {
             RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to concat XSATK to URC "
                     "init string!\r\n");

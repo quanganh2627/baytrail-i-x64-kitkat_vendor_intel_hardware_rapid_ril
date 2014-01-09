@@ -80,7 +80,7 @@ char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
 
     if (RIL_CHANNEL_URC == uiChannelType)
     {
-        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE - strlen(szInitCmd),
+        ConcatenateStringNullTerminate(szInitCmd, sizeof(szInitCmd),
                 GetRegistrationInitString());
     }
 

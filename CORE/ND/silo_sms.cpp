@@ -61,7 +61,7 @@ char* CSilo_SMS::GetBasicInitString()
     if (m_pSystemCapabilities->IsSmsCapable())
     {
         if (!ConcatenateStringNullTerminate(m_szBasicInitString,
-                MAX_BUFFER_SIZE - strlen(m_szBasicInitString), szSmsBasicInitString))
+                sizeof(m_szBasicInitString), szSmsBasicInitString))
         {
             RIL_LOG_CRITICAL("CSilo_SMS::GetBasicInitString() : Failed to copy basic init "
                     "string!\r\n");
@@ -79,7 +79,7 @@ char* CSilo_SMS::GetUnlockInitString()
     if (m_pSystemCapabilities->IsSmsCapable())
     {
         if (!ConcatenateStringNullTerminate(m_szUnlockInitString,
-                MAX_BUFFER_SIZE - strlen(m_szUnlockInitString), szSmsUnlockInitString))
+                sizeof(m_szUnlockInitString), szSmsUnlockInitString))
         {
             RIL_LOG_CRITICAL("CSilo_SMS::GetUnlockInitString() : Failed to copy unlock init "
                     "string!\r\n");
@@ -96,7 +96,7 @@ char* CSilo_SMS::GetURCInitString()
     if (m_pSystemCapabilities->IsSmsCapable())
     {
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
-                MAX_BUFFER_SIZE - strlen(m_szURCInitString), szSmsURCInitString))
+                sizeof(m_szURCInitString), szSmsURCInitString))
         {
             RIL_LOG_CRITICAL("CSilo_SMS::GetURCInitString() : Failed to copy URC init "
                     "string!\r\n");
@@ -113,7 +113,7 @@ char* CSilo_SMS::GetURCUnlockInitString()
     if (m_pSystemCapabilities->IsSmsCapable())
     {
         if (!ConcatenateStringNullTerminate(m_szURCUnlockInitString,
-                MAX_BUFFER_SIZE - strlen(m_szURCUnlockInitString), szSmsURCUnlockInitString))
+                sizeof(m_szURCUnlockInitString), szSmsURCUnlockInitString))
         {
             RIL_LOG_CRITICAL("CSilo_SMS::GetURCUnlockInitString() : Failed to copy URC unlock "
                     "init string!\r\n");

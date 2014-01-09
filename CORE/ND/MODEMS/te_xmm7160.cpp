@@ -101,7 +101,7 @@ char* CTE_XMM7160::GetUnlockInitCommands(UINT32 uiChannelType)
             RIL_LOG_VERBOSE("CTE_XMM7160::GetUnlockInitCommands()- Repository read failed!\r\n");
         }
 
-        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE,
+        ConcatenateStringNullTerminate(szInitCmd, sizeof(szInitCmd),
                 (bConformance || (uiEnableCipheringInd != 0)) ? "|+XUCCI=1" : "|+XUCCI=0");
     }
 
@@ -804,9 +804,7 @@ RIL_RESULT_CODE CTE_XMM7160::CreateIMSConfigReq(REQUEST_DATA& rReqData,
                     goto Error;
                 }
             }
-            if (!ConcatenateStringNullTerminate(szTemp2Xicfg,
-                                                MAX_BUFFER_SIZE - strlen(szTemp2Xicfg),
-                                                szTemp1Xicfg))
+            if (!ConcatenateStringNullTerminate(szTemp2Xicfg, sizeof(szTemp2Xicfg), szTemp1Xicfg))
             {
                 RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't add %s.\r\n",
                                  szTemp1Xicfg);
@@ -822,8 +820,7 @@ RIL_RESULT_CODE CTE_XMM7160::CreateIMSConfigReq(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (!ConcatenateStringNullTerminate(szTemp2Xicfg, MAX_BUFFER_SIZE - strlen(szTemp2Xicfg),
-                                        "\r"))
+    if (!ConcatenateStringNullTerminate(szTemp2Xicfg, sizeof(szTemp2Xicfg), "\r"))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't add %s.\r\n",
                          "\r");
@@ -837,8 +834,7 @@ RIL_RESULT_CODE CTE_XMM7160::CreateIMSConfigReq(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (!ConcatenateStringNullTerminate(szXicfgCmd, MAX_BUFFER_SIZE - strlen(szXicfgCmd),
-                                        szTemp2Xicfg))
+    if (!ConcatenateStringNullTerminate(szXicfgCmd, sizeof(szXicfgCmd), szTemp2Xicfg))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't construct szCmd1.\r\n");
         goto Error;

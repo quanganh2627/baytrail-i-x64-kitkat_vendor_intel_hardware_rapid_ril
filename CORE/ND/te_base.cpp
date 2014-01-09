@@ -7982,7 +7982,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                     goto Error;
                                 }
                                 if (!ConcatenateStringNullTerminate(szChannels,
-                                        MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
+                                        sizeof(szChannels), szChannelsInt))
                                 {
                                     RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() -"
                                             " Unable to print from service id of"
@@ -8003,7 +8003,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                     goto Error;
                                 }
                                 if (!ConcatenateStringNullTerminate(szChannels,
-                                        MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
+                                        sizeof(szChannels), szChannelsInt))
                                 {
                                     RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() -"
                                             " Unable to print to service id of"
@@ -8074,7 +8074,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                     goto Error;
                                 }
                                 if (!ConcatenateStringNullTerminate(szLangs,
-                                        MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
+                                        sizeof(szLangs), szLangsInt))
                                 {
                                     RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() -"
                                             " Unable to print from service id of"
@@ -8094,7 +8094,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                     goto Error;
                                 }
                                 if (!ConcatenateStringNullTerminate(szLangs,
-                                        MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
+                                        sizeof(szLangs), szLangsInt))
                                 {
                                     RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() -"
                                             " Unable to print from service id of"
