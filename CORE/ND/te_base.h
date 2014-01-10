@@ -18,7 +18,6 @@
 #include "rril_OEM.h"
 #include "rril.h"
 #include "radio_state.h"
-#include "sim_state.h"
 #include <utils/Vector.h>
 
 class CChannel_Data;
@@ -36,17 +35,19 @@ protected:
     int m_nNetworkRegistrationType;  //  0 = automatic, 1 = manual
     char m_szManualMCCMNC[MAX_BUFFER_SIZE];  //  If manual, this holds the MCCMNC string.
     char m_szPIN[MAX_PIN_SIZE];
-    int m_nSimAppType;
     android::Vector<RIL_GSM_BroadcastSmsConfigInfo> m_vBroadcastSmsConfigInfo;
     // This tracks the radio state and handles notifications
     CRadioState m_RadioState;
-    // This class tracks the SIM state and handles notifications
-    CSimState m_SIMState;
 
     S_PIN_RETRY_COUNT m_PinRetryCount;
     RIL_PinState m_ePin2State;
+    char m_szUICCID[PROPERTY_VALUE_MAX];
+    RIL_CardStatus_v6 m_CardStatusCache;
+    S_ND_SIM_APP_LIST_DATA m_SimAppListData;
 
     CEvent* m_pDtmfStopReqEvent;
+    BOOL m_bReadyForAttach;
+    BOOL m_bRefreshWithUSIMInitOn;
 
 public:
     CTEBase(CTE& cte);
@@ -60,8 +61,6 @@ public:
 
     virtual char* GetBasicInitCommands(UINT32 uiChannelType);
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
-
-    virtual int GetSIMAppType() { return m_nSimAppType; }
 
     virtual BOOL IsRequestSupported(int requestId);
 
@@ -786,15 +785,24 @@ public:
     virtual RIL_RESULT_CODE ParseQueryNEER(RESPONSE_DATA& rRspData);
     virtual BOOL ParseNEER(RESPONSE_DATA& rRspData, UINT32& uiCause);
 
-    // Manage SIM and Radio states
+    // Getter functions for SIM and Radio states
     virtual RIL_RadioState GetRadioState();
-    virtual RRIL_SIM_State GetSIMState();
+    virtual int GetSimCardState();
+    virtual int GetSimAppState();
+    virtual int GetSimPinState();
+    virtual void GetSimAppIdAndLabel(const int app_type, char* pszAppId[], char* pszAppLabel[]);
+    virtual void GetSimAppId(const int app_type, char* pszAppId, const int maxAppIdLength);
+
+    // Setter functions for SIM and Radio states
     virtual void SetRadioState(const RRIL_Radio_State eRadioState);
     virtual void SetRadioStateAndNotify(const RRIL_Radio_State eRadioState);
-    virtual void SetSIMState(const RRIL_SIM_State eSIMState);
+    virtual void SetSimState(const int cardState, const int appState, const int pinState);
+    virtual void SetSimAppState(const int appState);
+    virtual void SetPersonalisationSubState(const int perso_substate);
+    virtual void UpdateIsimAppState();
 
     // Returns true on PIN entry required
-    virtual BOOL IsPinEnabled(RIL_CardStatus_v6* pCardStatus);
+    virtual BOOL IsPinEnabled();
 
     // Silent Pin Entry request and response handler
     virtual BOOL HandleSilentPINEntry(void* pRilToken, void* pContextData, int dataSize);
@@ -905,8 +913,21 @@ public:
 
     virtual RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
 
+    virtual void ResetCardStatus(BOOL bForceReset);
+    virtual void QueryUiccInfo();
+    virtual RIL_RESULT_CODE ParseQueryActiveApplicationType(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseQueryAvailableApplications(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseQueryIccId(RESPONSE_DATA& rRspData);
+
+    virtual void CopyCardStatus(RIL_CardStatus_v6& cardStatus);
+    virtual void HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange);
+    virtual void SetRefreshWithUsimInitOn(BOOL bOn)
+    {
+        m_bRefreshWithUSIMInitOn = bOn;
+    }
+
 protected:
-    RIL_RESULT_CODE ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus);
+    RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);
 
     virtual const char* GetRegistrationInitString();
     virtual const char* GetCsRegistrationReadString();
@@ -931,6 +952,8 @@ protected:
 
     virtual void QuerySignalStrength();
 
+    virtual BOOL ParseEFdir(const char* pszResponseString, const UINT32 uiResponseStringLen);
+
 private:
     RIL_SignalStrength_v6* ParseQuerySignalStrength(RESPONSE_DATA& rRspData);
 
@@ -952,6 +975,8 @@ private:
 
     // helper function to check if IMEI is in blacklist of default IMEIs
     void CheckImeiBlacklist(char* szImei);
+
+    CMutex* m_pCardStatusUpdateLock;
 };
 
 #endif

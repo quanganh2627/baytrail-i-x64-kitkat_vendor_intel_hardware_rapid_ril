@@ -457,3 +457,8 @@ void triggerCellBroadcastActivation(void* /*param*/)
 {
     CTE::GetTE().HandleCellBroadcastActivation();
 }
+
+void triggerQueryUiccInfo(void* /*param*/)
+{
+    CTE::GetTE().QueryUiccInfo();
+}

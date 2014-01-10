@@ -45,7 +45,6 @@ CTE_XMM6260::CTE_XMM6260(CTE& cte)
 : CTEBase(cte),
   m_currentNetworkType(-1)
 {
-    m_szUICCID[0] = '\0';
 }
 
 CTE_XMM6260::~CTE_XMM6260()
@@ -215,155 +214,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreGetSimStatus(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetSimStatus() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CPIN?;+XUICC?;+XPINCNT;+CCID\r",
-            sizeof(rReqData.szCmd1)))
-    {
-        res = RRIL_RESULT_OK;
-    }
-
-    RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetSimStatus() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE_XMM6260::ParseGetSimStatus(RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE_XMM6260::ParseGetSimStatus() - Enter\r\n");
-
-    UINT32 nValue;
-
-    RIL_CardStatus_v6* pCardStatus = NULL;
-    const char* pszRsp = rRspData.szResponse;
-
-    RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus);
-    if (RRIL_RESULT_OK != res)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetSimStatus() - Could not parse Sim Pin.\r\n");
-        goto Error;
-    }
-
-    if (pCardStatus->card_state != RIL_CARDSTATE_ABSENT)
-    {
-        // Parse "<prefix>+XUICC: <state><postfix>"
-        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
-
-        if (SkipString(pszRsp, "+XUICC: ", pszRsp))
-        {
-            if (!ExtractUpperBoundedUInt32(pszRsp, 2, nValue, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetSimStatus() - Invalid SIM type.\r\n");
-                pCardStatus->applications[0].app_type = RIL_APPTYPE_UNKNOWN;
-            }
-            else
-            {
-                if (1 == nValue)
-                {
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetSimStatus() -"
-                            " SIM type = %d  detected USIM\r\n", nValue);
-
-                    //  Set to USIM
-                    pCardStatus->applications[0].app_type = RIL_APPTYPE_USIM;
-                }
-                else if (0 == nValue)
-                {
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetSimStatus() -"
-                            " SIM type = %d  detected normal SIM\r\n", nValue);
-
-                    //  Set to SIM
-                    pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-                }
-            }
-
-            m_nSimAppType = pCardStatus->applications[0].app_type;
-
-            SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
-        }
-
-        // Parse "<prefix>+XPINCNT: <PIN attempts>, <PIN2 attempts>,
-        // <PUK attempts>, <PUK2 attempts><postfix>"
-        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
-
-        if (SkipString(pszRsp, "+XPINCNT: ", pszRsp))
-        {
-            UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
-
-            if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
-                !SkipString(pszRsp, ",", pszRsp) ||
-                !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
-                !SkipString(pszRsp, ",", pszRsp) ||
-                !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
-                !SkipString(pszRsp, ",", pszRsp) ||
-                !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetSimStatus() - Cannot parse XPINCNT\r\n");
-#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
-                //  Set pin retries to -1 (unknown)
-                pCardStatus->applications[0].pin1_num_retries = -1;
-                pCardStatus->applications[0].puk1_num_retries = -1;
-                pCardStatus->applications[0].pin2_num_retries = -1;
-                pCardStatus->applications[0].puk2_num_retries = -1;
-#endif // M2_PIN_RETRIES_FEATURE_ENABLED
-            }
-            else
-            {
-                RIL_LOG_INFO("CTE_XMM6260::ParseGetSimStatus() -"
-                        " retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
-                        uiPin1, uiPin2, uiPuk1, uiPuk2);
-
-#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
-                pCardStatus->applications[0].pin1_num_retries = uiPin1;
-                pCardStatus->applications[0].puk1_num_retries = uiPuk1;
-                pCardStatus->applications[0].pin2_num_retries = uiPin2;
-                pCardStatus->applications[0].puk2_num_retries = uiPuk2;
-#endif // M2_PIN_RETRIES_FEATURE_ENABLED
-
-                m_PinRetryCount.pin = uiPin1;
-                m_PinRetryCount.pin2 = uiPuk1;
-                m_PinRetryCount.puk = uiPin2;
-                m_PinRetryCount.puk2 = uiPuk2;
-            }
-            SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
-        }
-
-        // Parse "<prefix>+CCID: <ICCID><postfix>"
-        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
-
-        if (SkipString(pszRsp, "+CCID: ", pszRsp))
-        {
-            if (!ExtractUnquotedString(pszRsp, m_cTerminator,
-                    m_szUICCID, PROPERTY_VALUE_MAX, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetSimStatus() - Cannot parse UICC ID\r\n");
-                m_szUICCID[0] = '\0';
-            }
-
-            SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
-        }
-    }
-
-    res = RRIL_RESULT_OK;
-
-    rRspData.pData   = (void*)pCardStatus;
-    rRspData.uiDataSize  = sizeof(RIL_CardStatus_v6);
-
-Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pCardStatus);
-        pCardStatus = NULL;
-    }
-
-    RIL_LOG_VERBOSE("CTE_XMM6260::ParseGetSimStatus() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE_XMM6260::ParseEnterSimPin(RESPONSE_DATA & rRspData)
-{
-    RIL_LOG_VERBOSE("CTE_XMM6260::ParseEnterSimPin() - Enter\r\n");
-
-    return CTEBase::ParseEnterSimPin(rRspData);
+    RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetSimStatus() - Enter / Exit\r\n");
+    return RRIL_RESULT_OK;
 }
 
 RIL_RESULT_CODE CTE_XMM6260::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
@@ -1611,18 +1463,6 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UI
             pSimIOArgs->data, pSimIOArgs->aidPtr);
 #endif
 
-    // Currently, in JB, Android implements functions that use the aidPtr parameter
-    // but for the moment only an empty string is used. The use of aidPtr is not
-    // supported here. This function needs to be modified to use +CRLA, CCHO and
-    // CCHC commands.
-    if (NULL != pSimIOArgs->aidPtr && 0 != strcmp(pSimIOArgs->aidPtr, ""))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSimIo() -"
-                " use of aidPtr NOT SUPPORTED, must call +CRLA, CCHO and CCHC commands\r\n");
-        res = RIL_E_REQUEST_NOT_SUPPORTED;
-        goto Error;
-    }
-
     rReqData.pContextData = NULL;
 
     pContextData = (S_SIM_IO_CONTEXT_DATA*) malloc(sizeof(S_SIM_IO_CONTEXT_DATA));
@@ -2097,7 +1937,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
         RIL_LOG_INFO("CTE_XMM6260::CoreDeactivateDataCall() - reason=[%ld]\r\n", reason);
     }
 
-    if (reason == REASON_RADIO_OFF || RRIL_SIM_STATE_ABSENT == GetSIMState())
+    if (reason == REASON_RADIO_OFF || RIL_APPSTATE_READY != GetSimAppState())
     {
         // complete the request without sending the AT command to modem.
         res = RRIL_RESULT_OK_IMMEDIATE;
@@ -5146,8 +4986,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRsp
 
     if ((int)rRspData.pContextData & 2)
     {
-        // Set the radio and SIM state as un available
-        SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
+        // Set SIM app state as unknown
+        SetSimAppState(RIL_APPSTATE_UNKNOWN);
+        // Set radio state as unavailable
         SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
     }
     //  Todo: Handle error here.
@@ -5206,7 +5047,6 @@ BOOL CTE_XMM6260::HandleSilentPINEntry(void* pRilToken, void* /*pContextData*/, 
     }
 
 Error:
-    m_szUICCID[0] = '\0';
     RIL_LOG_VERBOSE("CTE_XMM6260::HandleSilentPINEntry() - Exit\r\n");
     return bRet;
 }
@@ -5243,42 +5083,11 @@ Error:
 
 RIL_RESULT_CODE CTE_XMM6260::ParseSimPinRetryCount(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTE_XMM6260::ParseSimPinRetryCount() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseSimPinRetryCount() - Enter / Exit\r\n");
 
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
 
-    // +XPINCNT: <PIN attempts>, <PIN2 attempts>, <PUK attempts>, <PUK2 attempts>
-    if (FindAndSkipString(pszRsp, "+XPINCNT: ", pszRsp))
-    {
-        UINT32 uiRetryCount[4];
-
-        if (!ExtractUInt32(pszRsp, uiRetryCount[0], pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiRetryCount[1], pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiRetryCount[2], pszRsp) ||
-            !SkipString(pszRsp, ",", pszRsp) ||
-            !ExtractUInt32(pszRsp, uiRetryCount[3], pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseSimPinRetryCount() - Cannot parse XPINCNT\r\n");
-        }
-        else
-        {
-            RIL_LOG_INFO("CTE_XMM6260::ParseSimPinRetryCount() -"
-                    " retries pin:%d pin2:%d puk:%d puk2:%d\r\n",
-                    uiRetryCount[0], uiRetryCount[1], uiRetryCount[2], uiRetryCount[3]);
-            m_PinRetryCount.pin = uiRetryCount[0];
-            m_PinRetryCount.pin2 = uiRetryCount[1];
-            m_PinRetryCount.puk = uiRetryCount[2];
-            m_PinRetryCount.puk2 = uiRetryCount[3];
-            res = RRIL_RESULT_OK;
-        }
-    }
-
-    RIL_LOG_VERBOSE("CTE_XMM6260::ParseSimPinRetryCount() - Exit\r\n");
-
-    return res;
+    return ParseXPINCNT(pszRsp);
 }
 
 void CTE_XMM6260::PostSetupDataCallCmdHandler(POST_CMD_HANDLER_DATA& rData)
@@ -6281,14 +6090,28 @@ void CTE_XMM6260::HandleChannelsBasicInitComplete()
         SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
     }
 
-    QuerySimState();
+    QueryUiccInfo();
 
     RIL_LOG_VERBOSE("CTE_XMM6260::HandleChannelsBasicInitComplete() - Exit\r\n");
 }
 
-void CTE_XMM6260::QuerySimState()
+void CTE_XMM6260::QueryUiccInfo()
 {
-    RIL_LOG_VERBOSE("CTE_XMM6260::QuerySimState() - Enter\r\n");
+    // For the following requests, same channel needs to be used
+    QueryActiveApplicationType();
+
+    QueryAvailableApplications();
+
+    QueryIccId();
+
+    QueryPinRetryCount();
+
+    QuerySimState();
+}
+
+void CTE_XMM6260::QueryPinRetryCount()
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::QueryPinRetryCount() - Enter\r\n");
 
     /*
      * If the device is encrypted but not yet decrypted, then modem have been powered
@@ -6302,10 +6125,43 @@ void CTE_XMM6260::QuerySimState()
     }
 
     CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_SIM_STATUS].uiChannel,
-                                    NULL, RIL_REQUEST_GET_SIM_STATUS, "AT+XSIMSTATE?\r",
-                                    &CTE::ParseSimStateQuery);
+            NULL, RIL_REQUEST_GET_SIM_STATUS, "AT+XPINCNT\r", &CTE::ParseSimPinRetryCount);
 
-    if (NULL != pCmd)
+
+    if (NULL == pCmd)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::QueryPinRetryCount() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+    else
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::QueryPinRetryCount() - "
+                    "Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::QueryPinRetryCount() - Exit\r\n");
+}
+
+void CTE_XMM6260::QuerySimState()
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::QuerySimState() - Enter\r\n");
+
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_SIM_STATUS].uiChannel,
+            NULL, RIL_REQUEST_GET_SIM_STATUS, "AT+XSIMSTATE?\r", &CTE::ParseSimStateQuery,
+            &CTE::PostSimStateQuery);
+
+    if (NULL == pCmd)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::QuerySimState() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+    else
     {
         pCmd->SetHighPriority();
         if (!CCommand::AddCmdToQueue(pCmd))
@@ -6315,11 +6171,6 @@ void CTE_XMM6260::QuerySimState()
             delete pCmd;
             pCmd = NULL;
         }
-    }
-    else
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::QuerySimState() - "
-                "Unable to allocate memory for new command!\r\n");
     }
 
     RIL_LOG_VERBOSE("CTE_XMM6260::QuerySimState() - Exit\r\n");
@@ -6355,6 +6206,166 @@ Error:
     return res;
 }
 
+void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange)
+{
+    int appState = RIL_APPSTATE_UNKNOWN;
+    int pinState = RIL_PINSTATE_UNKNOWN;
+    int cardState = RIL_CARDSTATE_PRESENT;
+
+    switch (uiSIMState)
+    {
+        case 0: // SIM not present
+        case 9: // SIM Removed
+            RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - SIM REMOVED/NOT PRESENT\r\n");
+            m_bReadyForAttach = FALSE;
+            m_bRefreshWithUSIMInitOn = FALSE;
+            cardState = RIL_CARDSTATE_ABSENT;
+            PCache_Clear();
+            ResetCardStatus(TRUE);
+            break;
+
+        case 1: // PIN verification needed
+            appState = RIL_APPSTATE_PIN;
+            pinState = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
+            break;
+
+        /*
+         * XSIM: 2 means PIN verification not needed but not ready for attach.
+         * SIM_READY should be triggered only when the modem is ready
+         * to attach.(XSIM: 7 or XSIM: 3(in some specific case))
+         */
+        case 2:
+            // The SIM is initialized, but modem is still in the process of it.
+            // we can inform Android that SIM is still not ready.
+            RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - SIM NOT READY\r\n");
+            appState = RIL_APPSTATE_DETECTED;
+            break;
+
+        /*
+         * XSIM: 3 will be received upon PIN related operations.
+         *
+         * For PIN related operation occuring after the SIM initialisation,
+         * no XSIM: 7 will be sent by modem. So, trigger the radio state
+         * change with SIM ready upon XSIM: 3.
+         *
+         * For PIN related operation occuring during the boot or before
+         * the SIM initialisation, then XSIM: 7 will be sent by modem. In this
+         * case, radio state  change with SIM ready will be sent upon the
+         * receival of XSIM: 7 event.
+         */
+        case 3: // PIN verified - Ready
+            if (m_bReadyForAttach)
+            {
+                RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - READY FOR ATTACH\r\n");
+                appState = RIL_APPSTATE_READY;
+            }
+            else
+            {
+                appState = RIL_APPSTATE_DETECTED;
+            }
+            pinState = RIL_PINSTATE_ENABLED_VERIFIED;
+            break;
+
+        case 4: // PUK verification needed
+            appState = RIL_APPSTATE_PUK;
+            pinState = RIL_PINSTATE_ENABLED_BLOCKED;
+            break;
+
+        case 5: // SIM permanently blocked
+            appState = RIL_APPSTATE_PUK;
+            pinState = RIL_PINSTATE_ENABLED_PERM_BLOCKED;
+            break;
+
+        case 6: // SIM Error
+            RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - SIM ERROR\r\n");
+            cardState = RIL_CARDSTATE_ERROR;
+            break;
+
+        case 7: // ready for attach (+COPS)
+            RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - READY FOR ATTACH\r\n");
+            m_bReadyForAttach = TRUE;
+            appState = RIL_APPSTATE_READY;
+            CSystemManager::GetInstance().TriggerSimUnlockedEvent();
+            break;
+
+        case 8: // SIM application error
+        {
+            RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - SIM TECHNICAL PROBLEM\r\n");
+            // +XSIM: 8 is for 6FXX error type
+            const char error[] = "6FXX";
+            triggerSIMAppError(error);
+            break;
+        }
+
+        /*
+         * XSIM: 10 and XSIM: 11 will be received when the SIM driver has
+         * lost contact of SIM and re-established the contact respectively.
+         * After XSIM: 10, either XSIM: 9 or XSIM: 11 will be received.
+         * So, no need to trigger SIM_NOT_READY on XSIM: 10. Incase of
+         * XSIM: 11, network registration will be restored by the modem
+         * itself.
+         */
+        case 10: // SIM Reactivating
+            break;
+
+        case 11: // SIM Reactivated
+            appState = RIL_APPSTATE_READY;
+            break;
+
+        case 12: // SIM SMS caching completed
+            RIL_LOG_INFO("[RIL STATE] SIM SMS CACHING COMPLETED\r\n");
+            bNotifySimStatusChange = FALSE;
+            appState = GetSimAppState();
+            QuerySimSmsStoreStatus();
+            break;
+        case 14: // SIM powered off by modem
+        case 99: // SIM state unknown
+        default:
+            m_bReadyForAttach = FALSE;
+            break;
+    }
+
+    if (m_bRefreshWithUSIMInitOn)
+    {
+        if (m_bReadyForAttach)
+        {
+            RIL_SimRefreshResponse_v7 simRefreshResp;
+
+            simRefreshResp.result = SIM_INIT;
+            simRefreshResp.ef_id = 0;
+            simRefreshResp.aid = NULL;
+
+            m_bRefreshWithUSIMInitOn = FALSE;
+
+            // Send out SIM_REFRESH notification
+            RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)&simRefreshResp,
+                    sizeof(RIL_SimRefreshResponse_v7));
+
+            bNotifySimStatusChange = TRUE;
+        }
+        else
+        {
+            /*
+             * Incase of REFRESH with USIM INIT, once the refresh is done on the modem side,
+             * then XSIM: 2 and XSIM: 7 will be sent by modem. Notifying framework of SIM status
+             * change on XSIM: 2 will result in framework querying the SIM status. It is highly
+             * possible that XSIM: 7 will be received even before the SIM status change is queried
+             * from modem. So, if REFRESH with USIM init is active, it is better not to notify
+             * the SIM status change on XSIM: 2 to avoid unnecessary requests between AP and modem.
+             * Even if the SIM related requests are sent by framework on SIM not ready, rapid ril's
+             * internal sim state will complete the SIM requests with error.
+             */
+            bNotifySimStatusChange = FALSE;
+        }
+    }
+    else
+    {
+        bNotifySimStatusChange = TRUE;
+    }
+
+    SetSimState(cardState, appState, pinState);
+}
+
 BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseXSIMSTATE() - Enter\r\n");
@@ -6363,6 +6374,7 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
     UINT32 uiSimState = 0;
     UINT32 uiTemp = 0;
     BOOL bRet = FALSE;
+    BOOL bNotifySimStatusChange = FALSE;
 
     // Extract "<mode>"
     if (!ExtractUInt32(rszPointer, uiMode, rszPointer))
@@ -6378,6 +6390,8 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
         RIL_LOG_CRITICAL("CTE_XMM6260::ParseXSIMSTATE() - Could not parse <SIM state>.\r\n");
         goto Error;
     }
+
+    HandleSimState(uiSimState, bNotifySimStatusChange);
 
     // Extract ",<pbready>"
     if (!SkipString(rszPointer, ",", rszPointer) ||
@@ -6398,75 +6412,7 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
         }
     }
 
-    // Here we assume we don't have card error.
-    // This will be changed in case of nSIMState is 6.
-    m_cte.SetSimError(FALSE);
-
-    switch (uiSimState)
-    {
-        /*
-         * XSIM: 10 and XSIM: 11 will be received when the SIM driver has
-         * lost contact of SIM and re-established the contact respectively.
-         * After XSIM: 10, either XSIM: 9 or XSIM: 11 will be received.
-         * So, no need to trigger SIM_NOT_READY on XSIM: 10. Incase of
-         * XSIM: 11, network registration will be restored by the modem
-         * itself.
-         */
-        case 10: // SIM Reactivating
-            break;
-        case 11: // SIM Reactivated
-            m_cte.SetSIMState(RRIL_SIM_STATE_READY);
-            break;
-        /*
-         * XSIM: 2 means PIN verification not needed but not ready for attach.
-         * SIM_READY should be triggered only when the modem is ready
-         * to attach.(XSIM: 7 or XSIM: 3(in some specific case))
-         */
-        case 2:
-        case 3:
-            // The SIM is initialized, but modem is still in the process of it.
-            // we can inform Android that SIM is still not ready.
-            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM NOT READY\r\n");
-            m_cte.SetSIMState(RRIL_SIM_STATE_NOT_READY);
-            break;
-        case 6: // SIM Error
-            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM ERROR\r\n");
-            m_cte.SetSimError(TRUE);
-            m_cte.SetSIMState(RRIL_SIM_STATE_NOT_AVAILABLE);
-            break;
-        case 7: // ready for attach (+COPS)
-            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - READY FOR ATTACH\r\n");
-            m_cte.SetSIMState(RRIL_SIM_STATE_READY);
-            CSystemManager::GetInstance().TriggerSimUnlockedEvent();
-            break;
-        case 8: // SIM application error
-        {
-            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM TECHNICAL PROBLEM\r\n");
-            // +XSIMSTATE: 8 is for 6FXX error type
-            const char code[] = "6FXX";
-            triggerSIMAppError(code);
-            bRet = TRUE;
-            goto Error;
-        }
-        case 0: // SIM not present
-        case 9: // SIM Removed
-            RIL_LOG_INFO("CTE_XMM6260::ParseXSIMSTATE() - SIM REMOVED/NOT PRESENT\r\n");
-            PCache_Clear();
-            m_cte.SetSIMState(RRIL_SIM_STATE_ABSENT);
-            break;
-        case 14: // SIM powered off by modem
-        case 1: // PIN verification needed
-        case 4: // PUK verification needed
-        case 5: // SIM permanently blocked
-        case 99: // SIM state unknown
-        default:
-            m_cte.SetSIMState(RRIL_SIM_STATE_NOT_READY);
-            break;
-    }
-
-    RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
     bRet = TRUE;
-
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseXSIMSTATE() - Exit\r\n");
     return bRet;
@@ -6485,6 +6431,7 @@ BOOL CTE_XMM6260::ParseXLOCK(const char*& rszPointer)
     BOOL bRet = FALSE;
     int i = 0;
     BOOL bIsDataValid = FALSE;
+    int perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
 
     //  The number of locks returned by +XLOCK URC.
     const int nMAX_LOCK_INFO = 5;
@@ -6547,14 +6494,34 @@ BOOL CTE_XMM6260::ParseXLOCK(const char*& rszPointer)
             RIL_LOG_INFO("lock:%s state:%d result:%d", lock_info[i].fac, lock_info[i].lock_state,
                     lock_info[i].lock_result);
 
-            /// @TODO: Need to revisit the lock state mapping.
-            if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
-                    (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
+            if (0 == strncmp(lock_info[i].fac, "PN", 2))
             {
-                m_cte.SetSIMState(RRIL_SIM_STATE_NOT_READY);
-                RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+                if (lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1)
+                {
+                    perso_substate =  RIL_PERSOSUBSTATE_SIM_NETWORK;
+                }
+                else if (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2)
+                {
+                    perso_substate = RIL_PERSOSUBSTATE_SIM_NETWORK_PUK;
+                }
+
+                if (RIL_PERSOSUBSTATE_UNKNOWN != perso_substate)
+                {
+                    SetPersonalisationSubState(perso_substate);
+                    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+                }
                 break;
             }
+            else
+            {
+                if ((lock_info[i].lock_state == 1 && lock_info[i].lock_result == 1) ||
+                        (lock_info[i].lock_state == 3 && lock_info[i].lock_result == 2))
+                {
+                    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+                    break;
+                }
+            }
+
             i++;
         }
     }
@@ -6584,7 +6551,6 @@ RIL_RESULT_CODE CTE_XMM6260::CoreGetCellInfoList(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetCellInfoList() - Exit\r\n");
     return res;
 }
-
 
 RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                                                     const char* pszRsp,
@@ -6913,4 +6879,353 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
 Error:
     return res;
 
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseXUICC(const char*& pszRsp)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXUICC() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    UINT32 uiValue = 0;
+
+    if (NULL == pszRsp)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXUICC() - Response string is NULL!\r\n");
+        goto Error;
+    }
+
+    // Parse "<prefix>+XUICC: <state><postfix>"
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
+
+    if (SkipString(pszRsp, "+XUICC: ", pszRsp))
+    {
+        if (!ExtractUpperBoundedUInt32(pszRsp, 2, uiValue, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseXUICC() - Invalid SIM type.\r\n");
+        }
+        else
+        {
+            if (1 == uiValue)
+            {
+                // Set to USIM
+                m_CardStatusCache.gsm_umts_subscription_app_index = SIM_USIM_APP_INDEX;
+                m_CardStatusCache.applications[SIM_USIM_APP_INDEX].app_type = RIL_APPTYPE_USIM;
+            }
+            else if (0 == uiValue)
+            {
+                // Set to SIM
+                m_CardStatusCache.gsm_umts_subscription_app_index = SIM_USIM_APP_INDEX;
+                m_CardStatusCache.applications[SIM_USIM_APP_INDEX].app_type = RIL_APPTYPE_SIM;
+            }
+        }
+
+        SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseXPINCNT(const char*& pszRsp)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXPINCNT() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (NULL == pszRsp)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXPINCNT() - Response string is NULL!\r\n");
+        goto Error;
+    }
+
+    // Parse "<prefix>+XPINCNT: <PIN attempts>, <PIN2 attempts>,
+    // <PUK attempts>, <PUK2 attempts><postfix>"
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
+
+    if (SkipString(pszRsp, "+XPINCNT: ", pszRsp))
+    {
+        UINT32 uiPin1 = 0, uiPin2 = 0, uiPuk1 = 0, uiPuk2 = 0;
+
+        if (!ExtractUInt32(pszRsp, uiPin1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPin2, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk1, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, uiPuk2, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseXPINCNT() - Cannot parse XPINCNT\r\n");
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+            // Set pin retries to -1 (unknown)
+            for (int i = 0 ; i < m_CardStatusCache.num_applications; i++)
+            {
+                m_CardStatusCache.applications[i].pin1_num_retries = -1;
+                m_CardStatusCache.applications[i].puk1_num_retries = -1;
+                m_CardStatusCache.applications[i].pin2_num_retries = -1;
+                m_CardStatusCache.applications[i].puk2_num_retries = -1;
+            }
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+        }
+        else
+        {
+            RIL_LOG_INFO("CTE_XMM6260::ParseXPINCNT() -"
+                    " retries pin1:%d pin2:%d puk1:%d puk2:%d\r\n",
+                    uiPin1, uiPin2, uiPuk1, uiPuk2);
+
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+            for (int i = 0 ; i < m_CardStatusCache.num_applications; i++)
+            {
+                m_CardStatusCache.applications[i].pin1_num_retries = uiPin1;
+                m_CardStatusCache.applications[i].puk1_num_retries = uiPuk1;
+                m_CardStatusCache.applications[i].pin2_num_retries = uiPin2;
+                m_CardStatusCache.applications[i].puk2_num_retries = uiPuk2;
+            }
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+
+            m_PinRetryCount.pin = uiPin1;
+            m_PinRetryCount.pin2 = uiPin2;
+            m_PinRetryCount.puk = uiPuk1;
+            m_PinRetryCount.puk2 = uiPuk2;
+        }
+        SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseCCID(const char*& pszRsp)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseCCID() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (NULL == pszRsp)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseCCID() - Response string is NULL!\r\n");
+        goto Error;
+    }
+
+    // Parse "<prefix>+CCID: <ICCID><postfix>"
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
+
+    if (SkipString(pszRsp, "+CCID: ", pszRsp))
+    {
+        if (!ExtractUnquotedString(pszRsp, m_cTerminator, m_szUICCID, PROPERTY_VALUE_MAX, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseCCID() - Cannot parse UICC ID\r\n");
+            m_szUICCID[0] = '\0';
+        }
+
+        SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseCUAD(const char*& pszRsp)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseCUAD() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    char* pszResponseString = NULL;
+    UINT32 uiResponseStringLen = 0;
+
+    if (NULL == pszRsp)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseCUAD() - Response string is NULL!\r\n");
+        goto Error;
+    }
+
+    // Parse "<prefix>+CUAD: <response><postfix>"
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
+
+    if (SkipString(pszRsp, "+CUAD: ", pszRsp))
+    {
+        if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, pszResponseString,
+                uiResponseStringLen, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseCUAD() - Could not parse CUAD response\r\n");
+            goto Error;
+        }
+
+        if (NULL == pszResponseString || 0 >= uiResponseStringLen
+                || (0 != (uiResponseStringLen - 1) % 2))
+        {
+            RIL_LOG_INFO("CTE_XMM6260::ParseCUAD() - Invalid response\r\n");
+            goto Error;
+        }
+
+        // Reduce by 1 for response string length
+        uiResponseStringLen--;
+
+        if (!ParseEFdir(pszResponseString, uiResponseStringLen))
+        {
+            RIL_LOG_INFO("CTE_XMM6260::ParseCUAD() - ParseEFdir failed\r\n");
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp);
+
+    delete[] pszResponseString;
+    pszResponseString = NULL;
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseCUAD() - Exit\r\n");
+    return res;
+}
+
+void CTE_XMM6260::QueryActiveApplicationType()
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::QueryActiveApplicationType() - Enter\r\n");
+
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_SIM_STATUS].uiChannel,
+            NULL, RIL_REQUEST_GET_SIM_STATUS, "AT+XUICC?\r",
+            &CTE::ParseQueryActiveApplicationType);
+
+    if (NULL == pCmd)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::QueryActiveApplicationType() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+    else
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::QueryActiveApplicationType() - "
+                    "Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::QueryActiveApplicationType() - Exit\r\n");
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseQueryActiveApplicationType(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseQueryActiveApplicationType() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+
+    res = ParseXUICC(pszRsp);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryActiveApplicationType() - "
+                "Could not parse XUICC\r\n");
+        goto Error;
+    }
+
+    if (m_CardStatusCache.gsm_umts_subscription_app_index == SIM_USIM_APP_INDEX)
+    {
+        m_CardStatusCache.num_applications = 1;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseQueryActiveApplicationType() - Exit\r\n");
+    return res;
+}
+
+void CTE_XMM6260::QueryAvailableApplications()
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::QueryAvailableApplications() - Enter\r\n");
+
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_SIM_STATUS].uiChannel,
+            NULL, RIL_REQUEST_GET_SIM_STATUS, "AT+CUAD\r",
+            &CTE::ParseQueryAvailableApplications);
+
+    if (NULL == pCmd)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::QueryAvailableApplications() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+    else
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::QueryAvailableApplications() - "
+                    "Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::QueryAvailableApplications() - Exit\r\n");
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseQueryAvailableApplications(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseQueryAvailableApplications() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+
+    res = ParseCUAD(pszRsp);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryAvailableApplications() - "
+                "Could not parse CUAD\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseQueryAvailableApplications() - Exit\r\n");
+    return res;
+}
+
+void CTE_XMM6260::QueryIccId()
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::QueryIccId() - Enter\r\n");
+
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_SIM_STATUS].uiChannel,
+            NULL, RIL_REQUEST_GET_SIM_STATUS, "AT+CCID\r", &CTE::ParseQueryIccId);
+
+    if (NULL == pCmd)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::QueryIccId() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+    else
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::QueryIccId() - Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::QueryIccId() - Exit\r\n");
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseQueryIccId(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseQueryIccId() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+
+    res = ParseCCID(pszRsp);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseQueryIccId() - Could not parse CCID\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseQueryIccId() - Exit\r\n");
+    return res;
 }

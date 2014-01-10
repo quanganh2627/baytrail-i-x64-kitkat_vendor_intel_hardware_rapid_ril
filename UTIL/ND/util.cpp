@@ -27,14 +27,39 @@
 #define minimum_of(a,b) (((a) < (b)) ? (a) : (b))
 
 
+/** GSM ALPHABET
+ **/
+
+#define  GSM_7BITS_ESCAPE   0x1b
+#define  GSM_7BITS_UNKNOWN  0
+
+static const unsigned short   gsm7bits_to_unicode[128] = {
+  '@', 0xa3,  '$', 0xa5, 0xe8, 0xe9, 0xf9, 0xec, 0xf2, 0xc7, '\n', 0xd8, 0xf8, '\r', 0xc5, 0xe5,
+0x394,  '_',0x3a6,0x393,0x39b,0x3a9,0x3a0,0x3a8,0x3a3,0x398,0x39e,    0, 0xc6, 0xe6, 0xdf, 0xc9,
+  ' ',  '!',  '"',  '#', 0xa4,  '%',  '&', '\'',  '(',  ')',  '*',  '+',  ',',  '-',  '.',  '/',
+  '0',  '1',  '2',  '3',  '4',  '5',  '6',  '7',  '8',  '9',  ':',  ';',  '<',  '=',  '>',  '?',
+ 0xa1,  'A',  'B',  'C',  'D',  'E',  'F',  'G',  'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O',
+  'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',  'X',  'Y',  'Z', 0xc4, 0xd6,0x147, 0xdc, 0xa7,
+ 0xbf,  'a',  'b',  'c',  'd',  'e',  'f',  'g',  'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o',
+  'p',  'q',  'r',  's',  't',  'u',  'v',  'w',  'x',  'y',  'z', 0xe4, 0xf6, 0xf1, 0xfc, 0xe0,
+};
+
+static const unsigned short  gsm7bits_extend_to_unicode[128] = {
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,'\f',   0,   0,   0,   0,   0,
+    0,   0,   0,   0, '^',   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0, '{', '}',   0,   0,   0,   0,   0,'\\',
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, '[', '~', ']',   0,
+  '|',   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,0x20ac, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+};
 
 //
 // Table used to map semi-byte values to hex characters
 //
 static const char g_rgchSemiByteToCharMap[16] =
         { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-
-
 
 //
 // Convert a semi-byte into its character representation
@@ -483,4 +508,190 @@ void convertIntToByteArrayAt(unsigned char* byteArray, int value, int pos)
     }
 }
 
+int utf8_from_gsm8(const BYTE* pSrcBuffer, int length, char* pUtf8Buffer)
+{
+    int  result  = 0;
+    int  escaped = 0;
 
+    for (; length > 0; length--)
+    {
+        int c = *pSrcBuffer++;
+
+        if (c == 0xFF)
+            break;
+
+        if (c == GSM_7BITS_ESCAPE)
+        {
+            if (escaped)
+            { /* two escape characters => one space */
+                c = 0x20;
+                escaped = 0;
+            }
+            else
+            {
+                escaped = 1;
+                continue;
+            }
+        }
+        else
+        {
+            if (c >= 0x80)
+            {
+                c = 0x20;
+                escaped = 0;
+            }
+            else if (escaped)
+            {
+                c = gsm7bits_extend_to_unicode[c];
+            }
+            else
+            {
+                c = gsm7bits_to_unicode[c];
+            }
+        }
+
+        result += utf8_write((unsigned char*) pUtf8Buffer, result, c);
+    }
+
+    return  result;
+}
+
+int GetUtf8Count(BYTE* pAlphaBuffer, int base, int len, int offset)
+{
+    int utf8Count = 0;
+
+    while (len > 0)
+    {
+        int c = pAlphaBuffer[offset];
+        if (c >= 0x80)
+        {
+            utf8Count += utf8_write(NULL, utf8Count, base + (c & 0x7F));
+            offset++;
+            len--;
+        }
+        else
+        {
+            /* GSM character set */
+            int count;
+            for (count = 0; count < len && pAlphaBuffer[offset+count] < 0x80; count++);
+
+            utf8Count += utf8_from_gsm8(pAlphaBuffer, count, NULL);
+            offset += count;
+            len -= count;
+        }
+    }
+
+    return utf8Count;
+}
+
+BOOL convertGsmToUtf8HexString(BYTE* pAlphaBuffer, int offset, const int length,
+        char* pszUtf8HexString, const int maxUtf8HexStringLength)
+{
+    BOOL bRet = FALSE;
+    BOOL bIsUCS2 = FALSE;
+    int utf8Count = 0;
+    int len = 0;
+    int base = 0;
+
+    if (NULL == pAlphaBuffer || 0 > length
+            || NULL == pszUtf8HexString || 0 > maxUtf8HexStringLength)
+        goto Error;
+
+    if (pAlphaBuffer[offset] == 0x80)
+    {
+        /* UCS2 source encoding */
+        int ucs2Len = (length - 1) / 2;
+
+        pAlphaBuffer += 1;
+        utf8Count = ucs2_to_utf8(pAlphaBuffer, ucs2Len, NULL);
+
+        if (utf8Count < maxUtf8HexStringLength)
+        {
+            RIL_LOG_INFO("convertGsmToUtf8HexString - utf8Count: %d, "
+                    "maxUtf8HexStringLength: %d\r\n", utf8Count, maxUtf8HexStringLength);
+            goto Error;
+        }
+
+        utf8Count = ucs2_to_utf8(pAlphaBuffer, ucs2Len, (unsigned char*) pszUtf8HexString);
+    }
+    else
+    {
+        if (length >= 3 && pAlphaBuffer[offset] == 0x81)
+        {
+            len = pAlphaBuffer[offset + 1] & 0xFF;
+            if (len > length - 3)
+            {
+                len = length - 3;
+            }
+
+            base = ((pAlphaBuffer[offset + 2] & 0xFF) << 7);
+            offset += 3;
+            bIsUCS2 = TRUE;
+        }
+        else if (length >= 4 && pAlphaBuffer[offset] == 0x82)
+        {
+            len = pAlphaBuffer[offset + 1] & 0xFF;
+            if (len > length - 4)
+            {
+                len = length - 4;
+            }
+
+            base = ((pAlphaBuffer[offset + 2] & 0xFF) << 8) |
+                    (pAlphaBuffer[offset + 3] & 0xFF);
+            offset += 4;
+            bIsUCS2 = TRUE;
+        }
+
+        if (bIsUCS2)
+        {
+            utf8Count = GetUtf8Count(pAlphaBuffer, base, len, offset);
+
+            if (utf8Count < maxUtf8HexStringLength)
+            {
+                utf8Count = 0;
+                while (len > 0)
+                {
+                    int  c = pAlphaBuffer[offset];
+                    if (c >= 0x80)
+                    {
+                        utf8Count += utf8_write((unsigned char*) pszUtf8HexString, utf8Count,
+                                base + (c & 0x7F));
+                        offset++;
+                        len--;
+                    }
+                    else
+                    {
+                        /* GSM character set */
+                        int count;
+                        for (count = 0; count < len && pAlphaBuffer[offset+count] < 0x80; count++);
+
+                        utf8Count += utf8_from_gsm8(pAlphaBuffer, count,
+                                pszUtf8HexString + utf8Count);
+                        offset += count;
+                        len -= count;
+                    }
+                }
+            }
+        }
+        else
+        {
+            utf8Count = utf8_from_gsm8(pAlphaBuffer + offset, length, NULL);
+
+            if (utf8Count < maxUtf8HexStringLength)
+            {
+                utf8Count = utf8_from_gsm8(pAlphaBuffer + offset, length, pszUtf8HexString);
+            }
+            else
+            {
+                RIL_LOG_INFO("convertGsmToUtf8HexString - utf8Count: %d, "
+                        "maxUtf8HexStringLength: %d\r\n", utf8Count, maxUtf8HexStringLength);
+                goto Error;
+            }
+        }
+    }
+
+    bRet = TRUE;
+Error:
+    pszUtf8HexString[utf8Count] = '\0';
+    return bRet;
+}

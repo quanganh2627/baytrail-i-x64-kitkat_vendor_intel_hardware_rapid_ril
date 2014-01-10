@@ -43,9 +43,10 @@ CTEBase::CTEBase(CTE& cte)
   m_cTerminator('\r'),
   m_pInitializer(NULL),
   m_nNetworkRegistrationType(0),
-  m_nSimAppType(RIL_APPTYPE_UNKNOWN),
   m_ePin2State(RIL_PINSTATE_UNKNOWN),
-  m_pDtmfStopReqEvent(NULL)
+  m_pDtmfStopReqEvent(NULL),
+  m_bReadyForAttach(FALSE),
+  m_bRefreshWithUSIMInitOn(FALSE)
 {
     CRepository repository;
     strcpy(m_szNetworkInterfaceNamePrefix, "");
@@ -71,11 +72,64 @@ CTEBase::CTEBase(CTE& cte)
     memset(&m_VoiceCallInfo, -1, sizeof(m_VoiceCallInfo));
 
     m_pDtmfStopReqEvent = new CEvent(NULL, TRUE);
+    m_pCardStatusUpdateLock = new CMutex();
+
+    ResetCardStatus(TRUE);
+}
+
+void CTEBase::ResetCardStatus(BOOL bForceReset)
+{
+    CMutex::Lock(m_pCardStatusUpdateLock);
+
+    m_szUICCID[0] = '\0';
+
+    if (bForceReset)
+    {
+        memset(&m_CardStatusCache, 0, sizeof(m_CardStatusCache));
+
+        // Fill in the default values
+        m_CardStatusCache.gsm_umts_subscription_app_index = -1;
+        m_CardStatusCache.cdma_subscription_app_index = -1;
+        m_CardStatusCache.ims_subscription_app_index = -1;
+        m_CardStatusCache.universal_pin_state = RIL_PINSTATE_UNKNOWN;
+        m_CardStatusCache.card_state = RIL_CARDSTATE_ABSENT;
+        m_CardStatusCache.num_applications = 0;
+    }
+    else if (RIL_CARDSTATE_PRESENT == m_CardStatusCache.card_state)
+    {
+        for (int i = 0; i < m_CardStatusCache.num_applications; i++)
+        {
+            m_CardStatusCache.applications[i].app_state = RIL_APPSTATE_UNKNOWN;
+            m_CardStatusCache.applications[i].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+            m_CardStatusCache.applications[i].aid_ptr = NULL;
+            m_CardStatusCache.applications[i].app_label_ptr = NULL;
+            m_CardStatusCache.applications[i].pin1_replaced = 0;
+            m_CardStatusCache.applications[i].pin1 = RIL_PINSTATE_UNKNOWN;
+            m_CardStatusCache.applications[i].pin2 = RIL_PINSTATE_UNKNOWN;
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+            m_CardStatusCache.applications[i].pin1_num_retries = -1;
+            m_CardStatusCache.applications[i].puk1_num_retries = -1;
+            m_CardStatusCache.applications[i].pin2_num_retries = -1;
+            m_CardStatusCache.applications[i].puk2_num_retries = -1;
+#endif // M2_PIN_RETRIES_FEATURE_ENABLE
+        }
+    }
+
+    memset(&m_SimAppListData, 0, sizeof(m_SimAppListData));
+
+    CMutex::Unlock(m_pCardStatusUpdateLock);
 }
 
 CTEBase::~CTEBase()
 {
     RIL_LOG_INFO("CTEBase::~CTEBase() - Deleting initializer\r\n");
+    if (m_pCardStatusUpdateLock)
+    {
+        CMutex::Unlock(m_pCardStatusUpdateLock);
+        delete m_pCardStatusUpdateLock;
+        m_pCardStatusUpdateLock = NULL;
+    }
+
     delete m_pInitializer;
     m_pInitializer = NULL;
 
@@ -185,33 +239,19 @@ RIL_RESULT_CODE CTEBase::CoreGetSimStatus(REQUEST_DATA& rReqData, void* pData, U
 }
 
 
-RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pCardStatus)
+RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSimPin() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char szSimState[MAX_BUFFER_SIZE];
+    int appIndex = SIM_USIM_APP_INDEX;
 
     if (NULL == pszRsp)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimPin() - Response string is NULL!\r\n");
         goto Error;
     }
-
-    if (NULL != pCardStatus)
-    {
-        free(pCardStatus);
-    }
-
-    pCardStatus = (RIL_CardStatus_v6*)malloc(sizeof(RIL_CardStatus_v6));
-    if (NULL == pCardStatus)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimPin() -"
-                " Could not allocate memory for RIL_CardStatus_v6.\r\n");
-        goto Error;
-    }
-
-    memset(pCardStatus, 0, sizeof(RIL_CardStatus_v6));
 
     // Parse "<prefix>+CPIN: <state><postfix>"
     if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
@@ -238,142 +278,121 @@ RIL_RESULT_CODE CTEBase::ParseSimPin(const char*& pszRsp, RIL_CardStatus_v6*& pC
         goto Error;
     }
 
-    pCardStatus->gsm_umts_subscription_app_index = -1;
-    pCardStatus->cdma_subscription_app_index = -1;
-    pCardStatus->ims_subscription_app_index = -1;
-    pCardStatus->universal_pin_state = RIL_PINSTATE_UNKNOWN;
-
     // Number of apps is 1 (gsm) if SIM present. Set to 0 if absent.
-    pCardStatus->num_applications = 0;
+    m_CardStatusCache.num_applications = 1;
 
     if (0 == strcmp(szSimState, "READY"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_READY\r\n");
-        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
-        pCardStatus->num_applications = 1;
-        pCardStatus->gsm_umts_subscription_app_index = 0;
+        m_CardStatusCache.card_state = RIL_CARDSTATE_PRESENT;
 
-        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        pCardStatus->applications[0].app_state =
-          (RRIL_SIM_STATE_READY == GetSIMState()) ?
-            RIL_APPSTATE_READY :
-            RIL_APPSTATE_DETECTED;
-        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_READY;
-        pCardStatus->applications[0].aid_ptr = NULL;
-        pCardStatus->applications[0].app_label_ptr = NULL;
-        pCardStatus->applications[0].pin1_replaced = 0;
-        pCardStatus->applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
-        pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+        RIL_AppStatus& appStatus = m_CardStatusCache.applications[appIndex];
+
+        appStatus.app_state = RIL_APPSTATE_READY;
+        appStatus.perso_substate = RIL_PERSOSUBSTATE_READY;
+        appStatus.aid_ptr = NULL;
+        appStatus.app_label_ptr = NULL;
+        appStatus.pin1_replaced = 0;
+        appStatus.pin1 = RIL_PINSTATE_UNKNOWN;
+        appStatus.pin2 = RIL_PINSTATE_UNKNOWN;
     }
     else if (0 == strcmp(szSimState, "SIM PIN"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PIN\r\n");
-        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
-        pCardStatus->num_applications = 1;
-        pCardStatus->gsm_umts_subscription_app_index = 0;
+        m_CardStatusCache.card_state = RIL_CARDSTATE_PRESENT;
 
-        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        pCardStatus->applications[0].app_state = RIL_APPSTATE_PIN;
-        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-        pCardStatus->applications[0].aid_ptr = NULL;
-        pCardStatus->applications[0].app_label_ptr = NULL;
-        pCardStatus->applications[0].pin1_replaced = 0;
-        pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
-        pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+        RIL_AppStatus& appStatus = m_CardStatusCache.applications[appIndex];
+
+        appStatus.app_state = RIL_APPSTATE_PIN;
+        appStatus.perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+        appStatus.aid_ptr = NULL;
+        appStatus.app_label_ptr = NULL;
+        appStatus.pin1_replaced = 0;
+        appStatus.pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
+        appStatus.pin2 = RIL_PINSTATE_UNKNOWN;
     }
     else if (0 == strcmp(szSimState, "SIM PUK"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PUK\r\n");
-        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
-        pCardStatus->num_applications = 1;
-        pCardStatus->gsm_umts_subscription_app_index = 0;
+        m_CardStatusCache.card_state = RIL_CARDSTATE_PRESENT;
 
-        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        pCardStatus->applications[0].app_state = RIL_APPSTATE_PUK;
-        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-        pCardStatus->applications[0].aid_ptr = NULL;
-        pCardStatus->applications[0].app_label_ptr = NULL;
-        pCardStatus->applications[0].pin1_replaced = 0;
-        pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_BLOCKED;
-        pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+        RIL_AppStatus& appStatus = m_CardStatusCache.applications[appIndex];
+
+        appStatus.app_state = RIL_APPSTATE_PUK;
+        appStatus.perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+        appStatus.aid_ptr = NULL;
+        appStatus.app_label_ptr = NULL;
+        appStatus.pin1_replaced = 0;
+        appStatus.pin1 = RIL_PINSTATE_ENABLED_BLOCKED;
+        appStatus.pin2 = RIL_PINSTATE_UNKNOWN;
     }
     else if (0 == strcmp(szSimState, "PH-NET PIN"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_NETWORK_PERSONALIZATION\r\n");
-        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
-        pCardStatus->num_applications = 1;
-        pCardStatus->gsm_umts_subscription_app_index = 0;
+        m_CardStatusCache.card_state = RIL_CARDSTATE_PRESENT;
 
-        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        pCardStatus->applications[0].app_state = RIL_APPSTATE_SUBSCRIPTION_PERSO;
-        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_SIM_NETWORK;
-        pCardStatus->applications[0].aid_ptr = NULL;
-        pCardStatus->applications[0].app_label_ptr = NULL;
-        pCardStatus->applications[0].pin1_replaced = 0;
-        pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
-        pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+        RIL_AppStatus& appStatus = m_CardStatusCache.applications[appIndex];
+
+        appStatus.app_state = RIL_APPSTATE_SUBSCRIPTION_PERSO;
+        appStatus.perso_substate = RIL_PERSOSUBSTATE_SIM_NETWORK;
+        appStatus.aid_ptr = NULL;
+        appStatus.app_label_ptr = NULL;
+        appStatus.pin1_replaced = 0;
+        appStatus.pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
+        appStatus.pin2 = RIL_PINSTATE_UNKNOWN;
     }
     else if (0 == strcmp(szSimState, "PH-NET PUK"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() -"
                 " SIM Status: RIL_SIM_NETWORK_PERSONALIZATION PUK\r\n");
-        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
-        pCardStatus->num_applications = 1;
-        pCardStatus->gsm_umts_subscription_app_index = 0;
+        m_CardStatusCache.card_state = RIL_CARDSTATE_PRESENT;
 
-        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        pCardStatus->applications[0].app_state = RIL_APPSTATE_SUBSCRIPTION_PERSO;
-        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_SIM_NETWORK_PUK;
-        pCardStatus->applications[0].aid_ptr = NULL;
-        pCardStatus->applications[0].app_label_ptr = NULL;
-        pCardStatus->applications[0].pin1_replaced = 0;
-        pCardStatus->applications[0].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
-        pCardStatus->applications[0].pin2 = RIL_PINSTATE_UNKNOWN;
+        RIL_AppStatus& appStatus = m_CardStatusCache.applications[appIndex];
+
+        appStatus.app_state = RIL_APPSTATE_SUBSCRIPTION_PERSO;
+        appStatus.perso_substate = RIL_PERSOSUBSTATE_SIM_NETWORK_PUK;
+        appStatus.aid_ptr = NULL;
+        appStatus.app_label_ptr = NULL;
+        appStatus.pin1_replaced = 0;
+        appStatus.pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
+        appStatus.pin2 = RIL_PINSTATE_UNKNOWN;
     }
     else if (0 == strcmp(szSimState, "SIM PIN2"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PIN2\r\n");
-        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
-        pCardStatus->num_applications = 1;
-        pCardStatus->gsm_umts_subscription_app_index = 0;
+        m_CardStatusCache.card_state = RIL_CARDSTATE_PRESENT;
 
-        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        pCardStatus->applications[0].app_state =
-          (RRIL_SIM_STATE_READY == GetSIMState()) ?
-            RIL_APPSTATE_READY :
-            RIL_APPSTATE_DETECTED;
-        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-        pCardStatus->applications[0].aid_ptr = NULL;
-        pCardStatus->applications[0].app_label_ptr = NULL;
-        pCardStatus->applications[0].pin1_replaced = 0;
-        pCardStatus->applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
-        pCardStatus->applications[0].pin2 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
+        RIL_AppStatus& appStatus = m_CardStatusCache.applications[appIndex];
+
+        appStatus.app_state = RIL_APPSTATE_READY;
+        appStatus.perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+        appStatus.aid_ptr = NULL;
+        appStatus.app_label_ptr = NULL;
+        appStatus.pin1_replaced = 0;
+        appStatus.pin1 = RIL_PINSTATE_UNKNOWN;
+        appStatus.pin2 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
     }
     else if (0 == strcmp(szSimState, "SIM PUK2"))
     {
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_PUK2\r\n");
-        pCardStatus->card_state = RIL_CARDSTATE_PRESENT;
-        pCardStatus->num_applications = 1;
-        pCardStatus->gsm_umts_subscription_app_index = 0;
+        m_CardStatusCache.card_state = RIL_CARDSTATE_PRESENT;
 
-        pCardStatus->applications[0].app_type = RIL_APPTYPE_SIM;
-        pCardStatus->applications[0].app_state =
-          (RRIL_SIM_STATE_READY == GetSIMState()) ?
-            RIL_APPSTATE_READY :
-            RIL_APPSTATE_DETECTED;
-        pCardStatus->applications[0].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
-        pCardStatus->applications[0].aid_ptr = NULL;
-        pCardStatus->applications[0].app_label_ptr = NULL;
-        pCardStatus->applications[0].pin1_replaced = 0;
-        pCardStatus->applications[0].pin1 = RIL_PINSTATE_UNKNOWN;
-        pCardStatus->applications[0].pin2 = RIL_PINSTATE_ENABLED_BLOCKED;
+        RIL_AppStatus& appStatus = m_CardStatusCache.applications[appIndex];
+
+        appStatus.app_state = RIL_APPSTATE_READY;
+        appStatus.perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
+        appStatus.aid_ptr = NULL;
+        appStatus.app_label_ptr = NULL;
+        appStatus.pin1_replaced = 0;
+        appStatus.pin1 = RIL_PINSTATE_UNKNOWN;
+        appStatus.pin2 = RIL_PINSTATE_ENABLED_BLOCKED;
     }
     else
     {
         // Anything not covered above gets treated as NO SIM
         RIL_LOG_INFO("CTEBase::ParseSimPin() - SIM Status: RIL_SIM_ABSENT\r\n");
-        pCardStatus->card_state = RIL_CARDSTATE_ABSENT;
-        pCardStatus->num_applications = 0;
+        m_CardStatusCache.card_state = RIL_CARDSTATE_ABSENT;
+        m_CardStatusCache.num_applications = 0;
     }
 
     res = RRIL_RESULT_OK;
@@ -390,7 +409,7 @@ RIL_RESULT_CODE CTEBase::ParseGetSimStatus(RESPONSE_DATA& rRspData)
 
     const char* pszRsp = rRspData.szResponse;
     RIL_CardStatus_v6* pCardStatus = NULL;
-    RIL_RESULT_CODE res = ParseSimPin(pszRsp, pCardStatus);
+    RIL_RESULT_CODE res = ParseSimPin(pszRsp);
     if (res != RRIL_RESULT_OK)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseGetSimStatus() - Could not parse Sim Pin.\r\n");
@@ -444,7 +463,7 @@ RIL_RESULT_CODE CTEBase::CoreEnterSimPin(REQUEST_DATA& rReqData, void* pData, UI
     }
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            "AT+CPIN=\"%s\";+CCID\r", pszPassword))
+            "AT+CPIN=\"%s\"\r", pszPassword))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreEnterSimPin() - Failed to write command to buffer!\r\n");
         goto Error;
@@ -468,7 +487,6 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA& rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int* pnRetries = NULL;
     const char* pszRsp = rRspData.szResponse;
-    char szUICCID[PROPERTY_VALUE_MAX] = {0};
 
     pnRetries = (int*)malloc(sizeof(int));
     if (NULL == pnRetries)
@@ -483,22 +501,8 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA& rRspData)
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
 
-    // Parse "<prefix>+CCID: <ICCID><postfix>"
-    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
-
-    if (SkipString(pszRsp, "+CCID: ", pszRsp))
-    {
-        if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, PROPERTY_VALUE_MAX, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseEnterSimPin() - Cannot parse UICC ID\r\n");
-            szUICCID[0] = '\0';
-        }
-
-        SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
-    }
-
     //  Cache PIN1 value
-    PCache_Store_PIN(szUICCID, m_szPIN);
+    PCache_Store_PIN(m_szUICCID, m_szPIN);
 
     //  Clear it locally.
     memset(m_szPIN, 0, MAX_PIN_SIZE);
@@ -792,7 +796,7 @@ RIL_RESULT_CODE CTEBase::CoreChangeSimPin(REQUEST_DATA& rReqData, void* pData, U
     }
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            "AT+CPWD=\"SC\",\"%s\",\"%s\";+CCID\r", pszOldPIN, pszNewPIN))
+            "AT+CPWD=\"SC\",\"%s\",\"%s\"\r", pszOldPIN, pszNewPIN))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreChangeSimPin() -"
                 " Unable to write command string to buffer\r\n");
@@ -816,7 +820,6 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA& rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
-    char szUICCID[PROPERTY_VALUE_MAX] = {0};
     int* pnRetries = NULL;
 
     pnRetries = (int*)malloc(sizeof(int));
@@ -832,22 +835,8 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA& rRspData)
     rRspData.pData    = (void*) pnRetries;
     rRspData.uiDataSize   = sizeof(int*);
 
-    // Parse "<prefix>+CCID: <ICCID><postfix>"
-    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
-
-    if (SkipString(pszRsp, "+CCID: ", pszRsp))
-    {
-        if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, PROPERTY_VALUE_MAX, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseChangeSimPin() - Cannot parse UICC ID\r\n");
-            szUICCID[0] = '\0';
-        }
-
-        SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
-    }
-
     //  Cache PIN1 value
-    PCache_Store_PIN(szUICCID, m_szPIN);
+    PCache_Store_PIN(m_szUICCID, m_szPIN);
 
     //  Clear it locally.
     memset(m_szPIN, 0, MAX_PIN_SIZE);
@@ -2274,6 +2263,8 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
     BOOL bModemOffInFlightMode = m_cte.GetModemOffInFlightModeState();
     BOOL bTurnRadioOn = (0 == ((int*)pData)[0]) ? FALSE : TRUE;
 
+    CEvent* pRadioStateChangedEvent = m_cte.GetRadioStateChangedEvent();
+
     if (bTurnRadioOn)
     {
         switch (m_cte.GetLastModemEvent())
@@ -2423,6 +2414,16 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
     }
 
     /*
+     * The RadioStateChangedEvent is triggered in the PostRadioPower function.
+     * To avoid to be blocked in the wait of this event, we need to reset it before the sending
+     * of the AT and not just before to perform the wait
+     */
+    if (NULL != pRadioStateChangedEvent)
+    {
+        CEvent::Reset(pRadioStateChangedEvent);
+    }
+
+    /*
      * Note: RIL_Token is not provided as part of the command creation.
      * If the RIL_REQUEST_RADIO_POWER is for platform shutdown, then the
      * main thread(request handling thread) waits for ModemPoweredOffEvent.
@@ -2491,13 +2492,10 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
          *     - Upon radio state changed event complete the RADIO_POWER ON
          *       request.
          */
-        CEvent* pRadioStateChangedEvent = m_cte.GetRadioStateChangedEvent();
         CEvent* pCancelWaitEvent = CSystemManager::GetInstance().GetCancelWaitEvent();
 
         if (NULL != pRadioStateChangedEvent && NULL != pCancelWaitEvent)
         {
-            CEvent::Reset(pRadioStateChangedEvent);
-
             CEvent* rgpEvents[] = { pRadioStateChangedEvent, pCancelWaitEvent };
 
             CEvent::WaitForAnyEvent(2/*NumEvents*/, rgpEvents, WAIT_FOREVER);
@@ -4693,7 +4691,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA& rReqData,
     {
         if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
-                                        "AT+CLCK=\"%s\",%s;+CCID\r",
+                                        "AT+CLCK=\"%s\",%s\r",
                                         pszFacility,
                                         pszMode))
         {
@@ -4707,7 +4705,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA& rReqData,
     {
         if (!PrintStringNullTerminate(  rReqData.szCmd1,
                                         sizeof(rReqData.szCmd1),
-                                        "AT+CLCK=\"%s\",%s,\"%s\";+CCID\r",
+                                        "AT+CLCK=\"%s\",%s,\"%s\"\r",
                                         pszFacility,
                                         pszMode,
                                         pszPassword))
@@ -4722,7 +4720,7 @@ RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA& rReqData,
     {
         if (!PrintStringNullTerminate( rReqData.szCmd1,
                                                 sizeof(rReqData.szCmd1),
-                                                "AT+CLCK=\"%s\",%s,\"%s\",%s;+CCID\r",
+                                                "AT+CLCK=\"%s\",%s,\"%s\",%s\r",
                                                 pszFacility,
                                                 pszMode,
                                                 pszPassword,
@@ -4810,7 +4808,6 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA& rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
-    char szUICCID[PROPERTY_VALUE_MAX] = {0};
     int* pnRetries = NULL;
     UINT32 uiCause;
 
@@ -4818,22 +4815,6 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA& rRspData)
     if (ParseCEER(rRspData, uiCause))
     {
         return (279 == uiCause) ? RRIL_RESULT_FDN_FAILURE : RRIL_RESULT_ERROR;
-    }
-    else
-    {
-        // Parse "<prefix>+CCID: <ICCID><postfix>"
-        SkipRspStart(pszRsp, m_szNewLine, pszRsp);
-
-        if (SkipString(pszRsp, "+CCID: ", pszRsp))
-        {
-            if (!ExtractUnquotedString(pszRsp, m_cTerminator, szUICCID, PROPERTY_VALUE_MAX, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTEBase::ParseSetFacilityLock() - Cannot parse UICC ID\r\n");
-                szUICCID[0] = '\0';
-            }
-
-            SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
-        }
     }
 
     pnRetries = (int*)malloc(sizeof(int));
@@ -4865,7 +4846,7 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA& rRspData)
         if ((0 == strncmp(pContextData->szFacilityLock, "SC", 2))
                 && (0 != strcmp(m_szPIN, "CLR")))
         {
-            PCache_Store_PIN(szUICCID, m_szPIN);
+            PCache_Store_PIN(m_szUICCID, m_szPIN);
         }
     }
 
@@ -10416,9 +10397,64 @@ RIL_RadioState CTEBase::GetRadioState()
     return m_RadioState.GetRadioState();
 }
 
-RRIL_SIM_State CTEBase::GetSIMState()
+int CTEBase::GetSimCardState()
 {
-    return m_SIMState.GetSIMState();
+    return m_CardStatusCache.card_state;
+}
+
+int CTEBase::GetSimAppState()
+{
+    int appIndex = m_CardStatusCache.gsm_umts_subscription_app_index;
+    if (appIndex >= 0)
+    {
+        return m_CardStatusCache.applications[appIndex].app_state;
+    }
+
+    return RIL_APPSTATE_UNKNOWN;
+}
+
+int CTEBase::GetSimPinState()
+{
+    int appIndex = m_CardStatusCache.gsm_umts_subscription_app_index;
+    if (appIndex >= 0)
+    {
+        return m_CardStatusCache.applications[appIndex].app_state;
+    }
+
+    return RIL_PINSTATE_UNKNOWN;
+}
+
+void CTEBase::GetSimAppIdAndLabel(const int appType, char* pszAppId[], char* pszAppLabel[])
+{
+    RIL_LOG_VERBOSE("CTEBase::GetSimAppIdAndLabel() - Enter\r\n");
+
+    for (int i = 0; i < m_SimAppListData.nApplications; i++)
+    {
+        if (appType == m_SimAppListData.aAppInfo[i].appType)
+        {
+            *pszAppId = strdup(m_SimAppListData.aAppInfo[i].szAid);
+            *pszAppLabel = strdup(m_SimAppListData.aAppInfo[i].szAppLabel);
+            break;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::GetSimAppIdAndLabel() - Exit\r\n");
+}
+
+void CTEBase::GetSimAppId(const int appType, char* pszAppId, const int maxAppIdLength)
+{
+    RIL_LOG_VERBOSE("CTEBase::GetSimAppId) - Enter\r\n");
+
+    for (int i = 0; i < m_SimAppListData.nApplications; i++)
+    {
+        if (appType == m_SimAppListData.aAppInfo[i].appType)
+        {
+            CopyStringNullTerminate(pszAppId, m_SimAppListData.aAppInfo[i].szAid, maxAppIdLength);
+            break;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::GetSimAppId() - Exit\r\n");
 }
 
 void CTEBase::SetRadioState(const RRIL_Radio_State eRadioState)
@@ -10435,35 +10471,111 @@ void CTEBase::SetRadioStateAndNotify(const RRIL_Radio_State eRadioState)
     m_RadioState.SetRadioStateAndNotify(eRadioState);
 }
 
-void CTEBase::SetSIMState(const RRIL_SIM_State eSIMState)
+void CTEBase::SetSimState(const int cardState, const int appState, const int pinState)
 {
-    RIL_LOG_VERBOSE("CTEBase::SetSIMState() - Enter / Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::SetSimState() - Enter\r\n");
 
-    m_SIMState.SetSIMState(eSIMState);
+    CMutex::Lock(m_pCardStatusUpdateLock);
+
+    m_CardStatusCache.card_state = (RIL_CardState)cardState;
+    if (RIL_APPSTATE_UNKNOWN != appState)
+    {
+        /*
+         * If the APP state is known, then there is an active application. In this
+         * case, equate the number of applications to at least 1 and assume that
+         * the active application is SIM or USIM.
+         */
+        m_CardStatusCache.num_applications =
+                m_CardStatusCache.num_applications > 0 ? m_CardStatusCache.num_applications : 1;
+        m_CardStatusCache.gsm_umts_subscription_app_index = SIM_USIM_APP_INDEX;
+    }
+
+    for (int i = 0; i < m_CardStatusCache.num_applications; i++)
+    {
+        m_CardStatusCache.applications[i].app_state = (RIL_AppState)appState;
+        m_CardStatusCache.applications[i].pin1 = (RIL_PinState)pinState;
+    }
+
+    CMutex::Unlock(m_pCardStatusUpdateLock);
+
+    RIL_LOG_VERBOSE("CTEBase::SetSimState() - Exit\r\n");
 }
 
-BOOL CTEBase::IsPinEnabled(RIL_CardStatus_v6* pCardStatus)
+void CTEBase::SetSimAppState(const int appState)
 {
-    RIL_LOG_VERBOSE("CTEBase::IsPinEnabled - Enter()\r\n");
+    RIL_LOG_VERBOSE("CTEBase::SetSimAppState() - Enter\r\n");
 
-    BOOL bPinEnabled = FALSE;
+    CMutex::Lock(m_pCardStatusUpdateLock);
 
-    if (NULL != pCardStatus)
+    for (int i = 0; i < m_CardStatusCache.num_applications; i++)
     {
-        for (int i = 0; i < pCardStatus->num_applications; i++)
+        m_CardStatusCache.applications[i].app_state = (RIL_AppState)appState;
+    }
+
+    CMutex::Unlock(m_pCardStatusUpdateLock);
+
+    RIL_LOG_VERBOSE("CTEBase::SetSimAppState() - Exit\r\n");
+}
+
+void CTEBase::SetPersonalisationSubState(const int perso_substate)
+{
+    RIL_LOG_VERBOSE("CTEBase::SetPersonalisationSubState() - Enter\r\n");
+
+    CMutex::Lock(m_pCardStatusUpdateLock);
+
+    for (int i = 0; i < m_CardStatusCache.num_applications; i++)
+    {
+        m_CardStatusCache.applications[i].perso_substate = (RIL_PersoSubstate)perso_substate;
+        if (RIL_PERSOSUBSTATE_UNKNOWN != perso_substate)
         {
-            if (RIL_PINSTATE_ENABLED_NOT_VERIFIED ==
-                                        pCardStatus->applications[i].pin1 &&
-                    RIL_APPSTATE_PIN == pCardStatus->applications[i].app_state)
-            {
-                RIL_LOG_INFO("CTEBase::IsPinEnabled - PIN Enabled\r\n");
-                bPinEnabled = TRUE;
-                break;
-            }
+            m_CardStatusCache.applications[i].app_state = RIL_APPSTATE_SUBSCRIPTION_PERSO;
+            m_CardStatusCache.applications[i].pin1 = RIL_PINSTATE_ENABLED_NOT_VERIFIED;
         }
     }
 
-    RIL_LOG_VERBOSE("CTEBase::IsPinEnabled - Exit()\r\n");
+    CMutex::Unlock(m_pCardStatusUpdateLock);
+
+    RIL_LOG_VERBOSE("CTEBase::SetPersonalisationSubState() - Exit\r\n");
+}
+
+void CTEBase::UpdateIsimAppState()
+{
+    RIL_LOG_VERBOSE("CTEBase::UpdateIsimAppState() - Enter\r\n");
+
+    CMutex::Lock(m_pCardStatusUpdateLock);
+
+    m_CardStatusCache.applications[ISIM_APP_INDEX].app_type = RIL_APPTYPE_ISIM;
+    m_CardStatusCache.applications[ISIM_APP_INDEX].app_state =
+            m_CardStatusCache.applications[SIM_USIM_APP_INDEX].app_state;
+
+    m_CardStatusCache.applications[ISIM_APP_INDEX].pin1 =
+            m_CardStatusCache.applications[SIM_USIM_APP_INDEX].pin1;
+
+    m_CardStatusCache.applications[ISIM_APP_INDEX].perso_substate =
+            m_CardStatusCache.applications[SIM_USIM_APP_INDEX].perso_substate;
+
+    CMutex::Unlock(m_pCardStatusUpdateLock);
+
+    RIL_LOG_VERBOSE("CTEBase::UpdateIsimAppState() - Exit\r\n");
+}
+
+BOOL CTEBase::IsPinEnabled()
+{
+    RIL_LOG_VERBOSE("CTEBase::IsPinEnabled() - Enter\r\n");
+    BOOL bPinEnabled = FALSE;
+
+    for (int i = 0; i < m_CardStatusCache.num_applications; i++)
+    {
+        if (RIL_PINSTATE_ENABLED_NOT_VERIFIED == m_CardStatusCache.applications[i].pin1
+                && RIL_APPSTATE_PIN == m_CardStatusCache.applications[i].app_state)
+        {
+            RIL_LOG_INFO("CTEBase::IsPinEnabled - PIN Enabled\r\n");
+            bPinEnabled = TRUE;
+            break;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::IsPinEnabled() - Exit\r\n");
     return bPinEnabled;
 }
 
@@ -11250,11 +11362,7 @@ RIL_RESULT_CODE CTEBase::ParseSimStateQuery(RESPONSE_DATA& rRspData)
 
 void CTEBase::HandleChannelsUnlockInitComplete()
 {
-    RIL_LOG_VERBOSE("CTEBase::HandleChannelsUnlockInitComplete() - Enter\r\n");
-
-    QuerySimSmsStoreStatus();
-
-    RIL_LOG_VERBOSE("CTEBase::HandleChannelsUnlockInitComplete() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::HandleChannelsUnlockInitComplete() - Enter/Exit\r\n");
 }
 
 void CTEBase::QuerySimSmsStoreStatus()
@@ -11458,4 +11566,269 @@ void CTEBase::QuerySignalStrength()
 RIL_SignalStrength_v6* CTEBase::ParseXCESQ(const char*& /*rszPointer*/, const BOOL /*bUnsolicited*/)
 {
     return NULL;
+}
+
+void CTEBase::QueryUiccInfo()
+{
+    // should be derived in modem specific class
+    // do nothing
+}
+
+RIL_RESULT_CODE CTEBase::ParseQueryActiveApplicationType(RESPONSE_DATA& rRspData)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::ParseQueryAvailableApplications(RESPONSE_DATA& rRspData)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::ParseQueryIccId(RESPONSE_DATA& rRspData)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+BOOL CTEBase::ParseEFdir(const char* pszResponseString, const UINT32 uiResponseStringLen)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseEFdir() - Enter\r\n");
+
+    const UINT32 MANDATORY_LENGTH = 4;
+    BYTE* pBuffer = NULL;
+    UINT32 uiByteBufferLength = 0;
+    BYTE* pTemp = NULL;
+    UINT32 uiAidLength = 0;
+    UINT32 uiAppLabelLength = 0;
+    int index = 0;
+    BOOL bRet = FALSE;
+    UINT32 uiAppInfoStringLength = 0;
+
+    pBuffer = new BYTE[uiResponseStringLen / 2];
+    if (NULL == pBuffer)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseEFdir() - Cannot allocate %u bytes for"
+                "pBuffer\r\n", (uiResponseStringLen / 2));
+        goto Done;
+    }
+
+    memset(pBuffer, 0, (uiResponseStringLen / 2));
+
+    if (!GSMHexToGSM(pszResponseString, uiResponseStringLen, pBuffer,
+            (uiResponseStringLen / 2 ), uiByteBufferLength))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseEFdir() - GSMHexToGSM conversion failed\r\n");
+        goto Done;
+    }
+
+    pTemp = pBuffer;
+
+    m_SimAppListData.nApplications = 0;
+
+    /*
+     * Coding of an application template entry
+     *      Length          Description                                     Status
+     *
+     *          1           Application template tag = '61'                     M (Mandatory)
+     *          1           Length of the Application template = '03' - '7F'    M
+     *          1           Application identifier tag = '4F'                   M
+     *          1           AID length = '01'-'10'                              M
+     *      '01' to '10'    AID value. see TS 101 220                           M
+     *          1           Application label tag = '50'                        O (Optional)
+     *          1           Application label length                            O
+     *          note 1      Application label value                             O
+     *
+     * Refer TS 102 221 for description on note 1 and for coding of applicable label value.
+     */
+    while (uiByteBufferLength > MANDATORY_LENGTH)
+    {
+        BOOL bIsAppSupported = FALSE;
+        const UINT32 AID_LENGTH_INDEX = 3;
+        const UINT32 AID_INDEX = 4;
+        const UINT32 APP_CODE_INDEX = 9;
+        const BYTE APP_TEMPLATE_TAG = 0x61;
+        const BYTE APP_LABEL_TAG = 0x50;
+        const BYTE SIM_AID[] = {0xA0, 0x00, 0x00, 0x00, 0x09};
+        // Registered application provider IDentifier (RID)
+        const BYTE RID_3G[] = {0xA0, 0x00, 0x00, 0x00, 0x87};
+        // This should match the size of BYTE USIM_APP_CODE and BYTE ISIM_APP_CODE
+        const UINT32 APP_CODE_LENGTH = 2;
+        // This should match the size of SIM_AID and RID_3G
+        const UINT32 RID_LENGTH = 5;
+
+        index = m_SimAppListData.nApplications;
+
+        uiAidLength = pTemp[AID_LENGTH_INDEX];
+
+        if (0 == uiAidLength || 0xFF == uiAidLength)
+        {
+            RIL_LOG_CRITICAL("CTEBase::ParseEFdir() - INVALID AID length\r\n");
+            break;
+        }
+
+        if (uiByteBufferLength > MANDATORY_LENGTH + RID_LENGTH + APP_CODE_LENGTH)
+        {
+            const BYTE USIM_APP_CODE[] = {0x10, 0x02};
+            const BYTE ISIM_APP_CODE[] = {0x10, 0x04};
+
+            if (0 == memcmp(&pTemp[AID_INDEX], RID_3G, sizeof(RID_3G)))
+            {
+                if (0 == memcmp(&pTemp[APP_CODE_INDEX], USIM_APP_CODE, sizeof(USIM_APP_CODE)))
+                {
+                    m_SimAppListData.aAppInfo[index].appType = RIL_APPTYPE_USIM;
+                    m_CardStatusCache.gsm_umts_subscription_app_index = SIM_USIM_APP_INDEX;
+                    bIsAppSupported = TRUE;
+                }
+                else if (0 == memcmp(&pTemp[APP_CODE_INDEX], ISIM_APP_CODE, sizeof(ISIM_APP_CODE)))
+                {
+                    m_SimAppListData.aAppInfo[index].appType = RIL_APPTYPE_ISIM;
+                    m_CardStatusCache.ims_subscription_app_index = ISIM_APP_INDEX;
+                    bIsAppSupported = TRUE;
+                }
+            }
+            else if (0 == memcmp(&pTemp[AID_INDEX], SIM_AID, sizeof(SIM_AID)))
+            {
+                m_SimAppListData.aAppInfo[index].appType = RIL_APPTYPE_SIM;
+                m_CardStatusCache.gsm_umts_subscription_app_index = SIM_USIM_APP_INDEX;
+                bIsAppSupported = TRUE;
+            }
+            else
+            {
+                RIL_LOG_INFO("CTEBase::ParseEFdir() - unknown application\r\n");
+            }
+        }
+        else
+        {
+            break;
+        }
+
+        if (bIsAppSupported)
+        {
+            m_SimAppListData.nApplications++;
+
+            memset(m_SimAppListData.aAppInfo[index].szAid, 0,
+                    sizeof(m_SimAppListData.aAppInfo[index].szAid));
+
+            strncpy(m_SimAppListData.aAppInfo[index].szAid,
+                    &pszResponseString[uiAppInfoStringLength + (AID_INDEX * 2)],
+                    MIN(sizeof(m_SimAppListData.aAppInfo[index].szAid) - 1, uiAidLength * 2));
+        }
+
+        pTemp += (MANDATORY_LENGTH + uiAidLength);
+        uiAppInfoStringLength += (MANDATORY_LENGTH + uiAidLength) * 2;
+
+        if (uiByteBufferLength >= (MANDATORY_LENGTH + uiAidLength))
+        {
+            uiByteBufferLength -= (MANDATORY_LENGTH + uiAidLength);
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::ParseEFdir() - "
+                    "uiByteBufferLength < MANDATORY_LENGTH + uiAidLength\r\n");
+            break;
+        }
+
+        // 2 = APP LABEL TAG(1) + APP LABEL LENGTH(1)
+        if (uiByteBufferLength > 2)
+        {
+            if (APP_LABEL_TAG == pTemp[0])
+            {
+                uiAppLabelLength = pTemp[1];
+
+                if (uiByteBufferLength >= (uiAppLabelLength + 2))
+                {
+                    if (bIsAppSupported)
+                    {
+                        convertGsmToUtf8HexString(pTemp + 2, 0,
+                                uiAppLabelLength, m_SimAppListData.aAppInfo[index].szAppLabel,
+                                sizeof(m_SimAppListData.aAppInfo[index].szAppLabel));
+                    }
+
+                    pTemp += (uiAppLabelLength + 2);
+                    uiByteBufferLength -= (uiAppLabelLength + 2);
+                    uiAppInfoStringLength += (uiAppLabelLength + 2) * 2;
+                }
+                else
+                {
+                    RIL_LOG_INFO("CTEBase::ParseEFdir() - "
+                            "uiByteBufferLength < uiAppLabelLength\r\n");
+                    break;
+                }
+            }
+        }
+        else
+        {
+            RIL_LOG_INFO("CTEBase::ParseEFdir() - uiByteBufferLength <= 2\r\n");
+            break;
+        }
+
+        // ignore other tlvs, padded bytes
+        while (uiByteBufferLength >= 2)
+        {
+            if (*pTemp == 0xFF)
+            {
+                pTemp++;
+                uiByteBufferLength--;
+                uiAppInfoStringLength += 2;
+            }
+            else if (*pTemp == APP_TEMPLATE_TAG)
+            {
+                break;
+            }
+            else
+            {
+                UINT32 uiTlvSize = pTemp[1] + 2; // TAG(1) + LENGTH(1) field  + tlvLength
+
+                pTemp += uiTlvSize;
+                if (uiTlvSize >= uiByteBufferLength)
+                {
+                    uiByteBufferLength = 0;
+                    break;
+                }
+                else
+                {
+                    uiByteBufferLength -= uiTlvSize;
+                    uiAppInfoStringLength += (uiTlvSize * 2);
+                }
+            }
+        }
+    }
+
+    if (m_SimAppListData.nApplications > 1
+            && m_CardStatusCache.ims_subscription_app_index == ISIM_APP_INDEX)
+    {
+        UpdateIsimAppState();
+    }
+
+    m_CardStatusCache.num_applications = m_SimAppListData.nApplications;
+
+    bRet = TRUE;
+
+Done:
+    if (NULL != pBuffer)
+    {
+        delete[] pBuffer;
+        pBuffer = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::ParseEFdir() - Exit\r\n");
+    return bRet;
+}
+
+void CTEBase::CopyCardStatus(RIL_CardStatus_v6& cardStatus)
+{
+    memcpy(&cardStatus, &m_CardStatusCache, sizeof(RIL_CardStatus_v6));
+
+    for (int i = 0; i < cardStatus.num_applications; i++)
+    {
+        GetSimAppIdAndLabel(cardStatus.applications[i].app_type,
+                &cardStatus.applications[i].aid_ptr,
+                &cardStatus.applications[i].app_label_ptr);
+    }
+}
+
+void CTEBase::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange)
+{
 }

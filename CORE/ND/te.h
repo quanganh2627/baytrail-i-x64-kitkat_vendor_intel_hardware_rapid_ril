@@ -18,7 +18,6 @@
 #include "rril.h"
 #include "rril_OEM.h"
 #include "radio_state.h"
-#include "sim_state.h"
 #include "types.h"
 #include "command.h"
 #include "initializer.h"
@@ -644,10 +643,14 @@ public:
     BOOL IsLocationUpdatesEnabled();
 
     RIL_RadioState GetRadioState();
-    RRIL_SIM_State GetSIMState();
+    int GetSimCardState();
+    int GetSimAppState();
+    int GetSimPinState();
     void SetRadioState(const RRIL_Radio_State eRadioState);
     void SetRadioStateAndNotify(const RRIL_Radio_State eRadioState);
-    void SetSIMState(const RRIL_SIM_State eRadioState);
+    void SetSimState(int cardState, int appState, int pinState);
+    void SetSimAppState(int appState);
+    void SetPersonalisationSubState(int perso_substate);
 
     void SetSpoofCommandsStatus(BOOL bStatus) { m_bSpoofCommandsStatus = bStatus; };
     BOOL GetSpoofCommandsStatus() { return m_bSpoofCommandsStatus; };
@@ -658,12 +661,6 @@ public:
 
     void SetModemOffInFlightModeState(BOOL bValue) { m_bModemOffInFlightMode = bValue; };
     BOOL GetModemOffInFlightModeState() { return m_bModemOffInFlightMode; };
-
-    void SetSimError(BOOL bIsError)
-    {
-        m_bIsSimError = bIsError;
-    }
-    BOOL IsSimError() { return m_bIsSimError; };
 
     void SetManualNetworkSearchOn(BOOL bIsManualSearchOn)
     {
@@ -1133,6 +1130,18 @@ public:
 
     RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
 
+    // Resets the sim card status cache
+    void ResetCardStatus(BOOL bForceReset);
+
+    void QueryUiccInfo();
+    RIL_RESULT_CODE ParseQueryActiveApplicationType(RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseQueryAvailableApplications(RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseQueryIccId(RESPONSE_DATA& rRspData);
+
+    void PostSimStateQuery(POST_CMD_HANDLER_DATA& rData);
+    void HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange);
+    void SetRefreshWithUsimInitOn(BOOL bOngoing);
+
 private:
     UINT32 m_uiModemType;
 
@@ -1173,12 +1182,6 @@ private:
 
     // Set to true if the radio on/off request is pending
     BOOL m_bRadioRequestPending;
-
-    /*
-     * Flag is used to store sim error problem.
-     * If TRUE, card_state will be reported as error.
-     */
-    BOOL m_bIsSimError;
 
     /*
      * Flag is used to store the manual network search status
@@ -1303,6 +1306,7 @@ private:
     int m_CbsActivate;
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
+    void FreeCardStatusPointers(RIL_CardStatus_v6& cardStatus);
 };
 
 #endif

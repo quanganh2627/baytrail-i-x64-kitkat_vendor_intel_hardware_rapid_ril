@@ -76,6 +76,12 @@ const int SIM_COMMAND_STATUS = 242;
 const int SIM_COMMAND_RETRIEVE_DATA = 203;
 const int SIM_COMMAND_SET_DATA = 219;
 
+const int SIM_USIM_APP_INDEX = 0;
+const int ISIM_APP_INDEX = 1;
+
+const UINT32 MAX_APP_LABEL_SIZE = 33; // including null termination
+const UINT32 MAX_AID_SIZE = 33; // Hex string length including null termination
+
 ///////////////////////////////////////////////////////////////////////////////
 // Radio off reasons
 //
@@ -121,6 +127,24 @@ const int RADIO_POWER_ON = 1;
 const int SCREEN_STATE_UNKNOWN = -1;
 const int SCREEN_STATE_OFF = 0;
 const int SCREEN_STATE_ON = 1;
+
+///////////////////////////////////////////////////////////////////////////////
+// Selectable SIM application list information
+//
+
+typedef struct
+{
+    int appType;
+    char szAid[MAX_AID_SIZE];
+    char szAppLabel[MAX_APP_LABEL_SIZE];
+} S_ND_SIM_APP_INFO;
+
+typedef struct
+{
+    int nApplications;
+    S_ND_SIM_APP_INFO aAppInfo[RIL_CARD_MAX_APPS];
+} S_ND_SIM_APP_LIST_DATA, *P_ND_SIM_APP_LIST_DATA;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Retry count information
