@@ -155,13 +155,16 @@ CSystemManager::~CSystemManager()
 
     m_bIsSystemInitialized = FALSE;
 
-    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CloseChannelPorts\r\n");
-    // Close the COM ports
-    m_pInitializer->CloseChannelPorts();
+    if (m_pInitializer)
+    {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CloseChannelPorts\r\n");
+        // Close the COM ports
+        m_pInitializer->CloseChannelPorts();
 
-    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteChannels\r\n");
-    //  Delete channels
-    m_pInitializer->DeleteChannels();
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteChannels\r\n");
+        //  Delete channels
+        m_pInitializer->DeleteChannels();
+    }
 
     // destroy events
     if (m_pCancelWaitEvent)
@@ -193,6 +196,7 @@ CSystemManager::~CSystemManager()
 
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete TE object\r\n");
     CTE::GetTE().DeleteTEObject();
+    m_pInitializer = NULL;
 
     if (m_pSpoofCommandsStatusAccessMutex)
     {
@@ -500,6 +504,7 @@ Done:
         }
 
         CTE::GetTE().DeleteTEObject();
+        m_pInitializer = NULL;
     }
 
     CMutex::Unlock(m_pSystemManagerMutex);
