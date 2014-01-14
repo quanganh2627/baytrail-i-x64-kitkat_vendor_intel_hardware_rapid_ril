@@ -290,7 +290,7 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                 RIL_LOG_INFO("*** We found %s SIM_REFRESH   type=[%s]***\r\n",
                         szRefreshCmd, szRefreshType);
 
-                //  If refresh type = "01"  -> SIM_FILE_UPDATE
+                //  If refresh type = "01", 07 -> SIM_FILE_UPDATE
                 //  If refresh type = "00","02","03" -> SIM_INIT
                 //  If refresh type = "04","05","06" -> SIM_RESET
 
@@ -331,11 +331,17 @@ BOOL CSilo_SIM::ParseIndicationSATN(CResponse* const pResponse, const char*& rsz
                          */
                         goto event_notify;
                     }
-                    else if ( (0 == strncmp(szRefreshType, "01", 2)) )
+                    else if ( (0 == strncmp(szRefreshType, "01", 2)) ||
+                              (0 == strncmp(szRefreshType, "07", 2)) )
                     {
                         //  SIM_FILE_UPDATE
                         RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - SIM_FILE_UPDATE\r\n");
                         pSimRefreshResp->result = SIM_FILE_UPDATE;
+                        /*
+                         * The steering of roaming refresh case is handled on the modem
+                         * side. For the AP side, it is only consider as a refresh file
+                         * on EF_OPLMNwACT which is not used by Android.
+                         */
 
                         //  Tough part here - need to read file ID(s)
                         //  Android looks for EF_MBDN 0x6FC7 or EF_MAILBOX_CPHS 0x6F17
