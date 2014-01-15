@@ -127,7 +127,7 @@ char* CSilo_Voice::GetURCInitString()
 char* CSilo_Voice::GetURCUnlockInitString()
 {
     // voice silo-related URC channel unlock init string
-    const char szVoiceUnlockInitString[] = "+CUSD=1|+CRC=1|+CCWA=1";
+    const char szVoiceUnlockInitString[] = "+CUSD=1|+CCWA=1";
 
     if (m_pSystemCapabilities->IsVoiceCapable())
     {
