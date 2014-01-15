@@ -32,6 +32,7 @@ public:
     BOOL IsStkCapable() { return m_bStkCapable; }
     BOOL IsXDATASTATReportingEnabled() { return m_bXDATASTATEnabled; }
     BOOL IsIMSCapable() { return m_bIMSCapable; }
+    BOOL IsIMSApCentric() { return m_bIMSApCentric; }
     UINT32 GetModeOfOperation() { return m_uiModeOfOperation; }
 
     void SetVoiceCapable(BOOL bIsVoiceCapable) { m_bVoiceCapable = bIsVoiceCapable; }
@@ -40,6 +41,7 @@ public:
     void SetXDATASTATReporting(BOOL bIsXDATASTATReporting)
                         { m_bXDATASTATEnabled = bIsXDATASTATReporting; }
     void SetIMSCapable(BOOL bIsIMSCapable) { m_bIMSCapable = bIsIMSCapable; }
+    void SetIMSApCentric(BOOL bIsIMSApCentric) { m_bIMSApCentric = bIsIMSApCentric; }
     void SetModeOfOperation(UINT32 uiModeOfOperation) { m_uiModeOfOperation = uiModeOfOperation; }
 
 private:
@@ -48,6 +50,7 @@ private:
     BOOL m_bStkCapable;
     BOOL m_bXDATASTATEnabled;
     BOOL m_bIMSCapable;
+    BOOL m_bIMSApCentric;
     UINT32 m_uiModeOfOperation;
 };
 

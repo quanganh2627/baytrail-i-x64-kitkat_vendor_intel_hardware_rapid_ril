@@ -32,7 +32,7 @@ CSilo_IMS::CSilo_IMS(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "+CIREPI: "        , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseCIREPI  },
         { "+CIREPH: "        , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseCIREPH  },
         { "+CIREGU: "        , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseCIREGU },
-        { "+XISRVCC: "       , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseXISRVCC },
+        { "+XISRVCCI: "       , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseXISRVCCI },
         // FIXME: Following strings to be confirmed and parsed.
         { "+IMSCALLSTAT: "   , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseNULL },
         { "+IMSSMSSTAT: "    , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseNULL },
@@ -54,12 +54,24 @@ CSilo_IMS::~CSilo_IMS()
 
 char* CSilo_IMS::GetURCInitString()
 {
+    char szEnableIMS[MAX_BUFFER_SIZE] = {'\0'};
+
+    // IMS Modem Centric
     if (m_pSystemCapabilities->IsIMSCapable())
     {
         char szEnableIMS[MAX_BUFFER_SIZE] = {'\0'};
         PrintStringNullTerminate(szEnableIMS, MAX_BUFFER_SIZE,
                 "|+XICFG=0,1,50,1|+CISRVCC=1|+CIREP=1|+CIREG=1|+XISMSCFG=1");
 
+    }
+    // IMS AP Centric
+    else if (m_pSystemCapabilities->IsIMSApCentric())
+    {
+        PrintStringNullTerminate(szEnableIMS, MAX_BUFFER_SIZE, "+CIREP=1|+XISRVCC=1");
+    }
+
+    if (szEnableIMS != '\0')
+    {
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
                 sizeof(m_szURCInitString), szEnableIMS))
         {
@@ -136,8 +148,9 @@ BOOL CSilo_IMS::ParseCIREPH(CResponse* const pResponse, const char*& rszPointer)
     RIL_LOG_VERBOSE("CSilo_IMS::ParseCIREPH() - Enter\r\n");
 
     BOOL   fRet     = FALSE;
-    UINT32 uiSRVCCH = 0;
+    UINT32 uiSrvcch = 0;
     char   szAlpha[MAX_BUFFER_SIZE];
+    sOEM_HOOK_RAW_UNSOL_IMS_SRVCCH_STATUS data;
 
     if (NULL == pResponse)
     {
@@ -151,15 +164,25 @@ BOOL CSilo_IMS::ParseCIREPH(CResponse* const pResponse, const char*& rszPointer)
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
 
     // Parse "<srvcch>"
-    if (!ExtractUInt32(rszPointer, uiSRVCCH, rszPointer))
+    if (!ExtractUInt32(rszPointer, uiSrvcch, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_IMS::ParseCIREPH() - Could not parse IMS SRVCC"
                 "Handover information\r\n");
         goto Error;
     }
 
-    // Debug only, not expected to be broadcasted
-    RIL_LOG_INFO("CSilo_IMS::ParseCIREPH() - CIREPH=[%d]\r\n", uiSRVCCH);
+    data.command = RIL_OEM_HOOK_RAW_UNSOL_IMS_SRVCCH_STATUS;
+    data.status = uiSrvcch;
+
+    RIL_LOG_INFO("CSilo_IMS::ParseCIREPH() - CIREPH=[%d]\r\n", uiSrvcch);
+
+    pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+
+    if (!pResponse->SetData((void*)&data,
+            sizeof(sOEM_HOOK_RAW_UNSOL_IMS_SRVCCH_STATUS), TRUE))
+    {
+        goto Error;
+    }
 
     fRet = TRUE;
 Error:
@@ -230,17 +253,18 @@ Error:
 //
 // IMS-SRVCC sync notification
 //
-BOOL CSilo_IMS::ParseXISRVCC(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_IMS::ParseXISRVCCI(CResponse* const pResponse, const char*& rszPointer)
 {
-    RIL_LOG_VERBOSE("CSilo_IMS::ParseXISRVCC() - Enter\r\n");
+    RIL_LOG_VERBOSE("CSilo_IMS::ParseXISRVCCI() - Enter\r\n");
 
     BOOL   fRet     = FALSE;
-    UINT32 uiSrvccInfo = 0;
+    UINT32 uiSrvccHoStatus = 0;
     char   szAlpha[MAX_BUFFER_SIZE];
+    sOEM_HOOK_RAW_UNSOL_IMS_SRVCC_HO_STATUS data;
 
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CSilo_IMS::ParseXISRVCC() - pResponse is NULL.\r\n");
+        RIL_LOG_CRITICAL("CSilo_IMS::ParseXISRVCCI() - pResponse is NULL.\r\n");
         goto Error;
     }
 
@@ -250,18 +274,28 @@ BOOL CSilo_IMS::ParseXISRVCC(CResponse* const pResponse, const char*& rszPointer
     (void)ExtractQuotedString(rszPointer, szAlpha, MAX_BUFFER_SIZE, rszPointer);
 
     // Parse "<srvcc_ho_status>"
-    if (!ExtractUInt32(rszPointer, uiSrvccInfo, rszPointer))
+    if (!ExtractUInt32(rszPointer, uiSrvccHoStatus, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_IMS::ParseXISRVCC() - Could not parse SRVCC "
+        RIL_LOG_CRITICAL("CSilo_IMS::ParseXISRVCCI() - Could not parse SRVCC HO"
                 "status indication\r\n");
         goto Error;
     }
 
-    // Debug only, not expected to be broadcasted
-    RIL_LOG_VERBOSE("CSilo_IMS::ParseXISRVCC() - XISRVCC=[%u]\r\n", uiSrvccInfo);
+    data.command = RIL_OEM_HOOK_RAW_UNSOL_IMS_SRVCC_HO_STATUS;
+    data.status = uiSrvccHoStatus;
+
+    RIL_LOG_VERBOSE("CSilo_IMS::ParseXISRVCCI() - XISRVCC=[%u]\r\n", uiSrvccHoStatus);
+
+    pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+
+    if (!pResponse->SetData((void*)&data,
+            sizeof(sOEM_HOOK_RAW_UNSOL_IMS_SRVCC_HO_STATUS), TRUE))
+    {
+        goto Error;
+    }
 
     fRet = TRUE;
 Error:
-    RIL_LOG_VERBOSE("CSilo_IMS::ParseXISRVCC() - Exit\r\n");
+    RIL_LOG_VERBOSE("CSilo_IMS::ParseXISRVCCI() - Exit\r\n");
     return fRet;
 }

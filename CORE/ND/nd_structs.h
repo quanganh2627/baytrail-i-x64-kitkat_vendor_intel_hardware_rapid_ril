@@ -345,4 +345,16 @@ typedef struct
     char szRFPowerCutbackTable[MAX_RF_POWER_CUTBACK_TABLE_SIZE];
 } S_ND_RF_POWER_CUTBACK_TABLE, *P_ND_RF_POWER_CUTBACK_TABLE;
 
+typedef struct
+{
+    /* it will contain all the pairs (CallId, TransferResult) concatenated */
+    char* pszSrvccPairs;
+} S_ND_SRVCC_RESPONSE_PTR, *P_ND_SRVCC_RESPONSE_PTR;
+
+typedef struct
+{
+    S_ND_SRVCC_RESPONSE_PTR sResponsePointer;
+    char szSrvccPairs[MAX_BUFFER_SIZE];
+} S_ND_SRVCC_RESPONSE_VALUE, *P_ND_SRVCC_RESPONSE_VALUE;
+
 #endif

@@ -434,11 +434,12 @@ BOOL CSystemManager::InitializeSystem()
     {
         // ims_support = 1 means IMS Stack is BP centric
         // ims_support = 2 means IMS Stack is AP centric
-        if ((strncmp(szImsSupport, "1", PROPERTY_VALUE_MAX) == 0))
-        {
-            CTE::GetTE().SetIMSCapable(TRUE);
-            RIL_LOG_INFO("CSystemManager::InitializeSystem() : Set modem as IMS Capable \r\n");
-        }
+        CTE::GetTE().SetIMSCapable((strncmp(szImsSupport, "1",
+                PROPERTY_VALUE_MAX) == 0) ? TRUE : FALSE);
+
+        // ims_support = 2 means IMS Stack is AP centric
+        CTE::GetTE().SetIMSApCentric((strncmp(szImsSupport, "2",
+                PROPERTY_VALUE_MAX) == 0) ? TRUE : FALSE);
     }
 
     // set system capabilities
@@ -448,6 +449,7 @@ BOOL CSystemManager::InitializeSystem()
     pSysCaps.SetIsStkCapable(CTE::GetTE().IsStkCapable());
     pSysCaps.SetXDATASTATReporting(CTE::GetTE().IsXDATASTATReportingEnabled());
     pSysCaps.SetIMSCapable(CTE::GetTE().IsIMSCapable());
+    pSysCaps.SetIMSApCentric(CTE::GetTE().IsIMSApCentric());
     pSysCaps.SetModeOfOperation(CTE::GetTE().GetModeOfOperation());
 
     // Call drop reporting is available only for eng or userdebug build

@@ -2350,6 +2350,11 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                     (const char**) pszRequest, nNumStrings);
             break;
 
+        case RIL_OEM_HOOK_STRING_IMS_SRVCC_PARAM:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_SRVCC_PARAM");
+            res = SetSrvccParams(rReqData, (const char**) pszRequest);
+            break;
+
         case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_DEFAULT_APN");
             // Send this command on ATCMD channel
@@ -2450,6 +2455,10 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
 
         case RIL_OEM_HOOK_STRING_GET_RF_POWER_CUTBACK_TABLE:
             res = ParseXRFCBT(pszRsp, rRspData);
+            break;
+
+        case RIL_OEM_HOOK_STRING_IMS_SRVCC_PARAM:
+            res = ParseXISRVCC(pszRsp, rRspData);
             break;
 
         case RIL_OEM_HOOK_STRING_SEND_AT:
@@ -4674,6 +4683,34 @@ Error:
     return res;
 }
 
+RIL_RESULT_CODE CTE_XMM6260::SetSrvccParams(REQUEST_DATA& rReqData, const char** pszRequest)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::SetSrvccParams() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    // pszRequest and pszRequest[0] are already checked, before calling this function
+    if (pszRequest[1] == NULL)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM260::SetSrvccParams()"
+                " - invalid input parameter pszRequest \r\n");
+        goto Error;
+    }
+
+    // Using, as it is, the string passed from the high-layer, without any parsing.
+    // The value of the param "mode" should be 2 in this case
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+XISRVCC=2, %s\r", pszRequest[1]))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::SetSrvccParams() - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::SetSrvccParams() - Exit\r\n");
+    return res;
+}
+
 RIL_RESULT_CODE CTE_XMM6260::ParseXGATR(const char* pszRsp, RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseXGATR() - Enter\r\n");
@@ -5074,6 +5111,90 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseXRFCBT() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseXISRVCC(const char* pszRsp, RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXISRVCC() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    P_ND_SRVCC_RESPONSE_VALUE pResponse = NULL;
+    BOOL isFirstIteration = TRUE;
+    UINT32 nCallId = 0;
+    UINT32 nTransferResult = 0;
+
+    pResponse = (P_ND_SRVCC_RESPONSE_VALUE) malloc(sizeof(S_ND_SRVCC_RESPONSE_VALUE));
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXISRVCC() -"
+                "Could not allocate memory for response");
+        goto Error;
+    }
+
+    memset(pResponse, 0, sizeof(S_ND_SRVCC_RESPONSE_VALUE));
+
+    while (FindAndSkipString(pszRsp, "+XISRVCC: ", pszRsp))
+    {
+        // Parse "<call_id> and <transfer_result>"
+        if (!ExtractUInt32(pszRsp, nCallId, pszRsp) ||
+            !SkipString(pszRsp, ",", pszRsp) ||
+            !ExtractUInt32(pszRsp, nTransferResult, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseXISRVCC() -"
+                    " Unable to extract UINTS, skip to next entry\r\n");
+            goto Error;
+        }
+        else
+        {
+            RIL_LOG_INFO("CTE_XMM6260::ParseXISRVCC() - INFO: CallId= %d    "
+                    "TransferResult=%d\r\n", nCallId, nTransferResult);
+
+            // It Contains the current pair (CallId, TransferResult)
+            char szCurrentPair[MAX_BUFFER_SIZE] = {'\0'};
+
+            // The comma should be added at the beginning of the string if not first iteration
+            snprintf(szCurrentPair, sizeof(szCurrentPair),
+                        (isFirstIteration) ? "%u, %u" : ", %u, %u", nCallId, nTransferResult);
+
+            isFirstIteration = FALSE;
+
+            // Appending the current pair to the response
+            if (!ConcatenateStringNullTerminate(pResponse->szSrvccPairs,
+                     sizeof(pResponse->szSrvccPairs), szCurrentPair))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseXISRVCC() - Can't add %s.\r\n",
+                            szCurrentPair);
+                goto Error;
+            }
+        }
+
+        // Find "<postfix>"
+        if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::ParseXISRVCC() - Unable to find response end\r\n");
+            goto Error;
+        }
+    }
+
+    RIL_LOG_INFO("CTE_XMM6260::ParseXISRVCC() - Parsed string %s.\r\n",
+            pResponse->szSrvccPairs);
+
+    pResponse->sResponsePointer.pszSrvccPairs = pResponse->szSrvccPairs;
+    rRspData.pData = (void*)pResponse;
+    rRspData.uiDataSize = sizeof(S_ND_SRVCC_RESPONSE_PTR);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXISRVCC() - Exit\r\n");
     return res;
 }
 

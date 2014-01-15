@@ -35,7 +35,7 @@ protected:
     virtual BOOL ParseCIREPI(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL ParseCIREPH(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL ParseCIREGU(CResponse* const pResponse, const char*& rszPointer);
-    virtual BOOL ParseXISRVCC(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL ParseXISRVCCI(CResponse* const pResponse, const char*& rszPointer);
 };
 
 #endif // RRIL_SILO_IMS_H

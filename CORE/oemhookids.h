@@ -371,6 +371,21 @@ const int RIL_OEM_HOOK_STRING_IMS_SMS_STATUS = 0x000000B5;
 //
 const int RIL_OEM_HOOK_STRING_IMS_GET_PCSCF = 0x000000B6;
 
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_IMS_SRVCC_PARAM
+//  Command ID = 0x000000B7
+//
+//  This command sends the SRVCC parameters to the modem
+//
+//  "data" = An array of strings representing the +XISRVCC parameters
+//  "response" = null.
+//
+const int RIL_OEM_HOOK_STRING_IMS_SRVCC_PARAM = 0x000000B7;
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID
@@ -480,7 +495,7 @@ const int RIL_OEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND = 0x000000D5;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct TAG_OEM_HOOK_RAW_UNSOL_UNSOL_IMS_REG_STATUS
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_IMS_REG_STATUS
 {
     int command; //  Command ID
     int status; // IMS registration status
@@ -496,7 +511,7 @@ const int RIL_OEM_HOOK_RAW_UNSOL_IMS_REG_STATUS = 0x000000D6;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct TAG_OEM_HOOK_RAW_UNSOL_UNSOL_IMS_SUPPORT_STATUS
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_IMS_SUPPORT_STATUS
 {
     int command; //  Command ID
     int status; // result code
@@ -656,6 +671,38 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_CIPHERING_IND
 } sOEM_HOOK_RAW_UNSOL_CIPHERING_IND;
 
 const int RIL_OEM_HOOK_RAW_UNSOL_CIPHERING_IND = 0x000000DF;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_IMS_SRVCCH_STATUS
+{
+    int command; //  Command ID
+    int status; // result code
+} sOEM_HOOK_RAW_UNSOL_IMS_SRVCCH_STATUS;
+
+//
+//  RIL_OEM_HOOK_STRING_IMS_SRVCCH_STATUS
+//  Command ID = 0x000000E0
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_IMS_SRVCCH_STATUS
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_IMS_SRVCCH_STATUS = 0x000000E0;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_IMS_SRVCC_HO_STATUS
+{
+    int command; //  Command ID
+    int status; // result code
+} sOEM_HOOK_RAW_UNSOL_IMS_SRVCC_HO_STATUS;
+
+//
+//  RIL_OEM_HOOK_STRING_IMS_SRVCC_HO_STATUS
+//  Command ID = 0x000000E1
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_IMS_SRVCC_HO_STATUS
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_IMS_SRVCC_HO_STATUS = 0x000000E1;
 
 #pragma pack()
 
