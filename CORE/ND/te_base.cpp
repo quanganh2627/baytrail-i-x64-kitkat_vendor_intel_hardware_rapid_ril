@@ -1,4 +1,4 @@
-#////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 // te_base.cpp
 //
 // Copyright 2009 Intrinsyc Software International, Inc.  All rights reserved.
@@ -4110,13 +4110,13 @@ RIL_RESULT_CODE CTEBase::CoreSmsAcknowledge(REQUEST_DATA& rReqData, void* pData,
         {
             case CMS_ERROR_MEMORY_CAPACITY_EXCEEDED: // 0xD3
                 RIL_LOG_INFO("CTEBase::CoreSmsAcknowledge() - MEMORY_CAPACIY_EXCEEDED\r\n");
-                snprintf(szPdu, sizeof(szPdu) - 1, "%s", "00D300");
+                snprintf(szPdu, sizeof(szPdu), "%s", "00D300");
                 break;
 
             case CMS_ERROR_UNSPECIFIED_FAILURE_CAUSE: // 0xFF
             default:
                 RIL_LOG_INFO("CTEBase::CoreSmsAcknowledge() - Unspecified failure cause\r\n");
-                snprintf(szPdu, sizeof(szPdu) - 1, "%s", "00FF00");
+                snprintf(szPdu, sizeof(szPdu), "%s", "00FF00");
                 break;
         }
 
@@ -10976,8 +10976,8 @@ BOOL CTEBase::DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pCh
     FILE * fp;
 
     //  Open dad_transmits file, write 0<lf>.
-    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits",
-                                                    pszNetworkInterfaceName);
+    snprintf(file_to_open, sizeof(file_to_open), "/proc/sys/net/ipv6/conf/%s/dad_transmits",
+            pszNetworkInterfaceName);
 
     fp = fopen(file_to_open, "w");
     if (fp)
@@ -11004,8 +11004,8 @@ BOOL CTEBase::DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pCh
         RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6() : Cannot open [%s]\r\n", file_to_open);
     }
     //  Open accept_dad file, write 0<lf>.
-    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad",
-                                                            pszNetworkInterfaceName);
+    snprintf(file_to_open, sizeof(file_to_open), "/proc/sys/net/ipv6/conf/%s/accept_dad",
+            pszNetworkInterfaceName);
 
     fp = fopen(file_to_open, "w");
     if (fp)
@@ -11130,8 +11130,8 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
     FILE* fp;
 
     //  Open dad_transmits file, write 0<lf>.
-    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/dad_transmits",
-                                                pszNetworkInterfaceName);
+    snprintf(file_to_open, sizeof(file_to_open), "/proc/sys/net/ipv6/conf/%s/dad_transmits",
+            pszNetworkInterfaceName);
 
     fp = fopen(file_to_open, "w");
     if (fp)
@@ -11160,8 +11160,8 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
     }
 
     //  Open accept_dad file, write 0<lf>.
-    snprintf(file_to_open, 99, "/proc/sys/net/ipv6/conf/%s/accept_dad",
-                                                    pszNetworkInterfaceName);
+    snprintf(file_to_open, sizeof(file_to_open), "/proc/sys/net/ipv6/conf/%s/accept_dad",
+            pszNetworkInterfaceName);
 
     fp = fopen(file_to_open, "w");
     if (fp)

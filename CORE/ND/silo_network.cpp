@@ -340,13 +340,12 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse* const pResponse, const char*& rszP
 
         // Insert the date/time as "yy/mm/dd,hh:mm:ss".
         // Add tz: "+-xx", dst: ",x"
-        if (snprintf(pszTimeData, MAX_BUFFER_SIZE-1, "%s%s,%u", szDateTime, szTimeZone,
+        if (snprintf(pszTimeData, MAX_BUFFER_SIZE, "%s%s,%u", szDateTime, szTimeZone,
                 uiDst) == 0)
         {
             RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - snprintf pszTimeData buffer\r\n");
             goto Error;
         }
-        pszTimeData[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
         RIL_LOG_INFO("CSilo_Network::ParseXNITZINFO() - INFO: pszTimeData: %s\r\n", pszTimeData);
 
         pResponse->SetResultCode(RIL_UNSOL_NITZ_TIME_RECEIVED);

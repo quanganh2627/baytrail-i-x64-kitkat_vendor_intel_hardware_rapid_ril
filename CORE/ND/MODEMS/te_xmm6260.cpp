@@ -4812,7 +4812,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseXDRV(const char* pszRsp, RESPONSE_DATA& rRspDa
                     "filtered_temp: %u, raw_temp: %u\r\n", uiIpcChrGrp, uiIpcChrTempGet,
                     uiXdrvResult, uiTempSensorId, uiFilteredTemp, uiRawTemp);
 
-        snprintf(pResponse->pszTemperature, sizeof(pResponse->pszTemperature) - 1,
+        snprintf(pResponse->pszTemperature, sizeof(pResponse->pszTemperature),
                  "%u %u", uiFilteredTemp, uiRawTemp);
 
         pResponse->sResponsePointer.pszTemperature = pResponse->pszTemperature;
@@ -4942,7 +4942,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCGSMS(const char* pszRsp, RESPONSE_DATA& rRspD
 
     RIL_LOG_INFO("SMS Transport Mode: %u\r\n", uiService);
 
-    snprintf(pResponse->szService, sizeof(pResponse->szService) - 1, "%u", uiService);
+    snprintf(pResponse->szService, sizeof(pResponse->szService), "%u", uiService);
 
     pResponse->sResponsePointer.pszService = pResponse->szService;
 
@@ -5053,7 +5053,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseXRFCBT(const char* pszRsp, RESPONSE_DATA& rRsp
             uiIsEnabled, uiOffsetTableIndex, uiIsApplied);
 
     snprintf(pResponse->szRFPowerCutbackTable,
-            sizeof(pResponse->szRFPowerCutbackTable) - 1,
+            sizeof(pResponse->szRFPowerCutbackTable),
             "%u %u %u", uiIsEnabled, uiOffsetTableIndex, uiIsApplied);
 
     pResponse->sResponsePointer.pszRFPowerCutbackTable = pResponse->szRFPowerCutbackTable;

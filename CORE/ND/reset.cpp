@@ -139,12 +139,10 @@ void CModemRestart::RequestModemRestart(int lineNum, const char* pszFileName,
                     m_pStoredCauses[i].cause = NULL;
                 }
                 m_pStoredCauses[MMGR_CLI_MAX_RECOVERY_CAUSES - 1].cause =
-                        (char*) malloc(PATH_MAX + MAX_STRING_SIZE_FOR_INT + 1);
-                snprintf(m_pStoredCauses[MMGR_CLI_MAX_RECOVERY_CAUSES - 1].cause,
+                        (char*) malloc(PATH_MAX + MAX_STRING_SIZE_FOR_INT);
+                snprintf(m_pStoredCauses[MMGR_CLI_MAX_RECOVERY_CAUSES].cause,
                         PATH_MAX + MAX_STRING_SIZE_FOR_INT,
                         "%s:%d", pszFileName, lineNum);
-                m_pStoredCauses[MMGR_CLI_MAX_RECOVERY_CAUSES - 1].
-                        cause[PATH_MAX + MAX_STRING_SIZE_FOR_INT] = '\0';
                 m_nStoredCauses = MMGR_CLI_MAX_RECOVERY_CAUSES;
             }
 

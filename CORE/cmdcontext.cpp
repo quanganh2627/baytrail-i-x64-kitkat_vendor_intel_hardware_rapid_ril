@@ -81,8 +81,8 @@ void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
         {
             char szIndex[MAX_STRING_SIZE_FOR_INT] = { '\0' };
             char szChannel[MAX_STRING_SIZE_FOR_INT] = { '\0' };
-            snprintf(szIndex, MAX_STRING_SIZE_FOR_INT - 1, "%d", (int) m_eInitIndex);
-            snprintf(szChannel, MAX_STRING_SIZE_FOR_INT - 1, "%u", m_uiChannel);
+            snprintf(szIndex, sizeof(szIndex), "%d", (int) m_eInitIndex);
+            snprintf(szChannel, sizeof(szChannel), "%u", m_uiChannel);
 
             RIL_LOG_CRITICAL("CContextInitString::Execute() - "
                     "Init command send failed, set system state as uninitialized !\r\n");

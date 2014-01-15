@@ -592,8 +592,8 @@ void CChannel::RequestCleanUpOnCommandTimeout(CCommand* rpCmd, UINT32 uiCmdIndex
         pszCmdString  = "<AT cmd>";
     }
     CRLFExpandedString cmd(pszCmdString, strlen(pszCmdString));
-    snprintf(szTimeOut, MAX_STRING_SIZE_FOR_INT - 1, "%u", rpCmd->GetTimeout());
-    snprintf(szChannel, MAX_STRING_SIZE_FOR_INT - 1, "%u", m_uiRilChannel);
+    snprintf(szTimeOut, sizeof(szTimeOut), "%u", rpCmd->GetTimeout());
+    snprintf(szChannel, sizeof(szChannel), "%u", m_uiRilChannel);
     DO_REQUEST_CLEAN_UP(3, cmd.GetString(), szTimeOut, szChannel);
 }
 

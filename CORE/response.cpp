@@ -264,15 +264,13 @@ BOOL CResponse::IsOkResponse()
     RIL_LOG_VERBOSE("CResponse::IsOkResponse() : Enter\r\n");
 
     // look for "OK" in response data
-    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", m_szNewLine, pszOkResponse, m_szNewLine);
-    szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+    snprintf(szToken, sizeof(szToken), "%s%s%s", m_szNewLine, pszOkResponse, m_szNewLine);
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
     if (!bRet)
     {
         //  Maybe we have just OK<cr><lf> due to modem missing a character
-        snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s", pszOkResponse, m_szNewLine);
-        szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+        snprintf(szToken, sizeof(szToken), "%s%s", pszOkResponse, m_szNewLine);
         bRet = FindAndSkipString(szPointer, szToken, szPointer);
     }
 
@@ -309,8 +307,7 @@ BOOL CResponse::IsErrorResponse()
     RIL_LOG_VERBOSE("CResponse::IsErrorResponse() : Enter\r\n");
 
     // look for "ERROR" in response data
-    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", m_szNewLine, pszErrorResponse, m_szNewLine);
-    szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+    snprintf(szToken, sizeof(szToken), "%s%s%s", m_szNewLine, pszErrorResponse, m_szNewLine);
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
     if (bRet)
@@ -341,8 +338,7 @@ BOOL CResponse::IsConnectResponse()
     RIL_LOG_VERBOSE("CResponse::IsConnectResponse() : Enter\r\n");
 
     // look for "CONNECT" in response data
-    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", m_szNewLine, pszConnectResponse, m_szNewLine);
-    szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+    snprintf(szToken, sizeof(szToken), "%s%s%s", m_szNewLine, pszConnectResponse, m_szNewLine);
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
     if (bRet)
@@ -369,8 +365,7 @@ BOOL CResponse::IsAbortedResponse()
     RIL_LOG_VERBOSE("CResponse::IsAbortedResponse() : Enter\r\n");
 
     // look for "ABORTED" in response data
-    snprintf(szToken, MAX_BUFFER_SIZE-1, "%s%s%s", m_szNewLine, pszAborted, m_szNewLine);
-    szToken[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+    snprintf(szToken, sizeof(szToken), "%s%s%s", m_szNewLine, pszAborted, m_szNewLine);
     bRet = FindAndSkipString(szPointer, szToken, szPointer);
 
     if (bRet)

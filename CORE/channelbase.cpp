@@ -892,7 +892,7 @@ Done:
     if (!bRetVal)
     {
         char szChannel[MAX_STRING_SIZE_FOR_INT] = { '\0' };
-        snprintf(szChannel, MAX_STRING_SIZE_FOR_INT - 1, "%u", m_uiRilChannel);
+        snprintf(szChannel, sizeof(szChannel), "%u", m_uiRilChannel);
 
         RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() - "
                 "chnl=[%d] Cannot send channel init cmds."
