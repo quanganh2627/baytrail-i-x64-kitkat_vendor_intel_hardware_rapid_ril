@@ -58,7 +58,7 @@ LOCAL_SRC_FILES:= \
     usat_state.cpp \
     usat_init_state_machine.cpp
 
-LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli librilutils
+LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli librilutils libtcs
 
 # Activating this macro enables the optional Video Telephony feature
 ifeq ($(strip $(M2_VT_FEATURE_ENABLED)),true)
@@ -92,8 +92,10 @@ LOCAL_C_INCLUDES :=  \
     $(LOCAL_PATH)/MODEMS  \
     $(LOCAL_PATH)/../INC \
     $(LOCAL_PATH)/../UTIL/ND \
-    $(TARGET_OUT_HEADERS)/IFX-modem
+    $(TARGET_OUT_HEADERS)/IFX-modem \
+    $(TARGET_OUT_HEADERS)/libtcs \
 
+LOCAL_IMPORT_C_INCLUDE_DIRS_FROM_SHARED_LIBRARIES += libtcs
 
 #build shared library
 LOCAL_PRELINK_MODULE := false

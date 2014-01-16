@@ -144,7 +144,7 @@ public:
     // init and clean-up APIs; Init() must be called befor any other APIs
     // if successful, return 0
     // otherwise return -1
-    static BOOL Init();
+    static BOOL Init(const char* szConfigFile);
     static BOOL Close();
 
 public:

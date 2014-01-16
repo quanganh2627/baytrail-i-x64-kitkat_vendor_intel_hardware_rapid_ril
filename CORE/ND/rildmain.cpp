@@ -25,6 +25,7 @@
 #include "reset.h"
 #include <cutils/properties.h>
 #include <utils/Log.h>
+#include "tcs.h"
 
 ///////////////////////////////////////////////////////////
 //  FUNCTION PROTOTYPES
@@ -539,16 +540,61 @@ static const char* getVersion(void)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+static size_t getSimId(void)
+{
+    char*  endptr = NULL;
+    size_t simId  = 0; /* Default simId is 0 */
+
+    if (g_szSIMID != NULL)
+    {
+        errno = 0;
+        int conv = strtol(g_szSIMID, &endptr, 10);
+        if (!errno)
+            simId = conv;
+        else
+            RLOGE("%s - Failed to convert simId", __FUNCTION__);
+    }
+
+    return simId;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static void* mainLoop(void* param)
 {
     RLOGI("mainLoop() - Enter\r\n");
 
     UINT32 dwRet = 1;
 
-    // Make sure we can access Non-Volatile Memory
-    if (!CRepository::Init())
+    size_t        simId = getSimId();
+    tcs_handle_t* h     = tcs_init();
+    tcs_cfg_t*    cfg   = NULL;
+    if (h == NULL)
     {
-        //RIL_LOG_CRITICAL("mainLoop() - Could not initialize non-volatile memory access.\r\n");
+        RLOGE("%s - Failed to init TCS", __func__);
+        dwRet = 0;
+        goto Error;
+    }
+
+    cfg = tcs_get_config(h);
+    if (cfg == NULL)
+    {
+        RLOGE("%s - Failed to get current configuration", __func__);
+        dwRet = 0;
+        goto Error;
+    }
+
+    if ((cfg->mdms.nb < 1) || (simId >= cfg->mdms.nb))
+    {
+        RLOGE("%s - Wrong simID setting", __FUNCTION__);
+        dwRet = 0;
+        goto Error;
+    }
+
+    // Make sure we can access Non-Volatile Memory
+    if (!CRepository::Init(cfg->mdms.mdm_info[simId].rril_txt))
+    {
+        RLOGE("%s - could not initialize configuration file", __func__);
 
         dwRet = 0;
         goto Error;
@@ -590,6 +636,7 @@ Error:
         CSystemManager::Destroy();
     }
 
+    tcs_dispose(h);
     RIL_LOG_INFO("mainLoop() - Exit\r\n");
     return (void*)dwRet;
 }
