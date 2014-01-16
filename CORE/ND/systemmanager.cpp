@@ -235,7 +235,7 @@ CSystemManager::~CSystemManager()
 ///////////////////////////////////////////////////////////////////////////////
 // Start initialization
 //
-BOOL CSystemManager::InitializeSystem()
+BOOL CSystemManager::InitializeSystem(const char* szModemName)
 {
     RIL_LOG_INFO("CSystemManager::InitializeSystem() - Enter\r\n");
 
@@ -245,48 +245,37 @@ BOOL CSystemManager::InitializeSystem()
     int iTemp = 0;
     BOOL bRetVal = FALSE;
 
-    char szModem[MAX_MODEM_NAME_LEN];
     UINT32 uiModemType = MODEM_TYPE_UNKNOWN;
     CSystemCapabilities pSysCaps;
 
     char szBuildTypeProperty[PROPERTY_VALUE_MAX] = {'\0'};
     char szImsSupport[PROPERTY_VALUE_MAX] = {'\0'};
 
-    // read the modem type used from repository
-    if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
+    if (0 == strcmp(szModemName, szXMM6260))
     {
-        if (0 == strcmp(szModem, szXMM6260))
-        {
-            RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using XMM6260\r\n");
-            uiModemType = MODEM_TYPE_XMM6260;
-        }
-        else if (0 == strcmp(szModem, szXMM6360))
-        {
-            RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using XMM6360\r\n");
-            uiModemType = MODEM_TYPE_XMM6360;
-        }
-        else if (0 == strcmp(szModem, szXMM7160))
-        {
-            RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using XMM7160\r\n");
-            uiModemType = MODEM_TYPE_XMM7160;
-        }
-        else if (0 == strcmp(szModem, szXMM7260))
-        {
-            RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using XMM7260\r\n");
-            uiModemType = MODEM_TYPE_XMM7260;
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Unknown modem type-"
-                    " Calling exit(0)\r\n");
-            exit(0);
-        }
+        RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using XMM6260\r\n");
+        uiModemType = MODEM_TYPE_XMM6260;
+    }
+    else if (0 == strcmp(szModemName, szXMM6360))
+    {
+        RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using XMM6360\r\n");
+        uiModemType = MODEM_TYPE_XMM6360;
+    }
+    else if (0 == strcmp(szModemName, szXMM7160))
+    {
+        RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using XMM7160\r\n");
+        uiModemType = MODEM_TYPE_XMM7160;
+    }
+    else if (0 == strcmp(szModemName, szXMM7260))
+    {
+        RIL_LOG_INFO("CSystemManager::InitializeSystem() - Using XMM7260\r\n");
+        uiModemType = MODEM_TYPE_XMM7260;
     }
     else
     {
-        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() -"
-                " Failed to read the modem type!\r\n");
-        goto Done;
+        RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - (%s) Unknown modem type-"
+                " Calling exit(0)\r\n", szModemName);
+        exit(0);
     }
 
     if (m_pSysInitCompleteEvent)

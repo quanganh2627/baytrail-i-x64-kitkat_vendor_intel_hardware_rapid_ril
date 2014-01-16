@@ -700,7 +700,7 @@ static void* mainLoop(void* param)
     }
 
     // Create and start system manager
-    if (!CSystemManager::GetInstance().InitializeSystem())
+    if (!CSystemManager::GetInstance().InitializeSystem(cfg->mdms.mdm_info[simId].name))
     {
         RIL_LOG_CRITICAL("mainLoop() - RIL InitializeSystem() FAILED\r\n");
 

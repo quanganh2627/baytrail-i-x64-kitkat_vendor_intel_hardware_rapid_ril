@@ -66,7 +66,7 @@ private:
 
 public:
     // Start system initialization process
-    BOOL InitializeSystem();
+    BOOL InitializeSystem(const char* szModemName);
 
     BOOL IsExitRequestSignalled() const;
 
