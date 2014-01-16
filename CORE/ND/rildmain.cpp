@@ -13,7 +13,6 @@
 #include <telephony/ril.h>
 #include <stdio.h>
 #include <errno.h>
-#include <unistd.h>
 
 #include "types.h"
 #include "rillog.h"
@@ -73,6 +72,16 @@ static const RIL_RadioFunctions gs_callbacks =
 };
 
 static const struct RIL_Env* gs_pRilEnv;
+
+#define USAGE  "\n"\
+    "--------------------------------------------------\n"\
+    "RapidRIL Usage:\n"\
+    "\tMandatory parameters:\n"\
+    "\t\t - NONE -\n"\
+    "\tOptional parameters:\n"\
+    "\t\t-h show this help message and exit\n"\
+    "\t\t-i <SIM ID>\n"\
+    "--------------------------------------------------\n\n"\
 
 
 ///////////////////////////////////////////////////////////
@@ -560,6 +569,74 @@ static size_t getSimId(void)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+static bool copyDlc(char **out, channel_t* ch, int channelNumber)
+{
+    bool ret = true;
+
+    if (ch->device[0] != '\0')
+    {
+        *out = strdup(ch->device);
+        RLOGI("%s - ch[%d] = \"%s\"", __FUNCTION__, channelNumber, *out);
+    }
+    else
+        ret = false;
+
+    return ret;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+static bool RIL_SetGlobals(channels_rril_t *ch)
+{
+    int opt;
+    bool ret = true;
+
+    g_uiRilChannelUpperLimit = RIL_CHANNEL_MAX;
+    g_pReqInfo = (REQ_INFO*)g_ReqInfoDefault;
+
+    ret &= copyDlc(&g_szCmdPort, &ch->control, RIL_CHANNEL_ATCMD);
+    ret &= copyDlc(&g_szDLC2Port, &ch->registration, RIL_CHANNEL_DLC2);
+    ret &= copyDlc(&g_szDLC6Port, &ch->settings, RIL_CHANNEL_DLC6);
+    ret &= copyDlc(&g_szDLC8Port, &ch->sim_toolkit, RIL_CHANNEL_DLC8);
+    ret &= copyDlc(&g_szURCPort, &ch->monitoring, RIL_CHANNEL_URC);
+    ret &= copyDlc(&g_szOEMPort, &ch->field_test, RIL_CHANNEL_OEM);
+    ret &= copyDlc(&g_szDataPort1, &ch->packet_data_1, RIL_CHANNEL_DATA1);
+    ret &= copyDlc(&g_szDataPort2, &ch->packet_data_2, RIL_CHANNEL_DATA2);
+    ret &= copyDlc(&g_szDataPort3, &ch->packet_data_3, RIL_CHANNEL_DATA3);
+    ret &= copyDlc(&g_szDataPort4, &ch->packet_data_4, RIL_CHANNEL_DATA4);
+    ret &= copyDlc(&g_szDataPort5, &ch->packet_data_5, RIL_CHANNEL_DATA5);
+    if (ret)
+        g_uiRilChannelCurMax = RIL_CHANNEL_DATA1 + 5;
+
+    return ret;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+static inline void freeDlc(char **szDlc)
+{
+    free(*szDlc);
+    *szDlc = NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+static void freeDlcs(void)
+{
+    freeDlc(&g_szCmdPort);
+    freeDlc(&g_szDLC2Port);
+    freeDlc(&g_szDLC6Port);
+    freeDlc(&g_szDLC8Port);
+    freeDlc(&g_szURCPort);
+    freeDlc(&g_szOEMPort);
+    freeDlc(&g_szDataPort1);
+    freeDlc(&g_szDataPort2);
+    freeDlc(&g_szDataPort3);
+    freeDlc(&g_szDataPort4);
+    freeDlc(&g_szDataPort5);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 static void* mainLoop(void* param)
 {
     RLOGI("mainLoop() - Enter\r\n");
@@ -600,6 +677,13 @@ static void* mainLoop(void* param)
         goto Error;
     }
 
+    if (!RIL_SetGlobals(&cfg->channels.ch[simId].rril))
+    {
+        RLOGE("%s - Failed to initialize globals", __func__);
+        dwRet = 0;
+        goto Error;
+    }
+
     // Initialize logging class
     CRilLog::Init(g_szSIMID);
 
@@ -634,6 +718,7 @@ Error:
         CModemRestart::Destroy();
         CDeferThread::Destroy();
         CSystemManager::Destroy();
+        freeDlcs();
     }
 
     tcs_dispose(h);
@@ -643,202 +728,52 @@ Error:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-static void usage(char* szProgName)
+static bool getCmdLineOptions(int argc, char** argv)
 {
-    fprintf(stderr, "RapidRIL requires:\n");
-    fprintf(stderr, "    -a <Call and Misc AT command port>\n");
-    fprintf(stderr, "    -n <Network AT command port>\n");
-    fprintf(stderr, "    -m <SMS, Supp Service, Call Setting AT command port>\n");
-    fprintf(stderr, "    -c <SIM related, SIM Toolkit AT command port>\n");
-    fprintf(stderr, "    -u <Notification channel>\n");
-    fprintf(stderr, "    -o <OEM Hook channel>\n");
-    fprintf(stderr, "    -d <PDP Primary Context - data channel 1>\n");
-    fprintf(stderr, "    [-d <PDP Primary Context - data channel 2>]\n");
-    fprintf(stderr, "    [-d <PDP Primary Context - data channel 3>]\n");
-    fprintf(stderr, "    [-d <PDP Primary Context - data channel 4>]\n");
-    fprintf(stderr, "    [-d <PDP Primary Context - data channel 5>]\n");
-    fprintf(stderr, "    [-i <SIM ID for DSDS>]\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Example in init.rc file:\n");
-    fprintf(stderr, "    service ril-daemon /system/bin/rild -l %s -- -a /dev/gsmtty12"
-            " -n /dev/gsmtty2 -m /dev/gsmtty6 -c /dev/gsmtty8 -u /dev/gsmtty1"
-            " -o /dev/gsmtty9 -d /dev/gsmtty3 -d /dev/gsmtty4 -d /dev/gsmtty15"
-            " -d /dev/gsmtty16 -d /dev/gsmtty17\n", szProgName);
-    fprintf(stderr, "\n");
-}
+    bool ret = true;
+    int opt  = 0;
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-static bool RIL_SetGlobals(int argc, char** argv)
-{
-    int opt;
-    UINT32 uiDataPortIndex = RIL_CHANNEL_DATA1;
-    g_uiRilChannelUpperLimit = RIL_CHANNEL_MAX;
-    g_pReqInfo = (REQ_INFO*)g_ReqInfoDefault;
-
-    while (-1 != (opt = getopt(argc, argv, "d:s:a:n:m:c:u:o:i:")))
+    while (-1 != (opt = getopt(argc, argv, "hi:")))
     {
         switch (opt)
         {
-            // This should be the emulator case.
-            case 's':
-                g_szCmdPort  = optarg;
-                g_bIsSocket = TRUE;
-                RLOGI("RIL_SetGlobals() - Using socket \"%s\"\r\n", g_szCmdPort);
-            break;
-
-            // This should be the non-emulator case.
-            case 'a':
-                g_szCmdPort = optarg;
-                RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for AT channel chnl=[%d] -a\r\n",
-                        g_szCmdPort, RIL_CHANNEL_ATCMD);
-            break;
-
-            // This should be the non-emulator case.
-            case 'n':
-                g_szDLC2Port = optarg;
-                RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Network channel chnl=[%d]"
-                        " -n\r\n", g_szDLC2Port, RIL_CHANNEL_DLC2);
-            break;
-
-            // This should be the non-emulator case.
-            case 'm':
-                g_szDLC6Port = optarg;
-                RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Messaging channel chnl=[%d]"
-                        " -m\r\n", g_szDLC6Port, RIL_CHANNEL_DLC6);
-            break;
-
-            // This should be the non-emulator case.
-            case 'c':
-                g_szDLC8Port = optarg;
-                RLOGI("RIL_SetGlobals() -"
-                        " Using tty device \"%s\" for SIM/USIM Card channel chnl=[%d]"
-                        " -c\r\n", g_szDLC8Port, RIL_CHANNEL_DLC8);
-            break;
-
-            // This should be the non-emulator case.
-            case 'u':
-                g_szURCPort = optarg;
-                RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for URC channel chnl=[%d] -u\r\n",
-                        g_szURCPort, RIL_CHANNEL_URC);
-            break;
-
-            // This should be the non-emulator case.
-            case 'o':
-                g_szOEMPort = optarg;
-                RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for OEM channel chnl=[%d] -u\r\n",
-                        g_szOEMPort, RIL_CHANNEL_OEM);
-            break;
-
-            // This should be the non-emulator case.
             case 'i':
                 g_szSIMID = optarg;
-                RLOGI("RIL_SetGlobals() - Using SIMID \"%s\" for all channels\r\n", g_szSIMID);
-            break;
+                RLOGI("%s - Using SIMID \"%s\" for all channels\r\n", __FUNCTION__, g_szSIMID);
+                break;
 
-            // This should be the non-emulator case.
-            // For multiple PDP contexts (which is default in ICS), must choose
-            // more than 1 data port. Also note that 1 data port is the minimum.
-            case 'd':
-                if (uiDataPortIndex >= g_uiRilChannelUpperLimit)
-                {
-                    RLOGI("RIL_SetGlobals() - Too many RIL data channels!  uiDataPortIndex=%d,"
-                            " Upper Limit=%d\r\n", uiDataPortIndex, g_uiRilChannelUpperLimit);
-                    usage(argv[0]);
-                    return false;
-                }
-                else
-                {
-                    switch(uiDataPortIndex)
-                    {
-                        case RIL_CHANNEL_DATA1:
-                            g_szDataPort1 = optarg;
-                            RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
-                                    " chnl=[%d] -d\r\n", g_szDataPort1, RIL_CHANNEL_DATA1);
-                            break;
-
-                        case RIL_CHANNEL_DATA2:
-                            g_szDataPort2 = optarg;
-                            RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
-                                    " chnl=[%d] -d\r\n", g_szDataPort2, RIL_CHANNEL_DATA2);
-                            break;
-
-                        case RIL_CHANNEL_DATA3:
-                            g_szDataPort3 = optarg;
-                            RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
-                                    " chnl=[%d] -d\r\n", g_szDataPort3, RIL_CHANNEL_DATA3);
-                            break;
-
-                        case RIL_CHANNEL_DATA4:
-                            g_szDataPort4 = optarg;
-                            RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
-                                    " chnl=[%d] -d\r\n", g_szDataPort4, RIL_CHANNEL_DATA4);
-                            break;
-
-                        case RIL_CHANNEL_DATA5:
-                            g_szDataPort5 = optarg;
-                            RLOGI("RIL_SetGlobals() - Using tty device \"%s\" for Data channel"
-                                    " chnl=[%d] -d\r\n", g_szDataPort5, RIL_CHANNEL_DATA5);
-                            break;
-
-                        default:
-                            usage(argv[0]);
-                            return false;
-                    }
-                    uiDataPortIndex++;
-                }
-            break;
-
-            default:
-                usage(argv[0]);
-                return false;
+            case 'h':
+                puts(USAGE);
+                ret = false;
+                break;
         }
     }
 
-    g_uiRilChannelCurMax = uiDataPortIndex;
-    if (g_uiRilChannelCurMax > g_uiRilChannelUpperLimit)
-    {
-        RLOGE("RIL_SetGlobals() - g_uiRilChannelCurMax = %d higher than g_uiRilChannelUpperLimit ="
-                " %d\r\n", g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
-        usage(argv[0]);
-        return false;
-    }
-    else
-    {
-        RLOGI("RIL_SetGlobals() - g_uiRilChannelCurMax = %d  g_uiRilChannelUpperLimit = %d\r\n",
-                g_uiRilChannelCurMax, g_uiRilChannelUpperLimit);
-    }
-
-    if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port
-            || !g_szURCPort || !g_szOEMPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3)
-    {
-        usage(argv[0]);
-        return false;
-    }
-    return true;
+    return ret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 const RIL_RadioFunctions* RIL_Init(const struct RIL_Env* pRilEnv, int argc, char** argv)
 {
+    const RIL_RadioFunctions* cbs = NULL;
+
     RIL_LOG_INFO("RIL_Init() - Enter\r\n");
 
     gs_pRilEnv = pRilEnv;
 
-    if  (RIL_SetGlobals(argc, argv))
+    if (getCmdLineOptions(argc, argv))
     {
         //  Call mainLoop()
         //  This returns when init is complete.
         mainLoop(NULL);
-
-        RIL_LOG_INFO("RIL_Init() - returning gs_callbacks\r\n");
-        return &gs_callbacks;
+        RLOGE("%s - returning gs_callbacks\r\n", __FUNCTION__);
+        cbs = &gs_callbacks;
     }
     else
     {
-        RIL_LOG_CRITICAL("RIL_Init() - returning NULL\r\n");
-        return NULL;
+        RLOGE("%s - returning NULL\r\n", __FUNCTION__);
     }
-}
 
+    return cbs;
+}
