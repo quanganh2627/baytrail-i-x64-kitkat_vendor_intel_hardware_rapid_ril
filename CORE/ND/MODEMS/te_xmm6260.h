@@ -311,10 +311,10 @@ private:
                                           const UINT32 uiDataSize);
     RIL_RESULT_CODE SetCallImsAvailable(REQUEST_DATA& rReqData,
                                         const char** pszRequest,
-                                        const UINT32 uiDataSize);
+                                        const int nNumStrings);
     RIL_RESULT_CODE SetSmsImsAvailable(REQUEST_DATA& rReqData,
                                         const char** pszRequest,
-                                        const UINT32 uiDataSize);
+                                        const int nNumStrings);
     RIL_RESULT_CODE GetPcscf(REQUEST_DATA& rReqData,
                              const char** pszRequest,
                              const UINT32 uiDataSize);

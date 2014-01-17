@@ -4491,7 +4491,7 @@ Error:
 }
 
 RIL_RESULT_CODE CTE_XMM6260::SetCallImsAvailable(REQUEST_DATA& rReqData,
-        const char** pszRequest, const UINT32 uiDataSize)
+        const char** pszRequest, const int nNumStrings)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::SetCallImsAvailable() - Enter\r\n");
 
@@ -4505,7 +4505,7 @@ RIL_RESULT_CODE CTE_XMM6260::SetCallImsAvailable(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (uiDataSize < (2 * sizeof(char*)))
+    if (nNumStrings < 2)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::SetCallImsAvailable()"
             ": received_size < required_size\r\n");
@@ -4537,7 +4537,7 @@ Error:
 }
 
 RIL_RESULT_CODE CTE_XMM6260::SetSmsImsAvailable(REQUEST_DATA& rReqData,
-        const char** pszRequest, const UINT32 uiDataSize)
+        const char** pszRequest, const int nNumStrings)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::SetSmsImsAvailable() - Enter\r\n");
 
@@ -4551,7 +4551,7 @@ RIL_RESULT_CODE CTE_XMM6260::SetSmsImsAvailable(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (uiDataSize < (2 * sizeof(char*)))
+    if (nNumStrings < 2)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::SetSmsImsAvailable()"
             ": received_size < required_size\r\n");
