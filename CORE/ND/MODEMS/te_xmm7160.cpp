@@ -101,7 +101,7 @@ char* CTE_XMM7160::GetUnlockInitCommands(UINT32 uiChannelType)
             RIL_LOG_VERBOSE("CTE_XMM7160::GetUnlockInitCommands()- Repository read failed!\r\n");
         }
 
-        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE,
+        ConcatenateStringNullTerminate(szInitCmd, sizeof(szInitCmd),
                 (bConformance || (uiEnableCipheringInd != 0)) ? "|+XUCCI=1" : "|+XUCCI=0");
     }
 
@@ -804,9 +804,7 @@ RIL_RESULT_CODE CTE_XMM7160::CreateIMSConfigReq(REQUEST_DATA& rReqData,
                     goto Error;
                 }
             }
-            if (!ConcatenateStringNullTerminate(szTemp2Xicfg,
-                                                MAX_BUFFER_SIZE - strlen(szTemp2Xicfg),
-                                                szTemp1Xicfg))
+            if (!ConcatenateStringNullTerminate(szTemp2Xicfg, sizeof(szTemp2Xicfg), szTemp1Xicfg))
             {
                 RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't add %s.\r\n",
                                  szTemp1Xicfg);
@@ -822,8 +820,7 @@ RIL_RESULT_CODE CTE_XMM7160::CreateIMSConfigReq(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (!ConcatenateStringNullTerminate(szTemp2Xicfg, MAX_BUFFER_SIZE - strlen(szTemp2Xicfg),
-                                        "\r"))
+    if (!ConcatenateStringNullTerminate(szTemp2Xicfg, sizeof(szTemp2Xicfg), "\r"))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't add %s.\r\n",
                          "\r");
@@ -837,8 +834,7 @@ RIL_RESULT_CODE CTE_XMM7160::CreateIMSConfigReq(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (!ConcatenateStringNullTerminate(szXicfgCmd, MAX_BUFFER_SIZE - strlen(szXicfgCmd),
-                                        szTemp2Xicfg))
+    if (!ConcatenateStringNullTerminate(szXicfgCmd, sizeof(szXicfgCmd), szTemp2Xicfg))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::CreateIMSConfigReq() - Can't construct szCmd1.\r\n");
         goto Error;
@@ -1760,9 +1756,26 @@ RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
     }
     else if (255 != uiRsrq && 255 != uiRsrp)
     {
-        pSigStrData->LTE_SignalStrength.rsrp = uiRsrp;
-        pSigStrData->LTE_SignalStrength.rsrq = uiRsrq;
-        pSigStrData->LTE_SignalStrength.rssnr = uiRssnr;
+        /*
+         * for rsrp if modem returns 0 then rsrp = -140 dBm.
+         * for rsrp if modem returns 1 then rsrp = -139 dBm.
+         * As Android does the inversion, rapid ril needs to send (140 - rsrp) to framework.
+         *
+         * for rsrq if modem return 0 then rsrq = -19.5 dBm.
+         * for rsrq if modem return 1 then rsrq = -19 dBm.
+         * As Android does the inversion, rapid ril needs to send (20 - rsrq/2) to framework.
+         *
+         * for rssnr if modem returns 0 then rssnr = 0 dBm
+         * for rssnr if modem returns 1 then rssnr = 0.5 dBm
+         * As Android has granularity of 0.1 dB units, rapid ril needs to send
+         * (rssnr/2)*10 => rssnr * 5 to framework.
+         *
+         * You can refer to the latest CAT specification on XCESQI AT command
+         * to understand where these numbers come from
+         */
+        pSigStrData->LTE_SignalStrength.rsrp = 140 - uiRsrp;
+        pSigStrData->LTE_SignalStrength.rsrq = 20 - uiRsrq / 2;
+        pSigStrData->LTE_SignalStrength.rssnr = uiRssnr * 5;
     }
     else
     {

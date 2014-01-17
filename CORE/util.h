@@ -37,7 +37,7 @@ BOOL PrintStringNullTerminate(char* const pszOut, const UINT32 cbOut, const char
 // character at the end of the string regardless of truncation. If truncation or some other
 // error occurs, the function will return FALSE.
 BOOL ConcatenateStringNullTerminate(char* const pszOut,
-        const UINT32 cbOut, const char* const pszIn);
+        const size_t cbOut, const char* const pszIn);
 
 class CRLFExpandedString
 {

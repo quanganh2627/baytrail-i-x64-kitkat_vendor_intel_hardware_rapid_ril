@@ -63,7 +63,6 @@ CTE::CTE(UINT32 modemType) :
     m_bStkCapable(TRUE),
     m_bXDATASTATEnabled(FALSE),
     m_bIMSCapable(FALSE),
-    m_bSMSOverIPCapable(FALSE),
     m_bSupportCGPIAF(FALSE),
     m_bSignalStrengthReporting(FALSE),
     m_bCellInfoEnabled(TRUE),
@@ -2712,6 +2711,8 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     UINT32 uiCID = 0;
     CChannel_Data* pChannelData = NULL;
     int retryTime = -1;
+    char* pszDataProfile = NULL;
+    int dataProfile = -1;
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
@@ -2728,6 +2729,9 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         goto Error;
     }
 
+    pszDataProfile = ((char**)pData)[1];
+    dataProfile = atoi(pszDataProfile);
+
     if (!IsSetupDataCallAllowed(retryTime))
     {
         RIL_Data_Call_Response_v6 dataCallResp;
@@ -2740,7 +2744,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         return RRIL_RESULT_OK;
     }
 
-    if (IsEPSRegistered())
+    if (IsEPSRegistered() && RIL_DATA_PROFILE_DEFAULT == dataProfile)
     {
         pChannelData = CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
 
@@ -10035,4 +10039,18 @@ void CTE::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange)
 void CTE::SetRefreshWithUsimInitOn(BOOL bOn)
 {
     m_pTEBaseInstance->SetRefreshWithUsimInitOn(bOn);
+}
+
+void CTE::PostInternalOpenLogicalChannel(POST_CMD_HANDLER_DATA& rData)
+{
+    RIL_LOG_VERBOSE("CTE::PostInternalOpenLogicalChannel() Enter\r\n");
+
+    if (RIL_E_SUCCESS == rData.uiResultCode && sizeof(int) == rData.uiDataSize)
+    {
+        m_pTEBaseInstance->SetSessionId(RIL_APPTYPE_ISIM, *((int*)rData.pData));
+    }
+
+    m_pTEBaseInstance->TriggerUiccOpenLogicalChannelEvent();
+
+    RIL_LOG_VERBOSE("CTE::PostInternalOpenLogicalChannel() - Exit\r\n");
 }

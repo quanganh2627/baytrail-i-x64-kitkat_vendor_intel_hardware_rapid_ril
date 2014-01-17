@@ -46,7 +46,8 @@ CTEBase::CTEBase(CTE& cte)
   m_ePin2State(RIL_PINSTATE_UNKNOWN),
   m_pDtmfStopReqEvent(NULL),
   m_bReadyForAttach(FALSE),
-  m_bRefreshWithUSIMInitOn(FALSE)
+  m_bRefreshWithUSIMInitOn(FALSE),
+  m_pUiccOpenLogicalChannelEvent(NULL)
 {
     CRepository repository;
     strcpy(m_szNetworkInterfaceNamePrefix, "");
@@ -73,6 +74,8 @@ CTEBase::CTEBase(CTE& cte)
 
     m_pDtmfStopReqEvent = new CEvent(NULL, TRUE);
     m_pCardStatusUpdateLock = new CMutex();
+
+    m_pUiccOpenLogicalChannelEvent = new CEvent(NULL, TRUE);
 
     ResetCardStatus(TRUE);
 }
@@ -117,12 +120,21 @@ void CTEBase::ResetCardStatus(BOOL bForceReset)
 
     memset(&m_SimAppListData, 0, sizeof(m_SimAppListData));
 
+    for (int i = 0; i < RIL_CARD_MAX_APPS; i++)
+    {
+        m_SimAppListData.aAppInfo[i].sessionId = -1;
+    }
+
     CMutex::Unlock(m_pCardStatusUpdateLock);
 }
 
 CTEBase::~CTEBase()
 {
     RIL_LOG_INFO("CTEBase::~CTEBase() - Deleting initializer\r\n");
+
+    delete m_pUiccOpenLogicalChannelEvent;
+    m_pUiccOpenLogicalChannelEvent = NULL;
+
     if (m_pCardStatusUpdateLock)
     {
         CMutex::Unlock(m_pCardStatusUpdateLock);
@@ -2263,6 +2275,8 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
     BOOL bModemOffInFlightMode = m_cte.GetModemOffInFlightModeState();
     BOOL bTurnRadioOn = (0 == ((int*)pData)[0]) ? FALSE : TRUE;
 
+    CEvent* pRadioStateChangedEvent = m_cte.GetRadioStateChangedEvent();
+
     if (bTurnRadioOn)
     {
         switch (m_cte.GetLastModemEvent())
@@ -2412,6 +2426,16 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
     }
 
     /*
+     * The RadioStateChangedEvent is triggered in the PostRadioPower function.
+     * To avoid to be blocked in the wait of this event, we need to reset it before the sending
+     * of the AT and not just before to perform the wait
+     */
+    if (NULL != pRadioStateChangedEvent)
+    {
+        CEvent::Reset(pRadioStateChangedEvent);
+    }
+
+    /*
      * Note: RIL_Token is not provided as part of the command creation.
      * If the RIL_REQUEST_RADIO_POWER is for platform shutdown, then the
      * main thread(request handling thread) waits for ModemPoweredOffEvent.
@@ -2480,13 +2504,10 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
          *     - Upon radio state changed event complete the RADIO_POWER ON
          *       request.
          */
-        CEvent* pRadioStateChangedEvent = m_cte.GetRadioStateChangedEvent();
         CEvent* pCancelWaitEvent = CSystemManager::GetInstance().GetCancelWaitEvent();
 
         if (NULL != pRadioStateChangedEvent && NULL != pCancelWaitEvent)
         {
-            CEvent::Reset(pRadioStateChangedEvent);
-
             CEvent* rgpEvents[] = { pRadioStateChangedEvent, pCancelWaitEvent };
 
             CEvent::WaitForAnyEvent(2/*NumEvents*/, rgpEvents, WAIT_FOREVER);
@@ -7961,7 +7982,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                     goto Error;
                                 }
                                 if (!ConcatenateStringNullTerminate(szChannels,
-                                        MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
+                                        sizeof(szChannels), szChannelsInt))
                                 {
                                     RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() -"
                                             " Unable to print from service id of"
@@ -7982,7 +8003,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                     goto Error;
                                 }
                                 if (!ConcatenateStringNullTerminate(szChannels,
-                                        MAX_BUFFER_SIZE - strlen(szChannels), szChannelsInt))
+                                        sizeof(szChannels), szChannelsInt))
                                 {
                                     RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() -"
                                             " Unable to print to service id of"
@@ -8053,7 +8074,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                     goto Error;
                                 }
                                 if (!ConcatenateStringNullTerminate(szLangs,
-                                        MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
+                                        sizeof(szLangs), szLangsInt))
                                 {
                                     RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() -"
                                             " Unable to print from service id of"
@@ -8073,7 +8094,7 @@ RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                     goto Error;
                                 }
                                 if (!ConcatenateStringNullTerminate(szLangs,
-                                        MAX_BUFFER_SIZE - strlen(szChannels), szLangsInt))
+                                        sizeof(szLangs), szLangsInt))
                                 {
                                     RIL_LOG_CRITICAL("CTEBase::CoreGsmSmsBroadcastActivation() -"
                                             " Unable to print from service id of"
@@ -10448,6 +10469,30 @@ void CTEBase::GetSimAppId(const int appType, char* pszAppId, const int maxAppIdL
     RIL_LOG_VERBOSE("CTEBase::GetSimAppId() - Exit\r\n");
 }
 
+int CTEBase::GetIsimAppState()
+{
+    int appIndex = m_CardStatusCache.ims_subscription_app_index;
+    if (appIndex > 0 && appIndex == ISIM_APP_INDEX)
+    {
+        return m_CardStatusCache.applications[appIndex].app_state;
+    }
+
+    return RIL_APPSTATE_UNKNOWN;
+}
+
+int CTEBase::GetSessionId(const int appType)
+{
+    for (int i = 0; i < m_SimAppListData.nApplications; i++)
+    {
+        if (appType == m_SimAppListData.aAppInfo[i].appType)
+        {
+            return m_SimAppListData.aAppInfo[i].sessionId;
+        }
+    }
+
+    return -1;
+}
+
 void CTEBase::SetRadioState(const RRIL_Radio_State eRadioState)
 {
     RIL_LOG_VERBOSE("CTEBase::SetRadioState() - Enter / Exit\r\n");
@@ -10527,6 +10572,18 @@ void CTEBase::SetPersonalisationSubState(const int perso_substate)
     CMutex::Unlock(m_pCardStatusUpdateLock);
 
     RIL_LOG_VERBOSE("CTEBase::SetPersonalisationSubState() - Exit\r\n");
+}
+
+void CTEBase::SetSessionId(const int appType, const int sessionId)
+{
+    for (int i = 0; i < m_SimAppListData.nApplications; i++)
+    {
+        if (appType == m_SimAppListData.aAppInfo[i].appType)
+        {
+            m_SimAppListData.aAppInfo[i].sessionId = sessionId;
+            break;
+        }
+    }
 }
 
 void CTEBase::UpdateIsimAppState()
@@ -11822,4 +11879,116 @@ void CTEBase::CopyCardStatus(RIL_CardStatus_v6& cardStatus)
 
 void CTEBase::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange)
 {
+}
+
+BOOL CTEBase::OpenLogicalChannel(POST_CMD_HANDLER_DATA& rData, const char* pszAid)
+{
+    RIL_LOG_VERBOSE("CTEBase::OpenLogicalChannel() - Enter\r\n");
+
+    char szCmd[MAX_BUFFER_SIZE] = {'\0'};
+    BOOL bRet = FALSE;
+    CCommand* pCmd = NULL;
+
+    if (NULL == pszAid || pszAid[0] == '\0')
+    {
+        RIL_LOG_CRITICAL("CTEBase::OpenLogicalChannel() - invalid aid_ptr\r\n");
+        goto Error;
+    }
+
+    if (!PrintStringNullTerminate(szCmd, sizeof(szCmd), "AT+CCHO=\"%s\"\r", pszAid))
+    {
+        RIL_LOG_CRITICAL("CTEBase::OpenLogicalChannel() - Cannot create CCHO command\r\n");
+        goto Error;
+    }
+
+    pCmd = new CCommand(rData.uiChannel, rData.pRilToken, rData.requestId, szCmd,
+            &CTE::ParseSimOpenChannel, &CTE::PostInternalOpenLogicalChannel);
+    if (NULL == pCmd)
+    {
+        RIL_LOG_CRITICAL("CTEBase::OpenLogicalChannel() - "
+                "Unable to allocate memory for command\r\n");
+        goto Error;
+    }
+    else
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::OpenLogicalChannel() - "
+                    "Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+            goto Error;
+        }
+    }
+
+    bRet = TRUE;
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::OpenLogicalChannel() - Exit\r\n");
+    return bRet;
+}
+
+RIL_RESULT_CODE CTEBase::HandleSimIO(RIL_SIM_IO_v6* pSimIOArgs, REQUEST_DATA& rReqData,
+        const int sessionId)
+{
+    RIL_LOG_VERBOSE("CTEBase::HandleSimIO() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (NULL == pSimIOArgs->data)
+    {
+        if (NULL == pSimIOArgs->path)
+        {
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                    "AT+CRLA=%d,%d,%d,%d,%d,%d\r", sessionId, pSimIOArgs->command,
+                    pSimIOArgs->fileid, pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3))
+            {
+                RIL_LOG_CRITICAL("CTEBase::HandleSimIO() - cannot create CRLA command\r\n");
+                goto Error;
+            }
+        }
+        else // (NULL != pSimIOArgs->path)
+        {
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                    "AT+CRLA=%d,%d,%d,%d,%d,%d,,\"%s\"\r", sessionId, pSimIOArgs->command,
+                    pSimIOArgs->fileid, pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
+                    pSimIOArgs->path))
+            {
+                RIL_LOG_CRITICAL("CTEBase::HandleSimIO() - cannot create CRLA command\r\n");
+                goto Error;
+            }
+        }
+    }
+    else // (NULL != pSimIOArgs->data)
+    {
+        if (NULL == pSimIOArgs->path)
+        {
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                    "AT+CRLA=%d,%d,%d,%d,%d,%d,\"%s\"\r", sessionId, pSimIOArgs->command,
+                    pSimIOArgs->fileid, pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
+                    pSimIOArgs->data))
+            {
+                RIL_LOG_CRITICAL("CTEBase::HandleSimIO() - cannot create CRLA command\r\n");
+                goto Error;
+            }
+        }
+        else // (NULL != pSimIOArgs->path)
+        {
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                    "AT+CRLA=%d,%d,%d,%d,%d,%d,\"%s\",\"%s\"\r", sessionId,
+                    pSimIOArgs->command, pSimIOArgs->fileid, pSimIOArgs->p1, pSimIOArgs->p2,
+                    pSimIOArgs->p3, pSimIOArgs->data, pSimIOArgs->path))
+            {
+                RIL_LOG_CRITICAL("CTEBase::HandleSimIO() - cannot create CRLA command\r\n");
+                goto Error;
+            }
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::HandleSimIO() - Exit\r\n");
+    return res;
 }

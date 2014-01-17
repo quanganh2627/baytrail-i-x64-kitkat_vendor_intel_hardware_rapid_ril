@@ -25,7 +25,6 @@ public:
                             m_bStkCapable(TRUE),
                             m_bXDATASTATEnabled(FALSE),
                             m_bIMSCapable(FALSE),
-                            m_bSMSOverIPCapable(FALSE),
                             m_uiModeOfOperation(MODE_CS_PS_VOICE_CENTRIC) {}
 
     BOOL IsVoiceCapable() { return m_bVoiceCapable; }
@@ -33,7 +32,6 @@ public:
     BOOL IsStkCapable() { return m_bStkCapable; }
     BOOL IsXDATASTATReportingEnabled() { return m_bXDATASTATEnabled; }
     BOOL IsIMSCapable() { return m_bIMSCapable; }
-    BOOL IsSMSOverIPCapable() { return m_bSMSOverIPCapable; }
     UINT32 GetModeOfOperation() { return m_uiModeOfOperation; }
 
     void SetVoiceCapable(BOOL bIsVoiceCapable) { m_bVoiceCapable = bIsVoiceCapable; }
@@ -42,7 +40,6 @@ public:
     void SetXDATASTATReporting(BOOL bIsXDATASTATReporting)
                         { m_bXDATASTATEnabled = bIsXDATASTATReporting; }
     void SetIMSCapable(BOOL bIsIMSCapable) { m_bIMSCapable = bIsIMSCapable; }
-    void SetSMSOverIPCapable(BOOL bSMSOverIPCapable) { m_bSMSOverIPCapable = bSMSOverIPCapable; }
     void SetModeOfOperation(UINT32 uiModeOfOperation) { m_uiModeOfOperation = uiModeOfOperation; }
 
 private:
@@ -51,7 +48,6 @@ private:
     BOOL m_bStkCapable;
     BOOL m_bXDATASTATEnabled;
     BOOL m_bIMSCapable;
-    BOOL m_bSMSOverIPCapable;
     UINT32 m_uiModeOfOperation;
 };
 

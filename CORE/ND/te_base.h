@@ -49,6 +49,8 @@ protected:
     BOOL m_bReadyForAttach;
     BOOL m_bRefreshWithUSIMInitOn;
 
+    CEvent* m_pUiccOpenLogicalChannelEvent;
+
 public:
     CTEBase(CTE& cte);
     virtual ~CTEBase();
@@ -792,6 +794,8 @@ public:
     virtual int GetSimPinState();
     virtual void GetSimAppIdAndLabel(const int app_type, char* pszAppId[], char* pszAppLabel[]);
     virtual void GetSimAppId(const int app_type, char* pszAppId, const int maxAppIdLength);
+    virtual int GetIsimAppState();
+    virtual int GetSessionId(const int appType);
 
     // Setter functions for SIM and Radio states
     virtual void SetRadioState(const RRIL_Radio_State eRadioState);
@@ -800,6 +804,7 @@ public:
     virtual void SetSimAppState(const int appState);
     virtual void SetPersonalisationSubState(const int perso_substate);
     virtual void UpdateIsimAppState();
+    virtual void SetSessionId(const int appType, const int sessionId);
 
     // Returns true on PIN entry required
     virtual BOOL IsPinEnabled();
@@ -924,6 +929,16 @@ public:
     virtual void SetRefreshWithUsimInitOn(BOOL bOn)
     {
         m_bRefreshWithUSIMInitOn = bOn;
+    }
+
+    virtual BOOL OpenLogicalChannel(POST_CMD_HANDLER_DATA& rData, const char* pszAid);
+
+    virtual RIL_RESULT_CODE HandleSimIO(RIL_SIM_IO_v6* pSimIOArgs, REQUEST_DATA& rReqData,
+            int sessionId);
+
+    virtual void TriggerUiccOpenLogicalChannelEvent()
+    {
+        CEvent::Signal(m_pUiccOpenLogicalChannelEvent);
     }
 
 protected:

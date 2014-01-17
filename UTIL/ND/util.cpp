@@ -324,25 +324,20 @@ BOOL PrintStringNullTerminate(char* const pszOut, const UINT32 cbOut, const char
     return fRet;
 }
 
-BOOL ConcatenateStringNullTerminate(char* const pszOut, const UINT32 cbOut, const char* const pszIn)
+BOOL ConcatenateStringNullTerminate(char* const pszOut, const size_t cbOut, const char* const pszIn)
 {
     BOOL fRet = FALSE;
-    UINT32 cbOutStrLen = strnlen(pszOut, cbOut);
-    UINT32 cbInStrLen = strlen(pszIn);
+    size_t outLen = strnlen(pszOut, cbOut - 1);
+    size_t inLen = strlen(pszIn);
 
     //RIL_LOG_VERBOSE("ConcatenateStringNullTerminate() - Enter\r\n");
 
-    strncat(pszOut, pszIn, cbOut - cbOutStrLen);
+    strncat(pszOut, pszIn, cbOut - 1 - outLen);
 
-    if (cbOut > cbOutStrLen + cbInStrLen)
+    if (cbOut - 1 >= outLen + inLen)
     {
         // The string fit with no truncation
         fRet = TRUE;
-    }
-    else
-    {
-        // Not enough room! Null terminate the string for safety.
-        pszOut[cbOut - 1] = '\0';
     }
 
     //RIL_LOG_VERBOSE("ConcatenateStringNullTerminate() - Exit\r\n");
@@ -692,6 +687,10 @@ BOOL convertGsmToUtf8HexString(BYTE* pAlphaBuffer, int offset, const int length,
 
     bRet = TRUE;
 Error:
-    pszUtf8HexString[utf8Count] = '\0';
+    if (NULL != pszUtf8HexString)
+    {
+        pszUtf8HexString[utf8Count] = '\0';
+    }
+
     return bRet;
 }

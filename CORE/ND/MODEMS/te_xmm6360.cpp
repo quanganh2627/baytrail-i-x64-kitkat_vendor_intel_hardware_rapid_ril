@@ -113,7 +113,7 @@ char* CTE_XMM6360::GetUnlockInitCommands(UINT32 uiChannelType)
 
     if (RIL_CHANNEL_URC == uiChannelType)
     {
-        ConcatenateStringNullTerminate(szInitCmd, MAX_BUFFER_SIZE, "|+CGAUTO=0");
+        ConcatenateStringNullTerminate(szInitCmd, sizeof(szInitCmd), "|+CGAUTO=0");
     }
 
     RIL_LOG_VERBOSE("CTE_XMM6360::GetUnlockInitCommands() - Exit\r\n");
@@ -1147,6 +1147,7 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetInitialAttachApn() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_InitialAttachApn* pTemp = NULL;
+    UINT32 uiMode = 0;
 
     if (pData == NULL)
     {
@@ -1170,10 +1171,28 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
         goto Error;
     }
 
+    if (0 == strcmp(pTemp->protocol, "IP"))
+    {
+        uiMode = 1;
+    }
+    else if (0 == strcmp(pTemp->protocol, "IPV6"))
+    {
+        uiMode = 2;
+    }
+    else if (0 == strcmp(pTemp->protocol, "IPV4V6"))
+    {
+        uiMode = 3;
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - Invalid protocol\r\n");
+        goto Error;
+    }
+
     if (NULL == pTemp->apn)
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=1,\"%s\"\r", pTemp->protocol))
+                "AT+CGDCONT=1,\"%s\";+XDNS=1,%u\r", pTemp->protocol, uiMode))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - "
                     "Can't construct szCmd1.\r\n");
@@ -1183,7 +1202,7 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
     else
     {
         if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=1,\"%s\",\"%s\"\r", pTemp->protocol, pTemp->apn))
+                "AT+CGDCONT=1,\"%s\",\"%s\";+XDNS=1,%u\r", pTemp->protocol, pTemp->apn, uiMode))
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - "
                     "Can't construct szCmd1.\r\n");

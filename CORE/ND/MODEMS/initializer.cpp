@@ -804,8 +804,7 @@ BOOL CInitializer::CreateSilos(CChannel* pChannel, int siloConfig, CSystemCapabi
                             pSilo->GetBasicInitString();
             if (pszSiloInitString)
             {
-                if (!ConcatenateStringNullTerminate(pszBasicInitString,
-                            MAX_BUFFER_SIZE - strlen(pszBasicInitString), "|"))
+                if (!ConcatenateStringNullTerminate(pszBasicInitString, MAX_BUFFER_SIZE, "|"))
                 {
                     RIL_LOG_CRITICAL("CInitializer::CreateSilos() : chnl=[%u] Failed to "
                             "concat | to basic init string from silo(%d)!\r\n",
@@ -813,7 +812,7 @@ BOOL CInitializer::CreateSilos(CChannel* pChannel, int siloConfig, CSystemCapabi
                     goto Error;
                 }
                 if (!ConcatenateStringNullTerminate(pszBasicInitString,
-                            MAX_BUFFER_SIZE - strlen(pszBasicInitString), pszSiloInitString))
+                        MAX_BUFFER_SIZE, pszSiloInitString))
                 {
                     RIL_LOG_CRITICAL("CInitializer::CreateSilos() : chnl=[%u] Failed to "
                             "concat basic init string from silo(%d)!\r\n",
@@ -827,8 +826,7 @@ BOOL CInitializer::CreateSilos(CChannel* pChannel, int siloConfig, CSystemCapabi
                             pSilo->GetURCUnlockInitString() : pSilo->GetUnlockInitString();
             if (pszSiloInitString)
             {
-                if (!ConcatenateStringNullTerminate(pszUnlockInitString,
-                            MAX_BUFFER_SIZE - strlen(pszUnlockInitString), "|"))
+                if (!ConcatenateStringNullTerminate(pszUnlockInitString, MAX_BUFFER_SIZE, "|"))
                 {
                     RIL_LOG_CRITICAL("CInitializer::CreateSilos() : chnl=[%u] Failed to "
                             "concat | to unlock init string from silo(%d)!\r\n",
@@ -836,7 +834,7 @@ BOOL CInitializer::CreateSilos(CChannel* pChannel, int siloConfig, CSystemCapabi
                     goto Error;
                 }
                 if (!ConcatenateStringNullTerminate(pszUnlockInitString,
-                            MAX_BUFFER_SIZE - strlen(pszUnlockInitString), pszSiloInitString))
+                            MAX_BUFFER_SIZE, pszSiloInitString))
                 {
                     RIL_LOG_CRITICAL("CInitializer::CreateSilos() : chnl=[%u] Failed to "
                             "concat unlock init string from silo(%d)!\r\n",

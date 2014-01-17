@@ -85,7 +85,7 @@ char* CSilo_Network::GetURCInitString()
     const char szNetworkURCInitString[] = "+CTZU=1|+XNITZINFO=1|+CGEREP=1,0";
 
     if (!ConcatenateStringNullTerminate(m_szURCInitString,
-            MAX_BUFFER_SIZE - strlen(m_szURCInitString), szNetworkURCInitString))
+            sizeof(m_szURCInitString), szNetworkURCInitString))
     {
         RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to copy URC init "
                 "string!\r\n");
@@ -97,13 +97,13 @@ char* CSilo_Network::GetURCInitString()
         const char* pszSignalStrengthURC = CTE::GetTE().GetSignalStrengthReportingString();
         if (NULL != pszSignalStrengthURC)
         {
-            if (!ConcatenateStringNullTerminate(m_szURCInitString, MAX_BUFFER_SIZE, "|"))
+            if (!ConcatenateStringNullTerminate(m_szURCInitString, sizeof(m_szURCInitString), "|"))
             {
                 RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() - concat of | failed\r\n");
                 return NULL;
             }
 
-            if (!ConcatenateStringNullTerminate(m_szURCInitString, MAX_BUFFER_SIZE,
+            if (!ConcatenateStringNullTerminate(m_szURCInitString, sizeof(m_szURCInitString),
                     pszSignalStrengthURC))
             {
                 RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to copy signal"
@@ -116,7 +116,7 @@ char* CSilo_Network::GetURCInitString()
     if (m_pSystemCapabilities->IsXDATASTATReportingEnabled())
     {
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
-                MAX_BUFFER_SIZE - strlen(m_szURCInitString), "|+XDATASTAT=1"))
+                sizeof(m_szURCInitString), "|+XDATASTAT=1"))
         {
             RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to concat "
                     "XDATASTAT to URC init string!\r\n");

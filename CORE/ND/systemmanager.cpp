@@ -155,13 +155,16 @@ CSystemManager::~CSystemManager()
 
     m_bIsSystemInitialized = FALSE;
 
-    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CloseChannelPorts\r\n");
-    // Close the COM ports
-    m_pInitializer->CloseChannelPorts();
+    if (m_pInitializer)
+    {
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before CloseChannelPorts\r\n");
+        // Close the COM ports
+        m_pInitializer->CloseChannelPorts();
 
-    RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteChannels\r\n");
-    //  Delete channels
-    m_pInitializer->DeleteChannels();
+        RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before DeleteChannels\r\n");
+        //  Delete channels
+        m_pInitializer->DeleteChannels();
+    }
 
     // destroy events
     if (m_pCancelWaitEvent)
@@ -193,6 +196,7 @@ CSystemManager::~CSystemManager()
 
     RIL_LOG_INFO("CSystemManager::~CSystemManager() - Before delete TE object\r\n");
     CTE::GetTE().DeleteTEObject();
+    m_pInitializer = NULL;
 
     if (m_pSpoofCommandsStatusAccessMutex)
     {
@@ -246,6 +250,7 @@ BOOL CSystemManager::InitializeSystem()
     CSystemCapabilities pSysCaps;
 
     char szBuildTypeProperty[PROPERTY_VALUE_MAX] = {'\0'};
+    char szImsSupport[PROPERTY_VALUE_MAX] = {'\0'};
 
     // read the modem type used from repository
     if (repository.Read(g_szGroupModem, g_szSupportedModem, szModem, MAX_MODEM_NAME_LEN))
@@ -404,16 +409,6 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetXDATASTATReporting(iTemp == 1 ? TRUE : FALSE);
     }
 
-    if (repository.Read(g_szGroupModem, g_szIMSCapable, iTemp))
-    {
-        CTE::GetTE().SetIMSCapable(iTemp == 1 ? TRUE : FALSE);
-    }
-
-    if (repository.Read(g_szGroupModem, g_szEnableSMSOverIP, iTemp))
-    {
-        CTE::GetTE().SetSMSOverIPCapable(iTemp == 1 ? TRUE : FALSE);
-    }
-
     if (repository.Read(g_szGroupModem, g_szSupportCGPIAF, iTemp))
     {
         CTE::GetTE().SetSupportCGPIAF(iTemp == 1 ? TRUE : FALSE);
@@ -434,6 +429,18 @@ BOOL CSystemManager::InitializeSystem()
         CTE::GetTE().SetModeOfOperation((UINT32)iTemp);
     }
 
+    // Retrieve IMS capability based on system property
+    if (property_get("persist.ims_support", szImsSupport, "0"))
+    {
+        // ims_support = 1 means IMS Stack is BP centric
+        // ims_support = 2 means IMS Stack is AP centric
+        if ((strncmp(szImsSupport, "1", PROPERTY_VALUE_MAX) == 0))
+        {
+            CTE::GetTE().SetIMSCapable(TRUE);
+            RIL_LOG_INFO("CSystemManager::InitializeSystem() : Set modem as IMS Capable \r\n");
+        }
+    }
+
     // set system capabilities
     pSysCaps.SetSmsCapable(CTE::GetTE().IsSmsOverCSCapable()
             || CTE::GetTE().IsSmsOverPSCapable());
@@ -441,9 +448,7 @@ BOOL CSystemManager::InitializeSystem()
     pSysCaps.SetIsStkCapable(CTE::GetTE().IsStkCapable());
     pSysCaps.SetXDATASTATReporting(CTE::GetTE().IsXDATASTATReportingEnabled());
     pSysCaps.SetIMSCapable(CTE::GetTE().IsIMSCapable());
-    pSysCaps.SetSMSOverIPCapable(CTE::GetTE().IsSMSOverIPCapable());
     pSysCaps.SetModeOfOperation(CTE::GetTE().GetModeOfOperation());
-
 
     // Call drop reporting is available only for eng or userdebug build
     if (property_get("ro.build.type", szBuildTypeProperty, NULL))
@@ -499,6 +504,7 @@ Done:
         }
 
         CTE::GetTE().DeleteTEObject();
+        m_pInitializer = NULL;
     }
 
     CMutex::Unlock(m_pSystemManagerMutex);

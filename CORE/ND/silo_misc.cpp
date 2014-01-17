@@ -60,7 +60,7 @@ char* CSilo_MISC::GetBasicInitString()
     const char szMiscBasicInitString[] = "+XGENDATA|+XPOW=0,0,0";
 
     if (!ConcatenateStringNullTerminate(m_szBasicInitString,
-            MAX_BUFFER_SIZE - strlen(m_szBasicInitString), szMiscBasicInitString))
+            sizeof(m_szBasicInitString), szMiscBasicInitString))
     {
         RIL_LOG_CRITICAL("CSilo_MISC::GetBasicInitString() : Failed to copy basic init "
                 "string!\r\n");
@@ -230,8 +230,7 @@ BOOL CSilo_MISC::ParseCoexURC(CResponse* const pResponse, const char*& rszPointe
     }
 
     // Adding the value of the URC to pData->response
-    if (!ConcatenateStringNullTerminate(pData->response,
-            COEX_INFO_BUFFER_SIZE - strlen(pData->response), szExtInfo))
+    if (!ConcatenateStringNullTerminate(pData->response, sizeof(pData->response), szExtInfo))
     {
         RIL_LOG_CRITICAL("CSilo_MISC::ParseCoexURC() : Failed to concat the URC "
                 "prefix to its value!\r\n");
