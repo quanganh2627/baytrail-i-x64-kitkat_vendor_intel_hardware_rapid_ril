@@ -8752,15 +8752,16 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
     }
     else
     {
-        // Unsolcited CELL INFO LIST
+        // Unsolicited CELL INFO LIST
         // update the list only if there is a change in the information
         // compare the read values with the cellinfo cache and if the values
         // are different, report RIL_UNSOL_CELL_INFO_LIST
         if (uiIndex > 0)
         {
-            if (m_cte.updateCellInfoCache(pCellData, (INT32)uiIndex))
+            int requestedRate = (int)rRspData.pContextData;
+            if (m_cte.updateCellInfoCache(pCellData, (INT32)uiIndex)
+                    && -1 != requestedRate && INT_MAX != requestedRate)
             {
-                RIL_LOG_VERBOSE("CTEBase::ParseCellInfoList() - updated cache\r\n");
                 RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST,
                         (void*)pCellData->pnCellData, (sizeof(RIL_CellInfo) * uiIndex));
             }
@@ -8774,8 +8775,8 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
         // restart the timer now with the latest rate setting.
         if (!m_cte.IsCellInfoTimerRunning())
         {
-            UINT32 uiNewRate = m_cte.GetCellInfoListRate();
-            RestartUnsolCellInfoListTimer(uiNewRate);
+            int newRate = m_cte.GetCellInfoListRate();
+            RestartUnsolCellInfoListTimer(newRate);
         }
     }
 
@@ -8800,26 +8801,26 @@ RIL_RESULT_CODE CTEBase::CoreSetCellInfoListRate(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSetCellInfoListRate() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    UINT32 uiPreviousRate = m_cte.GetCellInfoListRate();
-    UINT32 uiNewRate = 60000; // default timer value in milli seconds
+    int previousRate = m_cte.GetCellInfoListRate();
+    int newRate = 60000; // default timer value in milli seconds
 
     if (pData != NULL)
     {
-        uiNewRate = ((int*)pData)[0];
+        newRate = ((int*)pData)[0];
         // Value = 0, report when one of the information changes
         // Value = INT_MAX, no reports
         // else rril rate is once in 60 seonds, when the information has changed
-        if (uiNewRate != INT_MAX && uiNewRate > 0)
+        if (newRate != INT_MAX && newRate > 0)
         {
-            if (uiPreviousRate != uiNewRate)
+            if (previousRate != newRate)
             {
-                uiNewRate = uiNewRate < 60000 ? 60000 : uiNewRate;
+                newRate = (newRate < 60000) ? 60000 : newRate;
             }
         }
 
         RIL_LOG_INFO("CTEBase::CoreSetCellInfoListRate() - "
                 "uiNewRate =%d uiPreviousRate = %d\r\n",
-                 uiNewRate, uiPreviousRate);
+                 newRate, previousRate);
     }
     else
     {
@@ -8827,8 +8828,8 @@ RIL_RESULT_CODE CTEBase::CoreSetCellInfoListRate(REQUEST_DATA& rReqData,
         return res;
     }
 
-    m_cte.SetCellInfoListRate(uiNewRate);
-    RestartUnsolCellInfoListTimer(uiNewRate);
+    m_cte.SetCellInfoListRate(newRate);
+    RestartUnsolCellInfoListTimer(newRate);
 
     res = RRIL_RESULT_OK;
 
@@ -8853,21 +8854,20 @@ RIL_RESULT_CODE CTEBase::ParseUnsolCellInfoListRate(RESPONSE_DATA& rRspData)
    return ParseCellInfoList(rRspData, TRUE);
 }
 
-void CTEBase::RestartUnsolCellInfoListTimer(UINT32 uiNewRate)
+void CTEBase::RestartUnsolCellInfoListTimer(int newRate)
 {
     RIL_LOG_VERBOSE("CTEBase::RestartUnsolCellInfoListTimer() - Enter\r\n");
 
     // Start timer to query for CELLINFO  only if the value of >0 and != INT_MAX
-    if (uiNewRate != INT_MAX && uiNewRate > 0)
+    if (newRate != INT_MAX && newRate > 0)
     {
         if (!m_cte.IsCellInfoTimerRunning())
         {
             m_cte.SetCellInfoTimerRunning(TRUE);
             RIL_LOG_INFO("CTEBase::RestartUnsolCellInfoListTimer() -"
-                    "for %d milliseconds\r\n",uiNewRate);
-            RIL_requestTimedCallback(triggerCellInfoList, (void*)uiNewRate, (uiNewRate/1000), 0);
+                    "for %d milliseconds\r\n", newRate);
+            RIL_requestTimedCallback(triggerCellInfoList, (void*)newRate, (newRate/1000), 0);
         }
-
     }
 }
 

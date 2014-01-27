@@ -397,21 +397,27 @@ void triggerCellInfoList(void* param)
     // if the newly set rate is less or equal,continue reading cellinfo from modem
     // if it is more, then start a new timed call back with the difference in timeout
     RIL_LOG_VERBOSE("triggerCellInfoList- Enter\r\n");
-    UINT32 uiTeRate = CTE::GetTE().GetCellInfoListRate();
-    UINT32 uiRate = (UINT32)param;
-    RIL_LOG_INFO("triggerCellInfoList- StoredRate %d Rate with callback %d\r\n", uiTeRate, uiRate);
-    // the settings have changed to not to report CELLINFO
-    if (INT_MAX == uiTeRate)
+    int storedRate = CTE::GetTE().GetCellInfoListRate();
+    int requestedRate = (int)param;
+    RIL_LOG_INFO("triggerCellInfoList- StoredRate %d Rate with callback %d\r\n",
+            storedRate, requestedRate);
+    if (requestedRate >= storedRate || requestedRate <= 0)
     {
-        CTE::GetTE().SetCellInfoTimerRunning(FALSE);
-        RIL_LOG_INFO("triggerCellInfoList- Unsol cell info disabled: %d\r\n", uiTeRate);
-    }
-    else if (uiTeRate <= uiRate)
-    {
+        REQUEST_DATA rReqData;
+
+        memset(&rReqData, 0, sizeof(REQUEST_DATA));
+        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XCELLINFO?\r", sizeof(rReqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("triggerCellInfoList() - Unable to create cellinfo command!\r\n");
+            return;
+        }
+
+        rReqData.pContextData = (void*)requestedRate;
+
         // The rate setting has not changed while waiting for time out
         // read the cell information and report to framework
         CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_CELL_INFO_LIST].uiChannel,
-                NULL, RIL_REQUEST_GET_CELL_INFO_LIST, "AT+XCELLINFO?\r",
+                NULL, RIL_REQUEST_GET_CELL_INFO_LIST, rReqData,
                 &CTE::ParseUnsolCellInfoListRate, &CTE::PostUnsolCellInfoListRate);
 
         if (pCmd)
@@ -428,15 +434,30 @@ void triggerCellInfoList(void* param)
             RIL_LOG_CRITICAL("triggerCellInfoList() - "
                     "Unable to allocate memory for new command!\r\n");
         }
+
+        /*
+         * requestedRate <= 0 means that the cell information query is triggered on
+         * cell information change. Stop the timer only if the query is due to
+         * timer expiry.
+         */
+        if (requestedRate > 0)
+        {
+            CTE::GetTE().SetCellInfoTimerRunning(FALSE);
+        }
+    }
+    // the settings have changed to not to report CELLINFO
+    else if (INT_MAX == storedRate)
+    {
         CTE::GetTE().SetCellInfoTimerRunning(FALSE);
+        RIL_LOG_INFO("triggerCellInfoList- Unsol cell info disabled: %d\r\n", storedRate);
     }
     else
     {
          // A new rate setting, re run the timer for the difference
-         if (uiTeRate > uiRate)
+         if (storedRate > requestedRate)
          {
              RIL_requestTimedCallback(triggerCellInfoList,
-                   (void*)uiTeRate, ((uiTeRate - uiRate)/1000), 0);
+                   (void*)storedRate, ((storedRate - requestedRate) / 1000), 0);
          }
     }
     RIL_LOG_VERBOSE("triggerCellInfoList- Exit\r\n");

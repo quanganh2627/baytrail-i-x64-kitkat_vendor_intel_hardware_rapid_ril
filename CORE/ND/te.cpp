@@ -102,6 +102,9 @@ CTE::CTE(UINT32 modemType) :
     memset(&m_sPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
     memset(&m_sEPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
+    m_szCachedLac[0] = '\0';
+    m_szCachedCid[0] = '\0';
+
     CopyStringNullTerminate(m_szNewLine, "\r\n", sizeof(m_szNewLine));
 
     for (int i = 0; i < LAST_NETWORK_DATA_COUNT; i++)
@@ -269,6 +272,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
     {
         case RIL_REQUEST_RADIO_POWER:
         case RIL_REQUEST_SCREEN_STATE:
+        case RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE:
             bAllowed = TRUE;
             break;
 
@@ -6598,38 +6602,56 @@ RIL_RESULT_CODE CTE::RequestGetCellInfoList(RIL_Token rilToken, void* pData, siz
 {
     RIL_LOG_VERBOSE("CTE::RequestGetCellInfoList() - Enter\r\n");
 
-    REQUEST_DATA reqData;
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    UINT32 uiItemCount = 0;
+    S_ND_N_CELL_INFO_DATA cellData;
 
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetCellInfoList(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    if (SCREEN_STATE_OFF != m_ScreenState)
     {
-        RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
-                " Unable to create AT command data\r\n");
+        memset(&cellData, 0, sizeof(S_ND_N_CELL_INFO_DATA));
+        getCellInfo(&cellData, uiItemCount);
+    }
+
+    if (uiItemCount > 0)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, &cellData.pnCellData,
+                uiItemCount * sizeof(RIL_CellInfo));
     }
     else
     {
-        CCommand* pCmd = new CCommand(
-                g_pReqInfo[RIL_REQUEST_GET_CELL_INFO_LIST].uiChannel,
-                rilToken, RIL_REQUEST_GET_CELL_INFO_LIST, reqData,
-                &CTE::ParseGetCellInfoList, &CTE::PostGetCellInfoList);
+        REQUEST_DATA reqData;
+        memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-        if (pCmd)
+        RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetCellInfoList(reqData, pData, datalen);
+        if (RRIL_RESULT_OK != res)
         {
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
-                        " Unable to add command to queue\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
+            RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
+                    " Unable to create AT command data\r\n");
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
-                    " Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
+            CCommand* pCmd = new CCommand(
+                    g_pReqInfo[RIL_REQUEST_GET_CELL_INFO_LIST].uiChannel,
+                    rilToken, RIL_REQUEST_GET_CELL_INFO_LIST, reqData,
+                    &CTE::ParseGetCellInfoList, &CTE::PostGetCellInfoList);
+
+            if (pCmd)
+            {
+                if (!CCommand::AddCmdToQueue(pCmd))
+                {
+                    RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
+                            " Unable to add command to queue\r\n");
+                    res = RIL_E_GENERIC_FAILURE;
+                    delete pCmd;
+                    pCmd = NULL;
+                }
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
+                        " Unable to allocate memory for command\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+            }
         }
     }
 
@@ -7689,6 +7711,9 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
 {
     RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Enter\r\n");
 
+    char szLac[REG_STATUS_LENGTH] = {'\0'};
+    char szCid[REG_STATUS_LENGTH] = {'\0'};
+
     /*
      * LAC and CID reported as part of the CS and PS registration status changed URCs
      * are supposed to be the same. But there is nothing wrong in keeping it separately.
@@ -7718,6 +7743,9 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
                 sizeof(psRegStatus->szNetworkType));
         strncpy(m_sPSStatus.szReasonDenied, psRegStatus->szReasonDenied,
                 sizeof(psRegStatus->szReasonDenied));
+
+        CopyStringNullTerminate(szLac, psRegStatus->szLAC, sizeof(szLac));
+        CopyStringNullTerminate(szCid, psRegStatus->szCID, sizeof(szCid));
     }
     else if (E_REGISTRATION_TYPE_CREG == regType)
     {
@@ -7753,6 +7781,9 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
 
         strncpy(m_sCSStatus.szReasonDenied, csRegStatus->szReasonDenied,
                 sizeof(csRegStatus->szReasonDenied));
+
+        CopyStringNullTerminate(szLac, csRegStatus->szLAC, sizeof(szLac));
+        CopyStringNullTerminate(szCid, csRegStatus->szCID, sizeof(szCid));
     }
     else if (E_REGISTRATION_TYPE_CEREG == regType)
     {
@@ -7786,18 +7817,26 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
                 sizeof(epsRegStatus->szNetworkType));
         strncpy(m_sEPSStatus.szReasonDenied, epsRegStatus->szReasonDenied,
                 sizeof(epsRegStatus->szReasonDenied));
+
+        CopyStringNullTerminate(szLac, epsRegStatus->szLAC, sizeof(szLac));
+        CopyStringNullTerminate(szCid, epsRegStatus->szCID, sizeof(szCid));
     }
 
-    // If cell info rate is 0 and Cell info is enabled, query cell info
-    if (IsCellInfoEnabled())
+    BOOL bCellInfoChanged = FALSE;
+    if ((0 != strcmp(m_szCachedLac, szLac) || 0 != strcmp(m_szCachedCid, szCid)))
     {
-        UINT32 uiNewRate = GetCellInfoListRate();
-        if (!IsCellInfoTimerRunning() && (uiNewRate == 0))
-        {
-            RIL_LOG_INFO("CTEBase::StoreRegistrationInfo() - read cell info now!\r\n");
-            SetCellInfoTimerRunning(TRUE);
-            RIL_requestTimedCallback(triggerCellInfoList, (void*)uiNewRate, 0, 0);
-        }
+        CopyStringNullTerminate(m_szCachedLac, szLac, sizeof(m_szCachedLac));
+        CopyStringNullTerminate(m_szCachedCid, szCid, sizeof(m_szCachedCid));
+
+        bCellInfoChanged = TRUE;
+    }
+
+    if (IsCellInfoEnabled() && bCellInfoChanged)
+    {
+        int rate = GetCellInfoListRate();
+        rate = (0 == rate) ? 0 : -1;
+        RIL_LOG_INFO("CTEBase::StoreRegistrationInfo() - read cell info now!\r\n");
+        RIL_requestTimedCallback(triggerCellInfoList, (void*)rate, 0, 0);
     }
 
     RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Exit\r\n");
