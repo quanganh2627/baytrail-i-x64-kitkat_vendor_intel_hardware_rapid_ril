@@ -763,9 +763,9 @@ public:
     {
         return m_CellInfoCache.updateCache(pData, aItemsCount);
     }
-    BOOL getCellInfo(P_ND_N_CELL_INFO_DATA pRetData)
+    BOOL getCellInfo(P_ND_N_CELL_INFO_DATA pRetData, UINT32& uiItemCount)
     {
-       return m_CellInfoCache.getCellInfo(pRetData);
+       return m_CellInfoCache.getCellInfo(pRetData, uiItemCount);
     }
 
     BOOL TestAndSetDataCleanupStatus(BOOL bCleanupStatus);
@@ -1295,6 +1295,9 @@ private:
 
     // Default PDN context id
     UINT32 m_uiDefaultPDNCid;
+
+    char m_szCachedLac[REG_STATUS_LENGTH];
+    char m_szCachedCid[REG_STATUS_LENGTH];
 
     char m_szNewLine[3];
 

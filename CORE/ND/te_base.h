@@ -714,7 +714,7 @@ public:
 
     RIL_RESULT_CODE ParseUnsolCellInfoListRate(RESPONSE_DATA& rRspData);
 
-    void RestartUnsolCellInfoListTimer(UINT32 uiNewRate);
+    void RestartUnsolCellInfoListTimer(int newRate);
 
     // RIL_REQUEST_SET_INITIAL_ATTACH_APN: // 111
     virtual RIL_RESULT_CODE CoreSetInitialAttachApn(REQUEST_DATA& rReqData,

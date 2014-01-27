@@ -101,12 +101,13 @@ CellInfoCache::~CellInfoCache()
     delete m_pCacheLock;
 }
 
-BOOL CellInfoCache::getCellInfo(P_ND_N_CELL_INFO_DATA pRetData)
+BOOL CellInfoCache::getCellInfo(P_ND_N_CELL_INFO_DATA pRetData, UINT32& uiItemCount)
 {
     if (pRetData == NULL)
         return FALSE;
     // loop through the cache and copy the info to the pRetData
     CMutex::Lock(m_pCacheLock);
+    uiItemCount = m_iCacheSize;
     for (INT32 i = 0; i < m_iCacheSize; i++)
     {
         pRetData->pnCellData[i] = m_sCellInfo.pnCellData[i];

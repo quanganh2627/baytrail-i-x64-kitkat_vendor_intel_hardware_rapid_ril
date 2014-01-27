@@ -25,7 +25,7 @@ public:
     CellInfoCache();
     ~CellInfoCache();
     BOOL updateCache(const P_ND_N_CELL_INFO_DATA pData, const INT32 aItemsCount);
-    BOOL getCellInfo(P_ND_N_CELL_INFO_DATA pRetData);
+    BOOL getCellInfo(P_ND_N_CELL_INFO_DATA pRetData, UINT32& uiItemCount);
 private:
     INT32 checkCache(const RIL_CellInfo& pData);
     S_ND_N_CELL_INFO_DATA m_sCellInfo;
