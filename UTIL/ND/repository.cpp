@@ -46,6 +46,7 @@ const char   g_szGroupRequestTimeouts[]        = "RequestTimeouts";
 
 /////////////////////////////////////////////////
 
+const char   g_szGroupInternalRequestTimeouts[]= "InternalRequestTimeouts";
 const char   g_szGroupOtherTimeouts[]          = "OtherTimeouts";
 
 const char   g_szTimeoutCmdInit[]              = "TimeoutCmdInit";
@@ -123,6 +124,7 @@ const char   g_szApnTypeEmergency[]     = "ApnTypeEmergency";
 
 // used for SATK
 const char   g_szTeProfile[]             = "TeProfile";
+const char   g_szMtMask[]                = "MtMask";
 
 /////////////////////////////////////////////////
 

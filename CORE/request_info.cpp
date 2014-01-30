@@ -19,7 +19,17 @@ REQ_INFO_INTERNAL g_ReqInternal[] =
 {
      { { "SilentPinEntry", RIL_CHANNEL_DLC8, 0 }, E_REQ_ID_INTERNAL_SILENT_PIN_ENTRY },
      { { "QuerySimSmsStoreStatus", RIL_CHANNEL_OEM, 0 },
-            E_REQ_ID_INTERNAL_QUERY_SIM_SMS_STORE_STATUS }
+            E_REQ_ID_INTERNAL_QUERY_SIM_SMS_STORE_STATUS },
+     { { "SetProfileDownloadForNextUiccStartup", RIL_CHANNEL_URC, 0 },
+            E_REQ_ID_INTERNAL_SET_PROFILE_DOWNLOAD_FOR_NEXT_UICC_STARTUP },
+     { { "ConfigureUsatProfileDownload", RIL_CHANNEL_URC, 0 },
+            E_REQ_ID_INTERNAL_CONFIGURE_USAT_PROFILE_DOWNLOAD },
+     { { "QueryUiccState", RIL_CHANNEL_DLC8, 0 }, E_REQ_ID_INTERNAL_QUERY_UICC_STATE },
+     { { "ReadUsatProfiles", RIL_CHANNEL_DLC8, 0 }, E_REQ_ID_INTERNAL_READ_USAT_PROFILES },
+     { { "WriteUsatProfile", RIL_CHANNEL_DLC8, 0 }, E_REQ_ID_INTERNAL_WRITE_USAT_PROFILE },
+     { { "ResetUicc", RIL_CHANNEL_DLC8, 0 }, E_REQ_ID_INTERNAL_RESET_UICC },
+     { { "EnableProfileHandlingFacility", RIL_CHANNEL_URC, 0 },
+            E_REQ_ID_INTERNAL_ENABLE_PROFILE_FACILITY_HANDLING }
 };
 
 const int INTERNAL_REQ_ID_TOTAL = (sizeof(g_ReqInternal) / sizeof(REQ_INFO_INTERNAL));

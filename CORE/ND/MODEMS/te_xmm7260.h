@@ -15,6 +15,7 @@
 #include "te_xmm7160.h"
 
 class CInitializer;
+class UsatInitStateMachine;
 
 class CTE_XMM7260 : public CTE_XMM7160
 {
@@ -37,6 +38,8 @@ public:
     // modem overrides
 
     virtual CInitializer* GetInitializer();
+
+    virtual void HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange);
 
     // RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
     virtual RIL_RESULT_CODE CoreStkSendEnvelopeCommand(REQUEST_DATA& rReqData,
@@ -70,11 +73,36 @@ public:
                                                 void* pData,
                                                 UINT32 uiDataSize);
 
+    virtual void SetProfileDownloadForNextUiccStartup(UINT32 uiDownload, UINT32 uiReporting);
+    virtual void ConfigureUsatProfileDownload(UINT32 uiDownload, UINT32 uiReporting);
+    virtual void PostConfigureUsatProfileDownloadHandler(POST_CMD_HANDLER_DATA& data);
+
+    virtual RIL_RESULT_CODE ParseQueryUiccState(RESPONSE_DATA& rRspData);
+    virtual void PostQueryUiccStateHandler(POST_CMD_HANDLER_DATA& data);
+
+    virtual void ReadUsatProfiles();
+    virtual RIL_RESULT_CODE ParseReadUsatProfiles(RESPONSE_DATA& rRspData);
+
+    virtual void WriteUsatProfiles(const char* pszTeProfile, const BOOL isTeWriteNeeded,
+            const char* pszMtProfile, const BOOL isMtWriteNeeded);
+    virtual RIL_RESULT_CODE ParseWriteUsatProfile(RESPONSE_DATA& rspData);
+    virtual void PostWriteUsatProfileHandler(POST_CMD_HANDLER_DATA& data);
+
+    virtual void ResetUicc();
+
+    virtual void EnableProfileFacilityHandling();
+
+    virtual void SendModemDownToUsatSM();
+
 private:
 
     BOOL ParseEnvelopCommandResponse(const char* pszResponse, char* pszEnvelopResp,
             UINT32* puiBusy, UINT32* puiSw1, UINT32* puiSw2);
+    void QueryUiccState();
+    void WriteUsatProfile(const UINT32 uiProfileStorage, const char* pszProfile);
+    BOOL ParseCmeError(const char* szStart, const char*& rszEnd);
 
+    UsatInitStateMachine& m_usatInitStateMachine;
 };
 
 #endif

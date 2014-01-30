@@ -6406,6 +6406,13 @@ RIL_RESULT_CODE CTE::RequestReportStkServiceRunning(RIL_Token rilToken,
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreReportStkServiceRunning(reqData, pData, datalen);
+
+    if (RRIL_RESULT_OK_IMMEDIATE == res)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+        return RRIL_RESULT_OK;
+    }
+
     if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestReportStkServiceRunning() -"
@@ -8290,6 +8297,16 @@ BOOL CTE::IsInternalRequestsAllowedInRadioOff(int requestId)
                 bAllowed = TRUE;
             else
                 bAllowed = FALSE;
+            break;
+
+        case E_REQ_ID_INTERNAL_SET_PROFILE_DOWNLOAD_FOR_NEXT_UICC_STARTUP:
+        case E_REQ_ID_INTERNAL_CONFIGURE_USAT_PROFILE_DOWNLOAD:
+        case E_REQ_ID_INTERNAL_QUERY_UICC_STATE:
+        case E_REQ_ID_INTERNAL_READ_USAT_PROFILES:
+        case E_REQ_ID_INTERNAL_WRITE_USAT_PROFILE:
+        case E_REQ_ID_INTERNAL_RESET_UICC:
+        case E_REQ_ID_INTERNAL_ENABLE_PROFILE_FACILITY_HANDLING:
+            bAllowed = TRUE;
             break;
 
         default:
@@ -10218,4 +10235,72 @@ void CTE::PostInternalOpenLogicalChannel(POST_CMD_HANDLER_DATA& rData)
     m_pTEBaseInstance->TriggerUiccOpenLogicalChannelEvent();
 
     RIL_LOG_VERBOSE("CTE::PostInternalOpenLogicalChannel() - Exit\r\n");
+}
+
+// following functions are only for modem Rel.10+ with the new 3GPP USAT interface
+void CTE::SetProfileDownloadForNextUiccStartup(UINT32 uiDownload, UINT32 uiReporting)
+{
+    m_pTEBaseInstance->SetProfileDownloadForNextUiccStartup(uiDownload, uiReporting);
+}
+
+void CTE::ConfigureUsatProfileDownload(UINT32 uiDownload, UINT32 uiReporting)
+{
+    m_pTEBaseInstance->ConfigureUsatProfileDownload(uiDownload, uiReporting);
+}
+
+void CTE::PostConfigureUsatProfileDownloadHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    return m_pTEBaseInstance->PostConfigureUsatProfileDownloadHandler(rData);
+}
+
+RIL_RESULT_CODE CTE::ParseQueryUiccState(RESPONSE_DATA& rRspData)
+{
+    return m_pTEBaseInstance->ParseQueryUiccState(rRspData);
+}
+
+void CTE::PostQueryUiccStateHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    return m_pTEBaseInstance->PostQueryUiccStateHandler(rData);
+}
+
+RIL_RESULT_CODE CTE::ParseReadUsatProfiles(RESPONSE_DATA& rRspData)
+{
+    return m_pTEBaseInstance->ParseReadUsatProfiles(rRspData);
+}
+
+void CTE::WriteUsatProfiles(const char* pszTeProfile, const BOOL isTeWriteNeeded,
+        const char* pszMtProfile, const BOOL isMtWriteNeeded)
+{
+    m_pTEBaseInstance->WriteUsatProfiles(pszTeProfile, isTeWriteNeeded, pszMtProfile,
+            isMtWriteNeeded);
+}
+
+void CTE::WriteUsatProfile(const UINT32 uiProfileStorage, const char* pszMtProfile)
+{
+    m_pTEBaseInstance->WriteUsatProfile(uiProfileStorage, pszMtProfile);
+}
+
+RIL_RESULT_CODE CTE::ParseWriteUsatProfile(RESPONSE_DATA& rRspData)
+{
+    return m_pTEBaseInstance->ParseWriteUsatProfile(rRspData);
+}
+
+void CTE::PostWriteUsatProfileHandler(POST_CMD_HANDLER_DATA& rData)
+{
+    return m_pTEBaseInstance->PostWriteUsatProfileHandler(rData);
+}
+
+void CTE::ResetUicc()
+{
+    return m_pTEBaseInstance->ResetUicc();
+}
+
+void CTE::EnableProfileFacilityHandling()
+{
+    return m_pTEBaseInstance->EnableProfileFacilityHandling();
+}
+
+void CTE::SendModemDownToUsatSM()
+{
+    return m_pTEBaseInstance->SendModemDownToUsatSM();
 }

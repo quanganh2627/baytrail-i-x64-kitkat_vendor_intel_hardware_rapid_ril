@@ -93,8 +93,8 @@ void CRequestInfoTable::GetRequestInfo(int requestID, REQ_INFO& rReqInfo)
 
         if (index < INTERNAL_REQ_ID_TOTAL)
         {
-            if (repository.Read(g_szGroupRequestTimeouts, g_ReqInternal[index].reqInfo.szName,
-                    iTemp))
+            if (repository.Read(g_szGroupInternalRequestTimeouts,
+                    g_ReqInternal[index].reqInfo.szName, iTemp))
             {
                 rReqInfo.uiTimeout = (UINT32)iTemp;
             }

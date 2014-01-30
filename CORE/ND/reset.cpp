@@ -666,6 +666,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 
             case E_MMGR_EVENT_MODEM_DOWN:
                 RIL_LOG_INFO("[RIL STATE] (RIL <- MMGR) MODEM_DOWN\r\n");
+                CTE::GetTE().SendModemDownToUsatSM();
 
                 CTE::GetTE().SetLastModemEvent(receivedModemEvent);
 

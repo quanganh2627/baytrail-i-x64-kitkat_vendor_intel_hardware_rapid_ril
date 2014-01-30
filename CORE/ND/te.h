@@ -1171,6 +1171,28 @@ public:
     CMutex* GetDataChannelRefCountMutex() { return m_pDataChannelRefCountMutex; }
     void GetPreviousGprsRegInfo(S_REG_INFO& previousRegInfo);
 
+    // following functions are only for modem Rel.10+ with the new 3GPP USAT interface
+    void SetProfileDownloadForNextUiccStartup(UINT32 uiDownload, UINT32 uiReporting);
+    void ConfigureUsatProfileDownload(UINT32 uiDownload, UINT32 uiReporting);
+    void PostConfigureUsatProfileDownloadHandler(POST_CMD_HANDLER_DATA& rData);
+
+    RIL_RESULT_CODE ParseQueryUiccState(RESPONSE_DATA& rRspData);
+    void PostQueryUiccStateHandler(POST_CMD_HANDLER_DATA& rData);
+
+    RIL_RESULT_CODE ParseReadUsatProfiles(RESPONSE_DATA& rRspData);
+
+    void WriteUsatProfiles(const char* pszTeProfile, const BOOL isTeWriteNeeded,
+            const char* pszMtProfile, const BOOL isMtWriteNeeded);
+    void WriteUsatProfile(const UINT32 uiProfileStorage, const char* pszProfile);
+    RIL_RESULT_CODE ParseWriteUsatProfile(RESPONSE_DATA& rRspData);
+    void PostWriteUsatProfileHandler(POST_CMD_HANDLER_DATA& rData);
+
+    void ResetUicc();
+
+    void EnableProfileFacilityHandling();
+
+    void SendModemDownToUsatSM();
+
 private:
     UINT32 m_uiModemType;
 

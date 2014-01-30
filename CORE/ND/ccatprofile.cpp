@@ -16,7 +16,9 @@
 #include "util.h"
 #include "repository.h"
 
-CCatProfile::ProfileItem CCatProfile::s_proactiveUICCTable[] =
+// Aligned on 3GPP 31.111 version: v10.11 and ETSI 102223 version: v10.11
+// PROVIDE_LOCAL_INFORMATION_XX are considered as proactive command so should be commented
+const CCatProfile::ProfileItem CCatProfile::s_proactiveUICCTable[] =
 {
     // FIRST BYTE
     // SECOND BYTE
@@ -37,51 +39,56 @@ CCatProfile::ProfileItem CCatProfile::s_proactiveUICCTable[] =
     { 4, SET_UP_CALL , 16 },
     { 4, SET_UP_MENU , 32 },
     { 4, PROVIDE_LOCAL_INFORMATION , 64 },
-    { 4, PROVIDE_LOCAL_INFORMATION_NMR , 128 },
+    // { 4, PROVIDE_LOCAL_INFORMATION_NMR , 128 },
     // FIFTH BYTE
     { 5, SET_UP_EVENT_LIST , 1 },
-    { 5, EVENT_MT_CALL , 2 },
-    { 5, EVENT_CALL_CONNECTED , 4 },
-    { 5, EVENT_CALL_DISCONNECTED , 8 },
-    { 5, EVENT_LOCATION_STATUS , 16 },
-    { 5, EVENT_USER_ACTIVITY , 32 },
-    { 5, EVENT_IDLE_SCREEN_AVAILABLE , 64 },
-    { 5, EVENT_CARD_READER_STATUS , 128 },
+    // { 5, EVENT_MT_CALL , 2 }, // event sent
+    // { 5, EVENT_CALL_CONNECTED , 4 }, // event sent
+    // { 5, EVENT_CALL_DISCONNECTED , 8 }, // event sent
+    // { 5, EVENT_LOCATION_STATUS , 16 }, // event sent
+    // { 5, EVENT_USER_ACTIVITY , 32 }, // event sent
+    // { 5, EVENT_IDLE_SCREEN_AVAILABLE , 64 }, // event sent
+    // { 5, EVENT_CARD_READER_STATUS , 128 }, // event sent
     // SIXTH BYTE
-    { 6, EVENT_LANGUAGE_SELECTION , 0 },
-    { 6, EVENT_BROWSER_TERMINATION , 0 },
-    { 6, EVENT_DATA_AVAILABLE , 0 },
-    { 6, EVENT_CHANNEL_STATUS , 0 },
-    { 6, EVENT_ACCESS_TECH_CHANGE , 0 },
-    { 6, EVENT_DISPLAY_PARAMS_CHANGED , 0 },
-    { 6, EVENT_LOCAL_CONNECTION , 0 },
-    { 6, EVENT_NETWORK_SEARCH_MODE_CHANGE , 0 },
+    // { 6, EVENT_LANGUAGE_SELECTION , 1 }, // event sent
+    // { 6, EVENT_BROWSER_TERMINATION , 2 }, // event sent
+    // { 6, EVENT_DATA_AVAILABLE , 4 }, // event sent
+    // { 6, EVENT_CHANNEL_STATUS , 8 }, // event sent
+    // { 6, EVENT_ACCESS_TECH_CHANGE , 16 }, // event sent
+    // { 6, EVENT_DISPLAY_PARAMS_CHANGED , 32 }, // event sent
+    // { 6, EVENT_LOCAL_CONNECTION , 64 }, // event sent
+    // { 6, EVENT_NETWORK_SEARCH_MODE_CHANGE , 128 }, // event sent
     // SEVENTH BYTE
-    { 7, POWER_ON_CARD , 1 },
-    { 7, POWER_OFF_CARD , 2 },
-    { 7, PERFORM_CARD_APDU , 4 },
-    { 7, GET_READER_STATUS_STATUS , 8 },
-    { 7, GET_READER_STATUS_IDENTIFIER , 16 },
+    // { 7, POWER_ON_CARD , 1 }, // NOT SUPPORTED
+    // { 7, POWER_OFF_CARD , 2 }, // NOT SUPPORTED
+    // { 7, PERFORM_CARD_APDU , 4 }, // NOT SUPPORTED
+    // { 7, GET_READER_STATUS_STATUS , 8 }, // NOT SUPPORTED
+    // { 7, GET_READER_STATUS_IDENTIFIER , 16 }, // NOT SUPPORTED
     // EIGHTH BYTE
     { 8, TIMER_MANAGEMENT_START_STOP , 1 },
     { 8, TIMER_MANAGEMENT_GET_CURRENT , 2 },
-    { 8, PROVIDE_LOCAL_INFORMATION_DATE , 4 },
-    { 8, GET_INKEY_VALID , 8 },
+    // { 8, PROVIDE_LOCAL_INFORMATION_DATE , 4 },
+    // { 8, GET_INKEY_VALID , 8 }, // Redundant with 3.2
     { 8, SET_UP_IDLE_MODE_TEXT , 16 },
     { 8, RUN_AT_COMMAND , 32 },
-    { 8, SET_UP_CALL_VALID , 64 },
-    { 8, CALL_CONTROL_VALID , 128 },
+    // { 8, SET_UP_CALL_VALID , 64 }, // Redundant with 4.16
+    // { 8, CALL_CONTROL_VALID , 128 }, // Redundant with ??
     // NINTH BYTE
+    // 9.1: DISPLAY_TEXT, redundant with above 3.1
     { 9, SEND_DTMF , 2 },
-    { 9, PROVIDE_LOCAL_INFORMATION_NMR_VALID , 4 },
-    { 9, PROVIDE_LOCAL_INFORMATION_LANG , 128 },
-    { 9, PROVIDE_LOCAL_INFORMATION_TIMING , 128 },
+    // { 9, PROVIDE_LOCAL_INFORMATION_NMR_VALID , 4 }, // redundant with 4.8
+    // { 9, PROVIDE_LOCAL_INFORMATION_LANG , 8 },
+    // { 9, PROVIDE_LOCAL_INFORMATION_TIMING , 16 },
     { 9, LANGUAGE_NOTIFICATION , 32 },
     { 9, LAUNCH_BROWSER , 64 },
-    { 9, PROVIDE_LOCAL_INFORMATION_ACCESS , 128 },
+    // { 9, PROVIDE_LOCAL_INFORMATION_ACCESS , 128 },
     // TENTH BYTE
     // ELEVENTH BYTE
-    // TWELFTH BYTE
+    // TWELFTH BYTE (class "e": all commands are for the moment considered as only AP handled,
+    // or not supported.)
+    // TODO: refine filtering on bearer type and Transport control type as some bearers could be
+    // handled by modem in a close future (so seen as notifications and not as proactive commands),
+    // such as default bearer or packet data service bearer
     { 12, OPEN_CHANNEL , 1 },
     { 12, CLOSE_CHANNEL , 2 },
     { 12, RECEIVE_DATA , 4 },
@@ -96,87 +103,119 @@ CCatProfile::ProfileItem CCatProfile::s_proactiveUICCTable[] =
     // SIXTEENTH BYTE
     // SEVENTEENTH BYTE
     // EIGHTEENTH BYTE
-    { 18, DISPLAY_TEXT_VAR_TIME_OUT , 1 },
-    { 18, GET_INKEY_HELP_SUPPORTED , 2 },
-    { 18, GET_INKEY_VAR_TIME_OUT , 8 },
-    { 18, PROVIDE_LOCAL_INFORMATION_ESN , 16 },
-    { 18, PROVIDE_LOCAL_INFORMATION_IMEISV , 64 },
-    { 18, PROVIDE_LOCAL_INFORMATION_SEARCH_MODE_CHANGE , 128 },
+    // { 18, DISPLAY_TEXT_VAR_TIME_OUT , 1 }, // OPTION
+    // { 18, GET_INKEY_HELP_SUPPORTED , 2 }, // OPTION
+    // { 18, GET_INKEY_VAR_TIME_OUT , 8 }, // OPTION
+    // { 18, PROVIDE_LOCAL_INFORMATION_ESN , 16 },
+    // 18.6: CALL CONTROL GPS
+    // { 18, PROVIDE_LOCAL_INFORMATION_IMEISV , 64 },
+    // { 18, PROVIDE_LOCAL_INFORMATION_SEARCH_MODE_CHANGE , 128 },
     // NINETEENTH BYTE
     // TWENTIETH BYTE
     // TWENTY-FIRST BYTE
     // TWENTY-SECOND BYTE
-    { 22, PROVIDE_LOCAL_INFORMATION_BATT_STATE , 2 },
-    { 22, PLAY_TONE_MELODY , 4 },
-    { 22, RETRIEVE_MULTIMEDIA_MESSAGE , 32},
-    { 22, SUBMIT_MULTIMEDIA_MESSAGE , 64},
-    { 22, DISPLAY_MULTIMEDIA_MESSAGE , 128 },
+    // 22.1: Support of UTRAN PS with extended parameters (BIP UMTS)
+    // { 22, PROVIDE_LOCAL_INFORMATION_BATT_STATE , 2 },
+    // { 22, PLAY_TONE_MELODY , 4 }, // redundant with 3.16
+    // { 22, RETRIEVE_MULTIMEDIA_MESSAGE , 32}, // NOT SUPPORTED
+    // { 22, SUBMIT_MULTIMEDIA_MESSAGE , 64}, // NOT SUPPORTED
+    // { 22, DISPLAY_MULTIMEDIA_MESSAGE , 128 }, // NOT SUPPORTED
     // TWENTY-THIRD BYTE
-    { 23, SET_FRAMES , 1 },
-    { 23, GET_FRAMES_STATUS , 2 },
-    { 23, PROVIDE_LOCAL_INFORMATION_MEID , 32 },
-    { 23, PROVIDE_LOCAL_INFORMATION_NMR_UTRAN , 64 },
+    // { 23, SET_FRAMES , 1 }, // NOT SUPPORTED
+    // { 23, GET_FRAMES_STATUS , 2 }, // NOT SUPPORTED
+    // { 23, PROVIDE_LOCAL_INFORMATION_MEID , 32 },
+    // { 23, PROVIDE_LOCAL_INFORMATION_NMR_UTRAN , 64 },
     // TWENTY-FOURTH BYTE
     // TWENTY-FIFTH BYTE
-    // TWENTY-FOURTH BYTE
+    // TWENTY-SIXTH BYTE
+    // TWENTY-SEVENTH BYTE
+    // TWENTY-EIGHTH BYTE
+    // TWENTY-NINTH
     // THIRTIETH BYTE
-    { 30, PROVIDE_LOCAL_INFORMATION_WSID , 2 },
-    { 30, ACTIVATE_CLASS_L , 16 },
-    { 30, GEO_LOCATION_REQUEST , 32 },
-    { 30, PROVIDE_LOCAL_INFORMATION_BROADCAST , 64 },
+    // { 30, PROVIDE_LOCAL_INFORMATION_WSID , 2 },
+    // 30.4: REFRESH steering of roaming, done by modem
+    { 30, ACTIVATE_CLASS_L , 16 }, // NFC
+    // { 30, GEO_LOCATION_REQUEST , 32 }, // NOT USED
+    // { 30, PROVIDE_LOCAL_INFORMATION_BROADCAST , 64 },
     // THIRTY-FIRST BYTE
-    { 31, CONTACTLESS_STATE_CHANGED , 1 },
-    { 31, COMMAND_CONTAINER , 128 },
+    // { 31, CONTACTLESS_STATE_CHANGED , 1 }, // NOT USED, class "r"
+    // 31.4: Communication Control for IMS
+    // { 31, COMMAND_CONTAINER , 128 }, // NOT USED
     // THIRTY-SECOND BYTE
-    { 32, ENCAPSULATED_SESSION_CONTROL , 64 },
+    // { 32, IMS_SUPPORT , 64 }, // NOT USED
     // END
     { 0, 0 , 0 }
 };
 
-
 CCatProfile::CCatProfile()
- : m_isTeProfileSet(FALSE)
 {
     RIL_LOG_VERBOSE("CCatProfile::CCatProfile() - Enter\r\n");
     InitTeProfile();
+    InitMtMask();
     // Mapping of a profile string.
     // Focused on proactive commands.
 }
 
 /**
  * Specify the TE profile to use.
- * Once set it cannot be re-set, except if calling ResetTeProfile method.
  *
- * @param pszProfile : An allocated string of hexadecimal characters specifying the TE profile.
- * @param uiLength : The length of the profile string.
- * @return false it is not possible to set the TE profile
+ * @param pszProfile : An allocated string of hexadecimal characters.
+ * @param uiLength : The length of the profile/mask string.
+ * @param achByteArray : The byte array to fill in.
+ * @return false it is not possible to set the profile/mask
  */
-BOOL CCatProfile::SetTeProfile(const char* pszProfile, const UINT32 uiLength)
+BOOL CCatProfile::SetByteArray(const char* pszProfile, const UINT32 uiLength, BYTE* achByteArray)
 {
-    BOOL bRet = TRUE;
+    RIL_LOG_VERBOSE("CCatProfile::SetByteArray() - Enter\r\n");
+    BOOL bRet = FALSE;
 
     if (!pszProfile)
     {
-        RIL_LOG_CRITICAL("CCatProfile::SetTeProfile() - ERROR NULL PROFILE!\r\n");
-        return FALSE;
+        RIL_LOG_CRITICAL("CCatProfile::SetByteArray() - Profile/Mask is NULL\r\n");
+        return bRet;
     }
 
-    if (m_isTeProfileSet)
+    if (uiLength > UsatInitStateMachine::MAX_SIZE_PROFILE * 2)
     {
-        RIL_LOG_CRITICAL("CCatProfile::SetTeProfile() - ERROR TE Profile is already set.\r\n");
-        return FALSE;
+        RIL_LOG_INFO("CCatProfile::SetByteArray() - Profile/Mask size is too long. Exit\r\n");
+        return bRet;
     }
 
-    RIL_LOG_INFO("CCatProfile::SetTeProfile() - TE Profile: %s\r\n", pszProfile);
+    bRet = extractByteArrayFromString(pszProfile, uiLength, achByteArray);
 
-    bRet = extractByteArrayFromString(pszProfile, uiLength, m_achTeProfile);
-    if (bRet)
-    {
-        m_isTeProfileSet = TRUE;
-    }
+    RIL_LOG_VERBOSE("CCatProfile::SetByteArray() - Profile/Mask set: %s - Exit\r\n", pszProfile);
 
-    RIL_LOG_CRITICAL("CCatProfile::SetTeProfile() - END, bRet:%d\r\n", bRet);
     return bRet;
+}
+
+BOOL CCatProfile::SetTeProfile(const char* pszMask, const UINT32 uiLength)
+{
+    return SetByteArray(pszMask, uiLength, m_achTeProfile);
+}
+
+BOOL CCatProfile::SetTeDefaultProfile(const char* pszMask, const UINT32 uiLength)
+{
+    return SetByteArray(pszMask, uiLength, m_achTeDefaultProfile);
+}
+
+BOOL CCatProfile::SetMtMask(const char* pszMask, const UINT32 uiLength)
+{
+    return SetByteArray(pszMask, uiLength, m_achMtMask);
+}
+
+const BYTE* CCatProfile::GetTeProfile()
+{
+    return m_achTeProfile;
+}
+
+const BYTE* CCatProfile::GetTeDefaultProfile()
+{
+    return m_achTeDefaultProfile;
+}
+
+const BYTE* CCatProfile::GetMtMask()
+{
+    return m_achMtMask;
 }
 
 /**
@@ -184,11 +223,12 @@ BOOL CCatProfile::SetTeProfile(const char* pszProfile, const UINT32 uiLength)
  *
  * @param pszPdu : String of hexadecimal characters.
  * @param uiLength : Length of PDU.
- * @param pPduInfo : Allocated pointer to an ProactiveCommandInfo object.
+ * @param pPduInfo : Allocated pointer to a ProactiveCommandInfo object.
  */
 BOOL CCatProfile::ExtractPduInfo(const char* pszPdu, const UINT32 uiLength,
         ProactiveCommandInfo* pPduInfo)
 {
+    RIL_LOG_VERBOSE("CCatProfile::ExtractPduInfo() - Enter");
     BOOL bRet = FALSE;
     BerTlv tlvPdu;
     BerTlv tlvCmdDetails;
@@ -209,14 +249,21 @@ BOOL CCatProfile::ExtractPduInfo(const char* pszPdu, const UINT32 uiLength,
     pPduInfo->isProactiveCmd = FALSE;
 
     // NEED TO CONVERT chars string onto bytes array
-    pPduBytes = (UINT8*)malloc(uiLength);
+    pPduBytes = (UINT8*)malloc(uiLength / 2);
+
     if (NULL == pPduBytes)
     {
         RIL_LOG_CRITICAL("CCatProfile::ExtractPduInfo() -"
                 " Could not allocate memory for PDU.\r\n");
         goto Error;
     }
-    bRet = extractByteArrayFromString(pszPdu, uiLength, pPduBytes);
+
+    if (!extractByteArrayFromString(pszPdu, uiLength, pPduBytes))
+    {
+        RIL_LOG_CRITICAL("CCatProfile::ExtractPduInfo() -"
+                "Unable to extract byte array from string");
+        goto Error;
+    }
 
     RIL_LOG_INFO("CCatProfile::ExtractPduInfo() - ENTER:Length:%d, PDU:[0x%X][0x%X]\r\n",
             uiLength, pPduBytes[0], pPduBytes[1]);
@@ -238,7 +285,7 @@ BOOL CCatProfile::ExtractPduInfo(const char* pszPdu, const UINT32 uiLength,
                 pbCmdData = tlvCmdDetails.GetValue();
                 // Format is (see ETSI 102223 - Annex B and C):
                 // pbCmdData[0] = Command number
-                // pbCmdData[1] and pbCmdData[2] = Command indentifier
+                // pbCmdData[1] and pbCmdData[2] = Command identifier
                 cbCmdDataSize = tlvCmdDetails.GetLength();
                 if (cbCmdDataSize > 1)
                 {
@@ -264,17 +311,18 @@ BOOL CCatProfile::ExtractPduInfo(const char* pszPdu, const UINT32 uiLength,
             int indexFound = -1;
             for (int i = 0; s_proactiveUICCTable[i].uiByteId != 0; ++i)
             {
-
                 if (s_proactiveUICCTable[i].uiCmdId == uiCmd)
                 {
                     indexFound = i;
                     break;
                 }
             }
+
             if (indexFound > -1)
             {
                 UINT8 byteId = s_proactiveUICCTable[indexFound].uiByteId;
-                bFound = (m_achTeProfile[byteId] & s_proactiveUICCTable[indexFound].uiBitMask) != 0;
+                bFound = (m_achTeProfile[byteId - 1]
+                        & s_proactiveUICCTable[indexFound].uiBitMask) != 0;
                 pPduInfo->isProactiveCmd = bFound;
                 bRet = TRUE;
                 RIL_LOG_INFO("CCatProfile::ExtractPduInfo() -"
@@ -283,6 +331,11 @@ BOOL CCatProfile::ExtractPduInfo(const char* pszPdu, const UINT32 uiLength,
                         s_proactiveUICCTable[indexFound].uiByteId,
                         s_proactiveUICCTable[indexFound].uiCmdId,
                         s_proactiveUICCTable[indexFound].uiBitMask, bFound);
+            }
+            else
+            {
+                RIL_LOG_INFO("CCatProfile::ExtractPduInfo() - "
+                        "Index not found, setting as event\r\n");
             }
         }
     }
@@ -293,34 +346,60 @@ Error:
     free(pPduBytes);
     pPduBytes = NULL;
 
-    RIL_LOG_CRITICAL("CCatProfile::ExtractPduInfo() : Return:%d\r\n", bRet);
+    RIL_LOG_VERBOSE("CCatProfile::ExtractPduInfo() : Return:%d\r\n - Exit", bRet);
     return bRet;
 }
 
 void CCatProfile::InitTeProfile()
 {
-    RIL_LOG_INFO("CCatProfile::InitTeProfile() - Enter\r\n");
-    CRepository repository;
-    const char* DEFAULT_TE_PROFILE
-            = "0000000000000000000000000000000000000000000000000000000000000000";
-    UINT32 uiProfileLength = strlen(DEFAULT_TE_PROFILE);
-    char szTeProfile[MAX_BUFFER_SIZE] = {'\0'};
+    UINT32 uiProfileLength = strlen(UsatInitStateMachine::DEFAULT_PROFILE);
+    SetTeProfile(UsatInitStateMachine::DEFAULT_PROFILE, uiProfileLength);
 
-    if (IsTeProfileSet() == FALSE)
-    {
-        // Read the Te profile from repository.txt
-        if (!repository.Read(g_szGroupModem, g_szTeProfile, szTeProfile, MAX_BUFFER_SIZE))
-        {
-            SetTeProfile(DEFAULT_TE_PROFILE, uiProfileLength);
-            RIL_LOG_CRITICAL("CCatProfile::InitTeProfile() - "
-                    "No TE profile found in repository\r\n");
-        }
-        else
-        {
-            SetTeProfile(szTeProfile, strlen(szTeProfile));
-        }
-    }
-
-    RIL_LOG_INFO("CCatProfile::InitTeProfile() - Exit\r\n");
+    ReadTeDefaultProfile();
 }
 
+BOOL CCatProfile::ReadTeDefaultProfile()
+{
+    RIL_LOG_VERBOSE("CCatProfile::ReadTeDefaultProfile() - Enter\r\n");
+    CRepository repository;
+    UINT32 uiProfileLength = strlen(UsatInitStateMachine::DEFAULT_PROFILE);
+    char szTeDefaultProfile[MAX_BUFFER_SIZE] = {'\0'};
+    BOOL bRet = FALSE;
+
+    // Read the Te profile from repository.txt
+    if (!repository.Read(g_szGroupModem, g_szTeProfile, szTeDefaultProfile, MAX_BUFFER_SIZE))
+    {
+        bRet = SetTeDefaultProfile(UsatInitStateMachine::DEFAULT_PROFILE, uiProfileLength);
+        RIL_LOG_INFO("CCatProfile::ReadTeDefaultProfile() - "
+                "No TE profile found in repository, default TE is used\r\n");
+    }
+    else
+    {
+        bRet = SetTeDefaultProfile(szTeDefaultProfile, strlen(szTeDefaultProfile));
+    }
+
+    RIL_LOG_VERBOSE("CCatProfile::ReadTeDefaultProfile() - Exit\r\n");
+    return bRet;
+}
+
+void CCatProfile::InitMtMask()
+{
+    RIL_LOG_VERBOSE("CCatProfile::InitMtMask() - Enter\r\n");
+    CRepository repository;
+    UINT32 uiProfileLength = strlen(UsatInitStateMachine::DEFAULT_MASK);
+    char szMtMask[MAX_BUFFER_SIZE] = {'\0'};
+
+    // Read the Mt mask from repository.txt
+    if (!repository.Read(g_szGroupModem, g_szMtMask, szMtMask, MAX_BUFFER_SIZE))
+    {
+        SetMtMask(UsatInitStateMachine::DEFAULT_MASK, uiProfileLength);
+        RIL_LOG_INFO("CCatProfile::InitMtMask() - "
+                "No MT Mask found in repository, default MT mask is used\r\n");
+    }
+    else
+    {
+        SetMtMask(szMtMask, strlen(szMtMask));
+    }
+
+    RIL_LOG_VERBOSE("CCatProfile::InitMtMask() - Exit\r\n");
+}

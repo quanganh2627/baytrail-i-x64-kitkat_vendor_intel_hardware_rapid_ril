@@ -694,6 +694,7 @@ Error:
 
     return bRet;
 }
+
 /**
  * Utility function to translate Hexadecimal array (characters) onto byte array (numeric values).
  *
@@ -717,10 +718,29 @@ BOOL extractByteArrayFromString(const char* szHexArray, const UINT32 uiLength, U
         int ret = sscanf(szOneByte, "%02x", &uiVal);
         if (ret == EOF) return FALSE;
 
-        szByteArray[uiCount] = (UINT8)uiVal; // ex: convert 'D0' chars onto 1 byte D0
+        szByteArray[uiCount] = (UINT8)uiVal; // ex: convert 'D0' chars onto 1 byte 0xD0
 
         uiCount++;
     }
 
+    return TRUE;
+}
+
+/**
+ * Utility function to translate byte array (numeric values) onto Hexadecimal array (characters).
+ *
+ * @param szByteArray An allocated bytes/UINT8 array.
+ * @param uiLength Length of bytes/UINT8 array.
+ * @param szByteArray  An allocated string will be filled with hexadecimal characters.
+ * @return true if extraction went well
+ */
+BOOL convertByteArrayIntoString(const UINT8* szByteArray, const UINT32 uiLength, char* pszHexArray)
+{
+    for (UINT32 i = 0; i < uiLength; i++)
+    {
+        int ret = sprintf(pszHexArray, "%02X", szByteArray[i]);
+        if (ret != 2) return FALSE;
+        pszHexArray += ret;
+    }
     return TRUE;
 }

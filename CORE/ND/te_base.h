@@ -965,6 +965,27 @@ public:
 
     virtual void SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel);
 
+    virtual void SetProfileDownloadForNextUiccStartup(UINT32 uiDownload, UINT32 uiReporting);
+    virtual void ConfigureUsatProfileDownload(UINT32 uiDownload, UINT32 uiReporting);
+    virtual void PostConfigureUsatProfileDownloadHandler(POST_CMD_HANDLER_DATA& data);
+
+    virtual RIL_RESULT_CODE ParseQueryUiccState(RESPONSE_DATA& rspData);
+    virtual void PostQueryUiccStateHandler(POST_CMD_HANDLER_DATA& data);
+
+    virtual RIL_RESULT_CODE ParseReadUsatProfiles(RESPONSE_DATA& rspData);
+
+    virtual void WriteUsatProfiles(const char* pszTeProfile, const BOOL isTeWriteNeeded,
+            const char* pszMtProfile, const BOOL isMtWriteNeeded);
+    virtual void WriteUsatProfile(const UINT32 uiProfileStorage, const char* pszProfile);
+    virtual RIL_RESULT_CODE ParseWriteUsatProfile(RESPONSE_DATA& rspData);
+    virtual void PostWriteUsatProfileHandler(POST_CMD_HANDLER_DATA& data);
+
+    virtual void ResetUicc();
+
+    virtual void EnableProfileFacilityHandling();
+
+    virtual void SendModemDownToUsatSM();
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);
 

@@ -54,7 +54,9 @@ LOCAL_SRC_FILES:= \
     ND/MODEMS/te_xmm7160.cpp \
     ND/MODEMS/te_xmm7260.cpp \
     ND/bertlv_util.cpp \
-    ND/ccatprofile.cpp
+    ND/ccatprofile.cpp \
+    usat_state.cpp \
+    usat_init_state_machine.cpp
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli librilutils
 

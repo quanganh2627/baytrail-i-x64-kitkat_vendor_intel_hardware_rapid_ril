@@ -12280,3 +12280,60 @@ void CTEBase::SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel)
 
     RIL_LOG_VERBOSE("CTEBase::SetInitialAttachApn() - Exit\r\n");
 }
+
+void CTEBase::SetProfileDownloadForNextUiccStartup(UINT32 /* uiDownload */,
+        UINT32 /* uiReporting */)
+{
+}
+
+void CTEBase::ConfigureUsatProfileDownload(UINT32 /* uiDownload */, UINT32 /* uiReporting */)
+{
+}
+
+void CTEBase::PostConfigureUsatProfileDownloadHandler(POST_CMD_HANDLER_DATA& /* data */)
+{
+}
+
+RIL_RESULT_CODE CTEBase::ParseQueryUiccState(RESPONSE_DATA& /* rspData */)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+void CTEBase::PostQueryUiccStateHandler(POST_CMD_HANDLER_DATA& /* data */)
+{
+}
+
+RIL_RESULT_CODE CTEBase::ParseReadUsatProfiles(RESPONSE_DATA& /* rspData */)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+void CTEBase::WriteUsatProfiles(const char* /* pszTeProfile */, const BOOL /* isTeWriteNeeded */,
+        const char* /* pszMtProfile */, const BOOL /* isMtWriteNeeded */)
+{
+}
+
+void CTEBase::WriteUsatProfile(const UINT32 /* uiProfileStorage */, const char* /* pszProfile */)
+{
+}
+
+RIL_RESULT_CODE CTEBase::ParseWriteUsatProfile(RESPONSE_DATA& /* rspData */)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+void CTEBase::PostWriteUsatProfileHandler(POST_CMD_HANDLER_DATA& /* data */)
+{
+}
+
+void CTEBase::ResetUicc()
+{
+}
+
+void CTEBase::EnableProfileFacilityHandling()
+{
+}
+
+void CTEBase::SendModemDownToUsatSM()
+{
+}

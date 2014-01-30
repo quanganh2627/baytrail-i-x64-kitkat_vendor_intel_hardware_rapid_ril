@@ -942,3 +942,6 @@ void convertIntToByteArrayAt(unsigned char* outByteArray, int value, int positio
 // Utility function to translate Hexadecimal array (characters) onto byte array (numeric values)
 BOOL extractByteArrayFromString(const char* szHexArray, const UINT32 uiLength, UINT8* szByteArray);
 
+// Utility function to translate byte array (numeric values) onto Hexadecimal array (characters)
+BOOL convertByteArrayIntoString(const UINT8* szByteArray, const UINT32 uiLength, char* pszHexArray);
+

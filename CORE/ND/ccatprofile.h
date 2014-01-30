@@ -13,13 +13,14 @@
 #define CCATPROFILE_H
 
 #include "types.h"
+#include "usat_init_state_machine.h"
 
 class CCatProfile
 {
 public:
 
-    enum {
-        MAX_SIZE_PROFILE = 32,      /** Te profile max size */
+    enum
+    {
         PROACTIVE_UICC_TAG = 0xD0,      /** Proactive UICC command tag. see ETSI 102 223 */
         COMMAND_DETAILS_TAG = 0x81      /** Command details tag. See ETSI 101220 section 7.2 */
     };
@@ -27,7 +28,8 @@ public:
 // This is the list of Proactive command IDs and their coded values (in Hexa)
 // NOTE from ETSI 102 223 Section 9.4: The IDs with value 0 are not used currently, but they will
 //       become useful when managing Terminal profiles (Dynamic)
-    enum Tag {
+    enum Tag
+    {
         REFRESH = 0x01,
         MORE_TIME = 0x02,
         POLL_INTERVAL = 0x03,
@@ -94,7 +96,7 @@ public:
         ACTIVATE_CLASS_L = 0x70,
         CONTACTLESS_STATE_CHANGED = 0x71,
         COMMAND_CONTAINER = 0x72,
-        ENCAPSULATED_SESSION_CONTROL = 0x73,
+        IMS_SUPPORT = 0x73,
         END_PROACTIVE_SESSION = 0x81,
         EVENT_MT_CALL = 0x00,
         EVENT_CALL_CONNECTED = 0x00,
@@ -121,15 +123,19 @@ public:
 
     CCatProfile();
     BOOL SetTeProfile(const char* pszProfile, const UINT32 uiLength);
+    BOOL SetMtMask(const char* szMask, const UINT32 uiLength);
+    const BYTE* GetTeProfile();
+    const BYTE* GetTeDefaultProfile();
+    const BYTE* GetMtMask();
     BOOL ExtractPduInfo(const char* pszUrc, const UINT32 uiLength, ProactiveCommandInfo* pPduInfo);
-
-    BOOL IsTeProfileSet() { return m_isTeProfileSet; }
-    void ResetTeProfile() { m_isTeProfileSet = FALSE; }
 
 private:
     // TE profile
-    BYTE m_achTeProfile[MAX_SIZE_PROFILE];
-    BOOL m_isTeProfileSet;
+    BYTE m_achTeProfile[UsatInitStateMachine::MAX_SIZE_PROFILE];
+    // TE default profile
+    BYTE m_achTeDefaultProfile[UsatInitStateMachine::MAX_SIZE_PROFILE];
+    // MT Mask
+    BYTE m_achMtMask[UsatInitStateMachine::MAX_SIZE_PROFILE];
 
     struct ProfileItem
     {
@@ -139,9 +145,13 @@ private:
     };
 
     // USAT command ID table
-    static ProfileItem s_proactiveUICCTable[];
+    static const ProfileItem s_proactiveUICCTable[];
 
+    BOOL SetByteArray(const char* pszProfile, const UINT32 uiLength, BYTE* achByteArray);
+    BOOL SetTeDefaultProfile(const char* pszProfile, const UINT32 uiLength);
+    BOOL ReadTeDefaultProfile();
     void InitTeProfile();
+    void InitMtMask();
 };
 
 #endif // CCATPROFILE_H

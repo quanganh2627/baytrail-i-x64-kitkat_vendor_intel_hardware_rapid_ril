@@ -27,8 +27,6 @@
 
 #include "silo.h"
 
-class CCatProfile;
-
 class CSilo_SIM : public CSilo
 {
 public:
@@ -57,9 +55,6 @@ protected:
 private:
     BOOL IsProactiveCmd(const char* szUrcPointer, UINT8* puiCmdId);
     void ParsePduForRefresh(const char* pszPdu);
-
-private:
-    CCatProfile* m_pCatProfile;
 };
 
 #endif // RRIL_SILO_SIM_H

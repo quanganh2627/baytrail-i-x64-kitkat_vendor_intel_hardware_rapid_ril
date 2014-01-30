@@ -26,6 +26,7 @@
 #include "te.h"
 #include "reset.h"
 #include "ccatprofile.h"
+#include "usat_init_state_machine.h"
 
 #include <cutils/properties.h>
 
@@ -50,14 +51,12 @@ CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "+CUSATS: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationCusats },
         { "+CUSATP: "   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationCusatp },
         { "+CUSATEND"   , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseIndicationCusatend },
-        { ""            , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
+        { ""           , (PFN_ATRSP_PARSE)&CSilo_SIM::ParseNULL }
     };
 
     m_pATRspTable = pATRspTable;
 
     memset(m_szECCList, 0, sizeof(m_szECCList));
-
-    m_pCatProfile = new CCatProfile();
 
     RIL_LOG_VERBOSE("CSilo_SIM::CSilo_SIM() - Exit\r\n");
 }
@@ -66,10 +65,6 @@ CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
 //
 CSilo_SIM::~CSilo_SIM()
 {
-    RIL_LOG_VERBOSE("CSilo_SIM::~CSilo_SIM() - Enter\r\n");
-    delete[] m_pCatProfile;
-    m_pCatProfile = NULL;
-    RIL_LOG_VERBOSE("CSilo_SIM::~CSilo_SIM() - Exit\r\n");
 }
 
 
@@ -143,19 +138,21 @@ char* CSilo_SIM::GetURCInitString()
  */
 BOOL CSilo_SIM::IsProactiveCmd(const char* szUrcPointer, UINT8* puiCmdId)
 {
+    RIL_LOG_VERBOSE("CSilo_SIM::IsProactiveCmd() - Enter\r\n");
     BOOL bRet = FALSE;
     CCatProfile::ProactiveCommandInfo info;
 
     if (!szUrcPointer)
     {
         RIL_LOG_CRITICAL("CSilo_SIM::IsProactiveCmd() - ERROR NULL PARAMETER!\r\n");
-        goto Error;
+        goto Out;
     }
 
     // Parse given URC
     RIL_LOG_INFO("CSilo_SIM::IsProactiveCmd() : GOT URC:%s\r\n", szUrcPointer);
 
-    if (m_pCatProfile->ExtractPduInfo(szUrcPointer, strlen(szUrcPointer), &info))
+    if (UsatInitStateMachine::GetStateMachine()
+            .GetCatProfile()->ExtractPduInfo(szUrcPointer, strlen(szUrcPointer), &info))
     {
         bRet = info.isProactiveCmd;
     }
@@ -168,12 +165,9 @@ BOOL CSilo_SIM::IsProactiveCmd(const char* szUrcPointer, UINT8* puiCmdId)
 
     *puiCmdId = info.uiCommandId;
 
-    RIL_LOG_INFO("CSilo_SIM::IsProactiveCmd() : RETURN:%d\r\n", bRet);
-
+Out:
+    RIL_LOG_VERBOSE("CSilo_SIM::IsProactiveCmd() : RETURN:%d\r\n - Exit", bRet);
     return bRet;
-
-Error:
-    return FALSE;
 }
 
 BOOL CSilo_SIM::ParseIndicationSATI(CResponse* const pResponse, const char*& rszPointer)
@@ -848,26 +842,54 @@ Error:
 
 BOOL CSilo_SIM::ParseIndicationCusats(CResponse* const pResponse, const char*& rszPointer)
 {
-    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusats() - Enter\r\n");
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseIndicationCusats() - Enter\r\n");
     BOOL fRet = FALSE;
+    UINT32 uiUiccState = 0;
 
     if (pResponse == NULL)
     {
         RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationCusats() : pResponse was NULL\r\n");
-        goto Error;
+        goto Out;
     }
 
     pResponse->SetUnsolicitedFlag(TRUE);
+
+    /* +CUSATS: <UICC_state> */
+
+    // Parse UICC state
+    if (!ExtractUInt32(rszPointer, uiUiccState, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParseIndicationCusats() -"
+                " Could not find UICC state argument.\r\n");
+        goto Out;
+    }
+    else
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusats() -"
+                " uiUiccState= %u.\r\n", uiUiccState);
+
+        UsatInitStateMachine::GetStateMachine().SetUiccState(uiUiccState);
+        if (uiUiccState == UsatInitStateMachine::PROFILE_DOWNLOAD_COMPLETED)
+        {
+            CTE::GetTE().SetProfileDownloadForNextUiccStartup(1, 1);
+        }
+        else if (uiUiccState == UsatInitStateMachine::UICC_ACTIVE)
+        {
+            UsatInitStateMachine::GetStateMachine()
+                    .SendEvent(UsatInitStateMachine::SIM_READY_TO_ACTIVATE);
+        }
+    }
+
     fRet = TRUE;
 
-Error:
-    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusats() - Exit\r\n");
+Out:
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseIndicationCusats() - Exit\r\n");
     return fRet;
 }
 
 BOOL CSilo_SIM::ParseIndicationCusatp(CResponse* const pResponse, const char*& rszPointer)
 {
-    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatp() - Enter\r\n");
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseIndicationCusatp() - Enter\r\n");
     char* pszProactiveCmd = NULL;
     UINT32 uiLength = 0;
     const char* pszEnd = NULL;
@@ -926,17 +948,17 @@ BOOL CSilo_SIM::ParseIndicationCusatp(CResponse* const pResponse, const char*& r
     if (IsProactiveCmd(pszProactiveCmd, &uiCmdTag))
     {
         pResponse->SetResultCode(RIL_UNSOL_STK_PROACTIVE_COMMAND);
-        RIL_LOG_INFO("CSilo_SIM::ParseIndicationCUSATP() - IS A PROACTIVE COMMAND.\r\n",
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatp() - IS A PROACTIVE COMMAND.\r\n",
                 pszProactiveCmd);
     }
     else
     {
         pResponse->SetResultCode(RIL_UNSOL_STK_EVENT_NOTIFY);
-        RIL_LOG_INFO("CSilo_SIM::ParseIndicationCUSATP() - IS AN EVENT NOTIFICATION.\r\n",
+        RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatp() - IS AN EVENT NOTIFICATION.\r\n",
                 pszProactiveCmd);
     }
 
-    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCUSATP() - CmdId:0x%X\r\n", uiCmdTag);
+    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatp() - CmdId:0x%X\r\n", uiCmdTag);
 
     if (uiCmdTag == CCatProfile::REFRESH)
     {
@@ -957,14 +979,14 @@ Error:
         pszProactiveCmd = NULL;
     }
 
-    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatp() - Exit\r\n");
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseIndicationCusatp() - Exit\r\n");
     return fRet;
 }
 
 
 BOOL CSilo_SIM::ParseIndicationCusatend(CResponse* const pResponse, const char*& rszPointer)
 {
-    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatend() - Enter\r\n");
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseIndicationCusatend() - Enter\r\n");
     BOOL fRet = FALSE;
 
     if (pResponse == NULL)
@@ -979,6 +1001,6 @@ BOOL CSilo_SIM::ParseIndicationCusatend(CResponse* const pResponse, const char*&
     fRet = TRUE;
 
 Error:
-    RIL_LOG_INFO("CSilo_SIM::ParseIndicationCusatend() - Exit\r\n");
+    RIL_LOG_VERBOSE("CSilo_SIM::ParseIndicationCusatend() - Exit\r\n");
     return fRet;
 }

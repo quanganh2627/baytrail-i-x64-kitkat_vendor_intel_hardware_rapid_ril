@@ -47,6 +47,7 @@ extern const char*  g_szRequestNames[];
 
 /////////////////////////////////////////////////
 
+extern const char   g_szGroupInternalRequestTimeouts[];
 extern const char   g_szGroupOtherTimeouts[];
 
 extern const char   g_szTimeoutCmdInit[];
@@ -110,6 +111,7 @@ extern const char   g_szApnTypeEmergency[];
 
 // used for SATK
 extern const char g_szTeProfile[];
+extern const char g_szMtMask[];
 
 //////////////////////////////////////////////////////////////////////////
 
