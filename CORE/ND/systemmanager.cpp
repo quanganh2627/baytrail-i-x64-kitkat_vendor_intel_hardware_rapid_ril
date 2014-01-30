@@ -121,11 +121,11 @@ CSystemManager::CSystemManager()
     //                so we don't block during suspend.
     m_pSystemManagerMutex = new CMutex();
 
-    memset(m_szDualSim, 0, PROPERTY_VALUE_MAX);
-
     m_pSpoofCommandsStatusAccessMutex = new CMutex();
 
     m_pTEAccessMutex = new CMutex();
+
+    m_bIsMultiSIM = g_szSIMID != NULL;
 
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Exit\r\n");
 }
@@ -427,6 +427,11 @@ BOOL CSystemManager::InitializeSystem()
     if (repository.Read(g_szGroupModem, g_szModeOfOperation, iTemp))
     {
         CTE::GetTE().SetModeOfOperation((UINT32)iTemp);
+    }
+
+    if  (repository.Read(g_szGroupModem, g_szTempOoSNotificationEnable, iTemp))
+    {
+        CTE::GetTE().SetTempOoSNotificationReporting(iTemp == 1 ? TRUE : FALSE);
     }
 
     // Retrieve IMS capability based on system property

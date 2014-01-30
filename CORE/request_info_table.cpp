@@ -122,10 +122,10 @@ void CRequestInfoTable::GetRequestInfo(int requestID, REQ_INFO& rReqInfo)
         {
             rReqInfo.uiTimeout = WAIT_FOREVER;
         }
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
-        else
+
+        else if (CSystemManager::GetInstance().IsMultiSIM())
         {
-            // Timeout values need to be extended for DSDS capable modems,
+            // Timeout values need to be extended for Multi SIM capable modems,
             // depending on type of command (ie. network/non-network)
             switch (requestID)
             {
@@ -183,7 +183,6 @@ void CRequestInfoTable::GetRequestInfo(int requestID, REQ_INFO& rReqInfo)
                     break;
             }
         }
-#endif // M2_DUALSIM_FEATURE_ENABLED
 
         // Cache the data we just read (taking the cache access lock)
         if (m_pCacheAccessMutex)

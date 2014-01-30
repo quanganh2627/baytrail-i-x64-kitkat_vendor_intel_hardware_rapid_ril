@@ -124,12 +124,13 @@ public:
     UINT32 GetLastCallFailedCauseID() const { return m_uiLastCallFailedCauseID; }
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
-    char m_szDualSim[PROPERTY_VALUE_MAX];
-
     int GetCancelWaitPipeFd() { return m_pInitializer->GetCancelWaitPipeFd(); }
 
     // This function will return true if device is not encrypted or decrypted.
     BOOL IsDeviceDecrypted();
+
+    // This function returns true if we have multiple SIMs.
+    BOOL IsMultiSIM() { return m_bIsMultiSIM; }
 
 private:
     // Framework Init Functions
@@ -161,6 +162,8 @@ private:
     BOOL m_bIsModemResourceAcquired;
 
     BOOL m_bIsDeviceDecrypted;
+
+    BOOL m_bIsMultiSIM;
 
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     UINT32 m_uiLastCallFailedCauseID;

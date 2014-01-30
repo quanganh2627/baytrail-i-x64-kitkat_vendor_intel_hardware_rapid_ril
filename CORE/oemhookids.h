@@ -303,8 +303,6 @@ const int RIL_OEM_HOOK_STRING_SET_DEFAULT_APN = 0x000000AF;
 //
 const int RIL_OEM_HOOK_STRING_POWEROFF_MODEM = 0x000000B0;
 
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
-
 //
 //  RIL_OEM_HOOK_STRING_SWAP_PS
 //  Command ID = 0x000000B2
@@ -315,8 +313,6 @@ const int RIL_OEM_HOOK_STRING_POWEROFF_MODEM = 0x000000B0;
 //  "response" = Error code returned by AT command
 //
 const int RIL_OEM_HOOK_STRING_SWAP_PS = 0x000000B2;
-
-#endif // M2_DUALSIM_FEATURE_ENABLED
 
 //
 //  RIL_OEM_HOOK_STRING_SEND_AT
@@ -404,8 +400,6 @@ const int RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND = 0x000000D0;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
-
 //
 //  OEM_HOOK_RAW_UNSOL_FAST_OOS_IND
 //  Command ID = 0x000000D1
@@ -425,8 +419,6 @@ const int RIL_OEM_HOOK_RAW_UNSOL_FAST_OOS_IND = 0x000000D1;
 const int RIL_OEM_HOOK_RAW_UNSOL_IN_SERVICE_IND = 0x000000D2;
 
 ///////////////////////////////////////////////////////////////////////////////
-
-#endif // M2_DUALSIM_FEATURE_ENABLED
 
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_DATA_STATUS_IND
 {

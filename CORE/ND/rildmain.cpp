@@ -626,9 +626,6 @@ static bool RIL_SetGlobals(int argc, char** argv)
 {
     int opt;
     UINT32 uiDataPortIndex = RIL_CHANNEL_DATA1;
-    char* szDualSim = CSystemManager::GetInstance().m_szDualSim;
-
-    property_get("persist.dual_sim", szDualSim , "none");
     g_uiRilChannelUpperLimit = RIL_CHANNEL_MAX;
     g_pReqInfo = (REQ_INFO*)g_ReqInfoDefault;
 
@@ -766,11 +763,7 @@ static bool RIL_SetGlobals(int argc, char** argv)
     }
 
     if (!g_szCmdPort || !g_szDLC2Port || !g_szDLC6Port || !g_szDLC8Port
-            || !g_szURCPort || !g_szOEMPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
-            || !g_szSIMID
-#endif
-            )
+            || !g_szURCPort || !g_szOEMPort || !g_szDataPort1 || !g_szDataPort2 || !g_szDataPort3)
     {
         usage(argv[0]);
         return false;

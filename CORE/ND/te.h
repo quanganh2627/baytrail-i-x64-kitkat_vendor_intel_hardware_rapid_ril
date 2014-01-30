@@ -768,6 +768,9 @@ public:
        return m_CellInfoCache.getCellInfo(pRetData, uiItemCount);
     }
 
+    void SetTempOoSNotificationReporting(BOOL bEnable) { m_bTempOoSNotifReporting = bEnable; }
+    BOOL IsTempOoSNotificationEnabled() { return m_bTempOoSNotifReporting; }
+
     BOOL TestAndSetDataCleanupStatus(BOOL bCleanupStatus);
 
     // This function will return true if sys.shutdown.requested is set to 0 or 1
@@ -1330,6 +1333,8 @@ private:
 
     BOOL m_bCbsActivationTimerRunning;
     int m_CbsActivate;
+
+    BOOL m_bTempOoSNotifReporting;
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
     void FreeCardStatusPointers(RIL_CardStatus_v6& cardStatus);

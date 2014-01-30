@@ -31,10 +31,7 @@
 #include "te.h"
 #include "te_base.h"
 #include "oemhookids.h"
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
 #include "repository.h"
-#endif
-
 //
 //
 CSilo_Network::CSilo_Network(CChannel* pChannel, CSystemCapabilities* pSysCaps)
@@ -553,23 +550,9 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         {
             fUnSolicited = TRUE;
         }
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
-        else if (4 == nNumParams)
+        else if (CSystemManager::GetInstance().IsMultiSIM() && (7 == nNumParams))
         {
-            CRepository repository;
-
-            // Temporary Out of Service Notifications are only supported on
-            //  DSDS modems and therefore must not be active by default
-            const int TEMP_OUT_OF_SERVICE_EN_DEFAULT = 0;
-            int nEnableTempOoSNotif = TEMP_OUT_OF_SERVICE_EN_DEFAULT;
-
-            if (!repository.Read(g_szGroupModem, g_szTempOoSNotificationEnable,
-                    nEnableTempOoSNotif))
-            {
-                nEnableTempOoSNotif = TEMP_OUT_OF_SERVICE_EN_DEFAULT;
-            }
-
-            if (nEnableTempOoSNotif)
+            if (CTE::GetTE().IsTempOoSNotificationEnabled())
             {
                 // handle special case for Temporary Out of Service Notification
                 fRet = ParseXREGFastOoS(pResponse, rszPointer);
@@ -586,11 +569,9 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
             RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Exit\r\n");
             return fRet;
         }
-        else if ((6 == nNumParams)) //  Sol is 6
-#else
+
         //  Sol is 2,4,6 and 9
         else if ((2 == nNumParams) || (4 == nNumParams) || (6 == nNumParams) || (9 == nNumParams))
-#endif // M2_DUALSIM_FEATURE_ENABLED
         {
             //  Sol is 2,4,6 and 9
             fUnSolicited = FALSE;
@@ -1485,7 +1466,7 @@ Error:
     return bRet;
 }
 
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
+//
 // Special parse function to handle Fast Out of Service Notifications
 BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rszPointer)
 {
@@ -1493,12 +1474,14 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rs
 
     BOOL bRet = FALSE;
     UINT32 uiState = 0;
+    UINT32 uiStateDummy = 0;
     UINT32 commandId = 0;
     BYTE i = 0;
 
+    // +XREG:<state> values for DSDS
     const UINT32 NETWORK_REG_STATUS_FAST_OOS = 20;
     const UINT32 NETWORK_REG_STATUS_IN_SERVICE = 21;
-    const BYTE MAX_NUM_EMPTY_VALUES = 3;
+    const BYTE MAX_NUM_EMPTY_VALUES = 5;
 
     if (NULL == pResponse)
     {
@@ -1511,7 +1494,8 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rs
     // Extract "<state>"
     if (!ExtractUInt32(rszPointer, uiState, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - Could not extract <state>.\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - "
+                "Could not extract <state>.\r\n");
         goto Error;
     }
 
@@ -1521,6 +1505,24 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rs
         FindAndSkipString(rszPointer, ",", rszPointer);
         i++;
     } while (i < MAX_NUM_EMPTY_VALUES);
+
+    // Extract "<reject type>"
+    if (!ExtractUInt32(rszPointer, uiStateDummy, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - "
+                "Could not extract <reject type>.\r\n");
+        goto Error;
+    }
+
+    FindAndSkipString(rszPointer, ",", rszPointer);
+
+    // Extract "<reject cause>"
+    if (!ExtractUInt32(rszPointer, uiStateDummy, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - "
+                "Could not extract <reject cause>.\r\n");
+        goto Error;
+    }
 
     if (NETWORK_REG_STATUS_FAST_OOS == uiState)
     {
@@ -1532,8 +1534,8 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rs
     }
     else // unsupported state
     {
-         RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() -"
-                 " Unrecognized network reg state\r\n");
+         RIL_LOG_CRITICAL("CSilo_Network::ParseXREGFastOoS() - "
+                 "Unrecognized network reg state: %d\r\n", commandId);
          goto Error;
     }
 
@@ -1548,7 +1550,6 @@ BOOL CSilo_Network::ParseXREGFastOoS(CResponse* const pResponse, const char*& rs
 
 Error:
 
-    RIL_LOG_VERBOSE("CSilo_Network::ParseXREGFastOoS() - Exit[%d]\r\n", bRet);
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXREGFastOoS() - Exit\r\n");
     return bRet;
 }
-#endif // M2_DUALSIM_FEATURE_ENABLED

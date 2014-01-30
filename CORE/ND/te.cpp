@@ -87,7 +87,8 @@ CTE::CTE(UINT32 modemType) :
     m_CurrentCipheringStatus(3), // by default set to ciphered
     m_uiPinCacheMode(E_PIN_CACHE_MODE_FS),
     m_bCbsActivationTimerRunning(FALSE),
-    m_CbsActivate(-1)
+    m_CbsActivate(-1),
+    m_bTempOoSNotifReporting(FALSE)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 

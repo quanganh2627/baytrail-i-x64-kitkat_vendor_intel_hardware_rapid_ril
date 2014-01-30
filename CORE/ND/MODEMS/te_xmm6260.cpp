@@ -2185,20 +2185,11 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                     (const char**) pszRequest, uiDataSize);
             break;
 
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
         case RIL_OEM_HOOK_STRING_SWAP_PS:
             {
-                int param;
-                RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_SWAP_PS");
-                if (sscanf(pszRequest[1], "%u", &param) == EOF)
+                if (CSystemManager::GetInstance().IsMultiSIM())
                 {
-                    RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
-                            " cannot convert %s to int\r\n", pszRequest);
-                    goto Error;
-                }
-                rReqData.pContextData = (void *) param;
-                if (param & 1)
-                {
+                    RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_SWAP_PS");
                     if (!PrintStringNullTerminate(rReqData.szCmd1,
                             sizeof(rReqData.szCmd1), "AT+XRAT=8\r"))
                     {
@@ -2207,21 +2198,10 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                         goto Error;
                     }
                     rReqData.uiTimeout = 450000;
+                    res = RRIL_RESULT_OK;
                 }
-                else
-                {
-                    if (!PrintStringNullTerminate(rReqData.szCmd1,
-                            sizeof(rReqData.szCmd1), "AT\r"))
-                    {
-                        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - "
-                                "RIL_OEM_HOOK_STRING_SWAP_PS - Can't construct szCmd1.\r\n");
-                        goto Error;
-                    }
-                }
-                res = RRIL_RESULT_OK;
                 break;
             }
-#endif // M2_DUALSIM_FEATURE_ENABLED
 
         case RIL_OEM_HOOK_STRING_IMS_REGISTRATION:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_REGISTRATION");
@@ -2381,15 +2361,10 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_IMS_SMS_STATUS:
         case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
         case RIL_OEM_HOOK_STRING_POWEROFF_MODEM:
+        case RIL_OEM_HOOK_STRING_SWAP_PS:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
             break;
-
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
-        case RIL_OEM_HOOK_STRING_SWAP_PS:
-            res = ParseSwapPS(pszRsp, rRspData);
-            break;
-#endif // M2_DUALSIM_FEATURE_ENABLED
 
         default:
             RIL_LOG_INFO("CTE_XMM6260::ParseHookStrings() -"
@@ -5146,27 +5121,6 @@ Error:
     return res;
 }
 
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
-RIL_RESULT_CODE CTE_XMM6260::ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE_XMM6260::ParseSwapPS() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
-
-    if ((int)rRspData.pContextData & 2)
-    {
-        // Set SIM app state as unknown
-        SetSimAppState(RIL_APPSTATE_UNKNOWN);
-        // Set radio state as unavailable
-        SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
-    }
-    //  Todo: Handle error here.
-
-    RIL_LOG_VERBOSE("CTE_XMM6260::ParseSwapPS() - Exit\r\n");
-    return res;
-}
-#endif // M2_DUALSIM_FEATURE_ENABLED
-
 BOOL CTE_XMM6260::HandleSilentPINEntry(void* pRilToken, void* /*pContextData*/, int /*size*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::HandleSilentPINEntry() - Enter\r\n");
@@ -6137,69 +6091,71 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
         return bRet;
     }
 
-#if !defined(M2_DUALSIM_FEATURE_ENABLED)
-    if (bTurnRadioOn)
+    if (!CSystemManager::GetInstance().IsMultiSIM())
     {
-        strcpy(szCmd, "AT+CFUN=1\r");
-    }
-    else
-    {
-        if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
+        if (bTurnRadioOn)
         {
-            char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
-
-            property_get("persist.conformance", szConformanceProperty, NULL);
-            if (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
+            strcpy(szCmd, "AT+CFUN=1\r");
+        }
+        else
+        {
+            if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
             {
-                /*
-                 * Since sending of CFUN=4 results in few conformance test cases failing,
-                 * don't send any command to modem if conformance property is set.
-                 */
+                char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
+
+                property_get("persist.conformance", szConformanceProperty, NULL);
+                if (0 == strncmp(szConformanceProperty, "true", PROPERTY_VALUE_MAX))
+                {
+                    /*
+                    * Since sending of CFUN=4 results in few conformance test cases failing,
+                    * don't send any command to modem if conformance property is set.
+                    */
+                }
+                else
+                {
+                    strcpy(szCmd, "AT+CFUN=4\r");
+                }
             }
-            else
+            else if (E_RADIO_OFF_REASON_AIRPLANE_MODE == radioOffReason
+                    || E_RADIO_OFF_REASON_NONE == radioOffReason)
             {
                 strcpy(szCmd, "AT+CFUN=4\r");
             }
         }
-        else if (E_RADIO_OFF_REASON_AIRPLANE_MODE == radioOffReason
-                || E_RADIO_OFF_REASON_NONE == radioOffReason)
-        {
-            strcpy(szCmd, "AT+CFUN=4\r");
-        }
-    }
-#else
-    // use SIM-specific property, depending on RIL instance
-    char szSimPowerOffStatePropName[PROPERTY_VALUE_MAX] = {'\0'};
-    char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
-    UINT32 uiSimPoweredOff;
-    UINT32 uiFunMode;
-
-    if (g_szSIMID)
-    {
-        snprintf(szSimPowerOffStatePropName, PROPERTY_VALUE_MAX,
-                "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
     }
     else
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - g_szSIMID is NULL\r\n");
-        goto Error;
+        // use SIM-specific property, depending on RIL instance
+        char szSimPowerOffStatePropName[PROPERTY_VALUE_MAX] = {'\0'};
+        char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
+        UINT32 uiSimPoweredOff;
+        UINT32 uiFunMode;
+
+        if (g_szSIMID)
+        {
+            snprintf(szSimPowerOffStatePropName, PROPERTY_VALUE_MAX,
+                    "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - g_szSIMID is NULL\r\n");
+            goto Error;
+        }
+
+        // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
+        property_get(szSimPowerOffStatePropName, szSimPowerOffState, "");
+        uiSimPoweredOff = (strcmp(szSimPowerOffState, "true") == 0) ? 1 : 0;
+
+        // Power On (20) or flight mode (21)
+        uiFunMode = bTurnRadioOn ? 20 : 21;
+
+        if (!PrintStringNullTerminate(szCmd, sizeof(szCmd),
+                "AT+CFUN=%u,%u\r", uiFunMode, uiSimPoweredOff))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - Cannot create command\r\n");
+            goto Error;
+        }
     }
-
-    // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
-    property_get(szSimPowerOffStatePropName, szSimPowerOffState, "");
-    uiSimPoweredOff = (strcmp(szSimPowerOffState, "true") == 0) ? 1 : 0;
-
-    // Power On (20) or flight mode (21)
-    uiFunMode = bTurnRadioOn ? 20 : 21;
-
-    if (!PrintStringNullTerminate(szCmd, sizeof(szCmd),
-            "AT+CFUN=%u,%u%s\r", uiFunMode, uiSimPoweredOff,
-            (uiFunMode == 20 && uiSimPoweredOff == 0) ? ";+XSIMSTATE?" : ""))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - Cannot create command\r\n");
-        goto Error;
-    }
-#endif
 
     if (!CopyStringNullTerminate(pCmdBuffer, szCmd, cmdBufferLen))
     {

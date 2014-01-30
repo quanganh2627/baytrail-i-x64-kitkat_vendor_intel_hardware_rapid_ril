@@ -330,10 +330,6 @@ private:
     RIL_RESULT_CODE ParseXRFCBT(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseXISRVCC(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE HandleSendAtResponse(const char* pszRsp, RESPONSE_DATA& rRspData);
-
-#if defined(M2_DUALSIM_FEATURE_ENABLED)
-    RIL_RESULT_CODE ParseSwapPS(const char* pszRsp, RESPONSE_DATA& rRspData);
-#endif // M2_DUALSIM_FEATURE_ENABLED
     BOOL ParseXSIMSTATE(const char*& rszPointer);
     BOOL ParseXLOCK(const char*& rszPointer);
 };

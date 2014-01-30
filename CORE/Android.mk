@@ -79,11 +79,6 @@ LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED
 # Activating this macro enables PIN caching (for modem cold reboot)
 LOCAL_CFLAGS += -DM2_PIN_CACHING_FEATURE_ENABLED
 
-# Activates the DUAL SIM compilation flag.
-ifeq ($(strip $(BOARD_HAVE_IFX6265)),true)
-LOCAL_CFLAGS += -DM2_DUALSIM_FEATURE_ENABLED
-endif
-
 # Activating this macro enables the Get SIM SMS Storage feature
 ifeq ($(strip $(M2_GET_SIM_SMS_STORAGE_ENABLED)),true)
 LOCAL_CFLAGS += -DM2_GET_SIM_SMS_STORAGE_ENABLED
