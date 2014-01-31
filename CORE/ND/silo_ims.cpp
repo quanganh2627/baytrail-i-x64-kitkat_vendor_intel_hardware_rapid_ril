@@ -59,7 +59,6 @@ char* CSilo_IMS::GetURCInitString()
     // IMS Modem Centric
     if (m_pSystemCapabilities->IsIMSCapable())
     {
-        char szEnableIMS[MAX_BUFFER_SIZE] = {'\0'};
         PrintStringNullTerminate(szEnableIMS, MAX_BUFFER_SIZE,
                 "|+XICFG=0,1,50,1|+CISRVCC=1|+CIREP=1|+CIREG=1|+XISMSCFG=1");
 
