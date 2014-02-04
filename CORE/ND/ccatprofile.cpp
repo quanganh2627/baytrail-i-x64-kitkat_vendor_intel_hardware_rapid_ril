@@ -210,6 +210,12 @@ BOOL CCatProfile::ExtractPduInfo(const char* pszPdu, const UINT32 uiLength,
 
     // NEED TO CONVERT chars string onto bytes array
     pPduBytes = (UINT8*)malloc(uiLength);
+    if (NULL == pPduBytes)
+    {
+        RIL_LOG_CRITICAL("CCatProfile::ExtractPduInfo() -"
+                " Could not allocate memory for PDU.\r\n");
+        goto Error;
+    }
     bRet = extractByteArrayFromString(pszPdu, uiLength, pPduBytes);
 
     RIL_LOG_INFO("CCatProfile::ExtractPduInfo() - ENTER:Length:%d, PDU:[0x%X][0x%X]\r\n",
@@ -271,12 +277,13 @@ BOOL CCatProfile::ExtractPduInfo(const char* pszPdu, const UINT32 uiLength,
                 bFound = (m_achTeProfile[byteId] & s_proactiveUICCTable[indexFound].uiBitMask) != 0;
                 pPduInfo->isProactiveCmd = bFound;
                 bRet = TRUE;
+                RIL_LOG_INFO("CCatProfile::ExtractPduInfo() -"
+                        " indexFound:%d, CmdId:0x%X, uiByteId:0x%X,"
+                        " uiCmdId:0x%X, uiBitMask:0x%X, Found:%d\r\n", indexFound, uiCmd,
+                        s_proactiveUICCTable[indexFound].uiByteId,
+                        s_proactiveUICCTable[indexFound].uiCmdId,
+                        s_proactiveUICCTable[indexFound].uiBitMask, bFound);
             }
-            RIL_LOG_INFO("CCatProfile::ExtractPduInfo() - indexFound:%d, CmdId:0x%X, uiByteId:0x%X,"
-                    " uiCmdId:0x%X, uiBitMask:0x%X, Found:%d\r\n", indexFound, uiCmd,
-                    s_proactiveUICCTable[indexFound].uiByteId,
-                    s_proactiveUICCTable[indexFound].uiCmdId,
-                    s_proactiveUICCTable[indexFound].uiBitMask, bFound);
         }
     }
 
