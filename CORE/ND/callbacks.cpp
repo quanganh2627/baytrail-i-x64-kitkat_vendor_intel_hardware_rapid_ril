@@ -375,7 +375,7 @@ void triggerDropCallEvent(void* param)
 
     if (strlen(CTE::GetTE().GetNetworkData(LAST_NETWORK_XCSQ)) != 0)
     {
-        data.dataSize[2] = snprintf(data.data2, CRASHTOOL_LARGE_BUFFER_SIZE, "+XCSQ: %s;",
+        data.dataSize[2] = snprintf(data.data2, CRASHTOOL_LARGE_BUFFER_SIZE, "%s;",
                 CTE::GetTE().GetNetworkData(LAST_NETWORK_XCSQ));
     }
 

@@ -1374,7 +1374,9 @@ BOOL CSilo_Network::ParseXCSQ(CResponse* const pResponse, const char*& rszPointe
 
     // Backup the XCSQ response string to report data on crashtool
     pszStart = rszPointer;
-    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszDummy);
+    PrintStringNullTerminate(szBackup, MAX_NETWORK_DATA_SIZE, "+XCSQ: ");
+    ExtractUnquotedString(pszStart, m_szNewLine, szBackup + strlen(szBackup),
+            MAX_NETWORK_DATA_SIZE - strlen(szBackup), pszDummy);
     CTE::GetTE().SaveNetworkData(LAST_NETWORK_XCSQ, szBackup);
 
     if (!ExtractUInt32(rszPointer, uiRSSI, rszPointer))
@@ -1453,7 +1455,9 @@ BOOL CSilo_Network::ParseXCESQI(CResponse* const pResponse, const char*& rszPoin
 
     // Backup the XCESQI response string to report data on crashtool
     pszStart = rszPointer;
-    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszDummy);
+    PrintStringNullTerminate(szBackup, MAX_NETWORK_DATA_SIZE, "+XCESQI: ");
+    ExtractUnquotedString(pszStart, m_szNewLine, szBackup + strlen(szBackup),
+            MAX_NETWORK_DATA_SIZE - strlen(szBackup), pszDummy);
     CTE::GetTE().SaveNetworkData(LAST_NETWORK_XCSQ, szBackup);
 
     pSigStrData = CTE::GetTE().ParseXCESQ(rszPointer, TRUE);
