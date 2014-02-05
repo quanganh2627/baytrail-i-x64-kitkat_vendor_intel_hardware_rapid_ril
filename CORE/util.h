@@ -60,14 +60,6 @@ private:
 };
 
 //
-// Character mapping structure used for binary search
-//
-struct CHARMAP {
-    char ch;
-    WCHAR wch;
-};
-
-//
 // Function declarations
 //
 
