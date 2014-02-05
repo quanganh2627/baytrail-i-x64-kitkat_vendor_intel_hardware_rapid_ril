@@ -1350,7 +1350,7 @@ BOOL CSilo_Voice::ParseXUCCI(CResponse* const pResponse, const char*& rszPointer
     if (pResponse == NULL)
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : pResponse was NULL\r\n");
-        goto end;
+        goto error;
     }
 
     pResponse->SetUnsolicitedFlag(TRUE);
@@ -1363,7 +1363,7 @@ BOOL CSilo_Voice::ParseXUCCI(CResponse* const pResponse, const char*& rszPointer
     if (!ExtractUInt32(rszPointer, uiCurrRat, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract current rat\r\n");
-        goto end;
+        goto error;
     }
 
     //  Extract ,<conn status>
@@ -1371,7 +1371,7 @@ BOOL CSilo_Voice::ParseXUCCI(CResponse* const pResponse, const char*& rszPointer
             || !ExtractUInt32(rszPointer, uiConnState, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract connection state\r\n");
-        goto end;
+        goto error;
     }
 
     //  Extract, <ciphering status>
@@ -1379,7 +1379,7 @@ BOOL CSilo_Voice::ParseXUCCI(CResponse* const pResponse, const char*& rszPointer
             || !ExtractUInt32(rszPointer, uiCipheringStatus, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract uiCipheringStatus\r\n");
-        goto end;
+        goto error;
     }
 
     //  Extract ,<domain>
@@ -1387,7 +1387,7 @@ BOOL CSilo_Voice::ParseXUCCI(CResponse* const pResponse, const char*& rszPointer
             || !ExtractUInt32(rszPointer, uiDomain, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract uiDomain\r\n");
-        goto end;
+        goto error;
     }
 
     //  Extract ,<key status>
@@ -1395,7 +1395,7 @@ BOOL CSilo_Voice::ParseXUCCI(CResponse* const pResponse, const char*& rszPointer
             || !ExtractUInt32(rszPointer, uiKeyStatus, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract uiKeyStatus\r\n");
-        goto end;
+        goto error;
     }
 
     //  Extract ,<Key domain>
@@ -1403,7 +1403,7 @@ BOOL CSilo_Voice::ParseXUCCI(CResponse* const pResponse, const char*& rszPointer
             || !ExtractUInt32(rszPointer, uiKeyDomain, rszPointer))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseXUCCI() : Could not extract uiKeyDomain\r\n");
-        goto end;
+        goto error;
     }
 
     RIL_LOG_INFO("CSilo_Voice::ParseXUCCI() :"
@@ -1427,29 +1427,39 @@ BOOL CSilo_Voice::ParseXUCCI(CResponse* const pResponse, const char*& rszPointer
         break;
     }
 
-    pData = (sOEM_HOOK_RAW_UNSOL_CIPHERING_IND*)malloc(
-            sizeof(sOEM_HOOK_RAW_UNSOL_CIPHERING_IND));
-
     // send ciphering indications only if there is a change in ciphering
     // status and the change is that ciphering is not active
-    if (pData != NULL
-            && ((uiCurrStatus == 3) != (uiPrevStatus == 3)))
+    if ((uiCurrStatus == 3) != (uiPrevStatus == 3))
     {
-        memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_CIPHERING_IND));
-        pData->command = RIL_OEM_HOOK_RAW_UNSOL_CIPHERING_IND;
-        pData->cipheringStatus = (uiCurrStatus == 3) ? 1 : 0;
-        // store the new values
-        CTE::GetTE().SetCurrentCipheringStatus(uiCurrStatus);
-
-        if (pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_CIPHERING_IND), FALSE))
+        pData = (sOEM_HOOK_RAW_UNSOL_CIPHERING_IND*)malloc(
+                sizeof(sOEM_HOOK_RAW_UNSOL_CIPHERING_IND));
+        if (pData != NULL)
         {
-            pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+            memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_CIPHERING_IND));
+            pData->command = RIL_OEM_HOOK_RAW_UNSOL_CIPHERING_IND;
+            pData->cipheringStatus = (uiCurrStatus == 3) ? 1 : 0;
+
+            if (pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_CIPHERING_IND), FALSE))
+            {
+                pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+
+                // store the new values if sending of message is successful
+                CTE::GetTE().SetCurrentCipheringStatus(uiCurrStatus);
+            }
+            else
+            {
+                goto error;
+            }
+        }
+        else
+        {
+            goto error;
         }
     }
 
     fRet = TRUE;
 
-end:
+error:
     if (!fRet)
     {
          free(pData);
