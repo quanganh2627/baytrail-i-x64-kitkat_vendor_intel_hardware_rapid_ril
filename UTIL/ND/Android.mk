@@ -29,7 +29,8 @@ LOCAL_C_INCLUDES :=  \
     $(LOCAL_PATH)/../../CORE \
     $(LOCAL_PATH)/../../CORE/ND \
     $(LOCAL_PATH)/../../OEM/ND \
-    $(TARGET_OUT_HEADERS)/IFX-modem
+    $(TARGET_OUT_HEADERS)/IFX-modem \
+    $(TARGET_OUT_HEADERS)/libtcs \
 
 #build shared library
 LOCAL_PRELINK_MODULE := false
