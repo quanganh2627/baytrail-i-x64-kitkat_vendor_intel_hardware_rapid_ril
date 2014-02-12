@@ -5171,13 +5171,18 @@ RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableNetworks() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    /*
-     * Since CS/PS signalling is given higher priority, manual network search may
-     * get interrupted by CS/PS signalling from network. In order to get the response in
-     * an acceptable time for manual network search, data has to be disabled
-     * before starting the manual network search.
-     */
-    DeactivateAllDataCalls();
+    if (!m_cte.IsEPSRegistered())
+    {
+        /*
+         * Since CS/PS signalling is given higher priority, manual network search may
+         * get interrupted by CS/PS signalling from network. In order to get the response in
+         * an acceptable time for manual network search, data has to be disabled
+         * before starting the manual network search.
+         *
+         * Note: Deactivation of data calls done only if the device is not registered to LTE.
+         */
+        DeactivateAllDataCalls();
+    }
 
     if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+COPS=?\r"))
     {
