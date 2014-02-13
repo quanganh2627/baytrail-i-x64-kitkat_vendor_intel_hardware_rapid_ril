@@ -90,3 +90,5 @@ BOOL ExtractUpperBoundedUInt32(const char* szData, const UINT32 nUpperLimit, UIN
 
 BOOL ExtractLowerBoundedUInt32(const char* szData, const UINT32 nLowerLimit, UINT32& rnVal,
                                                                 const char*& rszRemainder);
+
+BOOL ExtractInt(const char* pszData, int& nVal, const char*& pszRemainder);

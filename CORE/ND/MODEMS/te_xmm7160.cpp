@@ -1578,15 +1578,15 @@ RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseXCESQ() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    UINT32 uiMode = 0;
-    UINT32 uiRxlev = 0; // received signal strength level
-    UINT32 uiBer = 0; // channel bit error rate
-    UINT32 uiRscp = 0; // Received signal code power
+    int mode = 0;
+    int rxlev = 0; // received signal strength level
+    int ber = 0; // channel bit error rate
+    int rscp = 0; // Received signal code power
     // ratio of the received energy per PN chip to the total received power spectral density
-    UINT32 uiEc = 0;
-    UINT32 uiRsrq = 0; // Reference signal received quality
-    UINT32 uiRsrp = 0; // Reference signal received power
-    UINT32 uiRssnr = 0; // Radio signal strength Noise Ratio value
+    int ec = 0;
+    int rsrq = 0; // Reference signal received quality
+    int rsrp = 0; // Reference signal received power
+    int rssnr = -1; // Radio signal strength Noise Ratio value
     RIL_SignalStrength_v6* pSigStrData = NULL;
 
     if (!bUnsolicited)
@@ -1600,7 +1600,7 @@ RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
             goto Error;
         }
 
-        if (!ExtractUInt32(rszPointer, uiMode, rszPointer))
+        if (!ExtractInt(rszPointer, mode, rszPointer))
         {
             RIL_LOG_CRITICAL("CTE_XMM7160::ParseUnsolicitedSignalStrength() - "
                     "Could not extract <mode>\r\n");
@@ -1609,26 +1609,26 @@ RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
 
         if (!SkipString(rszPointer, ",", rszPointer))
         {
-            RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract , before uiRxlev\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract , before <rxlev>\r\n");
             goto Error;
         }
     }
 
-    if (!ExtractUInt32(rszPointer, uiRxlev, rszPointer))
+    if (!ExtractInt(rszPointer, rxlev, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rxlev>\r\n");
         goto Error;
     }
 
     if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractUInt32(rszPointer, uiBer, rszPointer))
+            || !ExtractInt(rszPointer, ber, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <ber>\r\n");
         goto Error;
     }
 
     if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractUInt32(rszPointer, uiRscp, rszPointer))
+            || !ExtractInt(rszPointer, rscp, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rscp>\r\n");
         goto Error;
@@ -1636,28 +1636,28 @@ RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
 
     // Not used
     if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractUInt32(rszPointer, uiEc, rszPointer))
+            || !ExtractInt(rszPointer, ec, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <ecno>\r\n");
         goto Error;
     }
 
     if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractUInt32(rszPointer, uiRsrq, rszPointer))
+            || !ExtractInt(rszPointer, rsrq, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rsrq>\r\n");
         goto Error;
     }
 
     if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractUInt32(rszPointer, uiRsrp, rszPointer))
+            || !ExtractInt(rszPointer, rsrp, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rsrp>.\r\n");
         goto Error;
     }
 
     if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractUInt32(rszPointer, uiRssnr, rszPointer))
+            || !ExtractInt(rszPointer, rssnr, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - "
                 "Could not extract <rssnr>.\r\n");
@@ -1715,46 +1715,46 @@ RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
      * If the current service cell is not E-UTRA cell, then <rsrq> and <rsrp> are set
      * to value 255.
      */
-    if (99 != uiRxlev)
+    if (99 != rxlev)
     {
         /*
          * As <rxlev> reported as part of XCESQ is not in line with the <rssi> reported
          * as part of AT+CSQ and also what android expects, following conversion is done.
          */
-        if (uiRxlev <= 57)
+        if (rxlev <= 57)
         {
-            uiRxlev = floor(uiRxlev / 2) + 2;
+            rxlev = floor(rxlev / 2) + 2;
         }
         else
         {
-            uiRxlev = 31;
+            rxlev = 31;
         }
 
-        pSigStrData->GW_SignalStrength.signalStrength = uiRxlev;
-        pSigStrData->GW_SignalStrength.bitErrorRate   = uiBer;
+        pSigStrData->GW_SignalStrength.signalStrength = rxlev;
+        pSigStrData->GW_SignalStrength.bitErrorRate   = ber;
     }
-    else if (255 != uiRscp)
+    else if (255 != rscp)
     {
         /*
          * As <rscp> reported as part of XCESQ is not in line with the <rssi> reported
          * as part of AT+CSQ and also what android expects, following conversion is done.
          */
-        if (uiRscp <= 7)
+        if (rscp <= 7)
         {
-            uiRscp = 0;
+            rscp = 0;
         }
-        else if (uiRscp <= 67)
+        else if (rscp <= 67)
         {
-            uiRscp = floor((uiRscp - 6) / 2);
+            rscp = floor((rscp - 6) / 2);
         }
         else
         {
-            uiRscp = 31;
+            rscp = 31;
         }
 
-        pSigStrData->GW_SignalStrength.signalStrength = uiRscp;
+        pSigStrData->GW_SignalStrength.signalStrength = rscp;
     }
-    else if (255 != uiRsrq && 255 != uiRsrp)
+    else if (255 != rsrq && 255 != rsrp)
     {
         /*
          * for rsrp if modem returns 0 then rsrp = -140 dBm.
@@ -1773,9 +1773,9 @@ RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
          * You can refer to the latest CAT specification on XCESQI AT command
          * to understand where these numbers come from
          */
-        pSigStrData->LTE_SignalStrength.rsrp = 140 - uiRsrp;
-        pSigStrData->LTE_SignalStrength.rsrq = 20 - uiRsrq / 2;
-        pSigStrData->LTE_SignalStrength.rssnr = uiRssnr * 5;
+        pSigStrData->LTE_SignalStrength.rsrp = 140 - rsrp;
+        pSigStrData->LTE_SignalStrength.rsrq = 20 - rsrq / 2;
+        pSigStrData->LTE_SignalStrength.rssnr = rssnr * 5;
     }
     else
     {
