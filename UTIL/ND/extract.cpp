@@ -603,3 +603,21 @@ BOOL ExtractIntAndConvertToUInt32(const char* szData, UINT32& rnVal, const char*
 
     return fRet;
 }
+
+BOOL ExtractInt(const char* pszData, int& nVal, const char*& pszRemainder)
+{
+    BOOL bRet = FALSE;
+    char* pszEnd;
+    long int li;
+
+    errno = 0;
+    li = strtol(pszRemainder, &pszEnd, 10);
+    if (pszEnd != pszRemainder && errno != ERANGE)
+    {
+        nVal = (int)li;
+        bRet = TRUE;
+        pszRemainder = pszEnd;
+    }
+
+    return bRet;
+}
