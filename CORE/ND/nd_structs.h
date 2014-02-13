@@ -247,6 +247,21 @@ typedef struct
 } S_ND_SIM_SMS_STORAGE, *P_ND_SIM_SMS_STORAGE;
 
 const UINT32 MAX_TEMP_SIZE = 50;
+const UINT32 MAX_API_VERSION_SIZE = 3;
+
+//
+// Structs for reporting thermal sensor API version to Android
+//
+typedef struct
+{
+    char* pszVersion;
+}  S_ND_OEM_VERSION_PTR, *P_ND_OEM_VERSION_PTR;
+
+typedef struct
+{
+    S_ND_OEM_VERSION_PTR sResponsePointer;
+    char szVersion[MAX_API_VERSION_SIZE];
+} S_ND_OEM_VERSION, *P_ND_OEM_VERSION;
 
 //
 // Structs for reporting thermal sensor temperatures to Android

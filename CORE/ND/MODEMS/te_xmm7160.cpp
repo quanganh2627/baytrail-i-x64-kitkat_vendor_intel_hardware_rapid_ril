@@ -2194,3 +2194,237 @@ Error:
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseISimAuthenticate() - Exit\r\n");
     return res;
 }
+
+RIL_RESULT_CODE CTE_XMM7160::CreateGetThermalSensorValuesReq(REQUEST_DATA& /*reqData*/,
+        const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::CreateActivateThermalSensorInd(REQUEST_DATA& /*reqData*/,
+        const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::CreateGetThermalSensorValuesV2Req(REQUEST_DATA& reqData,
+        const char** ppszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateGetThermalSensorValuesV2Req() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int sensorId;
+    char szSensorId[MAX_SENSOR_ID_SIZE] = {0};
+    char szFormat[32];
+
+    if (uiDataSize < (2 * sizeof(char *)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateGetThermalSensorValuesV2Req() :"
+                " received_size < required_size\r\n");
+        goto Error;
+    }
+
+    if (NULL == ppszRequest || NULL == ppszRequest[0] || '\0' == ppszRequest[0][0])
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateGetThermalSensorValuesV2Req() -"
+                " ppszRequest was NULL\r\n");
+        goto Error;
+    }
+
+    snprintf(szFormat, sizeof(szFormat), "%%%ds", sizeof(szSensorId) - 1);
+
+    if (sscanf(ppszRequest[1], szFormat, szSensorId) == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateGetThermalSensorValuesV2Req() -"
+                " cannot extract sensor Id\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM7160::CreateGetThermalSensorValuesV2Req() - sensorId=[%s]\r\n",
+            szSensorId);
+
+    if (szSensorId[0] != '\0')
+    {
+        if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+                "AT+XTAMR=\"%s\"\r", szSensorId))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CreateGetThermalSensorValuesV2Req() -"
+                    " Can't construct szCmd1.\r\n");
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateGetThermalSensorValuesV2Req() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::CreateActivateThermalSensorV2Ind(REQUEST_DATA& reqData,
+        const char** ppszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateActivateThermalSensorV2Ind() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int alarmId = 0;
+    int tripPointNumber = 0;
+    int hysteresis = 0;
+    int nVar = 0;
+    char szSensorId[MAX_SENSOR_ID_SIZE] = {0};
+    char szFormat[32];
+
+    if (uiDataSize < (2 * sizeof(char *)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateActivateThermalSensorV2Ind() :"
+                " received data size is not enough to process the request\r\n");
+        goto Error;
+    }
+
+    snprintf(szFormat, sizeof(szFormat), "%%%ds %%d %%d %%d", sizeof(szSensorId) - 1);
+
+    nVar = sscanf(ppszRequest[1], szFormat, szSensorId, &alarmId, &tripPointNumber, &hysteresis);
+
+    RIL_LOG_INFO("CTE_XMM7160::CreateActivateThermalSensorV2Ind()"
+            " sensor Id=[%s], alarmId=[%d], TripPointNumber=[%d], Hysteresis=[%d]\r\n",
+            szSensorId, alarmId, tripPointNumber, hysteresis);
+
+    if (hysteresis < 0)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateActivateThermalSensorV2Ind() -"
+                " Invalid input\r\n");
+        goto Error;
+    }
+
+    /*
+     * For activating the thermal sensor threshold reached indication, threshold
+     * temperatures(trippointnumber,hystereris) needs to be sent as part of the set command.
+     *
+     * AT+XTSM = <temp_sensor_id>[,AlarmID>,[<TripPointNumber>,<Hysteresis>],[<sampling_period>]]
+     */
+    switch (nVar)
+    {
+        case 1:
+            if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+                    "AT+XTSM=\"%s\"\r", szSensorId))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CreateActivateThermalSensorV2Ind() -"
+                        " Can't construct szCmd1.\r\n");
+                goto Error;
+            }
+            break;
+        case 4:
+            if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+                    "AT+XTSM=\"%s\",%d,%d,%d\r", szSensorId, alarmId, tripPointNumber, hysteresis))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CreateActivateThermalSensorV2Ind() -"
+                       " Can't construct szCmd1.\r\n");
+                goto Error;
+            }
+            break;
+        default:
+            goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateActivateThermalSensorV2Ind() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseHookStrings(RESPONSE_DATA & rspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseHookStrings() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rspData.szResponse;
+    UINT32 uiCommand = (UINT32)rspData.pContextData;
+
+    if (NULL == pszRsp)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseHookStrings() - Response string is NULL!\r\n");
+        goto Error;
+    }
+
+    switch (uiCommand)
+    {
+        case RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR_V2:
+            res = ParseXTAMR(pszRsp, rspData);
+            break;
+
+        case RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD_V2:
+            res = ParseXTSM(pszRsp, rspData);
+            break;
+
+        default:
+            res = CTE_XMM6260::ParseHookStrings(rspData);
+            break;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseHookStrings() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseXTAMR(const char* pszRsp, RESPONSE_DATA& rspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseXTAMR() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    P_ND_THERMAL_SENSOR_VALUE pResponse = NULL;
+    int temp = 0;
+    char szSensorId[MAX_SENSOR_ID_SIZE] = {0};
+
+    // Parse prefix
+    if (!FindAndSkipString(pszRsp, "+XTAMR: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXTAMR() - Unable to parse \"+XTSM\" prefix.!\r\n");
+        goto Error;
+    }
+
+    // Parse <temp_sensor_id>
+    if (!ExtractUnquotedString(pszRsp, ",", szSensorId, sizeof(szSensorId), pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXTAMR() - Unable to parse <temp_sensor_id>!\r\n");
+        goto Error;
+    }
+
+    // Parse <temp>
+    if (!SkipString(pszRsp, ",", pszRsp)
+            || !ExtractInt(pszRsp, temp, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXTAMR() - Unable to parse <temp>!\r\n");
+        goto Error;
+    }
+
+    pResponse = (P_ND_THERMAL_SENSOR_VALUE) malloc(sizeof(S_ND_THERMAL_SENSOR_VALUE));
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXTAMR() - Could not allocate memory for response");
+        goto Error;
+    }
+    memset(pResponse, 0, sizeof(S_ND_THERMAL_SENSOR_VALUE));
+
+    PrintStringNullTerminate(pResponse->pszTemperature, sizeof(pResponse->pszTemperature),
+            "%d", temp);
+
+    pResponse->sResponsePointer.pszTemperature = pResponse->pszTemperature;
+
+    rspData.pData = (void*)pResponse;
+    rspData.uiDataSize = sizeof(S_ND_THERMAL_SENSOR_VALUE_PTR);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseXTAMR() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseXTSM(const char* pszRsp, RESPONSE_DATA& rspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseXTSM() - Enter/Exit\r\n");
+    return RRIL_RESULT_OK;
+}

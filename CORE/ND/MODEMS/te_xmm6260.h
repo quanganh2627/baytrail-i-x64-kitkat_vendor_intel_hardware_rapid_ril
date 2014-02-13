@@ -25,6 +25,7 @@ class CInitializer;
 class CTE_XMM6260 : public CTEBase
 {
 public:
+    enum { OEM_API_VERSION = 1 };
 
     CTE_XMM6260(CTE& cte);
     virtual ~CTE_XMM6260();
@@ -85,7 +86,7 @@ public:
                                                        void* pData,
                                                        UINT32 uiDataSize,
                                                        UINT32& uiRilChannel);
-     virtual RIL_RESULT_CODE ParseHookStrings(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseHookStrings(RESPONSE_DATA& rspData);
 
     // RIL_REQUEST_SET_BAND_MODE 65
     virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA& rReqData,
@@ -288,13 +289,18 @@ protected:
 
     virtual UINT32 GetXDNSMode(const char* pszPdpType);
 
+    virtual int GetOemVersion() { return OEM_API_VERSION; }
+    virtual RIL_RESULT_CODE GetOemVersion(REQUEST_DATA& reqData);
+    virtual RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateActivateThermalSensorInd(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateGetThermalSensorValuesV2Req(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateActivateThermalSensorV2Ind(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+
 private:
-    RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
-                                                    const char** pszRequest,
-                                                    const UINT32 uiDataSize);
-    RIL_RESULT_CODE CreateActivateThermalSensorInd(REQUEST_DATA& rReqData,
-                                                    const char** pszRequest,
-                                                    const UINT32 uiDataSize);
     RIL_RESULT_CODE CreateAutonomousFDReq(REQUEST_DATA& rReqData,
                                           const char** pszRequest,
                                           const UINT32 uiDataSize);

@@ -289,6 +289,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_SCREEN_STATE:
         case RIL_REQUEST_SET_INITIAL_ATTACH_APN:
         case RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE:
+        case RIL_REQUEST_OEM_HOOK_STRINGS:
             bAllowed = TRUE;
             break;
 
@@ -299,7 +300,6 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_QUERY_TTY_MODE:
         case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
         case RIL_REQUEST_GET_SIM_STATUS:
-        case RIL_REQUEST_OEM_HOOK_STRINGS:
             if (E_MMGR_EVENT_MODEM_UP == GetLastModemEvent())
             {
                 bAllowed = TRUE;
@@ -4608,7 +4608,19 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHookStrings(reqData,
             pData, datalen, uiRilChannel);
-    if (RRIL_RESULT_OK != res && RRIL_RESULT_OK_IMMEDIATE != res)
+    // When a hook strings implementation returns RRIL_RESULT_OK_IMMEDIATE,
+    // the return data has to be passed through reqData.pContextData2 and
+    // the len in reqData.cbContextData2
+    if (RRIL_RESULT_OK_IMMEDIATE == res)
+    {
+        RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, reqData.pContextData2,
+                reqData.cbContextData2);
+        free(reqData.pContextData2);
+        reqData.pContextData2 = NULL;
+        reqData.cbContextData2 = 0;
+        res = RRIL_RESULT_OK;
+    }
+    else if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestHookStrings() - Unable to create AT command data\r\n");
     }
@@ -4668,14 +4680,7 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
 
         RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
     }
-    // When a hook strings implementation returns RRIL_RESULT_OK_IMMEDIATE,
-    // the return data has to be passed through reqData.pContextData2 and
-    // the len in reqData.cbContextData2
-    if (res == RRIL_RESULT_OK_IMMEDIATE)
-    {
-        RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, reqData.pContextData2,
-                reqData.cbContextData2);
-    }
+
     RIL_LOG_VERBOSE("CTE::RequestHookStrings() - Exit\r\n");
     return res;
 }

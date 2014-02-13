@@ -24,7 +24,7 @@ class CTE_XMM7160 : public CTE_XMM6360
 {
 public:
 
-    enum { DEFAULT_PDN_CID = 1 };
+    enum { DEFAULT_PDN_CID = 1, OEM_API_VERSION = 2 };
 
     CTE_XMM7160(CTE& cte);
     virtual ~CTE_XMM7160();
@@ -76,6 +76,9 @@ public:
     virtual RIL_RESULT_CODE CoreDeactivateDataCall(REQUEST_DATA& rReqData,
                                                                 void* pData,
                                                                 UINT32 uiDataSize);
+
+    // RIL_REQUEST_OEM_HOOK_STRINGS 60
+    virtual RIL_RESULT_CODE ParseHookStrings(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
     virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
@@ -148,6 +151,20 @@ protected:
     virtual const char* GetScreenOffString();
 
     virtual void QuerySignalStrength();
+
+    virtual int GetOemVersion() { return OEM_API_VERSION; }
+    virtual RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateActivateThermalSensorInd(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateGetThermalSensorValuesV2Req(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateActivateThermalSensorV2Ind(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+
+private:
+    RIL_RESULT_CODE ParseXTAMR(const char* pszRsp, RESPONSE_DATA& rspData);
+    RIL_RESULT_CODE ParseXTSM(const char* pszRsp, RESPONSE_DATA& rspData);
 };
 
 #endif

@@ -2040,7 +2040,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
     }
 
     pszRequest = ((char**)pData);
-    if (pszRequest == NULL || '\0' == pszRequest[0])
+    if (NULL == pszRequest || NULL == pszRequest[0])
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - pszRequest was NULL\r\n");
         goto Error;
@@ -2073,6 +2073,15 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
 
     RIL_LOG_INFO("CTE_XMM6260::CoreHookStrings(), uiCommand: %u", uiCommand);
 
+    if (E_MMGR_EVENT_MODEM_UP != m_cte.GetLastModemEvent()
+            && RIL_OEM_HOOK_STRING_POWEROFF_MODEM != uiCommand
+            && RIL_OEM_HOOK_STRING_GET_OEM_VERSION != uiCommand)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings(), "
+                "unable to process command in modem not up\r\n");
+        goto Error;
+    }
+
     switch(uiCommand)
     {
         case RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR:
@@ -2083,6 +2092,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
         case RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD\r\n");
             res = CreateActivateThermalSensorInd(rReqData, (const char**) pszRequest, uiDataSize);
+            // Send this command on URC channel to get the notification in URC channel
+            uiRilChannel = RIL_CHANNEL_URC;
             break;
 
         case RIL_OEM_HOOK_STRING_GET_ATR:
@@ -2316,6 +2327,25 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                 goto Error;
             }
             res = RRIL_RESULT_OK;
+            break;
+
+        case RIL_OEM_HOOK_STRING_GET_OEM_VERSION:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_OEM_VERSION");
+            res = GetOemVersion(rReqData);
+            break;
+
+        case RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR_V2:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR_V2");
+            res = CreateGetThermalSensorValuesV2Req(rReqData, (const char**) pszRequest,
+                    uiDataSize);
+            break;
+
+        case RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD_V2:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD_V2\r\n");
+            res = CreateActivateThermalSensorV2Ind(rReqData, (const char**) pszRequest,
+                    uiDataSize);
+            // Send this command on URC channel to get the notification in URC channel
+            uiRilChannel = RIL_CHANNEL_URC;
             break;
 
         default:
@@ -4127,20 +4157,13 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM6260::CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,
-                                                             const char** pszRequest,
+RIL_RESULT_CODE CTE_XMM6260::CreateGetThermalSensorValuesReq(REQUEST_DATA& reqData,
+                                                             const char** ppszRequest,
                                                              const UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CreateGetThermalSensorValuesReq() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int sensorId;
-
-    if (pszRequest == NULL || '\0' == pszRequest[0])
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetThermalSensorValuesReq() -"
-                " pszRequest was NULL\r\n");
-        goto Error;
-    }
 
     if (uiDataSize < (2 * sizeof(char *)))
     {
@@ -4149,16 +4172,16 @@ RIL_RESULT_CODE CTE_XMM6260::CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqD
         goto Error;
     }
 
-    if (sscanf(pszRequest[1], "%d", &sensorId) == EOF)
+    if (sscanf(ppszRequest[1], "%d", &sensorId) == EOF)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetThermalSensorReq() -"
-                " cannot convert %s to int\r\n", pszRequest[1]);
+                " cannot convert %s to int\r\n", ppszRequest[1]);
         goto Error;
     }
 
     RIL_LOG_INFO("CTE_XMM6260::CreateGetThermalSensorValuesReq() - sensorId=[%d]\r\n", sensorId);
 
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
             "AT+XDRV=5,9,%d\r", sensorId))
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetThermalSensorValuesReq() -"
@@ -4172,8 +4195,8 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM6260::CreateActivateThermalSensorInd(REQUEST_DATA& rReqData,
-                                                        const char** pszRequest,
+RIL_RESULT_CODE CTE_XMM6260::CreateActivateThermalSensorInd(REQUEST_DATA& reqData,
+                                                        const char** ppszRequest,
                                                         const UINT32 uiDataSize)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CreateActivateThermalSensorInd() - Enter\r\n");
@@ -4185,13 +4208,6 @@ RIL_RESULT_CODE CTE_XMM6260::CreateActivateThermalSensorInd(REQUEST_DATA& rReqDa
     int noOfVariablesFilled = 0;
     const int MAX_NUM_OF_INPUT_DATA = 4;
 
-    if (pszRequest == NULL || '\0' == pszRequest[0])
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() -"
-                " pszRequest was NULL\r\n");
-        goto Error;
-    }
-
     if (uiDataSize < (2 * sizeof(char *)))
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() :"
@@ -4199,7 +4215,7 @@ RIL_RESULT_CODE CTE_XMM6260::CreateActivateThermalSensorInd(REQUEST_DATA& rReqDa
         goto Error;
     }
 
-    noOfVariablesFilled = sscanf(pszRequest[1], "%s %d %d %d", szActivate, &sensorId,
+    noOfVariablesFilled = sscanf(ppszRequest[1], "%s %d %d %d", szActivate, &sensorId,
             &minThersholdTemp, &maxThersholdTemp);
     if (noOfVariablesFilled < MAX_NUM_OF_INPUT_DATA || noOfVariablesFilled == EOF)
     {
@@ -4218,7 +4234,7 @@ RIL_RESULT_CODE CTE_XMM6260::CreateActivateThermalSensorInd(REQUEST_DATA& rReqDa
      */
     if (strcmp(szActivate, "true") == 0)
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+        if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
                 "AT+XDRV=5,14,%d,%d,%d\r",
                 sensorId, minThersholdTemp, maxThersholdTemp))
         {
@@ -4229,7 +4245,7 @@ RIL_RESULT_CODE CTE_XMM6260::CreateActivateThermalSensorInd(REQUEST_DATA& rReqDa
     }
     else
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+        if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
                 "AT+XDRV=5,14,%d\r", sensorId))
         {
             RIL_LOG_CRITICAL("CTE_XMM6260::CreateActivateThermalSensorInd() -"
@@ -7384,4 +7400,40 @@ UINT32 CTE_XMM6260::GetXDNSMode(const char* pszPdpType)
     }
 
     return uiMode;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::GetOemVersion(REQUEST_DATA& reqData)
+{
+    P_ND_OEM_VERSION pResponse = NULL;
+
+    pResponse = (P_ND_OEM_VERSION) malloc(sizeof(S_ND_OEM_VERSION));
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetOemVersion() - "
+                "Could not allocate memory for response");
+        return RRIL_RESULT_ERROR;
+    }
+
+    memset(pResponse, 0, sizeof(S_ND_OEM_VERSION));
+    PrintStringNullTerminate(pResponse->szVersion, sizeof(pResponse->szVersion),
+            "%d", GetOemVersion());
+
+    pResponse->sResponsePointer.pszVersion = pResponse->szVersion;
+
+    reqData.pContextData2  = (void*)pResponse;
+    reqData.cbContextData2 = sizeof(S_ND_OEM_VERSION_PTR);
+
+    return RRIL_RESULT_OK_IMMEDIATE;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::CreateGetThermalSensorValuesV2Req(REQUEST_DATA& /*reqData*/,
+        const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::CreateActivateThermalSensorV2Ind(REQUEST_DATA& /*reqData*/,
+        const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
 }

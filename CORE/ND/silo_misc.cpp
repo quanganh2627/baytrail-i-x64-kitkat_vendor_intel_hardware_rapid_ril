@@ -34,6 +34,7 @@ CSilo_MISC::CSilo_MISC(CChannel* pChannel, CSystemCapabilities* pSysCaps)
     static ATRSPTABLE pATRspTable[] =
     {
         { "+XDRVI: "   , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXDRVI  },
+        { "+XTS: ", (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXTS },
         { "+XMETRIC: "  , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXMETRIC },
         { "+XNRTCWSI: " , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXNRTCWSI },
         { ""           , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseNULL }
@@ -166,6 +167,93 @@ Error:
 
     RIL_LOG_VERBOSE("CSilo_MISC::ParseXDRVI() - Exit\r\n");
     return fRet;
+}
+
+//
+// Thermal sensor notification
+//
+BOOL CSilo_MISC::ParseXTS(CResponse* const pResponse, const char*& pszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_MISC::ParseXTS() - Enter\r\n");
+    BOOL bRet = FALSE;
+    sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2* pData = NULL;
+    UINT32 uiAlarmId;
+    UINT32 uiOnOff;
+    char szSensorId[MAX_SENSOR_ID_SIZE] = {0};
+    int temp;
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXTS() - pResponse is NULL.\r\n");
+        goto Error;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+
+    // Parse <temp_sensor_id>
+    if (!ExtractUnquotedString(pszPointer, ",", szSensorId, sizeof(szSensorId), pszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXTS() - Unable to parse <temp_sensor_id>!\r\n");
+        goto Error;
+    }
+
+    // Parse <AlarmId>
+    if (!SkipString(pszPointer, ",", pszPointer)
+            || !ExtractUInt32(pszPointer, uiAlarmId, pszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXTS() - Unable to parse <AlarmId>!\r\n");
+        goto Error;
+    }
+
+    // Parse <OnOff>
+    if (!SkipString(pszPointer, ",", pszPointer)
+            || !ExtractUInt32(pszPointer, uiOnOff, pszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXTS() - Unable to parse <onOff>!\r\n");
+        goto Error;
+    }
+
+    // Parse <Temp>
+    if (!SkipString(pszPointer, ",", pszPointer)
+            || !ExtractInt(pszPointer, temp, pszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXTS() - Unable to parse <Temp>!\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CSilo_MISC::ParseXTS - Sensor: %s, OnOff: %u, temp: %d\r\n",
+            szSensorId, uiOnOff, temp);
+
+    pData = (sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2*)malloc(
+            sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2));
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXTS() - Could not allocate memory for pData.\r\n");
+        goto Error;
+    }
+    memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2));
+
+    pData->command = RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2;
+    CopyStringNullTerminate(pData->szSensorName, szSensorId, sizeof(pData->szSensorName));
+    pData->sensorNameLength = strlen(pData->szSensorName);
+    pData->temperature = temp;
+    pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+
+    if (!pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2), FALSE))
+    {
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    if (!bRet)
+    {
+        free(pData);
+        pData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CSilo_MISC::ParseXTS() - Exit\r\n");
+    return bRet;
 }
 
 BOOL CSilo_MISC::ParseXMETRIC(CResponse* const pResponse, const char*& rszPointer)

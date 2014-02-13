@@ -55,9 +55,11 @@ const int RIL_OEM_HOOK_RAW_GAN_RIL = 0x00000001;
 //  Command ID = 0x000000A2
 //
 // "data" - Sensor Id
-//              “0” = RF temperature sensor.
-//              “1” = Baseband chip temperature sensor.
-//              “3” = PCB temperature sensor.
+//              "0" = RF temperature sensor.
+//              "1" = Baseband chip temperature sensor.
+//              "3" = PCB temperature sensor.
+//              "4" = PMU temperature sensor.
+//              "5" = PA temperature sensor.
 // "response" - String containg the temperatures separated by space
 //              "Filtered temperature Raw Temperature". Both temperature
 //              are formated as a 4 digits number: "2300" = 23.00 celcius
@@ -421,6 +423,57 @@ const int RIL_OEM_HOOK_STRING_GET_DVP_STATE = 0x000000B9;
 //  "response" = NULL
 //
 const int RIL_OEM_HOOK_STRING_SET_DVP_ENABLED = 0x000000BA;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_GET_OEM_VERSION
+//  Command ID = 0x000000BB
+//
+// "response" - String containg the OEM version.
+//
+const int RIL_OEM_HOOK_STRING_GET_OEM_VERSION = 0x000000BB;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR_V2
+//  Command ID = 0x000000BC
+//
+// "data" - Sensor Id
+//              "TRF" = RF temperature sensor.
+//              "TBB" = Baseband chip temperature sensor.
+//              "TPCB" = PCB temperature sensor.
+//              "TPMU" = PMU temperature sensor.
+//              "TPA" = PA temperature sensor.
+// "response" - String containg the temperature in MilliDegC
+//
+const int RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR_V2 = 0x000000BC;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD_V2
+//  Command ID = 0x000000BD
+//
+// "data" - String containing the following values separated by a space
+//          boolean activate
+//                  true - Activates the threshold notification
+//                  false - Deactivates the threshold notification
+//          String sensorId
+//                  "TRF" = RF temperature sensor.
+//                  "TBB" = Baseband chip temperature sensor.
+//                  "TPCB" = PCB temperature sensor.
+//                  "TPMU" = PMU temperature sensor.
+//                  "TPA" = PA temperature sensor.
+//          int tripPointNumber
+//                  Temperature is in MilliDegC.
+//          int hysteresis: Same as tripPointNumber.
+//
+//  "response" = NULL
+//
+const int RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD_V2 = 0x000000BD;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
@@ -766,6 +819,20 @@ typedef struct
 //  "data" is sOEM_HOOK_RAW_UNSOL_BEARER_ACT
 //
 const int RIL_OEM_HOOK_RAW_UNSOL_BEARER_ACT = 0x000000E2;
+
+///////////////////////////////////////////////////////////////////////////////
+
+const int MAX_SENSOR_ID_SIZE = 10;
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2
+{
+    int command; // Command ID
+    int sensorNameLength;
+    char szSensorName[MAX_SENSOR_ID_SIZE];
+    int temperature;
+} sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2;
+
+const int RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2 = 0x000000E3;
 
 /***********************************************************************/
 #pragma pack()

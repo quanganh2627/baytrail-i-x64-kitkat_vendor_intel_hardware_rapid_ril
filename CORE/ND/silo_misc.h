@@ -36,6 +36,8 @@ protected:
     //  Parse notification functions here.
     virtual BOOL ParseXDRVI(CResponse* const pResponse, const char*& rszPointer);
 
+    virtual BOOL ParseXTS(CResponse* const pResponse, const char*& pszPointer);
+
     virtual BOOL ParseXMETRIC(CResponse* const pResponse, const char*& rszPointer);
 
     virtual BOOL ParseXNRTCWSI(CResponse* const pResponse, const char*& rszPointer);
