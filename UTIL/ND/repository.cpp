@@ -223,8 +223,7 @@ BOOL CRepository::Init()
     }
 
     //Update repository path
-    snprintf(m_cRepoPath, MAX_MODEM_NAME_LEN, "%srepository%s.txt",
-            REPO_DIR, cfg->mdms.mdm_info[0].name);
+    snprintf(m_cRepoPath, MAX_MODEM_NAME_LEN, "%srepository%s.txt", REPO_DIR, cfg->mdm_info.name);
 
 Error:
     if (h)
