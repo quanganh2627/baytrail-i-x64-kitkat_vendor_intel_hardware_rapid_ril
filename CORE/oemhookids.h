@@ -578,11 +578,11 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED
 const int RIL_OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED = 0x000000DB;
 
 ///////////////////////////////////////////////////////////////////////////////
+#define MAX_TFT_PARAMS  5
+#define MAX_RANGE_SIZE  12
 
 typedef struct
 {
-    int command; //  Command ID
-    UINT32 uiPcid;
     UINT32 uiCid;
     UINT32 uiPacketFilterIdentifier;
     UINT32 uiEvaluationPrecedenceIndex;
@@ -591,13 +591,22 @@ typedef struct
     char szSourceIpv4SubnetMask[MAX_IPADDR_SIZE];
     char szSourceIpv6SubnetMask[MAX_IPADDR_SIZE];
     UINT32 uiProtocolNumber;
-    char szDestinationPortRange[MAX_IPADDR_SIZE];
-    char szSourcePortRange[MAX_IPADDR_SIZE];
+    char szDestinationPortRange[MAX_RANGE_SIZE];
+    char szSourcePortRange[MAX_RANGE_SIZE];
     UINT32 uiIpSecParamIndex;
-    char szTOS[MAX_IPADDR_SIZE];
+    char szTOS[MAX_RANGE_SIZE];
     UINT32 uiFlowLabel;
     UINT32 uiDirection;
     UINT32 uiNwPacketFilterIdentifier;
+} sTFT_PARAM;
+
+typedef struct
+{
+    int command; //  Command ID
+    char szIfName[MAX_INTERFACE_NAME_SIZE];
+    UINT32 uiPcid;
+    int count;
+    sTFT_PARAM params[MAX_TFT_PARAMS];
 } sOEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS;
 
 //
@@ -613,6 +622,7 @@ const int RIL_OEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS = 0x000000DC;
 typedef struct
 {
     int command; //  Command ID
+    char szIfName[MAX_INTERFACE_NAME_SIZE];
     UINT32 uiPcid;
     UINT32 uiCid;
     UINT32 uiQci;

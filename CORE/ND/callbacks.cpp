@@ -293,10 +293,13 @@ void triggerQueryBearerParams(void* param)
 
     delete callbackParams;
 
+    rReqDataTFT.pContextData = (void*) pChannelData;
+    rReqDataQOS.pContextData = (void*) pChannelData;
+
     RIL_LOG_VERBOSE("triggerQueryBearerParams - uiPCID: %u, uiCID: %u\r\n", uiPCID, uiCID);
 
-    if (PrintStringNullTerminate(rReqDataTFT.szCmd1, sizeof(rReqDataTFT.szCmd1), "AT+CGTFTRDP=%u\r",
-            uiCID))
+    if (PrintStringNullTerminate(rReqDataTFT.szCmd1, sizeof(rReqDataTFT.szCmd1),
+            "AT+CGTFTRDP=%u\r", uiCID))
     {
         CCommand* pCmdTFT = new CCommand(pChannelData->GetRilChannel(), NULL, REQ_ID_NONE,
                 rReqDataTFT, &CTE::ParseReadBearerTFTParams);
@@ -311,8 +314,8 @@ void triggerQueryBearerParams(void* param)
         }
     }
 
-    if (PrintStringNullTerminate(rReqDataQOS.szCmd1, sizeof(rReqDataQOS.szCmd1), "AT+CGEQOS=%u\r",
-            uiCID))
+    if (PrintStringNullTerminate(rReqDataQOS.szCmd1, sizeof(rReqDataQOS.szCmd1),
+            "AT+CGEQOSRDP=%u\r", uiCID))
     {
         CCommand* pCmdQOS = new CCommand(pChannelData->GetRilChannel(), NULL, REQ_ID_NONE,
                 rReqDataQOS, &CTE::ParseReadBearerQOSParams);

@@ -198,14 +198,18 @@ BOOL ExtractLocalAddressAndSubnetMask(char* pAddressAndSubnetMask,
     if ((NULL == pIPv4SubnetMask) || (0 == uiIPv4SubnetMaskSize)
             || (NULL == pIPv6SubnetMask) || (0 == uiIPv6SubnetMaskSize))
     {
-        if (!ConvertIPAddressToAndroidReadable(szSubnetMask,
-                pIPv4SubnetMask, uiIPv4SubnetMaskSize, pIPv6SubnetMask, uiIPv6SubnetMaskSize))
-        {
-            RIL_LOG_CRITICAL("ExtractLocalAddressAndSubnetMask() - "
-                    "subnet mask conversion failed\r\n");
+        RIL_LOG_CRITICAL("ExtractLocalAddressAndSubnetMask() - "
+                "subnet mask not provided\r\n");
 
-            goto Error;
-        }
+        goto Error;
+    }
+
+    if (!ConvertIPAddressToAndroidReadable(szSubnetMask,
+            pIPv4SubnetMask, uiIPv4SubnetMaskSize, pIPv6SubnetMask, uiIPv6SubnetMaskSize))
+    {
+        RIL_LOG_CRITICAL("ExtractLocalAddressAndSubnetMask() - "
+                "subnet mask conversion failed\r\n");
+        goto Error;
     }
 
     bRet = TRUE;
@@ -277,10 +281,12 @@ BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
                 goto Error;
             }
 
-            if (0 == uiIP[0] && 0 == uiIP[0] && 0 == uiIP[0] && 0 == uiIP[0])
+            if (255 < uiIP[0] || 255 < uiIP[1] || 255 < uiIP[2] || 255 < uiIP[3])
             {
                 RIL_LOG_INFO("ConvertIPAddressToAndroidReadable() -"
-                        "Invalid address - ignore\r\n");
+                        "Wrong IPv4 Address : %u.%u.%u.%u\r\n",
+                        uiIP[0], uiIP[1], uiIP[2], uiIP[3]);
+                goto Error;
             }
             else
             {
