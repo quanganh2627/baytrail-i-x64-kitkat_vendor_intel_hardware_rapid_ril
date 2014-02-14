@@ -257,6 +257,10 @@ BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
             break;
         }
 
+        case RIL_REQUEST_SCREEN_STATE:
+            bAllowed = TRUE;
+            break;
+
         default:
             bAllowed = FALSE;
     }
