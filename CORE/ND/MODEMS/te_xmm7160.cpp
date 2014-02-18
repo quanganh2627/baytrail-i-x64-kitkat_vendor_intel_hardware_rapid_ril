@@ -156,6 +156,176 @@ const char* CTE_XMM7160::GetSignalStrengthReportingString()
 }
 
 //
+// RIL_REQUEST_SETUP_DATA_CALL 27
+//
+RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
+       void* pData, UINT32 uiDataSize, UINT32& uiCID)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetupDataCall() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    char szIPV4V6[] = "IPV4V6";
+    int nPapChap = 0; // no auth
+    PdpData stPdpData;
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+    CChannel_Data* pChannelData = NULL;
+    int dataProfile = -1;
+    int nEmergencyFlag = 0 ; // 1: emergency pdn
+
+    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - uiDataSize=[%u]\r\n", uiDataSize);
+
+    memset(&stPdpData, 0, sizeof(PdpData));
+
+    // extract data
+    stPdpData.szRadioTechnology = ((char**)pData)[0];  // not used
+    stPdpData.szRILDataProfile  = ((char**)pData)[1];
+    stPdpData.szApn             = ((char**)pData)[2];
+    stPdpData.szUserName        = ((char**)pData)[3];
+    stPdpData.szPassword        = ((char**)pData)[4];
+    stPdpData.szPAPCHAP         = ((char**)pData)[5];
+
+    pDataCallContextData =
+            (S_SETUP_DATA_CALL_CONTEXT_DATA*)malloc(sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA));
+    if (NULL == pDataCallContextData)
+    {
+        goto Error;
+    }
+
+    dataProfile = atoi(stPdpData.szRILDataProfile);
+    pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiCID, dataProfile);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() - "
+                "****** No free data channels available ******\r\n");
+        goto Error;
+    }
+
+    pDataCallContextData->uiCID = uiCID;
+
+    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szRadioTechnology=[%s]\r\n",
+            stPdpData.szRadioTechnology);
+    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szRILDataProfile=[%s]\r\n",
+            stPdpData.szRILDataProfile);
+    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szApn=[%s]\r\n", stPdpData.szApn);
+    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szUserName=[%s]\r\n",
+            stPdpData.szUserName);
+    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n",
+            stPdpData.szPassword);
+    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n",
+            stPdpData.szPAPCHAP);
+
+    // if user name is empty, always use no authentication
+    if (stPdpData.szUserName == NULL || strlen(stPdpData.szUserName) == 0)
+    {
+        nPapChap = 0;    // No authentication
+    }
+    else
+    {
+        // PAP/CHAP auth type 3 (PAP or CHAP) is not supported. In this case if a
+        // a username is defined we will use PAP for authentication.
+        // Note: due to an issue in the Android/Fw (missing check of the username
+        // length), if the authentication is not defined, it's the value 3 (PAP or
+        // CHAP) which is sent to RRIL by default.
+        nPapChap = atoi(stPdpData.szPAPCHAP);
+        if (nPapChap == 3)
+        {
+            nPapChap = 1;    // PAP authentication
+
+            RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - New PAP/CHAP=[%d]\r\n", nPapChap);
+        }
+    }
+
+    if (RIL_VERSION >= 4 && (uiDataSize >= (7 * sizeof(char*))))
+    {
+        stPdpData.szPDPType = ((char**)pData)[6]; // new in Android 2.3.4.
+        RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szPDPType=[%s]\r\n",
+                stPdpData.szPDPType);
+    }
+
+    if (dataProfile == RIL_DATA_PROFILE_EMERGENCY)
+    {
+        nEmergencyFlag = 1;
+    }
+
+    //
+    //  IP type is passed in dynamically.
+    if (NULL == stPdpData.szPDPType)
+    {
+        //  hard-code "IPV4V6" (this is the default)
+        stPdpData.szPDPType = szIPV4V6;
+    }
+
+    //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
+    //  If not recognized, just use IPV4V6 as default.
+    if (0 == strcmp(stPdpData.szPDPType, "IP"))
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,1\r",
+                uiCID, stPdpData.szPDPType,
+                stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap, stPdpData.szUserName,
+                stPdpData.szPassword, uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
+                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            goto Error;
+        }
+    }
+    else if (0 == strcmp(stPdpData.szPDPType, "IPV6"))
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,2\r",
+                uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap,
+                stPdpData.szUserName, stPdpData.szPassword, uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
+                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            goto Error;
+        }
+    }
+    else if (0 == strcmp(stPdpData.szPDPType, "IPV4V6"))
+    {
+        //  XDNS=3 is not supported by the modem so two commands +XDNS=1
+        //  and +XDNS=2 should be sent.
+        if (!PrintStringNullTerminate(rReqData.szCmd1,
+                sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"IPV4V6\",\"%s\",,0,0,,%d;+XGAUTH=%u,%d,\"%s\","
+                "\"%s\";+XDNS=%d,1;+XDNS=%d,2\r", uiCID,
+                stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap, stPdpData.szUserName,
+                stPdpData.szPassword, uiCID, uiCID))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetupDataCall() -"
+                    " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+            goto Error;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_INF_7160::CoreSetupDataCall() - Wrong PDP type\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pDataCallContextData);
+    }
+    else
+    {
+        pChannelData->SetDataState(E_DATA_STATE_INITING);
+
+        rReqData.pContextData = (void*)pDataCallContextData;
+        rReqData.cbContextData = sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA);
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetupDataCall() - Exit\r\n");
+    return res;
+}
+
+//
 // RIL_REQUEST_SIGNAL_STRENGTH 19
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreSignalStrength(REQUEST_DATA& rReqData,

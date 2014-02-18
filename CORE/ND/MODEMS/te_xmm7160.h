@@ -52,6 +52,10 @@ public:
     virtual RIL_RESULT_CODE CreateSetDefaultApnReq(REQUEST_DATA& rReqData,
             const char** pszRequest, const int nNumStrings);
 
+    // RIL_REQUEST_SETUP_DATA_CALL 27
+    virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
+            void* pData, UINT32 uiDataSize, UINT32& uiCID);
+
     // RIL_REQUEST_SET_BAND_MODE 65
     virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA& rReqData,
                                                        void* pData,
