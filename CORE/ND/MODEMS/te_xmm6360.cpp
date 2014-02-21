@@ -241,14 +241,39 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetupDataCall(REQUEST_DATA& rReqData,
     //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
     //  If not recognized, just use IPV4V6 as default.
     uiDnsMode = GetXDNSMode(stPdpData.szPDPType);
-    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
-            uiCID, stPdpData.szPDPType, stPdpData.szApn, uiCID, nPapChap,
-            stPdpData.szUserName, stPdpData.szPassword, uiCID, uiDnsMode))
+    switch (uiDnsMode)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
-                " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
-        goto Error;
+        case 1:
+        case 2:
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                    "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
+                    uiCID, stPdpData.szPDPType, stPdpData.szApn, uiCID, nPapChap,
+                    stPdpData.szUserName, stPdpData.szPassword, uiCID, uiDnsMode))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
+                        " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+                goto Error;
+            }
+        break;
+
+        case 3:
+            // XDNS=3 is not supported by the modem so two commands +XDNS=1 and +XDNS=2
+            // should be sent.
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                    "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0;+XGAUTH=%u,%d,\"%s\","
+                    "\"%s\";+XDNS=%d,1;+XDNS=%d,2\r", uiCID, stPdpData.szPDPType, stPdpData.szApn,
+                    uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword, uiCID, uiCID))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
+                        " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+                goto Error;
+            }
+        break;
+
+        default:
+            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
+                    " cannot create CGDCONT command, Wrong PDP type\r\n");
+            goto Error;
     }
 
     res = RRIL_RESULT_OK;
