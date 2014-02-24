@@ -274,7 +274,8 @@ BOOL CCatProfile::ExtractPduInfo(const char* pszPdu, const UINT32 uiLength,
             if (indexFound > -1)
             {
                 UINT8 byteId = s_proactiveUICCTable[indexFound].uiByteId;
-                bFound = (m_achTeProfile[byteId] & s_proactiveUICCTable[indexFound].uiBitMask) != 0;
+                bFound = (m_achTeProfile[byteId - 1]
+                        & s_proactiveUICCTable[indexFound].uiBitMask) != 0;
                 pPduInfo->isProactiveCmd = bFound;
                 bRet = TRUE;
                 RIL_LOG_INFO("CCatProfile::ExtractPduInfo() -"
