@@ -7167,7 +7167,7 @@ RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
         if (RRIL_MAX_CELL_ID_COUNT == uiIndex)
         {
             //  We're full.
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+            RIL_LOG_CRITICAL("CTEBase::ParseGetNeighboringCellIDs() -"
                     " Exceeded max count = %d\r\n", RRIL_MAX_CELL_ID_COUNT);
             break;
         }
@@ -7175,12 +7175,12 @@ RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
         // Get <mode>
         if (!ExtractUInt32(pszRsp, uiMode, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetNeighboringCellIDs() -"
+            RIL_LOG_CRITICAL("CTEBase::ParseGetNeighboringCellIDs() -"
                     " cannot extract <mode>\r\n");
             goto Error;
         }
 
-        RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - found mode=%d\r\n",
+        RIL_LOG_INFO("CTEBase::ParseGetNeighboringCellIDs() - found mode=%d\r\n",
                 uiMode);
         RIL_RESULT_CODE result = RRIL_RESULT_ERROR;
         switch (uiMode)
@@ -7198,7 +7198,7 @@ RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
                     // Connect the pointer
                     pCellData->pnCellPointers[uiIndex] = &(pCellData->pnCellData[uiIndex]);
                     uiIndex++;
-                    RIL_LOG_INFO("CTE_XMM6260::ParseGetNeighboringCellIDs() - Index=%d\r\n",
+                    RIL_LOG_INFO("CTEBase::ParseGetNeighboringCellIDs() - Index=%d\r\n",
                             uiIndex);
                 }
             break;
@@ -7229,7 +7229,7 @@ Error:
         pCellData = NULL;
     }
 
-    RIL_LOG_VERBOSE("CTE_XMM6260::ParseGetNeighboringCellIDs() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseGetNeighboringCellIDs() - Exit\r\n");
     return res;
 }
 
@@ -10713,6 +10713,155 @@ void CTEBase::CleanupAllDataConnections()
 
     RIL_LOG_VERBOSE("CTEBase::CleanupAllDataConnections() - Exit\r\n");
 }
+
+void CTEBase::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
+{
+    RIL_LOG_VERBOSE("CTEBase::HandleSetupDataCallSuccess() - Enter\r\n");
+
+    RIL_Data_Call_Response_v6 dataCallResp;
+    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+    char szInterfaceName[MAX_INTERFACE_NAME_SIZE] = {'\0'};
+    char szIPAddress[MAX_BUFFER_SIZE] = {'\0'};
+    char szDNS[MAX_BUFFER_SIZE] = {'\0'};
+    char szGateway[MAX_IPADDR_SIZE] = {'\0'};
+    S_DATA_CALL_INFO sDataCallInfo;
+    CChannel_Data* pChannelData = NULL;
+
+    memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
+    dataCallResp.status = PDP_FAIL_ERROR_UNSPECIFIED;
+    dataCallResp.suggestedRetryTime = -1;
+
+    m_cte.SetupDataCallOngoing(FALSE);
+
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::HandleSetupDataCallSuccess() -"
+                " No Data Channel for CID %u.\r\n", uiCID);
+        goto Error;
+    }
+
+    pChannelData->GetDataCallInfo(sDataCallInfo);
+
+    if (0 == strcmp(sDataCallInfo.szPdpType, PDPTYPE_IP))
+    {
+        PrintStringNullTerminate(szIPAddress, MAX_BUFFER_SIZE, "%s",
+                sDataCallInfo.szIpAddr1);
+
+        PrintStringNullTerminate(szDNS, MAX_BUFFER_SIZE, "%s %s",
+                sDataCallInfo.szDNS1, sDataCallInfo.szDNS2);
+    }
+    else if (0 == strcmp(sDataCallInfo.szPdpType, PDPTYPE_IPV6))
+    {
+        PrintStringNullTerminate(szIPAddress, MAX_BUFFER_SIZE, "%s",
+                sDataCallInfo.szIpAddr2);
+
+        PrintStringNullTerminate(szDNS, MAX_BUFFER_SIZE, "%s %s",
+                sDataCallInfo.szIpV6DNS1, sDataCallInfo.szIpV6DNS2);
+    }
+    else if (0 == strcmp(sDataCallInfo.szPdpType, PDPTYPE_IPV4V6))
+    {
+        PrintStringNullTerminate(szIPAddress, MAX_BUFFER_SIZE, "%s %s",
+                sDataCallInfo.szIpAddr1, sDataCallInfo.szIpAddr2);
+
+        PrintStringNullTerminate(szDNS, MAX_BUFFER_SIZE, "%s %s %s %s",
+                sDataCallInfo.szDNS1, sDataCallInfo.szDNS2,
+                sDataCallInfo.szIpV6DNS1, sDataCallInfo.szIpV6DNS2);
+    }
+
+
+    CopyStringNullTerminate(szGateway, sDataCallInfo.szGateways, MAX_IPADDR_SIZE);
+
+    CopyStringNullTerminate(szPdpType, sDataCallInfo.szPdpType, MAX_PDP_TYPE_SIZE);
+
+    CopyStringNullTerminate(szInterfaceName, sDataCallInfo.szInterfaceName,
+            MAX_INTERFACE_NAME_SIZE);
+
+    dataCallResp.status = sDataCallInfo.failCause;
+    dataCallResp.suggestedRetryTime = -1;
+    dataCallResp.cid = sDataCallInfo.uiCID;
+    dataCallResp.active = 2;
+    dataCallResp.type = szPdpType;
+    dataCallResp.addresses = szIPAddress;
+    dataCallResp.dnses = szDNS;
+    dataCallResp.gateways = szGateway;
+    dataCallResp.ifname = szInterfaceName;
+
+    if (CRilLog::IsFullLogBuild())
+    {
+        RIL_LOG_INFO("status=%d suggRetryTime=%d cid=%d active=%d type=\"%s\" ifname=\"%s\""
+                " addresses=\"%s\" dnses=\"%s\" gateways=\"%s\"\r\n",
+                dataCallResp.status, dataCallResp.suggestedRetryTime,
+                dataCallResp.cid, dataCallResp.active,
+                dataCallResp.type, dataCallResp.ifname,
+                dataCallResp.addresses, dataCallResp.dnses,
+                dataCallResp.gateways);
+    }
+
+Error:
+    if (NULL != pRilToken)
+    {
+        RIL_onRequestComplete(pRilToken, RIL_E_SUCCESS, &dataCallResp,
+                sizeof(RIL_Data_Call_Response_v6));
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::HandleSetupDataCallSuccess() - Exit\r\n");
+}
+
+void CTEBase::HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken, UINT32 uiResultCode)
+{
+    RIL_LOG_VERBOSE("CTEBase::HandleSetupDataCallFailure() - Enter\r\n");
+
+    int state;
+    int failCause = PDP_FAIL_ERROR_UNSPECIFIED;
+
+    m_cte.SetupDataCallOngoing(FALSE);
+
+    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_INFO("CTEBase::HandleSetupDataCallFailure() -"
+                " No data channel for CID: %u\r\n", uiCID);
+        goto Complete;
+    }
+
+    state = pChannelData->GetDataState();
+    failCause = pChannelData->GetDataFailCause();
+    if (PDP_FAIL_NONE == failCause)
+    {
+        failCause = PDP_FAIL_ERROR_UNSPECIFIED;
+    }
+
+    RIL_LOG_INFO("CTEBase::HandleSetupDataCallFailure() - state: %d\r\n", state);
+
+    switch (state)
+    {
+        case E_DATA_STATE_ACTIVE:
+            /*
+             * @TODO: Delay the completion of ril request till the
+             * data call is deactivated successfully?
+             */
+            RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)uiCID, 0, 0);
+            break;
+        default:
+            DataConfigDown(uiCID);
+            break;
+    }
+
+Complete:
+    if (NULL != pRilToken)
+    {
+        RIL_Data_Call_Response_v6 dataCallResp;
+        memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
+        dataCallResp.status = failCause;
+        dataCallResp.suggestedRetryTime = -1;
+        RIL_onRequestComplete(pRilToken, RIL_E_SUCCESS, &dataCallResp,
+                sizeof(RIL_Data_Call_Response_v6));
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::HandleSetupDataCallFailure() - Exit\r\n");
+}
+
 
 //
 //  Call this function whenever data is activated

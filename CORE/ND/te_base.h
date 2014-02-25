@@ -853,6 +853,9 @@ public:
     virtual void SetPin2State(RIL_PinState ePin2State) { m_ePin2State = ePin2State; };
     virtual RIL_PinState GetPin2State() { return m_ePin2State; };
 
+    virtual void HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken);
+    virtual void HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken, UINT32 uiResultCode);
+
     // Functions for configuring data connections
     virtual BOOL DataConfigUp(char* pszNetworkInterfaceName, CChannel_Data* pChannelData,
                                                 PDP_TYPE eDataConnectionType);
@@ -906,6 +909,10 @@ public:
      */
     virtual RIL_RESULT_CODE ParseDeactivateAllDataCalls(RESPONSE_DATA& rRspData);
 
+    /*
+     * This function should be called only for setting up the default PDN which is
+     * already active.
+     */
     virtual RIL_RESULT_CODE HandleSetupDefaultPDN(RIL_Token rilToken,
             CChannel_Data* pChannelData);
     virtual RIL_RESULT_CODE ParseSetupDefaultPDN(RESPONSE_DATA& rRspData);
