@@ -435,6 +435,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
     const LONG REASON_RADIO_OFF = 1;
     const LONG REASON_PDP_RESET = 2;
     LONG reason = 0;
+    CChannel_Data* pChannelData = NULL;
 
     if (uiDataSize < (1 * sizeof(char *)))
     {
@@ -467,6 +468,14 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
         // Error
         RIL_LOG_CRITICAL("CTE_XMM7160::CoreDeactivateDataCall() -  cannot convert %s to int\r\n",
                 pszCid);
+        goto Error;
+    }
+
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_VERBOSE("CTE_XMM7160::CoreDeactivateDataCall() -  "
+                "no channel found for CID:%u\r\n", uiCID);
         goto Error;
     }
 
@@ -1032,7 +1041,6 @@ RIL_RESULT_CODE CTE_XMM7160::HandleSetupDefaultPDN(RIL_Token rilToken,
     REQUEST_DATA reqData;
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
     CCommand* pCmd = NULL;
-    int dataState = pChannelData->GetDataState();
 
     pDataCallContextData =
             (S_SETUP_DATA_CALL_CONTEXT_DATA*)malloc(sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA));
@@ -1079,12 +1087,15 @@ RIL_RESULT_CODE CTE_XMM7160::HandleSetupDefaultPDN(RIL_Token rilToken,
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    if (E_DATA_STATE_ACTIVATING == dataState)
+    if (pChannelData->IsRoutingEnabled())
     {
         /*
-         * ACTIVATING means that context is up but the routing is not enabled and also channel
-         * is not configured for Data.
+         * Default PDN is already active and also routing is enabled. Don't send any command to
+         * modem. Just bring up the interface.
          */
+    }
+    else
+    {
         if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
                 "AT+XDATACHANNEL=1,1,\"/mux/%d\",\"/%s/%d\",0,%d;+CGDATA=\"M-RAW_IP\",%d\r",
                 muxControlChannel, szModemResourceName, hsiChannel,
@@ -1094,10 +1105,6 @@ RIL_RESULT_CODE CTE_XMM7160::HandleSetupDefaultPDN(RIL_Token rilToken,
                     "command\r\n");
             goto Error;
         }
-    }
-    else if (E_DATA_STATE_ACTIVE == dataState)
-    {
-        // Dont send any command to modem. Default PDN is already active
     }
 
     pCmd = new CCommand(uiRilChannel, rilToken, REQ_ID_NONE, reqData,
@@ -1183,6 +1190,7 @@ void CTE_XMM7160::PostSetupDefaultPDN(POST_CMD_HANDLER_DATA& rData)
     RIL_LOG_VERBOSE("CTE_XMM7160::PostSetupDefaultPDN() set channel data\r\n");
 
     pChannelData->SetDataState(E_DATA_STATE_ACTIVE);
+    pChannelData->SetRoutingEnabled(TRUE);
 
     if (!SetupInterface(uiCID))
     {
@@ -1202,6 +1210,7 @@ Error:
     }
     else
     {
+        pChannelData->IncrementRefCount();
         HandleSetupDataCallSuccess(uiCID, rData.pRilToken);
     }
 }
@@ -1228,8 +1237,23 @@ BOOL CTE_XMM7160::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
         return FALSE;
     }
 
+    /*
+     * Bring down the interface and bring up the interface again if the data down is for
+     * default PDN(EPS registered) and not force cleanup.
+     *
+     * This is done to make sure packets are flushed out if the data is deactivated
+     * in LTE.
+     */
     BOOL bStopInterface = !m_cte.IsEPSRegistered() || uiCID != DEFAULT_PDN_CID || bForceCleanup;
-    pChannelData->RemoveInterface(!bStopInterface);
+    CMutex* pDataChannelRefCountMutex = m_cte.GetDataChannelRefCountMutex();
+    CMutex::Lock(pDataChannelRefCountMutex);
+    pChannelData->DecrementRefCount();
+    if (pChannelData->GetRefCount() == 0)
+    {
+        pChannelData->RemoveInterface(!bStopInterface);
+    }
+    CMutex::Unlock(pDataChannelRefCountMutex);
+
     if (bStopInterface)
     {
         pChannelData->ResetDataCallInfo();

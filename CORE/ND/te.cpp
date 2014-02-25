@@ -119,6 +119,8 @@ CTE::CTE(UINT32 modemType) :
     m_pRadioStateChangedEvent = new CEvent(NULL, TRUE);
 
     m_pDataCleanupStatusLock = new CMutex();
+
+    m_pDataChannelRefCountMutex = new CMutex();
 }
 
 CTE::~CTE()
@@ -147,6 +149,13 @@ CTE::~CTE()
         CMutex::Unlock(m_pDataCleanupStatusLock);
         delete m_pDataCleanupStatusLock;
         m_pDataCleanupStatusLock = NULL;
+    }
+
+    if (m_pDataChannelRefCountMutex)
+    {
+        CMutex::Unlock(m_pDataChannelRefCountMutex);
+        delete m_pDataChannelRefCountMutex;
+        m_pDataChannelRefCountMutex = NULL;
     }
 }
 
@@ -2755,7 +2764,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         return RRIL_RESULT_OK;
     }
 
-    if (IsEPSRegistered() && RIL_DATA_PROFILE_DEFAULT == dataProfile)
+    if (IsEPSRegistered())
     {
         pChannelData = CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
 
@@ -2766,11 +2775,26 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
 
             switch (dataState)
             {
-                case E_DATA_STATE_ACTIVATING:
                 case E_DATA_STATE_ACTIVE:
                     if (pChannelData->IsApnEqual(((char**)pData)[2]))
                     {
-                        res = m_pTEBaseInstance->HandleSetupDefaultPDN(rilToken, pChannelData);
+                        CMutex::Lock(m_pDataChannelRefCountMutex);
+                        if (pChannelData->IsRoutingEnabled() && pChannelData->GetRefCount() > 0)
+                        {
+                            pChannelData->IncrementRefCount();
+                            CMutex::Unlock(m_pDataChannelRefCountMutex);
+
+                            // Complete the setup data call request
+                            m_pTEBaseInstance->HandleSetupDataCallSuccess(m_uiDefaultPDNCid,
+                                    rilToken);
+                            res = RRIL_RESULT_OK;
+                        }
+                        else
+                        {
+                            CMutex::Unlock(m_pDataChannelRefCountMutex);
+                            res = m_pTEBaseInstance->HandleSetupDefaultPDN(rilToken, pChannelData);
+                        }
+
                         if (RRIL_RESULT_OK == res)
                         {
                             /*
@@ -2781,12 +2805,14 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
                         }
                     }
                     break;
+
                 case E_DATA_STATE_INITING:
                     /*
                      * TODO: Query default PDN context parameters. Currently,
                      * default PDN context parameters reading is done on CGEV: ME PDN ACT.
                      */
                     break;
+
                 default:
                     break;
             }
@@ -7849,8 +7875,7 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
             if (NULL != pChannelData)
             {
                 int dataState = pChannelData->GetDataState();
-                if (E_DATA_STATE_ACTIVATING == dataState
-                        || E_DATA_STATE_ACTIVE == dataState)
+                if (E_DATA_STATE_ACTIVE == dataState)
                 {
                     RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - Default PDN ready\r\n");
                     strncpy(psRegStatus->szStat, m_sEPSStatus.szStat, sizeof(psRegStatus->szStat));
@@ -9844,7 +9869,8 @@ void CTE::PostReadDefaultPDNContextParams(POST_CMD_HANDLER_DATA& rData)
                 CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
         if (NULL != pChannelData)
         {
-            pChannelData->SetDataState(E_DATA_STATE_ACTIVATING);
+            pChannelData->SetDataState(E_DATA_STATE_ACTIVE);
+            pChannelData->SetRoutingEnabled(FALSE);
         }
 
         /*

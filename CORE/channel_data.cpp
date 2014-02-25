@@ -63,7 +63,9 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
     m_dataFailCause(PDP_FAIL_NONE),
     m_uiContextID(0),
     m_dataState(E_DATA_STATE_IDLE),
-    m_ipcDataChannelMin(RIL_DEFAULT_IPC_CHANNEL_MIN)
+    m_ipcDataChannelMin(RIL_DEFAULT_IPC_CHANNEL_MIN),
+    m_isRoutingEnabled(FALSE),
+    m_refCount(0)
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
 
@@ -539,6 +541,8 @@ void CChannel_Data::ResetDataCallInfo()
 
     SetContextID(0);
 
+    m_refCount = 0;
+    m_isRoutingEnabled = FALSE;
     m_szApn[0] = '\0';
     m_szPdpType[0] = '\0';
     m_szInterfaceName[0] = '\0';

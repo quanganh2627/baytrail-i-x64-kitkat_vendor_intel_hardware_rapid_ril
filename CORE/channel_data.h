@@ -119,6 +119,17 @@ public:
 
     int GetMuxControlChannel();
 
+    void SetRoutingEnabled(BOOL isEnabled) { m_isRoutingEnabled = isEnabled; }
+    BOOL IsRoutingEnabled() { return m_isRoutingEnabled; }
+
+    void IncrementRefCount() { m_refCount++; }
+    void DecrementRefCount()
+    {
+        m_refCount = (m_refCount > 0) ? m_refCount - 1 : 0;
+    }
+
+    int GetRefCount() { return m_refCount; }
+
 private:
     int m_dataFailCause;
     UINT32 m_uiContextID;
@@ -159,6 +170,8 @@ private:
 
     char m_szModemResourceName[MAX_MDM_RESOURCE_NAME_SIZE];
     int m_ipcDataChannelMin;
+    BOOL m_isRoutingEnabled;
+    int m_refCount;
 
 protected:
     BOOL FinishInit();

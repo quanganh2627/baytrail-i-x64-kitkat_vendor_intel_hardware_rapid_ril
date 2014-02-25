@@ -1168,6 +1168,8 @@ public:
     RIL_RESULT_CODE ParseDeregister(RESPONSE_DATA& rRspData);
     void PostDeregisterCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
+    CMutex* GetDataChannelRefCountMutex() { return m_pDataChannelRefCountMutex; }
+
 private:
     UINT32 m_uiModemType;
 
@@ -1335,6 +1337,7 @@ private:
     int m_CbsActivate;
 
     BOOL m_bTempOoSNotifReporting;
+    CMutex* m_pDataChannelRefCountMutex;
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
     void FreeCardStatusPointers(RIL_CardStatus_v6& cardStatus);
