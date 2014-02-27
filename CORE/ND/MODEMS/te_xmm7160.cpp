@@ -170,7 +170,8 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
     CChannel_Data* pChannelData = NULL;
     int dataProfile = -1;
-    int nEmergencyFlag = 0 ; // 1: emergency pdn
+    int nEmergencyFlag = 0; // 1: emergency pdn
+    int nRequestPcscfFlag = 0; // 1: request pcscf address
     UINT32 uiDnsMode = 0;
 
     RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - uiDataSize=[%u]\r\n", uiDataSize);
@@ -248,6 +249,11 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
         nEmergencyFlag = 1;
     }
 
+    if (m_cte.IsIMSApCentric())
+    {
+        nRequestPcscfFlag = 1;
+    }
+
     //
     //  IP type is passed in dynamically.
     if (NULL == stPdpData.szPDPType)
@@ -267,9 +273,9 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
     //  If not recognized, just use IPV4V6 as default.
     uiDnsMode = GetXDNSMode(stPdpData.szPDPType);
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
-            uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, uiCID, nPapChap,
-            stPdpData.szUserName, stPdpData.szPassword, uiCID, uiDnsMode))
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
+            uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, nRequestPcscfFlag,
+            uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword, uiCID, uiDnsMode))
     {
         RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
                 " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
