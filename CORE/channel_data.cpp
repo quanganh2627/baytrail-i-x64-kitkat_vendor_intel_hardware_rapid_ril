@@ -941,7 +941,7 @@ int CChannel_Data::GetMuxControlChannel()
     return muxControlChannel;
 }
 
-void CChannel_Data::RemoveInterface()
+void CChannel_Data::RemoveInterface(BOOL bKeepInterfaceUp)
 {
     RIL_LOG_VERBOSE("CChannel_Data::RemoveInterface() - Enter\r\n");
 
@@ -959,6 +959,12 @@ void CChannel_Data::RemoveInterface()
 
     RIL_LOG_INFO("CChannel_Data::RemoveInterface() - szNetworkInterfaceName=[%s]\r\n",
             szNetworkInterfaceName);
+
+    if (!bIsHSIDirect && bKeepInterfaceUp)
+    {
+        RIL_LOG_CRITICAL("CChannel_Data::RemoveInterface() : cannot keep TTY interface up.\r\n");
+        bKeepInterfaceUp = FALSE;
+    }
 
     if (!bIsHSIDirect)
     {
@@ -1016,6 +1022,20 @@ void CChannel_Data::RemoveInterface()
         if (!setflags(s, &ifr, 0, IFF_UP))
         {
             RIL_LOG_CRITICAL("CChannel_Data::RemoveInterface() : Error setting flags\r\n");
+        }
+
+        if (bKeepInterfaceUp)
+        {
+            /* Need to put the interface back up to flush out packets that might still be received
+             * at modem side.
+             *
+             * Previous 'down' is needed to remove all 'manual' routes that might still use this
+             * interface.
+             */
+            if (!setflags(s, &ifr, IFF_UP, 0))
+            {
+                RIL_LOG_CRITICAL("CChannel_Data::RemoveInterface() : Error setting flags\r\n");
+            }
         }
 
         if (close(s) < 0)

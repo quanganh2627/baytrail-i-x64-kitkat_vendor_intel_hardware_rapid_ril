@@ -1088,9 +1088,9 @@ BOOL CTE_XMM7160::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
         return FALSE;
     }
 
-    pChannelData->RemoveInterface();
-
-    if (!m_cte.IsEPSRegistered() || uiCID != DEFAULT_PDN_CID || bForceCleanup)
+    BOOL bStopInterface = !m_cte.IsEPSRegistered() || uiCID != DEFAULT_PDN_CID || bForceCleanup;
+    pChannelData->RemoveInterface(!bStopInterface);
+    if (bStopInterface)
     {
         pChannelData->ResetDataCallInfo();
     }

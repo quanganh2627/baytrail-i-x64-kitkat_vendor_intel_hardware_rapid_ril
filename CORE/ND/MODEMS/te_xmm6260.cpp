@@ -6012,7 +6012,7 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
         return FALSE;
     }
 
-    pChannelData->RemoveInterface();
+    pChannelData->RemoveInterface(FALSE);
     pChannelData->ResetDataCallInfo();
 
     RIL_LOG_VERBOSE("CTE_XMM6260::DataConfigDown() EXIT\r\n");
