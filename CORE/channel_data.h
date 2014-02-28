@@ -42,8 +42,11 @@ public:
     /*
      * Based on the channel settings, brings down the hsi network interface
      * or puts the channel back into AT command mode.
+     *
+     * If bKeepInterfaceUp is TRUE, keep kernel data interface up after
+     * deactivation (to flush possible data coming from modem).
      */
-    void RemoveInterface();
+    void RemoveInterface(BOOL bKeepInterfaceUp = FALSE);
 
     // get / set functions
     void SetDataFailCause(int cause);
