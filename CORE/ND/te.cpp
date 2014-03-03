@@ -258,6 +258,7 @@ BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
         }
 
         case RIL_REQUEST_SCREEN_STATE:
+        case RIL_REQUEST_SET_INITIAL_ATTACH_APN:
             bAllowed = TRUE;
             break;
 
@@ -276,6 +277,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
     {
         case RIL_REQUEST_RADIO_POWER:
         case RIL_REQUEST_SCREEN_STATE:
+        case RIL_REQUEST_SET_INITIAL_ATTACH_APN:
         case RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE:
             bAllowed = TRUE;
             break;
@@ -10009,13 +10011,9 @@ RIL_RESULT_CODE CTE::RequestSetInitialAttachApn(RIL_Token rilToken, void* pData,
     }
     else
     {
-        /*
-         * For command timeout, timeout value used for RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL
-         * request is used.
-         */
         CCommand* pCmd = new CCommand(
                 g_pReqInfo[RIL_REQUEST_SET_INITIAL_ATTACH_APN].uiChannel,
-                rilToken, RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL, reqData,
+                rilToken, RIL_REQUEST_SET_INITIAL_ATTACH_APN, reqData,
                 &CTE::ParseDeregister, &CTE::PostDeregisterCmdHandler);
 
         if (pCmd)
