@@ -254,6 +254,20 @@ typedef struct
     char szIpV6PCSCF2[MAX_IPADDR_SIZE];
 } S_DEFAULT_PDN_CONTEXT_PARAMS, *P_DEFAULT_PDN_CONTEXT_PARAMS;
 
+///////////////////////////////////////////////////////////////////////////////
+// registration status information used internally
+//
+
+#define MAX_REG_STATUS_LENGTH 8
+
+typedef struct
+{
+    char szState[MAX_REG_STATUS_LENGTH];
+    char szAcT[MAX_REG_STATUS_LENGTH];
+    char szLAC[MAX_REG_STATUS_LENGTH];
+    char szCID[MAX_REG_STATUS_LENGTH];
+} S_REG_INFO;
+
 // Pref network type request information cache.
 typedef struct
 {

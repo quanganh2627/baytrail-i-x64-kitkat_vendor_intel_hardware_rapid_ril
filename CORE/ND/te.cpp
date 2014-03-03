@@ -8006,6 +8006,15 @@ LONG CTE::GetCurrentAct()
     return strtol(m_sPSStatus.szNetworkType, NULL, 10);
 }
 
+void CTE::GetPreviousGprsRegInfo(S_REG_INFO& previousRegInfo)
+{
+    strncpy(previousRegInfo.szState, m_sPSStatus.szStat, sizeof(previousRegInfo.szState));
+    strncpy(previousRegInfo.szAcT, m_sPSStatus.szNetworkType,
+            sizeof(previousRegInfo.szAcT));
+    strncpy(previousRegInfo.szLAC, m_sPSStatus.szLAC, sizeof(previousRegInfo.szLAC));
+    strncpy(previousRegInfo.szCID, m_sPSStatus.szCID, sizeof(previousRegInfo.szCID));
+}
+
 const char* CTE::PrintRegistrationInfo(char* szRegInfo) const
 {
     int nRegInfo = atoi(szRegInfo);

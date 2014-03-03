@@ -1169,6 +1169,7 @@ public:
     void PostDeregisterCmdHandler(POST_CMD_HANDLER_DATA& rData);
 
     CMutex* GetDataChannelRefCountMutex() { return m_pDataChannelRefCountMutex; }
+    void GetPreviousGprsRegInfo(S_REG_INFO& previousRegInfo);
 
 private:
     UINT32 m_uiModemType;

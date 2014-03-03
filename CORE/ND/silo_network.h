@@ -24,8 +24,6 @@
 #ifndef RRIL_SILO_NETWORK_H
 #define RRIL_SILO_NETWORK_H
 
-#define MAX_REG_STATUS_LENGTH   8
-
 #include "silo.h"
 
 class CSilo_Network : public CSilo
@@ -55,16 +53,6 @@ private:
     void HandleNwDeact(const char*& szStrExtract);
     void HandleMEDeactivation(const UINT32 uiCID);
     BOOL ParseXREGFastOoS(CResponse *const pResponse, const char* &rszPointer);
-
-    typedef struct
-    {
-        char szState[MAX_REG_STATUS_LENGTH];
-        char szAcT[MAX_REG_STATUS_LENGTH];
-        char szLAC[MAX_REG_STATUS_LENGTH];
-        char szCID[MAX_REG_STATUS_LENGTH];
-    } S_XREG_INFO;
-
-    S_XREG_INFO m_PreviousXREGInfo;
 };
 
 #endif // RRIL_SILO_NETWORK_H
