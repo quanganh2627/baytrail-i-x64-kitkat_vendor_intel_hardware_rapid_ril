@@ -7539,7 +7539,7 @@ Done:
     (uiLAC == 0) ? rPSRegStatusInfo.szLAC[0] = '\0' :
                     snprintf(rPSRegStatusInfo.szLAC, REG_STATUS_LENGTH, "%x", uiLAC);
 
-    (uiLAC == 0) ? rPSRegStatusInfo.szCID[0] = '\0' :
+    (uiCID == 0) ? rPSRegStatusInfo.szCID[0] = '\0' :
                     snprintf(rPSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", uiCID);
 
     (uiRejectCause == 0) ? rPSRegStatusInfo.szReasonDenied[0] = '\0' :
