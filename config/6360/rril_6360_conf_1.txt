@@ -259,6 +259,7 @@ Group ChannelSiloConfiguration
     SilosDLC2Channel        0x810    // Network and common silo (2)
     SilosDLC6Channel        0x805    // Voice, SMS and common silo (3).
     SilosDLC8Channel        0x802    // SIM and common silo (2)
+    SilosDLC22Channel       0x800    // common silo (1)
     SilosURCChannel         0x8F7    // All silos except data
     SilosOEMChannel         0x800    // common silo only (1)
     SilosDataChannel        0x808    // Data and common silo (2)

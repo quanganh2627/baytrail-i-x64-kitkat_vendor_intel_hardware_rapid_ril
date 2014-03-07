@@ -16,7 +16,7 @@
 #pragma once
 
 //  List channels here (one per COM port)
-#define RIL_CHANNEL_MAX 11
+#define RIL_CHANNEL_MAX 12
 
 // Upper limit on number of RIL channels to create
 extern UINT32 g_uiRilChannelUpperLimit;
@@ -54,20 +54,23 @@ extern UINT32 g_uiRilChannelCurMax;
 //  OEM channel (diagnostic commands)
 #define RIL_CHANNEL_OEM 5
 
+//  COPS=x commands
+#define RIL_CHANNEL_DLC22 6
+
 //  GPRS/UMTS data (1st primary context)
-#define RIL_CHANNEL_DATA1 6
+#define RIL_CHANNEL_DATA1 7
 
 //  GPRS/UMTS data (2nd primary context)
-#define RIL_CHANNEL_DATA2 7
+#define RIL_CHANNEL_DATA2 8
 
 //  GPRS/UMTS data (3rd primary context)
-#define RIL_CHANNEL_DATA3 8
+#define RIL_CHANNEL_DATA3 9
 
 //  GPRS/UMTS data (4th primary context)
-#define RIL_CHANNEL_DATA4 9
+#define RIL_CHANNEL_DATA4 10
 
 //  GPRS/UMTS data (5th primary context)
-#define RIL_CHANNEL_DATA5 10
+#define RIL_CHANNEL_DATA5 11
 
 // TODO - currently allow up to one reserved channel (e.g., for direct audio use).
 // Set this to -1 or a number greater than RIL_CHANNEL_MAX if there is no reserved channel

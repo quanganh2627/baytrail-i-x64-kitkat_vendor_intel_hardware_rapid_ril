@@ -137,6 +137,7 @@ const char   g_szSilosATCmd[]           = "SilosATCmdChannel";
 const char   g_szSilosDLC2[]            = "SilosDLC2Channel";
 const char   g_szSilosDLC6[]            = "SilosDLC6Channel";
 const char   g_szSilosDLC8[]            = "SilosDLC8Channel";
+const char   g_szSilosDLC22[]           = "SilosDLC22Channel";
 const char   g_szSilosURC[]             = "SilosURCChannel";
 const char   g_szSilosOEM[]             = "SilosOEMChannel";
 const char   g_szSilosData[]            = "SilosDataChannel";

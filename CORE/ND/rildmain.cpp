@@ -51,6 +51,7 @@ char* g_szDataPort5 = NULL;
 char* g_szDLC2Port = NULL;
 char* g_szDLC6Port = NULL;
 char* g_szDLC8Port = NULL;
+char* g_szDLC22Port = NULL;
 char* g_szURCPort = NULL;
 char* g_szOEMPort = NULL;
 char* g_szSIMID = NULL;
@@ -598,6 +599,7 @@ static bool RIL_SetGlobals(channels_rril_t *ch)
     ret &= copyDlc(&g_szDLC2Port, &ch->registration, RIL_CHANNEL_DLC2);
     ret &= copyDlc(&g_szDLC6Port, &ch->settings, RIL_CHANNEL_DLC6);
     ret &= copyDlc(&g_szDLC8Port, &ch->sim_toolkit, RIL_CHANNEL_DLC8);
+    ret &= copyDlc(&g_szDLC22Port, &ch->cops_commands, RIL_CHANNEL_DLC22);
     ret &= copyDlc(&g_szURCPort, &ch->monitoring, RIL_CHANNEL_URC);
     ret &= copyDlc(&g_szOEMPort, &ch->field_test, RIL_CHANNEL_OEM);
     ret &= copyDlc(&g_szDataPort1, &ch->packet_data_1, RIL_CHANNEL_DATA1);
@@ -626,6 +628,7 @@ static void freeDlcs(void)
     freeDlc(&g_szDLC2Port);
     freeDlc(&g_szDLC6Port);
     freeDlc(&g_szDLC8Port);
+    freeDlc(&g_szDLC22Port);
     freeDlc(&g_szURCPort);
     freeDlc(&g_szOEMPort);
     freeDlc(&g_szDataPort1);

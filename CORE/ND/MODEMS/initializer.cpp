@@ -26,6 +26,7 @@
 #include "channel_DLC2.h"
 #include "channel_DLC6.h"
 #include "channel_DLC8.h"
+#include "channel_DLC22.h"
 #include "channel_URC.h"
 #include "channel_OEM.h"
 #include "silo_voice.h"
@@ -398,6 +399,10 @@ BOOL CInitializer::IsChannelUndefined(int channel)
             if (!g_szDLC8Port)
                 return TRUE;
             break;
+        case RIL_CHANNEL_DLC22:
+            if (!g_szDLC22Port)
+                return TRUE;
+             break;
         case RIL_CHANNEL_URC:
             if (!g_szURCPort)
                 return TRUE;
@@ -460,6 +465,10 @@ CChannel* CInitializer::CreateChannel(UINT32 eIndex)
             pChannel = new CChannel_DLC8(eIndex);
             break;
 
+        case RIL_CHANNEL_DLC22:
+            pChannel = new CChannel_DLC22(eIndex);
+            break;
+
         case RIL_CHANNEL_URC:
             pChannel = new CChannel_URC(eIndex);
             break;
@@ -508,6 +517,7 @@ int CInitializer::GetSiloConfig(UINT32 channel)
     const int DefSiloConfigURC = 0x877; // All silo's except Data and IMS
     const int DefSiloConfigData = 0x808; // Data and common silo
     const int DefSiloConfigCommon = 0x800; // common silo only
+    const int DefSiloCopsCommon = 0x800; // common silo only
 
     // Array of repository channel key names, ordered according to rilchannels.h
     // and default silo configuration if not available in repository
@@ -517,7 +527,7 @@ int CInitializer::GetSiloConfig(UINT32 channel)
         {g_szSilosURC,   DefSiloConfigURC}, {g_szSilosOEM,  DefSiloConfigCommon},
         {g_szSilosData,  DefSiloConfigData}, {g_szSilosData, DefSiloConfigData},
         {g_szSilosData,  DefSiloConfigData}, {g_szSilosData, DefSiloConfigData},
-        {g_szSilosData,  DefSiloConfigData}
+        {g_szSilosData,  DefSiloConfigData}, {g_szSilosDLC22, DefSiloCopsCommon}
     };
 
     if (channel < g_uiRilChannelCurMax && channel < RIL_CHANNEL_MAX)
