@@ -109,8 +109,6 @@ BOOL IsReqIDAbortable(UINT32 reqID)
         case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:  // Read COPS?
         case RIL_REQUEST_QUERY_AVAILABLE_NETWORKS:      // Test COPS=?
         case RIL_REQUEST_OPERATOR:                      // Read XCOPS
-        case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC:// Set COPS=
-        case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:  // Set COPS=
         case RIL_REQUEST_QUERY_CALL_FORWARD_STATUS:     // Read CCFC
         case RIL_REQUEST_SET_CALL_FORWARD:              // Set CCFC=
         case RIL_REQUEST_QUERY_CLIP:                    // Read CLIP
@@ -126,6 +124,29 @@ BOOL IsReqIDAbortable(UINT32 reqID)
             break;
     }
     return bIsAbortable;
+}
+
+
+//
+//  request ID for command that requires modem ping
+//  on different channel
+//
+BOOL ReqIDSpecialPing(UINT32 reqID)
+{
+    BOOL bSpecialPing = FALSE;
+
+    switch(reqID)
+    {
+        case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC: // Set COPS=0
+        case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:  // Set COPS=1
+            bSpecialPing = TRUE;
+            break;
+
+        default:
+            bSpecialPing = FALSE;
+            break;
+    }
+    return bSpecialPing;
 }
 
 //
@@ -281,7 +302,25 @@ BOOL CChannel::SendCommand(CCommand*& rpCmd)
             }
             else
             {
-                //  Our response timed out, retry if we can
+                // Waiting indefinitely for modem response. In order for the command not to be
+                // abandoned, the ping has to be done on a different DLC.
+                if (ReqIDSpecialPing(rpCmd->GetRequestID()))
+                {
+                    if (CRilLog::IsFullLogBuild())
+                        RIL_LOG_INFO("CChannel::SendCommand() - chnl=[%u] Response timeout"
+                                " for cmd=[%s]. Waiting indefinitely while modem"
+                                " active\r\n", m_uiRilChannel, pPrintStr);
+                    else
+                        RIL_LOG_INFO("CChannel::SendCommand() - chnl=[%u] Response timeout"
+                                " for requestId [%d]. This is a special case, so waiting "
+                                " indefinitely while modem active. \r\n", m_uiRilChannel,
+                                rpCmd->GetRequestID());
+
+                    WaitForResponse(rpCmd, pResponse);
+                    break;
+                }
+
+                // Our response timed out, retry if we can
                 if (numRetries > 0)
                 {
                     RIL_LOG_INFO("CChannel::SendCommand() - ***** chnl=[%d] Attempting retry"
@@ -621,6 +660,7 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse,
     const UINT32 PING_TIMEOUT = 3000;  // PING timeout in ms.
     char szABORTCmd[] = "AT\x1b\r";  //  AT<esc>\r
     char szPINGCmd[] = "ATE0V1;+CMEE=1\r";
+    char szSimplePINGCmd[] = "ATE0V1\r";
 
     UINT32 uiBytesWritten = 0;
     CResponse* pRspTemp = NULL;
@@ -663,46 +703,96 @@ BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse,
         pRspTemp = NULL;
     }
 
-    //  "ping" modem to see if still alive
-    SetCmdThreadBlockedOnRxQueue();  //  Tell response thread that reponse is pending
+    //  If AT command allows simple PING, send PING command.
+    if (!ReqIDSpecialPing(rpCmd->GetRequestID())) {
 
-    // empty the queue before sending the command
-    g_pRxQueue[m_uiRilChannel]->MakeEmpty();
-    FlushResponse();
+        SetCmdThreadBlockedOnRxQueue();  //  Tell response thread that response is pending
 
-    uiBytesWritten = 0;
-    RIL_LOG_INFO("CChannel::HandleTimeout() - Sending PING Command on chnl=[%d],"
-            " timeout=[%d]ms\r\n", m_uiRilChannel, PING_TIMEOUT);
-    WriteToPort(szPINGCmd, strlen(szPINGCmd), uiBytesWritten);
+        // empty the queue before sending the command
+        g_pRxQueue[m_uiRilChannel]->MakeEmpty();
 
-    resTmp = ReadQueue(pRspTemp, PING_TIMEOUT);  // Wait for PING response
+        FlushResponse();
 
-    //  Did the PING command timeout?
-    if (pRspTemp && pRspTemp->IsTimedOutFlag())
-    {
-        //  PING timeout
-        //  Assume modem is dead!  Signal MMGR to request cleanup.
-        RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] PING attempt timed out!!"
-                "  Assume MODEM IS DEAD!\r\n", m_uiRilChannel);
-        RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] request clean up\r\n",
-                m_uiRilChannel);
+        uiBytesWritten = 0;
+        RIL_LOG_INFO("CChannel::HandleTimeout() - Sending PING Command on chnl=[%d],"
+                " timeout=[%d]ms\r\n", m_uiRilChannel, PING_TIMEOUT);
+        WriteToPort(szPINGCmd, strlen(szPINGCmd), uiBytesWritten);
 
-        bNeedModemCleanUp = TRUE;
+        resTmp = ReadQueue(pRspTemp, PING_TIMEOUT);  // Wait for PING response
+
+        //  Did the PING command timeout?
+        if (pRspTemp && pRspTemp->IsTimedOutFlag())
+        {
+            //  PING timeout
+            //  Assume modem is dead!  Signal MMGR to request cleanup.
+            RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] PING attempt timed out!!"
+                    "  Assume MODEM IS DEAD!\r\n", m_uiRilChannel);
+            RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] request clean up\r\n",
+                    m_uiRilChannel);
+
+            bNeedModemCleanUp = TRUE;
+        }
+        else if (RIL_E_SUCCESS != resTmp)
+        {
+            RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] Failed read from queue during"
+                    " PING !\r\n", m_uiRilChannel);
+
+            bNeedModemCleanUp = TRUE;
+        }
+        else
+        {
+            //  Received response to PING
+            RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] Received response to PING"
+                    " command!!\r\n", m_uiRilChannel);
+
+            //  Modem is alive.  Let calling function handle the retry attempt.
+        }
     }
-    else if (RIL_E_SUCCESS != resTmp)
+    else //  If AT command requires PING command to be sent on different channel.
     {
-        RIL_LOG_CRITICAL("CChannel::HandleTimeout() - chnl=[%d] Failed read from queue during"
-                " PING !\r\n", m_uiRilChannel);
+        CCommand* pCmd = NULL;
+        char szCmd[MAX_BUFFER_SIZE];
 
-        bNeedModemCleanUp = TRUE;
-    }
-    else
-    {
-        //  Received response to PING
-        RIL_LOG_INFO("CChannel::HandleTimeout() - chnl=[%d] Received response to PING"
-                " command!!\r\n", m_uiRilChannel);
+        RIL_LOG_INFO("CChannel::HandleTimeout() - Sending PING Command on chnl=[%d],"
+                " timeout=[%d]ms\r\n", RIL_CHANNEL_ATCMD, PING_TIMEOUT);
 
-        //  Modem is alive.  Let calling function handle the retry attempt.
+        if (!CopyStringNullTerminate(szCmd, szSimplePINGCmd, sizeof(szCmd)))
+        {
+            RIL_LOG_CRITICAL("CChannel::HandleTimeout() - Could not"
+                    " make modem ping command.\r\n");
+            bNeedModemCleanUp = TRUE;
+            goto Error;
+        }
+
+        if (RIL_CHANNEL_ATCMD != m_uiRilChannel)
+        {
+            pCmd = new CCommand(RIL_CHANNEL_ATCMD, 0, REQ_ID_NONE, szCmd);
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CChannel::HandleTimeout() - Unable to send special"
+                    " PING command. Same channel number\r\n");
+            bNeedModemCleanUp = TRUE;
+            goto Error;
+        }
+
+        if (pCmd)
+        {
+            pCmd->SetTimeout(PING_TIMEOUT);
+            pCmd->SetHighPriority();
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CChannel::HandleTimeout() - Could not queue"
+                        "modem ping command.\r\n");
+                delete pCmd;
+                pCmd = NULL;
+                bNeedModemCleanUp = TRUE;
+                goto Error;
+             }
+        }
+
+        RIL_LOG_INFO("CChannel::HandleTimeout() - PING Command added to queue");
+
     }
 
 Error:
@@ -1208,6 +1298,35 @@ BOOL CChannel::BlockAndFlushChannel(BLOCK_CHANNEL blockLevel, FLUSH_CHANNEL flus
 
 Error:
     return bRet;
+}
+
+//
+// Waiting for a response from modem indefinitely
+//
+void CChannel::WaitForResponse(CCommand*& rpCmd, CResponse*& pResponse)
+{
+        RIL_LOG_VERBOSE("CChannel::WaitForResponse : Enter\r\n");
+
+        // Waiting indefinitely for a response
+        do
+        {
+            // set flag for response thread
+            SetCmdThreadBlockedOnRxQueue();
+
+            // retrieve response from modem
+            GetResponse(rpCmd, pResponse);
+
+            // response received, clear flag
+            ClearCmdThreadBlockedOnRxQueue();
+
+            if (!pResponse)
+            {
+                break;
+            }
+        }
+        while (pResponse->IsTimedOutFlag());
+
+     RIL_LOG_VERBOSE("CChannel::WaitForResponse : Exit\r\n");
 }
 
 //

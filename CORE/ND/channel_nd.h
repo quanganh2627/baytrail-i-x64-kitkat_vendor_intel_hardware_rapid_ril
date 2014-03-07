@@ -97,6 +97,7 @@ private:
     RIL_RESULT_CODE ReadQueue(CResponse*& rpRsp, UINT32 uiTimeout);
     BOOL ProcessResponse(CResponse*& rpRsp);
     BOOL ProcessNoop(CResponse*& rpRsp);
+    void WaitForResponse(CCommand*& rpCmd, CResponse*& pResponse);
 
     //  helper function to request modem restart due to command time-out
     void RequestCleanUpOnCommandTimeout(CCommand* rpCmd, UINT32 uiCmdIndex);

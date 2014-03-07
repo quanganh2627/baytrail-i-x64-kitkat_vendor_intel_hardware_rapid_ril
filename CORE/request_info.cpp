@@ -133,9 +133,9 @@ const REQ_INFO g_ReqInfoDefault[] =
     // RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE 45
     { "QueryNetworkSelectionMode", RIL_CHANNEL_DLC2, 0 },
     // RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC 46
-    { "SetNetworkSelectionAutomatic", RIL_CHANNEL_DLC2, 0 },
+    { "SetNetworkSelectionAutomatic", RIL_CHANNEL_DLC22, 0 },
     // RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL 47
-    { "SetNetworkSelectionManual", RIL_CHANNEL_DLC2, 0 },
+    { "SetNetworkSelectionManual", RIL_CHANNEL_DLC22, 0 },
     // RIL_REQUEST_QUERY_AVAILABLE_NETWORKS 48
     { "QueryAvailableNetworks", RIL_CHANNEL_DLC2, 0 },
     // RIL_REQUEST_DTMF_START 49
@@ -263,7 +263,7 @@ const REQ_INFO g_ReqInfoDefault[] =
     // RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE 110
     { "SetCellInfoListRate", RIL_CHANNEL_OEM, 0 },
     // RIL_REQUEST_SET_INITIAL_ATTACH_APN 111
-    { "SetInitialAttachApn", RIL_CHANNEL_DLC2, 0},
+    { "SetInitialAttachApn", RIL_CHANNEL_DLC22, 0},
     // RIL_REQUEST_IMS_REGISTRATION_STATE 112
     { "GetImsRegistrationState", RIL_CHANNEL_RESERVED, 0},
     // RIL_REQUEST_IMS_SEND_SMS 113
