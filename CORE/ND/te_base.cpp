@@ -6280,12 +6280,16 @@ RIL_RESULT_CODE CTEBase::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
     pTFTParams->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS;
 
     pChannelData = (CChannel_Data*) rRspData.pContextData;
+    pTFTParams->uiPcid = pChannelData->GetContextID();
 
-    if (pChannelData)
+    pChannelData->GetInterfaceName(pTFTParams->szIfName,MAX_INTERFACE_NAME_SIZE);
+    if (0 == strlen(pTFTParams->szIfName))
     {
-        pChannelData->GetInterfaceName(pTFTParams->szIfName, MAX_INTERFACE_NAME_SIZE);
-        pTFTParams->uiPcid = (unsigned int) pChannelData->GetContextID();
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - No Interface"
+                " found for PCID=[%u]\r\n", pTFTParams->uiPcid);
+        goto Error;
     }
+
     // Parse +CGTFTRDP response, will return up to 2 lines of data (if MT has
     // dual stack capability. 1st line for IPV4 data, 2nd for IPV6
     while (FindAndSkipString(pszRsp, "+CGTFTRDP:", pszRsp) && index < MAX_TFT_PARAMS)
@@ -6489,10 +6493,14 @@ RIL_RESULT_CODE CTEBase::ParseReadBearerQOSParams(RESPONSE_DATA& rRspData)
     }
 
     pChannelData = (CChannel_Data*) rRspData.pContextData;
-    if (pChannelData)
+    pQOSParams->uiPcid = pChannelData->GetContextID();
+
+    pChannelData->GetInterfaceName(pQOSParams->szIfName, MAX_INTERFACE_NAME_SIZE);
+    if (0 == strlen(pQOSParams->szIfName))
     {
-        pChannelData->GetInterfaceName(pQOSParams->szIfName, MAX_INTERFACE_NAME_SIZE);
-        pQOSParams->uiPcid = pChannelData->GetContextID();
+        RIL_LOG_CRITICAL("CTEBase::ParseReadBearerQOSParams() - No Interface"
+                " found for PCID=[%u]\r\n", pQOSParams->uiPcid);
+        goto Error;
     }
 
     // Parse <cid>

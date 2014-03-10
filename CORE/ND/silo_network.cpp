@@ -882,7 +882,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
 
             RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW ACT, extracted event=[%u]\r\n",
                             uiEvent);
-
+            // Acknowledgment required
             if (1 == uiEvent)
             {
                 /*
@@ -892,30 +892,68 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                  */
                 CTE::GetTE().AcceptOrRejectNwInitiatedContext();
             }
-
-            pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
-            if (NULL != pChannelData)
+            /* With CGAUTO=0 (no automatic reply), sequence from modem will be :
+             * +CGEV pid,cid,1 <- acknowledgment required
+             * +CGANS=1        <- AP accept nw initiated cntx
+             * +CGEV pid,cid,0 <- modem informs cntx is available
+             */
+            else if (0 == uiEvent)
             {
-                pChannelData->GetHSIChannel();
-                void** callbackParams = new void*[3];
-                if (callbackParams != NULL) {
-                    callbackParams[0] = (void*)uiPCID;
-                    callbackParams[1] = (void*)uiCID;
-                    callbackParams[2] = (void*)pChannelData;
-                    RIL_requestTimedCallback(triggerQueryBearerParams,
-                            (void*)callbackParams, 0, 0);
+                pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
+                if (NULL != pChannelData)
+                {
+                    void** callbackParams = new void*[3];
+                    if (callbackParams != NULL)
+                    {
+                        callbackParams[0] = (void*) uiPCID;
+                        callbackParams[1] = (void*) uiCID;
+                        callbackParams[2] = (void*) pChannelData;
+                        RIL_requestTimedCallback(triggerQueryBearerParams,
+                                (void*) callbackParams, 0, 0);
+                    }
+                    else
+                    {
+                        RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - "
+                                "cannot allocate callbackParams\r\n");
+                        goto Error;
+                    }
+                    sOEM_HOOK_RAW_UNSOL_BEARER_ACT* pNwAct =
+                            (sOEM_HOOK_RAW_UNSOL_BEARER_ACT*)malloc(
+                                    sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_ACT));
+                    if (NULL != pNwAct)
+                    {
+                        pNwAct->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_ACT;
+                        pChannelData->GetInterfaceName(pNwAct->szIfName, MAX_INTERFACE_NAME_SIZE);
+                        if (0 == strlen(pNwAct->szIfName))
+                        {
+                            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - No Interface found "
+                                    "for PCID=[%u]\r\n", uiPCID);
+                            free(pNwAct);
+                            goto Error;
+                        }
+                        pNwAct->uiCid = uiCID;
+                        pNwAct->uiPcid = uiPCID;
+                        RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pNwAct,
+                                sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_ACT));
+                    }
+                    else
+                    {
+                        RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() -"
+                                " Could not allocate memory for pNwAct.\r\n");
+                        goto Error;
+                    }
                 }
                 else
                 {
-                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - "
-                            "cannot allocate callbackParams\r\n");
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid PCID=[%u],"
+                            " no data channel found!\r\n", uiPCID);
                     goto Error;
                 }
             }
             else
             {
-                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid PCID=[%u],"
-                        " no data channel found!\r\n", uiPCID);
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() -"
+                        " Invalid event=[%u]\r\n", uiEvent);
                 goto Error;
             }
         }
@@ -1176,30 +1214,44 @@ void CSilo_Network::HandleNwDeact(const char*& szStrExtract)
         RIL_LOG_INFO("CSilo_Network::HandleNwDeact() - NW DEACT, extracted event=[%u]\r\n",
                         uiEvent);
 
+    }
+
+    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
+    if (NULL == pChannelData)
+    {
+        //  This may occur using AT proxy during 3GPP conformance testing.
+        //  Let normal processing occur.
+        RIL_LOG_CRITICAL("CSilo_Network::HandleNwDeact() - Invalid Pcid=[%u],"
+                " no data channel found!\r\n", uiPCID);
+    }
+    else
+    {
         sOEM_HOOK_RAW_UNSOL_BEARER_DEACT* pNwDeact =
                 (sOEM_HOOK_RAW_UNSOL_BEARER_DEACT*)malloc(
                 sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
         if (NULL != pNwDeact)
         {
             pNwDeact->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_DEACT;
+            pChannelData->GetInterfaceName(pNwDeact->szIfName, MAX_INTERFACE_NAME_SIZE);
+            if (0 == strlen(pNwDeact->szIfName))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::HandleNwDeact() - No Interface found "
+                        "for PCID=[%u]\r\n", uiPCID);
+                free(pNwDeact);
+                return;
+            }
             pNwDeact->uiCid = uiCID;
             pNwDeact->uiPcid = uiPCID;
 
             RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pNwDeact,
                     sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));
         }
-    }
-
-    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
-    if (NULL == pChannelData)
-    {
-        //  This may occur using AT proxy during 3GPP conformance testing.
-        //  Let normal processing occur.
-        RIL_LOG_CRITICAL("CSilo_Network::HandleNwDeact() - Invalid CID=[%u],"
-                " no data channel found!\r\n", uiCID);
-    }
-    else
-    {
+        else
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::HandleNwDeact() -"
+                    " Could not allocate memory for pNwDeact.\r\n");
+            return;
+        }
         pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
         /*
          * @TODO: If fail cause is provided as part of NW DEACT,

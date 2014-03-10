@@ -619,7 +619,8 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED
 const int RIL_OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED = 0x000000DB;
 
 ///////////////////////////////////////////////////////////////////////////////
-#define MAX_TFT_PARAMS  5
+// As per 24.008,10.5.6.12 up to 7 packet filters could be included
+#define MAX_TFT_PARAMS  7
 #define MAX_RANGE_SIZE  12
 
 typedef struct
@@ -686,6 +687,7 @@ const int RIL_OEM_HOOK_RAW_UNSOL_BEARER_QOS_PARAMS = 0x000000DD;
 typedef struct
 {
     int command; //  Command ID
+    char szIfName[MAX_INTERFACE_NAME_SIZE];
     UINT32 uiPcid;
     UINT32 uiCid;
 } sOEM_HOOK_RAW_UNSOL_BEARER_DEACT;
@@ -747,8 +749,23 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_IMS_SRVCC_HO_STATUS
 //
 const int RIL_OEM_HOOK_RAW_UNSOL_IMS_SRVCC_HO_STATUS = 0x000000E1;
 
-#pragma pack()
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct
+{
+    int command; //  Command ID
+    char szIfName[MAX_INTERFACE_NAME_SIZE];
+    UINT32 uiPcid;
+    UINT32 uiCid;
+} sOEM_HOOK_RAW_UNSOL_BEARER_ACT;
+
+//
+//  OEM_HOOK_RAW_UNSOL_BEARER_ACT
+//  Command ID = 0x000000E2
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_BEARER_ACT
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_BEARER_ACT = 0x000000E2;
 
 /***********************************************************************/
-
-
+#pragma pack()
