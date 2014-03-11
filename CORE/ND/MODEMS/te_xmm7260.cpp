@@ -813,7 +813,7 @@ RIL_RESULT_CODE CTE_XMM7260::ParseReadUsatProfiles(RESPONSE_DATA& rspData)
             goto Error;
         }
 
-    } while (!SkipString(pszRsp, "OK", pszRsp) && (pszRsp != NULL));
+    } while (!SkipString(pszRsp, "OK", pszRsp));
 
     // Skip over the <cr><lf> postfix
     if (!SkipRspEnd(pszRsp, m_szNewLine, pszRsp))
@@ -831,13 +831,15 @@ RIL_RESULT_CODE CTE_XMM7260::ParseReadUsatProfiles(RESPONSE_DATA& rspData)
 Error:
     if (RRIL_RESULT_OK != res)
     {
-        for (UINT32 i = 0; i < UsatInitStateMachine::PROFILE_READ_NUMBER; i++)
+        if (ppszProfiles)
         {
-            free(ppszProfiles[i]);
+            for (UINT32 i = 0; i < UsatInitStateMachine::PROFILE_READ_NUMBER; i++)
+            {
+                free(ppszProfiles[i]);
+            }
+            free(ppszProfiles);
         }
-        free(ppszProfiles);
     }
-
     RIL_LOG_VERBOSE("CTE_XMM7260::ParseReadUsatProfiles() - Exit\r\n");
     return res;
 }
