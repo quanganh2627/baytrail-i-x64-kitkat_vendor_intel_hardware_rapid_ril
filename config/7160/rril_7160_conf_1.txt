@@ -52,11 +52,14 @@ Group RequestTimeouts
     GetIPAddress                       30000
     GetDNS                             30000
     SetInitialAttachApn               300000
-    QuerySimSmsStoreStatus             30000
 
     //  Video Telephony API timeouts
     HangupVT                           40000
     DialVT                             90000
+
+
+Group InternalRequestTimeouts
+    QuerySimSmsStoreStatus             30000
 
 
 Group OtherTimeouts
