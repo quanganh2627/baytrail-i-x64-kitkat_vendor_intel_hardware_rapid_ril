@@ -7684,6 +7684,8 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
         }
     }
 
+    MapCsRegistrationState(uiStatus);
+
     snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);
     snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
 
@@ -7709,6 +7711,23 @@ Error:
 
     RIL_LOG_VERBOSE("CTE::ParseCEREG() - Exit\r\n");
     return bRet;
+}
+
+void CTE::MapCsRegistrationState(UINT32& uiRegState)
+{
+    switch (uiRegState)
+    {
+        case E_REGISTRATION_REGISTERED_FOR_SMS_ONLY_HOME_NETWORK:
+        case E_REGISTRATION_REGISTERED_FOR_CSFB_NP_HOME_NETWORK:
+            uiRegState = E_REGISTRATION_REGISTERED_HOME_NETWORK;
+            break;
+        case E_REGISTRATION_REGISTERED_FOR_CSFB_NP_ROAMING:
+        case E_REGISTRATION_REGISTERED_FOR_SMS_ONLY_ROAMING:
+            uiRegState = E_REGISTRATION_REGISTERED_ROAMING;
+            break;
+        default:
+            break;
+    }
 }
 
 void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
