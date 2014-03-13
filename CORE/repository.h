@@ -105,7 +105,6 @@ extern const char   g_szApnTypeMMS[];
 extern const char   g_szApnTypeCBS[];
 extern const char   g_szApnTypeFOTA[];
 extern const char   g_szApnTypeSUPL[];
-extern const char   g_szApnTypeHIPRI[];
 extern const char   g_szApnTypeEmergency[];
 
 // used for SATK

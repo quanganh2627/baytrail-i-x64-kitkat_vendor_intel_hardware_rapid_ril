@@ -1149,16 +1149,6 @@ BOOL CInitIPCHSI::InitializeHSI()
         m_dataProfilePathAssignation[6] = apnType;
     }
 
-    if (!repository.Read(g_szGroupModem, g_szApnTypeHIPRI, apnType))
-    {
-        RIL_LOG_WARNING("CInitIPCHSI::InitializeHSI() : Could not read network apn type"
-                " HIPRI from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[7] = apnType;
-    }
-
     if (!repository.Read(g_szGroupModem, g_szApnTypeEmergency, apnType))
     {
         RIL_LOG_WARNING("CInitIPCHSI::InitializeHSI() : Could not read network apn type"
