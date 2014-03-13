@@ -2751,6 +2751,16 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
 
     pszDataProfile = ((char**)pData)[1];
     dataProfile = atoi(pszDataProfile);
+    // If default is not already opened, Android could request to open the HIPRI connection,
+    // but we must consider it as a default connection request
+    if (dataProfile == RIL_DATA_PROFILE_HIPRI)
+    {
+        RIL_LOG_WARNING("CTE::RequestSetupDataCall() -"
+                " Override HIPRI profile request with DEFAULT");
+        dataProfile = RIL_DATA_PROFILE_DEFAULT;
+        PrintStringNullTerminate(pszDataProfile, sizeof(pszDataProfile),
+                "%d", dataProfile);
+    }
 
     if (!IsSetupDataCallAllowed(retryTime))
     {
