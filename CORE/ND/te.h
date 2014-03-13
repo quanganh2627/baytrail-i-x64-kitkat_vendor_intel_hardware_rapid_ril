@@ -1193,6 +1193,8 @@ public:
 
     void SendModemDownToUsatSM();
 
+    int GetScreenState() { return m_ScreenState; }
+
 private:
     UINT32 m_uiModemType;
 

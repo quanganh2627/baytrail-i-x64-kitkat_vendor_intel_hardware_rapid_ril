@@ -137,7 +137,14 @@ const char* CTE_XMM6360::GetPsRegistrationReadString()
 
 const char* CTE_XMM6360::GetLocationUpdateString(BOOL bIsLocationUpdateEnabled)
 {
-    return bIsLocationUpdateEnabled ? "AT+CREG=3\r" : "AT+CREG=1\r";
+    if (bIsLocationUpdateEnabled)
+    {
+        return "AT+CREG=3\r";
+    }
+    else
+    {
+        return (SCREEN_STATE_ON == m_cte.GetScreenState()) ? "AT+CREG=3\r" : "AT+CREG=1\r";
+    }
 }
 
 const char* CTE_XMM6360::GetScreenOnString()
