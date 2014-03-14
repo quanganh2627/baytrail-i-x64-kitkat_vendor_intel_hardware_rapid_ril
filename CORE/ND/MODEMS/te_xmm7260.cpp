@@ -1137,3 +1137,8 @@ RIL_RESULT_CODE CTE_XMM7260::CreateDebugScreenReq(REQUEST_DATA& /*reqData*/,
 {
     return RIL_E_REQUEST_NOT_SUPPORTED;
 }
+
+const char* CTE_XMM7260::GetEnableFetchingString()
+{
+    return NULL;
+}

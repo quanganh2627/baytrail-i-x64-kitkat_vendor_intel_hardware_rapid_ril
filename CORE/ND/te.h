@@ -1206,6 +1206,8 @@ public:
     void SetImsRegistrationStatus(UINT32 uiRegStatus) { m_uiImsRegStatus = uiRegStatus; }
     bool IsImsRegistered() { return (m_uiImsRegStatus == IMS_REGISTERED); }
 
+    const char* GetEnableFetchingString();
+
 private:
     UINT32 m_uiModemType;
 

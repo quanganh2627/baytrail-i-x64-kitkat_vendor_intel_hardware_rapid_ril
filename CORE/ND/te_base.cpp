@@ -12324,3 +12324,8 @@ void CTEBase::ResetInternalStates()
     m_NetworkSelectionModeParams.mode = -1;
     m_NetworkSelectionModeParams.szOperatorNumeric[0] = '\0';
 }
+
+const char* CTEBase::GetEnableFetchingString()
+{
+    return NULL;
+}

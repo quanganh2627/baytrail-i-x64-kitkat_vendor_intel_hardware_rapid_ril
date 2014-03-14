@@ -7679,3 +7679,22 @@ RIL_RESULT_CODE CTE_XMM6260::CreateGetGprsCellEnvReq(REQUEST_DATA& reqData)
 
     return res;
 }
+
+const char* CTE_XMM6260::GetEnableFetchingString()
+{
+    /*
+     * STK is disabled by sending all bytes of terminal profile set to 0.
+     * This is already taken care as part of nvm configuration file. In order
+     * to get the EAP-SIM authentication working, rapid ril needs to enable
+     * proactive fetching. By sending AT+XSATK=1,0, proactive fetching is enabled
+     * but the STK URCs are disabled.
+     */
+
+     const char* pszEnableFetching = NULL;
+     if (!m_cte.IsStkCapable())
+     {
+        pszEnableFetching = "|+XSATK=1,0";
+     }
+
+    return pszEnableFetching;
+}

@@ -266,6 +266,8 @@ public:
             const char** ppszRequest, const UINT32 uiDataSize);
     RIL_RESULT_CODE ParseRegStatusAndBandInd(const char* pszRsp, RESPONSE_DATA& rspData);
 
+    virtual const char* GetEnableFetchingString();
+
 protected:
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);

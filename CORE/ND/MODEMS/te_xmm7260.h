@@ -94,6 +94,8 @@ public:
 
     virtual void SendModemDownToUsatSM();
 
+    virtual const char* GetEnableFetchingString();
+
 protected:
     virtual RIL_RESULT_CODE CreateGetGprsCellEnvReq(REQUEST_DATA& reqData);
     virtual RIL_RESULT_CODE CreateDebugScreenReq(REQUEST_DATA& reqData,

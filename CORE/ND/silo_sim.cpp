@@ -101,23 +101,12 @@ char* CSilo_SIM::GetURCInitString()
         }
     }
 
-    if (!m_pSystemCapabilities->IsStkCapable())
+    const char* pszTmp = CTE::GetTE().GetEnableFetchingString();
+    if (pszTmp != NULL)
     {
-        /*
-         * STK is disabled by sending all bytes of terminal profile set to 0.
-         * This is already taken care as part of nvm configuration file. In order
-         * to get the EAP-SIM authentication working, rapid ril needs to enable
-         * proactive fetching. By sending AT+XSATK=1,0, proactive fetching is enabled
-         * but the STK URCs are disabled.
-         */
-        if (!ConcatenateStringNullTerminate(m_szURCInitString,
-                sizeof(m_szURCInitString), "|+XSATK=1,0"))
-        {
-            RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to concat XSATK to URC "
-                    "init string!\r\n");
-            return NULL;
-        }
+        ConcatenateStringNullTerminate(m_szURCInitString, sizeof(m_szURCInitString), pszTmp);
     }
+
     return m_szURCInitString;
 }
 

@@ -10383,3 +10383,8 @@ RIL_RESULT_CODE CTE::ParseXCSG(const char* pszRsp, RESPONSE_DATA& rspData)
 {
     return m_pTEBaseInstance->ParseXCSG(pszRsp, rspData);
 }
+
+const char* CTE::GetEnableFetchingString()
+{
+    return m_pTEBaseInstance->GetEnableFetchingString();
+}

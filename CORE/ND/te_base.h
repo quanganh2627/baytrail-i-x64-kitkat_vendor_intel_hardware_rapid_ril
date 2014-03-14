@@ -1001,6 +1001,8 @@ public:
 
     void ResetInternalStates();
 
+    virtual const char* GetEnableFetchingString();
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);
 
