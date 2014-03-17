@@ -83,9 +83,6 @@ public:
     virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             void* pData, UINT32 uiDataSize);
 
-    // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
-    virtual RIL_RESULT_CODE CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
-            void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75

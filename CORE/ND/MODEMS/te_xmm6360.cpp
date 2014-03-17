@@ -808,6 +808,226 @@ RIL_RadioTechnology CTE_XMM6360::MapAccessTechnology(UINT32 uiStdAct, int regTyp
 }
 
 //
+// RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE
+//
+RIL_RESULT_CODE CTE_XMM6360::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
+        void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetPreferredNetworkType() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_PreferredNetworkType networkType = PREF_NET_TYPE_GSM_WCDMA; // 0
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetPreferredNetworkType() - Data "
+                "pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (uiDataSize != sizeof(int))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+                "Invalid data size.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+            "Network type {%d} from framework.\r\n", ((RIL_PreferredNetworkType*)pData)[0]);
+
+    networkType = (RIL_PreferredNetworkType) ((int*)pData)[0];
+
+    // if network type already set, NO-OP this command
+    if (m_currentNetworkType == networkType)
+    {
+        rReqData.szCmd1[0] = '\0';
+        res = RRIL_RESULT_OK_IMMEDIATE;
+        RIL_LOG_INFO("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+                "Network type {%d} already set.\r\n", networkType);
+        goto Error;
+    }
+
+    switch (networkType)
+    {
+        case PREF_NET_TYPE_GSM_WCDMA: // WCDMA Preferred
+        // This value is received as a result of the recovery mechanism in the framework even
+        // though not supported by modem.  In this case, set to supported default value of
+        // PREF_NET_TYPE_GSM_WCDMA.
+        case PREF_NET_TYPE_GSM_WCDMA_CDMA_EVDO_AUTO:
+            networkType = PREF_NET_TYPE_GSM_WCDMA;
+            RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+                    "WCDMA pref:XACT=3,1) - Enter\r\n");
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=3,1\r",
+                    sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::HandleNetworkType() - Can't "
+                        "construct szCmd1 networkType=%d\r\n", networkType);
+                break;
+            }
+            res = RRIL_RESULT_OK;
+            break;
+
+        case PREF_NET_TYPE_GSM_ONLY: // GSM Only
+            RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetPreferredNetworkType() -"
+                    "GSM only:XACT=0) - Enter\r\n");
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=0\r",
+                    sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::HandleNetworkType() - Can't "
+                        "construct szCmd1 networkType=%d\r\n", networkType);
+                break;
+            }
+            res = RRIL_RESULT_OK;
+            break;
+
+        case PREF_NET_TYPE_WCDMA: // WCDMA Only
+            RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+                    "WCDMA only:XACT=1) - Enter\r\n");
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=1\r",
+                    sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::HandleNetworkType() - Can't "
+                        "construct szCmd1 networkType=%d\r\n", networkType);
+                break;
+            }
+            res = RRIL_RESULT_OK;
+            break;
+
+        default:
+            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+                    "Undefined rat code: %d\r\n", networkType);
+            res = RIL_E_MODE_NOT_SUPPORTED;
+            goto Error;
+    }
+
+    //  Set the context of this command to the network type we're attempting to set
+    rReqData.pContextData = (void*)networkType;  // Store this as an int.
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetPreferredNetworkType() - Exit:%d\r\n", res);
+    return res;
+}
+
+// RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE
+//
+RIL_RESULT_CODE CTE_XMM6360::CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
+        void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreGetPreferredNetworkType() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT?\r",
+            sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreGetPreferredNetworkType() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6360::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseGetPreferredNetworkType() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+
+    UINT32 rat = 0;
+    UINT32 pref = 0;
+
+    int* pRat = (int*)malloc(sizeof(int));
+    if (NULL == pRat)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - Could "
+                "not allocate memory for response.\r\n");
+        goto Error;
+    }
+
+    // Skip "<prefix>"
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - Could "
+                "not skip response prefix.\r\n");
+        goto Error;
+    }
+
+    // Skip "+XACT: "
+    if (!SkipString(pszRsp, "+XACT: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - Could "
+                "not skip \"+XACT: \".\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt32(pszRsp, rat, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - Could "
+                "not extract rat value.\r\n");
+        goto Error;
+    }
+
+    if (FindAndSkipString(pszRsp, ",", pszRsp))
+    {
+        if (!ExtractUInt32(pszRsp, pref, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - "
+                    "Could not find and skip pref value even though it was expected.\r\n");
+            goto Error;
+        }
+    }
+
+    switch (rat)
+    {
+        case 0:     // GSM Only
+        {
+            pRat[0] = PREF_NET_TYPE_GSM_ONLY;
+            m_currentNetworkType = PREF_NET_TYPE_GSM_ONLY;
+            break;
+        }
+
+        case 1:     // WCDMA Only
+        {
+            pRat[0] = PREF_NET_TYPE_WCDMA;
+            m_currentNetworkType = PREF_NET_TYPE_WCDMA;
+            break;
+        }
+
+        case 3:     // WCDMA preferred
+        {
+            pRat[0] = PREF_NET_TYPE_GSM_WCDMA;
+            m_currentNetworkType = PREF_NET_TYPE_GSM_WCDMA;
+            break;
+        }
+
+        default:
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - "
+                    "Unexpected rat found: %d. Failing out.\r\n", rat);
+            goto Error;
+        }
+    }
+
+    rRspData.pData  = (void*)pRat;
+    rRspData.uiDataSize = sizeof(int*);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pRat);
+        pRat = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseGetPreferredNetworkType() - Exit\r\n");
+    return res;
+}
+
+//
 // Response to AT+CGPADDR=<CID>
 //
 RIL_RESULT_CODE CTE_XMM6360::ParseIpAddress(RESPONSE_DATA& rRspData)

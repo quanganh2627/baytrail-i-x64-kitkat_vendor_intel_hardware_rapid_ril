@@ -706,25 +706,6 @@ Error:
     return res;
 }
 
-// RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
-//
-RIL_RESULT_CODE CTE_XMM7160::CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
-        void* pData, UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGetPreferredNetworkType() - Enter\r\n");
-
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT?\r",
-            sizeof(rReqData.szCmd1)))
-    {
-        res = RRIL_RESULT_OK;
-    }
-
-    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGetPreferredNetworkType() - Exit\r\n");
-    return res;
-}
-
 RIL_RESULT_CODE CTE_XMM7160::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseGetPreferredNetworkType() - Enter\r\n");
