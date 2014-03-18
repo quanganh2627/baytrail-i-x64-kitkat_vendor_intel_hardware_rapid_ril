@@ -661,7 +661,7 @@ static void* mainLoop(void* param)
         goto Error;
     }
 
-    if ((cfg->mdms.nb < 1) || (simId >= cfg->mdms.nb))
+    if ((cfg->mdms.nb < 1) || (simId >= cfg->channels.nb))
     {
         RLOGE("%s - Wrong simID setting", __FUNCTION__);
         dwRet = 0;
@@ -669,7 +669,7 @@ static void* mainLoop(void* param)
     }
 
     // Make sure we can access Non-Volatile Memory
-    if (!CRepository::Init(cfg->mdms.mdm_info[simId].rril_txt))
+    if (!CRepository::Init(cfg->mdms.mdm_info[0].rril_txt))
     {
         RLOGE("%s - could not initialize configuration file", __func__);
 
@@ -700,7 +700,7 @@ static void* mainLoop(void* param)
     }
 
     // Create and start system manager
-    if (!CSystemManager::GetInstance().InitializeSystem(cfg->mdms.mdm_info[simId].name))
+    if (!CSystemManager::GetInstance().InitializeSystem(cfg->mdms.mdm_info[0].name))
     {
         RIL_LOG_CRITICAL("mainLoop() - RIL InitializeSystem() FAILED\r\n");
 
