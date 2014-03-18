@@ -1183,10 +1183,10 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+COPS=2\r", sizeof(rReqData.szCmd1)))
+    if (!GetSetInitialAttachApnReqData(rReqData))
     {
-        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - cannot copy deregister"
-                "command \r\n");
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - "
+                "GetSetInitialAttachApnReqData failed\r\n");
         goto Error;
     }
 
