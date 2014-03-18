@@ -963,8 +963,6 @@ public:
     virtual RIL_RESULT_CODE RestoreSavedNetworkSelectionMode(RIL_Token rilToken, UINT32 uiChannel,
             PFN_TE_PARSE pParseFcn = NULL, PFN_TE_POSTCMDHANDLER pHandlerFcn = NULL);
 
-    virtual void SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel);
-
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);
 

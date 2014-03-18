@@ -10063,7 +10063,7 @@ RIL_RESULT_CODE CTE::RequestSetInitialAttachApn(RIL_Token rilToken, void* pData,
         CCommand* pCmd = new CCommand(
                 g_pReqInfo[RIL_REQUEST_SET_INITIAL_ATTACH_APN].uiChannel,
                 rilToken, RIL_REQUEST_SET_INITIAL_ATTACH_APN, reqData,
-                &CTE::ParseDeregister, &CTE::PostDeregisterCmdHandler);
+                &CTE::ParseSetInitialAttachApn, &CTE::PostSetInitialAttachApnCmdHandler);
 
         if (pCmd)
         {
@@ -10094,27 +10094,6 @@ RIL_RESULT_CODE CTE::ParseSetInitialAttachApn(RESPONSE_DATA& rRspData)
     RIL_LOG_VERBOSE("CTE::ParseSetInitialAttachApn() - Enter / Exit\r\n");
     return m_pTEBaseInstance->ParseSetInitialAttachApn(rRspData);
 }
-
-RIL_RESULT_CODE CTE::ParseDeregister(RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseDeregister() - Enter / Exit\r\n");
-    return RRIL_RESULT_OK;
-}
-
-void CTE::PostDeregisterCmdHandler(POST_CMD_HANDLER_DATA& rData)
-{
-    RIL_LOG_VERBOSE("CTE::PostDeregisterCmdHandler() - Enter\r\n");
-
-    if (NULL == rData.pRilToken)
-    {
-        return;
-    }
-
-    m_pTEBaseInstance->SetInitialAttachApn(rData.pRilToken, 0);
-
-    RIL_LOG_VERBOSE("CTE::PostDeregisterCmdHandler() - Exit\r\n");
-}
-
 
 void CTE::PostSetInitialAttachApnCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
