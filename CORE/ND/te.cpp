@@ -8989,7 +8989,8 @@ void CTE::PostOperator(POST_CMD_HANDLER_DATA& rData)
             rData.uiResultCode = RIL_E_GENERIC_FAILURE;
     }
 
-    PostNetworkInfoCmdHandler(rData);
+    RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+            rData.pData, rData.uiDataSize);
 
     RIL_LOG_VERBOSE("CTE::PostOperator() Exit\r\n");
 }
