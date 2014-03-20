@@ -2220,6 +2220,23 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             }
             break;
 
+        case RIL_OEM_HOOK_STRING_GET_DVP_STATE:
+            if (CSystemManager::GetInstance().IsMultiSIM())
+            {
+                RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_GET_DVP_STATE");
+                if (!PrintStringNullTerminate(rReqData.szCmd1,
+                        sizeof(rReqData.szCmd1), "AT+XDVP?\r"))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - "
+                            "RIL_OEM_HOOK_STRING_GET_DVP_STATE - Can't construct szCmd1.\r\n");
+                    goto Error;
+                }
+                //  Send this command on OEM channel.
+                uiRilChannel = RIL_CHANNEL_OEM;
+                res = RRIL_RESULT_OK;
+            }
+            break;
+
         case RIL_OEM_HOOK_STRING_IMS_REGISTRATION:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_REGISTRATION");
             // Send this command on DLC2 channel
@@ -2367,6 +2384,10 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
 
         case RIL_OEM_HOOK_STRING_SEND_AT:
             res = HandleSendAtResponse(pszRsp, rRspData);
+            break;
+
+        case RIL_OEM_HOOK_STRING_GET_DVP_STATE:
+            res = ParseXDVP(pszRsp, rRspData);
             break;
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
         case RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS:
@@ -5136,6 +5157,61 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseXISRVCC() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseXDVP(const char* pszRsp, RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXDVP() - Enter\r\n");
+    const UINT32 DVP_CONFIG_MAX = 3;
+    UINT32 uiDVPConfig;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    P_ND_GET_DVP_RESPONSE pResponse = NULL;
+
+    // Parse prefix
+    if (!FindAndSkipString(pszRsp, "+XDVP: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXDVP() - Unable to parse \"+XDVP\" prefix.!\r\n");
+        goto Error;
+    }
+
+    // Parse <dvpConfig>
+    if (!ExtractUInt32(pszRsp, uiDVPConfig, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXDVP() - Unable to parse <dvpConfig>!\r\n");
+        goto Error;
+    }
+
+    // Check the upper boundary of the DVP config
+    if (uiDVPConfig > DVP_CONFIG_MAX) goto Error;
+
+    pResponse = (P_ND_GET_DVP_RESPONSE) malloc(sizeof(S_ND_GET_DVP_RESPONSE));
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseXDVP() - Could not allocate memory for response");
+        goto Error;
+    }
+    memset(pResponse, 0, sizeof(S_ND_GET_DVP_RESPONSE));
+
+    RIL_LOG_INFO("DVP Config: %u\r\n", uiDVPConfig);
+
+    snprintf(pResponse->szDVPConfig, sizeof(pResponse->szDVPConfig), "%u", uiDVPConfig);
+
+    pResponse->sResponsePointer.pszDVPConfig = pResponse->szDVPConfig;
+
+    rRspData.pData   = (void*)pResponse;
+    rRspData.uiDataSize  = sizeof(S_ND_GET_DVP_RESPONSE_PTR);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseXDVP() - Exit\r\n");
     return res;
 }
 

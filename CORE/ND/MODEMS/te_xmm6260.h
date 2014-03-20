@@ -326,6 +326,7 @@ private:
     RIL_RESULT_CODE ParseXRFCBT(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE ParseXISRVCC(const char* pszRsp, RESPONSE_DATA& rRspData);
     RIL_RESULT_CODE HandleSendAtResponse(const char* pszRsp, RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE ParseXDVP(const char* pszRsp, RESPONSE_DATA& rRspData);
     BOOL ParseXSIMSTATE(const char*& rszPointer);
     BOOL ParseXLOCK(const char*& rszPointer);
 };

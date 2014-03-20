@@ -289,6 +289,7 @@ typedef struct
 
 const UINT32 MAX_SMS_TRANSPORT_MODE_SIZE = 5;
 const UINT32 MAX_RF_POWER_CUTBACK_TABLE_SIZE = 15;
+const UINT32 MAX_DVP_CONFIG_SIZE = 2;
 
 typedef struct
 {
@@ -357,4 +358,17 @@ typedef struct
     char szSrvccPairs[MAX_BUFFER_SIZE];
 } S_ND_SRVCC_RESPONSE_VALUE, *P_ND_SRVCC_RESPONSE_VALUE;
 
+//
+// Structs for retrieving the DVP Config
+//
+typedef struct
+{
+    char* pszDVPConfig;
+} S_ND_GET_DVP_RESPONSE_PTR, *P_ND_GET_DVP_RESPONSE_PTR;
+
+typedef struct
+{
+    S_ND_GET_DVP_RESPONSE_PTR sResponsePointer;
+    char szDVPConfig[MAX_DVP_CONFIG_SIZE];
+} S_ND_GET_DVP_RESPONSE, *P_ND_GET_DVP_RESPONSE;
 #endif

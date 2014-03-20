@@ -395,6 +395,19 @@ const int RIL_OEM_HOOK_STRING_SIM_RESET = 0x000000B8;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_GET_DVP_STATE
+//  Command ID = 0x000000B9
+//
+//  This command sends AT+XDVP? to the modem.
+//
+//  "data" = NULL
+//  "response" = current DvP settings returned by AT command
+//
+const int RIL_OEM_HOOK_STRING_GET_DVP_STATE = 0x000000B9;
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID
