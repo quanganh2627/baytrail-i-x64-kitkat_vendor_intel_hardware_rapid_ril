@@ -2774,58 +2774,54 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         return RRIL_RESULT_OK;
     }
 
-    if (IsEPSRegistered())
+    pChannelData = CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
+    if (NULL != pChannelData)
     {
-        pChannelData = CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
+        int dataState = pChannelData->GetDataState();
+        RIL_LOG_INFO("CTE::RequestSetupDataCall() - dataState: %d\r\n", dataState);
 
-        if (NULL != pChannelData)
+        switch (dataState)
         {
-            int dataState = pChannelData->GetDataState();
-            RIL_LOG_INFO("CTE::RequestSetupDataCall() - dataState: %d\r\n", dataState);
-
-            switch (dataState)
-            {
-                case E_DATA_STATE_ACTIVE:
-                    if (pChannelData->IsApnEqual(((char**)pData)[2]))
+            case E_DATA_STATE_ACTIVE:
+                if (pChannelData->IsApnEqual(((char**)pData)[2]))
+                {
+                    CMutex::Lock(m_pDataChannelRefCountMutex);
+                    if (pChannelData->IsRoutingEnabled() && pChannelData->GetRefCount() > 0)
                     {
-                        CMutex::Lock(m_pDataChannelRefCountMutex);
-                        if (pChannelData->IsRoutingEnabled() && pChannelData->GetRefCount() > 0)
-                        {
-                            pChannelData->IncrementRefCount();
-                            CMutex::Unlock(m_pDataChannelRefCountMutex);
+                        pChannelData->IncrementRefCount();
+                        CMutex::Unlock(m_pDataChannelRefCountMutex);
 
-                            // Complete the setup data call request
-                            m_pTEBaseInstance->HandleSetupDataCallSuccess(m_uiDefaultPDNCid,
-                                    rilToken);
-                            res = RRIL_RESULT_OK;
-                        }
-                        else
-                        {
-                            CMutex::Unlock(m_pDataChannelRefCountMutex);
-                            res = m_pTEBaseInstance->HandleSetupDefaultPDN(rilToken, pChannelData);
-                        }
-
-                        if (RRIL_RESULT_OK == res)
-                        {
-                            /*
-                             * Provided APN matches with the default PDN APN. Interface bring
-                             * up is handled in modem specific classes.
-                             */
-                            return res;
-                        }
+                        // Complete the setup data call request
+                        m_pTEBaseInstance->HandleSetupDataCallSuccess(m_uiDefaultPDNCid,
+                                rilToken);
+                        res = RRIL_RESULT_OK;
                     }
-                    break;
+                    else
+                    {
+                        CMutex::Unlock(m_pDataChannelRefCountMutex);
+                        res = m_pTEBaseInstance->HandleSetupDefaultPDN(rilToken, pChannelData);
+                    }
 
-                case E_DATA_STATE_INITING:
-                    /*
-                     * TODO: Query default PDN context parameters. Currently,
-                     * default PDN context parameters reading is done on CGEV: ME PDN ACT.
-                     */
-                    break;
+                    if (RRIL_RESULT_OK == res)
+                    {
+                        /*
+                         * Provided APN matches with the default PDN APN. Interface bring
+                         * up is handled in modem specific classes.
+                         */
+                        return res;
+                    }
+                }
+                break;
 
-                default:
-                    break;
-            }
+            case E_DATA_STATE_INITING:
+                /*
+                 * TODO: Query default PDN context parameters. Currently,
+                 * default PDN context parameters reading is done on CGEV: ME PDN ACT.
+                 */
+                break;
+
+            default:
+                break;
         }
     }
 
