@@ -382,6 +382,19 @@ const int RIL_OEM_HOOK_STRING_IMS_SRVCC_PARAM = 0x000000B7;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_SIM_RESET
+//  Command ID = 0x000000B8
+//
+//  This command sends AT+CFUN=22,1 to the modem.
+//
+//  "data" = NULL
+//  "response" = Error code returned by AT command
+//
+const int RIL_OEM_HOOK_STRING_SIM_RESET = 0x000000B8;
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID

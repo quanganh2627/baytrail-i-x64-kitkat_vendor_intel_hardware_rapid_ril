@@ -2203,6 +2203,23 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                 break;
             }
 
+        case RIL_OEM_HOOK_STRING_SIM_RESET:
+            if (CSystemManager::GetInstance().IsMultiSIM())
+            {
+                RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_SIM_RESET");
+                if (!PrintStringNullTerminate(rReqData.szCmd1,
+                        sizeof(rReqData.szCmd1), "AT+CFUN=22,1\r"))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - "
+                            "RIL_OEM_HOOK_STRING_SIM_RESET - Can't construct szCmd1.\r\n");
+                    goto Error;
+                }
+                //  Send this command on OEM channel.
+                uiRilChannel = RIL_CHANNEL_OEM;
+                res = RRIL_RESULT_OK;
+            }
+            break;
+
         case RIL_OEM_HOOK_STRING_IMS_REGISTRATION:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_REGISTRATION");
             // Send this command on DLC2 channel
@@ -2362,6 +2379,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
         case RIL_OEM_HOOK_STRING_POWEROFF_MODEM:
         case RIL_OEM_HOOK_STRING_SWAP_PS:
+        case RIL_OEM_HOOK_STRING_SIM_RESET:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
             break;
