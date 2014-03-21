@@ -408,6 +408,21 @@ const int RIL_OEM_HOOK_STRING_GET_DVP_STATE = 0x000000B9;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_SET_DVP_ENABLED
+//  Command ID = 0x000000BA
+//
+//  This command sends AT+XDVP=<dvpConfig> to the modem.
+//
+//  "data" = 0 : DVP Disabled
+//           1 : Stationary mode
+//           2 : Mobility mode
+//           3 : Full mode
+//  "response" = NULL
+//
+const int RIL_OEM_HOOK_STRING_SET_DVP_ENABLED = 0x000000BA;
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID

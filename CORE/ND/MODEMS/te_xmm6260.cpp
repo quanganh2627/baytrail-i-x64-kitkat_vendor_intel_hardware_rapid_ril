@@ -2237,6 +2237,13 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             }
             break;
 
+        case RIL_OEM_HOOK_STRING_SET_DVP_ENABLED:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_DVP_ENABLED");
+            //  Send this command on OEM channel.
+            uiRilChannel = RIL_CHANNEL_OEM;
+            res = CreateSetDVPEnabledReq(rReqData, (const char**) pszRequest, uiDataSize);
+            break;
+
         case RIL_OEM_HOOK_STRING_IMS_REGISTRATION:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_REGISTRATION");
             // Send this command on DLC2 channel
@@ -2401,6 +2408,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_POWEROFF_MODEM:
         case RIL_OEM_HOOK_STRING_SWAP_PS:
         case RIL_OEM_HOOK_STRING_SIM_RESET:
+        case RIL_OEM_HOOK_STRING_SET_DVP_ENABLED:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
             break;
@@ -4670,6 +4678,56 @@ RIL_RESULT_CODE CTE_XMM6260::SetSrvccParams(REQUEST_DATA& rReqData, const char**
     res = RRIL_RESULT_OK;
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::SetSrvccParams() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::CreateSetDVPEnabledReq(REQUEST_DATA& rReqData,
+                                                    const char** ppszRequest,
+                                                    const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::CreateSetDVPEnabledReq() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int dvpConfig;
+
+    if (uiDataSize < (2 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetDVPEnabledReq() :"
+                " received_size < required_size\r\n");
+        goto Error;
+    }
+
+    if (ppszRequest == NULL || ppszRequest[1] == NULL || '\0' == ppszRequest[1][0])
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetDVPEnabledReq() - ppszRequest was NULL\r\n");
+        goto Error;
+    }
+
+    if (sscanf(ppszRequest[1], "%d", &dvpConfig) == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetDVPEnabledReq() -"
+                " cannot convert %s to int\r\n", ppszRequest);
+        goto Error;
+    }
+
+    if ((dvpConfig < 0) || (dvpConfig > 3))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetDVPEnabledReq() -"
+                " dvpConfig %s out of boundaries\r\n", dvpConfig);
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM6260::CreateSetDVPEnabledReq() - dvpConfig=[%d]\r\n", dvpConfig);
+
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+XDVP=%d\r", dvpConfig))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateSetDVPEnabledReq() - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::CreateSetDVPEnabledReq() - Exit\r\n");
     return res;
 }
 
