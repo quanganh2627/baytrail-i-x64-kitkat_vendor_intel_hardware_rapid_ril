@@ -1191,6 +1191,19 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
         pCallListData->pCallData[uinUsed].isMpty = uiValue;
         // END of mandatory arguments
 
+        // set previously stored CNAP parameters to the INCOMING call
+        if (pCallListData->pCallData[uinUsed].state == 4)
+        {
+            if (strlen(m_cte.GetCnapName()) != 0)
+            {
+                CopyStringNullTerminate(pCallListData->pCallNameBuffers[uinUsed],
+                        m_cte.GetCnapName(), MAX_CNAP_NAME_SIZE);
+                pCallListData->pCallData[uinUsed].name = pCallListData->pCallNameBuffers[uinUsed];
+            }
+
+            pCallListData->pCallData[uinUsed].namePresentation = m_cte.GetCnapCniValidity();
+        }
+
         if (uinArgPtrs >= 7)
         {
             // <number> and <type>
@@ -1205,12 +1218,6 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
                 {
                     // restrict name & number presentation
                     pCallListData->pCallData[uinUsed].numberPresentation = 1;
-                    pCallListData->pCallData[uinUsed].namePresentation = 1;
-                }
-                else
-                {
-                    // allow number presentation
-                    pCallListData->pCallData[uinUsed].numberPresentation = 0;
                 }
                 // Parse ",<type>"
                 if (ExtractUpperBoundedUInt32(aPtrArgs[6], 0x100, uiValue, pTmpPtr))
@@ -1225,39 +1232,6 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
             else
             {
                 RIL_LOG_VERBOSE("\t<Number><type>=No value found\r\n");
-            }
-        }
-        if (uinArgPtrs >= 8)
-        {
-            // <alpha>
-            char szDescription[MAX_BUFFER_SIZE];
-            if (ExtractQuotedString(aPtrArgs[7], szDescription, MAX_BUFFER_SIZE, pTmpPtr))
-            {
-                int i;
-                // Copying byte by byte...
-                for (i = 0;
-                     i < MAX_BUFFER_SIZE && szDescription[i];
-                     pCallListData->pCallNameBuffers[uinUsed][i] =
-                             (char) szDescription[i], ++i);
-
-                if (i < MAX_BUFFER_SIZE)
-                {
-                    pCallListData->pCallNameBuffers[uinUsed][i] = '\0';
-                }
-                else
-                {
-                    pCallListData->pCallNameBuffers[uinUsed][MAX_BUFFER_SIZE - 1] = '\0';
-                    RIL_LOG_WARNING("CTEBase::ParseGetCurrentCalls() - "
-                            "WARNING: Buffer overflow in name buffer\r\n");
-                }
-
-                 pCallListData->pCallData[uinUsed].name =
-                         pCallListData->pCallNameBuffers[uinUsed];
-                 pCallListData->pCallData[uinUsed].namePresentation = 0;
-            }
-            else
-            {
-                RIL_LOG_VERBOSE("\t<Description>=No value found\r\n");
             }
         }
         if (uinArgPtrs >= 9)

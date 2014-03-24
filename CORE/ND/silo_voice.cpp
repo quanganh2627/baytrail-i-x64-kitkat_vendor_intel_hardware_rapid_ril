@@ -58,6 +58,7 @@ CSilo_Voice::CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "NO CTM CALL"   , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCTMCall },
         { "WAITING CALL CTM" , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseWaitingCallCTM },
         { "+XUCCI: ", (PFN_ATRSP_PARSE)&CSilo_Voice::ParseXUCCI },
+        { "+CNAP: ", (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCNAP },
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
         // Handle Call failed cause unsolicited notification here
         { "+XCEER: " , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallFailedCause },
@@ -100,7 +101,7 @@ char* CSilo_Voice::GetURCInitString()
     // voice silo-related URC channel basic init string
     if (m_pSystemCapabilities->IsVoiceCapable())
     {
-        const char szVoiceURCInitString[] = "+XCALLSTAT=1|+CSSN=1,1";
+        const char szVoiceURCInitString[] = "+XCALLSTAT=1|+CSSN=1,1|+CNAP=1";
 
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
                 sizeof(m_szURCInitString), szVoiceURCInitString))
@@ -339,6 +340,7 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
 
         case E_CALL_STATUS_DISCONNECTED:
             m_uiCallId = 0;
+            CTE::GetTE().ResetCnapParameters();
             CTE::GetTE().SetIncomingCallStatus(0, uiStat);
             // set the flag to clear all pending chld requests
             CTE::GetTE().SetClearPendingCHLDs(TRUE);
@@ -1372,4 +1374,60 @@ end:
     }
     RIL_LOG_VERBOSE("CSilo_Voice::ParseXUCCI() - Exit\r\n");
     return fRet;
+}
+
+BOOL CSilo_Voice::ParseCNAP(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCNAP() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    char szName[MAX_CNAP_NAME_SIZE] = {'\0'};
+    UINT32 uiCniValidity = 2;
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCNAP() : pResponse was NULL\r\n");
+        goto Exit;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+
+    // Extract <name>
+    ExtractQuotedString(rszPointer, szName, MAX_CNAP_NAME_SIZE, rszPointer);
+
+    // Extract <CNI validity>, optional
+    if (FindAndSkipString(rszPointer, ",", rszPointer))
+    {
+        if (!ExtractUInt32(rszPointer, uiCniValidity, rszPointer))
+        {
+            RIL_LOG_CRITICAL("CSilo_Voice::ParseCNAP() : Could not extract uiCniValidity\r\n");
+            goto Exit;
+        }
+    }
+
+    // <CNI validity>:
+    //    0 CNI valid
+    //    1 CNI has been withheld by the originator
+    //    2 CNI is not available due to interworking problems or limitations of originating
+    //      network
+    if (uiCniValidity > 2)
+    {
+        CTE::GetTE().SetCnapCniValidity(2);
+    }
+    else
+    {
+        CTE::GetTE().SetCnapCniValidity(uiCniValidity);
+    }
+
+    CTE::GetTE().SetCnapName(szName);
+
+    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+
+    bRet = TRUE;
+
+Exit:
+
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCNAP() - Exit\r\n");
+    return bRet;
+
 }

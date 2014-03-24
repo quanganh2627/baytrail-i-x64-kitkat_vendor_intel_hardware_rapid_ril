@@ -24,7 +24,7 @@ typedef struct
     RIL_Call*           pCallPointers      [RRIL_MAX_CALL_ID_COUNT];
     RIL_Call            pCallData          [RRIL_MAX_CALL_ID_COUNT];
     char                pCallNumberBuffers [RRIL_MAX_CALL_ID_COUNT][MAX_BUFFER_SIZE];
-    char                pCallNameBuffers   [RRIL_MAX_CALL_ID_COUNT][MAX_BUFFER_SIZE];
+    char                pCallNameBuffers   [RRIL_MAX_CALL_ID_COUNT][MAX_CNAP_NAME_SIZE];
 } S_ND_CALL_LIST_DATA, *P_ND_CALL_LIST_DATA;
 
 

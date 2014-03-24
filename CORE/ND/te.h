@@ -781,6 +781,14 @@ public:
 
     CEvent* GetRadioStateChangedEvent() { return m_pRadioStateChangedEvent; }
 
+    UINT32 GetCnapCniValidity() { return m_uiCnapCniValidity; }
+    void SetCnapCniValidity(UINT32 uiValidity) { m_uiCnapCniValidity = uiValidity; }
+
+    char* GetCnapName() { return m_szCnapName; }
+    void SetCnapName(const char* pszName);
+
+    void ResetCnapParameters();
+
     // Resets all the internal states to default values
     void ResetInternalStates();
 
@@ -1354,6 +1362,9 @@ private:
 
     BOOL m_bTempOoSNotifReporting;
     CMutex* m_pDataChannelRefCountMutex;
+
+    UINT32 m_uiCnapCniValidity;
+    char m_szCnapName[MAX_CNAP_NAME_SIZE];
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
     void FreeCardStatusPointers(RIL_CardStatus_v6& cardStatus);
