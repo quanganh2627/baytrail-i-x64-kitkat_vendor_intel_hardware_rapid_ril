@@ -105,6 +105,12 @@ char* CTE_XMM7160::GetUnlockInitCommands(UINT32 uiChannelType)
                 (bConformance || (uiEnableCipheringInd != 0)) ? "|+XUCCI=1" : "|+XUCCI=0");
     }
 
+    if (RIL_CHANNEL_DLC6 == uiChannelType)
+    {
+        // Enabling ETWS
+        ConcatenateStringNullTerminate(szInitCmd, sizeof(szInitCmd), GetEnablingEtwsString());
+    }
+
     RIL_LOG_VERBOSE("CTE_XMM7160::GetUnlockInitCommands() - Exit\r\n");
     return strndup(szInitCmd, strlen(szInitCmd));
 }
@@ -165,6 +171,11 @@ const char* CTE_XMM7160::GetScreenOffString()
 const char* CTE_XMM7160::GetSignalStrengthReportingString()
 {
     return "+XCESQ=1";
+}
+
+const char* CTE_XMM7160::GetEnablingEtwsString()
+{
+    return "|+XETWCFG=1,1,0,0";
 }
 
 //
@@ -2438,4 +2449,745 @@ RIL_RESULT_CODE CTE_XMM7160::ParseXTSM(const char* pszRsp, RESPONSE_DATA& rspDat
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseXTSM() - Enter/Exit\r\n");
     return RRIL_RESULT_OK;
+}
+
+//
+// Creates 2 vector lists, one for Etws msg Ids and one for Cmas msgIds
+//
+RIL_RESULT_CODE CTE_XMM7160::FilterSmsCbFromConfig(RIL_GSM_BroadcastSmsConfigInfo** ppConfigInfo,
+        const UINT32 uiDataSize,
+        android::Vector<RIL_GSM_BroadcastSmsConfigInfo>& vBroadcastSmsConfigInfo,
+        CCbsInfo::CbmIds* pConfigIds)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::FilterSmsCbFromConfig() - Enter \r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    int nConfigInfos = 0;
+    RIL_GSM_BroadcastSmsConfigInfo selectedConfigInfo;
+
+    nConfigInfos = uiDataSize / sizeof(RIL_GSM_BroadcastSmsConfigInfo**);
+
+    RIL_LOG_INFO("CTE_XMM7160::FilterSmsCbFromConfig() - "
+            "nConfigInfos = %d.\r\n", nConfigInfos);
+
+    pConfigIds->cmasIds = 0;
+    pConfigIds->etwsIds = 0;
+
+    // Builds a list of SMS CB ranges and a list of Etws ranges
+    for (int i = 0; i < nConfigInfos; i++)
+    {
+        RIL_LOG_VERBOSE("CTE_XMM7160::FilterSmsCbFromConfig() - "
+                "CHECK msg Ids Range[%d-%d]\r\n",
+                ppConfigInfo[i]->fromServiceId, ppConfigInfo[i]->toServiceId);
+
+        if (ppConfigInfo[i]->selected == false)
+        {
+            RIL_LOG_WARNING("CTE_XMM7160::FilterSmsCbFromConfig() - "
+                    "Range not selected skipping...\r\n");
+            continue;
+        }
+
+        // Check that given range intersects with ETWS dedicated range [ETWS_FIRST, ETWS_LAST]
+        if ((CCbsInfo::ETWS_LAST >= ppConfigInfo[i]->fromServiceId) &&
+                (CCbsInfo::ETWS_FIRST <= ppConfigInfo[i]->toServiceId))
+        {
+            // There are some ETWS ids in the given range
+            RIL_LOG_VERBOSE("CTE_XMM7160::FilterSmsCbFromConfig() - "
+                    "Contains ETWS Ids\r\n");
+
+            //===<from>===<ETWS_FIRST>====<to>=======<ETWS_LAST>====
+            //===<from>===<ETWS_FIRST>====<ETWS_LAST>===<to>========
+            //===<ETWS_FIRST>===<from>====<ETWS_LAST>===<to>========
+            //===<ETWS_FIRST>===<from>====<to>=========<ETWS_LAST>==
+            if (ppConfigInfo[i]->fromServiceId < CCbsInfo::ETWS_FIRST)
+            {
+                // Need to create a SMS CB range [<from>,<ETWS_FIRST>]
+                selectedConfigInfo = *ppConfigInfo[i];
+                selectedConfigInfo.toServiceId = CCbsInfo::ETWS_FIRST-1;
+                pConfigIds->cmasIds += m_CbsInfo.GetNumberOfIdsFromRange(
+                        selectedConfigInfo.fromServiceId,
+                        selectedConfigInfo.toServiceId);
+                vBroadcastSmsConfigInfo.push_back(selectedConfigInfo);
+                if (ppConfigInfo[i]->toServiceId <= CCbsInfo::ETWS_LAST)
+                {
+                    // Need to create an ETWS range [<ETWS_FIRST>,<to>]
+                    selectedConfigInfo = *ppConfigInfo[i];
+                    selectedConfigInfo.fromServiceId = CCbsInfo::ETWS_FIRST;
+                    pConfigIds->etwsIds += m_CbsInfo.GetNumberOfIdsFromRange(
+                            selectedConfigInfo.fromServiceId,
+                            selectedConfigInfo.toServiceId);
+                    m_CbsInfo.m_vBroadcastEtwSmsConfigInfo.push_back(selectedConfigInfo);
+                }
+                else // ppConfigInfo[i]->toServiceId > CCbsInfo::ETWS_LAST
+                {
+                    // Need to create one ETWS range [<ETWS_FIRST>,<ETWS_LAST>]
+                    selectedConfigInfo = *ppConfigInfo[i];
+                    selectedConfigInfo.fromServiceId = CCbsInfo::ETWS_FIRST;
+                    selectedConfigInfo.toServiceId = CCbsInfo::ETWS_LAST;
+                    pConfigIds->etwsIds += m_CbsInfo.GetNumberOfIdsFromRange(
+                            selectedConfigInfo.fromServiceId,
+                            selectedConfigInfo.toServiceId);
+                    m_CbsInfo.m_vBroadcastEtwSmsConfigInfo.push_back(selectedConfigInfo);
+                    // Need to create one SMS CB range [<ETWS_LAST>+1,<to>]
+                    selectedConfigInfo = *ppConfigInfo[i];
+                    selectedConfigInfo.fromServiceId = CCbsInfo::ETWS_LAST + 1;
+                    pConfigIds->cmasIds += m_CbsInfo.GetNumberOfIdsFromRange(
+                            selectedConfigInfo.fromServiceId,
+                            selectedConfigInfo.toServiceId);
+                    vBroadcastSmsConfigInfo.push_back(selectedConfigInfo);
+                }
+            }
+            else if (ppConfigInfo[i]->toServiceId <= CCbsInfo::ETWS_LAST)
+            {
+                // Need to create one ETWS range [<from>,<to>]
+                pConfigIds->etwsIds += m_CbsInfo.GetNumberOfIdsFromRange(
+                        ppConfigInfo[i]->fromServiceId,
+                        ppConfigInfo[i]->toServiceId);
+                m_CbsInfo.m_vBroadcastEtwSmsConfigInfo.push_back(*ppConfigInfo[i]);
+            }
+            else // ppConfigInfo[i]->toServiceId > ETWS_LAST
+            {
+                // Need to create one ETWS range [<from>,<ETWS_LAST>]
+                selectedConfigInfo = *ppConfigInfo[i];
+                selectedConfigInfo.toServiceId = CCbsInfo::ETWS_LAST;
+                pConfigIds->etwsIds += m_CbsInfo.GetNumberOfIdsFromRange(
+                        selectedConfigInfo.fromServiceId,
+                        selectedConfigInfo.toServiceId);
+                m_CbsInfo.m_vBroadcastEtwSmsConfigInfo.push_back(selectedConfigInfo);
+                // Need to create an SMS CB range [<ETWS_LAST>+1,<to>]
+                selectedConfigInfo = *ppConfigInfo[i];
+                selectedConfigInfo.fromServiceId = CCbsInfo::ETWS_LAST + 1;
+                pConfigIds->cmasIds += m_CbsInfo.GetNumberOfIdsFromRange(
+                        selectedConfigInfo.fromServiceId,
+                        selectedConfigInfo.toServiceId);
+                vBroadcastSmsConfigInfo.push_back(selectedConfigInfo);
+            }
+        }
+        else
+        {
+            RIL_LOG_VERBOSE("CTE_XMM7160::FilterSmsCbFromConfig() - "
+                                "Contains SMS CB Range, Current:%d\r\n", pConfigIds->cmasIds);
+
+            pConfigIds->cmasIds += m_CbsInfo.GetNumberOfIdsFromRange(ppConfigInfo[i]->fromServiceId,
+                    ppConfigInfo[i]->toServiceId);
+
+            vBroadcastSmsConfigInfo.push_back(*(ppConfigInfo[i]));
+        }
+    }
+
+    return res;
+}
+
+//
+// RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG 90
+//
+RIL_RESULT_CODE CTE_XMM7160::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA& reqData,
+                                                                 void* pData,
+                                                                 UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() - Enter \r\n");
+
+    int nConfigInfos = 0;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    android::Vector<CCbsInfo::IdRange>::const_iterator smsRange;
+    CCbsInfo::CbmIds configIds = {0,0};
+    android::Vector<RIL_GSM_BroadcastSmsConfigInfo> vBroadcastSmsConfigInfo;
+    android::Vector<RIL_GSM_BroadcastSmsConfigInfo>::const_iterator selectedConfigInfo;
+    bool bSkip = false;
+    RIL_GSM_BroadcastSmsConfigInfo** ppConfigInfo = (RIL_GSM_BroadcastSmsConfigInfo**)pData;
+
+    m_vBroadcastSmsConfigInfo.clear();
+    m_CbsInfo.m_vBroadcastEtwSmsConfigInfo.clear();
+
+    if ((uiDataSize != 0) && ((uiDataSize % sizeof(RIL_GSM_BroadcastSmsConfigInfo**)) != 0 ))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() -"
+                " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    if (uiDataSize != 0 && pData == NULL)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() -"
+                " Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+
+    vBroadcastSmsConfigInfo.clear();
+    // Filters Etws from Cmas msg ranges, number of config Ids is also calculated (configIds)
+    FilterSmsCbFromConfig(ppConfigInfo, uiDataSize, vBroadcastSmsConfigInfo, &configIds);
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() - "
+            "Configuring %d SMS CB (Activated:%d) and %d ETWS message Ids\r\n",
+            configIds.cmasIds, m_CbsInfo.m_activatedIds.cmasIds, configIds.etwsIds);
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() - "
+                "SmsCb/Cmas Ranges in config list:%d\r\n",
+                vBroadcastSmsConfigInfo.size());
+
+    // If number of activated and newly configured ids are different,
+    // then a new config needs to be setup.
+    bSkip = (m_CbsInfo.m_activatedIds.cmasIds != configIds.cmasIds);
+
+    // Post process to check if new SMS CB/Cmas ranges intersect with activated ones
+    for (selectedConfigInfo = vBroadcastSmsConfigInfo.begin();
+            selectedConfigInfo != vBroadcastSmsConfigInfo.end();
+            selectedConfigInfo++)
+    {
+        int msgIds = 0;
+
+        RIL_LOG_INFO("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() - "
+                "Analysing Range [%d,%d]\r\n",
+                selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId);
+
+        // Prepare new range list
+        m_vBroadcastSmsConfigInfo.push_back(*selectedConfigInfo);
+
+        // A range has not been found
+        if (bSkip)
+        {
+            // At least one difference causes to activate all configured Ids.
+            continue;
+        }
+
+        // Checking each current range Id against activated ones
+        for (msgIds = selectedConfigInfo->fromServiceId;
+                msgIds <= selectedConfigInfo->toServiceId; msgIds++)
+        {
+            // Verify if an activated range contains the current msg Id
+            bool bFound = false;
+            for (smsRange = m_CbsInfo.m_vActivatedBroadcastSms.begin();
+                    smsRange != m_CbsInfo.m_vActivatedBroadcastSms.end();
+                    smsRange++)
+            {
+                if ((msgIds >= smsRange->minVal) &&
+                        (msgIds <= smsRange->maxVal))
+                {
+                    // Current msg Id is already activated
+                    bFound = true;
+                    break;
+                }
+            }
+
+            // Check if msgId was found in activated ranges
+            if (bFound == false)
+            {
+                // Not found then msg id needs to be activated
+                break;
+            }
+        }
+
+        // Check if at least one msd ID was not found
+        if (msgIds <= selectedConfigInfo->toServiceId)
+        {
+            RIL_LOG_INFO("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() - "
+                    "A MSG ID NOT FOUND in [%d-%d]\r\n",
+                    selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId);
+            bSkip = true;
+        }
+        else
+        {
+            RIL_LOG_INFO("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() - "
+                    "All MSG IDs FOUND in [%d-%d]\r\n",
+                    selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId);
+        }
+    }
+
+    // All given ranges were found so no need to activate them
+    if (bSkip == false)
+    {
+        RIL_LOG_INFO("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() - "
+                "All SMS CB/Cmas ranges already activated.\r\n");
+        m_vBroadcastSmsConfigInfo.clear();
+    }
+
+    // Only ETWS Test Id can be enabled or not through Android UI,
+    // So just checking number of ETWS activated Ids should be enough
+    if (configIds.etwsIds == m_CbsInfo.m_activatedIds.etwsIds)
+    {
+        RIL_LOG_INFO("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() - "
+                "All ETWS ranges already activated.\r\n");
+        m_CbsInfo.m_vBroadcastEtwSmsConfigInfo.clear();
+    }
+    else
+    {
+        RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() - "
+                "New list of ETWS ranges Length:%u, %d Ids\r\n",
+                m_CbsInfo.m_vBroadcastEtwSmsConfigInfo.size(), configIds.etwsIds);
+        // Reset activated ETWS info
+        m_CbsInfo.m_activatedIds.etwsIds = 0;
+        m_CbsInfo.m_bEtwSmsTestActivated = false;
+    }
+
+    if (m_vBroadcastSmsConfigInfo.empty())
+    {
+        RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() -"
+                " m_vBroadcastSmsConfigInfo empty.\r\n");
+    }
+    else
+    {
+        RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() - "
+                "New list of Sms CB ranges Length:%u, %d Ids\r\n",
+                m_vBroadcastSmsConfigInfo.size(), configIds.cmasIds);
+        // Reset activated Sms Cb info
+        m_CbsInfo.m_vActivatedBroadcastSms.clear();
+        m_CbsInfo.m_activatedIds.cmasIds = 0;
+    }
+
+    res = RRIL_RESULT_OK_IMMEDIATE;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSetBroadcastSmsConfig() - Exit - res=%d\r\n", res);
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGsmSetBroadcastSmsConfig() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGsmSetBroadcastSmsConfig() - Exit\r\n");
+    return res;
+}
+
+//
+// RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION 91
+//
+RIL_RESULT_CODE CTE_XMM7160::CoreGsmSmsBroadcastActivation(REQUEST_DATA& reqData,
+                                                                  void* pData,
+                                                                  UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int fBcActivate = 0;
+    char szTmpReqData[MAX_BUFFER_SIZE] = {0};
+    size_t uiEtwsReqLen = 0;
+    char* pszEtwsRequest = NULL;
+    char* pszSmsCbRequest = NULL;
+
+    if (sizeof(int) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreGsmSmsBroadcastActivation() -"
+                " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
+        goto Error;
+    }
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreGsmSmsBroadcastActivation() -"
+                " Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+
+    fBcActivate = *((int*)pData);
+    RIL_LOG_INFO("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - fBcActivate=[%d]\r\n",
+            fBcActivate);
+
+    if (fBcActivate > 0)
+    {
+        // DEACTIVATE
+        // This command deactivates all channels with all code schemes.
+        RIL_LOG_INFO("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - "
+                "DEACTIVATE SMS-CB and TWS WARNINGS\r\n");
+        if (CopyStringNullTerminate(reqData.szCmd1, "AT+CSCB=0;+XETWNTFYSTOP=255\r",
+                sizeof(reqData.szCmd1)))
+        {
+            // Reset activated info
+            m_CbsInfo.Clean();
+            res = RRIL_RESULT_OK;
+        }
+    }
+    else
+    {
+        pszEtwsRequest = szTmpReqData;
+        // Check ETWS activation request
+        if (CreateEtwSmsRequest(pszEtwsRequest, sizeof(szTmpReqData)) != RRIL_RESULT_OK)
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - "
+                    "Error creating ETWS request\r\n");
+            goto Error;
+        }
+
+        uiEtwsReqLen = strlen(szTmpReqData);
+
+        RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - "
+                "ETWS activation request Len:%u\r\n", uiEtwsReqLen);
+
+        if (uiEtwsReqLen > 0)
+        {
+            RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - "
+                    "ETWS activation request:%s\r\n", szTmpReqData);
+
+            if (!ConcatenateStringNullTerminate(reqData.szCmd1,
+                    sizeof(reqData.szCmd1), szTmpReqData))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - "
+                        "Cannot append ETWS activation request to global request\r\n");
+                goto Error;
+            }
+        }
+
+        szTmpReqData[0] = '\0';
+
+        pszSmsCbRequest = szTmpReqData;
+        // Check SMS Cell Broadcast activation request
+        if (CreateSmsCbRequest(pszSmsCbRequest, sizeof(szTmpReqData)) != RRIL_RESULT_OK)
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - "
+                    "Error creating SMS CB request\r\n");
+            goto Error;
+        }
+
+        if (strlen(szTmpReqData) > 0)
+        {
+            // Some Sms Cb/Cmas msg ids need to be activated
+            RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - "
+                    "Sms Cb/Cmas activation request:%s\r\n", szTmpReqData);
+
+            if (uiEtwsReqLen > 0)
+            {
+                // Append the +CSCB to the command string, separator is ';'
+                if (!PrintStringNullTerminate(reqData.szCmd1 + uiEtwsReqLen,
+                        sizeof(reqData.szCmd1) - uiEtwsReqLen,
+                        ";%s", szTmpReqData))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - "
+                            "Cannot append SMS CB request\r\n");
+                    goto Error;
+                }
+            }
+            else
+            {
+                // Create the +CSCB command string, prefix is 'AT'
+                if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+                        "AT%s", szTmpReqData))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - "
+                            "Cannot copy SMS CB request\r\n");
+                    goto Error;
+                }
+            }
+        }
+
+        // Add multiple commands termination character: <CR>
+        if (strlen(reqData.szCmd1) > 0)
+        {
+            if (!ConcatenateStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1), "\r"))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - "
+                        "Cannot add <cr> after command\r\n");
+                goto Error;
+            }
+        }
+
+        res = RRIL_RESULT_OK;
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGsmSmsBroadcastActivation() - Exit - res:%d\r\n", res);
+    return res;
+}
+
+//
+// Builds an ETWS activation request.
+// An +XETWNTFYSTOP command is called to reset configuration prior to +XETWNTFYSTART activation
+// command.
+//
+RIL_RESULT_CODE CTE_XMM7160::CreateEtwSmsRequest(char*& reqData, UINT32 uiReqSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    UINT32 uiRanges = 0;
+    android::Vector<RIL_GSM_BroadcastSmsConfigInfo>::const_iterator selectedConfigInfo;
+    char szTwsWarnings[MAX_BUFFER_SIZE] = {0};
+    char szReqETWSTest[MAX_BUFFER_SIZE] = {0};
+    int testRequest = 0;
+
+    // Loop on ETWS configured ranges
+    for (selectedConfigInfo = m_CbsInfo.m_vBroadcastEtwSmsConfigInfo.begin();
+            selectedConfigInfo != m_CbsInfo.m_vBroadcastEtwSmsConfigInfo.end();
+            selectedConfigInfo++)
+    {
+        RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
+                "Checking ETWS Range [%d,%d]\r\n",
+                selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId);
+
+        if ((selectedConfigInfo->fromServiceId <= CCbsInfo::ETWS_TEST) &&
+                (selectedConfigInfo->toServiceId >= CCbsInfo::ETWS_TEST))
+        {
+            // Build TEST Request
+            if (!PrintStringNullTerminate(szReqETWSTest, sizeof(szReqETWSTest),
+                    ";+XETWNTFYSTART=6,1,%u,%u", CCbsInfo::ETWS_TEST, CCbsInfo::ETWS_TEST))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
+                                "Cannot create +XETWNTFYSTART TEST request\r\n");
+                goto Error;
+            }
+
+            RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
+                    "Adding ETWS TEST range [%u,%u]\r\n",
+                    CCbsInfo::ETWS_TEST, CCbsInfo::ETWS_TEST);
+
+            testRequest++;
+            m_CbsInfo.m_activatedIds.etwsIds++;
+
+            // Need to extract non-test msg Ids
+            if (selectedConfigInfo->fromServiceId < CCbsInfo::ETWS_TEST)
+            {
+                if (!PrintStringNullTerminate(szTwsWarnings + strlen(szTwsWarnings),
+                        sizeof(szTwsWarnings) - strlen(szTwsWarnings), ",%u,%u",
+                        selectedConfigInfo->fromServiceId, CCbsInfo::ETWS_TEST - 1))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
+                            "Unable to create string with TWS [%d,%u] ids range\r\n",
+                            selectedConfigInfo->fromServiceId, CCbsInfo::ETWS_TEST - 1);
+                    goto Error;
+                }
+                uiRanges++;
+                m_CbsInfo.m_activatedIds.etwsIds +=
+                        m_CbsInfo.GetNumberOfIdsFromRange(selectedConfigInfo->fromServiceId,
+                                CCbsInfo::ETWS_TEST - 1);
+                RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
+                        "Adding ETWS test range [%d,%u]\r\n",
+                        selectedConfigInfo->fromServiceId, CCbsInfo::ETWS_TEST - 1);
+            }
+
+            if (selectedConfigInfo->toServiceId > CCbsInfo::ETWS_TEST)
+            {
+                if (!PrintStringNullTerminate(szTwsWarnings + strlen(szTwsWarnings),
+                        sizeof(szTwsWarnings) - strlen(szTwsWarnings), ",%u,%d",
+                        CCbsInfo::ETWS_TEST + 1, selectedConfigInfo->toServiceId))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
+                            "Unable to create string with TWS [%u,%d] ids range\r\n",
+                            CCbsInfo::ETWS_TEST + 1, selectedConfigInfo->toServiceId);
+                    goto Error;
+                }
+                uiRanges++;
+                m_CbsInfo.m_activatedIds.etwsIds +=
+                        m_CbsInfo.GetNumberOfIdsFromRange(CCbsInfo::ETWS_TEST + 1,
+                        selectedConfigInfo->toServiceId);
+                RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
+                        "Adding ETWS test range [%u,%d]\r\n",
+                        CCbsInfo::ETWS_TEST + 1, selectedConfigInfo->toServiceId);
+            }
+        }
+        else
+        {
+            // Builds 'regular' ETWS range
+            if (!PrintStringNullTerminate(szTwsWarnings + strlen(szTwsWarnings),
+                    sizeof(szTwsWarnings) - strlen(szTwsWarnings), ",%u,%u",
+                    selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
+                        "Unable to create string with TWS [%d,%d] ids range\r\n",
+                        selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId);
+                goto Error;
+            }
+
+            RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
+                    "Adding ETWS range [%d,%d]\r\n",
+                    selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId);
+
+            uiRanges++;
+            m_CbsInfo.m_activatedIds.etwsIds +=
+                    m_CbsInfo.GetNumberOfIdsFromRange(selectedConfigInfo->fromServiceId,
+                    selectedConfigInfo->toServiceId);
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
+                        "Added %u ETWS Ranges and %d Test range\r\n",
+                        uiRanges, testRequest);
+
+    // First, buid ETWS stop request if needed
+    if ((testRequest > 0) || (uiRanges > 0))
+    {
+        // ETWS ranges will be activated, so the stop request is prepared
+        if (!CopyStringNullTerminate(reqData, "AT+XETWNTFYSTOP=255", uiReqSize))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
+                    "Cannot create AT+XETWNTFYSTOP request\r\n");
+            goto Error;
+        }
+    }
+
+    // Then, check and append ETWS test range to request
+    if (testRequest > 0)
+    {
+        if (!ConcatenateStringNullTerminate(reqData, uiReqSize, szReqETWSTest))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
+                            "Cannot create ETWS TEST request\r\n");
+            goto Error;
+        }
+        m_CbsInfo.m_bEtwSmsTestActivated = true;
+    }
+
+    // Finally, check ETWS ranges
+    if (uiRanges > 0)
+    {
+        size_t uiRequestLen = strlen(reqData);
+        // Prepare ETWS activation request
+        if (!PrintStringNullTerminate(reqData + uiRequestLen,
+                uiReqSize - uiRequestLen, ";+XETWNTFYSTART=5,%u", uiRanges))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
+                    "Unable to prepare ETWS activation request with %u ranges\r\n",
+                    uiRanges);
+            goto Error;
+        }
+
+        // Append ETWS ranges to ETWS activation request
+        if (!ConcatenateStringNullTerminate(reqData, uiReqSize, szTwsWarnings))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
+                            "Cannot create ETWS request\r\n");
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (res != RRIL_RESULT_OK)
+    {
+        m_CbsInfo.m_activatedIds.etwsIds = 0;
+        m_CbsInfo.m_bEtwSmsTestActivated = false;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - Exit - res:%d\r\n", res);
+    return res;
+}
+
+//
+// Builds an activation request for Sms Cb/Cmas msg ids.
+//
+RIL_RESULT_CODE CTE_XMM7160::CreateSmsCbRequest(char*& reqData, UINT32 uiReqSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateSMSCBRequest() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    UINT32 uiRanges = 0;
+    android::Vector<RIL_GSM_BroadcastSmsConfigInfo>::const_iterator selectedConfigInfo;
+    char szChannels[MAX_BUFFER_SIZE] = {0};
+    size_t uiChannelsLen = 0;
+    char szLangs[MAX_BUFFER_SIZE] = {0};
+    size_t uiLangsLen = 0;
+    CCbsInfo::IdRange smsRange = {0,0};
+
+    // Loop on Sms Cb/Cmas configured ranges
+    for (selectedConfigInfo = m_vBroadcastSmsConfigInfo.begin();
+            selectedConfigInfo != m_vBroadcastSmsConfigInfo.end();
+            selectedConfigInfo++)
+    {
+        uiChannelsLen = strlen(szChannels);
+
+        if (selectedConfigInfo->fromServiceId == selectedConfigInfo->toServiceId)
+        {
+            if (!PrintStringNullTerminate(szChannels + uiChannelsLen,
+                    MAX_BUFFER_SIZE - uiChannelsLen, "%d,",
+                    selectedConfigInfo->fromServiceId))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CreateSMSCBRequest() -"
+                        "Cannot format szChannels string\r\n");
+                goto Error;
+            }
+        }
+        else
+        {
+            if (!PrintStringNullTerminate(szChannels + uiChannelsLen,
+                    MAX_BUFFER_SIZE - uiChannelsLen, "%d-%d,",
+                    selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CreateSMSCBRequest() -"
+                        "Cannot format szChannels string\r\n");
+                goto Error;
+            }
+        }
+        uiLangsLen = strlen(szLangs);
+        if (selectedConfigInfo->fromCodeScheme == selectedConfigInfo->toCodeScheme)
+        {
+            if (!PrintStringNullTerminate(szLangs + uiLangsLen,
+                    MAX_BUFFER_SIZE - uiLangsLen, "%d,",
+                    selectedConfigInfo->fromCodeScheme))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CreateSMSCBRequest() -"
+                        "Cannot format szLangs string\r\n");
+                goto Error;
+            }
+        }
+        else
+        {
+            if (!PrintStringNullTerminate(szLangs + uiLangsLen,
+                    MAX_BUFFER_SIZE - uiLangsLen, "%d-%d,",
+                    selectedConfigInfo->fromCodeScheme, selectedConfigInfo->toCodeScheme))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CreateSMSCBRequest() -"
+                        "Cannot format szLangs string\r\n");
+                goto Error;
+            }
+        }
+
+        // Update activated Ids
+        smsRange.minVal = selectedConfigInfo->fromServiceId;
+        smsRange.maxVal = selectedConfigInfo->toServiceId;
+        m_CbsInfo.m_activatedIds.cmasIds +=
+                m_CbsInfo.GetNumberOfIdsFromRange(selectedConfigInfo->fromServiceId,
+                selectedConfigInfo->toServiceId);
+        m_CbsInfo.m_vActivatedBroadcastSms.push_back(smsRange);
+
+        // Counts ranges to be activated
+        uiRanges++;
+    }
+
+    if (uiRanges > 0)
+    {
+        uiChannelsLen = strlen(szChannels);
+        uiLangsLen = strlen(szLangs);
+        if ((uiChannelsLen == 0) || (uiLangsLen == 0))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::CreateSMSCBRequest() - "
+                    "Error no Id or Lang ranges configured\r\n");
+            goto Error;
+        }
+        else
+        {
+            // Trick to remove the last comma
+            szChannels[strlen(szChannels) - 1] = '\0';
+            szLangs[strlen(szLangs) - 1] = '\0';
+            if (!PrintStringNullTerminate(reqData,
+                    uiReqSize, "+CSCB=0,\"%s\",\"%s\"",
+                    szChannels, szLangs))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::CreateSMSCBRequest() - "
+                        "Unable to create SMS CB activation request\r\n");
+                goto Error;
+            }
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    if (res != RRIL_RESULT_OK)
+    {
+        m_CbsInfo.m_activatedIds.cmasIds = 0;
+        m_CbsInfo.m_vActivatedBroadcastSms.clear();
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateSMSCBRequest() - Exit - res:%d\r\n", res);
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseGsmSmsBroadcastActivation(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGsmSmsBroadcastActivation() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGsmSmsBroadcastActivation() - Exit\r\n");
+    return res;
 }

@@ -47,6 +47,8 @@ protected:
         SILO_SMS_STATUS_MSG_IN_SIM
         };
 
+    static const int ETWS_PRIMARY_NOTIFICATION_PDU_SIZE;
+
 protected:
     //  Parse notification functions here.
     virtual BOOL ParseMessage(CResponse* const pResponse, const char*& rszPointer, SILO_SMS_MSG_TYPES msgType);
@@ -57,6 +59,8 @@ protected:
     virtual BOOL ParseCMTI(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL ParseCBMI(CResponse* const pResponse, const char*& rszPointer);
     virtual BOOL ParseCDSI(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL ParseXETWPRIWARN(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL ParseXETWSECWARN(CResponse* const pResponse, const char*& rszPointer);
 };
 
 #endif // RRIL_SILO_SMS_H

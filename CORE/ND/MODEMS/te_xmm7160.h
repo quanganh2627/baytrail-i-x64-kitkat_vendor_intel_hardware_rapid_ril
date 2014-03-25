@@ -16,6 +16,7 @@
 #include "te_xmm6360.h"
 #include "nd_structs.h"
 #include "channel_data.h"
+#include "cbs_info.h"
 
 class CEvent;
 class CInitializer;
@@ -142,6 +143,18 @@ public:
     virtual const char* GetSignalStrengthReportingString();
 
     virtual RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
+
+    // RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG 90
+    virtual RIL_RESULT_CODE CoreGsmSetBroadcastSmsConfig(REQUEST_DATA& rReqData,
+                                                                    void* pData,
+                                                                    UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION 91
+    virtual RIL_RESULT_CODE CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
+                                                                     void* pData,
+                                                                     UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseGsmSmsBroadcastActivation(RESPONSE_DATA& rRspData);
 protected:
 
     virtual const char* GetRegistrationInitString();
@@ -162,9 +175,20 @@ protected:
     virtual RIL_RESULT_CODE CreateActivateThermalSensorV2Ind(REQUEST_DATA& reqData,
             const char** ppszRequest, const UINT32 uiDataSize);
 
+    virtual const char* GetEnablingEtwsString();
 private:
+
     RIL_RESULT_CODE ParseXTAMR(const char* pszRsp, RESPONSE_DATA& rspData);
     RIL_RESULT_CODE ParseXTSM(const char* pszRsp, RESPONSE_DATA& rspData);
+
+    RIL_RESULT_CODE CreateEtwSmsRequest(char*& rszRequest, UINT32 uiReqSize);
+    RIL_RESULT_CODE CreateSmsCbRequest(char*& rszRequest, UINT32 uiReqSize);
+    RIL_RESULT_CODE FilterSmsCbFromConfig(RIL_GSM_BroadcastSmsConfigInfo** ppConfigInfo,
+            const UINT32 uiDataSize,
+            android::Vector<RIL_GSM_BroadcastSmsConfigInfo>& vBroadcastSmsConfigInfo,
+            CCbsInfo::CbmIds* pConfigIds);
+    // Dedicated class about Cell Broadcast messages (SMS)
+    CCbsInfo m_CbsInfo;
 };
 
 #endif
