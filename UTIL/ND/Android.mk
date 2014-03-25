@@ -29,6 +29,7 @@ LOCAL_C_INCLUDES :=  \
     $(LOCAL_PATH)/../../CORE \
     $(LOCAL_PATH)/../../CORE/ND \
     $(LOCAL_PATH)/../../OEM/ND \
+    $(TARGET_OUT_HEADERS)/libtcs \
     $(TARGET_OUT_HEADERS)/IFX-modem
 
 #build shared library
