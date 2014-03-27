@@ -386,4 +386,19 @@ typedef struct
     S_ND_GET_DVP_RESPONSE_PTR sResponsePointer;
     char szDVPConfig[MAX_DVP_CONFIG_SIZE];
 } S_ND_GET_DVP_RESPONSE, *P_ND_GET_DVP_RESPONSE;
+
+//
+// Structs for retrieving current CSG state
+//
+typedef struct
+{
+    char* pszCsgCurrentState;
+}  S_ND_CSG_CURRENT_STATE_PTR, *P_ND_CSG_CURRENT_STATE_PTR;
+
+typedef struct
+{
+    S_ND_CSG_CURRENT_STATE_PTR sResponsePointer;
+    char szCsgCurrentState[MAX_BUFFER_SIZE];
+} S_ND_CSG_CURRENT_STATE, *P_ND_CSG_CURRENT_STATE;
+
 #endif

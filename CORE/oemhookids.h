@@ -503,6 +503,19 @@ const int RIL_OEM_HOOK_STRING_CSG_SET_AUTOMATIC_SELECTION = 0x000000BF;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_CSG_GET_CURRENT_CSG_STATE
+//  Command ID = 0x000000C0
+//
+//  This command sends AT+XCSG?
+//
+//  "data" = NULL
+//  "response" = current CSG information returned by AT command
+//
+const int RIL_OEM_HOOK_STRING_CSG_GET_CURRENT_CSG_STATE = 0x000000C0;
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID

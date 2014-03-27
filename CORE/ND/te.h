@@ -1200,6 +1200,8 @@ public:
     BOOL IsRegistered(int status);
 
     RIL_RESULT_CODE SetCsgAutomaticSelection(REQUEST_DATA& reqData);
+    RIL_RESULT_CODE GetCsgCurrentState(REQUEST_DATA& reqData);
+    RIL_RESULT_CODE ParseXCSG(const char* pszRsp, RESPONSE_DATA& rspData);
 
 private:
     UINT32 m_uiModemType;

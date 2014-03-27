@@ -10365,3 +10365,13 @@ RIL_RESULT_CODE CTE::SetCsgAutomaticSelection(REQUEST_DATA& reqData)
 {
     return m_pTEBaseInstance->SetCsgAutomaticSelection(reqData);
 }
+
+RIL_RESULT_CODE CTE::GetCsgCurrentState(REQUEST_DATA& reqData)
+{
+    return m_pTEBaseInstance->GetCsgCurrentState(reqData);
+}
+
+RIL_RESULT_CODE CTE::ParseXCSG(const char* pszRsp, RESPONSE_DATA& rspData)
+{
+    return m_pTEBaseInstance->ParseXCSG(pszRsp, rspData);
+}

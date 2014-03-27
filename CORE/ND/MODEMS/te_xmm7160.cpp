@@ -2456,6 +2456,47 @@ RIL_RESULT_CODE CTE_XMM7160::SetCsgAutomaticSelection(REQUEST_DATA& reqData)
     return RRIL_RESULT_OK;
 }
 
+RIL_RESULT_CODE CTE_XMM7160::GetCsgCurrentState(REQUEST_DATA& reqData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::GetCsgCurrentState() - Enter\r\n");
+    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1), "AT+XCSG?\r"))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::GetCsgCurrentState() -"
+                "Cannot construct szCmd1.\r\n");
+        return RRIL_RESULT_ERROR;
+    }
+    RIL_LOG_VERBOSE("CTE_XMM7160::GetCsgCurrentState() - Exit\r\n");
+    return RRIL_RESULT_OK;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseXCSG(const char* pszRsp, RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseXCSG() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    P_ND_CSG_CURRENT_STATE pResponse
+            = (P_ND_CSG_CURRENT_STATE) malloc(sizeof(S_ND_CSG_CURRENT_STATE));
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCSG() - Could not allocate memory for response.\r\n");
+        goto Error;
+    }
+    memset(pResponse, 0, sizeof(S_ND_CSG_CURRENT_STATE));
+
+    CopyStringNullTerminate(pResponse->szCsgCurrentState, pszRsp, MAX_BUFFER_SIZE);
+
+    pResponse->sResponsePointer.pszCsgCurrentState = pResponse->szCsgCurrentState;
+
+    rRspData.pData = (void*)pResponse;
+    rRspData.uiDataSize = sizeof(S_ND_CSG_CURRENT_STATE_PTR);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseXCSG() - Exit\r\n");
+    return res;
+}
+
 //
 // Creates 2 vector lists, one for Etws msg Ids and one for Cmas msgIds
 //
@@ -2992,7 +3033,6 @@ RIL_RESULT_CODE CTE_XMM7160::CreateEtwSmsRequest(char*& reqData, UINT32 uiReqSiz
             goto Error;
         }
     }
-
     res = RRIL_RESULT_OK;
 
 Error:

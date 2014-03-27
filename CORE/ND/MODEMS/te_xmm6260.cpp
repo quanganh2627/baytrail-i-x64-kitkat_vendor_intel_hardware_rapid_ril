@@ -2317,6 +2317,12 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             res = m_cte.SetCsgAutomaticSelection(rReqData);
             break;
 
+        case RIL_OEM_HOOK_STRING_CSG_GET_CURRENT_CSG_STATE:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_CSG_GET_CURRENT_CSG_STATE");
+            uiRilChannel = RIL_CHANNEL_DLC2;
+            res = m_cte.GetCsgCurrentState(rReqData);
+            break;
+
         case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_DEFAULT_APN");
             // Send this command on ATCMD channel
@@ -2456,6 +2462,11 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_GET_DVP_STATE:
             res = ParseXDVP(pszRsp, rRspData);
             break;
+
+        case RIL_OEM_HOOK_STRING_CSG_GET_CURRENT_CSG_STATE:
+            res = m_cte.ParseXCSG(pszRsp, rRspData);
+            break;
+
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
         case RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS:
         case RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE:

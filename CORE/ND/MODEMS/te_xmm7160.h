@@ -155,6 +155,9 @@ public:
                                                                      void* pData,
                                                                      UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGsmSmsBroadcastActivation(RESPONSE_DATA& rRspData);
+
+    virtual RIL_RESULT_CODE ParseXCSG(const char* pszRsp, RESPONSE_DATA& rspData);
+
 protected:
 
     virtual const char* GetRegistrationInitString();
@@ -174,7 +177,9 @@ protected:
             const char** ppszRequest, const UINT32 uiDataSize);
     virtual RIL_RESULT_CODE CreateActivateThermalSensorV2Ind(REQUEST_DATA& reqData,
             const char** ppszRequest, const UINT32 uiDataSize);
+
     virtual RIL_RESULT_CODE SetCsgAutomaticSelection(REQUEST_DATA& reqData);
+    virtual RIL_RESULT_CODE GetCsgCurrentState(REQUEST_DATA& reqData);
 
     virtual const char* GetEnablingEtwsString();
 private:

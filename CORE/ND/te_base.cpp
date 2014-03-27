@@ -12298,3 +12298,15 @@ RIL_RESULT_CODE CTEBase::SetCsgAutomaticSelection(REQUEST_DATA& /* reqData */)
     // should be derived in modem specific class
     return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
 }
+
+RIL_RESULT_CODE CTEBase::GetCsgCurrentState(REQUEST_DATA& /* reqData */)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::ParseXCSG(const char* /* pszRsp */, RESPONSE_DATA& /* rspData */)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
