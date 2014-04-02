@@ -19,9 +19,7 @@
 #include <sys/select.h>
 #include <arpa/inet.h>
 
-#ifdef assert
-#undef assert
-#endif
+#include <assert.h>
 
 
 #define minimum_of(a,b) (((a) < (b)) ? (a) : (b))
@@ -331,16 +329,17 @@ BOOL PrintStringNullTerminate(char* const pszOut, const UINT32 cbOut, const char
 BOOL ConcatenateStringNullTerminate(char* const pszOut, const size_t cbOut, const char* const pszIn)
 {
     BOOL fRet = FALSE;
-    size_t outLen = strnlen(pszOut, cbOut - 1);
-    size_t inLen = strlen(pszIn);
+    size_t outLen = strlen(pszOut);
 
     //RIL_LOG_VERBOSE("ConcatenateStringNullTerminate() - Enter\r\n");
 
-    strncat(pszOut, pszIn, cbOut - 1 - outLen);
+    // We verify that pszOut size is not longer than the buffer which contains it
+    assert(outLen < cbOut);
 
-    if (cbOut - 1 >= outLen + inLen)
+    if (strlen(pszIn) < (cbOut - outLen))
     {
-        // The string fit with no truncation
+        // We have enough place to cat the string
+        strcat(pszOut, pszIn);
         fRet = TRUE;
     }
 
