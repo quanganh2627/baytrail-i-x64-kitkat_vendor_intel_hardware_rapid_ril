@@ -416,7 +416,10 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
             goto Error;
         }
 
-        m_cte.StoreRegistrationInfo(&psRegStatus, E_REGISTRATION_TYPE_CEREG);
+        if (strcmp(psRegStatus.szStat, UNREGISTERED_SEARCHING))
+        {
+            m_cte.StoreRegistrationInfo(&psRegStatus, E_REGISTRATION_TYPE_CEREG);
+        }
     }
 
     if (FindAndSkipString(pszRsp, "+XREG: ", pszDummy))
@@ -428,7 +431,10 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
             goto Error;
         }
 
-        m_cte.StoreRegistrationInfo(&psRegStatus, E_REGISTRATION_TYPE_XREG);
+        if (strcmp(psRegStatus.szStat, UNREGISTERED_SEARCHING))
+        {
+            m_cte.StoreRegistrationInfo(&psRegStatus, E_REGISTRATION_TYPE_XREG);
+        }
     }
 
     m_cte.CopyCachedRegistrationInfo(pGPRSRegStatus, TRUE);

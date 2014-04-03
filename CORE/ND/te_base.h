@@ -58,6 +58,7 @@ protected:
     static const char* PDPTYPE_IPV4V6;
     static const char* PDPTYPE_IPV6;
     static const char* PDPTYPE_IP;
+    static const char* UNREGISTERED_SEARCHING;
 
 public:
     CTEBase(CTE& cte);

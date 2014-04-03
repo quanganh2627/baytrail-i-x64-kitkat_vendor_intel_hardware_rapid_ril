@@ -41,6 +41,7 @@
 const char* CTEBase::PDPTYPE_IPV4V6 = "IPV4V6";
 const char* CTEBase::PDPTYPE_IPV6 = "IPV6";
 const char* CTEBase::PDPTYPE_IP = "IP";
+const char* CTEBase::UNREGISTERED_SEARCHING = "2";
 
 CTEBase::CTEBase(CTE& cte)
 : m_cte(cte),
