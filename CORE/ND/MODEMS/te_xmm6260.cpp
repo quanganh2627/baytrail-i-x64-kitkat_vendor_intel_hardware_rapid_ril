@@ -1395,13 +1395,13 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UI
 
         CEvent::Reset(m_pUiccOpenLogicalChannelEvent);
 
-        if (-1 == sessionId && OpenLogicalChannel(data, szAid))
+        if (0 >= sessionId && OpenLogicalChannel(data, szAid))
         {
             CEvent::Wait(m_pUiccOpenLogicalChannelEvent, WAIT_FOREVER);
         }
 
         sessionId = GetSessionId(RIL_APPTYPE_ISIM);
-        if (-1 == sessionId)
+        if (0 >= sessionId)
         {
             RIL_LOG_CRITICAL("CTE_XMM6260::CoreSimIo() - OpenLogicalChannel failed\r\n");
             goto Error;

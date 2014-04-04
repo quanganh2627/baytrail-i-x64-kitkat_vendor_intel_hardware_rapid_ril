@@ -163,53 +163,57 @@ BOOL GSMToGSMHex(const BYTE* sIn, const UINT32 cbIn, char* sOut, const UINT32 cb
 //  UCS2 to UTF8
 //
 // Helper fuction for UCS2 to UTF8 conversion below.
-// This function was copied from external/qemu/telephony/gsm.c
-int
-utf8_write( unsigned char*  utf8, int  offset, int  v )
+int utf8_write( unsigned char* utf8, int offset, int v)
 {
-    int  result;
+    int result;
 
-    if (v < 128) {
+    if (v < 128)
+    {
         result = 1;
         if (utf8)
             utf8[offset] = (unsigned char) v;
-    } else if (v < 0x800) {
+    }
+    else if (v < 0x800)
+    {
         result = 2;
-        if (utf8) {
-            utf8[offset+0] = (unsigned char)( 0xc0 | (v >> 6) );
-            utf8[offset+1] = (unsigned char)( 0x80 | (v & 0x3f) );
+        if (utf8)
+        {
+            utf8[offset+0] = (unsigned char)(0xc0 | (v >> 6));
+            utf8[offset+1] = (unsigned char)(0x80 | (v & 0x3f));
         }
-    } else if (v < 0x10000) {
+    }
+    else if (v < 0x10000)
+    {
         result = 3;
-        if (utf8) {
-            utf8[offset+0] = (unsigned char)( 0xe0 |  (v >> 12) );
-            utf8[offset+1] = (unsigned char)( 0x80 | ((v >> 6) & 0x3f) );
-            utf8[offset+2] = (unsigned char)( 0x80 |  (v & 0x3f) );
+        if (utf8)
+        {
+            utf8[offset+0] = (unsigned char)(0xe0 | (v >> 12));
+            utf8[offset+1] = (unsigned char)(0x80 | ((v >> 6) & 0x3f));
+            utf8[offset+2] = (unsigned char)(0x80 | (v & 0x3f));
         }
-    } else {
+    }
+    else {
         result = 4;
-        if (utf8) {
-            utf8[offset+0] = (unsigned char)( 0xf0 | ((v >> 18) & 0x7) );
-            utf8[offset+1] = (unsigned char)( 0x80 | ((v >> 12) & 0x3f) );
-            utf8[offset+2] = (unsigned char)( 0x80 | ((v >> 6) & 0x3f) );
-            utf8[offset+3] = (unsigned char)( 0x80 |  (v & 0x3f) );
+        if (utf8)
+        {
+            utf8[offset+0] = (unsigned char)(0xf0 | ((v >> 18) & 0x7));
+            utf8[offset+1] = (unsigned char)(0x80 | ((v >> 12) & 0x3f));
+            utf8[offset+2] = (unsigned char)(0x80 | ((v >> 6) & 0x3f));
+            utf8[offset+3] = (unsigned char)(0x80 | (v & 0x3f));
         }
     }
     return  result;
 }
 
-// convert a UCS2 string into a UTF8 byte string, assumes 'buf' is correctly sized
-// This function was copied from external/qemu/telephony/gsm.c
-int
-ucs2_to_utf8( const unsigned char*  ucs2,
-              int       ucs2len,
-              unsigned char*   buf )
+int ucs2_to_utf8(const unsigned char* ucs2, int ucs2len, unsigned char* buf)
 {
-    int  nn;
-    int  result = 0;
+    int nn;
+    int result = 0;
 
-    for (nn = 0; nn < ucs2len; ucs2 += 2, nn++) {
-        int  c= (ucs2[0] << 8) | ucs2[1];
+    // 0xFF is the value used for padding. Stop the conversion when 0xFF is encountered.
+    for (nn = 0; nn < ucs2len && ucs2[0] != 0xFF; ucs2 += 2, nn++)
+    {
+        int c = (ucs2[0] << 8) | ucs2[1];
         result += utf8_write(buf, result, c);
     }
     return result;
@@ -600,10 +604,8 @@ BOOL convertGsmToUtf8HexString(BYTE* pAlphaBuffer, int offset, const int length,
         pAlphaBuffer += 1;
         utf8Count = ucs2_to_utf8(pAlphaBuffer, ucs2Len, NULL);
 
-        if (utf8Count < maxUtf8HexStringLength)
+        if (utf8Count > maxUtf8HexStringLength)
         {
-            RIL_LOG_INFO("convertGsmToUtf8HexString - utf8Count: %d, "
-                    "maxUtf8HexStringLength: %d\r\n", utf8Count, maxUtf8HexStringLength);
             goto Error;
         }
 
@@ -678,8 +680,6 @@ BOOL convertGsmToUtf8HexString(BYTE* pAlphaBuffer, int offset, const int length,
             }
             else
             {
-                RIL_LOG_INFO("convertGsmToUtf8HexString - utf8Count: %d, "
-                        "maxUtf8HexStringLength: %d\r\n", utf8Count, maxUtf8HexStringLength);
                 goto Error;
             }
         }
@@ -687,9 +687,12 @@ BOOL convertGsmToUtf8HexString(BYTE* pAlphaBuffer, int offset, const int length,
 
     bRet = TRUE;
 Error:
+    RIL_LOG_INFO("convertGsmToUtf8HexString - utf8Count: %d, "
+            "maxUtf8HexStringLength: %d\r\n", utf8Count, maxUtf8HexStringLength);
+
     if (NULL != pszUtf8HexString)
     {
-        pszUtf8HexString[utf8Count] = '\0';
+        pszUtf8HexString[MIN(utf8Count, maxUtf8HexStringLength)] = '\0';
     }
 
     return bRet;
