@@ -11956,7 +11956,7 @@ BOOL CTEBase::ParseEFdir(const char* pszResponseString, const UINT32 uiResponseS
                     {
                         convertGsmToUtf8HexString(pTemp + 2, 0,
                                 uiAppLabelLength, m_SimAppListData.aAppInfo[index].szAppLabel,
-                                sizeof(m_SimAppListData.aAppInfo[index].szAppLabel));
+                                sizeof(m_SimAppListData.aAppInfo[index].szAppLabel) - 1);
                     }
 
                     pTemp += (uiAppLabelLength + 2);
