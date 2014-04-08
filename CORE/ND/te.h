@@ -787,8 +787,6 @@ public:
     // Resets all the internal states to default values
     void ResetInternalStates();
 
-    void ResetInitialAttachApn();
-
     RIL_RESULT_CODE RequestSimPinRetryCount(RIL_Token rilToken, void* pData, size_t datalen,
                                             int reqId = 0,
                                             PFN_TE_POSTCMDHANDLER pPostCmdHandlerFcn = NULL);

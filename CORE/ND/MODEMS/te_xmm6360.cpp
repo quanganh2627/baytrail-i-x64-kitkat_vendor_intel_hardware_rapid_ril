@@ -1162,6 +1162,8 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
 
     pTemp = (RIL_InitialAttachApn*) pData;
 
+    ResetInitialAttachApn();
+
     CopyStringNullTerminate(m_InitialAttachApnParams.szApn,
             pTemp->apn, sizeof(m_InitialAttachApnParams.szApn));
 

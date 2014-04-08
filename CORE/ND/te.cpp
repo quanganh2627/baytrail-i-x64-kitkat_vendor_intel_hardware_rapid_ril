@@ -8265,11 +8265,6 @@ void CTE::ResetInternalStates()
     m_bRadioRequestPending = FALSE;
 }
 
-void CTE::ResetInitialAttachApn()
-{
-    m_pTEBaseInstance->ResetInitialAttachApn();
-}
-
 BOOL CTE::IsSetupDataCallAllowed(int& retryTime)
 {
     BOOL bAllowed = TRUE;
