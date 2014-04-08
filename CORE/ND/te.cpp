@@ -9602,7 +9602,21 @@ RIL_RESULT_CODE CTE::RequestSimPinRetryCount(RIL_Token rilToken, void* pData, si
     }
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    // Pass reqId value to QueryPinRetryCount()
+    reqData.pContextData = new int(reqId);
+    if (NULL == reqData.pContextData)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSimPinRetryCount() -"
+                " Could not allocate memory for an integer.\r\n");
+        return res;
+    }
+
     res = m_pTEBaseInstance->QueryPinRetryCount(reqData, pData, datalen);
+    // reqId pointer could be clean now, used locally only by QueryPinRetryCount()
+    delete (int*)reqData.pContextData;
+    reqData.pContextData = NULL;
+
     if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestSimPinRetryCount() - Unable to create AT command data\r\n");

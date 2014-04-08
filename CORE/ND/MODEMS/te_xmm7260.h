@@ -100,12 +100,19 @@ public:
 
     virtual const char* GetEnableFetchingString();
 
+    // PIN retry count request and response handler
+    virtual RIL_RESULT_CODE QueryPinRetryCount(REQUEST_DATA& rReqData,
+                                                            void* pData,
+                                                            UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
+
 protected:
     virtual RIL_RESULT_CODE CreateGetGprsCellEnvReq(REQUEST_DATA& reqData);
     virtual RIL_RESULT_CODE CreateDebugScreenReq(REQUEST_DATA& reqData,
               const char** ppszRequest, const UINT32 uiDataSize);
 
     virtual const char* GetSiloVoiceURCInitString();
+    virtual void QueryPinRetryCount();
 
 private:
 

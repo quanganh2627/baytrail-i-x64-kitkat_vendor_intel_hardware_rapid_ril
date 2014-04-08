@@ -1314,3 +1314,246 @@ const char* CTE_XMM7260::GetSiloVoiceURCInitString()
     }
     return pszInit;
 }
+
+RIL_RESULT_CODE CTE_XMM7260::QueryPinRetryCount(REQUEST_DATA& reqData,
+                                                        void* /*pData*/,
+                                                        UINT32 /*uiDataSize*/)
+{
+    RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
+
+    const char* pszSelCode = NULL;
+
+    //  Extract request id from context
+    int nRequestId = *((int*)reqData.pContextData);
+
+    if (0 == nRequestId)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::QueryPinRetryCount() - nRequestId is 0\r\n");
+        goto Error;
+    }
+
+    switch (nRequestId)
+    {
+        case RIL_REQUEST_ENTER_SIM_PIN:
+        case RIL_REQUEST_CHANGE_SIM_PIN:
+            pszSelCode = "SIM PIN";
+            break;
+        case RIL_REQUEST_ENTER_SIM_PIN2:
+        case RIL_REQUEST_CHANGE_SIM_PIN2:
+            pszSelCode = "SIM PIN2";
+            break;
+        case RIL_REQUEST_ENTER_SIM_PUK:
+            pszSelCode = "SIM PUK";
+            break;
+        case RIL_REQUEST_ENTER_SIM_PUK2:
+            pszSelCode = "SIM PUK2";
+            break;
+        default:
+            pszSelCode = "SIM*"; // means status for all
+            break;
+    }
+
+    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1), "AT+CPINR=\"%s\"\r",
+            pszSelCode))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::QueryPinRetryCount() - Can't construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7260::QueryPinRetryCount() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7260::ParseSimPinRetryCount(RESPONSE_DATA& rspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7260::ParseSimPinRetryCount() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    const char* pszRsp = rspData.szResponse;
+
+    UINT32 uiPinPuk = 0;
+
+    if (NULL == pszRsp)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::ParseSimPinRetryCount() -"
+                "Response string is NULL!\r\n");
+        goto Error;
+    }
+
+    // Parse "<prefix>+CPINR: <cod>,<retries>,<default_retries>
+    // Loop on +CPINR until no more entries are found
+    while (FindAndSkipString(pszRsp, "+CPINR: ", pszRsp))
+    {
+        // Skip <cod>
+        if (SkipString(pszRsp, "SIM PIN,", pszRsp))
+        {
+            if (!ExtractUInt32(pszRsp, uiPinPuk, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7260::ParseSimPinRetryCount() -"
+                        "Cannot parse SIM PIN\r\n");
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+                // Set pin retries to -1 (unknown)
+                for (int i = 0 ; i < m_CardStatusCache.num_applications; i++)
+                {
+                    m_CardStatusCache.applications[i].pin1_num_retries = -1;
+                }
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+            }
+            else
+            {
+                RIL_LOG_INFO("CTE_XMM7260::ParseSimPinRetryCount() -"
+                        " retry pin1:%d\r\n",uiPinPuk);
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+                for (int i = 0 ; i < m_CardStatusCache.num_applications; i++)
+                {
+                    m_CardStatusCache.applications[i].pin1_num_retries = uiPinPuk;
+                }
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+
+                m_PinRetryCount.pin = uiPinPuk;
+            }
+        }
+        // Skip <cod>
+        else if (SkipString(pszRsp, "SIM PUK,", pszRsp))
+        {
+            if (!ExtractUInt32(pszRsp, uiPinPuk, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7260::ParseSimPinRetryCount() -"
+                        "Cannot parse SIM PUK\r\n");
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+                // Set pin retries to -1 (unknown)
+                for (int i = 0 ; i < m_CardStatusCache.num_applications; i++)
+                {
+                    m_CardStatusCache.applications[i].puk1_num_retries = -1;
+                }
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+            }
+            else
+            {
+                RIL_LOG_INFO("CTE_XMM7260::ParseSimPinRetryCount() -"
+                        " retry puk1:%d\r\n",uiPinPuk);
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+                for (int i = 0 ; i < m_CardStatusCache.num_applications; i++)
+                {
+                    m_CardStatusCache.applications[i].puk1_num_retries = uiPinPuk;
+                }
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+
+                m_PinRetryCount.puk = uiPinPuk;
+            }
+        }
+        // Skip <cod>
+        else if (SkipString(pszRsp, "SIM PIN2,", pszRsp))
+        {
+            if (!ExtractUInt32(pszRsp, uiPinPuk, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7260::ParseSimPinRetryCount() -"
+                        "Cannot parse SIM PIN2\r\n");
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+                // Set pin retries to -1 (unknown)
+                for (int i = 0 ; i < m_CardStatusCache.num_applications; i++)
+                {
+                    m_CardStatusCache.applications[i].pin2_num_retries = -1;
+                }
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+            }
+            else
+            {
+                RIL_LOG_INFO("CTE_XMM7260::ParseSimPinRetryCount() -"
+                        " retry pin2:%d\r\n",uiPinPuk);
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+                for (int i = 0 ; i < m_CardStatusCache.num_applications; i++)
+                {
+                    m_CardStatusCache.applications[i].pin2_num_retries = uiPinPuk;
+                }
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+
+                m_PinRetryCount.pin2 = uiPinPuk;
+            }
+        }
+        // Skip <cod>
+        else if (SkipString(pszRsp, "SIM PUK2,", pszRsp))
+        {
+            if (!ExtractUInt32(pszRsp, uiPinPuk, pszRsp))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7260::ParseSimPinRetryCount() -"
+                        "Cannot parse SIM PUK2\r\n");
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+                // Set pin retries to -1 (unknown)
+                for (int i = 0 ; i < m_CardStatusCache.num_applications; i++)
+                {
+                    m_CardStatusCache.applications[i].puk2_num_retries = -1;
+                }
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+            }
+            else
+            {
+                RIL_LOG_INFO("CTE_XMM7260::ParseSimPinRetryCount() -"
+                        " retry puk2:%d\r\n",uiPinPuk);
+#if defined(M2_PIN_RETRIES_FEATURE_ENABLED)
+                for (int i = 0 ; i < m_CardStatusCache.num_applications; i++)
+                {
+                    m_CardStatusCache.applications[i].puk2_num_retries = uiPinPuk;
+                }
+#endif // M2_PIN_RETRIES_FEATURE_ENABLED
+
+                m_PinRetryCount.puk2 = uiPinPuk;
+            }
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7260::ParseSimPinRetryCount() - Exit\r\n");
+    return res;
+}
+
+void CTE_XMM7260::QueryPinRetryCount()
+{
+    RIL_LOG_VERBOSE("CTE_XMM7260::QueryPinRetryCount() - Enter\r\n");
+
+    char szCmd[17] = {'\0'};
+    const char* pszRetryCode = "SIM*";
+
+    /*
+     * If the device is encrypted but not yet decrypted, then modem have been powered
+     * on for emergency call. Don't query sim status as this results in emergency call
+     * getting disconnected due to airplane mode activated by CryptKeeper on configuration
+     * changes.
+     */
+    if (!CSystemManager::GetInstance().IsDeviceDecrypted())
+    {
+        return;
+    }
+
+    if (!PrintStringNullTerminate(szCmd, sizeof(szCmd), "AT+CPINR=\"%s\"\r", pszRetryCode))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::QueryPinRetryCount() - Can't construct szCmd.\r\n");
+    }
+
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_SIM_STATUS].uiChannel,
+            NULL, RIL_REQUEST_GET_SIM_STATUS, szCmd, &CTE::ParseSimPinRetryCount);
+
+    if (NULL == pCmd)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::QueryPinRetryCount() - "
+                "Unable to allocate memory for new command!\r\n");
+    }
+    else
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7260::QueryPinRetryCount() - "
+                    "Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7260::QueryPinRetryCount() - Exit\r\n");
+}
