@@ -41,6 +41,10 @@ public:
 
     virtual void HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange);
 
+    // RIL_REQUEST_SETUP_DATA_CALL 27
+    virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
+            void* pData, UINT32 uiDataSize, UINT32& uiCID);
+
     // RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
     virtual RIL_RESULT_CODE CoreStkSendEnvelopeCommand(REQUEST_DATA& rReqData,
                                                                   void* pData,

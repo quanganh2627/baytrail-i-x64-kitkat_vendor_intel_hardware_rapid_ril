@@ -83,6 +83,7 @@ struct PdpData
     char* szPassword;
     char* szPAPCHAP;
     char* szPDPType;
+    char* szHandover;
 };
 
 //

@@ -72,6 +72,164 @@ void CTE_XMM7260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
 }
 
 //
+// RIL_REQUEST_SETUP_DATA_CALL 27
+//
+RIL_RESULT_CODE CTE_XMM7260::CoreSetupDataCall(REQUEST_DATA& rReqData,
+       void* pData, UINT32 uiDataSize, UINT32& uiCID)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7260::CoreSetupDataCall() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    char szIPV4V6[] = "IPV4V6";
+    int nPapChap = 0; // no auth
+    PdpData stPdpData;
+    S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
+    CChannel_Data* pChannelData = NULL;
+    int dataProfile = -1;
+    int nReqType = 0; // 0 => MT decides if new PDP or handover
+    int nRequestPcscfFlag = 0; // 1: request pcscf address
+    UINT32 uiDnsMode = 0;
+
+    RIL_LOG_INFO("CTE_XMM7260::CoreSetupDataCall() - uiDataSize=[%u]\r\n", uiDataSize);
+
+    memset(&stPdpData, 0, sizeof(PdpData));
+
+    // extract data
+    stPdpData.szRadioTechnology = ((char**)pData)[0];  // not used
+    stPdpData.szRILDataProfile  = ((char**)pData)[1];
+    stPdpData.szApn             = ((char**)pData)[2];
+    stPdpData.szUserName        = ((char**)pData)[3];
+    stPdpData.szPassword        = ((char**)pData)[4];
+    stPdpData.szPAPCHAP         = ((char**)pData)[5];
+
+    pDataCallContextData =
+            (S_SETUP_DATA_CALL_CONTEXT_DATA*)malloc(sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA));
+    if (NULL == pDataCallContextData)
+    {
+        goto Error;
+    }
+
+    dataProfile = atoi(stPdpData.szRILDataProfile);
+    pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiCID, dataProfile);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CoreSetupDataCall() - "
+                "****** No free data channels available ******\r\n");
+        goto Error;
+    }
+
+    pDataCallContextData->uiCID = uiCID;
+
+    RIL_LOG_INFO("CTE_XMM7260::CoreSetupDataCall() - stPdpData.szRadioTechnology=[%s]\r\n",
+            stPdpData.szRadioTechnology);
+    RIL_LOG_INFO("CTE_XMM7260::CoreSetupDataCall() - stPdpData.szRILDataProfile=[%s]\r\n",
+            stPdpData.szRILDataProfile);
+    RIL_LOG_INFO("CTE_XMM7260::CoreSetupDataCall() - stPdpData.szApn=[%s]\r\n", stPdpData.szApn);
+    RIL_LOG_INFO("CTE_XMM7260::CoreSetupDataCall() - stPdpData.szUserName=[%s]\r\n",
+            stPdpData.szUserName);
+    RIL_LOG_INFO("CTE_XMM7260::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n",
+            stPdpData.szPassword);
+    RIL_LOG_INFO("CTE_XMM7260::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n",
+            stPdpData.szPAPCHAP);
+
+    // if user name is empty, always use no authentication
+    if (stPdpData.szUserName == NULL || strlen(stPdpData.szUserName) == 0)
+    {
+        nPapChap = 0;    // No authentication
+    }
+    else
+    {
+        // PAP/CHAP auth type 3 (PAP or CHAP) is not supported. In this case if a
+        // a username is defined we will use PAP for authentication.
+        // Note: due to an issue in the Android/Fw (missing check of the username
+        // length), if the authentication is not defined, it's the value 3 (PAP or
+        // CHAP) which is sent to RRIL by default.
+        nPapChap = atoi(stPdpData.szPAPCHAP);
+        if (nPapChap == 3)
+        {
+            nPapChap = 1;    // PAP authentication
+
+            RIL_LOG_INFO("CTE_XMM7260::CoreSetupDataCall() - New PAP/CHAP=[%d]\r\n", nPapChap);
+        }
+    }
+
+    if (RIL_VERSION >= 4 && (uiDataSize >= (7 * sizeof(char*))))
+    {
+        stPdpData.szPDPType = ((char**)pData)[6];
+        RIL_LOG_INFO("CTE_XMM7260::CoreSetupDataCall() - stPdpData.szPDPType=[%s]\r\n",
+                stPdpData.szPDPType);
+    }
+
+    if (dataProfile == RIL_DATA_PROFILE_EMERGENCY)
+    {
+        nReqType = 1; // 1 => PDP context is for emergency bearer services
+    }
+
+    if (dataProfile == RIL_DATA_PROFILE_IMS && m_cte.IsIMSApCentric())
+    {
+        nRequestPcscfFlag = 1;
+    }
+
+    //
+    //  IP type is passed in dynamically.
+    if (NULL == stPdpData.szPDPType)
+    {
+        //  hard-code "IPV4V6" (this is the default)
+        stPdpData.szPDPType = szIPV4V6;
+    }
+
+    //  IP type is passed in dynamically.
+    if (NULL == stPdpData.szPDPType)
+    {
+        //  hard-code "IPV4V6" (this is the default)
+        CopyStringNullTerminate(stPdpData.szPDPType, PDPTYPE_IPV4V6, sizeof(stPdpData.szPDPType));
+    }
+
+    if (nReqType != 1 && uiDataSize >= (8 * sizeof(char*)))
+    {
+        stPdpData.szHandover = ((char**)pData)[7];  // new 27.007 R12.
+        RIL_LOG_INFO("CTE_XMM7260::CoreSetupDataCall() - stPdpData.szHandover=[%s]\r\n",
+            stPdpData.szHandover);
+        if (atoi(stPdpData.szHandover) != 0) {
+            nReqType = 3; // 3 => PDP context is for handover
+        } else {
+            nReqType = 2; // 2 => new PDP context
+        }
+    }
+
+    //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
+    //  If not recognized, just use IPV4V6 as default.
+    uiDnsMode = GetXDNSMode(stPdpData.szPDPType);
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
+                uiCID, stPdpData.szPDPType, stPdpData.szApn, nReqType, nRequestPcscfFlag,
+                uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword, uiCID, uiDnsMode))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CoreSetupDataCall() -"
+                " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pDataCallContextData);
+    }
+    else
+    {
+        pChannelData->SetDataState(E_DATA_STATE_INITING);
+
+        rReqData.pContextData = (void*)pDataCallContextData;
+        rReqData.cbContextData = sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA);
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7260::CoreSetupDataCall() - Exit\r\n");
+    return res;
+}
+
+//
 // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
 //
 RIL_RESULT_CODE CTE_XMM7260::CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
