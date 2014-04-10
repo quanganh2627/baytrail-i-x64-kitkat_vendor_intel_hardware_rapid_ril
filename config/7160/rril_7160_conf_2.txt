@@ -204,11 +204,6 @@ Group Modem
 //   customAPNName    apn.example.com
 //   customAPNType    IPV4V6
 
-// Specify mode of operation ID for command:AT+CEMODE=<mode ID>
-// If missing, the default <mode ID> is '1' (CS/PS Voice Centric)
-// For Baytrail FFRD8 <mode ID> must be '2' (CS/PS Data Centric)
-    ModeOfOperation             2
-
 // System Capability settings - Set a modem's capabilities using various flags
 //  These flags control the sending of init commands to a channel during initialization.
 //      "VoiceCapable" - Set to "0" to disable voice calls, otherwise enabled by default.

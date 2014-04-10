@@ -104,7 +104,6 @@ const char   g_szSupportCGPIAF[]                = "SupportCGPIAF";
 const char   g_szNwInitiatedContextAct[]        = "NwInitiatedContextAct";
 const char   g_szEnableSignalStrengthURC[]      = "EnableSignalStrengthReporting";
 const char   g_szImeiBlackList[]                = "ImeiBlackList";
-const char   g_szModeOfOperation[]              = "ModeOfOperation";
 
 // used for 7x60 and 6360 modems
 const char   g_szModemResourceName[]    = "ModemDataChannelResourceName";

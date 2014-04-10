@@ -692,9 +692,6 @@ public:
     void SetVoiceCapable(BOOL bIsVoiceCapable) { m_bVoiceCapable =  bIsVoiceCapable; }
     BOOL IsVoiceCapable() { return m_bVoiceCapable; }
 
-    void SetModeOfOperation(UINT32 uiModeOfOperation) { m_uiModeOfOperation =  uiModeOfOperation; }
-    UINT32 GetModeOfOperation() { return m_uiModeOfOperation; }
-
     void SetSmsOverCSCapable(BOOL bIsSmsOverCSCapable)
     {
         m_bSmsOverCSCapable =  bIsSmsOverCSCapable;
@@ -1295,11 +1292,6 @@ private:
     BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
     BOOL m_bSignalStrengthReporting;
     BOOL m_bCellInfoEnabled;
-
-    /*
-     * Value used to store mode of operation ID for AT+CEMODE command.
-     */
-    UINT32 m_uiModeOfOperation;
 
     // Timeouts (in milliseconds)
     static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;

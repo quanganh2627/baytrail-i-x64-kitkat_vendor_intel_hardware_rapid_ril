@@ -523,10 +523,9 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_PreferredNetworkType networkType = PREF_NET_TYPE_LTE_GSM_WCDMA; //9
-    UINT32 uiModeOfOperation = m_cte.GetModeOfOperation();
-
-    RIL_LOG_INFO("CTE_XMM7160::CoreSetPreferredNetworkType() - "
-            "Mode of Operation:%u.\r\n", uiModeOfOperation);
+    UINT32 uiModeOfOperation = m_cte.IsVoiceCapable()
+            ? MODE_CS_PS_VOICE_CENTRIC
+            : MODE_CS_PS_DATA_CENTRIC;
 
     if (NULL == pData)
     {
@@ -602,8 +601,8 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
         case PREF_NET_TYPE_LTE_ONLY: // LTE Only
             RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                     "LTE Only:XACT=2) - Enter\r\n");
-            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=2;+CEMODE=2\r",
-                    sizeof(rReqData.szCmd1)))
+            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                    "AT+XACT=2;+CEMODE=%u\r", uiModeOfOperation))
             {
                 RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                         "Can't construct szCmd1 networkType=%d\r\n", networkType);

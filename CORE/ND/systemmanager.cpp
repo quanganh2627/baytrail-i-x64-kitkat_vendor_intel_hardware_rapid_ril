@@ -413,11 +413,6 @@ BOOL CSystemManager::InitializeSystem(const char* szModemName)
         CTE::GetTE().SetCellInfoEnabled(iTemp == 1 ? TRUE : FALSE);
     }
 
-    if (repository.Read(g_szGroupModem, g_szModeOfOperation, iTemp))
-    {
-        CTE::GetTE().SetModeOfOperation((UINT32)iTemp);
-    }
-
     if  (repository.Read(g_szGroupModem, g_szTempOoSNotificationEnable, iTemp))
     {
         CTE::GetTE().SetTempOoSNotificationReporting(iTemp == 1 ? TRUE : FALSE);
@@ -444,7 +439,6 @@ BOOL CSystemManager::InitializeSystem(const char* szModemName)
     pSysCaps.SetXDATASTATReporting(CTE::GetTE().IsXDATASTATReportingEnabled());
     pSysCaps.SetIMSCapable(CTE::GetTE().IsIMSCapable());
     pSysCaps.SetIMSApCentric(CTE::GetTE().IsIMSApCentric());
-    pSysCaps.SetModeOfOperation(CTE::GetTE().GetModeOfOperation());
 
     // Call drop reporting is available only for eng or userdebug build
     if (property_get("ro.build.type", szBuildTypeProperty, NULL))
