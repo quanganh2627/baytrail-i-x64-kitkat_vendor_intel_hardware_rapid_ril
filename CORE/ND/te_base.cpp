@@ -6325,8 +6325,7 @@ RIL_RESULT_CODE CTEBase::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
 
         // Parse <source address and subnet mask>
         if (!SkipString(pszRsp, ",", pszRsp)
-                || !ExtractUnquotedString(pszRsp, ",", szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
-        // The modem response doesnt have quotes in 14.07
+                || !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
                     "Could not extract source address and subnet mask.\r\n");
