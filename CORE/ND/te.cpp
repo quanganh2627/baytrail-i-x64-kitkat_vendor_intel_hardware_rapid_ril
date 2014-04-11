@@ -9101,6 +9101,15 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
             m_pTEBaseInstance->HandleScreenStateReq(m_ScreenState);
         }
 
+        /*
+         * If build type is "eng" or "userdebug",
+         * for debug purpose, send at@sec:state_info()
+         */
+        if (IsBuildTypeEngUserDebug())
+        {
+            SendAtSecStateInfoRequest();
+        }
+
         //  Turning on phone
         SetRadioStateAndNotify(RRIL_RADIO_STATE_ON);
         CSystemManager::GetInstance().TriggerRadioPoweredOnEvent();
@@ -10342,6 +10351,165 @@ void CTE::PostInternalOpenLogicalChannel(POST_CMD_HANDLER_DATA& rData)
     m_pTEBaseInstance->TriggerUiccOpenLogicalChannelEvent();
 
     RIL_LOG_VERBOSE("CTE::PostInternalOpenLogicalChannel() - Exit\r\n");
+}
+
+void CTE::SendAtSecStateInfoRequest()
+{
+    RIL_LOG_VERBOSE("CTE::SendAtSecStateInfoRequest() - Enter\r\n");
+
+    // Create and send at@sec:state_info()
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_RADIO_POWER].uiChannel, NULL,
+            RIL_REQUEST_RADIO_POWER, "at@sec:state_info()\r", &CTE::ParseAtSecStateInfoRequest);
+
+    if (NULL != pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTE::SendAtSecStateInfoRequest() - "
+                    "Unable to queue command!\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE::SendAtSecStateInfoRequest() - Unable to allocate memory"
+                " for new command!\r\n");
+    }
+
+    RIL_LOG_VERBOSE("CTE::SendAtSecStateInfoRequest() - Exit\r\n");
+}
+
+RIL_RESULT_CODE CTE::ParseAtSecStateInfoRequest(RESPONSE_DATA& rspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseAtSecStateInfoRequest() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = NULL;
+
+    int temp = 0;
+    const char* const apszTemp[] = {"b_sys_tkt_testif = ", "b_sys_tkt_bootcore = ",
+                                    "b_sys_tkt_secmodule = ", "b_imei_data = ",
+                                    "b_sim_tkt_no = ", "b_sim_tkt_ns = ",
+                                    "b_sim_tkt_sp = ", "b_sim_tkt_cp = ",
+                                    "b_sim_tkt_sm = ", "b_simlock_data = ",
+                                    "b_mid_certificate = ", "b_rnd_certificate = ",
+                                    "s_valid_system_ticket = ", "s_virgin_mode = ",
+                                    "s_restricted_mode = ", "s_legacy_imei_support = ",
+                                    "result_cause = "};
+
+    if (NULL == rspData.szResponse)
+    {
+        RIL_LOG_CRITICAL("CTE::ParseAtSecStateInfoRequest() - szResponse is NULL\r\n");
+        goto Error;
+    }
+
+    // Parse State info return codes
+    for (int i = 0; i < (sizeof(apszTemp) / sizeof(apszTemp[0])); i++)
+    {
+        // Search entire response as order of return codes is not guaranteed.
+        pszRsp = rspData.szResponse;
+
+        if (!FindAndSkipString(pszRsp, apszTemp[i], pszRsp))
+        {
+            RIL_LOG_WARNING("CTE::ParseAtSecStateInfoRequest()- Missing parameter %s", apszTemp[i]);
+            continue;
+        }
+
+        // skip "0x" is optional
+        SkipString(pszRsp, "0x", pszRsp);
+        // we do not expect value higher than 9, hexadecimal values can be parsed with 'ExtractInt'
+        if (!ExtractInt(pszRsp, temp, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseAtSecStateInfoRequest() - "
+                    "Could not parse response code value\r\n");
+            goto Error;
+        }
+
+        RIL_LOG_INFO("CTE::ParseAtSecStateInfoRequest() - %s%s", apszTemp[i], GetPrintString(temp));
+
+        if ((strcmp(apszTemp[i], "s_restricted_mode = ") == 0) && (temp == 0))
+        {
+            RIL_LOG_INFO("CTE::ParseAtSecStateInfoRequest() - ################################");
+            RIL_LOG_INFO("CTE::ParseAtSecStateInfoRequest() - ##### modem in restricted mode##");
+            RIL_LOG_INFO("CTE::ParseAtSecStateInfoRequest() - ################################");
+            TriggerRestrictedModeEvent();
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE::ParseAtSecStateInfoRequest() - Exit\r\n");
+    return res;
+}
+
+const char* CTE::GetPrintString(int definitionId)
+{
+    switch (definitionId)
+    {
+        case 0:
+            return "True/Valid/Enabled";
+        case 1:
+            return "False/Disabled";
+        case 2:
+            return "Invalid signature";
+        case 3:
+            return "Invalid TLV structure";
+        case 4:
+            return "Invalid hardware details";
+        case 5:
+            return "Data not present";
+        case 6:
+            return "Invalid HMAC";
+        default:
+            return "No definition found";
+    }
+}
+
+BOOL CTE::IsBuildTypeEngUserDebug()
+{
+    RIL_LOG_VERBOSE("CTE::IsBuildTypeEngUserDebug() - Enter\r\n");
+
+    BOOL s_bIsBuildEngUserDebug = FALSE;
+
+    char szBuildTypeProperty[PROPERTY_VALUE_MAX] = {'\0'};
+
+    // Retrieve the build type property
+    if (property_get("ro.build.type", szBuildTypeProperty, NULL))
+    {
+        const char szTypeEng[] = "eng";
+        const char szTypeUserDebug[] = "userdebug";
+
+        if ((strncmp(szBuildTypeProperty, szTypeEng, strlen(szTypeEng)) == 0)
+            || (strncmp(szBuildTypeProperty, szTypeUserDebug, strlen(szTypeUserDebug)) == 0))
+        {
+            s_bIsBuildEngUserDebug = TRUE;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::IsBuildTypeEngUserDebug() - Exit\r\n");
+    return s_bIsBuildEngUserDebug;
+}
+
+void CTE::TriggerRestrictedModeEvent()
+{
+    sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND data;
+
+    data.command = RIL_OEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND;
+    data.type = CRASHTOOL_INFO;
+    PrintStringNullTerminate(data.name, CRASHTOOL_NAME_SIZE, "TFT_RESTR_MODE_MDM");
+    data.nameSize = strnlen(data.name, CRASHTOOL_NAME_SIZE);
+
+    // Pre-initialize all data size to 0
+    for (int i = 0; i < CRASHTOOL_NB_DATA; i++)
+    {
+        data.dataSize[i] = 0;
+    }
+
+    RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, (void*)&data,
+            sizeof(sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND));
 }
 
 // following functions are only for modem Rel.10+ with the new 3GPP USAT interface

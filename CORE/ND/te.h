@@ -1215,6 +1215,8 @@ public:
 
     const char* GetSiloVoiceURCInitString();
 
+    RIL_RESULT_CODE ParseAtSecStateInfoRequest(RESPONSE_DATA& rRspData);
+
 private:
     UINT32 m_uiModemType;
 
@@ -1390,6 +1392,11 @@ private:
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
     void FreeCardStatusPointers(RIL_CardStatus_v6& cardStatus);
     void MapCsRegistrationState(UINT32& uiRegState);
+
+    void SendAtSecStateInfoRequest();
+    const char* GetPrintString(int definitionId);
+    BOOL IsBuildTypeEngUserDebug();
+    void TriggerRestrictedModeEvent();
 };
 
 #endif
