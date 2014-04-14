@@ -1181,6 +1181,27 @@ void CSilo_Network::HandleNwDeact(const char*& szStrExtract)
     if (!ExtractUInt32(szStrExtract, uiPCID, szStrExtract))
     {
         GetContextIdFromDeact(szStrExtract, uiCID);
+
+        CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+        if (NULL == pChannelData)
+        {
+            //  This may occur using AT proxy during 3GPP conformance testing.
+            //  Let normal processing occur.
+            RIL_LOG_CRITICAL("CSilo_Network::HandleNwDeact() - Invalid Pcid=[%u],"
+                    " no data channel found!\r\n", uiPCID);
+            return;
+        }
+        pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
+        /*
+         * @TODO: If fail cause is provided as part of NW DEACT,
+         * map the fail cause to ril cause values and set it.
+         */
+        pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
+
+        CTE::GetTE().DataConfigDown(uiCID, TRUE);
+
+        CTE::GetTE().CompleteDataCallListChanged();
+        return;
     }
     else
     {
@@ -1252,16 +1273,6 @@ void CSilo_Network::HandleNwDeact(const char*& szStrExtract)
                     " Could not allocate memory for pNwDeact.\r\n");
             return;
         }
-        pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
-        /*
-         * @TODO: If fail cause is provided as part of NW DEACT,
-         * map the fail cause to ril cause values and set it.
-         */
-        pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
-
-        CTE::GetTE().DataConfigDown(uiCID, TRUE);
-
-        CTE::GetTE().CompleteDataCallListChanged();
     }
 }
 
