@@ -96,7 +96,7 @@ public:
 
 private:
 
-    BOOL ParseEnvelopCommandResponse(const char* pszResponse, char* pszEnvelopResp,
+    RIL_RESULT_CODE ParseEnvelopCommandResponse(const char* pszResponse, char* pszEnvelopResp,
             UINT32* puiBusy, UINT32* puiSw1, UINT32* puiSw2);
     void QueryUiccState();
     void WriteUsatProfile(const UINT32 uiProfileStorage, const char* pszProfile);

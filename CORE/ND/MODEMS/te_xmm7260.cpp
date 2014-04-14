@@ -299,8 +299,8 @@ Error:
     return res;
 }
 
-BOOL CTE_XMM7260::ParseEnvelopCommandResponse(const char* pszResponse, char* pszEnvelopResp,
-        UINT32* puiBusy, UINT32* puiSw1, UINT32* puiSw2)
+RIL_RESULT_CODE CTE_XMM7260::ParseEnvelopCommandResponse(const char* pszResponse,
+        char* pszEnvelopResp, UINT32* puiBusy, UINT32* puiSw1, UINT32* puiSw2)
 {
     RIL_LOG_VERBOSE("CTE_XMM7260::ParseEnvelopCommandResponse() - Enter\r\n");
     const char* pszRsp = pszResponse;
@@ -425,22 +425,30 @@ RIL_RESULT_CODE CTE_XMM7260::ParseStkSendEnvelopeCommand(RESPONSE_DATA& rspData)
                 " Could not alloc mem for command.\r\n");
         goto Error;
     }
-
     memset(pszEnvelopResp, 0x00, MAX_BUFFER_SIZE);
-    res = ParseEnvelopCommandResponse(pszRsp, pszEnvelopResp, &uiBusy, &uiSw1, &uiSw2);
 
-    if (0 == strlen(pszEnvelopResp))
+    if (ParseEnvelopCommandResponse(pszRsp, pszEnvelopResp, &uiBusy, &uiSw1, &uiSw2) !=
+            RRIL_RESULT_OK)
+    {
+        goto Error;
+    }
+
+    rspData.uiDataSize = strlen(pszEnvelopResp);
+    if (rspData.uiDataSize == 0)
     {
         free(pszEnvelopResp);
         pszEnvelopResp = NULL;
     }
-
     rspData.pData = (void*)pszEnvelopResp;
-    rspData.uiDataSize = sizeof(char*);
+
+    res = RRIL_RESULT_OK;
 
 Error:
-    free(pszEnvelopResp);
-    pszEnvelopResp = NULL;
+    if (res != RRIL_RESULT_OK)
+    {
+        free(pszEnvelopResp);
+        pszEnvelopResp = NULL;
+    }
 
     RIL_LOG_VERBOSE("CTE_XMM7260::ParseStkSendEnvelopeCommand() - Exit\r\n");
     return res;
