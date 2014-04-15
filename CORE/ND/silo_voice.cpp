@@ -98,10 +98,10 @@ char* CSilo_Voice::GetBasicInitString()
 char* CSilo_Voice::GetURCInitString()
 {
     // voice silo-related URC channel basic init string
-    const char szVoiceURCInitString[] = "+XCALLSTAT=1|+CSSN=1,1";
-
     if (m_pSystemCapabilities->IsVoiceCapable())
     {
+        const char szVoiceURCInitString[] = "+XCALLSTAT=1|+CSSN=1,1";
+
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
                 sizeof(m_szURCInitString), szVoiceURCInitString))
         {
@@ -112,8 +112,10 @@ char* CSilo_Voice::GetURCInitString()
     }
     else
     {
+        const char szNoVoiceURCInitString[] = "|+XCSFB=3|+XCGCLASS=\"CG\"|+XCONFIG=3,0";
+
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
-                sizeof(m_szURCInitString), "|+XCONFIG=3,0"))
+                sizeof(m_szURCInitString), szNoVoiceURCInitString))
         {
             RIL_LOG_CRITICAL("CSilo_Voice::GetURCInitString() : Failed to copy XCONFIG to "
                     "URC init string!\r\n");

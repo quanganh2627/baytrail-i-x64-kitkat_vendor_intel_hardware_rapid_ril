@@ -70,15 +70,18 @@ CSilo_SIM::~CSilo_SIM()
 
 char* CSilo_SIM::GetURCInitString()
 {
-    // SIM silo-related URC channel basic init string
-    const char szSimURCInitString[] = "+XLEMA=1";
-
-    if (!ConcatenateStringNullTerminate(m_szURCInitString,
-            sizeof(m_szURCInitString), szSimURCInitString))
+    if (m_pSystemCapabilities->IsVoiceCapable())
     {
-        RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to copy URC init "
-                "string!\r\n");
-        return NULL;
+        // SIM silo-related URC channel basic init string
+        const char szSimURCInitString[] = "+XLEMA=1";
+
+        if (!ConcatenateStringNullTerminate(m_szURCInitString,
+                sizeof(m_szURCInitString), szSimURCInitString))
+        {
+            RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to copy URC init "
+                    "string!\r\n");
+            return NULL;
+        }
     }
 
     /*

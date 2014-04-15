@@ -35,6 +35,7 @@ CSilo_Common::CSilo_Common(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "WAITING CALL CTM", (PFN_ATRSP_PARSE)&CSilo_Common::ParseUnrecognized },
         { "NO CARRIER", (PFN_ATRSP_PARSE)&CSilo_Common::ParseUnrecognized },
         { "+XBIPI: ", (PFN_ATRSP_PARSE)&CSilo_Common::ParseUnrecognized },
+        { "+XCSFBI: ", (PFN_ATRSP_PARSE)&CSilo_Common::ParseUnrecognized },
         { "", (PFN_ATRSP_PARSE)&CSilo_Common::ParseNULL }
     };
 

@@ -12188,7 +12188,8 @@ RIL_RESULT_CODE CTEBase::RestoreSavedNetworkSelectionMode(RIL_Token rilToken, UI
 
     if (m_NetworkSelectionModeParams.mode == E_NETWORK_SELECTION_MODE_AUTOMATIC)
     {
-        if (!CopyStringNullTerminate(szCmd, "AT+COPS=0\r", sizeof(szCmd)))
+        if (!CopyStringNullTerminate(szCmd, m_cte.IsVoiceCapable() ? "AT+COPS=0\r" : "AT+CGATT=1\r",
+                sizeof(szCmd)))
         {
             RIL_LOG_CRITICAL("CTEBase::RestoreSavedNetworkSelectionMode() - "
                     "Failed to write command to buffer!\r\n");
