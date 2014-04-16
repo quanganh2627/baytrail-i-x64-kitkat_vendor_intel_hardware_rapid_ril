@@ -9725,10 +9725,11 @@ int CTE::GetActiveDataCallInfoList(P_ND_PDP_CONTEXT_DATA pPDPListData)
 
         pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
 
-        //  We are taking down all data connections here, so we are looping over each data channel.
-        //  Don't call DataConfigDown with invalid CID.
-        if (NULL != pChannelData &&
-                        E_DATA_STATE_ACTIVE == pChannelData->GetDataState())
+        // Return the data call information only if the call is active
+        // and the channel data ref count is not 0
+        if (NULL != pChannelData
+                && E_DATA_STATE_ACTIVE == pChannelData->GetDataState()
+                && (pChannelData->GetRefCount() != 0))
         {
             memset(&sDataCallInfo, 0, sizeof(sDataCallInfo));
             pChannelData->GetDataCallInfo(sDataCallInfo);
