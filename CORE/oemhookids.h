@@ -476,6 +476,20 @@ const int RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD_V2 = 0x000000BD;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_IND
+//  Command ID = 0x000000BE
+//
+// "data" - String containing the following values.
+//          boolean activate - Values are case sensitive.
+//                  "true" - Activates the registration status and band indication.
+//                  "false" - Deactivates the registration status and band indication.
+//  "response" = NULL
+//
+const int RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_IND = 0x000000BE;
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID
@@ -833,6 +847,20 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2
 } sOEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2;
 
 const int RIL_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND_V2 = 0x000000E3;
+
+///////////////////////////////////////////////////////////////////////////////
+
+const int MAX_BAND_SIZE = 20;
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND
+{
+    int commandId;
+    int regStatus;
+    int bandLength;
+    char szBand[MAX_BAND_SIZE];
+} sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND;
+
+const int RIL_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND = 0x000000E4;
 
 /***********************************************************************/
 #pragma pack()

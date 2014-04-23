@@ -50,7 +50,8 @@ CTEBase::CTEBase(CTE& cte)
   m_pDtmfStopReqEvent(NULL),
   m_bReadyForAttach(FALSE),
   m_bRefreshWithUSIMInitOn(FALSE),
-  m_pUiccOpenLogicalChannelEvent(NULL)
+  m_pUiccOpenLogicalChannelEvent(NULL),
+  m_bRegStatusAndBandIndActivated(false)
 {
     CRepository repository;
     strcpy(m_szNetworkInterfaceNamePrefix, "");
@@ -73,6 +74,7 @@ CTEBase::CTEBase(CTE& cte)
     memset(&m_IncomingCallInfo, 0, sizeof(m_IncomingCallInfo));
     memset(&m_PinRetryCount, -1, sizeof(m_PinRetryCount));
     memset(&m_VoiceCallInfo, -1, sizeof(m_VoiceCallInfo));
+    memset(&m_sRegStatusAndBandInfo, 0, sizeof(sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND));
 
     m_pDtmfStopReqEvent = new CEvent(NULL, TRUE);
     m_pCardStatusUpdateLock = new CMutex();
@@ -12304,4 +12306,16 @@ void CTEBase::EnableProfileFacilityHandling()
 
 void CTEBase::SendModemDownToUsatSM()
 {
+}
+
+void CTEBase::GetRegStatusAndBandInfo(
+        sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND& regStatusAndBandInfo)
+{
+    regStatusAndBandInfo = m_sRegStatusAndBandInfo;
+}
+
+void CTEBase::SetRegStatusAndBandInfo(
+        sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND regStatusAndBandInfo)
+{
+    m_sRegStatusAndBandInfo = regStatusAndBandInfo;
 }

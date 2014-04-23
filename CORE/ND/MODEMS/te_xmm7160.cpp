@@ -137,17 +137,29 @@ const char* CTE_XMM7160::GetScreenOnString()
 
 const char* CTE_XMM7160::GetScreenOffString()
 {
+    char szScreenOffString[MAX_BUFFER_SIZE] = {'\0'};
+
     if (m_cte.IsLocationUpdatesEnabled())
     {
-        return m_cte.IsSignalStrengthReportEnabled() ?
-                "AT+CGREG=1;+CEREG=1;+XREG=0;+XCESQ=0\r" : "AT+CGREG=1;+CEREG=1;+XREG=0\r";
+        CopyStringNullTerminate(szScreenOffString,
+                m_cte.IsSignalStrengthReportEnabled()
+                ? "AT+CGREG=1;+CEREG=1;+XCESQ=0"
+                : "AT+CGREG=1;+CEREG=1",
+                sizeof(szScreenOffString));
     }
     else
     {
-        return m_cte.IsSignalStrengthReportEnabled() ?
-                "AT+CREG=1;+CGREG=1;+CEREG=1;+XREG=0;+XCESQ=0\r" :
-                "AT+CREG=1;+CGREG=1;+CEREG=1;+XREG=0\r";
+        CopyStringNullTerminate(szScreenOffString,
+                m_cte.IsSignalStrengthReportEnabled()
+                ? "AT+CREG=1;+CGREG=1;+CEREG=1;+XCESQ=0"
+                : "AT+CREG=1;+CGREG=1;+CEREG=1",
+                sizeof(szScreenOffString));
     }
+
+    ConcatenateStringNullTerminate(szScreenOffString, sizeof(szScreenOffString),
+            m_bRegStatusAndBandIndActivated ? "\r" : ";+XREG=0\r");
+
+    return strndup(szScreenOffString, strlen(szScreenOffString));
 }
 
 const char* CTE_XMM7160::GetSignalStrengthReportingString()

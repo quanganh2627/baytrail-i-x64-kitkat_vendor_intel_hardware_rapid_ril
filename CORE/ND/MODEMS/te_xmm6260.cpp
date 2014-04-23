@@ -117,16 +117,29 @@ const char* CTE_XMM6260::GetScreenOnString()
 
 const char* CTE_XMM6260::GetScreenOffString()
 {
+    char szScreenOffString[MAX_BUFFER_SIZE] = {'\0'};
+
     if (m_cte.IsLocationUpdatesEnabled())
     {
-        return m_cte.IsSignalStrengthReportEnabled()
-                ? "AT+CGREG=1;+XREG=0;+XCSQ=0\r" : "AT+CGREG=1;+XREG=0\r";
+        CopyStringNullTerminate(szScreenOffString,
+                m_cte.IsSignalStrengthReportEnabled()
+                ? "AT+CGREG=1;+XCSQ=0"
+                : "AT+CGREG=1",
+                sizeof(szScreenOffString));
     }
     else
     {
-        return m_cte.IsSignalStrengthReportEnabled()
-                ? "AT+CREG=1;+CGREG=1;+XREG=0;+XCSQ=0\r" : "AT+CREG=1;+CGREG=1;+XREG=0\r";
+        CopyStringNullTerminate(szScreenOffString,
+                m_cte.IsSignalStrengthReportEnabled()
+                ? "AT+CREG=1;+CGREG=1;+XCSQ=0"
+                : "AT+CREG=1;+CGREG=1",
+                sizeof(szScreenOffString));
     }
+
+    ConcatenateStringNullTerminate(szScreenOffString, sizeof(szScreenOffString),
+            m_bRegStatusAndBandIndActivated ? "\r" : ";+XREG=0\r");
+
+    return strndup(szScreenOffString, strlen(szScreenOffString));
 }
 
 const char* CTE_XMM6260::GetSignalStrengthReportingString()
@@ -2030,7 +2043,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreHookStrings() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char** pszRequest = NULL;
-    UINT32 uiCommand = 0;
+    int command = 0;
     int nNumStrings = 0;
 
     if (NULL == pData)
@@ -2064,25 +2077,26 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
     }
 
     //  Get command as int.
-    if (sscanf(pszRequest[0], "%u", &uiCommand) == EOF)
+    if (sscanf(pszRequest[0], "%d", &command) == EOF)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() - cannot convert %s to int\r\n",
                 pszRequest);
         goto Error;
     }
 
-    RIL_LOG_INFO("CTE_XMM6260::CoreHookStrings(), uiCommand: %u", uiCommand);
+    RIL_LOG_INFO("CTE_XMM6260::CoreHookStrings(), command: %d", command);
 
     if (E_MMGR_EVENT_MODEM_UP != m_cte.GetLastModemEvent()
-            && RIL_OEM_HOOK_STRING_POWEROFF_MODEM != uiCommand
-            && RIL_OEM_HOOK_STRING_GET_OEM_VERSION != uiCommand)
+            && RIL_OEM_HOOK_STRING_POWEROFF_MODEM != command
+            && RIL_OEM_HOOK_STRING_GET_OEM_VERSION != command
+            && RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_IND != command)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings(), "
                 "unable to process command in modem not up\r\n");
         goto Error;
     }
 
-    switch(uiCommand)
+    switch(command)
     {
         case RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_THERMAL_GET_SENSOR");
@@ -2306,7 +2320,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             if (m_cte.IsPlatformShutDownRequested())
             {
                 uiRilChannel = g_pReqInfo[RIL_REQUEST_RADIO_POWER].uiChannel;
-                rReqData.pContextData = (void*)uiCommand;
+                rReqData.pContextData = (void*)command;
                 res = CreateModemPowerOffReq(rReqData);
             }
             else
@@ -2348,20 +2362,27 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             uiRilChannel = RIL_CHANNEL_URC;
             break;
 
+        case RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_IND:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_IND");
+            res = CreateRegStatusAndBandInd(rReqData, (const char**) pszRequest,
+                    uiDataSize);
+            uiRilChannel = RIL_CHANNEL_URC;
+            break;
+
         default:
             RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
-                    " ERROR: Received unknown uiCommand=[0x%X]\r\n", uiCommand);
+                    " ERROR: Received unknown command=[0x%x]\r\n", command);
             goto Error;
     }
 
     if (RRIL_RESULT_OK != res && RRIL_RESULT_OK_IMMEDIATE != res)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() :"
-                " Can't create OEM HOOK String request uiCommand: 0x%X", uiCommand);
+                " Can't create OEM HOOK String request command: 0x%x", command);
         goto Error;
     }
 
-    rReqData.pContextData = (void*)uiCommand;
+    rReqData.pContextData = (void*)command;
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreHookStrings() - Exit\r\n");
     return res;
@@ -2373,7 +2394,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
-    UINT32 uiCommand = (UINT32)rRspData.pContextData;
+    int command = (int)rRspData.pContextData;
 
     if (NULL == pszRsp)
     {
@@ -2388,7 +2409,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         goto Error;
     }
 
-    switch(uiCommand)
+    switch(command)
     {
         case RIL_OEM_HOOK_STRING_GET_ATR:
             res = ParseXGATR(pszRsp, rRspData);
@@ -2443,9 +2464,13 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
             res = RRIL_RESULT_OK;
             break;
 
+        case RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_IND:
+            res = ParseRegStatusAndBandInd(pszRsp, rRspData);
+            break;
+
         default:
             RIL_LOG_INFO("CTE_XMM6260::ParseHookStrings() -"
-                    " Parsing not implemented for uiCommand: %u\r\n", uiCommand);
+                    " Parsing not implemented for command: %d\r\n", command);
             break;
     }
 
@@ -5150,6 +5175,78 @@ Error:
     return res;
 }
 
+RIL_RESULT_CODE CTE_XMM6260::ParseRegStatusAndBandInd(const char* pszRsp, RESPONSE_DATA& rspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseRegStatusAndBandInd() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int dummy;
+    int regStatus;
+    char szBand[MAX_BAND_SIZE] = {0};
+
+    if (!SkipRspStart(pszRsp, "+XREG: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseRegStatusAndBandInd() - "
+                "Could not skip \"+XREG: \".\r\n");
+        goto Error;
+    }
+
+    // Extract <n> and throw away
+    if (!ExtractInt(pszRsp, dummy, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseRegStatusAndBandInd() - Could not extract <n>.\r\n");
+        goto Error;
+    }
+
+    // "<stat>"
+    if (!SkipString(pszRsp, ",", pszRsp)
+            || !ExtractInt(pszRsp, regStatus, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseRegStatusAndBandInd() - Could not extract <stat>.\r\n");
+        goto Error;
+    }
+
+    // Parse <AcT> and throw away
+    if (!SkipString(pszRsp, ",", pszRsp)
+            || !ExtractInt(pszRsp, dummy, pszRsp))
+    {
+        RIL_LOG_INFO("CTE_XMM6260::ParseRegStatusAndBandInd() - Could not extract <AcT>\r\n");
+    }
+
+    // Extract <Band>
+    if (!SkipString(pszRsp, ",", pszRsp)
+            || !ExtractUnquotedString(pszRsp, ",", szBand, sizeof(szBand), pszRsp))
+    {
+        RIL_LOG_INFO("CTE_XMM6260::ParseRegStatusAndBandInd() - Could not extract <Band>\r\n");
+    }
+
+    // Skip "<postfix>"
+    if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::ParseRegStatusAndBandInd() - "
+                "Could not skip response postfix.\r\n");
+    }
+
+    if (m_bRegStatusAndBandIndActivated)
+    {
+        sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND info;
+        info.commandId = RIL_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND;
+        info.regStatus = m_cte.IsRegistered(regStatus);
+        CopyStringNullTerminate(info.szBand, szBand, sizeof(info.szBand));
+        info.bandLength = strlen(info.szBand);
+        SetRegStatusAndBandInfo(info);
+
+        RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW,
+                (void*)&info, sizeof(sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND));
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseRegStatusAndBandInd() - Exit\r\n");
+    return res;
+}
+
 RIL_RESULT_CODE CTE_XMM6260::ParseXISRVCC(const char* pszRsp, RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseXISRVCC() - Enter\r\n");
@@ -6002,6 +6099,7 @@ RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)
     CCommand* pCmd = NULL;
     char szConformanceProperty[PROPERTY_VALUE_MAX] = {'\0'};
     CRepository repository;
+    const char* pszScreenOffString = NULL;
 
     // Data for fast dormancy
     static char s_szFDDelayTimer[MAX_FDTIMER_SIZE] = {'\0'};
@@ -6025,7 +6123,8 @@ RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)
             break;
 
         case SCREEN_STATE_OFF:
-            if (!CopyStringNullTerminate(reqData.szCmd1, GetScreenOffString(),
+            pszScreenOffString = GetScreenOffString();
+            if (!CopyStringNullTerminate(reqData.szCmd1, pszScreenOffString,
                     sizeof(reqData.szCmd1)))
             {
                 RIL_LOG_CRITICAL("CTE_XMM6260::HandleScreenStateReq() - "
@@ -6092,6 +6191,7 @@ RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)
     }
 
 Error:
+    free((char*)pszScreenOffString);
     RIL_LOG_VERBOSE("CTE_XMM6260::HandleScreenStateReq() - Exit\r\n");
     return res;
 }
@@ -7436,4 +7536,77 @@ RIL_RESULT_CODE CTE_XMM6260::CreateActivateThermalSensorV2Ind(REQUEST_DATA& /*re
         const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
 {
     return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::CreateRegStatusAndBandInd(REQUEST_DATA& reqData,
+        const char** ppszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::CreateRegStatusAndBandInd() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (uiDataSize < (2 * sizeof(char *)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateRegStatusAndBandInd() :"
+                " received data size is not enough to process the request\r\n");
+        goto Error;
+    }
+
+    if (strcmp(ppszRequest[1], "true") == 0)
+    {
+        m_bRegStatusAndBandIndActivated = TRUE;
+    }
+    else if (strcmp(ppszRequest[1], "false") == 0)
+    {
+        m_bRegStatusAndBandIndActivated = FALSE;
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateRegStatusAndBandInd() :"
+                " invalid data received(expected - true or false)\r\n");
+        goto Error;
+    }
+
+    if (E_MMGR_EVENT_MODEM_UP != m_cte.GetLastModemEvent())
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateRegStatusAndBandInd() - Modem not ready\r\n");
+        goto Error;
+    }
+
+    if (m_bRegStatusAndBandIndActivated)
+    {
+        if (!CopyStringNullTerminate(reqData.szCmd1, "AT+XREG=3;+XREG?\r",
+                sizeof(reqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreateRegStatusAndBandInd() -"
+                   " Cannot construct szCmd1.\r\n");
+            goto Error;
+        }
+    }
+    else if (SCREEN_STATE_OFF == m_cte.GetScreenState())
+    {
+        /*
+         * Currently, XREG URC is also used for registration status reporting. So, disable
+         * XREG URC only when the screen is off.
+         *
+         * TODO: Once XREG is not used for any other purpose like registration status reporting,
+         * XREG URC will be disabled by sending AT+XREG=0.
+         */
+        if (!CopyStringNullTerminate(reqData.szCmd1, "AT+XREG=0\r",
+                sizeof(reqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::CreateRegStatusAndBandInd() -"
+                   " Cannot construct szCmd1.\r\n");
+            goto Error;
+        }
+    }
+    else
+    {
+        res = RRIL_RESULT_OK_IMMEDIATE;
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::CreateRegStatusAndBandInd() - Exit\r\n");
+    return res;
 }

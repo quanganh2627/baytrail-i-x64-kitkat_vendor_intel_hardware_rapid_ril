@@ -262,6 +262,10 @@ public:
 
     virtual void HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange);
 
+    RIL_RESULT_CODE CreateRegStatusAndBandInd(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    RIL_RESULT_CODE ParseRegStatusAndBandInd(const char* pszRsp, RESPONSE_DATA& rspData);
+
 protected:
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);

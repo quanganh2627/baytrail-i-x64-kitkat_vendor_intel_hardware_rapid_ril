@@ -19,6 +19,7 @@
 #include "rril.h"
 #include "radio_state.h"
 #include <utils/Vector.h>
+#include "oemhookids.h"
 
 class CChannel_Data;
 class CTE;
@@ -50,6 +51,9 @@ protected:
     CEvent* m_pUiccOpenLogicalChannelEvent;
     S_NETWORK_SELECTION_MODE_PARAMS m_NetworkSelectionModeParams;
     S_INITIAL_ATTACH_APN_PARAMS m_InitialAttachApnParams;
+
+    bool m_bRegStatusAndBandIndActivated;
+    sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND m_sRegStatusAndBandInfo;
 
     static const char* PDPTYPE_IPV4V6;
     static const char* PDPTYPE_IPV6;
@@ -983,6 +987,12 @@ public:
     virtual void EnableProfileFacilityHandling();
 
     virtual void SendModemDownToUsatSM();
+
+    bool IsRegStatusAndBandIndActivated() { return m_bRegStatusAndBandIndActivated; }
+    void GetRegStatusAndBandInfo(
+            sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND& regStatusAndBandInfo);
+    void SetRegStatusAndBandInfo(
+            sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND regStatusAndBandInfo);
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);

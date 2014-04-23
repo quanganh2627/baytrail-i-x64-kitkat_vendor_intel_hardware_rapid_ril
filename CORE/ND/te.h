@@ -1189,6 +1189,7 @@ public:
     void SendModemDownToUsatSM();
 
     int GetScreenState() { return m_ScreenState; }
+    BOOL IsRegistered(int status);
 
 private:
     UINT32 m_uiModemType;

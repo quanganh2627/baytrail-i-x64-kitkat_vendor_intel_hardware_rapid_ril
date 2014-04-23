@@ -268,6 +268,7 @@ BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
 
         case RIL_REQUEST_SCREEN_STATE:
         case RIL_REQUEST_SET_INITIAL_ATTACH_APN:
+        case RIL_REQUEST_OEM_HOOK_STRINGS:
             bAllowed = TRUE;
             break;
 
@@ -7404,17 +7405,18 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
 {
     RIL_LOG_VERBOSE("CTE::ParseXREG() - Enter\r\n");
 
-    UINT32 uiNum;
-    UINT32 uiStatus = 0;
+    int num;
+    int status = 0;
     UINT32 uiLAC = 0;
     UINT32 uiCID = 0;
-    UINT32 uiAct = 0;
-    char szBand[MAX_BUFFER_SIZE] = {0};
+    int act = 0;
+    char szBand[MAX_BAND_SIZE] = {0};
     UINT32 uiRAC = 0;
-    UINT32 uiCauseType = 0;
-    UINT32 uiRejectCause = 0;
+    int causeType = 0;
+    int rejectCause = 0;
     BOOL bRet = false;
     char szNewLine[3] = "\r\n";
+    BOOL bRegistered = false;
 
     if (!bUnSolicited)
     {
@@ -7433,7 +7435,7 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
         }
 
         // Extract <n> and throw away
-        if (!ExtractUInt32(rszPointer, uiNum, rszPointer))
+        if (!ExtractInt(rszPointer, num, rszPointer))
         {
             RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not extract <n>.\r\n");
             goto Error;
@@ -7448,22 +7450,22 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
     }
 
     // "<stat>"
-    if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
+    if (!ExtractInt(rszPointer, status, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not extract <stat>.\r\n");
         goto Error;
     }
 
-    if (E_REGISTRATION_NOT_REGISTERED_NOT_SEARCHING == uiStatus
-        || E_REGISTRATION_NOT_REGISTERED_SEARCHING == uiStatus
-        || E_REGISTRATION_UNKNOWN == uiStatus)
+    if (E_REGISTRATION_NOT_REGISTERED_NOT_SEARCHING == status
+            || E_REGISTRATION_NOT_REGISTERED_SEARCHING == status
+            || E_REGISTRATION_UNKNOWN == status)
     {
         goto Done;
     }
 
     //  Parse <AcT>
-    if (!SkipString(rszPointer, ",", rszPointer) ||
-        !ExtractUInt32(rszPointer, uiAct, rszPointer))
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractInt(rszPointer, act, rszPointer))
     {
         RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <AcT>\r\n");
     }
@@ -7472,11 +7474,11 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
      * Maps the 3GPP standard access technology values to android specific access
      * technology values.
      */
-    uiAct = CTE::MapAccessTechnology(uiAct);
+    act = CTE::MapAccessTechnology(act);
 
     //  Extract <Band> and throw away
-    if (!SkipString(rszPointer, ",", rszPointer) ||
-            !ExtractUnquotedString(rszPointer, ",", szBand, MAX_BUFFER_SIZE, rszPointer))
+    if (!SkipString(rszPointer, ",", rszPointer)
+            || !ExtractUnquotedString(rszPointer, ",", szBand, MAX_BAND_SIZE, rszPointer))
     {
         RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <Band>\r\n");
     }
@@ -7520,25 +7522,25 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
                 }
                 SkipString(rszPointer, "\"", rszPointer);
             }
-            else if (!ExtractUInt32(rszPointer, uiRAC, rszPointer))
+            else if (!ExtractHexUInt32(rszPointer, uiRAC, rszPointer))
             {
                 RIL_LOG_INFO("CTE::ParseXREG() - Could not extract <rac>.\r\n");
             }
         }
 
         // Extract ",cause_type and reject_cause" only if registration status is denied
-        if (E_REGISTRATION_DENIED == uiStatus)
+        if (E_REGISTRATION_DENIED == status)
         {
             if (SkipString(rszPointer, ",", rszPointer))
             {
-                if (!ExtractUInt32(rszPointer, uiCauseType, rszPointer))
+                if (!ExtractInt(rszPointer, causeType, rszPointer))
                 {
                     RIL_LOG_CRITICAL("CTE::ParseXREG() - "
                             "Could not extract <cause_type>.\r\n");
                 }
 
                 if (!SkipString(rszPointer, ",", rszPointer)
-                        || !ExtractUInt32(rszPointer, uiRejectCause, rszPointer))
+                        || !ExtractInt(rszPointer, rejectCause, rszPointer))
                 {
                     RIL_LOG_CRITICAL("CTE::ParseXREG() - "
                             "Could not extract <reject_cause>.\r\n");
@@ -7548,8 +7550,8 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
     }
 
 Done:
-    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);
-    snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
+    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%d", status);
+    snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", act);
     /*
      * With respect to android telephony framework, LAC and CID should be -1 if unknown or it
      * should be of length 0.
@@ -7560,8 +7562,29 @@ Done:
     (uiCID == 0) ? rPSRegStatusInfo.szCID[0] = '\0' :
                     snprintf(rPSRegStatusInfo.szCID, REG_STATUS_LENGTH, "%x", uiCID);
 
-    (uiRejectCause == 0) ? rPSRegStatusInfo.szReasonDenied[0] = '\0' :
-            snprintf(rPSRegStatusInfo.szReasonDenied, REG_STATUS_LENGTH, "%u", uiRejectCause);
+    (rejectCause == 0) ? rPSRegStatusInfo.szReasonDenied[0] = '\0' :
+            snprintf(rPSRegStatusInfo.szReasonDenied, REG_STATUS_LENGTH, "%d", rejectCause);
+
+    bRegistered = IsRegistered(status);
+    if (m_pTEBaseInstance->IsRegStatusAndBandIndActivated())
+    {
+        sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND prevInfo;
+
+        m_pTEBaseInstance->GetRegStatusAndBandInfo(prevInfo);
+        if (prevInfo.regStatus != bRegistered || (strcmp(prevInfo.szBand, szBand) != 0))
+        {
+            sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND info;
+
+            info.commandId = RIL_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND;
+            info.regStatus = bRegistered;
+            CopyStringNullTerminate(info.szBand, szBand, sizeof(info.szBand));
+            info.bandLength = strlen(info.szBand);
+            m_pTEBaseInstance->SetRegStatusAndBandInfo(info);
+
+            RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW,
+                    (void*)&info, sizeof(sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND));
+        }
+    }
 
     bRet = TRUE;
 Error:
@@ -7993,6 +8016,12 @@ void CTE::ResetRegistrationCache()
     m_bPSStatusCached = FALSE;
 }
 
+bool CTE::IsRegistered(int status)
+{
+    return (E_REGISTRATION_REGISTERED_HOME_NETWORK == status
+            || E_REGISTRATION_REGISTERED_ROAMING == status);
+}
+
 BOOL CTE::IsRegistered()
 {
     BOOL bRet = FALSE;
@@ -8262,6 +8291,11 @@ void CTE::ResetInternalStates()
     m_bIsClearPendingCHLD = FALSE;
     m_bIsDataSuspended = FALSE;
     m_bRadioRequestPending = FALSE;
+
+    sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND info;
+    info.regStatus = 0;
+    info.szBand[0] = '\0';
+    m_pTEBaseInstance->SetRegStatusAndBandInfo(info);
 }
 
 BOOL CTE::IsSetupDataCallAllowed(int& retryTime)

@@ -584,6 +584,15 @@ void ModemResetUpdate()
 
     RIL_LOG_VERBOSE("ModemResetUpdate() - Enter\r\n");
 
+    sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND regStatusInfo;
+
+    regStatusInfo.commandId = RIL_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND;
+    regStatusInfo.regStatus = 0;
+    regStatusInfo.bandLength = 0;
+    regStatusInfo.szBand[0] = '\0';
+    RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW,
+            (void*)&regStatusInfo, sizeof(sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND));
+
     CTE::GetTE().CleanupAllDataConnections();
 
     //  Tell Android no more data connection
