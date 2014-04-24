@@ -781,7 +781,7 @@ public:
 
     CEvent* GetRadioStateChangedEvent() { return m_pRadioStateChangedEvent; }
 
-    UINT32 GetCnapCniValidity() { return m_uiCnapCniValidity; }
+    int GetCnapCniValidity() { return static_cast<int>(m_uiCnapCniValidity); }
     void SetCnapCniValidity(UINT32 uiValidity) { m_uiCnapCniValidity = uiValidity; }
 
     char* GetCnapName() { return m_szCnapName; }

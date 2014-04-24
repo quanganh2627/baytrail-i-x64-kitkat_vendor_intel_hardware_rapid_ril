@@ -1410,14 +1410,7 @@ BOOL CSilo_Voice::ParseCNAP(CResponse* const pResponse, const char*& rszPointer)
     //    1 CNI has been withheld by the originator
     //    2 CNI is not available due to interworking problems or limitations of originating
     //      network
-    if (uiCniValidity > 2)
-    {
-        CTE::GetTE().SetCnapCniValidity(2);
-    }
-    else
-    {
-        CTE::GetTE().SetCnapCniValidity(uiCniValidity);
-    }
+    CTE::GetTE().SetCnapCniValidity((uiCniValidity > 2) ? 2 : uiCniValidity);
 
     CTE::GetTE().SetCnapName(szName);
 

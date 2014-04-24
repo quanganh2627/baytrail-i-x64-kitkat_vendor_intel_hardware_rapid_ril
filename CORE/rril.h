@@ -60,10 +60,10 @@ typedef long                RIL_RESULT_CODE;
 #define MAX_APN_SIZE               (101)
 #define AUTN_LENGTH                (32)
 #define RAND_LENGTH                (32)
-#define MAX_CNAP_NAME_SIZE         (81)
 
 // size includes the C-string terminal zero
 const int MAX_IPADDR_SIZE = 64 + 1;
+const int MAX_CNAP_NAME_SIZE = 80 + 1;
 
 ///////////////////////////////////////////////////////////////////////////////
 // SIM related constants

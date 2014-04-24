@@ -1198,6 +1198,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
             {
                 CopyStringNullTerminate(pCallListData->pCallNameBuffers[uinUsed],
                         m_cte.GetCnapName(), MAX_CNAP_NAME_SIZE);
+                // set RIL_Call.name pointer to our name buffer
                 pCallListData->pCallData[uinUsed].name = pCallListData->pCallNameBuffers[uinUsed];
             }
 
@@ -1232,6 +1233,16 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
             else
             {
                 RIL_LOG_VERBOSE("\t<Number><type>=No value found\r\n");
+            }
+        }
+        if (uinArgPtrs >= 8)
+        {
+            // <alpha>
+            // Parameter not used in current implementation
+            char szDummy[MAX_BUFFER_SIZE];
+            if (!ExtractQuotedString(aPtrArgs[7], szDummy, MAX_BUFFER_SIZE, pTmpPtr))
+            {
+                RIL_LOG_VERBOSE("\t<Description>=No value found\r\n");
             }
         }
         if (uinArgPtrs >= 9)

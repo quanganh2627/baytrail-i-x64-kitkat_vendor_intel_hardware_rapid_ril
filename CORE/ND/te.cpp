@@ -87,8 +87,7 @@ CTE::CTE(UINT32 modemType) :
     m_uiPinCacheMode(E_PIN_CACHE_MODE_FS),
     m_bCbsActivationTimerRunning(FALSE),
     m_CbsActivate(-1),
-    m_bTempOoSNotifReporting(FALSE),
-    m_uiCnapCniValidity(2)
+    m_bTempOoSNotifReporting(FALSE)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -114,7 +113,7 @@ CTE::CTE(UINT32 modemType) :
     }
     m_szLastCEER[0] = '\0';
 
-    m_szCnapName[0] = '\0';
+    ResetCnapParameters();
 
     m_pDtmfStateAccess = new CMutex();
 
@@ -8597,7 +8596,7 @@ void CTE::SetCnapName(const char* pszName)
 
 void CTE::ResetCnapParameters()
 {
-    CopyStringNullTerminate(m_szCnapName, "", MAX_CNAP_NAME_SIZE);
+    m_szCnapName[0] = '\0';
     m_uiCnapCniValidity = 2;
 }
 
