@@ -1199,6 +1199,8 @@ public:
     int GetScreenState() { return m_ScreenState; }
     BOOL IsRegistered(int status);
 
+    RIL_RESULT_CODE SetCsgAutomaticSelection(REQUEST_DATA& reqData);
+
 private:
     UINT32 m_uiModemType;
 

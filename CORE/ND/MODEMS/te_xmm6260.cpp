@@ -2310,6 +2310,11 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
         case RIL_OEM_HOOK_STRING_IMS_SRVCC_PARAM:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_SRVCC_PARAM");
             res = SetSrvccParams(rReqData, (const char**) pszRequest);
+
+        case RIL_OEM_HOOK_STRING_CSG_SET_AUTOMATIC_SELECTION:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_CSG_SET_AUTOMATIC_SELECTION");
+            uiRilChannel = RIL_CHANNEL_URC;
+            res = m_cte.SetCsgAutomaticSelection(rReqData);
             break;
 
         case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
@@ -2459,6 +2464,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_IMS_CONFIG:
         case RIL_OEM_HOOK_STRING_IMS_CALL_STATUS:
         case RIL_OEM_HOOK_STRING_IMS_SMS_STATUS:
+        case RIL_OEM_HOOK_STRING_CSG_SET_AUTOMATIC_SELECTION:
         case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
         case RIL_OEM_HOOK_STRING_POWEROFF_MODEM:
         case RIL_OEM_HOOK_STRING_SWAP_PS:

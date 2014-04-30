@@ -995,6 +995,8 @@ public:
     void SetRegStatusAndBandInfo(
             sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND regStatusAndBandInfo);
 
+    virtual RIL_RESULT_CODE SetCsgAutomaticSelection(REQUEST_DATA& reqData);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);
 

@@ -490,6 +490,19 @@ const int RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_IND = 0x000000BE;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//  RIL_OEM_HOOK_STRING_CSG_SET_AUTOMATIC_SELECTION
+//  Command ID = 0x000000BF
+//
+//  This command sends AT+XCSG=0 to the modem.
+//  CSG cells are selected automatically.
+//
+//  "data" = NULL
+//  "response" = NULL
+//
+const int RIL_OEM_HOOK_STRING_CSG_SET_AUTOMATIC_SELECTION = 0x000000BF;
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID

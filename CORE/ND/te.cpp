@@ -10360,3 +10360,8 @@ void CTE::SendModemDownToUsatSM()
 {
     return m_pTEBaseInstance->SendModemDownToUsatSM();
 }
+
+RIL_RESULT_CODE CTE::SetCsgAutomaticSelection(REQUEST_DATA& reqData)
+{
+    return m_pTEBaseInstance->SetCsgAutomaticSelection(reqData);
+}

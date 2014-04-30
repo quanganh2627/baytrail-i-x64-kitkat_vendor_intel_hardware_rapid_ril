@@ -12292,3 +12292,9 @@ void CTEBase::SetRegStatusAndBandInfo(
 {
     m_sRegStatusAndBandInfo = regStatusAndBandInfo;
 }
+
+RIL_RESULT_CODE CTEBase::SetCsgAutomaticSelection(REQUEST_DATA& /* reqData */)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
