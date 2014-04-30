@@ -746,7 +746,7 @@ typedef struct
 
 //
 //  OEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS
-//  Command ID = 0x000000E0
+//  Command ID = 0x000000DC
 //
 //  "data" is sOEM_HOOK_RAW_UNSOL_BEARER_TFT_PARAMS
 //
@@ -887,6 +887,30 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND
 } sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND;
 
 const int RIL_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND = 0x000000E4;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+// OEM_HOOK_RAW_UNSOL_CSG_IND
+// Command ID = 0x000000E5
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_CSG_IND
+//
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_CSG_IND
+{
+    int commandId;
+    int csgSelectionCause;
+    int csgId;
+    int csgRecordNumber;
+    int hnbRecordNumber;
+    char szHnbName[MAX_BUFFER_SIZE];
+    char szOperator[MAX_BUFFER_SIZE];
+    int csgRadioAccessTechnology;
+    int csgIdListType;
+} sOEM_HOOK_RAW_UNSOL_CSG_IND;
+
+const int RIL_OEM_HOOK_RAW_UNSOL_CSG_IND = 0x000000E5;
 
 /***********************************************************************/
 #pragma pack()
