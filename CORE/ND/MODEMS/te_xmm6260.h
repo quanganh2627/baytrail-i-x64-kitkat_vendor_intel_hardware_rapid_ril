@@ -304,6 +304,9 @@ protected:
     virtual RIL_RESULT_CODE CreateActivateThermalSensorV2Ind(REQUEST_DATA& reqData,
             const char** ppszRequest, const UINT32 uiDataSize);
 
+    // Maps the rscp values(0..96, 255) to rssi(0..31, 99) values
+    int MapRscpToRssi(int rscp);
+
 private:
     RIL_RESULT_CODE CreateAutonomousFDReq(REQUEST_DATA& rReqData,
                                           const char** pszRequest,

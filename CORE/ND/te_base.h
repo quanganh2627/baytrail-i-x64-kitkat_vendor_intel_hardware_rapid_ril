@@ -937,7 +937,7 @@ public:
 
     virtual const char* GetSignalStrengthReportingString();
 
-    virtual RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
+    virtual RIL_SignalStrength_v9* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
 
     virtual void ResetCardStatus(BOOL bForceReset);
     virtual void QueryUiccInfo();

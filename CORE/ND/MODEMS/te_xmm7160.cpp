@@ -347,19 +347,19 @@ RIL_RESULT_CODE CTE_XMM7160::ParseSignalStrength(RESPONSE_DATA& rRspData)
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseSignalStrength() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_SignalStrength_v6* pSigStrData = NULL;
+    RIL_SignalStrength_v9* pSigStrData = NULL;
     const char* pszRsp = rRspData.szResponse;
 
     pSigStrData = ParseXCESQ(pszRsp, FALSE);
     if (NULL == pSigStrData)
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseSignalStrength() -"
-                " Could not allocate memory for RIL_SignalStrength_v6.\r\n");
+                " Could not allocate memory for RIL_SignalStrength_v9.\r\n");
         goto Error;
     }
 
     rRspData.pData   = (void*)pSigStrData;
-    rRspData.uiDataSize  = sizeof(RIL_SignalStrength_v6);
+    rRspData.uiDataSize  = sizeof(RIL_SignalStrength_v9);
 
     res = RRIL_RESULT_OK;
 
@@ -1765,21 +1765,21 @@ Error:
 
 }
 
-RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
+RIL_SignalStrength_v9* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseXCESQ() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
     int mode = 0;
-    int rxlev = 0; // received signal strength level
-    int ber = 0; // channel bit error rate
-    int rscp = 0; // Received signal code power
+    int rxlev = RSSI_UNKNOWN; // received signal strength level
+    int ber = BER_UNKNOWN; // channel bit error rate
+    int rscp = RSCP_UNKNOWN; // Received signal code power
     // ratio of the received energy per PN chip to the total received power spectral density
-    int ec = 0;
-    int rsrq = 0; // Reference signal received quality
-    int rsrp = 0; // Reference signal received power
-    int rssnr = -1; // Radio signal strength Noise Ratio value
-    RIL_SignalStrength_v6* pSigStrData = NULL;
+    int ecNo = ECNO_UNKNOWN;
+    int rsrq = RSRQ_UNKNOWN; // Reference signal received quality
+    int rsrp = RSRP_UNKNOWN; // Reference signal received power
+    int rssnr = RSSNR_UNKNOWN; // Radio signal strength Noise Ratio value
+    RIL_SignalStrength_v9* pSigStrData = NULL;
 
     if (!bUnsolicited)
     {
@@ -1826,9 +1826,8 @@ RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
         goto Error;
     }
 
-    // Not used
     if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractInt(rszPointer, ec, rszPointer))
+            || !ExtractInt(rszPointer, ecNo, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <ecno>\r\n");
         goto Error;
@@ -1866,27 +1865,29 @@ RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
         }
     }
 
-    pSigStrData = (RIL_SignalStrength_v6*)malloc(sizeof(RIL_SignalStrength_v6));
+    pSigStrData = (RIL_SignalStrength_v9*)malloc(sizeof(RIL_SignalStrength_v9));
     if (NULL == pSigStrData)
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() -"
-                " Could not allocate memory for RIL_SignalStrength_v6.\r\n");
+                " Could not allocate memory for RIL_SignalStrength_v9.\r\n");
         goto Error;
     }
 
     // reset to default values
-    pSigStrData->GW_SignalStrength.signalStrength = -1;
-    pSigStrData->GW_SignalStrength.bitErrorRate   = -1;
+    pSigStrData->GW_SignalStrength.signalStrength = RSSI_UNKNOWN;
+    pSigStrData->GW_SignalStrength.bitErrorRate   = BER_UNKNOWN;
     pSigStrData->CDMA_SignalStrength.dbm = -1;
     pSigStrData->CDMA_SignalStrength.ecio = -1;
     pSigStrData->EVDO_SignalStrength.dbm = -1;
     pSigStrData->EVDO_SignalStrength.ecio = -1;
     pSigStrData->EVDO_SignalStrength.signalNoiseRatio = -1;
-    pSigStrData->LTE_SignalStrength.signalStrength = -1;
+    pSigStrData->LTE_SignalStrength.signalStrength = RSSI_UNKNOWN;
     pSigStrData->LTE_SignalStrength.rsrp = INT_MAX;
     pSigStrData->LTE_SignalStrength.rsrq = INT_MAX;
     pSigStrData->LTE_SignalStrength.rssnr = INT_MAX;
     pSigStrData->LTE_SignalStrength.cqi = INT_MAX;
+    pSigStrData->WCDMA_SignalStrength.rscp = RSCP_UNKNOWN;
+    pSigStrData->WCDMA_SignalStrength.ecNo = ECNO_UNKNOWN;
 
     /*
      * If the current serving cell is GERAN cell, then <rxlev> and <ber> are set to
@@ -1907,7 +1908,7 @@ RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
      * If the current service cell is not E-UTRA cell, then <rsrq> and <rsrp> are set
      * to value 255.
      */
-    if (99 != rxlev)
+    if (RSSI_UNKNOWN != rxlev)
     {
         /*
          * As <rxlev> reported as part of XCESQ is not in line with the <rssi> reported
@@ -1925,28 +1926,13 @@ RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
         pSigStrData->GW_SignalStrength.signalStrength = rxlev;
         pSigStrData->GW_SignalStrength.bitErrorRate   = ber;
     }
-    else if (255 != rscp)
+    else if (RSCP_UNKNOWN != rscp)
     {
-        /*
-         * As <rscp> reported as part of XCESQ is not in line with the <rssi> reported
-         * as part of AT+CSQ and also what android expects, following conversion is done.
-         */
-        if (rscp <= 7)
-        {
-            rscp = 0;
-        }
-        else if (rscp <= 67)
-        {
-            rscp = floor((rscp - 6) / 2);
-        }
-        else
-        {
-            rscp = 31;
-        }
-
-        pSigStrData->GW_SignalStrength.signalStrength = rscp;
+        pSigStrData->GW_SignalStrength.signalStrength = MapRscpToRssi(rscp);
+        pSigStrData->WCDMA_SignalStrength.rscp = rscp;
+        pSigStrData->WCDMA_SignalStrength.ecNo = ecNo;
     }
-    else if (255 != rsrq && 255 != rsrp)
+    else if (RSRQ_UNKNOWN != rsrq && RSRP_UNKNOWN != rsrp)
     {
         /*
          * for rsrp if modem returns 0 then rsrp = -140 dBm.
@@ -2016,7 +2002,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspD
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseUnsolicitedSignalStrength() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_SignalStrength_v6* pSigStrData = NULL;
+    RIL_SignalStrength_v9* pSigStrData = NULL;
     const char* pszRsp = rRspData.szResponse;
 
     pSigStrData = ParseXCESQ(pszRsp, FALSE);
@@ -2030,7 +2016,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspD
     res = RRIL_RESULT_OK;
 
     RIL_onUnsolicitedResponse(RIL_UNSOL_SIGNAL_STRENGTH, (void*)pSigStrData,
-            sizeof(RIL_SignalStrength_v6));
+            sizeof(RIL_SignalStrength_v9));
 
 Error:
     free(pSigStrData);

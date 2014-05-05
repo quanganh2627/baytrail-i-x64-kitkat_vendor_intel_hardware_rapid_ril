@@ -1379,7 +1379,8 @@ BOOL CSilo_Network::ParseXCSQ(CResponse* const pResponse, const char*& rszPointe
     const char* pszDummy = NULL;
     const char* pszStart = NULL;
     char szBackup[MAX_NETWORK_DATA_SIZE] = {0};
-    UINT32 uiRSSI = 0, uiBER = 0;
+    int rssi = RSSI_UNKNOWN;
+    int ber = BER_UNKNOWN;
     RIL_SignalStrength_v6* pSigStrData = NULL;
 
     if (NULL == pResponse)
@@ -1413,32 +1414,30 @@ BOOL CSilo_Network::ParseXCSQ(CResponse* const pResponse, const char*& rszPointe
             MAX_NETWORK_DATA_SIZE - strlen(szBackup), pszDummy);
     CTE::GetTE().SaveNetworkData(LAST_NETWORK_XCSQ, szBackup);
 
-    if (!ExtractUInt32(rszPointer, uiRSSI, rszPointer))
+    if (!ExtractInt(rszPointer, rssi, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() - Could not extract uiRSSI.\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() - Could not extract <rssi>.\r\n");
         goto Error;
     }
 
-    if (!SkipString(rszPointer, ",", rszPointer) ||
-        !ExtractUInt32(rszPointer, uiBER, rszPointer))
+    if (!SkipString(rszPointer, ",", rszPointer) || !ExtractInt(rszPointer, ber, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() - Could not extract uiBER.\r\n");
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSQ() - Could not extract <ber>.\r\n");
         goto Error;
     }
 
-    pSigStrData->GW_SignalStrength.signalStrength = (int) uiRSSI;
-    pSigStrData->GW_SignalStrength.bitErrorRate   = (int) uiBER;
-
-    pSigStrData->CDMA_SignalStrength.dbm=-1;
-    pSigStrData->CDMA_SignalStrength.ecio=-1;
-    pSigStrData->EVDO_SignalStrength.dbm=-1;
-    pSigStrData->EVDO_SignalStrength.ecio=-1;
-    pSigStrData->EVDO_SignalStrength.signalNoiseRatio=-1;
-    pSigStrData->LTE_SignalStrength.signalStrength=-1;
-    pSigStrData->LTE_SignalStrength.rsrp=INT_MAX;
-    pSigStrData->LTE_SignalStrength.rsrq=INT_MAX;
-    pSigStrData->LTE_SignalStrength.rssnr=INT_MAX;
-    pSigStrData->LTE_SignalStrength.cqi=INT_MAX;
+    pSigStrData->GW_SignalStrength.signalStrength = rssi;
+    pSigStrData->GW_SignalStrength.bitErrorRate = ber;
+    pSigStrData->CDMA_SignalStrength.dbm = -1;
+    pSigStrData->CDMA_SignalStrength.ecio = -1;
+    pSigStrData->EVDO_SignalStrength.dbm = -1;
+    pSigStrData->EVDO_SignalStrength.ecio = -1;
+    pSigStrData->EVDO_SignalStrength.signalNoiseRatio = -1;
+    pSigStrData->LTE_SignalStrength.signalStrength = RSSI_UNKNOWN;
+    pSigStrData->LTE_SignalStrength.rsrp = INT_MAX;
+    pSigStrData->LTE_SignalStrength.rsrq = INT_MAX;
+    pSigStrData->LTE_SignalStrength.rssnr = INT_MAX;
+    pSigStrData->LTE_SignalStrength.cqi = INT_MAX;
 
     pResponse->SetResultCode(RIL_UNSOL_SIGNAL_STRENGTH);
 
@@ -1470,7 +1469,7 @@ BOOL CSilo_Network::ParseXCESQI(CResponse* const pResponse, const char*& rszPoin
     const char* pszDummy = NULL;
     const char* pszStart = NULL;
     char szBackup[MAX_NETWORK_DATA_SIZE] = {0};
-    RIL_SignalStrength_v6* pSigStrData = NULL;
+    RIL_SignalStrength_v9* pSigStrData = NULL;
 
     if (NULL == pResponse)
     {
@@ -1498,11 +1497,11 @@ BOOL CSilo_Network::ParseXCESQI(CResponse* const pResponse, const char*& rszPoin
     if (NULL == pSigStrData)
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXCESQI() -"
-                " Could not allocate memory for RIL_SignalStrength_v6.\r\n");
+                " Could not allocate memory for RIL_SignalStrength_v9.\r\n");
         goto Error;
     }
 
-    if (!pResponse->SetData((void*)pSigStrData, sizeof(RIL_SignalStrength_v6), FALSE))
+    if (!pResponse->SetData((void*)pSigStrData, sizeof(RIL_SignalStrength_v9), FALSE))
     {
         goto Error;
     }

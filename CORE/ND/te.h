@@ -1144,7 +1144,7 @@ public:
     // Returns the signal strength reporting string used to enable signal strength URC
     const char* GetSignalStrengthReportingString();
 
-    RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
+    RIL_SignalStrength_v9* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
 
     // Resets the sim card status cache
     void ResetCardStatus(BOOL bForceReset);

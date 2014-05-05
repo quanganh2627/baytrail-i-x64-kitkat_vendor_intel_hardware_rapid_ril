@@ -10213,7 +10213,7 @@ const char* CTE::GetSignalStrengthReportingString()
     return m_pTEBaseInstance->GetSignalStrengthReportingString();
 }
 
-RIL_SignalStrength_v6* CTE::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
+RIL_SignalStrength_v9* CTE::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
 {
     return m_pTEBaseInstance->ParseXCESQ(rszPointer, bUnsolicited);
 }

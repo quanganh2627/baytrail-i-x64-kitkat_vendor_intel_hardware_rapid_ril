@@ -9963,8 +9963,8 @@ RIL_SignalStrength_v6* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA& rRspData
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
 
-    UINT32 uiRSSI  = 0;
-    UINT32 uiBER   = 0;
+    int rssi = RSSI_UNKNOWN;
+    int ber = BER_UNKNOWN;
     RIL_SignalStrength_v6* pSigStrData;
 
     pSigStrData = (RIL_SignalStrength_v6*)malloc(sizeof(RIL_SignalStrength_v6));
@@ -9985,16 +9985,15 @@ RIL_SignalStrength_v6* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA& rRspData
         goto Error;
     }
 
-    if (!ExtractUInt32(pszRsp, uiRSSI, pszRsp))
+    if (!ExtractInt(pszRsp, rssi, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - Could not extract uiRSSI.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - Could not extract <rssi>.\r\n");
         goto Error;
     }
 
-    if (!SkipString(pszRsp, ",", pszRsp) ||
-        !ExtractUInt32(pszRsp, uiBER, pszRsp))
+    if (!SkipString(pszRsp, ",", pszRsp) || !ExtractInt(pszRsp, ber, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - Could not extract uiBER.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseQuerySignalStrength() - Could not extract <ber>.\r\n");
         goto Error;
     }
 
@@ -10005,19 +10004,18 @@ RIL_SignalStrength_v6* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA& rRspData
         goto Error;
     }
 
-    pSigStrData->GW_SignalStrength.signalStrength = (int) uiRSSI;
-    pSigStrData->GW_SignalStrength.bitErrorRate   = (int) uiBER;
-
-    pSigStrData->CDMA_SignalStrength.dbm=-1;
-    pSigStrData->CDMA_SignalStrength.ecio=-1;
-    pSigStrData->EVDO_SignalStrength.dbm=-1;
-    pSigStrData->EVDO_SignalStrength.ecio=-1;
-    pSigStrData->EVDO_SignalStrength.signalNoiseRatio=-1;
-    pSigStrData->LTE_SignalStrength.signalStrength=-1;
-    pSigStrData->LTE_SignalStrength.rsrp=INT_MAX;
-    pSigStrData->LTE_SignalStrength.rsrq=INT_MAX;
-    pSigStrData->LTE_SignalStrength.rssnr=INT_MAX;
-    pSigStrData->LTE_SignalStrength.cqi=INT_MAX;
+    pSigStrData->GW_SignalStrength.signalStrength = rssi;
+    pSigStrData->GW_SignalStrength.bitErrorRate = ber;
+    pSigStrData->CDMA_SignalStrength.dbm = -1;
+    pSigStrData->CDMA_SignalStrength.ecio = -1;
+    pSigStrData->EVDO_SignalStrength.dbm = -1;
+    pSigStrData->EVDO_SignalStrength.ecio = -1;
+    pSigStrData->EVDO_SignalStrength.signalNoiseRatio = -1;
+    pSigStrData->LTE_SignalStrength.signalStrength = -1;
+    pSigStrData->LTE_SignalStrength.rsrp = INT_MAX;
+    pSigStrData->LTE_SignalStrength.rsrq = INT_MAX;
+    pSigStrData->LTE_SignalStrength.rssnr = INT_MAX;
+    pSigStrData->LTE_SignalStrength.cqi = INT_MAX;
 
     res = RRIL_RESULT_OK;
 
@@ -11777,7 +11775,7 @@ void CTEBase::QuerySignalStrength()
     }
 }
 
-RIL_SignalStrength_v6* CTEBase::ParseXCESQ(const char*& /*rszPointer*/, const BOOL /*bUnsolicited*/)
+RIL_SignalStrength_v9* CTEBase::ParseXCESQ(const char*& /*rszPointer*/, const BOOL /*bUnsolicited*/)
 {
     return NULL;
 }

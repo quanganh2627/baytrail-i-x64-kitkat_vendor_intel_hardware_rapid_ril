@@ -3508,9 +3508,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData
     //
     //  UMTS FDD cells:
     //  +XCELLINFO: 2,<MCC>,<MNC>,<LAC>,<UCI>,<scrambling_code>,<dl_frequency>,<ul_frequency>
-    //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+    //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecno>,<pathloss>
     // If UMTS has any ACTIVE SET neighboring cell
-    //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+    //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecno>,<pathloss>
     // One row
     //                          // for each intra-frequency neighboring cell [1..32] for each
     //                          // frequency [0..8] in BA list
@@ -6814,9 +6814,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
     //
     //  UMTS FDD cells:
     //  +XCELLINFO: 2,<MCC>,<MNC>,<LAC>,<UCI>,<scrambling_code>,<dl_frequency>,<ul_frequency>
-    //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+    //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecno>,<pathloss>
     // If UMTS has any ACTIVE SET neighboring cell
-    //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+    //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecno>,<pathloss>
     // One row
     //                          // for each intra-frequency neighboring cell [1..32] for each
     //                          // frequency [0..8] in BA list
@@ -6971,10 +6971,10 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                 //  +XCELLINFO:
                 //      2,<MCC>,<MNC>,<LAC>,<UCI>,<scrambling_code>,<dl_frequency>,<ul_frequency>
                 //  +XCELLINFO:
-                //       2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+                //       2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecno>,<pathloss>
                 // If UMTS has any ACTIVE SET neighboring cell
                 //  +XCELLINFO:
-                //       3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+                //       3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecno>,<pathloss>
 
                 //  Read <MCC>
                 if ((!FindAndSkipString(pszRsp, ",", pszRsp)) ||
@@ -7028,8 +7028,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
 
                 //  rssi = <rscp>
                 //  Note that <rscp> value does not exist with this response.
-                info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = 99;
-                info.CellInfo.wcdma.signalStrengthWcdma.bitErrorRate = 0;
+                info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = RSSI_UNKNOWN;
+                info.CellInfo.wcdma.signalStrengthWcdma.bitErrorRate = BER_UNKNOWN;
                 info.CellInfo.wcdma.cellIdentityWcdma.lac = uiLAC;
                 info.CellInfo.wcdma.cellIdentityWcdma.cid = uiCI;
                 info.CellInfo.wcdma.cellIdentityWcdma.psc = uiScramblingCode;
@@ -7059,9 +7059,12 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
 
         case 3: // UMTS  get (scrambling_code , rscp)
         {
-            //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+            //  +XCELLINFO: 2,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecno>,<pathloss>
             // If UMTS has any ACTIVE SET neighboring cell
-            //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecn0>,<pathloss>
+            //  +XCELLINFO: 3,<scrambling_code>,<dl_frequency>,<UTRA_rssi>,<rscp>,<ecno>,<pathloss>
+
+            int rscp = RSSI_UNKNOWN; // value mapped to rssi
+            int dummy = BER_UNKNOWN; // value mapped to ecNo
 
             //  scrambling_code is parameter 2
             //  Read <scrambling_code>
@@ -7082,10 +7085,17 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                 goto Error;
             }
             //  read <rscp>
-            if (!ExtractUInt32(pszRsp, uiRSSI, pszRsp))
+            if (!ExtractInt(pszRsp, rscp, pszRsp))
             {
                 RIL_LOG_CRITICAL("CTE_XMM6260::ParseCellInfo() -"
                         " mode %d, could not extract rscp\r\n", uiMode);
+                goto Error;
+            }
+            //  read <ecno> and ignore
+            if ((!SkipString(pszRsp, ",", pszRsp)) || (!ExtractInt(pszRsp, dummy, pszRsp)))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6260::ParseCellInfo() -"
+                        " mode %d, could not extract ecNo\r\n", uiMode);
                 goto Error;
             }
 
@@ -7094,8 +7104,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
             info.registered = 0;
             info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
             info.timeStamp = ril_nano_time();
-            info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = uiRSSI;
-            info.CellInfo.wcdma.signalStrengthWcdma.bitErrorRate;
+            info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = MapRscpToRssi(rscp);
+            info.CellInfo.wcdma.signalStrengthWcdma.bitErrorRate = BER_UNKNOWN;
             info.CellInfo.wcdma.cellIdentityWcdma.lac = INT_MAX;
             info.CellInfo.wcdma.cellIdentityWcdma.cid = INT_MAX;
             info.CellInfo.wcdma.cellIdentityWcdma.psc = uiScramblingCode;
@@ -7609,4 +7619,25 @@ RIL_RESULT_CODE CTE_XMM6260::CreateRegStatusAndBandInd(REQUEST_DATA& reqData,
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::CreateRegStatusAndBandInd() - Exit\r\n");
     return res;
+}
+
+int CTE_XMM6260::MapRscpToRssi(int rscp)
+{
+    int rssi = 31;
+
+    // Maps the rscp values(0..96, 255) to rssi(0..31, 99) values
+    if (rscp == 255)
+    {
+        rssi = RSSI_UNKNOWN;
+    }
+    else if (rscp <= 7)
+    {
+        rssi = 0;
+    }
+    else if (rscp <= 67)
+    {
+        rssi = (rscp - 6) / 2;
+    }
+
+    return rssi;
 }

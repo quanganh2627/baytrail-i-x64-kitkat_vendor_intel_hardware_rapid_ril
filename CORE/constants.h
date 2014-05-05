@@ -47,4 +47,12 @@ enum LAST_NETWORK_DATA_ID {
     LAST_NETWORK_DATA_COUNT
 };
 
+const int RSSI_UNKNOWN = 99;
+const int BER_UNKNOWN = 99;
+const int RSCP_UNKNOWN = 255;
+const int ECNO_UNKNOWN = 255;
+const int RSRQ_UNKNOWN = 255;
+const int RSRP_UNKNOWN = 255;
+const int RSSNR_UNKNOWN = 255;
+
 #endif  // __RIL_CONSTANTS_H__
