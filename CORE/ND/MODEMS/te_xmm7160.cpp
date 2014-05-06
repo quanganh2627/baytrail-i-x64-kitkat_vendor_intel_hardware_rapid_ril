@@ -2915,88 +2915,26 @@ RIL_RESULT_CODE CTE_XMM7160::CreateEtwSmsRequest(char*& reqData, UINT32 uiReqSiz
                 "Checking ETWS Range [%d,%d]\r\n",
                 selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId);
 
-        if ((selectedConfigInfo->fromServiceId <= CCbsInfo::ETWS_TEST) &&
-                (selectedConfigInfo->toServiceId >= CCbsInfo::ETWS_TEST))
+        // Builds 'regular' ETWS range
+        if (!PrintStringNullTerminate(szTwsWarnings + strlen(szTwsWarnings),
+                sizeof(szTwsWarnings) - strlen(szTwsWarnings), ",%u,%u",
+                selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId))
         {
-            // Build TEST Request
-            if (!PrintStringNullTerminate(szReqETWSTest, sizeof(szReqETWSTest),
-                    ";+XETWNTFYSTART=6,1,%u,%u", CCbsInfo::ETWS_TEST, CCbsInfo::ETWS_TEST))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
-                                "Cannot create +XETWNTFYSTART TEST request\r\n");
-                goto Error;
-            }
-
-            RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
-                    "Adding ETWS TEST range [%u,%u]\r\n",
-                    CCbsInfo::ETWS_TEST, CCbsInfo::ETWS_TEST);
-
-            testRequest++;
-            m_CbsInfo.m_activatedIds.etwsIds++;
-
-            // Need to extract non-test msg Ids
-            if (selectedConfigInfo->fromServiceId < CCbsInfo::ETWS_TEST)
-            {
-                if (!PrintStringNullTerminate(szTwsWarnings + strlen(szTwsWarnings),
-                        sizeof(szTwsWarnings) - strlen(szTwsWarnings), ",%u,%u",
-                        selectedConfigInfo->fromServiceId, CCbsInfo::ETWS_TEST - 1))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
-                            "Unable to create string with TWS [%d,%u] ids range\r\n",
-                            selectedConfigInfo->fromServiceId, CCbsInfo::ETWS_TEST - 1);
-                    goto Error;
-                }
-                uiRanges++;
-                m_CbsInfo.m_activatedIds.etwsIds +=
-                        m_CbsInfo.GetNumberOfIdsFromRange(selectedConfigInfo->fromServiceId,
-                                CCbsInfo::ETWS_TEST - 1);
-                RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
-                        "Adding ETWS test range [%d,%u]\r\n",
-                        selectedConfigInfo->fromServiceId, CCbsInfo::ETWS_TEST - 1);
-            }
-
-            if (selectedConfigInfo->toServiceId > CCbsInfo::ETWS_TEST)
-            {
-                if (!PrintStringNullTerminate(szTwsWarnings + strlen(szTwsWarnings),
-                        sizeof(szTwsWarnings) - strlen(szTwsWarnings), ",%u,%d",
-                        CCbsInfo::ETWS_TEST + 1, selectedConfigInfo->toServiceId))
-                {
-                    RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
-                            "Unable to create string with TWS [%u,%d] ids range\r\n",
-                            CCbsInfo::ETWS_TEST + 1, selectedConfigInfo->toServiceId);
-                    goto Error;
-                }
-                uiRanges++;
-                m_CbsInfo.m_activatedIds.etwsIds +=
-                        m_CbsInfo.GetNumberOfIdsFromRange(CCbsInfo::ETWS_TEST + 1,
-                        selectedConfigInfo->toServiceId);
-                RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
-                        "Adding ETWS test range [%u,%d]\r\n",
-                        CCbsInfo::ETWS_TEST + 1, selectedConfigInfo->toServiceId);
-            }
-        }
-        else
-        {
-            // Builds 'regular' ETWS range
-            if (!PrintStringNullTerminate(szTwsWarnings + strlen(szTwsWarnings),
-                    sizeof(szTwsWarnings) - strlen(szTwsWarnings), ",%u,%u",
-                    selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
-                        "Unable to create string with TWS [%d,%d] ids range\r\n",
-                        selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId);
-                goto Error;
-            }
-
-            RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
-                    "Adding ETWS range [%d,%d]\r\n",
+            RIL_LOG_CRITICAL("CTE_XMM7160::CreateETWSRequest() - "
+                    "Unable to create string with TWS [%d,%d] ids range\r\n",
                     selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId);
-
-            uiRanges++;
-            m_CbsInfo.m_activatedIds.etwsIds +=
-                    m_CbsInfo.GetNumberOfIdsFromRange(selectedConfigInfo->fromServiceId,
-                    selectedConfigInfo->toServiceId);
+            goto Error;
         }
+
+        RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
+                "Adding ETWS range [%d,%d]\r\n",
+                selectedConfigInfo->fromServiceId, selectedConfigInfo->toServiceId);
+
+        uiRanges++;
+        m_CbsInfo.m_activatedIds.etwsIds +=
+                m_CbsInfo.GetNumberOfIdsFromRange(selectedConfigInfo->fromServiceId,
+                selectedConfigInfo->toServiceId);
+
     }
 
     RIL_LOG_VERBOSE("CTE_XMM7160::CreateETWSRequest() - "
