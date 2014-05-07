@@ -646,7 +646,20 @@ BOOL CSilo_SMS::ParseXETWSECWARN(CResponse* const pResponse, const char*& respPo
 
         // Don't forget the '\0'.
         pszCbData = (char*) malloc(sizeof(char) * (uiCbDataLength + 1));
+        if (NULL == pszCbData)
+        {
+            RIL_LOG_CRITICAL("CSilo_SMS::ParseXETWSECWARN() -"
+                    " Could not alloc mem for pszCbData.\r\n");
+            goto Error;
+        }
+
         pByteBuffer = (BYTE*) malloc(sizeof(BYTE) * (uiCbDataLength / 2) + 1);
+        if (NULL == pByteBuffer)
+        {
+            RIL_LOG_CRITICAL("CSilo_SMS::ParseXETWSECWARN() -"
+                    " Could not alloc mem for pByteBuffer.\r\n");
+            goto Error;
+        }
 
         memset(pszCbData, 0, sizeof(char) * (uiCbDataLength + 1));
         memset(pByteBuffer, 0, sizeof(BYTE) * (uiCbDataLength / 2) + 1);

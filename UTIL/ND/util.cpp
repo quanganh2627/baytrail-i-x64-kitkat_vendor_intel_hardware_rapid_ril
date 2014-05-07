@@ -336,7 +336,7 @@ BOOL ConcatenateStringNullTerminate(char* const pszOut, const size_t cbOut, cons
     // We verify that pszOut size is not longer than the buffer which contains it
     assert(outLen < cbOut);
 
-    if (strlen(pszIn) < (cbOut - outLen))
+    if ((outLen < cbOut) && (strlen(pszIn) < (cbOut - outLen)))
     {
         // We have enough place to cat the string
         strcat(pszOut, pszIn);
