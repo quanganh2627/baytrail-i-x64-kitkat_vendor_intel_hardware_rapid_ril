@@ -262,6 +262,32 @@ public class RilOemHookTest extends Activity
             }
             break;
 
+            case R.id.radio_api14:
+            {
+                // RIL_OEM_HOOK_STRING_CSG_SET_AUTOMATIC_SELECTION
+                // AT+XCSG=0
+
+                // data: <command id>
+                String[] data = { "191"};
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
+                mPhone.invokeOemRilRequestStrings(data, msg);
+            }
+            break;
+
+            case R.id.radio_api15:
+            {
+                // RIL_OEM_HOOK_STRING_CSG_GET_CURRENT_CSG_STATE
+                // AT+XCSG?
+
+                // data: <command id>
+                String[] data = { "192"};
+
+                Message msg = mHandler.obtainMessage(EVENT_RIL_OEM_HOOK_STRINGS_COMPLETE);
+                mPhone.invokeOemRilRequestStrings(data, msg);
+            }
+            break;
+
             default:
                 log("unknown button selected");
                 break;

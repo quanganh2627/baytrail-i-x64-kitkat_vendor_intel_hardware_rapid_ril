@@ -26,6 +26,8 @@
     <string name="radio_api11">Set RF Power Cutback Table 0</string>
     <string name="radio_api12">Set RF Power Cutback Table 1</string>
     <string name="radio_api13">Set RF Power Cutback Table 2</string>
+    <string name="radio_api14">Configure CSG in Automatic mode</string>
+    <string name="radio_api15">Get CSG state</string>
     <string name="radio_run">RUN</string>
 
 </resources>
