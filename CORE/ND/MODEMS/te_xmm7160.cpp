@@ -840,7 +840,7 @@ BOOL CTE_XMM7160::IMSRegister(REQUEST_DATA& rReqData, void* pData,
     int* pService = (int*)pData;
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                "AT+XIREG=%d\r", *pService))
+                "AT+XICFG=0,1,50,%d;+XIREG=%d\r", *pService, *pService))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::IMSRegister() - Can't construct szCmd1.\r\n");
         return bRet;
