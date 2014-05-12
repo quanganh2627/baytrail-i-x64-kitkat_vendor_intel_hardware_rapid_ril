@@ -639,9 +639,10 @@ static void* mainLoop(void* param)
 
     UINT32 dwRet = 1;
 
-    size_t        simId = getSimId();
-    tcs_handle_t* h     = tcs_init();
-    tcs_cfg_t*    cfg   = NULL;
+    size_t        simId      = getSimId();
+    size_t        instanceId = 0; /* This is a place holder for DSDA */
+    tcs_handle_t* h          = tcs_init();
+    tcs_cfg_t*    cfg        = NULL;
     if (h == NULL)
     {
         RLOGE("%s - Failed to init TCS", __func__);
@@ -657,7 +658,14 @@ static void* mainLoop(void* param)
         goto Error;
     }
 
-    if ((cfg->mdms.nb < 1) || (simId >= cfg->channels.nb))
+    if (instanceId >= cfg->nb)
+    {
+        RLOGE("%s - Wrong instID", __FUNCTION__);
+        dwRet = 0;
+        goto Error;
+    }
+
+    if (simId >= cfg->mdm[instanceId].chs.nb)
     {
         RLOGE("%s - Wrong simID setting", __FUNCTION__);
         dwRet = 0;
@@ -665,7 +673,7 @@ static void* mainLoop(void* param)
     }
 
     // Make sure we can access Non-Volatile Memory
-    if (!CRepository::Init(cfg->mdms.mdm_info[0].rril_txt))
+    if (!CRepository::Init(cfg->mdm[instanceId].mod.rril_txt))
     {
         RLOGE("%s - could not initialize configuration file", __func__);
 
@@ -673,7 +681,7 @@ static void* mainLoop(void* param)
         goto Error;
     }
 
-    if (!RIL_SetGlobals(&cfg->channels.ch[simId].rril))
+    if (!RIL_SetGlobals(&cfg->mdm[instanceId].chs.ch[simId].rril))
     {
         RLOGE("%s - Failed to initialize globals", __func__);
         dwRet = 0;
@@ -696,7 +704,7 @@ static void* mainLoop(void* param)
     }
 
     // Create and start system manager
-    if (!CSystemManager::GetInstance().InitializeSystem(cfg->mdms.mdm_info[0].name))
+    if (!CSystemManager::GetInstance().InitializeSystem(cfg->mdm[instanceId].core.name))
     {
         RIL_LOG_CRITICAL("mainLoop() - RIL InitializeSystem() FAILED\r\n");
 
