@@ -1398,9 +1398,12 @@ private:
 
     UINT32 m_uiImsRegStatus;
 
+    int m_ProductConfig;
+
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
     void FreeCardStatusPointers(RIL_CardStatus_v6& cardStatus);
     void MapCsRegistrationState(UINT32& uiRegState);
+    void MapRegistrationRejectCause(int causeType, int& rejectCause);
 
     void SendAtSecStateInfoRequest();
     const char* GetPrintString(int definitionId);
