@@ -6589,6 +6589,12 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
             bNotifySimStatusChange = FALSE;
             appState = GetSimAppState();
             break;
+
+        case 16: // SIM IMEI locked
+            RIL_LOG_INFO("[RIL STATE] SIM IMEI check failure (16)\r\n");
+            appState = RIL_APPSTATE_IMEI;
+            break;
+
         case 14: // SIM powered off by modem
         case 99: // SIM state unknown
         default:
