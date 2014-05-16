@@ -1370,6 +1370,11 @@ private:
     UINT32 m_uiCnapCniValidity;
     char m_szCnapName[MAX_CNAP_NAME_SIZE];
 
+    // Flag to determine network selection restoration status.
+    //  true - network selection is already restored on modem side.
+    //  false - network selection needs to be restored by sending AT+COPS=<> command to modem.
+    BOOL m_bNetworkSelectionRestored;
+
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
     void FreeCardStatusPointers(RIL_CardStatus_v6& cardStatus);
     void MapCsRegistrationState(UINT32& uiRegState);

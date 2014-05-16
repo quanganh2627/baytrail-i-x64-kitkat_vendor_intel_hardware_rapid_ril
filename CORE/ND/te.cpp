@@ -87,7 +87,8 @@ CTE::CTE(UINT32 modemType) :
     m_uiPinCacheMode(E_PIN_CACHE_MODE_FS),
     m_bCbsActivationTimerRunning(FALSE),
     m_CbsActivate(-1),
-    m_bTempOoSNotifReporting(FALSE)
+    m_bTempOoSNotifReporting(FALSE),
+    m_bNetworkSelectionRestored(FALSE)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -3899,6 +3900,7 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionAutomatic(RIL_Token rilToken,
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
+    m_bNetworkSelectionRestored = FALSE;
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetNetworkSelectionAutomatic(reqData,
             pData, datalen);
     if (RRIL_RESULT_OK == res)
@@ -3938,6 +3940,7 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionManual(RIL_Token rilToken,
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
+    m_bNetworkSelectionRestored = FALSE;
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetNetworkSelectionManual(reqData,
             pData, datalen);
     if (RRIL_RESULT_OK == res)
@@ -9726,9 +9729,10 @@ void CTE::PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostSetNetworkSelectionCmdHandler() Enter\r\n");
 
+    m_bNetworkSelectionRestored = TRUE;
+
     if (NULL == rData.pRilToken)
     {
-        RIL_LOG_CRITICAL("CTE::PostSetNetworkSelectionCmdHandler() rData.pRilToken NULL!\r\n");
         return;
     }
 
@@ -10185,7 +10189,12 @@ void CTE::PostSetInitialAttachApnCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 (void*)rData.pData, rData.uiDataSize);
     }
 
-    m_pTEBaseInstance->RestoreSavedNetworkSelectionMode(NULL, rData.uiChannel, NULL, NULL);
+    // Restore saved network selection mode only if it is not already restored
+    if (!m_bNetworkSelectionRestored)
+    {
+        m_pTEBaseInstance->RestoreSavedNetworkSelectionMode(NULL, rData.uiChannel, NULL,
+                &CTE::PostSetNetworkSelectionCmdHandler);
+    }
 
     RIL_LOG_VERBOSE("CTE::PostSetInitialAttachApnCmdHandler() - Exit\r\n");
 }
