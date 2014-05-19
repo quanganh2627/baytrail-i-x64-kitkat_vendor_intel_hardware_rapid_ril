@@ -520,7 +520,7 @@ public:
     virtual RIL_RESULT_CODE CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
                                                                  void* pData,
                                                                  UINT32 uiDataSize);
-    RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData);
 
     virtual RIL_RESULT_CODE ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
                                                             const char* pszRsp,
@@ -708,7 +708,7 @@ public:
     virtual RIL_RESULT_CODE CoreGetCellInfoList(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize);
-    RIL_RESULT_CODE ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol = FALSE);
+    virtual RIL_RESULT_CODE ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol = FALSE);
 
     virtual RIL_RESULT_CODE ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                                                            const char* pszRsp,
@@ -1010,6 +1010,8 @@ public:
     virtual const char* GetSiloVoiceURCInitString();
 
     virtual const char* GetEnableFetchingString();
+
+    virtual const char* GetReadCellInfoString() { return NULL; }
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);

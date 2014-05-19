@@ -8797,7 +8797,7 @@ Error:
         pCellData = NULL;
     }
 
-    RIL_LOG_VERBOSE("CTEBase::ParseGetCellInfoList() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseCellInfoList() - Exit\r\n");
     return res;
 }
 

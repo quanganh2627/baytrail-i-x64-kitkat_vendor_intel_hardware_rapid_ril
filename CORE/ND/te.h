@@ -773,6 +773,7 @@ public:
     {
        return m_CellInfoCache.getCellInfo(pRetData, uiItemCount);
     }
+    bool IsCellInfoCacheEmpty() { return m_CellInfoCache.IsCellInfoCacheEmpty(); }
 
     void SetTempOoSNotificationReporting(BOOL bEnable) { m_bTempOoSNotifReporting = bEnable; }
     BOOL IsTempOoSNotificationEnabled() { return m_bTempOoSNotifReporting; }
@@ -1211,7 +1212,6 @@ public:
     void SendModemDownToUsatSM();
 
     int GetScreenState() { return m_ScreenState; }
-    BOOL IsRegistered(int status);
 
     RIL_RESULT_CODE SetCsgAutomaticSelection(REQUEST_DATA& reqData);
     RIL_RESULT_CODE GetCsgCurrentState(REQUEST_DATA& reqData);
@@ -1228,6 +1228,10 @@ public:
     RIL_RESULT_CODE ParseQueryCnap(const char* pszRsp, RESPONSE_DATA& rspData);
 
     BOOL ParseXREGNetworkInfo(const char*& pszPointer, const BOOL isUnSolicited);
+
+    const char* GetReadCellInfoString();
+    bool IsRegistered();
+    bool IsRegistered(int status);
 
 private:
     UINT32 m_uiModemType;
@@ -1307,7 +1311,6 @@ private:
     // Function to determine whether the SIMIO request is for FDN related SIM files
     BOOL isFDNRequest(int fileId);
 
-    BOOL IsRegistered();
     LONG GetCsRegistrationState(char* pCsRegState);
     LONG GetPsRegistrationState(char* pPsRegState);
     LONG GetCurrentAct();

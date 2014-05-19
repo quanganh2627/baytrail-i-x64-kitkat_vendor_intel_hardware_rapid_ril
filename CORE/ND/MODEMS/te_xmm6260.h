@@ -275,6 +275,8 @@ public:
 
     virtual const char* GetSiloVoiceURCInitString();
 
+    virtual const char* GetReadCellInfoString();
+
 protected:
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);

@@ -438,6 +438,14 @@ void triggerDropCallEvent(void* param)
 
 void triggerCellInfoList(void* param)
 {
+    // querying cell information when radio request pending or not registered
+    // results in no response from modem.
+    if (NULL == param || CTE::GetTE().IsRadioRequestPending() || !CTE::GetTE().IsRegistered())
+    {
+        CTE::GetTE().SetCellInfoTimerRunning(FALSE);
+        return;
+    }
+
     // Get the CellInfo rate and compare.
     // if the newly set rate is less or equal,continue reading cellinfo from modem
     // if it is more, then start a new timed call back with the difference in timeout
@@ -451,7 +459,8 @@ void triggerCellInfoList(void* param)
         REQUEST_DATA rReqData;
 
         memset(&rReqData, 0, sizeof(REQUEST_DATA));
-        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XCELLINFO?\r", sizeof(rReqData.szCmd1)))
+        if (!CopyStringNullTerminate(rReqData.szCmd1, CTE::GetTE().GetReadCellInfoString(),
+                sizeof(rReqData.szCmd1)))
         {
             RIL_LOG_CRITICAL("triggerCellInfoList() - Unable to create cellinfo command!\r\n");
             return;

@@ -63,5 +63,7 @@ const UINT32 IMS_REGISTERED = 1;
 
 const int STATE_DEREGISTER = 0;
 const int STATE_SET_INITIAL_ATTACH_APN = 1;
+const int SERVING_CELL = 1;
+const int NEIGHBOURING_CELL = 0;
 
 #endif  // __RIL_CONSTANTS_H__
