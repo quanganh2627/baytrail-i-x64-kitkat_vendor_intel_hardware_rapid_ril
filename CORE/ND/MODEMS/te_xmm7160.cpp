@@ -155,6 +155,11 @@ const char* CTE_XMM7160::GetSignalStrengthReportingString()
     return "+XCESQ=1";
 }
 
+const char* CTE_XMM7160::GetReadCellInfoString()
+{
+    return "AT+XMCI=\r";
+}
+
 //
 // RIL_REQUEST_SIGNAL_STRENGTH 19
 //
@@ -647,6 +652,136 @@ Error:
     }
 
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseGetPreferredNetworkType() - Exit\r\n");
+    return res;
+}
+
+//
+// RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
+//
+RIL_RESULT_CODE CTE_XMM7160::CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
+        void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGetNeighboringCellIDs() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XMCI=\r", sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGetNeighboringCellIDs() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGetNeighboringCellIDs() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    P_ND_N_CELL_DATA pNeighboringCellData = NULL;
+    P_ND_N_CELL_INFO_DATA pCellInfoData = NULL;
+    int nCellInfos = 0;
+    int nNeighboringCellInfos = 0;
+
+    pCellInfoData = ParseXMCI(rRspData, nCellInfos);
+
+    if (NULL != pCellInfoData && nCellInfos > 0)
+    {
+        pNeighboringCellData = (P_ND_N_CELL_DATA)malloc(sizeof(S_ND_N_CELL_DATA));
+        if (NULL == pNeighboringCellData)
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetNeighboringCellIDs() -"
+                    " Could not allocate memory for a S_ND_N_CELL_DATA struct.\r\n");
+            goto Error;
+        }
+        memset(pNeighboringCellData, 0, sizeof(S_ND_N_CELL_DATA));
+
+        for (int i = 0; i < nCellInfos; i++)
+        {
+            RIL_CellInfo info = pCellInfoData->pnCellData[i];
+            if (!info.registered)
+            {
+                switch (info.cellInfoType)
+                {
+                    case RIL_CELL_INFO_TYPE_GSM:
+                        pNeighboringCellData->pnCellData[nNeighboringCellInfos].cid
+                                = pNeighboringCellData->pnCellCIDBuffers[nNeighboringCellInfos];
+
+                        // cid = upper 16 bits (LAC), lower 16 bits (CID)
+                        snprintf(pNeighboringCellData->pnCellCIDBuffers[nNeighboringCellInfos],
+                                CELL_ID_ARRAY_LENGTH, "%04X%04X",
+                                info.CellInfo.gsm.cellIdentityGsm.lac,
+                                info.CellInfo.gsm.cellIdentityGsm.cid);
+
+                        pNeighboringCellData->pnCellData[nNeighboringCellInfos].rssi
+                                = info.CellInfo.gsm.signalStrengthGsm.signalStrength;
+
+                        pNeighboringCellData->pnCellPointers[nNeighboringCellInfos]
+                                = &(pNeighboringCellData->pnCellData[nNeighboringCellInfos]);
+                        nNeighboringCellInfos++;
+                    break;
+
+                    case RIL_CELL_INFO_TYPE_WCDMA:
+                        pNeighboringCellData->pnCellData[nNeighboringCellInfos].cid
+                                = pNeighboringCellData->pnCellCIDBuffers[nNeighboringCellInfos];
+
+                        // cid = upper 16 bits (LAC), lower 16 bits (CID)
+                        snprintf(pNeighboringCellData->pnCellCIDBuffers[nNeighboringCellInfos],
+                                CELL_ID_ARRAY_LENGTH, "%04X%04X",
+                                info.CellInfo.wcdma.cellIdentityWcdma.lac,
+                                info.CellInfo.wcdma.cellIdentityWcdma.cid);
+
+                        pNeighboringCellData->pnCellData[nNeighboringCellInfos].rssi
+                                = info.CellInfo.wcdma.signalStrengthWcdma.signalStrength;
+
+                        pNeighboringCellData->pnCellPointers[nNeighboringCellInfos]
+                                = &(pNeighboringCellData->pnCellData[nNeighboringCellInfos]);
+                        nNeighboringCellInfos++;
+                    break;
+
+                    case RIL_CELL_INFO_TYPE_LTE:
+                        pNeighboringCellData->pnCellData[nNeighboringCellInfos].cid
+                                = pNeighboringCellData->pnCellCIDBuffers[nNeighboringCellInfos];
+
+                        // cid = upper 16 bits (TAC), lower 16 bits (CID)
+                        snprintf(pNeighboringCellData->pnCellCIDBuffers[nNeighboringCellInfos],
+                                CELL_ID_ARRAY_LENGTH, "%04X%04X",
+                                info.CellInfo.lte.cellIdentityLte.tac,
+                                info.CellInfo.lte.cellIdentityLte.ci);
+
+                        pNeighboringCellData->pnCellData[nNeighboringCellInfos].rssi = 0;
+
+                        pNeighboringCellData->pnCellPointers[nNeighboringCellInfos]
+                                = &(pNeighboringCellData->pnCellData[nNeighboringCellInfos]);
+                        nNeighboringCellInfos++;
+                    break;
+
+                    default:
+                    break;
+                }
+            }
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    if (nNeighboringCellInfos > 0 && RRIL_RESULT_OK == res)
+    {
+        rRspData.pData  = (void*)pNeighboringCellData;
+        rRspData.uiDataSize = nNeighboringCellInfos * sizeof(RIL_NeighboringCell*);
+    }
+    else
+    {
+        rRspData.pData  = NULL;
+        rRspData.uiDataSize = 0;
+        free(pNeighboringCellData);
+        pNeighboringCellData = NULL;
+    }
+
+    free(pCellInfoData);
+    pCellInfoData = NULL;
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGetNeighboringCellIDs() - Exit\r\n");
     return res;
 }
 
@@ -1171,432 +1306,6 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM7160::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
-                                                    const char* pszRsp,
-                                                    UINT32 uiIndex,
-                                                    UINT32 uiMode)
-{
-    RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
-    UINT32 uiTAC = 0, uiCI = 0, uiMcc =0, uiMnc = 0, uiEARFCN = 0;
-    UINT32 uiPhyCI = 0, uiRSRQ = 0, uiRSRP = 0, uiRSSNR =0, uiTA = 0;
-    const char* pszStart = pszRsp;
-
-    switch (uiMode)
-    {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-        {
-            return CTE_XMM6260::ParseNeighboringCellInfo(pCellData, pszRsp,
-                     uiIndex, uiMode);
-         }
-         break;
-        //  LTE cells:
-        //  +XCELLINFO: 5,<MCC>,<MNC>,<CI>,<PCI>,<TAC>,<rsrp>,<rsrq>,<rssnr>,<ta>
-        //  +XCELLINFO: 6,<EARFCN>,<PhyCI>,<rsrp>,<rsrq>,
-        case 5:
-        {
-
-            //  Read <MCC>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiMcc, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 5, could not extract MCC value\r\n");
-                goto Error;
-            }
-
-            //  Read <MNC>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiMnc, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 5, could not extract MNC value\r\n");
-                goto Error;
-            }
-
-            //  Read <CI>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiCI, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 5, could not extract CI value\r\n");
-                goto Error;
-            }
-
-            //  Read <phyCI>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiPhyCI, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 5, could not extract PhyCI value\r\n");
-                goto Error;
-            }
-
-            //  Read <TAC>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiTAC, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 5, could not extract TAC\r\n");
-                goto Error;
-            }
-
-            //  Read <RSRP>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSRP, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 5, could not extract RSRP value\r\n");
-                goto Error;
-            }
-
-            //  Read <RSRQ>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSRQ, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 5, could not extract RSRQ value\r\n");
-                goto Error;
-            }
-
-            //  Read <RSSNR>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSSNR, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 5, could not extract RSSNR value\r\n");
-                goto Error;
-            }
-
-            //  Read <TA>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiTA, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 5, could not extract TA value\r\n");
-                goto Error;
-            }
-
-            //  We now have what we want, copy to main structure.
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-
-            //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
-                    "%04X%04X", uiTAC, uiCI);
-            RIL_LOG_INFO("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                    " mode 5 LTE TAC,CID index=[%d]  cid=[%s]\r\n",
-                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
-
-            // rssi ~ rsrp
-            pCellData->pnCellData[uiIndex].rssi = (int)(uiRSRP);
-            RIL_LOG_INFO("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                    " mode 5 LTE rsrp index=[%d]  rsrp=[%d]\r\n",
-                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
-            res = RRIL_RESULT_OK;
-        }
-        break;
-
-        case 6:
-        {
-            //  +XCELLINFO: 6,<EARFCN>,<PCI>,<rsrp>,<rsrq>,
-            // Extract EARFCN
-            // This parameter is not used yet
-            if (!SkipString(pszRsp, ",", pszRsp) ||
-                    !ExtractUInt32(pszRsp, uiEARFCN, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 6, could not extract EARFCN\r\n");
-                goto Error;
-            }
-
-            // Extract PhyCI
-            if (!SkipString(pszRsp, ",", pszRsp) ||
-                    !ExtractUInt32(pszRsp, uiPhyCI, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 6, could not extract PhyCI\r\n");
-                goto Error;
-            }
-            //  Read <RSRP>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSRP, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 6, could not extract RSRP value\r\n");
-                goto Error;
-            }
-            //  Read <RSRQ>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSRQ, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                        " mode 6, could not extract RSRQ value\r\n");
-                goto Error;
-            }
-            // Reset the values to invalid
-            uiTAC = 0;
-            uiCI = 0;
-            //  We now have what we want, copy to main structure.
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-
-            //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
-                    "%04X%04X", uiTAC, uiCI);
-            RIL_LOG_INFO("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                    " mode 6 LTE TAC,CID index=[%d]  cid=[%s]\r\n",
-                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
-
-            // rssi ~ rsrp
-            pCellData->pnCellData[uiIndex].rssi = (int)(uiRSRP);
-            RIL_LOG_INFO("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                    " mode 6 LTE rsrp index=[%d]  rsrp=[%d]\r\n",
-                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
-            res = RRIL_RESULT_OK;
-        }
-        break;
-
-        default:
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::ParseNeighboringCellInfo() -"
-                    " Invalid nMode=[%d]\r\n", uiMode);
-            goto Error;
-        }
-        break;
-    }
-
-Error:
-    return res;
-}
-
-RIL_RESULT_CODE CTE_XMM7160::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
-                                                    const char* pszRsp,
-                                                    UINT32 uiIndex,
-                                                    UINT32 uiMode)
-{
-    RIL_RESULT_CODE res = RIL_E_GENERIC_FAILURE;
-    UINT32 uiTAC = 0, uiCI = 0, uiRSSI = 0, uiScramblingCode = 0, uiMcc = 0, uiMnc = 0;
-    UINT32 uiPhyCI = 0, uiRSRQ = 0, uiRSRP = 0, uiRSSNR =0, uiTA = 0, uiEARFCN = 0;
-    const char* pszStart = pszRsp;
-
-    switch (uiMode)
-    {
-        //GSM/UMTS Cells
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-
-            return CTE_XMM6260::ParseCellInfo(pCellData,
-                        pszRsp, uiIndex, uiMode);
-        break;
-
-        //  LTE cells:
-        //  +XCELLINFO: 5,<MCC>,<MNC>,<CI>,<PCI>,<TAC>,<rsrp>,<rsrq>,<rssnr>,<ta>
-        //  +XCELLINFO: 6,<EARFCN>,<PhyCI>,<rsrp>,<rsrq>,
-
-        case 5:
-        {
-
-            //  Read <MCC>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiMcc, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 5, could not extract MCC value\r\n");
-                goto Error;
-            }
-
-            //  Read <MNC>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiMnc, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 5, could not extract MNC value\r\n");
-                goto Error;
-            }
-
-            //  Read <CI>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiCI, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 5, could not extract CI value\r\n");
-                goto Error;
-            }
-
-            //  Read <phyCI>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiPhyCI, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 5, could not extract PhyCI value\r\n");
-                goto Error;
-            }
-
-            //  Read <TAC>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiTAC, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 5, could not extract TAC\r\n");
-                goto Error;
-            }
-
-            //  Read <RSRP>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSRP, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 5, could not extract RSRP value\r\n");
-                goto Error;
-            }
-
-            //  Read <RSRQ>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSRQ, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 5, could not extract RSRQ value\r\n");
-                goto Error;
-            }
-
-            //  Read <RSSNR>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSSNR, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 5, could not extract RSSNR value\r\n");
-                goto Error;
-            }
-
-            //  Read <TA>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiTA, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 5, could not extract TA value\r\n");
-                goto Error;
-            }
-
-            RIL_CellInfo& info = pCellData->pnCellData[uiIndex];
-            info.registered = 1;
-            info.cellInfoType = RIL_CELL_INFO_TYPE_LTE;
-            info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
-            info.timeStamp = ril_nano_time();
-            info.CellInfo.lte.signalStrengthLte.signalStrength = 99;
-            info.CellInfo.lte.signalStrengthLte.rsrp = uiRSRP;
-            info.CellInfo.lte.signalStrengthLte.rsrq = uiRSRQ;
-            info.CellInfo.lte.signalStrengthLte.rssnr = uiRSSNR;
-            info.CellInfo.lte.signalStrengthLte.cqi = INT_MAX;
-            info.CellInfo.lte.signalStrengthLte.timingAdvance = uiTA;
-            info.CellInfo.lte.cellIdentityLte.tac = uiTAC;
-            info.CellInfo.lte.cellIdentityLte.ci = uiCI;
-            info.CellInfo.lte.cellIdentityLte.pci = uiPhyCI;
-            info.CellInfo.lte.cellIdentityLte.mnc = uiMnc;
-            info.CellInfo.lte.cellIdentityLte.mcc = uiMcc;
-            RIL_LOG_INFO("CTE_XMM7160::ParseCellInfo() -"
-                    " mode 5 LTE TAC/CID/MNC/MCC/RSRP/RSRQ/TA/RSSNR "
-                    "index=[%d] cid=[%d] tac[%d] mnc[%d] mcc[%d] [rsrp[%d] rsrq[%d]"
-                    " ta[%d] rssnr[%d] Phyci[%d] \r\n",
-                    uiIndex, info.CellInfo.lte.cellIdentityLte.ci,
-                    info.CellInfo.lte.cellIdentityLte.tac,
-                    info.CellInfo.lte.cellIdentityLte.mnc,
-                    info.CellInfo.lte.cellIdentityLte.mcc,
-                    info.CellInfo.lte.signalStrengthLte.rsrp,
-                    info.CellInfo.lte.signalStrengthLte.rsrq,
-                    info.CellInfo.lte.signalStrengthLte.timingAdvance,
-                    info.CellInfo.lte.signalStrengthLte.rssnr,
-                    info.CellInfo.lte.cellIdentityLte.pci);
-            res = RRIL_RESULT_OK;
-        }
-        break;
-
-        case 6:
-        {
-            //  +XCELLINFO: 6,<EARFCN>,<PCI>,<rsrp>,<rsrq>,
-            // Extract EARFCN
-            // This parameter is not used yet
-            if (!SkipString(pszRsp, ",", pszRsp) ||
-                    !ExtractUInt32(pszRsp, uiEARFCN, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 6, could not extract EARFCN\r\n");
-                goto Error;
-            }
-
-            // Extract PhyCI
-            if (!SkipString(pszRsp, ",", pszRsp) ||
-                    !ExtractUInt32(pszRsp, uiPhyCI, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 6, could not extract PhyCI\r\n");
-                goto Error;
-            }
-            //  Read <RSRP>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSRP, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 6, could not extract RSRP value\r\n");
-                goto Error;
-            }
-            //  Read <RSRQ>
-            if ((!SkipString(pszRsp, ",", pszRsp)) ||
-                    (!ExtractUInt32(pszRsp, uiRSRQ, pszRsp)))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfo() -"
-                        " mode 6, could not extract RSRQ value\r\n");
-                goto Error;
-            }
-
-            RIL_CellInfo& info = pCellData->pnCellData[uiIndex];
-            info.registered = 0;
-            info.cellInfoType = RIL_CELL_INFO_TYPE_LTE;
-            info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
-            info.timeStamp = ril_nano_time();
-            info.CellInfo.lte.signalStrengthLte.signalStrength = 99;
-            info.CellInfo.lte.signalStrengthLte.rsrp = uiRSRP;
-            info.CellInfo.lte.signalStrengthLte.rsrq = uiRSRQ;
-            info.CellInfo.lte.signalStrengthLte.rssnr = INT_MAX;
-            info.CellInfo.lte.signalStrengthLte.cqi = INT_MAX;
-            info.CellInfo.lte.signalStrengthLte.timingAdvance = INT_MAX;
-            info.CellInfo.lte.cellIdentityLte.tac = INT_MAX;
-            info.CellInfo.lte.cellIdentityLte.ci = INT_MAX;
-            info.CellInfo.lte.cellIdentityLte.pci = uiPhyCI;
-            info.CellInfo.lte.cellIdentityLte.mnc = INT_MAX;
-            info.CellInfo.lte.cellIdentityLte.mcc = INT_MAX;
-            RIL_LOG_INFO("CTE_XMM7160::ParseCellInfo() -"
-                    " mode 6 LTE TAC/CID/MNC/MCC/RSRP/RSRQ/TA/RSSNR "
-                    "index=[%d] cid=[%d] tac[%d] mnc[%d] mcc[%d] [rsrp[%d] rsrq[%d]"
-                    " ta[%d] rssnr[%d] Phyci[%d] \r\n",
-                    uiIndex, info.CellInfo.lte.cellIdentityLte.ci,
-                    info.CellInfo.lte.cellIdentityLte.tac,
-                    info.CellInfo.lte.cellIdentityLte.mnc,
-                    info.CellInfo.lte.cellIdentityLte.mcc,
-                    info.CellInfo.lte.signalStrengthLte.rsrp,
-                    info.CellInfo.lte.signalStrengthLte.rsrq,
-                    info.CellInfo.lte.signalStrengthLte.timingAdvance,
-                    info.CellInfo.lte.signalStrengthLte.rssnr,
-                    info.CellInfo.lte.cellIdentityLte.pci);
-            res = RRIL_RESULT_OK;
-        }
-        break;
-
-        default:
-        {
-            RIL_LOG_INFO("CTE_XMM7160::ParseCellInfo() -"
-                    " Invalid nMode=[%d]\r\n", uiMode);
-            goto Error;
-        }
-        break;
-    }
-Error:
-    return res;
-
-}
-
 RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseXCESQ() - Enter\r\n");
@@ -2047,4 +1756,507 @@ RIL_RESULT_CODE CTE_XMM7160::ParseISimAuthenticate(RESPONSE_DATA& rRspData)
 Error:
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseISimAuthenticate() - Exit\r\n");
     return res;
+}
+
+//
+// RIL_REQUEST_GET_CELL_INFO_LIST 109
+//
+RIL_RESULT_CODE CTE_XMM7160::CoreGetCellInfoList(REQUEST_DATA& rReqData,
+        void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGetCellInfoList() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XMCI=\r", sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreGetCellInfoList() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol)
+{
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    P_ND_N_CELL_INFO_DATA pCellData = NULL;
+    int nCellInfos = 0;
+
+    pCellData = ParseXMCI(rRspData, nCellInfos);
+
+    if (!isUnsol)
+    {
+        if (nCellInfos > 0 && NULL != pCellData)
+        {
+            rRspData.pData = (void*)pCellData->pnCellData;
+            rRspData.uiDataSize = nCellInfos * sizeof(RIL_CellInfo);
+        }
+        else
+        {
+            nCellInfos = 0;
+            rRspData.pData  = NULL;
+            rRspData.uiDataSize = 0;
+            free(pCellData);
+            pCellData = NULL;
+        }
+    }
+    else
+    {
+        // Unsolicited CELL INFO LIST
+        // update the list only if there is a change in the information
+        // compare the read values with the cellinfo cache and if the values
+        // are different, report RIL_UNSOL_CELL_INFO_LIST
+        if (nCellInfos > 0)
+        {
+            int requestedRate = (int)rRspData.pContextData;
+            if (m_cte.updateCellInfoCache(pCellData, nCellInfos)
+                    && -1 != requestedRate && INT_MAX != requestedRate)
+            {
+                RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST,
+                        (void*)pCellData->pnCellData, (sizeof(RIL_CellInfo) * nCellInfos));
+            }
+        }
+
+        // restart the timer now with the latest rate setting.
+        if (!m_cte.IsCellInfoTimerRunning())
+        {
+            int newRate = m_cte.GetCellInfoListRate();
+            RestartUnsolCellInfoListTimer(newRate);
+        }
+    }
+
+Error:
+
+    if (RRIL_RESULT_OK != res || isUnsol)
+    {
+        free(pCellData);
+        pCellData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseCellInfoList() - Exit\r\n");
+    return res;
+}
+
+P_ND_N_CELL_INFO_DATA CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos)
+{
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int index = 0;
+    int mcc = -1;
+    int mnc = -1;
+    UINT32 uiLac = 0;
+    UINT32 uiCi = -1;
+    const char* pszRsp = rspData.szResponse;
+    P_ND_N_CELL_INFO_DATA pCellData = NULL;
+
+    pCellData = (P_ND_N_CELL_INFO_DATA)malloc(sizeof(S_ND_N_CELL_INFO_DATA));
+    if (NULL == pCellData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                " Could not allocate memory for a S_ND_N_CELL_INFO_DATA struct.\r\n");
+        goto Error;
+    }
+    memset(pCellData, 0, sizeof(S_ND_N_CELL_INFO_DATA));
+
+    /*
+     * GSM serving and neighboring cell:
+     *
+     * +XMCI: 0,<MCC>,<MNC>,<LAC>,<CI>,<BSIC>,<RXLEV>,<BER>
+     * +XMCI: 1,<MCC>,<MNC>,<LAC>,<CI>,<BSIC>,<RXLEV>,<BER>
+     *
+     * UMTS serving and neighboring cell:
+     *
+     * +XMCI: 2,<MCC>,<MNC>,<LAC>,<CI>,<PSC>,<RSCP>,<ECNO>
+     * +XMCI: 3,<MCC>,<MNC>,<LAC>,<CI>,<PSC>,<RSCP>,<ECNO>
+     *
+     * LTE serving and neighboring cell:
+     *
+     * +XMCI: 4,<MCC>,<MNC>,<TAC>,<CI>,<PCI>,<RSRP>,<RSRQ>,<RSSNR>,<TA>,<CQI>
+     * +XMCI: 5,<MCC>,<MNC>,<TAC>,<CI>,<PCI>,<RSRP>,<RSRQ>,<RSSNR>,<TA>,<CQI>
+     */
+
+    // Loop on +XMCI until no more entries are found
+    while (FindAndSkipString(pszRsp, "+XMCI: ", pszRsp))
+    {
+        int type = 0;
+        int dummy;
+
+        if (RRIL_MAX_CELL_ID_COUNT == index)
+        {
+            //  We're full.
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                    " Exceeded max count = %d\r\n", RRIL_MAX_CELL_ID_COUNT);
+            break;
+        }
+
+        // Read <TYPE>
+        if (!ExtractInt(pszRsp, type, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                    " could not extract <TYPE> value\r\n");
+            goto Error;
+        }
+
+        // Read <MCC>
+        if ((!SkipString(pszRsp, ",", pszRsp))
+                || (!ExtractInt(pszRsp, mcc, pszRsp)))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                    " could not extract <MCC> value\r\n");
+            goto Error;
+        }
+
+        // Read <MNC>
+        if ((!SkipString(pszRsp, ",", pszRsp))
+                || (!ExtractInt(pszRsp, mnc, pszRsp)))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                    " could not extract <MNC> value\r\n");
+            goto Error;
+        }
+
+        // Ignore the cell information if modem reports invalid mcc and mnc but continue parsing
+        // next response line.
+        if (0xFFFF == mcc && 0xFFFF == mnc)
+        {
+            continue;
+        }
+
+        // Read <LAC> or <TAC>
+        if (SkipString(pszRsp, ",", pszRsp))
+        {
+            if (SkipString(pszRsp, "\"", pszRsp))
+            {
+                if (!ExtractHexUInt32(pszRsp, uiLac, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <LAC>\r\n");
+                }
+                SkipString(pszRsp, "\"", pszRsp);
+            }
+        }
+
+        // Read <CI>
+        if (SkipString(pszRsp, ",", pszRsp))
+        {
+            if (SkipString(pszRsp, "\"", pszRsp))
+            {
+                if (!ExtractHexUInt32(pszRsp, uiCi, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <CI> value\r\n");
+                }
+                SkipString(pszRsp, "\"", pszRsp);
+            }
+        }
+
+        switch (type)
+        {
+            case 0: // GSM serving cell
+            case 1: // GSM neighboring cell
+            {
+                int rxlev;
+                int ber;
+
+                // Read <BSIC>
+                if ((!SkipString(pszRsp, ",", pszRsp))
+                        || (!ExtractInt(pszRsp, dummy, pszRsp)))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <BSIC> value\r\n");
+                    goto Error;
+                }
+
+                // Read <RXLEV>
+                if ((!SkipString(pszRsp, ",", pszRsp))
+                        || (!ExtractInt(pszRsp, rxlev, pszRsp)))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <RXLEV> value\r\n");
+                    goto Error;
+                }
+
+                // Read <BER>
+                if ((!SkipString(pszRsp, ",", pszRsp))
+                        || (!ExtractInt(pszRsp, ber, pszRsp)))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <BER> value\r\n");
+                    goto Error;
+                }
+
+                RIL_CellInfo& info = pCellData->pnCellData[index];
+                info.registered = (0 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
+                info.cellInfoType = RIL_CELL_INFO_TYPE_GSM;
+                info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
+                info.timeStamp = ril_nano_time();
+                info.CellInfo.gsm.signalStrengthGsm.signalStrength =
+                        MapRxlevToSignalStrengh(rxlev);
+                info.CellInfo.gsm.signalStrengthGsm.bitErrorRate = ber;
+                info.CellInfo.gsm.cellIdentityGsm.lac = uiLac;
+                info.CellInfo.gsm.cellIdentityGsm.cid = uiCi;
+                info.CellInfo.gsm.cellIdentityGsm.mnc = mnc;
+                info.CellInfo.gsm.cellIdentityGsm.mcc = mcc;
+                RIL_LOG_INFO("CTE_XMM7160::ParseXMCI() - "
+                        "GSM LAC,CID,MCC,MNC index=[%d] cid=[%d] lac[%d] mcc[%d] mnc[%d]\r\n",
+                        index, info.CellInfo.gsm.cellIdentityGsm.cid,
+                        info.CellInfo.gsm.cellIdentityGsm.lac,
+                        info.CellInfo.gsm.cellIdentityGsm.mcc,
+                        info.CellInfo.gsm.cellIdentityGsm.mnc);
+
+
+                index++;
+            }
+            break;
+
+            case 2: // UMTS serving cell
+            case 3: // UMTS neighboring cell
+            {
+                int rscp;
+                int psc;
+
+                // Read <PSC>
+                if (!SkipString(pszRsp, ",", pszRsp)
+                        || !ExtractInt(pszRsp, psc, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <PSC>\r\n");
+                    goto Error;
+                }
+
+                // Read <RSCP>
+                if (!SkipString(pszRsp, ",", pszRsp)
+                        || !ExtractInt(pszRsp, rscp, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <RSCP>\r\n");
+                    goto Error;
+                }
+
+                // Read <ECNO>
+                if (!SkipString(pszRsp, ",", pszRsp)
+                        || !ExtractInt(pszRsp, dummy, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <ECNO>\r\n");
+                    goto Error;
+                }
+
+                RIL_CellInfo& info = pCellData->pnCellData[index];
+                info.registered = (2 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
+                info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA;
+                info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
+                info.timeStamp = ril_nano_time();
+
+                info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = MapRscpToRssi(rscp);
+                info.CellInfo.wcdma.signalStrengthWcdma.bitErrorRate = BER_UNKNOWN;
+                info.CellInfo.wcdma.cellIdentityWcdma.lac = uiLac;
+                info.CellInfo.wcdma.cellIdentityWcdma.cid = uiCi;
+                info.CellInfo.wcdma.cellIdentityWcdma.psc = psc;
+                info.CellInfo.wcdma.cellIdentityWcdma.mnc = mnc;
+                info.CellInfo.wcdma.cellIdentityWcdma.mcc = mcc;
+                RIL_LOG_INFO("CTE_XMM7160::ParseXMCI() - "
+                        "UMTS LAC,CID,MCC,MNC,ScrCode "
+                        "index=[%d]  cid=[%d] lac[%d] mcc[%d] mnc[%d] scrCode[%d]\r\n",
+                        index, info.CellInfo.wcdma.cellIdentityWcdma.cid,
+                        info.CellInfo.wcdma.cellIdentityWcdma.lac,
+                        info.CellInfo.wcdma.cellIdentityWcdma.mcc,
+                        info.CellInfo.wcdma.cellIdentityWcdma.mnc,
+                        info.CellInfo.wcdma.cellIdentityWcdma.psc);
+
+                index++;
+            }
+            break;
+
+            case 4: // LTE serving cell
+            case 5: // LTE neighboring cell
+            {
+                int pci;
+                int rsrp;
+                int rsrq;
+                int rssnr;
+                int ta;
+                int cqi;
+
+                // Read <PCI>
+                if (!SkipString(pszRsp, ",", pszRsp)
+                        || !ExtractInt(pszRsp, pci, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <PCI>\r\n");
+                    goto Error;
+                }
+
+                // Read <RSRP>
+                if (!SkipString(pszRsp, ",", pszRsp)
+                        || !ExtractInt(pszRsp, rsrp, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <RSRP>\r\n");
+                    goto Error;
+                }
+
+                // Read <RSRQ>
+                if (!SkipString(pszRsp, ",", pszRsp)
+                        || !ExtractInt(pszRsp, rsrq, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <RSRQ>\r\n");
+                    goto Error;
+                }
+
+                // Read <RSSNR>
+                if (!SkipString(pszRsp, ",", pszRsp)
+                        || !ExtractInt(pszRsp, rssnr, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <RSSNR>\r\n");
+                    goto Error;
+                }
+
+                // Read <TA>
+                if (!SkipString(pszRsp, ",", pszRsp)
+                        || !ExtractInt(pszRsp, ta, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <TA>\r\n");
+                    goto Error;
+                }
+
+                // Read <CQI>
+                if (!SkipString(pszRsp, ",", pszRsp)
+                        || !ExtractInt(pszRsp, cqi, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
+                            " could not extract <CQI>\r\n");
+                    goto Error;
+                }
+
+                RIL_CellInfo& info = pCellData->pnCellData[index];
+                info.registered = (4 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
+                info.cellInfoType = RIL_CELL_INFO_TYPE_LTE;
+                info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
+                info.timeStamp = ril_nano_time();
+                info.CellInfo.lte.signalStrengthLte.signalStrength = RSSI_UNKNOWN;
+                info.CellInfo.lte.signalStrengthLte.rsrp = MapToAndroidRsrp(rsrp);
+                info.CellInfo.lte.signalStrengthLte.rsrq = MapToAndroidRsrq(rsrq);
+                info.CellInfo.lte.signalStrengthLte.rssnr = MapToAndroidRssnr(rssnr);
+                info.CellInfo.lte.signalStrengthLte.cqi = cqi;
+                info.CellInfo.lte.signalStrengthLte.timingAdvance = ta;
+                info.CellInfo.lte.cellIdentityLte.tac = uiLac;
+                info.CellInfo.lte.cellIdentityLte.ci = uiCi;
+                info.CellInfo.lte.cellIdentityLte.pci = pci;
+                info.CellInfo.lte.cellIdentityLte.mnc = mnc;
+                info.CellInfo.lte.cellIdentityLte.mcc = mcc;
+                RIL_LOG_INFO("CTE_XMM7160::ParseXMCI() -"
+                        "LTE TAC,CID,MCC,MNC,RSRP,RSRQ,TA,RSSNR,PhyCellId "
+                        "index=[%d] cid=[%d] tac[%d] mcc[%d] mnc[%d] rsrp[%d] rsrq[%d] "
+                        "ta[%d] rssnr[%d] Phyci[%d] \r\n",
+                        index, info.CellInfo.lte.cellIdentityLte.ci,
+                        info.CellInfo.lte.cellIdentityLte.tac,
+                        info.CellInfo.lte.cellIdentityLte.mcc,
+                        info.CellInfo.lte.cellIdentityLte.mnc,
+                        info.CellInfo.lte.signalStrengthLte.rsrp,
+                        info.CellInfo.lte.signalStrengthLte.rsrq,
+                        info.CellInfo.lte.signalStrengthLte.timingAdvance,
+                        info.CellInfo.lte.signalStrengthLte.rssnr,
+                        info.CellInfo.lte.cellIdentityLte.pci);
+
+                index++;
+            }
+            break;
+
+            default:
+            {
+                RIL_LOG_INFO("CTE_XMM7160::ParseXMCI() -"
+                        " Invalid type=[%d]\r\n", type);
+                goto Error;
+            }
+            break;
+        }
+    }
+
+    nCellInfos = index;
+    res = RRIL_RESULT_OK;
+Error:
+    while (FindAndSkipString(pszRsp, "+XMCI: ", pszRsp));
+
+    // Skip "<postfix>"
+    if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI - Could not skip response postfix.\r\n");
+    }
+
+    if (RRIL_RESULT_OK != res)
+    {
+        nCellInfos = 0;
+        free(pCellData);
+        pCellData = NULL;
+    }
+
+    return pCellData;
+}
+
+int CTE_XMM7160::MapRxlevToSignalStrengh(int rxlev)
+{
+    // In case of invalid rxlev values, return RSSI_UNKNOWN.
+    if (rxlev > 57 || rxlev < 0)
+        return RSSI_UNKNOWN;
+    else if (rxlev <= 57)
+        return (rxlev / 2) + 2;
+    else
+        return 31;
+}
+
+int CTE_XMM7160::MapToAndroidRsrp(int rsrp)
+{
+    /*
+     * In case of invalid rsrp values, return INT_MAX.
+     * If modem returns 0 then rsrp = -140 dBm.
+     * If modem returns 1 then rsrp = -139 dBm.
+     *
+     * As Android expects a positive value, rapid ril needs to send (140 - rsrp) to
+     * framework.
+     */
+    if (rsrp > 97 || rsrp < 0)
+        return INT_MAX;
+    else if (rsrp < 1)
+        return 140;
+    else
+        return 140 - rsrp;
+}
+
+int CTE_XMM7160::MapToAndroidRsrq(int rsrq)
+{
+    /*
+     * In case of invalid rsrq values, return INT_MAX.
+     * If modem return 0 then rsrq = -20 dBm.
+     * If modem return 1 then rsrq = -20 dBm.
+     *
+     * Note: -19.5dBm is rounded to -20dbm
+     *
+     * As Android expects a positive value, rapid ril needs to send (20 - rsrq / 2) to
+     * framework.
+     */
+    if (rsrq > 34 || rsrq < 0)
+        return INT_MAX;
+    else
+        return 20 - rsrq / 2;
+}
+
+int CTE_XMM7160::MapToAndroidRssnr(int rssnr)
+{
+    /*
+     * If modem returns 0 then rssnr = 0 dBm
+     * If modem returns 1 then rssnr = 0.5 dBm
+     * As Android has granularity of 0.1 dB units, rapid ril needs to send
+     * (rssnr/2)*10 => rssnr * 5 to framework.
+     *
+     * As per ril documentation, valid rssnr range is -200 to +300(-200 = -20.0dB, +300 = 30dB).
+     * Return INT_MAX if the value is not within this range.
+     */
+    int androidRssnr = rssnr * 5;
+    if (androidRssnr > 300 || androidRssnr < -200)
+        return INT_MAX;
+    else
+        return androidRssnr;
 }

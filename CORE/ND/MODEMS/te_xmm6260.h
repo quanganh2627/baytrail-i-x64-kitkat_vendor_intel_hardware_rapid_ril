@@ -261,6 +261,8 @@ public:
 
     virtual void HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange);
 
+    virtual const char* GetReadCellInfoString();
+
 protected:
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);
@@ -287,6 +289,9 @@ protected:
     virtual void QuerySimState();
 
     virtual UINT32 GetXDNSMode(const char* pszPdpType);
+
+    // Maps the rscp values(0..96, 255) to rssi(0..31, 99) values
+    int MapRscpToRssi(int rscp);
 
 private:
     RIL_RESULT_CODE CreateGetThermalSensorValuesReq(REQUEST_DATA& rReqData,

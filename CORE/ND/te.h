@@ -767,6 +767,7 @@ public:
     {
        return m_CellInfoCache.getCellInfo(pRetData, uiItemCount);
     }
+    bool IsCellInfoCacheEmpty() { return m_CellInfoCache.IsCellInfoCacheEmpty(); }
 
     BOOL TestAndSetDataCleanupStatus(BOOL bCleanupStatus);
 
@@ -1168,6 +1169,11 @@ public:
     CMutex* GetDataChannelRefCountMutex() { return m_pDataChannelRefCountMutex; }
     void GetPreviousGprsRegInfo(S_REG_INFO& previousRegInfo);
 
+    const char* GetReadCellInfoString();
+    bool IsRegistered();
+
+    int GetScreenState() { return m_ScreenState; }
+
 private:
     UINT32 m_uiModemType;
 
@@ -1246,7 +1252,6 @@ private:
     // Function to determine whether the SIMIO request is for FDN related SIM files
     BOOL isFDNRequest(int fileId);
 
-    BOOL IsRegistered();
     LONG GetCsRegistrationState(char* pCsRegState);
     LONG GetPsRegistrationState(char* pPsRegState);
     LONG GetCurrentAct();

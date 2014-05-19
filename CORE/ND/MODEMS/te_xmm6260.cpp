@@ -139,6 +139,11 @@ LONG CTE_XMM6260::GetDataDeactivateReason(char* pszReason)
     return strtol(pszReason, NULL, 10);
 }
 
+const char* CTE_XMM6260::GetReadCellInfoString()
+{
+    return "AT+XCELLINFO?\r";
+}
+
 BOOL CTE_XMM6260::IsRequestSupported(int requestId)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::IsRequestSupported() - Enter\r\n");
@@ -6564,9 +6569,16 @@ RIL_RESULT_CODE CTE_XMM6260::CoreGetCellInfoList(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetCellInfoList() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCELLINFO?\r", sizeof(rReqData.szCmd1)))
+    if (SCREEN_STATE_OFF != m_cte.GetScreenState() && !m_cte.IsCellInfoCacheEmpty())
     {
-        res = RRIL_RESULT_OK;
+        res = RRIL_RESULT_OK_IMMEDIATE;
+    }
+    else
+    {
+        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCELLINFO?\r", sizeof(rReqData.szCmd1)))
+        {
+            res = RRIL_RESULT_OK;
+        }
     }
 
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetCellInfoList() - Exit\r\n");
@@ -7276,4 +7288,25 @@ UINT32 CTE_XMM6260::GetXDNSMode(const char* pszPdpType)
     }
 
     return uiMode;
+}
+
+int CTE_XMM6260::MapRscpToRssi(int rscp)
+{
+    int rssi = 31;
+
+    // Maps the rscp values(0..96, 255) to rssi(0..31, 99) values
+    if (rscp == 255)
+    {
+        rssi = RSSI_UNKNOWN;
+    }
+    else if (rscp <= 7)
+    {
+        rssi = 0;
+    }
+    else if (rscp <= 67)
+    {
+        rssi = (rscp - 6) / 2;
+    }
+
+    return rssi;
 }
