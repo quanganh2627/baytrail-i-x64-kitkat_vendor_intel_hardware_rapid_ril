@@ -6481,8 +6481,15 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
     switch (uiSIMState)
     {
         case 0: // SIM not present
+            RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - SIM NOT PRESENT\r\n");
+            m_bReadyForAttach = FALSE;
+            m_bRefreshWithUSIMInitOn = FALSE;
+            cardState = RIL_CARDSTATE_ABSENT;
+            ResetCardStatus(TRUE);
+            break;
+
         case 9: // SIM Removed
-            RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - SIM REMOVED/NOT PRESENT\r\n");
+            RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - SIM REMOVED\r\n");
             m_bReadyForAttach = FALSE;
             m_bRefreshWithUSIMInitOn = FALSE;
             cardState = RIL_CARDSTATE_ABSENT;
