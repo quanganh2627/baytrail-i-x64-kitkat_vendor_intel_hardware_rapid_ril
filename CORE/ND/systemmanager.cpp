@@ -431,6 +431,15 @@ BOOL CSystemManager::InitializeSystem(const char* szModemName)
                 PROPERTY_VALUE_MAX) == 0) ? TRUE : FALSE);
     }
 
+    if (CTE::GetTE().IsIMSCapable())
+    {
+        // Set SMS over IMS support in case of BP centric
+        if (repository.Read(g_szGroupModem, g_szEnableSMSOverIP, iTemp))
+        {
+            pSysCaps.SetSMSOverIPCapable(iTemp == 1 ? TRUE : FALSE);
+        }
+    }
+
     // set system capabilities
     pSysCaps.SetSmsCapable(CTE::GetTE().IsSmsOverCSCapable()
             || CTE::GetTE().IsSmsOverPSCapable());

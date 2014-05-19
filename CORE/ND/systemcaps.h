@@ -24,6 +24,7 @@ public:
                             m_bSmsCapable(TRUE),
                             m_bStkCapable(TRUE),
                             m_bXDATASTATEnabled(FALSE),
+                            m_bSMSOverIPCapable(TRUE),
                             m_bIMSCapable(FALSE) {}
 
     BOOL IsVoiceCapable() { return m_bVoiceCapable; }
@@ -31,6 +32,7 @@ public:
     BOOL IsStkCapable() { return m_bStkCapable; }
     BOOL IsXDATASTATReportingEnabled() { return m_bXDATASTATEnabled; }
     BOOL IsIMSCapable() { return m_bIMSCapable; }
+    BOOL IsSMSOverIPCapable() { return m_bSMSOverIPCapable; }
     BOOL IsIMSApCentric() { return m_bIMSApCentric; }
 
     void SetVoiceCapable(BOOL bIsVoiceCapable) { m_bVoiceCapable = bIsVoiceCapable; }
@@ -39,6 +41,7 @@ public:
     void SetXDATASTATReporting(BOOL bIsXDATASTATReporting)
                         { m_bXDATASTATEnabled = bIsXDATASTATReporting; }
     void SetIMSCapable(BOOL bIsIMSCapable) { m_bIMSCapable = bIsIMSCapable; }
+    void SetSMSOverIPCapable(BOOL bSMSOverIPCapable) { m_bSMSOverIPCapable = bSMSOverIPCapable; }
     void SetIMSApCentric(BOOL bIsIMSApCentric) { m_bIMSApCentric = bIsIMSApCentric; }
 
 private:
@@ -47,6 +50,7 @@ private:
     BOOL m_bStkCapable;
     BOOL m_bXDATASTATEnabled;
     BOOL m_bIMSCapable;
+    BOOL m_bSMSOverIPCapable;
     BOOL m_bIMSApCentric;
 };
 

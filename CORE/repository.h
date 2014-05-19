@@ -89,6 +89,7 @@ extern const char   g_szSmsOverCSCapable[];
 extern const char   g_szSmsOverPSCapable[];
 extern const char   g_szStkCapable[];
 extern const char   g_szEnableXDATASTATURC[];
+extern const char   g_szEnableSMSOverIP[];
 extern const char   g_szSupportCGPIAF[];
 extern const char   g_szEnableSignalStrengthURC[];
 extern const char   g_szImeiBlackList[];
