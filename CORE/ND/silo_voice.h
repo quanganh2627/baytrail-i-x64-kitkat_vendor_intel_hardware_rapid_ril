@@ -73,6 +73,7 @@ protected:
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
     virtual BOOL ParseCNAP(CResponse* const pResponse, const char*& rszPointer);
+    virtual BOOL ParseCLIP(CResponse* const pResponse, const char*& rszPointer);
 
 private:
     UINT32 m_uiCallId;

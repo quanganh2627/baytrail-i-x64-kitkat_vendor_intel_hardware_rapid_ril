@@ -105,6 +105,8 @@ protected:
     virtual RIL_RESULT_CODE CreateDebugScreenReq(REQUEST_DATA& reqData,
               const char** ppszRequest, const UINT32 uiDataSize);
 
+    virtual const char* GetSiloVoiceURCInitString();
+
 private:
 
     RIL_RESULT_CODE ParseEnvelopCommandResponse(const char* pszResponse, char* pszEnvelopResp,

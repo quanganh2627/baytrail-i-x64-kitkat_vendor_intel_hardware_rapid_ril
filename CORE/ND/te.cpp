@@ -115,6 +115,7 @@ CTE::CTE(UINT32 modemType) :
     m_szLastCEER[0] = '\0';
 
     ResetCnapParameters();
+    ResetNumberParameters();
 
     m_pDtmfStateAccess = new CMutex();
 
@@ -8601,10 +8602,21 @@ void CTE::SetCnapName(const char* pszName)
     CopyStringNullTerminate(m_szCnapName, pszName, MAX_CNAP_NAME_SIZE);
 }
 
+void CTE::SetNumber(const char* pszNumber)
+{
+    CopyStringNullTerminate(m_szNumber, pszNumber, MAX_BUFFER_SIZE);
+}
+
 void CTE::ResetCnapParameters()
 {
     m_szCnapName[0] = '\0';
     m_uiCnapCniValidity = 2;
+}
+
+void CTE::ResetNumberParameters()
+{
+    m_szNumber[0] = '\0';
+    m_uiNumberCliValidity = 2;
 }
 
 //
@@ -10418,4 +10430,9 @@ RIL_RESULT_CODE CTE::ParseXCSG(const char* pszRsp, RESPONSE_DATA& rspData)
 const char* CTE::GetEnableFetchingString()
 {
     return m_pTEBaseInstance->GetEnableFetchingString();
+}
+
+const char* CTE::GetSiloVoiceURCInitString()
+{
+    return m_pTEBaseInstance->GetSiloVoiceURCInitString();
 }

@@ -39,6 +39,8 @@ CSilo_Voice::CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "DISCONNECT"  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseDISCONNECT },
         { "+XCALLSTAT: "  , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseXCALLSTAT },
         { "CONNECT"       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseConnect },
+        { "+CNAP: ", (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCNAP },
+        { "+CLIP: ", (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCLIP },
         { "+CCWA: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallWaitingInfo },
         { "+CSSU: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseUnsolicitedSSInfo },
         { "+CSSI: "       , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseIntermediateSSInfo },
@@ -58,7 +60,6 @@ CSilo_Voice::CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps)
         { "NO CTM CALL"   , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCTMCall },
         { "WAITING CALL CTM" , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseWaitingCallCTM },
         { "+XUCCI: ", (PFN_ATRSP_PARSE)&CSilo_Voice::ParseXUCCI },
-        { "+CNAP: ", (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCNAP },
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
         // Handle Call failed cause unsolicited notification here
         { "+XCEER: " , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallFailedCause },
@@ -99,29 +100,14 @@ char* CSilo_Voice::GetBasicInitString()
 char* CSilo_Voice::GetURCInitString()
 {
     // voice silo-related URC channel basic init string
-    if (m_pSystemCapabilities->IsVoiceCapable())
-    {
-        const char szVoiceURCInitString[] = "+XCALLSTAT=1|+CSSN=1,1|+CNAP=1";
+    const char* pszVoiceURCInitString = CTE::GetTE().GetSiloVoiceURCInitString();
 
-        if (!ConcatenateStringNullTerminate(m_szURCInitString,
-                sizeof(m_szURCInitString), szVoiceURCInitString))
-        {
-            RIL_LOG_CRITICAL("CSilo_Voice::GetURCInitString() : Failed to copy URC init "
-                    "string!\r\n");
-            return NULL;
-        }
-    }
-    else
+    if (!ConcatenateStringNullTerminate(m_szURCInitString,
+            sizeof(m_szURCInitString), pszVoiceURCInitString))
     {
-        const char szNoVoiceURCInitString[] = "|+XCSFB=3|+XCGCLASS=\"CG\"|+XCONFIG=3,0";
-
-        if (!ConcatenateStringNullTerminate(m_szURCInitString,
-                sizeof(m_szURCInitString), szNoVoiceURCInitString))
-        {
-            RIL_LOG_CRITICAL("CSilo_Voice::GetURCInitString() : Failed to copy XCONFIG to "
-                    "URC init string!\r\n");
-            return NULL;
-        }
+        RIL_LOG_CRITICAL("CSilo_Voice::GetURCInitString() : Failed to copy "
+                "basic init string!\r\n");
+        return NULL;
     }
 
     return m_szURCInitString;
@@ -341,6 +327,7 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
         case E_CALL_STATUS_DISCONNECTED:
             m_uiCallId = 0;
             CTE::GetTE().ResetCnapParameters();
+            CTE::GetTE().ResetNumberParameters();
             CTE::GetTE().SetIncomingCallStatus(0, uiStat);
             // set the flag to clear all pending chld requests
             CTE::GetTE().SetClearPendingCHLDs(TRUE);
@@ -1421,6 +1408,106 @@ BOOL CSilo_Voice::ParseCNAP(CResponse* const pResponse, const char*& rszPointer)
 Exit:
 
     RIL_LOG_VERBOSE("CSilo_Voice::ParseCNAP() - Exit\r\n");
+    return bRet;
+
+}
+
+BOOL CSilo_Voice::ParseCLIP(CResponse* const pResponse, const char*& rszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCLIP() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    char szDummy[MAX_BUFFER_SIZE] = {'\0'};
+    UINT32 uiDummy = 0;
+    char szNumber[MAX_BUFFER_SIZE] = {'\0'};
+    UINT32 uiCliValidity = 2;
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCLIP() : pResponse was NULL\r\n");
+        goto Error;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+
+    // +CLIP: <number>,<type>[,<subaddr>,<satype>[,[<alpha>][,<CLI_validity>]]]
+
+    // Extract <number>
+    if (!ExtractQuotedString(rszPointer, szNumber, MAX_BUFFER_SIZE, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCLIP() : Could not extract number\r\n");
+        goto Exit;
+    }
+
+    // Extract <type>
+    // parameter not used in current implementation
+    if (!FindAndSkipString(rszPointer, ",", rszPointer)
+            || !ExtractUInt32(rszPointer, uiDummy, rszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_Voice::ParseCLIP() : Could not extract type\r\n");
+        goto Exit;
+    }
+
+    bRet = TRUE;
+
+    if (!FindAndSkipString(rszPointer, ",", rszPointer))
+    {
+        goto Exit;
+    }
+
+    // Extract optional <subaddr>
+    // parameter not used in current implementation
+    if (ExtractQuotedString(rszPointer, szDummy, MAX_BUFFER_SIZE, rszPointer))
+    {
+
+        // Extract <satype>
+        // parameter not used in current implementation
+        if (!FindAndSkipString(rszPointer, ",", rszPointer)
+                || !ExtractUInt32(rszPointer, uiDummy, rszPointer))
+        {
+            RIL_LOG_INFO("CSilo_Voice::ParseCLIP() : Could not extract satype\r\n");
+            goto Exit;
+        }
+    }
+    else if (!FindAndSkipString(rszPointer, ",", rszPointer))
+    {
+        goto Exit;
+    }
+
+    // consume comma following <satype>
+    if (!FindAndSkipString(rszPointer, ",", rszPointer))
+    {
+        goto Exit;
+    }
+
+    // Extract optional alpha>
+    // parameter not used in current implementation
+    ExtractQuotedString(rszPointer, szDummy, MAX_BUFFER_SIZE, rszPointer);
+
+    if (!FindAndSkipString(rszPointer, ",", rszPointer))
+    {
+        goto Exit;
+    }
+
+    // Extract optional <CLI validity>
+    if (!ExtractUInt32(rszPointer, uiCliValidity, rszPointer))
+    {
+        uiCliValidity = 2;
+        RIL_LOG_INFO("CSilo_Voice::ParseCLIP() : Could not extract CLI validity\r\n");
+        goto Exit;
+    }
+
+Exit:
+    if (strcmp(szNumber, CTE::GetTE().GetNumber()) != 0
+            || CTE::GetTE().GetNumberCliValidity() != static_cast<int>(uiCliValidity))
+    {
+        CTE::GetTE().SetNumberCliValidity(uiCliValidity);
+        CTE::GetTE().SetNumber(szNumber);
+        pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
+    }
+
+Error:
+    RIL_LOG_VERBOSE("CSilo_Voice::ParseCLIP() - Exit\r\n");
     return bRet;
 
 }

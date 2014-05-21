@@ -158,6 +158,8 @@ public:
 
     virtual RIL_RESULT_CODE ParseXCSG(const char* pszRsp, RESPONSE_DATA& rspData);
 
+    virtual const char* GetSiloVoiceURCInitString();
+
 protected:
 
     virtual const char* GetRegistrationInitString();

@@ -268,6 +268,8 @@ public:
 
     virtual const char* GetEnableFetchingString();
 
+    virtual const char* GetSiloVoiceURCInitString();
+
 protected:
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);

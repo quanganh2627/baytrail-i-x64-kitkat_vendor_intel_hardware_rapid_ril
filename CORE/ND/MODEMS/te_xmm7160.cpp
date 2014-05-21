@@ -3231,3 +3231,17 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGsmSmsBroadcastActivation(RESPONSE_DATA& rRspD
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseGsmSmsBroadcastActivation() - Exit\r\n");
     return res;
 }
+
+const char* CTE_XMM7160::GetSiloVoiceURCInitString()
+{
+    const char* pszInit = NULL;
+    if (m_cte.IsVoiceCapable())
+    {
+        pszInit = "|+XCALLSTAT=1|+CSSN=1,1|+CNAP=1|+CLIP=1";
+    }
+    else
+    {
+        pszInit = "|+XCSFB=3|+XCGCLASS=\"CG\"|+XCONFIG=3,0";
+    }
+    return pszInit;
+}

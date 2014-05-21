@@ -1300,3 +1300,17 @@ const char* CTE_XMM7260::GetEnableFetchingString()
 {
     return NULL;
 }
+
+const char* CTE_XMM7260::GetSiloVoiceURCInitString()
+{
+    const char* pszInit = NULL;
+    if (m_cte.IsVoiceCapable())
+    {
+        pszInit = "|+XCALLSTAT=1|+CSSN=1,1|+CNAP=1";
+    }
+    else
+    {
+        pszInit = "|+XCSFB=3|+XCGCLASS=\"CG\"|+XCONFIG=3,0";
+    }
+    return pszInit;
+}

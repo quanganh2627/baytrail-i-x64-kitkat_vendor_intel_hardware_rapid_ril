@@ -1004,6 +1004,8 @@ public:
     RIL_RESULT_CODE SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel,
             PFN_TE_PARSE pParseFcn, PFN_TE_POSTCMDHANDLER pHandlerFcn);
 
+    virtual const char* GetSiloVoiceURCInitString();
+
     virtual const char* GetEnableFetchingString();
 
 protected:

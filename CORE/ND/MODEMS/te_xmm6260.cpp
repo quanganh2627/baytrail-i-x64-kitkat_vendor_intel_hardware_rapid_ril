@@ -7705,3 +7705,18 @@ const char* CTE_XMM6260::GetEnableFetchingString()
 
     return pszEnableFetching;
 }
+
+const char* CTE_XMM6260::GetSiloVoiceURCInitString()
+{
+    const char* pszInit = NULL;
+    if (m_cte.IsVoiceCapable())
+    {
+        pszInit = "|+XCALLSTAT=1|+CSSN=1,1";
+    }
+    else
+    {
+        pszInit = "|+XCGCLASS=\"CG\"|+XCONFIG=3,0";
+    }
+    return pszInit;
+}
+

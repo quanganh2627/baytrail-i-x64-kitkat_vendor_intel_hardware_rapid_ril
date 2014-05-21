@@ -1211,12 +1211,14 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
                         pCallListData->pCallNumberBuffers[uinUsed];
                 strncpy(pCallListData->pCallNumberBuffers[uinUsed], szAddress, MAX_BUFFER_SIZE);
 
-                // if address string empty, private number
-                if (szAddress[0] == '\0')
+                // Get the CLI_validity from +CLIP for the incomming call
+                if (pCallListData->pCallData[uinUsed].state == 4
+                        || strcmp(szAddress, m_cte.GetNumber()) == 0)
                 {
-                    // restrict name & number presentation
-                    pCallListData->pCallData[uinUsed].numberPresentation = 1;
+                    pCallListData->pCallData[uinUsed].numberPresentation
+                            = m_cte.GetNumberCliValidity();
                 }
+
                 // Parse ",<type>"
                 if (ExtractUpperBoundedUInt32(aPtrArgs[6], 0x100, uiValue, pTmpPtr))
                 {
@@ -12445,4 +12447,10 @@ void CTEBase::ResetNetworkSelectionMode()
 const char* CTEBase::GetEnableFetchingString()
 {
     return NULL;
+}
+
+const char* CTEBase::GetSiloVoiceURCInitString()
+{
+    const char* pszSiloVoiceURCInitString = "|+CSNN=1,1";
+    return pszSiloVoiceURCInitString;
 }

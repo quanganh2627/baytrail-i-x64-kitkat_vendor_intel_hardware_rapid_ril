@@ -783,11 +783,16 @@ public:
 
     int GetCnapCniValidity() { return static_cast<int>(m_uiCnapCniValidity); }
     void SetCnapCniValidity(UINT32 uiValidity) { m_uiCnapCniValidity = uiValidity; }
+    int GetNumberCliValidity() { return static_cast<int>(m_uiNumberCliValidity); }
+    void SetNumberCliValidity(UINT32 uiValidity) { m_uiNumberCliValidity = uiValidity; }
 
     char* GetCnapName() { return m_szCnapName; }
     void SetCnapName(const char* pszName);
+    char* GetNumber() { return m_szNumber; }
+    void SetNumber(const char* pszNumber);
 
     void ResetCnapParameters();
+    void ResetNumberParameters();
 
     // Resets all the internal states to default values
     void ResetInternalStates();
@@ -1208,6 +1213,8 @@ public:
 
     const char* GetEnableFetchingString();
 
+    const char* GetSiloVoiceURCInitString();
+
 private:
     UINT32 m_uiModemType;
 
@@ -1374,6 +1381,9 @@ private:
 
     UINT32 m_uiCnapCniValidity;
     char m_szCnapName[MAX_CNAP_NAME_SIZE];
+
+    UINT32 m_uiNumberCliValidity;
+    char m_szNumber[MAX_BUFFER_SIZE];
 
     UINT32 m_uiImsRegStatus;
 
