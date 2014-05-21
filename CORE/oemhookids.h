@@ -527,7 +527,7 @@ const int RIL_OEM_HOOK_RAW_UNSOL_IMS_SUPPORT_STATUS = 0x000000D7;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-const int COEX_INFO_BUFFER_SIZE = 100;
+const int COEX_INFO_BUFFER_SIZE = 256;
 
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_COEX_INFO
 {
