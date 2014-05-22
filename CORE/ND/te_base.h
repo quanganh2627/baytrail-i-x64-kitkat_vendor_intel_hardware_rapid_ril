@@ -967,6 +967,7 @@ public:
 
     virtual RIL_RESULT_CODE RestoreSavedNetworkSelectionMode(RIL_Token rilToken, UINT32 uiChannel,
             PFN_TE_PARSE pParseFcn = NULL, PFN_TE_POSTCMDHANDLER pHandlerFcn = NULL);
+    int GetNetworkSelectionMode() { return m_NetworkSelectionModeParams.mode; }
 
     virtual void SetProfileDownloadForNextUiccStartup(UINT32 uiDownload, UINT32 uiReporting);
     virtual void ConfigureUsatProfileDownload(UINT32 uiDownload, UINT32 uiReporting);
