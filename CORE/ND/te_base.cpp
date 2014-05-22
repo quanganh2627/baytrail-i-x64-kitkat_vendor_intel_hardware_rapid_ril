@@ -133,9 +133,6 @@ void CTEBase::ResetCardStatus(BOOL bForceReset)
     }
 
     CMutex::Unlock(m_pCardStatusUpdateLock);
-
-    m_NetworkSelectionModeParams.mode = -1;
-    m_NetworkSelectionModeParams.szOperatorNumeric[0] = '\0';
 }
 
 CTEBase::~CTEBase()
@@ -12320,4 +12317,10 @@ RIL_RESULT_CODE CTEBase::ParseXCSG(const char* /* pszRsp */, RESPONSE_DATA& /* r
 {
     // should be derived in modem specific class
     return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+void CTEBase::ResetInternalStates()
+{
+    m_NetworkSelectionModeParams.mode = -1;
+    m_NetworkSelectionModeParams.szOperatorNumeric[0] = '\0';
 }

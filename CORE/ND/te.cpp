@@ -8289,6 +8289,9 @@ void CTE::SetPersonalisationSubState(int perso_substate)
 void CTE::ResetInternalStates()
 {
     RIL_LOG_VERBOSE("CTE::ResetInternalStates() - Enter / Exit\r\n");
+
+    m_pTEBaseInstance->ResetInternalStates();
+
     m_bCSStatusCached = FALSE;
     m_bPSStatusCached = FALSE;
     m_bIsSetupDataCallOngoing = FALSE;

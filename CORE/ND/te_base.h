@@ -999,6 +999,8 @@ public:
     virtual RIL_RESULT_CODE GetCsgCurrentState(REQUEST_DATA& reqData);
     virtual RIL_RESULT_CODE ParseXCSG(const char* pszRsp, RESPONSE_DATA& rspData);
 
+    void ResetInternalStates();
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);
 
