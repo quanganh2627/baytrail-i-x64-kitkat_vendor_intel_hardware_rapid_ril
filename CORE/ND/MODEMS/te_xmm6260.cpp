@@ -3285,7 +3285,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
     if (m_currentNetworkType == networkType)
     {
         rReqData.szCmd1[0] = '\0';
-        res = RRIL_RESULT_OK;
+        res = RRIL_RESULT_OK_IMMEDIATE;
         RIL_LOG_INFO("CTE_XMM6260::CoreSetPreferredNetworkType() - Network type {%d} "
                 "already set.\r\n", networkType);
         goto Error;

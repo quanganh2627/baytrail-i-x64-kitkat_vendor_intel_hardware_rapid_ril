@@ -5334,7 +5334,12 @@ RIL_RESULT_CODE CTE::RequestSetPreferredNetworkType(RIL_Token rilToken,
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetPreferredNetworkType(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    if (RRIL_RESULT_OK_IMMEDIATE == res)
+    {
+        res = RRIL_RESULT_OK;
+        RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
+    }
+    else if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestSetPreferredNetworkType() :"
                 " Unable to create AT command data\r\n");
