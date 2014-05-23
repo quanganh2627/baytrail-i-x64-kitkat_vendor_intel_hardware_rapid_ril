@@ -2310,6 +2310,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
         case RIL_OEM_HOOK_STRING_IMS_SRVCC_PARAM:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_IMS_SRVCC_PARAM");
             res = SetSrvccParams(rReqData, (const char**) pszRequest);
+            break;
 
         case RIL_OEM_HOOK_STRING_CSG_SET_AUTOMATIC_SELECTION:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_CSG_SET_AUTOMATIC_SELECTION");
