@@ -944,7 +944,7 @@ ePCache_Code encrypt(const char* pszInput, const int nInputLen, const char* pszK
     // Copy the encrypted data to buffer
     memcpy(encryptedBuf + UICCID_SIZE, buf, BUF_LEN * sizeof(UINT16));
 
-    if ((NULL != g_szSIMID) && ('1' == g_szSIMID[0]))
+    if ((NULL != g_szSubscriptionID) && ('2' == g_szSubscriptionID[0]))
     {
         if (lseek(writeFd, CACHED_UICCID_PIN_SIZE, SEEK_SET) < CACHED_UICCID_PIN_SIZE)
         {
@@ -1014,7 +1014,7 @@ ePCache_Code decrypt(char* pszOut, const char* pszKey, const char* pFile)
     }
     else
     {
-        if ((NULL != g_szSIMID) && ('1' == g_szSIMID[0]))
+        if ((NULL != g_szSubscriptionID) && ('2' == g_szSubscriptionID[0]))
         {
             if (lseek(readFd, CACHED_UICCID_PIN_SIZE, SEEK_SET) < CACHED_UICCID_PIN_SIZE)
             {
@@ -1120,7 +1120,7 @@ BOOL IsRequiredCacheAvailable()
         }
 
         int maxCacheSizeNeeded = CACHED_UICCID_PIN_SIZE;
-        if ((NULL != g_szSIMID) && ('1' == g_szSIMID[0]))
+        if ((NULL != g_szSubscriptionID) && ('2' == g_szSubscriptionID[0]))
         {
             maxCacheSizeNeeded *= 2;
         }

@@ -6407,7 +6407,8 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
         return bRet;
     }
 
-    if (!CSystemManager::GetInstance().IsMultiSIM())
+    if (!CSystemManager::GetInstance().IsMultiSIM()
+            || CSystemManager::GetInstance().IsMultiModem())
     {
         if (bTurnRadioOn)
         {
@@ -6447,14 +6448,16 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
         UINT32 uiSimPoweredOff;
         UINT32 uiFunMode;
 
-        if (g_szSIMID)
+        if (g_szSubscriptionID)
         {
             snprintf(szSimPowerOffStatePropName, PROPERTY_VALUE_MAX,
-                    "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+                    "gsm.simmanager.set_off_sim%d",
+                    ('0' == g_szSubscriptionID[0]) ? 1 : 2);
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - g_szSIMID is NULL\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand()"
+                    "- g_szSubscriptionID is NULL\r\n");
             goto Error;
         }
 

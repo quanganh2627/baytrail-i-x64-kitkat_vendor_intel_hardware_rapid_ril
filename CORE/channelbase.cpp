@@ -28,7 +28,7 @@
 #include "channelbase.h"
 #include "te.h"
 
-extern char* g_szSIMID;
+extern char* g_szSubscriptionID;
 
 CChannelBase::CChannelBase(UINT32 uiChannel)
   : m_uiRilChannel(uiChannel),
@@ -558,6 +558,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
     BOOL         bLastCmd;
     CRepository  repository;
     char         szTemp[MAX_BUFFER_SIZE];
+    size_t       subscriptionId = getSubscriptionId() - 1;
 
     szInit = new char[MAX_BUFFER_SIZE];
     if (!szInit)
@@ -583,11 +584,14 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 
     // send xsimsel command first
 
-    if (eInitIndex == COM_BASIC_INIT_INDEX && g_szSIMID != NULL)
+    if (eInitIndex == COM_BASIC_INIT_INDEX &&
+            CSystemManager::GetInstance().IsMultiSIM() &&
+            !CSystemManager::GetInstance().IsMultiModem())
     {
         RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : Concat XSIMSEL id=%s,"
-                "  eInitIndex=[%d]r\n", g_szSIMID, eInitIndex);
-        PrintStringNullTerminate(szTemp, MAX_BUFFER_SIZE, "+XSIMSEL=%s|", g_szSIMID);
+                "  eInitIndex=[%d]r\n", g_szSubscriptionID, eInitIndex);
+        PrintStringNullTerminate(szTemp, MAX_BUFFER_SIZE, "+XSIMSEL=%d|",
+                subscriptionId);
         ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, szTemp);
     }
 
@@ -702,7 +706,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 #if defined(M2_VT_FEATURE_ENABLED)
         // for Video Telephony, set the the data path, depending on RIL instance
         //  If sim id == 0 or if sim id is not provided by RILD
-        if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) ) // RILD1
+        if ( (NULL == g_szSubscriptionID) || ('1' == g_szSubscriptionID[0]) ) // RILD1
         {
             if (!CopyStringNullTerminate(szTemp,
                                          "+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",1",

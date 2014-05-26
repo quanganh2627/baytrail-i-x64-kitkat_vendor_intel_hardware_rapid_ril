@@ -106,7 +106,8 @@ CSystemManager::CSystemManager()
     m_RequestInfoTable(),
     m_bIsSystemInitialized(FALSE),
     m_bIsModemResourceAcquired(FALSE),
-    m_bIsDeviceDecrypted(FALSE)
+    m_bIsDeviceDecrypted(FALSE),
+    m_bIsMultiModem(FALSE)
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     ,m_uiLastCallFailedCauseID(0)
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
@@ -124,7 +125,7 @@ CSystemManager::CSystemManager()
 
     m_pTEAccessMutex = new CMutex();
 
-    m_bIsMultiSIM = g_szSIMID != NULL;
+    m_bIsMultiSIM = g_szSubscriptionID != NULL;
 
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Exit\r\n");
 }
@@ -755,9 +756,9 @@ BOOL CSystemManager::MMgrConnectionInit()
     // Initialize internal state to unknown.
     CTE::GetTE().SetLastModemEvent(MODEM_STATE_UNKNOWN);
 
-    if (g_szSIMID)
+    if (g_szSubscriptionID)
     {
-        RRIL_NAME[4] = g_szSIMID[0];
+        RRIL_NAME[4] = g_szSubscriptionID[0];
         RRIL_NAME[5] = '\0';
     }
 
@@ -844,6 +845,18 @@ BOOL CSystemManager::MMgrConnectionInit()
                          " Cannot subscribe notification %d\n",
                           E_MMGR_NOTIFY_CORE_DUMP);
         goto out;
+    }
+
+    if (g_szSubscriptionID)
+    {
+        if (E_ERR_CLI_SUCCEED !=
+              mmgr_cli_set_instance(m_pMMgrLibHandle, getSubscriptionId()))
+        {
+            RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
+                    " Cannot set the instance id %zu\n",
+                    getSubscriptionId());
+            goto out;
+        }
     }
 
     //  TODO: Change looping formula

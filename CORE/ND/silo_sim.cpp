@@ -833,16 +833,18 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
     {
         char szEccListProp[PROPERTY_VALUE_MAX] = {0};
 
-        //  If sim id == 0 or if sim id is not provided by RILD, then continue
-        //  to use "ril.ecclist" property name.
-        if ( (NULL == g_szSIMID) || ('0' == g_szSIMID[0]) )
+        //  If subscription id == 0 or if subscription id is not provided by RILD,
+        //  then continue to use "ril.ecclist" property name.
+        if ( (NULL == g_szSubscriptionID) || ('1' == g_szSubscriptionID[0]) )
         {
             strncpy(szEccListProp, szRIL_ECCLIST, PROPERTY_VALUE_MAX-1);
             szEccListProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
         }
         else
         {
-            snprintf(szEccListProp, PROPERTY_VALUE_MAX, "%s%s", szRIL_ECCLIST, g_szSIMID);
+            snprintf(szEccListProp, PROPERTY_VALUE_MAX, "%s%s",
+                    szRIL_ECCLIST,
+                    g_szSubscriptionID);
         }
 
         RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - uiIndex == uiTotalCnt == %d\r\n", uiTotalCnt);

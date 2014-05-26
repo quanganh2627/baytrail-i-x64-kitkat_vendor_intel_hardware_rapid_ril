@@ -55,7 +55,7 @@ char* g_szDLC22Port = NULL;
 char* g_szDLC23Port = NULL;
 char* g_szURCPort = NULL;
 char* g_szOEMPort = NULL;
-char* g_szSIMID = NULL;
+char* g_szSubscriptionID = NULL;
 
 // Upper limit on number of RIL channels to create
 UINT32 g_uiRilChannelUpperLimit = RIL_CHANNEL_MAX;
@@ -82,7 +82,7 @@ static const struct RIL_Env* gs_pRilEnv;
     "\t\t - NONE -\n"\
     "\tOptional parameters:\n"\
     "\t\t-h show this help message and exit\n"\
-    "\t\t-i <SIM ID>\n"\
+    "\t\t-i <Subscription ID>\n"\
     "--------------------------------------------------\n\n"\
 
 
@@ -548,22 +548,22 @@ static const char* getVersion(void)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-static size_t getSimId(void)
+size_t getSubscriptionId(void)
 {
     char*  endptr = NULL;
-    size_t simId  = 0; /* Default simId is 0 */
+    size_t subscriptionId  = 1; /* Default subscriptionId is 1 */
 
-    if (g_szSIMID != NULL)
+    if (g_szSubscriptionID != NULL)
     {
         errno = 0;
-        int conv = strtol(g_szSIMID, &endptr, 10);
+        int conv = strtol(g_szSubscriptionID, &endptr, 10);
         if (!errno)
-            simId = conv;
+            subscriptionId = conv;
         else
-            RLOGE("%s - Failed to convert simId", __FUNCTION__);
+            RLOGE("%s - Failed to convert subscriptionId", __FUNCTION__);
     }
 
-    return simId;
+    return subscriptionId;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -646,10 +646,9 @@ static void* mainLoop(void* param)
 
     UINT32 dwRet = 1;
 
-    size_t        simId      = getSimId();
-    size_t        instanceId = 0; /* This is a place holder for DSDA */
-    tcs_handle_t* h          = tcs_init();
-    tcs_cfg_t*    cfg        = NULL;
+    size_t        subscriptionId      = getSubscriptionId() - 1;
+    tcs_handle_t* h                   = tcs_init();
+    tcs_cfg_t*    cfg                 = NULL;
     if (h == NULL)
     {
         RLOGE("%s - Failed to init TCS", __func__);
@@ -665,22 +664,13 @@ static void* mainLoop(void* param)
         goto Error;
     }
 
-    if (instanceId >= cfg->nb)
+    if (cfg->nb > 1)
     {
-        RLOGE("%s - Wrong instID", __FUNCTION__);
-        dwRet = 0;
-        goto Error;
-    }
-
-    if (simId >= cfg->mdm[instanceId].chs.nb)
-    {
-        RLOGE("%s - Wrong simID setting", __FUNCTION__);
-        dwRet = 0;
-        goto Error;
+        CSystemManager::GetInstance().SetMultiModem(TRUE);
     }
 
     // Make sure we can access Non-Volatile Memory
-    if (!CRepository::Init(cfg->mdm[instanceId].mod.rril_txt))
+    if (!CRepository::Init(cfg->mdm[subscriptionId].mod.rril_txt))
     {
         RLOGE("%s - could not initialize configuration file", __func__);
 
@@ -688,7 +678,7 @@ static void* mainLoop(void* param)
         goto Error;
     }
 
-    if (!RIL_SetGlobals(&cfg->mdm[instanceId].chs.ch[simId].rril))
+    if (!RIL_SetGlobals(&cfg->mdm[subscriptionId].chs.ch[0].rril))
     {
         RLOGE("%s - Failed to initialize globals", __func__);
         dwRet = 0;
@@ -696,7 +686,7 @@ static void* mainLoop(void* param)
     }
 
     // Initialize logging class
-    CRilLog::Init(g_szSIMID);
+    CRilLog::Init(g_szSubscriptionID);
 
     // Initialize storage mechanism for error causes
     CModemRestart::Init();
@@ -711,7 +701,7 @@ static void* mainLoop(void* param)
     }
 
     // Create and start system manager
-    if (!CSystemManager::GetInstance().InitializeSystem(cfg->mdm[instanceId].core.name))
+    if (!CSystemManager::GetInstance().InitializeSystem(cfg->mdm[subscriptionId].core.name))
     {
         RIL_LOG_CRITICAL("mainLoop() - RIL InitializeSystem() FAILED\r\n");
 
@@ -749,8 +739,9 @@ static bool getCmdLineOptions(int argc, char** argv)
         switch (opt)
         {
             case 'i':
-                g_szSIMID = optarg;
-                RLOGI("%s - Using SIMID \"%s\" for all channels\r\n", __FUNCTION__, g_szSIMID);
+                g_szSubscriptionID = optarg;
+                RLOGI("%s - Using SubscriptionID \"%s\" for all channels\r\n",
+                        __FUNCTION__, g_szSubscriptionID);
                 break;
 
             case 'h':
