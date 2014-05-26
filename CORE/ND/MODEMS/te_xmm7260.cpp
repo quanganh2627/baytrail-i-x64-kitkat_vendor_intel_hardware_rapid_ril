@@ -1126,3 +1126,14 @@ Out:
 
     return bRet;
 }
+
+RIL_RESULT_CODE CTE_XMM7260::CreateGetGprsCellEnvReq(REQUEST_DATA& /*reqData*/)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+RIL_RESULT_CODE CTE_XMM7260::CreateDebugScreenReq(REQUEST_DATA& /*reqData*/,
+        const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
+{
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}

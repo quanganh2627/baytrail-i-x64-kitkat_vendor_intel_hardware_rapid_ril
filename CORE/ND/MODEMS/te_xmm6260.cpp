@@ -2141,15 +2141,9 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
 
         case RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV");
-            if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CGED=0\r"))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
-                        " RIL_OEM_HOOK_STRING_GET_GPRS_CELL_ENV - Can't construct szCmd1.\r\n");
-                goto Error;
-            }
             //  Send this command on OEM channel.
             uiRilChannel = RIL_CHANNEL_OEM;
-            res = RRIL_RESULT_OK;
+            res = CreateGetGprsCellEnvReq(rReqData);
             break;
 
         case RIL_OEM_HOOK_STRING_DEBUG_SCREEN_COMMAND:
@@ -7669,4 +7663,17 @@ int CTE_XMM6260::MapRscpToRssi(int rscp)
     }
 
     return rssi;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::CreateGetGprsCellEnvReq(REQUEST_DATA& reqData)
+{
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+
+    if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CGED=0\r", sizeof(reqData.szCmd1)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CreateGetGprsCellEnvReq() - Can't construct szCmd1.\r\n");
+        res = RRIL_RESULT_ERROR;
+    }
+
+    return res;
 }

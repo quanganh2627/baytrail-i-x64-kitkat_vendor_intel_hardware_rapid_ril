@@ -307,6 +307,10 @@ protected:
     // Maps the rscp values(0..96, 255) to rssi(0..31, 99) values
     int MapRscpToRssi(int rscp);
 
+    virtual RIL_RESULT_CODE CreateGetGprsCellEnvReq(REQUEST_DATA& reqData);
+    virtual RIL_RESULT_CODE CreateDebugScreenReq(REQUEST_DATA& rReqData,
+              const char** ppszRequest, const UINT32 uiDataSize);
+
 private:
     RIL_RESULT_CODE CreateAutonomousFDReq(REQUEST_DATA& rReqData,
                                           const char** pszRequest,
@@ -317,9 +321,6 @@ private:
     RIL_RESULT_CODE CreateSetRFPowerCutbackTableReq(REQUEST_DATA& rReqData,
                                                     const char** pszRequest,
                                                     const UINT32 uiDataSize);
-    RIL_RESULT_CODE CreateDebugScreenReq(REQUEST_DATA& rReqData,
-                                          const char** pszRequest,
-                                          const UINT32 uiDataSize);
     RIL_RESULT_CODE SetCallImsAvailable(REQUEST_DATA& rReqData,
                                         const char** pszRequest,
                                         const int nNumStrings);

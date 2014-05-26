@@ -94,6 +94,11 @@ public:
 
     virtual void SendModemDownToUsatSM();
 
+protected:
+    virtual RIL_RESULT_CODE CreateGetGprsCellEnvReq(REQUEST_DATA& reqData);
+    virtual RIL_RESULT_CODE CreateDebugScreenReq(REQUEST_DATA& reqData,
+              const char** ppszRequest, const UINT32 uiDataSize);
+
 private:
 
     RIL_RESULT_CODE ParseEnvelopCommandResponse(const char* pszResponse, char* pszEnvelopResp,
