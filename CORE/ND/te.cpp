@@ -58,6 +58,7 @@ CTE::CTE(UINT32 modemType) :
     m_FastDormancyMode(FAST_DORMANCY_MODE_DEFAULT),
     m_uiMTU(MTU_SIZE),
     m_bVoiceCapable(TRUE),
+    m_bDataCapable(TRUE),
     m_bSmsOverCSCapable(TRUE),
     m_bSmsOverPSCapable(TRUE),
     m_bSmsCapable(TRUE),
@@ -2364,7 +2365,11 @@ RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void* pDat
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGPRSRegistrationState(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    if (RRIL_RESULT_OK_IMMEDIATE == res)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+    }
+    else if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() -"
                 " Unable to create AT command data\r\n");

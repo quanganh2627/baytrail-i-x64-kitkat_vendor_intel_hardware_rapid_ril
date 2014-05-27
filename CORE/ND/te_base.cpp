@@ -12266,7 +12266,7 @@ RIL_RESULT_CODE CTEBase::RestoreSavedNetworkSelectionMode(RIL_Token rilToken, UI
 {
     RIL_LOG_VERBOSE("CTEBase::RestoreSavedNetworkSelectionMode() - Enter\r\n");
 
-    if (m_InitialAttachApnParams.szPdpType[0] == '\0')
+    if (m_cte.IsDataCapable() && m_InitialAttachApnParams.szPdpType[0] == '\0')
     {
         /*
          * Initial attach apn can't be set as android telephony framework hasn't provided

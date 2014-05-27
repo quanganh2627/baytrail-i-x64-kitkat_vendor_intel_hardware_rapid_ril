@@ -692,6 +692,9 @@ public:
     void SetVoiceCapable(BOOL bIsVoiceCapable) { m_bVoiceCapable =  bIsVoiceCapable; }
     BOOL IsVoiceCapable() { return m_bVoiceCapable; }
 
+    void SetDataCapable(BOOL bIsDataCapable) { m_bDataCapable =  bIsDataCapable; }
+    BOOL IsDataCapable() { return m_bDataCapable; }
+
     void SetSmsOverCSCapable(BOOL bIsSmsOverCSCapable)
     {
         m_bSmsOverCSCapable =  bIsSmsOverCSCapable;
@@ -1319,6 +1322,7 @@ private:
     UINT32 m_uiMTU;
 
     BOOL m_bVoiceCapable;
+    BOOL m_bDataCapable;
     BOOL m_bSmsOverCSCapable;
     BOOL m_bSmsOverPSCapable;
     BOOL m_bSmsCapable;

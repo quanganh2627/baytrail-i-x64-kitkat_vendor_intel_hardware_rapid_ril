@@ -227,6 +227,7 @@ Group Modem
 // System Capability settings - Set a modem's capabilities using various flags
 //  These flags control the sending of init commands to a channel during initialization.
 //      "VoiceCapable" - Set to "0" to disable voice calls, otherwise enabled by default.
+//      "DataCapable" - Set to "0" to disable data calls, otherwise enabled by default.
 //      "SmsOverCSCapable" - Set to "0" to disable SMS over CS, otherwise enabled by default.
 //      "SmsOverPSCapable" - Set to "0" to disable SMS over PS, otherwise enabled by default.
 //      "StkCapable" - Set to "0" to disable STK support, otherwise enabled by default.
@@ -239,6 +240,7 @@ Group Modem
 //      "EnableSignalStrengthReporting" - Set to "1" configures the modem to report signal strength
 //                          changes via an URC.
 //    VoiceCapable                0
+//    DataCapable                 0
 //    SmsOverCSCapable            0
 //    SmsOverPSCapable            0
 //    StkCapable                  0

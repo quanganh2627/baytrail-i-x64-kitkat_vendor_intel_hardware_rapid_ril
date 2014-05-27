@@ -3234,7 +3234,14 @@ const char* CTE_XMM7160::GetSiloVoiceURCInitString()
     const char* pszInit = NULL;
     if (m_cte.IsVoiceCapable())
     {
-        pszInit = "|+XCALLSTAT=1|+CSSN=1,1|+CNAP=1|+CLIP=1";
+        if (m_cte.IsDataCapable())
+        {
+            pszInit = "|+XCALLSTAT=1|+CSSN=1,1|+CNAP=1|+CLIP=1";
+        }
+        else
+        {
+            pszInit = "|+XCALLSTAT=1|+XCGCLASS=\"CC\"|+CSSN=1,1|+CNAP=1|+CLIP=1";
+        }
     }
     else
     {

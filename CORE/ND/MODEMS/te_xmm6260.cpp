@@ -148,9 +148,7 @@ BOOL CTE_XMM6260::IsRequestSupported(int requestId)
     switch (requestId)
     {
         case RIL_REQUEST_GET_SIM_STATUS:
-        case RIL_REQUEST_SETUP_DATA_CALL:
         case RIL_REQUEST_SIM_IO:
-        case RIL_REQUEST_DEACTIVATE_DATA_CALL:
         case RIL_REQUEST_OEM_HOOK_RAW:
         case RIL_REQUEST_OEM_HOOK_STRINGS:
         case RIL_REQUEST_SET_BAND_MODE:
@@ -204,6 +202,11 @@ BOOL CTE_XMM6260::IsRequestSupported(int requestId)
         case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
         case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
             return m_cte.IsStkCapable();
+        case RIL_REQUEST_SETUP_DATA_CALL:
+        case RIL_REQUEST_SET_INITIAL_ATTACH_APN:
+        case RIL_REQUEST_DATA_REGISTRATION_STATE:
+        case RIL_REQUEST_DEACTIVATE_DATA_CALL:
+            return m_cte.IsDataCapable();
 
         default:
             return CTEBase::IsRequestSupported(requestId);
@@ -7722,7 +7725,14 @@ const char* CTE_XMM6260::GetSiloVoiceURCInitString()
     const char* pszInit = NULL;
     if (m_cte.IsVoiceCapable())
     {
-        pszInit = "|+XCALLSTAT=1|+CSSN=1,1";
+        if (m_cte.IsDataCapable())
+        {
+            pszInit = "|+XCALLSTAT=1|+CSSN=1,1";
+        }
+        else
+        {
+            pszInit = "|+XCALLSTAT=1|+XCGCLASS=\"CC\"|+CSSN=1,1";
+        }
     }
     else
     {

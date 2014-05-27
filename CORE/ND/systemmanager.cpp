@@ -376,6 +376,11 @@ BOOL CSystemManager::InitializeSystem(const char* szModemName)
         CTE::GetTE().SetVoiceCapable(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szDataCapable, iTemp))
+    {
+        CTE::GetTE().SetDataCapable(iTemp == 1 ? TRUE : FALSE);
+    }
+
     if (repository.Read(g_szGroupModem, g_szSmsOverCSCapable, iTemp))
     {
         CTE::GetTE().SetSmsOverCSCapable(iTemp == 1 ? TRUE : FALSE);
