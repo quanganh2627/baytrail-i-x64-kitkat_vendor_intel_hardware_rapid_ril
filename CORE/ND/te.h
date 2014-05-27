@@ -1203,6 +1203,9 @@ public:
     RIL_RESULT_CODE GetCsgCurrentState(REQUEST_DATA& reqData);
     RIL_RESULT_CODE ParseXCSG(const char* pszRsp, RESPONSE_DATA& rspData);
 
+    void SetImsRegistrationStatus(UINT32 uiRegStatus) { m_uiImsRegStatus = uiRegStatus; }
+    bool IsImsRegistered() { return (m_uiImsRegStatus == IMS_REGISTERED); }
+
 private:
     UINT32 m_uiModemType;
 
@@ -1374,6 +1377,8 @@ private:
     //  true - network selection is already restored on modem side.
     //  false - network selection needs to be restored by sending AT+COPS=<> command to modem.
     BOOL m_bNetworkSelectionRestored;
+
+    UINT32 m_uiImsRegStatus;
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
     void FreeCardStatusPointers(RIL_CardStatus_v6& cardStatus);

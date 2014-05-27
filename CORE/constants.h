@@ -55,4 +55,7 @@ const int RSRQ_UNKNOWN = 255;
 const int RSRP_UNKNOWN = 255;
 const int RSSNR_UNKNOWN = 255;
 
+const UINT32 IMS_NOT_REGISTERED = 0;
+const UINT32 IMS_REGISTERED = 1;
+
 #endif  // __RIL_CONSTANTS_H__

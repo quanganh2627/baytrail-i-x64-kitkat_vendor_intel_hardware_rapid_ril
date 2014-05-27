@@ -88,7 +88,8 @@ CTE::CTE(UINT32 modemType) :
     m_bCbsActivationTimerRunning(FALSE),
     m_CbsActivate(-1),
     m_bTempOoSNotifReporting(FALSE),
-    m_bNetworkSelectionRestored(FALSE)
+    m_bNetworkSelectionRestored(FALSE),
+    m_uiImsRegStatus(IMS_NOT_REGISTERED)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -7937,7 +7938,7 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
              * pdp context even when the requested SETUP_DATA_CALL is for the same APN as
              * default PDN APN.
              */
-            if (CChannel_Data::IsDataConnectionActive())
+            if (CChannel_Data::IsDataConnectionActive() || IsImsRegistered())
             {
                 strncpy(psRegStatus->szStat, m_sEPSStatus.szStat, sizeof(psRegStatus->szStat));
                 // TAC is mapped to LAC

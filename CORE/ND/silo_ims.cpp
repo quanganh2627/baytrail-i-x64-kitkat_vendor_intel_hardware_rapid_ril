@@ -18,6 +18,7 @@
 #include "callbacks.h"
 #include "oemhookids.h"
 #include "silo_ims.h"
+#include "te.h"
 
 //
 //
@@ -233,6 +234,8 @@ BOOL CSilo_IMS::ParseCIREGU(CResponse* const pResponse, const char*& rszPointer)
     data.command = RIL_OEM_HOOK_RAW_UNSOL_IMS_REG_STATUS;
     data.status = uiRegInfo;
 
+    CTE::GetTE().SetImsRegistrationStatus(uiRegInfo);
+
     RIL_LOG_VERBOSE("CSilo_IMS::ParseCIREGU() - CIREGU=[%d]\r\n", uiRegInfo);
 
     pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
@@ -242,6 +245,12 @@ BOOL CSilo_IMS::ParseCIREGU(CResponse* const pResponse, const char*& rszPointer)
     {
         goto Error;
     }
+
+    /*
+     * When the IMS registration status change force the framework to query the data
+     * registration state by completing RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED.
+     */
+    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
 
     fRet = TRUE;
 Error:
