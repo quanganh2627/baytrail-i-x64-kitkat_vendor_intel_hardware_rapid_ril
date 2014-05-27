@@ -7788,7 +7788,8 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
                 PrintGPRSRegistrationInfo(psRegStatus->szStat),
                 PrintRAT(psRegStatus->szNetworkType));
 
-        if (E_REGISTRATION_DENIED == GetPsRegistrationState(psRegStatus->szStat))
+        if (E_REGISTRATION_DENIED == GetPsRegistrationState(psRegStatus->szStat)
+                || SCREEN_STATE_OFF == m_ScreenState)
         {
             m_bPSStatusCached = FALSE;
         }
@@ -7817,7 +7818,8 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
 
         int regDenied = E_REGISTRATION_DENIED + 10;
 
-        if (regDenied == GetCsRegistrationState(csRegStatus->szStat))
+        if (regDenied == GetCsRegistrationState(csRegStatus->szStat)
+                || SCREEN_STATE_OFF == m_ScreenState)
         {
             m_bCSStatusCached = FALSE;
         }
@@ -7862,7 +7864,8 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
                 PrintGPRSRegistrationInfo(epsRegStatus->szStat),
                 PrintRAT(epsRegStatus->szNetworkType));
 
-        if (E_REGISTRATION_DENIED == GetPsRegistrationState(epsRegStatus->szStat))
+        if (E_REGISTRATION_DENIED == GetPsRegistrationState(epsRegStatus->szStat)
+                || SCREEN_STATE_OFF == m_ScreenState)
         {
             m_bPSStatusCached = FALSE;
         }
@@ -7934,23 +7937,16 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
              * pdp context even when the requested SETUP_DATA_CALL is for the same APN as
              * default PDN APN.
              */
-            CChannel_Data* pChannelData =
-                    CChannel_Data::GetChnlFromContextID(m_uiDefaultPDNCid);
-            if (NULL != pChannelData)
+            if (CChannel_Data::IsDataConnectionActive())
             {
-                int dataState = pChannelData->GetDataState();
-                if (E_DATA_STATE_ACTIVE == dataState)
-                {
-                    RIL_LOG_VERBOSE("CTE::CopyCachedRegistrationInfo() - Default PDN ready\r\n");
-                    strncpy(psRegStatus->szStat, m_sEPSStatus.szStat, sizeof(psRegStatus->szStat));
-                    // TAC is mapped to LAC
-                    strncpy(psRegStatus->szLAC, m_sEPSStatus.szLAC, sizeof(psRegStatus->szLAC));
-                    strncpy(psRegStatus->szCID, m_sEPSStatus.szCID, sizeof(psRegStatus->szCID));
-                    strncpy(psRegStatus->szNetworkType, m_sEPSStatus.szNetworkType,
-                            sizeof(psRegStatus->szNetworkType));
-                    strncpy(psRegStatus->szReasonDenied, m_sEPSStatus.szReasonDenied,
-                            sizeof(psRegStatus->szReasonDenied));
-                }
+                strncpy(psRegStatus->szStat, m_sEPSStatus.szStat, sizeof(psRegStatus->szStat));
+                // TAC is mapped to LAC
+                strncpy(psRegStatus->szLAC, m_sEPSStatus.szLAC, sizeof(psRegStatus->szLAC));
+                strncpy(psRegStatus->szCID, m_sEPSStatus.szCID, sizeof(psRegStatus->szCID));
+                strncpy(psRegStatus->szNetworkType, m_sEPSStatus.szNetworkType,
+                        sizeof(psRegStatus->szNetworkType));
+                strncpy(psRegStatus->szReasonDenied, m_sEPSStatus.szReasonDenied,
+                        sizeof(psRegStatus->szReasonDenied));
             }
         }
         else

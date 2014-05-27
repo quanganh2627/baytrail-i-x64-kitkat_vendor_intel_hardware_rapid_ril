@@ -189,6 +189,27 @@ Error:
     return bRet;
 }
 
+bool CChannel_Data::IsDataConnectionActive()
+{
+    RIL_LOG_VERBOSE("CChannel_Data::IsDataConnectionActive() - Enter\r\n");
+
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
+    {
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
+
+        CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+        if (pChannelData && pChannelData->GetContextID() > 0
+                && E_DATA_STATE_ACTIVE == pChannelData->GetDataState())
+        {
+            return true;
+        }
+    }
+
+    RIL_LOG_VERBOSE("CChannel_Data::IsDataConnectionActive() - Exit\r\n");
+    return false;
+}
+
 //
 //  Returns a pointer to the channel linked to the given interface name
 //

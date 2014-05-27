@@ -122,14 +122,7 @@ const char* CTE_XMM7160::GetRegistrationInitString()
 
 const char* CTE_XMM7160::GetPsRegistrationReadString()
 {
-    if (m_cte.IsEPSRegistered())
-    {
-        return "AT+CEREG=3;+XREG=3;+CEREG?;+XREG?;+CEREG=0;+XREG=0;\r";
-    }
-    else
-    {
-        return "AT+XREG=3;+XREG?;+XREG=0\r";
-    }
+    return "AT+CEREG=3;+XREG=3;+CEREG?;+XREG?;+CEREG=0;+XREG=0;\r";
 }
 
 const char* CTE_XMM7160::GetScreenOnString()

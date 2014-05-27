@@ -97,6 +97,7 @@ public:
     static CChannel_Data* GetChnlFromContextID(UINT32 dwContextID);
     static CChannel_Data* GetChnlFromIfName(const char * ifName);
     static CChannel_Data* GetChnlFromRilChannelNumber(UINT32 index);
+    static bool IsDataConnectionActive();
 
     // used by 6360 and 7160 modems.
     static int GetFreeHSIChannel(UINT32 uiCID, int sindex, int eIndex);
