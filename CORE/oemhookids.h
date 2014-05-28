@@ -326,6 +326,9 @@ const int RIL_OEM_HOOK_STRING_SWAP_PS = 0x000000B2;
 //  "data" = A string containing the AT Command to be send.
 //  "response" = The raw response of the modem for the AT command.
 //
+// Note: This oem hook should be used only for testing purpose. Any application
+// with specific needs must request for specific OEM hook interface.
+//
 const int RIL_OEM_HOOK_STRING_SEND_AT = 0x000000B3;
 
 //

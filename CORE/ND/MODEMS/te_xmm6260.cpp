@@ -2350,6 +2350,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                        "RIL_OEM_HOOK_STRING_SEND_AT - Can't construct szCmd1.\r\n");
                 goto Error;
             }
+            // Send this command on OEM channel.
+            uiRilChannel = RIL_CHANNEL_OEM;
             res = RRIL_RESULT_OK;
             break;
 
