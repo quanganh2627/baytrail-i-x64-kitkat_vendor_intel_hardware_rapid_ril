@@ -75,7 +75,7 @@ CSilo_Network::~CSilo_Network()
 char* CSilo_Network::GetURCInitString()
 {
     // network silo-related URC channel basic init string
-    const char szNetworkURCInitString[] = "+CTZU=1|+XNITZINFO=1|+CGEREP=1,0";
+    const char szNetworkURCInitString[] = "+CTZU=1|+CGEREP=1,0";
 
     if (!ConcatenateStringNullTerminate(m_szURCInitString,
             sizeof(m_szURCInitString), szNetworkURCInitString))
@@ -83,6 +83,17 @@ char* CSilo_Network::GetURCInitString()
         RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to copy URC init "
                 "string!\r\n");
         return NULL;
+    }
+
+    if (MODEM_TYPE_XMM2230 != CTE::GetTE().GetModemType())
+    {
+        if (!ConcatenateStringNullTerminate(m_szURCInitString,
+                sizeof(m_szURCInitString), "|+XNITZINFO=1"))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to copy +XNITZINFO "
+                    "string!\r\n");
+            return NULL;
+        }
     }
 
     if (CTE::GetTE().IsSignalStrengthReportEnabled())

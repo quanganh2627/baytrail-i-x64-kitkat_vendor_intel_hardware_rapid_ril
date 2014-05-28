@@ -18,13 +18,15 @@ static const char* szXMM6260 = "6260";
 static const char* szXMM6360 = "6360";
 static const char* szXMM7160 = "7160";
 static const char* szXMM7260 = "7260";
+static const char* szXMM2230 = "2230";
 
 enum {
     MODEM_TYPE_UNKNOWN,
     MODEM_TYPE_XMM6260,
     MODEM_TYPE_XMM6360,
     MODEM_TYPE_XMM7160,
-    MODEM_TYPE_XMM7260
+    MODEM_TYPE_XMM7260,
+    MODEM_TYPE_XMM2230
 };
 
 enum {

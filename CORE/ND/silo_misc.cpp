@@ -19,6 +19,7 @@
 #include "silo_misc.h"
 #include "extract.h"
 #include "oemhookids.h"
+#include "te.h"
 
 #include <arpa/inet.h>
 
@@ -53,7 +54,7 @@ CSilo_MISC::~CSilo_MISC()
 char* CSilo_MISC::GetBasicInitString()
 {
     // misc silo-related channel basic init string
-    const char szMiscBasicInitString[] = "+XGENDATA|+XPOW=0,0,0";
+    const char szMiscBasicInitString[] = "+XGENDATA";
 
     if (!ConcatenateStringNullTerminate(m_szBasicInitString,
             sizeof(m_szBasicInitString), szMiscBasicInitString))
@@ -61,6 +62,17 @@ char* CSilo_MISC::GetBasicInitString()
         RIL_LOG_CRITICAL("CSilo_MISC::GetBasicInitString() : Failed to copy basic init "
                 "string!\r\n");
         return NULL;
+    }
+
+    if (MODEM_TYPE_XMM2230 != CTE::GetTE().GetModemType())
+    {
+        if (!ConcatenateStringNullTerminate(m_szBasicInitString,
+                sizeof(m_szBasicInitString), "|+XPOW=0,0,0"))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to copy +XPOW "
+                    "string!\r\n");
+            return NULL;
+        }
     }
 
     return m_szBasicInitString;

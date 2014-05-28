@@ -51,11 +51,13 @@ LOCAL_SRC_FILES:= \
     ND/MODEMS/init6360.cpp \
     ND/MODEMS/init7160.cpp \
     ND/MODEMS/init7260.cpp \
+    ND/MODEMS/init2230.cpp \
     ND/MODEMS/data_util.cpp \
     ND/MODEMS/te_xmm6260.cpp \
     ND/MODEMS/te_xmm6360.cpp \
     ND/MODEMS/te_xmm7160.cpp \
     ND/MODEMS/te_xmm7260.cpp \
+    ND/MODEMS/te_xmm2230.cpp \
     ND/bertlv_util.cpp \
     ND/ccatprofile.cpp \
     usat_state.cpp \

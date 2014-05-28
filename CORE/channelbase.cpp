@@ -688,14 +688,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                  case E_FD_MODE_OEM_MANAGED :
                  case E_FD_MODE_DISPLAY_DRIVEN :
                  default :
-                    if (!PrintStringNullTerminate(szFDCmdString,
-                                          sizeof(szFDCmdString),
-                                          "|+XFDOR=3"))
-                    {
-                            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                                    "Cannot create Fast Dormancy command\r\n");
-                            goto Done;
-                    }
                     break;
             }
 

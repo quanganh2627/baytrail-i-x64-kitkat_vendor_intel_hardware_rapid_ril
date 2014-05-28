@@ -33,6 +33,7 @@
 #include "te_xmm6360.h"
 #include "te_xmm7160.h"
 #include "te_xmm7260.h"
+#include "te_xmm2230.h"
 #include "ril_result.h"
 #include "callbacks.h"
 #include "reset.h"
@@ -194,6 +195,10 @@ CTEBase* CTE::CreateModemTE(CTE* pTEInstance)
         case MODEM_TYPE_XMM7260:
             RIL_LOG_INFO("CTE::CreateModemTE() - Using XMM7260\r\n");
             return new CTE_XMM7260(*pTEInstance);
+
+        case MODEM_TYPE_XMM2230:
+            RIL_LOG_INFO("CTE::CreateModemTE() - Using XMM2230\r\n");
+            return new CTE_XMM2230(*pTEInstance);
 
         default: // unsupported modem
             RIL_LOG_INFO("CTE::CreateModemTE() - No modem specified, returning NULL\r\n");
