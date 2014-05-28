@@ -1211,8 +1211,13 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
                         pCallListData->aszNumber[uinUsed];
                 strncpy(pCallListData->aszNumber[uinUsed], szAddress, MAX_NUMBER_SIZE);
 
+                // If name is restricted, then set the number to restricted as well
+                if (pCallListData->aRilCall[uinUsed].namePresentation == 1)
+                {
+                    pCallListData->aRilCall[uinUsed].numberPresentation = 1;
+                }
                 // Get the CLI_validity from +CLIP for the incomming call
-                if (pCallListData->aRilCall[uinUsed].state == 4
+                else if (pCallListData->aRilCall[uinUsed].state == 4
                         || strcmp(szAddress, m_cte.GetNumber()) == 0)
                 {
                     pCallListData->aRilCall[uinUsed].numberPresentation
