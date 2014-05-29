@@ -1256,8 +1256,39 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
         if (uinArgPtrs >= 10)
         {
             // <cli_validity>
-            // Parameter not used in current implementation
-            if (!ExtractUInt32(aPtrArgs[9], uiValue, pTmpPtr))
+            if (ExtractUInt32(aPtrArgs[9], uiValue, pTmpPtr))
+            {
+                switch (uiValue)
+                {
+                    case 0:  // cli valid
+                        pCallListData->pCallData[uinUsed].numberPresentation = 0;
+                        break;
+
+                    case 1:  // restricted
+                        pCallListData->pCallData[uinUsed].numberPresentation = 1;
+                        if (pCallListData->pCallData[uinUsed].namePresentation != 1)
+                        {
+                            RIL_LOG_INFO("\t<cli_validity> Overwrite the namePresentation"
+                                    " value \r\n");
+                            pCallListData->pCallData[uinUsed].namePresentation = 1;
+                        }
+                        break;
+
+                    case 2:  // not available code "Interaction with other service"
+                    case 4:  // not available code "Unavailable"
+                        pCallListData->pCallData[uinUsed].numberPresentation = 2;
+                        break;
+
+                    case 3:  // not available payphone
+                        pCallListData->pCallData[uinUsed].numberPresentation = 3;
+                        break;
+
+                    default:  // error
+                        RIL_LOG_INFO("\t<cli_validity>=Error:%d\r\n", uiValue);
+                        break;
+                }
+            }
+            else
             {
                 RIL_LOG_VERBOSE("\t<cli_validity>=No value found\r\n");
             }
