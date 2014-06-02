@@ -30,5 +30,6 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_REQUIRED_MODULES :=\
     rril_7160_conf_1.txt\
     rril_7160_conf_2.txt\
+    rril_7160_conf_3.txt\
 
 include $(BUILD_PHONY_PACKAGE)
