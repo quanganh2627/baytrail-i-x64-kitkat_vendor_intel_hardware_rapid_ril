@@ -265,7 +265,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
         nEmergencyFlag = 1;
     }
 
-    if (m_cte.IsIMSApCentric())
+    if (dataProfile == RIL_DATA_PROFILE_IMS && m_cte.IsIMSApCentric())
     {
         nRequestPcscfFlag = 1;
     }
