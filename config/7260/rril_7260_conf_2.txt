@@ -223,13 +223,13 @@ Group Modem
 // System Capability settings - Set a modem's capabilities using various flags
 //  These flags control the sending of init commands to a channel during initialization.
 //      "VoiceCapable" - Set to "0" to disable voice calls, otherwise enabled by default.
-/      "SmsOverCSCapable" - Set to "0" to disable SMS over CS, otherwise enabled by default.
+//      "SmsOverCSCapable" - Set to "0" to disable SMS over CS, otherwise enabled by default.
 //      "SmsOverPSCapable" - Set to "0" to disable SMS over PS, otherwise enabled by default.
 //      "StkCapable" - Set to "0" to disable STK support, otherwise enabled by default.
 //      "EnableXDATASTATReporting" - Set to "1" to enable data call status reporting, otherwise
 //                                  disabled by default.
-//      "IMSCapable" - Set to "1" to enable IMS support, otherwise disabled by default.
-//      "SMSOverIPCapable" - Set to "1" to enable SMS over IP, otherwise disabled by default.
+//      "EnableSMSOverIP" - Set to "1" to enable SMS over IMS, this setting will be used only
+//                          if IMS BP centric is activated (ims_support set to 1).
 //      "SupportCGPIAF" - Set to "1" to support new implementation based on +CGPIAF direct format
 //                        (for IMC IPV6 AT commands), or set to "0" to keep the current behavior.
 //      "EnableSignalStrengthReporting" - Set to "1" configures the modem to report signal strength
@@ -239,9 +239,7 @@ Group Modem
 //    SmsOverPSCapable            0
 //    StkCapable                  0
 //    EnableXDATASTATReporting    1
-//    IMSCapable                  1
-//    EnableSMSOverIP             1
-//    SMSOverIPCapable            1
+    EnableSMSOverIP             1
     SupportCGPIAF               0
     EnableSignalStrengthReporting 1
 
