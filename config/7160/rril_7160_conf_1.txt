@@ -56,6 +56,7 @@ Group RequestTimeouts
     EnterSimPin2                       20000
     ChangeSimPin                       20000
     ChangeSimPin2                      20000
+    GetSimStatus                       60000
 
     //  Video Telephony API timeouts
     HangupVT                           40000
