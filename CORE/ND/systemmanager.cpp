@@ -1085,6 +1085,12 @@ BOOL CSystemManager::ReleaseModem()
     RIL_LOG_INFO("CSystemManager::ReleaseModem() - ENTER\r\n");
     BOOL bRet = FALSE;
 
+    if (!m_bIsModemResourceAcquired)
+    {
+        RIL_LOG_INFO("CSystemManager::ReleaseModem() - Modem resource already released\r\n");
+        return TRUE;
+    }
+
     if (m_pMMgrLibHandle)
     {
         RIL_LOG_INFO("CSystemManager::ReleaseModem() - Releasing modem resource\r\n");

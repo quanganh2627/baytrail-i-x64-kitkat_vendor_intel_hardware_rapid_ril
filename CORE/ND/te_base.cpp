@@ -2404,9 +2404,22 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
                     CSystemManager::GetInstance().CloseChannelPorts();
                     SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
                 }
+                else if (E_RADIO_OFF_REASON_AIRPLANE_MODE == radioOffReason)
+                {
+                    /*
+                     * Note that RRIL still needs to release the radio resource to prevent having
+                     * the modem restart uselessly if RRIL is the sole client that required it.
+                     */
+                    if (m_cte.GetModemOffInFlightModeState())
+                    {
+                        CSystemManager::GetInstance().ReleaseModem();
+                    }
+                }
 
                 res = RRIL_RESULT_ERROR;
-                RIL_LOG_INFO("CTEBase::CoreRadioPower - Error in handling RADIO_POWER OFF\r\n");
+                RIL_LOG_INFO("CTEBase::CoreRadioPower - "
+                        "handling RADIO_POWER OFF in modem state %d\r\n",
+                        m_cte.GetLastModemEvent());
                 break;
         }
 
