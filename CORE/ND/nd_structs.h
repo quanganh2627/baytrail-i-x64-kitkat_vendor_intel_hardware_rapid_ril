@@ -71,7 +71,7 @@ typedef struct
 } S_ND_OPINFO_DATA, *P_ND_OPINFO_DATA;
 
 
-#define RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES     10
+const int RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES = 10;
 //
 // Struct for reporting Broadcast SMS config to Android
 //
@@ -133,8 +133,8 @@ typedef struct
 // Struct for reporting Neighboring Cell List to Android
 //
 // Normally there are 32 neigh cells + 1 serving =33, set max number at 40.
-#define RRIL_MAX_CELL_ID_COUNT                      (40)
-#define CELL_ID_ARRAY_LENGTH                        (9)
+const int RRIL_MAX_CELL_ID_COUNT = 40;
+const int CELL_ID_ARRAY_LENGTH = 9;
 
 typedef struct
 {
@@ -147,8 +147,6 @@ typedef struct
 {
     RIL_CellInfo      aRilCellInfo[RRIL_MAX_CELL_ID_COUNT];
 } S_ND_N_CELL_INFO_DATA, *P_ND_N_CELL_INFO_DATA;
-
-#define REG_STATUS_LENGTH 8
 
 typedef struct
 {
@@ -168,6 +166,8 @@ typedef struct
     char* pszReasonDenied;
     char* pszPrimaryScramblingCode;
 } S_ND_REG_STATUS_POINTERS, *P_ND_REG_STATUS_POINTERS;
+
+const int REG_STATUS_LENGTH = 8;
 
 typedef struct
 {

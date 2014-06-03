@@ -28,8 +28,8 @@
 /** GSM ALPHABET
  **/
 
-#define  GSM_7BITS_ESCAPE   0x1b
-#define  GSM_7BITS_UNKNOWN  0
+const int  GSM_7BITS_ESCAPE = 0x1b;
+const int  GSM_7BITS_UNKNOWN = 0;
 
 static const unsigned short   gsm7bits_to_unicode[128] = {
   '@', 0xa3,  '$', 0xa5, 0xe8, 0xe9, 0xf9, 0xec, 0xf2, 0xc7, '\n', 0xd8, 0xf8, '\r', 0xc5, 0xe5,

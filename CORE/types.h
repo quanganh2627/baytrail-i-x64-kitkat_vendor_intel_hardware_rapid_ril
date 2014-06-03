@@ -26,7 +26,7 @@ typedef int32_t             INT32;
 typedef long int            LONG;
 typedef unsigned long int   ULONG;
 
-#define FALSE               false
-#define TRUE                true
+const bool FALSE = false;
+const bool TRUE = true;
 
 #endif  // __RIL_TYPES_H__

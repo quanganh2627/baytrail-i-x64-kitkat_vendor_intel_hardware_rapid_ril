@@ -759,7 +759,7 @@ int ModemManagerEventHandler(mmgr_cli_event_t* param)
 // XXTEA encryption / decryption algorithm.
 // Code source is from http://en.wikipedia.org/wiki/XXTEA
 
-#define DELTA 0x9e3779b9
+const UINT32 DELTA = 0x9e3779b9;
 #define MX (((z>>5^y<<2) + (y>>3^z<<4)) ^ ((sum^y) + (key[(p&3)^e] ^ z)))
 
 // btea: Encrypt or decrypt int array v of length n with 4-integer array key

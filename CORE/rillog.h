@@ -13,11 +13,11 @@
 #ifndef RRIL_LOG_H
 #define RRIL_LOG_H
 
-#define LOG_TAG "RILR"
+const char LOG_TAG[] = "RILR";
 
-#define LOG_TAG_MAX_LENGTH 6
-#define SIMID_MAX_LENGTH 6
-#define SIMID_DEFAULT_VALUE "none"
+const int LOG_TAG_MAX_LENGTH = 6;
+const int SIMID_MAX_LENGTH = 6;
+const char SIMID_DEFAULT_VALUE[] = "none";
 
 #include "types.h"
 

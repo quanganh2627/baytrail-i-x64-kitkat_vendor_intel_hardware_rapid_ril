@@ -527,8 +527,6 @@ BOOL CChannelBase::WaitForCommand()
     return  (WAIT_EVENT_0_SIGNALED == uiRet);
 }
 
-#define INIT_CMD_STRLEN  (MAX_BUFFER_SIZE)
-
 char* CChannelBase::GetTESpecificInitCommands(eComInitIndex eInitIndex)
 {
     char* pInitCommands = NULL;
@@ -555,14 +553,13 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             m_uiRilChannel, eInitIndex);
 
     char*        szInit;
-    const UINT32 szInitLen = MAX_BUFFER_SIZE;
     BOOL         bRetVal  = FALSE;
     CCommand*    pCmd = NULL;
     BOOL         bLastCmd;
     CRepository  repository;
     char         szTemp[MAX_BUFFER_SIZE];
 
-    szInit = new char[szInitLen];
+    szInit = new char[MAX_BUFFER_SIZE];
     if (!szInit)
     {
         RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Out of memory\r\n");
@@ -591,20 +588,20 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         RIL_LOG_INFO("CChannelBase::SendModemConfigurationCommands() : Concat XSIMSEL id=%s,"
                 "  eInitIndex=[%d]r\n", g_szSIMID, eInitIndex);
         PrintStringNullTerminate(szTemp, MAX_BUFFER_SIZE, "+XSIMSEL=%s|", g_szSIMID);
-        ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp);
+        ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, szTemp);
     }
 
     // Get any pre-init commands from non-volatile memory
 
     if (repository.Read(g_szGroupInitCmds, g_szPreInitCmds[eInitIndex], szTemp, MAX_BUFFER_SIZE))
     {
-        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp))
+        if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, szTemp))
         {
             RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szTemp"
                     " failed\r\n");
             goto Done;
         }
-        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+        if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, "|"))
         {
             RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
                     " Concat szTemp | failed\r\n");
@@ -623,7 +620,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 
     if (m_paInitCmdStrings[eInitIndex].szCmd[0])
     {
-        if (!ConcatenateStringNullTerminate(szInit, szInitLen,
+        if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE,
                 m_paInitCmdStrings[eInitIndex].szCmd))
         {
             RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szCmd failed"
@@ -636,13 +633,13 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 
     if (repository.Read(g_szGroupInitCmds, g_szPostInitCmds[eInitIndex], szTemp, MAX_BUFFER_SIZE))
     {
-        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+        if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, "|"))
         {
             RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat | failed"
                     "  eInitIndex=[%d]\r\n", eInitIndex);
             goto Done;
         }
-        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp))
+        if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, szTemp))
         {
             RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concat szTemp"
                     " failed  eInitIndex=[%d]\r\n", eInitIndex);
@@ -669,9 +666,10 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
 
             // Read Fast Dormancy Timers from repository
             repository.ReadFDParam(g_szGroupModem, g_szFDDelayTimer,
-                    szFDDelayTimer, MAX_BUFFER_SIZE, MIN_FDDELAY_TIMER, MAX_FDDELAY_TIMER);
+                    szFDDelayTimer, MAX_BUFFER_SIZE, XFDOR_MIN_FDDELAY_TIMER,
+                    XFDOR_MAX_FDDELAY_TIMER);
             repository.ReadFDParam(g_szGroupModem, g_szSCRITimer,
-                    szSCRITimer, MAX_BUFFER_SIZE, MIN_SCRI_TIMER, MAX_SCRI_TIMER);
+                    szSCRITimer, MAX_BUFFER_SIZE, XFDOR_MIN_SCRI_TIMER, XFDOR_MAX_SCRI_TIMER);
 
             // define XFDOR command according to FD mode
             switch (CTE::GetTE().GetFastDormancyMode())
@@ -701,7 +699,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                     break;
             }
 
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szFDCmdString))
+            if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, szFDCmdString))
             {
                 RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
                         "Concat szFDCmdString failed\r\n");
@@ -735,13 +733,13 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             }
         }
 
-        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+        if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, "|"))
         {
             RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
                     " Concat | failed\r\n");
             goto Done;
         }
-        if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, szTemp))
+        if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, szTemp))
         {
             RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
                     " Concat DataPath failed\r\n");
@@ -759,13 +757,13 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
         pInitCommands = GetTESpecificInitCommands(eInitIndex);
         if (NULL != pInitCommands && '\0' != pInitCommands[0])
         {
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, "|"))
+            if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, "|"))
             {
                 RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
                         " Concat | failed\r\n");
                 bSuccess = FALSE;
             }
-            else if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, pInitCommands))
+            else if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, pInitCommands))
             {
                 RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Concatenate"
                         " TE specific init commands failed\r\n");
@@ -804,7 +802,7 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
             strftime(URCClockInitString, sizeof(URCClockInitString),
                     "|+CCLK=\"%y/%m/%d,%H:%M:%S\"", ptm);
 
-            if (!ConcatenateStringNullTerminate(szInit, INIT_CMD_STRLEN, URCClockInitString))
+            if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, URCClockInitString))
             {
                 RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
                         " Concat DataPath failed\r\n");

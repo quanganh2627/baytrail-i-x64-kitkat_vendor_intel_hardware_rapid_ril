@@ -26,7 +26,7 @@ class CThread;
 class CSilo;
 class CThread;
 
-#define MAX_COM_PORT_NAME_LENGTH  64
+const int MAX_COM_PORT_NAME_LENGTH  = 64;
 
 
 //  Structure used for specifying init strings

@@ -17,35 +17,35 @@
 #include "rril.h"
 
 // Access flags (choose one)
-#define FILE_ACCESS_READ_ONLY       0x0001
-#define FILE_ACCESS_WRITE_ONLY      0x0002
-#define FILE_ACCESS_READ_WRITE      0x0003
+const unsigned int FILE_ACCESS_READ_ONLY = 0x0001;
+const unsigned int FILE_ACCESS_WRITE_ONLY = 0x0002;
+const unsigned int FILE_ACCESS_READ_WRITE = 0x0003;
 
 // Open flags (bitmask)
-#define FILE_OPEN_NON_BLOCK         0x0001
-#define FILE_OPEN_APPEND            0x0002
-#define FILE_OPEN_CREATE            0x0004
-#define FILE_OPEN_TRUNCATE          0x0008
-#define FILE_OPEN_EXCL              0x0010
-#define FILE_OPEN_EXIST             0x0020
-#define FILE_OPEN_NO_CTTY           0x0030
+const unsigned int FILE_OPEN_NON_BLOCK = 0x0001;
+const unsigned int FILE_OPEN_APPEND = 0x0002;
+const unsigned int FILE_OPEN_CREATE = 0x0004;
+const unsigned int FILE_OPEN_TRUNCATE = 0x0008;
+const unsigned int FILE_OPEN_EXCL = 0x0010;
+const unsigned int FILE_OPEN_EXIST = 0x0020;
+const unsigned int FILE_OPEN_NO_CTTY = 0x0030;
 
 // Optional flags (bitmask)
-#define FILE_OPT_NONE               0x0000
+const unsigned int FILE_OPT_NONE = 0x0000;
 
 // File attribute flags
-#define FILE_ATTRIB_REG                 0x00000001
-#define FILE_ATTRIB_DIR                 0x00000002
-#define FILE_ATTRIB_SOCK                0x00000004
-#define FILE_ATTRIB_RO                  0x00000008
-#define FILE_ATTRIB_BLK                 0x00000010
-#define FILE_ATTRIB_CHR                 0x00000020
-#define FILE_ATTRIB_DOESNT_EXIST        0xFFFFFFFF
+const unsigned int FILE_ATTRIB_REG = 0x00000001;
+const unsigned int FILE_ATTRIB_DIR = 0x00000002;
+const unsigned int FILE_ATTRIB_SOCK = 0x00000004;
+const unsigned int FILE_ATTRIB_RO = 0x00000008;
+const unsigned int FILE_ATTRIB_BLK = 0x00000010;
+const unsigned int FILE_ATTRIB_CHR = 0x00000020;
+const unsigned int FILE_ATTRIB_DOESNT_EXIST = 0xFFFFFFFF;
 
 // Event codes (bitmask)
-#define FILE_EVENT_RXCHAR               0x00000001
-#define FILE_EVENT_BREAK                0x00000002
-#define FILE_EVENT_ERROR                0x00000004
+const unsigned int FILE_EVENT_RXCHAR = 0x00000001;
+const unsigned int FILE_EVENT_BREAK = 0x00000002;
+const unsigned int FILE_EVENT_ERROR = 0x00000004;
 
 class CFile
 {

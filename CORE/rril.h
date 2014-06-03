@@ -26,40 +26,40 @@ typedef long                RIL_RESULT_CODE;
 // Android / WM structs conversion
 //
 
-#define WAIT_FOREVER            (0xFFFFFFFF)
+const int WAIT_FOREVER = 0xFFFFFFFF;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Number of Calls to Track
 //
-#define RRIL_MAX_CALL_ID_COUNT       (10)
+const UINT32 RRIL_MAX_CALL_ID_COUNT = 10;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Number of Call Forwarding Entries to support
 //
-#define RIL_MAX_CALLFWD_ENTRIES     10
+const UINT32 RIL_MAX_CALLFWD_ENTRIES = 10;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Value to indicate no retry for RIL_REQUEST_SETUP_DATA_CALL request.
 // value comes from request description which can be found in ril.h
 //
-#define MAX_INT 0x7FFFFFFF;
+const int MAX_INT = 0x7FFFFFFF;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Maximum length for various buffers and string parameters
 //
-#define MAX_BUFFER_SIZE            (1024)
-#define MAX_PIN_SIZE               (9)
-#define MAX_FACILITY_CODE          (5)
-#define MAX_PDP_CONTEXTS           (5)
-#define MAX_INTERFACE_NAME_SIZE    (50)
-#define MAX_PDP_TYPE_SIZE          (20)
-#define MAX_MDM_RESOURCE_NAME_SIZE (20)
-#define MAX_FDTIMER_SIZE           (5)
-#define MODEM_STATE_UNKNOWN        (-1)
-#define MAX_PARAM_LENGTH           (256)
-#define MAX_APN_SIZE               (101)
-#define AUTN_LENGTH                (32)
-#define RAND_LENGTH                (32)
+const int MAX_BUFFER_SIZE = 1024;
+const int MAX_PIN_SIZE = 9;
+const int MAX_FACILITY_CODE = 5;
+const int MAX_PDP_CONTEXTS = 5;
+const int MAX_INTERFACE_NAME_SIZE = 50;
+const int MAX_PDP_TYPE_SIZE = 20;
+const int MAX_MDM_RESOURCE_NAME_SIZE = 20;
+const int MAX_FDTIMER_SIZE = 5;
+const int MODEM_STATE_UNKNOWN = -1;
+const int MAX_PARAM_LENGTH = 256;
+const int MAX_APN_SIZE = 101;
+const int AUTN_LENGTH = 32;
+const int RAND_LENGTH = 32;
 
 // size includes the C-string terminal zero
 const int MAX_IPADDR_SIZE = 64 + 1;
@@ -261,7 +261,7 @@ typedef struct
 // registration status information used internally
 //
 
-#define MAX_REG_STATUS_LENGTH 8
+const int MAX_REG_STATUS_LENGTH = 8;
 
 typedef struct
 {
@@ -421,77 +421,77 @@ const int   XICFG_N_PARAMS  = 10;
 // Notify / Result Codes (m_dwCode)
 //
 
-#define RRIL_RESULT_OK                  RIL_E_SUCCESS                // 0x00000000
-#define RRIL_RESULT_RADIOOFF            RIL_E_RADIO_NOT_AVAILABLE    // 0x00000001
-#define RRIL_RESULT_ERROR               RIL_E_GENERIC_FAILURE        // 0x00000002
-#define RRIL_RESULT_PASSWORDINCORRECT   RIL_E_PASSWORD_INCORRECT     // 0x00000003
-#define RRIL_RESULT_SIMPIN2             RIL_E_SIM_PIN2               // 0x00000004
-#define RRIL_RESULT_SIMPUK2             RIL_E_SIM_PUK2               // 0x00000005
-#define RRIL_RESULT_NOTSUPPORTED        RIL_E_REQUEST_NOT_SUPPORTED  // 0x00000006
-#define RRIL_RESULT_CALLABORTED         RIL_E_CANCELLED              // 0x00000007
-#define RRIL_RESULT_FDN_FAILURE         RIL_E_FDN_CHECK_FAILURE      // 0x0000000E
-#define RRIL_RESULT_OK_IMMEDIATE        (0x00000010)
+const RIL_Errno RRIL_RESULT_OK = RIL_E_SUCCESS;                              // 0x00000000
+const RIL_Errno RRIL_RESULT_RADIOOFF = RIL_E_RADIO_NOT_AVAILABLE;            // 0x00000001
+const RIL_Errno RRIL_RESULT_ERROR = RIL_E_GENERIC_FAILURE;                   // 0x00000002
+const RIL_Errno RRIL_RESULT_PASSWORDINCORRECT = RIL_E_PASSWORD_INCORRECT;    // 0x00000003
+const RIL_Errno RRIL_RESULT_SIMPIN2 = RIL_E_SIM_PIN2;                        // 0x00000004
+const RIL_Errno RRIL_RESULT_SIMPUK2 = RIL_E_SIM_PUK2;                        // 0x00000005
+const RIL_Errno RRIL_RESULT_NOTSUPPORTED = RIL_E_REQUEST_NOT_SUPPORTED;      // 0x00000006
+const RIL_Errno RRIL_RESULT_CALLABORTED = RIL_E_CANCELLED;                   // 0x00000007
+const RIL_Errno RRIL_RESULT_FDN_FAILURE = RIL_E_FDN_CHECK_FAILURE;           // 0x0000000E
+const int RRIL_RESULT_OK_IMMEDIATE = 0x00000010;
 
 // V25 Results
-#define RRIL_RESULT_NOCARRIER      RIL_E_GENERIC_FAILURE
-#define RRIL_RESULT_NODIALTONE     RIL_E_GENERIC_FAILURE
-#define RRIL_RESULT_BUSY           RIL_E_GENERIC_FAILURE
-#define RRIL_RESULT_NOANSWER       RIL_E_GENERIC_FAILURE
-#define RRIL_NOTIFY_CONNECT        (0x00010000)
+const RIL_Errno RRIL_RESULT_NOCARRIER = RIL_E_GENERIC_FAILURE;
+const RIL_Errno RRIL_RESULT_NODIALTONE = RIL_E_GENERIC_FAILURE;
+const RIL_Errno RRIL_RESULT_BUSY = RIL_E_GENERIC_FAILURE;
+const RIL_Errno RRIL_RESULT_NOANSWER = RIL_E_GENERIC_FAILURE;
+const int RRIL_NOTIFY_CONNECT = 0x00010000;
 
 
 ///////////////////////////////////////////////////////////////////////////////
 // Error codes (in pBlobs) - used to trigger actions during response handling
 //
 
-#define RRIL_E_NO_ERROR                             (0x00000000)
-#define RRIL_E_UNKNOWN_ERROR                        (0x00001000)
-#define RRIL_E_ABORT                                (0x00001002)
-#define RRIL_E_DIALSTRING_TOO_LONG                  (0x00001003)
-#define RRIL_E_MODEM_NOT_READY                      (0x00001004)
-#define RRIL_E_TIMED_OUT                            (0x00001005)
-#define RRIL_E_CANCELLED                            (0x00001006)
-#define RRIL_E_RADIOOFF                             (0x00001007)
-#define RRIL_E_MODEM_RESET                          (0x00001008)
+const int RRIL_E_NO_ERROR = 0x00000000;
+const int RRIL_E_UNKNOWN_ERROR = 0x00001000;
+const int RRIL_E_ABORT = 0x00001002;
+const int RRIL_E_DIALSTRING_TOO_LONG = 0x00001003;
+const int RRIL_E_MODEM_NOT_READY = 0x00001004;
+const int RRIL_E_TIMED_OUT = 0x00001005;
+const int RRIL_E_CANCELLED = 0x00001006;
+const int RRIL_E_RADIOOFF = 0x00001007;
+const int RRIL_E_MODEM_RESET = 0x00001008;
 
 
 ///////////////////////////////////////////////////////////////////////////////
 // Information Classes
 //
-#define RRIL_INFO_CLASS_NONE                        (0x00000000)      // None
-#define RRIL_INFO_CLASS_VOICE                       (0x00000001)      // Voice
-#define RRIL_INFO_CLASS_DATA                        (0x00000002)      // Data
-#define RRIL_INFO_CLASS_FAX                         (0x00000004)      // Fax
-#define RRIL_INFO_CLASS_SMS                         (0x00000008)      // Short Message Service
-#define RRIL_INFO_CLASS_DATA_CIRCUIT_SYNC           (0x00000010)      // Data Circuit Sync
-#define RRIL_INFO_CLASS_DATA_CIRCUIT_ASYNC          (0x00000020)      // Data Circuit Async
-#define RRIL_INFO_CLASS_DEDICATED_PACKET_ACCESS     (0x00000040)      // Dedicated packet access
-#define RRIL_INFO_CLASS_DEDICATED_PAD_ACCESS        (0x00000080)      // Dedicated PAD access
-#define RRIL_INFO_CLASS_ALL                         (0x000000FF)      // All Infoclasses
+const int RRIL_INFO_CLASS_NONE = 0x00000000;                       // None
+const int RRIL_INFO_CLASS_VOICE = 0x00000001;                      // Voice
+const int RRIL_INFO_CLASS_DATA = 0x00000002;                       // Data
+const int RRIL_INFO_CLASS_FAX = 0x00000004;                        // Fax
+const int RRIL_INFO_CLASS_SMS = 0x00000008;                        // Short Message Service
+const int RRIL_INFO_CLASS_DATA_CIRCUIT_SYNC = 0x00000010;          // Data Circuit Sync
+const int RRIL_INFO_CLASS_DATA_CIRCUIT_ASYNC = 0x00000020;         // Data Circuit Async
+const int RRIL_INFO_CLASS_DEDICATED_PACKET_ACCESS = 0x00000040;    // Dedicated packet access
+const int RRIL_INFO_CLASS_DEDICATED_PAD_ACCESS = 0x00000080;       // Dedicated PAD access
+const int RRIL_INFO_CLASS_ALL = 0x000000FF;                        // All Infoclasses
 
 ///////////////////////////////////////////////////////////////////////////////
-// Call Forwarding defines
+// Call Forwarding constants
 //
-#define RRIL_CALL_FWD_UNCONDITIONAL                 (0x00000000)
-#define RRIL_CALL_FWD_MOBILE_BUSY                   (0x00000001)
-#define RRIL_CALL_FWD_NO_REPLY                      (0x00000002)
-#define RRIL_CALL_FWD_NOT_REACHABLE                 (0x00000003)
-#define RRIL_CALL_FWD_ALL_CALL_FWD                  (0x00000004)
-#define RRIL_CALL_FWD_ALL_COND_CALL_FWD             (0x00000005)
+const int RRIL_CALL_FWD_UNCONDITIONAL = 0x00000000;
+const int RRIL_CALL_FWD_MOBILE_BUSY = 0x00000001;
+const int RRIL_CALL_FWD_NO_REPLY = 0x00000002;
+const int RRIL_CALL_FWD_NOT_REACHABLE = 0x00000003;
+const int RRIL_CALL_FWD_ALL_CALL_FWD = 0x00000004;
+const int RRIL_CALL_FWD_ALL_COND_CALL_FWD = 0x00000005;
 
 ///////////////////////////////////////////////////////////////////////////////
-// Call Waiting Status defines
+// Call Waiting Status constants
 //
-#define RRIL_CALL_WAIT_DISABLE                      (0x00000000)
-#define RRIL_CALL_WAIT_ENABLE                       (0x00000001)
-#define RRIL_CALL_WAIT_QUERY_STATUS                 (0x00000002)
+const int RRIL_CALL_WAIT_DISABLE = 0x00000000;
+const int RRIL_CALL_WAIT_ENABLE = 0x00000001;
+const int RRIL_CALL_WAIT_QUERY_STATUS = 0x00000002;
 
 ///////////////////////////////////////////////////////////////////////////////
-// Caller ID Restriction defines
+// Caller ID Restriction constants
 //
-#define RRIL_CLIR_NETWORK                           (0x00000000)
-#define RRIL_CLIR_INVOCATION                        (0x00000001)
-#define RRIL_CLIR_SUPPRESSION                       (0x00000002)
+const int RRIL_CLIR_NETWORK = 0x00000000;
+const int RRIL_CLIR_INVOCATION = 0x00000001;
+const int RRIL_CLIR_SUPPRESSION = 0x00000002;
 
 #endif // RRIL_RRIL_H
 

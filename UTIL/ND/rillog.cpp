@@ -46,8 +46,7 @@ void CRilLog::Init(char* szSIMID)
     }
     else
     {
-        const char szSimIdDef[] = SIMID_DEFAULT_VALUE;
-        strncpy(m_szSIMID, szSimIdDef, sizeof(m_szSIMID)-1);
+        strncpy(m_szSIMID, SIMID_DEFAULT_VALUE, sizeof(m_szSIMID)-1);
         m_szSIMID[sizeof(m_szSIMID)-1] = '\0';  // KW fix
     }
 

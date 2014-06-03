@@ -35,8 +35,8 @@
 #include "ril_result.h"
 #include "initializer.h"
 
-#define AT_MAXARGS 20
-#define WAIT_TIMEOUT_DTMF_STOP 20000
+const int AT_MAXARGS = 20;
+const int WAIT_TIMEOUT_DTMF_STOP = 20000;
 
 const char* CTEBase::PDPTYPE_IPV4V6 = "IPV4V6";
 const char* CTEBase::PDPTYPE_IPV6 = "IPV6";

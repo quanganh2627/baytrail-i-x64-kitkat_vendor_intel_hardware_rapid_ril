@@ -33,10 +33,10 @@
 
 
 // define max FD timers
-#define MIN_FDDELAY_TIMER          1
-#define MIN_SCRI_TIMER             1
-#define MAX_FDDELAY_TIMER          60
-#define MAX_SCRI_TIMER             120
+const int XFDOR_MIN_FDDELAY_TIMER = 1;
+const int XFDOR_MIN_SCRI_TIMER = 1;
+const int XFDOR_MAX_FDDELAY_TIMER = 60;
+const int XFDOR_MAX_SCRI_TIMER = 120;
 
 //////////////////////////////////////////////////////////////////////////
 // String Constants used for NVM Access

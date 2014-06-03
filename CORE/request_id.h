@@ -13,7 +13,7 @@
 #ifndef RRIL_REQUEST_ID_H
 #define RRIL_REQUEST_ID_H
 
-#define INTERNAL_REQ_ID_START 500
+const int INTERNAL_REQ_ID_START = 500;
 
 // Used to index into the internal request info array g_ReqInternal[] in request_info.cpp.
 enum REQ_IDX
@@ -43,6 +43,6 @@ typedef enum
      E_REQ_ID_INTERNAL_ENABLE_PROFILE_FACILITY_HANDLING
 } E_REQ_ID_INTERNAL;
 
-#define REQ_ID_NONE     -1
+const int REQ_ID_NONE = -1;
 
 #endif // RRIL_REQUEST_ID_H

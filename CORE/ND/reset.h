@@ -47,7 +47,7 @@ private:
 void ModemResetUpdate();
 
 // Used for int => string convertion for calls to modem restart APIs
-#define MAX_STRING_SIZE_FOR_INT 12
+const int MAX_STRING_SIZE_FOR_INT = 12;
 
 class CModemRestart
 {

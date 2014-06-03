@@ -957,12 +957,12 @@ struct sUSIMGetResponse
     UINT32 dwRecordSize;
 };
 
-#define RIL_SIMRECORDTYPE_UNKNOWN       (0x00000000)
-#define RIL_SIMRECORDTYPE_TRANSPARENT   (0x00000001)
-#define RIL_SIMRECORDTYPE_CYCLIC        (0x00000002)
-#define RIL_SIMRECORDTYPE_LINEAR        (0x00000003)
-#define RIL_SIMRECORDTYPE_MASTER        (0x00000004)
-#define RIL_SIMRECORDTYPE_DEDICATED     (0x00000005)
+const int RIL_SIMRECORDTYPE_UNKNOWN = 0x00000000;
+const int RIL_SIMRECORDTYPE_TRANSPARENT = 0x00000001;
+const int RIL_SIMRECORDTYPE_CYCLIC = 0x00000002;
+const int RIL_SIMRECORDTYPE_LINEAR = 0x00000003;
+const int RIL_SIMRECORDTYPE_MASTER = 0x00000004;
+const int RIL_SIMRECORDTYPE_DEDICATED = 0x00000005;
 
 
 //
@@ -6170,9 +6170,9 @@ RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)
         if (SCREEN_STATE_OFF == screenState && s_bFDParamReady == FALSE)
         {
             repository.ReadFDParam(g_szGroupModem, g_szFDDelayTimer, s_szFDDelayTimer,
-                    MAX_FDTIMER_SIZE, MIN_FDDELAY_TIMER, MAX_FDDELAY_TIMER);
+                    MAX_FDTIMER_SIZE, XFDOR_MIN_FDDELAY_TIMER, XFDOR_MAX_FDDELAY_TIMER);
             repository.ReadFDParam(g_szGroupModem, g_szSCRITimer, s_szSCRITimer,
-                    MAX_FDTIMER_SIZE, MIN_SCRI_TIMER, MAX_SCRI_TIMER);
+                    MAX_FDTIMER_SIZE, XFDOR_MIN_SCRI_TIMER, XFDOR_MAX_SCRI_TIMER);
             s_bFDParamReady = TRUE;
         }
 

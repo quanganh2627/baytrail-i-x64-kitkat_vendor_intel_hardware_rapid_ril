@@ -19,9 +19,9 @@
 #include <utils/List.h>
 using namespace android;
 
-#define WAIT_EVENT_0_SIGNALED       0
-#define WAIT_TIMEDOUT               0xFFFFFFFF
-#define WAIT_OBJ_NULL               0xFFFF0001
+const UINT32 WAIT_EVENT_0_SIGNALED = 0;
+const UINT32 WAIT_TIMEDOUT = 0xFFFFFFFF;
+const UINT32 WAIT_OBJ_NULL = 0xFFFF0001;
 
 
 class CMutex

@@ -716,8 +716,8 @@ const int RIL_OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED = 0x000000DB;
 
 ///////////////////////////////////////////////////////////////////////////////
 // As per 24.008,10.5.6.12 up to 7 packet filters could be included
-#define MAX_TFT_PARAMS  7
-#define MAX_RANGE_SIZE  12
+const int MAX_TFT_PARAMS = 7;
+const int MAX_RANGE_SIZE = 12;
 
 typedef struct
 {
