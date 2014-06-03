@@ -61,7 +61,7 @@ char* CSilo_IMS::GetURCInitString()
     if (m_pSystemCapabilities->IsIMSCapable())
     {
         PrintStringNullTerminate(szEnableIMS, MAX_BUFFER_SIZE,
-                "|+XICFG=0,1,50,1|+CISRVCC=1|+CIREP=1|+CIREG=1|+XISMSCFG=1");
+                "|+CISRVCC=1|+CIREP=1|+CIREG=1|+XISMSCFG=1");
 
     }
     // IMS AP Centric
