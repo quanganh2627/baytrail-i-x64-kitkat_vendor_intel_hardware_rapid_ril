@@ -1952,7 +1952,7 @@ RIL_SignalStrength_v9* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
 
     // reset to default values
     pSigStrData->GW_SignalStrength.signalStrength = RSSI_UNKNOWN;
-    pSigStrData->GW_SignalStrength.bitErrorRate   = BER_UNKNOWN;
+    pSigStrData->GW_SignalStrength.bitErrorRate = BER_UNKNOWN;
     pSigStrData->CDMA_SignalStrength.dbm = -1;
     pSigStrData->CDMA_SignalStrength.ecio = -1;
     pSigStrData->EVDO_SignalStrength.dbm = -1;
@@ -1965,6 +1965,7 @@ RIL_SignalStrength_v9* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
     pSigStrData->LTE_SignalStrength.cqi = INT_MAX;
     pSigStrData->WCDMA_SignalStrength.rscp = RSCP_UNKNOWN;
     pSigStrData->WCDMA_SignalStrength.ecNo = ECNO_UNKNOWN;
+    pSigStrData->GSM_SignalStrength.rxlev = RSSI_UNKNOWN;
 
     /*
      * If the current serving cell is GERAN cell, then <rxlev> and <ber> are set to
@@ -1987,21 +1988,8 @@ RIL_SignalStrength_v9* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
      */
     if (RSSI_UNKNOWN != rxlev)
     {
-        /*
-         * As <rxlev> reported as part of XCESQ is not in line with the <rssi> reported
-         * as part of AT+CSQ and also what android expects, following conversion is done.
-         */
-        if (rxlev <= 57)
-        {
-            rxlev = floor(rxlev / 2) + 2;
-        }
-        else
-        {
-            rxlev = 31;
-        }
-
-        pSigStrData->GW_SignalStrength.signalStrength = rxlev;
-        pSigStrData->GW_SignalStrength.bitErrorRate   = ber;
+        pSigStrData->GW_SignalStrength.bitErrorRate = ber;
+        pSigStrData->GSM_SignalStrength.rxlev = rxlev;
     }
     else if (RSCP_UNKNOWN != rscp)
     {
