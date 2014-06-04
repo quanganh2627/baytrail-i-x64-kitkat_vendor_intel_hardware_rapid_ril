@@ -66,7 +66,7 @@ public:
     BOOL ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
                          S_ND_GPRS_REG_STATUS& rPSRegStatusInfo);
 
-    RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
+    RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct, int regType);
 
     char* GetBasicInitCommands(UINT32 uiChannelType);
     char* GetUnlockInitCommands(UINT32 uiChannelType);

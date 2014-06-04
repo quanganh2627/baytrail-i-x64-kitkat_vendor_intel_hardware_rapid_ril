@@ -7082,11 +7082,11 @@ RIL_RESULT_CODE CTE::ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData)
     return m_pTEBaseInstance->ParseUnsolicitedSignalStrength(rRspData);
 }
 
-RIL_RadioTechnology CTE::MapAccessTechnology(UINT32 uiStdAct)
+RIL_RadioTechnology CTE::MapAccessTechnology(UINT32 uiStdAct, int regType)
 {
     RIL_LOG_VERBOSE("CTE::MapAccessTechnology() - Enter\r\n");
 
-    return m_pTEBaseInstance->MapAccessTechnology(uiStdAct);
+    return m_pTEBaseInstance->MapAccessTechnology(uiStdAct, regType);
 }
 
 BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
@@ -7181,7 +7181,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
              * Maps the 3GPP standard access technology values to android specific access
              * technology values.
              */
-            rtAct = MapAccessTechnology(uiAct);
+            rtAct = MapAccessTechnology(uiAct, E_REGISTRATION_TYPE_CREG);
             snprintf(rCSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)rtAct);
         }
 
@@ -7336,7 +7336,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
              * Maps the 3GPP standard access technology values to android specific access
              * technology values.
              */
-            rtAct = MapAccessTechnology(uiAct);
+            rtAct = MapAccessTechnology(uiAct, E_REGISTRATION_TYPE_CGREG);
         }
 
         // Extract ",<rac>"
@@ -7477,7 +7477,7 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
      * Maps the 3GPP standard access technology values to android specific access
      * technology values.
      */
-    act = CTE::MapAccessTechnology(act);
+    act = MapAccessTechnology(act, E_REGISTRATION_TYPE_XREG);
 
     //  Extract <Band> and throw away
     if (!SkipString(rszPointer, ",", rszPointer)
@@ -7696,7 +7696,7 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
         * Maps the 3GPP standard access technology values to android specific access
         * technology values.
         */
-        uiAct = CTE::MapAccessTechnology(uiAct);
+        uiAct = MapAccessTechnology(uiAct, E_REGISTRATION_TYPE_CEREG);
     }
 
     // Extract ",cause_type and reject_cause" only if registration status is denied
@@ -7811,8 +7811,9 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
     {
         P_ND_REG_STATUS csRegStatus = (P_ND_REG_STATUS) pRegStruct;
 
-        RIL_LOG_INFO("[RIL STATE] REG STATUS = %s\r\n",
-                PrintRegistrationInfo(csRegStatus->szStat));
+        RIL_LOG_INFO("[RIL STATE] REG STATUS = %s RAT = %s\r\n",
+                PrintRegistrationInfo(csRegStatus->szStat),
+                PrintRAT(csRegStatus->szNetworkType));
 
         int regDenied = E_REGISTRATION_DENIED + 10;
 
@@ -7990,10 +7991,16 @@ void CTE::CopyCachedRegistrationInfo(void* pRegStruct, BOOL bPSStatus)
 
         strncpy(csRegStatus->szLAC, m_sCSStatus.szLAC, sizeof(csRegStatus->szLAC));
         strncpy(csRegStatus->szCID, m_sCSStatus.szCID, sizeof(csRegStatus->szCID));
-        // Always copy the access technology received as part of XREG URC as it reports
-        // access technology also during call.
-        strncpy(csRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
-                sizeof(csRegStatus->szNetworkType));
+        if (!m_pTEBaseInstance->IsInCall())
+        {
+            strncpy(csRegStatus->szNetworkType, m_sCSStatus.szNetworkType,
+                    sizeof(csRegStatus->szNetworkType));
+        }
+        else
+        {
+            strncpy(csRegStatus->szNetworkType, m_sPSStatus.szNetworkType,
+                    sizeof(csRegStatus->szNetworkType));
+        }
         strncpy(csRegStatus->szReasonDenied, m_sCSStatus.szReasonDenied,
                 sizeof(csRegStatus->szReasonDenied));
 

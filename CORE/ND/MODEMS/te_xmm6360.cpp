@@ -764,7 +764,7 @@ Error:
     return res;
 }
 
-RIL_RadioTechnology CTE_XMM6360::MapAccessTechnology(UINT32 uiStdAct)
+RIL_RadioTechnology CTE_XMM6360::MapAccessTechnology(UINT32 uiStdAct, int regType)
 {
     RIL_LOG_VERBOSE("CTE_XMM6360::MapAccessTechnology() ENTER  uiStdAct=[%u]\r\n", uiStdAct);
 
@@ -788,7 +788,7 @@ RIL_RadioTechnology CTE_XMM6360::MapAccessTechnology(UINT32 uiStdAct)
         break;
 
         default:
-        rtAct = CTEBase::MapAccessTechnology(uiStdAct);
+        rtAct = CTEBase::MapAccessTechnology(uiStdAct, regType);
         break;
     }
     RIL_LOG_VERBOSE("CTE_XMM6360::MapAccessTechnology() EXIT  rtAct=[%u]\r\n", (UINT32)rtAct);

@@ -11313,9 +11313,51 @@ Error:
     return bRet;
 }
 
-RIL_RadioTechnology CTEBase::MapAccessTechnology(UINT32 uiStdAct)
+RIL_RadioTechnology CTEBase::MapAccessTechnology(UINT32 uiStdAct, int regType)
 {
-    RIL_LOG_VERBOSE("CTEBase::MapAccessTechnology() ENTER  uiStdAct=[%u]\r\n", uiStdAct);
+    RIL_LOG_VERBOSE("CTEBase::MapAccessTechnology() ENTER "
+            "uiStdAct=[%u] regType=[%u]\r\n", uiStdAct, regType);
+
+    /*
+     * When the network type from the CS registration (+CREG: ...<Act>...) is to be mapped
+     * we are mapping to the following
+     * In 2G: All Act types are mapped as RADIO_TECH_GSM
+     * In 3G : All Act values are mapped to RADIO_TECH_UMTS
+     * In LTE: All Act values are mapped to RADIO_TECH_LTE
+     * This results in the telephony framework getting the correct voice reg network type
+     * to correctly handle the voice-data concurrency.
+     */
+
+    RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
+
+    switch (regType)
+    {
+        case E_REGISTRATION_TYPE_CREG:
+            switch (uiStdAct)
+            {
+                case 0: // GSM
+                case 1: // GSM Compact
+                case 3: // GSM w/EGPRS
+                    rtAct = RADIO_TECH_GSM;
+                    break;
+
+                case 2: // UTRAN
+                case 4: // UTRAN w/HSDPA
+                case 5: // UTRAN w/HSUPA
+                case 6: // UTRAN w/HSDPA and HSUPA
+                case 8: // PS Emergency Only
+                    rtAct = RADIO_TECH_UMTS;
+                    break;
+
+                case 7: // E-UTRAN
+                    rtAct = RADIO_TECH_LTE; // 14
+                    break;
+
+                default:
+                    rtAct = RADIO_TECH_UNKNOWN; // 0
+                    break;
+            }
+        break;
 
     /*
      * 20111103: There is no 3GPP standard value defined for GPRS and HSPA+
@@ -11324,52 +11366,58 @@ RIL_RadioTechnology CTEBase::MapAccessTechnology(UINT32 uiStdAct)
      *
      * Note: GSM Compact is not supported by IMC modem.
      */
-    RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
+        case E_REGISTRATION_TYPE_XREG:
+        case E_REGISTRATION_TYPE_CGREG:
+        case E_REGISTRATION_TYPE_CEREG:
+            switch (uiStdAct)
+            {
+                case 0: // GSM
+                    rtAct = RADIO_TECH_UNKNOWN; // 0 - GSM access technology
+                    break;
 
-    //  Check state and set global variable for network technology
-    switch (uiStdAct)
-    {
-        case 0: // GSM
-        rtAct = RADIO_TECH_UNKNOWN; // 0 - GSM access technology is not used on android side
-        break;
+                case 1: // GSM Compact
+                    rtAct = RADIO_TECH_GPRS; // 1
+                    break;
 
-        case 1: // GSM Compact
-        rtAct = RADIO_TECH_GPRS; // 1
-        break;
+                case 2: // UTRAN
+                    rtAct = RADIO_TECH_UMTS; // 3
+                    break;
 
-        case 2: // UTRAN
-        rtAct = RADIO_TECH_UMTS; // 3
-        break;
+                case 3: // GSM w/EGPRS
+                    rtAct = RADIO_TECH_EDGE; // 2
+                    break;
 
-        case 3: // GSM w/EGPRS
-        rtAct = RADIO_TECH_EDGE; // 2
-        break;
+                case 4: // UTRAN w/HSDPA
+                    rtAct = RADIO_TECH_HSDPA; // 9
+                    break;
 
-        case 4: // UTRAN w/HSDPA
-        rtAct = RADIO_TECH_HSDPA; // 9
-        break;
+                case 5: // UTRAN w/HSUPA
+                    rtAct = RADIO_TECH_HSUPA; // 10
+                    break;
 
-        case 5: // UTRAN w/HSUPA
-        rtAct = RADIO_TECH_HSUPA; // 10
-        break;
+                case 6: // UTRAN w/HSDPA and HSUPA
+                    rtAct = RADIO_TECH_HSPA; // 11
+                    break;
 
-        case 6: // UTRAN w/HSDPA and HSUPA
-        rtAct = RADIO_TECH_HSPA; // 11
-        break;
+                case 7: // E-UTRAN
+                    rtAct = RADIO_TECH_LTE; // 14
+                    break;
 
-        case 7:
-        rtAct = RADIO_TECH_LTE; // 14
-        break;
+                case 8: // PS Emergency Only
+                    rtAct = RADIO_TECH_HSPAP; // 15
+                    break;
 
-        case 8:
-        rtAct = RADIO_TECH_HSPAP; // 15
-        break;
-
+                default:
+                    rtAct = RADIO_TECH_UNKNOWN; // 0
+                    break;
+            }
+            break;
         default:
-        rtAct = RADIO_TECH_UNKNOWN; // 0
-        break;
+            rtAct = RADIO_TECH_UNKNOWN;
+            break;
     }
-    RIL_LOG_VERBOSE("CTEBase::MapAccessTechnology() EXIT  rtAct=[%u]\r\n", (UINT32)rtAct);
+
+    RIL_LOG_VERBOSE("CTEBase::MapAccessTechnology() EXIT rtAct=[%u]\r\n", (UINT32)rtAct);
     return rtAct;
 }
 

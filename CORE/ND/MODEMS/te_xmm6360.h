@@ -60,7 +60,7 @@ public:
             UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetInitialAttachApn(RESPONSE_DATA& rRspData);
 
-    virtual RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
+    virtual RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct, int regType);
 
     // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING
     virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
