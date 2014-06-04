@@ -2112,6 +2112,12 @@ RIL_RESULT_CODE CTE_XMM7160::CoreISimAuthenticate(REQUEST_DATA& rReqData,
         goto Error;
     }
 
+    nChannelId = GetSessionId(RIL_APPTYPE_ISIM);
+
+    if (nChannelId == -1) {
+        nChannelId = 0;
+    }
+
     CopyStringNullTerminate(szAutn, pszInput, sizeof(szAutn));
     CopyStringNullTerminate(szRand, pszInput+AUTN_LENGTH, sizeof(szRand));
 
