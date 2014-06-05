@@ -1456,20 +1456,20 @@ RIL_RESULT_CODE CTE_XMM7160::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData
             }
 
             //  We now have what we want, copy to main structure.
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
+            pCellData->aRilNeighboringCell[uiIndex].cid = pCellData->aszCellCIDBuffers[uiIndex];
 
             //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
+            snprintf(pCellData->aszCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
                     "%04x%04x", tac, cellIdentity);
             RIL_LOG_INFO("CTE_XMM7160::ParseNeighboringCellInfo() -"
                     " mode 5 LTE TAC,CID index=[%d]  cid=[%s]\r\n",
-                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
+                    uiIndex, pCellData->aszCellCIDBuffers[uiIndex]);
 
             // rssi ~ rsrp
-            pCellData->pnCellData[uiIndex].rssi = rsrp;
+            pCellData->aRilNeighboringCell[uiIndex].rssi = rsrp;
             RIL_LOG_INFO("CTE_XMM7160::ParseNeighboringCellInfo() -"
                     " mode 5 LTE rsrp index=[%d]  rsrp=[%d]\r\n",
-                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
+                    uiIndex, pCellData->aRilNeighboringCell[uiIndex].rssi);
             res = RRIL_RESULT_OK;
         }
         break;
@@ -1517,20 +1517,20 @@ RIL_RESULT_CODE CTE_XMM7160::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData
             cellIdentity = 0;
 
             // We now have what we want, copy to main structure.
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
+            pCellData->aRilNeighboringCell[uiIndex].cid = pCellData->aszCellCIDBuffers[uiIndex];
 
             //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
+            snprintf(pCellData->aszCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
                     "%04x%04x", tac, cellIdentity);
             RIL_LOG_INFO("CTE_XMM7160::ParseNeighboringCellInfo() -"
                     " mode 6 LTE TAC,CID index=[%d]  cid=[%s]\r\n",
-                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
+                    uiIndex, pCellData->aszCellCIDBuffers[uiIndex]);
 
             // rssi ~ rsrp
-            pCellData->pnCellData[uiIndex].rssi = rsrp;
+            pCellData->aRilNeighboringCell[uiIndex].rssi = rsrp;
             RIL_LOG_INFO("CTE_XMM7160::ParseNeighboringCellInfo() -"
                     " mode 6 LTE rsrp index=[%d]  rsrp=[%d]\r\n",
-                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
+                    uiIndex, pCellData->aRilNeighboringCell[uiIndex].rssi);
             res = RRIL_RESULT_OK;
         }
         break;
@@ -1666,7 +1666,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                 goto Error;
             }
 
-            RIL_CellInfo& info = pCellData->pnCellData[uiIndex];
+            RIL_CellInfo& info = pCellData->aRilCellInfo[uiIndex];
             info.registered = 1;
             info.cellInfoType = RIL_CELL_INFO_TYPE_LTE;
             info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
@@ -1763,7 +1763,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                 goto Error;
             }
 
-            RIL_CellInfo& info = pCellData->pnCellData[uiIndex];
+            RIL_CellInfo& info = pCellData->aRilCellInfo[uiIndex];
             info.registered = 0;
             info.cellInfoType = RIL_CELL_INFO_TYPE_LTE;
             info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
@@ -2546,7 +2546,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseXCSG(const char* pszRsp, RESPONSE_DATA& rRspDa
     }
     memset(pResponse, 0, sizeof(S_ND_CSG_CURRENT_STATE));
 
-    CopyStringNullTerminate(pResponse->szCsgCurrentState, pszRsp, MAX_BUFFER_SIZE);
+    CopyStringNullTerminate(pResponse->szCsgCurrentState, pszRsp, MAX_CSG_STATE_SIZE);
 
     pResponse->sResponsePointer.pszCsgCurrentState = pResponse->szCsgCurrentState;
 

@@ -110,7 +110,7 @@ BOOL CellInfoCache::getCellInfo(P_ND_N_CELL_INFO_DATA pRetData, UINT32& uiItemCo
     uiItemCount = m_iCacheSize;
     for (INT32 i = 0; i < m_iCacheSize; i++)
     {
-        pRetData->pnCellData[i] = m_sCellInfo.pnCellData[i];
+        pRetData->aRilCellInfo[i] = m_sCellInfo.aRilCellInfo[i];
     }
     CMutex::Unlock(m_pCacheLock);
     return TRUE;
@@ -121,7 +121,7 @@ INT32 CellInfoCache::checkCache(const RIL_CellInfo& pData)
     RIL_LOG_VERBOSE("CellInfoCache::checkCache() %d\r\n", m_iCacheSize);
     for (INT32 i = 0; i < m_iCacheSize; i++)
     {
-        if (pData == m_sCellInfo.pnCellData[i])
+        if (pData == m_sCellInfo.aRilCellInfo[i])
         {
             RIL_LOG_VERBOSE("CellInfoCache::checkCache() - Found match at %d\r\n",i);
             return i;
@@ -151,7 +151,7 @@ BOOL CellInfoCache::updateCache(const P_ND_N_CELL_INFO_DATA pData, const INT32 a
         {
             for (INT32 storeIndex= 0; storeIndex < aItemsCount; storeIndex++)
             {
-                if (checkCache(pData->pnCellData[storeIndex]) < 0 ) // new item
+                if (checkCache(pData->aRilCellInfo[storeIndex]) < 0 ) // new item
                 {
                     ret = TRUE;
                     break;
@@ -170,7 +170,7 @@ BOOL CellInfoCache::updateCache(const P_ND_N_CELL_INFO_DATA pData, const INT32 a
         memset(&m_sCellInfo, 0, sizeof(S_ND_N_CELL_INFO_DATA));
         for (INT32 j = 0; j < m_iCacheSize; j++)
         {
-            m_sCellInfo.pnCellData[j] = pData->pnCellData[j];
+            m_sCellInfo.aRilCellInfo[j] = pData->aRilCellInfo[j];
         }
         // release mutex
         CMutex::Unlock(m_pCacheLock);

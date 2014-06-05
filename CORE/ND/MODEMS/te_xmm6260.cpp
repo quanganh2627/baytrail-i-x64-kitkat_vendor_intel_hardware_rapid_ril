@@ -3578,14 +3578,14 @@ RIL_RESULT_CODE CTE_XMM6260::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData
             }
 
             //  We now have what we want, copy to main structure.
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
+            pCellData->aRilNeighboringCell[uiIndex].cid = pCellData->aszCellCIDBuffers[uiIndex];
 
             //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
+            snprintf(pCellData->aszCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
                     "%04X%04X", uiLAC, uiCI);
             RIL_LOG_INFO("CTE_XMM6260::ParseNeighboringCellInfo() -"
                     " mode 0 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
-                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
+                    uiIndex, pCellData->aszCellCIDBuffers[uiIndex]);
 
             //  rssi = <RxLev>
 
@@ -3594,10 +3594,10 @@ RIL_RESULT_CODE CTE_XMM6260::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData
             //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
             //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
             //  like AT+CSQ response.
-            pCellData->pnCellData[uiIndex].rssi = (int)(uiRSSI / 2);
+            pCellData->aRilNeighboringCell[uiIndex].rssi = (int)(uiRSSI / 2);
             RIL_LOG_INFO("CTE_XMM6260::ParseNeighboringCellInfo() -"
                     " mode 0 GSM rxlev index=[%d]  rssi=[%d]\r\n",
-                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
+                    uiIndex, pCellData->aRilNeighboringCell[uiIndex].rssi);
             res = RRIL_RESULT_OK;
         }
         break;
@@ -3630,13 +3630,13 @@ RIL_RESULT_CODE CTE_XMM6260::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData
                 goto Error;
             }
             //  We now have what we want, copy to main structure.
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
+            pCellData->aRilNeighboringCell[uiIndex].cid = pCellData->aszCellCIDBuffers[uiIndex];
             //  cid = upper 16 bits (LAC), lower 16 bits (CID)
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
+            snprintf(pCellData->aszCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH,
                     "%04X%04X", uiLAC, uiCI);
             RIL_LOG_INFO("CTE_XMM6260::ParseNeighboringCellInfo() -"
                     " mode 1 GSM LAC,CID index=[%d]  cid=[%s]\r\n",
-                    uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
+                    uiIndex, pCellData->aszCellCIDBuffers[uiIndex]);
             //  rssi = <RxLev>
 
             //  May have to convert RxLev to asu (0 to 31).
@@ -3644,10 +3644,10 @@ RIL_RESULT_CODE CTE_XMM6260::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData
             //  0 means "-113 dBm or less" and 31 means "-51 dBm or greater"
             //  Divide nRSSI by 2 since rxLev = [0-63] and assume ril.h wants 0-31
             //  like AT+CSQ response.
-            pCellData->pnCellData[uiIndex].rssi = (int)(uiRSSI / 2);
+            pCellData->aRilNeighboringCell[uiIndex].rssi = (int)(uiRSSI / 2);
             RIL_LOG_INFO("CTE_XMM6260::ParseNeighboringCellInfo() -"
                     " mode 1 GSM rxlev index=[%d]  rssi=[%d]\r\n",
-                    uiIndex, pCellData->pnCellData[uiIndex].rssi);
+                    uiIndex, pCellData->aRilNeighboringCell[uiIndex].rssi);
             res = RRIL_RESULT_OK;
         }
         break;
@@ -3697,21 +3697,21 @@ RIL_RESULT_CODE CTE_XMM6260::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData
                 //  Cannot get <rscp> as it does not exist.
                 //  We now have what we want, copy to main structure.
                 //  cid = <scrambling code> as char *
-                pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-                snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH, "%08x",
+                pCellData->aRilNeighboringCell[uiIndex].cid = pCellData->aszCellCIDBuffers[uiIndex];
+                snprintf(pCellData->aszCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH, "%08x",
                         uiScramblingCode);
 
                 RIL_LOG_INFO("CTE_XMM6260::ParseNeighboringCellInfo() -"
                         " mode 2 UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
-                        uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
+                        uiIndex, pCellData->aszCellCIDBuffers[uiIndex]);
 
                 //  rssi = <rscp>
                 //  Note that <rscp> value does not exist with this response.
                 //  Set to 0 for now.
-                pCellData->pnCellData[uiIndex].rssi = 0;
+                pCellData->aRilNeighboringCell[uiIndex].rssi = 0;
                 RIL_LOG_INFO("CTE_XMM6260::ParseNeighboringCellInfo() -"
                         " mode 2 UMTS rscp index=[%d]  rssi=[%d]\r\n",
-                        uiIndex, pCellData->pnCellData[uiIndex].rssi);
+                        uiIndex, pCellData->aRilNeighboringCell[uiIndex].rssi);
                 res = RRIL_RESULT_OK;
                 break;
             }
@@ -3753,21 +3753,21 @@ RIL_RESULT_CODE CTE_XMM6260::ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData
 
             //  We now have what we want, copy to main structure.
             //  cid = <scrambling code> as char *
-            pCellData->pnCellData[uiIndex].cid = pCellData->pnCellCIDBuffers[uiIndex];
-            snprintf(pCellData->pnCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH, "%08x",
+            pCellData->aRilNeighboringCell[uiIndex].cid = pCellData->aszCellCIDBuffers[uiIndex];
+            snprintf(pCellData->aszCellCIDBuffers[uiIndex], CELL_ID_ARRAY_LENGTH, "%08x",
                     uiScramblingCode);
 
             RIL_LOG_INFO("CTE_XMM6260::ParseNeighboringCellInfo() -"
                     " mode %d UMTS scramblingcode index=[%d]  cid=[%s]\r\n",
-                    uiMode, uiIndex, pCellData->pnCellCIDBuffers[uiIndex]);
+                    uiMode, uiIndex, pCellData->aszCellCIDBuffers[uiIndex]);
 
             //  rssi = <rscp>
             //  Assume that rssi value is same as <rscp> value and no conversion needs to
             //  be done.
-            pCellData->pnCellData[uiIndex].rssi = (int)uiRSSI;
+            pCellData->aRilNeighboringCell[uiIndex].rssi = (int)uiRSSI;
             RIL_LOG_INFO("CTE_XMM6260::ParseNeighboringCellInfo() -"
                     " mode %d UMTS rscp index=[%d]  rssi=[%d]\r\n",
-                    uiMode, uiIndex, pCellData->pnCellData[uiIndex].rssi);
+                    uiMode, uiIndex, pCellData->aRilNeighboringCell[uiIndex].rssi);
             res = RRIL_RESULT_OK;
         }
         break;
@@ -5304,7 +5304,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseXISRVCC(const char* pszRsp, RESPONSE_DATA& rRs
                     "TransferResult=%d\r\n", nCallId, nTransferResult);
 
             // It Contains the current pair (CallId, TransferResult)
-            char szCurrentPair[MAX_BUFFER_SIZE] = {'\0'};
+            char szCurrentPair[MAX_SRVCC_RSP_SIZE] = {'\0'};
 
             // The comma should be added at the beginning of the string if not first iteration
             snprintf(szCurrentPair, sizeof(szCurrentPair),
@@ -6905,7 +6905,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                         " mode 0, could not extract RSSI value\r\n");
                 goto Error;
             }
-            RIL_CellInfo& info = pCellData->pnCellData[uiIndex];
+            RIL_CellInfo& info = pCellData->aRilCellInfo[uiIndex];
             info.registered = 1;
             info.cellInfoType = RIL_CELL_INFO_TYPE_GSM;
             info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
@@ -6954,7 +6954,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                 goto Error;
             }
 
-            RIL_CellInfo& info = pCellData->pnCellData[uiIndex];
+            RIL_CellInfo& info = pCellData->aRilCellInfo[uiIndex];
             info.registered = 0;
             info.cellInfoType = RIL_CELL_INFO_TYPE_GSM;
             info.CellInfo.gsm.signalStrengthGsm.signalStrength = (int)(uiRSSI / 2);
@@ -7052,7 +7052,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                     goto Error;
                 }
 
-                RIL_CellInfo& info = pCellData->pnCellData[uiIndex];
+                RIL_CellInfo& info = pCellData->aRilCellInfo[uiIndex];
                 info.registered = 1;
                 info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA;
                 info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
@@ -7084,7 +7084,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                 //  fall through to case 3 as it is parsed the same.
                 RIL_LOG_INFO("CTE_XMM6260::ParseCellInfo() -"
                         " comma count = 6, drop to case 3\r\n");
-                pCellData->pnCellData[uiIndex].registered = 1;
+                pCellData->aRilCellInfo[uiIndex].registered = 1;
             }
         }
 
@@ -7131,7 +7131,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                 goto Error;
             }
 
-            RIL_CellInfo& info = pCellData->pnCellData[uiIndex];
+            RIL_CellInfo& info = pCellData->aRilCellInfo[uiIndex];
             info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA;
             info.registered = 0;
             info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;

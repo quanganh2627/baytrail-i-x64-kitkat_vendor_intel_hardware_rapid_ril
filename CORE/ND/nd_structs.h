@@ -16,15 +16,18 @@
 
 #include "rril.h"
 
+// Normally number size is around 15, set max size 50
+const int MAX_NUMBER_SIZE = 50;
+
 //
 // Struct for reporting Current Call List to Android
 //
 typedef struct
 {
-    RIL_Call*           pCallPointers      [RRIL_MAX_CALL_ID_COUNT];
-    RIL_Call            pCallData          [RRIL_MAX_CALL_ID_COUNT];
-    char                pCallNumberBuffers [RRIL_MAX_CALL_ID_COUNT][MAX_BUFFER_SIZE];
-    char                pCallNameBuffers   [RRIL_MAX_CALL_ID_COUNT][MAX_CNAP_NAME_SIZE];
+    RIL_Call*           apRilCall    [RRIL_MAX_CALL_ID_COUNT];
+    RIL_Call            aRilCall     [RRIL_MAX_CALL_ID_COUNT];
+    char                aszNumber    [RRIL_MAX_CALL_ID_COUNT][MAX_NUMBER_SIZE];
+    char                aszName      [RRIL_MAX_CALL_ID_COUNT][MAX_CNAP_NAME_SIZE];
 } S_ND_CALL_LIST_DATA, *P_ND_CALL_LIST_DATA;
 
 
@@ -33,9 +36,9 @@ typedef struct
 //
 typedef struct
 {
-    RIL_CallForwardInfo* pCallFwdPointers[RIL_MAX_CALLFWD_ENTRIES];
-    RIL_CallForwardInfo  pCallFwdData[RIL_MAX_CALLFWD_ENTRIES];
-    char                 pCallFwdBuffers[RIL_MAX_CALLFWD_ENTRIES][MAX_BUFFER_SIZE];
+    RIL_CallForwardInfo* apRilCallForwardInfo[RIL_MAX_CALLFWD_ENTRIES];
+    RIL_CallForwardInfo  aRilCallForwardInfo[RIL_MAX_CALLFWD_ENTRIES];
+    char                 aszCallForwardNumber[RIL_MAX_CALLFWD_ENTRIES][MAX_NUMBER_SIZE];
 } S_ND_CALLFWD_DATA, *P_ND_CALLFWD_DATA;
 
 //
@@ -49,12 +52,22 @@ typedef struct
     char* pszOpInfoStatus;
 } S_ND_OPINFO_PTRS, *P_ND_OPINFO_PTRS;
 
+// As peer 3GPP 27.007,"7.3 PLMN selection +COPS"
+// long alphanumeric format can be upto 16 characters long
+const int MAX_OP_NAME_LONG = 16 + 1;
+// short format up to 8 characters
+const int MAX_OP_NAME_SHORT = 8 + 1;
+// three BCD digit country code plus a two BCD digit network code
+const int MAX_OP_NAME_NUM = 5 + 1;
+// longest string passed is "forbidden"
+const int MAX_OP_NAME_STATUS = 9 + 1;
+
 typedef struct
 {
-    char szOpInfoLong[MAX_BUFFER_SIZE];
-    char szOpInfoShort[MAX_BUFFER_SIZE];
-    char szOpInfoNumeric[MAX_BUFFER_SIZE];
-    char szOpInfoStatus[MAX_BUFFER_SIZE];
+    char szOpInfoLong[MAX_OP_NAME_LONG];
+    char szOpInfoShort[MAX_OP_NAME_SHORT];
+    char szOpInfoNumeric[MAX_OP_NAME_NUM];
+    char szOpInfoStatus[MAX_OP_NAME_STATUS];
 } S_ND_OPINFO_DATA, *P_ND_OPINFO_DATA;
 
 
@@ -64,14 +77,18 @@ typedef struct
 //
 typedef struct
 {
-    RIL_GSM_BroadcastSmsConfigInfo* pBroadcastSmsConfigInfoPointers[RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES];
-    RIL_GSM_BroadcastSmsConfigInfo BroadcastSmsConfigInfoData[RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES];
+    RIL_GSM_BroadcastSmsConfigInfo*
+            apRilGSMBroadcastSmsConfigInfo[RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES];
+    RIL_GSM_BroadcastSmsConfigInfo
+            aRilGsmBroadcastSmsConfigInfo[RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES];
 } S_ND_BROADCASTSMSCONFIGINFO_DATA, *P_ND_BROADCASTSMSCONFIGINFO_DATA;
+
+const int MAX_ACK_PDU_SIZE = 160;
 
 typedef struct
 {
     RIL_SMS_Response smsRsp;
-    char szAckPDU[160];
+    char szAckPDU[MAX_ACK_PDU_SIZE];
 } S_ND_SEND_MSG, *P_ND_SEND_MSG;
 
 struct PdpData
@@ -92,8 +109,8 @@ struct PdpData
 typedef struct
 {
     RIL_Data_Call_Response_v6   sPDPData;
-    char                        szPdpType[MAX_BUFFER_SIZE];
-    char                        szNetworkInterfaceName[MAX_BUFFER_SIZE];
+    char                        szPdpType[MAX_PDP_TYPE_SIZE];
+    char                        szNetworkInterfaceName[MAX_INTERFACE_NAME_SIZE];
     char                        szIPAddress[MAX_BUFFER_SIZE];
     char                        szDNS[MAX_BUFFER_SIZE];
     char                        szGateway[MAX_BUFFER_SIZE];
@@ -104,30 +121,31 @@ typedef struct
 //
 typedef struct
 {
-    RIL_Data_Call_Response_v6   pPDPData[MAX_PDP_CONTEXTS];
-    char                        pTypeBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
-    char                        pIfnameBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
-    char                        pAddressBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
-    char                        pDnsesBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
-    char                        pGatewaysBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
+    RIL_Data_Call_Response_v6   aPDPData[MAX_PDP_CONTEXTS];
+    char                        aszTypeBuffers[MAX_PDP_CONTEXTS][MAX_PDP_TYPE_SIZE];
+    char                        aszIfnameBuffers[MAX_PDP_CONTEXTS][MAX_INTERFACE_NAME_SIZE];
+    char                        aszAddressBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
+    char                        aszDnsesBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
+    char                        aszGatewaysBuffers[MAX_PDP_CONTEXTS][MAX_BUFFER_SIZE];
 } S_ND_PDP_CONTEXT_DATA, *P_ND_PDP_CONTEXT_DATA;
 
 //
 // Struct for reporting Neighboring Cell List to Android
 //
-#define RRIL_MAX_CELL_ID_COUNT                      (60)
+// Normally there are 32 neigh cells + 1 serving =33, set max number at 40.
+#define RRIL_MAX_CELL_ID_COUNT                      (40)
 #define CELL_ID_ARRAY_LENGTH                        (9)
 
 typedef struct
 {
-    RIL_NeighboringCell*     pnCellPointers      [RRIL_MAX_CELL_ID_COUNT];
-    RIL_NeighboringCell      pnCellData          [RRIL_MAX_CELL_ID_COUNT];
-    char                     pnCellCIDBuffers    [RRIL_MAX_CELL_ID_COUNT][CELL_ID_ARRAY_LENGTH];
+    RIL_NeighboringCell*     apRilNeighboringCell [RRIL_MAX_CELL_ID_COUNT];
+    RIL_NeighboringCell      aRilNeighboringCell  [RRIL_MAX_CELL_ID_COUNT];
+    char                     aszCellCIDBuffers    [RRIL_MAX_CELL_ID_COUNT][CELL_ID_ARRAY_LENGTH];
 } S_ND_N_CELL_DATA, *P_ND_N_CELL_DATA;
 
 typedef struct
 {
-    RIL_CellInfo      pnCellData[RRIL_MAX_CELL_ID_COUNT];
+    RIL_CellInfo      aRilCellInfo[RRIL_MAX_CELL_ID_COUNT];
 } S_ND_N_CELL_INFO_DATA, *P_ND_N_CELL_INFO_DATA;
 
 #define REG_STATUS_LENGTH 8
@@ -203,9 +221,9 @@ typedef struct
 typedef struct
 {
     S_ND_OP_NAME_POINTERS sOpNamePtrs;
-    char szOpNameLong[MAX_BUFFER_SIZE];
-    char szOpNameShort[MAX_BUFFER_SIZE];
-    char szOpNameNumeric[MAX_BUFFER_SIZE];
+    char szOpNameLong[MAX_OP_NAME_LONG];
+    char szOpNameShort[MAX_OP_NAME_SHORT];
+    char szOpNameNumeric[MAX_OP_NAME_NUM];
 } S_ND_OP_NAMES, *P_ND_OP_NAMES;
 
 typedef struct
@@ -214,11 +232,17 @@ typedef struct
     char* pszMessage;
 } S_ND_USSD_POINTERS, *P_ND_USSD_POINTERS;
 
+// As peer 3GPP 27.007, "7.15 Unstructured supplementary service data +CUSD"
+// URC is +CUSD: <m>[,<str>,<dcs>], where <m> is of integer type, and between 0 and 5
+const int MAX_USSD_TYPE_SIZE = 1 + 1;
+// USSD messages are up to 182 alphanumeric characters in length
+const int MAX_USSD_MESSAGE_SIZE = 182 + 1;
+
 typedef struct
 {
     S_ND_USSD_POINTERS sStatusPointers;
-    char szType[MAX_BUFFER_SIZE];
-    char szMessage[MAX_BUFFER_SIZE];
+    char szType[MAX_USSD_TYPE_SIZE];
+    char szMessage[MAX_USSD_MESSAGE_SIZE];
 } S_ND_USSD_STATUS, *P_ND_USSD_STATUS;
 
 const UINT32 MAX_ATR_SIZE = 80;
@@ -323,10 +347,12 @@ typedef struct
     char* pszResponse;
 }  S_ND_SEND_AT_RESPONSE_PTR, *P_ND_SEND_AT_RESPONSE_PTR;
 
+const int MAX_AT_RESP_SIZE = 1024;
+
 typedef struct
 {
     S_ND_SEND_AT_RESPONSE_PTR sResponsePointer;
-    char szResponse[1024];
+    char szResponse[MAX_AT_RESP_SIZE];
 } S_ND_SEND_AT_RESPONSE, *P_ND_SEND_AT_RESPONSE;
 
 typedef struct
@@ -368,10 +394,14 @@ typedef struct
     char* pszSrvccPairs;
 } S_ND_SRVCC_RESPONSE_PTR, *P_ND_SRVCC_RESPONSE_PTR;
 
+// szSrvccPairs contains 2 integers: "<call_id> and <transfer_result>"
+// separated by a comma AND a space, set max size 10.
+const int MAX_SRVCC_RSP_SIZE = 10;
+
 typedef struct
 {
     S_ND_SRVCC_RESPONSE_PTR sResponsePointer;
-    char szSrvccPairs[MAX_BUFFER_SIZE];
+    char szSrvccPairs[MAX_SRVCC_RSP_SIZE];
 } S_ND_SRVCC_RESPONSE_VALUE, *P_ND_SRVCC_RESPONSE_VALUE;
 
 //
@@ -396,10 +426,13 @@ typedef struct
     char* pszCsgCurrentState;
 }  S_ND_CSG_CURRENT_STATE_PTR, *P_ND_CSG_CURRENT_STATE_PTR;
 
+// CSG state is an integer, can be 0 or 1
+const int MAX_CSG_STATE_SIZE = 1 + 1;
+
 typedef struct
 {
     S_ND_CSG_CURRENT_STATE_PTR sResponsePointer;
-    char szCsgCurrentState[MAX_BUFFER_SIZE];
+    char szCsgCurrentState[MAX_CSG_STATE_SIZE];
 } S_ND_CSG_CURRENT_STATE, *P_ND_CSG_CURRENT_STATE;
 
 #endif

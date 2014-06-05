@@ -1074,7 +1074,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
     UINT32 uinArgPtrs = 0;
     const char* pszRsp = rRspData.szResponse;
     const char* pTmpPtr = NULL;
-    char szAddress[MAX_BUFFER_SIZE];
+    char szAddress[MAX_NUMBER_SIZE];
     char* aPtrArgs[AT_MAXARGS];
     P_ND_CALL_LIST_DATA pCallListData = NULL;
 
@@ -1151,7 +1151,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
             goto Error;
         }
 
-        pCallListData->pCallData[uinUsed].index = uiValue;
+        pCallListData->aRilCall[uinUsed].index = uiValue;
 
         // Parse ",<dir>"
         if (!ExtractUpperBoundedUInt32(aPtrArgs[1], 2, uiValue, pTmpPtr))
@@ -1159,7 +1159,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
             // Error on mandatory argument
             goto Error;
         }
-        pCallListData->pCallData[uinUsed].isMT = uiValue;
+        pCallListData->aRilCall[uinUsed].isMT = uiValue;
 
         // Parse ",<stat>"
         if (!ExtractUInt32(aPtrArgs[2], uiValue, pTmpPtr))
@@ -1167,7 +1167,7 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
             // Error on mandatory argument
             goto Error;
         }
-        pCallListData->pCallData[uinUsed].state = (RIL_CallState)uiValue;
+        pCallListData->aRilCall[uinUsed].state = (RIL_CallState)uiValue;
 
         // Parse ",<mode>"
         if (!ExtractUInt32(aPtrArgs[3], uiValue, pTmpPtr))
@@ -1176,8 +1176,8 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
             goto Error;
         }
         // If uiValue is non-zero, then we are not in a voice call
-        pCallListData->pCallData[uinUsed].isVoice = uiValue ? FALSE : TRUE;
-        pCallListData->pCallData[uinUsed].isVoicePrivacy = 0; // not used in GSM
+        pCallListData->aRilCall[uinUsed].isVoice = uiValue ? FALSE : TRUE;
+        pCallListData->aRilCall[uinUsed].isVoicePrivacy = 0; // not used in GSM
 
         // Parse ",<mpty>"
         if (!ExtractUpperBoundedUInt32(aPtrArgs[4], 2, uiValue, pTmpPtr))
@@ -1185,44 +1185,44 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
             // Error on mandatory argument
             goto Error;
         }
-        pCallListData->pCallData[uinUsed].isMpty = uiValue;
+        pCallListData->aRilCall[uinUsed].isMpty = uiValue;
         // END of mandatory arguments
 
         // set previously stored CNAP parameters to the INCOMING call
-        if (pCallListData->pCallData[uinUsed].state == 4)
+        if (pCallListData->aRilCall[uinUsed].state == 4)
         {
             if (strlen(m_cte.GetCnapName()) != 0)
             {
-                CopyStringNullTerminate(pCallListData->pCallNameBuffers[uinUsed],
+                CopyStringNullTerminate(pCallListData->aszName[uinUsed],
                         m_cte.GetCnapName(), MAX_CNAP_NAME_SIZE);
                 // set RIL_Call.name pointer to our name buffer
-                pCallListData->pCallData[uinUsed].name = pCallListData->pCallNameBuffers[uinUsed];
+                pCallListData->aRilCall[uinUsed].name = pCallListData->aszName[uinUsed];
             }
 
-            pCallListData->pCallData[uinUsed].namePresentation = m_cte.GetCnapCniValidity();
+            pCallListData->aRilCall[uinUsed].namePresentation = m_cte.GetCnapCniValidity();
         }
 
         if (uinArgPtrs >= 7)
         {
             // <number> and <type>
-            if (ExtractQuotedString(aPtrArgs[5], szAddress, MAX_BUFFER_SIZE, pTmpPtr))
+            if (ExtractQuotedString(aPtrArgs[5], szAddress, MAX_NUMBER_SIZE, pTmpPtr))
             {
-                pCallListData->pCallData[uinUsed].number =
-                        pCallListData->pCallNumberBuffers[uinUsed];
-                strncpy(pCallListData->pCallNumberBuffers[uinUsed], szAddress, MAX_BUFFER_SIZE);
+                pCallListData->aRilCall[uinUsed].number =
+                        pCallListData->aszNumber[uinUsed];
+                strncpy(pCallListData->aszNumber[uinUsed], szAddress, MAX_NUMBER_SIZE);
 
                 // Get the CLI_validity from +CLIP for the incomming call
-                if (pCallListData->pCallData[uinUsed].state == 4
+                if (pCallListData->aRilCall[uinUsed].state == 4
                         || strcmp(szAddress, m_cte.GetNumber()) == 0)
                 {
-                    pCallListData->pCallData[uinUsed].numberPresentation
+                    pCallListData->aRilCall[uinUsed].numberPresentation
                             = m_cte.GetNumberCliValidity();
                 }
 
                 // Parse ",<type>"
                 if (ExtractUpperBoundedUInt32(aPtrArgs[6], 0x100, uiValue, pTmpPtr))
                 {
-                    pCallListData->pCallData[uinUsed].toa = uiValue;
+                    pCallListData->aRilCall[uinUsed].toa = uiValue;
                 }
                 else
                 {
@@ -1261,30 +1261,30 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
                 switch (uiValue)
                 {
                     case 0:  // cli valid
-                        pCallListData->pCallData[uinUsed].numberPresentation = 0;
+                        pCallListData->aRilCall[uinUsed].numberPresentation = 0;
                         break;
 
                     case 1:  // restricted
-                        pCallListData->pCallData[uinUsed].numberPresentation = 1;
-                        if (pCallListData->pCallData[uinUsed].namePresentation != 1)
+                        pCallListData->aRilCall[uinUsed].numberPresentation = 1;
+                        if (pCallListData->aRilCall[uinUsed].namePresentation != 1)
                         {
                             RIL_LOG_INFO("\t<cli_validity> Overwrite the namePresentation"
                                     " value \r\n");
-                            pCallListData->pCallData[uinUsed].namePresentation = 1;
+                            pCallListData->aRilCall[uinUsed].namePresentation = 1;
                         }
                         break;
 
                     case 2:  // not available code "Interaction with other service"
-                        pCallListData->pCallData[uinUsed].numberPresentation = 2;
+                        pCallListData->aRilCall[uinUsed].numberPresentation = 2;
                         break;
 
                     case 3:  // not available payphone
-                        pCallListData->pCallData[uinUsed].numberPresentation = 3;
+                        pCallListData->aRilCall[uinUsed].numberPresentation = 3;
                         break;
 
                     case 4:  // not available code "Unavailable"
                         // BZ 199806 - Wrong <cli valid> value: 4 instead of 1 received from Modem
-                        pCallListData->pCallData[uinUsed].numberPresentation = 1;
+                        pCallListData->aRilCall[uinUsed].numberPresentation = 1;
                         break;
 
                     default:  // error
@@ -1299,8 +1299,8 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
         }
 
         // Indicates the call 'line' used (Default: 0 = line 1)
-        pCallListData->pCallData[uinUsed].als = 0;
-        pCallListData->pCallPointers[uinUsed] = &(pCallListData->pCallData[uinUsed]);
+        pCallListData->aRilCall[uinUsed].als = 0;
+        pCallListData->apRilCall[uinUsed] = &(pCallListData->aRilCall[uinUsed]);
 
         // Increment the array index
         uinUsed++;
@@ -1343,10 +1343,10 @@ Continue:
         UINT32 uiCallState;
         for (UINT32 i = 0; i < uinUsed; i++)
         {
-            m_VoiceCallInfo[i].id = pCallListData->pCallData[i].index;
-            m_VoiceCallInfo[i].state = pCallListData->pCallData[i].state;
+            m_VoiceCallInfo[i].id = pCallListData->aRilCall[i].index;
+            m_VoiceCallInfo[i].state = pCallListData->aRilCall[i].state;
 
-            uiCallState = pCallListData->pCallData[i].state;
+            uiCallState = pCallListData->aRilCall[i].state;
             if (uiCallState == E_CALL_STATUS_DIALING
                     || uiCallState == E_CALL_STATUS_ALERTING
                     || uiCallState == E_CALL_STATUS_ACTIVE
@@ -2171,7 +2171,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
                                 " Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
                     }
-                    CopyStringNullTerminate(pOpNames->szOpNameLong, szPlmnName, MAX_BUFFER_SIZE);
+                    CopyStringNullTerminate(pOpNames->szOpNameLong, szPlmnName, MAX_OP_NAME_LONG);
                     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Long Name: %s\r\n",
                             pOpNames->szOpNameLong);
                 }
@@ -2186,7 +2186,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
                                 " Could not extract the Short Format Operator Name.\r\n");
                         goto Error;
                     }
-                    CopyStringNullTerminate(pOpNames->szOpNameShort, szPlmnName, MAX_BUFFER_SIZE);
+                    CopyStringNullTerminate(pOpNames->szOpNameShort, szPlmnName, MAX_OP_NAME_SHORT);
                     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Short Name: %s\r\n",
                             pOpNames->szOpNameShort);
                 }
@@ -2201,7 +2201,7 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
                                 " Could not extract the Long Format Operator Name.\r\n");
                         goto Error;
                     }
-                    CopyStringNullTerminate(pOpNames->szOpNameNumeric, szPlmnName, MAX_BUFFER_SIZE);
+                    CopyStringNullTerminate(pOpNames->szOpNameNumeric, szPlmnName, MAX_OP_NAME_NUM);
                     RIL_LOG_VERBOSE("CTEBase::ParseOperator() - PLMN Numeric code: %s\r\n",
                             pOpNames->szOpNameNumeric);
                 }
@@ -2245,13 +2245,13 @@ RIL_RESULT_CODE CTEBase::ParseOperator(RESPONSE_DATA& rRspData)
 
     if (isEONSAvailable)
     {
-        CopyStringNullTerminate(pOpNames->szOpNameLong, szEONSFullName, MAX_BUFFER_SIZE);
-        CopyStringNullTerminate(pOpNames->szOpNameShort, szEONSShortName, MAX_BUFFER_SIZE);
+        CopyStringNullTerminate(pOpNames->szOpNameLong, szEONSFullName, MAX_OP_NAME_LONG);
+        CopyStringNullTerminate(pOpNames->szOpNameShort, szEONSShortName, MAX_OP_NAME_SHORT);
     }
     else if (isNitzNameAvailable)
     {
-        CopyStringNullTerminate(pOpNames->szOpNameLong, szFullName, MAX_BUFFER_SIZE);
-        CopyStringNullTerminate(pOpNames->szOpNameShort, szShortName, MAX_BUFFER_SIZE);
+        CopyStringNullTerminate(pOpNames->szOpNameLong, szFullName, MAX_OP_NAME_LONG);
+        CopyStringNullTerminate(pOpNames->szOpNameShort, szShortName, MAX_OP_NAME_SHORT);
     }
 
     pOpNames->sOpNamePtrs.pszOpNameLong    = pOpNames->szOpNameLong;
@@ -3577,7 +3577,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA& rRspData)
     while (FindAndSkipString(szRsp, "+CCFC: ", szRsp))
     {
         // Stored reason value is updated when we have some data to send
-        pCallFwdBlob->pCallFwdData[nCur].reason = (int)rRspData.pContextData;
+        pCallFwdBlob->aRilCallForwardInfo[nCur].reason = (int)rRspData.pContextData;
 
         // Parse "<status>"
         if (!ExtractUInt32(szRsp, nValue, szRsp))
@@ -3587,7 +3587,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA& rRspData)
             goto Continue;
         }
 
-        pCallFwdBlob->pCallFwdData[nCur].status = nValue;
+        pCallFwdBlob->aRilCallForwardInfo[nCur].status = nValue;
 
         // Parse ",<serviceClass>"
         if (!SkipString(szRsp, ",", szRsp) ||
@@ -3598,14 +3598,14 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA& rRspData)
             goto Continue;
         }
 
-        pCallFwdBlob->pCallFwdData[nCur].serviceClass = nValue;
+        pCallFwdBlob->aRilCallForwardInfo[nCur].serviceClass = nValue;
 
         // Parse ","
         if (SkipString(szRsp, ",", szRsp))
         {
             // Parse "<address>,<type>"
-            if (!ExtractQuotedString(szRsp, pCallFwdBlob->pCallFwdBuffers[nCur],
-                    MAX_BUFFER_SIZE, szRsp) ||
+            if (!ExtractQuotedString(szRsp, pCallFwdBlob->aszCallForwardNumber[nCur],
+                    MAX_NUMBER_SIZE, szRsp) ||
                     !SkipString(szRsp, ",", szRsp))
             {
                 RIL_LOG_WARNING("CTEBase::ParseQueryCallForwardStatus() -"
@@ -3616,11 +3616,11 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA& rRspData)
             //  Parse type if available.
             if (ExtractUpperBoundedUInt32(szRsp, 0x100, nValue, szRsp))
             {
-                pCallFwdBlob->pCallFwdData[nCur].toa = nValue;
+                pCallFwdBlob->aRilCallForwardInfo[nCur].toa = nValue;
             }
             else
             {
-                pCallFwdBlob->pCallFwdData[nCur].toa = 0;
+                pCallFwdBlob->aRilCallForwardInfo[nCur].toa = 0;
             }
 
             // Parse ","
@@ -3648,13 +3648,13 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA& rRspData)
                         goto Continue;
                     }
 
-                    pCallFwdBlob->pCallFwdData[nCur].timeSeconds = nValue;
+                    pCallFwdBlob->aRilCallForwardInfo[nCur].timeSeconds = nValue;
                 }
             }
         }
 
-        pCallFwdBlob->pCallFwdData[nCur].number = pCallFwdBlob->pCallFwdBuffers[nCur];
-        pCallFwdBlob->pCallFwdPointers[nCur] = &(pCallFwdBlob->pCallFwdData[nCur]);
+        pCallFwdBlob->aRilCallForwardInfo[nCur].number = pCallFwdBlob->aszCallForwardNumber[nCur];
+        pCallFwdBlob->apRilCallForwardInfo[nCur] = &(pCallFwdBlob->aRilCallForwardInfo[nCur]);
 
         // Increment the array index
         nCur++;
@@ -5168,7 +5168,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
     UINT32 j = 0;
     UINT32 k = 0;
 
-    char tmp[MAX_BUFFER_SIZE] = {0};
+    char tmp[MAX_OP_NAME_LONG] = {0};
 
     P_ND_OPINFO_PTRS pOpInfoPtr = NULL;
     P_ND_OPINFO_DATA pOpInfoData = NULL;
@@ -5238,8 +5238,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
             case 0:
             {
                 const char* szTemp = "unknown";
-                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_BUFFER_SIZE-1);
-                pOpInfoData[nCurrent].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_OP_NAME_STATUS-1);
+                pOpInfoData[nCurrent].szOpInfoStatus[MAX_OP_NAME_STATUS-1] = '\0';  //  KW fix
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
             }
@@ -5247,8 +5247,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
             case 1:
             {
                 const char* szTemp = "available";
-                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_BUFFER_SIZE-1);
-                pOpInfoData[nCurrent].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_OP_NAME_STATUS-1);
+                pOpInfoData[nCurrent].szOpInfoStatus[MAX_OP_NAME_STATUS-1] = '\0';  //  KW fix
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
             }
@@ -5256,8 +5256,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
             case 2:
             {
                 const char* szTemp = "current";
-                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_BUFFER_SIZE-1);
-                pOpInfoData[nCurrent].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_OP_NAME_STATUS-1);
+                pOpInfoData[nCurrent].szOpInfoStatus[MAX_OP_NAME_STATUS-1] = '\0';  //  KW fix
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
             }
@@ -5265,8 +5265,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
             case 3:
             {
                 const char* szTemp = "forbidden";
-                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_BUFFER_SIZE-1);
-                pOpInfoData[nCurrent].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                strncpy(pOpInfoData[nCurrent].szOpInfoStatus, szTemp, MAX_OP_NAME_STATUS-1);
+                pOpInfoData[nCurrent].szOpInfoStatus[MAX_OP_NAME_STATUS-1] = '\0';  //  KW fix
                 pOpInfoPtr[nCurrent].pszOpInfoStatus = pOpInfoData[nCurrent].szOpInfoStatus;
                 break;
             }
@@ -5281,7 +5281,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
 
         // Extract ",<long_name>"
         if (!SkipString(szRsp, ",", szRsp) ||
-           (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
+           (!ExtractQuotedString(szRsp, tmp, MAX_OP_NAME_LONG, szRsp)))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() -"
                     " Could not extract the Long Format Operator Name.\r\n");
@@ -5309,7 +5309,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
 
         // Extract ",<short_name>"
         if (!SkipString(szRsp, ",", szRsp) ||
-           (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
+           (!ExtractQuotedString(szRsp, tmp, MAX_OP_NAME_SHORT, szRsp)))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() -"
                     " Could not extract the Short Format Operator Name.\r\n");
@@ -5337,7 +5337,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
 
         // Extract ",<num_name>"
         if (!SkipString(szRsp, ",", szRsp) ||
-           (!ExtractQuotedString(szRsp, tmp, MAX_BUFFER_SIZE, szRsp)))
+           (!ExtractQuotedString(szRsp, tmp, MAX_OP_NAME_NUM, szRsp)))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() -"
                     " Could not extract the Numeric Format Operator Name.\r\n");
@@ -5435,17 +5435,17 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
 
                 // Fill first element of the table.
                 strncpy(pOpInfoDataEnd[0].szOpInfoLong,
-                        pOpInfoData[0].szOpInfoLong, MAX_BUFFER_SIZE-1);
-                pOpInfoDataEnd[0].szOpInfoLong[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                        pOpInfoData[0].szOpInfoLong, MAX_OP_NAME_LONG-1);
+                pOpInfoDataEnd[0].szOpInfoLong[MAX_OP_NAME_LONG-1] = '\0';  //  KW fix
                 strncpy(pOpInfoDataEnd[0].szOpInfoShort,
-                        pOpInfoData[0].szOpInfoShort, MAX_BUFFER_SIZE-1);
-                pOpInfoDataEnd[0].szOpInfoShort[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                        pOpInfoData[0].szOpInfoShort, MAX_OP_NAME_SHORT-1);
+                pOpInfoDataEnd[0].szOpInfoShort[MAX_OP_NAME_SHORT-1] = '\0';  //  KW fix
                 strncpy(pOpInfoDataEnd[0].szOpInfoNumeric,
-                        pOpInfoData[0].szOpInfoNumeric, MAX_BUFFER_SIZE-1);
-                pOpInfoDataEnd[0].szOpInfoNumeric[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                        pOpInfoData[0].szOpInfoNumeric, MAX_OP_NAME_NUM-1);
+                pOpInfoDataEnd[0].szOpInfoNumeric[MAX_OP_NAME_NUM-1] = '\0';  //  KW fix
                 strncpy(pOpInfoDataEnd[0].szOpInfoStatus,
-                        pOpInfoData[0].szOpInfoStatus, MAX_BUFFER_SIZE-1);
-                pOpInfoDataEnd[0].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                        pOpInfoData[0].szOpInfoStatus, MAX_OP_NAME_STATUS-1);
+                pOpInfoDataEnd[0].szOpInfoStatus[MAX_OP_NAME_STATUS-1] = '\0';  //  KW fix
                 pOpInfoPtrEnd[0].pszOpInfoLong = pOpInfoDataEnd[0].szOpInfoLong;
                 pOpInfoPtrEnd[0].pszOpInfoShort = pOpInfoDataEnd[0].szOpInfoShort;
                 pOpInfoPtrEnd[0].pszOpInfoNumeric = pOpInfoDataEnd[0].szOpInfoNumeric;
@@ -5467,17 +5467,17 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
                     if (find == false)
                     {
                         strncpy(pOpInfoDataEnd[j].szOpInfoLong,
-                                pOpInfoData[i].szOpInfoLong, MAX_BUFFER_SIZE-1);
-                        pOpInfoDataEnd[j].szOpInfoLong[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                                pOpInfoData[i].szOpInfoLong, MAX_OP_NAME_LONG-1);
+                        pOpInfoDataEnd[j].szOpInfoLong[MAX_OP_NAME_LONG-1] = '\0';  //  KW fix
                         strncpy(pOpInfoDataEnd[j].szOpInfoShort,
-                                pOpInfoData[i].szOpInfoShort, MAX_BUFFER_SIZE-1);
-                        pOpInfoDataEnd[j].szOpInfoShort[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                                pOpInfoData[i].szOpInfoShort, MAX_OP_NAME_SHORT-1);
+                        pOpInfoDataEnd[j].szOpInfoShort[MAX_OP_NAME_SHORT-1] = '\0';  //  KW fix
                         strncpy(pOpInfoDataEnd[j].szOpInfoNumeric,
-                                pOpInfoData[i].szOpInfoNumeric, MAX_BUFFER_SIZE-1);
-                        pOpInfoDataEnd[j].szOpInfoNumeric[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                                pOpInfoData[i].szOpInfoNumeric, MAX_OP_NAME_NUM-1);
+                        pOpInfoDataEnd[j].szOpInfoNumeric[MAX_OP_NAME_NUM-1] = '\0';  //  KW fix
                         strncpy(pOpInfoDataEnd[j].szOpInfoStatus,
-                                pOpInfoData[i].szOpInfoStatus, MAX_BUFFER_SIZE-1);
-                        pOpInfoDataEnd[j].szOpInfoStatus[MAX_BUFFER_SIZE-1] = '\0';  //  KW fix
+                                pOpInfoData[i].szOpInfoStatus, MAX_OP_NAME_STATUS-1);
+                        pOpInfoDataEnd[j].szOpInfoStatus[MAX_OP_NAME_STATUS-1] = '\0';  //  KW fix
                         pOpInfoPtrEnd[j].pszOpInfoLong = pOpInfoDataEnd[j].szOpInfoLong;
                         pOpInfoPtrEnd[j].pszOpInfoShort = pOpInfoDataEnd[j].szOpInfoShort;
                         pOpInfoPtrEnd[j].pszOpInfoNumeric = pOpInfoDataEnd[j].szOpInfoNumeric;
@@ -7236,7 +7236,8 @@ RIL_RESULT_CODE CTEBase::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
                 if (result == RRIL_RESULT_OK)
                 {
                     // Connect the pointer
-                    pCellData->pnCellPointers[uiIndex] = &(pCellData->pnCellData[uiIndex]);
+                    pCellData->apRilNeighboringCell[uiIndex] =
+                            &(pCellData->aRilNeighboringCell[uiIndex]);
                     uiIndex++;
                     RIL_LOG_INFO("CTEBase::ParseGetNeighboringCellIDs() - Index=%d\r\n",
                             uiIndex);
@@ -7715,10 +7716,10 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA& rRspData)
             }
         }
 
-        pBroadcastSmsConfigInfoBlob->BroadcastSmsConfigInfoData[i].fromServiceId = nValue1;
-        pBroadcastSmsConfigInfoBlob->BroadcastSmsConfigInfoData[i].toServiceId = nValue2;
-        pBroadcastSmsConfigInfoBlob->pBroadcastSmsConfigInfoPointers[i] =
-                &(pBroadcastSmsConfigInfoBlob->BroadcastSmsConfigInfoData[i]);
+        pBroadcastSmsConfigInfoBlob->aRilGsmBroadcastSmsConfigInfo[i].fromServiceId = nValue1;
+        pBroadcastSmsConfigInfoBlob->aRilGsmBroadcastSmsConfigInfo[i].toServiceId = nValue2;
+        pBroadcastSmsConfigInfoBlob->apRilGSMBroadcastSmsConfigInfo[i] =
+                &(pBroadcastSmsConfigInfoBlob->aRilGsmBroadcastSmsConfigInfo[i]);
 
         //  Parse the next ",".
         if (!SkipString(pszChannels, ",", pszChannels))
@@ -7759,10 +7760,10 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA& rRspData)
             }
         }
 
-        pBroadcastSmsConfigInfoBlob->BroadcastSmsConfigInfoData[i].fromCodeScheme = nValue1;
-        pBroadcastSmsConfigInfoBlob->BroadcastSmsConfigInfoData[i].toCodeScheme = nValue2;
-        pBroadcastSmsConfigInfoBlob->pBroadcastSmsConfigInfoPointers[i] =
-                &(pBroadcastSmsConfigInfoBlob->BroadcastSmsConfigInfoData[i]);
+        pBroadcastSmsConfigInfoBlob->aRilGsmBroadcastSmsConfigInfo[i].fromCodeScheme = nValue1;
+        pBroadcastSmsConfigInfoBlob->aRilGsmBroadcastSmsConfigInfo[i].toCodeScheme = nValue2;
+        pBroadcastSmsConfigInfoBlob->apRilGSMBroadcastSmsConfigInfo[i] =
+                &(pBroadcastSmsConfigInfoBlob->aRilGsmBroadcastSmsConfigInfo[i]);
 
         //  Parse the next ",".
         if (!SkipString(pszChannels, ",", pszChannels))
@@ -7775,7 +7776,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA& rRspData)
     //  Loop through each struct, populate "selected".
     for (UINT32 i=0; (i < nCount) && (i < RIL_MAX_BROADCASTSMSCONFIGINFO_ENTRIES); i++)
     {
-        pBroadcastSmsConfigInfoBlob->BroadcastSmsConfigInfoData[i].selected =
+        pBroadcastSmsConfigInfoBlob->aRilGsmBroadcastSmsConfigInfo[i].selected =
                 (unsigned char)nSelected;
     }
 
@@ -8745,7 +8746,7 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
                     && -1 != requestedRate && INT_MAX != requestedRate)
             {
                 RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST,
-                        (void*)pCellData->pnCellData, (sizeof(RIL_CellInfo) * uiIndex));
+                        (void*)pCellData->aRilCellInfo, (sizeof(RIL_CellInfo) * uiIndex));
             }
         }
         else

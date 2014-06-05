@@ -6635,7 +6635,7 @@ RIL_RESULT_CODE CTE::RequestGetCellInfoList(RIL_Token rilToken, void* pData, siz
 
     if (uiItemCount > 0)
     {
-        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, &cellData.pnCellData,
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, &cellData.aRilCellInfo,
                 uiItemCount * sizeof(RIL_CellInfo));
     }
     else
@@ -9812,7 +9812,7 @@ int CTE::GetActiveDataCallInfoList(P_ND_PDP_CONTEXT_DATA pPDPListData)
             memset(&sDataCallInfo, 0, sizeof(sDataCallInfo));
             pChannelData->GetDataCallInfo(sDataCallInfo);
 
-            PrintStringNullTerminate(pPDPListData->pDnsesBuffers[noOfActivePDP],
+            PrintStringNullTerminate(pPDPListData->aszDnsesBuffers[noOfActivePDP],
                                              MAX_BUFFER_SIZE,
                                              "%s %s %s %s",
                                              sDataCallInfo.szDNS1,
@@ -9820,38 +9820,38 @@ int CTE::GetActiveDataCallInfoList(P_ND_PDP_CONTEXT_DATA pPDPListData)
                                              sDataCallInfo.szIpV6DNS1,
                                              sDataCallInfo.szIpV6DNS2);
 
-            PrintStringNullTerminate(pPDPListData->pAddressBuffers[noOfActivePDP],
+            PrintStringNullTerminate(pPDPListData->aszAddressBuffers[noOfActivePDP],
                                              MAX_BUFFER_SIZE,
                                              "%s %s",
                                              sDataCallInfo.szIpAddr1,
                                              sDataCallInfo.szIpAddr2);
 
-            CopyStringNullTerminate(pPDPListData->pGatewaysBuffers[noOfActivePDP],
+            CopyStringNullTerminate(pPDPListData->aszGatewaysBuffers[noOfActivePDP],
                                             sDataCallInfo.szGateways,
                                             MAX_BUFFER_SIZE);
 
-            CopyStringNullTerminate(pPDPListData->pTypeBuffers[noOfActivePDP],
+            CopyStringNullTerminate(pPDPListData->aszTypeBuffers[noOfActivePDP],
                                             sDataCallInfo.szPdpType,
                                             MAX_BUFFER_SIZE);
 
-            CopyStringNullTerminate(pPDPListData->pIfnameBuffers[noOfActivePDP],
+            CopyStringNullTerminate(pPDPListData->aszIfnameBuffers[noOfActivePDP],
                                             sDataCallInfo.szInterfaceName,
                                             MAX_BUFFER_SIZE);
 
-            pPDPListData->pPDPData[noOfActivePDP].status = sDataCallInfo.failCause;
-            pPDPListData->pPDPData[noOfActivePDP].suggestedRetryTime = -1;
-            pPDPListData->pPDPData[noOfActivePDP].cid = sDataCallInfo.uiCID;
-            pPDPListData->pPDPData[noOfActivePDP].active = 2;
-            pPDPListData->pPDPData[noOfActivePDP].type =
-                    pPDPListData->pTypeBuffers[noOfActivePDP];
-            pPDPListData->pPDPData[noOfActivePDP].addresses =
-                    pPDPListData->pAddressBuffers[noOfActivePDP];
-            pPDPListData->pPDPData[noOfActivePDP].dnses =
-                    pPDPListData->pDnsesBuffers[noOfActivePDP];
-            pPDPListData->pPDPData[noOfActivePDP].gateways =
-                    pPDPListData->pGatewaysBuffers[noOfActivePDP];
-            pPDPListData->pPDPData[noOfActivePDP].ifname =
-                    pPDPListData->pIfnameBuffers[noOfActivePDP];
+            pPDPListData->aPDPData[noOfActivePDP].status = sDataCallInfo.failCause;
+            pPDPListData->aPDPData[noOfActivePDP].suggestedRetryTime = -1;
+            pPDPListData->aPDPData[noOfActivePDP].cid = sDataCallInfo.uiCID;
+            pPDPListData->aPDPData[noOfActivePDP].active = 2;
+            pPDPListData->aPDPData[noOfActivePDP].type =
+                    pPDPListData->aszTypeBuffers[noOfActivePDP];
+            pPDPListData->aPDPData[noOfActivePDP].addresses =
+                    pPDPListData->aszAddressBuffers[noOfActivePDP];
+            pPDPListData->aPDPData[noOfActivePDP].dnses =
+                    pPDPListData->aszDnsesBuffers[noOfActivePDP];
+            pPDPListData->aPDPData[noOfActivePDP].gateways =
+                    pPDPListData->aszGatewaysBuffers[noOfActivePDP];
+            pPDPListData->aPDPData[noOfActivePDP].ifname =
+                    pPDPListData->aszIfnameBuffers[noOfActivePDP];
 
             ++noOfActivePDP;
         }

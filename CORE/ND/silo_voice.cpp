@@ -869,7 +869,7 @@ BOOL CSilo_Voice::ParseUSSDInfo(CResponse* const pResponse, const char*& rszPoin
              * pUtf8Buffer are not null.
              */
             CopyStringNullTerminate(pUssdStatus->szMessage, pUtf8Buffer,
-                                                            MAX_BUFFER_SIZE);
+                                                            MAX_USSD_MESSAGE_SIZE);
             delete[] pUtf8Buffer;
             pUtf8Buffer = NULL;
         }
