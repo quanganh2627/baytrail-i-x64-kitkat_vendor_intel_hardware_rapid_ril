@@ -336,6 +336,7 @@ void triggerDropCallEvent(void* param)
 {
     sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND data;
     char szBuffer[CRASHTOOL_BUFFER_SIZE];
+    int nTempSize = 0;
 
     BOOL bMobileRelease = (1 == (UINT32)param);
 
@@ -343,6 +344,8 @@ void triggerDropCallEvent(void* param)
     data.type = CRASHTOOL_STATS;
     PrintStringNullTerminate(data.name, CRASHTOOL_NAME_SIZE, "TFT_STAT_CDROP");
     data.nameSize = strnlen(data.name, CRASHTOOL_NAME_SIZE);
+
+    data.data1[0] = '\0';
 
     // Pre-initialize all data size to 0
     for (int i = 0; i < CRASHTOOL_NB_DATA; i++)
@@ -359,36 +362,75 @@ void triggerDropCallEvent(void* param)
     }
     else
     {
-        data.dataSize[0] = snprintf(data.data0, CRASHTOOL_BUFFER_SIZE, "%s",
-                CTE::GetTE().GetLastCEER());
+        nTempSize = snprintf(szBuffer, CRASHTOOL_BUFFER_SIZE, "%s", CTE::GetTE().GetLastCEER());
+        if(nTempSize > -1 && nTempSize < CRASHTOOL_BUFFER_SIZE)
+        {
+            data.dataSize[0] = nTempSize;
+            CopyStringNullTerminate(data.data0, szBuffer, CRASHTOOL_BUFFER_SIZE);
+        }
     }
 
     if (strlen(CTE::GetTE().GetNetworkData(LAST_NETWORK_CREG)) != 0)
     {
-        data.dataSize[1] = snprintf(data.data1, CRASHTOOL_BUFFER_SIZE, "+CREG: %s;",
+        nTempSize = snprintf(szBuffer, CRASHTOOL_BUFFER_SIZE, "+CREG: %s;",
                 CTE::GetTE().GetNetworkData(LAST_NETWORK_CREG));
+        if(nTempSize > -1 && nTempSize < CRASHTOOL_BUFFER_SIZE)
+        {
+            data.dataSize[1] = nTempSize;
+            CopyStringNullTerminate(data.data1, szBuffer, CRASHTOOL_BUFFER_SIZE);
+        }
+    }
+
+    if (strlen(CTE::GetTE().GetNetworkData(LAST_NETWORK_CGREG)) != 0)
+    {
+        nTempSize = snprintf(szBuffer, CRASHTOOL_BUFFER_SIZE - data.dataSize[1],
+                "+CGREG: %s;", CTE::GetTE().GetNetworkData(LAST_NETWORK_CGREG));
+        if(nTempSize > -1 && nTempSize < (CRASHTOOL_BUFFER_SIZE - data.dataSize[1]))
+        {
+            data.dataSize[1] += nTempSize;
+            strcat(data.data1, szBuffer);
+        }
     }
 
     if (strlen(CTE::GetTE().GetNetworkData(LAST_NETWORK_XREG)) != 0)
     {
-        data.dataSize[1] += snprintf(szBuffer, CRASHTOOL_BUFFER_SIZE - data.dataSize[1],
+        nTempSize = snprintf(szBuffer, CRASHTOOL_BUFFER_SIZE - data.dataSize[1],
                 "+XREG: %s;", CTE::GetTE().GetNetworkData(LAST_NETWORK_XREG));
-        strncat(data.data1, szBuffer, CRASHTOOL_BUFFER_SIZE);
+        if(nTempSize > -1 && nTempSize < (CRASHTOOL_BUFFER_SIZE - data.dataSize[1]))
+        {
+            data.dataSize[1] += nTempSize;
+            strcat(data.data1, szBuffer);
+        }
     }
 
     if (strlen(CTE::GetTE().GetNetworkData(LAST_NETWORK_XCSQ)) != 0)
     {
-        data.dataSize[2] = snprintf(data.data2, CRASHTOOL_LARGE_BUFFER_SIZE, "%s;",
+        nTempSize = snprintf(szBuffer, CRASHTOOL_BUFFER_SIZE, "%s;",
                 CTE::GetTE().GetNetworkData(LAST_NETWORK_XCSQ));
+        if(nTempSize > -1 && nTempSize < CRASHTOOL_BUFFER_SIZE)
+        {
+            data.dataSize[2] = nTempSize;
+            CopyStringNullTerminate(data.data2, szBuffer, CRASHTOOL_BUFFER_SIZE);
+        }
     }
 
-    data.dataSize[3] = snprintf(data.data3, CRASHTOOL_BUFFER_SIZE, "%s,%s,%s",
+    nTempSize = snprintf(szBuffer, CRASHTOOL_BUFFER_SIZE, "%s,%s,%s",
             CTE::GetTE().GetNetworkData(LAST_NETWORK_OP_NAME_NUMERIC),
             CTE::GetTE().GetNetworkData(LAST_NETWORK_LAC),
             CTE::GetTE().GetNetworkData(LAST_NETWORK_CID));
+    if(nTempSize > -1 && nTempSize < CRASHTOOL_BUFFER_SIZE)
+    {
+        data.dataSize[3] = nTempSize;
+        CopyStringNullTerminate(data.data3, szBuffer, CRASHTOOL_BUFFER_SIZE);
+    }
 
-    data.dataSize[4] = snprintf(data.data4, CRASHTOOL_LARGE_BUFFER_SIZE, "%s",
+    nTempSize = snprintf(szBuffer, CRASHTOOL_BUFFER_SIZE, "%s",
             CTE::GetTE().GetNetworkData(LAST_NETWORK_OP_NAME_SHORT));
+    if(nTempSize > -1 && nTempSize < CRASHTOOL_BUFFER_SIZE)
+    {
+        data.dataSize[4] = nTempSize;
+        CopyStringNullTerminate(data.data4, szBuffer, CRASHTOOL_BUFFER_SIZE);
+    }
 
     RIL_onUnsolicitedResponse (RIL_UNSOL_OEM_HOOK_RAW, (void*)&data,
             sizeof(sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND));

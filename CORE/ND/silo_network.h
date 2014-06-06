@@ -54,6 +54,7 @@ private:
     void HandleNwDeact(const char*& szStrExtract);
     void HandleMEDeactivation(const UINT32 uiCID);
     BOOL ParseXREGFastOoS(CResponse *const pResponse, const char* &rszPointer);
+    BOOL ParseXREGNetworkInfo(CResponse* const pResponse, const char*& pszPointer);
 };
 
 #endif // RRIL_SILO_NETWORK_H

@@ -1224,6 +1224,8 @@ public:
     RIL_RESULT_CODE GetCnapState(REQUEST_DATA& reqData);
     RIL_RESULT_CODE ParseQueryCnap(const char* pszRsp, RESPONSE_DATA& rspData);
 
+    BOOL ParseXREGNetworkInfo(const char*& pszPointer, const BOOL isUnSolicited);
+
 private:
     UINT32 m_uiModemType;
 

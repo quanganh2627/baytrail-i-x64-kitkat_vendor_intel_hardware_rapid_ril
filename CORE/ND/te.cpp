@@ -10586,6 +10586,125 @@ void CTE::TriggerRestrictedModeEvent()
             sizeof(sOEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND));
 }
 
+//
+// This function is able to extract band info from the Intel IA C-AT +XREG version response,
+// +XREG: <State>[,<AcT>[,<Band>[,<lac>[,<ci>[,<rac>[,<reject type>[,<reject cause>]]]]]]],
+// and also the future WPRD mainline version response, +XREG: <State/act>,<Band>[,<HSPA+type>].
+//
+BOOL CTE::ParseXREGNetworkInfo(const char*& pszPointer, const BOOL isUnSolicited)
+{
+    RIL_LOG_VERBOSE("CTE::ParseXREGNetworkInfo() - Enter\r\n");
+
+    // set 'dummy' > 100, as failure to extract the 'dummy' value should be considered as
+    // a 'mainline XREG' and so we should try to re-parse the same field as a band.
+    int dummy = 101;
+    int status = 0;
+    char szBand[MAX_BAND_SIZE] = {0};
+    BOOL bRet = FALSE;
+    bool bRegistered = false;
+    const char* pszSaveRsp = NULL;
+
+    if (!isUnSolicited)
+    {
+        // Skip "<prefix>"
+        if (!SkipRspStart(pszPointer, m_szNewLine, pszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREGNetworkInfo() - Could not skip response prefix.\r\n");
+            goto Error;
+        }
+
+        // Skip "+XREG: "
+        if (!SkipString(pszPointer, "+XREG: ", pszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREGNetworkInfo() - Could not skip \"+XREG: \".\r\n");
+            goto Error;
+        }
+
+        // Extract <n> and throw away
+        if (!ExtractInt(pszPointer, dummy, pszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREGNetworkInfo() - Could not extract <n>.\r\n");
+            goto Error;
+        }
+
+        // Skip ","
+        if (!SkipString(pszPointer, ",", pszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREGNetworkInfo() - Could not skip \",\".\r\n");
+            goto Error;
+        }
+    }
+
+    // "<stat>"
+    if (!ExtractInt(pszPointer, status, pszPointer))
+    {
+        RIL_LOG_CRITICAL("CTE::ParseXREGNetworkInfo() - Could not extract <stat>.\r\n");
+        goto Error;
+    }
+
+    // Preserve pszPointer for band extraction
+    pszSaveRsp = pszPointer;
+
+    // Next parameter can be <Act> for IA XREG or it can be <Band> for mainline XREG
+    if (!SkipString(pszPointer, ",", pszPointer)
+            || !ExtractInt(pszPointer, dummy, pszPointer))
+    {
+        RIL_LOG_INFO("CTE::ParseXREGNetworkInfo() - Could not extract <AcT/Band>\r\n");
+    }
+
+    // dummy > 100 means the mainline XREG , dummy holds the <Band> parameter
+    if (dummy > 100)
+    {
+        // Restore pszPointer
+        pszPointer = pszSaveRsp;
+    }
+
+    // Extract <Band>
+    if (!SkipString(pszPointer, ",", pszPointer)
+            || !ExtractUnquotedString(pszPointer, ",", szBand, MAX_BAND_SIZE, pszPointer))
+    {
+        RIL_LOG_INFO("CTE::ParseXREGNetworkInfo() - Could not extract <Band>\r\n");
+        goto Error;
+    }
+
+    // We have the band info, stop parsing
+
+    bRegistered = IsRegistered(status);
+    if (m_pTEBaseInstance->IsRegStatusAndBandIndActivated())
+    {
+        sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND prevInfo;
+
+        m_pTEBaseInstance->GetRegStatusAndBandInfo(prevInfo);
+        if (prevInfo.regStatus != bRegistered || (strcmp(prevInfo.szBand, szBand) != 0))
+        {
+            sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND info;
+
+            info.commandId = RIL_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND;
+            info.regStatus = bRegistered;
+            CopyStringNullTerminate(info.szBand, szBand, sizeof(info.szBand));
+            info.bandLength = strlen(info.szBand);
+            m_pTEBaseInstance->SetRegStatusAndBandInfo(info);
+
+            RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW,
+                    (void*)&info, sizeof(sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND));
+        }
+    }
+
+    bRet = TRUE;
+Error:
+    if (!isUnSolicited)
+    {
+        // Skip "<postfix>"
+        if (!FindAndSkipRspEnd(pszPointer, m_szNewLine, pszPointer))
+        {
+            RIL_LOG_CRITICAL("CTE::ParseXREGNetworkInfo() - Could not skip response postfix.\r\n");
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE::ParseXREGNetworkInfo() - Exit\r\n");
+    return bRet;
+}
+
 // following functions are only for modem Rel.10+ with the new 3GPP USAT interface
 void CTE::SetProfileDownloadForNextUiccStartup(UINT32 uiDownload, UINT32 uiReporting)
 {

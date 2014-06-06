@@ -640,7 +640,20 @@ BOOL CSilo_Network::ParseCREG(CResponse* const pResponse, const char*& rszPointe
 //
 BOOL CSilo_Network::ParseCGREG(CResponse* const pResponse, const char*& rszPointer)
 {
+    char szBackup[MAX_NETWORK_DATA_SIZE] = {0};
+    const char* pszStart = NULL;
+    const char* pszEnd = NULL;
+
     RIL_LOG_VERBOSE("CSilo_Network::ParseCGREG() - Enter / Exit\r\n");
+
+    // Backup the CGREG response string to report data on crashtool for 7260 modem
+    if (MODEM_TYPE_XMM7260 == CTE::GetTE().GetModemType())
+    {
+        pszStart = rszPointer;
+        ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszEnd);
+        CTE::GetTE().SaveNetworkData(LAST_NETWORK_CGREG, szBackup);
+    }
+
     return ParseRegistrationStatus(pResponse, rszPointer, E_REGISTRATION_TYPE_CGREG);
 }
 
@@ -654,12 +667,20 @@ BOOL CSilo_Network::ParseXREG(CResponse* const pResponse, const char*& rszPointe
 
     RIL_LOG_VERBOSE("CSilo_Network::ParseXREG() - Enter / Exit\r\n");
 
-    // Backup the XREG response string to report data on crashtool
-    pszStart = rszPointer;
-    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszEnd);
-    CTE::GetTE().SaveNetworkData(LAST_NETWORK_XREG, szBackup);
+    // for 7260 modem, XREG used only for band information
+    if (MODEM_TYPE_XMM7260 == CTE::GetTE().GetModemType())
+    {
+        return ParseXREGNetworkInfo(pResponse, rszPointer);
+    }
+    else
+    {
+        // Backup the XREG response string to report data on crashtool
+        pszStart = rszPointer;
+        ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszEnd);
+        CTE::GetTE().SaveNetworkData(LAST_NETWORK_XREG, szBackup);
 
-    return ParseRegistrationStatus(pResponse, rszPointer, E_REGISTRATION_TYPE_XREG);
+        return ParseRegistrationStatus(pResponse, rszPointer, E_REGISTRATION_TYPE_XREG);
+    }
 }
 
 //
@@ -1746,4 +1767,85 @@ Exit:
     }
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCSG() - Exit\r\n");
     return fRet;
+}
+
+//
+// Special parser to get only the band info, for 7260 modem
+BOOL CSilo_Network::ParseXREGNetworkInfo(CResponse* const pResponse, const char*& pszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXREGNetworkInfo() - Enter\r\n");
+
+    const char* pszTemp;
+    BOOL bRet = FALSE;
+    bool isUnSolicited = true;
+    int nParams = 1;
+    char* pszCommaBuffer = NULL;  //  Store notification in here.
+                                  //  Note that cannot loop on pszPointer as it may contain
+                                  //  other notifications as well.
+    if (NULL == pResponse)
+    {
+        goto Error;
+    }
+
+    // Look for a "<postfix>"
+    if (!FindAndSkipRspEnd(pszPointer, m_szNewLine, pszTemp))
+    {
+        // This isn't a complete notification -- no need to parse it
+        goto Error;
+    }
+
+    pszCommaBuffer = new char[pszTemp - pszPointer + 1];
+    if (!pszCommaBuffer)
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGNetworkInfo() -"
+                " cannot allocate pszCommaBuffer\r\n");
+        goto Error;
+    }
+
+    strncpy(pszCommaBuffer, pszPointer, pszTemp - pszPointer);
+    pszCommaBuffer[pszTemp - pszPointer] = '\0';
+
+    //  Loop and count parameters (separated by comma)
+    pszTemp = pszCommaBuffer;
+
+    while (FindAndSkipString(pszTemp, ",", pszTemp))
+    {
+        nParams++;
+    }
+
+    //  The +XREG case
+    //  Unsol is 1,3,5 and 8
+    if (1 == nParams || 3 == nParams || 5 == nParams || 8 == nParams)
+    {
+        isUnSolicited = true;
+    }
+    //  Sol is 2,4,6 and 9
+    else if (2 == nParams || 4 == nParams || 6 == nParams || 9 == nParams)
+    {
+        //  Sol is 2,4,6 and 9
+        isUnSolicited = false;
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXREGNetworkInfo() -"
+                " Unknown param count=%d\r\n", nParams);
+        isUnSolicited = true;
+    }
+    RIL_LOG_INFO("CSilo_Network::ParseXREGNetworkInfo() - XREG paramcount=%d"
+                "  isUnSolicited=%d\r\n", nParams, isUnSolicited);
+
+    if (isUnSolicited)
+    {
+        pResponse->SetUnsolicitedFlag(TRUE);
+
+        CTE::GetTE().ParseXREGNetworkInfo(pszPointer, isUnSolicited);
+
+        bRet = TRUE;
+    }
+
+Error:
+    delete[] pszCommaBuffer;
+    pszCommaBuffer = NULL;
+    RIL_LOG_VERBOSE("CSilo_Network::ParseXREGNetworkInfo() - Exit\r\n");
+    return bRet;
 }

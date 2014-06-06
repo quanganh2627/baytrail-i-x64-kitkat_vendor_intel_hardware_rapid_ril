@@ -69,8 +69,6 @@ public:
     virtual RIL_RESULT_CODE ParseSignalStrength(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_DATA_REGISTRATION_STATE 21
-    virtual RIL_RESULT_CODE CoreGPRSRegistrationState(REQUEST_DATA& rReqData,
-             void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_DEACTIVATE_DATA_CALL 41

@@ -7647,9 +7647,6 @@ RIL_RESULT_CODE CTE_XMM6260::CreateRegStatusAndBandInd(REQUEST_DATA& reqData,
         /*
          * Currently, XREG URC is also used for registration status reporting. So, disable
          * XREG URC only when the screen is off.
-         *
-         * TODO: Once XREG is not used for any other purpose like registration status reporting,
-         * XREG URC will be disabled by sending AT+XREG=0.
          */
         if (!CopyStringNullTerminate(reqData.szCmd1, "AT+XREG=0\r",
                 sizeof(reqData.szCmd1)))
