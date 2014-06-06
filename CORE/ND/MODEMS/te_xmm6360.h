@@ -62,6 +62,11 @@ public:
 
     virtual RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct);
 
+    // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING
+    virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
+                                                                   void* pData,
+                                                                   UINT32 uiDataSize);
+
 protected:
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseDns(RESPONSE_DATA& rRspData);
@@ -73,6 +78,8 @@ protected:
     virtual const char* GetScreenOnString();
 
     virtual BOOL GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData);
+
+    virtual const char* GetEnableFetchingString();
 };
 
 #endif

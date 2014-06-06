@@ -1232,3 +1232,40 @@ BOOL CTE_XMM6360::GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData)
 
     return TRUE;
 }
+
+//
+// RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING
+//
+RIL_RESULT_CODE CTE_XMM6360::CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
+                                                                     void* pData,
+                                                                     UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreReportStkServiceRunning - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CFUN=6\r"))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreReportStkServiceRunning() - Exit\r\n");
+    return res;
+}
+
+const char* CTE_XMM6360::GetEnableFetchingString()
+{
+    /*
+     * STK is disabled by sending all bytes of terminal profile set to 0.
+     * This is already taken care as part of nvm configuration file. In order
+     * to get the EAP-SIM authentication working, rapid ril needs to enable
+     * proactive fetching. By sending CFUN=7, SIMTK is disabled and proactive fetching is enabled.
+     */
+
+     const char* pszEnableFetching = NULL;
+     if (!m_cte.IsStkCapable())
+     {
+        pszEnableFetching = "|+CFUN=7";
+     }
+
+    return pszEnableFetching;
+}
