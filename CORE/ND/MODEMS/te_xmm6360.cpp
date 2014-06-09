@@ -1145,6 +1145,9 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_InitialAttachApn* pTemp = NULL;
     UINT32 uiMode = 0;
+    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+    bool bInitialAttachApnChanged = false;
+    bool bStoredInitialAttachApnInfoValid = false;
 
     if (pData == NULL)
     {
@@ -1160,36 +1163,99 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
         goto Error;
     }
 
+    if (RIL_APPSTATE_READY != GetSimAppState())
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - SIM not ready\r\n");
+        ResetInitialAttachApn();
+        res = RRIL_RESULT_OK_IMMEDIATE;
+        goto Error;
+    }
+
     pTemp = (RIL_InitialAttachApn*) pData;
+
+    if (NULL == pTemp->protocol || pTemp->protocol[0] == '\0')
+    {
+        CopyStringNullTerminate(szPdpType, PDPTYPE_IPV4V6, sizeof(szPdpType));
+    }
+    else
+    {
+        CopyStringNullTerminate(szPdpType, pTemp->protocol, sizeof(szPdpType));
+    }
+
+    // If the initial attach apn request is issued by framework, then pdp type stored in
+    // m_InitialAttachApnParams.szPdpType will not be empty even if the pdp type is not provided by
+    // framework. So, if m_InitialAttachApnParams.szPdpType is not empty, stored initial attach apn
+    // parameters is considered as valid.
+    if (m_InitialAttachApnParams.szPdpType[0] != '\0')
+    {
+        bStoredInitialAttachApnInfoValid = true;
+    }
+
+    if (((strcmp(m_InitialAttachApnParams.szApn, pTemp->apn) != 0)
+            || (strcmp(m_InitialAttachApnParams.szPdpType, szPdpType) != 0))
+            && bStoredInitialAttachApnInfoValid)
+    {
+        bInitialAttachApnChanged = true;
+    }
 
     ResetInitialAttachApn();
 
     CopyStringNullTerminate(m_InitialAttachApnParams.szApn,
             pTemp->apn, sizeof(m_InitialAttachApnParams.szApn));
+    CopyStringNullTerminate(m_InitialAttachApnParams.szPdpType,
+            szPdpType, sizeof(m_InitialAttachApnParams.szPdpType));
 
-    if (NULL == pTemp->protocol || pTemp->protocol[0] == '\0')
+    /*
+     * Case 1: Initial attach APN is not yet set.
+     *
+     * If there is no initial attach apn set, device is also not yet registered.
+     * In this case, RIL_REQUEST_SET_INITIAL_ATTACH_APN will result in commands
+     * AT+CGDCONT=<cid>,<PDP_type>[,<APN] and AT+COPS=0 sent to modem.
+     *
+     * Case 2: Initial attach APN is already set. Initial attach APN triggered again with different
+     * initial attach APN parameters.
+     *
+     * Upon APN change by user or sim refresh, initial attach apn request will be triggered by
+     * framework. In this case, RIL_REQUEST_SET_INITIAL_ATTACH_APN will result in commands
+     * AT+COPS=2, AT+CGDCONT=<cid>,<PDP_type>[,<APN] and AT+COPS=0 sent to modem.
+     *
+     * Case 3: Initial attach APN is already set. Initial attach APN triggered again with same
+     * initial attach APN parameters.
+     *
+     * Upon APN change by user or sim refresh, initial attach apn request will be triggered by
+     * framework. In this case, RIL_REQUEST_SET_INITIAL_ATTACH_APN will be completely immediately
+     * without sending any commands to modem.
+     */
+    if (bInitialAttachApnChanged)
     {
-        CopyStringNullTerminate(m_InitialAttachApnParams.szPdpType,
-                PDPTYPE_IPV4V6, sizeof(m_InitialAttachApnParams.szPdpType));
+        int* pState = (int*)malloc(sizeof(int));
+        if (pState != NULL)
+        {
+            *pState = STATE_DEREGISTER;
+            rReqData.pContextData = pState;
+            rReqData.cbContextData = sizeof(int);
+        }
+
+        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+COPS=2\r", sizeof(rReqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - failed\r\n");
+            goto Error;
+        }
     }
     else
     {
-        CopyStringNullTerminate(m_InitialAttachApnParams.szPdpType,
-                pTemp->protocol, sizeof(m_InitialAttachApnParams.szPdpType));
-    }
+        if (bStoredInitialAttachApnInfoValid)
+        {
+            RIL_LOG_INFO("CTE_XMM6360::CoreSetInitialAttachApn() - "
+                    "No change in initial attach apn, complete immediately\r\n");
+            res = RRIL_RESULT_OK_IMMEDIATE;
+            goto Error;
+        }
 
-    if (RIL_APPSTATE_READY != GetSimAppState())
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - SIM not ready\r\n");
-        res = RRIL_RESULT_OK_IMMEDIATE;
-        goto Error;
-    }
-
-    if (!GetSetInitialAttachApnReqData(rReqData))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - "
-                "GetSetInitialAttachApnReqData failed\r\n");
-        goto Error;
+        if (!GetSetInitialAttachApnReqData(rReqData))
+        {
+            goto Error;
+        }
     }
 
     res = RRIL_RESULT_OK;

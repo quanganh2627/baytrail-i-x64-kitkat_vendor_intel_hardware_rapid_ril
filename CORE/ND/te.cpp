@@ -88,8 +88,7 @@ CTE::CTE(UINT32 modemType) :
     m_bCbsActivationTimerRunning(FALSE),
     m_CbsActivate(-1),
     m_bTempOoSNotifReporting(FALSE),
-    m_bNetworkSelectionRestored(FALSE),
-    m_uiImsRegStatus(IMS_NOT_REGISTERED)
+    m_uiImsRegStatus(IMS_REGISTERED)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -3901,7 +3900,6 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionAutomatic(RIL_Token rilToken,
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    m_bNetworkSelectionRestored = FALSE;
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetNetworkSelectionAutomatic(reqData,
             pData, datalen);
     if (RRIL_RESULT_OK == res)
@@ -3941,7 +3939,6 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionManual(RIL_Token rilToken,
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    m_bNetworkSelectionRestored = FALSE;
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetNetworkSelectionManual(reqData,
             pData, datalen);
     if (RRIL_RESULT_OK == res)
@@ -8287,7 +8284,7 @@ void CTE::ResetInternalStates()
 {
     RIL_LOG_VERBOSE("CTE::ResetInternalStates() - Enter / Exit\r\n");
 
-    m_pTEBaseInstance->ResetInternalStates();
+    m_pTEBaseInstance->ResetNetworkSelectionMode();
 
     m_bCSStatusCached = FALSE;
     m_bPSStatusCached = FALSE;
@@ -8742,9 +8739,11 @@ void CTE::PostGetSimStatusCmdHandler(POST_CMD_HANDLER_DATA& rData)
 
     RIL_onRequestComplete(rData.pRilToken, RIL_E_SUCCESS, &cardStatus, sizeof(RIL_CardStatus_v6));
 
+    // App state is set to UNKNOWN on Sim Refresh - Init, modem reset.
     if (RIL_APPSTATE_UNKNOWN == m_pTEBaseInstance->GetSimAppState())
     {
         m_pTEBaseInstance->ResetInitialAttachApn();
+        m_pTEBaseInstance->ResetNetworkSelectionMode();
     }
 
     FreeCardStatusPointers(cardStatus);
@@ -9729,8 +9728,6 @@ void CTE::PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostSetNetworkSelectionCmdHandler() Enter\r\n");
 
-    m_bNetworkSelectionRestored = TRUE;
-
     if (NULL == rData.pRilToken)
     {
         return;
@@ -10045,9 +10042,11 @@ void CTE::CompleteGetSimStatusRequest(RIL_Token hRilToken)
 
     RIL_onRequestComplete(hRilToken, RIL_E_SUCCESS, &cardStatus, sizeof(RIL_CardStatus_v6));
 
+    // App state is set to UNKNOWN on Sim Refresh - Init, modem reset.
     if (RIL_APPSTATE_UNKNOWN == m_pTEBaseInstance->GetSimAppState())
     {
         m_pTEBaseInstance->ResetInitialAttachApn();
+        m_pTEBaseInstance->ResetNetworkSelectionMode();
     }
     FreeCardStatusPointers(cardStatus);
 
@@ -10169,6 +10168,13 @@ RIL_RESULT_CODE CTE::RequestSetInitialAttachApn(RIL_Token rilToken, void* pData,
         }
     }
 
+    if (res != RRIL_RESULT_OK)
+    {
+        free(reqData.pContextData);
+        reqData.pContextData = NULL;
+        reqData.cbContextData = 0;
+    }
+
     RIL_LOG_VERBOSE("CTE::RequestSetInitialAttachApn() - Exit\r\n");
     return res;
 }
@@ -10183,17 +10189,35 @@ void CTE::PostSetInitialAttachApnCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostSetInitialAttachApnCmdHandler() - Enter\r\n");
 
+    int state = STATE_SET_INITIAL_ATTACH_APN;
+    if (rData.pContextData != NULL && rData.uiContextDataSize == sizeof(int))
+    {
+        state = *((int*)rData.pContextData);
+        free(rData.pContextData);
+        rData.pContextData = NULL;
+        rData.uiContextDataSize = 0;
+    }
+
+    switch (state)
+    {
+        case STATE_DEREGISTER:
+            // set initial attach apn after deregistering from network.
+            m_pTEBaseInstance->SetInitialAttachApn(rData.pRilToken, rData.uiChannel,
+                    &CTE::ParseSetInitialAttachApn,
+                    &CTE::PostSetInitialAttachApnCmdHandler);
+            break;
+         case STATE_SET_INITIAL_ATTACH_APN:
+            m_pTEBaseInstance->RestoreSavedNetworkSelectionMode(NULL, rData.uiChannel, NULL,
+                    &CTE::PostSetNetworkSelectionCmdHandler);
+            break;
+        default:
+            break;
+    }
+
     if (NULL != rData.pRilToken)
     {
         RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                 (void*)rData.pData, rData.uiDataSize);
-    }
-
-    // Restore saved network selection mode only if it is not already restored
-    if (!m_bNetworkSelectionRestored)
-    {
-        m_pTEBaseInstance->RestoreSavedNetworkSelectionMode(NULL, rData.uiChannel, NULL,
-                &CTE::PostSetNetworkSelectionCmdHandler);
     }
 
     RIL_LOG_VERBOSE("CTE::PostSetInitialAttachApnCmdHandler() - Exit\r\n");

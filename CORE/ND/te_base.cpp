@@ -6033,9 +6033,12 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
             goto Error;
         }
 
-        RIL_LOG_INFO("CTEBase::ParseReadContextParams() - "
-                "Set APN: %s for context Id: %u\r\n", szTmpBuffer, uiCID);
-        pChannelData->SetApn(szTmpBuffer);
+        if (szTmpBuffer[0] != '\0')
+        {
+            RIL_LOG_INFO("CTEBase::ParseReadContextParams() - "
+                    "Set APN: %s for context Id: %u\r\n", szTmpBuffer, uiCID);
+            pChannelData->SetApn(szTmpBuffer);
+        }
 
         if (!SkipString(pszRsp, ",", pszRsp)
                 || !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
@@ -12227,6 +12230,72 @@ Error:
     return res;
 }
 
+RIL_RESULT_CODE CTEBase::SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel,
+        PFN_TE_PARSE pParseFcn, PFN_TE_POSTCMDHANDLER pHandlerFcn)
+{
+    RIL_LOG_VERBOSE("CTEBase::SetInitialAttachApn() - Enter\r\n");
+
+    if (m_InitialAttachApnParams.szPdpType[0] == '\0')
+    {
+        /*
+         * Initial attach apn cannot be set as android telephony framework has not provided
+         * initial attach apn parameters. Network selection mode will be restored once
+         * the initial attach apn is set.
+         */
+        RIL_LOG_INFO("CTEBase::SetInitialAttachApn() - "
+                "initial attach apn not set\r\n");
+        return RRIL_RESULT_OK_IMMEDIATE;
+    }
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    REQUEST_DATA reqData;
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    GetSetInitialAttachApnReqData(reqData);
+
+    int* state = (int*)malloc(sizeof(int));
+    if (state != NULL)
+    {
+        *state = STATE_SET_INITIAL_ATTACH_APN;
+        reqData.pContextData = state;
+        reqData.cbContextData = sizeof(int);
+    }
+
+    CCommand* pCmd = new CCommand(uiChannel, rilToken, RIL_REQUEST_SET_INITIAL_ATTACH_APN, reqData,
+            pParseFcn, pHandlerFcn);
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::SetInitialAttachApn() -"
+                    " Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+            goto Error;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::SetInitialAttachApn() -"
+                " Unable to allocate memory for command\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    if (res != RRIL_RESULT_OK)
+    {
+        free(reqData.pContextData);
+        reqData.pContextData = NULL;
+        reqData.cbContextData = 0;
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::SetInitialAttachApn() - Exit\r\n");
+    return res;
+}
+
 BOOL CTEBase::GetSetInitialAttachApnReqData(REQUEST_DATA& /*rReqData*/)
 {
     return TRUE;
@@ -12319,7 +12388,7 @@ RIL_RESULT_CODE CTEBase::ParseXCSG(const char* /* pszRsp */, RESPONSE_DATA& /* r
     return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
 }
 
-void CTEBase::ResetInternalStates()
+void CTEBase::ResetNetworkSelectionMode()
 {
     m_NetworkSelectionModeParams.mode = -1;
     m_NetworkSelectionModeParams.szOperatorNumeric[0] = '\0';

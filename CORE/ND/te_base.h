@@ -999,7 +999,10 @@ public:
     virtual RIL_RESULT_CODE GetCsgCurrentState(REQUEST_DATA& reqData);
     virtual RIL_RESULT_CODE ParseXCSG(const char* pszRsp, RESPONSE_DATA& rspData);
 
-    void ResetInternalStates();
+    void ResetNetworkSelectionMode();
+
+    RIL_RESULT_CODE SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel,
+            PFN_TE_PARSE pParseFcn, PFN_TE_POSTCMDHANDLER pHandlerFcn);
 
     virtual const char* GetEnableFetchingString();
 

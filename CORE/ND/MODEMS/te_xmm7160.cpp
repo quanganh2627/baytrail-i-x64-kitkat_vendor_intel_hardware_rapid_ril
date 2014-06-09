@@ -308,6 +308,7 @@ Error:
     else
     {
         pChannelData->SetDataState(E_DATA_STATE_INITING);
+        pChannelData->SetApn(stPdpData.szApn);
 
         rReqData.pContextData = (void*)pDataCallContextData;
         rReqData.cbContextData = sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA);

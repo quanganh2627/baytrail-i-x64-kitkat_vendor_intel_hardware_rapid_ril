@@ -417,6 +417,7 @@ Error:
     else
     {
         pChannelData->SetDataState(E_DATA_STATE_INITING);
+        pChannelData->SetApn(stPdpData.szApn);
 
         rReqData.pContextData = (void*)pDataCallContextData;
         rReqData.cbContextData = sizeof(S_SETUP_DATA_CALL_CONTEXT_DATA);
@@ -6492,6 +6493,7 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
             cardState = RIL_CARDSTATE_ABSENT;
             PCache_Clear();
             ResetCardStatus(TRUE);
+            ResetInitialAttachApn();
             break;
 
         case 1: // PIN verification needed
