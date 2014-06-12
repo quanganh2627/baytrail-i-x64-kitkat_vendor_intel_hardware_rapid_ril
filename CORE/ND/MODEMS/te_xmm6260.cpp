@@ -6588,7 +6588,6 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
             RIL_LOG_INFO("[RIL STATE] SIM SMS CACHING COMPLETED\r\n");
             bNotifySimStatusChange = FALSE;
             appState = GetSimAppState();
-            QuerySimSmsStoreStatus();
             break;
         case 14: // SIM powered off by modem
         case 99: // SIM state unknown
@@ -6647,6 +6646,7 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
     UINT32 uiTemp = 0;
     BOOL bRet = FALSE;
     BOOL bNotifySimStatusChange = FALSE;
+    const UINT32 SIM_PHONEBOOK_CACHING_COMPLETE = 1;
 
     // Extract "<mode>"
     if (!ExtractUInt32(rszPointer, uiMode, rszPointer))
@@ -6671,6 +6671,11 @@ BOOL CTE_XMM6260::ParseXSIMSTATE(const char*& rszPointer)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::ParseXSIMSTATE() - Could not parse <SIM PB Ready>.\r\n");
         goto Error;
+    }
+
+    if (uiTemp == SIM_PHONEBOOK_CACHING_COMPLETE)
+    {
+        QuerySimSmsStoreStatus();
     }
 
     // Extract ",<SMS Ready>"

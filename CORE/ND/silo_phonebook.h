@@ -29,6 +29,7 @@ public:
 
 protected:
     //  Parse notification functions here.
+    virtual BOOL ParsePBREADY(CResponse* const pResponse, const char*& rszPointer);
 };
 
 #endif // RRIL_SILO_PHONEBOOK_H
