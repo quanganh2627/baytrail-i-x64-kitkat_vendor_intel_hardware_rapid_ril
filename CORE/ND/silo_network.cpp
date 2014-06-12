@@ -903,6 +903,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                 pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
                 if (NULL != pChannelData)
                 {
+                    pChannelData->AddChildContextID(uiCID);
                     void** callbackParams = new void*[3];
                     if (callbackParams != NULL)
                     {
@@ -1108,10 +1109,55 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                  */
                 pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
 
+                pChannelData->ClearChildsContextID();
+
                 CTE::GetTE().DataConfigDown(uiPCID, TRUE);
 
                 CTE::GetTE().CompleteDataCallListChanged();
             }
+        }
+    }
+    // Format: "NW MODIFY <cid>,<change_reason>,<event_type>"
+    else if (FindAndSkipString(szStrExtract, "NW MODIFY", szStrExtract))
+    {
+        if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - NW MODIFY, couldn't "
+                    "extract cid\r\n");
+            goto Error;
+        }
+        else
+        {
+            // We do not extract change_reason nor event_type.
+            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW MODIFY, extracted "
+                    "cid=[%u]\r\n", uiCID);
+
+            pChannelData = CChannel_Data::GetChnlFromChildContextID(uiCID);
+            if (NULL == pChannelData)
+            {
+                //  This may occur using AT proxy during 3GPP conformance testing.
+                //  Let normal processing occur.
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid CID=[%u],"
+                        " no data channel found!\r\n", uiCID);
+                goto Error;
+            }
+
+            void** callbackParams = new void*[3];
+            if (callbackParams != NULL)
+            {
+                callbackParams[0] = (void*) pChannelData->GetContextID();
+                callbackParams[1] = (void*) uiCID;
+                callbackParams[2] = (void*) pChannelData;
+                RIL_requestTimedCallback(triggerQueryBearerParams,
+                        (void*) callbackParams, 0, 0);
+            }
+            else
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - "
+                        "cannot allocate callbackParams\r\n");
+                goto Error;
+            }
+
         }
     }
 
@@ -1199,6 +1245,8 @@ void CSilo_Network::HandleNwDeact(const char*& szStrExtract)
          */
         pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
 
+        pChannelData->ClearChildsContextID();
+
         CTE::GetTE().DataConfigDown(uiCID, TRUE);
 
         CTE::GetTE().CompleteDataCallListChanged();
@@ -1248,6 +1296,8 @@ void CSilo_Network::HandleNwDeact(const char*& szStrExtract)
     }
     else
     {
+        pChannelData->RemoveChildContextID(uiCID);
+
         sOEM_HOOK_RAW_UNSOL_BEARER_DEACT* pNwDeact =
                 (sOEM_HOOK_RAW_UNSOL_BEARER_DEACT*)malloc(
                 sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_DEACT));

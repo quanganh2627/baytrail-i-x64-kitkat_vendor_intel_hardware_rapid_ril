@@ -65,7 +65,8 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
     m_dataState(E_DATA_STATE_IDLE),
     m_ipcDataChannelMin(RIL_DEFAULT_IPC_CHANNEL_MIN),
     m_isRoutingEnabled(FALSE),
-    m_refCount(0)
+    m_refCount(0),
+    m_uiChildContexts(0)
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
 
@@ -275,6 +276,92 @@ Error:
 
     RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromContextID() - Exit\r\n");
     return pChannelData;
+}
+
+//
+//  Returns a pointer to the channel linked to the given childcontext ID
+//
+CChannel_Data* CChannel_Data::GetChnlFromChildContextID(UINT32 uiChildContextID)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromChildContextID() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+
+    extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
+    CChannel_Data* pChannelData = NULL;
+
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
+    {
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
+
+        CChannel_Data* pTemp = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+        if (pTemp && pTemp->HasChildContextID(uiChildContextID))
+        {
+            pChannelData = pTemp;
+            break;
+        }
+    }
+
+Error:
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetChnlFromChildContextID() - Exit\r\n");
+    return pChannelData;
+}
+
+
+// Add a context ID to the list of childs contexts.
+void CChannel_Data::AddChildContextID(UINT32 uiContextID)
+{
+    if (uiContextID == 0 || uiContextID > MAX_CID_NUMERIC) {
+        RIL_LOG_CRITICAL("CChannel_Data::AddContextID() - Invalid contextID (%u)\r\n", uiContextID);
+        return;
+    }
+    RIL_LOG_VERBOSE("CChannel_Data::AddContextID() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+    m_uiChildContexts |= (1 << uiContextID);
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::AddContextID() - Exit\r\n");
+}
+
+// Remove a context ID to the list of childs contexts.
+void CChannel_Data::RemoveChildContextID(UINT32 uiContextID)
+{
+    if (uiContextID == 0 || uiContextID > MAX_CID_NUMERIC) {
+        RIL_LOG_CRITICAL("CChannel_Data::RemoveChildContextID() - Invalid contextID (%u)\r\n",
+                uiContextID);
+        return;
+    }
+    RIL_LOG_VERBOSE("CChannel_Data::RemoveChildContextID() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+    m_uiChildContexts &= ~(1 << uiContextID);
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::RemoveChildContextID() - Exit\r\n");
+}
+
+void CChannel_Data::ClearChildsContextID()
+{
+    RIL_LOG_VERBOSE("CChannel_Data::ClearChildsContextID() - Enter\r\n");
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+    m_uiChildContexts = 0;
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+    RIL_LOG_VERBOSE("CChannel_Data::ClearChildsContextID() - Exit\r\n");
+}
+
+// returns true if given contextID is a child from this context.
+BOOL CChannel_Data::HasChildContextID(UINT32 uiContextID)
+{
+    if (uiContextID == 0 || uiContextID > MAX_CID_NUMERIC) {
+        RIL_LOG_CRITICAL("CChannel_Data::HasChildContextID() - Invalid contextID (%u)\r\n",
+                uiContextID);
+        return FALSE;
+    }
+    return (m_uiChildContexts & (1 << uiContextID)) != 0;
 }
 
 //  Used for 6360 and 7160 modems.
@@ -526,7 +613,6 @@ UINT32 CChannel_Data::GetContextID() const
     RIL_LOG_VERBOSE("CChannel_Data::GetContextID() - Exit\r\n");
     return nCID;
 }
-
 
 //
 //  Sets this channel's context ID value

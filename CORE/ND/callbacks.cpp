@@ -291,7 +291,7 @@ void triggerQueryBearerParams(void* param)
     uiCID = (UINT32)callbackParams[1];
     pChannelData = (CChannel_Data*)callbackParams[2];
 
-    delete callbackParams;
+    delete[] callbackParams;
 
     rReqDataTFT.pContextData = (void*) pChannelData;
     rReqDataQOS.pContextData = (void*) pChannelData;

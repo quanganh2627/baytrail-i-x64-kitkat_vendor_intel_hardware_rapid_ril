@@ -95,6 +95,7 @@ public:
     // helper functions to convert ContextID, Dlci and Channel
     //
     static CChannel_Data* GetChnlFromContextID(UINT32 dwContextID);
+    static CChannel_Data* GetChnlFromChildContextID(UINT32 dwContextID);
     static CChannel_Data* GetChnlFromIfName(const char * ifName);
     static CChannel_Data* GetChnlFromRilChannelNumber(UINT32 index);
     static bool IsDataConnectionActive();
@@ -131,6 +132,10 @@ public:
 
     int GetRefCount() { return m_refCount; }
 
+    BOOL HasChildContextID(UINT32 uiCID);
+    void AddChildContextID(UINT32 uiCID);
+    void RemoveChildContextID(UINT32 uiCID);
+    void ClearChildsContextID();
 private:
     int m_dataFailCause;
     UINT32 m_uiContextID;
@@ -173,7 +178,10 @@ private:
     int m_ipcDataChannelMin;
     BOOL m_isRoutingEnabled;
     int m_refCount;
-
+    UINT32 m_uiChildContexts;
+    // If MAX_CID_NUMERIC is increased, m_uiChildContexts shall be changed to a bigger
+    // data type also.
+    static const UINT32 MAX_CID_NUMERIC = 32;
 protected:
     BOOL FinishInit();
 };
