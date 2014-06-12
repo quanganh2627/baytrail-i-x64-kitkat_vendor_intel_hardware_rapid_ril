@@ -1275,12 +1275,16 @@ RIL_RESULT_CODE CTEBase::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
                         break;
 
                     case 2:  // not available code "Interaction with other service"
-                    case 4:  // not available code "Unavailable"
                         pCallListData->pCallData[uinUsed].numberPresentation = 2;
                         break;
 
                     case 3:  // not available payphone
                         pCallListData->pCallData[uinUsed].numberPresentation = 3;
+                        break;
+
+                    case 4:  // not available code "Unavailable"
+                        // BZ 199806 - Wrong <cli valid> value: 4 instead of 1 received from Modem
+                        pCallListData->pCallData[uinUsed].numberPresentation = 1;
                         break;
 
                     default:  // error
