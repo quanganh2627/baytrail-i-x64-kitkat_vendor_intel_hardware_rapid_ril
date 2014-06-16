@@ -38,7 +38,7 @@
 class CSilo_Voice : public CSilo
 {
 public:
-    CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps);
+    CSilo_Voice(CChannel* pChannel);
     virtual ~CSilo_Voice();
 
     virtual char* GetBasicInitString();

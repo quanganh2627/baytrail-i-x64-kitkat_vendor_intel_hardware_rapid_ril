@@ -27,7 +27,7 @@
 class CSilo_MISC : public CSilo
 {
 public:
-    CSilo_MISC(CChannel* pChannel, CSystemCapabilities* pSysCaps);
+    CSilo_MISC(CChannel* pChannel);
     virtual ~CSilo_MISC();
 
     virtual char* GetBasicInitString();

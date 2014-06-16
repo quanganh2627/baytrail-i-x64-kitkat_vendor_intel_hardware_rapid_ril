@@ -34,8 +34,8 @@
 #include "repository.h"
 //
 //
-CSilo_Network::CSilo_Network(CChannel* pChannel, CSystemCapabilities* pSysCaps)
-: CSilo(pChannel, pSysCaps)
+CSilo_Network::CSilo_Network(CChannel* pChannel)
+: CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Network::CSilo_Network() - Enter\r\n");
 
@@ -106,7 +106,7 @@ char* CSilo_Network::GetURCInitString()
         }
     }
 
-    if (m_pSystemCapabilities->IsXDATASTATReportingEnabled())
+    if (CTE::GetTE().IsXDATASTATReportingEnabled())
     {
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
                 sizeof(m_szURCInitString), "|+XDATASTAT=1"))

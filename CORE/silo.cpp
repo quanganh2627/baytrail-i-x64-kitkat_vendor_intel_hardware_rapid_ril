@@ -16,15 +16,13 @@
 #include "extract.h"
 #include "channel_nd.h"
 #include "response.h"
-#include "systemcaps.h"
 #include "silo.h"
 
 //
 //
-CSilo::CSilo(CChannel* pChannel, CSystemCapabilities* pSysCaps) :
+CSilo::CSilo(CChannel* pChannel) :
     m_cTerminator('\r'),
     m_pChannel(pChannel),
-    m_pSystemCapabilities(pSysCaps),
     m_pATRspTable(NULL),
     m_pATRspTableExt(NULL)
 

@@ -553,7 +553,7 @@ Error:
     return siloConfig;
 }
 
-BOOL CInitializer::CreateChannels(CSystemCapabilities* pSysCaps)
+BOOL CInitializer::CreateChannels()
 {
     RIL_LOG_VERBOSE("CInitializer::CreateChannels() - Enter\r\n");
     BOOL bRet = FALSE;
@@ -590,7 +590,7 @@ BOOL CInitializer::CreateChannels(CSystemCapabilities* pSysCaps)
         }
 
         // create silos for channel
-        if (!CreateSilos(g_pRilChannel[i], siloConfig, pSysCaps))
+        if (!CreateSilos(g_pRilChannel[i], siloConfig))
         {
             RIL_LOG_CRITICAL("CInitializer::CreateChannels() : chnl=[%d] Failed to add silos to "
                     "channel!\r\n", i);
@@ -737,7 +737,7 @@ void CInitializer::DeleteChannels()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-CSilo* CInitializer::CreateSilo(CChannel* pChannel, int siloType, CSystemCapabilities* pSysCaps)
+CSilo* CInitializer::CreateSilo(CChannel* pChannel, int siloType)
 {
     RIL_LOG_VERBOSE("CInitializer::CreateSilo() - Enter\r\n");
     CSilo* pSilo = NULL;
@@ -745,31 +745,31 @@ CSilo* CInitializer::CreateSilo(CChannel* pChannel, int siloType, CSystemCapabil
     switch (siloType)
     {
         case SILO_TYPE_VOICE:
-            pSilo = new CSilo_Voice(pChannel, pSysCaps);
+            pSilo = new CSilo_Voice(pChannel);
             break;
         case SILO_TYPE_SIM:
-            pSilo = new CSilo_SIM(pChannel, pSysCaps);
+            pSilo = new CSilo_SIM(pChannel);
             break;
         case SILO_TYPE_SMS:
-            pSilo = new CSilo_SMS(pChannel, pSysCaps);
+            pSilo = new CSilo_SMS(pChannel);
             break;
         case SILO_TYPE_DATA:
-            pSilo = new CSilo_Data(pChannel, pSysCaps);
+            pSilo = new CSilo_Data(pChannel);
             break;
         case SILO_TYPE_NETWORK:
-            pSilo = new CSilo_Network(pChannel, pSysCaps);
+            pSilo = new CSilo_Network(pChannel);
             break;
         case SILO_TYPE_PHONEBOOK:
-            pSilo = new CSilo_Phonebook(pChannel, pSysCaps);
+            pSilo = new CSilo_Phonebook(pChannel);
             break;
         case SILO_TYPE_MISC:
-            pSilo = new CSilo_MISC(pChannel, pSysCaps);
+            pSilo = new CSilo_MISC(pChannel);
             break;
         case SILO_TYPE_IMS:
-            pSilo = new CSilo_IMS(pChannel, pSysCaps);
+            pSilo = new CSilo_IMS(pChannel);
             break;
         case SILO_TYPE_COMMON:
-            pSilo = new CSilo_Common(pChannel, pSysCaps);
+            pSilo = new CSilo_Common(pChannel);
             break;
         default:
             RIL_LOG_CRITICAL("CInitializer::CreateSilo() - Unknown silo type [%d]!\r\n", siloType);
@@ -784,7 +784,7 @@ CSilo* CInitializer::CreateSilo(CChannel* pChannel, int siloType, CSystemCapabil
 // Create silos for a channel, depending on silo config bitmask parameter
 // Note: The CChannelbase destructor will destroy these CSilo objects.
 //
-BOOL CInitializer::CreateSilos(CChannel* pChannel, int siloConfig, CSystemCapabilities* pSysCaps)
+BOOL CInitializer::CreateSilos(CChannel* pChannel, int siloConfig)
 {
     RIL_LOG_VERBOSE("CInitializer::CreateSilos() : ENTER\r\n");
     BOOL bRet = FALSE;
@@ -801,7 +801,7 @@ BOOL CInitializer::CreateSilos(CChannel* pChannel, int siloConfig, CSystemCapabi
         if (siloConfig & (1 << silo))
         {
             // create a silo and add it to the silo container
-            pSilo = CreateSilo(pChannel, silo, pSysCaps);
+            pSilo = CreateSilo(pChannel, silo);
             if (!pSilo || !(pChannel->AddSilo(pSilo)))
             {
                 RIL_LOG_CRITICAL("CInitializer::CreateSilos() : chnl=[%u] Could not add "

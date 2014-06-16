@@ -24,8 +24,8 @@
 
 //
 //
-CSilo_SMS::CSilo_SMS(CChannel* pChannel, CSystemCapabilities* pSysCaps)
-: CSilo(pChannel, pSysCaps)
+CSilo_SMS::CSilo_SMS(CChannel* pChannel)
+: CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::CSilo_SMS() - Enter\r\n");
 
@@ -61,7 +61,7 @@ char* CSilo_SMS::GetBasicInitString()
     // sms silo-related channel basic init string
     const char szSmsBasicInitString[] = "+CMGF=0";
 
-    if (m_pSystemCapabilities->IsSmsCapable())
+    if (CTE::GetTE().IsSmsCapable())
     {
         if (!ConcatenateStringNullTerminate(m_szBasicInitString,
                 sizeof(m_szBasicInitString), szSmsBasicInitString))
@@ -79,7 +79,7 @@ char* CSilo_SMS::GetUnlockInitString()
     // sms silo-related channel unlock init string
     const char szSmsUnlockInitString[] = "+CSMS=1|+CGSMS=3";
 
-    if (m_pSystemCapabilities->IsSmsCapable())
+    if (CTE::GetTE().IsSmsCapable())
     {
         if (!ConcatenateStringNullTerminate(m_szUnlockInitString,
                 sizeof(m_szUnlockInitString), szSmsUnlockInitString))
@@ -96,7 +96,7 @@ char* CSilo_SMS::GetURCInitString()
 {
     // sms silo-related URC channel basic init string
     const char szSmsURCInitString[] = "+CMGF=0|+CSCS=\"UCS2\"";
-    if (m_pSystemCapabilities->IsSmsCapable())
+    if (CTE::GetTE().IsSmsCapable())
     {
         if (!ConcatenateStringNullTerminate(m_szURCInitString,
                 sizeof(m_szURCInitString), szSmsURCInitString))
@@ -113,7 +113,7 @@ char* CSilo_SMS::GetURCUnlockInitString()
 {
     // sms silo-related URC channel unlock init string
     const char szSmsURCUnlockInitString[] = "+CNMI=2,2,2,1";
-    if (m_pSystemCapabilities->IsSmsCapable())
+    if (CTE::GetTE().IsSmsCapable())
     {
         if (!ConcatenateStringNullTerminate(m_szURCUnlockInitString,
                 sizeof(m_szURCUnlockInitString), szSmsURCUnlockInitString))

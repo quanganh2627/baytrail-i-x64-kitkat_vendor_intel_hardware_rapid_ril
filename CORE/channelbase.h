@@ -16,7 +16,6 @@
 #include "com_init_index.h"
 #include "port.h"
 #include "command.h"
-#include "systemcaps.h"
 #include "initializer.h"
 
 // forward declarations

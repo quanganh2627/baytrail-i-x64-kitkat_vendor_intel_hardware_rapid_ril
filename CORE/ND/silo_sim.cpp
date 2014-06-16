@@ -32,8 +32,8 @@
 
 //
 //
-CSilo_SIM::CSilo_SIM(CChannel* pChannel, CSystemCapabilities* pSysCaps)
-: CSilo(pChannel, pSysCaps)
+CSilo_SIM::CSilo_SIM(CChannel* pChannel)
+: CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::CSilo_SIM() - Enter\r\n");
 
@@ -70,7 +70,7 @@ CSilo_SIM::~CSilo_SIM()
 
 char* CSilo_SIM::GetURCInitString()
 {
-    if (m_pSystemCapabilities->IsVoiceCapable())
+    if (CTE::GetTE().IsVoiceCapable())
     {
         // SIM silo-related URC channel basic init string
         const char szSimURCInitString[] = "+XLEMA=1";

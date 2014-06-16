@@ -31,7 +31,7 @@
 class CSilo_SMS : public CSilo
 {
 public:
-    CSilo_SMS(CChannel *pChannel, CSystemCapabilities* pSysCaps);
+    CSilo_SMS(CChannel *pChannel);
     virtual ~CSilo_SMS();
 
     virtual char* GetBasicInitString();

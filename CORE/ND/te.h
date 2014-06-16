@@ -704,6 +704,9 @@ public:
     }
     BOOL IsSmsOverPSCapable() { return m_bSmsOverPSCapable; }
 
+    void SetSmsCapable(BOOL bIsSmsCapable) { m_bSmsCapable = bIsSmsCapable; }
+    BOOL IsSmsCapable() { return m_bSmsCapable; }
+
     void SetStkCapable(BOOL bIsStkCapable) { m_bStkCapable =  bIsStkCapable; }
     BOOL IsStkCapable() { return m_bStkCapable; }
 
@@ -715,6 +718,9 @@ public:
 
     void SetIMSCapable(BOOL bEnable) { m_bIMSCapable = bEnable; }
     BOOL IsIMSCapable() { return m_bIMSCapable; }
+
+    void SetSMSOverIPCapable(BOOL bSMSOverIPCapable) { m_bSMSOverIPCapable = bSMSOverIPCapable; }
+    BOOL IsSMSOverIPCapable() { return m_bSMSOverIPCapable; }
 
     void SetIMSApCentric(BOOL bEnable) { m_bIMSApCentric = bEnable; }
     BOOL IsIMSApCentric() { return m_bIMSApCentric; }
@@ -1312,9 +1318,11 @@ private:
     BOOL m_bVoiceCapable;
     BOOL m_bSmsOverCSCapable;
     BOOL m_bSmsOverPSCapable;
+    BOOL m_bSmsCapable;
     BOOL m_bStkCapable;
     BOOL m_bXDATASTATEnabled;
     BOOL m_bIMSCapable;
+    BOOL m_bSMSOverIPCapable;
     BOOL m_bIMSApCentric;
     BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
     BOOL m_bSignalStrengthReporting;

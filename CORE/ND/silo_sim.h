@@ -30,7 +30,7 @@
 class CSilo_SIM : public CSilo
 {
 public:
-    CSilo_SIM(CChannel *pChannel, CSystemCapabilities* pSysCaps);
+    CSilo_SIM(CChannel *pChannel);
     virtual ~CSilo_SIM();
 
     virtual char* GetURCInitString();

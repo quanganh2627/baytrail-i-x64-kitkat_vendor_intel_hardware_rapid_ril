@@ -38,7 +38,6 @@
 #include "mmgr_cli.h"
 #include "reset.h"
 #include "initializer.h"
-#include "systemcaps.h"
 #include "systemmanager.h"
 
 #include <cutils/properties.h>
@@ -246,7 +245,6 @@ BOOL CSystemManager::InitializeSystem(const char* szModemName)
     BOOL bRetVal = FALSE;
 
     UINT32 uiModemType = MODEM_TYPE_UNKNOWN;
-    CSystemCapabilities pSysCaps;
 
     char szBuildTypeProperty[PROPERTY_VALUE_MAX] = {'\0'};
     char szImsSupport[PROPERTY_VALUE_MAX] = {'\0'};
@@ -388,6 +386,9 @@ BOOL CSystemManager::InitializeSystem(const char* szModemName)
         CTE::GetTE().SetSmsOverPSCapable(iTemp == 1 ? TRUE : FALSE);
     }
 
+    CTE::GetTE().SetSmsCapable(CTE::GetTE().IsSmsOverCSCapable()
+            || CTE::GetTE().IsSmsOverPSCapable());
+
     if (repository.Read(g_szGroupModem, g_szStkCapable, iTemp))
     {
         CTE::GetTE().SetStkCapable(iTemp == 1 ? TRUE : FALSE);
@@ -436,18 +437,9 @@ BOOL CSystemManager::InitializeSystem(const char* szModemName)
         // Set SMS over IMS support in case of BP centric
         if (repository.Read(g_szGroupModem, g_szEnableSMSOverIP, iTemp))
         {
-            pSysCaps.SetSMSOverIPCapable(iTemp == 1 ? TRUE : FALSE);
+            CTE::GetTE().SetSMSOverIPCapable(iTemp == 1 ? TRUE : FALSE);
         }
     }
-
-    // set system capabilities
-    pSysCaps.SetSmsCapable(CTE::GetTE().IsSmsOverCSCapable()
-            || CTE::GetTE().IsSmsOverPSCapable());
-    pSysCaps.SetVoiceCapable(CTE::GetTE().IsVoiceCapable());
-    pSysCaps.SetIsStkCapable(CTE::GetTE().IsStkCapable());
-    pSysCaps.SetXDATASTATReporting(CTE::GetTE().IsXDATASTATReportingEnabled());
-    pSysCaps.SetIMSCapable(CTE::GetTE().IsIMSCapable());
-    pSysCaps.SetIMSApCentric(CTE::GetTE().IsIMSApCentric());
 
     // Call drop reporting is available only for eng or userdebug build
     if (property_get("ro.build.type", szBuildTypeProperty, NULL))
@@ -465,7 +457,7 @@ BOOL CSystemManager::InitializeSystem(const char* szModemName)
     }
 
     //  Create and initialize the channels (don't open ports yet)
-    if (!m_pInitializer->CreateChannels(&pSysCaps))
+    if (!m_pInitializer->CreateChannels())
     {
         RIL_LOG_CRITICAL("CSystemManager::InitializeSystem() - Failed to create channels!\r\n");
         goto Done;

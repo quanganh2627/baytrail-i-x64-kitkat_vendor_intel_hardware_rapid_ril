@@ -22,7 +22,6 @@ class CSilo;
 class CResponse;
 class CChannel;
 class CRilHandle;
-class CSystemCapabilities;
 
 typedef BOOL (CSilo::*PFN_ATRSP_PARSE) (CResponse* const pResponse, const char*& rszPointer);
 
@@ -36,7 +35,7 @@ typedef struct atrsptable_tag
 class CSilo
 {
 public:
-    CSilo(CChannel* pChannel, CSystemCapabilities* pSysCaps);
+    CSilo(CChannel* pChannel);
     virtual ~CSilo();
 
     //  Called at beginning of CResponse::ParseUnsolicitedResponse().
@@ -62,8 +61,6 @@ protected:
     char m_szNewLine[3];
 
     CChannel* m_pChannel;
-
-    CSystemCapabilities* m_pSystemCapabilities;
 
     ATRSPTABLE* m_pATRspTable;
     ATRSPTABLE* m_pATRspTableExt;

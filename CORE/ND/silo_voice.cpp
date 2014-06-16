@@ -26,8 +26,8 @@
 
 //
 //
-CSilo_Voice::CSilo_Voice(CChannel* pChannel, CSystemCapabilities* pSysCaps)
-: CSilo(pChannel, pSysCaps),
+CSilo_Voice::CSilo_Voice(CChannel* pChannel)
+: CSilo(pChannel),
   m_uiCallId(0)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::CSilo_Voice() - Enter\r\n");
@@ -80,7 +80,7 @@ CSilo_Voice::~CSilo_Voice()
 
 char* CSilo_Voice::GetBasicInitString()
 {
-    if (m_pSystemCapabilities->IsVoiceCapable())
+    if (CTE::GetTE().IsVoiceCapable())
     {
         // voice silo-related channel basic init string
         const char szVoiceBasicInitString[] = "+XCALLNBMMI=1";
@@ -118,7 +118,7 @@ char* CSilo_Voice::GetURCUnlockInitString()
     // voice silo-related URC channel unlock init string
     const char szVoiceUnlockInitString[] = "+CUSD=1|+CCWA=1";
 
-    if (m_pSystemCapabilities->IsVoiceCapable())
+    if (CTE::GetTE().IsVoiceCapable())
     {
         if (!ConcatenateStringNullTerminate(m_szURCUnlockInitString,
                 sizeof(m_szURCUnlockInitString), szVoiceUnlockInitString))

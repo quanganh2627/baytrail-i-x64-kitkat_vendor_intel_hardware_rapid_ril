@@ -19,8 +19,8 @@
 
 //
 //
-CSilo_Common::CSilo_Common(CChannel* pChannel, CSystemCapabilities* pSysCaps)
-: CSilo(pChannel, pSysCaps)
+CSilo_Common::CSilo_Common(CChannel* pChannel)
+: CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_Common::CSilo_Common() - Enter\r\n");
 

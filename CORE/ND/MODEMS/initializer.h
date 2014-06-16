@@ -19,7 +19,6 @@
 
 class CChannel;
 class CSilo;
-class CSystemCapabilities;
 
 enum SILO_TYPE {
     SILO_TYPE_VOICE = 0,
@@ -47,14 +46,14 @@ public:
     BOOL InitializeModem();
 
     //  Create and initialize the channels, but don't actually open the ports.
-    virtual BOOL CreateChannels(CSystemCapabilities* pSysCaps);
+    virtual BOOL CreateChannels();
     void DeleteChannels();
 
     //  For resetting modem
     BOOL OpenChannelPortsOnly();
     void CloseChannelPorts();
 
-    BOOL CreateSilos(CChannel* pChannel, int siloConfig, CSystemCapabilities* pSysCaps);
+    BOOL CreateSilos(CChannel* pChannel, int siloConfig);
 
     void TriggerSimUnlockedEvent() { CEvent::Signal(m_pSimUnlockedEvent); }
     void TriggerModemPoweredOffEvent() const { CEvent::Signal(m_pModemPoweredOffEvent); }
@@ -87,7 +86,7 @@ private:
     CChannel* CreateChannel(UINT32 eIndex);
     BOOL IsChannelUndefined(int channel);
 
-    CSilo* CreateSilo(CChannel* pChannel, int siloType, CSystemCapabilities* pSysCaps);
+    CSilo* CreateSilo(CChannel* pChannel, int siloType);
     int GetSiloConfig(UINT32 channel);
 
     // Modem initialization helper functions (called by component init functions)

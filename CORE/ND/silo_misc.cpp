@@ -19,14 +19,13 @@
 #include "silo_misc.h"
 #include "extract.h"
 #include "oemhookids.h"
-#include "systemcaps.h"
 
 #include <arpa/inet.h>
 
 //
 //
-CSilo_MISC::CSilo_MISC(CChannel* pChannel, CSystemCapabilities* pSysCaps)
-: CSilo(pChannel, pSysCaps)
+CSilo_MISC::CSilo_MISC(CChannel* pChannel)
+: CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_MISC::CSilo_MISC() - Enter\r\n");
 

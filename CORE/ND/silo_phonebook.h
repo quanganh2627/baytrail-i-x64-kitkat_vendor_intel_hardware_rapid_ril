@@ -24,7 +24,7 @@
 class CSilo_Phonebook : public CSilo
 {
 public:
-    CSilo_Phonebook(CChannel* pChannel, CSystemCapabilities* pSysCaps);
+    CSilo_Phonebook(CChannel* pChannel);
     virtual ~CSilo_Phonebook();
 
 protected:

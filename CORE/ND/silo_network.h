@@ -29,7 +29,7 @@
 class CSilo_Network : public CSilo
 {
 public:
-    CSilo_Network(CChannel *pChannel, CSystemCapabilities* pSysCaps);
+    CSilo_Network(CChannel *pChannel);
     virtual ~CSilo_Network();
 
     virtual char* GetURCInitString();

@@ -22,8 +22,8 @@
 
 //
 //
-CSilo_IMS::CSilo_IMS(CChannel* pChannel, CSystemCapabilities* pSysCaps)
-: CSilo(pChannel, pSysCaps)
+CSilo_IMS::CSilo_IMS(CChannel* pChannel)
+: CSilo(pChannel)
 {
     RIL_LOG_VERBOSE("CSilo_IMS::CSilo_IMS() - Enter\r\n");
 
@@ -58,14 +58,14 @@ char* CSilo_IMS::GetURCInitString()
     char szEnableIMS[MAX_BUFFER_SIZE] = {'\0'};
 
     // IMS Modem Centric
-    if (m_pSystemCapabilities->IsIMSCapable())
+    if (CTE::GetTE().IsIMSCapable())
     {
         PrintStringNullTerminate(szEnableIMS, MAX_BUFFER_SIZE,
                 "|+CISRVCC=1|+CIREP=1|+CIREG=1|+XISMSCFG=%d",
-                m_pSystemCapabilities->IsSMSOverIPCapable() ? 1 : 0);
+                CTE::GetTE().IsSMSOverIPCapable() ? 1 : 0);
     }
     // IMS AP Centric
-    else if (m_pSystemCapabilities->IsIMSApCentric())
+    else if (CTE::GetTE().IsIMSApCentric())
     {
         PrintStringNullTerminate(szEnableIMS, MAX_BUFFER_SIZE, "+CIREP=1|+XISRVCC=1");
     }

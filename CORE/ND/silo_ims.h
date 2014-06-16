@@ -25,7 +25,7 @@
 class CSilo_IMS : public CSilo
 {
 public:
-    CSilo_IMS(CChannel *pChannel, CSystemCapabilities* pSysCaps);
+    CSilo_IMS(CChannel *pChannel);
     virtual ~CSilo_IMS();
 
     virtual char* GetURCInitString();

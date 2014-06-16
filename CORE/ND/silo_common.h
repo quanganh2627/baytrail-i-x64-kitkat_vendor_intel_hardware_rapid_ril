@@ -19,7 +19,7 @@
 class CSilo_Common : public CSilo
 {
 public:
-    CSilo_Common(CChannel *pChannel, CSystemCapabilities* pSysCaps);
+    CSilo_Common(CChannel *pChannel);
     virtual ~CSilo_Common();
 };
 
