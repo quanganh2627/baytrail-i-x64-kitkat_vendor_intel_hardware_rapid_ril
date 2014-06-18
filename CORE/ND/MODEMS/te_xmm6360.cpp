@@ -1146,6 +1146,7 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
     RIL_InitialAttachApn* pTemp = NULL;
     UINT32 uiMode = 0;
     char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+    char szApn[MAX_APN_SIZE] = {'\0'};
     bool bInitialAttachApnChanged = false;
     bool bStoredInitialAttachApnInfoValid = false;
 
@@ -1182,6 +1183,11 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
         CopyStringNullTerminate(szPdpType, pTemp->protocol, sizeof(szPdpType));
     }
 
+    if (NULL != pTemp->apn)
+    {
+        CopyStringNullTerminate(szApn, pTemp->apn, sizeof(szApn));
+    }
+
     // If the initial attach apn request is issued by framework, then pdp type stored in
     // m_InitialAttachApnParams.szPdpType will not be empty even if the pdp type is not provided by
     // framework. So, if m_InitialAttachApnParams.szPdpType is not empty, stored initial attach apn
@@ -1191,7 +1197,7 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
         bStoredInitialAttachApnInfoValid = true;
     }
 
-    if (((strcmp(m_InitialAttachApnParams.szApn, pTemp->apn) != 0)
+    if (((strcmp(m_InitialAttachApnParams.szApn, szApn) != 0)
             || (strcmp(m_InitialAttachApnParams.szPdpType, szPdpType) != 0))
             && bStoredInitialAttachApnInfoValid)
     {
@@ -1201,7 +1207,7 @@ RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
     ResetInitialAttachApn();
 
     CopyStringNullTerminate(m_InitialAttachApnParams.szApn,
-            pTemp->apn, sizeof(m_InitialAttachApnParams.szApn));
+            szApn, sizeof(m_InitialAttachApnParams.szApn));
     CopyStringNullTerminate(m_InitialAttachApnParams.szPdpType,
             szPdpType, sizeof(m_InitialAttachApnParams.szPdpType));
 
