@@ -533,6 +533,21 @@ const int RIL_OEM_HOOK_STRING_CSG_GET_CURRENT_CSG_STATE = 0x000000C0;
 //
 const int RIL_OEM_HOOK_STRING_CNAP_GET_CURRENT_STATE = 0x000000C1;
 
+/////////////////////////////////////////////////////////////////////////////
+//
+//  RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED
+//  Command ID = 0x000000C2
+//
+//  This command sends information about airplane mode to vendor ril
+//
+//  "data" = string containig the one of the value
+//           true, airplane mode is active
+//           false, airplane mode is inactive
+//
+//  "response" = none
+//
+const int RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED = 0x000000C2;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND

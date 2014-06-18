@@ -2373,19 +2373,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
                         // Do nothing. Actions will be taken on modem powered off event
                     }
                 }
-                else if (E_RADIO_OFF_REASON_NONE == radioOffReason)
-                {
-                    /*
-                     * This can happen when rild and mmgr is active but all the android core
-                     * services are stopped(adb shell stop) and restarted(adb shell start).
-                     * So, when the android core services are restarted again, POWER_OFF
-                     * will be issue when modem is up. Radio state is set even before
-                     * sending CFUN=4 to make sure that android doesn't start sending requests
-                     * considering that the radio is on.
-                     */
-                    SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
-                }
-                else if (E_RADIO_OFF_REASON_AIRPLANE_MODE == radioOffReason)
+                else
                 {
                     // Do nothing. Actions will be taken on radio state changed event
                 }

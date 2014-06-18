@@ -84,7 +84,7 @@ public:
     BOOL IsInternalRequestsAllowedInRadioOff(int requestId);
     BOOL IsRequestAllowed(int requestId, RIL_Token rilToken, UINT32 uiChannelId,
             BOOL bIsInitCommand, int callId = 0);
-    BOOL IsModemPowerOffRequest(int requestId, void* pData, size_t uiDataSize);
+    BOOL IsOemHookPossible(int requestId, void* pData, size_t uiDataSize);
 
     // Calls FindIdenticalRequestsAndSendResponses on the given channel
     static void CompleteIdenticalRequests(UINT32 uiChannelId, int reqID, UINT32 uiResultCode,
@@ -1236,6 +1236,8 @@ public:
     bool IsImsRegistered() { return (m_uiImsRegStatus == IMS_REGISTERED); }
 
     const char* GetEnableFetchingString();
+    void ReleaseModemForAirplaneMode();
+
     const char* GetSiloVoiceURCInitString();
 
     RIL_RESULT_CODE ParseAtSecStateInfoRequest(RESPONSE_DATA& rRspData);
@@ -1435,6 +1437,7 @@ private:
     BOOL IsBuildTypeEngUserDebug();
     void TriggerRestrictedModeEvent();
     bool NeedGetCellInfoOnCellChange();
+    BOOL m_bOkToReleaseModem;
 };
 
 #endif

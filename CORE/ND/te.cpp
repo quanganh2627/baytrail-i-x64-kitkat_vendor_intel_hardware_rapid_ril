@@ -94,7 +94,8 @@ CTE::CTE(UINT32 modemType) :
     m_CbsActivate(-1),
     m_bTempOoSNotifReporting(FALSE),
     m_uiImsRegStatus(IMS_REGISTERED),
-    m_ProductConfig(CONFIG_GENERAL)
+    m_ProductConfig(CONFIG_GENERAL),
+    m_bOkToReleaseModem(FALSE)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -426,9 +427,9 @@ BOOL CTE::IsRequestAllowedWhenNotRegistered(int requestId)
     return bAllowed;
 }
 
-BOOL CTE::IsModemPowerOffRequest(int requestId, void* pData, size_t uiDataSize)
+BOOL CTE::IsOemHookPossible(int requestId, void* pData, size_t uiDataSize)
 {
-    RIL_LOG_VERBOSE("CTE::IsModemPowerOffRequest - ENTER\r\n");
+    RIL_LOG_VERBOSE("CTE::IsOemHookPossible - ENTER\r\n");
 
     char** pszRequest = ((char**)pData);
     UINT32 uiCommand = 0;
@@ -441,13 +442,13 @@ BOOL CTE::IsModemPowerOffRequest(int requestId, void* pData, size_t uiDataSize)
 
     if (pszRequest == NULL || '\0' == pszRequest[0])
     {
-        RIL_LOG_CRITICAL("CTE::IsModemPowerOffRequest() - pszRequest was NULL\r\n");
+        RIL_LOG_CRITICAL("CTE::IsOemHookPossible() - pszRequest was NULL\r\n");
         goto Error;
     }
 
     if ((uiDataSize < (1 * sizeof(char *))) || (0 != (uiDataSize % sizeof(char*))))
     {
-        RIL_LOG_CRITICAL("CTE::IsModemPowerOffRequest() -"
+        RIL_LOG_CRITICAL("CTE::IsOemHookPossible() -"
                 " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
         goto Error;
     }
@@ -455,12 +456,12 @@ BOOL CTE::IsModemPowerOffRequest(int requestId, void* pData, size_t uiDataSize)
     // Get command
     if (sscanf(pszRequest[0], "%u", &uiCommand) == EOF)
     {
-        RIL_LOG_CRITICAL("CTE::IsModemPowerOffRequest() - cannot convert %s to int\r\n",
+        RIL_LOG_CRITICAL("CTE::IsOemHookPossible() - cannot convert %s to int\r\n",
                 pszRequest);
         goto Error;
     }
 
-    RIL_LOG_INFO("CTE::IsModemPowerOffRequest(), uiCommand: %u", uiCommand);
+    RIL_LOG_INFO("CTE::IsOemHookPossible(), uiCommand: %u", uiCommand);
 
     switch (uiCommand)
     {
@@ -474,13 +475,16 @@ BOOL CTE::IsModemPowerOffRequest(int requestId, void* pData, size_t uiDataSize)
             }
             break;
         }
+        case  RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED:
+            bRet = TRUE;
+            break;
 
         default:
         break;
     }
 
 Error:
-    RIL_LOG_VERBOSE("CTE::IsModemPowerOffRequest - Exit\r\n");
+    RIL_LOG_VERBOSE("CTE::IsOemHookPossible - Exit\r\n");
     return bRet;
 }
 
@@ -602,13 +606,13 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     //  If we're in the middle of Radio error or radio off request handling, spoof all commands.
     if ((GetSpoofCommandsStatus() ||  RADIO_STATE_UNAVAILABLE == GetRadioState())
             && !IsRequestAllowedInSpoofState(requestId)
-            && !IsModemPowerOffRequest(requestId, pData, datalen))
+            && !IsOemHookPossible(requestId, pData, datalen))
     {
         eRetVal = HandleRequestWhenNoModem(requestId, hRilToken);
     }
     else if ((m_bRadioRequestPending || RADIO_STATE_OFF == GetRadioState())
             && !IsRequestAllowedInRadioOff(requestId)
-            && !IsModemPowerOffRequest(requestId, pData, datalen))
+            && !IsOemHookPossible(requestId, pData, datalen))
     {
         eRetVal = HandleRequestInRadioOff(requestId, hRilToken);
     }
@@ -9203,6 +9207,7 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
 
         //  Turning on phone
         SetRadioStateAndNotify(RRIL_RADIO_STATE_ON);
+        m_bOkToReleaseModem = FALSE;
         CSystemManager::GetInstance().TriggerRadioPoweredOnEvent();
     }
     else
@@ -9228,10 +9233,18 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
         {
             SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
 
-            if (GetModemOffInFlightModeState()
-                    && E_RADIO_OFF_REASON_AIRPLANE_MODE == m_RadioOffReason)
+            // Actual modem release will be based on the FMMO setting after OemTelephony
+            // informs about ariplane mode change.
+            RIL_LOG_INFO("CTE::PostRadioPower() -"
+                    " Try releasing modem %d\r\n", m_bOkToReleaseModem);
+
+            if (m_bOkToReleaseModem)
             {
-                CSystemManager::GetInstance().ReleaseModem();
+                 ReleaseModemForAirplaneMode();
+            }
+            else
+            {
+                m_bOkToReleaseModem = TRUE;
             }
         }
     }
@@ -9242,6 +9255,25 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
     }
 
     RIL_LOG_VERBOSE("CTE::PostRadioPower() Exit\r\n");
+}
+
+void CTE::ReleaseModemForAirplaneMode()
+{
+    RIL_LOG_INFO("CTE::ReleaseModemForAirplaneMode() -"
+            "m_bOkToReleaseModem %d\r\n", m_bOkToReleaseModem);
+
+    if (m_bOkToReleaseModem)
+    {
+        if (GetModemOffInFlightModeState())
+        {
+            CSystemManager::GetInstance().ReleaseModem();
+        }
+        m_bOkToReleaseModem = FALSE;
+    }
+    else
+    {
+        m_bOkToReleaseModem = TRUE;
+    }
 }
 
 void CTE::PostSendSmsCmdHandler(POST_CMD_HANDLER_DATA& rData)

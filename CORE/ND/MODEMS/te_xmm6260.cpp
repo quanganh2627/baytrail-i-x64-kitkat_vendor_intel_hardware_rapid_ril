@@ -2365,6 +2365,12 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                     uiDataSize);
             break;
 
+        case RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED\r\n");
+            HandleAirplaneMode(rReqData, (const char**) pszRequest,
+                    uiDataSize);
+            res = RRIL_RESULT_OK_IMMEDIATE;
+            break;
         case RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD_V2:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD_V2\r\n");
             res = CreateActivateThermalSensorV2Ind(rReqData, (const char**) pszRequest,
@@ -2506,6 +2512,49 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseHookStrings() - Exit\r\n");
     return res;
+}
+
+void CTE_XMM6260::HandleAirplaneMode(REQUEST_DATA& rReqData,
+                                    const char** pszRequest,
+                                         UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleAirplaneMode() - Enter\r\n");
+    char szAirplaneMode[7] = {0};
+    char szFormat[10];
+
+    if (pszRequest == NULL || '\0' == pszRequest[0])
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::HandleAirplaneMode() - pszRequest was NULL\r\n");
+        goto Out;
+    }
+
+    if (uiDataSize < (2 * sizeof(char*)))
+    {
+        RIL_LOG_INFO("CTE_XMM6260::HandleAirplaneMode() - mode not provided\r\n");
+    }
+
+    snprintf(szFormat, sizeof(szFormat), "%%%ds", sizeof(szAirplaneMode) -1);
+
+    if (sscanf(pszRequest[1], szFormat, szAirplaneMode) == EOF)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::HandleAirplaneMode()"
+                " - cannot convert %s to stringr\n", pszRequest);
+        goto Out;
+    }
+
+    RIL_LOG_INFO("CTE_XMM6260::HandleAirplaneMode() - airplanemode=[%s]\r\n",
+           szAirplaneMode);
+
+    if (strcmp(szAirplaneMode,"true") == 0)
+    {
+         m_cte.ReleaseModemForAirplaneMode();
+    }
+
+    // Update the radio off reason
+     m_cte.SetRadioOffReason(E_RADIO_OFF_REASON_AIRPLANE_MODE);
+
+Out:
+    RIL_LOG_VERBOSE("CTE_XMM6260::HandleAirplaneMode() - Exit\r\n");
 }
 
 //

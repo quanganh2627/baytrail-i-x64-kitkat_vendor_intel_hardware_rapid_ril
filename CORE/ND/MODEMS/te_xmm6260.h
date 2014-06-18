@@ -191,6 +191,8 @@ public:
             UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetInitialAttachApn(RESPONSE_DATA& rRspData);
 
+    void HandleAirplaneMode(REQUEST_DATA& rReqData, const char** ppszRequest, UINT32 uiDataSize);
+
     // internal response handlers
     virtual RIL_RESULT_CODE ParsePdpContextActivate(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseQueryIpAndDns(RESPONSE_DATA& rRspData);
