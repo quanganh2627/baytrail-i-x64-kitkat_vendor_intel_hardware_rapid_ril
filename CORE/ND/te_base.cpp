@@ -12506,3 +12506,90 @@ const char* CTEBase::GetSiloVoiceURCInitString()
     const char* pszSiloVoiceURCInitString = "|+CSNN=1,1";
     return pszSiloVoiceURCInitString;
 }
+
+// The AT+CNAP? query is sent in the RIL_CHANNEL_ATCMD as set in the te_xmm6260.cpp
+// file. This is made to avoid conflict between the +CNAP URC parsing and the
+// response parsing, please be aware that there should not be any modification
+// on the channel unless changes of code behavior.
+RIL_RESULT_CODE CTEBase::CoreQueryCnap(REQUEST_DATA& rReqData)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryCnap() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+CNAP?\r", sizeof(rReqData.szCmd1)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreQueryCnap() - Unable to write command to buffer\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTEBase::CoreQueryCnap() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTEBase::ParseQueryCnap(const char* pszRsp, RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryCnap() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    P_ND_CNAP_CURRENT_STATE pCnapVal
+            = (P_ND_CNAP_CURRENT_STATE) malloc(sizeof(S_ND_CNAP_CURRENT_STATE));
+    UINT32 nValue = 0;
+    UINT32 uiCause;
+
+    memset(pCnapVal, 0, sizeof(S_ND_CNAP_CURRENT_STATE));
+
+    // Parse "<prefix>+CNAP: <n>,<m>"
+    if (!SkipString(pszRsp, "+CNAP: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryCnap() - Can't parse prefix. rsp=%s \r\n", pszRsp);
+        goto Error;
+    }
+
+
+    if (!ExtractUInt32(pszRsp, nValue, pszRsp))
+    {
+        goto Error;
+    }
+
+    if (!SkipString(pszRsp, ",", pszRsp))
+    {
+        goto Error;
+    }
+
+
+    if (!CopyStringNullTerminate(pCnapVal->szCnapCurrentState, pszRsp, MAX_BUFFER_SIZE))
+    {
+        goto Error;
+    }
+
+    pCnapVal->sResponsePointer.pszCnapCurrentState = pCnapVal->szCnapCurrentState;
+
+    rRspData.pData = (void*)pCnapVal;
+    rRspData.uiDataSize = sizeof(S_ND_CNAP_CURRENT_STATE_PTR);
+
+
+    if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryCnap() -"
+                   " Could not extract the response end.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryCnap() - CnapVal = %s", pCnapVal->szCnapCurrentState);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pCnapVal);
+        pCnapVal = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::ParseQueryCnap() - Exit\r\n");
+    return res;
+}

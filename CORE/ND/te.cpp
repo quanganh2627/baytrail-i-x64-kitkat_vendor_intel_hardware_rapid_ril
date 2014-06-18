@@ -10655,3 +10655,13 @@ const char* CTE::GetSiloVoiceURCInitString()
 {
     return m_pTEBaseInstance->GetSiloVoiceURCInitString();
 }
+
+RIL_RESULT_CODE CTE::GetCnapState(REQUEST_DATA& reqData)
+{
+    return m_pTEBaseInstance->CoreQueryCnap(reqData);
+}
+
+RIL_RESULT_CODE CTE::ParseQueryCnap(const char* pszRsp, RESPONSE_DATA& rspData)
+{
+    return m_pTEBaseInstance->ParseQueryCnap(pszRsp, rspData);
+}

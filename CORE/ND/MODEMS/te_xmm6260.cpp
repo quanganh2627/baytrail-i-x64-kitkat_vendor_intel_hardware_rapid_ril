@@ -2342,6 +2342,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                  */
             }
         break;
+
         case RIL_OEM_HOOK_STRING_SEND_AT:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SEND_AT");
             if (!PrintStringNullTerminate(rReqData.szCmd1,
@@ -2355,7 +2356,6 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             uiRilChannel = RIL_CHANNEL_DLC23;
             res = RRIL_RESULT_OK;
             break;
-
         case RIL_OEM_HOOK_STRING_GET_OEM_VERSION:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_GET_OEM_VERSION");
             res = GetOemVersion(rReqData);
@@ -2381,6 +2381,15 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                     uiDataSize);
             uiRilChannel = RIL_CHANNEL_URC;
             break;
+
+        case RIL_OEM_HOOK_STRING_CNAP_GET_CURRENT_STATE:
+            {
+                RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_CNAP_GET_CURRENT_STATE");
+                // Send this command on ATCMD channel to avoid collision with +CNAP URC
+                uiRilChannel = RIL_CHANNEL_ATCMD;
+                res = m_cte.GetCnapState(rReqData);
+                break;
+            }
 
         default:
             RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
@@ -2481,6 +2490,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_SET_DVP_ENABLED:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
+            break;
+        case RIL_OEM_HOOK_STRING_CNAP_GET_CURRENT_STATE:
+            res = m_cte.ParseQueryCnap(pszRsp, rRspData);
             break;
 
         case RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_IND:

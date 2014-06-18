@@ -1218,10 +1218,11 @@ public:
     bool IsImsRegistered() { return (m_uiImsRegStatus == IMS_REGISTERED); }
 
     const char* GetEnableFetchingString();
-
     const char* GetSiloVoiceURCInitString();
 
     RIL_RESULT_CODE ParseAtSecStateInfoRequest(RESPONSE_DATA& rRspData);
+    RIL_RESULT_CODE GetCnapState(REQUEST_DATA& reqData);
+    RIL_RESULT_CODE ParseQueryCnap(const char* pszRsp, RESPONSE_DATA& rspData);
 
 private:
     UINT32 m_uiModemType;

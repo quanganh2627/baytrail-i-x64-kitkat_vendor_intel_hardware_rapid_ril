@@ -437,4 +437,25 @@ typedef struct
     char szCsgCurrentState[MAX_CSG_STATE_SIZE];
 } S_ND_CSG_CURRENT_STATE, *P_ND_CSG_CURRENT_STATE;
 
+//
+// Structs for retrieving current CNAP state
+//
+// szCnapCurrentState: contains the result of the AT+CNAP?
+//                     command after parsing of the response.
+//
+// values: '0' for service deactivated
+//         '1' for service activated
+//         '2' for service state unknown
+//
+typedef struct
+{
+    char* pszCnapCurrentState;
+}  S_ND_CNAP_CURRENT_STATE_PTR, *P_ND_CNAP_CURRENT_STATE_PTR;
+
+typedef struct
+{
+    S_ND_CNAP_CURRENT_STATE_PTR sResponsePointer;
+    char szCnapCurrentState[MAX_BUFFER_SIZE];
+} S_ND_CNAP_CURRENT_STATE, *P_ND_CNAP_CURRENT_STATE;
+
 #endif

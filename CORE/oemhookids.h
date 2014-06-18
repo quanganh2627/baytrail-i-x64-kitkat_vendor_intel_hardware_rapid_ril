@@ -519,6 +519,22 @@ const int RIL_OEM_HOOK_STRING_CSG_GET_CURRENT_CSG_STATE = 0x000000C0;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_CNAP_GET_CURRENT_STATE
+//  Command ID = 0x000000C1
+//
+//  This command sends AT+CNAP?
+//
+//  "data" = NULL
+//  "response" = current CNAP information returned by AT command
+//               0 for service disabled
+//               1 for service activated
+//               2 for unknown state
+//
+const int RIL_OEM_HOOK_STRING_CNAP_GET_CURRENT_STATE = 0x000000C1;
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID
