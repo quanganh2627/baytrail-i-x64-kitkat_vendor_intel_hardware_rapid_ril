@@ -2364,8 +2364,6 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/,
     CCommand* pCmd = NULL;
     char szCmd[MAX_BUFFER_SIZE] = {'\0'};
     int radioOffReason = m_cte.GetRadioOffReason();
-
-    BOOL bModemOffInFlightMode = m_cte.GetModemOffInFlightModeState();
     BOOL bTurnRadioOn = (0 == ((int*)pData)[0]) ? FALSE : TRUE;
 
     CEvent* pRadioStateChangedEvent = m_cte.GetRadioStateChangedEvent();
@@ -2415,24 +2413,16 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/,
             case E_MMGR_EVENT_MODEM_UP:
                 if (E_RADIO_OFF_REASON_SHUTDOWN == radioOffReason)
                 {
-                    if (RADIO_STATE_ON != GetRadioState())
+                    if (RADIO_STATE_UNAVAILABLE == GetRadioState())
                     {
                         if (CSystemManager::GetInstance().SendRequestModemShutdown())
                         {
                             WaitForModemPowerOffEvent();
                         }
-
                         res = RRIL_RESULT_ERROR;
                     }
-                    else
-                    {
-                        // Do nothing. Actions will be taken on modem powered off event
-                    }
                 }
-                else
-                {
-                    // Do nothing. Actions will be taken on radio state changed event
-                }
+                // Do nothing. Actions will be taken on radio state changed event
                 break;
 
             case E_MMGR_EVENT_MODEM_DOWN:
@@ -2483,8 +2473,7 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/,
         }
     }
 
-    if (!GetRadioPowerCommand(bTurnRadioOn, radioOffReason, bModemOffInFlightMode,
-            szCmd, sizeof(szCmd)))
+    if (!GetRadioPowerCommand(bTurnRadioOn, radioOffReason, szCmd, sizeof(szCmd)))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreRadioPower() - GetRadioPowerCommand failed\r\n");
         goto Error;
@@ -2609,23 +2598,6 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/,
     }
 
 Error:
-
-#if defined(M2_PDK_OR_GMIN_BUILD)
-    if (!bTurnRadioOn && res == RRIL_RESULT_OK)
-    {
-      RIL_LOG_INFO("CTEBase::CoreRadioPower() - Setting the SIM state and notify\r\n");
-      SetSimState(RIL_CARDSTATE_PRESENT, RIL_APPSTATE_UNKNOWN, RIL_PINSTATE_UNKNOWN);
-      SetPersonalisationSubState(RIL_PERSOSUBSTATE_UNKNOWN);
-      RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
-    }
-
-    if (bTurnRadioOn)
-    {
-         RIL_LOG_INFO("CTEBase::CoreRadioPower() - querry sim state now\r\n");
-         RIL_requestTimedCallback(triggerQueryUiccInfo, NULL, 0, 0);
-    }
-#endif
-
     RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Exit\r\n");
     return res;
 }
@@ -9848,6 +9820,89 @@ Error:
     return res;
 }
 
+RIL_RESULT_CODE CTEBase::ParseShutdown(RESPONSE_DATA& /*rspData*/)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseShutdown() - Enter / Exit\r\n");
+
+    return RRIL_RESULT_OK;
+}
+
+void CTEBase::HandleShutdownReq(int requestId)
+{
+    RIL_LOG_VERBOSE("CTEBase::HandleShutdownReq() - Enter\r\n");
+
+    CCommand* pCmd = NULL;
+    char szCmd[MAX_BUFFER_SIZE] = {'\0'};
+
+    switch (m_cte.GetLastModemEvent())
+    {
+        case E_MMGR_EVENT_MODEM_UP:
+            if (RADIO_STATE_UNAVAILABLE == GetRadioState())
+            {
+                if (CSystemManager::GetInstance().SendRequestModemShutdown())
+                {
+                    WaitForModemPowerOffEvent();
+                    return;
+                }
+            }
+            break;
+
+        case E_MMGR_NOTIFY_MODEM_SHUTDOWN:
+            RIL_LOG_INFO("CTEBase::HandleShutdownReq - Modem power off ongoing\r\n");
+
+            /*
+             * Modem power off is ongoing, so wait for modem power off event which
+             * will be signalled on MODEM_DOWN event.
+             */
+            WaitForModemPowerOffEvent();
+
+            RIL_LOG_INFO("CTEBase::HandleShutdownReq - Modem power off done\r\n");
+            return;
+
+        case E_MMGR_EVENT_MODEM_DOWN:
+            RIL_LOG_INFO("CTEBase::HandleShutdownReq - Already in expected state\r\n");
+            return;
+
+        default:
+            CSystemManager::GetInstance().CloseChannelPorts();
+
+            RIL_LOG_INFO("CTEBase::HandleShutdownReq - "
+                    "handling RADIO_POWER OFF in modem state %d\r\n",
+                    m_cte.GetLastModemEvent());
+            return;
+    }
+
+    if (!GetRadioPowerCommand(FALSE, E_RADIO_OFF_REASON_SHUTDOWN, szCmd, sizeof(szCmd)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::HandleShutdownReq() - GetRadioPowerCommand failed\r\n");
+        return;
+    }
+
+    pCmd = new CCommand(g_pReqInfo[requestId].uiChannel,
+            NULL, requestId, szCmd, &CTE::ParseShutdown, &CTE::PostShutdown);
+
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::HandleShutdownReq() - Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+            return;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::HandleShutdownReq() - "
+                "Unable to allocate memory for command\r\n");
+        return;
+    }
+
+    WaitForModemPowerOffEvent();
+    RIL_LOG_VERBOSE("CTEBase::HandleShutdownReq() - Exit\r\n");
+}
+
 #if defined(M2_VT_FEATURE_ENABLED)
 //
 // RIL_REQUEST_HANGUP_VT
@@ -11597,7 +11652,7 @@ void CTEBase::SetDtmfAllowed(int callId, BOOL bDtmfAllowed)
 }
 
 BOOL CTEBase::GetRadioPowerCommand(BOOL /*bTurnRadioOn*/, int /*radioOffReason*/,
-        BOOL /*bIsModemOffInFlightMode*/, char* /*pCmdBuffer*/, int /*cmdBufferLen*/)
+        char* /*pCmdBuffer*/, int /*cmdBufferLen*/)
 {
     // should be derived in modem specific class
     return FALSE;
@@ -11779,88 +11834,42 @@ void CTEBase::NotifyNetworkApnInfo()
     RIL_LOG_VERBOSE("CTEBase::NotifyNetworkApnInfo() - Exit\r\n");
 }
 
-RIL_RESULT_CODE CTEBase::CreateModemPowerOffReq(REQUEST_DATA& rReqData)
+RIL_RESULT_CODE CTEBase::HandleReleaseModemReq(REQUEST_DATA& /*reqData*/, const char** ppszRequest,
+        const UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CTEBase::CreateModemPowerOffReq() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::HandleReleaseModemReq() - Enter\r\n");
+    int reason;
+    int data[1] = {RADIO_POWER_OFF};
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
-
-    m_cte.SetRadioOffReason(E_RADIO_OFF_REASON_SHUTDOWN);
-
-    switch (m_cte.GetLastModemEvent())
+    if (uiDataSize < (2 * sizeof(char *)))
     {
-        case E_MMGR_EVENT_MODEM_UP:
-            /*
-             * If the modem is UP and
-             *     - Radio state is OFF or UNAVAILABLE
-             *         Request MMGR to power off the modem and wait for modem
-             *         power off event which will be signalled on MODEM_DOWN event.
-             *     - Radio state is ON
-             *         Create the modem power off request by getting the modem specific
-             *         radio power off command. Do nothing, actions will be taken upon
-             *         the response of radio power off command from modem.
-             */
-
-            if (RADIO_STATE_ON != GetRadioState())
-            {
-                if (CSystemManager::GetInstance().SendRequestModemShutdown())
-                {
-                    WaitForModemPowerOffEvent();
-                }
-
-                SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
-                res = RRIL_RESULT_ERROR;
-            }
-            break;
-
-        case E_MMGR_NOTIFY_MODEM_SHUTDOWN:
-        {
-            RIL_LOG_INFO("CTEBase::CreateModemPowerOffReq - Modem power off ongoing\r\n");
-
-            /*
-             * Modem power off is ongoing, so wait for modem power off event which
-             * will be signalled on MODEM_DOWN event.
-             */
-            WaitForModemPowerOffEvent();
-
-            RIL_LOG_INFO("CTEBase::CreateModemPowerOffReq - Modem power off done\r\n");
-            res = RRIL_RESULT_ERROR;
-        }
-        break;
-
-        case E_MMGR_EVENT_MODEM_DOWN:
-            /*
-             * Modem is already in powered off state, set the radio state and also
-             * complete the modem power off request.
-             */
-
-            SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
-            res = RRIL_RESULT_ERROR;
-            RIL_LOG_INFO("CTEBase::CreateModemPowerOffReq - Already in expected state\r\n");
-            break;
-
-        default:
-            SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
-            res = RRIL_RESULT_ERROR;
-            RIL_LOG_INFO("CTEBase::CreateModemPowerOffReq - Error in handling RADIO_POWER OFF\r\n");
-            break;
-    }
-
-    if (RRIL_RESULT_ERROR == res)
-    {
+        RIL_LOG_CRITICAL("CTEBase::HandleReleaseModemReq() :"
+                " received_size < required_size\r\n");
         goto Error;
     }
 
-    if (!GetRadioPowerCommand(FALSE, E_RADIO_OFF_REASON_SHUTDOWN,
-            m_cte.GetModemOffInFlightModeState(), rReqData.szCmd1, sizeof(rReqData.szCmd1)))
+    if (sscanf(ppszRequest[1], "%d", &reason) == EOF)
     {
-        res = RRIL_RESULT_ERROR;
+        RIL_LOG_CRITICAL("CTEBase::HandleReleaseModemReq() -"
+                " cannot convert %s to int\r\n", ppszRequest[1]);
         goto Error;
     }
 
-    res = RRIL_RESULT_OK;
+    m_cte.SetRadioOffReason(reason);
+    if (E_RADIO_OFF_REASON_SHUTDOWN == reason)
+    {
+        HandleShutdownReq(RIL_REQUEST_RADIO_POWER);
+    }
+    else if (E_RADIO_OFF_REASON_AIRPLANE_MODE == reason && RADIO_STATE_OFF == GetRadioState()
+            && m_cte.GetModemOffInFlightModeState())
+    {
+        CSystemManager::GetInstance().ReleaseModem();
+    }
+
+    res = RRIL_RESULT_OK_IMMEDIATE;
 Error:
-    RIL_LOG_VERBOSE("CTEBase::CreateModemPowerOffReq() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::HandleReleaseModemReq() - Exit\r\n");
     return res;
 }
 

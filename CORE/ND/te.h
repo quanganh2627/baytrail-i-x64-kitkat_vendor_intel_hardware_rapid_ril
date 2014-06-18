@@ -602,6 +602,9 @@ public:
     RIL_RESULT_CODE RequestSimTransmitApduChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData);
 
+    RIL_RESULT_CODE ParseShutdown(RESPONSE_DATA& rspData);
+    void PostShutdown(POST_CMD_HANDLER_DATA& data);
+
 #if defined(M2_VT_FEATURE_ENABLED)
     // RIL_REQUEST_HANGUP_VT
     RIL_RESULT_CODE RequestHangupVT(RIL_Token rilToken, void* pData, size_t datalen);
@@ -792,7 +795,9 @@ public:
     BOOL IsPlatformShutDownRequested();
 
     BOOL IsRadioRequestPending() { return m_bRadioRequestPending; }
+
     int GetRequestedRadioPower() { return m_RequestedRadioPower; }
+    void SetRequestedRadioPower(int power) { m_RequestedRadioPower = power; }
 
     int GetRadioOffReason() { return m_RadioOffReason; }
     void SetRadioOffReason(int reason) { m_RadioOffReason = reason; }
@@ -1234,8 +1239,6 @@ public:
     bool IsImsRegistered() { return (m_uiImsRegStatus == IMS_REGISTERED); }
 
     const char* GetEnableFetchingString();
-    void ReleaseModemForAirplaneMode();
-
     const char* GetSiloVoiceURCInitString();
 
     RIL_RESULT_CODE ParseAtSecStateInfoRequest(RESPONSE_DATA& rRspData);
@@ -1447,7 +1450,6 @@ private:
     BOOL IsBuildTypeEngUserDebug();
     void TriggerRestrictedModeEvent();
     bool NeedGetCellInfoOnCellChange();
-    BOOL m_bOkToReleaseModem;
 };
 
 #endif

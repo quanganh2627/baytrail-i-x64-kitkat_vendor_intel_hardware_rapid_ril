@@ -94,8 +94,7 @@ CTE::CTE(UINT32 modemType) :
     m_bTempOoSNotifReporting(FALSE),
     m_uiImsRegStatus(IMS_REGISTERED),
     m_bNetworkStateChangeTimerRunning(false),
-    m_ProductConfig(CONFIG_GENERAL),
-    m_bOkToReleaseModem(FALSE)
+    m_ProductConfig(CONFIG_GENERAL)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -475,7 +474,7 @@ BOOL CTE::IsOemHookPossible(int requestId, void* pData, size_t uiDataSize)
 
     switch (uiCommand)
     {
-        case RIL_OEM_HOOK_STRING_POWEROFF_MODEM:
+        case RIL_OEM_HOOK_STRING_NOTIFY_RELEASE_MODEM:
         {
             int modemState = GetLastModemEvent();
             if (E_MMGR_EVENT_MODEM_OUT_OF_SERVICE != modemState
@@ -485,9 +484,6 @@ BOOL CTE::IsOemHookPossible(int requestId, void* pData, size_t uiDataSize)
             }
             break;
         }
-        case  RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED:
-            bRet = TRUE;
-            break;
 
         default:
         break;
@@ -2482,40 +2478,24 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
         goto Error;
     }
 
-    if (datalen >= (2 * sizeof(int*)))
+    if (0 == ((int*)pData)[0])
     {
-        if (0 == ((int*)pData)[0])
+        RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio OFF\r\n");
+        bTurnRadioOn = false;
+
+        if (IsPlatformShutDownRequested())
         {
-            RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio OFF\r\n");
-            bTurnRadioOn = false;
-            m_RadioOffReason = ((int*)pData)[1];
-            RIL_LOG_INFO("CTE::RequestRadioPower() - mRadioOffReason:%d\r\n", m_RadioOffReason);
-        }
-        else
-        {
-            RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio ON\r\n");
-            bTurnRadioOn = true;
+            m_RadioOffReason = E_RADIO_OFF_REASON_SHUTDOWN;
         }
     }
     else
     {
-        RIL_LOG_CRITICAL("CTE::RequestRadioPower() - No Radio power reason supplied,"
-                "Fall back to default behavior\r\n");
+        RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio ON\r\n");
+        bTurnRadioOn = true;
 
-        if (0 == ((int*)pData)[0])
-        {
-            RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio OFF\r\n");
-            bTurnRadioOn = false;
-            m_RadioOffReason = IsPlatformShutDownRequested() ?
-                    E_RADIO_OFF_REASON_SHUTDOWN : m_RadioOffReason;
-            RIL_LOG_INFO("CTE::RequestRadioPower() - mRadioOffReason:%d\r\n", m_RadioOffReason);
-        }
-        else
-        {
-            RIL_LOG_INFO("CTE::RequestRadioPower() - Turn Radio ON\r\n");
-            bTurnRadioOn = true;
-        }
-
+        // Reset radio off reason to avoid modem resource release on RADIO_POWER off
+        // request without receival of RIL_OEM_HOOK_STRING_NOTIFY_RELEASE_MODEM.
+        m_RadioOffReason = E_RADIO_OFF_REASON_NONE;
     }
 
     if (property_get("gsm.radioreset", szResetActionProperty, "false")
@@ -4643,7 +4623,6 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
 {
     RIL_LOG_VERBOSE("CTE::RequestHookStrings() - Enter\r\n");
 
-    UINT32 uiCommand = 0;
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
@@ -4672,18 +4651,7 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
     }
     else
     {
-        uiCommand = (UINT32)reqData.pContextData;
         int reqID = RIL_REQUEST_OEM_HOOK_STRINGS;
-        if (RIL_OEM_HOOK_STRING_POWEROFF_MODEM == (int) uiCommand)
-        {
-            /*
-             * Request Id is assigned to RIL_REQUEST_RADIO_POWER in order to use
-             * the same request timeout value as RIL_REQUEST_RADIO_POWER and also
-             * to allow this request always.
-             */
-            reqID = RIL_REQUEST_RADIO_POWER;
-        }
-
         CCommand* pCmd = new CCommand(uiRilChannel, rilToken, reqID,
                 reqData, &CTE::ParseHookStrings, &CTE::PostHookStrings);
 
@@ -4704,27 +4672,6 @@ RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t 
                     "Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
-    }
-
-    if (RIL_OEM_HOOK_STRING_POWEROFF_MODEM == (int) uiCommand)
-    {
-        if (RRIL_RESULT_OK == res)
-        {
-            CEvent* pModemPoweredOffEvent =
-                    CSystemManager::GetInstance().GetModemPoweredOffEvent();
-            if (NULL != pModemPoweredOffEvent)
-            {
-                CEvent::Reset(pModemPoweredOffEvent);
-
-                CEvent::Wait(pModemPoweredOffEvent, WAIT_FOREVER);
-            }
-        }
-        else
-        {
-            res = RRIL_RESULT_OK;
-        }
-
-        RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
     }
 
     RIL_LOG_VERBOSE("CTE::RequestHookStrings() - Exit\r\n");
@@ -6966,6 +6913,35 @@ RIL_RESULT_CODE CTE::ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData)
     return m_pTEBaseInstance->ParseSimTransmitApduChannel(rRspData);
 }
 
+RIL_RESULT_CODE CTE::ParseShutdown(RESPONSE_DATA& rspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseRadioPower() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseShutdown(rspData);
+}
+
+void CTE::PostShutdown(POST_CMD_HANDLER_DATA& /* data */)
+{
+    RIL_LOG_VERBOSE("CTE::PostShutdown() Enter\r\n");
+
+    // Send shutdown request to MMgr
+    if (!CSystemManager::GetInstance().SendRequestModemShutdown())
+    {
+        RIL_LOG_CRITICAL("CTE::PostShutdown() - CANNOT SEND MODEM SHUTDOWN REQUEST\r\n");
+
+        /*
+         * Even if modem power off request fails, close the channel ports
+         * and complete the modem power off ril request
+         */
+        CSystemManager::GetInstance().CloseChannelPorts();
+
+        CSystemManager::GetInstance().TriggerModemPoweredOffEvent();
+        SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
+    }
+
+    RIL_LOG_VERBOSE("CTE::PostShutdown() Exit\r\n");
+}
+
 #if defined(M2_VT_FEATURE_ENABLED)
 //
 // RIL_REQUEST_HANGUP_VT
@@ -8429,8 +8405,6 @@ void CTE::ResetInternalStates()
 {
     RIL_LOG_VERBOSE("CTE::ResetInternalStates() - Enter / Exit\r\n");
 
-    m_pTEBaseInstance->ResetNetworkSelectionMode();
-
     m_bCSStatusCached = FALSE;
     m_bPSStatusCached = FALSE;
     m_bIsSetupDataCallOngoing = FALSE;
@@ -9271,14 +9245,13 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& /*rData*/)
 
         //  Turning on phone
         SetRadioStateAndNotify(RRIL_RADIO_STATE_ON);
-        m_bOkToReleaseModem = FALSE;
         CSystemManager::GetInstance().TriggerRadioPoweredOnEvent();
     }
     else
     {
         if (E_RADIO_OFF_REASON_SHUTDOWN == m_RadioOffReason)
         {
-            //  Send shutdown request to MMgr
+            // Send shutdown request to MMgr
             if (!CSystemManager::GetInstance().SendRequestModemShutdown())
             {
                 RIL_LOG_CRITICAL("CTE::PostRadioPower() - CANNOT SEND MODEM SHUTDOWN REQUEST\r\n");
@@ -9297,18 +9270,17 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& /*rData*/)
         {
             SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
 
-            // Actual modem release will be based on the FMMO setting after OemTelephony
-            // informs about ariplane mode change.
-            RIL_LOG_INFO("CTE::PostRadioPower() -"
-                    " Try releasing modem %d\r\n", m_bOkToReleaseModem);
-
-            if (m_bOkToReleaseModem)
+            /*
+             * Radio off reason is set to E_RADIO_OFF_REASON_AIRPLANE_MODE on oem hook request
+             * RIL_OEM_HOOK_STRING_NOTIFY_RELEASE_MODEM. If it is already set, then this means that
+             * request to release modem is received even before RADIO_POWER off request.
+             * Release the modem if the radio reason is set to E_RADIO_OFF_REASON_AIRPLANE_MODE
+             * and flight mode modem off is supported.
+             */
+            if (E_RADIO_OFF_REASON_AIRPLANE_MODE == m_RadioOffReason
+                    && GetModemOffInFlightModeState())
             {
-                 ReleaseModemForAirplaneMode();
-            }
-            else
-            {
-                m_bOkToReleaseModem = TRUE;
+                CSystemManager::GetInstance().ReleaseModem();
             }
         }
     }
@@ -9318,26 +9290,22 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& /*rData*/)
         CEvent::Signal(m_pRadioStateChangedEvent);
     }
 
+    /*
+     * On flight mode deactivation, framework won't send request set initial attach apn and network
+     * selection request if there is no change in sim state. So, restore the initial attach apn if
+     * radio state is on and sim app state is ready. Initial attach apn validity check is done
+     * inside SetInitialAttachApn function.
+     */
+    if (RADIO_STATE_ON == GetRadioState()
+            && RIL_APPSTATE_READY == m_pTEBaseInstance->GetSimAppState())
+    {
+        m_pTEBaseInstance->SetInitialAttachApn(NULL,
+                g_pReqInfo[RIL_REQUEST_SET_INITIAL_ATTACH_APN].uiChannel,
+                &CTE::ParseSetInitialAttachApn,
+                &CTE::PostSetInitialAttachApnCmdHandler);
+    }
+
     RIL_LOG_VERBOSE("CTE::PostRadioPower() Exit\r\n");
-}
-
-void CTE::ReleaseModemForAirplaneMode()
-{
-    RIL_LOG_INFO("CTE::ReleaseModemForAirplaneMode() -"
-            "m_bOkToReleaseModem %d\r\n", m_bOkToReleaseModem);
-
-    if (m_bOkToReleaseModem)
-    {
-        if (GetModemOffInFlightModeState())
-        {
-            CSystemManager::GetInstance().ReleaseModem();
-        }
-        m_bOkToReleaseModem = FALSE;
-    }
-    else
-    {
-        m_bOkToReleaseModem = TRUE;
-    }
 }
 
 void CTE::PostSendSmsCmdHandler(POST_CMD_HANDLER_DATA& rData)
@@ -9644,32 +9612,8 @@ void CTE::PostHookStrings(POST_CMD_HANDLER_DATA& rData)
         return;
     }
 
-    UINT32 uiCommand = (UINT32)rData.pContextData;
-    if (RIL_OEM_HOOK_STRING_POWEROFF_MODEM == (int) uiCommand)
-    {
-        // Send shutdown request to MMgr
-        if (!CSystemManager::GetInstance().SendRequestModemShutdown())
-        {
-            RIL_LOG_CRITICAL("CTE::PostHookStrings() - CANNOT SEND MODEM SHUTDOWN REQUEST\r\n");
-
-            /*
-             * Even if modem power off request fails, close the channel ports
-             * and complete the modem power off ril request
-             */
-            CSystemManager::GetInstance().CloseChannelPorts();
-
-            SetRadioStateAndNotify(RRIL_RADIO_STATE_OFF);
-            CSystemManager::GetInstance().TriggerModemPoweredOffEvent();
-        }
-
-        // Incase of modem off, request will be completed in the CoreHookStrings function
-        // on modem powered off event or on request handling error.
-    }
-    else
-    {
-        RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
-                rData.pData, rData.uiDataSize);
-    }
+    RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
+            rData.pData, rData.uiDataSize);
 
     RIL_LOG_VERBOSE("CTE::PostHookStrings() Exit\r\n");
 }

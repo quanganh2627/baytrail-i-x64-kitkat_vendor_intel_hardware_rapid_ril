@@ -2101,7 +2101,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
     RIL_LOG_INFO("CTE_XMM6260::CoreHookStrings(), command: %d", command);
 
     if (E_MMGR_EVENT_MODEM_UP != m_cte.GetLastModemEvent()
-            && RIL_OEM_HOOK_STRING_POWEROFF_MODEM != command
+            && RIL_OEM_HOOK_STRING_NOTIFY_RELEASE_MODEM != command
             && RIL_OEM_HOOK_STRING_GET_OEM_VERSION != command
             && RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_IND != command)
     {
@@ -2335,21 +2335,9 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             res = CreateSetDefaultApnReq(rReqData, (const char**) pszRequest, nNumStrings);
             break;
 
-        case RIL_OEM_HOOK_STRING_POWEROFF_MODEM:
-            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_POWEROFF_MODEM");
-            if (m_cte.IsPlatformShutDownRequested())
-            {
-                uiRilChannel = g_pReqInfo[RIL_REQUEST_RADIO_POWER].uiChannel;
-                rReqData.pContextData = (void*)command;
-                res = CreateModemPowerOffReq(rReqData);
-            }
-            else
-            {
-                /*
-                 * If request is issued out of platform shutdown, don't handle
-                 * the request.
-                 */
-            }
+        case RIL_OEM_HOOK_STRING_NOTIFY_RELEASE_MODEM:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_NOTIFY_RELEASE_MODEM");
+            res = HandleReleaseModemReq(rReqData, (const char**) pszRequest, uiDataSize);
         break;
 
         case RIL_OEM_HOOK_STRING_SEND_AT:
@@ -2376,12 +2364,6 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                     uiDataSize);
             break;
 
-        case RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED:
-            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED\r\n");
-            HandleAirplaneMode(rReqData, (const char**) pszRequest,
-                    uiDataSize);
-            res = RRIL_RESULT_OK_IMMEDIATE;
-            break;
         case RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD_V2:
             RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_THERMAL_SET_THRESHOLD_V2\r\n");
             res = CreateActivateThermalSensorV2Ind(rReqData, (const char**) pszRequest,
@@ -2519,7 +2501,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_IMS_SMS_STATUS:
         case RIL_OEM_HOOK_STRING_CSG_SET_AUTOMATIC_SELECTION:
         case RIL_OEM_HOOK_STRING_SET_DEFAULT_APN:
-        case RIL_OEM_HOOK_STRING_POWEROFF_MODEM:
+        case RIL_OEM_HOOK_STRING_NOTIFY_RELEASE_MODEM:
         case RIL_OEM_HOOK_STRING_SWAP_PS:
         case RIL_OEM_HOOK_STRING_SIM_RESET:
         case RIL_OEM_HOOK_STRING_SET_DVP_ENABLED:
@@ -2544,49 +2526,6 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseHookStrings() - Exit\r\n");
     return res;
-}
-
-void CTE_XMM6260::HandleAirplaneMode(REQUEST_DATA& /*rReqData*/,
-                                             const char** pszRequest,
-                                             UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("CTE_XMM6260::HandleAirplaneMode() - Enter\r\n");
-    char szAirplaneMode[7] = {0};
-    char szFormat[10];
-
-    if (pszRequest == NULL || '\0' == pszRequest[0])
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::HandleAirplaneMode() - pszRequest was NULL\r\n");
-        goto Out;
-    }
-
-    if (uiDataSize < (2 * sizeof(char*)))
-    {
-        RIL_LOG_INFO("CTE_XMM6260::HandleAirplaneMode() - mode not provided\r\n");
-    }
-
-    snprintf(szFormat, sizeof(szFormat), "%%%ds", sizeof(szAirplaneMode) -1);
-
-    if (sscanf(pszRequest[1], szFormat, szAirplaneMode) == EOF)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6260::HandleAirplaneMode()"
-                " - cannot convert %s to stringr\n", pszRequest);
-        goto Out;
-    }
-
-    RIL_LOG_INFO("CTE_XMM6260::HandleAirplaneMode() - airplanemode=[%s]\r\n",
-           szAirplaneMode);
-
-    if (strcmp(szAirplaneMode,"true") == 0)
-    {
-         m_cte.ReleaseModemForAirplaneMode();
-    }
-
-    // Update the radio off reason
-     m_cte.SetRadioOffReason(E_RADIO_OFF_REASON_AIRPLANE_MODE);
-
-Out:
-    RIL_LOG_VERBOSE("CTE_XMM6260::HandleAirplaneMode() - Exit\r\n");
 }
 
 //
@@ -6477,7 +6416,7 @@ Error:
 }
 
 BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
-        BOOL /*bIsModemOffInFlightMode*/, char* pCmdBuffer, int cmdBufferLen)
+        char* pCmdBuffer, int cmdBufferLen)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::GetRadioPowerCommand() - Enter\r\n");
 
@@ -6720,6 +6659,10 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
     int pinState = RIL_PINSTATE_UNKNOWN;
     int cardState = RIL_CARDSTATE_PRESENT;
 
+    // Based on sim state, override bNotifySimStatusChange to FALSE if sim status change should not
+    // be reported to framework.
+    bNotifySimStatusChange = TRUE;
+
     switch (uiSIMState)
     {
         case 0: // SIM not present
@@ -6861,8 +6804,6 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
             // Send out SIM_REFRESH notification
             RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)&simRefreshResp,
                     sizeof(RIL_SimRefreshResponse_v7));
-
-            bNotifySimStatusChange = TRUE;
         }
         else
         {
@@ -6878,10 +6819,6 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
              */
             bNotifySimStatusChange = FALSE;
         }
-    }
-    else
-    {
-        bNotifySimStatusChange = TRUE;
     }
 
     SetSimState(cardState, appState, pinState);

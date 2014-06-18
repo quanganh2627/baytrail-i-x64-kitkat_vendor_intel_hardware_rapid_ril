@@ -480,6 +480,7 @@ void ProfileActivation::run()
 {
     if (m_usatInitStateMachine.GetUiccState() == UsatInitStateMachine::UICC_ACTIVE)
     {
+        CTE::GetTE().NotifyUiccReady();
         CTE::GetTE().EnableProfileFacilityHandling();
     }
 }

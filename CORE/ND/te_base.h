@@ -761,6 +761,8 @@ public:
                                                               UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData);
 
+    virtual RIL_RESULT_CODE ParseShutdown(RESPONSE_DATA& rspData);
+
 #if defined(M2_VT_FEATURE_ENABLED)
     // RIL_REQUEST_HANGUP_VT
     virtual RIL_RESULT_CODE CoreHangupVT(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
@@ -896,7 +898,7 @@ public:
      * Get AT commands to power on/off the radio
      */
     virtual BOOL GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
-            BOOL bIsModemOffInFlightMode, /*INOUT*/ char* pCmdBuffer, int cmdBufferLen);
+            /*INOUT*/ char* pCmdBuffer, int cmdBufferLen);
 
     virtual RIL_RESULT_CODE CreateIMSRegistrationReq(REQUEST_DATA& rReqData,
             const char** pszRequest,
@@ -1042,10 +1044,10 @@ protected:
     virtual void NotifyNetworkApnInfo();
 
     /*
-     * Based on the radio state and modem state, modem power off request
-     * will be created.
+     * Based on the radio and modem state, modem will be either released or powered off.
      */
-    virtual RIL_RESULT_CODE CreateModemPowerOffReq(REQUEST_DATA& rReqData);
+    virtual RIL_RESULT_CODE HandleReleaseModemReq(REQUEST_DATA& reqData, const char** ppszRequest,
+            const UINT32 uiDataSize);
 
     /*
      * Deactivates all data calls. This function is called before sending manual network scan.
@@ -1066,6 +1068,7 @@ private:
      * event from MMGR.
      */
     void WaitForModemPowerOffEvent();
+    void HandleShutdownReq(int requestId);
 
     typedef struct
     {

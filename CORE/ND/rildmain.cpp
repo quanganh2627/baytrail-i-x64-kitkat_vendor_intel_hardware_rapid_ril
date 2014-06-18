@@ -560,6 +560,16 @@ static void onCancel(RIL_Token t)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 static const char* getVersion(void)
 {
+    /*
+     * Since modem is powered on and sim status is read even before RILJ is connected,
+     * RIL_UNSOL_SIM_STATUS_CHANGED message is not delivered to framework. As a result of this,
+     * framework doesn't query the sim status. So, notify sim status changed on getVersion to make
+     * sure framework queries the sim state.
+     *
+     * Note: getVersion is called after libril has completed RIL_UNSOL_RIL_CONNECTED to framework.
+     */
+    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+
     return "Intrinsyc Rapid-RIL M6.59 for Android 4.2 (Build September 17/2013)";
 }
 

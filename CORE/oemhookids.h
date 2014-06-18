@@ -293,17 +293,20 @@ const int RIL_OEM_HOOK_STRING_SET_DEFAULT_APN = 0x000000AF;
 ///////////////////////////////////////////////////////////////////////////////
 
 //
-//  RIL_OEM_HOOK_STRING_POWEROFF_MODEM
+//  RIL_OEM_HOOK_STRING_NOTIFY_RELEASE_MODEM
 //  Command ID = 0x000000B0
 //
-//  This command powers off the modem. This command should be issued only
-//  as part of platform shutdown request. Command is not handled if it is issued
-//  outside platform shutdown.
+//  This command notifies that the modem can be released. Based on the reason provided,
+//  rapid ril can take actions. If reason is airplane mode and FMMO us supported, then
+//  modem resource can be released. If the reason is shutdown, then modem will be powered
+//  off.
 //
-//  "data" = NULL
+//  "data" - Integer containing the reason for release
+//      1 - Shutdown
+//      2 - Airplane mode
 //  "response" = NULL
 //
-const int RIL_OEM_HOOK_STRING_POWEROFF_MODEM = 0x000000B0;
+const int RIL_OEM_HOOK_STRING_NOTIFY_RELEASE_MODEM = 0x000000B0;
 
 //
 //  RIL_OEM_HOOK_STRING_SWAP_PS
@@ -533,26 +536,11 @@ const int RIL_OEM_HOOK_STRING_CSG_GET_CURRENT_CSG_STATE = 0x000000C0;
 //
 const int RIL_OEM_HOOK_STRING_CNAP_GET_CURRENT_STATE = 0x000000C1;
 
-/////////////////////////////////////////////////////////////////////////////
-//
-//  RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED
-//  Command ID = 0x000000C2
-//
-//  This command sends information about airplane mode to vendor ril
-//
-//  "data" = string containig the one of the value
-//           true, airplane mode is active
-//           false, airplane mode is inactive
-//
-//  "response" = none
-//
-const int RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED = 0x000000C2;
-
 ///////////////////////////////////////////////////////////////////////////////
 
 //
 //  RIL_OEM_HOOK_STRING_ADPCLK_ACTIVATE
-//  Command ID = 0x000000C3
+//  Command ID = 0x000000C2
 //
 //  This command sends AT+XADPCLKFREQINFO=<data>
 //
@@ -563,13 +551,13 @@ const int RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED = 0x000000C2;
 //  Effective modification of the state is sent back through the unsolicited
 //  response RIL_OEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF
 //
-const int RIL_OEM_HOOK_STRING_ADPCLK_ACTIVATE = 0x000000C3;
+const int RIL_OEM_HOOK_STRING_ADPCLK_ACTIVATE = 0x000000C2;
 
 ///////////////////////////////////////////////////////////////////////////////
 
 //
 //  RIL_OEM_HOOK_STRING_ADPCLK_GET_FREQ_INFO
-//  Command ID = 0x000000C4
+//  Command ID = 0x000000C3
 //
 //  Retrieve Adaptative Clocking frequency information list from the modem.
 //  The Adaptative Clocking frequency information must have been activated
@@ -581,7 +569,7 @@ const int RIL_OEM_HOOK_STRING_ADPCLK_ACTIVATE = 0x000000C3;
 // +XADPCLKFREQINFO: <centFreq>, <freqSpread>, <noisePower>[,<centFreq>,
 //                                                           <freqSpread>, <noisePower>[,...]]
 
-const int RIL_OEM_HOOK_STRING_ADPCLK_GET_FREQ_INFO = 0x000000C4;
+const int RIL_OEM_HOOK_STRING_ADPCLK_GET_FREQ_INFO = 0x000000C3;
 
 ///////////////////////////////////////////////////////////////////////////////
 
