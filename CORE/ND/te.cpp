@@ -7229,13 +7229,21 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
     }
 
     /*
-     * In order to show emergency calls only, Android telephony stack expects
-     * the registration status value to be one of 10,12,13,14. Add 10 to the
-     * reported registration status in which emergency calls are possible.
+     * If registration is denied, then map the registration status to emergency call possible(13)
+     * based on reject cause.
      */
     if (E_REGISTRATION_DENIED == uiStatus)
     {
-        uiStatus += 10;
+        const UINT32 REGISTRATION_DENIED_EMERGENCY_CALLS_POSSIBLE = 13;
+        switch (rejectCause)
+        {
+            case 17: // Network failure
+                break;
+
+            default:
+                uiStatus = REGISTRATION_DENIED_EMERGENCY_CALLS_POSSIBLE;
+                break;
+        }
     }
 
     snprintf(rCSRegStatusInfo.szStat,        REG_STATUS_LENGTH, "%u", uiStatus);
