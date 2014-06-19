@@ -34,6 +34,7 @@ CSilo_IMS::CSilo_IMS(CChannel* pChannel)
         { "+CIREPH: "        , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseCIREPH  },
         { "+CIREGU: "        , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseCIREGU },
         { "+XISRVCCI: "       , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseXISRVCCI },
+        { "+XISRVCCSTATI: "  , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseUnrecognized },
         // FIXME: Following strings to be confirmed and parsed.
         { "+IMSCALLSTAT: "   , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseNULL },
         { "+IMSSMSSTAT: "    , (PFN_ATRSP_PARSE)&CSilo_IMS::ParseNULL },
