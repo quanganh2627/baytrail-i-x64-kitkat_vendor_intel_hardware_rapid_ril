@@ -38,13 +38,6 @@ protected:
 
     virtual BOOL ParseXTS(CResponse* const pResponse, const char*& pszPointer);
 
-    virtual BOOL ParseXMETRIC(CResponse* const pResponse, const char*& rszPointer);
-
-    virtual BOOL ParseXNRTCWSI(CResponse* const pResponse, const char*& rszPointer);
-
-    // Parse the URCs (+XMETRIC, +XNRTCWS) needed for RF Coexistence
-    virtual BOOL ParseCoexURC(CResponse* const pResponse, const char*& rszPointer,
-                              const char* pUrcPrefix);
 };
 
 #endif // RRIL_SILO_MISC_H

@@ -29,7 +29,8 @@ enum SILO_TYPE {
     SILO_TYPE_PHONEBOOK,
     SILO_TYPE_MISC,
     SILO_TYPE_IMS,
-    // 8, 9 and 10 reserved for new silos
+    SILO_TYPE_RFCOEXISTENCE,
+    //9 and 10 reserved for new silos
     SILO_TYPE_COMMON = 11,
     SILO_MAX = 12
 };

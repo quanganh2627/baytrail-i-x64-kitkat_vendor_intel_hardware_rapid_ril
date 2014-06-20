@@ -34,8 +34,6 @@ CSilo_MISC::CSilo_MISC(CChannel* pChannel)
     {
         { "+XDRVI: "   , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXDRVI  },
         { "+XTS: ", (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXTS },
-        { "+XMETRIC: "  , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXMETRIC },
-        { "+XNRTCWSI: " , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXNRTCWSI },
         { ""           , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseNULL }
     };
 
@@ -55,8 +53,6 @@ CSilo_MISC::~CSilo_MISC()
 char* CSilo_MISC::GetBasicInitString()
 {
     // misc silo-related channel basic init string
-    // +XMETRIC/+XNRTCWS URCs are not enabled by default. This is done by the CWS Manager, using
-    // the sendAtCommand OEM Hook
     const char szMiscBasicInitString[] = "+XGENDATA|+XPOW=0,0,0";
 
     if (!ConcatenateStringNullTerminate(m_szBasicInitString,
@@ -255,96 +251,4 @@ Error:
     return bRet;
 }
 
-BOOL CSilo_MISC::ParseXMETRIC(CResponse* const pResponse, const char*& rszPointer)
-{
-    // We have to prepend the URC name to its value
-    return ParseCoexURC(pResponse, rszPointer, "+XMETRIC: ");
-}
 
-
-BOOL CSilo_MISC::ParseXNRTCWSI(CResponse* const pResponse, const char*& rszPointer)
-{
-    // We have to prepend the URC name to its value
-    return ParseCoexURC(pResponse, rszPointer, "+XNRTCWSI: ");
-}
-
-
-//
-// No complexity is needed to parse the URC received for Coexistence purpose (+XMETRIC/+XNRTCWS).
-// The goal is just to extract the URC name/value and notify the up-layer (CWS Manager) about it.
-//
-BOOL CSilo_MISC::ParseCoexURC(CResponse* const pResponse, const char*& rszPointer,
-                              const char* pUrcPrefix)
-{
-    RIL_LOG_VERBOSE("CSilo_MISC::ParseCoexURC() - Enter\r\n");
-
-    BOOL fRet = FALSE;
-    char szExtInfo[MAX_BUFFER_SIZE] = {0};
-    sOEM_HOOK_RAW_UNSOL_COEX_INFO* pData = NULL;
-
-    if (NULL == pResponse)
-    {
-        RIL_LOG_CRITICAL("CSilo_MISC::ParseCoexURC() - pResponse is NULL.\r\n");
-        goto Error;
-    }
-
-    pResponse->SetUnsolicitedFlag(TRUE);
-
-    // Performing a backup of the URC string (rszPointer) into szExtInfo, to not modify rszPointer
-    ExtractUnquotedString(rszPointer, '\r', szExtInfo, MAX_BUFFER_SIZE, rszPointer);
-
-    RIL_LOG_VERBOSE("CSilo_MISC::ParseCoexURC() - URC prefix=[%s] URC value=[%s]\r\n",
-            pUrcPrefix, szExtInfo);
-
-    // Creating the response
-    pData = (sOEM_HOOK_RAW_UNSOL_COEX_INFO*)malloc(
-            sizeof(sOEM_HOOK_RAW_UNSOL_COEX_INFO));
-    if (NULL == pData)
-    {
-        RIL_LOG_CRITICAL("CSilo_MISC::ParseCoexURC() -"
-                " Could not allocate memory for pData.\r\n");
-        goto Error;
-    }
-
-    memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_COEX_INFO));
-
-    // pData.response will contain the final result (URC name + URC value)
-    // Adding the prefix of the URC (+XMETRIC or +XNRTCWS) to pData->response
-    if (!CopyStringNullTerminate(pData->response, pUrcPrefix, COEX_INFO_BUFFER_SIZE))
-    {
-        RIL_LOG_CRITICAL("CSilo_MISC:ParseCoexURC - Copy of URC prefix failed\r\n");
-        goto Error;
-    }
-
-    // Adding the value of the URC to pData->response
-    if (!ConcatenateStringNullTerminate(pData->response, sizeof(pData->response), szExtInfo))
-    {
-        RIL_LOG_CRITICAL("CSilo_MISC::ParseCoexURC() : Failed to concat the URC "
-                "prefix to its value!\r\n");
-        goto Error;
-    }
-
-    RIL_LOG_INFO("CSilo_MISC::ParseCoexURC() - Final Response=[%s]\r\n", pData->response);
-
-    pData->command = RIL_OEM_HOOK_RAW_UNSOL_COEX_INFO;
-    pData->responseSize = strnlen(pData->response, COEX_INFO_BUFFER_SIZE);
-
-    pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
-
-    if (!pResponse->SetData((void*)pData,
-            sizeof(sOEM_HOOK_RAW_UNSOL_COEX_INFO), FALSE))
-    {
-        goto Error;
-    }
-
-    fRet = TRUE;
-Error:
-    if (!fRet)
-    {
-        free(pData);
-        pData = NULL;
-    }
-
-    RIL_LOG_VERBOSE("CSilo_MISC::ParseCoexURC() - Exit\r\n");
-    return fRet;
-}

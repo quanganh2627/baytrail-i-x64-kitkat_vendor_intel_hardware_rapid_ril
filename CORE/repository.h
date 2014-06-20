@@ -127,6 +127,7 @@ extern const char   g_szSilosDLC2[];
 extern const char   g_szSilosDLC6[];
 extern const char   g_szSilosDLC8[];
 extern const char   g_szSilosDLC22[];
+extern const char   g_szSilosDLC23[];
 extern const char   g_szSilosURC[];
 extern const char   g_szSilosOEM[];
 extern const char   g_szSilosData[];

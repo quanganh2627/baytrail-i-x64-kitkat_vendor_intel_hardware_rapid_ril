@@ -27,6 +27,7 @@
 #include "channel_DLC6.h"
 #include "channel_DLC8.h"
 #include "channel_DLC22.h"
+#include "channel_DLC23.h"
 #include "channel_URC.h"
 #include "channel_OEM.h"
 #include "silo_voice.h"
@@ -37,6 +38,7 @@
 #include "silo_phonebook.h"
 #include "silo_misc.h"
 #include "silo_ims.h"
+#include "silo_rfcoexistence.h"
 #include "silo_common.h"
 #include "util.h"
 #include "initializer.h"
@@ -403,6 +405,10 @@ BOOL CInitializer::IsChannelUndefined(int channel)
             if (!g_szDLC22Port)
                 return TRUE;
              break;
+        case RIL_CHANNEL_DLC23:
+            if (!g_szDLC23Port)
+                return TRUE;
+             break;
         case RIL_CHANNEL_URC:
             if (!g_szURCPort)
                 return TRUE;
@@ -469,6 +475,10 @@ CChannel* CInitializer::CreateChannel(UINT32 eIndex)
             pChannel = new CChannel_DLC22(eIndex);
             break;
 
+        case RIL_CHANNEL_DLC23:
+            pChannel = new CChannel_DLC23(eIndex);
+            break;
+
         case RIL_CHANNEL_URC:
             pChannel = new CChannel_URC(eIndex);
             break;
@@ -493,15 +503,16 @@ CChannel* CInitializer::CreateChannel(UINT32 eIndex)
 //
 // Returns a bitmask with format:
 //      bit 11: Common silo      1000 0000 0000
-//      bit 8-10: Reserved for new silos
-//      bit 7: IMS silo          1000 0000
-//      bit 6: Misc silo         0100 0000
-//      bit 5: Phonebook silo    0010 0000
-//      bit 4: Network silo      0001 0000
-//      bit 3: Data silo         0000 1000
-//      bit 2: SMS silo          0000 0100
-//      bit 1: SIM silo          0000 0010
-//      bit 0: Voice silo        0000 0001
+//      bit 9-10: Reserved for new silos
+//      bit 8: rfcoexistence silo 0001 0000 0000
+//      bit 7: IMS silo           0000 1000 0000
+//      bit 6: Misc silo          0000 0100 0000
+//      bit 5: Phonebook silo     0000 0010 0000
+//      bit 4: Network silo       0000 0001 0000
+//      bit 3: Data silo          0000 0000 1000
+//      bit 2: SMS silo           0000 0000 0100
+//      bit 1: SIM silo           0000 0000 0010
+//      bit 0: Voice silo         0000 0000 0001
 //
 int CInitializer::GetSiloConfig(UINT32 channel)
 {
@@ -518,16 +529,18 @@ int CInitializer::GetSiloConfig(UINT32 channel)
     const int DefSiloConfigData = 0x808; // Data and common silo
     const int DefSiloConfigCommon = 0x800; // common silo only
     const int DefSiloCopsCommon = 0x800; // common silo only
+    const int DefSiloCopsRfcoexistence = 0x900; // Common silo and Rfcoexistence
 
     // Array of repository channel key names, ordered according to rilchannels.h
     // and default silo configuration if not available in repository
     SILO_CONFIG chanSiloConfig[RIL_CHANNEL_MAX] = {
         {g_szSilosATCmd, DefSiloConfigATCmd}, {g_szSilosDLC2, DefSiloConfigNetwork},
         {g_szSilosDLC6,  DefSiloConfigVoiceAndSms}, {g_szSilosDLC8, DefSiloConfigSIM},
-        {g_szSilosURC,   DefSiloConfigURC}, {g_szSilosOEM,  DefSiloConfigCommon},
+        {g_szSilosURC,   DefSiloConfigURC},  {g_szSilosOEM,  DefSiloConfigCommon},
+        {g_szSilosDLC22, DefSiloCopsCommon}, {g_szSilosDLC23, DefSiloCopsRfcoexistence},
         {g_szSilosData,  DefSiloConfigData}, {g_szSilosData, DefSiloConfigData},
         {g_szSilosData,  DefSiloConfigData}, {g_szSilosData, DefSiloConfigData},
-        {g_szSilosData,  DefSiloConfigData}, {g_szSilosDLC22, DefSiloCopsCommon}
+        {g_szSilosData,  DefSiloConfigData}
     };
 
     if (channel < g_uiRilChannelCurMax && channel < RIL_CHANNEL_MAX)
@@ -767,6 +780,9 @@ CSilo* CInitializer::CreateSilo(CChannel* pChannel, int siloType)
             break;
         case SILO_TYPE_IMS:
             pSilo = new CSilo_IMS(pChannel);
+            break;
+        case SILO_TYPE_RFCOEXISTENCE:
+            pSilo = new CSilo_rfcoexistence(pChannel);
             break;
         case SILO_TYPE_COMMON:
             pSilo = new CSilo_Common(pChannel);

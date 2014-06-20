@@ -244,21 +244,23 @@ Group Logging
 // Silo Configuration - A bitmask of the silos assigned for each channel.
 // Setting the appropriate bit in the mask adds the silo to the channel:
 //      bit 11: Common silo       1000 0000 0000
-//      bit 8-10: Reserved for new silos
-//      bit 7: IMS silo          1000 0000
-//      bit 6: Misc silo         0100 0000
-//      bit 5: Phonebook silo    0010 0000
-//      bit 4: Network silo      0001 0000
-//      bit 3: Data silo         0000 1000
-//      bit 2: SMS silo          0000 0100
-//      bit 1: SIM silo          0000 0010
-//      bit 0: Voice silo        0000 0001
+//      bit 9-10: Reserved for new silos
+//      bit 8: rfcoexistence silo 0001 0000 0000
+//      bit 7: IMS silo           0000 1000 0000
+//      bit 6: Misc silo          0000 0100 0000
+//      bit 5: Phonebook silo     0000 0010 0000
+//      bit 4: Network silo       0000 0001 0000
+//      bit 3: Data silo          0000 0000 1000
+//      bit 2: SMS silo           0000 0000 0100
+//      bit 1: SIM silo           0000 0000 0010
+//      bit 0: Voice silo         0000 0000 0001
 //
 Group ChannelSiloConfiguration
     SilosATCmdChannel       0x840    // Misc and common silo (2)
     SilosDLC2Channel        0x810    // Network and common silo (2)
     SilosDLC6Channel        0x805    // Voice, SMS and common silo (3).
     SilosDLC8Channel        0x802    // SIM and common silo (2)
+    SilosDLC23Channel       0x800    // common silo (1)
     SilosURCChannel         0x8F7    // All silos except data
     SilosOEMChannel         0x800    // common silo only (1)
     SilosDataChannel        0x808    // Data and common silo (2)

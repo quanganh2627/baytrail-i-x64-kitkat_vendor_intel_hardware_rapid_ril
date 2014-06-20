@@ -20,6 +20,7 @@ LOCAL_SRC_FILES:= \
     ND/silo_sms.cpp \
     ND/silo_misc.cpp \
     ND/silo_ims.cpp \
+    ND/silo_rfcoexistence.cpp \
     ND/silo_common.cpp \
     ND/channel_nd.cpp \
     channelbase.cpp \
@@ -29,6 +30,7 @@ LOCAL_SRC_FILES:= \
     channel_DLC6.cpp \
     channel_DLC8.cpp \
     channel_DLC22.cpp \
+    channel_DLC23.cpp \
     channel_URC.cpp \
     channel_OEM.cpp \
     port.cpp \

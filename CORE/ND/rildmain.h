@@ -29,6 +29,8 @@ extern char* g_szDLC6Port;
 extern char* g_szDLC8Port;
 // The device path to use for commands that can block
 extern char* g_szDLC22Port;
+// The device path to use for RF coexistence
+extern char* g_szDLC23Port;
 // The device path to use for the notification channel
 extern char* g_szURCPort;
 // The device path to use for the OEM channel
