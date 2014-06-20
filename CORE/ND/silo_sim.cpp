@@ -336,7 +336,8 @@ void CSilo_SIM::ParsePduForRefresh(const char* pszPdu)
     RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - Enter\r\n");
     char* pRefresh = NULL;
     char* pFileTag = NULL;
-    char szFileTag[] = "92";
+    char szFileTag1[] = "92";
+    char szFileTag2[] = "12";
     char szFileTagLength[3] = {0};
     char szFileID[5] = {0};
     UINT32 uiFileTagLength = 0;
@@ -426,16 +427,22 @@ void CSilo_SIM::ParsePduForRefresh(const char* pszPdu)
 
                         //  Tough part here - need to read file ID(s)
                         //  Android looks for EF_MBDN 0x6FC7 or EF_MAILBOX_CPHS 0x6F17
-                        //  File tag is "92".  Just look for "92" from uiPos.
+                        //  File tag is "92" or "12". Look for "92" or "12" from uiPos.
                         if ('\0' != pszPdu[uiPos])
                         {
                             //  Look for "92"
-                            pFileTag = strstr(&pszPdu[uiPos], szFileTag);
+                            pFileTag = strstr(&pszPdu[uiPos], szFileTag1);
+
+                            // If file tag "92" not found, look for file tag "12"
+                            pFileTag = (NULL != pFileTag)
+                                    ? pFileTag
+                                    : strstr(&pszPdu[uiPos], szFileTag2);
+
                             if (pFileTag)
                             {
-                                //  Found "92" somewhere in rest of string
+                                //  Found "92" or "12" somewhere in rest of string
                                 uiPos = pFileTag - pszPdu;
-                                uiPos += strlen(szFileTag);
+                                uiPos += 2; // File list tag
                                 RIL_LOG_INFO("FOUND FileTag uiPos now = %d\r\n", uiPos);
                                 if (uiPos < uiPduLength)
                                 {
@@ -490,6 +497,18 @@ void CSilo_SIM::ParsePduForRefresh(const char* pszPdu)
                     }
                     else
                     {
+                        const int EF_PNN = 0x6FC5;
+                        const int EF_OPL = 0x6FC6;
+                        if (SIM_FILE_UPDATE == pSimRefreshResp->result
+                                && (pSimRefreshResp->ef_id == EF_OPL
+                                    || pSimRefreshResp->ef_id == EF_PNN))
+                        {
+                            // Force the framework to query operator name when there is a change in
+                            // EFopl or EFpnn files.
+                            RIL_onUnsolicitedResponse(
+                                    RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
+                        }
+
                         // Send out SIM_REFRESH notification
                         RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)pSimRefreshResp,
                                 sizeof(RIL_SimRefreshResponse_v7));

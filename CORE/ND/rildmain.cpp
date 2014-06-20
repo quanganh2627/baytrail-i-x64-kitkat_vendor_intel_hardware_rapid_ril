@@ -266,10 +266,14 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIM_REFRESH\r\n");
             if (pData && dataSize)
             {
-                RIL_SimRefreshResponse_v7* pSimRefreshRsp = (RIL_SimRefreshResponse_v7*)pData;
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_SimRefreshResult=%d efid=%d"
-                        " aid=%s\r\n", pSimRefreshRsp->ef_id,
-                        (NULL == pSimRefreshRsp->aid) ? "" : pSimRefreshRsp->aid);
+                if (dataSize == sizeof(RIL_SimRefreshResponse_v7))
+                {
+                    RIL_SimRefreshResponse_v7* pSimRefreshRsp = (RIL_SimRefreshResponse_v7*)pData;
+
+                    RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_SimRefreshResult - result=%d"
+                            " efid=%d aid=%s\r\n", pSimRefreshRsp->result, pSimRefreshRsp->ef_id,
+                            (NULL == pSimRefreshRsp->aid) ? "" : pSimRefreshRsp->aid);
+                }
             }
             break;
 
