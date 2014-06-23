@@ -397,6 +397,9 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     RIL_LOG_VERBOSE("CSilo_Network::ParseRegistrationStatus() - Enter\r\n");
 
     const char* szDummy;
+    const char* pszIndex;
+    UINT32 uiFirstParam = 0;
+    UINT32 uiSecondParam = 0;
     BOOL   fRet = FALSE, fUnSolicited = TRUE;
     int nNumParams = 1;
     char* pszCommaBuffer = NULL;  //  Store notification in here.
@@ -441,18 +444,6 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     //       <status>, <AcT>, <Band>, <lac>, <ci>   for an unsolicited notification with location data
     //  <n>, <status>, <AcT>, <Band>, <lac>, <ci>   for a command response with location data
 
-    // Valid CREG notifications can have from one to five parameters, as follows:
-    //       <status>                      for an unsolicited notification without location data
-    //  <n>, <status>                      for a command response without location data
-    //       <status>, <lac>, <ci>, <AcT>  for an unsolicited notification with location data
-    //  <n>, <status>, <lac>, <ci>, <AcT>  for a command response with location data
-
-    // Valid CGREG notifications can have from one to six parameters, as follows:
-    //       <status>                             for an unsolicited notification without location data
-    //  <n>, <status>                             for a command response without location data
-    //       <status>, <lac>, <ci>, <AcT>, <rac>  for an unsolicited notification with location data
-    //  <n>, <status>, <lac>, <ci>, <AcT>, <rac>  for a command response with location data
-
     //  3GPP TS 27.007 version 5.4.0 release 5 section 7.2
     //  <n>      valid values: 0, 1, 2
     //  <status> valid values: 0, 1, 2, 3, 4, 5
@@ -470,73 +461,48 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
     }
     //RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - nNumParams=[%d]\r\n", nNumParams);
 
+    pszIndex = pszCommaBuffer;
+    // "<param_1>"
+    if (!ExtractUInt32(pszIndex, uiFirstParam, pszIndex))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus()"
+                " - Could not extract 1st param\r\n");
+        goto Error;
+    }
+    // Skip ","
+    if (!SkipString(pszIndex, ",", pszIndex))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus()"
+                " - command has only one param => URC\r\n");
+        fUnSolicited = TRUE;
+    }
+
+     // "<param_2>"
+    else if (!ExtractUInt32(pszIndex, uiSecondParam, pszIndex))
+    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus()"
+                " - Second param is not an integer => URC\r\n");
+        fUnSolicited = TRUE;
+    }
+    else
+    {
+        fUnSolicited = FALSE;
+    }
 
     if (E_REGISTRATION_TYPE_CGREG == regType)
     {
-        //  The +CGREG case
-        //  Unsol is 1,5 and 7
-        if ((1 == nNumParams) || (5 == nNumParams) || (7 == nNumParams))
-        {
-            fUnSolicited = TRUE;
-        }
-        else if ((2 == nNumParams) || (6 == nNumParams) || (8 == nNumParams))
-        {
-            //  Sol is 2,6 and 8
-            fUnSolicited = FALSE;
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() -"
-                    " GPRS Unknown param count=%d\r\n", nNumParams);
-            fUnSolicited = TRUE;
-        }
         RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CGREG paramcount=%d"
                 "  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
     }
     else if (E_REGISTRATION_TYPE_CREG == regType)
     {
-        //  The +CREG case
-        //  Unsol is 1, 4 and 6
-        if ((1 == nNumParams) || (4 == nNumParams) || (6 == nNumParams))
-        {
-            fUnSolicited = TRUE;
-        }
-        else if ((2 == nNumParams) || (5 == nNumParams) || (7 == nNumParams))
-        {
-            // sol is 2,5 and 7
-            fUnSolicited = FALSE;
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() -"
-                    " Unknown param count=%d\r\n", nNumParams);
-            fUnSolicited = TRUE;
-        }
         RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CREG paramcount=%d"
                 "  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
     }
     else if (E_REGISTRATION_TYPE_CEREG == regType)
     {
-        //  The +CEREG case
-        //  Unsol is 1, 4 and 6
-        if ((1 == nNumParams) || (4 == nNumParams) || (6 == nNumParams))
-        {
-            fUnSolicited = TRUE;
-        }
-        else if ((2 == nNumParams) || (5 == nNumParams) || (7 == nNumParams))
-        {
-            // sol is 2,5 and 7
-            fUnSolicited = FALSE;
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseRegistrationStatus() -"
-                    " Unknown param count=%d\r\n", nNumParams);
-            fUnSolicited = TRUE;
-        }
         RIL_LOG_INFO("CSilo_Network::ParseRegistrationStatus() - CEREG paramcount=%d"
                 "  fUnsolicited=%d\r\n", nNumParams, fUnSolicited);
-
     }
     else if (E_REGISTRATION_TYPE_XREG == regType)
     {
