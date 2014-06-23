@@ -10886,7 +10886,7 @@ void CTEBase::HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken, UINT32 u
             RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)uiCID, 0, 0);
             break;
         default:
-            DataConfigDown(uiCID);
+            DataConfigDown(uiCID, TRUE);
             break;
     }
 
