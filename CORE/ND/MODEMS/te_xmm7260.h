@@ -110,6 +110,8 @@ public:
     // RIL_REQUEST_DATA_REGISTRATION_STATE 21
     virtual RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA& rspData);
 
+    virtual const char* GetSignalStrengthReportingString();
+
 protected:
     virtual RIL_RESULT_CODE CreateGetGprsCellEnvReq(REQUEST_DATA& reqData);
     virtual RIL_RESULT_CODE CreateDebugScreenReq(REQUEST_DATA& reqData,

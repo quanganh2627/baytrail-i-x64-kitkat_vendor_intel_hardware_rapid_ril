@@ -2221,3 +2221,14 @@ void CTE_XMM7260::CopyCardStatus(RIL_CardStatus_v6& cardStatus)
                 &cardStatus.applications[i].app_label_ptr);
     }
 }
+
+const char* CTE_XMM7260::GetSignalStrengthReportingString()
+{
+    // XCESQRC values must be aligned with levels defined in
+    // /frameworks/base/telephony/java/android/telephony/SignalStrength.java
+    // Ecno and rsrq are not used
+    return "+XCESQ=1"
+            "|+XCESQRC=0,1,4,1,7,13,21" // 2G
+            "|+XCESQRC=1,1,4,1,7,13,21,0" // 3G
+            "|+XCESQRC=2,1,4,26,36,46,56,0,4,-6,2,9,26"; // LTE
+}
