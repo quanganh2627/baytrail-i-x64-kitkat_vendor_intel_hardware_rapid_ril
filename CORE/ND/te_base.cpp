@@ -12550,6 +12550,12 @@ RIL_RESULT_CODE CTEBase::ParseQueryCnap(const char* pszRsp, RESPONSE_DATA& rRspD
     UINT32 nValue = 0;
     UINT32 uiCause;
 
+    if (NULL == pCnapVal)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseQueryCnap() - Could not allocate memory for response.\r\n");
+        goto Error;
+    }
+
     memset(pCnapVal, 0, sizeof(S_ND_CNAP_CURRENT_STATE));
 
     // Parse "<prefix>+CNAP: <n>,<m>"
