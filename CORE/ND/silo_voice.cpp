@@ -958,7 +958,7 @@ BOOL CSilo_Voice::ParseConnLineIdRestriction(CResponse* const pResponse, const c
     }
     memset(pUssdStatus, 0, sizeof(S_ND_USSD_STATUS));
     snprintf(pUssdStatus->szType, 2, "%u", uiTypeCode);
-    if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_BUFFER_SIZE))
+    if (!CopyStringNullTerminate(pUssdStatus->szMessage, szDataString, MAX_USSD_MESSAGE_SIZE))
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseConnLineIdRestriction() - Cannot"
                 " CopyStringNullTerminate szDataString\r\n");

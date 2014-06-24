@@ -9846,11 +9846,11 @@ int CTE::GetActiveDataCallInfoList(P_ND_PDP_CONTEXT_DATA pPDPListData)
 
             CopyStringNullTerminate(pPDPListData->aszTypeBuffers[noOfActivePDP],
                                             sDataCallInfo.szPdpType,
-                                            MAX_BUFFER_SIZE);
+                                            MAX_PDP_TYPE_SIZE);
 
             CopyStringNullTerminate(pPDPListData->aszIfnameBuffers[noOfActivePDP],
                                             sDataCallInfo.szInterfaceName,
-                                            MAX_BUFFER_SIZE);
+                                            MAX_INTERFACE_NAME_SIZE);
 
             pPDPListData->aPDPData[noOfActivePDP].status = sDataCallInfo.failCause;
             pPDPListData->aPDPData[noOfActivePDP].suggestedRetryTime = -1;
