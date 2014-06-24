@@ -7831,8 +7831,19 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
         }
 
         strncpy(m_sCSStatus.szStat, csRegStatus->szStat, sizeof(csRegStatus->szStat));
-        strncpy(m_sCSStatus.szLAC, csRegStatus->szLAC, sizeof(csRegStatus->szLAC));
-        strncpy(m_sCSStatus.szCID, csRegStatus->szCID, sizeof(csRegStatus->szCID));
+
+        /*
+         * Copy the received LAC and CID only if the device is not CS EPS registered.
+         * If device is EPS registered, TAC and CID will be copied to voice registration
+         * status cache's LAC and CID field.
+         */
+        if (!IsEPSRegistered())
+        {
+            CopyStringNullTerminate(m_sCSStatus.szLAC, csRegStatus->szLAC,
+                    sizeof(m_sCSStatus.szLAC));
+            CopyStringNullTerminate(m_sCSStatus.szCID, csRegStatus->szCID,
+                    sizeof(m_sCSStatus.szCID));
+        }
 
         SaveNetworkData(LAST_NETWORK_LAC, csRegStatus->szLAC);
         SaveNetworkData(LAST_NETWORK_CID, csRegStatus->szCID);
@@ -7886,6 +7897,18 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
 
         CopyStringNullTerminate(szLac, epsRegStatus->szLAC, sizeof(szLac));
         CopyStringNullTerminate(szCid, epsRegStatus->szCID, sizeof(szCid));
+
+        /*
+         * As framework uses the cell information returned as part of voice registration status
+         * copy the TAC and cid from EPS registration urc to CS registration cache.
+         */
+        if (IsEPSRegistered())
+        {
+            CopyStringNullTerminate(m_sCSStatus.szLAC, epsRegStatus->szLAC,
+                    sizeof(m_sCSStatus.szLAC));
+            CopyStringNullTerminate(m_sCSStatus.szCID, epsRegStatus->szCID,
+                    sizeof(m_sCSStatus.szCID));
+        }
     }
 
     BOOL bCellInfoChanged = FALSE;

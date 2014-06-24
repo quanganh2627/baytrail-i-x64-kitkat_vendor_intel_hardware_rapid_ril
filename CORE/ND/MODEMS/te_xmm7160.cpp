@@ -125,6 +125,20 @@ const char* CTE_XMM7160::GetPsRegistrationReadString()
     return "AT+CEREG=3;+XREG=3;+CEREG?;+XREG?;+CEREG=0;+XREG=0;\r";
 }
 
+const char* CTE_XMM7160::GetLocationUpdateString(BOOL bIsLocationUpdateEnabled)
+{
+    if (bIsLocationUpdateEnabled)
+    {
+        return "AT+CREG=3;+CEREG=3\r";
+    }
+    else
+    {
+        return (SCREEN_STATE_ON == m_cte.GetScreenState())
+                ? "AT+CREG=3;+CEREG=3\r"
+                : "AT+CREG=1;+CEREG=1\r";
+    }
+}
+
 const char* CTE_XMM7160::GetScreenOnString()
 {
     if (m_cte.IsSignalStrengthReportEnabled())

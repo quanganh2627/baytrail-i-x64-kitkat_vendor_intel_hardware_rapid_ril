@@ -165,6 +165,8 @@ protected:
     virtual const char* GetRegistrationInitString();
     virtual const char* GetPsRegistrationReadString();
 
+    virtual const char* GetLocationUpdateString(BOOL bIsLocationUpdateEnabled);
+
     virtual const char* GetScreenOnString();
     virtual const char* GetScreenOffString();
 
