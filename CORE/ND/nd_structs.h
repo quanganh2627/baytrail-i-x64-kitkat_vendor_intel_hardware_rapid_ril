@@ -54,7 +54,9 @@ typedef struct
 
 // As peer 3GPP 27.007,"7.3 PLMN selection +COPS"
 // long alphanumeric format can be upto 16 characters long
-const int MAX_OP_NAME_LONG = 16 + 1;
+// still for some NW operators the long name can exceed 16 chars.
+// For safety reason we shall use 40 + 1.
+const int MAX_OP_NAME_LONG = 40 + 1;
 // short format up to 8 characters
 const int MAX_OP_NAME_SHORT = 8 + 1;
 // three BCD digit country code plus a two BCD digit network code
