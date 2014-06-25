@@ -2088,9 +2088,8 @@ RIL_RESULT_CODE CTE_XMM7160::CoreISimAuthenticate(REQUEST_DATA& rReqData,
     char szAutn[AUTN_LENGTH+1]; //32 bytes + null terminated
     char szRand[RAND_LENGTH+1]; //32 bytes + null terminated
     char* pszInput = (char*) pData;
-    int nChannelId = 0; // Use default channel ( USIM ) for now. may need to use the one
-                        // for ISIM.
-    int nContext = 1;   // 1 is USIM security context. ( see CAT Spec )
+    int nChannelId;
+    int nContext;
 
     if (NULL == pData)
     {
@@ -2101,7 +2100,13 @@ RIL_RESULT_CODE CTE_XMM7160::CoreISimAuthenticate(REQUEST_DATA& rReqData,
     nChannelId = GetSessionId(RIL_APPTYPE_ISIM);
 
     if (nChannelId == -1) {
-        nChannelId = 0;
+        // If we do not find ISIM, we use default USIM channel, and security context 3G
+        nChannelId = 0; // Use default channel ( USIM ) for now. may need to use the one
+                        // for ISIM.
+        nContext = 1;   // 1 is USIM security context. ( see CAT Spec )
+    } else {
+        // Found ISIM channel
+        nContext = 6; // Security Context for IMS is 6.
     }
 
     CopyStringNullTerminate(szAutn, pszInput, sizeof(szAutn));
