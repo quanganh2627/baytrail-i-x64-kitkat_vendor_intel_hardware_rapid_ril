@@ -125,8 +125,8 @@ Group Modem
 // - mipi_ipc for HSI (default)
 // - USBHS/NCM for USB
 // - USBHSIC/NCM for HSIC
-    ModemDataChannelResourceName        USBHSIC/NCM
-
+// - USBSSIC/NCM for SSIC
+    ModemDataChannelResourceName        USBSSIC/NCM
 
 // Minimum data channel index (number of direct channels reserved for tty in HSI)
 // 2 for HSI (first channels reserved for MUX and traces)
@@ -156,7 +156,7 @@ Group Modem
 //
 //  Command will be sent upon device init.
 //  If values are missing, then default modem values are used (default value is 0)
-    FDDelayTimer                3
+    FDDelayTimer                2
     SCRITimer                   30
 
 
@@ -188,7 +188,7 @@ Group Modem
 //Note: a 'direct channel' means a direct AP <=> modem connection without going through the GSM
 //      MUX layer
    ApnTypeDefault    1
-   ApnTypeDUN        1
+   ApnTypeDUN        2
    ApnTypeIMS        2
    ApnTypeMMS        2
    ApnTypeCBS        2

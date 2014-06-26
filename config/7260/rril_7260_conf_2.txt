@@ -113,7 +113,6 @@ Group InitCmds
 
 // Modem settings
 Group Modem
-    SupportedModem              XMM7260
 
 // Possible values are: "rmnet" for MIPI HSI IPC, "usb" for USB HSIC IPC
     NetworkInterfaceNamePrefix        usb       // The number will be appended in RIL
@@ -190,13 +189,13 @@ Group Modem
 //Note: a 'direct channel' means a direct AP <=> modem connection without going through the GSM
 //      MUX layer
    ApnTypeDefault    1
-   ApnTypeDUN        2
-   ApnTypeIMS        2
+   ApnTypeDUN        3
+   ApnTypeIMS        3
    ApnTypeMMS        3
-   ApnTypeCBS        2
+   ApnTypeCBS        3
    ApnTypeFOTA       3
    ApnTypeSUPL       3
-   ApnTypeHIPRI      2
+   ApnTypeHIPRI      3
 
 // TE profile used for SATK
    TeProfile         08E09721610F00186900001FE01FFFE6C70B0000070508002100000000180000
@@ -209,7 +208,7 @@ Group Modem
 
 //Total of direct channels reserved for data. The class 1 and class 2 apns
 //should be defined accordingly.
-   HsiDataDirect    2
+   HsiDataDirect    1
 
 
 // USSD - Enable/Disable support for Unstructured Supplementary Service Data
