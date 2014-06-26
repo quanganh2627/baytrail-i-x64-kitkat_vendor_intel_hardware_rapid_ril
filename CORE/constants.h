@@ -57,6 +57,7 @@ const int ECNO_UNKNOWN = 255;
 const int RSRQ_UNKNOWN = 255;
 const int RSRP_UNKNOWN = 255;
 const int RSSNR_UNKNOWN = 255;
+const int RXLEV_UNKNOWN = 99;
 
 const UINT32 IMS_NOT_REGISTERED = 0;
 const UINT32 IMS_REGISTERED = 1;

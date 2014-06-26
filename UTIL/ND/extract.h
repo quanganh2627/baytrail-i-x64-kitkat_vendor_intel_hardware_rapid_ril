@@ -91,4 +91,8 @@ BOOL ExtractUpperBoundedUInt32(const char* szData, const UINT32 nUpperLimit, UIN
 BOOL ExtractLowerBoundedUInt32(const char* szData, const UINT32 nLowerLimit, UINT32& rnVal,
                                                                 const char*& rszRemainder);
 
-BOOL ExtractInt(const char* pszData, int& nVal, const char*& pszRemainder);
+BOOL ExtractLongLong(const char* pszData, long long& nVal, const char*& pszRemainder,
+        int base = 10);
+BOOL ExtractInt(const char* pszData, int& nVal, const char*& pszRemainder, int base = 10);
+BOOL ExtractQuotedHexLongLong(const char* pszData, long long& nVal, const char*& pszRemainder);
+BOOL ExtractQuotedHexInt(const char* pszData, int& nVal, const char*& pszRemainder);
