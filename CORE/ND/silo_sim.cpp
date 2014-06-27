@@ -666,6 +666,13 @@ BOOL CSilo_SIM::ParseXLOCK(CResponse* const pResponse, const char*& rszPointer)
 
     pResponse->SetUnsolicitedFlag(TRUE);
 
+    if (RIL_APPSTATE_IMEI == CTE::GetTE().GetSimAppState())
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParseXLOCK() - ignore XLOCK when UICC is locked to a"
+                " device\r\n");
+        return TRUE;
+    }
+
     memset(lock_info, 0, sizeof(lock_info));
 
     // Change the number to the number of facility locks supported via XLOCK URC.

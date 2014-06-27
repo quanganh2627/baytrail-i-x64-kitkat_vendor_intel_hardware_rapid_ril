@@ -6742,6 +6742,13 @@ BOOL CTE_XMM6260::ParseXLOCK(const char*& rszPointer)
 
     memset(lock_info, 0, sizeof(lock_info));
 
+    if (RIL_APPSTATE_IMEI == GetSimAppState())
+    {
+        RIL_LOG_INFO("CTE_XMM6260::ParseXLOCK() - ignore XLOCK when UICC is locked to a"
+                " device\r\n");
+        return TRUE;
+    }
+
     // Change the number to the number of facility locks supported via XLOCK URC.
     while (i < nMAX_LOCK_INFO)
     {
