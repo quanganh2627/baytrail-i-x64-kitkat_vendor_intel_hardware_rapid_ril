@@ -107,8 +107,18 @@ char* CTE_XMM7160::GetUnlockInitCommands(UINT32 uiChannelType)
 
     if (RIL_CHANNEL_DLC6 == uiChannelType)
     {
-        // Enabling ETWS
-        ConcatenateStringNullTerminate(szInitCmd, sizeof(szInitCmd), GetEnablingEtwsString());
+        // Enabling ETWS based on pws property
+        char szEtwsSupport[PROPERTY_VALUE_MAX] = {'\0'};
+        property_get("persist.pws_support", szEtwsSupport, "3");
+        if (1 == strlen(szEtwsSupport)
+                && (szEtwsSupport[0] == '3' || szEtwsSupport[0] == '2'))
+        {
+            if (!ConcatenateStringNullTerminate(szInitCmd, sizeof(szInitCmd),
+                    GetEnablingEtwsString()))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::GetUnlockInitCommands()- Can't add ETWS string\r\n");
+            }
+        }
     }
 
     RIL_LOG_VERBOSE("CTE_XMM7160::GetUnlockInitCommands() - Exit\r\n");
