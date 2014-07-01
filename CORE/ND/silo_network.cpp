@@ -814,116 +814,107 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
     // Format: "NW ACT <p_cid>, <cid>, <event_type>.
     else if (FindAndSkipString(szStrExtract, "NW ACT", szStrExtract))
     {
-        if (!ExtractUInt32(szStrExtract, uiPCID, szStrExtract))
-        {
-            goto Error;
-        }
-        else
-        {
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW ACT , extracted pcid=[%u]\r\n",
-                    uiPCID);
+        ExtractUInt32(szStrExtract, uiPCID, szStrExtract);
 
-            if (FindAndSkipString(szStrExtract, ",", szStrExtract))
-            {
-                if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
-                {
-                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
-                    goto Error;
-                }
-            }
-            else
+        if (FindAndSkipString(szStrExtract, ",", szStrExtract))
+        {
+            if (!ExtractUInt32(szStrExtract, uiCID, szStrExtract))
             {
                 RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
                 goto Error;
             }
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW ACT, extracted cid=[%u]\r\n",
-                    uiCID);
-            if (FindAndSkipString(szStrExtract, ",", szStrExtract))
-            {
-                if (!ExtractUInt32(szStrExtract, uiEvent, szStrExtract))
-                {
-                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Couldn't extract event\r\n");
-                    goto Error;
-                }
-            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - couldn't extract cid\r\n");
+            goto Error;
+        }
 
-            RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW ACT, extracted event=[%u]\r\n",
-                            uiEvent);
-            // Acknowledgment required
-            if (1 == uiEvent)
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW ACT, extracted cid=[%u]\r\n",
+                uiCID);
+        if (FindAndSkipString(szStrExtract, ",", szStrExtract))
+        {
+            if (!ExtractUInt32(szStrExtract, uiEvent, szStrExtract))
             {
-                /*
-                 * Note: This is a temporary solution to get the conformance test case
-                 * passed. If the NW initiated connection needs to be used across applications
-                 * then framework should be informed once the NW intiated context is activated.
-                 */
-                CTE::GetTE().AcceptOrRejectNwInitiatedContext();
+                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Couldn't extract event\r\n");
+                goto Error;
             }
-            /* With CGAUTO=0 (no automatic reply), sequence from modem will be :
-             * +CGEV pid,cid,1 <- acknowledgment required
-             * +CGANS=1        <- AP accept nw initiated cntx
-             * +CGEV pid,cid,0 <- modem informs cntx is available
+        }
+
+        RIL_LOG_INFO("CSilo_Network::ParseCGEV() - NW ACT, extracted event=[%u]\r\n",
+                        uiEvent);
+        // Acknowledgment required
+        if (1 == uiEvent)
+        {
+            /*
+             * Note: This is a temporary solution to get the conformance test case
+             * passed. If the NW initiated connection needs to be used across applications
+             * then framework should be informed once the NW intiated context is activated.
              */
-            else if (0 == uiEvent)
+            CTE::GetTE().AcceptOrRejectNwInitiatedContext();
+        }
+        /* With CGAUTO=0 (no automatic reply), sequence from modem will be :
+         * +CGEV pid,cid,1 <- acknowledgment required
+         * +CGANS=1        <- AP accept nw initiated cntx
+         * +CGEV pid,cid,0 <- modem informs cntx is available
+         */
+        else if (0 == uiEvent)
+        {
+            pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
+            if (NULL != pChannelData)
             {
-                pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
-                if (NULL != pChannelData)
+                pChannelData->AddChildContextID(uiCID);
+                void** callbackParams = new void*[3];
+                if (callbackParams != NULL)
                 {
-                    pChannelData->AddChildContextID(uiCID);
-                    void** callbackParams = new void*[3];
-                    if (callbackParams != NULL)
-                    {
-                        callbackParams[0] = (void*) uiPCID;
-                        callbackParams[1] = (void*) uiCID;
-                        callbackParams[2] = (void*) pChannelData;
-                        RIL_requestTimedCallback(triggerQueryBearerParams,
-                                (void*) callbackParams, 0, 0);
-                    }
-                    else
-                    {
-                        RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - "
-                                "cannot allocate callbackParams\r\n");
-                        goto Error;
-                    }
-                    sOEM_HOOK_RAW_UNSOL_BEARER_ACT* pNwAct =
-                            (sOEM_HOOK_RAW_UNSOL_BEARER_ACT*)malloc(
-                                    sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_ACT));
-                    if (NULL != pNwAct)
-                    {
-                        pNwAct->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_ACT;
-                        pChannelData->GetInterfaceName(pNwAct->szIfName, MAX_INTERFACE_NAME_SIZE);
-                        if (0 == strlen(pNwAct->szIfName))
-                        {
-                            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - No Interface found "
-                                    "for PCID=[%u]\r\n", uiPCID);
-                            free(pNwAct);
-                            goto Error;
-                        }
-                        pNwAct->uiCid = uiCID;
-                        pNwAct->uiPcid = uiPCID;
-                        RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pNwAct,
-                                sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_ACT));
-                    }
-                    else
-                    {
-                        RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() -"
-                                " Could not allocate memory for pNwAct.\r\n");
-                        goto Error;
-                    }
+                    callbackParams[0] = (void*) uiPCID;
+                    callbackParams[1] = (void*) uiCID;
+                    callbackParams[2] = (void*) pChannelData;
+                    RIL_requestTimedCallback(triggerQueryBearerParams,
+                            (void*) callbackParams, 0, 0);
                 }
                 else
                 {
-                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - Invalid PCID=[%u],"
-                            " no data channel found!\r\n", uiPCID);
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - "
+                            "cannot allocate callbackParams\r\n");
+                    goto Error;
+                }
+                sOEM_HOOK_RAW_UNSOL_BEARER_ACT* pNwAct =
+                        (sOEM_HOOK_RAW_UNSOL_BEARER_ACT*)malloc(
+                                sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_ACT));
+                if (NULL != pNwAct)
+                {
+                    pNwAct->command = RIL_OEM_HOOK_RAW_UNSOL_BEARER_ACT;
+                    pChannelData->GetInterfaceName(pNwAct->szIfName, MAX_INTERFACE_NAME_SIZE);
+                    if (0 == strlen(pNwAct->szIfName))
+                    {
+                        RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() - No Interface found "
+                                "for PCID=[%u]\r\n", uiPCID);
+                        free(pNwAct);
+                        goto Error;
+                    }
+                    pNwAct->uiCid = uiCID;
+                    pNwAct->uiPcid = uiPCID;
+                    RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW, (void*)pNwAct,
+                            sizeof(sOEM_HOOK_RAW_UNSOL_BEARER_ACT));
+                }
+                else
+                {
+                    RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() -"
+                            " Could not allocate memory for pNwAct.\r\n");
                     goto Error;
                 }
             }
             else
             {
-                RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() -"
-                        " Invalid event=[%u]\r\n", uiEvent);
-                goto Error;
+                RIL_LOG_INFO("CSilo_Network::ParseCGEV() - no data channel found!\r\n");
             }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseCGEV() -"
+                    " Invalid event=[%u]\r\n", uiEvent);
+            goto Error;
         }
     }
     // Format: "ME ACT <p_cid>, <cid>, <event_type>. Unsupported.
