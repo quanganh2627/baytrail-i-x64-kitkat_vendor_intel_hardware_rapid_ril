@@ -186,6 +186,11 @@ public:
                                                            UINT32 uiIndex,
                                                            UINT32 uiMode);
 
+    // RIL_REQUEST_SET_INITIAL_ATTACH_APN 111
+    virtual RIL_RESULT_CODE CoreSetInitialAttachApn(REQUEST_DATA& rReqData, void* pData,
+            UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSetInitialAttachApn(RESPONSE_DATA& rRspData);
+
     // internal response handlers
     virtual RIL_RESULT_CODE ParsePdpContextActivate(RESPONSE_DATA& rRspData);
     virtual RIL_RESULT_CODE ParseQueryIpAndDns(RESPONSE_DATA& rRspData);
@@ -314,6 +319,8 @@ protected:
     virtual RIL_RESULT_CODE CreateGetGprsCellEnvReq(REQUEST_DATA& reqData);
     virtual RIL_RESULT_CODE CreateDebugScreenReq(REQUEST_DATA& rReqData,
               const char** ppszRequest, const UINT32 uiDataSize);
+
+    virtual BOOL GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData);
 
 private:
     RIL_RESULT_CODE CreateAutonomousFDReq(REQUEST_DATA& rReqData,
