@@ -76,7 +76,11 @@ BOOL CSilo_rfcoexistence::ParseCoexURC(CResponse* const pResponse, const char*& 
     RIL_LOG_VERBOSE("CSilo_rfcoexistence::ParseCoexURC() - Enter\r\n");
 
     BOOL fRet = FALSE;
-    char szExtInfo[MAX_BUFFER_SIZE] = {0};
+    // prefix can be "+XMETRIC: " or "+XNRTCWSI: "
+    const int MAX_PREFIX_SIZE = 12;
+    // KW fix, total size of pData->response is COEX_INFO_BUFFER_SIZE
+    // pData->response is made by pUrcPrefix + szExtInfo
+    char szExtInfo[COEX_INFO_BUFFER_SIZE - MAX_PREFIX_SIZE] = {0};
     sOEM_HOOK_RAW_UNSOL_COEX_INFO* pData = NULL;
 
     if (NULL == pResponse)
@@ -88,7 +92,8 @@ BOOL CSilo_rfcoexistence::ParseCoexURC(CResponse* const pResponse, const char*& 
     pResponse->SetUnsolicitedFlag(TRUE);
 
     // Performing a backup of the URC string (rszPointer) into szExtInfo, to not modify rszPointer
-    ExtractUnquotedString(rszPointer, '\r', szExtInfo, MAX_BUFFER_SIZE, rszPointer);
+    ExtractUnquotedString(rszPointer, '\r', szExtInfo,
+                             (COEX_INFO_BUFFER_SIZE - MAX_PREFIX_SIZE), rszPointer);
 
     RIL_LOG_VERBOSE("CSilo_rfcoexistence::ParseCoexURC() - URC prefix=[%s] URC value=[%s]\r\n",
             pUrcPrefix, szExtInfo);
@@ -107,7 +112,7 @@ BOOL CSilo_rfcoexistence::ParseCoexURC(CResponse* const pResponse, const char*& 
 
     // pData.response will contain the final result (URC name + URC value)
     // Adding the prefix of the URC (+XMETRIC or +XNRTCWS) to pData->response
-    if (!CopyStringNullTerminate(pData->response, pUrcPrefix, COEX_INFO_BUFFER_SIZE))
+    if (!CopyStringNullTerminate(pData->response, pUrcPrefix, MAX_PREFIX_SIZE))
     {
         RIL_LOG_CRITICAL("CSilo_rfcoexistence:ParseCoexURC - Copy of URC prefix failed\r\n");
         goto Error;
