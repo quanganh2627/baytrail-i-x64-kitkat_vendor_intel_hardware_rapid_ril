@@ -32,7 +32,8 @@ UsatInitStateMachine::UsatInitStateMachine()
    m_pszTeProfileToWrite(NULL),
    m_ppszProfiles(NULL),
    m_isStkServiceRunning(false),
-   m_uiccState(0)
+   m_uiccState(0),
+   m_simEvent(SIM_UNAVAILABLE)
 {
     m_pCatProfile = new CCatProfile();
     m_currState = new InitState(*this);
@@ -92,38 +93,38 @@ void UsatInitStateMachine::ProcessNextEvent(UsatState& state, int event)
     {
         case SIM_READY:
         {
-            RIL_LOG_INFO("StateMachine::ProcessNextEvent() - SIM READY\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::ProcessNextEvent() - SIM READY\r\n");
             state.SimReady();
             break;
         }
         case SIM_UNAVAILABLE:
         {
-            RIL_LOG_INFO("StateMachine::ProcessNextEvent() - SIM UNAVAILABLE\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::ProcessNextEvent() - SIM UNAVAILABLE\r\n");
             state.SimUnavailable();
             break;
         }
         case PROFILE_READ:
         {
-            RIL_LOG_INFO("StateMachine::ProcessNextEvent() - PROFILE READ\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::ProcessNextEvent() - PROFILE READ\r\n");
             state.ProfileRead();
             break;
         }
         case SIM_READY_FOR_RESET:
         {
-            RIL_LOG_INFO("StateMachine::ProcessNextEvent() - SIM READY FOR RESET\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::ProcessNextEvent() - SIM READY FOR RESET\r\n");
             state.SimReadyForReset();
             break;
         }
         case SIM_READY_TO_ACTIVATE:
         {
-            RIL_LOG_INFO("StateMachine::ProcessNextEvent() - SIM READY TO ACTIVATE\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::ProcessNextEvent() - SIM READY TO ACTIVATE\r\n");
             SetReadyToActivate(true);
             state.SimReadyToActivate();
             break;
         }
         case STK_SERVICE_RUNNING:
         {
-            RIL_LOG_INFO("StateMachine::ProcessNextEvent() - PROFILE ACTIVATION\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::ProcessNextEvent() - PROFILE ACTIVATION\r\n");
             SetStkServiceRunning(true);
             state.ProfileToActivate();
             break;
@@ -139,32 +140,32 @@ UsatState* UsatInitStateMachine::CreateNextEvent(int event)
     {
         case SIM_UNAVAILABLE:
         {
-            RIL_LOG_INFO("StateMachine::CreateNextEvent() - SIM UNAVAILABLE\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::CreateNextEvent() - SIM UNAVAILABLE\r\n");
             return new InitState(*m_pStateMachineInstance);
         }
         case SIM_READY:
         {
-            RIL_LOG_INFO("StateMachine::CreateNextEvent() - SIM READY\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::CreateNextEvent() - SIM READY\r\n");
             return new ProfileConfig(*m_pStateMachineInstance);
         }
         case PROFILE_READ:
         {
-            RIL_LOG_INFO("StateMachine::CreateNextEvent() - PROFILE READ\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::CreateNextEvent() - PROFILE READ\r\n");
             return new ProfileProcess(*m_pStateMachineInstance);
         }
         case SIM_READY_FOR_RESET:
         {
-            RIL_LOG_INFO("StateMachine::CreateNextEvent() - SIM READY FOR RESET\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::CreateNextEvent() - SIM READY FOR RESET\r\n");
             return new UiccReset(*m_pStateMachineInstance);
         }
         case SIM_READY_TO_ACTIVATE:
         {
-            RIL_LOG_INFO("StateMachine::CreateNextEvent() - SIM READY TO ACTIVATE\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::CreateNextEvent() - SIM READY TO ACTIVATE\r\n");
             return new WaitingActivate(*m_pStateMachineInstance);
         }
         case STK_SERVICE_RUNNING:
         {
-            RIL_LOG_INFO("StateMachine::CreateNextEvent() - PROFILE ACTIVATION\r\n");
+            RIL_LOG_INFO("UsatInitStateMachine::CreateNextEvent() - PROFILE ACTIVATION\r\n");
             return new ProfileActivation(*m_pStateMachineInstance);
         }
         default:
@@ -188,6 +189,7 @@ void UsatInitStateMachine::PassToNextEvent(int event)
     // WARNING: nothing should be done after calling PassToNextEvent() in a state
     delete m_currState;
 
+    m_simEvent = event;
     m_currState = CreateNextEvent(event);
     if (NULL != m_currState)
     {
@@ -273,3 +275,11 @@ CCatProfile* UsatInitStateMachine::GetCatProfile()
     return m_pCatProfile;
 }
 
+bool UsatInitStateMachine::IsSimResetPossible()
+{
+    RIL_LOG_INFO("UsatInitStateMachine::IsSimResetPossible() - uiccState: %d, simEvent: %d\r\n",
+            m_uiccState, m_simEvent);
+
+    return (m_uiccState != UICC_ACTIVE
+            ||  (m_simEvent != SIM_READY_TO_ACTIVATE && m_simEvent != STK_SERVICE_RUNNING));
+}

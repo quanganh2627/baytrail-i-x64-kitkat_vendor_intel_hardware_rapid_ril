@@ -1206,6 +1206,7 @@ public:
     void PostWriteUsatProfileHandler(POST_CMD_HANDLER_DATA& rData);
 
     void ResetUicc();
+    void NotifyUiccReady();
 
     void EnableProfileFacilityHandling();
 

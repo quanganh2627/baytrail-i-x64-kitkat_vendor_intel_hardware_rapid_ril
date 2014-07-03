@@ -10786,6 +10786,11 @@ void CTE::ResetUicc()
     return m_pTEBaseInstance->ResetUicc();
 }
 
+void CTE::NotifyUiccReady()
+{
+    return m_pTEBaseInstance->NotifyUiccReady();
+}
+
 void CTE::EnableProfileFacilityHandling()
 {
     return m_pTEBaseInstance->EnableProfileFacilityHandling();

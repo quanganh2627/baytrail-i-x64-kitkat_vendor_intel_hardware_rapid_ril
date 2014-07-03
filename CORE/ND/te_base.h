@@ -985,6 +985,7 @@ public:
     virtual void PostWriteUsatProfileHandler(POST_CMD_HANDLER_DATA& data);
 
     virtual void ResetUicc();
+    virtual void NotifyUiccReady();
 
     virtual void EnableProfileFacilityHandling();
 

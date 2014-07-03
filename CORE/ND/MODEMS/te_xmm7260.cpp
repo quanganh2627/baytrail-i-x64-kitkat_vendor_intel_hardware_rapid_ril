@@ -18,6 +18,7 @@
 #include "te_xmm7260.h"
 #include "init7260.h"
 #include "usat_init_state_machine.h"
+#include "rildmain.h"
 
 
 CTE_XMM7260::CTE_XMM7260(CTE& cte)
@@ -1217,6 +1218,13 @@ void CTE_XMM7260::ResetUicc()
     RIL_LOG_VERBOSE("CTE_XMM7260::ResetUicc() - Exit\r\n");
 }
 
+void CTE_XMM7260::NotifyUiccReady()
+{
+    RIL_LOG_INFO("CTE_XMM7260::NotifyUiccReady()\r\n");
+
+    RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+}
+
 // This will activate the TE profile handling facility and +CUSATP: <proactive_command> and
 // +CUSATEND will be received
 void CTE_XMM7260::EnableProfileFacilityHandling()
@@ -2151,4 +2159,25 @@ Error:
     }
 
     return pCellData;
+}
+
+void CTE_XMM7260::CopyCardStatus(RIL_CardStatus_v6& cardStatus)
+{
+    cardStatus = m_CardStatusCache;
+
+    // Do not report APPSTATE as being ready as long as SIM reset is possible in USAT state machine
+    if (m_usatInitStateMachine.IsSimResetPossible() && GetSimAppState() == RIL_APPSTATE_READY)
+    {
+        for (int i = 0; i < m_CardStatusCache.num_applications; i++)
+        {
+            cardStatus.applications[i].app_state = RIL_APPSTATE_DETECTED;
+        }
+    }
+
+    for (int i = 0; i < cardStatus.num_applications; i++)
+    {
+        GetSimAppIdAndLabel(cardStatus.applications[i].app_type,
+                &cardStatus.applications[i].aid_ptr,
+                &cardStatus.applications[i].app_label_ptr);
+    }
 }

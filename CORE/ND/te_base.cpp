@@ -12462,6 +12462,10 @@ void CTEBase::ResetUicc()
 {
 }
 
+void CTEBase::NotifyUiccReady()
+{
+}
+
 void CTEBase::EnableProfileFacilityHandling()
 {
 }
