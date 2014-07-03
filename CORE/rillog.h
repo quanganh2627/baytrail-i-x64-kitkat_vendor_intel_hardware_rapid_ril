@@ -13,7 +13,7 @@
 #ifndef RRIL_LOG_H
 #define RRIL_LOG_H
 
-const char LOG_TAG[] = "RILR";
+#define LOG_TAG "RILR"
 
 const int LOG_TAG_MAX_LENGTH = 6;
 const int SIMID_MAX_LENGTH = 6;
