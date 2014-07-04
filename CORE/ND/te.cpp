@@ -7123,7 +7123,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
     UINT32 uiStatus = 0;
     UINT32 uiLAC = 0;
     UINT32 uiCID = 0;
-    UINT32 uiAct = 0;
+    UINT32 uiAct = 99; // dummy value by default
     int causeType = -1;
     int rejectCause = -1;
     RIL_RadioTechnology rtAct = RADIO_TECH_UNKNOWN;
@@ -8235,6 +8235,7 @@ const char* CTE::PrintRAT(char* szRAT) const
         case RADIO_TECH_EHRPD: return "RADIO_TECH_EHRPD";
         case RADIO_TECH_LTE: return "RADIO_TECH_LTE";
         case RADIO_TECH_HSPAP: return "RADIO_TECH_HSPAP";
+        case RADIO_TECH_GSM: return "RADIO_TECH_GSM";
         default: return "UNKNOWN RAT";
     }
 }
