@@ -56,6 +56,11 @@ Group RequestTimeouts
     EnterSimPin2                       20000
     ChangeSimPin                       20000
     ChangeSimPin2                      20000
+    SimTransmitChannel                 60000
+    SimOpenChannel                     60000
+    SimCloseChannel                    60000
+    SimTransmitBasic                   60000
+    SimIO                              60000
 
     //  Video Telephony API timeouts
     HangupVT                           40000
