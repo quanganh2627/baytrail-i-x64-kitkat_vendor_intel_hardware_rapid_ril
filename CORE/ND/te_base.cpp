@@ -5399,17 +5399,22 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
         if (!FindAndSkipString(szRsp, ",", szRsp))
         {
             RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() -"
-                    " INFO: Finished parsing entries\r\n");
+                    " INFO: Finished parsing %d entries\r\n", nCurrent);
+
+            // As memory was allocated using the 'find the (' method, it can be bigger than the
+            // number of PLMNs if the latter have '(' in their name so fix uiDataSize to match
+            // the number of filled entries in the array.
+            rRspData.uiDataSize = nCurrent * sizeof(S_ND_OPINFO_PTRS);
 
             // Suppression of duplication.
 
             // Detection of the network number
             if (nCurrent > 0)
             {
-                for (i=0;i<nCurrent;i++)
+                for (i = 0; i < nCurrent; i++)
                 {
                     find = false;
-                    for (j=0;j<i;j++)
+                    for (j = 0; j < i; j++)
                     {
                         if (strcmp(pOpInfoData[i].szOpInfoNumeric,
                                 pOpInfoData[j].szOpInfoNumeric) == 0)
@@ -5426,7 +5431,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
 
             RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() -"
                     " There is %d network and %d double.\r\n",
-                    numericNameNumber, (nCurrent-numericNameNumber));
+                    numericNameNumber, (nCurrent - numericNameNumber));
 
             if (numericNameNumber < nCurrent)
             {
