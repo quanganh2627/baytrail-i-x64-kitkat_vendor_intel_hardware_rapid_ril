@@ -97,7 +97,7 @@ Group RILSettings
 // Pin Caching mode
 // 1 - Pin caching in file system
 // 2 - Pin caching in NVRAM
-    PinCachingMode 2
+    PinCacheMode 2
 
 // Settable values for the InitCmds group include:
 //   PreInitCmds,  PreReinitCmds,  PreUnlockCmds,  PreSmsInitCmds

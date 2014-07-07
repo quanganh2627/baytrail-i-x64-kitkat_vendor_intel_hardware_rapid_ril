@@ -354,14 +354,14 @@ BOOL CSystemManager::InitializeSystem(const char* szModemName)
         CTE::GetTE().SetTimeoutThresholdForRetry((UINT32)iTemp);
     }
 
+    if (repository.Read(g_szGroupRILSettings, g_szPinCacheMode, iTemp))
+    {
+        CTE::GetTE().SetPinCacheMode((UINT32)iTemp);
+    }
+
     if (repository.Read(g_szGroupModem, g_szMTU, iTemp))
     {
         CTE::GetTE().SetMTU((UINT32)iTemp);
-    }
-
-    if (repository.Read(g_szGroupModem, g_szPinCacheMode, iTemp))
-    {
-        CTE::GetTE().SetPinCacheMode((UINT32)iTemp);
     }
 
     // store initial value of Fast Dormancy Mode
