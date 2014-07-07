@@ -1807,10 +1807,13 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA& rRspData)
         case CALL_FAIL_FDN_BLOCKED:
         case CALL_FAIL_IMSI_UNKNOWN_IN_VLR:
         case CALL_FAIL_IMEI_NOT_ACCEPTED:
+#if !defined (M2_PDK_OR_GMIN_BUILD)
         case CALL_FAIL_RESSOURCES_UNAVAILABLE:
         case CALL_FAIL_BEARER_CAPABILITY_NOT_AUTHORIZED:
         case CALL_FAIL_BEARER_CAPABILITY_NOT_AVAILABLE:
         case CALL_FAIL_INCOMPATIBLE_DESTINATION:
+#endif
+
             *pCause = (int) uiCause;
             break;
 
@@ -2561,6 +2564,23 @@ RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/, void* pData,
     }
 
 Error:
+
+#if defined(M2_PDK_OR_GMIN_BUILD)
+    if (!bTurnRadioOn && res == RRIL_RESULT_OK)
+    {
+      RIL_LOG_INFO("CTEBase::CoreRadioPower() - Setting the SIM state and notify\r\n");
+      SetSimState(RIL_CARDSTATE_PRESENT, RIL_APPSTATE_UNKNOWN, RIL_PINSTATE_UNKNOWN);
+      SetPersonalisationSubState(RIL_PERSOSUBSTATE_UNKNOWN);
+      RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED, NULL, 0);
+    }
+
+    if (bTurnRadioOn)
+    {
+         RIL_LOG_INFO("CTEBase::CoreRadioPower() - querry sim state now\r\n");
+         RIL_requestTimedCallback(triggerQueryUiccInfo, NULL, 0, 0);
+    }
+#endif
+
     RIL_LOG_VERBOSE("CTEBase::CoreRadioPower() - Exit\r\n");
     return res;
 }
@@ -8899,7 +8919,7 @@ RIL_RESULT_CODE CTEBase::ParseSetInitialAttachApn(RESPONSE_DATA& rRspData)
 // RIL_REQUEST_IMS_SEND_SMS: // 113
 // TODO
 
-
+#if defined(M2_SEEK_FEATURE_ENABLED)
 //
 // RIL_REQUEST_SIM_TRANSMIT_BASIC 114
 //
@@ -9178,7 +9198,7 @@ Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSimOpenChannel() - Exit\r\n");
     return res;
 }
-
+#endif
 
 RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
 {
@@ -9229,6 +9249,7 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
 
         RIL_LOG_INFO("CTEBase::ParseSimOpenChannel() - XEER, nCause=[%d]\r\n", nCause);
 
+#if defined(M2_SEEK_FEATURE_ENABLED)
         if (202 == nCause)
         {
             rRspData.uiResultCode = RIL_E_MISSING_RESOURCE;
@@ -9270,6 +9291,8 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
             }
         }
         else
+#endif
+
         {
             //  nCause none of the above
             rRspData.uiResultCode = RIL_E_GENERIC_FAILURE;
@@ -9320,7 +9343,7 @@ Error:
     return res;
 }
 
-
+#if defined(M2_SEEK_FEATURE_ENABLED)
 //
 // RIL_REQUEST_SIM_CLOSE_CHANNEL 116
 //
@@ -9359,6 +9382,8 @@ Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSimCloseChannel() - Exit\r\n");
     return res;
 }
+
+#endif
 
 RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
 {
@@ -9403,6 +9428,7 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
 
         RIL_LOG_INFO("CTEBase::ParseSimCloseChannel() - XEER, nCause=[%d]\r\n", nCause);
 
+#if defined(M2_SEEK_FEATURE_ENABLED)
         if (202 == nCause)
         {
             rRspData.uiResultCode = RIL_E_MISSING_RESOURCE;
@@ -9438,6 +9464,8 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
             }
         }
         else
+#endif
+
         {
             // nCause none of the above
             rRspData.uiResultCode = RIL_E_GENERIC_FAILURE;
@@ -9451,7 +9479,7 @@ Error:
     return res;
 }
 
-
+#if defined(M2_SEEK_FEATURE_ENABLED)
 
 //
 // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 117
@@ -9765,6 +9793,7 @@ Error:
     return res;
 }
 
+#endif
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //
@@ -10012,9 +10041,9 @@ RIL_SignalStrength_v6* CTEBase::ParseQuerySignalStrength(RESPONSE_DATA& rRspData
     RIL_LOG_VERBOSE("CTEBase::ParseQuerySignalStrength() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
-
     int rssi = RSSI_UNKNOWN;
     int ber = BER_UNKNOWN;
+
     RIL_SignalStrength_v6* pSigStrData;
 
     pSigStrData = (RIL_SignalStrength_v6*)malloc(sizeof(RIL_SignalStrength_v6));
@@ -11873,10 +11902,18 @@ void CTEBase::QuerySignalStrength()
     }
 }
 
+#if !defined(M2_PDK_OR_GMIN_BUILD)
 RIL_SignalStrength_v9* CTEBase::ParseXCESQ(const char*& /*rszPointer*/, const BOOL /*bUnsolicited*/)
 {
     return NULL;
 }
+
+#else
+RIL_SignalStrength_v6* CTEBase::ParseXCESQ(const char*& /*rszPointer*/, const BOOL /*bUnsolicited*/)
+{
+    return NULL;
+}
+#endif
 
 void CTEBase::QueryUiccInfo()
 {
