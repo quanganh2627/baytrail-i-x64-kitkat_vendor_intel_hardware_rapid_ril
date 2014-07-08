@@ -5186,8 +5186,9 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
     UINT32 i = 0;
     UINT32 j = 0;
     UINT32 k = 0;
+    UINT32 shortNameLength = 0;
 
-    char tmp[MAX_OP_NAME_LONG] = {0};
+    char* pszShortOpName = NULL;
 
     P_ND_OPINFO_PTRS pOpInfoPtr = NULL;
     P_ND_OPINFO_DATA pOpInfoData = NULL;
@@ -5203,9 +5204,6 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
 
     const char* szRsp = rRspData.szResponse;
     const char* szDummy = NULL;
-
-    // 16 chars max length of op name long to be displayed, as per 3GPP
-    const int MAX_OP_NAME_ALLOWED = 16 + 1;
 
     // Skip "<prefix>+COPS: "
     SkipRspStart(szRsp, m_szNewLine, szRsp);
@@ -5302,84 +5300,60 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
         }
 
         // Extract ",<long_name>"
-        if (!SkipString(szRsp, ",", szRsp) ||
-           (!ExtractQuotedString(szRsp, tmp, MAX_OP_NAME_LONG, szRsp)))
+        if (!SkipString(szRsp, ",", szRsp)
+                || !ExtractQuotedString(szRsp, pOpInfoData[nCurrent].szOpInfoLong,
+                    MAX_OP_NAME_LONG, szRsp))
         {
+            pOpInfoData[nCurrent].szOpInfoLong[0] = '\0';
+
             RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() -"
                     " Could not extract the Long Format Operator Name.\r\n");
             goto Error;
         }
         else
         {
-            int len = strlen(tmp);
-            if (0 == len)
-            {
-                //  if long format operator is empty return string "".
-                strcpy(pOpInfoData[nCurrent].szOpInfoLong, "");
-            }
-            else
-            {
-                int i;
-                for (i = 0; tmp[i]; pOpInfoData[nCurrent].szOpInfoLong[i] = (char) tmp[i], ++i);
-                pOpInfoData[nCurrent].szOpInfoLong[i] = '\0';
-            }
-
             pOpInfoPtr[nCurrent].pszOpInfoLong = pOpInfoData[nCurrent].szOpInfoLong;
             RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - Long oper: %s\r\n",
                     pOpInfoData[nCurrent].szOpInfoLong);
         }
-
         // Extract ",<short_name>"
-        if (!SkipString(szRsp, ",", szRsp) ||
-           (!ExtractQuotedString(szRsp, tmp, MAX_OP_NAME_SHORT, szRsp)))
+        if (!SkipString(szRsp, ",", szRsp)
+                || !ExtractQuotedStringWithAllocatedMemory(szRsp, pszShortOpName,
+                    shortNameLength, szRsp))
         {
+            pOpInfoData[nCurrent].szOpInfoShort[0] = '\0';
+
             RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() -"
                     " Could not extract the Short Format Operator Name.\r\n");
             goto Error;
         }
         else
         {
-            int len = strlen(tmp);
-            if (0 == len)
-            {
-                //  if short format operator is empty return string "".
-                strcpy(pOpInfoData[nCurrent].szOpInfoShort, "");
-            }
-            else
-            {
-                int i;
-                for (i = 0; tmp[i]; pOpInfoData[nCurrent].szOpInfoShort[i] = (char) tmp[i], ++i);
-                pOpInfoData[nCurrent].szOpInfoShort[i] = '\0';
-            }
+            strncpy(pOpInfoData[nCurrent].szOpInfoShort, pszShortOpName, MAX_OP_NAME_SHORT-1);
+            pOpInfoData[nCurrent].szOpInfoShort[MAX_OP_NAME_SHORT - 1] = '\0';
 
             pOpInfoPtr[nCurrent].pszOpInfoShort = pOpInfoData[nCurrent].szOpInfoShort;
             RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - Short oper: %s\r\n",
                     pOpInfoData[nCurrent].szOpInfoShort);
        }
 
+       // delete here pszShortOpName is no longer used
+       delete[] pszShortOpName;
+       pszShortOpName = NULL;
+
         // Extract ",<num_name>"
-        if (!SkipString(szRsp, ",", szRsp) ||
-           (!ExtractQuotedString(szRsp, tmp, MAX_OP_NAME_NUM, szRsp)))
+        if (!SkipString(szRsp, ",", szRsp)
+                || !ExtractQuotedString(szRsp, pOpInfoData[nCurrent].szOpInfoNumeric,
+                    MAX_OP_NAME_NUM, szRsp))
         {
+            pOpInfoData[nCurrent].szOpInfoNumeric[0] = '\0';
+
             RIL_LOG_CRITICAL("CTEBase::ParseQueryAvailableNetworks() -"
                     " Could not extract the Numeric Format Operator Name.\r\n");
             goto Error;
         }
         else
         {
-            int len = strlen(tmp);
-            if (0 == len)
-            {
-                //  if numeric format operator is empty return string "".
-                strcpy(pOpInfoData[nCurrent].szOpInfoNumeric, "");
-            }
-            else
-            {
-                int i;
-                for (i = 0; tmp[i]; pOpInfoData[nCurrent].szOpInfoNumeric[i] = (char) tmp[i], ++i);
-                pOpInfoData[nCurrent].szOpInfoNumeric[i] = '\0';
-            }
-
             pOpInfoPtr[nCurrent].pszOpInfoNumeric = pOpInfoData[nCurrent].szOpInfoNumeric;
             RIL_LOG_INFO("CTEBase::ParseQueryAvailableNetworks() - Numeric oper: %s\r\n",
                     pOpInfoData[nCurrent].szOpInfoNumeric);
@@ -5462,8 +5436,8 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
 
                 // Fill first element of the table.
                 strncpy(pOpInfoDataEnd[0].szOpInfoLong,
-                        pOpInfoData[0].szOpInfoLong, MAX_OP_NAME_ALLOWED-1);
-                pOpInfoDataEnd[0].szOpInfoLong[MAX_OP_NAME_ALLOWED-1] = '\0';  //  KW fix
+                        pOpInfoData[0].szOpInfoLong, MAX_OP_NAME_LONG-1);
+                pOpInfoDataEnd[0].szOpInfoLong[MAX_OP_NAME_LONG-1] = '\0';  //  KW fix
                 strncpy(pOpInfoDataEnd[0].szOpInfoShort,
                         pOpInfoData[0].szOpInfoShort, MAX_OP_NAME_SHORT-1);
                 pOpInfoDataEnd[0].szOpInfoShort[MAX_OP_NAME_SHORT-1] = '\0';  //  KW fix
@@ -5494,11 +5468,11 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
                     if (find == false)
                     {
                         strncpy(pOpInfoDataEnd[j].szOpInfoLong,
-                                pOpInfoData[i].szOpInfoLong, MAX_OP_NAME_ALLOWED-1);
-                        pOpInfoDataEnd[j].szOpInfoLong[MAX_OP_NAME_ALLOWED-1] = '\0';  //  KW fix
+                                pOpInfoData[i].szOpInfoLong, MAX_OP_NAME_LONG-1);
+                        pOpInfoDataEnd[j].szOpInfoLong[MAX_OP_NAME_LONG-1] = '\0';
                         strncpy(pOpInfoDataEnd[j].szOpInfoShort,
                                 pOpInfoData[i].szOpInfoShort, MAX_OP_NAME_SHORT-1);
-                        pOpInfoDataEnd[j].szOpInfoShort[MAX_OP_NAME_SHORT-1] = '\0';  //  KW fix
+                        pOpInfoDataEnd[j].szOpInfoShort[MAX_OP_NAME_SHORT-1] = '\0';
                         strncpy(pOpInfoDataEnd[j].szOpInfoNumeric,
                                 pOpInfoData[i].szOpInfoNumeric, MAX_OP_NAME_NUM-1);
                         pOpInfoDataEnd[j].szOpInfoNumeric[MAX_OP_NAME_NUM-1] = '\0';  //  KW fix
