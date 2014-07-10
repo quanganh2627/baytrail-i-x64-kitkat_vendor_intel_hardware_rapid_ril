@@ -15,6 +15,7 @@
 #include "usat_init_state_machine.h"
 #include "usat_state.h"
 #include "ccatprofile.h"
+#include "sync_ops.h"
 
 UsatInitStateMachine* UsatInitStateMachine::m_pStateMachineInstance = NULL;
 
@@ -35,6 +36,7 @@ UsatInitStateMachine::UsatInitStateMachine()
 {
     m_pCatProfile = new CCatProfile();
     m_currState = new InitState(*this);
+    m_pUsatStateLock = new CMutex();
 }
 
 UsatInitStateMachine::~UsatInitStateMachine()
@@ -43,6 +45,7 @@ UsatInitStateMachine::~UsatInitStateMachine()
     FreeProfileArray();
     delete m_currState;
     delete m_pCatProfile;
+    delete m_pUsatStateLock;
 }
 
 UsatInitStateMachine& UsatInitStateMachine::GetStateMachine()
@@ -171,7 +174,13 @@ UsatState* UsatInitStateMachine::CreateNextEvent(int event)
 
 void UsatInitStateMachine::SendEvent(int event)
 {
+    // Access mutex
+    CMutex::Lock(m_pUsatStateLock);
+
     ProcessNextEvent(*m_currState, event);
+
+    // release mutex
+    CMutex::Unlock(m_pUsatStateLock);
 }
 
 void UsatInitStateMachine::PassToNextEvent(int event)

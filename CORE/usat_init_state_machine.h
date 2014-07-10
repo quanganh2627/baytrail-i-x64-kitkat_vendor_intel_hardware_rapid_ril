@@ -14,6 +14,7 @@
 
 class UsatState;
 class CCatProfile;
+class CMutex;
 
 // This is the state machine that handles USAT init for modem Rel.10+ with the
 // new 3GPP USAT interface
@@ -96,6 +97,8 @@ private:
     char** m_ppszProfiles;
     bool m_isStkServiceRunning;
     int m_uiccState;
+
+    CMutex* m_pUsatStateLock;
 };
 
 #endif // STATE_MACHINE_H
