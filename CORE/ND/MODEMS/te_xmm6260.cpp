@@ -75,18 +75,7 @@ Error:
 
 char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
 {
-    RIL_LOG_VERBOSE("CTE_XMM6260::GetBasicInitCommands() - Enter\r\n");
-
-    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
-
-    if (RIL_CHANNEL_URC == uiChannelType)
-    {
-        ConcatenateStringNullTerminate(szInitCmd, sizeof(szInitCmd),
-                GetRegistrationInitString());
-    }
-
-    RIL_LOG_VERBOSE("CTE_XMM6260::GetBasicInitCommands() - Exit\r\n");
-    return strndup(szInitCmd, strlen(szInitCmd));
+    return (RIL_CHANNEL_URC == uiChannelType) ? strdup(GetRegistrationInitString()) : NULL;
 }
 
 char* CTE_XMM6260::GetUnlockInitCommands(UINT32 uiChannelType)

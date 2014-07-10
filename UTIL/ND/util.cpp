@@ -338,8 +338,8 @@ BOOL ConcatenateStringNullTerminate(char* const pszOut, const size_t cbOut, cons
 
     if ((outLen < cbOut) && (strlen(pszIn) < (cbOut - outLen)))
     {
-        // Even if we know that there is enough space, to avoid KW error, use strncat
-        strncat(pszOut, pszIn, cbOut);
+        // Use remaining space but reserve room for '\0'
+        strncat(pszOut, pszIn, (cbOut - outLen) - 1U);
         fRet = TRUE;
     }
 
