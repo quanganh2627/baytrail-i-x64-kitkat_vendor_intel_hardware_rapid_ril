@@ -59,8 +59,8 @@ typedef struct
 const int MAX_OP_NAME_LONG = 40 + 1;
 // short format up to 8 characters
 const int MAX_OP_NAME_SHORT = 8 + 1;
-// three BCD digit country code plus a two BCD digit network code
-const int MAX_OP_NAME_NUM = 5 + 1;
+// three BCD digit country code plus a three BCD digit network code
+const int MAX_OP_NAME_NUM = 6 + 1;
 // longest string passed is "forbidden"
 const int MAX_OP_NAME_STATUS = 9 + 1;
 
