@@ -364,6 +364,16 @@ BOOL CChannel_Data::HasChildContextID(UINT32 uiContextID)
     return (m_uiChildContexts & (1 << uiContextID)) != 0;
 }
 
+// Find the first bit set starting from bit 0.
+// returns the index of the first bit set, -1 if no bit set.
+static int rff1(int entry) {
+    for (int i = 0; i < (8*sizeof(int)); i++) {
+        if (entry & (1 << i))
+            return i;
+    }
+    return -1;
+}
+
 //  Used for 6360 and 7160 modems.
 //  Returns a free RIL channel and a free hsi channel to use for data.
 //  [out] UINT32 outCID - If successful, the new context ID, else 0.
@@ -397,18 +407,19 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
     if (pChannelData != NULL)
     {
         ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
-
-        if (dataProfile >= 0 && dataProfile < NUMBER_OF_APN_PROFILE)
+        // Get the first profile in the bitfield. they are ordered by priority
+        int profile = rff1(dataProfile);
+        if (profile >= 0 && profile < NUMBER_OF_APN_PROFILE)
         {
             // According to the data profile class try to associate
             // a hsi channel to the RIL channel.
-            switch (m_dataProfilePathAssignation[dataProfile])
+            switch (m_dataProfilePathAssignation[profile])
             {
                 case 1:
                     // For APN of the class 1 a hsi channel is available. Find the first available.
                     RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() -"
                             " data profile class: %d.\r\n",
-                            m_dataProfilePathAssignation[dataProfile]);
+                            m_dataProfilePathAssignation[profile]);
                     hsiChannel = GetFreeHSIChannel(outCID,
                             ipcDataChannelMin, ipcDataChannelMin + m_hsiChannelsReservedForClass1);
                     if (hsiChannel == -1)

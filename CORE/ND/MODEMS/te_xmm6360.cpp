@@ -528,36 +528,48 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
 
     if (!bIsHSIDirect){
         // First network interface is rmnet3 for pdp over mux
-        switch (dataProfile)
+        if (dataProfile & (1<<RIL_DATA_PROFILE_DEFAULT))
         {
-        case RIL_DATA_PROFILE_DEFAULT:
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_DEFAULT;
-            break;
-        case RIL_DATA_PROFILE_TETHERED:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_TETHERED))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_TETHERED;
-            break;
-        case RIL_DATA_PROFILE_IMS:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_IMS))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_IMS;
-            break;
-        case RIL_DATA_PROFILE_MMS:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_MMS))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_MMS;
-            break;
-        case RIL_DATA_PROFILE_CBS:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_CBS))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_CBS;
-            break;
-        case RIL_DATA_PROFILE_FOTA:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_FOTA))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_FOTA;
-            break;
-        case RIL_DATA_PROFILE_SUPL:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_SUPL))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_SUPL;
-            break;
-        case RIL_DATA_PROFILE_HIPRI:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_HIPRI))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_HIPRI;
-            break;
-        case RIL_DATA_PROFILE_EMERGENCY:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_EMERGENCY))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_EMERGENCY;
-            break;
-        default:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_RCS))
+        {
+            networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_RCS;
+        }
+        else
+        {
             RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - Unknown Data Profile [%d] \r\n",
                                                                 dataProfile);
             goto Error;

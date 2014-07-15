@@ -207,6 +207,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
     int dataProfile = -1;
     int nEmergencyFlag = 0; // 1: emergency pdn
     int nRequestPcscfFlag = 0; // 1: request pcscf address
+    int nImSignalingFlag = 0; // 1: IMS Only APN
     UINT32 uiDnsMode = 0;
 
     RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - uiDataSize=[%u]\r\n", uiDataSize);
@@ -279,14 +280,24 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
                 stPdpData.szPDPType);
     }
 
-    if (dataProfile == RIL_DATA_PROFILE_EMERGENCY)
+    if (dataProfile & (1 << RIL_DATA_PROFILE_EMERGENCY))
     {
         nEmergencyFlag = 1;
+        // An emergency PDN will only be used for IMS traffic, so request PCSCF
+        // and set the IMS signaling flag.
+        nRequestPcscfFlag = 1;
+        nImSignalingFlag = 1;
     }
 
-    if (dataProfile == RIL_DATA_PROFILE_IMS && m_cte.IsIMSApCentric())
+    if ((dataProfile & ((1 << RIL_DATA_PROFILE_IMS) | (1 << RIL_DATA_PROFILE_RCS)))
+        && m_cte.IsIMSApCentric())
     {
         nRequestPcscfFlag = 1;
+        // Check if this PDN is only used for IMS to set the IM Signaling flag.
+        if (dataProfile & ~(1 << RIL_DATA_PROFILE_IMS) == 0)
+        {
+            nImSignalingFlag = 1;
+        }
     }
 
     //
@@ -308,9 +319,10 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
     //  If not recognized, just use IPV4V6 as default.
     uiDnsMode = GetXDNSMode(stPdpData.szPDPType);
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d,%d,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
             uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, nRequestPcscfFlag,
-            uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword, uiCID, uiDnsMode))
+            nImSignalingFlag, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
+            uiCID, uiDnsMode))
     {
         RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
                 " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
