@@ -50,7 +50,7 @@ CTEBase::CTEBase(CTE& cte)
   m_ePin2State(RIL_PINSTATE_UNKNOWN),
   m_pDtmfStopReqEvent(NULL),
   m_bReadyForAttach(FALSE),
-  m_bRefreshWithUSIMInitOn(FALSE),
+  m_bNotifyRefreshOnSimReady(false),
   m_pUiccOpenLogicalChannelEvent(NULL),
   m_bRegStatusAndBandIndActivated(false),
   m_bNeedGetInfoOnCellChange(false),
@@ -95,6 +95,8 @@ void CTEBase::ResetCardStatus(BOOL bForceReset)
     CMutex::Lock(m_pCardStatusUpdateLock);
 
     m_szUICCID[0] = '\0';
+
+    m_bNotifyRefreshOnSimReady = false;
 
     if (bForceReset)
     {

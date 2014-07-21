@@ -46,7 +46,7 @@ protected:
 
     CEvent* m_pDtmfStopReqEvent;
     BOOL m_bReadyForAttach;
-    BOOL m_bRefreshWithUSIMInitOn;
+    bool m_bNotifyRefreshOnSimReady;
 
     CEvent* m_pUiccOpenLogicalChannelEvent;
     S_NETWORK_SELECTION_MODE_PARAMS m_NetworkSelectionModeParams;
@@ -948,9 +948,9 @@ public:
 
     virtual void CopyCardStatus(RIL_CardStatus_v6& cardStatus);
     virtual void HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange);
-    virtual void SetRefreshWithUsimInitOn(BOOL bOn)
+    virtual void SetNotifyRefreshOnSimReady(bool bNotifyRefreshOnReady)
     {
-        m_bRefreshWithUSIMInitOn = bOn;
+        m_bNotifyRefreshOnSimReady = bNotifyRefreshOnReady;
     }
 
     virtual BOOL OpenLogicalChannel(POST_CMD_HANDLER_DATA& rData, const char* pszAid);

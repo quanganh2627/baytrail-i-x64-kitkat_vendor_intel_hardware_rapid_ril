@@ -276,7 +276,7 @@ BOOL CCatProfile::ExtractPduInfo(const char* pszPdu, const UINT32 uiLength,
         pbCmdData = tlvPdu.GetValue();
         cbCmdDataSize = tlvPdu.GetLength();
 
-        if (tlvCmdDetails.Parse(pbCmdData, cbCmdDataSize))
+        if (pbCmdData && tlvCmdDetails.Parse(pbCmdData, cbCmdDataSize))
         {
             uiCmd = tlvCmdDetails.GetTag();
             RIL_LOG_INFO("CCatProfile::ExtractPduInfo() : Command DETAILS Tag:0x%X\r\n", uiCmd);
@@ -287,7 +287,7 @@ BOOL CCatProfile::ExtractPduInfo(const char* pszPdu, const UINT32 uiLength,
                 // pbCmdData[0] = Command number
                 // pbCmdData[1] and pbCmdData[2] = Command identifier
                 cbCmdDataSize = tlvCmdDetails.GetLength();
-                if (cbCmdDataSize > 1)
+                if (pbCmdData && cbCmdDataSize > 1)
                 {
                     uiCmd = pbCmdData[1];
                 }

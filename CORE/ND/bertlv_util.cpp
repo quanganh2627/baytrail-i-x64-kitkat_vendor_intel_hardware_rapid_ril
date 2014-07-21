@@ -59,16 +59,9 @@ BOOL BerTlv::Parse(const UINT8* pRawData, UINT32 cbSize)
         return FALSE;
     }
 
-    // Verify length and value size are consistent.
-    if (cbSize - bValuePos < uLen)
-    {
-        // Try and recover using the minimum value.
-        uLen = cbSize - bValuePos;
-    }
-
     m_bTag = bTag;
     m_uLen = uLen;
-    m_pbValue = pRawData + bValuePos;
+    m_pbValue = uLen > 0 ? pRawData + bValuePos : NULL;
     m_uTotalSize = uLen + bValuePos;
 
     return TRUE;

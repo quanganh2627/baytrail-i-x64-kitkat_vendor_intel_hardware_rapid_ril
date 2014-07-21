@@ -1187,7 +1187,7 @@ public:
 
     void PostSimStateQuery(POST_CMD_HANDLER_DATA& rData);
     void HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange);
-    void SetRefreshWithUsimInitOn(BOOL bOngoing);
+    void SetNotifyRefreshOnSimReady(bool bNotifyRefreshOnSimReady);
 
     void PostInternalOpenLogicalChannel(POST_CMD_HANDLER_DATA& rData);
 

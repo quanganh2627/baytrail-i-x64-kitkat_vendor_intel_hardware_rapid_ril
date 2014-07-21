@@ -28,6 +28,7 @@
 #include "ccatprofile.h"
 #include "usat_init_state_machine.h"
 #include "hardwareconfig.h"
+#include "bertlv_util.h"
 
 #include <cutils/properties.h>
 
@@ -326,199 +327,378 @@ Error:
 void CSilo_SIM::ParsePduForRefresh(const char* pszPdu)
 {
     RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - Enter\r\n");
-    char* pRefresh = NULL;
-    char* pFileTag = NULL;
-    char szFileTag1[] = "92";
-    char szFileTag2[] = "12";
-    char szFileTagLength[3] = {0};
-    char szFileID[5] = {0};
-    UINT32 uiFileTagLength = 0;
-    char szRefreshCmd[] = "8103";
-    char szRefreshType[3] = {0};
+
+    // Generic naming as described in ETSI 102 223 section 8.6
+    enum REFRESH_TYPE {
+        REFRESH_TYPE_NAA_INIT_AND_FULL_FILE_CHANGE = 0x00,
+        REFRESH_TYPE_FILE_CHANGE_NOTIFICATION = 0x01,
+        REFRESH_TYPE_NAA_INIT_AND_FILE_CHANGE = 0x02,
+        REFRESH_TYPE_NAA_INIT = 0x03,
+        REFRESH_TYPE_UICC_RESET = 0x04,
+        REFRESH_TYPE_NAA_APPLICATION_RESET = 0x05,
+        REFRESH_TYPE_NAA_SESSION_RESET = 0x06
+    };
+
+    const BYTE COMPREHENSION_TAG_MASK = 0x7F;
+
+    BerTlv berTlv;
+    typedef BerTlv ComprehensionTlv;
+    ComprehensionTlv ctlv;
+    const BYTE* pCTlvs = NULL;
+    size_t leftLen = 0;
+    int refreshType = -1;
     RIL_SimRefreshResponse_v7* pSimRefreshResp = NULL;
-    UINT32 uiPduLength = strlen(pszPdu);
+    BYTE* pPCmdByteBuffer = NULL;
+    size_t pcmdByteBufferLen = 0;
+    bool isEFpnnOrEFoplChanged = false;
+    int nFiles = 0;
 
-    //  Need to see if this is a SIM_REFRESH command.
-    //  Check for "8103", jump next byte and verify if followed by "01".
-    pRefresh = strstr(pszPdu, szRefreshCmd);
-    if (pRefresh)
+    if (!pszPdu) return;
+
+    size_t pduLen = strlen(pszPdu);
+
+    if (0 == pduLen || pduLen % 2 != 0 ) return;
+
+    pcmdByteBufferLen = pduLen / 2;
+    pPCmdByteBuffer = (BYTE*)malloc(pcmdByteBufferLen);
+    if (!pPCmdByteBuffer)
     {
-        UINT32 uiPos = pRefresh - pszPdu;
+        RIL_LOG_CRITICAL("CSilo_SIM::ParsePduForRefresh() - memory allocation failure\r\n");
+        goto Error;
+    }
 
-        uiPos += strlen(szRefreshCmd);
-        if ( (uiPos + 6) < uiPduLength)  // 6 is next byte plus "01" plus type of SIM refresh
+    if (!extractByteArrayFromString(pszPdu, pduLen, pPCmdByteBuffer))
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParsePduForRefresh() - extractByteArrayFromString failed\r\n");
+        goto Error;
+    }
+
+    if (berTlv.Parse(pPCmdByteBuffer, pcmdByteBufferLen))
+    {
+        const BYTE BER_PROACTIVE_CMD_TAG = 0xD0;
+
+        if (berTlv.GetTag() != BER_PROACTIVE_CMD_TAG)
         {
-            //  Skip next byte
-            uiPos += 2;
-            //RIL_LOG_INFO("uiPos = %d\r\n", uiPos);
+            RIL_LOG_CRITICAL("CSilo_SIM::ParsePduForRefresh() - "
+                    "BER Proactive cmd tag not found\r\n");
+            goto Error;
+        }
 
-            if (0 == strncmp(&pszPdu[uiPos], "01", 2))
+        if (pcmdByteBufferLen != berTlv.GetTotalSize())
+        {
+            RIL_LOG_CRITICAL("CSilo_SIM::ParsePduForRefresh() - "
+                    "pCmdByteBufferLen != berTlv.GetTotalSize()\r\n");
+        }
+
+
+        // Get the length of all Comprehension TLV data objects
+        leftLen = berTlv.GetLength();
+
+        // Update pCTlvs to point to next CTLV
+        pCTlvs = berTlv.GetValue();
+
+        // Parse CTLV buffer into ctlv which must be Command details CTLV. leftLen is greater
+        // than the CTLV length
+        if (pCTlvs && ctlv.Parse(pCTlvs, leftLen))
+        {
+            const BYTE CMD_DETAILS_TAG = 0x01;
+            const BYTE CMD_DETAILS_LENGTH = 3;
+
+            /*
+             * As Command Details comprehension TLV data object tag could be 0x81 or 0x01 based on
+             * comprehension required flag bit, get only tag part of the byte by
+             * & with COMPREHENSION_TAG_MASK.
+             */
+            if (CMD_DETAILS_TAG == (ctlv.GetTag() & COMPREHENSION_TAG_MASK)
+                    && (CMD_DETAILS_LENGTH == ctlv.GetLength()))
             {
-                //  Skip to type of SIM refresh
-                uiPos += 2;
+                const int TYPE_OF_CMD_INDEX = 1;
+                const int CMD_QUALIFIER_INDEX = 2;
+                const BYTE* pValue = ctlv.GetValue();
 
-                //  See what our SIM Refresh command is
-                strncpy(szRefreshType, &pszPdu[uiPos], 2);
-                uiPos += 2;
-
-                RIL_LOG_INFO("*** We found %s SIM_REFRESH   type=[%s]***\r\n",
-                        szRefreshCmd, szRefreshType);
-
-                //  If refresh type = "01", 07 -> SIM_FILE_UPDATE
-                //  If refresh type = "00","02","03" -> SIM_INIT
-                //  If refresh type = "04","05","06" -> SIM_RESET
-
-                pSimRefreshResp =
-                        (RIL_SimRefreshResponse_v7*)malloc(sizeof(RIL_SimRefreshResponse_v7));
-                if (NULL != pSimRefreshResp)
+                if (pValue && CCatProfile::REFRESH == pValue[TYPE_OF_CMD_INDEX])
                 {
-                    //  default to SIM_INIT
-                    pSimRefreshResp->result = SIM_INIT;
-                    pSimRefreshResp->ef_id = 0;
-                    pSimRefreshResp->aid = NULL;
+                    refreshType = static_cast<int>(pValue[CMD_QUALIFIER_INDEX]);
+                }
 
-                    //  Check for type of refresh
-                    if ( (0 == strncmp(szRefreshType, "00", 2)) ||
-                         (0 == strncmp(szRefreshType, "02", 2)) ||
-                         (0 == strncmp(szRefreshType, "03", 2)) )
-                    {
-                        //  SIM_INIT
-                        RIL_LOG_INFO("CSilo_SIM::ParseIndicationSATN() - SIM_INIT\r\n");
-                        pSimRefreshResp->result = SIM_INIT;
-                        // See ril.h: aid : For SIM_INIT result this field is set to AID of
-                        //      application that caused REFRESH
-                        pSimRefreshResp->aid = NULL;
-                    }
-                    else if ( (0 == strncmp(szRefreshType, "04", 2)) ||
-                              (0 == strncmp(szRefreshType, "05", 2)) ||
-                              (0 == strncmp(szRefreshType, "06", 2)) )
-                    {
-                        //  SIM_RESET
-                        RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - SIM_RESET\r\n");
-                        /*
-                         * Incase of IMC SUNRISE platform, SIM_RESET refresh
-                         * is handled on the modem side. If the Android telephony
-                         * framework is informed of this refresh, then it will
-                         * initiate a RADIO_POWER off which will interfere with
-                         * the SIM RESET procedure on the modem side. So, don't send
-                         * the RIL_UNSOL_SIM_REFRESH for SIM_RESET refresh type.
-                         */
-                        goto event_notify;
-                    }
-                    else if ( (0 == strncmp(szRefreshType, "01", 2)) ||
-                              (0 == strncmp(szRefreshType, "07", 2)) )
-                    {
-                        //  SIM_FILE_UPDATE
-                        RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - SIM_FILE_UPDATE\r\n");
-                        pSimRefreshResp->result = SIM_FILE_UPDATE;
-                        /*
-                         * The steering of roaming refresh case is handled on the modem
-                         * side. For the AP side, it is only consider as a refresh file
-                         * on EF_OPLMNwACT which is not used by Android.
-                         */
+                // Update pCTlvs to point to next CTLV
+                pCTlvs += ctlv.GetTotalSize();
+                leftLen -= ctlv.GetTotalSize();
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CSilo_SIM::ParsePduForRefresh() - Command Details CTLV "
+                    "parsing failed\r\n");
+            goto Error;
+        }
+    }
+    else
+    {
+        RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - BerTlv parsing failed\r\n");
+        goto Error;
+    }
 
-                        //  Tough part here - need to read file ID(s)
-                        //  Android looks for EF_MBDN 0x6FC7 or EF_MAILBOX_CPHS 0x6F17
-                        //  File tag is "92" or "12". Look for "92" or "12" from uiPos.
-                        if ('\0' != pszPdu[uiPos])
-                        {
-                            //  Look for "92"
-                            pFileTag = strstr(&pszPdu[uiPos], szFileTag1);
+    // Not a refresh proactive command or invalid refresh type
+    if (refreshType < 0)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParsePduForRefresh() - Invalid refresh type\r\n");
+        goto Error;
+    }
 
-                            // If file tag "92" not found, look for file tag "12"
-                            pFileTag = (NULL != pFileTag)
-                                    ? pFileTag
-                                    : strstr(&pszPdu[uiPos], szFileTag2);
+    pSimRefreshResp = (RIL_SimRefreshResponse_v7*)malloc(sizeof(RIL_SimRefreshResponse_v7));
+    if (!pSimRefreshResp)
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParsePduForRefresh() - memory allocation failure"
+                " for RIL_SimRefreshResponse_v7\r\n");
+        goto Error;
+    }
+    pSimRefreshResp->result = SIM_INIT;
+    pSimRefreshResp->ef_id = 0;
+    pSimRefreshResp->aid = NULL;
 
-                            if (pFileTag)
-                            {
-                                //  Found "92" or "12" somewhere in rest of string
-                                uiPos = pFileTag - pszPdu;
-                                uiPos += 2; // File list tag
-                                RIL_LOG_INFO("FOUND FileTag uiPos now = %d\r\n", uiPos);
-                                if (uiPos < uiPduLength)
-                                {
-                                    //  Read length of tag
-                                    strncpy(szFileTagLength, &pszPdu[uiPos], 2);
-                                    uiFileTagLength = (UINT8)SemiByteCharsToByte(
-                                            szFileTagLength[0], szFileTagLength[1]);
-                                    RIL_LOG_INFO("file tag length = %d\r\n", uiFileTagLength);
-                                    uiPos += 2;  //  we read the tag length
-                                    uiPos += (uiFileTagLength * 2);
+    /*
+     *                    Structure OF REFRESH proactive command
+     *
+     * Description                 Section    M/O/C    Min    Length
+     *
+     * Proactive UICC command Tag    9.2        M       Y       1
+     * Length (A+B+C+D+E+F+G+H)       -         M       Y     1 or 2
+     * Command details               8.6        M       Y       A
+     * Device identities             8.7        M       Y       B
+     * File List                     8.18       C       N       C
+     * AID                           8.60       O       N       D
+     * Alpha Identifier              8.2        O       N       E
+     * Icon Identifier               8.31       O       N       F
+     * Text Attribute                8.72       C       N       G
+     * Frame Identifier              8.80       O       N       H
+     *
+     * For more details please refer ETSI TS 102 220 v11.2.0
+     */
 
-                                    if (uiPos <= uiPduLength)
-                                    {
-                                        //  Read last 2 bytes (last 4 characters) of tag
-                                        uiPos -= 4;
-                                        strncpy(szFileID, &pszPdu[uiPos], 4);
-                                        RIL_LOG_INFO("szFileID[%s]\r\n", szFileID);
+    // Proactive UICC command tag, length and Command Details are already parsed.
+    // pCTlvs is now on the Device Identities CTLV
 
-                                        //  Convert hex string to int
-                                        UINT32 ui1 = 0, ui2 = 0;
-                                        ui1 = (UINT8)SemiByteCharsToByte(szFileID[0], szFileID[1]);
-                                        ui2 = (UINT8)SemiByteCharsToByte(szFileID[2], szFileID[3]);
-                                        // See ril.h:
-                                        //  ef_id : is the EFID of the updated file if the result is
-                                        //  SIM_FILE_UPDATE or 0 for any other result.
-                                        //  aid: For SIM_FILE_UPDATE result it can be set to AID of
-                                        //  application in which updated EF resides or it can be
-                                        //  NULL if EF is outside of an application.
-                                        pSimRefreshResp->ef_id = (ui1 << 8) + ui2;
-                                        RIL_LOG_INFO("pInts[1]=[%d],%04X\r\n",
-                                            pSimRefreshResp->ef_id, pSimRefreshResp->ef_id);
-                                    }
-                                }
-                            }
-                        }
-                    }
+    // Parse CTLV buffer into ctlv which must be Device identities CTLV. leftLen may be greater
+    // than the CTLV length
+    if (ctlv.Parse(pCTlvs, leftLen))
+    {
+        // Update pCTlvs to point to next CTLV
+        pCTlvs += ctlv.GetTotalSize();
+        leftLen -= ctlv.GetTotalSize();
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CSilo_SIM::ParsePduForRefresh() - Parsing of CTLV failed\r\n");
+        goto Error;
+    }
 
+    // Parse CTLV buffer into ctlv. leftLen may be greater than the CTLV length
+    if (pCTlvs && ctlv.Parse(pCTlvs, leftLen))
+    {
+        const BYTE FILE_LIST_TAG = 0x12;
+        const BYTE AID_TAG = 0x2F;
+
+        /*
+         * As File List comprehension TLV data object tag could be 0x92 or 0x12 based on
+         * comprehension required flag bit, get only tag part of the byte by
+         * & with COMPREHENSION_TAG_MASK.
+         *
+         * Note: File List CTLV is optional.
+         */
+        if (FILE_LIST_TAG == (ctlv.GetTag() & COMPREHENSION_TAG_MASK))
+        {
+            const int NUMBER_OF_FILES_INDEX = 0;
+            const int FILES_INDEX = 1;
+            // 1 byte for Number of files + minimum 2 bytes for file identifier
+            const int MIN_FILE_LIST_CTLV_DATA_LENGTH = 3;
+
+            const BYTE* pValue = ctlv.GetValue();
+            size_t valueLen = ctlv.GetLength();
+
+            nFiles = ((valueLen >= MIN_FILE_LIST_CTLV_DATA_LENGTH) && pValue)
+                    ? pValue[NUMBER_OF_FILES_INDEX]
+                    : 0;
+
+            if (nFiles >= 1)
+            {
+                const int MASTER_FILE = 0x3F;
+                const int FIRST_LEVEL_DEDICATED_FILE = 0x7F;
+                const int SECOND_LEVEL_DEDICATED_FILE = 0x5F;
+                const int FILE_ID_LENGTH = 2;
+                const int EF_PNN = 0x6FC5;
+                const int EF_OPL = 0x6FC6;
+
+                // Skip to file index
+                pValue += FILES_INDEX;
+                valueLen -= FILES_INDEX;
+
+                while (valueLen >= FILE_ID_LENGTH)
+                {
                     /*
-                     * On REFRESH with USIM INIT, if rapid ril notifies the framework of REFRESH,
-                     * framework will issues requests to read SIM files. REFRESH notification from
-                     * modem is to indicate that REFRESH is ongoing but not yet completed. REFRESH
-                     * with USIM INIT completion is based on sim status reported via XSIM URC. So,
-                     * upon REFRESH with USIM init, don't notify the framework of SIM REFRESH but
-                     * set the internal sim state to NOT READY inorder to restrict SIM related
-                     * requests during the SIM REFRESH handling on modem side.
+                     * First byte of file identifer is type of file. If the file type is master
+                     * or 1st or 2nd level dedicated file, send only the elementary file
+                     * identifers to framework.
                      */
-                    if (SIM_INIT == pSimRefreshResp->result)
+                    if (MASTER_FILE == pValue[0]
+                            || FIRST_LEVEL_DEDICATED_FILE == pValue[0]
+                            || SECOND_LEVEL_DEDICATED_FILE == pValue[0])
                     {
-                        CTE::GetTE().SetSimAppState(RIL_APPSTATE_UNKNOWN);
-
-                        CTE::GetTE().SetRefreshWithUsimInitOn(TRUE);
+                        pValue += FILE_ID_LENGTH;
+                        valueLen -= FILE_ID_LENGTH;
                     }
                     else
                     {
-                        const int EF_PNN = 0x6FC5;
-                        const int EF_OPL = 0x6FC6;
-                        if (SIM_FILE_UPDATE == pSimRefreshResp->result
-                                && (pSimRefreshResp->ef_id == EF_OPL
-                                    || pSimRefreshResp->ef_id == EF_PNN))
-                        {
-                            // Force the framework to query operator name when there is a change in
-                            // EFopl or EFpnn files.
-                            RIL_onUnsolicitedResponse(
-                                    RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
-                        }
+                        pSimRefreshResp->ef_id = (pValue[0] << 8) + pValue[1] ;
+                        isEFpnnOrEFoplChanged = (EF_PNN == pSimRefreshResp->ef_id
+                                || EF_OPL == pSimRefreshResp->ef_id);
 
-                        // Send out SIM_REFRESH notification
-                        RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)pSimRefreshResp,
-                                sizeof(RIL_SimRefreshResponse_v7));
+                        pValue += FILE_ID_LENGTH;
+                        valueLen -= FILE_ID_LENGTH;
                     }
                 }
-                else
+            }
+
+            // Update pCTlvs to point to next CTLV
+            pCTlvs += ctlv.GetTotalSize();
+            leftLen -= ctlv.GetTotalSize();
+        }
+        else
+        {
+            RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - File List CTLV not present\r\n");
+        }
+
+        // Parse CTLV buffer into ctlv. leftLen may be greater than the CTLV length
+        if (ctlv.Parse(pCTlvs, leftLen))
+        {
+            /*
+             * As AID comprehension TLV data object tag could be 0xAF or 0x2F based on
+             * comprehension required flag bit, get only tag part of the byte by
+             * & with COMPREHENSION_TAG_MASK.
+             *
+             * Note: AID CTLV is optional.
+             */
+            if (AID_TAG == (ctlv.GetTag() & COMPREHENSION_TAG_MASK))
+            {
+                size_t valueLen = ctlv.GetLength();
+                const BYTE* pValue = ctlv.GetValue();
+
+                if (valueLen > 0 && pValue)
                 {
-                    RIL_LOG_CRITICAL("CSilo_SIM::ParsePduForRefresh() -"
-                            " cannot allocate pInts\r\n");
+                    pSimRefreshResp->aid = (char*)malloc((valueLen * 2) + 1);
+                    if (pSimRefreshResp->aid)
+                    {
+                        if (!convertByteArrayIntoString(pValue, valueLen, pSimRefreshResp->aid))
+                        {
+                            RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh - AID extraction"
+                                    "failed\r\n");
+                            free(pSimRefreshResp->aid);
+                            pSimRefreshResp->aid = NULL;
+                        }
+                        RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh - Aid: %s\r\n",
+                                pSimRefreshResp->aid ? pSimRefreshResp->aid : "");
+                    }
                 }
+
+                // Update pCTlvs to point to next CTLV
+                pCTlvs += ctlv.GetTotalSize();
+                leftLen -= ctlv.GetTotalSize();
+            }
+            else
+            {
+                RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - AID CTLV not present\r\n");
             }
         }
     }
 
-event_notify:
+    switch (refreshType)
+    {
+        case REFRESH_TYPE_NAA_INIT_AND_FULL_FILE_CHANGE:
+        case REFRESH_TYPE_NAA_INIT_AND_FILE_CHANGE:
+        case REFRESH_TYPE_NAA_INIT:
+            RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - SIM_INIT\r\n");
+
+            /*
+             * On REFRESH with NAA INIT, if rapid ril notifies the framework of REFRESH,
+             * framework will issue requests to read SIM files. REFRESH notification from
+             * modem is to indicate that REFRESH is ongoing but not yet completed. REFRESH
+             * with NAA INIT completion is based on sim status reported via XSIM URC. So,
+             * upon REFRESH with NAA init, don't notify the framework of SIM REFRESH but
+             * set the internal sim state to NOT READY inorder to restrict SIM related
+             * requests during the SIM REFRESH handling on modem side.
+             */
+            CTE::GetTE().SetSimAppState(RIL_APPSTATE_UNKNOWN);
+            CTE::GetTE().SetNotifyRefreshOnSimReady(true);
+            goto Error;
+
+        case REFRESH_TYPE_UICC_RESET:
+            // In case of UICC reset, don't send aid as reset applies to all applications in UICC
+            free(pSimRefreshResp->aid);
+            pSimRefreshResp->aid = NULL;
+            // Fall through
+
+        case REFRESH_TYPE_NAA_APPLICATION_RESET:
+        case REFRESH_TYPE_NAA_SESSION_RESET:
+            RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - SIM_RESET\r\n");
+
+            /*
+             * On REFRESH with UICC RESET or NAA Application reset or NAA session reset,
+             * if rapid ril notifies the framework of REFRESH, framemwork will reset the
+             * caches but won't trigger any sim file read request. Refresh completion is
+             * notified via XSIM URC.  So, notify the framework of SIM REFRESH but also
+             * set the internal sim state to NOT READY and refresh ongoing to true.
+             */
+            pSimRefreshResp->result = SIM_RESET;
+            CTE::GetTE().SetSimAppState(RIL_APPSTATE_UNKNOWN);
+            CTE::GetTE().SetNotifyRefreshOnSimReady(true);
+            break;
+
+        case REFRESH_TYPE_FILE_CHANGE_NOTIFICATION:
+            RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - SIM_FILE_UPDATE\r\n");
+
+            if (1 == nFiles)
+            {
+                pSimRefreshResp->result = SIM_FILE_UPDATE;
+            }
+            else
+            {
+                /*
+                 * In case of refresh - file change notification with multiple files, overwrite
+                 * the SIM_FILE_UPDATE value with SIM_INIT and also set ef_id to 0.
+                 */
+                pSimRefreshResp->result = SIM_INIT;
+                pSimRefreshResp->ef_id = 0;
+            }
+            break;
+
+        default:
+            RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - refreshType: %d not handled\r\n",
+                    refreshType);
+            goto Error;
+    }
+
+    // Send out SIM_REFRESH notification
+    RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)pSimRefreshResp,
+            sizeof(RIL_SimRefreshResponse_v7));
+
+    if (isEFpnnOrEFoplChanged)
+    {
+        /*
+         * Force the framework to query operator name when there is a change in EFopl or EFpnn
+         * files.
+         */
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
+    }
+
+Error:
+    free(pSimRefreshResp->aid);
+    pSimRefreshResp->aid = NULL;
 
     free(pSimRefreshResp);
     pSimRefreshResp = NULL;
+
+    free(pPCmdByteBuffer);
+    pPCmdByteBuffer = NULL;
 
     RIL_LOG_INFO("CSilo_SIM::ParsePduForRefresh() - Exit\r\n");
 }

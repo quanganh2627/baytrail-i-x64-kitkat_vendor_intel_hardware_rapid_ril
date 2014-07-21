@@ -10349,9 +10349,9 @@ void CTE::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange)
     m_pTEBaseInstance->HandleSimState(uiSIMState, bNotifySimStatusChange);
 }
 
-void CTE::SetRefreshWithUsimInitOn(BOOL bOn)
+void CTE::SetNotifyRefreshOnSimReady(bool bNotifyRefreshOnSimReady)
 {
-    m_pTEBaseInstance->SetRefreshWithUsimInitOn(bOn);
+    m_pTEBaseInstance->SetNotifyRefreshOnSimReady(bNotifyRefreshOnSimReady);
 }
 
 void CTE::PostInternalOpenLogicalChannel(POST_CMD_HANDLER_DATA& rData)

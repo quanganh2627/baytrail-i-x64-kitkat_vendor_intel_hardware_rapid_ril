@@ -6529,7 +6529,7 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
         case 0: // SIM not present
             RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - SIM NOT PRESENT\r\n");
             m_bReadyForAttach = FALSE;
-            m_bRefreshWithUSIMInitOn = FALSE;
+            m_bNotifyRefreshOnSimReady = false;
             cardState = RIL_CARDSTATE_ABSENT;
             ResetCardStatus(TRUE);
             break;
@@ -6537,7 +6537,7 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
         case 9: // SIM Removed
             RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - SIM REMOVED\r\n");
             m_bReadyForAttach = FALSE;
-            m_bRefreshWithUSIMInitOn = FALSE;
+            m_bNotifyRefreshOnSimReady = false;
             cardState = RIL_CARDSTATE_ABSENT;
             PCache_Clear();
             ResetCardStatus(TRUE);
@@ -6550,15 +6550,23 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
             break;
 
         /*
-         * XSIM: 2 means PIN verification not needed but not ready for attach.
-         * SIM_READY should be triggered only when the modem is ready
-         * to attach.(XSIM: 7 or XSIM: 3(in some specific case))
+         * XSIM: 2 can be received when sim is ready but not yet ready for attach (or)
+         * after sim refresh is done.
+         *
+         * If +XSIM: 2 is received after +XSIM: 7(m_bReadyForAttach == TRUE) which is possible on
+         * Refresh - Init or File change notification, modem will not send +XSIM: 7 again.
+         * In this case notify sim state as ready on +XSIM: 2.
          */
         case 2:
-            // The SIM is initialized, but modem is still in the process of it.
-            // we can inform Android that SIM is still not ready.
-            RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - SIM NOT READY\r\n");
-            appState = RIL_APPSTATE_DETECTED;
+            if (m_bReadyForAttach)
+            {
+                RIL_LOG_INFO("CTE_XMM6260::HandleSimState() - READY FOR ATTACH\r\n");
+                appState = RIL_APPSTATE_READY;
+            }
+            else
+            {
+                appState = RIL_APPSTATE_DETECTED;
+            }
             break;
 
         /*
@@ -6650,7 +6658,7 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
             break;
     }
 
-    if (m_bRefreshWithUSIMInitOn)
+    if (m_bNotifyRefreshOnSimReady)
     {
         if (m_bReadyForAttach)
         {
@@ -6660,7 +6668,7 @@ void CTE_XMM6260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
             simRefreshResp.ef_id = 0;
             simRefreshResp.aid = NULL;
 
-            m_bRefreshWithUSIMInitOn = FALSE;
+            m_bNotifyRefreshOnSimReady = false;
 
             // Send out SIM_REFRESH notification
             RIL_onUnsolicitedResponse(RIL_UNSOL_SIM_REFRESH, (void*)&simRefreshResp,
