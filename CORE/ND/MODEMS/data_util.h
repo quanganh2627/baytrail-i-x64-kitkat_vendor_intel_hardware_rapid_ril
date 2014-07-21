@@ -21,7 +21,6 @@
 BOOL setaddr6(int sockfd6, struct ifreq* ifr, const char* addr);
 BOOL setaddr(int s, struct ifreq* ifr, const char* addr);
 BOOL setflags(int s, struct ifreq* ifr, int set, int clr);
-BOOL setmtu(int s, struct ifreq* ifr);
 
 int MapErrorCodeToRilDataFailCause(UINT32 uiCause);
 

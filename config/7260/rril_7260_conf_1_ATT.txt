@@ -118,8 +118,6 @@ Group Modem
     NetworkInterfaceNamePrefix        usb       // The number will be appended in RIL
                                                 // Number appended = Context ID - 1
                                                 // e.g. Context ID = 1, "rmnet0"
-// MTU size - 1358 is the value recommended in 3GPP 23.060 for both support of IPv4 and IPv6 traffic
-    MTU                         1358
 
 // Modem resource name could be:
 // - mipi_ipc for HSI (default)

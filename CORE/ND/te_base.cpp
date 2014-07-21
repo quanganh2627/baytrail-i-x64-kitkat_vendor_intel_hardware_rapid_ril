@@ -10991,13 +10991,6 @@ BOOL CTEBase::DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pCh
             //goto Error;
             RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4() : Error setting addr\r\n");
         }
-
-        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() : Setting mtu\r\n");
-        if (!setmtu(s, &ifr))
-        {
-            //goto Error;
-            RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4() : Error setting mtu\r\n");
-        }
     }
 
     pChannelData->GetGateway(szGatewayAddr, MAX_IPADDR_SIZE, NULL, 0);
@@ -11092,13 +11085,6 @@ BOOL CTEBase::DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pCh
         //goto Error;
         RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV6() : Error setting addr %s\r\n",
                                                                 szIpAddr2);
-    }
-
-    RIL_LOG_INFO("CTEBase::DataConfigUpV6() : Setting mtu\r\n");
-    if (!setmtu(s, &ifr))
-    {
-        //goto Error;
-        RIL_LOG_CRITICAL("CTEBase::DataConfigUpV6() : Error setting mtu\r\n");
     }
 
     //  Before setting interface UP, need to deactivate DAD on interface.
@@ -11247,12 +11233,6 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
     if (!setaddr6(s6, &ifr, szIpAddr2))
     {
         RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : Error setting add\r\n");
-    }
-
-    RIL_LOG_INFO("CTEBase::DataConfigUpV4V6() : Setting mtu\r\n");
-    if (!setmtu(s, &ifr))
-    {
-        RIL_LOG_CRITICAL("CTEBase::DataConfigUpV4V6() : Error setting mtu\r\n");
     }
 
     //  Before setting interface UP, need to deactivate DAD on interface.
