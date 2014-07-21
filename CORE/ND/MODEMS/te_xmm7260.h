@@ -123,6 +123,8 @@ protected:
     virtual const char* GetScreenOnString();
     virtual const char* GetScreenOffString();
 
+    virtual P_ND_N_CELL_INFO_DATA ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos);
+
 private:
 
     RIL_RESULT_CODE ParseEnvelopCommandResponse(const char* pszResponse, char* pszEnvelopResp,

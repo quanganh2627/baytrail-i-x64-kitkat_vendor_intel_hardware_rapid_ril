@@ -689,3 +689,22 @@ BOOL ExtractQuotedHexInt(const char* pszData, int& nVal, const char*& pszRemaind
 
     return bRet;
 }
+
+BOOL ExtractQuotedHexUnsignedInt(const char* pszData, unsigned int& nVal, const char*& pszRemainder)
+{
+    BOOL bRet = FALSE;
+    const char* pszEndTemp;
+    long long li;
+
+    if (ExtractQuotedHexLongLong(pszData, li, pszEndTemp))
+    {
+        if ((li >= 0) && (li <= (long long) UINT_MAX))
+        {
+            bRet = TRUE;
+            pszRemainder = pszEndTemp;
+            nVal = (unsigned int) li;
+        }
+    }
+
+    return bRet;
+}

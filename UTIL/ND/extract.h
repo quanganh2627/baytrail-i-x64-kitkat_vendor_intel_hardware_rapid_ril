@@ -96,3 +96,4 @@ BOOL ExtractLongLong(const char* pszData, long long& nVal, const char*& pszRemai
 BOOL ExtractInt(const char* pszData, int& nVal, const char*& pszRemainder, int base = 10);
 BOOL ExtractQuotedHexLongLong(const char* pszData, long long& nVal, const char*& pszRemainder);
 BOOL ExtractQuotedHexInt(const char* pszData, int& nVal, const char*& pszRemainder);
+BOOL ExtractQuotedHexUnsignedInt(const char* pszData, unsigned int& nVal, const char*& pszRemainder);
