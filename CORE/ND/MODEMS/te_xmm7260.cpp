@@ -1723,6 +1723,10 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
     const int CQI_UNKNOWN = 0;
     const int TA_INVALID = 0x7FFFFFFF;
 
+    const unsigned int PATHLOSS_LTE_UNKNOWN = 0xFFFFFFFF;
+    const int TA_LTE_INVALID = 0x0000FFFF;
+    const int LAC_UNKNOWN_BIS = 0x0000;
+
     pCellData = (P_ND_N_CELL_INFO_DATA) malloc(sizeof(S_ND_N_CELL_INFO_DATA));
     if (NULL == pCellData)
     {
@@ -1801,7 +1805,7 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                     " could not extract <lac> or <tac> value\r\n");
             continue;
         }
-        lac = (LAC_UNKNOWN == lac) ? INT_MAX : lac;
+        lac = ((LAC_UNKNOWN == lac) || (LAC_UNKNOWN_BIS == lac)) ? INT_MAX : lac;
 
         // Read <CI>
         if ((!SkipString(pszRsp, ",", pszRsp))
@@ -2016,7 +2020,7 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                 int rssnr = RSSNR_UNKNOWN;
                 unsigned int uDluarfcn = INT_MAX;
                 unsigned int uUluarfcn = INT_MAX;
-                int pathloss = INT_MAX;
+                unsigned int pathloss = INT_MAX;
                 int timingAdvance = INT_MAX;
                 int cqi = INT_MAX;
 
@@ -2054,13 +2058,15 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
 
                 // Read <pathloss>
                 if ((!SkipString(pszRsp, ",", pszRsp))
-                        || (!ExtractQuotedHexInt(pszRsp, pathloss, pszRsp)))
+                        || (!ExtractQuotedHexUnsignedInt(pszRsp, pathloss, pszRsp)))
                 {
                     RIL_LOG_INFO("CTE_XMM7260::ParseXMCI() -"
                             " could not extract <pathloss> value\r\n");
                     continue;
                 }
-                pathloss = (PATHLOSS_UNKNOWN == pathloss) ? INT_MAX : pathloss;
+                pathloss = ((pathloss > (unsigned int) INT_MAX)
+                        || (PATHLOSS_LTE_UNKNOWN == pathloss)) ?
+                        INT_MAX : pathloss;
 
                 // Read <RSRP>
                 if ((!SkipString(pszRsp, ",", pszRsp))
@@ -2097,7 +2103,9 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                             " could not extract <timingAdvance> value\r\n");
                     continue;
                 }
-                timingAdvance = (TA_INVALID == timingAdvance) ? INT_MAX : timingAdvance;
+                timingAdvance = ((TA_INVALID == timingAdvance)
+                        || (TA_LTE_INVALID == timingAdvance)) ?
+                        INT_MAX : timingAdvance;
 
                 // Read <cqi>
                 if ((!SkipString(pszRsp, ",", pszRsp))
