@@ -125,7 +125,7 @@ protected:
     virtual const char* GetScreenOffString();
     virtual void CopyCardStatus(RIL_CardStatus_v6& cardStatus);
 
-    virtual P_ND_N_CELL_INFO_DATA ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos);
+    virtual P_ND_N_CELL_INFO_DATA_V2 ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos);
 
 private:
 

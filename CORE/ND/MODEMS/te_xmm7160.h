@@ -186,7 +186,7 @@ protected:
 
     virtual const char* GetEnablingEtwsString();
 
-    virtual P_ND_N_CELL_INFO_DATA ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos);
+    virtual P_ND_N_CELL_INFO_DATA_V2 ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos);
     int MapRxlevToSignalStrengh(int rxlev);
     int MapToAndroidRsrp(int rsrp);
     int MapToAndroidRsrq(int rsrq);

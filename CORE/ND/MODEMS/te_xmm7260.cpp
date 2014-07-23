@@ -1699,7 +1699,7 @@ Error:
     return res;
 }
 
-P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos)
+P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos)
 {
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int index = 0;
@@ -1708,7 +1708,7 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
     int lac = INT_MAX;
     unsigned int uCi = INT_MAX;
     const char* pszRsp = rspData.szResponse;
-    P_ND_N_CELL_INFO_DATA pCellData = NULL;
+    P_ND_N_CELL_INFO_DATA_V2 pCellData = NULL;
     const int MCC_UNKNOWN = 0;
     const int MNC_UNKNOWN = 0;
     const int LAC_UNKNOWN = 0xFFFE;
@@ -1722,19 +1722,20 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
     const int PATHLOSS_UNKNOWN = -1;
     const int CQI_UNKNOWN = 0;
     const int TA_INVALID = 0x7FFFFFFF;
+    uint64_t timestamp = ril_nano_time();
 
     const unsigned int PATHLOSS_LTE_UNKNOWN = 0xFFFFFFFF;
     const int TA_LTE_INVALID = 0x0000FFFF;
     const int LAC_UNKNOWN_BIS = 0x0000;
 
-    pCellData = (P_ND_N_CELL_INFO_DATA) malloc(sizeof(S_ND_N_CELL_INFO_DATA));
+    pCellData = (P_ND_N_CELL_INFO_DATA_V2) malloc(sizeof(S_ND_N_CELL_INFO_DATA_V2));
     if (NULL == pCellData)
     {
         RIL_LOG_CRITICAL("CTE_XMM7260::ParseXMCI() -"
-                " Could not allocate memory for a S_ND_N_CELL_INFO_DATA struct.\r\n");
+                " Could not allocate memory for a S_ND_N_CELL_INFO_DATA_V2 struct.\r\n");
         goto Error;
     }
-    memset(pCellData, 0, sizeof(S_ND_N_CELL_INFO_DATA));
+    memset(pCellData, 0, sizeof(S_ND_N_CELL_INFO_DATA_V2));
 
     /*
      * GSM serving and neighboring cell:
@@ -1759,7 +1760,6 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
     while (FindAndSkipString(pszRsp, "+XMCI: ", pszRsp))
     {
         int type = 0;
-        int dummy;
 
         if (RRIL_MAX_CELL_ID_COUNT == index)
         {
@@ -1815,7 +1815,7 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                     " could not extract <ci> value\r\n");
             continue;
         }
-        uCi = ((uCi > (unsigned int) INT_MAX) || (CI_UNKNOWN == uCi)) ? INT_MAX : uCi;
+        uCi = ((uCi > INT_MAX) || (CI_UNKNOWN == uCi)) ? INT_MAX : uCi;
 
         switch (type)
         {
@@ -1885,24 +1885,32 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                     continue;
                 }
 
-                RIL_CellInfo& info = pCellData->aRilCellInfo[index];
+                RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (0 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-                info.cellInfoType = RIL_CELL_INFO_TYPE_GSM;
-                info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
-                info.timeStamp = ril_nano_time();
+                info.cellInfoType = RIL_CELL_INFO_TYPE_GSM_V2;
+                info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
+                info.timeStamp = timestamp;
                 info.CellInfo.gsm.signalStrengthGsm.signalStrength =
                         MapRxlevToSignalStrengh(rxlev);
                 info.CellInfo.gsm.signalStrengthGsm.bitErrorRate = ber;
+                info.CellInfo.gsm.signalStrengthGsm.rxLev = rxlev;
+                info.CellInfo.gsm.signalStrengthGsm.timingAdvance =
+                        (1 == taReliability) ? timingAdvance : INT_MAX;
                 info.CellInfo.gsm.cellIdentityGsm.lac = lac;
                 info.CellInfo.gsm.cellIdentityGsm.cid = (int) uCi;
                 info.CellInfo.gsm.cellIdentityGsm.mnc = mnc;
                 info.CellInfo.gsm.cellIdentityGsm.mcc = mcc;
-                RIL_LOG_INFO("CTE_XMM7260::ParseXMCI() - GSM LAC,CID,MCC,MNC index=[%d] cid=[%d] "
-                        "lac[%d] mcc[%d] mnc[%d]\r\n",
+                info.CellInfo.gsm.cellIdentityGsm.basestationId = basestationId;
+                info.CellInfo.gsm.cellIdentityGsm.arfcn = arfcn;
+                RIL_LOG_INFO("CTE_XMM7260::ParseXMCI() - GSM  index=[%d] cid[%d] "
+                        "lac[%d] mcc[%d] mnc[%d] bsic[%d] arfcn[%d] ta[%d]\r\n",
                         index, info.CellInfo.gsm.cellIdentityGsm.cid,
                         info.CellInfo.gsm.cellIdentityGsm.lac,
                         info.CellInfo.gsm.cellIdentityGsm.mcc,
-                        info.CellInfo.gsm.cellIdentityGsm.mnc);
+                        info.CellInfo.gsm.cellIdentityGsm.mnc,
+                        info.CellInfo.gsm.cellIdentityGsm.basestationId,
+                        info.CellInfo.gsm.cellIdentityGsm.arfcn,
+                        info.CellInfo.gsm.signalStrengthGsm.timingAdvance);
                 index++;
             }
             break;
@@ -1936,7 +1944,7 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                             " could not extract <dluarfcn> value\r\n");
                     continue;
                 }
-                uDluarfcn = ((uDluarfcn > (unsigned int) INT_MAX) || (uDluarfcn == 0xFFFFFFFF)) ?
+                uDluarfcn = ((uDluarfcn > INT_MAX) || (uDluarfcn == 0xFFFFFFFF)) ?
                         INT_MAX : uDluarfcn;
 
                 // Read <uluarfcn>
@@ -1947,7 +1955,7 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                             " could not extract <uluarfcn> value\r\n");
                     continue;
                 }
-                uUluarfcn = ((uUluarfcn > (unsigned int) INT_MAX) || (uUluarfcn == 0xFFFFFFFF)) ?
+                uUluarfcn = ((uUluarfcn > INT_MAX) || (uUluarfcn == 0xFFFFFFFF)) ?
                         INT_MAX : uUluarfcn;
 
                 // Read <pathloss>
@@ -1987,26 +1995,34 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                     continue;
                 }
 
-                RIL_CellInfo& info = pCellData->aRilCellInfo[index];
+                RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (2 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-                info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA;
-                info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
-                info.timeStamp = ril_nano_time();
+                info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA_V2;
+                info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
+                info.timeStamp = timestamp;
                 info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = MapRscpToRssi(rscp);
                 info.CellInfo.wcdma.signalStrengthWcdma.bitErrorRate = BER_UNKNOWN;
+                info.CellInfo.wcdma.signalStrengthWcdma.rscp = rscp;
+                info.CellInfo.wcdma.signalStrengthWcdma.ecNo = ecNo;
                 info.CellInfo.wcdma.cellIdentityWcdma.lac = lac;
                 info.CellInfo.wcdma.cellIdentityWcdma.cid = (int) uCi;
                 info.CellInfo.wcdma.cellIdentityWcdma.psc = psc;
                 info.CellInfo.wcdma.cellIdentityWcdma.mnc = mnc;
                 info.CellInfo.wcdma.cellIdentityWcdma.mcc = mcc;
-                RIL_LOG_INFO("CTE_XMM7260::ParseXMCI() - "
-                        "UMTS LAC,CID,MCC,MNC,ScrCode "
-                        "index=[%d]  cid=[%d] lac[%d] mcc[%d] mnc[%d] scrCode[%d]\r\n",
+                info.CellInfo.wcdma.cellIdentityWcdma.dluarfcn = (int) uDluarfcn;
+                info.CellInfo.wcdma.cellIdentityWcdma.uluarfcn = (int) uUluarfcn;
+                info.CellInfo.wcdma.cellIdentityWcdma.pathloss = pathloss;
+                RIL_LOG_INFO("CTE_XMM7260::ParseXMCI() - UMTS index=[%d] cid[%d] "
+                        "lac[%d] mcc[%d] mnc[%d] scrCode[%d] "
+                        "dluarfcn[%d] uluarfcn[%d] pathloss[%d]\r\n",
                         index, info.CellInfo.wcdma.cellIdentityWcdma.cid,
                         info.CellInfo.wcdma.cellIdentityWcdma.lac,
                         info.CellInfo.wcdma.cellIdentityWcdma.mcc,
                         info.CellInfo.wcdma.cellIdentityWcdma.mnc,
-                        info.CellInfo.wcdma.cellIdentityWcdma.psc);
+                        info.CellInfo.wcdma.cellIdentityWcdma.psc,
+                        info.CellInfo.wcdma.cellIdentityWcdma.dluarfcn,
+                        info.CellInfo.wcdma.cellIdentityWcdma.uluarfcn,
+                        info.CellInfo.wcdma.cellIdentityWcdma.pathloss);
                 index++;
             }
             break;
@@ -2018,9 +2034,9 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                 int rsrp = RSRP_UNKNOWN;
                 int rsrq = RSRQ_UNKNOWN;
                 int rssnr = RSSNR_UNKNOWN;
-                unsigned int uDluarfcn = INT_MAX;
-                unsigned int uUluarfcn = INT_MAX;
-                unsigned int pathloss = INT_MAX;
+                unsigned int uDlearfcn = INT_MAX;
+                unsigned int uUlearfcn = INT_MAX;
+                unsigned int uPathloss = INT_MAX;
                 int timingAdvance = INT_MAX;
                 int cqi = INT_MAX;
 
@@ -2034,39 +2050,38 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                 }
                 pci == (PCI_UNKNOWN == pci) ? INT_MAX : pci;
 
-                // Read <dluarfcn>
+                // Read <dlearfcn>
                 if ((!SkipString(pszRsp, ",", pszRsp))
-                        || (!ExtractQuotedHexUnsignedInt(pszRsp, uDluarfcn, pszRsp)))
+                        || (!ExtractQuotedHexUnsignedInt(pszRsp, uDlearfcn, pszRsp)))
                 {
                     RIL_LOG_INFO("CTE_XMM7260::ParseXMCI() -"
-                            " could not extract <dluarfcn> value\r\n");
+                            " could not extract <dlearfcn> value\r\n");
                     continue;
                 }
-                uDluarfcn = ((uDluarfcn > (unsigned int) INT_MAX) || (uDluarfcn == 0xFFFFFFFF)) ?
-                        INT_MAX : uDluarfcn;
+                uDlearfcn = ((uDlearfcn > INT_MAX) || (uDlearfcn == 0xFFFFFFFF)) ?
+                        INT_MAX : uDlearfcn;
 
-                // Read <uluarfcn>
+                // Read <ulearfcn>
                 if ((!SkipString(pszRsp, ",", pszRsp))
-                        || (!ExtractQuotedHexUnsignedInt(pszRsp, uUluarfcn, pszRsp)))
+                        || (!ExtractQuotedHexUnsignedInt(pszRsp, uUlearfcn, pszRsp)))
                 {
                     RIL_LOG_INFO("CTE_XMM7260::ParseXMCI() -"
-                            " could not extract <uluarfcn> value\r\n");
+                            " could not extract <ulearfcn> value\r\n");
                     continue;
                 }
-                uUluarfcn = ((uUluarfcn > (unsigned int) INT_MAX) || (uUluarfcn == 0xFFFFFFFF)) ?
-                        INT_MAX : uUluarfcn;
+                uUlearfcn = ((uUlearfcn > INT_MAX) || (uUlearfcn == 0xFFFFFFFF)) ?
+                        INT_MAX : uUlearfcn;
 
                 // Read <pathloss>
                 if ((!SkipString(pszRsp, ",", pszRsp))
-                        || (!ExtractQuotedHexUnsignedInt(pszRsp, pathloss, pszRsp)))
+                        || (!ExtractQuotedHexUnsignedInt(pszRsp, uPathloss, pszRsp)))
                 {
                     RIL_LOG_INFO("CTE_XMM7260::ParseXMCI() -"
                             " could not extract <pathloss> value\r\n");
                     continue;
                 }
-                pathloss = ((pathloss > (unsigned int) INT_MAX)
-                        || (PATHLOSS_LTE_UNKNOWN == pathloss)) ?
-                        INT_MAX : pathloss;
+                uPathloss = ((uPathloss > INT_MAX) || (PATHLOSS_LTE_UNKNOWN == uPathloss)) ?
+                        INT_MAX : uPathloss;
 
                 // Read <RSRP>
                 if ((!SkipString(pszRsp, ",", pszRsp))
@@ -2117,11 +2132,11 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                 }
                 cqi = (CQI_UNKNOWN == cqi) ? INT_MAX : cqi;
 
-                RIL_CellInfo& info = pCellData->aRilCellInfo[index];
+                RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (4 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-                info.cellInfoType = RIL_CELL_INFO_TYPE_LTE;
-                info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
-                info.timeStamp = ril_nano_time();
+                info.cellInfoType = RIL_CELL_INFO_TYPE_LTE_V2;
+                info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
+                info.timeStamp = timestamp;
                 info.CellInfo.lte.signalStrengthLte.signalStrength = RSSI_UNKNOWN;
                 info.CellInfo.lte.signalStrengthLte.rsrp = MapToAndroidRsrp(rsrp);
                 info.CellInfo.lte.signalStrengthLte.rsrq = MapToAndroidRsrq(rsrq);
@@ -2133,10 +2148,12 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                 info.CellInfo.lte.cellIdentityLte.pci = pci;
                 info.CellInfo.lte.cellIdentityLte.mnc = mnc;
                 info.CellInfo.lte.cellIdentityLte.mcc = mcc;
-                RIL_LOG_INFO("CTE_XMM7260::ParseXMCI() -"
-                        "LTE TAC,CID,MCC,MNC,RSRP,RSRQ,TA,RSSNR,PhyCellId "
-                        "index=[%d] cid=[%d] tac[%d] mcc[%d] mnc[%d] rsrp[%d] rsrq[%d] "
-                        "ta[%d] rssnr[%d] Phyci[%d]\r\n",
+                info.CellInfo.lte.cellIdentityLte.dlearfcn = (int) uDlearfcn;
+                info.CellInfo.lte.cellIdentityLte.ulearfcn = (int) uUlearfcn;
+                info.CellInfo.lte.cellIdentityLte.pathloss = (int) uPathloss;
+                RIL_LOG_INFO("CTE_XMM7260::ParseXMCI() - LTE  index=[%d] cid[%d] "
+                        "tac[%d] mcc[%d] mnc[%d] rsrp[%d] rsrq[%d] "
+                        "ta[%d] rssnr[%d] Phyci[%d] dlearfcn[%d] ulearfcn[%d] pathloss[%d]\r\n",
                         index, info.CellInfo.lte.cellIdentityLte.ci,
                         info.CellInfo.lte.cellIdentityLte.tac,
                         info.CellInfo.lte.cellIdentityLte.mcc,
@@ -2145,7 +2162,10 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                         info.CellInfo.lte.signalStrengthLte.rsrq,
                         info.CellInfo.lte.signalStrengthLte.timingAdvance,
                         info.CellInfo.lte.signalStrengthLte.rssnr,
-                        info.CellInfo.lte.cellIdentityLte.pci);
+                        info.CellInfo.lte.cellIdentityLte.pci,
+                        info.CellInfo.lte.cellIdentityLte.dlearfcn,
+                        info.CellInfo.lte.cellIdentityLte.ulearfcn,
+                        info.CellInfo.lte.cellIdentityLte.pathloss);
                 index++;
             }
             break;

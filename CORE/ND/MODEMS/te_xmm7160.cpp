@@ -868,7 +868,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     P_ND_N_CELL_DATA pNeighboringCellData = NULL;
-    P_ND_N_CELL_INFO_DATA pCellInfoData = NULL;
+    P_ND_N_CELL_INFO_DATA_V2 pCellInfoData = NULL;
     int nCellInfos = 0;
     int nNeighboringCellInfos = 0;
 
@@ -887,7 +887,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
 
         for (int i = 0; i < nCellInfos; i++)
         {
-            RIL_CellInfo& info = pCellInfoData->aRilCellInfo[i];
+            RIL_CellInfo_v2& info = pCellInfoData->aRilCellInfo[i];
             if (info.registered)
             {
                 // Do not report serving cell
@@ -896,7 +896,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
 
             switch (info.cellInfoType)
             {
-                case RIL_CELL_INFO_TYPE_GSM:
+                case RIL_CELL_INFO_TYPE_GSM_V2:
                     pNeighboringCellData->aRilNeighboringCell[nNeighboringCellInfos].cid
                             = pNeighboringCellData->aszCellCIDBuffers[nNeighboringCellInfos];
 
@@ -914,7 +914,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
                     nNeighboringCellInfos++;
                     break;
 
-                case RIL_CELL_INFO_TYPE_WCDMA:
+                case RIL_CELL_INFO_TYPE_WCDMA_V2:
                     pNeighboringCellData->aRilNeighboringCell[nNeighboringCellInfos].cid
                             = pNeighboringCellData->aszCellCIDBuffers[nNeighboringCellInfos];
 
@@ -932,7 +932,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
                     nNeighboringCellInfos++;
                     break;
 
-                case RIL_CELL_INFO_TYPE_LTE:
+                case RIL_CELL_INFO_TYPE_LTE_V2:
                     pNeighboringCellData->aRilNeighboringCell[nNeighboringCellInfos].cid
                             = pNeighboringCellData->aszCellCIDBuffers[nNeighboringCellInfos];
 
@@ -2927,7 +2927,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreGetCellInfoList(REQUEST_DATA& rReqData,
 RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol)
 {
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
-    P_ND_N_CELL_INFO_DATA pCellData = NULL;
+    P_ND_N_CELL_INFO_DATA_V2 pCellData = NULL;
     int nCellInfos = 0;
 
     pCellData = ParseXMCI(rRspData, nCellInfos);
@@ -2937,7 +2937,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isU
         if (nCellInfos > 0 && NULL != pCellData)
         {
             rRspData.pData = (void*)pCellData->aRilCellInfo;
-            rRspData.uiDataSize = nCellInfos * sizeof(RIL_CellInfo);
+            rRspData.uiDataSize = nCellInfos * sizeof(RIL_CellInfo_v2);
         }
         else
         {
@@ -2961,7 +2961,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isU
                     && -1 != requestedRate && INT_MAX != requestedRate)
             {
                 RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST,
-                        (void*)pCellData->aRilCellInfo, (sizeof(RIL_CellInfo) * nCellInfos));
+                        (void*)pCellData->aRilCellInfo, (sizeof(RIL_CellInfo_v2) * nCellInfos));
             }
         }
 
@@ -2985,7 +2985,7 @@ Error:
     return res;
 }
 
-P_ND_N_CELL_INFO_DATA CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos)
+P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos)
 {
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int index = 0;
@@ -2994,22 +2994,24 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
     int lac = INT_MAX;
     int ci = INT_MAX;
     const char* pszRsp = rspData.szResponse;
-    P_ND_N_CELL_INFO_DATA pCellData = NULL;
+    P_ND_N_CELL_INFO_DATA_V2 pCellData = NULL;
     const int MCC_UNKNOWN = 0xFFFF;
     const int MNC_UNKNOWN = 0xFFFF;
     const int LAC_UNKNOWN = 0;
     const int CI_UNKNOWN = 0;
     const int PCI_UNKNOWN = 0xFFFF;
     const int CQI_UNKNOWN = 0;
+    const int BSIC_UNKNOWN = 0xFF;
+    uint64_t timestamp = ril_nano_time();
 
-    pCellData = (P_ND_N_CELL_INFO_DATA)malloc(sizeof(S_ND_N_CELL_INFO_DATA));
+    pCellData = (P_ND_N_CELL_INFO_DATA_V2) malloc(sizeof(S_ND_N_CELL_INFO_DATA_V2));
     if (NULL == pCellData)
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseXMCI() -"
-                " Could not allocate memory for a S_ND_N_CELL_INFO_DATA struct.\r\n");
+                " Could not allocate memory for a S_ND_N_CELL_INFO_DATA_V2 struct.\r\n");
         goto Error;
     }
-    memset(pCellData, 0, sizeof(S_ND_N_CELL_INFO_DATA));
+    memset(pCellData, 0, sizeof(S_ND_N_CELL_INFO_DATA_V2));
 
     /*
      * GSM serving and neighboring cell:
@@ -3032,7 +3034,6 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
     while (FindAndSkipString(pszRsp, "+XMCI: ", pszRsp))
     {
         int type = 0;
-        int dummy;
 
         if (RRIL_MAX_CELL_ID_COUNT == index)
         {
@@ -3097,15 +3098,17 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
             {
                 int rxlev = RXLEV_UNKNOWN;
                 int ber = BER_UNKNOWN;
+                int basestationId = INT_MAX;
 
                 // Read <BSIC>
                 if (!SkipString(pszRsp, ",", pszRsp)
-                        || !ExtractInt(pszRsp, dummy, pszRsp))
+                        || !ExtractInt(pszRsp, basestationId, pszRsp))
                 {
                     RIL_LOG_INFO("CTE_XMM7160::ParseXMCI() -"
                             " could not extract <BSIC> value\r\n");
                     continue;
                 }
+                basestationId = (BSIC_UNKNOWN == basestationId) ? INT_MAX : basestationId;
 
                 // Read <RXLEV>
                 if (!SkipString(pszRsp, ",", pszRsp)
@@ -3125,18 +3128,22 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                     continue;
                 }
 
-                RIL_CellInfo& info = pCellData->aRilCellInfo[index];
+                RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (0 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-                info.cellInfoType = RIL_CELL_INFO_TYPE_GSM;
-                info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
-                info.timeStamp = ril_nano_time();
+                info.cellInfoType = RIL_CELL_INFO_TYPE_GSM_V2;
+                info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
+                info.timeStamp = timestamp;
                 info.CellInfo.gsm.signalStrengthGsm.signalStrength =
                         MapRxlevToSignalStrengh(rxlev);
                 info.CellInfo.gsm.signalStrengthGsm.bitErrorRate = ber;
+                info.CellInfo.gsm.signalStrengthGsm.rxLev = rxlev;
+                info.CellInfo.gsm.signalStrengthGsm.timingAdvance = INT_MAX;
                 info.CellInfo.gsm.cellIdentityGsm.lac = lac;
                 info.CellInfo.gsm.cellIdentityGsm.cid = ci;
                 info.CellInfo.gsm.cellIdentityGsm.mnc = mnc;
                 info.CellInfo.gsm.cellIdentityGsm.mcc = mcc;
+                info.CellInfo.gsm.cellIdentityGsm.basestationId = basestationId;
+                info.CellInfo.gsm.cellIdentityGsm.arfcn = INT_MAX;
                 RIL_LOG_INFO("CTE_XMM7160::ParseXMCI() - "
                         "GSM LAC,CID,MCC,MNC index=[%d] cid=[%d] lac[%d] mcc[%d] mnc[%d]\r\n",
                         index, info.CellInfo.gsm.cellIdentityGsm.cid,
@@ -3152,6 +3159,7 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
             {
                 int rscp;
                 int psc;
+                int ecNo;
 
                 // Read <PSC>
                 if (!SkipString(pszRsp, ",", pszRsp)
@@ -3174,25 +3182,30 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
 
                 // Read <ECNO>
                 if (!SkipString(pszRsp, ",", pszRsp)
-                        || !ExtractInt(pszRsp, dummy, pszRsp))
+                        || !ExtractInt(pszRsp, ecNo, pszRsp))
                 {
                     RIL_LOG_INFO("CTE_XMM7160::ParseXMCI() -"
                             " could not extract <ECNO>\r\n");
                     continue;
                 }
 
-                RIL_CellInfo& info = pCellData->aRilCellInfo[index];
+                RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (2 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-                info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA;
-                info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
-                info.timeStamp = ril_nano_time();
+                info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA_V2;
+                info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
+                info.timeStamp = timestamp;
                 info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = MapRscpToRssi(rscp);
                 info.CellInfo.wcdma.signalStrengthWcdma.bitErrorRate = BER_UNKNOWN;
+                info.CellInfo.wcdma.signalStrengthWcdma.rscp = rscp;
+                info.CellInfo.wcdma.signalStrengthWcdma.ecNo = ecNo;
                 info.CellInfo.wcdma.cellIdentityWcdma.lac = lac;
                 info.CellInfo.wcdma.cellIdentityWcdma.cid = ci;
                 info.CellInfo.wcdma.cellIdentityWcdma.psc = psc;
                 info.CellInfo.wcdma.cellIdentityWcdma.mnc = mnc;
                 info.CellInfo.wcdma.cellIdentityWcdma.mcc = mcc;
+                info.CellInfo.wcdma.cellIdentityWcdma.dluarfcn = INT_MAX;
+                info.CellInfo.wcdma.cellIdentityWcdma.uluarfcn = INT_MAX;
+                info.CellInfo.wcdma.cellIdentityWcdma.pathloss = INT_MAX;
                 RIL_LOG_INFO("CTE_XMM7160::ParseXMCI() - "
                         "UMTS LAC,CID,MCC,MNC,ScrCode "
                         "index=[%d]  cid=[%d] lac[%d] mcc[%d] mnc[%d] scrCode[%d]\r\n",
@@ -3279,11 +3292,11 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                     cqi = INT_MAX;
                 }
 
-                RIL_CellInfo& info = pCellData->aRilCellInfo[index];
+                RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (4 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-                info.cellInfoType = RIL_CELL_INFO_TYPE_LTE;
-                info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
-                info.timeStamp = ril_nano_time();
+                info.cellInfoType = RIL_CELL_INFO_TYPE_LTE_V2;
+                info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
+                info.timeStamp = timestamp;
                 info.CellInfo.lte.signalStrengthLte.signalStrength = RSSI_UNKNOWN;
                 info.CellInfo.lte.signalStrengthLte.rsrp = MapToAndroidRsrp(rsrp);
                 info.CellInfo.lte.signalStrengthLte.rsrq = MapToAndroidRsrq(rsrq);
@@ -3295,6 +3308,9 @@ P_ND_N_CELL_INFO_DATA CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCellI
                 info.CellInfo.lte.cellIdentityLte.pci = pci;
                 info.CellInfo.lte.cellIdentityLte.mnc = mnc;
                 info.CellInfo.lte.cellIdentityLte.mcc = mcc;
+                info.CellInfo.lte.cellIdentityLte.dlearfcn = INT_MAX;
+                info.CellInfo.lte.cellIdentityLte.ulearfcn = INT_MAX;
+                info.CellInfo.lte.cellIdentityLte.pathloss = INT_MAX;
                 RIL_LOG_INFO("CTE_XMM7160::ParseXMCI() -"
                         "LTE TAC,CID,MCC,MNC,RSRP,RSRQ,TA,RSSNR,PhyCellId "
                         "index=[%d] cid=[%d] tac[%d] mcc[%d] mnc[%d] rsrp[%d] rsrq[%d] "

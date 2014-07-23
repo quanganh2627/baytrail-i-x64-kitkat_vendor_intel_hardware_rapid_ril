@@ -6664,14 +6664,14 @@ RIL_RESULT_CODE CTE::RequestGetCellInfoList(RIL_Token rilToken, void* pData, siz
     res = m_pTEBaseInstance->CoreGetCellInfoList(reqData, pData, datalen);
     if (RRIL_RESULT_OK_IMMEDIATE == res)
     {
-        UINT32 uiItemCount = 0;
+        int itemCount = 0;
         S_ND_N_CELL_INFO_DATA cellData;
 
         memset(&cellData, 0, sizeof(S_ND_N_CELL_INFO_DATA));
-        getCellInfo(&cellData, uiItemCount);
+        getCellInfo(&cellData, itemCount);
 
         RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, &cellData.aRilCellInfo,
-                uiItemCount * sizeof(RIL_CellInfo));
+                itemCount * sizeof(RIL_CellInfo));
 
         res = RRIL_RESULT_OK;
     }
