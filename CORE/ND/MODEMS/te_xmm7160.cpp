@@ -42,6 +42,7 @@ CTE_XMM7160::CTE_XMM7160(CTE& cte)
 : CTE_XMM6360(cte)
 {
     m_cte.SetDefaultPDNCid(DEFAULT_PDN_CID);
+    m_bNeedGetInfoOnCellChange = false;
 }
 
 CTE_XMM7160::~CTE_XMM7160()

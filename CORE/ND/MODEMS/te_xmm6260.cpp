@@ -46,6 +46,7 @@ CTE_XMM6260::CTE_XMM6260(CTE& cte)
 : CTEBase(cte),
   m_currentNetworkType(-1)
 {
+    m_bNeedGetInfoOnCellChange = true;
 }
 
 CTE_XMM6260::~CTE_XMM6260()

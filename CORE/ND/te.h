@@ -1419,6 +1419,7 @@ private:
     const char* GetPrintString(int definitionId);
     BOOL IsBuildTypeEngUserDebug();
     void TriggerRestrictedModeEvent();
+    bool NeedGetCellInfoOnCellChange();
 };
 
 #endif

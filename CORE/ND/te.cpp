@@ -7944,21 +7944,24 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
         }
     }
 
-    BOOL bCellInfoChanged = FALSE;
-    if ((0 != strcmp(m_szCachedLac, szLac) || 0 != strcmp(m_szCachedCid, szCid)))
+    if (NeedGetCellInfoOnCellChange())
     {
-        CopyStringNullTerminate(m_szCachedLac, szLac, sizeof(m_szCachedLac));
-        CopyStringNullTerminate(m_szCachedCid, szCid, sizeof(m_szCachedCid));
+        BOOL bCellInfoChanged = FALSE;
+        if ((0 != strcmp(m_szCachedLac, szLac) || 0 != strcmp(m_szCachedCid, szCid)))
+        {
+            CopyStringNullTerminate(m_szCachedLac, szLac, sizeof(m_szCachedLac));
+            CopyStringNullTerminate(m_szCachedCid, szCid, sizeof(m_szCachedCid));
 
-        bCellInfoChanged = TRUE;
-    }
+            bCellInfoChanged = TRUE;
+        }
 
-    if (IsCellInfoEnabled() && bCellInfoChanged)
-    {
-        int rate = GetCellInfoListRate();
-        rate = (0 == rate) ? 0 : -1;
-        RIL_LOG_INFO("CTEBase::StoreRegistrationInfo() - read cell info now!\r\n");
-        RIL_requestTimedCallback(triggerCellInfoList, (void*)rate, 0, 0);
+        if (IsCellInfoEnabled() && bCellInfoChanged)
+        {
+            int rate = GetCellInfoListRate();
+            rate = (0 == rate) ? 0 : -1;
+            RIL_LOG_INFO("CTEBase::StoreRegistrationInfo() - read cell info now!\r\n");
+            RIL_requestTimedCallback(triggerCellInfoList, (void*)rate, 0, 0);
+        }
     }
 
     RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Exit\r\n");
@@ -10839,4 +10842,9 @@ RIL_RESULT_CODE CTE::ParseQueryCnap(const char* pszRsp, RESPONSE_DATA& rspData)
 const char* CTE::GetReadCellInfoString()
 {
     return m_pTEBaseInstance->GetReadCellInfoString();
+}
+
+bool CTE::NeedGetCellInfoOnCellChange()
+{
+    return m_pTEBaseInstance->NeedGetCellInfoOnCellChange();
 }

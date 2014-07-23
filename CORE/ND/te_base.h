@@ -55,6 +55,8 @@ protected:
     bool m_bRegStatusAndBandIndActivated;
     sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND m_sRegStatusAndBandInfo;
 
+    bool m_bNeedGetInfoOnCellChange;
+
     static const char* PDPTYPE_IPV4V6;
     static const char* PDPTYPE_IPV6;
     static const char* PDPTYPE_IP;
@@ -1013,6 +1015,8 @@ public:
     virtual const char* GetEnableFetchingString();
 
     virtual const char* GetReadCellInfoString() { return NULL; }
+
+    bool NeedGetCellInfoOnCellChange() { return m_bNeedGetInfoOnCellChange; }
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);

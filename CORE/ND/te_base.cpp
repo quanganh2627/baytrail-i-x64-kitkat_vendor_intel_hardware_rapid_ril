@@ -52,7 +52,8 @@ CTEBase::CTEBase(CTE& cte)
   m_bReadyForAttach(FALSE),
   m_bRefreshWithUSIMInitOn(FALSE),
   m_pUiccOpenLogicalChannelEvent(NULL),
-  m_bRegStatusAndBandIndActivated(false)
+  m_bRegStatusAndBandIndActivated(false),
+  m_bNeedGetInfoOnCellChange(false)
 {
     CRepository repository;
     strcpy(m_szNetworkInterfaceNamePrefix, "");
