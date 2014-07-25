@@ -6038,7 +6038,7 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
     while (FindAndSkipString(pszRsp, "+CGCONTRDP:", pszRsp))
     {
        // Parse <cid>
-        if (!ExtractUInt32(pszRsp, uiCID, pszRsp) ||  ((uiCID > MAX_PDP_CONTEXTS) || 0 == uiCID ))
+        if (!ExtractUInt32(pszRsp, uiCID, pszRsp) ||  ( 0 == uiCID ))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "Could not extract CID.\r\n");
@@ -6324,7 +6324,7 @@ RIL_RESULT_CODE CTEBase::ParseReadBearerTFTParams(RESPONSE_DATA& rRspData)
 
         // Parse <cid>
         if (!ExtractUInt32(pszRsp, pTFTParam->uiCid, pszRsp)
-                || ((pTFTParam->uiCid > MAX_PDP_CONTEXTS) || 0 == pTFTParam->uiCid ))
+                || 0 == pTFTParam->uiCid )
         {
             RIL_LOG_CRITICAL("CTEBase::ParseReadBearerTFTParams() - "
                     "Could not extract CID.\r\n");
@@ -6530,7 +6530,7 @@ RIL_RESULT_CODE CTEBase::ParseReadBearerQOSParams(RESPONSE_DATA& rRspData)
 
     // Parse <cid>
     if (!ExtractUInt32(pszRsp, pQOSParams->uiCid, pszRsp)
-            || ((pQOSParams->uiCid > MAX_PDP_CONTEXTS) || 0 == pQOSParams->uiCid ))
+            || ( 0 == pQOSParams->uiCid ))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseReadBearerQOSParams() - "
                 "Could not extract CID.\r\n");

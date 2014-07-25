@@ -6266,7 +6266,7 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
     RIL_LOG_VERBOSE("CTE_XMM6260::DataConfigDown() - Enter\r\n");
 
     //  First check to see if uiCID is valid
-    if (uiCID > MAX_PDP_CONTEXTS || uiCID == 0)
+    if (uiCID == 0)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::DataConfigDown() - Invalid CID = [%u]\r\n", uiCID);
         return FALSE;
