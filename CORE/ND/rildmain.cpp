@@ -25,6 +25,7 @@
 #include <cutils/properties.h>
 #include <utils/Log.h>
 #include "tcs.h"
+#include "extract.h"
 
 ///////////////////////////////////////////////////////////
 //  FUNCTION PROTOTYPES
@@ -550,17 +551,21 @@ static const char* getVersion(void)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 size_t getSubscriptionId(void)
 {
-    char*  endptr = NULL;
     size_t subscriptionId  = 1; /* Default subscriptionId is 1 */
+    int conv = 0;
 
     if (g_szSubscriptionID != NULL)
     {
-        errno = 0;
-        int conv = strtol(g_szSubscriptionID, &endptr, 10);
-        if (!errno)
+        const char* dummy_ptr = NULL;
+
+        if (ExtractInt((const char*)g_szSubscriptionID, conv, dummy_ptr))
+        {
             subscriptionId = conv;
+        }
         else
-            RLOGE("%s - Failed to convert subscriptionId", __FUNCTION__);
+        {
+            RLOGE("%s - Failed to extract subscriptionId", __FUNCTION__);
+        }
     }
 
     return subscriptionId;
