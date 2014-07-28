@@ -82,7 +82,10 @@ LOCAL_CFLAGS += -DM2_PIN_RETRIES_FEATURE_ENABLED
 endif
 
 # Activating this macro enables SEEK for Android (for Ice Cream Sandwich)
-LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED
+#LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED
+
+# Activating this macro enables rapid ril to be built for PDK or Gmin
+LOCAL_CFLAGS += -DM2_PDK_OR_GMIN_BUILD
 
 # Activating this macro enables PIN caching (for modem cold reboot)
 LOCAL_CFLAGS += -DM2_PIN_CACHING_FEATURE_ENABLED
@@ -101,13 +104,10 @@ LOCAL_C_INCLUDES :=  \
     $(TARGET_OUT_HEADERS)/IFX-modem \
     $(TARGET_OUT_HEADERS)/libtcs \
 
-LOCAL_IMPORT_C_INCLUDE_DIRS_FROM_SHARED_LIBRARIES += libtcs
-
 #build shared library
 LOCAL_PRELINK_MODULE := false
 LOCAL_STRIP_MODULE := true
 LOCAL_SHARED_LIBRARIES += librapid-ril-util
-LOCAL_LDLIBS += -lpthread
 LOCAL_CFLAGS += -DRIL_SHLIB -Os
 LOCAL_MODULE:= librapid-ril-core
 LOCAL_MODULE_TAGS:= optional

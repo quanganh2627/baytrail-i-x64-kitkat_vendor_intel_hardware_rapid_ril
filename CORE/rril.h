@@ -87,6 +87,133 @@ const int ISIM_APP_INDEX = 1;
 const UINT32 MAX_APP_LABEL_SIZE = 33; // including null termination
 const UINT32 MAX_AID_SIZE = 33; // Hex string length including null termination
 
+
+//////////////////////////////////////////////////////////////////////////////
+// ril.h definitions used to support vanilla aosp
+
+#if defined (M2_PDK_OR_GMIN_BUILD)
+
+/* See RIL_REQUEST_SETUP_DATA_CALL */
+typedef enum {
+    RIL_DATA_PROFILE_IMS        = 2,
+    RIL_DATA_PROFILE_FOTA       = 3,
+    RIL_DATA_PROFILE_CBS        = 4,
+    RIL_DATA_PROFILE_MMS        = 5,
+    RIL_DATA_PROFILE_SUPL       = 6,
+    RIL_DATA_PROFILE_HIPRI      = 7,
+    RIL_DATA_PROFILE_XCAP       = 8,
+    RIL_DATA_PROFILE_EMERGENCY  = 9,
+    RIL_DATA_PROFILE_RCS        = 10,
+} RIL_DataProfile_private;
+
+typedef enum {
+    RIL_APPSTATE_IMEI                  = 6  /* If SIM IMEI locked */
+} RIL_AppState_private;
+
+// Must be the same as CellInfo.TYPE_XXX
+typedef enum {
+  RIL_CELL_INFO_TYPE_GSM_V2    = 11,
+  RIL_CELL_INFO_TYPE_CDMA_V2   = 12,
+  RIL_CELL_INFO_TYPE_LTE_V2    = 13,
+  RIL_CELL_INFO_TYPE_WCDMA_V2  = 14,
+} RIL_CellInfoType_private;
+
+typedef struct {
+    int signalStrength; /* Valid values are (0-31, 99) as defined in TS 27.007 8.5 */
+    int bitErrorRate; /* bit error rate (0-7, 99) as defined in TS 27.007 8.5 */
+    int rxLev; /* Valid values are (0-63, 99) as defined in TS 27.007 8.69 */
+    int timingAdvance; /* Timing Advance, INT_MAX if unknown */
+} RIL_GW_SignalStrength_v2;
+
+typedef struct {
+    int signalStrength; /* Valid values are (0-31, 99) as defined in TS 27.007 8.5 */
+    int bitErrorRate; /* bit error rate (0-7, 99) as defined in TS 27.007 8.5 */
+    int rscp; /* Received signal code power, Valid values are (0-96, 255) as defined in
+               * 3GPPTS 27.007 8.69.
+               */
+    int ecNo; /* Valid values are (0-49, 255) as defined in TS 27.007 8.69. Ratio of the received
+               * energy per PN chip to the total received power spectral density.
+               */
+} RIL_SignalStrengthWcdma_v2;
+
+/** RIL_CellIdentityGsm_v2 */
+typedef struct {
+    int mcc; /* 3-digit Mobile Country Code, 0..999, INT_MAX if unknown */
+    int mnc; /* 2 or 3-digit Mobile Network Code, 0..999, INT_MAX if unknown */
+    int lac; /* 16-bit Location Area Code, 0..65535, INT_MAX if unknown */
+    int cid; /* 16-bit GSM Cell Identity described in TS 27.007, 0..65535, INT_MAX if unknown */
+    int basestationId; /* Base station identification code, INT_MAX if unknown */
+    int arfcn; /* 16-bit Absolute Radio Frequency Channel Number, INT_MAX if unknown */
+} RIL_CellIdentityGsm_v2;
+
+/** RIL_CellIdentityWcdma_v2 */
+typedef struct {
+    int mcc; /* 3-digit Mobile Country Code, 0..999, INT_MAX if unknown */
+    int mnc; /* 2 or 3-digit Mobile Network Code, 0..999, INT_MAX if unknown */
+    int lac; /* 16-bit Location Area Code, 0..65535, INT_MAX if unknown */
+    int cid; /* 28-bit UMTS Cell Identity described in TS 25.331, 0..268435455,
+              * INT_MAX if unknown */
+    int psc; /* 9-bit UMTS Primary Scrambling Code described in TS 25.331, 0..511,
+              * INT_MAX if unknown */
+    int dluarfcn; /* Downlink UTRA Absolute Radio Frequency Channel Number, INT_MAX if unknown */
+    int uluarfcn; /* Uplink UTRA Absolute Radio Frequency Channel Number, INT_MAX if unknown */
+    int pathloss; /* Pathloss described in TS 25.331 sec 10.3.7.3, 46..158, INT_MAX if unknown */
+} RIL_CellIdentityWcdma_v2;
+
+/** RIL_CellIdentityLte_v2 */
+typedef struct {
+    int mcc; /* 3-digit Mobile Country Code, 0..999, INT_MAX if unknown */
+    int mnc; /* 2 or 3-digit Mobile Network Code, 0..999, INT_MAX if unknown */
+    int ci; /* 28-bit Cell Identity described in TS ???, INT_MAX if unknown */
+    int pci; /* physical cell id 0..503, INT_MAX if unknown */
+    int tac; /* 16-bit tracking area code, INT_MAX if unknown */
+    int dlearfcn; /* Downlink UTRA Absolute Radio Frequency Channel Number, INT_MAX if unknown */
+    int ulearfcn; /* Uplink UTRA Absolute Radio Frequency Channel Number, INT_MAX if unknown */
+    int pathloss; /* Pathloss described in TS 36.213 sec 5.1.1.1, 0..2400, INT_MAX if unknown */
+} RIL_CellIdentityLte_v2;
+
+/** RIL_CellInfoGsm_v2 */
+typedef struct {
+  RIL_CellIdentityGsm_v2 cellIdentityGsm;
+  RIL_GW_SignalStrength_v2 signalStrengthGsm;
+} RIL_CellInfoGsm_v2;
+
+/** RIL_CellInfoWcdma_v2 */
+typedef struct {
+  RIL_CellIdentityWcdma_v2 cellIdentityWcdma;
+  RIL_SignalStrengthWcdma_v2 signalStrengthWcdma;
+} RIL_CellInfoWcdma_v2;
+
+/** RIL_CellInfoLte_v2 */
+typedef struct {
+  RIL_CellIdentityLte_v2 cellIdentityLte;
+  RIL_LTE_SignalStrength_v8  signalStrengthLte;
+} RIL_CellInfoLte_v2;
+
+typedef struct {
+  RIL_CellInfoType  cellInfoType;   /* cell type for selecting from union CellInfo */
+  int               registered;     /* !0 if this cell is registered 0 if not registered */
+  RIL_TimeStampType timeStampType;  /* type of time stamp represented by timeStamp */
+  uint64_t          timeStamp;      /* Time in nanos as returned by ril_nano_time */
+  union {
+    RIL_CellInfoGsm_v2   gsm;
+    RIL_CellInfoCdma     cdma;
+    RIL_CellInfoLte_v2   lte;
+    RIL_CellInfoWcdma_v2 wcdma;
+  } CellInfo;
+} RIL_CellInfo_v2;
+
+typedef struct {
+    char *apn;
+    char *protocol;
+    int authtype;
+    char *username;
+    char *password;
+    int requestPcscf;
+} RIL_InitialAttachApn_Extended;
+
+#endif
+/////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 // Radio off reasons
 //

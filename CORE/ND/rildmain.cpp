@@ -66,8 +66,12 @@ UINT32 g_uiRilChannelCurMax = 0;
 
 static const RIL_RadioFunctions gs_callbacks =
 {
+#if !defined(M2_PDK_OR_GMIN_BUILD)
     // Version > 0xffff indicates the ril is implementing an intel modified API
     0x10000 | RIL_VERSION,
+#else
+    RIL_VERSION,
+#endif
     onRequest,
     onGetCurrentRadioState,
     onSupports,
@@ -186,6 +190,17 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
 
         case RIL_UNSOL_SIGNAL_STRENGTH:  // 1009
             RIL_LOG_VERBOSE("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIGNAL_STRENGTH\r\n");
+
+#if defined(M2_PDK_OR_GMIN_BUILD)
+            if (pData && dataSize)
+            {
+                RIL_LOG_VERBOSE("RIL_onUnsolicitedResponse() - GW_signalStrength=%d"
+                         "  GW_bitErrorRate=%d\r\n",
+                         ((RIL_SignalStrength_v6*)pData)->GW_SignalStrength.signalStrength,
+                         ((RIL_SignalStrength_v6*)pData)->GW_SignalStrength.bitErrorRate);
+            }
+#endif
+
             break;
 
         case RIL_UNSOL_DATA_CALL_LIST_CHANGED:  // 1010

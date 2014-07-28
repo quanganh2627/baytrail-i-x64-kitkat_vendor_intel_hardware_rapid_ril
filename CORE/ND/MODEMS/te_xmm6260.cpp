@@ -7319,6 +7319,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                        " mode %d, could not skip to rscp\r\n", uiMode);
                 goto Error;
             }
+
             //  read <rscp>
             if (!ExtractInt(pszRsp, rscp, pszRsp))
             {
@@ -7326,6 +7327,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                         " mode %d, could not extract rscp\r\n", uiMode);
                 goto Error;
             }
+
             //  read <ecno> and ignore
             if ((!SkipString(pszRsp, ",", pszRsp)) || (!ExtractInt(pszRsp, dummy, pszRsp)))
             {

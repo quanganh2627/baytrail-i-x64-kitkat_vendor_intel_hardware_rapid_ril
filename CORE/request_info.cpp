@@ -268,6 +268,8 @@ const REQ_INFO g_ReqInfoDefault[] =
     { "GetImsRegistrationState", RIL_CHANNEL_RESERVED, 0},
     // RIL_REQUEST_IMS_SEND_SMS 113
     { "SendImsSms", RIL_CHANNEL_RESERVED, 0},
+
+#if defined(M2_SEEK_FEATURE_ENABLED)
     // RIL_REQUEST_SIM_TRANSMIT_BASIC 114
     { "SimTransmitBasic", RIL_CHANNEL_DLC8, 0 },
     // RIL_REQUEST_SIM_OPEN_CHANNEL 115
@@ -276,6 +278,8 @@ const REQ_INFO g_ReqInfoDefault[] =
     { "SimCloseChannel", RIL_CHANNEL_DLC8, 0 },
     // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 117
     { "SimTransmitChannel", RIL_CHANNEL_DLC8, 0 },
+#endif
+
 #if defined(M2_VT_FEATURE_ENABLED)
     // RIL_REQUEST_HANGUP_VT 118
     { "HangupVT", RIL_CHANNEL_DLC6, 0 },

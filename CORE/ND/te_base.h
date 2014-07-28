@@ -737,7 +737,7 @@ public:
     // RIL_REQUEST_IMS_SEND_SMS: // 113
     // TODO
 
-
+#if defined (M2_SEEK_FEATURE_ENABLED)
     // RIL_REQUEST_SIM_TRANSMIT_BASIC 114
     virtual RIL_RESULT_CODE CoreSimTransmitBasic(REQUEST_DATA& rReqData,
                                                             void* pData,
@@ -748,19 +748,20 @@ public:
     virtual RIL_RESULT_CODE CoreSimOpenChannel(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA& rRspData);
-
     // RIL_REQUEST_SIM_CLOSE_CHANNEL 116
     virtual RIL_RESULT_CODE CoreSimCloseChannel(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA& rRspData);
-
     // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 117
     virtual RIL_RESULT_CODE CoreSimTransmitChannel(REQUEST_DATA& rReqData,
                                                               void* pData,
                                                               UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA& rRspData);
+
+#endif
+
+    virtual RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA& rRspData);
 
 #if defined(M2_VT_FEATURE_ENABLED)
     // RIL_REQUEST_HANGUP_VT 118
@@ -940,7 +941,11 @@ public:
 
     virtual const char* GetSignalStrengthReportingString();
 
+#if !defined(M2_PDK_OR_GMIN_BUILD)
     virtual RIL_SignalStrength_v9* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
+#else
+    virtual RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
+#endif
 
     virtual void ResetCardStatus(BOOL bForceReset);
     virtual void QueryUiccInfo();
