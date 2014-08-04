@@ -1172,6 +1172,36 @@ Error:
     return res;
 }
 
+BOOL CTE_XMM7160::GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData)
+{
+    UINT32 uiMode = GetXDNSMode(m_InitialAttachApnParams.szPdpType);
+    int requestPcscf = m_InitialAttachApnParams.requestPcscf;
+
+    if ('\0' == m_InitialAttachApnParams.szApn[0])
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=1,\"%s\",,,,,,,%d,%d;+XDNS=1,%u\r",
+                m_InitialAttachApnParams.szPdpType, requestPcscf, requestPcscf, uiMode))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::GetSetInitialAttachApnReqData() - "
+                    "Can't construct szCmd1.\r\n");
+        }
+    }
+    else
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=1,\"%s\",\"%s\",,,,,,%d,%d;+XDNS=1,%u\r",
+                m_InitialAttachApnParams.szPdpType, m_InitialAttachApnParams.szApn,
+                requestPcscf, requestPcscf, uiMode))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::GetSetInitialAttachApnReqData() - "
+                    "Can't construct szCmd1.\r\n");
+        }
+    }
+
+    return TRUE;
+}
+
 BOOL CTE_XMM7160::QueryIpAndDns(REQUEST_DATA& rReqData, UINT32 uiCID)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::QueryIpAndDns() - Enter\r\n");

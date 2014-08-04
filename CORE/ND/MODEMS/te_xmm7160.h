@@ -155,6 +155,8 @@ public:
 
     virtual const char* GetSiloVoiceURCInitString();
     virtual const char* GetReadCellInfoString();
+    virtual BOOL GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData);
+
 
 protected:
 

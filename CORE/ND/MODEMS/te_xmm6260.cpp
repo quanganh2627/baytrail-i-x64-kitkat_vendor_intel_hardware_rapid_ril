@@ -4217,7 +4217,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreSetInitialAttachApn() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_InitialAttachApn* pTemp = NULL;
+    RIL_InitialAttachApn_Extended* pTemp = NULL;
     UINT32 uiMode = 0;
     char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
     char szApn[MAX_APN_SIZE] = {'\0'};
@@ -4231,7 +4231,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (sizeof(RIL_InitialAttachApn) != uiDataSize)
+    if (sizeof(RIL_InitialAttachApn_Extended) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetInitialAttachApn() - "
                 "pData size if wrong\r\n");
@@ -4246,7 +4246,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    pTemp = (RIL_InitialAttachApn*) pData;
+    pTemp = (RIL_InitialAttachApn_Extended*) pData;
 
     if (NULL == pTemp->protocol || pTemp->protocol[0] == '\0')
     {
@@ -4284,6 +4284,8 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
             szApn, sizeof(m_InitialAttachApnParams.szApn));
     CopyStringNullTerminate(m_InitialAttachApnParams.szPdpType,
             szPdpType, sizeof(m_InitialAttachApnParams.szPdpType));
+
+    m_InitialAttachApnParams.requestPcscf = pTemp->requestPcscf;
 
     /*
      * Case 1: Initial attach APN is not yet set.

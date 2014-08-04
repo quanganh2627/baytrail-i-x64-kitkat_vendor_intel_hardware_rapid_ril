@@ -66,7 +66,8 @@ UINT32 g_uiRilChannelCurMax = 0;
 
 static const RIL_RadioFunctions gs_callbacks =
 {
-    RIL_VERSION,
+    // Version > 0xffff indicates the ril is implementing an intel modified API
+    0x10000 | RIL_VERSION,
     onRequest,
     onGetCurrentRadioState,
     onSupports,
