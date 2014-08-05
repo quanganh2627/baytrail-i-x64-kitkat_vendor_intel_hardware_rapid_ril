@@ -124,6 +124,11 @@ const char   g_szApnTypeEmergency[]     = "ApnTypeEmergency";
 const char   g_szTeProfile[]             = "TeProfile";
 const char   g_szMtMask[]                = "MtMask";
 
+// used for Signal Strength reporting configuration in bar mapping mode
+const char g_sz2GParameters[]            = "BarMapping2GParameters";
+const char g_sz3GParameters[]            = "BarMapping3GParameters";
+const char g_szLteParameters[]           = "BarMappingLteParameters";
+
 /////////////////////////////////////////////////
 
 const char   g_szGroupLogging[]                 = "Logging";

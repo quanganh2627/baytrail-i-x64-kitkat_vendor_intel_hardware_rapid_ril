@@ -10406,9 +10406,9 @@ void CTE::AcceptOrRejectNwInitiatedContext()
     }
 }
 
-const char* CTE::GetSignalStrengthReportingString()
+const char* CTE::GetSignalStrengthReportingStringAlloc()
 {
-    return m_pTEBaseInstance->GetSignalStrengthReportingString();
+    return m_pTEBaseInstance->GetSignalStrengthReportingStringAlloc();
 }
 
 #if !defined(M2_PDK_OR_GMIN_BUILD)

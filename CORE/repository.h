@@ -112,6 +112,11 @@ extern const char   g_szApnTypeEmergency[];
 extern const char g_szTeProfile[];
 extern const char g_szMtMask[];
 
+// used for Signal Strength reporting configuration in bar mapping mode
+extern const char g_sz2GParameters[];
+extern const char g_sz3GParameters[];
+extern const char g_szLteParameters[];
+
 //////////////////////////////////////////////////////////////////////////
 
 extern const char   g_szGroupLogging[];

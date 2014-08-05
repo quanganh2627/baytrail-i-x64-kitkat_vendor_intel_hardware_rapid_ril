@@ -132,9 +132,9 @@ const char* CTE_XMM6260::GetScreenOffString()
     return strndup(szScreenOffString, strlen(szScreenOffString));
 }
 
-const char* CTE_XMM6260::GetSignalStrengthReportingString()
+const char* CTE_XMM6260::GetSignalStrengthReportingStringAlloc()
 {
-    return "+XCSQ=1";
+    return strdup("+XCSQ=1");
 }
 
 LONG CTE_XMM6260::GetDataDeactivateReason(char* pszReason)

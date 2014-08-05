@@ -939,7 +939,7 @@ public:
     // Post handler for internal DTMF stop request
     virtual void PostInternalDtmfStopReq(POST_CMD_HANDLER_DATA& rData);
 
-    virtual const char* GetSignalStrengthReportingString();
+    virtual const char* GetSignalStrengthReportingStringAlloc();
 
 #if !defined(M2_PDK_OR_GMIN_BUILD)
     virtual RIL_SignalStrength_v9* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);

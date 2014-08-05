@@ -257,7 +257,7 @@ public:
 
     virtual RIL_RESULT_CODE ParseSimStateQuery(RESPONSE_DATA& rRspData);
 
-    virtual const char* GetSignalStrengthReportingString();
+    virtual const char* GetSignalStrengthReportingStringAlloc();
 
     virtual void QueryUiccInfo();
 

@@ -19,6 +19,7 @@
 #include "init7260.h"
 #include "usat_init_state_machine.h"
 #include "rildmain.h"
+#include "repository.h"
 
 
 CTE_XMM7260::CTE_XMM7260(CTE& cte)
@@ -2123,13 +2124,44 @@ void CTE_XMM7260::CopyCardStatus(RIL_CardStatus_v6& cardStatus)
     }
 }
 
-const char* CTE_XMM7260::GetSignalStrengthReportingString()
+const char* CTE_XMM7260::GetSignalStrengthReportingStringAlloc()
 {
-    // XCESQRC values must be aligned with levels defined in
-    // /frameworks/base/telephony/java/android/telephony/SignalStrength.java
-    // Ecno and rsrq are not used
-    return "+XCESQ=1"
-            "|+XCESQRC=0,1,4,1,7,13,21" // 2G
-            "|+XCESQRC=1,1,4,1,7,13,21,0" // 3G
-            "|+XCESQRC=2,1,4,26,36,46,56,0,4,-6,2,9,26"; // LTE
+    RIL_LOG_VERBOSE("CTE_XMM7260::GetSignalStrengthReportingStringAlloc() - Enter\r\n");
+
+    char sz2GParameters[MAX_BUFFER_SIZE] = {'\0'};
+    char sz3GParameters[MAX_BUFFER_SIZE] = {'\0'};
+    char szLteParameters[MAX_BUFFER_SIZE] = {'\0'};
+    char szSignalStrengthReporting[MAX_BUFFER_SIZE] = {'\0'};
+    const char* psz2GPrefix = "";
+    const char* psz2GParams = "";
+    const char* psz3GPrefix = "";
+    const char* psz3GParams = "";
+    const char* pszLtePrefix = "";
+    const char* pszLteParams = "";
+    CRepository repository;
+
+    if (repository.Read(g_szGroupModem, g_sz2GParameters, sz2GParameters, MAX_BUFFER_SIZE))
+    {
+        psz2GPrefix = "|+XCESQRC=0,1,";
+        psz2GParams = sz2GParameters;
+    }
+
+    if (repository.Read(g_szGroupModem, g_sz3GParameters, sz3GParameters, MAX_BUFFER_SIZE))
+    {
+        psz3GPrefix = "|+XCESQRC=1,1,";
+        psz3GParams = sz3GParameters;
+    }
+
+    if (repository.Read(g_szGroupModem, g_szLteParameters, szLteParameters, MAX_BUFFER_SIZE))
+    {
+        pszLtePrefix = "|+XCESQRC=2,1,";
+        pszLteParams = szLteParameters;
+    }
+
+    PrintStringNullTerminate(szSignalStrengthReporting, MAX_BUFFER_SIZE, "+XCESQ=1%s%s%s%s%s%s",
+            psz2GPrefix, psz2GParams, psz3GPrefix, psz3GParams, pszLtePrefix, pszLteParams);
+
+    RIL_LOG_VERBOSE("CTE_XMM7260::GetSignalStrengthReportingStringAlloc() - Exit\r\n");
+
+    return strdup(szSignalStrengthReporting);
 }

@@ -186,9 +186,9 @@ const char* CTE_XMM7160::GetScreenOffString()
     return strndup(szScreenOffString, strlen(szScreenOffString));
 }
 
-const char* CTE_XMM7160::GetSignalStrengthReportingString()
+const char* CTE_XMM7160::GetSignalStrengthReportingStringAlloc()
 {
-    return "+XCESQ=1";
+    return strdup("+XCESQ=1");
 }
 
 const char* CTE_XMM7160::GetEnablingEtwsString()

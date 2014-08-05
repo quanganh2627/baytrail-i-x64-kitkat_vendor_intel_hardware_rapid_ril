@@ -235,7 +235,7 @@ const char* CTEBase::GetScreenOffString()
     }
 }
 
-const char* CTEBase::GetSignalStrengthReportingString()
+const char* CTEBase::GetSignalStrengthReportingStringAlloc()
 {
     return NULL;
 }

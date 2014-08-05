@@ -135,7 +135,7 @@ public:
 
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
 
-    virtual const char* GetSignalStrengthReportingString();
+    virtual const char* GetSignalStrengthReportingStringAlloc();
 
 #if !defined(M2_PDK_OR_GMIN_BUILD)
     virtual RIL_SignalStrength_v9* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);

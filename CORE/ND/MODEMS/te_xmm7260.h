@@ -107,7 +107,7 @@ public:
                                                             UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
 
-    virtual const char* GetSignalStrengthReportingString();
+    virtual const char* GetSignalStrengthReportingStringAlloc();
 
 protected:
     virtual RIL_RESULT_CODE CreateGetGprsCellEnvReq(REQUEST_DATA& reqData);

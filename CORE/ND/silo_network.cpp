@@ -98,12 +98,13 @@ char* CSilo_Network::GetURCInitString()
 
     if (CTE::GetTE().IsSignalStrengthReportEnabled())
     {
-        const char* pszSignalStrengthURC = CTE::GetTE().GetSignalStrengthReportingString();
+        const char* pszSignalStrengthURC = CTE::GetTE().GetSignalStrengthReportingStringAlloc();
         if (NULL != pszSignalStrengthURC)
         {
             if (!ConcatenateStringNullTerminate(m_szURCInitString, sizeof(m_szURCInitString), "|"))
             {
                 RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() - concat of | failed\r\n");
+                free((void*) pszSignalStrengthURC);
                 return NULL;
             }
 
@@ -112,8 +113,10 @@ char* CSilo_Network::GetURCInitString()
             {
                 RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to copy signal"
                         " strength URC string!\r\n");
+                free((void*) pszSignalStrengthURC);
                 return NULL;
             }
+            free((void*) pszSignalStrengthURC);
         }
     }
 

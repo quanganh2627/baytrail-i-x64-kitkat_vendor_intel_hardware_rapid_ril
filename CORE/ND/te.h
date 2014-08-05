@@ -1177,7 +1177,7 @@ public:
     void AcceptOrRejectNwInitiatedContext();
 
     // Returns the signal strength reporting string used to enable signal strength URC
-    const char* GetSignalStrengthReportingString();
+    const char* GetSignalStrengthReportingStringAlloc();
 
 #if !defined(M2_PDK_OR_GMIN_BUILD)
     RIL_SignalStrength_v9* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
