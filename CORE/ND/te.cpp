@@ -8125,6 +8125,8 @@ BOOL CTE::IsEPSRegistered()
     BOOL bRet = FALSE;
     LONG regState = strtol(m_sEPSStatus.szStat, NULL, 10);
 
+    RIL_LOG_INFO("IsEPSREgistered() regState=%d(%s)\r\n", regState, m_sEPSStatus.szStat);
+
     if (E_REGISTRATION_REGISTERED_HOME_NETWORK == regState
             || E_REGISTRATION_REGISTERED_ROAMING == regState)
     {
