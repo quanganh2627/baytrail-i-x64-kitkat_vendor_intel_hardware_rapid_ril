@@ -678,20 +678,12 @@ BOOL CSilo_Network::ParseXREG(CResponse* const pResponse, const char*& rszPointe
 
     RIL_LOG_VERBOSE("CSilo_Network::ParseXREG() - Enter / Exit\r\n");
 
-    // for 7260 modem, XREG used only for band information
-    if (MODEM_TYPE_XMM7260 == CTE::GetTE().GetModemType())
-    {
-        return ParseXREGNetworkInfo(pResponse, rszPointer);
-    }
-    else
-    {
-        // Backup the XREG response string to report data on crashtool
-        pszStart = rszPointer;
-        ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszEnd);
-        CTE::GetTE().SaveNetworkData(LAST_NETWORK_XREG, szBackup);
+    // Backup the XREG response string to report data on crashtool
+    pszStart = rszPointer;
+    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszEnd);
+    CTE::GetTE().SaveNetworkData(LAST_NETWORK_XREG, szBackup);
 
-        return ParseRegistrationStatus(pResponse, rszPointer, E_REGISTRATION_TYPE_XREG);
-    }
+    return ParseRegistrationStatus(pResponse, rszPointer, E_REGISTRATION_TYPE_XREG);
 }
 
 //

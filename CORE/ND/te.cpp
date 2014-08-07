@@ -7817,7 +7817,6 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
             || E_REGISTRATION_TYPE_XREG == regType)
     {
         P_ND_GPRS_REG_STATUS psRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
-        memset(&m_sEPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
         RIL_LOG_INFO("[RIL STATE] GPRS REG STATUS = %s  RAT = %s\r\n",
                 PrintGPRSRegistrationInfo(psRegStatus->szStat),
@@ -7906,7 +7905,6 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
          * Note: Currently, TAC is mapped to LAC.
          */
         P_ND_GPRS_REG_STATUS epsRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
-        memset(&m_sPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
 
         RIL_LOG_INFO("[RIL STATE] EPS REG STATUS = %s  RAT = %s\r\n",
                 PrintGPRSRegistrationInfo(epsRegStatus->szStat),
@@ -8138,20 +8136,7 @@ BOOL CTE::IsEPSRegistered()
 
 LONG CTE::GetCurrentAct()
 {
-    LONG ret = 0;
-
-    if ((strtol(m_sPSStatus.szNetworkType, NULL, 10) != 0)
-            && (strtol(m_sEPSStatus.szNetworkType, NULL, 10) == 0))
-    {
-        ret = strtol(m_sPSStatus.szNetworkType, NULL, 10);
-    }
-    else if ((strtol(m_sPSStatus.szNetworkType, NULL, 10) == 0)
-            && (strtol(m_sEPSStatus.szNetworkType, NULL, 10) != 0))
-    {
-        ret = strtol(m_sEPSStatus.szNetworkType, NULL, 10);
-    }
-
-    return ret;
+    return strtol(m_sPSStatus.szNetworkType, NULL, 10);
 }
 
 void CTE::GetPreviousGprsRegInfo(S_REG_INFO& previousRegInfo)
