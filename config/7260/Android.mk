@@ -25,6 +25,14 @@ LOCAL_SRC_FILES := $(LOCAL_MODULE)
 include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
+LOCAL_MODULE := rril_7260_conf_4.txt
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)/telephony
+LOCAL_SRC_FILES := $(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
 LOCAL_MODULE := rril_7260_conf_1_ATT.txt
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := ETC
@@ -39,6 +47,7 @@ LOCAL_REQUIRED_MODULES :=\
     rril_7260_conf_1.txt\
     rril_7260_conf_2.txt\
     rril_7260_conf_3.txt\
+    rril_7260_conf_4.txt\
     rril_7260_conf_1_ATT.txt
 
 include $(BUILD_PHONY_PACKAGE)
