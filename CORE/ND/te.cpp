@@ -343,14 +343,10 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_SET_FACILITY_LOCK:
         case RIL_REQUEST_GET_IMSI:
         case RIL_REQUEST_SIM_IO:
-
-#if defined (M2_SEEK_FEATURE_ENABLED)
-        case RIL_REQUEST_SIM_TRANSMIT_BASIC:
+        case RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC:
         case RIL_REQUEST_SIM_OPEN_CHANNEL:
         case RIL_REQUEST_SIM_CLOSE_CHANNEL:
-        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:
-#endif
-
+        case RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL:
         case RIL_REQUEST_WRITE_SMS_TO_SIM:
         case RIL_REQUEST_DELETE_SMS_ON_SIM:
         case RIL_REQUEST_GET_SMSC_ADDRESS:
@@ -385,13 +381,10 @@ BOOL CTE::IsRequestAllowedInSimNotReady(int requestId)
         case RIL_REQUEST_GET_IMSI:
         case RIL_REQUEST_SIM_IO:
 
-#if defined (M2_SEEK_FEATURE_ENABLED)
-        case RIL_REQUEST_SIM_TRANSMIT_BASIC:
+        case RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC:
         case RIL_REQUEST_SIM_OPEN_CHANNEL:
         case RIL_REQUEST_SIM_CLOSE_CHANNEL:
-        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:
-#endif
-
+        case RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL:
         case RIL_REQUEST_WRITE_SMS_TO_SIM:
         case RIL_REQUEST_DELETE_SMS_ON_SIM:
         case RIL_REQUEST_GET_SMSC_ADDRESS:
@@ -1128,11 +1121,8 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            //  ************************* END OF REGULAR REQUESTS *******************************
-
-#if defined(M2_SEEK_FEATURE_ENABLED)
-            case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 114
-                eRetVal = RequestSimTransmitBasic(hRilToken, pData, datalen);
+            case RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC:  // 114
+                eRetVal = RequestSimTransmitApduBasic(hRilToken, pData, datalen);
                 break;
 
             case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 115
@@ -1143,10 +1133,9 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 eRetVal = RequestSimCloseChannel(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 117
-                eRetVal = RequestSimTransmitChannel(hRilToken, pData, datalen);
+            case RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL:  // 117
+                eRetVal = RequestSimTransmitApduChannel(hRilToken, pData, datalen);
                 break;
-#endif
 
 #if defined(M2_VT_FEATURE_ENABLED)
 
@@ -6754,32 +6743,33 @@ RIL_RESULT_CODE CTE::RequestSetCellInfoListRate(RIL_Token rilToken, void* pData,
     return res;
 }
 
-#if defined(M2_SEEK_FEATURE_ENABLED)
 //
-// RIL_REQUEST_SIM_TRANSMIT_BASIC 111
+// RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC
 //
-RIL_RESULT_CODE CTE::RequestSimTransmitBasic(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestSimTransmitApduBasic(RIL_Token rilToken, void* pData, size_t datalen)
 {
-    RIL_LOG_VERBOSE("CTE::RequestSimTransmitBasic() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE::RequestSimTransmitApduBasic() - Enter\r\n");
 
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSimTransmitBasic(reqData, pData, datalen);
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSimTransmitApduBasic(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSimTransmitBasic() - Unable to create AT command data\r\n");
+        RIL_LOG_CRITICAL("CTE::RequestSimTransmitApduBasic() -"
+                "Unable to create AT command data\r\n");
     }
     else
     {
-        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIM_TRANSMIT_BASIC].uiChannel,
-                rilToken, RIL_REQUEST_SIM_TRANSMIT_BASIC, reqData, &CTE::ParseSimTransmitBasic);
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC].uiChannel,
+                rilToken, RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC,
+                reqData, &CTE::ParseSimTransmitApduBasic);
 
         if (pCmd)
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSimTransmitBasic() -"
+                RIL_LOG_CRITICAL("CTE::RequestSimTransmitApduBasic() -"
                         " Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
@@ -6788,25 +6778,25 @@ RIL_RESULT_CODE CTE::RequestSimTransmitBasic(RIL_Token rilToken, void* pData, si
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSimTransmitBasic() -"
+            RIL_LOG_CRITICAL("CTE::RequestSimTransmitApduBasic() -"
                     " Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
     }
 
-    RIL_LOG_VERBOSE("CTE::RequestSimTransmitBasic() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTE::RequestSimTransmitApduBasic() - Exit\r\n");
     return res;
 }
 
-RIL_RESULT_CODE CTE::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTE::ParseSimTransmitApduBasic(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTE::ParseSimTransmitBasic() - Enter / Exit\r\n");
+    RIL_LOG_VERBOSE("CTE::ParseSimTransmitApduBasic() - Enter / Exit\r\n");
 
-    return m_pTEBaseInstance->ParseSimTransmitBasic(rRspData);
+    return m_pTEBaseInstance->ParseSimTransmitApduBasic(rRspData);
 }
 
 //
-// RIL_REQUEST_SIM_OPEN_CHANNEL 112
+// RIL_REQUEST_SIM_OPEN_CHANNEL
 //
 RIL_RESULT_CODE CTE::RequestSimOpenChannel(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6848,8 +6838,6 @@ RIL_RESULT_CODE CTE::RequestSimOpenChannel(RIL_Token rilToken, void* pData, size
     return res;
 }
 
-#endif
-
 RIL_RESULT_CODE CTE::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE::ParseSimOpenChannel() - Enter / Exit\r\n");
@@ -6857,10 +6845,8 @@ RIL_RESULT_CODE CTE::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
     return m_pTEBaseInstance->ParseSimOpenChannel(rRspData);
 }
 
-#if defined(M2_SEEK_FEATURE_ENABLED)
-
 //
-// RIL_REQUEST_SIM_CLOSE_CHANNEL 113
+// RIL_REQUEST_SIM_CLOSE_CHANNEL
 //
 RIL_RESULT_CODE CTE::RequestSimCloseChannel(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6902,8 +6888,6 @@ RIL_RESULT_CODE CTE::RequestSimCloseChannel(RIL_Token rilToken, void* pData, siz
     return res;
 }
 
-#endif
-
 RIL_RESULT_CODE CTE::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE::ParseSimCloseChannel() - Enter / Exit\r\n");
@@ -6911,36 +6895,34 @@ RIL_RESULT_CODE CTE::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
     return m_pTEBaseInstance->ParseSimCloseChannel(rRspData);
 }
 
-#if defined(M2_SEEK_FEATURE_ENABLED)
-
 //
-// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 114
+// RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL
 //
-RIL_RESULT_CODE CTE::RequestSimTransmitChannel(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestSimTransmitApduChannel(RIL_Token rilToken, void* pData, size_t datalen)
 {
-    RIL_LOG_VERBOSE("CTE::RequestSimTransmitChannel() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTE::RequestSimTransmitApduChannel() - Enter\r\n");
 
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSimTransmitChannel(reqData, pData, datalen);
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSimTransmitApduChannel(reqData, pData, datalen);
     if (RRIL_RESULT_OK != res)
     {
-        RIL_LOG_CRITICAL("CTE::RequestSimTransmitChannel() -"
+        RIL_LOG_CRITICAL("CTE::RequestSimTransmitApduChannel() -"
                 " Unable to create AT command data\r\n");
     }
     else
     {
         CCommand* pCmd = new CCommand(
-                g_pReqInfo[RIL_REQUEST_SIM_TRANSMIT_CHANNEL].uiChannel,
-                rilToken, RIL_REQUEST_SIM_TRANSMIT_CHANNEL, reqData,
-                &CTE::ParseSimTransmitChannel);
+                g_pReqInfo[RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL].uiChannel,
+                rilToken, RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL, reqData,
+                &CTE::ParseSimTransmitApduChannel);
 
         if (pCmd)
         {
             if (!CCommand::AddCmdToQueue(pCmd))
             {
-                RIL_LOG_CRITICAL("CTE::RequestSimTransmitChannel() -"
+                RIL_LOG_CRITICAL("CTE::RequestSimTransmitApduChannel() -"
                         " Unable to add command to queue\r\n");
                 res = RIL_E_GENERIC_FAILURE;
                 delete pCmd;
@@ -6949,7 +6931,7 @@ RIL_RESULT_CODE CTE::RequestSimTransmitChannel(RIL_Token rilToken, void* pData, 
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE::RequestSimTransmitChannel() -"
+            RIL_LOG_CRITICAL("CTE::RequestSimTransmitApduChannel() -"
                     " Unable to allocate memory for command\r\n");
             res = RIL_E_GENERIC_FAILURE;
         }
@@ -6959,14 +6941,12 @@ RIL_RESULT_CODE CTE::RequestSimTransmitChannel(RIL_Token rilToken, void* pData, 
     return res;
 }
 
-RIL_RESULT_CODE CTE::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTE::ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTE::ParseSimTransmitChannel() - Enter / Exit\r\n");
+    RIL_LOG_VERBOSE("CTE::ParseSimTransmitApduChannel() - Enter / Exit\r\n");
 
-    return m_pTEBaseInstance->ParseSimTransmitChannel(rRspData);
+    return m_pTEBaseInstance->ParseSimTransmitApduChannel(rRspData);
 }
-
-#endif
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //

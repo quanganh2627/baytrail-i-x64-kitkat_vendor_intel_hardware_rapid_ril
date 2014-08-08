@@ -87,36 +87,40 @@ const int ISIM_APP_INDEX = 1;
 const UINT32 MAX_APP_LABEL_SIZE = 33; // including null termination
 const UINT32 MAX_AID_SIZE = 33; // Hex string length including null termination
 
+#if defined (M2_PDK_OR_GMIN_BUILD)
 
 //////////////////////////////////////////////////////////////////////////////
 // ril.h definitions used to support vanilla aosp
 
-#if defined (M2_PDK_OR_GMIN_BUILD)
+enum RIL_Errno_private {
+    RIL_E_INVALID_PARAMETER = 18,
+};
 
 /* See RIL_REQUEST_SETUP_DATA_CALL */
-typedef enum {
-    RIL_DATA_PROFILE_IMS        = 2,
-    RIL_DATA_PROFILE_FOTA       = 3,
-    RIL_DATA_PROFILE_CBS        = 4,
-    RIL_DATA_PROFILE_MMS        = 5,
-    RIL_DATA_PROFILE_SUPL       = 6,
-    RIL_DATA_PROFILE_HIPRI      = 7,
-    RIL_DATA_PROFILE_XCAP       = 8,
-    RIL_DATA_PROFILE_EMERGENCY  = 9,
-    RIL_DATA_PROFILE_RCS        = 10,
-} RIL_DataProfile_private;
+enum RIL_DataProfile_private {
+    RIL_DATA_PROFILE_IMS = 2,
+    RIL_DATA_PROFILE_FOTA = 3,
+    RIL_DATA_PROFILE_CBS = 4,
+    // the following are intel added values
+    RIL_DATA_PROFILE_MMS = 5,
+    RIL_DATA_PROFILE_SUPL = 6,
+    RIL_DATA_PROFILE_HIPRI = 7,
+    RIL_DATA_PROFILE_XCAP = 8,
+    RIL_DATA_PROFILE_EMERGENCY = 9,
+    RIL_DATA_PROFILE_RCS = 10,
+};
 
-typedef enum {
-    RIL_APPSTATE_IMEI                  = 6  /* If SIM IMEI locked */
-} RIL_AppState_private;
+enum RIL_AppState_private {
+    RIL_APPSTATE_IMEI = 6  /* If SIM IMEI locked */
+};
 
 // Must be the same as CellInfo.TYPE_XXX
-typedef enum {
-  RIL_CELL_INFO_TYPE_GSM_V2    = 11,
-  RIL_CELL_INFO_TYPE_CDMA_V2   = 12,
-  RIL_CELL_INFO_TYPE_LTE_V2    = 13,
-  RIL_CELL_INFO_TYPE_WCDMA_V2  = 14,
-} RIL_CellInfoType_private;
+enum RIL_CellInfoType_private {
+    RIL_CELL_INFO_TYPE_GSM_V2 = 11,
+    RIL_CELL_INFO_TYPE_CDMA_V2 = 12,
+    RIL_CELL_INFO_TYPE_LTE_V2 = 13,
+    RIL_CELL_INFO_TYPE_WCDMA_V2 = 14,
+};
 
 typedef struct {
     int signalStrength; /* Valid values are (0-31, 99) as defined in TS 27.007 8.5 */
@@ -214,7 +218,6 @@ typedef struct {
 
 #endif
 /////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
 // Radio off reasons
 //
 enum

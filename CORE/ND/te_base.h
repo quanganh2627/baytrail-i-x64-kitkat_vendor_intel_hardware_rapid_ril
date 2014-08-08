@@ -737,31 +737,29 @@ public:
     // RIL_REQUEST_IMS_SEND_SMS: // 113
     // TODO
 
-#if defined (M2_SEEK_FEATURE_ENABLED)
-    // RIL_REQUEST_SIM_TRANSMIT_BASIC 114
-    virtual RIL_RESULT_CODE CoreSimTransmitBasic(REQUEST_DATA& rReqData,
+    // RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC 114
+    virtual RIL_RESULT_CODE CoreSimTransmitApduBasic(REQUEST_DATA& rReqData,
                                                             void* pData,
                                                             UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSimTransmitBasic(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseSimTransmitApduBasic(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SIM_OPEN_CHANNEL 115
     virtual RIL_RESULT_CODE CoreSimOpenChannel(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA& rRspData);
+
     // RIL_REQUEST_SIM_CLOSE_CHANNEL 116
     virtual RIL_RESULT_CODE CoreSimCloseChannel(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize);
-    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 117
-    virtual RIL_RESULT_CODE CoreSimTransmitChannel(REQUEST_DATA& rReqData,
+    virtual RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL 117
+    virtual RIL_RESULT_CODE CoreSimTransmitApduChannel(REQUEST_DATA& rReqData,
                                                               void* pData,
                                                               UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA& rRspData);
-
-#endif
-
-    virtual RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA& rRspData);
-    virtual RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData);
 
 #if defined(M2_VT_FEATURE_ENABLED)
     // RIL_REQUEST_HANGUP_VT 118

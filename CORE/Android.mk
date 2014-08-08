@@ -82,9 +82,6 @@ ifeq ($(strip $(M2_PIN_RETRIES_FEATURE_ENABLED)),true)
 LOCAL_CFLAGS += -DM2_PIN_RETRIES_FEATURE_ENABLED
 endif
 
-# Activating this macro enables SEEK for Android (for Ice Cream Sandwich)
-#LOCAL_CFLAGS += -DM2_SEEK_FEATURE_ENABLED
-
 # Activating this macro enables rapid ril to be built for PDK or Gmin
 LOCAL_CFLAGS += -DM2_PDK_OR_GMIN_BUILD
 

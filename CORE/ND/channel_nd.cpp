@@ -588,12 +588,9 @@ BOOL CChannel::SendCommandPhase2(const UINT32 uiResCode,
     switch (reqID)
     {
 
-#if defined(M2_SEEK_FEATURE_ENABLED)
         case RIL_REQUEST_SIM_OPEN_CHANNEL:
         case RIL_REQUEST_SIM_CLOSE_CHANNEL:
-        case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:
-#endif
-
+        case RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL:
         case RIL_REQUEST_SEND_USSD:
         case RIL_REQUEST_GET_CLIR:
         case RIL_REQUEST_SET_CLIR:

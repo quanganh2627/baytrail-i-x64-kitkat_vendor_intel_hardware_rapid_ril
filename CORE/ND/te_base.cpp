@@ -8894,57 +8894,56 @@ RIL_RESULT_CODE CTEBase::ParseSetInitialAttachApn(RESPONSE_DATA& rRspData)
 // RIL_REQUEST_IMS_SEND_SMS: // 113
 // TODO
 
-#if defined(M2_SEEK_FEATURE_ENABLED)
 //
-// RIL_REQUEST_SIM_TRANSMIT_BASIC 114
+// RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC
 //
-RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA& rReqData,
+RIL_RESULT_CODE CTEBase::CoreSimTransmitApduBasic(REQUEST_DATA& rReqData,
                                                          void* pData,
                                                          UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitApduBasic() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_SIM_IO_v6*   pSimIOArgs = NULL;
+    RIL_SIM_APDU* pRilSimApdu = NULL;
     int classByte;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitBasic() -"
+        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitApduBasic() -"
                 " Data pointer is NULL.\r\n");
         goto Error;
     }
 
-    if (sizeof(RIL_SIM_IO_v6) != uiDataSize)
+    if (sizeof(RIL_SIM_APDU) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitBasic() -"
+        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitApduBasic() -"
                 " Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     // extract data
-    pSimIOArgs = (RIL_SIM_IO_v6*)pData;
-    classByte = pSimIOArgs->cla;
+    pRilSimApdu = (RIL_SIM_APDU*)pData;
+    classByte = pRilSimApdu->cla;
 
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() -"
-            " cla=%02X command=%d p1=%d p2=%d p3=%d data=\"%s\"\r\n",
-            classByte, pSimIOArgs->command,
-            pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
-            pSimIOArgs->data);
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitApduBasic() -"
+            " cla=%02X instruction=%d p1=%d p2=%d p3=%d data=\"%s\"\r\n",
+            classByte, pRilSimApdu->instruction,
+            pRilSimApdu->p1, pRilSimApdu->p2, pRilSimApdu->p3,
+            pRilSimApdu->data);
 
-    if ((NULL == pSimIOArgs->data) || (strlen(pSimIOArgs->data) == 0))
+    if ((NULL == pRilSimApdu->data) || (strlen(pRilSimApdu->data) == 0))
     {
-        if (pSimIOArgs->p3 < 0)
+        if (pRilSimApdu->p3 < 0)
         {
             if (!PrintStringNullTerminate(rReqData.szCmd1,
                     sizeof(rReqData.szCmd1),
                     "AT+CSIM=%d,\"%02x%02x%02x%02x\"\r",
                     8,
                     classByte,
-                    pSimIOArgs->command,
-                    pSimIOArgs->p1,
-                    pSimIOArgs->p2))
+                    pRilSimApdu->instruction,
+                    pRilSimApdu->p1,
+                    pRilSimApdu->p2))
             {
-                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitBasic() -"
+                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitApduBasic() -"
                         " cannot create CSIM command 1\r\n");
                 goto Error;
             }
@@ -8956,12 +8955,12 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA& rReqData,
                     "AT+CSIM=%d,\"%02x%02x%02x%02x%02x\"\r",
                     10,
                     classByte,
-                    pSimIOArgs->command,
-                    pSimIOArgs->p1,
-                    pSimIOArgs->p2,
-                    pSimIOArgs->p3))
+                    pRilSimApdu->instruction,
+                    pRilSimApdu->p1,
+                    pRilSimApdu->p2,
+                    pRilSimApdu->p3))
             {
-                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitBasic() -"
+                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitApduBasic() -"
                         " cannot create CSIM command 2\r\n");
                 goto Error;
             }
@@ -8972,15 +8971,16 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA& rReqData,
         if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
                 "AT+CSIM=%d,\"%02x%02x%02x%02x%02x%s\"\r",
-                10 + strlen(pSimIOArgs->data),
+                10 + strlen(pRilSimApdu->data),
                 classByte,
-                pSimIOArgs->command,
-                pSimIOArgs->p1,
-                pSimIOArgs->p2,
-                pSimIOArgs->p3,
-                pSimIOArgs->data))
+                pRilSimApdu->instruction,
+                pRilSimApdu->p1,
+                pRilSimApdu->p2,
+                pRilSimApdu->p3,
+                pRilSimApdu->data))
         {
-            RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitBasic() - cannot create CSIM command 3\r\n");
+            RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitApduBasic() -"
+                    "cannot create CSIM command 3\r\n");
             goto Error;
         }
     }
@@ -8989,13 +8989,13 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitBasic(REQUEST_DATA& rReqData,
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitBasic() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitApduBasic() - Exit\r\n");
     return res;
 }
 
-RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTEBase::ParseSimTransmitApduBasic(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitBasic() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitApduBasic() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
@@ -9010,7 +9010,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
 
     if (NULL == rRspData.szResponse)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() -"
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
                 " Response String pointer is NULL.\r\n");
         goto Error;
     }
@@ -9018,17 +9018,17 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
     // Parse "<prefix>+CSIM: <len>,"<response>"<postfix>"
     SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
-
     if (!SkipString(pszRsp, "+CSIM: ", pszRsp))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() -"
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
                 " Could not skip over \"+CSIM: \".\r\n");
         goto Error;
     }
 
     if (!ExtractUInt32(pszRsp, uiLen, pszRsp))
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() - Could not extract uiLen value.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
+               " Could not extract uiLen value.\r\n");
         goto Error;
     }
 
@@ -9041,20 +9041,20 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
         if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString,
                 cbResponseString, pszRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() -"
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
                     " Could not extract data string.\r\n");
             goto Error;
         }
         else
         {
-            RIL_LOG_INFO("CTEBase::ParseSimTransmitBasic() -"
+            RIL_LOG_INFO("CTEBase::ParseSimTransmitApduBasic() -"
                     " Extracted data string: \"%s\" (%u chars)\r\n",
                     szResponseString, cbResponseString);
         }
 
         if (0 != (cbResponseString - 1) % 2)
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() :"
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() :"
                     " String was not a multiple of 2.\r\n");
             goto Error;
         }
@@ -9068,7 +9068,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
     pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
     if (NULL == pResponse)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() -"
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
                  " Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
         goto Error;
     }
@@ -9077,7 +9077,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
     //  Response must be 4 chars or longer - cbResponseString includes NULL character
     if (cbResponseString < 5)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() -"
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
                 " response length must be 4 or greater.\r\n");
         goto Error;
     }
@@ -9098,7 +9098,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitBasic(RESPONSE_DATA& rRspData)
         pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
         if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitBasic() -"
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
                     " Cannot CopyStringNullTerminate szResponseString\r\n");
             goto Error;
         }
@@ -9125,7 +9125,7 @@ Error:
     delete[] szResponseString;
     szResponseString = NULL;
 
-    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitBasic() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitApduBasic() - Exit\r\n");
     return res;
 }
 
@@ -9136,7 +9136,7 @@ RIL_RESULT_CODE CTEBase::CoreSimOpenChannel(REQUEST_DATA& rReqData, void* pData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSimOpenChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    char *szAID = NULL;
+    char* szAID = NULL;
 
     if (sizeof(char*) != uiDataSize)
     {
@@ -9173,7 +9173,6 @@ Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSimOpenChannel() - Exit\r\n");
     return res;
 }
-#endif
 
 RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
 {
@@ -9224,15 +9223,16 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
 
         RIL_LOG_INFO("CTEBase::ParseSimOpenChannel() - XEER, nCause=[%d]\r\n", nCause);
 
-#if defined(M2_SEEK_FEATURE_ENABLED)
         if (202 == nCause)
         {
             rRspData.uiResultCode = RIL_E_MISSING_RESOURCE;
         }
+#if !defined (M2_PDK_OR_GMIN_BUILD)
         else if (200 == nCause)
         {
             rRspData.uiResultCode = RIL_E_INVALID_PARAMETER;
         }
+#endif
         else if (203 == nCause)
         {
             // Extract ,<res1>, <res2>
@@ -9266,8 +9266,6 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
             }
         }
         else
-#endif
-
         {
             //  nCause none of the above
             rRspData.uiResultCode = RIL_E_GENERIC_FAILURE;
@@ -9318,7 +9316,6 @@ Error:
     return res;
 }
 
-#if defined(M2_SEEK_FEATURE_ENABLED)
 //
 // RIL_REQUEST_SIM_CLOSE_CHANNEL 116
 //
@@ -9357,8 +9354,6 @@ Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSimCloseChannel() - Exit\r\n");
     return res;
 }
-
-#endif
 
 RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
 {
@@ -9403,15 +9398,16 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
 
         RIL_LOG_INFO("CTEBase::ParseSimCloseChannel() - XEER, nCause=[%d]\r\n", nCause);
 
-#if defined(M2_SEEK_FEATURE_ENABLED)
         if (202 == nCause)
         {
             rRspData.uiResultCode = RIL_E_MISSING_RESOURCE;
         }
+#if !defined (M2_PDK_OR_GMIN_BUILD)
         else if (200 == nCause)
         {
             rRspData.uiResultCode = RIL_E_INVALID_PARAMETER;
         }
+#endif
         else if (203 == nCause)
         {
             // Extract ,<res1>, <res2>
@@ -9439,8 +9435,6 @@ RIL_RESULT_CODE CTEBase::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
             }
         }
         else
-#endif
-
         {
             // nCause none of the above
             rRspData.uiResultCode = RIL_E_GENERIC_FAILURE;
@@ -9454,40 +9448,38 @@ Error:
     return res;
 }
 
-#if defined(M2_SEEK_FEATURE_ENABLED)
-
 //
-// RIL_REQUEST_SIM_TRANSMIT_CHANNEL 117
+// RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL
 //
-RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA& rReqData,
+RIL_RESULT_CODE CTEBase::CoreSimTransmitApduChannel(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize)
 {
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitApduChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_SIM_IO_v6*   pSimIOArgs = NULL;
+    RIL_SIM_APDU*   pSimIOArgs = NULL;
     int classByte;
 
     if (NULL == pData)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() - Data pointer is NULL.\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitApduChannel() - Data pointer is NULL.\r\n");
         goto Error;
     }
 
-    if (sizeof(RIL_SIM_IO_v6) != uiDataSize)
+    if (sizeof(RIL_SIM_APDU) != uiDataSize)
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() -"
+        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitApduChannel() -"
                 " Invalid data size. Given %d bytes\r\n", uiDataSize);
         goto Error;
     }
 
     // extract data
-    pSimIOArgs = (RIL_SIM_IO_v6 *)pData;
+    pSimIOArgs = (RIL_SIM_APDU*)pData;
     classByte = pSimIOArgs->cla;
 
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() -"
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitApduChannel() -"
             " cla=%02X command=%d fileid=%04X p1=%d p2=%d p3=%d data=\"%s\"\r\n",
-            classByte, pSimIOArgs->command, pSimIOArgs->fileid,
+            classByte, pSimIOArgs->instruction, pSimIOArgs->sessionid,
             pSimIOArgs->p1, pSimIOArgs->p2, pSimIOArgs->p3,
             pSimIOArgs->data);
 
@@ -9498,14 +9490,14 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA& rReqData,
             if (!PrintStringNullTerminate(rReqData.szCmd1,
                     sizeof(rReqData.szCmd1),
                     "AT+CGLA=%d,%d,\"%02x%02x%02x%02x\"\r",
-                    pSimIOArgs->fileid,
+                    pSimIOArgs->sessionid,
                     8,
                     classByte,
-                    pSimIOArgs->command,
+                    pSimIOArgs->instruction,
                     pSimIOArgs->p1,
                     pSimIOArgs->p2))
             {
-                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() -"
+                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitApduChannel() -"
                         " cannot create CGLA command 1\r\n");
                 goto Error;
             }
@@ -9515,15 +9507,15 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA& rReqData,
             if (!PrintStringNullTerminate(rReqData.szCmd1,
                     sizeof(rReqData.szCmd1),
                     "AT+CGLA=%d,%d,\"%02x%02x%02x%02x%02x\"\r",
-                    pSimIOArgs->fileid,
+                    pSimIOArgs->sessionid,
                     10,
                     classByte,
-                    pSimIOArgs->command,
+                    pSimIOArgs->instruction,
                     pSimIOArgs->p1,
                     pSimIOArgs->p2,
                     pSimIOArgs->p3))
             {
-                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() -"
+                RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitApduChannel() -"
                         " cannot create CGLA command 2\r\n");
                 goto Error;
             }
@@ -9534,16 +9526,16 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA& rReqData,
         if (!PrintStringNullTerminate(rReqData.szCmd1,
                 sizeof(rReqData.szCmd1),
                 "AT+CGLA=%d,%d,\"%02x%02x%02x%02x%02x%s\"\r",
-                pSimIOArgs->fileid,
+                pSimIOArgs->sessionid,
                 10 + strlen(pSimIOArgs->data),
                 classByte,
-                pSimIOArgs->command,
+                pSimIOArgs->instruction,
                 pSimIOArgs->p1,
                 pSimIOArgs->p2,
                 pSimIOArgs->p3,
                 pSimIOArgs->data))
         {
-            RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() -"
+            RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitApduChannel() -"
                     " cannot create CGLA command 3\r\n");
             goto Error;
         }
@@ -9551,20 +9543,20 @@ RIL_RESULT_CODE CTEBase::CoreSimTransmitChannel(REQUEST_DATA& rReqData,
 
     if (!CopyStringNullTerminate(rReqData.szCmd2, "AT+XEER\r", sizeof(rReqData.szCmd2)))
     {
-        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitChannel() - Cannot create XEER command\r\n");
+        RIL_LOG_CRITICAL("CTEBase::CoreSimTransmitApduChannel() - Cannot create XEER command\r\n");
         goto Error;
     }
 
     res = RRIL_RESULT_OK;
 
 Error:
-    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitChannel() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::CoreSimTransmitApduChannel() - Exit\r\n");
     return res;
 }
 
-RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTEBase::ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData)
 {
-    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitChannel() - Enter\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitApduChannel() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* szRsp = rRspData.szResponse;
@@ -9579,7 +9571,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
 
     if (NULL == rRspData.szResponse)
     {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() -"
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
                 " Response String pointer is NULL.\r\n");
         goto Error;
     }
@@ -9599,7 +9591,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
         //  Skip over the "<category>"
         if (!FindAndSkipString(szRsp, ",", szRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() -"
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
                     " cannot parse XEER, can't skip <category>\r\n");
             goto Error;
         }
@@ -9607,12 +9599,12 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
         //  Extract <cause>
         if (!ExtractUInt32(szRsp, nCause, szRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() -"
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
                     " cannot parse XEER, can't extract <cause>\r\n");
             goto Error;
         }
 
-        RIL_LOG_INFO("CTEBase::ParseSimTransmitChannel() - XEER, nCause=[%d]\r\n", nCause);
+        RIL_LOG_INFO("CTEBase::ParseSimTransmitApduChannel() - XEER, nCause=[%d]\r\n", nCause);
 
         if (200 == nCause)
         {
@@ -9626,12 +9618,12 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
                 !SkipString(szRsp, ",", szRsp) ||
                 !ExtractUInt32(szRsp, nRes2, szRsp) )
             {
-                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() -"
+                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
                         " cannot parse XEER, can't extract <res1>,<res2>\r\n");
                 goto Error;
             }
 
-            RIL_LOG_INFO("CTEBase::ParseSimTransmitChannel() -"
+            RIL_LOG_INFO("CTEBase::ParseSimTransmitApduChannel() -"
                     " XEER, nRes1=[0x%02X], nRes2=[0x%02X]\r\n", nRes1, nRes2);
 
             if (0x68 == nRes1 && 0x81 == nRes2)
@@ -9658,14 +9650,14 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
 
         if (!SkipString(szRsp, "+CGLA: ", szRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() -"
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
                      " Could not skip over \"+CSIM: \".\r\n");
             goto Error;
         }
 
         if (!ExtractUInt32(szRsp, uiLen, szRsp))
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() -"
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
                     " Could not extract uiLen value.\r\n");
             goto Error;
         }
@@ -9679,20 +9671,20 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
             if (!ExtractQuotedStringWithAllocatedMemory(szRsp,
                     szResponseString, cbResponseString, szRsp))
             {
-                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() -"
+                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
                         " Could not extract data string.\r\n");
                 goto Error;
             }
             else
             {
-                RIL_LOG_INFO("CTEBase::ParseSimTransmitChannel() -"
+                RIL_LOG_INFO("CTEBase::ParseSimTransmitApduChannel() -"
                         " Extracted data string: \"%s\" (%u chars)\r\n",
                         szResponseString, cbResponseString);
             }
 
             if (0 != (cbResponseString - 1) % 2)
             {
-                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() :"
+                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() :"
                         " String was not a multiple of 2.\r\n");
                 goto Error;
             }
@@ -9706,7 +9698,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
                 sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
         if (NULL == pResponse)
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() -"
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
                     " Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
             goto Error;
         }
@@ -9715,7 +9707,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
         //  Response must be 4 chars or longer - cbResponseString includes NULL character
         if (cbResponseString < 5)
         {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() -"
+            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
                     " response length must be 4 or greater.\r\n");
             goto Error;
         }
@@ -9737,7 +9729,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
             if (!CopyStringNullTerminate(pResponse->simResponse,
                     szResponseString, cbResponseString))
             {
-                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitChannel() -"
+                RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
                         " Cannot CopyStringNullTerminate szResponseString\r\n");
                 goto Error;
             }
@@ -9764,11 +9756,9 @@ Error:
     delete[] szResponseString;
     szResponseString = NULL;
 
-    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitChannel() - Exit\r\n");
+    RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitApduChannel() - Exit\r\n");
     return res;
 }
-
-#endif
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //
