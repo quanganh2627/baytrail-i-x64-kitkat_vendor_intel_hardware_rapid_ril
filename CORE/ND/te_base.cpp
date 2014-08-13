@@ -5157,7 +5157,7 @@ RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTEBase::CoreQueryAvailableNetworks() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (!m_cte.IsEPSRegistered())
+    if (!m_cte.IsEPSRegistered() && m_cte.IsRegistered())
     {
         /*
          * Since CS/PS signalling is given higher priority, manual network search may
@@ -5166,6 +5166,8 @@ RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA& rReqData,
          * before starting the manual network search.
          *
          * Note: Deactivation of data calls done only if the device is not registered to LTE.
+         * Note: Deactivation of data calls is not needed if device is not registered as
+         *       no IP packets will interrupt the scan procedure.
          */
         DeactivateAllDataCalls();
     }
