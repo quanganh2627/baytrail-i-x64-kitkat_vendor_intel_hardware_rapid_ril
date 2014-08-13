@@ -44,6 +44,12 @@ Group RequestTimeouts
     QueryCLIP                          120000
     SetBandMode                        120000
     QueryAvailableBandMode             120000
+    StkGetProfile                      60000
+    StkSetProfile                      60000
+    StkSendEnvelopeCommand             60000
+    StkSendTerminalResponse            60000
+    ReportStkServiceIsRunning          60000
+    StkSendEnvelopeWithStatus          60000
     StkHandleCallSetupRequestedFromSim 660000
     SetPreferredNetworkType           600000
     GetNeighboringCellIDs             600000
