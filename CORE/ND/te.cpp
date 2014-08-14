@@ -7817,13 +7817,6 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
             || E_REGISTRATION_TYPE_XREG == regType)
     {
         P_ND_GPRS_REG_STATUS psRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
-        int rat = atoi(psRegStatus->szNetworkType);
-        if ( rat == RADIO_TECH_LTE )
-        {
-            RIL_LOG_INFO("[RIL STATE] IGNORING GPRS REG STATUS in %s RAT\r\n",
-                    PrintRAT(psRegStatus->szNetworkType));
-            return;
-        }
 
         RIL_LOG_INFO("[RIL STATE] GPRS REG STATUS = %s  RAT = %s\r\n",
                 PrintGPRSRegistrationInfo(psRegStatus->szStat),
@@ -7912,13 +7905,6 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
          * Note: Currently, TAC is mapped to LAC.
          */
         P_ND_GPRS_REG_STATUS epsRegStatus = (P_ND_GPRS_REG_STATUS) pRegStruct;
-        int rat = atoi(epsRegStatus->szNetworkType);
-        if ( rat != RADIO_TECH_LTE )
-        {
-            RIL_LOG_INFO("[RIL STATE] IGNORING EPS REG STATUS in %s RAT\r\n",
-                    PrintRAT(epsRegStatus->szNetworkType));
-            return;
-        }
 
         RIL_LOG_INFO("[RIL STATE] EPS REG STATUS = %s  RAT = %s\r\n",
                 PrintGPRSRegistrationInfo(epsRegStatus->szStat),
