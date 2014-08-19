@@ -15,26 +15,6 @@
 #define ND_STRUCTS_H
 
 #include "rril.h"
-#if defined (M2_PDK_OR_GMIN_BUILD)
-
-/* See RIL_REQUEST_SETUP_DATA_CALL */
-typedef enum {
-    RIL_DATA_PROFILE_IMS        = RIL_DATA_PROFILE_TETHERED + 1,
-    RIL_DATA_PROFILE_FOTA       = 3,
-    RIL_DATA_PROFILE_CBS        = 4,
-    RIL_DATA_PROFILE_MMS        = 5,
-    RIL_DATA_PROFILE_SUPL       = 6,
-    RIL_DATA_PROFILE_HIPRI      = 7,
-    RIL_DATA_PROFILE_XCAP       = 8,
-    RIL_DATA_PROFILE_EMERGENCY  = 9,
-    RIL_DATA_PROFILE_RCS        = 10,
-} RIL_DataProfile_private;
-
-typedef enum {
-    RIL_APPSTATE_IMEI                  = 6  /* If SIM IMEI locked */
-} RIL_AppState_private;
-
-#endif
 
 // Normally number size is around 15, set max size 50
 const int MAX_NUMBER_SIZE = 50;

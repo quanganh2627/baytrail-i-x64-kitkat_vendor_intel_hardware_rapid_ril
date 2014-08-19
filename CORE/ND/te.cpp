@@ -336,14 +336,10 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_SET_FACILITY_LOCK:
         case RIL_REQUEST_GET_IMSI:
         case RIL_REQUEST_SIM_IO:
-
-#if defined (M2_SEEK_FEATURE_ENABLED)
         case RIL_REQUEST_SIM_TRANSMIT_BASIC:
         case RIL_REQUEST_SIM_OPEN_CHANNEL:
         case RIL_REQUEST_SIM_CLOSE_CHANNEL:
         case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:
-#endif
-
         case RIL_REQUEST_WRITE_SMS_TO_SIM:
         case RIL_REQUEST_DELETE_SMS_ON_SIM:
         case RIL_REQUEST_GET_SMSC_ADDRESS:
@@ -377,14 +373,10 @@ BOOL CTE::IsRequestAllowedInSimNotReady(int requestId)
     {
         case RIL_REQUEST_GET_IMSI:
         case RIL_REQUEST_SIM_IO:
-
-#if defined (M2_SEEK_FEATURE_ENABLED)
         case RIL_REQUEST_SIM_TRANSMIT_BASIC:
         case RIL_REQUEST_SIM_OPEN_CHANNEL:
         case RIL_REQUEST_SIM_CLOSE_CHANNEL:
         case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:
-#endif
-
         case RIL_REQUEST_WRITE_SMS_TO_SIM:
         case RIL_REQUEST_DELETE_SMS_ON_SIM:
         case RIL_REQUEST_GET_SMSC_ADDRESS:
@@ -1117,23 +1109,37 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 
             //  ************************* END OF REGULAR REQUESTS *******************************
 
-#if defined(M2_SEEK_FEATURE_ENABLED)
             case RIL_REQUEST_SIM_TRANSMIT_BASIC:  // 114
+#if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimTransmitBasic(hRilToken, pData, datalen);
+#else
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif
                 break;
 
             case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 115
+#if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimOpenChannel(hRilToken, pData, datalen);
+#else
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif
                 break;
 
             case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 116
+#if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimCloseChannel(hRilToken, pData, datalen);
+#else
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
+#endif
                 break;
 
             case RIL_REQUEST_SIM_TRANSMIT_CHANNEL:  // 117
+#if defined(M2_SEEK_FEATURE_ENABLED)
                 eRetVal = RequestSimTransmitChannel(hRilToken, pData, datalen);
-                break;
+#else
+                RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
 #endif
+                break;
 
 #if defined(M2_VT_FEATURE_ENABLED)
 
@@ -2520,6 +2526,7 @@ RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t d
     {
         m_bRadioRequestPending = TRUE;
         m_RequestedRadioPower = bTurnRadioOn ? RADIO_POWER_ON : RADIO_POWER_OFF;
+
         res = m_pTEBaseInstance->CoreRadioPower(reqData, pData, datalen);
     }
 
@@ -2760,7 +2767,6 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
 
     pszDataProfile = ((char**)pData)[1];
     dataProfile = atoi(pszDataProfile);
-
     // If default is not already opened, Android could request to open the HIPRI connection,
     // but we must consider it as a default connection request
     if (dataProfile == RIL_DATA_PROFILE_HIPRI)
@@ -6728,7 +6734,7 @@ RIL_RESULT_CODE CTE::RequestSetCellInfoListRate(RIL_Token rilToken, void* pData,
     return res;
 }
 
-#if defined(M2_SEEK_FEATURE_ENABLED)
+
 //
 // RIL_REQUEST_SIM_TRANSMIT_BASIC 111
 //
@@ -6822,16 +6828,12 @@ RIL_RESULT_CODE CTE::RequestSimOpenChannel(RIL_Token rilToken, void* pData, size
     return res;
 }
 
-#endif
-
 RIL_RESULT_CODE CTE::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE::ParseSimOpenChannel() - Enter / Exit\r\n");
 
     return m_pTEBaseInstance->ParseSimOpenChannel(rRspData);
 }
-
-#if defined(M2_SEEK_FEATURE_ENABLED)
 
 //
 // RIL_REQUEST_SIM_CLOSE_CHANNEL 113
@@ -6876,16 +6878,12 @@ RIL_RESULT_CODE CTE::RequestSimCloseChannel(RIL_Token rilToken, void* pData, siz
     return res;
 }
 
-#endif
-
 RIL_RESULT_CODE CTE::ParseSimCloseChannel(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE::ParseSimCloseChannel() - Enter / Exit\r\n");
 
     return m_pTEBaseInstance->ParseSimCloseChannel(rRspData);
 }
-
-#if defined(M2_SEEK_FEATURE_ENABLED)
 
 //
 // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 114
@@ -6940,7 +6938,6 @@ RIL_RESULT_CODE CTE::ParseSimTransmitChannel(RESPONSE_DATA& rRspData)
     return m_pTEBaseInstance->ParseSimTransmitChannel(rRspData);
 }
 
-#endif
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //
@@ -8964,12 +8961,10 @@ void CTE::PostNtwkPersonalizationCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 rData.uiResultCode = RIL_E_PASSWORD_INCORRECT;
                 break;
 
-#if !defined (M2_PDK_OR_GMIN_BUILD)
             case CME_ERROR_NETWORK_PUK_REQUIRED:
                 RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - NETWORK PUK required");
                 rData.uiResultCode = RIL_E_NETWORK_PUK_REQUIRED;
                 break;
-#endif
 
             default:
                 RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - Unknown error [%u]",
@@ -10375,12 +10370,7 @@ const char* CTE::GetSignalStrengthReportingString()
     return m_pTEBaseInstance->GetSignalStrengthReportingString();
 }
 
-#if !defined(M2_PDK_OR_GMIN_BUILD)
 RIL_SignalStrength_v9* CTE::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
-#else
-RIL_SignalStrength_v6* CTE::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
-#endif
-
 {
     return m_pTEBaseInstance->ParseXCESQ(rszPointer, bUnsolicited);
 }

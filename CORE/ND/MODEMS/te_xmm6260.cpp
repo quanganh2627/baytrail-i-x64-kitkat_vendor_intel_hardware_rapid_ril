@@ -7085,14 +7085,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
 
                 //  rssi = <rscp>
                 //  Note that <rscp> value does not exist with this response.
-#if !defined(M2_PDK_OR_GMIN_BUILD)
                 info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = RSSI_UNKNOWN;
                 info.CellInfo.wcdma.signalStrengthWcdma.bitErrorRate = BER_UNKNOWN;
-#else
-                info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = 99;
-                info.CellInfo.wcdma.signalStrengthWcdma.bitErrorRate = 0;
-#endif
-
                 info.CellInfo.wcdma.cellIdentityWcdma.lac = uiLAC;
                 info.CellInfo.wcdma.cellIdentityWcdma.cid = uiCI;
                 info.CellInfo.wcdma.cellIdentityWcdma.psc = uiScramblingCode;
@@ -7147,8 +7141,6 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                        " mode %d, could not skip to rscp\r\n", uiMode);
                 goto Error;
             }
-
-#if !defined(M2_PDK_OR_GMIN_BUILD)
             //  read <rscp>
             if (!ExtractInt(pszRsp, rscp, pszRsp))
             {
@@ -7156,16 +7148,6 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                         " mode %d, could not extract rscp\r\n", uiMode);
                 goto Error;
             }
-#else
-            //  read <rscp>
-            if (!ExtractUInt32(pszRsp, uiRSSI, pszRsp))
-            {
-                RIL_LOG_CRITICAL("CTE_XMM6260::ParseCellInfo() -"
-                        " mode %d, could not extract rscp\r\n", uiMode);
-                goto Error;
-            }
-#endif
-
             //  read <ecno> and ignore
             if ((!SkipString(pszRsp, ",", pszRsp)) || (!ExtractInt(pszRsp, dummy, pszRsp)))
             {
@@ -7179,14 +7161,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
             info.registered = 0;
             info.timeStampType = RIL_TIMESTAMP_TYPE_JAVA_RIL;
             info.timeStamp = ril_nano_time();
-#if !defined(M2_PDK_OR_GMIN_BUILD)
             info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = MapRscpToRssi(rscp);
             info.CellInfo.wcdma.signalStrengthWcdma.bitErrorRate = BER_UNKNOWN;
-#else
-            info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = uiRSSI;
-            info.CellInfo.wcdma.signalStrengthWcdma.bitErrorRate;
-#endif
-
             info.CellInfo.wcdma.cellIdentityWcdma.lac = INT_MAX;
             info.CellInfo.wcdma.cellIdentityWcdma.cid = INT_MAX;
             info.CellInfo.wcdma.cellIdentityWcdma.psc = uiScramblingCode;

@@ -586,25 +586,21 @@ public:
     // RIL_REQUEST_IMS_SEND_SMS: // 113
     // TODO
 
-#if defined (M2_SEEK_FEATURE_ENABLED)
     // RIL_REQUEST_SIM_TRANSMIT_BASIC 114
     RIL_RESULT_CODE RequestSimTransmitBasic(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitBasic(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SIM_OPEN_CHANNEL 115
     RIL_RESULT_CODE RequestSimOpenChannel(RIL_Token rilToken, void* pData, size_t datalen);
+    RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SIM_CLOSE_CHANNEL 116
     RIL_RESULT_CODE RequestSimCloseChannel(RIL_Token rilToken, void* pData, size_t datalen);
+    RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 117
     RIL_RESULT_CODE RequestSimTransmitChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitChannel(RESPONSE_DATA& rRspData);
-
-#endif
-
-     RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA& rRspData);
-     RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA& rRspData);
 
 #if defined(M2_VT_FEATURE_ENABLED)
     // RIL_REQUEST_HANGUP_VT 118
@@ -1167,11 +1163,7 @@ public:
     // Returns the signal strength reporting string used to enable signal strength URC
     const char* GetSignalStrengthReportingString();
 
-#if !defined(M2_PDK_OR_GMIN_BUILD)
     RIL_SignalStrength_v9* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
-#else
-    RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
-#endif
 
     // Resets the sim card status cache
     void ResetCardStatus(BOOL bForceReset);

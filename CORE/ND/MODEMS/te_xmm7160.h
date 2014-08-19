@@ -140,11 +140,7 @@ public:
 
     virtual const char* GetSignalStrengthReportingString();
 
-#if !defined(M2_PDK_OR_GMIN_BUILD)
     virtual RIL_SignalStrength_v9* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
-#else
-    virtual RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
-#endif
 
     // RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG 90
     virtual RIL_RESULT_CODE CoreGsmSetBroadcastSmsConfig(REQUEST_DATA& rReqData,
