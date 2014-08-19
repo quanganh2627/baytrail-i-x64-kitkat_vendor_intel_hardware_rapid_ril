@@ -96,6 +96,7 @@ const char   g_szSCRITimer[]                    = "SCRITimer";
 const char   g_szFDMode[]                       = "FDMode";
 const char   g_szTempOoSNotificationEnable[]    = "TempOoSNotificationEnable";
 const char   g_szVoiceCapable[]                 = "VoiceCapable";
+const char   g_szDataCapable[]                  = "DataCapable";
 const char   g_szSmsOverCSCapable[]             = "SmsOverCSCapable";
 const char   g_szSmsOverPSCapable[]             = "SmsOverPSCapable";
 const char   g_szStkCapable[]                   = "StkCapable";

@@ -9,5 +9,6 @@ LOCAL_REQUIRED_MODULES :=\
     rril_6360_cfg\
     rril_7160_cfg\
     rril_7260_cfg\
+    rril_2230_cfg\
 
 include $(BUILD_PHONY_PACKAGE)

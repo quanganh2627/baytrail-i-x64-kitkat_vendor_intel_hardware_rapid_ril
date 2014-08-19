@@ -16,8 +16,8 @@
 #define LOG_TAG "RILR"
 
 const int LOG_TAG_MAX_LENGTH = 6;
-const int SIMID_MAX_LENGTH = 6;
-const char SIMID_DEFAULT_VALUE[] = "none";
+const int SUBSCRIPTIONID_MAX_LENGTH = 6;
+const char SUBSCRIPTIONID_DEFAULT_VALUE[] = "none";
 
 #include "types.h"
 
@@ -29,7 +29,7 @@ const char SIMID_DEFAULT_VALUE[] = "none";
 class CRilLog
 {
 public:
-    static void Init(char* szSIMID);
+    static void Init(char* szSubscriptionID);
     static void Verbose(const char* const szFormatString, ...);
     static void Info(const char* const szFormatString, ...);
     static void Warning(const char* const szFormatString, ...);
@@ -50,7 +50,7 @@ private:
     static UINT8 m_uiFlags;
     static BOOL  m_bInitialized;
     static BOOL  m_bFullLogBuild;
-    static char  m_szSIMID[SIMID_MAX_LENGTH];
+    static char  m_szSubscriptionID[SUBSCRIPTIONID_MAX_LENGTH];
 };
 
 #endif // RRIL_LOG_H

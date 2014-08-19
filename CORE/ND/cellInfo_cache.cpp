@@ -50,38 +50,81 @@ BOOL operator==(const RIL_LTE_SignalStrength_v8& lhs, const RIL_LTE_SignalStreng
             && lhs.cqi == rhs.cqi && lhs.timingAdvance == rhs.timingAdvance);
 }
 
-BOOL operator==(const RIL_CellInfo& first, const RIL_CellInfo& second)
+BOOL operator==(const RIL_CellInfo& lhs, const RIL_CellInfo& rhs)
 {
      // Check whether cell info type is the same.
      // if yes, based on the type, check the values
-     if (first.cellInfoType == second.cellInfoType)
+     if (lhs.cellInfoType == rhs.cellInfoType)
      {
-         switch(first.cellInfoType)
+         switch(lhs.cellInfoType)
          {
          case RIL_CELL_INFO_TYPE_GSM:
-         {
-             RIL_CellIdentityGsm gsm1 = first.CellInfo.gsm.cellIdentityGsm;
-             RIL_CellIdentityGsm gsm2 = second.CellInfo.gsm.cellIdentityGsm;
-             RIL_GW_SignalStrength sgGsm1 = first.CellInfo.gsm.signalStrengthGsm;
-             RIL_GW_SignalStrength sgGsm2 = second.CellInfo.gsm.signalStrengthGsm;
-             return (gsm1 == gsm2 && sgGsm1 == sgGsm2);
-         }
+             return (lhs.CellInfo.gsm.cellIdentityGsm == rhs.CellInfo.gsm.cellIdentityGsm
+                     && lhs.CellInfo.gsm.signalStrengthGsm == rhs.CellInfo.gsm.signalStrengthGsm);
          case RIL_CELL_INFO_TYPE_WCDMA:
-         {
-             RIL_CellIdentityWcdma wcdma1 = first.CellInfo.wcdma.cellIdentityWcdma;
-             RIL_CellIdentityWcdma wcdma2 = second.CellInfo.wcdma.cellIdentityWcdma;
-             RIL_SignalStrengthWcdma sgWcdma1 = first.CellInfo.wcdma.signalStrengthWcdma;
-             RIL_SignalStrengthWcdma sgWcdma2 = second.CellInfo.wcdma.signalStrengthWcdma;
-             return (wcdma1 == wcdma2 && sgWcdma1 == sgWcdma2);
-         }
+             return (lhs.CellInfo.wcdma.cellIdentityWcdma == rhs.CellInfo.wcdma.cellIdentityWcdma
+                     && lhs.CellInfo.wcdma.signalStrengthWcdma ==
+                     rhs.CellInfo.wcdma.signalStrengthWcdma);
          case RIL_CELL_INFO_TYPE_LTE:
-         {
-             RIL_CellIdentityLte lte1 = first.CellInfo.lte.cellIdentityLte;
-             RIL_CellIdentityLte lte2 = second.CellInfo.lte.cellIdentityLte;
-             RIL_LTE_SignalStrength_v8 sgLte1 = first.CellInfo.lte.signalStrengthLte;
-             RIL_LTE_SignalStrength_v8 sgLte2 = second.CellInfo.lte.signalStrengthLte;
-             return (lte1 == lte2 && sgLte1 == sgLte2);
+             return (lhs.CellInfo.lte.cellIdentityLte == rhs.CellInfo.lte.cellIdentityLte
+                     && lhs.CellInfo.lte.signalStrengthLte == rhs.CellInfo.lte.signalStrengthLte);
+         default:
+             return FALSE;
          }
+     }
+     return FALSE;
+}
+
+BOOL operator==(const RIL_CellIdentityGsm_v2& lhs, const RIL_CellIdentityGsm_v2& rhs)
+{
+    return (lhs.mnc == rhs.mnc && lhs.mcc == rhs.mcc && lhs.lac == rhs.lac && lhs.cid == rhs.cid
+            && lhs.basestationId == rhs.basestationId && lhs.arfcn == rhs.arfcn);
+}
+
+BOOL operator==(const RIL_CellIdentityWcdma_v2& lhs, const RIL_CellIdentityWcdma_v2& rhs)
+{
+    return (lhs.mnc == rhs.mnc && lhs.mcc == rhs.mcc && lhs.lac == rhs.lac
+            && lhs.cid == rhs.cid && lhs.psc == rhs.psc && lhs.dluarfcn == rhs.dluarfcn
+            && lhs.uluarfcn == rhs.uluarfcn && lhs.pathloss == rhs.pathloss);
+}
+
+BOOL operator==(const RIL_CellIdentityLte_v2& lhs, const RIL_CellIdentityLte_v2& rhs)
+{
+    return (lhs.mnc == rhs.mnc && lhs.mcc == rhs.mcc && lhs.ci == rhs.ci
+            && lhs.pci == rhs.pci && lhs.tac == rhs.tac && lhs.dlearfcn == rhs.dlearfcn
+            && lhs.ulearfcn == rhs.ulearfcn && lhs.pathloss == rhs.pathloss);
+}
+
+BOOL operator==(const RIL_GW_SignalStrength_v2& lhs, const RIL_GW_SignalStrength_v2& rhs)
+{
+    return (lhs.signalStrength == rhs.signalStrength && lhs.bitErrorRate == rhs.bitErrorRate
+            && lhs.rxLev == rhs.rxLev && lhs.timingAdvance == rhs.timingAdvance);
+}
+
+BOOL operator==(const RIL_SignalStrengthWcdma_v2& lhs, const RIL_SignalStrengthWcdma_v2& rhs)
+{
+    return (lhs.signalStrength == rhs.signalStrength && lhs.bitErrorRate == rhs.bitErrorRate
+            && lhs.rscp == rhs.rscp && lhs.ecNo == rhs.ecNo);
+}
+
+BOOL operator==(const RIL_CellInfo_v2& lhs, const RIL_CellInfo_v2& rhs)
+{
+     // Check whether cell info type is the same.
+     // if yes, based on the type, check the values
+     if (lhs.cellInfoType == rhs.cellInfoType)
+     {
+         switch(lhs.cellInfoType)
+         {
+         case RIL_CELL_INFO_TYPE_GSM:
+             return (lhs.CellInfo.gsm.cellIdentityGsm == rhs.CellInfo.gsm.cellIdentityGsm
+                     && lhs.CellInfo.gsm.signalStrengthGsm == rhs.CellInfo.gsm.signalStrengthGsm);
+         case RIL_CELL_INFO_TYPE_WCDMA:
+             return (lhs.CellInfo.wcdma.cellIdentityWcdma == rhs.CellInfo.wcdma.cellIdentityWcdma
+                     && lhs.CellInfo.wcdma.signalStrengthWcdma ==
+                     rhs.CellInfo.wcdma.signalStrengthWcdma);
+         case RIL_CELL_INFO_TYPE_LTE:
+             return (lhs.CellInfo.lte.cellIdentityLte == rhs.CellInfo.lte.cellIdentityLte
+                     && lhs.CellInfo.lte.signalStrengthLte == rhs.CellInfo.lte.signalStrengthLte);
          default:
              return FALSE;
          }
@@ -92,7 +135,8 @@ BOOL operator==(const RIL_CellInfo& first, const RIL_CellInfo& second)
 CellInfoCache::CellInfoCache()
 {
     memset(&m_sCellInfo, 0, sizeof(S_ND_N_CELL_INFO_DATA));
-    m_iCacheSize = 0;
+    memset(&m_sCellInfov2, 0, sizeof(S_ND_N_CELL_INFO_DATA_V2));
+    m_cacheSize = 0;
     m_pCacheLock = new CMutex();
 }
 
@@ -101,14 +145,16 @@ CellInfoCache::~CellInfoCache()
     delete m_pCacheLock;
 }
 
-BOOL CellInfoCache::getCellInfo(P_ND_N_CELL_INFO_DATA pRetData, UINT32& uiItemCount)
+BOOL CellInfoCache::getCellInfo(P_ND_N_CELL_INFO_DATA pRetData, int& itemCount)
 {
     if (pRetData == NULL)
+    {
         return FALSE;
+    }
     // loop through the cache and copy the info to the pRetData
     CMutex::Lock(m_pCacheLock);
-    uiItemCount = m_iCacheSize;
-    for (INT32 i = 0; i < m_iCacheSize; i++)
+    itemCount = m_cacheSize;
+    for (int i = 0; i < m_cacheSize; i++)
     {
         pRetData->aRilCellInfo[i] = m_sCellInfo.aRilCellInfo[i];
     }
@@ -116,10 +162,10 @@ BOOL CellInfoCache::getCellInfo(P_ND_N_CELL_INFO_DATA pRetData, UINT32& uiItemCo
     return TRUE;
 }
 
-INT32 CellInfoCache::checkCache(const RIL_CellInfo& pData)
+int CellInfoCache::checkCache(const RIL_CellInfo& pData)
 {
-    RIL_LOG_VERBOSE("CellInfoCache::checkCache() %d\r\n", m_iCacheSize);
-    for (INT32 i = 0; i < m_iCacheSize; i++)
+    RIL_LOG_VERBOSE("CellInfoCache::checkCache() %d\r\n", m_cacheSize);
+    for (int i = 0; i < m_cacheSize; i++)
     {
         if (pData == m_sCellInfo.aRilCellInfo[i])
         {
@@ -130,12 +176,12 @@ INT32 CellInfoCache::checkCache(const RIL_CellInfo& pData)
     return -1;
 }
 
-BOOL CellInfoCache::updateCache(const P_ND_N_CELL_INFO_DATA pData, const INT32 aItemsCount)
+BOOL CellInfoCache::updateCache(const P_ND_N_CELL_INFO_DATA pData, const int itemCount)
 {
     BOOL ret = FALSE;
 
-    RIL_LOG_VERBOSE("CellInfoCache::updateCache() - aItemsCount %d \r\n",aItemsCount);
-    if (NULL == pData || aItemsCount > RRIL_MAX_CELL_ID_COUNT)
+    RIL_LOG_VERBOSE("CellInfoCache::updateCache() - item count %d \r\n", itemCount);
+    if (NULL == pData || itemCount > RRIL_MAX_CELL_ID_COUNT)
     {
         RIL_LOG_INFO("CellInfoCache::updateCache() - Invalid data\r\n");
         goto Error;
@@ -143,15 +189,15 @@ BOOL CellInfoCache::updateCache(const P_ND_N_CELL_INFO_DATA pData, const INT32 a
     else
     {
         // if there were more items in the cache before
-        if (aItemsCount != m_iCacheSize)
+        if (itemCount != m_cacheSize)
         {
             ret = TRUE;
         }
         else
         {
-            for (INT32 storeIndex= 0; storeIndex < aItemsCount; storeIndex++)
+            for (int i = 0; i < itemCount; i++)
             {
-                if (checkCache(pData->aRilCellInfo[storeIndex]) < 0 ) // new item
+                if (checkCache(pData->aRilCellInfo[i]) < 0 ) // new item
                 {
                     ret = TRUE;
                     break;
@@ -163,14 +209,94 @@ BOOL CellInfoCache::updateCache(const P_ND_N_CELL_INFO_DATA pData, const INT32 a
     if (ret)
     {
         RIL_LOG_INFO("CellInfoCache::updateCache() -"
-                "Updating cache with %d items\r\n", aItemsCount);
+                "Updating cache with %d items\r\n", itemCount);
         // Access mutex
         CMutex::Lock(m_pCacheLock);
-        m_iCacheSize = aItemsCount;
+        m_cacheSize = itemCount;
         memset(&m_sCellInfo, 0, sizeof(S_ND_N_CELL_INFO_DATA));
-        for (INT32 j = 0; j < m_iCacheSize; j++)
+        for (int i = 0; i < m_cacheSize; i++)
         {
-            m_sCellInfo.aRilCellInfo[j] = pData->aRilCellInfo[j];
+            m_sCellInfo.aRilCellInfo[i] = pData->aRilCellInfo[i];
+        }
+        // release mutex
+        CMutex::Unlock(m_pCacheLock);
+    }
+Error:
+    return ret;
+}
+
+BOOL CellInfoCache::getCellInfo(P_ND_N_CELL_INFO_DATA_V2 pRetData, int& itemCount)
+{
+    if (pRetData == NULL)
+    {
+        return FALSE;
+    }
+    // loop through the cache and copy the info to the pRetData
+    CMutex::Lock(m_pCacheLock);
+    itemCount = m_cacheSize;
+    for (int i = 0; i < m_cacheSize; i++)
+    {
+        pRetData->aRilCellInfo[i] = m_sCellInfov2.aRilCellInfo[i];
+    }
+    CMutex::Unlock(m_pCacheLock);
+    return TRUE;
+}
+
+int CellInfoCache::checkCache(const RIL_CellInfo_v2& pData)
+{
+    RIL_LOG_VERBOSE("CellInfoCache::checkCache() %d\r\n", m_cacheSize);
+    for (int i = 0; i < m_cacheSize; i++)
+    {
+        if (pData == m_sCellInfov2.aRilCellInfo[i])
+        {
+            RIL_LOG_VERBOSE("CellInfoCache::checkCache() - Found match at %d\r\n",i);
+            return i;
+        }
+    }
+    return -1;
+}
+
+BOOL CellInfoCache::updateCache(const P_ND_N_CELL_INFO_DATA_V2 pData, const int itemCount)
+{
+    BOOL ret = FALSE;
+
+    RIL_LOG_VERBOSE("CellInfoCache::updateCache() - item count %d \r\n", itemCount);
+    if (NULL == pData || itemCount > RRIL_MAX_CELL_ID_COUNT)
+    {
+        RIL_LOG_INFO("CellInfoCache::updateCache() - Invalid data\r\n");
+        goto Error;
+    }
+    else
+    {
+        // if there were more items in the cache before
+        if (itemCount != m_cacheSize)
+        {
+            ret = TRUE;
+        }
+        else
+        {
+            for (int i = 0; i < itemCount; i++)
+            {
+                if (checkCache(pData->aRilCellInfo[i]) < 0 ) // new item
+                {
+                    ret = TRUE;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (ret)
+    {
+        RIL_LOG_INFO("CellInfoCache::updateCache() -"
+                "Updating cache with %d items\r\n", itemCount);
+        // Access mutex
+        CMutex::Lock(m_pCacheLock);
+        m_cacheSize = itemCount;
+        memset(&m_sCellInfov2, 0, sizeof(S_ND_N_CELL_INFO_DATA_V2));
+        for (int i = 0; i < m_cacheSize; i++)
+        {
+            m_sCellInfov2.aRilCellInfo[i] = pData->aRilCellInfo[i];
         }
         // release mutex
         CMutex::Unlock(m_pCacheLock);

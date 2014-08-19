@@ -46,8 +46,8 @@ extern char* g_szDataPort4;
 // The device path to use for the data channel5
 extern char* g_szDataPort5;
 
-// SIM ID value
-extern char* g_szSIMID;
+// Subscription ID value
+extern char* g_szSubscriptionID;
 
 extern BOOL  g_bIsSocket;
 
@@ -65,5 +65,6 @@ void RIL_requestTimedCallback(RIL_TimedCallback callback,
                                             const unsigned long seconds,
                                             const unsigned long microSeconds);
 
+size_t getSubscriptionId(void);
 
 #endif // RRIL_RILDMAIN_H

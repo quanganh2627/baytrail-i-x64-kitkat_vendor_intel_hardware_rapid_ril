@@ -470,6 +470,10 @@ void WaitingActivate::run()
     {
         m_usatInitStateMachine.PassToNextEvent(UsatInitStateMachine::STK_SERVICE_RUNNING);
     }
+    else
+    {
+        CTE::GetTE().NotifyUiccReady();
+    }
 }
 
 void ProfileActivation::run()

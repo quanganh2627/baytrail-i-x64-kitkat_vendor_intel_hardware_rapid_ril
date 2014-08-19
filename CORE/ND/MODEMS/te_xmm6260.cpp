@@ -46,6 +46,7 @@ CTE_XMM6260::CTE_XMM6260(CTE& cte)
 : CTEBase(cte),
   m_currentNetworkType(-1)
 {
+    m_bNeedGetInfoOnCellChange = true;
 }
 
 CTE_XMM6260::~CTE_XMM6260()
@@ -75,18 +76,7 @@ Error:
 
 char* CTE_XMM6260::GetBasicInitCommands(UINT32 uiChannelType)
 {
-    RIL_LOG_VERBOSE("CTE_XMM6260::GetBasicInitCommands() - Enter\r\n");
-
-    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
-
-    if (RIL_CHANNEL_URC == uiChannelType)
-    {
-        ConcatenateStringNullTerminate(szInitCmd, sizeof(szInitCmd),
-                GetRegistrationInitString());
-    }
-
-    RIL_LOG_VERBOSE("CTE_XMM6260::GetBasicInitCommands() - Exit\r\n");
-    return strndup(szInitCmd, strlen(szInitCmd));
+    return (RIL_CHANNEL_URC == uiChannelType) ? strdup(GetRegistrationInitString()) : NULL;
 }
 
 char* CTE_XMM6260::GetUnlockInitCommands(UINT32 uiChannelType)
@@ -152,6 +142,11 @@ LONG CTE_XMM6260::GetDataDeactivateReason(char* pszReason)
     return strtol(pszReason, NULL, 10);
 }
 
+const char* CTE_XMM6260::GetReadCellInfoString()
+{
+    return "AT+XCELLINFO?\r";
+}
+
 BOOL CTE_XMM6260::IsRequestSupported(int requestId)
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::IsRequestSupported() - Enter\r\n");
@@ -159,9 +154,7 @@ BOOL CTE_XMM6260::IsRequestSupported(int requestId)
     switch (requestId)
     {
         case RIL_REQUEST_GET_SIM_STATUS:
-        case RIL_REQUEST_SETUP_DATA_CALL:
         case RIL_REQUEST_SIM_IO:
-        case RIL_REQUEST_DEACTIVATE_DATA_CALL:
         case RIL_REQUEST_OEM_HOOK_RAW:
         case RIL_REQUEST_OEM_HOOK_STRINGS:
         case RIL_REQUEST_SET_BAND_MODE:
@@ -215,6 +208,11 @@ BOOL CTE_XMM6260::IsRequestSupported(int requestId)
         case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
         case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
             return m_cte.IsStkCapable();
+        case RIL_REQUEST_SETUP_DATA_CALL:
+        case RIL_REQUEST_SET_INITIAL_ATTACH_APN:
+        case RIL_REQUEST_DATA_REGISTRATION_STATE:
+        case RIL_REQUEST_DEACTIVATE_DATA_CALL:
+            return m_cte.IsDataCapable();
 
         default:
             return CTEBase::IsRequestSupported(requestId);
@@ -4213,6 +4211,176 @@ Error:
     return res;
 }
 
+// RIL_REQUEST_SET_INITIAL_ATTACH_APN 111
+RIL_RESULT_CODE CTE_XMM6260::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
+       void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::CoreSetInitialAttachApn() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_InitialAttachApn_Extended* pTemp = NULL;
+    UINT32 uiMode = 0;
+    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+    char szApn[MAX_APN_SIZE] = {'\0'};
+    bool bInitialAttachApnChanged = false;
+    bool bStoredInitialAttachApnInfoValid = false;
+
+    if (pData == NULL)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetInitialAttachApn() - "
+                "pData is NULL \r\n");
+        goto Error;
+    }
+
+    if (sizeof(RIL_InitialAttachApn_Extended) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetInitialAttachApn() - "
+                "pData size if wrong\r\n");
+        goto Error;
+    }
+
+    if (RIL_APPSTATE_READY != GetSimAppState())
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetInitialAttachApn() - SIM not ready\r\n");
+        ResetInitialAttachApn();
+        res = RRIL_RESULT_OK_IMMEDIATE;
+        goto Error;
+    }
+
+    pTemp = (RIL_InitialAttachApn_Extended*) pData;
+
+    if (NULL == pTemp->protocol || pTemp->protocol[0] == '\0')
+    {
+        CopyStringNullTerminate(szPdpType, PDPTYPE_IPV4V6, sizeof(szPdpType));
+    }
+    else
+    {
+        CopyStringNullTerminate(szPdpType, pTemp->protocol, sizeof(szPdpType));
+    }
+
+    if (NULL != pTemp->apn)
+    {
+        CopyStringNullTerminate(szApn, pTemp->apn, sizeof(szApn));
+    }
+
+    // If the initial attach apn request is issued by framework, then pdp type stored in
+    // m_InitialAttachApnParams.szPdpType will not be empty even if the pdp type is not provided by
+    // framework. So, if m_InitialAttachApnParams.szPdpType is not empty, stored initial attach apn
+    // parameters is considered as valid.
+    if (m_InitialAttachApnParams.szPdpType[0] != '\0')
+    {
+        bStoredInitialAttachApnInfoValid = true;
+    }
+
+    if (((strcmp(m_InitialAttachApnParams.szApn, szApn) != 0)
+            || (strcmp(m_InitialAttachApnParams.szPdpType, szPdpType) != 0))
+            && bStoredInitialAttachApnInfoValid)
+    {
+        bInitialAttachApnChanged = true;
+    }
+
+    ResetInitialAttachApn();
+
+    CopyStringNullTerminate(m_InitialAttachApnParams.szApn,
+            szApn, sizeof(m_InitialAttachApnParams.szApn));
+    CopyStringNullTerminate(m_InitialAttachApnParams.szPdpType,
+            szPdpType, sizeof(m_InitialAttachApnParams.szPdpType));
+
+    m_InitialAttachApnParams.requestPcscf = pTemp->requestPcscf;
+
+    /*
+     * Case 1: Initial attach APN is not yet set.
+     *
+     * If there is no initial attach apn set, device is also not yet registered.
+     * In this case, RIL_REQUEST_SET_INITIAL_ATTACH_APN will result in commands
+     * AT+CGDCONT=<cid>,<PDP_type>[,<APN] and AT+COPS=0 sent to modem.
+     *
+     * Case 2: Initial attach APN is already set. Initial attach APN triggered again with different
+     * initial attach APN parameters.
+     *
+     * Upon APN change by user or sim refresh, initial attach apn request will be triggered by
+     * framework. In this case, RIL_REQUEST_SET_INITIAL_ATTACH_APN will result in commands
+     * AT+COPS=2, AT+CGDCONT=<cid>,<PDP_type>[,<APN] and AT+COPS=0 sent to modem.
+     *
+     * Case 3: Initial attach APN is already set. Initial attach APN triggered again with same
+     * initial attach APN parameters.
+     *
+     * Upon APN change by user or sim refresh, initial attach apn request will be triggered by
+     * framework. In this case, RIL_REQUEST_SET_INITIAL_ATTACH_APN will be completely immediately
+     * without sending any commands to modem.
+     */
+    if (bInitialAttachApnChanged)
+    {
+        int* pState = (int*)malloc(sizeof(int));
+        if (pState != NULL)
+        {
+            *pState = STATE_DEREGISTER;
+            rReqData.pContextData = pState;
+            rReqData.cbContextData = sizeof(int);
+        }
+
+        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+COPS=2\r", sizeof(rReqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetInitialAttachApn() - failed\r\n");
+            goto Error;
+        }
+    }
+    else
+    {
+        if (bStoredInitialAttachApnInfoValid)
+        {
+            RIL_LOG_INFO("CTE_XMM6260::CoreSetInitialAttachApn() - "
+                    "No change in initial attach apn, complete immediately\r\n");
+            res = RRIL_RESULT_OK_IMMEDIATE;
+            goto Error;
+        }
+
+        if (!GetSetInitialAttachApnReqData(rReqData))
+        {
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6260::CoreSetInitialAttachApn() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6260::ParseSetInitialAttachApn(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6260::ParseSetInitialAttachApn() - Enter / Exit\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    return res;
+}
+
+BOOL CTE_XMM6260::GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData)
+{
+    UINT32 uiMode = GetXDNSMode(m_InitialAttachApnParams.szPdpType);
+
+    if ('\0' == m_InitialAttachApnParams.szApn[0])
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=1,\"%s\";+XDNS=1,%u\r", m_InitialAttachApnParams.szPdpType, uiMode))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::GetSetInitialAttachApnReqData() - "
+                    "Can't construct szCmd1.\r\n");
+        }
+    }
+    else
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+CGDCONT=1,\"%s\",\"%s\";+XDNS=1,%u\r", m_InitialAttachApnParams.szPdpType,
+                m_InitialAttachApnParams.szApn, uiMode))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6260::GetSetInitialAttachApnReqData() - "
+                    "Can't construct szCmd1.\r\n");
+        }
+    }
+
+    return TRUE;
+}
+
 RIL_RESULT_CODE CTE_XMM6260::CreateGetThermalSensorValuesReq(REQUEST_DATA& reqData,
                                                              const char** ppszRequest,
                                                              const UINT32 uiDataSize)
@@ -6100,7 +6268,7 @@ BOOL CTE_XMM6260::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
     RIL_LOG_VERBOSE("CTE_XMM6260::DataConfigDown() - Enter\r\n");
 
     //  First check to see if uiCID is valid
-    if (uiCID > MAX_PDP_CONTEXTS || uiCID == 0)
+    if (uiCID == 0)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::DataConfigDown() - Invalid CID = [%u]\r\n", uiCID);
         return FALSE;
@@ -6242,7 +6410,8 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
         return bRet;
     }
 
-    if (!CSystemManager::GetInstance().IsMultiSIM())
+    if (!CSystemManager::GetInstance().IsMultiSIM()
+            || CSystemManager::GetInstance().IsMultiModem())
     {
         if (bTurnRadioOn)
         {
@@ -6282,14 +6451,16 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
         UINT32 uiSimPoweredOff;
         UINT32 uiFunMode;
 
-        if (g_szSIMID)
+        if (g_szSubscriptionID)
         {
             snprintf(szSimPowerOffStatePropName, PROPERTY_VALUE_MAX,
-                    "gsm.simmanager.set_off_sim%d", ('0' == g_szSIMID[0]) ? 1 : 2);
+                    "gsm.simmanager.set_off_sim%d",
+                    ('0' == g_szSubscriptionID[0]) ? 1 : 2);
         }
         else
         {
-            RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand() - g_szSIMID is NULL\r\n");
+            RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand()"
+                    "- g_szSubscriptionID is NULL\r\n");
             goto Error;
         }
 
@@ -6845,9 +7016,16 @@ RIL_RESULT_CODE CTE_XMM6260::CoreGetCellInfoList(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetCellInfoList() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCELLINFO?\r", sizeof(rReqData.szCmd1)))
+    if (SCREEN_STATE_OFF != m_cte.GetScreenState() && !m_cte.IsCellInfoCacheEmpty())
     {
-        res = RRIL_RESULT_OK;
+        res = RRIL_RESULT_OK_IMMEDIATE;
+    }
+    else
+    {
+        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XCELLINFO?\r", sizeof(rReqData.szCmd1)))
+        {
+            res = RRIL_RESULT_OK;
+        }
     }
 
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreGetCellInfoList() - Exit\r\n");
@@ -7733,7 +7911,14 @@ const char* CTE_XMM6260::GetSiloVoiceURCInitString()
     const char* pszInit = NULL;
     if (m_cte.IsVoiceCapable())
     {
-        pszInit = "|+XCALLSTAT=1|+CSSN=1,1";
+        if (m_cte.IsDataCapable())
+        {
+            pszInit = "|+XCALLSTAT=1|+CSSN=1,1";
+        }
+        else
+        {
+            pszInit = "|+XCALLSTAT=1|+XCGCLASS=\"CC\"|+CSSN=1,1";
+        }
     }
     else
     {

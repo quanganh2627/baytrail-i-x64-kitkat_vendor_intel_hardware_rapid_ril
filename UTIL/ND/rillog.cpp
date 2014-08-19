@@ -16,6 +16,8 @@
 #include <utils/Log.h>
 #include <cutils/properties.h>
 
+#define LOG_NDEBUG 0
+
 /*
  * Simplified macro to send a radio log message using a given tag and level.
  */
@@ -30,24 +32,26 @@
 UINT8 CRilLog::m_uiFlags = 0x00;
 BOOL  CRilLog::m_bInitialized = FALSE;
 BOOL  CRilLog::m_bFullLogBuild = FALSE;
-char  CRilLog::m_szSIMID[SIMID_MAX_LENGTH];
+char  CRilLog::m_szSubscriptionID[SUBSCRIPTIONID_MAX_LENGTH];
 
-void CRilLog::Init(char* szSIMID)
+void CRilLog::Init(char* szSubscriptionID)
 {
     CRepository repository;
     int         iLogLevel;
     char        szBuildType[PROPERTY_VALUE_MAX] = {0};
 
-    if (szSIMID != NULL)
+    if (szSubscriptionID != NULL)
     {
-        RLOGE("SIM ID value : %s", szSIMID);
-        strncpy(m_szSIMID, szSIMID, sizeof(m_szSIMID)-1);
-        m_szSIMID[sizeof(m_szSIMID)-1] = '\0';  // KW fix
+        RLOGE("Subscription ID value : %s", szSubscriptionID);
+        strncpy(m_szSubscriptionID, szSubscriptionID,
+                sizeof(m_szSubscriptionID)-1);
+        m_szSubscriptionID[sizeof(m_szSubscriptionID)-1] = '\0';  // KW fix
     }
     else
     {
-        strncpy(m_szSIMID, SIMID_DEFAULT_VALUE, sizeof(m_szSIMID)-1);
-        m_szSIMID[sizeof(m_szSIMID)-1] = '\0';  // KW fix
+        strncpy(m_szSubscriptionID, SUBSCRIPTIONID_DEFAULT_VALUE,
+                sizeof(m_szSubscriptionID)-1);
+        m_szSubscriptionID[sizeof(m_szSubscriptionID)-1] = '\0';  // KW fix
     }
 
     /*
@@ -101,9 +105,9 @@ void CRilLog::Verbose(const char* const szFormatString, ...)
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);
         va_end(argList);
 
-        if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
+        if (strcmp(m_szSubscriptionID, SUBSCRIPTIONID_DEFAULT_VALUE)!=0)
         {
-            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
+            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSubscriptionID);
             RLOG(ANDROID_LOG_DEBUG, szNewTag, "%s", szLogText);
         }
         else
@@ -125,9 +129,9 @@ void CRilLog::Info(const char* const szFormatString, ...)
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);
         va_end(argList);
 
-        if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
+        if (strcmp(m_szSubscriptionID, SUBSCRIPTIONID_DEFAULT_VALUE)!=0)
         {
-            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
+            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSubscriptionID);
             RLOG(ANDROID_LOG_INFO, szNewTag, "%s", szLogText);
         }
         else
@@ -149,9 +153,9 @@ void CRilLog::Warning(const char* const szFormatString, ...)
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);
         va_end(argList);
 
-        if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
+        if (strcmp(m_szSubscriptionID, SUBSCRIPTIONID_DEFAULT_VALUE)!=0)
         {
-            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
+            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSubscriptionID);
             RLOG(ANDROID_LOG_WARN, szNewTag, "%s", szLogText);
         }
         else
@@ -173,9 +177,9 @@ void CRilLog::Critical(const char* const szFormatString, ...)
         vsnprintf(szLogText, m_uiMaxLogBufferSize, szFormatString, argList);
         va_end(argList);
 
-        if (strcmp(m_szSIMID, SIMID_DEFAULT_VALUE)!=0)
+        if (strcmp(m_szSubscriptionID, SUBSCRIPTIONID_DEFAULT_VALUE)!=0)
         {
-            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSIMID);
+            snprintf(szNewTag, LOG_TAG_MAX_LENGTH, "%s%s", LOG_TAG, m_szSubscriptionID);
             RLOG(ANDROID_LOG_ERROR, szNewTag, "%s", szLogText);
         }
         else

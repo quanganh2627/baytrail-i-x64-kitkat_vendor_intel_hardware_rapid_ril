@@ -33,6 +33,7 @@
 #include "te_xmm6360.h"
 #include "te_xmm7160.h"
 #include "te_xmm7260.h"
+#include "te_xmm2230.h"
 #include "ril_result.h"
 #include "callbacks.h"
 #include "reset.h"
@@ -58,6 +59,7 @@ CTE::CTE(UINT32 modemType) :
     m_FastDormancyMode(FAST_DORMANCY_MODE_DEFAULT),
     m_uiMTU(MTU_SIZE),
     m_bVoiceCapable(TRUE),
+    m_bDataCapable(TRUE),
     m_bSmsOverCSCapable(TRUE),
     m_bSmsOverPSCapable(TRUE),
     m_bSmsCapable(TRUE),
@@ -193,6 +195,10 @@ CTEBase* CTE::CreateModemTE(CTE* pTEInstance)
         case MODEM_TYPE_XMM7260:
             RIL_LOG_INFO("CTE::CreateModemTE() - Using XMM7260\r\n");
             return new CTE_XMM7260(*pTEInstance);
+
+        case MODEM_TYPE_XMM2230:
+            RIL_LOG_INFO("CTE::CreateModemTE() - Using XMM2230\r\n");
+            return new CTE_XMM2230(*pTEInstance);
 
         default: // unsupported modem
             RIL_LOG_INFO("CTE::CreateModemTE() - No modem specified, returning NULL\r\n");
@@ -406,6 +412,8 @@ BOOL CTE::IsRequestAllowedWhenNotRegistered(int requestId)
     switch (requestId)
     {
         case RIL_REQUEST_OPERATOR:
+        case RIL_REQUEST_GET_CELL_INFO_LIST:
+        case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:
             break;
 
         default:
@@ -2364,7 +2372,11 @@ RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void* pDat
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGPRSRegistrationState(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
+    if (RRIL_RESULT_OK_IMMEDIATE == res)
+    {
+        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+    }
+    else if (RRIL_RESULT_OK != res)
     {
         RIL_LOG_CRITICAL("CTE::RequestGPRSRegistrationState() -"
                 " Unable to create AT command data\r\n");
@@ -2769,11 +2781,11 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     dataProfile = atoi(pszDataProfile);
     // If default is not already opened, Android could request to open the HIPRI connection,
     // but we must consider it as a default connection request
-    if (dataProfile == RIL_DATA_PROFILE_HIPRI)
+    if (dataProfile & (1 << RIL_DATA_PROFILE_HIPRI))
     {
         RIL_LOG_WARNING("CTE::RequestSetupDataCall() -"
                 " Override HIPRI profile request with DEFAULT");
-        dataProfile = RIL_DATA_PROFILE_DEFAULT;
+        dataProfile |= (1<<RIL_DATA_PROFILE_DEFAULT);
         PrintStringNullTerminate(pszDataProfile, sizeof(pszDataProfile),
                 "%d", dataProfile);
     }
@@ -6646,55 +6658,51 @@ RIL_RESULT_CODE CTE::RequestGetCellInfoList(RIL_Token rilToken, void* pData, siz
     RIL_LOG_VERBOSE("CTE::RequestGetCellInfoList() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
-    UINT32 uiItemCount = 0;
-    S_ND_N_CELL_INFO_DATA cellData;
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    if (SCREEN_STATE_OFF != m_ScreenState)
+    res = m_pTEBaseInstance->CoreGetCellInfoList(reqData, pData, datalen);
+    if (RRIL_RESULT_OK_IMMEDIATE == res)
     {
+        int itemCount = 0;
+        S_ND_N_CELL_INFO_DATA cellData;
+
         memset(&cellData, 0, sizeof(S_ND_N_CELL_INFO_DATA));
-        getCellInfo(&cellData, uiItemCount);
-    }
+        getCellInfo(&cellData, itemCount);
 
-    if (uiItemCount > 0)
-    {
         RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, &cellData.aRilCellInfo,
-                uiItemCount * sizeof(RIL_CellInfo));
+                itemCount * sizeof(RIL_CellInfo));
+
+        res = RRIL_RESULT_OK;
+    }
+    else if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
+                " Unable to create AT command data\r\n");
     }
     else
     {
-        REQUEST_DATA reqData;
-        memset(&reqData, 0, sizeof(REQUEST_DATA));
+        CCommand* pCmd = new CCommand(
+                g_pReqInfo[RIL_REQUEST_GET_CELL_INFO_LIST].uiChannel,
+                rilToken, RIL_REQUEST_GET_CELL_INFO_LIST, reqData,
+                &CTE::ParseGetCellInfoList, &CTE::PostGetCellInfoList);
 
-        RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetCellInfoList(reqData, pData, datalen);
-        if (RRIL_RESULT_OK != res)
+        if (pCmd)
         {
-            RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
-                    " Unable to create AT command data\r\n");
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
+                        " Unable to add command to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
         }
         else
         {
-            CCommand* pCmd = new CCommand(
-                    g_pReqInfo[RIL_REQUEST_GET_CELL_INFO_LIST].uiChannel,
-                    rilToken, RIL_REQUEST_GET_CELL_INFO_LIST, reqData,
-                    &CTE::ParseGetCellInfoList, &CTE::PostGetCellInfoList);
-
-            if (pCmd)
-            {
-                if (!CCommand::AddCmdToQueue(pCmd))
-                {
-                    RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
-                            " Unable to add command to queue\r\n");
-                    res = RIL_E_GENERIC_FAILURE;
-                    delete pCmd;
-                    pCmd = NULL;
-                }
-            }
-            else
-            {
-                RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
-                        " Unable to allocate memory for command\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-            }
+            RIL_LOG_CRITICAL("CTE::RequestGetCellInfoList() -"
+                    " Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
         }
     }
 
@@ -7449,7 +7457,7 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
     int rejectCause = -1;
     BOOL bRet = false;
     char szNewLine[3] = "\r\n";
-    BOOL bRegistered = false;
+    bool bRegistered = false;
 
     if (!bUnSolicited)
     {
@@ -7936,21 +7944,24 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
         }
     }
 
-    BOOL bCellInfoChanged = FALSE;
-    if ((0 != strcmp(m_szCachedLac, szLac) || 0 != strcmp(m_szCachedCid, szCid)))
+    if (NeedGetCellInfoOnCellChange())
     {
-        CopyStringNullTerminate(m_szCachedLac, szLac, sizeof(m_szCachedLac));
-        CopyStringNullTerminate(m_szCachedCid, szCid, sizeof(m_szCachedCid));
+        BOOL bCellInfoChanged = FALSE;
+        if ((0 != strcmp(m_szCachedLac, szLac) || 0 != strcmp(m_szCachedCid, szCid)))
+        {
+            CopyStringNullTerminate(m_szCachedLac, szLac, sizeof(m_szCachedLac));
+            CopyStringNullTerminate(m_szCachedCid, szCid, sizeof(m_szCachedCid));
 
-        bCellInfoChanged = TRUE;
-    }
+            bCellInfoChanged = TRUE;
+        }
 
-    if (IsCellInfoEnabled() && bCellInfoChanged)
-    {
-        int rate = GetCellInfoListRate();
-        rate = (0 == rate) ? 0 : -1;
-        RIL_LOG_INFO("CTEBase::StoreRegistrationInfo() - read cell info now!\r\n");
-        RIL_requestTimedCallback(triggerCellInfoList, (void*)rate, 0, 0);
+        if (IsCellInfoEnabled() && bCellInfoChanged)
+        {
+            int rate = GetCellInfoListRate();
+            rate = (0 == rate) ? 0 : -1;
+            RIL_LOG_INFO("CTEBase::StoreRegistrationInfo() - read cell info now!\r\n");
+            RIL_requestTimedCallback(triggerCellInfoList, (void*)rate, 0, 0);
+        }
     }
 
     RIL_LOG_VERBOSE("CTE::StoreRegistrationInfo() - Exit\r\n");
@@ -8079,9 +8090,9 @@ bool CTE::IsRegistered(int status)
             || E_REGISTRATION_REGISTERED_ROAMING == status);
 }
 
-BOOL CTE::IsRegistered()
+bool CTE::IsRegistered()
 {
-    BOOL bRet = FALSE;
+    bool bRet = false;
     LONG csRegState = strtol(m_sCSStatus.szStat, NULL, 10);
     LONG psRegState = strtol(m_sPSStatus.szStat, NULL, 10);
     LONG epsRegState = strtol(m_sEPSStatus.szStat, NULL, 10);
@@ -8093,7 +8104,7 @@ BOOL CTE::IsRegistered()
             || E_REGISTRATION_REGISTERED_HOME_NETWORK == epsRegState
             || E_REGISTRATION_REGISTERED_ROAMING == epsRegState)
     {
-        bRet = TRUE;
+        bRet = true;
     }
 
     return bRet;
@@ -8113,6 +8124,8 @@ BOOL CTE::IsEPSRegistered()
 {
     BOOL bRet = FALSE;
     LONG regState = strtol(m_sEPSStatus.szStat, NULL, 10);
+
+    RIL_LOG_INFO("IsEPSREgistered() regState=%d(%s)\r\n", regState, m_sEPSStatus.szStat);
 
     if (E_REGISTRATION_REGISTERED_HOME_NETWORK == regState
             || E_REGISTRATION_REGISTERED_ROAMING == regState)
@@ -8370,6 +8383,12 @@ void CTE::ResetInternalStates()
     m_bIsClearPendingCHLD = FALSE;
     m_bIsDataSuspended = FALSE;
     m_bRadioRequestPending = FALSE;
+
+    memset(&m_sCSStatus, 0, sizeof(S_ND_REG_STATUS));
+    memset(&m_sPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
+    memset(&m_sEPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
+    m_szCachedLac[0] = '\0';
+    m_szCachedCid[0] = '\0';
 
     sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND info;
     info.regStatus = 0;
@@ -10772,6 +10791,11 @@ void CTE::ResetUicc()
     return m_pTEBaseInstance->ResetUicc();
 }
 
+void CTE::NotifyUiccReady()
+{
+    return m_pTEBaseInstance->NotifyUiccReady();
+}
+
 void CTE::EnableProfileFacilityHandling()
 {
     return m_pTEBaseInstance->EnableProfileFacilityHandling();
@@ -10815,4 +10839,14 @@ RIL_RESULT_CODE CTE::GetCnapState(REQUEST_DATA& reqData)
 RIL_RESULT_CODE CTE::ParseQueryCnap(const char* pszRsp, RESPONSE_DATA& rspData)
 {
     return m_pTEBaseInstance->ParseQueryCnap(pszRsp, rspData);
+}
+
+const char* CTE::GetReadCellInfoString()
+{
+    return m_pTEBaseInstance->GetReadCellInfoString();
+}
+
+bool CTE::NeedGetCellInfoOnCellChange()
+{
+    return m_pTEBaseInstance->NeedGetCellInfoOnCellChange();
 }

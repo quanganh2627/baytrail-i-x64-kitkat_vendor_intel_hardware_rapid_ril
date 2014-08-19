@@ -189,6 +189,7 @@ typedef struct
 {
     char szApn[MAX_APN_SIZE];
     char szPdpType[MAX_PDP_TYPE_SIZE];
+    int requestPcscf;
 } S_INITIAL_ATTACH_APN_PARAMS;
 
 ///////////////////////////////////////////////////////////////////////////////

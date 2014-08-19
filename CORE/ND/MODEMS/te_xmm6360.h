@@ -55,10 +55,14 @@ public:
             void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseBasebandVersion(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_INITIAL_ATTACH_APN 111
-    virtual RIL_RESULT_CODE CoreSetInitialAttachApn(REQUEST_DATA& rReqData, void* pData,
-            UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSetInitialAttachApn(RESPONSE_DATA& rRspData);
+    // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE
+    virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
+            void* pData, UINT32 uiDataSize);
+
+    // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE
+    virtual RIL_RESULT_CODE CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
+            void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData);
 
     virtual RIL_RadioTechnology MapAccessTechnology(UINT32 uiStdAct, int regType);
 
@@ -76,8 +80,6 @@ protected:
     virtual const char* GetPsRegistrationReadString();
     virtual const char* GetLocationUpdateString(BOOL bIsLocationUpdateEnabled);
     virtual const char* GetScreenOnString();
-
-    virtual BOOL GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData);
 
     virtual const char* GetEnableFetchingString();
 };

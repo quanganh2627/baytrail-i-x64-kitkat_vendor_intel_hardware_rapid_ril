@@ -18,13 +18,15 @@ static const char* szXMM6260 = "6260";
 static const char* szXMM6360 = "6360";
 static const char* szXMM7160 = "7160";
 static const char* szXMM7260 = "7260";
+static const char* szXMM2230 = "2230";
 
 enum {
     MODEM_TYPE_UNKNOWN,
     MODEM_TYPE_XMM6260,
     MODEM_TYPE_XMM6360,
     MODEM_TYPE_XMM7160,
-    MODEM_TYPE_XMM7260
+    MODEM_TYPE_XMM7260,
+    MODEM_TYPE_XMM2230
 };
 
 enum {
@@ -55,11 +57,14 @@ const int ECNO_UNKNOWN = 255;
 const int RSRQ_UNKNOWN = 255;
 const int RSRP_UNKNOWN = 255;
 const int RSSNR_UNKNOWN = 255;
+const int RXLEV_UNKNOWN = 99;
 
 const UINT32 IMS_NOT_REGISTERED = 0;
 const UINT32 IMS_REGISTERED = 1;
 
 const int STATE_DEREGISTER = 0;
 const int STATE_SET_INITIAL_ATTACH_APN = 1;
+const int SERVING_CELL = 1;
+const int NEIGHBOURING_CELL = 0;
 
 #endif  // __RIL_CONSTANTS_H__

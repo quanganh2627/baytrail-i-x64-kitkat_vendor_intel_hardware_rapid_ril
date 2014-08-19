@@ -692,6 +692,9 @@ public:
     void SetVoiceCapable(BOOL bIsVoiceCapable) { m_bVoiceCapable =  bIsVoiceCapable; }
     BOOL IsVoiceCapable() { return m_bVoiceCapable; }
 
+    void SetDataCapable(BOOL bIsDataCapable) { m_bDataCapable =  bIsDataCapable; }
+    BOOL IsDataCapable() { return m_bDataCapable; }
+
     void SetSmsOverCSCapable(BOOL bIsSmsOverCSCapable)
     {
         m_bSmsOverCSCapable =  bIsSmsOverCSCapable;
@@ -762,14 +765,23 @@ public:
     void SetCellInfoListRate(UINT32 uiRate) { m_nCellInfoListRate = uiRate; };
     BOOL IsCellInfoTimerRunning() { return m_bIsCellInfoTimerRunning; };
     void SetCellInfoTimerRunning(BOOL aValue) { m_bIsCellInfoTimerRunning = aValue; };
-    BOOL updateCellInfoCache(P_ND_N_CELL_INFO_DATA pData, const INT32 aItemsCount)
+    BOOL updateCellInfoCache(P_ND_N_CELL_INFO_DATA pData, const int itemCount)
     {
-        return m_CellInfoCache.updateCache(pData, aItemsCount);
+        return m_CellInfoCache.updateCache(pData, itemCount);
     }
-    BOOL getCellInfo(P_ND_N_CELL_INFO_DATA pRetData, UINT32& uiItemCount)
+    BOOL updateCellInfoCache(P_ND_N_CELL_INFO_DATA_V2 pData, const int itemCount)
     {
-       return m_CellInfoCache.getCellInfo(pRetData, uiItemCount);
+        return m_CellInfoCache.updateCache(pData, itemCount);
     }
+    BOOL getCellInfo(P_ND_N_CELL_INFO_DATA pRetData, int& itemCount)
+    {
+       return m_CellInfoCache.getCellInfo(pRetData, itemCount);
+    }
+    BOOL getCellInfo(P_ND_N_CELL_INFO_DATA_V2 pRetData, int& itemCount)
+    {
+       return m_CellInfoCache.getCellInfo(pRetData, itemCount);
+    }
+    bool IsCellInfoCacheEmpty() { return m_CellInfoCache.IsCellInfoCacheEmpty(); }
 
     void SetTempOoSNotificationReporting(BOOL bEnable) { m_bTempOoSNotifReporting = bEnable; }
     BOOL IsTempOoSNotificationEnabled() { return m_bTempOoSNotifReporting; }
@@ -1202,13 +1214,13 @@ public:
     void PostWriteUsatProfileHandler(POST_CMD_HANDLER_DATA& rData);
 
     void ResetUicc();
+    void NotifyUiccReady();
 
     void EnableProfileFacilityHandling();
 
     void SendModemDownToUsatSM();
 
     int GetScreenState() { return m_ScreenState; }
-    BOOL IsRegistered(int status);
 
     RIL_RESULT_CODE SetCsgAutomaticSelection(REQUEST_DATA& reqData);
     RIL_RESULT_CODE GetCsgCurrentState(REQUEST_DATA& reqData);
@@ -1225,6 +1237,10 @@ public:
     RIL_RESULT_CODE ParseQueryCnap(const char* pszRsp, RESPONSE_DATA& rspData);
 
     BOOL ParseXREGNetworkInfo(const char*& pszPointer, const BOOL isUnSolicited);
+
+    const char* GetReadCellInfoString();
+    bool IsRegistered();
+    bool IsRegistered(int status);
 
 private:
     UINT32 m_uiModemType;
@@ -1304,7 +1320,6 @@ private:
     // Function to determine whether the SIMIO request is for FDN related SIM files
     BOOL isFDNRequest(int fileId);
 
-    BOOL IsRegistered();
     LONG GetCsRegistrationState(char* pCsRegState);
     LONG GetPsRegistrationState(char* pPsRegState);
     LONG GetCurrentAct();
@@ -1319,6 +1334,7 @@ private:
     UINT32 m_uiMTU;
 
     BOOL m_bVoiceCapable;
+    BOOL m_bDataCapable;
     BOOL m_bSmsOverCSCapable;
     BOOL m_bSmsOverPSCapable;
     BOOL m_bSmsCapable;
@@ -1411,6 +1427,7 @@ private:
     const char* GetPrintString(int definitionId);
     BOOL IsBuildTypeEngUserDebug();
     void TriggerRestrictedModeEvent();
+    bool NeedGetCellInfoOnCellChange();
 };
 
 #endif

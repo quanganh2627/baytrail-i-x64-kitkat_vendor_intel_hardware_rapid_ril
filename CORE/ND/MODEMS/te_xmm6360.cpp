@@ -528,36 +528,48 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
 
     if (!bIsHSIDirect){
         // First network interface is rmnet3 for pdp over mux
-        switch (dataProfile)
+        if (dataProfile & (1<<RIL_DATA_PROFILE_DEFAULT))
         {
-        case RIL_DATA_PROFILE_DEFAULT:
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_DEFAULT;
-            break;
-        case RIL_DATA_PROFILE_TETHERED:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_TETHERED))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_TETHERED;
-            break;
-        case RIL_DATA_PROFILE_IMS:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_IMS))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_IMS;
-            break;
-        case RIL_DATA_PROFILE_MMS:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_MMS))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_MMS;
-            break;
-        case RIL_DATA_PROFILE_CBS:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_CBS))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_CBS;
-            break;
-        case RIL_DATA_PROFILE_FOTA:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_FOTA))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_FOTA;
-            break;
-        case RIL_DATA_PROFILE_SUPL:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_SUPL))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_SUPL;
-            break;
-        case RIL_DATA_PROFILE_HIPRI:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_HIPRI))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_HIPRI;
-            break;
-        case RIL_DATA_PROFILE_EMERGENCY:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_EMERGENCY))
+        {
             networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_EMERGENCY;
-            break;
-        default:
+        }
+        else if (dataProfile & (1<<RIL_DATA_PROFILE_RCS))
+        {
+            networkInterfaceID = nw_if_pdp_mux_offset + RIL_DATA_PROFILE_RCS;
+        }
+        else
+        {
             RIL_LOG_CRITICAL("CTE_XMM6360::SetupInterface() - Unknown Data Profile [%d] \r\n",
                                                                 dataProfile);
             goto Error;
@@ -793,6 +805,226 @@ RIL_RadioTechnology CTE_XMM6360::MapAccessTechnology(UINT32 uiStdAct, int regTyp
     }
     RIL_LOG_VERBOSE("CTE_XMM6360::MapAccessTechnology() EXIT  rtAct=[%u]\r\n", (UINT32)rtAct);
     return rtAct;
+}
+
+//
+// RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE
+//
+RIL_RESULT_CODE CTE_XMM6360::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
+        void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetPreferredNetworkType() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_PreferredNetworkType networkType = PREF_NET_TYPE_GSM_WCDMA; // 0
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetPreferredNetworkType() - Data "
+                "pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    if (uiDataSize != sizeof(int))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+                "Invalid data size.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+            "Network type {%d} from framework.\r\n", ((RIL_PreferredNetworkType*)pData)[0]);
+
+    networkType = (RIL_PreferredNetworkType) ((int*)pData)[0];
+
+    // if network type already set, NO-OP this command
+    if (m_currentNetworkType == networkType)
+    {
+        rReqData.szCmd1[0] = '\0';
+        res = RRIL_RESULT_OK_IMMEDIATE;
+        RIL_LOG_INFO("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+                "Network type {%d} already set.\r\n", networkType);
+        goto Error;
+    }
+
+    switch (networkType)
+    {
+        case PREF_NET_TYPE_GSM_WCDMA: // WCDMA Preferred
+        // This value is received as a result of the recovery mechanism in the framework even
+        // though not supported by modem.  In this case, set to supported default value of
+        // PREF_NET_TYPE_GSM_WCDMA.
+        case PREF_NET_TYPE_GSM_WCDMA_CDMA_EVDO_AUTO:
+            networkType = PREF_NET_TYPE_GSM_WCDMA;
+            RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+                    "WCDMA pref:XACT=3,1) - Enter\r\n");
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=3,1\r",
+                    sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::HandleNetworkType() - Can't "
+                        "construct szCmd1 networkType=%d\r\n", networkType);
+                break;
+            }
+            res = RRIL_RESULT_OK;
+            break;
+
+        case PREF_NET_TYPE_GSM_ONLY: // GSM Only
+            RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetPreferredNetworkType() -"
+                    "GSM only:XACT=0) - Enter\r\n");
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=0\r",
+                    sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::HandleNetworkType() - Can't "
+                        "construct szCmd1 networkType=%d\r\n", networkType);
+                break;
+            }
+            res = RRIL_RESULT_OK;
+            break;
+
+        case PREF_NET_TYPE_WCDMA: // WCDMA Only
+            RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+                    "WCDMA only:XACT=1) - Enter\r\n");
+            if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT=1\r",
+                    sizeof(rReqData.szCmd1)))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::HandleNetworkType() - Can't "
+                        "construct szCmd1 networkType=%d\r\n", networkType);
+                break;
+            }
+            res = RRIL_RESULT_OK;
+            break;
+
+        default:
+            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetPreferredNetworkType() - "
+                    "Undefined rat code: %d\r\n", networkType);
+            res = RIL_E_MODE_NOT_SUPPORTED;
+            goto Error;
+    }
+
+    //  Set the context of this command to the network type we're attempting to set
+    rReqData.pContextData = (void*)networkType;  // Store this as an int.
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetPreferredNetworkType() - Exit:%d\r\n", res);
+    return res;
+}
+
+// RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE
+//
+RIL_RESULT_CODE CTE_XMM6360::CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
+        void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreGetPreferredNetworkType() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+XACT?\r",
+            sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreGetPreferredNetworkType() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM6360::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseGetPreferredNetworkType() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+
+    UINT32 rat = 0;
+    UINT32 pref = 0;
+
+    int* pRat = (int*)malloc(sizeof(int));
+    if (NULL == pRat)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - Could "
+                "not allocate memory for response.\r\n");
+        goto Error;
+    }
+
+    // Skip "<prefix>"
+    if (!SkipRspStart(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - Could "
+                "not skip response prefix.\r\n");
+        goto Error;
+    }
+
+    // Skip "+XACT: "
+    if (!SkipString(pszRsp, "+XACT: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - Could "
+                "not skip \"+XACT: \".\r\n");
+        goto Error;
+    }
+
+    if (!ExtractUInt32(pszRsp, rat, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - Could "
+                "not extract rat value.\r\n");
+        goto Error;
+    }
+
+    if (FindAndSkipString(pszRsp, ",", pszRsp))
+    {
+        if (!ExtractUInt32(pszRsp, pref, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - "
+                    "Could not find and skip pref value even though it was expected.\r\n");
+            goto Error;
+        }
+    }
+
+    switch (rat)
+    {
+        case 0:     // GSM Only
+        {
+            pRat[0] = PREF_NET_TYPE_GSM_ONLY;
+            m_currentNetworkType = PREF_NET_TYPE_GSM_ONLY;
+            break;
+        }
+
+        case 1:     // WCDMA Only
+        {
+            pRat[0] = PREF_NET_TYPE_WCDMA;
+            m_currentNetworkType = PREF_NET_TYPE_WCDMA;
+            break;
+        }
+
+        case 3:     // WCDMA preferred
+        {
+            pRat[0] = PREF_NET_TYPE_GSM_WCDMA;
+            m_currentNetworkType = PREF_NET_TYPE_GSM_WCDMA;
+            break;
+        }
+
+        default:
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::ParseGetPreferredNetworkType() - "
+                    "Unexpected rat found: %d. Failing out.\r\n", rat);
+            goto Error;
+        }
+    }
+
+    rRspData.pData  = (void*)pRat;
+    rRspData.uiDataSize = sizeof(int*);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pRat);
+        pRat = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseGetPreferredNetworkType() - Exit\r\n");
+    return res;
 }
 
 //
@@ -1135,174 +1367,6 @@ RIL_RESULT_CODE CTE_XMM6360::ParseDns(RESPONSE_DATA & rRspData)
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6360::ParseDns() - Exit\r\n");
     return res;
-}
-
-// RIL_REQUEST_SET_INITIAL_ATTACH_APN 111
-RIL_RESULT_CODE CTE_XMM6360::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
-       void* pData, UINT32 uiDataSize)
-{
-    RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetInitialAttachApn() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    RIL_InitialAttachApn* pTemp = NULL;
-    UINT32 uiMode = 0;
-    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
-    char szApn[MAX_APN_SIZE] = {'\0'};
-    bool bInitialAttachApnChanged = false;
-    bool bStoredInitialAttachApnInfoValid = false;
-
-    if (pData == NULL)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - "
-                "pData is NULL \r\n");
-        goto Error;
-    }
-
-    if (sizeof(RIL_InitialAttachApn) != uiDataSize)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - "
-                "pData size if wrong\r\n");
-        goto Error;
-    }
-
-    if (RIL_APPSTATE_READY != GetSimAppState())
-    {
-        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - SIM not ready\r\n");
-        ResetInitialAttachApn();
-        res = RRIL_RESULT_OK_IMMEDIATE;
-        goto Error;
-    }
-
-    pTemp = (RIL_InitialAttachApn*) pData;
-
-    if (NULL == pTemp->protocol || pTemp->protocol[0] == '\0')
-    {
-        CopyStringNullTerminate(szPdpType, PDPTYPE_IPV4V6, sizeof(szPdpType));
-    }
-    else
-    {
-        CopyStringNullTerminate(szPdpType, pTemp->protocol, sizeof(szPdpType));
-    }
-
-    if (NULL != pTemp->apn)
-    {
-        CopyStringNullTerminate(szApn, pTemp->apn, sizeof(szApn));
-    }
-
-    // If the initial attach apn request is issued by framework, then pdp type stored in
-    // m_InitialAttachApnParams.szPdpType will not be empty even if the pdp type is not provided by
-    // framework. So, if m_InitialAttachApnParams.szPdpType is not empty, stored initial attach apn
-    // parameters is considered as valid.
-    if (m_InitialAttachApnParams.szPdpType[0] != '\0')
-    {
-        bStoredInitialAttachApnInfoValid = true;
-    }
-
-    if (((strcmp(m_InitialAttachApnParams.szApn, szApn) != 0)
-            || (strcmp(m_InitialAttachApnParams.szPdpType, szPdpType) != 0))
-            && bStoredInitialAttachApnInfoValid)
-    {
-        bInitialAttachApnChanged = true;
-    }
-
-    ResetInitialAttachApn();
-
-    CopyStringNullTerminate(m_InitialAttachApnParams.szApn,
-            szApn, sizeof(m_InitialAttachApnParams.szApn));
-    CopyStringNullTerminate(m_InitialAttachApnParams.szPdpType,
-            szPdpType, sizeof(m_InitialAttachApnParams.szPdpType));
-
-    /*
-     * Case 1: Initial attach APN is not yet set.
-     *
-     * If there is no initial attach apn set, device is also not yet registered.
-     * In this case, RIL_REQUEST_SET_INITIAL_ATTACH_APN will result in commands
-     * AT+CGDCONT=<cid>,<PDP_type>[,<APN] and AT+COPS=0 sent to modem.
-     *
-     * Case 2: Initial attach APN is already set. Initial attach APN triggered again with different
-     * initial attach APN parameters.
-     *
-     * Upon APN change by user or sim refresh, initial attach apn request will be triggered by
-     * framework. In this case, RIL_REQUEST_SET_INITIAL_ATTACH_APN will result in commands
-     * AT+COPS=2, AT+CGDCONT=<cid>,<PDP_type>[,<APN] and AT+COPS=0 sent to modem.
-     *
-     * Case 3: Initial attach APN is already set. Initial attach APN triggered again with same
-     * initial attach APN parameters.
-     *
-     * Upon APN change by user or sim refresh, initial attach apn request will be triggered by
-     * framework. In this case, RIL_REQUEST_SET_INITIAL_ATTACH_APN will be completely immediately
-     * without sending any commands to modem.
-     */
-    if (bInitialAttachApnChanged)
-    {
-        int* pState = (int*)malloc(sizeof(int));
-        if (pState != NULL)
-        {
-            *pState = STATE_DEREGISTER;
-            rReqData.pContextData = pState;
-            rReqData.cbContextData = sizeof(int);
-        }
-
-        if (!CopyStringNullTerminate(rReqData.szCmd1, "AT+COPS=2\r", sizeof(rReqData.szCmd1)))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetInitialAttachApn() - failed\r\n");
-            goto Error;
-        }
-    }
-    else
-    {
-        if (bStoredInitialAttachApnInfoValid)
-        {
-            RIL_LOG_INFO("CTE_XMM6360::CoreSetInitialAttachApn() - "
-                    "No change in initial attach apn, complete immediately\r\n");
-            res = RRIL_RESULT_OK_IMMEDIATE;
-            goto Error;
-        }
-
-        if (!GetSetInitialAttachApnReqData(rReqData))
-        {
-            goto Error;
-        }
-    }
-
-    res = RRIL_RESULT_OK;
-
-Error:
-    RIL_LOG_VERBOSE("CTE_XMM6360::CoreSetInitialAttachApn() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE_XMM6360::ParseSetInitialAttachApn(RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE_XMM6360::ParseSetInitialAttachApn() - Enter / Exit\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
-    return res;
-}
-
-BOOL CTE_XMM6360::GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData)
-{
-    UINT32 uiMode = GetXDNSMode(m_InitialAttachApnParams.szPdpType);
-
-    if ('\0' == m_InitialAttachApnParams.szApn[0])
-    {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=1,\"%s\";+XDNS=1,%u\r", m_InitialAttachApnParams.szPdpType, uiMode))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::GetSetInitialAttachApnReqData() - "
-                    "Can't construct szCmd1.\r\n");
-        }
-    }
-    else
-    {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                "AT+CGDCONT=1,\"%s\",\"%s\";+XDNS=1,%u\r", m_InitialAttachApnParams.szPdpType,
-                m_InitialAttachApnParams.szApn, uiMode))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6360::GetSetInitialAttachApnReqData() - "
-                    "Can't construct szCmd1.\r\n");
-        }
-    }
-
-    return TRUE;
 }
 
 //

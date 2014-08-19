@@ -604,19 +604,106 @@ BOOL ExtractIntAndConvertToUInt32(const char* szData, UINT32& rnVal, const char*
     return fRet;
 }
 
-BOOL ExtractInt(const char* pszData, int& nVal, const char*& pszRemainder)
+BOOL ExtractLongLong(const char* pszData, long long& nVal, const char*& pszRemainder, int base)
 {
     BOOL bRet = FALSE;
     char* pszEnd;
-    long int li;
+    long long li = -1;
 
     errno = 0;
-    li = strtol(pszRemainder, &pszEnd, 10);
-    if (pszEnd != pszRemainder && errno != ERANGE)
+    li = strtoll(pszData, &pszEnd, base);
+    if (pszEnd != pszData && errno != ERANGE)
     {
-        nVal = (int)li;
+        nVal = li;
         bRet = TRUE;
         pszRemainder = pszEnd;
+    }
+
+    return bRet;
+}
+
+BOOL ExtractInt(const char* pszData, int& nVal, const char*& pszRemainder, int base)
+{
+    BOOL bRet = FALSE;
+    const char* pszEndTemp;
+    long long li;
+
+    if (ExtractLongLong(pszData, li, pszEndTemp, base))
+    {
+        if ((li >= INT_MIN) && (li <= INT_MAX))
+        {
+            bRet = TRUE;
+            pszRemainder = pszEndTemp;
+            nVal = (int) li;
+        }
+    }
+
+    return bRet;
+}
+
+BOOL ExtractQuotedHexLongLong(const char* pszData, long long& nVal, const char*& pszRemainder)
+{
+    BOOL bRet = FALSE;
+    char* pszStrExtract = NULL;
+    UINT32 len;
+    const char* pszRemainderTemp;
+
+    if (ExtractQuotedStringWithAllocatedMemory(pszData, pszStrExtract, len, pszRemainderTemp))
+    {
+        const char* pszExtractEnd;
+        long long li;
+        if (ExtractLongLong(pszStrExtract, li, pszExtractEnd, 16))
+        {
+            // Check first if there is no additional garbage in the extracted string
+            SkipSpaces(pszExtractEnd, pszExtractEnd);
+            if (*pszExtractEnd == '\0')
+            {
+                bRet = TRUE;
+                pszRemainder = pszRemainderTemp;
+                nVal = li;
+            }
+        }
+    }
+
+    delete[] pszStrExtract;
+    pszStrExtract = NULL;
+
+    return bRet;
+}
+
+BOOL ExtractQuotedHexInt(const char* pszData, int& nVal, const char*& pszRemainder)
+{
+    BOOL bRet = FALSE;
+    const char* pszEndTemp;
+    long long li;
+
+    if (ExtractQuotedHexLongLong(pszData, li, pszEndTemp))
+    {
+        if ((li >= INT_MIN) && (li <= INT_MAX))
+        {
+            bRet = TRUE;
+            pszRemainder = pszEndTemp;
+            nVal = (int) li;
+        }
+    }
+
+    return bRet;
+}
+
+BOOL ExtractQuotedHexUnsignedInt(const char* pszData, unsigned int& nVal, const char*& pszRemainder)
+{
+    BOOL bRet = FALSE;
+    const char* pszEndTemp;
+    long long li;
+
+    if (ExtractQuotedHexLongLong(pszData, li, pszEndTemp))
+    {
+        if ((li >= 0) && (li <= (long long) UINT_MAX))
+        {
+            bRet = TRUE;
+            pszRemainder = pszEndTemp;
+            nVal = (unsigned int) li;
+        }
     }
 
     return bRet;

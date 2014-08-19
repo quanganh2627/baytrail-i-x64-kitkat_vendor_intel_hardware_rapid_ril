@@ -152,6 +152,12 @@ typedef struct
 
 typedef struct
 {
+    RIL_CellInfo_v2   aRilCellInfo[RRIL_MAX_CELL_ID_COUNT];
+} S_ND_N_CELL_INFO_DATA_V2, *P_ND_N_CELL_INFO_DATA_V2;
+
+
+typedef struct
+{
     char* pszStat;
     char* pszLAC;
     char* pszCID;

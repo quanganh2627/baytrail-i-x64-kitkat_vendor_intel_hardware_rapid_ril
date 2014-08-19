@@ -56,6 +56,7 @@ Group RequestTimeouts
     EnterSimPin2                       20000
     ChangeSimPin                       20000
     ChangeSimPin2                      20000
+    GetSimStatus                       60000
     SimTransmitChannel                 60000
     SimOpenChannel                     60000
     SimCloseChannel                    60000
@@ -66,11 +67,16 @@ Group RequestTimeouts
     HangupVT                           40000
     DialVT                             90000
 
-
 Group InternalRequestTimeouts
-    SilentPinEntry                     20000
-    QuerySimSmsStoreStatus             30000
-
+    SilentPinEntry                       20000
+    QuerySimSmsStoreStatus               30000
+    SetProfileDownloadForNextUiccStartup 30000
+    ConfigureUsatProfileDownload         30000
+    QueryUiccState                       30000
+    ReadUsatProfiles                     30000
+    WriteUsatProfile                     30000
+    ResetUicc                            30000
+    EnableProfileHandlingFacility        30000
 
 Group OtherTimeouts
     TimeoutCmdInit                      5000    // Value is in ms (if missing default = 5000ms)
@@ -117,7 +123,7 @@ Group Modem
 // - mipi_ipc for HSI (default)
 // - USBHS/NCM for USB
 // - USBHSIC/NCM for HSIC
-    ModemDataChannelResourceName        USBHS/NCM
+    ModemDataChannelResourceName        USBHSIC/NCM
 
 
 // Minimum data channel index (number of direct channels reserved for tty in HSI)
@@ -148,7 +154,7 @@ Group Modem
 //
 //  Command will be sent upon device init.
 //  If values are missing, then default modem values are used (default value is 0)
-    FDDelayTimer                2
+    FDDelayTimer                3
     SCRITimer                   30
 
 
@@ -188,6 +194,15 @@ Group Modem
    ApnTypeSUPL       2
    ApnTypeHIPRI      2
 
+// TE profile used for SATK
+   TeProfile         08E09721610F00186900001FE21FFFE6C70B0000070508002100000000180000
+
+// MT mask used for SATK to disable modem features
+// Byte 22.2 PROVIDE_LOCAL_INFORMATION (Battery State) class 'g'
+// Byte 26.1 CSG Cell Selection class 'q'
+// Byte 31.2 CSG Cell Discovery class 'q'
+   MtMask            0000000000000000000000000000000000000000000200000001000000000200
+
 //Total of direct channels reserved for data. The class 1 and class 2 apns
 //should be defined accordingly.
    HsiDataDirect    5
@@ -210,27 +225,23 @@ Group Modem
 // System Capability settings - Set a modem's capabilities using various flags
 //  These flags control the sending of init commands to a channel during initialization.
 //      "VoiceCapable" - Set to "0" to disable voice calls, otherwise enabled by default.
-//      "DataCapable" - Set to "0" to disable data calls, otherwise enabled by default.
 //      "SmsOverCSCapable" - Set to "0" to disable SMS over CS, otherwise enabled by default.
 //      "SmsOverPSCapable" - Set to "0" to disable SMS over PS, otherwise enabled by default.
 //      "StkCapable" - Set to "0" to disable STK support, otherwise enabled by default.
 //      "EnableXDATASTATReporting" - Set to "1" to enable data call status reporting, otherwise
 //                                  disabled by default.
-//      "IMSCapable" - Set to "1" to enable IMS support, otherwise disabled by default.
-//      "SMSOverIPCapable" - Set to "1" to enable SMS over IP, otherwise disabled by default.
+//      "EnableSMSOverIP" - Set to "1" to enable SMS over IMS, this setting will be used only
+//                          if IMS BP centric is activated (ims_support set to 1).
 //      "SupportCGPIAF" - Set to "1" to support new implementation based on +CGPIAF direct format
 //                        (for IMC IPV6 AT commands), or set to "0" to keep the current behavior.
 //      "EnableSignalStrengthReporting" - Set to "1" configures the modem to report signal strength
 //                          changes via an URC.
 //    VoiceCapable                0
-//    DataCapable                 0
 //    SmsOverCSCapable            0
 //    SmsOverPSCapable            0
 //    StkCapable                  0
 //    EnableXDATASTATReporting    1
-//    IMSCapable                  1
-//    EnableSMSOverIP             1
-//    SMSOverIPCapable            1
+    EnableSMSOverIP             1
     SupportCGPIAF               0
     EnableSignalStrengthReporting 1
 
@@ -265,7 +276,8 @@ Group ChannelSiloConfiguration
     SilosDLC2Channel        0x810    // Network and common silo (2)
     SilosDLC6Channel        0x805    // Voice, SMS and common silo (3).
     SilosDLC8Channel        0x802    // SIM and common silo (2)
-    SilosDLC23Channel       0x800    // common silo (1)
+    SilosDLC22Channel       0x800    // common silo (1)
+    SilosDLC23Channel       0x900    // common silo only + rfcoexistence (2)
     SilosURCChannel         0x8F7    // All silos except data
     SilosOEMChannel         0x800    // common silo only (1)
     SilosDataChannel        0x808    // Data and common silo (2)

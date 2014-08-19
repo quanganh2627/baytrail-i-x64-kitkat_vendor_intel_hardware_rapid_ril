@@ -93,6 +93,7 @@ public:
     virtual void PostWriteUsatProfileHandler(POST_CMD_HANDLER_DATA& data);
 
     virtual void ResetUicc();
+    virtual void NotifyUiccReady();
 
     virtual void EnableProfileFacilityHandling();
 
@@ -106,8 +107,7 @@ public:
                                                             UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimPinRetryCount(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DATA_REGISTRATION_STATE 21
-    virtual RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA& rspData);
+    virtual const char* GetSignalStrengthReportingString();
 
 protected:
     virtual RIL_RESULT_CODE CreateGetGprsCellEnvReq(REQUEST_DATA& reqData);
@@ -117,11 +117,9 @@ protected:
     virtual const char* GetSiloVoiceURCInitString();
     virtual void QueryPinRetryCount();
 
-    virtual const char* GetRegistrationInitString();
-    virtual const char* GetPsRegistrationReadString();
+    virtual void CopyCardStatus(RIL_CardStatus_v6& cardStatus);
 
-    virtual const char* GetScreenOnString();
-    virtual const char* GetScreenOffString();
+    virtual P_ND_N_CELL_INFO_DATA_V2 ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos);
 
 private:
 

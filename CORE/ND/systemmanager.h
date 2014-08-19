@@ -132,6 +132,12 @@ public:
     // This function returns true if we have multiple SIMs.
     BOOL IsMultiSIM() { return m_bIsMultiSIM; }
 
+    // This function returns true if we have multiple Modems.
+    BOOL IsMultiModem() { return m_bIsMultiModem; }
+
+    // This function sets the multiple modem flag.
+    void SetMultiModem(BOOL bIsMultiModem) { m_bIsMultiModem = bIsMultiModem; }
+
 private:
     // Framework Init Functions
     BOOL CreateQueues();
@@ -164,6 +170,8 @@ private:
     BOOL m_bIsDeviceDecrypted;
 
     BOOL m_bIsMultiSIM;
+
+    BOOL m_bIsMultiModem;
 
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     UINT32 m_uiLastCallFailedCauseID;

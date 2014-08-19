@@ -75,7 +75,7 @@ CSilo_Network::~CSilo_Network()
 char* CSilo_Network::GetURCInitString()
 {
     // network silo-related URC channel basic init string
-    const char szNetworkURCInitString[] = "+CTZU=1|+XNITZINFO=1|+CGEREP=1,0";
+    const char szNetworkURCInitString[] = "+CTZU=1|+CGEREP=1,0";
 
     if (!ConcatenateStringNullTerminate(m_szURCInitString,
             sizeof(m_szURCInitString), szNetworkURCInitString))
@@ -83,6 +83,17 @@ char* CSilo_Network::GetURCInitString()
         RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to copy URC init "
                 "string!\r\n");
         return NULL;
+    }
+
+    if (MODEM_TYPE_XMM2230 != CTE::GetTE().GetModemType())
+    {
+        if (!ConcatenateStringNullTerminate(m_szURCInitString,
+                sizeof(m_szURCInitString), "|+XNITZINFO=1"))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::GetURCInitString() : Failed to copy +XNITZINFO "
+                    "string!\r\n");
+            return NULL;
+        }
     }
 
     if (CTE::GetTE().IsSignalStrengthReportEnabled())
@@ -667,20 +678,12 @@ BOOL CSilo_Network::ParseXREG(CResponse* const pResponse, const char*& rszPointe
 
     RIL_LOG_VERBOSE("CSilo_Network::ParseXREG() - Enter / Exit\r\n");
 
-    // for 7260 modem, XREG used only for band information
-    if (MODEM_TYPE_XMM7260 == CTE::GetTE().GetModemType())
-    {
-        return ParseXREGNetworkInfo(pResponse, rszPointer);
-    }
-    else
-    {
-        // Backup the XREG response string to report data on crashtool
-        pszStart = rszPointer;
-        ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszEnd);
-        CTE::GetTE().SaveNetworkData(LAST_NETWORK_XREG, szBackup);
+    // Backup the XREG response string to report data on crashtool
+    pszStart = rszPointer;
+    ExtractUnquotedString(pszStart, m_szNewLine, szBackup, MAX_NETWORK_DATA_SIZE, pszEnd);
+    CTE::GetTE().SaveNetworkData(LAST_NETWORK_XREG, szBackup);
 
-        return ParseRegistrationStatus(pResponse, rszPointer, E_REGISTRATION_TYPE_XREG);
-    }
+    return ParseRegistrationStatus(pResponse, rszPointer, E_REGISTRATION_TYPE_XREG);
 }
 
 //
@@ -763,7 +766,7 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
         if (NULL == pChannelData)
         {
-            const int DEFAULT_DATA_PROFILE = 0;
+            const int DEFAULT_DATA_PROFILE = (1 << RIL_DATA_PROFILE_DEFAULT);
 
             // This is possible for Default PDN
             pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiPCID, DEFAULT_DATA_PROFILE);

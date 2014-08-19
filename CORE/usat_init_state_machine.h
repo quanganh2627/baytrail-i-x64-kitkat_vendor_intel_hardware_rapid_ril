@@ -81,6 +81,7 @@ public:
     void SetUiccState(const int state);
     int GetUiccState();
     CCatProfile* GetCatProfile();
+    bool IsSimResetPossible();
 
 private:
 
@@ -97,8 +98,8 @@ private:
     char** m_ppszProfiles;
     bool m_isStkServiceRunning;
     int m_uiccState;
-
     CMutex* m_pUsatStateLock;
+    int m_simEvent;
 };
 
 #endif // STATE_MACHINE_H

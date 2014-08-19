@@ -55,6 +55,8 @@ protected:
     bool m_bRegStatusAndBandIndActivated;
     sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND m_sRegStatusAndBandInfo;
 
+    bool m_bNeedGetInfoOnCellChange;
+
     static const char* PDPTYPE_IPV4V6;
     static const char* PDPTYPE_IPV6;
     static const char* PDPTYPE_IP;
@@ -520,7 +522,7 @@ public:
     virtual RIL_RESULT_CODE CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
                                                                  void* pData,
                                                                  UINT32 uiDataSize);
-    RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData);
 
     virtual RIL_RESULT_CODE ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
                                                             const char* pszRsp,
@@ -708,7 +710,7 @@ public:
     virtual RIL_RESULT_CODE CoreGetCellInfoList(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize);
-    RIL_RESULT_CODE ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol = FALSE);
+    virtual RIL_RESULT_CODE ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol = FALSE);
 
     virtual RIL_RESULT_CODE ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
                                                            const char* pszRsp,
@@ -985,6 +987,7 @@ public:
     virtual void PostWriteUsatProfileHandler(POST_CMD_HANDLER_DATA& data);
 
     virtual void ResetUicc();
+    virtual void NotifyUiccReady();
 
     virtual void EnableProfileFacilityHandling();
 
@@ -1010,6 +1013,10 @@ public:
     virtual const char* GetSiloVoiceURCInitString();
 
     virtual const char* GetEnableFetchingString();
+
+    virtual const char* GetReadCellInfoString() { return NULL; }
+
+    bool NeedGetCellInfoOnCellChange() { return m_bNeedGetInfoOnCellChange; }
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);

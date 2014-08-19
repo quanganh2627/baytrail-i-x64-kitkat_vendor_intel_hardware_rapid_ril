@@ -128,18 +128,6 @@ BOOL setflags(int s, struct ifreq* ifr, int set, int clr)
     return TRUE;
 }
 
-BOOL setmtu(int s, struct ifreq* ifr)
-{
-    ifr->ifr_mtu = CTE::GetTE().GetMTU();
-    RIL_LOG_INFO("setmtu - calling SIOCSIFMTU\r\n");
-    if(ioctl(s, SIOCSIFMTU, ifr) < 0)
-    {
-        RIL_LOG_CRITICAL("setmtu: ERROR: SIOCSIFMTU\r\n");
-        return FALSE;
-    }
-    return TRUE;
-}
-
 BOOL ExtractLocalAddressAndSubnetMask(char* pAddressAndSubnetMask,
         char* pIPv4LocalAddr, UINT32 uiIPv4LocalAddrSize,
         char* pIPv6LocalAddr, UINT32 uiIPv6LocalAddrSize,

@@ -83,10 +83,12 @@ public:
     virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             void* pData, UINT32 uiDataSize);
 
-    // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
-    virtual RIL_RESULT_CODE CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
-            void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
+    virtual RIL_RESULT_CODE CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
+        void* pData, UINT32 uiDataSize);
+    virtual  RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData);
 
     // RIL_UNSOL_SIGNAL_STRENGTH  1009
     virtual RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData);
@@ -95,6 +97,11 @@ public:
     virtual RIL_RESULT_CODE CoreISimAuthenticate(REQUEST_DATA& rReqData,
              void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseISimAuthenticate(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_GET_CELL_INFO_LIST 109
+    virtual RIL_RESULT_CODE CoreGetCellInfoList(REQUEST_DATA& rReqData, void* pData,
+            UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol = FALSE);
 
     virtual BOOL IMSRegister(REQUEST_DATA& rReqData, void* pData,
                                                     UINT32 uiDataSize);
@@ -126,16 +133,6 @@ public:
 
     virtual BOOL DataConfigDown(UINT32 uiCID, BOOL bForceCleanup = FALSE);
 
-    virtual RIL_RESULT_CODE ParseNeighboringCellInfo(P_ND_N_CELL_DATA pCellData,
-                                                            const char* pszRsp,
-                                                            UINT32 uiIndex,
-                                                            UINT32 uiMode);
-
-    virtual RIL_RESULT_CODE ParseCellInfo(P_ND_N_CELL_INFO_DATA pCellData,
-                                                       const char* pszRsp,
-                                                       UINT32 uiIndex,
-                                                       UINT32 uiMode);
-
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
 
     virtual const char* GetSignalStrengthReportingString();
@@ -157,6 +154,9 @@ public:
     virtual RIL_RESULT_CODE ParseXCSG(const char* pszRsp, RESPONSE_DATA& rspData);
 
     virtual const char* GetSiloVoiceURCInitString();
+    virtual const char* GetReadCellInfoString();
+    virtual BOOL GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData);
+
 
 protected:
 
@@ -184,6 +184,13 @@ protected:
     virtual RIL_RESULT_CODE GetCsgCurrentState(REQUEST_DATA& reqData);
 
     virtual const char* GetEnablingEtwsString();
+
+    virtual P_ND_N_CELL_INFO_DATA_V2 ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos);
+    int MapRxlevToSignalStrengh(int rxlev);
+    int MapToAndroidRsrp(int rsrp);
+    int MapToAndroidRsrq(int rsrq);
+    int MapToAndroidRssnr(int rssnr);
+
 private:
 
     RIL_RESULT_CODE ParseXTAMR(const char* pszRsp, RESPONSE_DATA& rspData);

@@ -113,8 +113,6 @@ Group Modem
     NetworkInterfaceNamePrefix        usb       // The number will be appended in RIL
                                                 // Number appended = Context ID - 1
                                                 // e.g. Context ID = 1, "rmnet0"
-// MTU size - 1358 is the value recommended in 3GPP 23.060 for both support of IPv4 and IPv6 traffic
-    MTU                         1358
 
 // Modem resource name could be:
 // - mipi_ipc for HSI (default)
@@ -213,6 +211,7 @@ Group Modem
 // System Capability settings - Set a modem's capabilities using various flags
 //  These flags control the sending of init commands to a channel during initialization.
 //      "VoiceCapable" - Set to "0" to disable voice calls, otherwise enabled by default.
+//      "DataCapable" - Set to "0" to disable data calls, otherwise enabled by default.
 //      "SmsOverCSCapable" - Set to "0" to disable SMS over CS, otherwise enabled by default.
 //      "SmsOverPSCapable" - Set to "0" to disable SMS over PS, otherwise enabled by default.
 //      "StkCapable" - Set to "0" to disable STK support, otherwise enabled by default.
@@ -225,6 +224,7 @@ Group Modem
 //      "EnableSignalStrengthReporting" - Set to "1" configures the modem to report signal strength
 //                          changes via an URC.
     VoiceCapable                0
+//  DataCapable                 0
     SmsOverCSCapable            1
     SmsOverPSCapable            1
 //    StkCapable                  0
