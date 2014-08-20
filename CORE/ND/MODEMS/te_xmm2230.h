@@ -40,6 +40,11 @@ public:
 
     virtual CInitializer* GetInitializer();
 
+    // RIL_REQUEST_BASEBAND_VERSION 51
+    virtual RIL_RESULT_CODE CoreBasebandVersion(REQUEST_DATA& rReqData,
+            void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseBasebandVersion(RESPONSE_DATA& rRspData);
+
     // RIL_REQUEST_SIM_TRANSMIT_BASIC 114
     virtual RIL_RESULT_CODE CoreSimTransmitBasic(REQUEST_DATA& rReqData,
             void* pData,

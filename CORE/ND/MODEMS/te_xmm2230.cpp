@@ -99,6 +99,102 @@ const char* CTE_XMM2230::GetScreenOnString()
 }
 
 //
+// RIL_REQUEST_BASEBAND_VERSION 51
+//
+RIL_RESULT_CODE CTE_XMM2230::CoreBasebandVersion(REQUEST_DATA& rReqData,
+        void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM2230::CoreBasebandVersion() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (CopyStringNullTerminate(rReqData.szCmd1, "at+xgendata\r",
+            sizeof(rReqData.szCmd1)))
+    {
+        res = RRIL_RESULT_OK;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM2230::CoreBasebandVersion() - Exit\r\n");
+    return res;
+}
+
+#define STRINGIFY(x) #x
+#define TO_STRING(x) STRINGIFY(x)
+
+RIL_RESULT_CODE CTE_XMM2230::ParseBasebandVersion(RESPONSE_DATA& rRspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM2230::ParseBasebandVersion() - Enter\r\n");
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    const char* pszRsp = rRspData.szResponse;
+    /* As baseband version is stored in a system property, it cannot be longer than
+     * PROPERTY_VALUE_MAX-1 characters long (PROPERTY_VALUE_MAX counts the zero termination).
+     *
+     * + 1 is needed here as 'sscanf' will read PROPERTY_VALUE_MAX characters AND will add the
+     * zero termination (cf comment above sscanf code).
+     */
+    char* pszBasebandVersion = (char*) malloc(PROPERTY_VALUE_MAX + 1);
+    if (NULL == pszBasebandVersion)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM2230::ParseBasebandVersion() - Could not allocate memory"
+                "for pszBasebandVersion\r\n");
+        goto Error;
+    }
+
+    memset(pszBasebandVersion, 0, PROPERTY_VALUE_MAX + 1);
+
+    /* Modem version is what is reported between '*' in the +XGENDATA reply:
+     *    +XGENDATA: "    XMM2230_REV_2.0 2013-Jul-31 13:42:17
+     *    *CLV_2230_MODEM_01.1332.A*
+     *    OK
+     *
+     * This is retrieved using 'sscanf':
+     *   = %*[^*]  : consumes (without storing) everything that is not '*'
+     *   = %*c     : consumes (without storing) the '*' character
+     *   = %XXX[^*]: stores up to XXX chars or up to next '*' character in pszBasebandVersion
+     *               XXX's numerical value is constructed by converting the PROPERTY_VALUE_MAX
+     *               define to a string using the TO_STRING macro
+     */
+    if (!sscanf(pszRsp, "%*[^*]%*c%" TO_STRING(PROPERTY_VALUE_MAX) "[^*]", pszBasebandVersion))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM2230::ParseBasebandVersion() - Could not "
+                "extract the baseband version string.\r\n");
+        goto Error;
+    }
+    if (pszBasebandVersion[PROPERTY_VALUE_MAX - 1] != '\0')
+    {
+        RIL_LOG_WARNING("CTE_XMM6360::ParseBasebandVersion() - "
+                "Modem version too long, reporting truncated version.\r\n");
+        pszBasebandVersion[PROPERTY_VALUE_MAX - 1] = '\0';
+    }
+
+    if (pszBasebandVersion[0] == '\0')
+    {
+        RIL_LOG_CRITICAL("CTE_XMM2230::ParseBasebandVersion() - "
+                "Invalid baseband version string.\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CTE_XMM2230::ParseBasebandVersion() - "
+            "pszBasebandVersion=[%s]\r\n", pszBasebandVersion);
+
+    rRspData.pData   = (void*)pszBasebandVersion;
+    rRspData.uiDataSize  = sizeof(char*);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pszBasebandVersion);
+        pszBasebandVersion = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM2230::ParseBasebandVersion() - Exit\r\n");
+    return res;
+}
+
+//
 // RIL_REQUEST_SIM_TRANSMIT_BASIC 114
 //
 RIL_RESULT_CODE CTE_XMM2230::CoreSimTransmitBasic(REQUEST_DATA& /*rReqData*/,
