@@ -2776,11 +2776,19 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
 
     // If default is not already opened, Android could request to open the HIPRI connection,
     // but we must consider it as a default connection request
+#if !defined (M2_PDK_OR_GMIN_BUILD)
     if (dataProfile & (1 << RIL_DATA_PROFILE_HIPRI))
+#else
+    if (dataProfile == RIL_DATA_PROFILE_HIPRI)
+#endif
     {
         RIL_LOG_WARNING("CTE::RequestSetupDataCall() -"
                 " Override HIPRI profile request with DEFAULT");
+#if !defined (M2_PDK_OR_GMIN_BUILD)
         dataProfile |= (1<<RIL_DATA_PROFILE_DEFAULT);
+#else
+        dataProfile = RIL_DATA_PROFILE_DEFAULT;
+#endif
         PrintStringNullTerminate(pszDataProfile, sizeof(pszDataProfile),
                 "%d", dataProfile);
     }

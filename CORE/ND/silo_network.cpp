@@ -766,8 +766,11 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
         if (NULL == pChannelData)
         {
+#if !defined (M2_PDK_OR_GMIN_BUILD)
             const int DEFAULT_DATA_PROFILE = (1 << RIL_DATA_PROFILE_DEFAULT);
-
+#else
+            const int DEFAULT_DATA_PROFILE = 0;
+#endif
             // This is possible for Default PDN
             pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiPCID, DEFAULT_DATA_PROFILE);
             if (NULL != pChannelData)

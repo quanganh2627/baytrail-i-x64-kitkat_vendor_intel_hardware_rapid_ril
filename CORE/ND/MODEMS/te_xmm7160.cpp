@@ -218,7 +218,9 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
     int dataProfile = -1;
     int nEmergencyFlag = 0; // 1: emergency pdn
     int nRequestPcscfFlag = 0; // 1: request pcscf address
+#if !defined (M2_PDK_OR_GMIN_BUILD)
     int nImSignalingFlag = 0; // 1: IMS Only APN
+#endif
     UINT32 uiDnsMode = 0;
 
     RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - uiDataSize=[%u]\r\n", uiDataSize);
@@ -290,7 +292,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
         RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szPDPType=[%s]\r\n",
                 stPdpData.szPDPType);
     }
-
+#if !defined (M2_PDK_OR_GMIN_BUILD)
     if (dataProfile & (1 << RIL_DATA_PROFILE_EMERGENCY))
     {
         nEmergencyFlag = 1;
@@ -310,6 +312,17 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
             nImSignalingFlag = 1;
         }
     }
+#else
+    if (dataProfile == RIL_DATA_PROFILE_EMERGENCY)
+    {
+        nEmergencyFlag = 1;
+    }
+
+    if (dataProfile == RIL_DATA_PROFILE_IMS && m_cte.IsIMSApCentric())
+    {
+        nRequestPcscfFlag = 1;
+    }
+#endif
 
     //
     //  IP type is passed in dynamically.
@@ -329,11 +342,19 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
     //  dynamic PDP type, need to set XDNS parameter depending on szPDPType.
     //  If not recognized, just use IPV4V6 as default.
     uiDnsMode = GetXDNSMode(stPdpData.szPDPType);
+
+#if !defined (M2_PDK_OR_GMIN_BUILD)
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
             "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d,%d,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
             uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, nRequestPcscfFlag,
             nImSignalingFlag, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
             uiCID, uiDnsMode))
+#else
+    if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+            "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
+            uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, nRequestPcscfFlag,
+            uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword, uiCID, uiDnsMode))
+#endif
     {
         RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
                 " cannot create CGDCONT command, stPdpData.szPDPType\r\n");
@@ -1190,6 +1211,10 @@ Error:
 
 BOOL CTE_XMM7160::GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData)
 {
+#if defined (M2_PDK_OR_GMIN_BUILD)
+    return CTE_XMM6260::GetSetInitialAttachApnReqData(rReqData);
+#endif
+
     UINT32 uiMode = GetXDNSMode(m_InitialAttachApnParams.szPdpType);
     int requestPcscf = m_InitialAttachApnParams.requestPcscf;
 
