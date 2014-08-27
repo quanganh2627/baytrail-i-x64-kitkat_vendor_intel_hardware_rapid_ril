@@ -9898,6 +9898,14 @@ void CTE::PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData)
         }
     }
 
+    if ((RIL_E_SUCCESS == rData.uiResultCode)
+            && (E_NETWORK_SELECTION_MODE_MANUAL == m_pTEBaseInstance->GetNetworkSelectionMode())
+            && ((E_REGISTRATION_REGISTERED_ROAMING == strtol(m_sPSStatus.szStat, NULL, 10))
+            || (E_REGISTRATION_REGISTERED_ROAMING == strtol(m_sEPSStatus.szStat, NULL, 10))))
+    {
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
+    }
+
     RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
                                                 rData.pData, rData.uiDataSize);
 
