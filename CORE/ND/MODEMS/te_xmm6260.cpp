@@ -40,7 +40,7 @@
 #include "callbacks.h"
 #include "init6260.h"
 #include "bertlv_util.h"
-
+#include "hardwareconfig.h"
 
 CTE_XMM6260::CTE_XMM6260(CTE& cte)
 : CTEBase(cte),
@@ -2209,7 +2209,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
 
         case RIL_OEM_HOOK_STRING_SWAP_PS:
             {
-                if (CSystemManager::GetInstance().IsMultiSIM())
+                if (CHardwareConfig::GetInstance().IsMultiSIM())
                 {
                     RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_SWAP_PS");
                     if (!PrintStringNullTerminate(rReqData.szCmd1,
@@ -2226,7 +2226,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             }
 
         case RIL_OEM_HOOK_STRING_SIM_RESET:
-            if (CSystemManager::GetInstance().IsMultiSIM())
+            if (CHardwareConfig::GetInstance().IsMultiSIM())
             {
                 RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_SIM_RESET");
                 if (!PrintStringNullTerminate(rReqData.szCmd1,
@@ -2243,7 +2243,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             break;
 
         case RIL_OEM_HOOK_STRING_GET_DVP_STATE:
-            if (CSystemManager::GetInstance().IsMultiSIM())
+            if (CHardwareConfig::GetInstance().IsMultiSIM())
             {
                 RIL_LOG_INFO("Received Command: RIL_OEM_HOOK_STRING_GET_DVP_STATE");
                 if (!PrintStringNullTerminate(rReqData.szCmd1,
@@ -6424,8 +6424,8 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
         return bRet;
     }
 
-    if (!CSystemManager::GetInstance().IsMultiSIM()
-            || CSystemManager::GetInstance().IsMultiModem())
+    if (!CHardwareConfig::GetInstance().IsMultiSIM()
+            || CHardwareConfig::GetInstance().IsMultiModem())
     {
         if (bTurnRadioOn)
         {
@@ -6459,31 +6459,11 @@ BOOL CTE_XMM6260::GetRadioPowerCommand(BOOL bTurnRadioOn, int radioOffReason,
     }
     else
     {
-        // use SIM-specific property, depending on RIL instance
-        char szSimPowerOffStatePropName[PROPERTY_VALUE_MAX] = {'\0'};
-        char szSimPowerOffState[PROPERTY_VALUE_MAX] = {'\0'};
-        UINT32 uiSimPoweredOff;
-        UINT32 uiFunMode;
-
-        if (g_szSubscriptionID)
-        {
-            snprintf(szSimPowerOffStatePropName, PROPERTY_VALUE_MAX,
-                    "gsm.simmanager.set_off_sim%d",
-                    ('0' == g_szSubscriptionID[0]) ? 1 : 2);
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE_XMM6260::GetRadioPowerCommand()"
-                    "- g_szSubscriptionID is NULL\r\n");
-            goto Error;
-        }
-
-        // get SIM power off state: "true" = SIM powered Off, "false" = SIM powered On
-        property_get(szSimPowerOffStatePropName, szSimPowerOffState, "");
-        uiSimPoweredOff = (strcmp(szSimPowerOffState, "true") == 0) ? 1 : 0;
+        // set the SIM power off parameter
+        UINT32 uiSimPoweredOff = bTurnRadioOn ? 0 : 1;
 
         // Power On (20) or flight mode (21)
-        uiFunMode = bTurnRadioOn ? 20 : 21;
+        UINT32 uiFunMode = bTurnRadioOn ? 20 : 21;
 
         if (!PrintStringNullTerminate(szCmd, sizeof(szCmd),
                 "AT+CFUN=%u,%u\r", uiFunMode, uiSimPoweredOff))

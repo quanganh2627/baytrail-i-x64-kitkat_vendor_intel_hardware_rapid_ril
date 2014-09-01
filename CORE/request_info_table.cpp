@@ -15,6 +15,7 @@
 #include "request_info_table.h"
 #include "repository.h"
 #include "te.h"
+#include "hardwareconfig.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 CRequestInfoTable::CRequestInfoTable()
@@ -123,7 +124,7 @@ void CRequestInfoTable::GetRequestInfo(int requestID, REQ_INFO& rReqInfo)
             rReqInfo.uiTimeout = WAIT_FOREVER;
         }
 
-        else if (CSystemManager::GetInstance().IsMultiSIM())
+        else if (CHardwareConfig::GetInstance().IsMultiSIM())
         {
             // Timeout values need to be extended for Multi SIM capable modems,
             // depending on type of command (ie. network/non-network)

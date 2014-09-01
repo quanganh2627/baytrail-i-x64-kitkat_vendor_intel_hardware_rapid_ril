@@ -26,6 +26,7 @@
 #include "data_util.h"
 #include "te.h"
 #include "te_base.h"
+#include "hardwareconfig.h"
 #include <sys/ioctl.h>
 #include <cutils/properties.h>
 
@@ -944,7 +945,7 @@ ePCache_Code encrypt(const char* pszInput, const int nInputLen, const char* pszK
     // Copy the encrypted data to buffer
     memcpy(encryptedBuf + UICCID_SIZE, buf, BUF_LEN * sizeof(UINT16));
 
-    if ((NULL != g_szSubscriptionID) && ('2' == g_szSubscriptionID[0]))
+    if (1 == CHardwareConfig::GetInstance().GetSIMId())
     {
         if (lseek(writeFd, CACHED_UICCID_PIN_SIZE, SEEK_SET) < CACHED_UICCID_PIN_SIZE)
         {
@@ -1014,7 +1015,7 @@ ePCache_Code decrypt(char* pszOut, const char* pszKey, const char* pFile)
     }
     else
     {
-        if ((NULL != g_szSubscriptionID) && ('2' == g_szSubscriptionID[0]))
+        if (1 == CHardwareConfig::GetInstance().GetSIMId())
         {
             if (lseek(readFd, CACHED_UICCID_PIN_SIZE, SEEK_SET) < CACHED_UICCID_PIN_SIZE)
             {
@@ -1120,7 +1121,7 @@ BOOL IsRequiredCacheAvailable()
         }
 
         int maxCacheSizeNeeded = CACHED_UICCID_PIN_SIZE;
-        if ((NULL != g_szSubscriptionID) && ('2' == g_szSubscriptionID[0]))
+        if (1 == CHardwareConfig::GetInstance().GetSIMId())
         {
             maxCacheSizeNeeded *= 2;
         }

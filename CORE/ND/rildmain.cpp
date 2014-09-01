@@ -25,7 +25,7 @@
 #include <cutils/properties.h>
 #include <utils/Log.h>
 #include "tcs.h"
-#include "extract.h"
+#include "hardwareconfig.h"
 
 ///////////////////////////////////////////////////////////
 //  FUNCTION PROTOTYPES
@@ -56,7 +56,7 @@ char* g_szDLC22Port = NULL;
 char* g_szDLC23Port = NULL;
 char* g_szURCPort = NULL;
 char* g_szOEMPort = NULL;
-char* g_szSubscriptionID = NULL;
+char* g_szClientId = NULL;
 
 // Upper limit on number of RIL channels to create
 UINT32 g_uiRilChannelUpperLimit = RIL_CHANNEL_MAX;
@@ -565,30 +565,6 @@ static const char* getVersion(void)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-size_t getSubscriptionId(void)
-{
-    size_t subscriptionId  = 1; /* Default subscriptionId is 1 */
-    int conv = 0;
-
-    if (g_szSubscriptionID != NULL)
-    {
-        const char* dummy_ptr = NULL;
-
-        if (ExtractInt((const char*)g_szSubscriptionID, conv, dummy_ptr))
-        {
-            subscriptionId = conv;
-        }
-        else
-        {
-            RLOGE("%s - Failed to extract subscriptionId", __FUNCTION__);
-        }
-    }
-
-    return subscriptionId;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
 static bool copyDlc(char **out, channel_t* ch, int channelNumber)
 {
     bool ret = true;
@@ -666,8 +642,10 @@ static void* mainLoop(void* param)
     RLOGI("mainLoop() - Enter\r\n");
 
     UINT32 dwRet = 1;
+    int modemId = 0;
+    int subscriptionId = 0;
+    int SIMId = 0;
 
-    size_t        subscriptionId      = getSubscriptionId() - 1;
     tcs_handle_t* h                   = tcs_init();
     tcs_cfg_t*    cfg                 = NULL;
     if (h == NULL)
@@ -685,29 +663,43 @@ static void* mainLoop(void* param)
         goto Error;
     }
 
-    if (cfg->nb > 1)
+    // Create the hardware config from the configuration file
+    if (!CHardwareConfig::GetInstance().CreateHardwareConfig(cfg))
     {
-        CSystemManager::GetInstance().SetMultiModem(TRUE);
-    }
-
-    // Make sure we can access Non-Volatile Memory
-    if (!CRepository::Init(cfg->mdm[subscriptionId].mod.rril_txt))
-    {
-        RLOGE("%s - could not initialize configuration file", __func__);
+        RLOGE("%s - Failed to create hardware config", __func__);
 
         dwRet = 0;
         goto Error;
     }
 
-    if (!RIL_SetGlobals(&cfg->mdm[subscriptionId].chs.ch[0].rril))
+    // Get the subscription, modem and SIM ids
+    subscriptionId = CHardwareConfig::GetInstance().GetSubscriptionId();
+    modemId = CHardwareConfig::GetInstance().GetModemId();
+    SIMId = CHardwareConfig::GetInstance().GetSIMId();
+
+    // Make sure each instances can access Non-Volatile Memory
+    if (!CRepository::Init(cfg->mdm[modemId].mod.rril_txt))
     {
-        RLOGE("%s - Failed to initialize globals", __func__);
+        RLOGE("%s - could not initialize configuration file for modem ID %d",
+                __func__,
+                modemId);
+
+        dwRet = 0;
+        goto Error;
+    }
+
+    if (!RIL_SetGlobals(&cfg->mdm[modemId].chs.ch[SIMId].rril))
+    {
+         RLOGE("%s - Multi Modem - Failed to initialize globals for modemID %d SIMId %d",
+                __func__,
+                modemId,
+                SIMId);
         dwRet = 0;
         goto Error;
     }
 
     // Initialize logging class
-    CRilLog::Init(g_szSubscriptionID);
+    CRilLog::Init(subscriptionId);
 
     // Initialize storage mechanism for error causes
     CModemRestart::Init();
@@ -722,9 +714,10 @@ static void* mainLoop(void* param)
     }
 
     // Create and start system manager
-    if (!CSystemManager::GetInstance().InitializeSystem(cfg->mdm[subscriptionId].core.name))
+    if (!CSystemManager::GetInstance().InitializeSystem(cfg->mdm[modemId].core.name))
     {
-        RIL_LOG_CRITICAL("mainLoop() - RIL InitializeSystem() FAILED\r\n");
+        RIL_LOG_CRITICAL("mainLoop() - RIL InitializeSystem() FAILED for modem ID: %d\r\n",
+                modemId);
 
         dwRet = 0;
         goto Error;
@@ -755,14 +748,13 @@ static bool getCmdLineOptions(int argc, char** argv)
     bool ret = true;
     int opt  = 0;
 
-    while (-1 != (opt = getopt(argc, argv, "hi:")))
+    while (-1 != (opt = getopt(argc, argv, "hc:")))
     {
         switch (opt)
         {
-            case 'i':
-                g_szSubscriptionID = optarg;
-                RLOGI("%s - Using SubscriptionID \"%s\" for all channels\r\n",
-                        __FUNCTION__, g_szSubscriptionID);
+            case 'c':
+                g_szClientId = optarg;
+                RLOGI("%s - Using ClientId %s\r\n", __FUNCTION__, g_szClientId);
                 break;
 
             case 'h':

@@ -29,7 +29,7 @@ const char SUBSCRIPTIONID_DEFAULT_VALUE[] = "none";
 class CRilLog
 {
 public:
-    static void Init(char* szSubscriptionID);
+    static void Init(int subscriptionID);
     static void Verbose(const char* const szFormatString, ...);
     static void Info(const char* const szFormatString, ...);
     static void Warning(const char* const szFormatString, ...);

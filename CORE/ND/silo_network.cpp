@@ -32,6 +32,7 @@
 #include "te_base.h"
 #include "oemhookids.h"
 #include "repository.h"
+#include "hardwareconfig.h"
 //
 //
 CSilo_Network::CSilo_Network(CChannel* pChannel)
@@ -526,7 +527,7 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         {
             fUnSolicited = TRUE;
         }
-        else if (CSystemManager::GetInstance().IsMultiSIM() && (7 == nNumParams))
+        else if (CHardwareConfig::GetInstance().IsMultiSIM() && (7 == nNumParams))
         {
             if (CTE::GetTE().IsTempOoSNotificationEnabled())
             {

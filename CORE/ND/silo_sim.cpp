@@ -27,6 +27,7 @@
 #include "reset.h"
 #include "ccatprofile.h"
 #include "usat_init_state_machine.h"
+#include "hardwareconfig.h"
 
 #include <cutils/properties.h>
 
@@ -770,6 +771,7 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
     UINT32 uiTotalCnt = 0;
     char szECCItem[MAX_BUFFER_SIZE] = {0};
     const char szRIL_ECCLIST[] = "ril.ecclist";
+    int subscriptionId = CHardwareConfig::GetInstance().GetSubscriptionId();
 
     if (pResponse == NULL)
     {
@@ -833,18 +835,17 @@ BOOL CSilo_SIM::ParseXLEMA(CResponse* const pResponse, const char*& rszPointer)
     {
         char szEccListProp[PROPERTY_VALUE_MAX] = {0};
 
-        //  If subscription id == 0 or if subscription id is not provided by RILD,
-        //  then continue to use "ril.ecclist" property name.
-        if ( (NULL == g_szSubscriptionID) || ('1' == g_szSubscriptionID[0]) )
+        //  If subscription id is 0 then continue to use "ril.ecclist" property name.
+        if (!subscriptionId)
         {
             strncpy(szEccListProp, szRIL_ECCLIST, PROPERTY_VALUE_MAX-1);
             szEccListProp[PROPERTY_VALUE_MAX-1] = '\0'; // KW fix
         }
         else
         {
-            snprintf(szEccListProp, PROPERTY_VALUE_MAX, "%s%s",
+            snprintf(szEccListProp, PROPERTY_VALUE_MAX, "%s%d",
                     szRIL_ECCLIST,
-                    g_szSubscriptionID);
+                    subscriptionId);
         }
 
         RIL_LOG_INFO("CSilo_SIM::ParseXLEMA() - uiIndex == uiTotalCnt == %d\r\n", uiTotalCnt);

@@ -62,7 +62,8 @@ LOCAL_SRC_FILES:= \
     ND/ccatprofile.cpp \
     usat_state.cpp \
     usat_init_state_machine.cpp \
-    cbs_info.cpp
+    cbs_info.cpp \
+    ND/hardwareconfig.cpp
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli librilutils libtcs
 

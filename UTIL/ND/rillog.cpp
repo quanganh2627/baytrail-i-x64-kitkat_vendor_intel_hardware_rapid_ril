@@ -34,17 +34,17 @@ BOOL  CRilLog::m_bInitialized = FALSE;
 BOOL  CRilLog::m_bFullLogBuild = FALSE;
 char  CRilLog::m_szSubscriptionID[SUBSCRIPTIONID_MAX_LENGTH];
 
-void CRilLog::Init(char* szSubscriptionID)
+void CRilLog::Init(int subscriptionID)
 {
     CRepository repository;
     int         iLogLevel;
     char        szBuildType[PROPERTY_VALUE_MAX] = {0};
 
-    if (szSubscriptionID != NULL)
+    RLOGI("Subscription ID value : %d", subscriptionID);
+    if (subscriptionID)
     {
-        RLOGE("Subscription ID value : %s", szSubscriptionID);
-        strncpy(m_szSubscriptionID, szSubscriptionID,
-                sizeof(m_szSubscriptionID)-1);
+        snprintf(m_szSubscriptionID, sizeof(m_szSubscriptionID)-1, "%d",
+            subscriptionID);
         m_szSubscriptionID[sizeof(m_szSubscriptionID)-1] = '\0';  // KW fix
     }
     else

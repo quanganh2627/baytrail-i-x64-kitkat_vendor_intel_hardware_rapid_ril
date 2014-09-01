@@ -39,6 +39,7 @@
 #include "reset.h"
 #include "initializer.h"
 #include "systemmanager.h"
+#include "hardwareconfig.h"
 
 #include <cutils/properties.h>
 #include <cutils/sockets.h>
@@ -59,7 +60,6 @@ CEvent* g_RxQueueEvent[RIL_CHANNEL_MAX];
 CChannel* g_pRilChannel[RIL_CHANNEL_MAX] = { NULL };
 
 CSystemManager* CSystemManager::m_pInstance = NULL;
-
 
 CSystemManager& CSystemManager::GetInstance()
 {
@@ -106,8 +106,7 @@ CSystemManager::CSystemManager()
     m_RequestInfoTable(),
     m_bIsSystemInitialized(FALSE),
     m_bIsModemResourceAcquired(FALSE),
-    m_bIsDeviceDecrypted(FALSE),
-    m_bIsMultiModem(FALSE)
+    m_bIsDeviceDecrypted(FALSE)
 #if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
     ,m_uiLastCallFailedCauseID(0)
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
@@ -124,8 +123,6 @@ CSystemManager::CSystemManager()
     m_pSpoofCommandsStatusAccessMutex = new CMutex();
 
     m_pTEAccessMutex = new CMutex();
-
-    m_bIsMultiSIM = g_szSubscriptionID != NULL;
 
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Exit\r\n");
 }
@@ -745,15 +742,17 @@ BOOL CSystemManager::MMgrConnectionInit()
     BOOL bRet = FALSE;
     const int NUM_LOOPS = 10;
     const int SLEEP_MS = 1000;  // 1 sec between retries
+    int subscriptionId = CHardwareConfig::GetInstance().GetSubscriptionId();
+    int modemId = CHardwareConfig::GetInstance().GetModemId();
 
     char RRIL_NAME[CLIENT_NAME_LEN] = "RRIL";
 
     // Initialize internal state to unknown.
     CTE::GetTE().SetLastModemEvent(MODEM_STATE_UNKNOWN);
 
-    if (g_szSubscriptionID)
+    if (subscriptionId)
     {
-        RRIL_NAME[4] = g_szSubscriptionID[0];
+        RRIL_NAME[4] = static_cast<char> (subscriptionId);
         RRIL_NAME[5] = '\0';
     }
 
@@ -842,16 +841,13 @@ BOOL CSystemManager::MMgrConnectionInit()
         goto out;
     }
 
-    if (g_szSubscriptionID)
+    if (E_ERR_CLI_SUCCEED !=
+          mmgr_cli_set_instance(m_pMMgrLibHandle, modemId + 1))
     {
-        if (E_ERR_CLI_SUCCEED !=
-              mmgr_cli_set_instance(m_pMMgrLibHandle, getSubscriptionId()))
-        {
-            RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
-                    " Cannot set the instance id %zu\n",
-                    getSubscriptionId());
-            goto out;
-        }
+        RIL_LOG_CRITICAL("CSystemManager::MMgrConnectionInit() -"
+                " Cannot set the instance id %u\n",
+                modemId + 1);
+        goto out;
     }
 
     //  TODO: Change looping formula
