@@ -905,14 +905,8 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
                 continue;
             }
 
-#if defined (M2_PDK_OR_GMIN_BUILD)
             int nCellInfoType = info.cellInfoType;
             switch(nCellInfoType)
-#else
-            switch (info.cellInfoType)
-
-#endif
-
             {
                 case RIL_CELL_INFO_TYPE_GSM_V2:
                     pNeighboringCellData->aRilNeighboringCell[nNeighboringCellInfos].cid
@@ -3210,11 +3204,52 @@ RIL_RESULT_CODE CTE_XMM7160::CoreGetCellInfoList(REQUEST_DATA& rReqData,
     return res;
 }
 
+void CTE_XMM7160::ConvertCellInfoForVanillaAOSP(P_ND_N_CELL_INFO_DATA_V2 pOldData,
+        P_ND_N_CELL_INFO_DATA pNewData, int nCellInfos)
+{
+
+    for (int i=0; i < nCellInfos; i++)
+    {
+        RIL_CellInfo_v2& oldInfo = pOldData->aRilCellInfo[i];
+        RIL_CellInfo& newInfo = pNewData->aRilCellInfo[i];
+        newInfo.registered = oldInfo.registered;
+        newInfo.timeStampType = oldInfo.timeStampType;
+        newInfo.timeStamp = oldInfo.timeStamp;
+
+        int cellInfoType = oldInfo.cellInfoType;
+        switch(cellInfoType)
+        {
+            case RIL_CELL_INFO_TYPE_GSM_V2:
+                newInfo.cellInfoType = RIL_CELL_INFO_TYPE_GSM;
+                newInfo.CellInfo.gsm.signalStrengthGsm
+                        = *((RIL_GW_SignalStrength*) &oldInfo.CellInfo.gsm.signalStrengthGsm);
+                newInfo.CellInfo.gsm.cellIdentityGsm
+                        = *((RIL_CellIdentityGsm*) &oldInfo.CellInfo.gsm.cellIdentityGsm);
+            break;
+            case RIL_CELL_INFO_TYPE_WCDMA_V2:
+                newInfo.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA;
+                newInfo.CellInfo.wcdma.signalStrengthWcdma
+                        = *((RIL_SignalStrengthWcdma*) &oldInfo.CellInfo.wcdma.signalStrengthWcdma);
+                newInfo.CellInfo.wcdma.cellIdentityWcdma
+                        = *((RIL_CellIdentityWcdma*) &oldInfo.CellInfo.wcdma.cellIdentityWcdma);
+            break;
+            case RIL_CELL_INFO_TYPE_LTE_V2:
+                newInfo.cellInfoType = RIL_CELL_INFO_TYPE_LTE;
+                newInfo.CellInfo.lte.signalStrengthLte
+                        = *((RIL_LTE_SignalStrength_v8*) &oldInfo.CellInfo.lte.signalStrengthLte);
+                newInfo.CellInfo.lte.cellIdentityLte
+                        = *((RIL_CellIdentityLte*) &oldInfo.CellInfo.lte.cellIdentityLte);
+            break;
+        }
+    }
+}
+
+
 RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol)
 {
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
-    P_ND_N_CELL_INFO_DATA_V2 pCellData = NULL;
     int nCellInfos = 0;
+    void* pCellData = NULL;
 
     pCellData = ParseXMCI(rRspData, nCellInfos);
 
@@ -3222,8 +3257,21 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isU
     {
         if (nCellInfos > 0 && NULL != pCellData)
         {
-            rRspData.pData = (void*)pCellData->aRilCellInfo;
+#if defined(M2_PDK_OR_GMIN_BUILD)
+            P_ND_N_CELL_INFO_DATA pNewCellData
+                    = (P_ND_N_CELL_INFO_DATA) malloc(sizeof(S_ND_N_CELL_INFO_DATA));
+            memset(pNewCellData, 0, sizeof(S_ND_N_CELL_INFO_DATA));
+            ConvertCellInfoForVanillaAOSP((P_ND_N_CELL_INFO_DATA_V2)pCellData,
+                    pNewCellData, nCellInfos);
+            free(pCellData);
+            pCellData = pNewCellData;
+            pNewCellData = NULL;
+            rRspData.uiDataSize = nCellInfos * sizeof(RIL_CellInfo);
+
+#else
             rRspData.uiDataSize = nCellInfos * sizeof(RIL_CellInfo_v2);
+#endif
+            rRspData.pData = (void*)((P_ND_N_CELL_INFO_DATA)pCellData)->aRilCellInfo;
         }
         else
         {
@@ -3243,11 +3291,28 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isU
         if (nCellInfos > 0)
         {
             int requestedRate = (int)rRspData.pContextData;
-            if (m_cte.updateCellInfoCache(pCellData, nCellInfos)
+            if (m_cte.updateCellInfoCache((P_ND_N_CELL_INFO_DATA_V2)pCellData, nCellInfos)
                     && -1 != requestedRate && INT_MAX != requestedRate)
             {
+
+#if defined(M2_PDK_OR_GMIN_BUILD)
+                P_ND_N_CELL_INFO_DATA pNewCellData
+                        = (P_ND_N_CELL_INFO_DATA) malloc(sizeof(S_ND_N_CELL_INFO_DATA));
+                memset(pNewCellData, 0, sizeof(S_ND_N_CELL_INFO_DATA));
+                ConvertCellInfoForVanillaAOSP((P_ND_N_CELL_INFO_DATA_V2)pCellData,
+                        pNewCellData, nCellInfos);
+                free(pCellData);
+                pCellData = (void*)pNewCellData;
+                pNewCellData = NULL;
                 RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST,
-                        (void*)pCellData->aRilCellInfo, (sizeof(RIL_CellInfo_v2) * nCellInfos));
+                        (void*)((P_ND_N_CELL_INFO_DATA)pCellData)->aRilCellInfo,
+                        sizeof(RIL_CellInfo) * nCellInfos);
+
+#else
+                RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST,
+                        (void*)((P_ND_N_CELL_INFO_DATA_V2)pCellData)->aRilCellInfo,
+                        sizeof(RIL_CellInfo_v2) * nCellInfos);
+#endif
             }
         }
 
@@ -3419,7 +3484,7 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 #if !defined(M2_PDK_OR_GMIN_BUILD)
                 info.cellInfoType = RIL_CELL_INFO_TYPE_GSM_V2;
 #else
-                info.cellInfoType = RIL_CELL_INFO_TYPE_GSM;
+                info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_GSM_V2;
 #endif
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;
@@ -3484,7 +3549,7 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 #if !defined(M2_PDK_OR_GMIN_BUILD)
                 info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA_V2;
 #else
-                info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA;
+                info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_WCDMA_V2;
 #endif
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;
@@ -3591,7 +3656,7 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 #if !defined(M2_PDK_OR_GMIN_BUILD)
                 info.cellInfoType = RIL_CELL_INFO_TYPE_LTE_V2;
 #else
-                info.cellInfoType = RIL_CELL_INFO_TYPE_LTE;
+                info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_LTE_V2;
 #endif
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;

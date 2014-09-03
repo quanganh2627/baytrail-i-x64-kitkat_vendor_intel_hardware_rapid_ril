@@ -115,14 +115,14 @@ BOOL operator==(const RIL_CellInfo_v2& lhs, const RIL_CellInfo_v2& rhs)
      {
          switch(lhs.cellInfoType)
          {
-         case RIL_CELL_INFO_TYPE_GSM:
+         case RIL_CELL_INFO_TYPE_GSM_V2:
              return (lhs.CellInfo.gsm.cellIdentityGsm == rhs.CellInfo.gsm.cellIdentityGsm
                      && lhs.CellInfo.gsm.signalStrengthGsm == rhs.CellInfo.gsm.signalStrengthGsm);
-         case RIL_CELL_INFO_TYPE_WCDMA:
+         case RIL_CELL_INFO_TYPE_WCDMA_V2:
              return (lhs.CellInfo.wcdma.cellIdentityWcdma == rhs.CellInfo.wcdma.cellIdentityWcdma
                      && lhs.CellInfo.wcdma.signalStrengthWcdma ==
                      rhs.CellInfo.wcdma.signalStrengthWcdma);
-         case RIL_CELL_INFO_TYPE_LTE:
+         case RIL_CELL_INFO_TYPE_LTE_V2:
              return (lhs.CellInfo.lte.cellIdentityLte == rhs.CellInfo.lte.cellIdentityLte
                      && lhs.CellInfo.lte.signalStrengthLte == rhs.CellInfo.lte.signalStrengthLte);
          default:
@@ -289,7 +289,7 @@ BOOL CellInfoCache::updateCache(const P_ND_N_CELL_INFO_DATA_V2 pData, const int 
     if (ret)
     {
         RIL_LOG_INFO("CellInfoCache::updateCache() -"
-                "Updating cache with %d items\r\n", itemCount);
+                "Updating V2 cache with %d items\r\n", itemCount);
         // Access mutex
         CMutex::Lock(m_pCacheLock);
         m_cacheSize = itemCount;

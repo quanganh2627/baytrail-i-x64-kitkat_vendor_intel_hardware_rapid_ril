@@ -1777,9 +1777,8 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 #if !defined(M2_PDK_OR_GMIN_BUILD)
                 info.cellInfoType = RIL_CELL_INFO_TYPE_GSM_V2;
 #else
-                info.cellInfoType = RIL_CELL_INFO_TYPE_GSM;
+                info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_GSM_V2;
 #endif
-
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;
                 info.CellInfo.gsm.signalStrengthGsm.signalStrength =
@@ -1892,9 +1891,8 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 #if !defined(M2_PDK_OR_GMIN_BUILD)
                 info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA_V2;
 #else
-                info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA;
+                info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_WCDMA_V2;
 #endif
-
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;
                 info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = MapRscpToRssi(rscp);
@@ -1909,6 +1907,7 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
                 info.CellInfo.wcdma.cellIdentityWcdma.dluarfcn = (int) uDluarfcn;
                 info.CellInfo.wcdma.cellIdentityWcdma.uluarfcn = (int) uUluarfcn;
                 info.CellInfo.wcdma.cellIdentityWcdma.pathloss = pathloss;
+
                 RIL_LOG_INFO("CTE_XMM7260::ParseXMCI() - UMTS index=[%d] cid[%d] "
                         "lac[%d] mcc[%d] mnc[%d] scrCode[%d] "
                         "dluarfcn[%d] uluarfcn[%d] pathloss[%d]\r\n",
@@ -2034,9 +2033,8 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 #if !defined(M2_PDK_OR_GMIN_BUILD)
                 info.cellInfoType = RIL_CELL_INFO_TYPE_LTE_V2;
 #else
-                info.cellInfoType = RIL_CELL_INFO_TYPE_LTE;
+                info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_LTE_V2;
 #endif
-
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;
                 info.CellInfo.lte.signalStrengthLte.signalStrength = RSSI_UNKNOWN;

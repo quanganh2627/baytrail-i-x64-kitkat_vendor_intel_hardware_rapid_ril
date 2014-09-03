@@ -188,7 +188,6 @@ protected:
     virtual RIL_RESULT_CODE GetCsgCurrentState(REQUEST_DATA& reqData);
 
     virtual const char* GetEnablingEtwsString();
-
     virtual P_ND_N_CELL_INFO_DATA_V2 ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos);
     int MapRxlevToSignalStrengh(int rxlev);
     int MapToAndroidRsrp(int rsrp);
@@ -197,6 +196,8 @@ protected:
 
 private:
 
+    void ConvertCellInfoForVanillaAOSP(P_ND_N_CELL_INFO_DATA_V2 pOldData,
+            P_ND_N_CELL_INFO_DATA pNewData, int nCellInfos);
     RIL_RESULT_CODE ParseXTAMR(const char* pszRsp, RESPONSE_DATA& rspData);
     RIL_RESULT_CODE ParseXTSM(const char* pszRsp, RESPONSE_DATA& rspData);
 
