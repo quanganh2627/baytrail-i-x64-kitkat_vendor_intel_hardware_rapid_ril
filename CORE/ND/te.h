@@ -741,6 +741,8 @@ public:
     void SetCellInfoEnabled(BOOL bCellInfoEnabled) { m_bCellInfoEnabled = bCellInfoEnabled; }
     BOOL IsCellInfoEnabled() { return m_bCellInfoEnabled; }
 
+    void AllowSetPreferredNetworkType(BOOL bAllow) { m_bAllowSetPreferredNetworkType = bAllow; }
+
     void SaveCEER(const char* pszData);
     const char* GetLastCEER() { return m_szLastCEER; }
 
@@ -1354,6 +1356,7 @@ private:
     BOOL m_bSupportCGPIAF;  // support CGPIAF in IMC IPV6 AT cmds
     BOOL m_bSignalStrengthReporting;
     BOOL m_bCellInfoEnabled;
+    BOOL m_bAllowSetPreferredNetworkType;
 
     // Timeouts (in milliseconds)
     static const UINT32 TIMEOUT_INITIALIZATION_COMMAND = 5000;

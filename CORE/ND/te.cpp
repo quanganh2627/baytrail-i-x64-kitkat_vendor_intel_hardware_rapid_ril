@@ -70,6 +70,7 @@ CTE::CTE(UINT32 modemType) :
     m_bSupportCGPIAF(FALSE),
     m_bSignalStrengthReporting(FALSE),
     m_bCellInfoEnabled(TRUE),
+    m_bAllowSetPreferredNetworkType(TRUE),
     m_uiTimeoutCmdInit(TIMEOUT_INITIALIZATION_COMMAND),
     m_uiTimeoutAPIDefault(TIMEOUT_API_DEFAULT),
     m_uiTimeoutWaitForInit(TIMEOUT_WAITFORINIT),
@@ -927,8 +928,12 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 break;
 
             case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:  // 73
+                if (!m_bAllowSetPreferredNetworkType)
+                {
+                    eRetVal = RIL_E_GENERIC_FAILURE;
+                }
                 // Delay request if radio state is Off until it is On
-                if (RADIO_STATE_OFF == GetRadioState())
+                else if (RADIO_STATE_OFF == GetRadioState())
                 {
                     eRetVal = DelaySetPrefNetTypeRequest(pData, datalen, hRilToken);
                 }

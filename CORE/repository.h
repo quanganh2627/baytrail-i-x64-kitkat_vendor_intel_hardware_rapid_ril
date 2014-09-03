@@ -93,6 +93,7 @@ extern const char   g_szEnableXDATASTATURC[];
 extern const char   g_szEnableSMSOverIP[];
 extern const char   g_szSupportCGPIAF[];
 extern const char   g_szEnableSignalStrengthURC[];
+extern const char   g_szAllowSetPreferredNetworkType[];
 extern const char   g_szImeiBlackList[];
 
 // used by 6360 and 7160 modems.

@@ -422,6 +422,11 @@ BOOL CSystemManager::InitializeSystem(const char* szModemName)
         CTE::GetTE().SetTempOoSNotificationReporting(iTemp == 1 ? TRUE : FALSE);
     }
 
+    if (repository.Read(g_szGroupModem, g_szAllowSetPreferredNetworkType, iTemp))
+    {
+        CTE::GetTE().AllowSetPreferredNetworkType(iTemp == 1 ? TRUE : FALSE);
+    }
+
     // Retrieve IMS capability based on system property
     if (property_get("persist.ims_support", szImsSupport, "0"))
     {
