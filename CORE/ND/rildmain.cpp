@@ -608,13 +608,30 @@ static bool RIL_SetGlobals(channels_rril_t *ch)
     ret &= copyDlc(&g_szDLC23Port, &ch->rfcoexistence, RIL_CHANNEL_DLC23);
     ret &= copyDlc(&g_szURCPort, &ch->monitoring, RIL_CHANNEL_URC);
     ret &= copyDlc(&g_szOEMPort, &ch->field_test, RIL_CHANNEL_OEM);
-    ret &= copyDlc(&g_szDataPort1, &ch->packet_data_1, RIL_CHANNEL_DATA1);
-    ret &= copyDlc(&g_szDataPort2, &ch->packet_data_2, RIL_CHANNEL_DATA2);
-    ret &= copyDlc(&g_szDataPort3, &ch->packet_data_3, RIL_CHANNEL_DATA3);
-    ret &= copyDlc(&g_szDataPort4, &ch->packet_data_4, RIL_CHANNEL_DATA4);
-    ret &= copyDlc(&g_szDataPort5, &ch->packet_data_5, RIL_CHANNEL_DATA5);
+
     if (ret)
-        g_uiRilChannelCurMax = RIL_CHANNEL_DATA1 + 5;
+    {
+        CRepository repository;
+        int dataCapable = 0;
+        bool bConfigPresent = repository.Read(g_szGroupModem, g_szDataCapable, dataCapable);
+
+        g_uiRilChannelCurMax = RIL_CHANNEL_DATA1;
+
+        // when config read unsuccessfully,  DataCapable will be enable by default
+        if (!bConfigPresent || dataCapable)
+        {
+            ret &= copyDlc(&g_szDataPort1, &ch->packet_data_1, RIL_CHANNEL_DATA1);
+            ret &= copyDlc(&g_szDataPort2, &ch->packet_data_2, RIL_CHANNEL_DATA2);
+            ret &= copyDlc(&g_szDataPort3, &ch->packet_data_3, RIL_CHANNEL_DATA3);
+            ret &= copyDlc(&g_szDataPort4, &ch->packet_data_4, RIL_CHANNEL_DATA4);
+            ret &= copyDlc(&g_szDataPort5, &ch->packet_data_5, RIL_CHANNEL_DATA5);
+
+            if (ret)
+            {
+                g_uiRilChannelCurMax += 5;
+            }
+        }
+    }
 
     return ret;
 }
