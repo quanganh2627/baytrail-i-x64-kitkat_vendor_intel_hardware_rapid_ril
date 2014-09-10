@@ -3928,13 +3928,6 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionAutomatic(RIL_Token rilToken,
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
-    if (m_pTEBaseInstance->GetNetworkSelectionMode() ==  E_NETWORK_SELECTION_MODE_AUTOMATIC)
-    {
-        RIL_LOG_INFO("CTE::RequestSetNetworkSelectionAutomatic() - Already in automatic mode\r\n");
-        RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
-        return RRIL_RESULT_OK;
-    }
-
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetNetworkSelectionAutomatic(reqData,
             pData, datalen);
     if (RRIL_RESULT_OK == res)
