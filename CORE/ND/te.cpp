@@ -93,7 +93,7 @@ CTE::CTE(UINT32 modemType) :
     m_CbsActivate(-1),
     m_bTempOoSNotifReporting(FALSE),
     m_uiImsRegStatus(IMS_REGISTERED),
-    m_ProductConfig(-1)
+    m_ProductConfig(CONFIG_GENERAL)
 {
     m_pTEBaseInstance = CreateModemTE(this);
 
@@ -135,7 +135,7 @@ CTE::CTE(UINT32 modemType) :
     {
         if (0 == strcasecmp(szProductConfig, "att"))
         {
-            m_ProductConfig = 1;
+            m_ProductConfig = CONFIG_ATT;
         }
     }
 }
@@ -3927,6 +3927,17 @@ RIL_RESULT_CODE CTE::RequestSetNetworkSelectionAutomatic(RIL_Token rilToken,
 
     REQUEST_DATA reqData;
     memset(&reqData, 0, sizeof(REQUEST_DATA));
+    if (m_ProductConfig == CONFIG_ATT)
+    {
+        if (m_pTEBaseInstance->GetNetworkSelectionMode() ==
+                E_NETWORK_SELECTION_MODE_AUTOMATIC)
+        {
+            RIL_LOG_INFO("CTE::RequestSetNetworkSelectionAutomatic() - Already"
+                   " in automatic mode\r\n");
+            RIL_onRequestComplete(rilToken, RIL_E_SUCCESS, NULL, 0);
+            return RRIL_RESULT_OK;
+        }
+    }
 
     RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSetNetworkSelectionAutomatic(reqData,
             pData, datalen);
@@ -8164,7 +8175,7 @@ void CTE::MapRegistrationRejectCause(int causeType, int& rejectCause)
     {
         switch (m_ProductConfig)
         {
-            case 1: // ATT
+            case CONFIG_ATT: // ATT
                 // In case of manufacturer specific reject cause, use the previous reject cause.
                 rejectCause =  strtol(m_sCSStatus.szReasonDenied, NULL, 10);
                 break;
