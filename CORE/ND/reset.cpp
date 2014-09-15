@@ -36,6 +36,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 
 static const char* const PIN_CACHE_FILE_FS = "/config/telephony/dump";
 static const char* const PIN_CACHE_DUMP_FILE = "/sys/kernel/modem_nvram/dump";
@@ -46,6 +47,7 @@ static const char* const PIN_CACHE_CLEAR_FILE = "/sys/kernel/modem_nvram/clear";
 static const int ENCRYPTED_PIN_SIZE = 20;
 static const int UICCID_SIZE = 10;
 static const int CACHED_UICCID_PIN_SIZE = UICCID_SIZE + ENCRYPTED_PIN_SIZE;
+static const int CACHED_TOTAL_PIN_SIZE = CACHED_UICCID_PIN_SIZE * 2;
 
 ///////////////////////////////////////////////////////////
 // Helper static class to handle modem recovery
@@ -873,6 +875,163 @@ ePCache_Code ConvertKeyToInt4(const char* pszKey, UINT32* pKey)
     return PIN_OK;
 }
 
+ePCache_Code PCache_Read(unsigned char* buf, bool bAll, bool bLock)
+{
+    int fd = -1;
+    ssize_t byteRead = 0;
+    ePCache_Code res = PIN_NOK;
+    int ret = -1;
+    int count = 0;
+    unsigned char cache1[CACHED_TOTAL_PIN_SIZE] = { '\0' };
+    unsigned char* cache2 = cache1;
+
+    UINT32 uiPinCacheMode = CTE::GetTE().GetPinCacheMode();
+
+    if (E_PIN_CACHE_MODE_NVRAM == uiPinCacheMode)
+    {
+        fd = open(PIN_CACHE_DUMP_FILE, O_RDONLY);
+    }
+    else if (E_PIN_CACHE_MODE_FS == uiPinCacheMode)
+    {
+        fd = open(PIN_CACHE_FILE_FS, O_CREAT | O_RDONLY, S_IWUSR | S_IRUSR);
+    }
+
+    if (0 > fd)
+    {
+        goto Error;
+    }
+
+    if(bLock) {
+        ret = flock(fd, LOCK_EX);
+
+        if(ret != 0)
+        {
+            goto Error;
+        }
+    }
+
+    byteRead = read(fd, cache1, CACHED_TOTAL_PIN_SIZE);
+
+    if (byteRead != CACHED_TOTAL_PIN_SIZE &&
+                byteRead != CACHED_UICCID_PIN_SIZE && byteRead != 0)
+    {
+        RIL_LOG_INFO("%s PCache byteRead %d", __FUNCTION__, byteRead);
+        goto Error;
+    }
+    if (!bAll)
+    {
+        if (1 == CHardwareConfig::GetInstance().GetSIMId())
+        {
+            cache2 = cache1 + CACHED_UICCID_PIN_SIZE;
+        }
+        count = CACHED_UICCID_PIN_SIZE;
+
+    } else {
+        count = CACHED_TOTAL_PIN_SIZE;
+    }
+
+    memcpy(buf, cache2, count);
+
+    res = PIN_OK;
+
+Error:
+    if (0 <= fd)
+    {
+        if (0 > close(fd))
+        {
+            res = PIN_NOK;
+        }
+    }
+
+    return res;
+}
+
+ePCache_Code PCache_Write(const unsigned char* buf)
+{
+    int fd = -1;
+    int lfd = -1;
+    ssize_t byteRead = 0;
+    ePCache_Code res = PIN_NOK;
+    int ret = -1;
+    unsigned char cache1[CACHED_TOTAL_PIN_SIZE] = { '\0' };
+    unsigned char* cache2 = cache1;
+
+    UINT32 uiPinCacheMode = CTE::GetTE().GetPinCacheMode();
+
+    if (E_PIN_CACHE_MODE_NVRAM == uiPinCacheMode)
+    {
+        lfd = open(PIN_CACHE_DUMP_FILE, O_RDONLY);
+    }
+    else if (E_PIN_CACHE_MODE_FS == uiPinCacheMode)
+    {
+        lfd = open(PIN_CACHE_FILE_FS, O_CREAT | O_RDONLY, S_IWUSR | S_IRUSR);
+    }
+
+    if (0 > lfd)
+    {
+        goto Error;
+    }
+
+    ret = flock(lfd, LOCK_EX);
+
+    if(ret != 0)
+    {
+        goto Error;
+    }
+
+    if(PCache_Read(cache1, true, false) != PIN_OK)
+    {
+        goto Error;
+    }
+
+    if (E_PIN_CACHE_MODE_NVRAM == uiPinCacheMode)
+    {
+        fd = open(PIN_CACHE_DUMP_FILE, O_WRONLY);
+    }
+    else if (E_PIN_CACHE_MODE_FS == uiPinCacheMode)
+    {
+        fd = open(PIN_CACHE_FILE_FS, O_CREAT | O_WRONLY, S_IWUSR | S_IRUSR);
+    }
+
+    if (0 > fd)
+    {
+        goto Error;
+    }
+
+
+    if (1 == CHardwareConfig::GetInstance().GetSIMId())
+    {
+        cache2 = cache1 + CACHED_UICCID_PIN_SIZE;
+    }
+
+    memcpy(cache2, buf, CACHED_UICCID_PIN_SIZE);
+
+    if(write(fd, cache1, CACHED_TOTAL_PIN_SIZE) < CACHED_TOTAL_PIN_SIZE)
+    {
+        goto Error;
+    }
+
+    res = PIN_OK;
+
+Error:
+    if (0 <= fd)
+    {
+        if (0 > close(fd))
+        {
+            res = PIN_NOK;
+        }
+    }
+    if (0 <= lfd)
+    {
+        if (0 > close(lfd))
+        {
+            res = PIN_NOK;
+        }
+    }
+
+    return res;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -896,18 +1055,11 @@ ePCache_Code encrypt(const char* pszInput, const int nInputLen, const char* pszK
     UINT16 buf[BUF_LEN] = {0};
     UINT32 key[4] = {0};
     BYTE encryptedBuf[CACHED_UICCID_PIN_SIZE] = {0};
-    int writeFd = -1;
     ssize_t bytesWritten = 0;
 
     // Check inputs
     if (NULL == pszInput || '\0' == pszInput[0] || 0 == nInputLen
             || (MAX_PIN_SIZE - 1 < nInputLen) || NULL == pszKey)
-    {
-        goto Error;
-    }
-
-    writeFd = open(pFile, O_WRONLY);
-    if (0 > writeFd)
     {
         goto Error;
     }
@@ -945,29 +1097,14 @@ ePCache_Code encrypt(const char* pszInput, const int nInputLen, const char* pszK
     // Copy the encrypted data to buffer
     memcpy(encryptedBuf + UICCID_SIZE, buf, BUF_LEN * sizeof(UINT16));
 
-    if (1 == CHardwareConfig::GetInstance().GetSIMId())
+    if(PCache_Write(encryptedBuf) != PIN_OK)
     {
-        if (lseek(writeFd, CACHED_UICCID_PIN_SIZE, SEEK_SET) < CACHED_UICCID_PIN_SIZE)
-        {
-            goto Error;
-        }
-    }
-
-    bytesWritten = write(writeFd, encryptedBuf, CACHED_UICCID_PIN_SIZE);
-    if (bytesWritten < CACHED_UICCID_PIN_SIZE)
-    {
+        RIL_LOG_INFO("%s PCache PCache_Write return error", __FUNCTION__);
         goto Error;
     }
 
     res = PIN_OK;
 Error:
-    if (0 <= writeFd)
-    {
-        if (0 > close(writeFd))
-        {
-            res = PIN_NOK;
-        }
-    }
 
     return res;
 }
@@ -1007,29 +1144,9 @@ ePCache_Code decrypt(char* pszOut, const char* pszKey, const char* pFile)
         goto Error;
     }
 
-    readFd = open(pFile, O_RDONLY);
-    if (0 > readFd)
+    if(PCache_Read(szEncryptedBuf, false, true) != PIN_OK)
     {
-        ret = PIN_NO_PIN_AVAILABLE;
-        goto Error;
-    }
-    else
-    {
-        if (1 == CHardwareConfig::GetInstance().GetSIMId())
-        {
-            if (lseek(readFd, CACHED_UICCID_PIN_SIZE, SEEK_SET) < CACHED_UICCID_PIN_SIZE)
-            {
-                ret = PIN_NO_PIN_AVAILABLE;
-                goto Error;
-            }
-        }
-
-        bytesRead = read(readFd, szEncryptedBuf, CACHED_UICCID_PIN_SIZE);
-    }
-
-    if (bytesRead < CACHED_UICCID_PIN_SIZE)
-    {
-        ret = PIN_NO_PIN_AVAILABLE;
+        RIL_LOG_INFO("%s PCache PCache_Read error", __FUNCTION__);
         goto Error;
     }
 
@@ -1084,13 +1201,7 @@ ePCache_Code decrypt(char* pszOut, const char* pszKey, const char* pFile)
 
     ret = PIN_OK;
 Error:
-    if (0 <= readFd)
-    {
-        if (0 > close(readFd))
-        {
-            ret = PIN_NOK;
-        }
-    }
+
     return ret;
 }
 
@@ -1161,7 +1272,6 @@ Error:
 ePCache_Code PCache_Store_PIN(const char* pszUICC, const char* pszPIN)
 {
     ePCache_Code ret = PIN_NOK;
-
     if (IsRequiredCacheAvailable())
     {
         if (NULL != pszUICC && '\0' != pszUICC[0] && NULL != pszPIN && '\0' != pszPIN[0])
@@ -1207,7 +1317,6 @@ ePCache_Code PCache_Get_PIN(const char* pszUICC, char* pszPIN)
             ret = decrypt(pszPIN, pszUICC, PIN_CACHE_FILE_FS);
         }
     }
-
     return ret;
 }
 
@@ -1220,23 +1329,14 @@ ePCache_Code PCache_Get_PIN(const char* pszUICC, char* pszPIN)
 void PCache_Clear()
 {
     UINT32 uiPinCacheMode = CTE::GetTE().GetPinCacheMode();
+    RIL_LOG_VERBOSE("PCache_Clear Enter \r\n");
+    unsigned char clear[CACHED_UICCID_PIN_SIZE] = {'\0'};
+    if(PCache_Write(clear) != PIN_OK)
+    {
+        RIL_LOG_INFO("PCache_Clear PCache_Write return error \r\n");
+        goto Error;
+    }
 
-    if (E_PIN_CACHE_MODE_NVRAM == uiPinCacheMode)
-    {
-        int fd = open(PIN_CACHE_CLEAR_FILE, O_WRONLY);
-        if (0 <= fd)
-        {
-            BOOL bClear = TRUE;
-            write(fd, &bClear, sizeof(bClear));
-            close(fd);
-        }
-    }
-    else if (E_PIN_CACHE_MODE_FS == uiPinCacheMode)
-    {
-        int fd = open(PIN_CACHE_FILE_FS, O_CREAT | O_TRUNC | O_WRONLY, S_IWUSR | S_IRUSR);
-        if (0 <= fd)
-        {
-            close(fd);
-        }
-    }
+Error:
+    RIL_LOG_VERBOSE("PCache_Clear Exit \r\n");
 }
