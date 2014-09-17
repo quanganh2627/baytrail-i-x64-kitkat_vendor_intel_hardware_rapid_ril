@@ -41,6 +41,7 @@
 #include "systemmanager.h"
 #include "hardwareconfig.h"
 
+#include <utils/Log.h>
 #include <cutils/properties.h>
 #include <cutils/sockets.h>
 #include <fcntl.h>
@@ -757,8 +758,7 @@ BOOL CSystemManager::MMgrConnectionInit()
 
     if (subscriptionId)
     {
-        RRIL_NAME[4] = static_cast<char> (subscriptionId);
-        RRIL_NAME[5] = '\0';
+        snprintf(RRIL_NAME, CLIENT_NAME_LEN, "RRIL%d", subscriptionId);
     }
 
     if (E_ERR_CLI_SUCCEED != mmgr_cli_create_handle(&m_pMMgrLibHandle, RRIL_NAME, NULL))
