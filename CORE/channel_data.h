@@ -16,10 +16,18 @@
 #define RIL_CHANNEL_DATA_H
 
 #include "channel_nd.h"
+#include "nd_structs.h"
 
 class CChannel_Data : public CChannel
 {
 public:
+    enum ADDR_TYPE {
+        ADDR_IP,
+        ADDR_DNS,
+        ADDR_GATEWAY,
+        ADDR_PCSCF
+    };
+
     CChannel_Data(UINT32 uiChannel);
     virtual ~CChannel_Data();
 
@@ -65,31 +73,8 @@ public:
     void SetInterfaceName(const char* pInterfaceName);
     void GetInterfaceName(char* pInterfaceName, const int maxSize);
 
-    void SetIpAddress(const char* pIpAddr1, const char* pIpAddr2);
-    void GetIpAddress(char* pIpAddr, const int maxIpAddrSize,
-                                    char* pIpAddr2, const int maxIpAddr2Size);
-
-    void SetDNS(const char* pDNS1, const char* pDNS2,
-                                const char* pIpV6DNS1, const char* pIpV6DNS2);
-    void GetDNS(char* pDNS1, int maxDNS1Size,
-                                    char* pDNS2, const int maxDNS2Size,
-                                    char* pIpV6DNS1, const int maxIpV6DNS1Size,
-                                    char* pIpV6DNS2, const int maxIpV6DNS2Size);
-    void SetPcscf(const char* pPCSCF1, const char* pPCSCF2,
-                    const char* pIpV6PCSCF1, const char* pIpV6PCSCF2);
-    void GetPcscf(char* pPCSCF1, const int maxpPcscf1Size,
-                    char* pPCSCF2, const int maxpPcscf2Size,
-                    char* pIpV6PCSCF1, const int maxpIpV6PCSCF1Size,
-                    char* pIpV6PCSCF2, const int maxpIpV6PCSCF2Size);
-
-    void SetGateway(const char* pIpV4Gateway, const char* pIpV6Gateway);
-    void GetGateway(char* pIpV4Gateway, const int maxIPv4GatewaySize,
-            char* pIpV6Gateway, const int maxIPv6GatewaySize);
-
     void SetDataState(int state);
     int GetDataState();
-
-    void GetDataCallInfo(S_DATA_CALL_INFO& rsDataCallInfo);
 
     //
     // helper functions to convert ContextID, Dlci and Channel
@@ -136,6 +121,18 @@ public:
     void AddChildContextID(UINT32 uiCID);
     void RemoveChildContextID(UINT32 uiCID);
     void ClearChildsContextID();
+
+    void GetDataConnectionType(PDP_TYPE& pszDataConnectionType);
+
+    //
+    // helper functions to handle IP/DNS/PCSCF/GATEWAY addresses
+    //
+    bool AddAddressString(const ADDR_TYPE type, const char* pszAddress);
+    void DeleteAddressesString(const ADDR_TYPE type);
+    void GetAddressString(char* pszAddresses, const ADDR_TYPE type, const int addressBufferSize);
+
+    static UINT32 MAX_CID_NUMERIC;
+
 private:
     int m_dataFailCause;
     UINT32 m_uiContextID;
@@ -145,29 +142,6 @@ private:
     char m_szPdpType[MAX_PDP_TYPE_SIZE];
 
     char m_szInterfaceName[MAX_INTERFACE_NAME_SIZE];
-
-    //  Local storage of IP address, DNS1, DNS2
-    char m_szIpAddr[MAX_IPADDR_SIZE];
-    char m_szDNS1[MAX_IPADDR_SIZE];
-    char m_szDNS2[MAX_IPADDR_SIZE];
-
-    //Local storage of PCSCF addresses
-    char m_szPCSCF1[MAX_IPADDR_SIZE];
-    char m_szPCSCF2[MAX_IPADDR_SIZE];
-
-    //Local storage of PCSCF addresses
-    char m_szIpV6PCSCF1[MAX_IPADDR_SIZE];
-    char m_szIpV6PCSCF2[MAX_IPADDR_SIZE];
-
-    //  For IPV4V6, there could be 2 IP addresses
-    char m_szIpAddr2[MAX_IPADDR_SIZE];
-
-    //  For IPV4V6, there could be 2 DNS addresses for primary and secondary.
-    char m_szIpV6DNS1[MAX_IPADDR_SIZE];
-    char m_szIpV6DNS2[MAX_IPADDR_SIZE];
-
-    char m_szIpV4Gateway[MAX_IPADDR_SIZE];
-    char m_szIpV6Gateway[MAX_IPADDR_SIZE];
 
     // used by 6360 and 7160 modems.
     int m_dataProfile;
@@ -179,9 +153,12 @@ private:
     BOOL m_isRoutingEnabled;
     int m_refCount;
     UINT32 m_uiChildContexts;
-    // If MAX_CID_NUMERIC is increased, m_uiChildContexts shall be changed to a bigger
-    // data type also.
-    static const UINT32 MAX_CID_NUMERIC = 32;
+
+    char* m_pszIpAddresses;
+    char* m_pszDnses;
+    char* m_pszGateways;
+    char* m_pszPcscfes;
+
 protected:
     BOOL FinishInit();
 };

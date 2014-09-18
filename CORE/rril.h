@@ -377,27 +377,6 @@ typedef struct
 } S_DATA_CALL_INFO;
 
 ///////////////////////////////////////////////////////////////////////////////
-// Default PDN context parameters
-//
-typedef struct
-{
-    char szIpV4Addr[MAX_IPADDR_SIZE];
-    char szIpV6Addr[MAX_IPADDR_SIZE];
-    char szIpv4SubnetMask[MAX_IPADDR_SIZE];
-    char szIpv6SubnetMask[MAX_IPADDR_SIZE];
-    char szIpV4DNS1[MAX_IPADDR_SIZE];
-    char szIpV4DNS2[MAX_IPADDR_SIZE];
-    char szIpV6DNS1[MAX_IPADDR_SIZE];
-    char szIpV6DNS2[MAX_IPADDR_SIZE];
-    char szIpV4GatewayAddr[MAX_IPADDR_SIZE];
-    char szIpV6GatewayAddr[MAX_IPADDR_SIZE];
-    char szIpV4PCSCF1[MAX_IPADDR_SIZE];
-    char szIpV4PCSCF2[MAX_IPADDR_SIZE];
-    char szIpV6PCSCF1[MAX_IPADDR_SIZE];
-    char szIpV6PCSCF2[MAX_IPADDR_SIZE];
-} S_DEFAULT_PDN_CONTEXT_PARAMS, *P_DEFAULT_PDN_CONTEXT_PARAMS;
-
-///////////////////////////////////////////////////////////////////////////////
 // registration status information used internally
 //
 

@@ -697,7 +697,12 @@ RIL_RESULT_CODE CTE_XMM6260::ParseIpAddress(RESPONSE_DATA& rRspData)
             }
         }
 
-        pChannelData->SetIpAddress(szIpAddr1, szIpAddr2);
+        // First clear IP addresses
+        pChannelData->DeleteAddressesString(pChannelData->ADDR_IP);
+        // Now add IP addresses
+        pChannelData->AddAddressString(pChannelData->ADDR_IP, szIpAddr1);
+        pChannelData->AddAddressString(pChannelData->ADDR_IP, szIpAddr2);
+
         res = RRIL_RESULT_OK;
     }
     else
@@ -837,7 +842,13 @@ RIL_RESULT_CODE CTE_XMM6260::ParseDns(RESPONSE_DATA & rRspData)
             }
         }
 
-        pChannelData->SetDNS(szIpDNS1, szIpDNS2, szIpV6DNS1, szIpV6DNS2);
+        // First clear DNS addresses
+        pChannelData->DeleteAddressesString(pChannelData->ADDR_DNS);
+        // Now add DNS addresses
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szIpDNS1);
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szIpDNS2);
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szIpV6DNS1);
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szIpV6DNS2);
 
         res = RRIL_RESULT_OK;
     }
@@ -4900,9 +4911,12 @@ RIL_RESULT_CODE CTE_XMM6260::GetPcscf(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::GetPcscf() - Enter\r\n");
     CChannel_Data *pChannelData = NULL;
-    P_ND_GET_PCSCF_RESPONSE pResponse = NULL;
+    char* pszResponse = NULL;
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int cid;
+    char szPcscfes[MAX_BUFFER_SIZE] = {'\0'};
+    UINT32 uiCID = 0;
+    size_t responseLen = 0;
+    int err = 0;
 
     if (pszRequest[1] == NULL)
     {
@@ -4920,35 +4934,40 @@ RIL_RESULT_CODE CTE_XMM6260::GetPcscf(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    RIL_LOG_VERBOSE("CTE_XMM6260::GetPcscf() - cid=[%d]\r\n",
-            pChannelData->GetContextID());
-
-    pResponse = (P_ND_GET_PCSCF_RESPONSE) malloc(sizeof(S_ND_GET_PCSCF_RESPONSE));
-
-    if (NULL == pResponse)
+    uiCID = pChannelData->GetContextID();
+    if (uiCID >= 100)
     {
-        RIL_LOG_CRITICAL("CTE_XMM6260::ParseGetPscsf() -"
-                "Could not allocate memory for response");
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetPcscf() - Invalid uiCID value");
         goto Error;
     }
 
-    memset(pResponse, 0, sizeof(S_ND_GET_PCSCF_RESPONSE));
-    snprintf(pResponse->szCid, REG_STATUS_LENGTH, "%d", pChannelData->GetContextID());
-    pChannelData->GetPcscf(pResponse->szPcscf1, MAX_IPADDR_SIZE,
-            pResponse->szPcscf2, MAX_IPADDR_SIZE,
-            pResponse->szIpV6Pcscf1, MAX_IPADDR_SIZE,
-            pResponse->szIpV6Pcscf2, MAX_IPADDR_SIZE);
+    RIL_LOG_VERBOSE("CTE_XMM6260::GetPcscf() - cid=[%d]\r\n", uiCID);
 
-    pResponse->sResponsePointer.pszCid = pResponse->szCid;
-    pResponse->sResponsePointer.pszPcscf1 = pResponse->szPcscf1;
-    pResponse->sResponsePointer.pszPcscf2 = pResponse->szPcscf2;
-    pResponse->sResponsePointer.pszIpV6Pcscf1 = pResponse->szIpV6Pcscf1;
-    pResponse->sResponsePointer.pszIpV6Pcscf2 = pResponse->szIpV6Pcscf2;
+    // fill the PCSCF response: CID + PCSCF addresses
+    pChannelData->GetAddressString(szPcscfes, pChannelData->ADDR_PCSCF, sizeof(szPcscfes));
+
+    // cid + space + pcscfes + 0 terminal
+    responseLen = 2 + 1 + strlen(szPcscfes) + 1;
+
+    pszResponse = (char*) malloc(responseLen);
+    if (NULL == pszResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetPcscf() - Could not allocate memory for response");
+        goto Error;
+    }
+
+    //  create the full response
+    err = snprintf(pszResponse, responseLen, "%d %s", uiCID, szPcscfes);
+    if (err < 0 || err >= responseLen)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6260::GetPcscf() - Could not create response");
+        goto Error;
+    }
 
     // Response data are passed in pContextData2 and len in cbContextData2
     // when response is immediate.
-    rReqData.pContextData2 = (void *)pResponse;
-    rReqData.cbContextData2 = sizeof(S_ND_GET_PCSCF_RESPONSE_PTR);
+    rReqData.pContextData2 = (void*) pszResponse;
+    rReqData.cbContextData2 = responseLen;
 
     res = RRIL_RESULT_OK_IMMEDIATE;
 Error:
@@ -6222,9 +6241,6 @@ BOOL CTE_XMM6260::SetupInterface(UINT32 uiCID)
     int ret = 0;
     CChannel_Data* pChannelData = NULL;
     PDP_TYPE eDataConnectionType = PDP_TYPE_IPV4;  //  dummy for now, set to IPv4.
-    char szPdpType[MAX_BUFFER_SIZE] = {'\0'};
-    char szIpAddr[MAX_IPADDR_SIZE] = {'\0'};
-    char szIpAddr2[MAX_IPADDR_SIZE] = {'\0'};
     UINT32 uiChannel = 0;
     int state = 0;
 
@@ -6287,30 +6303,10 @@ BOOL CTE_XMM6260::SetupInterface(UINT32 uiCID)
         goto Error;
     }
 
-    pChannelData->GetIpAddress(szIpAddr, sizeof(szIpAddr),
-                                    szIpAddr2, sizeof(szIpAddr2));
-
-    if (szIpAddr2[0] == '\0')
-    {
-        eDataConnectionType = PDP_TYPE_IPV4;
-        strcpy(szPdpType, PDPTYPE_IP);
-    }
-    else if (szIpAddr[0] == '\0')
-    {
-        eDataConnectionType = PDP_TYPE_IPV6;
-        strcpy(szPdpType, PDPTYPE_IPV6);
-    }
-    else
-    {
-        eDataConnectionType = PDP_TYPE_IPV4V6;
-        strcpy(szPdpType, PDPTYPE_IPV4V6);
-    }
-
-    pChannelData->SetPdpType(szPdpType);
+    pChannelData->GetDataConnectionType(eDataConnectionType);
 
     // set interface address(es) and bring up interface
-    if (!DataConfigUp(szNetworkInterfaceName, pChannelData,
-                                                        eDataConnectionType))
+    if (!DataConfigUp(szNetworkInterfaceName, pChannelData, eDataConnectionType))
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::SetupInterface() -"
                 " Unable to bringup interface ifconfig\r\n");

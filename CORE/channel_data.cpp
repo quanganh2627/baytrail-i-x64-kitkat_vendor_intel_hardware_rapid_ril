@@ -30,6 +30,7 @@
 #include "util.h"
 #include "channelbase.h"
 #include "channel_data.h"
+#include "nd_structs.h"
 #include "repository.h"
 #include "rril.h"
 #include "te.h"
@@ -58,6 +59,10 @@ extern int m_dataProfilePathAssignation[NUMBER_OF_APN_PROFILE];
 // used by 6360 and 7160 modems.
 UINT32 g_uiHSIChannel[RIL_MAX_NUM_IPC_CHANNEL] = {0};
 
+// If MAX_CID_NUMERIC is increased, m_uiChildContexts shall be changed to a bigger
+// data type also.
+UINT32 CChannel_Data::MAX_CID_NUMERIC = 31;
+
 CChannel_Data::CChannel_Data(UINT32 uiChannel)
 :   CChannel(uiChannel),
     m_dataFailCause(PDP_FAIL_NONE),
@@ -66,7 +71,11 @@ CChannel_Data::CChannel_Data(UINT32 uiChannel)
     m_ipcDataChannelMin(RIL_DEFAULT_IPC_CHANNEL_MIN),
     m_isRoutingEnabled(FALSE),
     m_refCount(0),
-    m_uiChildContexts(0)
+    m_uiChildContexts(0),
+    m_pszIpAddresses(NULL),
+    m_pszDnses(NULL),
+    m_pszGateways(NULL),
+    m_pszPcscfes(NULL)
 {
     RIL_LOG_VERBOSE("CChannel_Data::CChannel_Data() - Enter\r\n");
 
@@ -84,6 +93,18 @@ CChannel_Data::~CChannel_Data()
 
     delete[] m_paInitCmdStrings;
     m_paInitCmdStrings = NULL;
+
+    delete[] m_pszIpAddresses;
+    m_pszIpAddresses = NULL;
+
+    delete[] m_pszDnses;
+    m_pszDnses = NULL;
+
+    delete[] m_pszGateways;
+    m_pszGateways = NULL;
+
+    delete[] m_pszPcscfes;
+    m_pszPcscfes = NULL;
 
     RIL_LOG_VERBOSE("CChannel_Data::~CChannel_Data() - Exit\r\n");
 }
@@ -678,14 +699,15 @@ void CChannel_Data::ResetDataCallInfo()
     m_szApn[0] = '\0';
     m_szPdpType[0] = '\0';
     m_szInterfaceName[0] = '\0';
-    m_szIpAddr[0] = '\0';
-    m_szIpAddr2[0] = '\0';
-    m_szDNS1[0] = '\0';
-    m_szDNS2[0] = '\0';
-    m_szIpV6DNS1[0] = '\0';
-    m_szIpV6DNS2[0] = '\0';
-    m_szIpV4Gateway[0] = '\0';
-    m_szIpV6Gateway[0] = '\0';
+
+    delete[] m_pszIpAddresses;
+    m_pszIpAddresses = NULL;
+    delete[] m_pszDnses;
+    m_pszDnses = NULL;
+    delete[] m_pszGateways;
+    m_pszGateways = NULL;
+    delete[] m_pszPcscfes;
+    m_pszPcscfes = NULL;
 
     RIL_LOG_VERBOSE("CChannel_Data::ResetDataCallInfo() - Exit\r\n");
 }
@@ -791,187 +813,6 @@ void CChannel_Data::GetInterfaceName(char* pInterfaceName, const int maxSize)
     RIL_LOG_VERBOSE("CChannel_Data::GetInterfaceName() - Exit\r\n");
 }
 
-void CChannel_Data::SetIpAddress(const char* pIpAddr1,
-                                        const char* pIpAddr2)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::SetIpAddress() - Enter\r\n");
-
-    strncpy(m_szIpAddr, pIpAddr1, MAX_IPADDR_SIZE-1);
-    m_szIpAddr[MAX_IPADDR_SIZE-1] = '\0';
-
-    strncpy(m_szIpAddr2, pIpAddr2, MAX_IPADDR_SIZE-1);
-    m_szIpAddr2[MAX_IPADDR_SIZE-1] = '\0';
-
-    RIL_LOG_VERBOSE("CChannel_Data::SetIpAddress() - Exit\r\n");
-}
-
-void CChannel_Data::GetIpAddress(char* pIpAddr, const int maxIpAddrSize,
-                                char* pIpAddr2, const int maxIpAddr2Size)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::GetIpAddress() - Enter\r\n");
-
-    if (NULL != pIpAddr && 0 < maxIpAddrSize)
-    {
-        strncpy(pIpAddr, m_szIpAddr, maxIpAddrSize-1);
-        pIpAddr[maxIpAddrSize-1] = '\0';
-    }
-
-    if (NULL != pIpAddr2 && 0 < maxIpAddr2Size)
-    {
-        strncpy(pIpAddr2, m_szIpAddr2, maxIpAddr2Size-1);
-        pIpAddr2[maxIpAddr2Size-1] = '\0';
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::GetIpAddress() - Exit\r\n");
-}
-
-void CChannel_Data::SetDNS(const char* pDNS1, const char* pDNS2,
-                                const char* pIpV6DNS1, const char* pIpV6DNS2)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::SetDNS() - Enter\r\n");
-
-    strncpy(m_szDNS1, pDNS1, MAX_IPADDR_SIZE-1);
-    m_szDNS1[MAX_IPADDR_SIZE-1] = '\0';
-
-    strncpy(m_szDNS2, pDNS2, MAX_IPADDR_SIZE-1);
-    m_szDNS2[MAX_IPADDR_SIZE-1] = '\0';
-
-    strncpy(m_szIpV6DNS1, pIpV6DNS1, MAX_IPADDR_SIZE-1);
-    m_szIpV6DNS1[MAX_IPADDR_SIZE-1] = '\0';
-
-    strncpy(m_szIpV6DNS2, pIpV6DNS2, MAX_IPADDR_SIZE-1);
-    m_szIpV6DNS2[MAX_IPADDR_SIZE-1] = '\0';
-
-    RIL_LOG_VERBOSE("CChannel_Data::SetDNS() - Exit\r\n");
-}
-
-void CChannel_Data::GetDNS(char* pDNS1, const int maxDNS1Size,
-                                char* pDNS2, const int maxDNS2Size,
-                                char* pIpV6DNS1, const int maxIpV6DNS1Size,
-                                char* pIpV6DNS2, const int maxIpV6DNS2Size)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::GetDNS() - Enter\r\n");
-
-    if (NULL != pDNS1 && 0 < maxDNS1Size)
-    {
-        strncpy(pDNS1, m_szDNS1, maxDNS1Size-1);
-        pDNS1[maxDNS1Size-1] = '\0';
-    }
-
-    if (NULL != pDNS2 && 0 < maxDNS2Size)
-    {
-        strncpy(pDNS2, m_szDNS2, maxDNS2Size-1);
-        pDNS2[maxDNS2Size-1] = '\0';
-    }
-
-    if (NULL != pIpV6DNS1 && 0 < maxIpV6DNS1Size)
-    {
-        strncpy(pIpV6DNS1, m_szIpV6DNS1, maxIpV6DNS1Size-1);
-        pIpV6DNS1[maxIpV6DNS1Size-1] = '\0';
-    }
-
-    if (NULL != pIpV6DNS2 && 0 < maxIpV6DNS2Size)
-    {
-        strncpy(pIpV6DNS2, m_szIpV6DNS2, maxIpV6DNS2Size-1);
-        pIpV6DNS2[maxIpV6DNS2Size-1] = '\0';
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::GetDNS() - Exit\r\n");
-}
-
-void CChannel_Data::SetPcscf(const char* pPCSCF1, const char* pPCSCF2,
-                               const char* pIpV6PCSCF1, const char* pIpV6PCSCF2)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::SetPcscf() - Enter\r\n");
-
-    if (NULL != pPCSCF1)
-    {
-        CopyStringNullTerminate(m_szPCSCF1, pPCSCF1, MAX_IPADDR_SIZE);
-    }
-
-    if (NULL != pPCSCF2)
-    {
-        CopyStringNullTerminate(m_szPCSCF2, pPCSCF2, MAX_IPADDR_SIZE);
-    }
-
-    if (NULL != pIpV6PCSCF1)
-    {
-        CopyStringNullTerminate(m_szIpV6PCSCF1, pIpV6PCSCF1, MAX_IPADDR_SIZE);
-    }
-
-    if (NULL != pIpV6PCSCF2)
-    {
-        CopyStringNullTerminate(m_szIpV6PCSCF2, pIpV6PCSCF2, MAX_IPADDR_SIZE);
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::SetPcscf() - Exit\r\n");
-}
-
-void CChannel_Data::GetPcscf(char* pPCSCF1, const int maxPcscf1Size,
-                               char* pPCSCF2, const int maxPcscf2Size,
-                               char* pIpV6PCSCF1, const int maxIpV6Pcscf1Size,
-                               char* pIpV6PCSCF2, const int maxIpV6Pcscf2Size)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::GetPcscf() - Enter\r\n");
-
-    if (NULL != pPCSCF1 && 0 < maxPcscf1Size)
-    {
-        CopyStringNullTerminate(pPCSCF1, m_szPCSCF1, maxPcscf1Size);
-    }
-
-    if (NULL != pPCSCF2 && 0 < maxPcscf2Size)
-    {
-        CopyStringNullTerminate(pPCSCF2, m_szPCSCF2, maxPcscf2Size);
-    }
-
-    if (NULL != pIpV6PCSCF1 && 0 < maxIpV6Pcscf1Size)
-    {
-        CopyStringNullTerminate(pIpV6PCSCF1, m_szIpV6PCSCF1, maxIpV6Pcscf1Size);
-    }
-
-    if (NULL != pIpV6PCSCF2 && 0 < maxIpV6Pcscf2Size)
-    {
-        CopyStringNullTerminate(pIpV6PCSCF2, m_szIpV6PCSCF2, maxIpV6Pcscf2Size);
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::GetPcscf() - Exit\r\n");
-}
-
-void CChannel_Data::SetGateway(const char* pIpV4Gateway, const char* pIpV6Gateway)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::SetGateway() - Enter\r\n");
-
-    if (NULL != pIpV4Gateway)
-    {
-        CopyStringNullTerminate(m_szIpV4Gateway, pIpV4Gateway, MAX_IPADDR_SIZE);
-    }
-
-    if (NULL != pIpV6Gateway)
-    {
-        CopyStringNullTerminate(m_szIpV6Gateway, pIpV6Gateway, MAX_IPADDR_SIZE);
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::SetGateway() - Exit\r\n");
-}
-
-void CChannel_Data::GetGateway(char* pIpV4Gateway, const int maxIpV4GatewaySize,
-        char* pIpV6Gateway, const int maxIpV6GatewaySize)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::GetGateway() - Enter\r\n");
-
-    if (NULL != pIpV4Gateway && 0 < maxIpV4GatewaySize)
-    {
-        CopyStringNullTerminate(pIpV4Gateway, m_szIpV4Gateway, maxIpV4GatewaySize);
-    }
-
-    if (NULL != pIpV4Gateway && 0 < maxIpV6GatewaySize)
-    {
-        CopyStringNullTerminate(pIpV6Gateway, m_szIpV6Gateway, maxIpV6GatewaySize);
-    }
-
-    RIL_LOG_VERBOSE("CChannel_Data::GetGateway() - Exit\r\n");
-}
-
 void CChannel_Data::SetDataState(int state)
 {
     RIL_LOG_VERBOSE("CChannel_Data::SetDataState() - Enter\r\n");
@@ -997,49 +838,6 @@ int CChannel_Data::GetDataState()
 
     RIL_LOG_VERBOSE("CChannel_Data::GetDataState() - Exit\r\n");
     return state;
-}
-
-void CChannel_Data::GetDataCallInfo(S_DATA_CALL_INFO& rDataCallInfo)
-{
-    RIL_LOG_VERBOSE("CChannel_Data::GetDataCallInfo() - Enter\r\n");
-
-    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
-
-    rDataCallInfo.failCause = m_dataFailCause;
-    rDataCallInfo.uiCID = m_uiContextID;
-    rDataCallInfo.state = m_dataState;
-
-    strncpy(rDataCallInfo.szPdpType, m_szPdpType, MAX_PDP_TYPE_SIZE-1);
-    rDataCallInfo.szPdpType[MAX_PDP_TYPE_SIZE-1] = '\0';
-
-    strncpy(rDataCallInfo.szInterfaceName, m_szInterfaceName,
-                                        MAX_INTERFACE_NAME_SIZE-1);
-    rDataCallInfo.szInterfaceName[MAX_INTERFACE_NAME_SIZE-1] = '\0';
-
-    strncpy(rDataCallInfo.szIpAddr1, m_szIpAddr, MAX_IPADDR_SIZE-1);
-    rDataCallInfo.szIpAddr1[MAX_IPADDR_SIZE-1] = '\0';
-
-    strncpy(rDataCallInfo.szIpAddr2, m_szIpAddr2, MAX_IPADDR_SIZE-1);
-    rDataCallInfo.szIpAddr2[MAX_IPADDR_SIZE-1] = '\0';
-
-    strncpy(rDataCallInfo.szDNS1, m_szDNS1, MAX_IPADDR_SIZE-1);
-    rDataCallInfo.szDNS1[MAX_IPADDR_SIZE-1] = '\0';
-
-    strncpy(rDataCallInfo.szDNS2, m_szDNS2, MAX_IPADDR_SIZE-1);
-    rDataCallInfo.szDNS2[MAX_IPADDR_SIZE-1] = '\0';
-
-    strncpy(rDataCallInfo.szIpV6DNS1, m_szIpV6DNS1, MAX_IPADDR_SIZE-1);
-    rDataCallInfo.szIpV6DNS1[MAX_IPADDR_SIZE-1] = '\0';
-
-    strncpy(rDataCallInfo.szIpV6DNS2, m_szIpV6DNS2, MAX_IPADDR_SIZE-1);
-    rDataCallInfo.szIpV6DNS2[MAX_IPADDR_SIZE-1] = '\0';
-
-    PrintStringNullTerminate(rDataCallInfo.szGateways, MAX_IPADDR_SIZE, "%s %s",
-            m_szIpV4Gateway, m_szIpV6Gateway);
-
-    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
-
-    RIL_LOG_VERBOSE("CChannel_Data::GetDataCallInfo() - Exit\r\n");
 }
 
 int CChannel_Data::GetMuxControlChannel()
@@ -1181,6 +979,11 @@ void CChannel_Data::RemoveInterface(BOOL bKeepInterfaceUp)
         }
     }
 
+    DeleteAddressesString(ADDR_IP);
+    DeleteAddressesString(ADDR_DNS);
+    DeleteAddressesString(ADDR_GATEWAY);
+    DeleteAddressesString(ADDR_PCSCF);
+
     RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%u\r\n", uiRilChannel);
 
 Error:
@@ -1200,3 +1003,259 @@ Error:
     }
 }
 
+void CChannel_Data::GetDataConnectionType(PDP_TYPE& eDataConnectionType)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetDataConnectionType() - Enter\r\n");
+
+    if (strcmp(m_szPdpType, "IP") == 0)
+    {
+        eDataConnectionType = PDP_TYPE_IPV4;
+    }
+    else if (strcmp(m_szPdpType, "IPV6") == 0)
+    {
+        eDataConnectionType = PDP_TYPE_IPV6;
+    }
+    else if (strcmp(m_szPdpType, "IPV4V6") == 0)
+    {
+        eDataConnectionType = PDP_TYPE_IPV4V6;
+    }
+    else
+    {
+        eDataConnectionType = PDP_TYPE_UNKNOWN;
+        RIL_LOG_CRITICAL("CChannel_Data::GetDataConnectionType() - PdpType: %s "
+                "not supported\r\n", m_szPdpType);
+    }
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetDataConnectionType() - Exit\r\n");
+}
+
+//////////////////////////////////
+// helper functions
+//
+// Adds an address string to address array, indexed by cid
+//
+bool CChannel_Data::AddAddressString(const ADDR_TYPE type, const char* pszAddress)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::AddAddressString() - Enter\r\n");
+    BOOL bRet = FALSE;
+    char* pszAddr = NULL;
+    char* pszAddrTemp = NULL;
+    static const char* const apszType[] = {"IP", "DNS", "GATEWAY", "PCSCF"};
+    UINT32 uiLength = 0;
+
+    // we do not add invalid address (0.0.0.0 for Ipv4 or :: for IPv6) and empty address
+    if (NULL == pszAddress
+            || strcmp(pszAddress, "0.0.0.0") == 0 || strcmp(pszAddress, "::") == 0)
+    {
+        RIL_LOG_WARNING("CChannel_Data::AddAddressString() - Invalid address!\r\n");
+        goto Error;
+    }
+
+    uiLength = strlen(pszAddress);
+
+    if (0 == uiLength)
+    {
+        RIL_LOG_VERBOSE("CChannel_Data::AddAddressString() - Invalid length!\r\n");
+        goto Error;
+    }
+
+    switch (type)
+    {
+        case ADDR_IP:
+            pszAddrTemp = m_pszIpAddresses;
+            break;
+
+        case ADDR_DNS:
+            pszAddrTemp = m_pszDnses;
+            break;
+
+        case ADDR_GATEWAY:
+            pszAddrTemp = m_pszGateways;
+            break;
+
+        case ADDR_PCSCF:
+            pszAddrTemp = m_pszPcscfes;
+            break;
+
+        default: // undefined type
+            RIL_LOG_WARNING("CChannel_Data::AddAddressString() - Undefined type\r\n");
+            goto Error;
+    }
+
+    // new address string
+    if (NULL == pszAddrTemp || '\0' == pszAddrTemp[0])
+    {
+        pszAddr = new char[uiLength + 1];
+        if (NULL == pszAddr)
+        {
+            RIL_LOG_CRITICAL("CChannel_Data::AddAddressString() : Failed to allocate pszAddr!\r\n");
+            goto Error;
+        }
+
+        snprintf(pszAddr, uiLength + 1, "%s", pszAddress);
+
+        // memory leak if pointer is non-NULL
+        delete[] pszAddrTemp;
+        pszAddrTemp = pszAddr;
+
+        RIL_LOG_INFO("CChannel_Data::AddAddressString() - Added %s address [%s],"
+                "cid=%u\r\n", apszType[type], pszAddress, m_uiContextID);
+    }
+    // new address received, add it in the existing address string,
+    // if the address is not already part of the string
+    else if (strstr(pszAddrTemp, pszAddress) == NULL)
+    {
+        size_t oldLen = strlen(pszAddrTemp);
+        size_t newAddLen = strlen(pszAddress);
+        // one space as separator and one for 0 terminal
+        size_t finalLen = oldLen + 1 + newAddLen + 1;
+
+        pszAddr = new char[finalLen];
+        if (NULL == pszAddr)
+        {
+            RIL_LOG_CRITICAL("CChannel_Data::AddAddressString() : Failed to allocate pszAddr!\r\n");
+            goto Error;
+        }
+
+        snprintf(pszAddr, finalLen, "%s %s", pszAddrTemp, pszAddress);
+
+        delete[] pszAddrTemp;
+        pszAddrTemp = pszAddr;
+
+        RIL_LOG_INFO("CChannel_Data::AddAddressString() - Added new %s address [%s],"
+                "cid=%u\r\n", apszType[type], pszAddress, m_uiContextID);
+    }
+
+    // restore address pointer
+    switch (type)
+    {
+        case ADDR_IP:
+            m_pszIpAddresses = pszAddrTemp;
+            break;
+
+        case ADDR_DNS:
+            m_pszDnses = pszAddrTemp;
+            break;
+
+        case ADDR_GATEWAY:
+            m_pszGateways = pszAddrTemp;
+            break;
+
+        case ADDR_PCSCF:
+            m_pszPcscfes = pszAddrTemp;
+            break;
+
+        default: // undefined type
+            RIL_LOG_WARNING("CChannel_Data::AddAddressString() - Undefined type\r\n");
+            goto Error;
+    }
+
+    bRet = TRUE;
+
+Error:
+    if (!bRet)
+    {
+        delete[] pszAddr;
+        pszAddr = NULL;
+    }
+    RIL_LOG_VERBOSE("CChannel_Data::AddAddressString() - Exit\r\n");
+    return bRet;
+}
+
+//
+// Delete an addresses string from address array, indexed by cid
+//
+void CChannel_Data::DeleteAddressesString(const ADDR_TYPE type)
+{
+    switch (type)
+    {
+        case ADDR_IP:
+            delete[] m_pszIpAddresses;
+            m_pszIpAddresses = NULL;
+            break;
+
+        case ADDR_DNS:
+            delete[] m_pszDnses;
+            m_pszDnses = NULL;
+            break;
+
+        case ADDR_GATEWAY:
+            delete[] m_pszGateways;
+            m_pszGateways = NULL;
+            break;
+
+        case ADDR_PCSCF:
+            delete[] m_pszPcscfes;
+            m_pszPcscfes = NULL;
+            break;
+
+        default: // undefined type
+            RIL_LOG_CRITICAL("CChannel_Data::DeleteAddressesString() - Undefined type\r\n");
+            break;
+    }
+}
+
+//
+// Copy the addresses string of type type into pszAddresses,
+// a pointer to a buffer of size addressBufferSize
+// the buffer is not modified if the addresses string does not exist or is too long
+// @param pszAddresses : the buffer to copy the adresses string in
+// @param type: the type of addresses (see ADDR_TYPE)
+// @param addressBufferSize: the size of pszAddresses buffer
+//
+void CChannel_Data::GetAddressString(char* pszAddresses, const ADDR_TYPE type,
+        const int addressBufferSize)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetAddressString() - Enter\r\n");
+
+    BOOL bRes = FALSE;
+
+    if (pszAddresses != NULL)
+    {
+        switch (type)
+        {
+            case ADDR_IP:
+                if (NULL != m_pszIpAddresses && addressBufferSize > strlen(m_pszIpAddresses))
+                {
+                    strcpy(pszAddresses, m_pszIpAddresses);
+                    bRes = TRUE;
+                }
+                break;
+
+            case ADDR_DNS:
+                if (NULL != m_pszDnses && addressBufferSize > strlen(m_pszDnses))
+                {
+                    strcpy(pszAddresses, m_pszDnses);
+                    bRes = TRUE;
+                }
+                break;
+
+            case ADDR_GATEWAY:
+                if (NULL != m_pszGateways && addressBufferSize > strlen(m_pszGateways))
+                {
+                    strcpy(pszAddresses, m_pszGateways);
+                    bRes = TRUE;
+                }
+                break;
+
+            case ADDR_PCSCF:
+                if (NULL != m_pszPcscfes && addressBufferSize > strlen(m_pszPcscfes))
+                {
+                    strcpy(pszAddresses, m_pszPcscfes);
+                    bRes = TRUE;
+                }
+                break;
+
+            default: // undefined type
+                RIL_LOG_CRITICAL("CChannel_Data::GetAddressString() - Undefined address type\r\n");
+                bRes = TRUE;
+                break;
+        }
+    }
+
+    if (!bRes)
+    {
+        RIL_LOG_CRITICAL("CChannel_Data::GetAddressString() - Overflow or NULL address\r\n");
+    }
+    RIL_LOG_VERBOSE("CChannel_Data::GetAddressString() - Exit\r\n");
+}

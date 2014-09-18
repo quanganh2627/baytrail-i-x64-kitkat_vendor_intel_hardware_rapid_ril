@@ -10000,7 +10000,6 @@ void CTE::PostSetNetworkSelectionCmdHandler(POST_CMD_HANDLER_DATA& rData)
 int CTE::GetActiveDataCallInfoList(P_ND_PDP_CONTEXT_DATA pPDPListData)
 {
     CChannel_Data* pChannelData = NULL;
-    S_DATA_CALL_INFO sDataCallInfo;
     int noOfActivePDP = 0;
 
     for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
@@ -10016,38 +10015,24 @@ int CTE::GetActiveDataCallInfoList(P_ND_PDP_CONTEXT_DATA pPDPListData)
                 && E_DATA_STATE_ACTIVE == pChannelData->GetDataState()
                 && (pChannelData->GetRefCount() != 0))
         {
-            memset(&sDataCallInfo, 0, sizeof(sDataCallInfo));
-            pChannelData->GetDataCallInfo(sDataCallInfo);
+            pChannelData->GetAddressString(pPDPListData->aszAddressBuffers[noOfActivePDP],
+                    pChannelData->ADDR_IP, MAX_BUFFER_SIZE);
 
-            PrintStringNullTerminate(pPDPListData->aszDnsesBuffers[noOfActivePDP],
-                                             MAX_BUFFER_SIZE,
-                                             "%s %s %s %s",
-                                             sDataCallInfo.szDNS1,
-                                             sDataCallInfo.szDNS2,
-                                             sDataCallInfo.szIpV6DNS1,
-                                             sDataCallInfo.szIpV6DNS2);
+            pChannelData->GetAddressString(pPDPListData->aszDnsesBuffers[noOfActivePDP],
+                    pChannelData->ADDR_DNS, MAX_BUFFER_SIZE);
 
-            PrintStringNullTerminate(pPDPListData->aszAddressBuffers[noOfActivePDP],
-                                             MAX_BUFFER_SIZE,
-                                             "%s %s",
-                                             sDataCallInfo.szIpAddr1,
-                                             sDataCallInfo.szIpAddr2);
+            pChannelData->GetAddressString(pPDPListData->aszGatewaysBuffers[noOfActivePDP],
+                    pChannelData->ADDR_GATEWAY, MAX_BUFFER_SIZE);
 
-            CopyStringNullTerminate(pPDPListData->aszGatewaysBuffers[noOfActivePDP],
-                                            sDataCallInfo.szGateways,
-                                            MAX_BUFFER_SIZE);
+            pChannelData->GetPdpType(pPDPListData->aszTypeBuffers[noOfActivePDP],
+                    MAX_PDP_TYPE_SIZE);
 
-            CopyStringNullTerminate(pPDPListData->aszTypeBuffers[noOfActivePDP],
-                                            sDataCallInfo.szPdpType,
-                                            MAX_PDP_TYPE_SIZE);
+            pChannelData->GetInterfaceName(pPDPListData->aszIfnameBuffers[noOfActivePDP],
+                    MAX_INTERFACE_NAME_SIZE);
 
-            CopyStringNullTerminate(pPDPListData->aszIfnameBuffers[noOfActivePDP],
-                                            sDataCallInfo.szInterfaceName,
-                                            MAX_INTERFACE_NAME_SIZE);
-
-            pPDPListData->aPDPData[noOfActivePDP].status = sDataCallInfo.failCause;
+            pPDPListData->aPDPData[noOfActivePDP].status = pChannelData->GetDataFailCause();
             pPDPListData->aPDPData[noOfActivePDP].suggestedRetryTime = -1;
-            pPDPListData->aPDPData[noOfActivePDP].cid = sDataCallInfo.uiCID;
+            pPDPListData->aPDPData[noOfActivePDP].cid = pChannelData->GetContextID();
             pPDPListData->aPDPData[noOfActivePDP].active = 2;
             pPDPListData->aPDPData[noOfActivePDP].type =
                     pPDPListData->aszTypeBuffers[noOfActivePDP];

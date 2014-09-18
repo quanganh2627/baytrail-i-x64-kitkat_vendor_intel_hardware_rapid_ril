@@ -6072,27 +6072,26 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char * pszRsp = rRspData.szResponse;
 
+    UINT32 uiPrevCID = 0;
     UINT32 uiCID = 0;
     UINT32 uiBearerID = 0;
     char szTmpBuffer[MAX_BUFFER_SIZE] = {'\0'};
+    char szTempAddress1[MAX_IPADDR_SIZE] = {'\0'};
+    char szTempAddress2[MAX_IPADDR_SIZE] = {'\0'};
+    char szTempAddress3[MAX_IPADDR_SIZE] = {'\0'};
+    char szTempAddress4[MAX_IPADDR_SIZE] = {'\0'};
+    bool isIPV4 = false;
+    bool isIPV6 = false;
     CChannel_Data *pChannelData = NULL;
-    P_DEFAULT_PDN_CONTEXT_PARAMS pContextParams = NULL;
 
     RIL_LOG_VERBOSE("CTEBase::ParseReadContextParams() - %s\r\n", pszRsp);
 
-    pContextParams =
-            (P_DEFAULT_PDN_CONTEXT_PARAMS)malloc(sizeof(S_DEFAULT_PDN_CONTEXT_PARAMS));
-    if (NULL == pContextParams)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
-                "memory allocation failed\r\n");
-        goto Error;
-    }
-
-    memset(pContextParams, 0 , sizeof(S_DEFAULT_PDN_CONTEXT_PARAMS));
-
-    // Parse +CGCONTRDP response, will return up to 2 lines of data (if MT has
-    // dual stack capability. 1st line for IPV4 data, 2nd for IPV6
+    // Parse +CGCONTRDP response.
+    // If the MT has dual stack capabilities, at least one pair of lines with information
+    // is returned per <cid>. First one line with the IPv4 parameters followed by one line
+    // with the IPv6 parameters. If this MT with dual stack capabilities indicates more
+    // than two IP addresses of P-CSCF servers or more than two IP addresses of DNS servers,
+    // multiple of such pairs of lines are returned.
     while (FindAndSkipString(pszRsp, "+CGCONTRDP:", pszRsp))
     {
        // Parse <cid>
@@ -6144,23 +6143,42 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
             goto Error;
         }
 
+        // Clean-up the context for each cid, only once per CID and per parsing.
+        if (uiCID != uiPrevCID)
+        {
+            pChannelData->DeleteAddressesString(pChannelData->ADDR_IP);
+            pChannelData->DeleteAddressesString(pChannelData->ADDR_GATEWAY);
+            pChannelData->DeleteAddressesString(pChannelData->ADDR_DNS);
+            pChannelData->DeleteAddressesString(pChannelData->ADDR_PCSCF);
+        }
+        uiPrevCID = uiCID;
+
         /*
          * If IPv4, then first line will have the IPv4 address.
          * If IPv6, then first line will have the IPv6 address.
          * If IPv4v6, then first line will have the IPv4 address and
          * second line will have the IPv6 address.
          */
-        if (!ExtractLocalAddressAndSubnetMask(szTmpBuffer, pContextParams->szIpV4Addr,
-                MAX_IPADDR_SIZE, pContextParams->szIpV6Addr, MAX_IPADDR_SIZE,
-                pContextParams->szIpv4SubnetMask, MAX_IPADDR_SIZE,
-                pContextParams->szIpv6SubnetMask, MAX_IPADDR_SIZE))
+        if (!ExtractLocalAddressAndSubnetMask(szTmpBuffer, szTempAddress1, MAX_IPADDR_SIZE,
+                szTempAddress2, MAX_IPADDR_SIZE, szTempAddress3, MAX_IPADDR_SIZE,
+                szTempAddress4, MAX_IPADDR_SIZE))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "ExtractLocalAddressAndSubnetMask failed\r\n");
             goto Error;
         }
 
-        pChannelData->SetIpAddress(pContextParams->szIpV4Addr, pContextParams->szIpV6Addr);
+        pChannelData->AddAddressString(pChannelData->ADDR_IP, szTempAddress1);
+        pChannelData->AddAddressString(pChannelData->ADDR_IP, szTempAddress2);
+
+        if (szTempAddress2[0] == '\0')
+        {
+            isIPV4 = true;
+        }
+        if (szTempAddress1[0] == '\0')
+        {
+            isIPV6 = true;
+        }
 
         if (!SkipString(pszRsp, ",", pszRsp) ||
                 !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
@@ -6170,16 +6188,16 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
             goto Error;
         }
 
-        if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4GatewayAddr,
-                MAX_IPADDR_SIZE, pContextParams->szIpV6GatewayAddr, MAX_IPADDR_SIZE))
+        if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, szTempAddress1, MAX_IPADDR_SIZE,
+                szTempAddress2, MAX_IPADDR_SIZE))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "ConvertIPAddressToAndroidReadable - Ipv4/v6 Gateway address failed\r\n");
             goto Error;
         }
 
-        pChannelData->SetGateway(pContextParams->szIpV4GatewayAddr,
-                pContextParams->szIpV6GatewayAddr);
+        pChannelData->AddAddressString(pChannelData->ADDR_GATEWAY, szTempAddress1);
+        pChannelData->AddAddressString(pChannelData->ADDR_GATEWAY, szTempAddress2);
 
         if (!SkipString(pszRsp, ",", pszRsp) ||
             !ExtractQuotedString(pszRsp, szTmpBuffer, MAX_BUFFER_SIZE, pszRsp))
@@ -6195,8 +6213,8 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
          * If IPv4v6, then first line will have the IPv4 address and
          * second line will have the IPv6 address.
          */
-        if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4DNS1,
-                MAX_IPADDR_SIZE, pContextParams->szIpV6DNS1, MAX_IPADDR_SIZE))
+        if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, szTempAddress1,
+                MAX_IPADDR_SIZE, szTempAddress2, MAX_IPADDR_SIZE))
         {
             RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                     "ConvertIPAddressToAndroidReadable - Primary DNS IPv4/IPv6 "
@@ -6219,8 +6237,8 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
              * If IPv4v6, then first line will have the IPv4 address and
              * second line will have the IPv6 address.
              */
-            if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4DNS2,
-                    MAX_IPADDR_SIZE, pContextParams->szIpV6DNS2, MAX_IPADDR_SIZE))
+            if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, szTempAddress3, MAX_IPADDR_SIZE,
+                    szTempAddress4, MAX_IPADDR_SIZE))
             {
                 RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                         "ConvertIPAddressToAndroidReadable - Secondary DNS IPv4/IPv6 "
@@ -6230,8 +6248,10 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
             }
         }
 
-        pChannelData->SetDNS(pContextParams->szIpV4DNS1, pContextParams->szIpV4DNS2,
-                pContextParams->szIpV6DNS1, pContextParams->szIpV6DNS2);
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szTempAddress1);
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szTempAddress3);
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szTempAddress2);
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szTempAddress4);
 
         // Parse ,<P-CSCF_prim_addr>
         if (!SkipString(pszRsp, ",", pszRsp) ||
@@ -6248,8 +6268,8 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
              * If IPv4v6, then first line will have the IPv4 address and
              * second line will have the IPv6 address.
              */
-            if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4PCSCF1,
-                    MAX_IPADDR_SIZE, pContextParams->szIpV6PCSCF1, MAX_IPADDR_SIZE))
+            if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, szTempAddress1, MAX_IPADDR_SIZE,
+                    szTempAddress2, MAX_IPADDR_SIZE))
             {
                 RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                         "ConvertIPAddressToAndroidReadable - Primary PCSCF IPv4/IPv6 "
@@ -6274,8 +6294,8 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
              * If IPv4v6, then first line will have the IPv4 address and
              * second line will have the IPv6 address.
              */
-            if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, pContextParams->szIpV4PCSCF2,
-                    MAX_IPADDR_SIZE, pContextParams->szIpV6PCSCF2, MAX_IPADDR_SIZE))
+            if (!ConvertIPAddressToAndroidReadable(szTmpBuffer, szTempAddress3, MAX_IPADDR_SIZE,
+                    szTempAddress4, MAX_IPADDR_SIZE))
             {
                 RIL_LOG_CRITICAL("CTEBase::ParseReadContextParams() - "
                         "ConvertIPAddressToAndroidReadable - Secondary PCSCF IPv4/IPv6 "
@@ -6284,51 +6304,42 @@ RIL_RESULT_CODE CTEBase::ParseReadContextParams(RESPONSE_DATA& rRspData)
                 goto Error;
             }
         }
-        pChannelData->SetPcscf(pContextParams->szIpV4PCSCF1, pContextParams->szIpV4PCSCF2,
-                pContextParams->szIpV6PCSCF1, pContextParams->szIpV6PCSCF2);
-    }
 
-    RIL_LOG_INFO("CTEBase::ParseReadContextParams() - "
-            "uiCID: %u, szIPv4Addr:%s, szIPv6Addr:%s, szIPv4GatewayAddr: %s, szIPv6GatewayAddr: %s,"
-            " szIPv4DNS1: %s, szIPv6DNS1: %s, szIPv4DNS2: %s, szIPv6DNS2: %s,"
-            " szIPv4PCSCF1: %s, szIPv6PCSCF1: %s, szIPv4PCSCF2: %s, szIPv6PCSCF2: %s\r\n",
-            uiCID, pContextParams->szIpV4Addr, pContextParams->szIpV6Addr,
-            pContextParams->szIpV4GatewayAddr, pContextParams->szIpV6GatewayAddr,
-            pContextParams->szIpV4DNS1, pContextParams->szIpV6DNS1, pContextParams->szIpV4DNS2,
-            pContextParams->szIpV6DNS2, pContextParams->szIpV4PCSCF1, pContextParams->szIpV6PCSCF1,
-            pContextParams->szIpV4PCSCF2, pContextParams->szIpV6PCSCF2);
+        pChannelData->AddAddressString(pChannelData->ADDR_PCSCF, szTempAddress1);
+        pChannelData->AddAddressString(pChannelData->ADDR_PCSCF, szTempAddress3);
+        pChannelData->AddAddressString(pChannelData->ADDR_PCSCF, szTempAddress2);
+        pChannelData->AddAddressString(pChannelData->ADDR_PCSCF, szTempAddress4);
+
+        // Clear temp buffers for next line parsing
+        szTempAddress1[0] = '\0';
+        szTempAddress2[0] = '\0';
+        szTempAddress3[0] = '\0';
+        szTempAddress4[0] = '\0';
+
+    }
 
     res = RRIL_RESULT_OK;
 Error:
     if (RRIL_RESULT_OK == res)
     {
-        char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
-
-        if (NULL != pContextParams)
-        {
-            if (pContextParams->szIpV6Addr[0] == '\0')
-            {
-                CopyStringNullTerminate(szPdpType, PDPTYPE_IP, sizeof(szPdpType));
-            }
-            else if (pContextParams->szIpV4Addr[0] == '\0')
-            {
-                CopyStringNullTerminate(szPdpType, PDPTYPE_IPV6, sizeof(szPdpType));
-            }
-            else
-            {
-                CopyStringNullTerminate(szPdpType, PDPTYPE_IPV4V6, sizeof(szPdpType));
-            }
-        }
-
         if (NULL != pChannelData)
         {
-            pChannelData->SetPdpType(szPdpType);
+            if (isIPV4 && !isIPV6)
+            {
+                pChannelData->SetPdpType(PDPTYPE_IP);
+            }
+            else if (!isIPV4 && isIPV6)
+            {
+                pChannelData->SetPdpType(PDPTYPE_IPV6);
+            }
+            else if (isIPV4 && isIPV6)
+            {
+                pChannelData->SetPdpType(PDPTYPE_IPV4V6);
+            }
+
+            NotifyNetworkApnInfo();
         }
-
-        NotifyNetworkApnInfo();
     }
-
-    free (pContextParams);
 
     RIL_LOG_VERBOSE("CTEBase::ParseReadContextParams() - Exit\r\n");
     return res;
@@ -10839,17 +10850,16 @@ void CTEBase::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
     RIL_LOG_VERBOSE("CTEBase::HandleSetupDataCallSuccess() - Enter\r\n");
 
     RIL_Data_Call_Response_v6 dataCallResp;
-    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
-    char szInterfaceName[MAX_INTERFACE_NAME_SIZE] = {'\0'};
-    char szIPAddress[MAX_BUFFER_SIZE] = {'\0'};
-    char szDNS[MAX_BUFFER_SIZE] = {'\0'};
-    char szGateway[MAX_IPADDR_SIZE] = {'\0'};
-    S_DATA_CALL_INFO sDataCallInfo;
     CChannel_Data* pChannelData = NULL;
 
     memset(&dataCallResp, 0, sizeof(RIL_Data_Call_Response_v6));
     dataCallResp.status = PDP_FAIL_ERROR_UNSPECIFIED;
     dataCallResp.suggestedRetryTime = -1;
+    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+    char szInterfaceName[MAX_INTERFACE_NAME_SIZE] = {'\0'};
+    char szIPAddress[MAX_BUFFER_SIZE] = {'\0'};
+    char szDNS[MAX_BUFFER_SIZE] = {'\0'};
+    char szGateway[MAX_BUFFER_SIZE] = {'\0'};
 
     m_cte.SetupDataCallOngoing(FALSE);
 
@@ -10861,45 +10871,15 @@ void CTEBase::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
         goto Error;
     }
 
-    pChannelData->GetDataCallInfo(sDataCallInfo);
+    pChannelData->GetPdpType(szPdpType, sizeof(szPdpType));
+    pChannelData->GetAddressString(szIPAddress, pChannelData->ADDR_IP, sizeof(szIPAddress));
+    pChannelData->GetAddressString(szDNS, pChannelData->ADDR_DNS, sizeof(szDNS));
+    pChannelData->GetAddressString(szGateway, pChannelData->ADDR_GATEWAY, sizeof(szGateway));
+    pChannelData->GetInterfaceName(szInterfaceName, sizeof(szInterfaceName));
 
-    if (0 == strcmp(sDataCallInfo.szPdpType, PDPTYPE_IP))
-    {
-        PrintStringNullTerminate(szIPAddress, MAX_BUFFER_SIZE, "%s",
-                sDataCallInfo.szIpAddr1);
-
-        PrintStringNullTerminate(szDNS, MAX_BUFFER_SIZE, "%s %s",
-                sDataCallInfo.szDNS1, sDataCallInfo.szDNS2);
-    }
-    else if (0 == strcmp(sDataCallInfo.szPdpType, PDPTYPE_IPV6))
-    {
-        PrintStringNullTerminate(szIPAddress, MAX_BUFFER_SIZE, "%s",
-                sDataCallInfo.szIpAddr2);
-
-        PrintStringNullTerminate(szDNS, MAX_BUFFER_SIZE, "%s %s",
-                sDataCallInfo.szIpV6DNS1, sDataCallInfo.szIpV6DNS2);
-    }
-    else if (0 == strcmp(sDataCallInfo.szPdpType, PDPTYPE_IPV4V6))
-    {
-        PrintStringNullTerminate(szIPAddress, MAX_BUFFER_SIZE, "%s %s",
-                sDataCallInfo.szIpAddr1, sDataCallInfo.szIpAddr2);
-
-        PrintStringNullTerminate(szDNS, MAX_BUFFER_SIZE, "%s %s %s %s",
-                sDataCallInfo.szDNS1, sDataCallInfo.szDNS2,
-                sDataCallInfo.szIpV6DNS1, sDataCallInfo.szIpV6DNS2);
-    }
-
-
-    CopyStringNullTerminate(szGateway, sDataCallInfo.szGateways, MAX_IPADDR_SIZE);
-
-    CopyStringNullTerminate(szPdpType, sDataCallInfo.szPdpType, MAX_PDP_TYPE_SIZE);
-
-    CopyStringNullTerminate(szInterfaceName, sDataCallInfo.szInterfaceName,
-            MAX_INTERFACE_NAME_SIZE);
-
-    dataCallResp.status = sDataCallInfo.failCause;
+    dataCallResp.status = pChannelData->GetDataFailCause();
     dataCallResp.suggestedRetryTime = -1;
-    dataCallResp.cid = sDataCallInfo.uiCID;
+    dataCallResp.cid = uiCID;
     dataCallResp.active = 2;
     dataCallResp.type = szPdpType;
     dataCallResp.addresses = szIPAddress;
@@ -11025,8 +11005,8 @@ BOOL CTEBase::DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pCh
 {
     BOOL bRet = FALSE;
     int s = -1;
-    char szIpAddr[MAX_BUFFER_SIZE] = {'\0'};
-    char szGatewayAddr[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpAddr[2*MAX_IPADDR_SIZE + 1] = {'\0'};
+    char szGatewayAddr[2*MAX_IPADDR_SIZE + 1] = {'\0'};
 
     if (NULL == pChannelData || NULL == pszNetworkInterfaceName)
     {
@@ -11034,7 +11014,7 @@ BOOL CTEBase::DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pCh
         goto Error;
     }
 
-    pChannelData->GetIpAddress(szIpAddr, sizeof(szIpAddr), NULL, 0);
+    pChannelData->GetAddressString(szIpAddr, pChannelData->ADDR_IP, sizeof(szIpAddr));
 
     RIL_LOG_INFO("CTEBase::DataConfigUpIpV4() ENTER  pszNetworkInterfaceName=[%s]"
             "  szIpAddr=[%s]\r\n",
@@ -11073,8 +11053,10 @@ BOOL CTEBase::DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pCh
         }
     }
 
-    pChannelData->GetGateway(szGatewayAddr, MAX_IPADDR_SIZE, NULL, 0);
-    if (NULL == szGatewayAddr || 0 == strlen(szGatewayAddr))
+    pChannelData->GetAddressString(szGatewayAddr,
+            pChannelData->ADDR_GATEWAY, sizeof(szGatewayAddr));
+
+    if (0 == strlen(szGatewayAddr))
     {
         in_addr_t gw;
         struct in_addr gwaddr;
@@ -11090,7 +11072,7 @@ BOOL CTEBase::DataConfigUpIpV4(char* pszNetworkInterfaceName, CChannel_Data* pCh
         gw |= 1;
         gwaddr.s_addr = htonl(gw);
 
-        pChannelData->SetGateway(inet_ntoa(gwaddr), NULL);
+        pChannelData->AddAddressString(pChannelData->ADDR_GATEWAY, inet_ntoa(gwaddr));
     }
 
     bRet = TRUE;
@@ -11109,7 +11091,7 @@ BOOL CTEBase::DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pCh
 {
     BOOL bRet = FALSE;
     int s = -1;
-    char szIpAddr2[MAX_IPADDR_SIZE] = {'\0'};
+    char szIpAddr2[2*MAX_IPADDR_SIZE + 1] = {'\0'};
     char szIpAddrOut[50];
     struct in6_addr ifIdAddr;
     struct in6_addr ifPrefixAddr;
@@ -11121,7 +11103,7 @@ BOOL CTEBase::DataConfigUpIpV6(char* pszNetworkInterfaceName, CChannel_Data* pCh
         goto Error;
     }
 
-    pChannelData->GetIpAddress(NULL, 0, szIpAddr2, sizeof(szIpAddr2));
+    pChannelData->GetAddressString(szIpAddr2, pChannelData->ADDR_IP, sizeof(szIpAddr2));
 
     RIL_LOG_INFO("CTEBase::DataConfigUpIpV6() ENTER  pszNetworkInterfaceName=[%s]"
             "  szIpAddr2=[%s]\r\n",
@@ -11251,8 +11233,9 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
     struct in6_addr ifIdAddr;
     struct in6_addr ifPrefixAddr;
     struct in6_addr ifOutAddr;
-    char szIpAddr[MAX_IPADDR_SIZE] = {'\0'};
-    char szIpAddr2[MAX_IPADDR_SIZE] = {'\0'};
+    char* pszIpAddr = NULL;
+    char* pszIpAddr2 = NULL;
+    char szIpAddrTemp[2*MAX_IPADDR_SIZE + 1] = {'\0'};
 
     if (NULL == pChannelData || NULL == pszNetworkInterfaceName)
     {
@@ -11260,12 +11243,22 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
         goto Error;
     }
 
-    pChannelData->GetIpAddress(szIpAddr, sizeof(szIpAddr),
-                                        szIpAddr2, sizeof(szIpAddr2));
+    pChannelData->GetAddressString(szIpAddrTemp, pChannelData->ADDR_IP, sizeof(szIpAddrTemp));
 
-    RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() ENTER  pszNetworkInterfaceName=[%s]  szIpAddr=[%s]"
-            " szIpAddr2=[%s]\r\n",
-            pszNetworkInterfaceName, szIpAddr, szIpAddr2);
+    // IP addresses string : "IPV4 IPV6"
+    pszIpAddr = szIpAddrTemp;
+    pszIpAddr2 = strstr(szIpAddrTemp, " ");
+    if (NULL == pszIpAddr2)
+    {
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() - Cannot extract pszIpAddr2\r\n");
+        goto Error;
+    }
+    *pszIpAddr2 = '\0';
+    pszIpAddr2++;
+
+    RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() ENTER  pszNetworkInterfaceName=[%s]  pszIpAddr=[%s]"
+            " pszIpAddr2=[%s]\r\n",
+            pszNetworkInterfaceName, pszIpAddr, pszIpAddr2);
 
     //  Open socket for ifconfig and setFlags commands
     s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -11282,7 +11275,7 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
     ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
     RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : Setting addr\r\n");
-    if (!setaddr(s, &ifr, szIpAddr))
+    if (!setaddr(s, &ifr, pszIpAddr))
     {
         //goto Error;
         RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : Error setting add\r\n");
@@ -11293,7 +11286,7 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
     ifr.ifr_name[IFNAMSIZ-1] = '\0';  //  KW fix
 
     // Set link local address to start the SLAAC process
-    inet_pton(AF_INET6, szIpAddr2, &ifIdAddr);
+    inet_pton(AF_INET6, pszIpAddr2, &ifIdAddr);
     inet_pton(AF_INET6, "FE80::", &ifPrefixAddr);
 
     // Set local prefix from FE80::
@@ -11302,7 +11295,7 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
     memcpy((ifOutAddr.s6_addr)+8, (ifIdAddr.s6_addr)+8, 8);
 
     inet_ntop(AF_INET6, &ifOutAddr, szIpAddrOut, sizeof(szIpAddrOut));
-    strncpy(szIpAddr2, szIpAddrOut, sizeof(szIpAddrOut));
+    strncpy(pszIpAddr2, szIpAddrOut, sizeof(szIpAddrOut));
 
     RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : Setting flags\r\n");
     if (!setflags(s, &ifr, IFF_UP | IFF_POINTOPOINT | IFF_NOARP, 0))
@@ -11310,7 +11303,7 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
         RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : Error setting flags\r\n");
     }
 
-    if (!setaddr6(s6, &ifr, szIpAddr2))
+    if (!setaddr6(s6, &ifr, pszIpAddr2))
     {
         RIL_LOG_CRITICAL("CTEBase::DataConfigUpIpV4V6() : Error setting add\r\n");
     }
@@ -11384,16 +11377,19 @@ BOOL CTEBase::DataConfigUpIpV4V6(char* pszNetworkInterfaceName,
     in_addr_t addr;
 
     RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : set default gateway to fake value\r\n");
-    if (inet_pton(AF_INET, szIpAddr, &addr) <= 0)
+    if (inet_pton(AF_INET, pszIpAddr, &addr) <= 0)
     {
-        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : inet_pton() failed for %s!\r\n", szIpAddr);
+        RIL_LOG_INFO("CTEBase::DataConfigUpIpV4V6() : inet_pton() failed for %s!\r\n", pszIpAddr);
         goto Error;
     }
     gw = ntohl(addr) & 0xFFFFFF00;
     gw |= 1;
     gwaddr.s_addr = htonl(gw);
 
-    pChannelData->SetGateway(inet_ntoa(gwaddr), NULL);
+    // First clear GATEWAY addresses
+    pChannelData->DeleteAddressesString(pChannelData->ADDR_GATEWAY);
+    // Add GATEWAY address
+    pChannelData->AddAddressString(pChannelData->ADDR_GATEWAY, inet_ntoa(gwaddr));
 
     bRet = TRUE;
 

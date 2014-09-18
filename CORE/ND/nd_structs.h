@@ -268,6 +268,7 @@ typedef struct
 
 enum PDP_TYPE
 {
+    PDP_TYPE_UNKNOWN,
     PDP_TYPE_IPV4,
     PDP_TYPE_IPV6,
     PDP_TYPE_IPV4V6,
@@ -362,25 +363,6 @@ typedef struct
     S_ND_SEND_AT_RESPONSE_PTR sResponsePointer;
     char szResponse[MAX_AT_RESP_SIZE];
 } S_ND_SEND_AT_RESPONSE, *P_ND_SEND_AT_RESPONSE;
-
-typedef struct
-{
-    char* pszCid;
-    char* pszPcscf1;
-    char* pszPcscf2;
-    char* pszIpV6Pcscf1;
-    char* pszIpV6Pcscf2;
-}  S_ND_GET_PCSCF_RESPONSE_PTR, *P_ND_GET_PCSCF_RESPONSE_PTR;
-
-typedef struct
-{
-    S_ND_GET_PCSCF_RESPONSE_PTR sResponsePointer;
-    char szCid[REG_STATUS_LENGTH];
-    char szPcscf1[MAX_IPADDR_SIZE];
-    char szPcscf2[MAX_IPADDR_SIZE];
-    char szIpV6Pcscf1[MAX_IPADDR_SIZE];
-    char szIpV6Pcscf2[MAX_IPADDR_SIZE];
-} S_ND_GET_PCSCF_RESPONSE, *P_ND_GET_PCSCF_RESPONSE;
 
 //
 // Structs for retrieving the RF Power Cutback Table

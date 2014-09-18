@@ -486,9 +486,6 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
     int networkInterfaceID = -1;
     CChannel_Data* pChannelData = NULL;
     PDP_TYPE eDataConnectionType = PDP_TYPE_IPV4;  //  dummy for now, set to IPv4.
-    char szPdpType[MAX_BUFFER_SIZE] = {'\0'};
-    char szIpAddr[MAX_IPADDR_SIZE] = {'\0'};
-    char szIpAddr2[MAX_IPADDR_SIZE] = {'\0'};
     int dataProfile = -1;
     BOOL bIsHSIDirect = FALSE;
     int hsiChannel = -1;
@@ -682,26 +679,7 @@ BOOL CTE_XMM6360::SetupInterface(UINT32 uiCID)
         }
     }
 
-    pChannelData->GetIpAddress(szIpAddr, sizeof(szIpAddr),
-                                    szIpAddr2, sizeof(szIpAddr2));
-
-    if (szIpAddr2[0] == '\0')
-    {
-        eDataConnectionType = PDP_TYPE_IPV4;
-        strcpy(szPdpType, PDPTYPE_IP);
-    }
-    else if (szIpAddr[0] == '\0')
-    {
-        eDataConnectionType = PDP_TYPE_IPV6;
-        strcpy(szPdpType, PDPTYPE_IPV6);
-    }
-    else
-    {
-        eDataConnectionType = PDP_TYPE_IPV4V6;
-        strcpy(szPdpType, PDPTYPE_IPV4V6);
-    }
-
-    pChannelData->SetPdpType(szPdpType);
+    pChannelData->GetDataConnectionType(eDataConnectionType);
 
     // set interface address(es) and bring up interface
     if (!DataConfigUp(szNetworkInterfaceName, pChannelData, eDataConnectionType))
@@ -1221,7 +1199,26 @@ RIL_RESULT_CODE CTE_XMM6360::ParseIpAddress(RESPONSE_DATA& rRspData)
             }
         }
 
-        pChannelData->SetIpAddress(szIpAddr1, szIpAddr2);
+        // First clear IP addresses
+        pChannelData->DeleteAddressesString(pChannelData->ADDR_IP);
+        // Now add IP addresses
+        pChannelData->AddAddressString(pChannelData->ADDR_IP, szIpAddr1);
+        pChannelData->AddAddressString(pChannelData->ADDR_IP, szIpAddr2);
+
+        // Set the PDP type
+        if (szIpAddr2[0] == '\0')
+        {
+            pChannelData->SetPdpType(PDPTYPE_IP);
+        }
+        else if (szIpAddr1[0] == '\0')
+        {
+            pChannelData->SetPdpType(PDPTYPE_IPV6);
+        }
+        else
+        {
+            pChannelData->SetPdpType(PDPTYPE_IPV4V6);
+        }
+
         res = RRIL_RESULT_OK;
     }
     else
@@ -1397,7 +1394,13 @@ RIL_RESULT_CODE CTE_XMM6360::ParseDns(RESPONSE_DATA & rRspData)
             }
         }
 
-        pChannelData->SetDNS(szIpDNS1, szIpDNS2, szIpV6DNS1, szIpV6DNS2);
+        // First clear DNS addresses
+        pChannelData->DeleteAddressesString(pChannelData->ADDR_DNS);
+        // Now add DNS addresses
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szIpDNS1);
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szIpDNS2);
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szIpV6DNS1);
+        pChannelData->AddAddressString(pChannelData->ADDR_DNS, szIpV6DNS2);
 
         res = RRIL_RESULT_OK;
     }
