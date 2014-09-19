@@ -864,7 +864,7 @@ Error:
     return bResult;
 }
 
-BOOL CChannel::FindIdenticalRequestsAndSendResponses(int reqID,
+int CChannel::FindIdenticalRequestsAndSendResponses(int reqID,
                                                         UINT32 uiResultCode,
                                                         void* pResponse,
                                                         size_t responseLen,
@@ -874,6 +874,7 @@ BOOL CChannel::FindIdenticalRequestsAndSendResponses(int reqID,
 
     CCommand** pCmdArray = NULL;
     int numOfCommands = 0;
+    int nCompletedRequests = 0;
 
     //  The following function returns us an array of CCommands, and the size of the returned array.
     g_pTxQueue[m_uiRilChannel]->GetAllQueuedObjects(pCmdArray, numOfCommands);
@@ -890,6 +891,7 @@ BOOL CChannel::FindIdenticalRequestsAndSendResponses(int reqID,
                 RIL_Token rilToken = pCmdArray[i]->GetToken();
                 if (NULL != rilToken)
                 {
+                    nCompletedRequests++;
                     RIL_onRequestComplete(rilToken, (RIL_Errno) uiResultCode,
                             pResponse, responseLen);
                 }
@@ -904,7 +906,7 @@ BOOL CChannel::FindIdenticalRequestsAndSendResponses(int reqID,
     pCmdArray = NULL;
 
     RIL_LOG_VERBOSE("CChannel::FindIdenticalRequestsAndSendResponses() - Exit\r\n");
-    return true;
+    return nCompletedRequests;
 }
 
 BOOL CChannel::ProcessModemData(char* szRxBytes, UINT32 uiRxBytesSize)

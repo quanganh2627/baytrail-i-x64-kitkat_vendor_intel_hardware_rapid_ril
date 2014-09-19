@@ -411,6 +411,13 @@ typedef struct
     char szCID[MAX_REG_STATUS_LENGTH];
 } S_REG_INFO;
 
+typedef struct
+{
+    int csRegState;
+    int psRegState;
+    int epsRegState;
+} S_NETWORK_REG_STATE_INFO;
+
 // Pref network type request information cache.
 typedef struct
 {

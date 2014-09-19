@@ -94,6 +94,7 @@ CTE::CTE(UINT32 modemType) :
     m_CbsActivate(-1),
     m_bTempOoSNotifReporting(FALSE),
     m_uiImsRegStatus(IMS_REGISTERED),
+    m_bNetworkStateChangeTimerRunning(false),
     m_ProductConfig(CONFIG_GENERAL),
     m_bOkToReleaseModem(FALSE)
 {
@@ -109,6 +110,7 @@ CTE::CTE(UINT32 modemType) :
     memset(&m_sCSStatus, 0, sizeof(S_ND_REG_STATUS));
     memset(&m_sPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
     memset(&m_sEPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
+    memset(&m_sNetworkRegStateInfo, 0, sizeof(S_NETWORK_REG_STATE_INFO));
 
     m_szCachedLac[0] = '\0';
     m_szCachedCid[0] = '\0';
@@ -131,6 +133,8 @@ CTE::CTE(UINT32 modemType) :
     m_pDataCleanupStatusLock = new CMutex();
 
     m_pDataChannelRefCountMutex = new CMutex();
+
+    m_pNetworkStateChangeTimerStatusLock = new CMutex();
 
     char szProductConfig[PROPERTY_VALUE_MAX] = {'\0'};
     if (property_get("ro.config.specific", szProductConfig, NULL))
@@ -175,6 +179,13 @@ CTE::~CTE()
         CMutex::Unlock(m_pDataChannelRefCountMutex);
         delete m_pDataChannelRefCountMutex;
         m_pDataChannelRefCountMutex = NULL;
+    }
+
+    if (m_pNetworkStateChangeTimerStatusLock)
+    {
+        CMutex::Unlock(m_pNetworkStateChangeTimerStatusLock);
+        delete m_pNetworkStateChangeTimerStatusLock;
+        m_pNetworkStateChangeTimerStatusLock = NULL;
     }
 }
 
@@ -7133,7 +7144,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
     RIL_LOG_VERBOSE("CTE::ParseCREG() - Enter\r\n");
 
     UINT32 uiNum;
-    UINT32 uiStatus = 0;
+    int status = 0;
     UINT32 uiLAC = 0;
     UINT32 uiCID = 0;
     UINT32 uiAct = 99; // dummy value by default
@@ -7175,11 +7186,13 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
     }
 
     // "<stat>"
-    if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
+    if (!ExtractInt(rszPointer, status, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE::ParseCREG() - Could not extract <stat>.\r\n");
         goto Error;
     }
+
+    m_sNetworkRegStateInfo.csRegState = status;
 
     // Do we have more to parse?
     if (SkipString(rszPointer, ",", rszPointer))
@@ -7245,21 +7258,21 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
      * If registration is denied, then map the registration status to emergency call possible(13)
      * based on reject cause.
      */
-    if (E_REGISTRATION_DENIED == uiStatus)
+    if (E_REGISTRATION_DENIED == status)
     {
-        const UINT32 REGISTRATION_DENIED_EMERGENCY_CALLS_POSSIBLE = 13;
+        const int REGISTRATION_DENIED_EMERGENCY_CALLS_POSSIBLE = 13;
         switch (rejectCause)
         {
             case 17: // Network failure
                 break;
 
             default:
-                uiStatus = REGISTRATION_DENIED_EMERGENCY_CALLS_POSSIBLE;
+                status = REGISTRATION_DENIED_EMERGENCY_CALLS_POSSIBLE;
                 break;
         }
     }
 
-    snprintf(rCSRegStatusInfo.szStat,        REG_STATUS_LENGTH, "%u", uiStatus);
+    snprintf(rCSRegStatusInfo.szStat,        REG_STATUS_LENGTH, "%d", status);
     snprintf(rCSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)rtAct);
     /*
      * With respect to android telephony framework, LAC and CID should be -1 if unknown or it
@@ -7294,7 +7307,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
     RIL_LOG_VERBOSE("CTE::ParseCGREG() - Enter\r\n");
 
     UINT32 uiNum;
-    UINT32 uiStatus = 0;
+    int status = 0;
     UINT32 uiLAC = 0;
     UINT32 uiCID = 0;
     UINT32 uiAct = 0;
@@ -7337,11 +7350,13 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
     }
 
     // "<stat>"
-    if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
+    if (!ExtractInt(rszPointer, status, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE::ParseCGREG() - Could not extract <stat>.\r\n");
         goto Error;
     }
+
+    m_sNetworkRegStateInfo.psRegState = status;
 
     // Do we have more to parse?
     if (SkipString(rszPointer, ",", rszPointer))
@@ -7417,7 +7432,7 @@ BOOL CTE::ParseCGREG(const char*& rszPointer, const BOOL bUnSolicited,
         }
     }
 
-    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);
+    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%d", status);
     snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)rtAct);
     /*
      * With respect to android telephony framework, LAC and CID should be -1 if unknown or it
@@ -7501,6 +7516,8 @@ BOOL CTE::ParseXREG(const char*& rszPointer, const BOOL bUnSolicited,
         RIL_LOG_CRITICAL("CTE::ParseXREG() - Could not extract <stat>.\r\n");
         goto Error;
     }
+
+    m_sNetworkRegStateInfo.psRegState = status;
 
     if (E_REGISTRATION_NOT_REGISTERED_NOT_SEARCHING == status
             || E_REGISTRATION_NOT_REGISTERED_SEARCHING == status
@@ -7654,7 +7671,7 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
     RIL_LOG_VERBOSE("CTE::ParseCEREG() - Enter\r\n");
 
     UINT32 uiNum;
-    UINT32 uiStatus = 0;
+    int status = 0;
     UINT32 uiTac = 0;
     UINT32 uiCid = 0;
     UINT32 uiAct = 0;
@@ -7695,11 +7712,13 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
     }
 
     // "<stat>"
-    if (!ExtractUInt32(rszPointer, uiStatus, rszPointer))
+    if (!ExtractInt(rszPointer, status, rszPointer))
     {
         RIL_LOG_CRITICAL("CTE::ParseCEREG() - Could not extract <stat>.\r\n");
         goto Error;
     }
+
+    m_sNetworkRegStateInfo.epsRegState = status;
 
     // Do we have more to parse?
     if (SkipString(rszPointer, ",", rszPointer))
@@ -7762,9 +7781,9 @@ BOOL CTE::ParseCEREG(const char*& rszPointer, const BOOL bUnSolicited,
         MapRegistrationRejectCause(causeType, rejectCause);
     }
 
-    MapCsRegistrationState(uiStatus);
+    MapCsRegistrationState(status);
 
-    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%u", uiStatus);
+    snprintf(rPSRegStatusInfo.szStat, REG_STATUS_LENGTH, "%d", status);
     snprintf(rPSRegStatusInfo.szNetworkType, REG_STATUS_LENGTH, "%d", (int)uiAct);
 
     (uiTac == 0) ? rPSRegStatusInfo.szLAC[0] = '\0' :
@@ -7790,17 +7809,17 @@ Error:
     return bRet;
 }
 
-void CTE::MapCsRegistrationState(UINT32& uiRegState)
+void CTE::MapCsRegistrationState(int& regState)
 {
-    switch (uiRegState)
+    switch (regState)
     {
         case E_REGISTRATION_REGISTERED_FOR_SMS_ONLY_HOME_NETWORK:
         case E_REGISTRATION_REGISTERED_FOR_CSFB_NP_HOME_NETWORK:
-            uiRegState = E_REGISTRATION_REGISTERED_HOME_NETWORK;
+            regState = E_REGISTRATION_REGISTERED_HOME_NETWORK;
             break;
         case E_REGISTRATION_REGISTERED_FOR_CSFB_NP_ROAMING:
         case E_REGISTRATION_REGISTERED_FOR_SMS_ONLY_ROAMING:
-            uiRegState = E_REGISTRATION_REGISTERED_ROAMING;
+            regState = E_REGISTRATION_REGISTERED_ROAMING;
             break;
         default:
             break;
@@ -8115,6 +8134,34 @@ bool CTE::IsRegistered()
     return bRet;
 }
 
+bool CTE::IsRegisteredBasedOnRegType(int regType)
+{
+    int status;
+
+    switch (regType)
+    {
+        case E_REGISTRATION_TYPE_CREG:
+            status = m_sNetworkRegStateInfo.csRegState;
+            break;
+
+        case E_REGISTRATION_TYPE_CGREG:
+        case E_REGISTRATION_TYPE_XREG:
+            status = m_sNetworkRegStateInfo.psRegState;
+            break;
+
+        case E_REGISTRATION_TYPE_CEREG:
+            status = m_sNetworkRegStateInfo.epsRegState;
+            break;
+
+        default:
+            status = E_REGISTRATION_UNKNOWN;
+            break;
+    }
+
+    return (E_REGISTRATION_REGISTERED_HOME_NETWORK == status
+            || E_REGISTRATION_REGISTERED_ROAMING == status);
+}
+
 LONG CTE::GetCsRegistrationState(char* pCsRegState)
 {
     return strtol(pCsRegState, NULL, 10);
@@ -8394,6 +8441,8 @@ void CTE::ResetInternalStates()
     memset(&m_sEPSStatus, 0, sizeof(S_ND_GPRS_REG_STATUS));
     m_szCachedLac[0] = '\0';
     m_szCachedCid[0] = '\0';
+
+    memset(&m_sNetworkRegStateInfo, 0, sizeof(S_NETWORK_REG_STATE_INFO));
 
     sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND info;
     info.regStatus = 0;
@@ -9159,6 +9208,18 @@ void CTE::PostOperator(POST_CMD_HANDLER_DATA& rData)
 
     RIL_onRequestComplete(rData.pRilToken, (RIL_Errno) rData.uiResultCode,
             rData.pData, rData.uiDataSize);
+
+    /*
+     * If there are pending operator requests, complete all pending operator requests and also
+     * notify VOICE_NETWORK_STATE_CHANGED to force the framework to query the operator again in
+     * order to avoid operator name change encountered during ongoing operator request.
+     */
+    if (CompleteIdenticalRequests(rData.uiChannel, rData.requestId,
+            rData.uiResultCode, (void*)rData.pData, rData.uiDataSize) > 0)
+    {
+        CTE::GetTE().TestAndSetNetworkStateChangeTimerRunning(false);
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
+    }
 
     RIL_LOG_VERBOSE("CTE::PostOperator() Exit\r\n");
 }
@@ -10075,24 +10136,26 @@ BOOL CTE::IsPlatformShutDownRequested()
     return s_bIsShutDownRequested;
 }
 
-void CTE::CompleteIdenticalRequests(UINT32 uiChannelId, int reqID,
+int CTE::CompleteIdenticalRequests(UINT32 uiChannelId, int reqID,
                                         UINT32 uiResultCode,
                                         void* pResponse,
                                         size_t responseLen,
                                         int callId)
 {
     RIL_LOG_VERBOSE("CTE::CompleteIdenticalRequests() - Enter\r\n");
+    int nCompletedRequests = 0;
 
     if (uiChannelId < RIL_CHANNEL_MAX)
     {
         CChannel* pChannel = g_pRilChannel[uiChannelId];
         if (NULL != pChannel)
         {
-            pChannel->FindIdenticalRequestsAndSendResponses(reqID, uiResultCode,
-                    pResponse, responseLen, callId);
+            nCompletedRequests = pChannel->FindIdenticalRequestsAndSendResponses(reqID,
+                    uiResultCode, pResponse, responseLen, callId);
         }
     }
     RIL_LOG_VERBOSE("CTE::CompleteIdenticalRequests() - Exit\r\n");
+    return nCompletedRequests;
 }
 
 void CTE::SaveCEER(const char* pszData)
@@ -10149,6 +10212,7 @@ void CTE::PostReadDefaultPDNContextParams(POST_CMD_HANDLER_DATA& rData)
             pChannelData->SetRoutingEnabled(FALSE);
         }
 
+        CTE::GetTE().TestAndSetNetworkStateChangeTimerRunning(false);
         /*
          * In case of LTE, actual data registration state is signalled only after default PDN
          * context parameters are read. So, in order to force the framework to query the data
@@ -10897,4 +10961,15 @@ const char* CTE::GetReadCellInfoString()
 bool CTE::NeedGetCellInfoOnCellChange()
 {
     return m_pTEBaseInstance->NeedGetCellInfoOnCellChange();
+}
+
+bool CTE::TestAndSetNetworkStateChangeTimerRunning(bool bTimerRunning)
+{
+    CMutex::Lock(m_pNetworkStateChangeTimerStatusLock);
+    BOOL bPrevTimerRunning = m_bNetworkStateChangeTimerRunning;
+
+    m_bNetworkStateChangeTimerRunning = bTimerRunning;
+
+    CMutex::Unlock(m_pNetworkStateChangeTimerStatusLock);
+    return bPrevTimerRunning;
 }

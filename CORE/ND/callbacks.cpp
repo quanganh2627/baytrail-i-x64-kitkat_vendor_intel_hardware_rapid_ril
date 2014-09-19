@@ -20,6 +20,14 @@
 #include "oemhookids.h"
 #include "channel_data.h"
 
+void notifyNetworkStateChanged(void* /*param*/)
+{
+    if (CTE::GetTE().TestAndSetNetworkStateChangeTimerRunning(false))
+    {
+        RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
+    }
+}
+
 void notifyChangedCallState(void* param)
 {
     RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);

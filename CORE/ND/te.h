@@ -87,7 +87,7 @@ public:
     BOOL IsOemHookPossible(int requestId, void* pData, size_t uiDataSize);
 
     // Calls FindIdenticalRequestsAndSendResponses on the given channel
-    static void CompleteIdenticalRequests(UINT32 uiChannelId, int reqID, UINT32 uiResultCode,
+    static int CompleteIdenticalRequests(UINT32 uiChannelId, int reqID, UINT32 uiResultCode,
             void* pResponse, size_t responseLen, int callId = -1);
 
     // RIL_REQUEST_GET_SIM_STATUS 1
@@ -1249,6 +1249,9 @@ public:
     const char* GetReadCellInfoString();
     bool IsRegistered();
     bool IsRegistered(int status);
+    bool IsRegisteredBasedOnRegType(int regType);
+
+    bool TestAndSetNetworkStateChangeTimerRunning(bool bTimerRunning);
 
 private:
     UINT32 m_uiModemType;
@@ -1425,11 +1428,15 @@ private:
 
     UINT32 m_uiImsRegStatus;
 
+    S_NETWORK_REG_STATE_INFO m_sNetworkRegStateInfo;
+    bool m_bNetworkStateChangeTimerRunning;
+    CMutex* m_pNetworkStateChangeTimerStatusLock;
+
     int m_ProductConfig;
 
     void CompleteGetSimStatusRequest(RIL_Token hRilToken);
     void FreeCardStatusPointers(RIL_CardStatus_v6& cardStatus);
-    void MapCsRegistrationState(UINT32& uiRegState);
+    void MapCsRegistrationState(int& regState);
     void MapRegistrationRejectCause(int causeType, int& rejectCause);
 
     void SendAtSecStateInfoRequest();

@@ -6743,6 +6743,7 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA& rRspData)
         {
             QuerySignalStrength();
         }
+        CTE::GetTE().TestAndSetNetworkStateChangeTimerRunning(false);
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
     }
 

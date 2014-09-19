@@ -371,9 +371,10 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse* const pResponse, const char*& rszP
      * Completing RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED will result in
      * framework triggering the RIL_REQUEST_OPERATOR request.
      */
-    if ((NULL != pUtf8FullName && 0 < strlen(pUtf8FullName)) ||
-                                (NULL != pUtf8ShortName && 0 < strlen(pUtf8ShortName)))
+    if ((NULL != pUtf8FullName && 0 < strlen(pUtf8FullName))
+            || (NULL != pUtf8ShortName && 0 < strlen(pUtf8ShortName)))
     {
+        CTE::GetTE().TestAndSetNetworkStateChangeTimerRunning(false);
         RIL_onUnsolicitedResponse(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED, NULL, 0);
     }
 
@@ -566,6 +567,8 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
 
     if (fUnSolicited)
     {
+        bool isPrevStatusRegistered = CTE::GetTE().IsRegisteredBasedOnRegType(regType);
+
         pResponse->SetUnsolicitedFlag(TRUE);
 
         if (E_REGISTRATION_TYPE_CGREG == regType)
@@ -613,7 +616,38 @@ BOOL CSilo_Network::ParseRegistrationStatus(CResponse* const pResponse, const ch
         if (fRet)
         {
             CTE::GetTE().StoreRegistrationInfo(pRegStatusInfo, regType);
-            pResponse->SetResultCode(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED);
+            bool isCurrentStatusRegistered = CTE::GetTE().IsRegisteredBasedOnRegType(regType);
+
+            if (!CTE::GetTE().TestAndSetNetworkStateChangeTimerRunning(true))
+            {
+                /*
+                 * To avoid sending multiple network state changed messages to android telephony
+                 * framework, network state change is reported based on previous and current
+                 * registration status.
+                 *
+                 * isPrevStatusRegistered == false and isCurrentStatusRegistered == true
+                 *     - Notify UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED after a delay of 1sec
+                 *
+                 * isPrevStatusRegistered == true and isCurrentStatusRegistered == true
+                 *     - Notify UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED after a delay of 2sec
+                 *
+                 * isPrevStatusRegistered == true and isCurrentStatusRegistered == false
+                 *     - Notify UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED immediately.
+                 */
+                if (!isPrevStatusRegistered && isCurrentStatusRegistered)
+                {
+                    RIL_requestTimedCallback(notifyNetworkStateChanged, NULL, 1, 0);
+                }
+                else if (isPrevStatusRegistered && isCurrentStatusRegistered)
+                {
+                    RIL_requestTimedCallback(notifyNetworkStateChanged, NULL, 2, 0);
+                }
+                else
+                {
+                    CTE::GetTE().TestAndSetNetworkStateChangeTimerRunning(false);
+                    pResponse->SetResultCode(RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED);
+                }
+            }
         }
 
         fRet = TRUE;

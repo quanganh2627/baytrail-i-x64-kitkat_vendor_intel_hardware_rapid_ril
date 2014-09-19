@@ -66,7 +66,7 @@ public:
      * Goes through Tx queue, finds identical request IDs and completes
      * ril request with the provided result code and response.
      */
-    virtual BOOL FindIdenticalRequestsAndSendResponses(int reqID,
+    virtual int FindIdenticalRequestsAndSendResponses(int reqID,
                                                         UINT32 uiResultCode,
                                                         void* pResponse,
                                                         size_t responseLen,

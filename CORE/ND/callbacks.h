@@ -20,6 +20,11 @@ static const struct timeval CallStateSlowPoll = {0, 5000000};
 static const struct timeval CallStateHyperPoll = {0, 500000};
 
 //
+// Callback to trigger network state change
+//
+void notifyNetworkStateChanged(void* param);
+
+//
 // Callback to trigger call state update
 //
 void notifyChangedCallState(void* param);
