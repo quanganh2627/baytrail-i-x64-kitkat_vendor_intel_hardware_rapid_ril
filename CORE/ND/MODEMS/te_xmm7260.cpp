@@ -163,7 +163,7 @@ RIL_RESULT_CODE CTE_XMM7260::CoreSetupDataCall(REQUEST_DATA& rReqData,
                 stPdpData.szPDPType);
     }
 
-    if (dataProfile & (1 << RIL_DATA_PROFILE_EMERGENCY))
+    if (dataProfile == (1 << RIL_DATA_PROFILE_EMERGENCY))
     {
         nReqType = 1; // 1 => PDP context is for emergency bearer services
         // An emergency PDN will only be used for IMS traffic, so request PCSCF

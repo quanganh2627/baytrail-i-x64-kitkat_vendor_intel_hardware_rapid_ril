@@ -293,7 +293,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
                 stPdpData.szPDPType);
     }
 #if !defined (M2_PDK_OR_GMIN_BUILD)
-    if (dataProfile & (1 << RIL_DATA_PROFILE_EMERGENCY))
+    if (dataProfile == (1 << RIL_DATA_PROFILE_EMERGENCY))
     {
         nEmergencyFlag = 1;
         // An emergency PDN will only be used for IMS traffic, so request PCSCF
