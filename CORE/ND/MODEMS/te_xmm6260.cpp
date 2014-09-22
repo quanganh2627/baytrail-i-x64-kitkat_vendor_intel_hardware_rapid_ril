@@ -7958,11 +7958,11 @@ const char* CTE_XMM6260::GetSiloVoiceURCInitString()
     {
         if (m_cte.IsDataCapable())
         {
-            pszInit = "|+XCALLSTAT=1|+CSSN=1,1";
+            pszInit = "|+XCALLSTAT=1|+CSSN=1,1|+CNAP=1|+CLIP=1";
         }
         else
         {
-            pszInit = "|+XCALLSTAT=1|+XCGCLASS=\"CC\"|+CSSN=1,1";
+            pszInit = "|+XCALLSTAT=1|+XCGCLASS=\"CC\"|+CSSN=1,1|+CNAP=1|+CLIP=1";
         }
     }
     else
