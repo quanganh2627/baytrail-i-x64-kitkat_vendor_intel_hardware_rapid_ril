@@ -1431,16 +1431,20 @@ BOOL CSilo_Voice::ParseCLIP(CResponse* const pResponse, const char*& rszPointer)
         goto Error;
     }
 
-    pResponse->SetUnsolicitedFlag(TRUE);
+    // URC format:
+    //    +CLIP: <number>,<type>[,<subaddr>,<satype>[,[<alpha>][,<CLI_validity>]]]
+    // Command reply format:
+    //    +CLIP: <n>,<m>
 
-    // +CLIP: <number>,<type>[,<subaddr>,<satype>[,[<alpha>][,<CLI_validity>]]]
-
-    // Extract <number>
+    // Extract <number>,If not a string, consider this is a normal reply and not an URC.
     if (!ExtractQuotedString(rszPointer, szNumber, MAX_BUFFER_SIZE, rszPointer))
     {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCLIP() : Could not extract number\r\n");
-        goto Exit;
+        RIL_LOG_INFO("CSilo_Voice::ParseCLIP() : Could not extract number,"
+                "consider it a normal reply instead of an URC.\r\n");
+        goto Error;
     }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
 
     // Extract <type>
     // parameter not used in current implementation
