@@ -1653,16 +1653,22 @@ Error:
     return bRet;
 }
 
+
+// Note that this function will be called for Solicited and Unsolicited
+// responses that start with "+XCSG: ". This function will determine whether
+// or not it should parse the response (using the number of arguments in the
+// response) and will proceed appropriately.
 //
-// Parsing function for
-// URC +XCSG: <csg_sel_cause>[, <csg_id>, <csg_type_record_no>, <hnb_record_no>, <hnb_name>,
-// <oper>, <AcT>, <csg_id_list_type>]
-//
-BOOL CSilo_Network::ParseXCSG(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Network::ParseXCSG(CResponse* const pResponse, const char*& pszPointer)
 {
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCSG() - Enter\r\n");
 
-    BOOL fRet = FALSE;
+    const char* pszLineEnd;
+    char* pszDummy;
+    BOOL bRet = FALSE;
+    bool isUnsolicited = true;
+    int nParams = 1;
+
     sOEM_HOOK_RAW_UNSOL_CSG_IND* pData = NULL;
 
     if (pResponse == NULL)
@@ -1671,119 +1677,154 @@ BOOL CSilo_Network::ParseXCSG(CResponse* const pResponse, const char*& rszPointe
         goto Exit;
     }
 
-    pResponse->SetUnsolicitedFlag(TRUE);
-
-    pData = (sOEM_HOOK_RAW_UNSOL_CSG_IND*) malloc(sizeof(sOEM_HOOK_RAW_UNSOL_CSG_IND));
-
-    if (NULL == pData)
+    // Look for a "<postfix>"
+    if (!FindAndSkipRspEnd(pszPointer, m_szNewLine, pszLineEnd))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() - memory allocation failed\r\n");
+        // This is not a complete notification -- no need to parse it
         goto Exit;
     }
 
-    memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_CSG_IND));
-    pData->commandId = RIL_OEM_HOOK_RAW_UNSOL_CSG_IND;
+    // Valid XCSG notifications can have from one, two, eight or nine parameters, as follows:
+    //       <csg_sel_cause>  for an unsollicited notification
+    //  <n>, <csg_sel_cause>  for a command response
+    //       <csg_sel_cause>, <csg_id>, <csg_type_record_no>, <hnb_record_no>, <hnb_name>,
+    // <oper>, <AcT>, <csg_id_list_type> for an unsollicited notification
+    //  <n>, <csg_sel_cause>, <csg_id>, <csg_type_record_no>, <hnb_record_no>, <hnb_name>,
+    // <oper>, <AcT>, <csg_id_list_type>  for a command response
 
-    // Response format is
-    // +XCSG: <csg_sel_cause>[, <csg_id>, <csg_type_record_no>, <hnb_record_no>, <hnb_name>,
-    // <oper>, <AcT>, <csg_id_list_type>]
-
-    //  Extract <csg_sel_cause>
-    if (!ExtractInt(rszPointer, pData->csgSelectionCause, rszPointer))
+    // Loop and count parameters (separated by comma) until end of line
+    pszDummy = strchr(pszPointer, ',');
+    while ((pszDummy != NULL) && (pszDummy < pszLineEnd))
     {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : Could not extract CSG Selection Cause\r\n");
-        goto Exit;
+        nParams++;
+        pszDummy = strchr(pszDummy + 1, ',');
     }
 
-    if (FindAndSkipString(rszPointer, ",", rszPointer))
+    if (1 == nParams || 8 == nParams)
     {
-
-        //  Extract <csg_id>
-        if (!ExtractInt(rszPointer, pData->csgId, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : Could not extract csg id\r\n");
-            goto Exit;
-        }
-
-        //  Extract , <csg_type_record_no>
-        if (!SkipString(rszPointer, ",", rszPointer)
-               || !ExtractInt(rszPointer, pData->csgRecordNumber, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : "
-                    "Could not extract csg record number\r\n");
-            goto Exit;
-        }
-
-        //  Extract , <hnb_record_no>
-        if (!SkipString(rszPointer, ",", rszPointer)
-                || !ExtractInt(rszPointer, pData->hnbRecordNumber, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : "
-                    "Could not extract hnb record number\r\n");
-            goto Exit;
-        }
-
-        //  Extract , <hnb_name>
-        if (!SkipString(rszPointer, ",", rszPointer)
-                || !ExtractQuotedString(rszPointer, pData->szHnbName, MAX_BUFFER_SIZE, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : Could not extract hnb name\r\n");
-            goto Exit;
-        }
-
-        //  Extract , <oper>
-        if (!SkipString(rszPointer, ",", rszPointer)
-                || !ExtractQuotedString(rszPointer, pData->szOperator, MAX_BUFFER_SIZE, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : Could not extract oper\r\n");
-            goto Exit;
-        }
-
-        //  Extract , <AcT>
-        if (!SkipString(rszPointer, ",", rszPointer)
-                || !ExtractInt(rszPointer, pData->csgRadioAccessTechnology, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : "
-                    "Could not extract radio access technology\r\n");
-            goto Exit;
-        }
-
-        //  Extract , <csg_id_list_type>
-        if (!SkipString(rszPointer, ",", rszPointer)
-                || !ExtractInt(rszPointer,  pData->csgIdListType, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : Could not extract csg_id list type\r\n");
-            goto Exit;
-        }
+        isUnsolicited = true;
+    }
+    else if (2 == nParams || 9 == nParams)
+    {
+        isUnsolicited = false;
     }
     else
     {
-        pData->csgId = -1;
-        pData->csgRecordNumber = -1;
-        pData->hnbRecordNumber = -1;
-        pData->csgRadioAccessTechnology = -1;
-        pData->csgIdListType = -1;
-    }
-
-    if (pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_CSG_IND), FALSE))
-    {
-        pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
-    }
-    else
-    {
+        RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG () - Unknown param count=%d\r\n", nParams);
         goto Exit;
     }
 
-    fRet = TRUE;
+    if (isUnsolicited)
+    {
+        pResponse->SetUnsolicitedFlag(TRUE);
+
+        pData = (sOEM_HOOK_RAW_UNSOL_CSG_IND*) malloc(sizeof(sOEM_HOOK_RAW_UNSOL_CSG_IND));
+
+        if (NULL == pData)
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() - memory allocation failed\r\n");
+            goto Exit;
+        }
+
+        memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_CSG_IND));
+        pData->commandId = RIL_OEM_HOOK_RAW_UNSOL_CSG_IND;
+
+        // Extract <csg_sel_cause>
+        if (!ExtractInt(pszPointer, pData->csgSelectionCause, pszPointer))
+        {
+            RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : "
+                    "Could not extract CSG Selection Cause\r\n");
+            goto Exit;
+        }
+
+        if (FindAndSkipString(pszPointer, ",", pszPointer))
+        {
+
+            // Extract <csg_id>
+            if (!ExtractInt(pszPointer, pData->csgId, pszPointer))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : Could not extract csg id\r\n");
+                goto Exit;
+            }
+
+            // Extract <csg_type_record_no>
+            if (!SkipString(pszPointer, ",", pszPointer)
+                    || !ExtractInt(pszPointer, pData->csgRecordNumber, pszPointer))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : "
+                        "Could not extract csg record number\r\n");
+                goto Exit;
+            }
+
+            // Extract <hnb_record_no>
+            if (!SkipString(pszPointer, ",", pszPointer)
+                    || !ExtractInt(pszPointer, pData->hnbRecordNumber, pszPointer))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : "
+                        "Could not extract hnb record number\r\n");
+                goto Exit;
+            }
+
+            // Extract <hnb_name>
+            if (!SkipString(pszPointer, ",", pszPointer)
+                    || !ExtractQuotedString(pszPointer, pData->szHnbName,
+                    MAX_BUFFER_SIZE, pszPointer))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : Could not extract hnb name\r\n");
+                goto Exit;
+            }
+
+            // Extract <oper>
+            if (!SkipString(pszPointer, ",", pszPointer)
+                    || !ExtractQuotedString(pszPointer, pData->szOperator,
+                    MAX_BUFFER_SIZE, pszPointer))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : Could not extract oper\r\n");
+                goto Exit;
+            }
+
+            // Extract <AcT>
+            if (!SkipString(pszPointer, ",", pszPointer)
+                    || !ExtractInt(pszPointer, pData->csgRadioAccessTechnology, pszPointer))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : "
+                        "Could not extract radio access technology\r\n");
+                goto Exit;
+            }
+
+            // Extract <csg_id_list_type>
+            if (!SkipString(pszPointer, ",", pszPointer)
+                    || !ExtractInt(pszPointer,  pData->csgIdListType, pszPointer))
+            {
+                RIL_LOG_CRITICAL("CSilo_Network::ParseXCSG() : "
+                        "Could not extract csg_id list type\r\n");
+                goto Exit;
+            }
+        }
+        else
+        {
+            pData->csgId = -1;
+            pData->csgRecordNumber = -1;
+            pData->hnbRecordNumber = -1;
+            pData->csgRadioAccessTechnology = -1;
+            pData->csgIdListType = -1;
+        }
+
+        if (pResponse->SetData(pData, sizeof(sOEM_HOOK_RAW_UNSOL_CSG_IND), FALSE))
+        {
+            pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+            bRet = TRUE;
+        }
+    }
 
 Exit:
-    if (!fRet)
+    if (!bRet)
     {
          free(pData);
          pData = NULL;
     }
     RIL_LOG_VERBOSE("CSilo_Network::ParseXCSG() - Exit\r\n");
-    return fRet;
+    return bRet;
 }
 
 //

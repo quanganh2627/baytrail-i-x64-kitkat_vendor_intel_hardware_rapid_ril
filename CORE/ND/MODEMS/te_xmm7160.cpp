@@ -2436,7 +2436,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseXTSM(const char* pszRsp, RESPONSE_DATA& rspDat
 RIL_RESULT_CODE CTE_XMM7160::SetCsgAutomaticSelection(REQUEST_DATA& reqData)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::SetCsgAutomaticSelection() - Enter\r\n");
-    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1), "AT+XCSG=0\r"))
+    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1), "AT+XCSG=1,0\r"))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::SetCsgAutomaticSelection() -"
                 "Cannot construct szCmd1.\r\n");
