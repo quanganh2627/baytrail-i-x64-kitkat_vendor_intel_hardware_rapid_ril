@@ -133,8 +133,8 @@ char* CSilo_SMS::GetURCUnlockInitString()
 
 //
 //
-BOOL CSilo_SMS::ParseMessage(CResponse* const pResponse, const char*& rszPointer,
-                                                      SILO_SMS_MSG_TYPES msgType)
+BOOL CSilo_SMS::ParseMessage(CResponse* const /*pResponse*/, const char*& /*rszPointer*/,
+                                                      SILO_SMS_MSG_TYPES /*msgType*/)
 {
     RIL_LOG_VERBOSE("CSilo_SMS::ParseMessage() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_SMS::ParseMessage() - Exit\r\n");

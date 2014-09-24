@@ -367,11 +367,11 @@ BOOL CChannel_Data::HasChildContextID(UINT32 uiContextID)
 // Find the first bit set starting from bit 0.
 // returns the index of the first bit set, -1 if no bit set.
 static int rff1(int entry) {
-    for (int i = 0; i < (8*sizeof(int)); i++) {
-        if (entry & (1 << i))
-            return i;
-    }
-    return -1;
+    if (entry == 0) return -1;
+
+    int i = 0;
+    while ((entry & (1 << i)) == 0) i++; // no infinite loop as not 0
+    return i;
 }
 
 //  Used for 6360 and 7160 modems.

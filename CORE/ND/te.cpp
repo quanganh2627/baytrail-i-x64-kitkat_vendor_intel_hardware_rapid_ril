@@ -4505,7 +4505,7 @@ RIL_RESULT_CODE CTE::ParseLastDataCallFailCause(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_DATA_CALL_LIST 57
 //
-RIL_RESULT_CODE CTE::RequestDataCallList(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestDataCallList(RIL_Token rilToken, void* /*pData*/, size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestDataCallList() - Enter\r\n");
 
@@ -5869,9 +5869,9 @@ RIL_RESULT_CODE CTE::ParseQueryTtyMode(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE 82
 //
-RIL_RESULT_CODE CTE::RequestCdmaSetPreferredVoicePrivacyMode(RIL_Token rilToken,
-                                                                    void* pData,
-                                                                    size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaSetPreferredVoicePrivacyMode(RIL_Token /*rilToken*/,
+                                                                    void* /*pData*/,
+                                                                    size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaSetPreferredVoicePrivacyMode() - Enter / Exit\r\n");
 
@@ -5888,9 +5888,9 @@ RIL_RESULT_CODE CTE::ParseCdmaSetPreferredVoicePrivacyMode(RESPONSE_DATA& rRspDa
 //
 // RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE 83
 //
-RIL_RESULT_CODE CTE::RequestCdmaQueryPreferredVoicePrivacyMode(RIL_Token rilToken,
-                                                                      void* pData,
-                                                                      size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaQueryPreferredVoicePrivacyMode(RIL_Token /*rilToken*/,
+                                                                      void* /*pData*/,
+                                                                      size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaQueryPreferredVoicePrivacyMode() - Enter / Exit\r\n");
 
@@ -5907,7 +5907,7 @@ RIL_RESULT_CODE CTE::ParseCdmaQueryPreferredVoicePrivacyMode(RESPONSE_DATA& rRsp
 //
 // RIL_REQUEST_CDMA_FLASH 84
 //
-RIL_RESULT_CODE CTE::RequestCdmaFlash(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaFlash(RIL_Token /*rilToken*/, void* /*pData*/, size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaFlash() - Enter / Exit\r\n");
 
@@ -5924,7 +5924,7 @@ RIL_RESULT_CODE CTE::ParseCdmaFlash(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_CDMA_BURST_DTMF 85
 //
-RIL_RESULT_CODE CTE::RequestCdmaBurstDtmf(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaBurstDtmf(RIL_Token /*rilToken*/, void* /*pData*/, size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaBurstDtmf() - Enter / Exit\r\n");
 
@@ -5941,9 +5941,9 @@ RIL_RESULT_CODE CTE::ParseCdmaBurstDtmf(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY 86
 //
-RIL_RESULT_CODE CTE::RequestCdmaValidateAndWriteAkey(RIL_Token rilToken,
-                                                            void* pData,
-                                                            size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaValidateAndWriteAkey(RIL_Token /*rilToken*/,
+                                                            void* /*pData*/,
+                                                            size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaValidateAndWriteAkey() - Enter / Exit\r\n");
 
@@ -5960,7 +5960,7 @@ RIL_RESULT_CODE CTE::ParseCdmaValidateAndWriteAkey(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_CDMA_SEND_SMS 87
 //
-RIL_RESULT_CODE CTE::RequestCdmaSendSms(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaSendSms(RIL_Token /*rilToken*/, void* /*pData*/, size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaSendSms() - Enter / Exit\r\n");
 
@@ -5977,7 +5977,7 @@ RIL_RESULT_CODE CTE::ParseCdmaSendSms(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE 88
 //
-RIL_RESULT_CODE CTE::RequestCdmaSmsAcknowledge(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaSmsAcknowledge(RIL_Token /*rilToken*/, void* /*pData*/, size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaSmsAcknowledge() - Enter / Exit\r\n");
 
@@ -6165,9 +6165,9 @@ RIL_RESULT_CODE CTE::ParseGsmSmsBroadcastActivation(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG 92
 //
-RIL_RESULT_CODE CTE::RequestCdmaGetBroadcastSmsConfig(RIL_Token rilToken,
-                                                             void* pData,
-                                                             size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaGetBroadcastSmsConfig(RIL_Token /*rilToken*/,
+                                                             void* /*pData*/,
+                                                             size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaGetBroadcastSmsConfig() - Enter / Exit\r\n");
 
@@ -6184,9 +6184,9 @@ RIL_RESULT_CODE CTE::ParseCdmaGetBroadcastSmsConfig(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG 93
 //
-RIL_RESULT_CODE CTE::RequestCdmaSetBroadcastSmsConfig(RIL_Token rilToken,
-                                                             void* pData,
-                                                             size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaSetBroadcastSmsConfig(RIL_Token /*rilToken*/,
+                                                             void* /*pData*/,
+                                                             size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaSetBroadcastSmsConfig() - Enter / Exit\r\n");
 
@@ -6203,9 +6203,9 @@ RIL_RESULT_CODE CTE::ParseCdmaSetBroadcastSmsConfig(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION 94
 //
-RIL_RESULT_CODE CTE::RequestCdmaSmsBroadcastActivation(RIL_Token rilToken,
-                                                              void* pData,
-                                                              size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaSmsBroadcastActivation(RIL_Token /*rilToken*/,
+                                                              void* /*pData*/,
+                                                              size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaSmsBroadcastActivation() - Enter / Exit\r\n");
 
@@ -6222,7 +6222,9 @@ RIL_RESULT_CODE CTE::ParseCdmaSmsBroadcastActivation(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_CDMA_SUBSCRIPTION 95
 //
-RIL_RESULT_CODE CTE::RequestCdmaSubscription(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaSubscription(RIL_Token /*rilToken*/,
+                                                     void* /*pData*/,
+                                                     size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaSubscription() - Enter / Exit\r\n");
 
@@ -6239,7 +6241,9 @@ RIL_RESULT_CODE CTE::ParseCdmaSubscription(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM 96
 //
-RIL_RESULT_CODE CTE::RequestCdmaWriteSmsToRuim(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaWriteSmsToRuim(RIL_Token /*rilToken*/,
+                                                       void* /*pData*/,
+                                                       size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaWriteSmsToRuim() - Enter / Exit\r\n");
 
@@ -6256,7 +6260,9 @@ RIL_RESULT_CODE CTE::ParseCdmaWriteSmsToRuim(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM 97
 //
-RIL_RESULT_CODE CTE::RequestCdmaDeleteSmsOnRuim(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestCdmaDeleteSmsOnRuim(RIL_Token /*rilToken*/,
+                                                        void* /*pData*/,
+                                                        size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestCdmaDeleteSmsOnRuim() - Enter / Exit\r\n");
 
@@ -6273,7 +6279,9 @@ RIL_RESULT_CODE CTE::ParseCdmaDeleteSmsOnRuim(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_DEVICE_IDENTITY 98
 //
-RIL_RESULT_CODE CTE::RequestDeviceIdentity(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestDeviceIdentity(RIL_Token /*rilToken*/,
+                                                   void* /*pData*/,
+                                                   size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestDeviceIdentity() - Enter / Exit\r\n");
 
@@ -6290,9 +6298,9 @@ RIL_RESULT_CODE CTE::ParseDeviceIdentity(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE 99
 //
-RIL_RESULT_CODE CTE::RequestExitEmergencyCallbackMode(RIL_Token rilToken,
-                                                             void* pData,
-                                                             size_t datalen)
+RIL_RESULT_CODE CTE::RequestExitEmergencyCallbackMode(RIL_Token /*rilToken*/,
+                                                             void* /*pData*/,
+                                                             size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestExitEmergencyCallbackMode() - Enter / Exit\r\n");
 
@@ -6638,7 +6646,7 @@ RIL_RESULT_CODE CTE::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData)
 //
 // RIL_REQUEST_VOICE_RADIO_TECH 108
 //
-RIL_RESULT_CODE CTE::RequestVoiceRadioTech(RIL_Token rilToken, void* pData, size_t datalen)
+RIL_RESULT_CODE CTE::RequestVoiceRadioTech(RIL_Token rilToken, void* /*pData*/, size_t /*datalen*/)
 {
     RIL_LOG_VERBOSE("CTE::RequestVoiceRadioTech() - Enter\r\n");
 
@@ -9224,7 +9232,7 @@ void CTE::PostOperator(POST_CMD_HANDLER_DATA& rData)
     RIL_LOG_VERBOSE("CTE::PostOperator() Exit\r\n");
 }
 
-void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& rData)
+void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& /*rData*/)
 {
     RIL_LOG_VERBOSE("CTE::PostRadioPower() Enter\r\n");
 
@@ -10526,7 +10534,7 @@ RIL_RESULT_CODE CTE::ParseQueryIccId(RESPONSE_DATA& rRspData)
     return m_pTEBaseInstance->ParseQueryIccId(rRspData);
 }
 
-void CTE::PostSimStateQuery(POST_CMD_HANDLER_DATA& rData)
+void CTE::PostSimStateQuery(POST_CMD_HANDLER_DATA& /*rData*/)
 {
     RIL_LOG_VERBOSE("CTE::PostSimStateQuery() - Enter / Exit\r\n");
 
@@ -10620,7 +10628,7 @@ RIL_RESULT_CODE CTE::ParseAtSecStateInfoRequest(RESPONSE_DATA& rspData)
     }
 
     // Parse State info return codes
-    for (int i = 0; i < (sizeof(apszTemp) / sizeof(apszTemp[0])); i++)
+    for (size_t i = 0; i < (sizeof(apszTemp) / sizeof(apszTemp[0])); i++)
     {
         // Search entire response as order of return codes is not guaranteed.
         pszRsp = rspData.szResponse;

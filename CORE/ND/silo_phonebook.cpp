@@ -49,7 +49,7 @@ CSilo_Phonebook::~CSilo_Phonebook()
 //  Parse functions here
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL CSilo_Phonebook::ParsePBREADY(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Phonebook::ParsePBREADY(CResponse* const pResponse, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_Phonebook::ParsePBREADY() - Enter\r\n");
     BOOL bRet = FALSE;

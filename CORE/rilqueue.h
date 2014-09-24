@@ -95,10 +95,9 @@ void CRilQueue<Object>::MakeEmpty()
     while (!IsEmpty())
     {
         Object obj;
+        BOOL isOk = Dequeue(obj);
         //RIL_LOG_CRITICAL("CRilQueue::MakeEmpty() - REMOVING OBJECT\r\n");
-        Dequeue(obj);
-        if (m_bDestroy)
-            delete obj;
+        if (isOk && m_bDestroy) delete obj;
     }
 
     CMutex::Unlock(&m_cMutex);

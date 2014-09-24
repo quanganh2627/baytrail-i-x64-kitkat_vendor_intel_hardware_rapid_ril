@@ -1005,7 +1005,7 @@ Error:
 }
 
 
-BOOL CSilo_SIM::ParseIndicationCusatend(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_SIM::ParseIndicationCusatend(CResponse* const pResponse, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_SIM::ParseIndicationCusatend() - Enter\r\n");
     BOOL fRet = FALSE;

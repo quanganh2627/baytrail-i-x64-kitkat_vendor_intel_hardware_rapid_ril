@@ -113,7 +113,8 @@ BOOL operator==(const RIL_CellInfo_v2& lhs, const RIL_CellInfo_v2& rhs)
      // if yes, based on the type, check the values
      if (lhs.cellInfoType == rhs.cellInfoType)
      {
-         switch(lhs.cellInfoType)
+         int cellInfoType = static_cast<int>(lhs.cellInfoType);
+         switch (cellInfoType)
          {
          case RIL_CELL_INFO_TYPE_GSM_V2:
              return (lhs.CellInfo.gsm.cellIdentityGsm == rhs.CellInfo.gsm.cellIdentityGsm

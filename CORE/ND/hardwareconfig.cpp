@@ -55,8 +55,8 @@ bool CHardwareConfig::Destroy()
 
 ///////////////////////////////////////////////////////////////////////////////
 CHardwareConfig::CHardwareConfig()
-  : m_isMultiModem(FALSE),
-    m_isMultiSIM(FALSE),
+  : m_isMultiSIM(FALSE),
+    m_isMultiModem(FALSE),
     m_subscriptionId(0),
     m_modemId(0),
     m_SIMId(0)
@@ -124,9 +124,9 @@ bool CHardwareConfig::CreateHardwareConfig(tcs_cfg_t* pConfig)
         SetMultiSIM(TRUE);
     }
 
-    for (int i = 0; i < pConfig->nb; i++)
+    for (size_t i = 0; i < pConfig->nb; i++)
     {
-        for (int j = 0; j < pConfig->mdm[i].chs.nb; j++)
+        for (size_t j = 0; j < pConfig->mdm[i].chs.nb; j++)
         {
             if (count++ == m_subscriptionId)
             {

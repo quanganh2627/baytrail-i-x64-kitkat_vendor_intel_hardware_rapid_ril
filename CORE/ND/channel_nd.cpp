@@ -642,7 +642,7 @@ void CChannel::RequestCleanUpOnCommandTimeout(CCommand* rpCmd, UINT32 uiCmdIndex
 //  If timeout, send ABORT.  Then send PING.
 //
 //  Function returns TRUE if the modem has been reset.
-BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& rpResponse,
+BOOL CChannel::HandleTimeout(CCommand*& rpCmd, CResponse*& /*rpResponse*/,
         UINT32 uiCmdIndex)
 {
     RIL_LOG_VERBOSE("CChannel::HandleTimeout() - Enter\r\n");

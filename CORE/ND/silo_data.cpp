@@ -63,7 +63,7 @@ CSilo_Data::~CSilo_Data()
 //
 //
 //
-BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Data::ParseNoCarrier(CResponse* const pResponse, const char*& /*rszPointer*/)
 {
     RIL_LOG_INFO("CSilo_Data::ParseNoCarrier() - Enter\r\n");
 

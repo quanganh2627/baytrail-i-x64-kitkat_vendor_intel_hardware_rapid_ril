@@ -228,7 +228,7 @@ Error:
 
 //
 //
-BOOL CSilo_Voice::ParseConnect(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Voice::ParseConnect(CResponse* const pResponse, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseConnect() - Enter\r\n");
 
@@ -745,7 +745,7 @@ Error:
 
 //
 //
-BOOL CSilo_Voice::ParseCallMeter(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Voice::ParseCallMeter(CResponse* const /*pResponse*/, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseCallMeter() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_Voice::ParseCallMeter() - Exit\r\n");
@@ -998,7 +998,8 @@ Error:
 
 //
 //
-BOOL CSilo_Voice::ParseCallProgressInformation(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Voice::ParseCallProgressInformation(CResponse* const /*pResponse*/,
+                                                       const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseCallProgressInformation() - Enter\r\n");
     RIL_LOG_VERBOSE("CSilo_Voice::ParseCallProgressInformation() - Exit\r\n");
@@ -1008,7 +1009,7 @@ BOOL CSilo_Voice::ParseCallProgressInformation(CResponse* const pResponse, const
 
 //
 //
-BOOL CSilo_Voice::ParseIndicatorEvent(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Voice::ParseIndicatorEvent(CResponse* const /*pResponse*/, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseIndicatorEvent() - Enter\r\n");
 
@@ -1021,7 +1022,7 @@ BOOL CSilo_Voice::ParseIndicatorEvent(CResponse* const pResponse, const char*& r
 
 //
 //
-BOOL CSilo_Voice::ParseDISCONNECT(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Voice::ParseDISCONNECT(CResponse* const pResponse, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseDISCONNECT() - Enter\r\n");
 
@@ -1044,7 +1045,7 @@ Error:
 
 }
 
-BOOL CSilo_Voice::ParseBusy(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Voice::ParseBusy(CResponse* const pResponse, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseBusy() - Enter\r\n");
 
@@ -1065,7 +1066,7 @@ Error:
     return fRet;
 }
 
-BOOL CSilo_Voice::ParseNoAnswer(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Voice::ParseNoAnswer(CResponse* const pResponse, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseNoAnswer() - Enter\r\n");
 
@@ -1087,7 +1088,7 @@ Error:
 }
 
 
-BOOL CSilo_Voice::ParseCTMCall(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Voice::ParseCTMCall(CResponse* const pResponse, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseCTMCall() - Enter\r\n");
 
@@ -1108,7 +1109,7 @@ Error:
     return fRet;
 }
 
-BOOL CSilo_Voice::ParseNoCTMCall(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Voice::ParseNoCTMCall(CResponse* const pResponse, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseNoCTMCall() - Enter\r\n");
 
@@ -1129,7 +1130,7 @@ Error:
     return fRet;
 }
 
-BOOL CSilo_Voice::ParseWaitingCallCTM(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo_Voice::ParseWaitingCallCTM(CResponse* const pResponse, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo_Voice::ParseWaitingCallCTM() - Enter\r\n");
 

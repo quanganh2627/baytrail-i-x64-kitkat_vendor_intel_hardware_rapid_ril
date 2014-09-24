@@ -142,14 +142,14 @@ PFN_ATRSP_PARSE CSilo::FindParser(ATRSPTABLE* pRspTable, const char*& pszStr)
 
 //
 //
-BOOL CSilo::ParseNULL(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo::ParseNULL(CResponse* const /*pResponse*/, const char*& /*rszPointer*/)
 {
     return TRUE;
 }
 
 //
 //
-BOOL CSilo::ParseUnrecognized(CResponse* const pResponse, const char*& rszPointer)
+BOOL CSilo::ParseUnrecognized(CResponse* const pResponse, const char*& /*rszPointer*/)
 {
     RIL_LOG_VERBOSE("CSilo::ParseUnrecognized() - Enter\r\n");
     BOOL fRet = FALSE;
