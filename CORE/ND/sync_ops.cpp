@@ -538,7 +538,9 @@ UINT32 CEvent::WaitForAnyEvent(UINT32 nEvents, CEvent** rgpEvents, UINT32 uiTime
     return uiRet;
 }
 
-UINT32 CEvent::WaitForAllEvents(UINT32 nEvents, CEvent** rgpEvents, UINT32 uiTimeoutInMS)
+UINT32 CEvent::WaitForAllEvents(UINT32 /*nEvents*/,
+                                        CEvent** /*rgpEvents*/,
+                                        UINT32 /*uiTimeoutInMS*/)
 {
     // FIXME Not currently supported... or needed?
     return WAIT_TIMEDOUT;

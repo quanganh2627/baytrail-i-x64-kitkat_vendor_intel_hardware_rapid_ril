@@ -97,7 +97,6 @@ Error:
 BOOL CFile::Open(   const char* pszFileName,
                     UINT32 dwAccessFlags,
                     UINT32 dwOpenFlags,
-                    UINT32 dwOptFlags,
                     BOOL fIsSocket)
 {
     RIL_LOG_INFO("CFile::Open() : pszFileName=[%s] fIsSocket=[%d]",
@@ -518,12 +517,11 @@ BOOL CFile::WaitForEvent(UINT32& rdwFlags, UINT32 dwTimeoutInMS)
 
 
 BOOL CFile::Open(CFile* pFile, const char* pszFileName, UINT32 dwAccessFlags, UINT32 dwOpenFlags,
-                                                                               UINT32 dwOptFlags,
                                                                                BOOL fIsSocket)
 {
     if (pFile)
     {
-        return pFile->Open(pszFileName, dwAccessFlags, dwOpenFlags, dwOptFlags, fIsSocket);
+        return pFile->Open(pszFileName, dwAccessFlags, dwOpenFlags, fIsSocket);
     }
     else
     {

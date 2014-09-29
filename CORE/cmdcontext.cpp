@@ -59,7 +59,7 @@ void CContextContainer::Add(CContext* pContext)
 
 
 // CContextEvent
-void CContextEvent::Execute(BOOL bRes, UINT32 uiErrorCode)
+void CContextEvent::Execute(BOOL bRes, UINT32 /*uiErrorCode*/)
 {
     if (bRes)
     {
@@ -70,7 +70,7 @@ void CContextEvent::Execute(BOOL bRes, UINT32 uiErrorCode)
 
 
 // CContextInitString
-void CContextInitString::Execute(BOOL bRes, UINT32 uiErrorCode)
+void CContextInitString::Execute(BOOL bRes, UINT32 /*uiErrorCode*/)
 {
     if (m_bFinalCmd)
     {

@@ -49,9 +49,9 @@ BOOL ExtractLocalAddressAndSubnetMask(char* pAddressAndSubnetMask,
 // Helper function to convert IP addresses to Android-readable format.
 // szIpIn [IN] - The IP string to be converted
 // szIpOut [OUT] - The converted IPv4 address in Android-readable format if there is an IPv4 address.
-// uiIpOutSize [IN] - The size of the szIpOut buffer
+// ipOutSize [IN] - The size of the szIpOut buffer
 // szIpOut2 [OUT] - The converted IPv6 address in Android-readable format if there is an IPv6 address.
-// uiIpOutSize [IN] - The size of szIpOut2 buffer
+// ipOutSize [IN] - The size of szIpOut2 buffer
 //
 // If IPv4 format a1.a2.a3.a4, then szIpIn is copied to szIpOut.
 // If Ipv6 format:
@@ -64,6 +64,6 @@ BOOL ExtractLocalAddressAndSubnetMask(char* pAddressAndSubnetMask,
 // If szIpOut2 is NULL, then this parameter is ignored
 BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
                                       char* szIpOut,
-                                      UINT32 uiIpOutSize,
+                                      int ipOutSize,
                                       char* szIpOut2,
-                                      UINT32 uiIpOutSize2);
+                                      int ipOutSize2);

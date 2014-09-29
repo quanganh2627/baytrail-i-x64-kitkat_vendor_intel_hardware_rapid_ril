@@ -101,9 +101,9 @@ const char* CTE_XMM2230::GetScreenOnString()
 //
 // RIL_REQUEST_SIM_TRANSMIT_BASIC 114
 //
-RIL_RESULT_CODE CTE_XMM2230::CoreSimTransmitBasic(REQUEST_DATA& rReqData,
-                                                         void* pData,
-                                                         UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM2230::CoreSimTransmitBasic(REQUEST_DATA& /*rReqData*/,
+                                                         void* /*pData*/,
+                                                         UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("XMM2230::CoreSimTransmitBasic() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;
@@ -115,7 +115,9 @@ RIL_RESULT_CODE CTE_XMM2230::CoreSimTransmitBasic(REQUEST_DATA& rReqData,
 //
 // RIL_REQUEST_SIM_OPEN_CHANNEL 115
 //
-RIL_RESULT_CODE CTE_XMM2230::CoreSimOpenChannel(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM2230::CoreSimOpenChannel(REQUEST_DATA& /*rReqData*/,
+                                                       void* /*pData*/,
+                                                       UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM2230::CoreSimOpenChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;
@@ -127,9 +129,9 @@ RIL_RESULT_CODE CTE_XMM2230::CoreSimOpenChannel(REQUEST_DATA& rReqData, void* pD
 //
 // RIL_REQUEST_SIM_CLOSE_CHANNEL 116
 //
-RIL_RESULT_CODE CTE_XMM2230::CoreSimCloseChannel(REQUEST_DATA& rReqData,
-                                                        void* pData,
-                                                        UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM2230::CoreSimCloseChannel(REQUEST_DATA& /*rReqData*/,
+                                                        void* /*pData*/,
+                                                        UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM2230::CoreSimCloseChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;
@@ -141,9 +143,9 @@ RIL_RESULT_CODE CTE_XMM2230::CoreSimCloseChannel(REQUEST_DATA& rReqData,
 //
 // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 117
 //
-RIL_RESULT_CODE CTE_XMM2230::CoreSimTransmitChannel(REQUEST_DATA& rReqData,
-                                                           void* pData,
-                                                           UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM2230::CoreSimTransmitChannel(REQUEST_DATA& /*rReqData*/,
+                                                           void* /*pData*/,
+                                                           UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM2230::CoreSimTransmitChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_NOTSUPPORTED;

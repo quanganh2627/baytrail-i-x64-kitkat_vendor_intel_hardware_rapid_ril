@@ -30,9 +30,6 @@ const unsigned int FILE_OPEN_EXCL = 0x0010;
 const unsigned int FILE_OPEN_EXIST = 0x0020;
 const unsigned int FILE_OPEN_NO_CTTY = 0x0030;
 
-// Optional flags (bitmask)
-const unsigned int FILE_OPT_NONE = 0x0000;
-
 // File attribute flags
 const unsigned int FILE_ATTRIB_REG = 0x00000001;
 const unsigned int FILE_ATTRIB_DIR = 0x00000002;
@@ -55,7 +52,6 @@ public:
 
     static BOOL Open(CFile* pFile, const char* pszFileName, UINT32 dwAccessFlags,
                                                               UINT32 dwOpenFlags,
-                                                              UINT32 dwOptFlags,
                                                               BOOL fIsSocket = FALSE);
     static BOOL Close(CFile* pFile);
 
@@ -74,7 +70,6 @@ public:
 private:
 
     BOOL  Open(const char* pszFileName, UINT32 dwAccessFlags, UINT32 dwOpenFlags,
-                                                               UINT32 dwOptFlags,
                                                                BOOL fIsSocket = FALSE);
     BOOL  Close();
 

@@ -722,7 +722,7 @@ Error:
 // RIL_REQUEST_BASEBAND_VERSION 51
 //
 RIL_RESULT_CODE CTE_XMM6360::CoreBasebandVersion(REQUEST_DATA& rReqData,
-        void* pData, UINT32 uiDataSize)
+        void* /*pData*/, UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM6360::CoreBasebandVersion() - Enter\r\n");
 
@@ -951,7 +951,7 @@ Error:
 // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE
 //
 RIL_RESULT_CODE CTE_XMM6360::CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
-        void* pData, UINT32 uiDataSize)
+        void* /*pData*/, UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM6360::CoreGetPreferredNetworkType() - Enter\r\n");
 
@@ -1411,8 +1411,8 @@ Error:
 // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING
 //
 RIL_RESULT_CODE CTE_XMM6360::CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
-                                                                     void* pData,
-                                                                     UINT32 uiDataSize)
+                                                                     void* /*pData*/,
+                                                                     UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM6360::CoreReportStkServiceRunning - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;

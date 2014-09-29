@@ -246,9 +246,9 @@ Error:
 //
 // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
 //
-RIL_RESULT_CODE CTE_XMM7260::CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
-                                                           void* pData,
-                                                           UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM7260::CoreReportStkServiceRunning(REQUEST_DATA& /*rReqData*/,
+                                                           void* /*pData*/,
+                                                           UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7260::CoreReportStkServiceRunning() - Enter/Exit\r\n");
 
@@ -345,7 +345,7 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM7260::ParseReportStkServiceRunning(RESPONSE_DATA& rspData)
+RIL_RESULT_CODE CTE_XMM7260::ParseReportStkServiceRunning(RESPONSE_DATA& /*rspData*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7260::ParseReportStkServiceRunning() - Enter / Exit\r\n");
 
@@ -355,9 +355,9 @@ RIL_RESULT_CODE CTE_XMM7260::ParseReportStkServiceRunning(RESPONSE_DATA& rspData
 //
 // RIL_REQUEST_STK_GET_PROFILE
 //
-RIL_RESULT_CODE CTE_XMM7260::CoreStkGetProfile(REQUEST_DATA& rReqData,
-                                                           void* pData,
-                                                           UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM7260::CoreStkGetProfile(REQUEST_DATA& /*rReqData*/,
+                                                           void* /*pData*/,
+                                                           UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7260::CoreStkGetProfile() - Enter/Exit\r\n");
     return RIL_E_REQUEST_NOT_SUPPORTED;
@@ -366,9 +366,9 @@ RIL_RESULT_CODE CTE_XMM7260::CoreStkGetProfile(REQUEST_DATA& rReqData,
 //
 // RIL_REQUEST_STK_SET_PROFILE
 //
-RIL_RESULT_CODE CTE_XMM7260::CoreStkSetProfile(REQUEST_DATA& rReqData,
-                                                           void* pData,
-                                                           UINT32 uiDataSize)
+RIL_RESULT_CODE CTE_XMM7260::CoreStkSetProfile(REQUEST_DATA& /*rReqData*/,
+                                                           void* /*pData*/,
+                                                           UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7260::CoreStkSetProfile() - Enter/Exit\r\n");
     return RIL_E_REQUEST_NOT_SUPPORTED;
@@ -417,7 +417,7 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM7260::ParseStkSendTerminalResponse(RESPONSE_DATA& rspData)
+RIL_RESULT_CODE CTE_XMM7260::ParseStkSendTerminalResponse(RESPONSE_DATA& /*rspData*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7260::ParseStkSendTerminalResponse() - Enter/Exit\r\n");
 

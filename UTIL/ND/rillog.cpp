@@ -16,6 +16,7 @@
 #include <utils/Log.h>
 #include <cutils/properties.h>
 
+#undef LOG_NDEBUG
 #define LOG_NDEBUG 0
 
 /*

@@ -385,7 +385,7 @@ Error:
 // RIL_REQUEST_SIGNAL_STRENGTH 19
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreSignalStrength(REQUEST_DATA& rReqData,
-        void* pData, UINT32 uiDataSize)
+        void* /*pData*/, UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::CoreSignalStrength() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -859,7 +859,7 @@ Error:
 // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
-        void* pData, UINT32 uiDataSize)
+        void* /*pData*/, UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::CoreGetNeighboringCellIDs() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -1029,7 +1029,7 @@ BOOL CTE_XMM7160::IMSRegister(REQUEST_DATA& rReqData, void* pData,
     return bRet;
 }
 
-RIL_RESULT_CODE CTE_XMM7160::ParseIMSRegister(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTE_XMM7160::ParseIMSRegister(RESPONSE_DATA& /*rRspData*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseIMSRegister() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
@@ -1377,7 +1377,7 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM7160::ParseSetupDefaultPDN(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTE_XMM7160::ParseSetupDefaultPDN(RESPONSE_DATA& /*rRspData*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseSetupDefaultPDN() - Enter\r\n");
 
@@ -1508,7 +1508,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetBandMode(REQUEST_DATA& rReqData,
     return CTE_XMM6260::CoreSetBandMode(rReqData, pData, uiDataSize);
 }
 
-RIL_RESULT_CODE CTE_XMM7160::ParseSetBandMode(RESPONSE_DATA & rRspData)
+RIL_RESULT_CODE CTE_XMM7160::ParseSetBandMode(RESPONSE_DATA & /*rRspData*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseSetBandMode() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
@@ -2016,7 +2016,7 @@ Error:
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreISimAuthenticate(REQUEST_DATA& rReqData,
                                                                 void* pData,
-                                                                UINT32 uiDataSize)
+                                                                UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::CoreISimAuthenticate() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -2427,7 +2427,7 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM7160::ParseXTSM(const char* pszRsp, RESPONSE_DATA& rspData)
+RIL_RESULT_CODE CTE_XMM7160::ParseXTSM(const char* /*pszRsp*/, RESPONSE_DATA& /*rspData*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseXTSM() - Enter/Exit\r\n");
         return RRIL_RESULT_OK;
@@ -2617,7 +2617,7 @@ RIL_RESULT_CODE CTE_XMM7160::FilterSmsCbFromConfig(RIL_GSM_BroadcastSmsConfigInf
 //
 // RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG 90
 //
-RIL_RESULT_CODE CTE_XMM7160::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA& reqData,
+RIL_RESULT_CODE CTE_XMM7160::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA& /*reqData*/,
                                                                  void* pData,
                                                                  UINT32 uiDataSize)
 {
@@ -2777,7 +2777,7 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM7160::ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTE_XMM7160::ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA& /*rRspData*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseGsmSetBroadcastSmsConfig() - Enter\r\n");
 
@@ -3155,7 +3155,7 @@ Error:
     return res;
 }
 
-RIL_RESULT_CODE CTE_XMM7160::ParseGsmSmsBroadcastActivation(RESPONSE_DATA& rRspData)
+RIL_RESULT_CODE CTE_XMM7160::ParseGsmSmsBroadcastActivation(RESPONSE_DATA& /*rRspData*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseGsmSmsBroadcastActivation() - Enter\r\n");
 
@@ -3190,7 +3190,7 @@ const char* CTE_XMM7160::GetSiloVoiceURCInitString()
 // RIL_REQUEST_GET_CELL_INFO_LIST 109
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreGetCellInfoList(REQUEST_DATA& rReqData,
-        void* pData, UINT32 uiDataSize)
+        void* /*pData*/, UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::CoreGetCellInfoList() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;

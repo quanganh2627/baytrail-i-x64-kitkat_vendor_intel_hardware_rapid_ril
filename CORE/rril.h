@@ -26,7 +26,7 @@ typedef long                RIL_RESULT_CODE;
 // Android / WM structs conversion
 //
 
-const int WAIT_FOREVER = 0xFFFFFFFF;
+const UINT32 WAIT_FOREVER = 0xFFFFFFFF;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Number of Calls to Track

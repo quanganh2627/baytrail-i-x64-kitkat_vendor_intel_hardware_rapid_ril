@@ -266,7 +266,7 @@ BOOL CPort::OpenPort(const char* pszFileName)
     }
 
     fRet = CFile::Open(m_pFile, pszFileName, FILE_ACCESS_READ_WRITE,
-            FILE_OPEN_EXIST, FILE_OPT_NONE);
+            FILE_OPEN_EXIST);
 
     if (fRet)
     {
@@ -299,7 +299,7 @@ BOOL CPort::OpenSocket(const char* pszSocketName)
 
     for (UINT32 uiAttempts = 0; uiAttempts < uiRetries; uiAttempts++)
     {
-        fRet = CFile::Open(m_pFile, pszSocketName, 0, 0, 0, TRUE);
+        fRet = CFile::Open(m_pFile, pszSocketName, 0, 0, TRUE);
 
         if (fRet)
         {

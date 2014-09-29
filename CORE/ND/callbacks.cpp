@@ -28,12 +28,12 @@ void notifyNetworkStateChanged(void* /*param*/)
     }
 }
 
-void notifyChangedCallState(void* param)
+void notifyChangedCallState(void* /*param*/)
 {
     RIL_onUnsolicitedResponse (RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED, NULL, 0);
 }
 
-void triggerRadioOffInd(void* param)
+void triggerRadioOffInd(void* /*param*/)
 {
     if (RADIO_STATE_UNAVAILABLE == CTE::GetTE().GetRadioState())
     {
@@ -41,7 +41,7 @@ void triggerRadioOffInd(void* param)
     }
 }
 
-void triggerDataResumedInd(void* param)
+void triggerDataResumedInd(void* /*param*/)
 {
     const int DATA_RESUMED = 1;
     sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND data;
@@ -55,7 +55,7 @@ void triggerDataResumedInd(void* param)
             sizeof(sOEM_HOOK_RAW_UNSOL_DATA_STATUS_IND));
 }
 
-void triggerDataSuspendInd(void* param)
+void triggerDataSuspendInd(void* /*param*/)
 {
     if (!CTE::GetTE().IsDataSuspended() || (RADIO_STATE_ON != CTE::GetTE().GetRadioState()))
         return;
@@ -99,7 +99,7 @@ void triggerHangup(UINT32 uiCallId)
     }
 }
 
-void triggerSignalStrength(void* param)
+void triggerSignalStrength(void* /*param*/)
 {
     CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIGNAL_STRENGTH].uiChannel,
                                     NULL, REQ_ID_NONE, "AT+CSQ\r",
@@ -120,7 +120,7 @@ void triggerSignalStrength(void* param)
     }
 }
 
-void triggerSMSAck(void* param)
+void triggerSMSAck(void* /*param*/)
 {
     CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SMS_ACKNOWLEDGE].uiChannel,
                                     NULL, REQ_ID_NONE, "AT+CNMA=1\r");
@@ -224,7 +224,7 @@ void triggerManualNetworkSearch(void* param)
     }
 }
 
-void triggerQueryCEER(void* param)
+void triggerQueryCEER(void* /*param*/)
 {
     CCommand* pCmd = new CCommand(RIL_CHANNEL_DLC8, NULL, REQ_ID_NONE,
                                     "AT+CEER\r",

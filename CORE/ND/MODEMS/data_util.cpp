@@ -211,9 +211,9 @@ Error:
 // Helper function to convert IP addresses to Android-readable format.
 // szIpIn [IN] - The IP string to be converted
 // szIpOut [OUT] - The converted IPv4 address in Android-readable format if there is an IPv4 address.
-// uiIpOutSize [IN] - The size of the szIpOut buffer
+// ipOutSize [IN] - The size of the szIpOut buffer
 // szIpOut2 [OUT] - The converted IPv6 address in Android-readable format if there is an IPv6 address.
-// uiIpOutSize [IN] - The size of szIpOut2 buffer
+// ipOutSize [IN] - The size of szIpOut2 buffer
 //
 // If IPv4 format a1.a2.a3.a4, then szIpIn is copied to szIpOut.
 // If Ipv6 format:
@@ -226,9 +226,9 @@ Error:
 // If szIpOut2 is NULL, then this parameter is ignored
 BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
                                        char* szIpOut,
-                                       UINT32 uiIpOutSize,
+                                       int ipOutSize,
                                        char* szIpOut2,
-                                       UINT32 uiIpOutSize2)
+                                       int ipOutSize2)
 {
     RIL_LOG_VERBOSE("ConvertIPAddressToAndroidReadable() - Enter\r\n");
     BOOL bRet = FALSE;
@@ -237,7 +237,7 @@ BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
     const int MAX_AIPV4V6_INDEX = 20;   // Number of 'a' values read from modem for IPv4v6 case
 
     //  Sanity checks
-    if ( (NULL == szIpIn) || (NULL == szIpOut) || (0 == uiIpOutSize))
+    if ( (NULL == szIpIn) || (NULL == szIpOut) || (0 == ipOutSize))
     {
         RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() : Invalid inputs!\r\n");
         return FALSE;
@@ -279,7 +279,7 @@ BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
             }
             else
             {
-                if (snprintf(szIpOut, uiIpOutSize,
+                if (snprintf(szIpOut, ipOutSize,
                         "%u.%u.%u.%u", uiIP[0], uiIP[1], uiIP[2], uiIP[3]) <= 0)
                 {
                     RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
@@ -326,10 +326,10 @@ BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
                 acIP[i] = (unsigned char)(aIP[i]);
             }
 
-            if (NULL != szIpOut2 && 0 != uiIpOutSize2)
+            if (NULL != szIpOut2 && 0 != ipOutSize2)
             {
 
-                if (inet_ntop(AF_INET6, (void*)acIP, szIpOut2, uiIpOutSize2) <= 0)
+                if (inet_ntop(AF_INET6, (void*)acIP, szIpOut2, ipOutSize2) == NULL)
                 {
                     RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
                             " cannot inet_ntop ipv6\r\n");
@@ -369,7 +369,7 @@ BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
                 }
             }
 
-            if (snprintf(szIpOut, uiIpOutSize,
+            if (snprintf(szIpOut, ipOutSize,
                     "%u.%u.%u.%u",
                     aIP[0], aIP[1], aIP[2], aIP[3]) <= 0)
             {
@@ -378,7 +378,7 @@ BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
                 goto Error;
             }
 
-            if (NULL != szIpOut2 && 0 != uiIpOutSize2)
+            if (NULL != szIpOut2 && 0 != ipOutSize2)
             {
                 unsigned char acIP[MAX_AIPV6_INDEX] = {0};
 
@@ -389,7 +389,7 @@ BOOL ConvertIPAddressToAndroidReadable(char* szIpIn,
                     acIP[i] = (unsigned char)(aIP[i+4]);
                 }
 
-                if (inet_ntop(AF_INET6, (void*)acIP, szIpOut2, uiIpOutSize2) <= 0)
+                if (inet_ntop(AF_INET6, (void*)acIP, szIpOut2, ipOutSize2) == NULL)
                 {
                     RIL_LOG_CRITICAL("ConvertIPAddressToAndroidReadable() -"
                             " cannot inet_ntop ipv4v6\r\n");
