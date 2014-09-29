@@ -108,6 +108,7 @@ LOCAL_STRIP_MODULE := true
 LOCAL_SHARED_LIBRARIES += librapid-ril-util
 LOCAL_CFLAGS += -DRIL_SHLIB -Os
 LOCAL_MODULE:= librapid-ril-core
+LOCAL_MODULE_OWNER := intel
 LOCAL_MODULE_TAGS:= optional
 include $(BUILD_SHARED_LIBRARY)
 

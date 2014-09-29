@@ -2,6 +2,7 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := rril_7260_conf_1.txt
+LOCAL_MODULE_OWNER := intel
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)/telephony
@@ -10,6 +11,7 @@ include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := rril_7260_conf_2.txt
+LOCAL_MODULE_OWNER := intel
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)/telephony
@@ -18,6 +20,7 @@ include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := rril_7260_conf_3.txt
+LOCAL_MODULE_OWNER := intel
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)/telephony
@@ -26,6 +29,7 @@ include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := rril_7260_conf_4.txt
+LOCAL_MODULE_OWNER := intel
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)/telephony
@@ -34,6 +38,7 @@ include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := rril_7260_conf_1_ATT.txt
+LOCAL_MODULE_OWNER := intel
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)/telephony
@@ -50,6 +55,7 @@ include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := rril_7260_cfg
+LOCAL_MODULE_OWNER := intel
 LOCAL_MODULE_TAGS := optional
 LOCAL_REQUIRED_MODULES :=\
     rril_7260_conf_1.txt\

@@ -2,6 +2,7 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := rril_2230_conf_1.txt
+LOCAL_MODULE_OWNER := intel
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE_CLASS := ETC
 LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)/telephony
@@ -10,6 +11,7 @@ include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := rril_2230_cfg
+LOCAL_MODULE_OWNER := intel
 LOCAL_MODULE_TAGS := optional
 LOCAL_REQUIRED_MODULES :=\
     rril_2230_conf_1.txt\
