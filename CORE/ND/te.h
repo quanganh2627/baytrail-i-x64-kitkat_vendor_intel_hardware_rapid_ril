@@ -602,6 +602,8 @@ public:
     RIL_RESULT_CODE RequestSimTransmitApduChannel(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData);
 
+    // RIL_REQUEST_SHUTDOWN
+    RIL_RESULT_CODE RequestShutdown(RIL_Token rilToken, void* pData, size_t datalen);
     RIL_RESULT_CODE ParseShutdown(RESPONSE_DATA& rspData);
     void PostShutdown(POST_CMD_HANDLER_DATA& data);
 

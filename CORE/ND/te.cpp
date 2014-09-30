@@ -289,6 +289,7 @@ BOOL CTE::IsRequestAllowedInSpoofState(int requestId)
     switch (requestId)
     {
         case RIL_REQUEST_RADIO_POWER:
+        case RIL_REQUEST_SHUTDOWN:
         {
             int modemState = GetLastModemEvent();
             if (E_MMGR_EVENT_MODEM_OUT_OF_SERVICE != modemState
@@ -323,6 +324,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_SET_INITIAL_ATTACH_APN:
         case RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE:
         case RIL_REQUEST_OEM_HOOK_STRINGS:
+        case RIL_REQUEST_SHUTDOWN:
             bAllowed = TRUE;
             break;
 
@@ -1162,6 +1164,10 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 break;
 
 #endif // M2_GET_SIM_SMS_STORAGE_ENABLED
+
+            case RIL_REQUEST_SHUTDOWN:
+                eRetVal = RequestShutdown(hRilToken, pData, datalen);
+                break;
 
             default:
                 RIL_LOG_INFO("onRequest() - Unknown Request ID id=%d\r\n", requestId);
@@ -6913,6 +6919,21 @@ RIL_RESULT_CODE CTE::ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData)
     return m_pTEBaseInstance->ParseSimTransmitApduChannel(rRspData);
 }
 
+RIL_RESULT_CODE CTE::RequestShutdown(RIL_Token rilToken, void* pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestShutdown() - Enter\r\n");
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    m_RadioOffReason = E_RADIO_OFF_REASON_SHUTDOWN;
+    m_pTEBaseInstance->CoreShutdown(reqData, pData, datalen);
+
+    RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
+
+    RIL_LOG_VERBOSE("CTE::RequestShutdown() - Exit\r\n");
+    return RRIL_RESULT_OK;
+}
+
 RIL_RESULT_CODE CTE::ParseShutdown(RESPONSE_DATA& rspData)
 {
     RIL_LOG_VERBOSE("CTE::ParseRadioPower() - Enter / Exit\r\n");
@@ -8512,7 +8533,7 @@ BOOL CTE::IsRequestAllowed(int requestId, RIL_Token rilToken, UINT32 uiChannelId
         BOOL bIsInitCommand, int callId)
 {
     RIL_Errno eRetVal = RIL_E_SUCCESS;
-    BOOL bIsReqAllowed;
+    BOOL bIsReqAllowed = TRUE;
 
     //  If we're in the middle of TriggerRadioError(), spoof all commands.
     if (E_MMGR_EVENT_MODEM_UP != GetLastModemEvent())
@@ -8532,34 +8553,6 @@ BOOL CTE::IsRequestAllowed(int requestId, RIL_Token rilToken, UINT32 uiChannelId
     {
         eRetVal = HandleRequestInRadioOff(requestId, rilToken);
         bIsReqAllowed = FALSE;
-    }
-    else if (IsPlatformShutDownRequested())
-    {
-        /*
-         * If there is data or voice call, then the framwork will
-         * first send requests to hangup those before sending
-         * radio power off request. So, allow only requests which
-         * are sent to hangup the voice/data call.
-         */
-        if (RIL_REQUEST_RADIO_POWER == requestId
-                || RIL_REQUEST_HANGUP == requestId
-                || RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND == requestId
-                || RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND == requestId
-#if defined(M2_VT_FEATURE_ENABLED)
-                || RIL_REQUEST_HANGUP_VT == requestId
-#endif
-                || RIL_REQUEST_DEACTIVATE_DATA_CALL == requestId)
-        {
-            bIsReqAllowed = TRUE;
-        }
-        else
-        {
-            bIsReqAllowed = FALSE;
-        }
-    }
-    else
-    {
-        bIsReqAllowed = TRUE;
     }
 
     if (RIL_E_SUCCESS != eRetVal && NULL != rilToken)
@@ -10058,8 +10051,9 @@ BOOL CTE::IsPlatformShutDownRequested()
         char szShutdownActionProperty[PROPERTY_VALUE_MAX] = {'\0'};
 
         // Retrieve the shutdown property
-        if (property_get("sys.shutdown.requested", szShutdownActionProperty, NULL)
+        if ((property_get("sys.shutdown.requested", szShutdownActionProperty, NULL)
                 && (('0' == szShutdownActionProperty[0]) || ('1' == szShutdownActionProperty[0])))
+                || E_RADIO_OFF_REASON_SHUTDOWN == m_RadioOffReason)
         {
             s_bIsShutDownRequested = TRUE;
         }

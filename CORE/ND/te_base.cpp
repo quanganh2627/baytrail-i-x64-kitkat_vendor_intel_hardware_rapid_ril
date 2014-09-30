@@ -9820,6 +9820,19 @@ Error:
     return res;
 }
 
+RIL_RESULT_CODE CTEBase::CoreShutdown(REQUEST_DATA& /*reqData*/, void* /*pData*/,
+        UINT32 /*uiDataSize*/)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreShutdown() - Enter\r\n");
+
+    HandleShutdownReq(RIL_REQUEST_SHUTDOWN);
+
+    SetRadioStateAndNotify(RRIL_RADIO_STATE_UNAVAILABLE);
+
+    RIL_LOG_VERBOSE("CTEBase::CoreShutdown() - Exit\r\n");
+    return RRIL_RESULT_OK;
+}
+
 RIL_RESULT_CODE CTEBase::ParseShutdown(RESPONSE_DATA& /*rspData*/)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseShutdown() - Enter / Exit\r\n");

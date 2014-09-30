@@ -761,6 +761,8 @@ public:
                                                               UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData);
 
+    // RIL_REQUEST_SHUTDOWN
+    virtual RIL_RESULT_CODE CoreShutdown(REQUEST_DATA& reqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseShutdown(RESPONSE_DATA& rspData);
 
 #if defined(M2_VT_FEATURE_ENABLED)
