@@ -1634,6 +1634,9 @@ RIL_RESULT_CODE CTEBase::CoreSwitchHoldingAndActive(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSwitchHoldingAndActive() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    bool isWaitingCall = false;
+    bool isActiveCall = false;
+    bool isHeldCall = false;
 
     if (E_DTMF_STATE_START == m_cte.GetDtmfState())
     {
@@ -1642,7 +1645,32 @@ RIL_RESULT_CODE CTEBase::CoreSwitchHoldingAndActive(REQUEST_DATA& rReqData,
         CEvent::Wait(m_pDtmfStopReqEvent, WAIT_TIMEOUT_DTMF_STOP);
     }
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=2\r", sizeof(rReqData.szCmd1)))
+    // Framework sends this request, when user accepts a waiting call when there
+    // is an active and held call.
+    for (UINT32 i = 0; i < RRIL_MAX_CALL_ID_COUNT; i++)
+    {
+        switch (m_VoiceCallInfo[i].state)
+        {
+            case E_CALL_STATUS_WAITING:
+                isWaitingCall = true;
+                break;
+
+            case E_CALL_STATUS_HELD:
+                isHeldCall = true;
+                break;
+
+            case E_CALL_STATUS_ACTIVE:
+                isActiveCall = true;
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    if (CopyStringNullTerminate(rReqData.szCmd1,
+            isWaitingCall && isHeldCall && isActiveCall ? "AT+CHLD=1\r" : "AT+CHLD=2\r",
+            sizeof(rReqData.szCmd1)))
     {
         res = RRIL_RESULT_OK;
     }
