@@ -3247,7 +3247,7 @@ void CTE_XMM7160::ConvertCellInfoForVanillaAOSP(P_ND_N_CELL_INFO_DATA_V2 pOldDat
 
 RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol)
 {
-    RIL_RESULT_CODE res = RRIL_RESULT_OK;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int nCellInfos = 0;
     void* pCellData = NULL;
 
@@ -3260,6 +3260,12 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isU
 #if defined(M2_PDK_OR_GMIN_BUILD)
             P_ND_N_CELL_INFO_DATA pNewCellData
                     = (P_ND_N_CELL_INFO_DATA) malloc(sizeof(S_ND_N_CELL_INFO_DATA));
+            if (NULL == pNewCellData)
+            {
+                RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfoList() -"
+                        " Could not allocate memory for a S_ND_N_CELL_INFO_DATA struct.\r\n");
+                goto Error;
+            }
             memset(pNewCellData, 0, sizeof(S_ND_N_CELL_INFO_DATA));
             ConvertCellInfoForVanillaAOSP((P_ND_N_CELL_INFO_DATA_V2)pCellData,
                     pNewCellData, nCellInfos);
@@ -3298,6 +3304,12 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isU
 #if defined(M2_PDK_OR_GMIN_BUILD)
                 P_ND_N_CELL_INFO_DATA pNewCellData
                         = (P_ND_N_CELL_INFO_DATA) malloc(sizeof(S_ND_N_CELL_INFO_DATA));
+                if (NULL == pNewCellData)
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM7160::ParseCellInfoList() -"
+                            " Could not allocate memory for a S_ND_N_CELL_INFO_DATA struct.\r\n");
+                    goto Error;
+                }
                 memset(pNewCellData, 0, sizeof(S_ND_N_CELL_INFO_DATA));
                 ConvertCellInfoForVanillaAOSP((P_ND_N_CELL_INFO_DATA_V2)pCellData,
                         pNewCellData, nCellInfos);
@@ -3324,6 +3336,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isU
         }
     }
 
+    res = RRIL_RESULT_OK;
 Error:
 
     if (RRIL_RESULT_OK != res || isUnsol)
