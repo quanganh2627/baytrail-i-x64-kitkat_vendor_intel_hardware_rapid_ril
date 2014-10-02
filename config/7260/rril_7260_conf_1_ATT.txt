@@ -240,8 +240,6 @@ Group Modem
 //                        (for IMC IPV6 AT commands), or set to "0" to keep the current behavior.
 //      "EnableSignalStrengthReporting" - Set to "1" configures the modem to report signal strength
 //                          changes via an URC.
-//      "AllowSetPreferredNetworkType" - Set to "0" rejects set preferred network type request,
-//                                      otherwise allowed by default.
 //    VoiceCapable                0
 //    SmsOverCSCapable            0
 //    SmsOverPSCapable            0
@@ -250,7 +248,6 @@ Group Modem
     EnableSMSOverIP             1
     SupportCGPIAF               0
     EnableSignalStrengthReporting 1
-    AllowSetPreferredNetworkType 0
 
 // IMEI blacklist - A list of default IMEIs which could be flashed to the device.  The device
 //      will not register on a live network if any of these IMEIs are used.

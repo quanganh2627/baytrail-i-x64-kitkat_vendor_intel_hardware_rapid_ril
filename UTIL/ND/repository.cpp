@@ -105,7 +105,6 @@ const char   g_szEnableSMSOverIP[]              = "EnableSMSOverIP";
 const char   g_szSupportCGPIAF[]                = "SupportCGPIAF";
 const char   g_szNwInitiatedContextAct[]        = "NwInitiatedContextAct";
 const char   g_szEnableSignalStrengthURC[]      = "EnableSignalStrengthReporting";
-const char   g_szAllowSetPreferredNetworkType[] = "AllowSetPreferredNetworkType";
 const char   g_szImeiBlackList[]                = "ImeiBlackList";
 
 // used for 7x60 and 6360 modems
