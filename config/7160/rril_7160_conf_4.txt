@@ -51,6 +51,7 @@ Group RequestTimeouts
     ReportSmsMemoryStatus              60000
     GetIPAddress                       30000
     GetDNS                             30000
+    QuerySimSmsStoreStatus             30000
     SetInitialAttachApn               300000
     EnterSimPin                        20000
     EnterSimPin2                       20000
@@ -148,7 +149,7 @@ Group Modem
 //
 //  Command will be sent upon device init.
 //  If values are missing, then default modem values are used (default value is 0)
-    FDDelayTimer                2
+    FDDelayTimer                3
     SCRITimer                   30
 
 
