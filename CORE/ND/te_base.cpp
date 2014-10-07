@@ -12648,3 +12648,24 @@ Error:
     RIL_LOG_VERBOSE("CTEBase::ParseQueryCnap() - Exit\r\n");
     return res;
 }
+
+RIL_RESULT_CODE CTEBase::CreateSetAdaptiveClockingReq(REQUEST_DATA& /*reqData*/,
+            const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::CreateGetAdaptiveClockingFreqInfo(REQUEST_DATA& /*reqData*/,
+            const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::ParseGetAdaptiveClockingFreqInfo(const char* /*pszRsp*/,
+            RESPONSE_DATA& /*rspData*/)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}

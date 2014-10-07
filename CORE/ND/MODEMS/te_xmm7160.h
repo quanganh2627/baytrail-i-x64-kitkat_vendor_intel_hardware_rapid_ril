@@ -157,6 +157,9 @@ public:
 
     virtual RIL_RESULT_CODE ParseXCSG(const char* pszRsp, RESPONSE_DATA& rspData);
 
+    virtual RIL_RESULT_CODE ParseGetAdaptiveClockingFreqInfo(const char* pszRsp,
+            RESPONSE_DATA& rspData);
+
     virtual const char* GetSiloVoiceURCInitString();
     virtual const char* GetReadCellInfoString();
     virtual BOOL GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData);
@@ -194,6 +197,10 @@ protected:
     int MapToAndroidRsrq(int rsrq);
     int MapToAndroidRssnr(int rssnr);
 
+    virtual RIL_RESULT_CODE CreateSetAdaptiveClockingReq(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateGetAdaptiveClockingFreqInfo(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
 private:
 
     void ConvertCellInfoForVanillaAOSP(P_ND_N_CELL_INFO_DATA_V2 pOldData,

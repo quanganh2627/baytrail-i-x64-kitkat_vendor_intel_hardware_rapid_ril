@@ -38,6 +38,8 @@ protected:
 
     virtual BOOL ParseXTS(CResponse* const pResponse, const char*& pszPointer);
 
+    virtual BOOL ParseXADPCLKFREQINFO(CResponse* const pResponse, const char*& pszPointer);
+
 };
 
 #endif // RRIL_SILO_MISC_H

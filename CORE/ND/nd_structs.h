@@ -446,4 +446,19 @@ typedef struct
     char szCnapCurrentState[MAX_BUFFER_SIZE];
 } S_ND_CNAP_CURRENT_STATE, *P_ND_CNAP_CURRENT_STATE;
 
+//
+// Adaptive Clock Frequency Info  structures
+//
+typedef struct
+{
+    /* it will contain all the pairs (centFreq, freqSpread, noisePower) concatenated */
+    char* pszAdaptiveClockFrequencyInfo;
+}  S_ND_ADPCLK_FREQ_INFO_PTR, *P_ND_ADPCLK_FREQ_INFO_PTR;
+
+typedef struct
+{
+    S_ND_ADPCLK_FREQ_INFO_PTR sResponsePointer;
+    char szAdaptiveClockFrequencyInfo[MAX_BUFFER_SIZE];
+} S_ND_ADPCLK_FREQ_INFO, *P_ND_ADPCLK_FREQ_INFO;
+
 #endif

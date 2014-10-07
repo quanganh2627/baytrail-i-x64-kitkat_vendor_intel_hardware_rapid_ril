@@ -3802,3 +3802,182 @@ int CTE_XMM7160::MapToAndroidRssnr(int rssnr)
     else
         return androidRssnr;
 }
+
+RIL_RESULT_CODE CTE_XMM7160::CreateSetAdaptiveClockingReq(REQUEST_DATA& reqData,
+        const char** ppszRequest, const UINT32 uiDataSize)
+{
+    /*
+     * Activate or deactivate the unsolicited response for adaptive clocking by sending
+     *  - AT+XADPCLKFREQINFO=1 to activate
+     *  - AT+XADPCLKFREQINFO=0 to deactivate
+     */
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateSetAdaptiveClockingReq() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int enableUnsol;
+
+    if (uiDataSize < (2 * sizeof(char *)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateSetAdaptiveClockingReq() :"
+                " received_size < required_size\r\n");
+        goto Error;
+    }
+
+    // The value received should be '0' or '1'.
+    if (!ExtractInt(ppszRequest[1], enableUnsol, ppszRequest[1])
+            || (enableUnsol < 0 || enableUnsol > 1))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateSetAdaptiveClockingReq() :"
+                " wrong value received\r\n");
+        goto Error;
+    }
+
+    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+            "AT+XADPCLKFREQINFO=%d\r", enableUnsol))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateSetAdaptiveClockingReq() -"
+                " Cannot construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateSetAdaptiveClockingReq() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::CreateGetAdaptiveClockingFreqInfo(REQUEST_DATA& reqData,
+        const char** ppszRequest, const UINT32 uiDataSize)
+{
+    /*
+     * Retrieves frequency information from the modem.
+     */
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateGetAdaptiveClockingFreqInfo() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+            "AT+XADPCLKFREQINFO=?\r"))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CreateGetAdaptiveClockingFreqInfo() -"
+                " Cannot construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CreateGetAdaptiveClockingFreqInfo() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo(const char* pszRsp,
+        RESPONSE_DATA& rspData)
+{
+    /*
+     * Parse +XADPCLKFREQINFO: , response to the test command "AT+XADPCLKFREQINFO=?".
+     * If the response is received here, means that is not on URC channel,
+     * and the answer have multiple triplets of <centFreq>, <freqSpread> and <noisePower>.
+     */
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo() - Enter\r\n");
+
+    int nParams = 1;
+    long long centFreq;
+    int freqSpread;
+    int noisePower;
+    bool bLastTriplet = false;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    P_ND_ADPCLK_FREQ_INFO pResponse
+            = (P_ND_ADPCLK_FREQ_INFO) malloc(sizeof(S_ND_ADPCLK_FREQ_INFO));
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo() -"
+                "Could not allocate memory for response");
+        goto Error;
+    }
+    memset(pResponse, 0, sizeof(S_ND_ADPCLK_FREQ_INFO));
+
+    // test command response,
+    // the answer can have multiple triplets of <centFreq>, <freqSpread> and <noisePower>
+    // +XADPCLKFREQINFO: <centFreq>, <freqSpread>, <noisePower>[,<centFreq>,
+    //                                                           <freqSpread>, <noisePower>[,...]]
+    if (!FindAndSkipString(pszRsp, "+XADPCLKFREQINFO: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo() -"
+                " Unable to parse \"+XADPCLKFREQINFO\" prefix\r\n");
+        goto Error;
+    }
+
+    // start parsing the response, triplet by triplet
+    while (!bLastTriplet)
+    {
+        // Parse <centFreq>
+        if (!ExtractLongLong(pszRsp, centFreq, pszRsp)
+                || !SkipString(pszRsp, ",", pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo() -"
+                    " Unable to parse <centFreq>\r\n");
+            goto Error;
+        }
+
+        // Parse <freqSpread>
+        if (!ExtractInt(pszRsp, freqSpread, pszRsp)
+                || !SkipString(pszRsp, ",", pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo() -"
+                    " Unable to parse <freqSpread>\r\n");
+            goto Error;
+        }
+
+        // Parse <noisePower>
+        if (!ExtractInt(pszRsp, noisePower, pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo() -"
+                    " Unable to parse <noisePower>\r\n");
+            goto Error;
+        }
+
+        // Look for ",", if found, means that we have new triplet to parse
+        bLastTriplet = !SkipString(pszRsp, ",", pszRsp);
+
+        // It Contains the current pair (centFreq, freqSpread, noisePower)
+        char szCurrentPair[MAX_BUFFER_SIZE] = {'\0'};
+
+        // The comma should be added at the end of the string if not the last triplet
+        snprintf(szCurrentPair, sizeof(szCurrentPair),
+                (bLastTriplet) ? "%lld, %d, %d" : "%lld, %d, %d, ",
+                centFreq, freqSpread, noisePower);
+
+        // Appending the current pair to the response
+        if (!ConcatenateStringNullTerminate(pResponse->szAdaptiveClockFrequencyInfo,
+                 sizeof(pResponse->szAdaptiveClockFrequencyInfo), szCurrentPair))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo() - "
+                    " Cannot add %s.\r\n", szCurrentPair);
+            goto Error;
+        }
+    }
+
+    // Find "<postfix>"
+    if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo() - "
+                " Unable to find response end\r\n");
+        goto Error;
+    }
+
+    pResponse->sResponsePointer.pszAdaptiveClockFrequencyInfo =
+            pResponse->szAdaptiveClockFrequencyInfo;
+    rspData.pData = pResponse;
+    rspData.uiDataSize = sizeof(S_ND_ADPCLK_FREQ_INFO_PTR);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo() - Exit\r\n");
+    return res;
+}

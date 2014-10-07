@@ -35,6 +35,7 @@ CSilo_MISC::CSilo_MISC(CChannel* pChannel)
     {
         { "+XDRVI: "   , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXDRVI  },
         { "+XTS: ", (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXTS },
+        { "+XFREQINFO: ", (PFN_ATRSP_PARSE)&CSilo_MISC::ParseXADPCLKFREQINFO },
         { ""           , (PFN_ATRSP_PARSE)&CSilo_MISC::ParseNULL }
     };
 
@@ -263,4 +264,87 @@ Error:
     return bRet;
 }
 
+BOOL CSilo_MISC::ParseXADPCLKFREQINFO(CResponse* const pResponse,
+        const char*& pszPointer)
+{
+    RIL_LOG_VERBOSE("CSilo_MISC::ParseXADPCLKFREQINFO() - Enter\r\n");
+    BOOL bRet = FALSE;
+    sOEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF* pData = NULL;
+    long long centFreq;
+    int freqSpread;
+    int noisePower;
+    int nParams = 1;
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXADPCLKFREQINFO() - pResponse is NULL.\r\n");
+        goto Error;
+    }
+
+    // If response is received here, than we are sure that is the unsolicited one.
+    pResponse->SetUnsolicitedFlag(TRUE);
+
+    // Expected URC: +XFREQINFO: <centFreq>, <freqSpread>, <noisePower>
+    // Parse <centFreq>
+    if (!ExtractLongLong(pszPointer, centFreq, pszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXADPCLKFREQINFO() -"
+                " Unable to parse <centFreq>\r\n");
+        goto Error;
+    }
+
+    // Parse <freqSpread>
+    if (!SkipString(pszPointer, ",", pszPointer)
+             || !ExtractInt(pszPointer, freqSpread, pszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXADPCLKFREQINFO() -"
+                " Unable to parse <freqSpread>\r\n");
+        goto Error;
+    }
+
+    // Parse <noisePower>
+    if (!SkipString(pszPointer, ",", pszPointer)
+             || !ExtractInt(pszPointer, noisePower, pszPointer))
+    {
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXADPCLKFREQINFO() -"
+                " Unable to parse <noisePower>\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CSilo_MISC::ParseXADPCLKFREQINFO - centFreq: %lld, freqSpread: %d,"
+            " noisePower: %d\r\n", centFreq, freqSpread, noisePower);
+
+    pData = (sOEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF*) malloc(
+            sizeof(sOEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF));
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CSilo_MISC::ParseXADPCLKFREQINFO() -"
+                "Could not allocate memory for response");
+        goto Error;
+    }
+    memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF));
+
+    pData->commandId = RIL_OEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF;
+    pData->centFreq = centFreq;
+    pData->freqSpread = freqSpread;
+    pData->noisePower = noisePower;
+    pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+
+    if (!pResponse->SetData((void*)pData,
+            sizeof(sOEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF), FALSE))
+    {
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    if (!bRet)
+    {
+        free(pData);
+        pData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CSilo_MISC::ParseXADPCLKFREQINFO() - Exit\r\n");
+    return bRet;
+}

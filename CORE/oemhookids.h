@@ -550,6 +550,41 @@ const int RIL_OEM_HOOK_STRING_AIRPLANE_MODE_CHANGED = 0x000000C2;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_ADPCLK_ACTIVATE
+//  Command ID = 0x000000C3
+//
+//  This command sends AT+XADPCLKFREQINFO=<data>
+//
+//  "data" - string containing an int value registration state request
+//                    "0" = deactivate unsolicited response.
+//                    "1" = activate unsolicited response.
+//  "response" = NULL
+//  Effective modification of the state is sent back through the unsolicited
+//  response RIL_OEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF
+//
+const int RIL_OEM_HOOK_STRING_ADPCLK_ACTIVATE = 0x000000C3;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_ADPCLK_GET_FREQ_INFO
+//  Command ID = 0x000000C4
+//
+//  Retrieve Adaptative Clocking frequency information list from the modem.
+//  The Adaptative Clocking frequency information must have been activated
+//  before.
+//
+//  data: none
+//  response: string containing the list of triplets
+//  <centFreq>, <freqSpread>, <noisePower> as returned by non-URC:
+// +XADPCLKFREQINFO: <centFreq>, <freqSpread>, <noisePower>[,<centFreq>,
+//                                                           <freqSpread>, <noisePower>[,...]]
+
+const int RIL_OEM_HOOK_STRING_ADPCLK_GET_FREQ_INFO = 0x000000C4;
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID
@@ -945,6 +980,25 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_CSG_IND
 } sOEM_HOOK_RAW_UNSOL_CSG_IND;
 
 const int RIL_OEM_HOOK_RAW_UNSOL_CSG_IND = 0x000000E5;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+// OEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF
+// Command ID = 0x000000E6
+//
+// "data" is sOEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF
+//
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF
+{
+    int commandId;
+    long long centFreq;
+    int freqSpread;
+    int noisePower;
+} sOEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF;
+
+const int RIL_OEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF = 0x000000E6;
 
 /***********************************************************************/
 #pragma pack()

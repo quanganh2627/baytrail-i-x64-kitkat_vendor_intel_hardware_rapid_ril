@@ -1251,6 +1251,12 @@ public:
 
     bool TestAndSetNetworkStateChangeTimerRunning(bool bTimerRunning);
 
+    RIL_RESULT_CODE CreateSetAdaptiveClockingReq(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    RIL_RESULT_CODE CreateGetAdaptiveClockingFreqInfo(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    RIL_RESULT_CODE ParseGetAdaptiveClockingFreqInfo(const char* pszRsp, RESPONSE_DATA& rspData);
+
 private:
     UINT32 m_uiModemType;
 

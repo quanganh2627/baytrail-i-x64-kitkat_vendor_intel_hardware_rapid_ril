@@ -1021,6 +1021,13 @@ public:
 
     bool NeedGetCellInfoOnCellChange() { return m_bNeedGetInfoOnCellChange; }
 
+    virtual RIL_RESULT_CODE CreateSetAdaptiveClockingReq(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateGetAdaptiveClockingFreqInfo(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseGetAdaptiveClockingFreqInfo(const char* pszRsp,
+            RESPONSE_DATA& rspData);
+
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);
 

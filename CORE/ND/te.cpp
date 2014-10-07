@@ -10961,3 +10961,20 @@ bool CTE::TestAndSetNetworkStateChangeTimerRunning(bool bTimerRunning)
     CMutex::Unlock(m_pNetworkStateChangeTimerStatusLock);
     return bPrevTimerRunning;
 }
+
+RIL_RESULT_CODE CTE::CreateSetAdaptiveClockingReq(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize)
+{
+    return m_pTEBaseInstance->CreateSetAdaptiveClockingReq(reqData, ppszRequest, uiDataSize);
+}
+
+RIL_RESULT_CODE CTE::CreateGetAdaptiveClockingFreqInfo(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize)
+{
+    return m_pTEBaseInstance->CreateGetAdaptiveClockingFreqInfo(reqData, ppszRequest, uiDataSize);
+}
+
+RIL_RESULT_CODE CTE::ParseGetAdaptiveClockingFreqInfo(const char* pszRsp, RESPONSE_DATA& rspData)
+{
+    return m_pTEBaseInstance->ParseGetAdaptiveClockingFreqInfo(pszRsp, rspData);
+}

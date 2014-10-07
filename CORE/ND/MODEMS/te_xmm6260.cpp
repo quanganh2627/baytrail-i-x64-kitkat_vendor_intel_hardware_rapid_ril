@@ -2406,6 +2406,22 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
                 break;
             }
 
+        case RIL_OEM_HOOK_STRING_ADPCLK_ACTIVATE:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_ADPCLK_ACTIVATE");
+            res = m_cte.CreateSetAdaptiveClockingReq(rReqData, (const char**) pszRequest,
+                    uiDataSize);
+            // Send this command on URC channel to get the notifications in URC channel
+            uiRilChannel = RIL_CHANNEL_URC;
+            break;
+
+        case RIL_OEM_HOOK_STRING_ADPCLK_GET_FREQ_INFO:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_ADPCLK_GET_FREQ_INFO");
+            res = m_cte.CreateGetAdaptiveClockingFreqInfo(rReqData, (const char**) pszRequest,
+                    uiDataSize);
+            //  Send this command on OEM channel.
+            uiRilChannel = RIL_CHANNEL_OEM;
+            break;
+
         default:
             RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
                     " ERROR: Received unknown command=[0x%x]\r\n", command);
@@ -2489,6 +2505,10 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
             res = m_cte.ParseXCSG(pszRsp, rRspData);
             break;
 
+        case RIL_OEM_HOOK_STRING_ADPCLK_GET_FREQ_INFO:
+            res = m_cte.ParseGetAdaptiveClockingFreqInfo(pszRsp, rRspData);
+            break;
+
         case RIL_OEM_HOOK_STRING_SET_MODEM_AUTO_FAST_DORMANCY:
         case RIL_OEM_HOOK_STRING_RELEASE_ALL_CALLS:
         case RIL_OEM_HOOK_STRING_SET_SMS_TRANSPORT_MODE:
@@ -2503,6 +2523,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_SWAP_PS:
         case RIL_OEM_HOOK_STRING_SIM_RESET:
         case RIL_OEM_HOOK_STRING_SET_DVP_ENABLED:
+        case RIL_OEM_HOOK_STRING_ADPCLK_ACTIVATE:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
             break;
