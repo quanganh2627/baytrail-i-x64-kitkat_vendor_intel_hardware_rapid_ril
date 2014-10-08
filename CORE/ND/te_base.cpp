@@ -1580,9 +1580,25 @@ RIL_RESULT_CODE CTEBase::CoreHangupWaitingOrBackground(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTEBase::CoreHangupWaitingOrBackground() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=0\r", sizeof(rReqData.szCmd1)))
+    /*
+     * Fix to end the call which is answered from the UI perspective but connection not established
+     * due to missing network acknowledgement.
+     */
+    if (m_IncomingCallInfo.callId && m_IncomingCallInfo.isAnswerReqSent
+            && m_IncomingCallInfo.status == E_CALL_STATUS_INCOMING)
     {
-        res = RRIL_RESULT_OK;
+        if (PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1), "AT+CHLD=1%u\r",
+                m_IncomingCallInfo.callId))
+        {
+            res = RRIL_RESULT_OK;
+        }
+    }
+    else
+    {
+        if (CopyStringNullTerminate(rReqData.szCmd1, "AT+CHLD=0\r", sizeof(rReqData.szCmd1)))
+        {
+            res = RRIL_RESULT_OK;
+        }
     }
 
     RIL_LOG_VERBOSE("CTEBase::CoreHangupWaitingOrBackground() - Exit\r\n");
