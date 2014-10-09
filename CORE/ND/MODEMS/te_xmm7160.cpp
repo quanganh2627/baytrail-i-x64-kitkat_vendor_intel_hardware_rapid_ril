@@ -371,11 +371,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseSignalStrength(RESPONSE_DATA& rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-    RIL_SignalStrength_v9* pSigStrData = NULL;
-#else
-    RIL_SignalStrength_v6* pSigStrData = NULL;
-#endif
+    RIL_SignalStrength* pSigStrData = NULL;
 
     const char* pszRsp = rRspData.szResponse;
 
@@ -383,16 +379,12 @@ RIL_RESULT_CODE CTE_XMM7160::ParseSignalStrength(RESPONSE_DATA& rRspData)
     if (NULL == pSigStrData)
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseSignalStrength() -"
-                " Could not allocate memory for RIL_SignalStrength_v9.\r\n");
+                " Could not allocate memory for RIL_SignalStrength.\r\n");
         goto Error;
     }
 
     rRspData.pData   = (void*)pSigStrData;
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-    rRspData.uiDataSize  = sizeof(RIL_SignalStrength_v9);
-#else
-    rRspData.uiDataSize  = sizeof(RIL_SignalStrength_v6);
-#endif
+    rRspData.uiDataSize  = sizeof(RIL_SignalStrength);
     res = RRIL_RESULT_OK;
 
 Error:
@@ -1505,8 +1497,8 @@ Error:
     RIL_LOG_VERBOSE("CTE_XMM7160::CreateSetDefaultApnReq() - Exit\r\n");
     return res;
 }
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-RIL_SignalStrength_v9* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
+
+RIL_SignalStrength* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseXCESQ() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
@@ -1520,7 +1512,7 @@ RIL_SignalStrength_v9* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
     int rsrq = RSRQ_UNKNOWN; // Reference signal received quality
     int rsrp = RSRP_UNKNOWN; // Reference signal received power
     int rssnr = RSSNR_UNKNOWN; // Radio signal strength Noise Ratio value
-    RIL_SignalStrength_v9* pSigStrData = NULL;
+    RIL_SignalStrength* pSigStrData = NULL;
 
     if (!bUnsolicited)
     {
@@ -1606,11 +1598,11 @@ RIL_SignalStrength_v9* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
         }
     }
 
-    pSigStrData = (RIL_SignalStrength_v9*)malloc(sizeof(RIL_SignalStrength_v9));
+    pSigStrData = (RIL_SignalStrength*)malloc(sizeof(RIL_SignalStrength));
     if (NULL == pSigStrData)
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() -"
-                " Could not allocate memory for RIL_SignalStrength_v9.\r\n");
+                " Could not allocate memory for RIL_SignalStrength.\r\n");
         goto Error;
     }
 
@@ -1627,9 +1619,11 @@ RIL_SignalStrength_v9* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
     pSigStrData->LTE_SignalStrength.rsrq = INT_MAX;
     pSigStrData->LTE_SignalStrength.rssnr = INT_MAX;
     pSigStrData->LTE_SignalStrength.cqi = INT_MAX;
+#if defined (USE_PATCHED_AOSP)
     pSigStrData->WCDMA_SignalStrength.rscp = RSCP_UNKNOWN;
     pSigStrData->WCDMA_SignalStrength.ecNo = ECNO_UNKNOWN;
     pSigStrData->GSM_SignalStrength.rxlev = RSSI_UNKNOWN;
+#endif
 
     /*
      * If the current serving cell is GERAN cell, then <rxlev> and <ber> are set to
@@ -1654,13 +1648,19 @@ RIL_SignalStrength_v9* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BO
     {
         pSigStrData->GW_SignalStrength.bitErrorRate = ber;
         // Note: no mapping here as GSM_SignalStrength structure uses range from TS 27.007 8.69
+#if defined (USE_PATCHED_AOSP)
         pSigStrData->GSM_SignalStrength.rxlev = rxlev;
+#else
+        pSigStrData->GW_SignalStrength.signalStrength = MapRxlevToSignalStrengh(rxlev);
+#endif
     }
     else if (RSCP_UNKNOWN != rscp)
     {
         pSigStrData->GW_SignalStrength.signalStrength = MapRscpToRssi(rscp);
+#if defined (USE_PATCHED_AOSP)
         pSigStrData->WCDMA_SignalStrength.rscp = rscp;
         pSigStrData->WCDMA_SignalStrength.ecNo = ecNo;
+#endif
     }
     else if (RSRQ_UNKNOWN != rsrq && RSRP_UNKNOWN != rsrp)
     {
@@ -1685,231 +1685,6 @@ Error:
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseXCESQ - Exit()\r\n");
     return pSigStrData;
 }
-
-#else
-
-RIL_SignalStrength_v6* CTE_XMM7160::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
-{
-    RIL_LOG_VERBOSE("CTE_XMM7160::ParseXCESQ() - Enter\r\n");
-    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-
-    int mode = 0;
-    int rxlev = 0; // received signal strength level
-    int ber = 0; // channel bit error rate
-    int rscp = 0; // Received signal code power
-    // ratio of the received energy per PN chip to the total received power spectral density
-    int ec = 0;
-    int rsrq =0; // Reference signal received quality
-    int rsrp = 0; // Reference signal received power
-    int rssnr = -1; // Radio signal strength Noise Ratio value
-    RIL_SignalStrength_v6* pSigStrData = NULL;
-
-    if (!bUnsolicited)
-    {
-        // Parse "<prefix>+XCESQ: <n>,<rxlev>,<ber>,<rscp>,<ecno>,<rsrq>,<rsrp>,<rssnr><postfix>"
-        if (!SkipRspStart(rszPointer, m_szNewLine, rszPointer)
-                || !SkipString(rszPointer, "+XCESQ: ", rszPointer))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::ParseUnsolicitedSignalStrength() - "
-                    "Could not find AT response.\r\n");
-            goto Error;
-        }
-
-        if (!ExtractInt(rszPointer, mode, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::ParseUnsolicitedSignalStrength() - "
-                    "Could not extract <mode>\r\n");
-            goto Error;
-        }
-
-        if (!SkipString(rszPointer, ",", rszPointer))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract , before <rxlev>\r\n");
-            goto Error;
-        }
-    }
-
-    if (!ExtractInt(rszPointer, rxlev, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rxlev>\r\n");
-        goto Error;
-    }
-
-    if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractInt(rszPointer, ber, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <ber>\r\n");
-        goto Error;
-    }
-
-    if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractInt(rszPointer, rscp, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rscp>\r\n");
-        goto Error;
-    }
-
-    if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractInt(rszPointer, ec, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <ecno>\r\n");
-        goto Error;
-    }
-
-    if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractInt(rszPointer, rsrq, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rsrq>\r\n");
-        goto Error;
-    }
-
-    if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractInt(rszPointer, rsrp, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - Could not extract <rsrp>.\r\n");
-        goto Error;
-    }
-
-    if (!SkipString(rszPointer, ",", rszPointer)
-            || !ExtractInt(rszPointer, rssnr, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() - "
-                "Could not extract <rssnr>.\r\n");
-        goto Error;
-    }
-
-    if (!bUnsolicited)
-    {
-        if (!FindAndSkipRspEnd(rszPointer, m_szNewLine, rszPointer))
-        {
-            RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() -"
-                    " Could not extract the response end.\r\n");
-            goto Error;
-        }
-    }
-
-    pSigStrData = (RIL_SignalStrength_v6*)malloc(sizeof(RIL_SignalStrength_v6));
-    if (NULL == pSigStrData)
-    {
-        RIL_LOG_CRITICAL("CTE_XMM7160::ParseXCESQ() -"
-                " Could not allocate memory for RIL_SignalStrength_v9.\r\n");
-        goto Error;
-    }
-
-    // reset to default values
-    pSigStrData->GW_SignalStrength.signalStrength = -1;
-    pSigStrData->GW_SignalStrength.bitErrorRate = -1;
-    pSigStrData->CDMA_SignalStrength.dbm = -1;
-    pSigStrData->CDMA_SignalStrength.ecio = -1;
-    pSigStrData->EVDO_SignalStrength.dbm = -1;
-    pSigStrData->EVDO_SignalStrength.ecio = -1;
-    pSigStrData->EVDO_SignalStrength.signalNoiseRatio = -1;
-    pSigStrData->LTE_SignalStrength.signalStrength = -1;
-    pSigStrData->LTE_SignalStrength.rsrp = INT_MAX;
-    pSigStrData->LTE_SignalStrength.rsrq = INT_MAX;
-    pSigStrData->LTE_SignalStrength.rssnr = INT_MAX;
-    pSigStrData->LTE_SignalStrength.cqi = INT_MAX;
-
-    /*
-     * If the current serving cell is GERAN cell, then <rxlev> and <ber> are set to
-     * valid values.
-     * For <rxlev>, valid values are 0 to 63.
-     * For <ber>, valid values are 0 to 7.
-     * If the current service cell is not GERAN cell, then <rxlev> and <ber> are set
-     * to value 99.
-     *
-     * If the current serving cell is UTRA cell, then <rscp> is set to valid value.
-     * For <rscp>, valid values are 0 to 96.
-     * If the current service cell is not UTRA cell, then <rscp> is set to value 255.
-     *
-     * If the current serving cell is E-UTRA cell, then <rsrq> and <rsrp> are set to
-     * valid values.
-     * For <rsrq>, valid values are 0 to 34.
-     * For <rsrp>, valid values are 0 to 97.
-     * If the current service cell is not E-UTRA cell, then <rsrq> and <rsrp> are set
-     * to value 255.
-     */
-    if (99 != rxlev)
-    {
-        /*
-         * As <rxlev> reported as part of XCESQ is not in line with the <rssi> reported
-         * as part of AT+CSQ and also what android expects, following conversion is done.
-         */
-        if (rxlev <= 57)
-        {
-            rxlev = floor(rxlev / 2) + 2;
-        }
-        else
-        {
-            rxlev = 31;
-        }
-
-        pSigStrData->GW_SignalStrength.signalStrength = rxlev;
-        pSigStrData->GW_SignalStrength.bitErrorRate   = ber;
-    }
-    else if (255 != rscp)
-    {
-        /*
-         * As <rscp> reported as part of XCESQ is not in line with the <rssi> reported
-         * as part of AT+CSQ and also what android expects, following conversion is done.
-         */
-        if (rscp <= 7)
-        {
-            rscp = 0;
-        }
-        else if (rscp <= 67)
-        {
-            rscp = floor((rscp - 6) / 2);
-        }
-        else
-        {
-            rscp = 31;
-        }
-
-        pSigStrData->GW_SignalStrength.signalStrength = rscp;
-    }
-    else if (255 != rsrq && 255 != rsrp)
-    {
-        /*
-         * for rsrp if modem returns 0 then rsrp = -140 dBm.
-         * for rsrp if modem returns 1 then rsrp = -139 dBm.
-         * As Android does the inversion, rapid ril needs to send (140 - rsrp) to framework.
-         *
-         * for rsrq if modem return 0 then rsrq = -19.5 dBm.
-         * for rsrq if modem return 1 then rsrq = -19 dBm.
-         * As Android does the inversion, rapid ril needs to send (20 - rsrq/2) to framework.
-         *
-         * for rssnr if modem returns 0 then rssnr = 0 dBm
-         * for rssnr if modem returns 1 then rssnr = 0.5 dBm
-         * As Android has granularity of 0.1 dB units, rapid ril needs to send
-         * (rssnr/2)*10 => rssnr * 5 to framework.
-         *
-         * You can refer to the latest CAT specification on XCESQI AT command
-         * to understand where these numbers come from
-         */
-        pSigStrData->LTE_SignalStrength.rsrp = 140 - rsrp;
-        pSigStrData->LTE_SignalStrength.rsrq = 20 - rsrq / 2;
-        pSigStrData->LTE_SignalStrength.rssnr = rssnr * 5;
-    }
-    else
-    {
-        RIL_LOG_INFO("CTE_XMM7160::ParseXCESQ - "
-                "pSigStrData set to default values\r\n");
-    }
-
-    res = RRIL_RESULT_OK;
-Error:
-    if (RRIL_RESULT_OK != res)
-    {
-        free(pSigStrData);
-        pSigStrData = NULL;
-    }
-
-    RIL_LOG_VERBOSE("CTE_XMM7160::ParseXCESQ - Exit()\r\n");
-    return pSigStrData;
-}
-
-#endif
 
 void CTE_XMM7160::QuerySignalStrength()
 {
@@ -1940,11 +1715,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspD
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseUnsolicitedSignalStrength() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-    RIL_SignalStrength_v9* pSigStrData = NULL;
-#else
-    RIL_SignalStrength_v6* pSigStrData = NULL;
-#endif
+    RIL_SignalStrength* pSigStrData = NULL;
     const char* pszRsp = rRspData.szResponse;
 
     pSigStrData = ParseXCESQ(pszRsp, FALSE);
@@ -1957,13 +1728,8 @@ RIL_RESULT_CODE CTE_XMM7160::ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspD
 
     res = RRIL_RESULT_OK;
 
-#if !defined(M2_PDK_OR_GMIN_BUILD)
     RIL_onUnsolicitedResponse(RIL_UNSOL_SIGNAL_STRENGTH, (void*)pSigStrData,
-            sizeof(RIL_SignalStrength_v9));
-#else
-    RIL_onUnsolicitedResponse(RIL_UNSOL_SIGNAL_STRENGTH, (void*)pSigStrData,
-            sizeof(RIL_SignalStrength_v6));
-#endif
+            sizeof(RIL_SignalStrength));
 
 Error:
     free(pSigStrData);
@@ -3219,7 +2985,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isU
     {
         if (nCellInfos > 0 && NULL != pCellData)
         {
-#if defined(M2_PDK_OR_GMIN_BUILD)
+#if !defined(USE_PATCHED_AOSP)
             P_ND_N_CELL_INFO_DATA pNewCellData
                     = (P_ND_N_CELL_INFO_DATA) malloc(sizeof(S_ND_N_CELL_INFO_DATA));
             if (NULL == pNewCellData)
@@ -3263,7 +3029,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isU
                     && -1 != requestedRate && INT_MAX != requestedRate)
             {
 
-#if defined(M2_PDK_OR_GMIN_BUILD)
+#if !defined(USE_PATCHED_AOSP)
                 P_ND_N_CELL_INFO_DATA pNewCellData
                         = (P_ND_N_CELL_INFO_DATA) malloc(sizeof(S_ND_N_CELL_INFO_DATA));
                 if (NULL == pNewCellData)
@@ -3456,11 +3222,7 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 
                 RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (0 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-                info.cellInfoType = RIL_CELL_INFO_TYPE_GSM_V2;
-#else
                 info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_GSM_V2;
-#endif
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;
                 info.CellInfo.gsm.signalStrengthGsm.signalStrength =
@@ -3521,11 +3283,7 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 
                 RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (2 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-                info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA_V2;
-#else
                 info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_WCDMA_V2;
-#endif
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;
                 info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = MapRscpToRssi(rscp);
@@ -3628,11 +3386,7 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7160::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 
                 RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (4 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-                info.cellInfoType = RIL_CELL_INFO_TYPE_LTE_V2;
-#else
                 info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_LTE_V2;
-#endif
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;
                 info.CellInfo.lte.signalStrengthLte.signalStrength = RSSI_UNKNOWN;

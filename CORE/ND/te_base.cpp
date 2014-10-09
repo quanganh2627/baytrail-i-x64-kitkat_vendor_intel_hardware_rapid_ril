@@ -11436,11 +11436,7 @@ void CTEBase::QuerySignalStrength()
     }
 }
 
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-RIL_SignalStrength_v9* CTEBase::ParseXCESQ(const char*& /*rszPointer*/, const BOOL /*bUnsolicited*/)
-#else
-RIL_SignalStrength_v6* CTEBase::ParseXCESQ(const char*& /*rszPointer*/, const BOOL /*bUnsolicited*/)
-#endif
+RIL_SignalStrength* CTEBase::ParseXCESQ(const char*& /*rszPointer*/, const BOOL /*bUnsolicited*/)
 {
     return NULL;
 }

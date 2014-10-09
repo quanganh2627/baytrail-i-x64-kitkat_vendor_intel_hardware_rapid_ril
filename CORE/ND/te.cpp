@@ -10214,12 +10214,7 @@ const char* CTE::GetSignalStrengthReportingStringAlloc()
     return m_pTEBaseInstance->GetSignalStrengthReportingStringAlloc();
 }
 
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-RIL_SignalStrength_v9* CTE::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
-#else
-RIL_SignalStrength_v6* CTE::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
-#endif
-
+RIL_SignalStrength* CTE::ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited)
 {
     return m_pTEBaseInstance->ParseXCESQ(rszPointer, bUnsolicited);
 }

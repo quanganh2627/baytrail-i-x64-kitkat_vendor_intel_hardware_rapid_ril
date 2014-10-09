@@ -1538,11 +1538,7 @@ BOOL CSilo_Network::ParseXCESQI(CResponse* const pResponse, const char*& rszPoin
     const char* pszDummy = NULL;
     const char* pszStart = NULL;
     char szBackup[MAX_NETWORK_DATA_SIZE] = {0};
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-    RIL_SignalStrength_v9* pSigStrData = NULL;
-#else
-    RIL_SignalStrength_v6* pSigStrData = NULL;
-#endif
+    RIL_SignalStrength* pSigStrData = NULL;
 
     if (NULL == pResponse)
     {
@@ -1570,15 +1566,11 @@ BOOL CSilo_Network::ParseXCESQI(CResponse* const pResponse, const char*& rszPoin
     if (NULL == pSigStrData)
     {
         RIL_LOG_CRITICAL("CSilo_Network::ParseXCESQI() -"
-                " Could not allocate memory for RIL_SignalStrength_v9.\r\n");
+                " Could not allocate memory for RIL_SignalStrength.\r\n");
         goto Error;
     }
 
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-    if (!pResponse->SetData((void*)pSigStrData, sizeof(RIL_SignalStrength_v9), FALSE))
-#else
-    if (!pResponse->SetData((void*)pSigStrData, sizeof(RIL_SignalStrength_v6), FALSE))
-#endif
+    if (!pResponse->SetData((void*)pSigStrData, sizeof(RIL_SignalStrength), FALSE))
     {
         goto Error;
     }

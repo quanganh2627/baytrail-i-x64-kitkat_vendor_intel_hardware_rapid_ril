@@ -98,22 +98,19 @@ const int DATA_PROFILE_IMS = 2;
 const int DATA_PROFILE_FOTA = 3;
 const int DATA_PROFILE_CBS = 4;
 
-#if defined (M2_PDK_OR_GMIN_BUILD)
+#if !defined (USE_PATCHED_AOSP)
 
 //////////////////////////////////////////////////////////////////////////////
 // ril.h definitions used to support vanilla aosp
 
-enum RIL_AppState_private {
-    RIL_APPSTATE_IMEI = 6  /* If SIM IMEI locked */
-};
+/* If SIM IMEI locked */
+const int RIL_APPSTATE_IMEI = 6;
 
 // Must be the same as CellInfo.TYPE_XXX
-enum RIL_CellInfoType_private {
-    RIL_CELL_INFO_TYPE_GSM_V2 = 11,
-    RIL_CELL_INFO_TYPE_CDMA_V2 = 12,
-    RIL_CELL_INFO_TYPE_LTE_V2 = 13,
-    RIL_CELL_INFO_TYPE_WCDMA_V2 = 14,
-};
+const int RIL_CELL_INFO_TYPE_GSM_V2 = 11;
+const int RIL_CELL_INFO_TYPE_CDMA_V2 = 12;
+const int RIL_CELL_INFO_TYPE_LTE_V2 = 13;
+const int RIL_CELL_INFO_TYPE_WCDMA_V2 = 14;
 
 typedef struct {
     int signalStrength; /* Valid values are (0-31, 99) as defined in TS 27.007 8.5 */
@@ -200,6 +197,9 @@ typedef struct {
   } CellInfo;
 } RIL_CellInfo_v2;
 
+typedef RIL_SignalStrength_v6 RIL_SignalStrength;
+#else // USE_PATCHED_AOSP
+typedef RIL_SignalStrength_v11 RIL_SignalStrength;
 #endif
 /////////////////////////////////////////////////////////////////////////////
 // Radio off reasons

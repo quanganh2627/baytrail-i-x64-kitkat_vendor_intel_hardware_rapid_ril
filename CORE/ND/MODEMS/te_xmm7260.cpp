@@ -1760,11 +1760,7 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 
                 RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (0 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-                info.cellInfoType = RIL_CELL_INFO_TYPE_GSM_V2;
-#else
                 info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_GSM_V2;
-#endif
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;
                 info.CellInfo.gsm.signalStrengthGsm.signalStrength =
@@ -1874,11 +1870,7 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 
                 RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (2 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-                info.cellInfoType = RIL_CELL_INFO_TYPE_WCDMA_V2;
-#else
                 info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_WCDMA_V2;
-#endif
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;
                 info.CellInfo.wcdma.signalStrengthWcdma.signalStrength = MapRscpToRssi(rscp);
@@ -2016,11 +2008,7 @@ P_ND_N_CELL_INFO_DATA_V2 CTE_XMM7260::ParseXMCI(RESPONSE_DATA& rspData, int& nCe
 
                 RIL_CellInfo_v2& info = pCellData->aRilCellInfo[index];
                 info.registered = (4 == type) ? SERVING_CELL : NEIGHBOURING_CELL;
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-                info.cellInfoType = RIL_CELL_INFO_TYPE_LTE_V2;
-#else
                 info.cellInfoType = (RIL_CellInfoType) RIL_CELL_INFO_TYPE_LTE_V2;
-#endif
                 info.timeStampType = RIL_TIMESTAMP_TYPE_OEM_RIL;
                 info.timeStamp = timestamp;
                 info.CellInfo.lte.signalStrengthLte.signalStrength = RSSI_UNKNOWN;
