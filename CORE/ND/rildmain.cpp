@@ -468,7 +468,7 @@ void RIL_requestTimedCallback(RIL_TimedCallback callback, void* pParam,
  */
 static void onRequest(int requestID, void* pData, size_t datalen, RIL_Token hRilToken)
 {
-    RIL_LOG_INFO("onRequest() - id=%d token: 0x%08x\r\n", requestID, (int) hRilToken);
+    RIL_LOG_INFO("onRequest() - id=%d token: 0x%08lx\r\n", requestID, hRilToken);
 
     CTE::GetTE().HandleRequest(requestID, pData, datalen, hRilToken);
 }
@@ -509,7 +509,7 @@ static int onSupports(int requestCode)
 static void onCancel(RIL_Token t)
 {
     RIL_LOG_INFO("onCancel() - *******************************************************\r\n");
-    RIL_LOG_INFO("onCancel() - Enter - Exit  token=0x%08X\r\n", (int)t);
+    RIL_LOG_INFO("onCancel() - Enter - Exit  token=0x%08lX\r\n", t);
     RIL_LOG_INFO("onCancel() - *******************************************************\r\n");
 }
 
@@ -724,7 +724,7 @@ Error:
 
     tcs_dispose(h);
     RIL_LOG_INFO("mainLoop() - Exit\r\n");
-    return (void*)dwRet;
+    return (void*)(intptr_t)dwRet;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

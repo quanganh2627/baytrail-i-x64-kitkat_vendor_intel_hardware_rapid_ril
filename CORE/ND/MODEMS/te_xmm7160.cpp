@@ -2095,7 +2095,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseHookStrings(RESPONSE_DATA & rspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rspData.szResponse;
-    UINT32 uiCommand = (UINT32)rspData.pContextData;
+    UINT32 uiCommand = (intptr_t)rspData.pContextData;
 
     if (NULL == pszRsp)
     {
@@ -3052,7 +3052,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isU
         // are different, report RIL_UNSOL_CELL_INFO_LIST
         if (nCellInfos > 0)
         {
-            int requestedRate = (int)rRspData.pContextData;
+            int requestedRate = (intptr_t)rRspData.pContextData;
             if (m_cte.updateCellInfoCache((P_ND_N_CELL_INFO_DATA_V2)pCellData, nCellInfos)
                     && -1 != requestedRate && INT_MAX != requestedRate)
             {

@@ -1559,7 +1559,7 @@ RIL_RESULT_CODE CTEBase::ParseHangup(RESPONSE_DATA& /*rRspData*/)
     if (m_cte.GetCallDropReportingState())
     {
         UINT32 mobileRelease = 1;
-        triggerDropCallEvent((void*)mobileRelease);
+        triggerDropCallEvent((void*)(intptr_t)mobileRelease);
     }
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
@@ -1869,7 +1869,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA& rRspData)
     if (m_cte.GetCallDropReportingState())
     {
         UINT32 mobileRelease = 0;
-        triggerDropCallEvent((void*)mobileRelease);
+        triggerDropCallEvent((void*)(intptr_t)mobileRelease);
     }
 
     rRspData.pData    = (void*) pCause;
@@ -3111,7 +3111,7 @@ RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA& rReqData, void* pData, UINT32 u
     }
 
     //  Set the context of this command to the SIM_IO command-type.
-    rReqData.pContextData = (void*)pSimIOArgs->command;
+    rReqData.pContextData = (void*)(uintptr_t)pSimIOArgs->command;
 
 
     res = RRIL_RESULT_OK;
@@ -3574,7 +3574,7 @@ RIL_RESULT_CODE CTEBase::CoreQueryCallForwardStatus(REQUEST_DATA& rReqData,
     res = RRIL_RESULT_OK;
 
     //  Store the reason data for the query, which will be used for preparing response
-    rReqData.pContextData = (void*)pCallFwdInfo->reason;
+    rReqData.pContextData = (void*)(intptr_t)pCallFwdInfo->reason;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreQueryCallForwardStatus() - Exit\r\n");
@@ -3631,7 +3631,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryCallForwardStatus(RESPONSE_DATA& rRspData)
     while (FindAndSkipString(szRsp, "+CCFC: ", szRsp))
     {
         // Stored reason value is updated when we have some data to send
-        pCallFwdBlob->aRilCallForwardInfo[nCur].reason = (int)rRspData.pContextData;
+        pCallFwdBlob->aRilCallForwardInfo[nCur].reason = (intptr_t)rRspData.pContextData;
 
         // Parse "<status>"
         if (!ExtractUInt32(szRsp, nValue, szRsp))
@@ -4511,7 +4511,7 @@ RIL_RESULT_CODE CTEBase::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
     }
 
     //  Set the context of this command to the CID (for multiple context support).
-    rReqData.pContextData = (void*)nCid;  // Store this as an int.
+    rReqData.pContextData = (void*)(intptr_t)nCid;  // Store this as an int.
 
 
 Error:
@@ -5276,7 +5276,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
     rRspData.uiDataSize = nEntries * sizeof(S_ND_OPINFO_PTRS);
 
     pOpInfoPtrBase = rRspData.pData;
-    pOpInfoDataBase = (void*)((UINT32)rRspData.pData + (nEntries * sizeof(S_ND_OPINFO_PTRS)));
+    pOpInfoDataBase = ((char*)rRspData.pData + (nEntries * sizeof(S_ND_OPINFO_PTRS)));
 
     pOpInfoPtr = (P_ND_OPINFO_PTRS)pOpInfoPtrBase;
     pOpInfoData = (P_ND_OPINFO_DATA)pOpInfoDataBase;
@@ -5467,7 +5467,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
                 rRspData.uiDataSize = numericNameNumber * sizeof(S_ND_OPINFO_PTRS);
 
                 pOpInfoPtrBaseEnd = rRspData.pData;
-                pOpInfoDataBaseEnd = (void*)((UINT32)rRspData.pData +
+                pOpInfoDataBaseEnd = ((char*)rRspData.pData +
                         (numericNameNumber * sizeof(S_ND_OPINFO_PTRS)));
 
                 pOpInfoPtrEnd = (P_ND_OPINFO_PTRS)pOpInfoPtrBaseEnd;
@@ -6749,7 +6749,7 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA& rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseScreenState() - Enter\r\n");
 
     //  Extract screen state from context
-    int nScreenState = (int)rRspData.pContextData;
+    int nScreenState = (intptr_t)rRspData.pContextData;
 
     if (1 == nScreenState)
     {
@@ -8819,7 +8819,7 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
         // are different, report RIL_UNSOL_CELL_INFO_LIST
         if (uiIndex > 0)
         {
-            int requestedRate = (int)rRspData.pContextData;
+            int requestedRate = (intptr_t)rRspData.pContextData;
             if (m_cte.updateCellInfoCache(pCellData, (INT32)uiIndex)
                     && requestedRate > 0 && requestedRate < INT32_MAX)
             {
@@ -8910,7 +8910,7 @@ RIL_RESULT_CODE CTEBase::CoreSetCellInfoListRate(REQUEST_DATA& /*rReqData*/,
             return res;
         }
 
-        rReqData.pContextData = (void*)newRate;
+        rReqData.pContextData = (void*)(intptr_t)newRate;
 
         CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_CELL_INFO_LIST].uiChannel,
                 NULL, RIL_REQUEST_GET_CELL_INFO_LIST, rReqData,
@@ -8971,7 +8971,8 @@ void CTEBase::RestartUnsolCellInfoListTimer(int newRate)
             m_cte.SetCellInfoTimerRunning(TRUE);
             RIL_LOG_INFO("CTEBase::RestartUnsolCellInfoListTimer() -"
                     "for %d milliseconds\r\n", newRate);
-            RIL_requestTimedCallback(triggerCellInfoList, (void*)newRate, (newRate/1000), 0);
+            RIL_requestTimedCallback(triggerCellInfoList,
+                    (void*)(intptr_t)newRate, (newRate/1000), 0);
         }
     }
 }
@@ -10630,7 +10631,7 @@ void CTEBase::HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken, UINT32 /
              * @TODO: Delay the completion of ril request till the
              * data call is deactivated successfully?
              */
-            RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)uiCID, 0, 0);
+            RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)(intptr_t)uiCID, 0, 0);
             break;
         default:
             DataConfigDown(uiCID, TRUE);

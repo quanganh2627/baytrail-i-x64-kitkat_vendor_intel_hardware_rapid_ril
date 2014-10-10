@@ -506,7 +506,7 @@ BOOL CSilo_Voice::ParseUnsolicitedSSInfo(CResponse* const pResponse, const char*
         }
 
         // Setup the char* number to use the extra memory at the end of the struct
-        pSuppSvcBlob->number = (char*)((UINT32)pSuppSvcBlob + sizeof(RIL_SuppSvcNotification));
+        pSuppSvcBlob->number = ((char*)pSuppSvcBlob + sizeof(RIL_SuppSvcNotification));
 
         if(!ExtractQuotedString(szPointer, pSuppSvcBlob->number, MAX_BUFFER_SIZE, szPointer))
         {

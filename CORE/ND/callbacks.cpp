@@ -163,7 +163,7 @@ void triggerDeactivateDataCall(void* param)
     if (param == NULL)
         return;
 
-    uiCID = (UINT32)param;
+    uiCID = (uintptr_t)param;
 
     pCID = (UINT32*)malloc(sizeof(UINT32));
     if (NULL == pCID)
@@ -295,8 +295,8 @@ void triggerQueryBearerParams(void* param)
         return;
 
     callbackParams = (void**)param;
-    uiPCID = (UINT32)callbackParams[0];
-    uiCID = (UINT32)callbackParams[1];
+    uiPCID = (uintptr_t)callbackParams[0];
+    uiCID = (uintptr_t)callbackParams[1];
     pChannelData = (CChannel_Data*)callbackParams[2];
 
     delete[] callbackParams;
@@ -346,7 +346,7 @@ void triggerDropCallEvent(void* param)
     char szBuffer[CRASHTOOL_BUFFER_SIZE];
     int nTempSize = 0;
 
-    BOOL bMobileRelease = (1 == (UINT32)param);
+    BOOL bMobileRelease = (1 == (intptr_t)param);
 
     data.command = RIL_OEM_HOOK_RAW_UNSOL_CRASHTOOL_EVENT_IND;
     data.type = CRASHTOOL_STATS;
@@ -459,7 +459,7 @@ void triggerCellInfoList(void* param)
     // if it is more, then start a new timed call back with the difference in timeout
     RIL_LOG_VERBOSE("triggerCellInfoList- Enter\r\n");
     int storedRate = CTE::GetTE().GetCellInfoListRate();
-    int requestedRate = (int)param;
+    int requestedRate = (intptr_t)param;
     RIL_LOG_INFO("triggerCellInfoList- StoredRate %d Rate with callback %d\r\n",
             storedRate, requestedRate);
     if (requestedRate >= storedRate || requestedRate <= 0)
@@ -474,7 +474,7 @@ void triggerCellInfoList(void* param)
             return;
         }
 
-        rReqData.pContextData = (void*)requestedRate;
+        rReqData.pContextData = (void*)(intptr_t)requestedRate;
 
         // The rate setting has not changed while waiting for time out
         // read the cell information and report to framework
@@ -519,7 +519,7 @@ void triggerCellInfoList(void* param)
          if (storedRate > requestedRate)
          {
              RIL_requestTimedCallback(triggerCellInfoList,
-                   (void*)storedRate, ((storedRate - requestedRate) / 1000), 0);
+                     (void*)(intptr_t)storedRate, ((storedRate - requestedRate) / 1000), 0);
          }
     }
     RIL_LOG_VERBOSE("triggerCellInfoList- Exit\r\n");

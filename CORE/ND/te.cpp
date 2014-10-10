@@ -494,8 +494,8 @@ Error:
 
 RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
 {
-    RIL_LOG_INFO("CTE::HandleRequestWhenNoModem - REQID=%d, token=0x%08x\r\n",
-            requestId, (int) hRilToken);
+    RIL_LOG_INFO("CTE::HandleRequestWhenNoModem - REQID=%d, token=0x%08lx\r\n",
+            requestId, hRilToken);
 
     RIL_Errno eRetVal = RIL_E_SUCCESS;
 
@@ -529,8 +529,8 @@ RIL_Errno CTE::HandleRequestWhenNoModem(int requestId, RIL_Token hRilToken)
 
 RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
 {
-    RIL_LOG_INFO("CTE::HandleRequestInRadioOff - REQID=%d, token=0x%08x\r\n",
-            requestId, (int) hRilToken);
+    RIL_LOG_INFO("CTE::HandleRequestInRadioOff - REQID=%d, token=0x%08lx\r\n",
+            requestId, hRilToken);
 
     RIL_Errno eRetVal = RIL_E_SUCCESS;
 
@@ -578,8 +578,8 @@ RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
 
 RIL_Errno CTE::HandleRequestWhenNotRegistered(int requestId, RIL_Token hRilToken)
 {
-    RIL_LOG_INFO("CTE::HandleRequestWhenNotRegistered - REQID=%d, token=0x%08x\r\n",
-            requestId, (int) hRilToken);
+    RIL_LOG_INFO("CTE::HandleRequestWhenNotRegistered - REQID=%d, token=0x%08lx\r\n",
+            requestId, hRilToken);
 
     RIL_Errno eRetVal = RIL_E_SUCCESS;
 
@@ -605,7 +605,7 @@ RIL_Errno CTE::HandleRequestWhenNotRegistered(int requestId, RIL_Token hRilToken
 void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hRilToken)
 {
     RIL_RESULT_CODE eRetVal = RIL_E_SUCCESS;
-    RIL_LOG_INFO("CTE::HandleRequest() - id=%d token: 0x%08x\r\n", requestId, (int) hRilToken);
+    RIL_LOG_INFO("CTE::HandleRequest() - id=%d token: 0x%08lx\r\n", requestId, hRilToken);
 
     //  If we're in the middle of Radio error or radio off request handling, spoof all commands.
     if ((GetSpoofCommandsStatus() ||  RADIO_STATE_UNAVAILABLE == GetRadioState())
@@ -7857,7 +7857,7 @@ void CTE::StoreRegistrationInfo(void* pRegStruct, int regType)
             int rate = GetCellInfoListRate();
             rate = (0 == rate) ? 0 : -1;
             RIL_LOG_INFO("CTEBase::StoreRegistrationInfo() - read cell info now!\r\n");
-            RIL_requestTimedCallback(triggerCellInfoList, (void*)rate, 0, 0);
+            RIL_requestTimedCallback(triggerCellInfoList, (void*)(intptr_t)rate, 0, 0);
         }
     }
 

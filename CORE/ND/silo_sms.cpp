@@ -546,7 +546,7 @@ BOOL CSilo_SMS::ParseXETWSECWARN(CResponse* const pResponse, const char*& respPo
     BOOL fRet = FALSE;
     BYTE*  pByteBuffer = NULL;
     const char* pszDummy;
-    size_t bytesUsed = 0;
+    UINT32 uiBytesUsed = 0;
     size_t uiCbDataLength = 0;
     const size_t uiHeaderSecondaryLength = 6;
     unsigned char* pszPDU = NULL;
@@ -676,19 +676,19 @@ BOOL CSilo_SMS::ParseXETWSECWARN(CResponse* const pResponse, const char*& respPo
             goto Error;
         }
 
-        if (!GSMHexToGSM(pszCbData, uiCbDataLength, pByteBuffer, uiCbDataLength / 2, bytesUsed))
+        if (!GSMHexToGSM(pszCbData, uiCbDataLength, pByteBuffer, uiCbDataLength / 2, uiBytesUsed))
         {
             RIL_LOG_CRITICAL("CSilo_SMS::ParseXETWSECWARN() - GSMHexToGSM conversion failed\r\n");
             goto Error;
         }
 
-        pByteBuffer[bytesUsed] = '\0';
+        pByteBuffer[uiBytesUsed] = '\0';
 
         // Update PDU length
-        uiLength = uiHeaderSecondaryLength + bytesUsed;
+        uiLength = uiHeaderSecondaryLength + uiBytesUsed;
 
         RIL_LOG_VERBOSE("CSilo_SMS::ParseXETWSECWARN() - "
-                "Extracted CB_DATA nbBytes:%u, PDU max len:%u\r\n", bytesUsed, uiLength);
+                "Extracted CB_DATA nbBytes:%u, PDU max len:%u\r\n", uiBytesUsed, uiLength);
 
         // Don't forget the '\0'.
         pszPDU = (unsigned char*) malloc(sizeof(unsigned char) * (uiLength + 1));
@@ -717,9 +717,9 @@ BOOL CSilo_SMS::ParseXETWSECWARN(CResponse* const pResponse, const char*& respPo
         // index 6 - N - CB DATA
 
         RIL_LOG_VERBOSE("CSilo_SMS::ParseXETWSECWARN() - Remaining PDU sz:%u, Sz Cb_Data:%u\r\n",
-                uiLength-uiHeaderSecondaryLength, bytesUsed);
+                uiLength-uiHeaderSecondaryLength, uiBytesUsed);
 
-        memcpy(pszPDU + uiHeaderSecondaryLength, pByteBuffer, bytesUsed);
+        memcpy(pszPDU + uiHeaderSecondaryLength, pByteBuffer, uiBytesUsed);
 
         pResponse->SetResultCode(RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS);
 

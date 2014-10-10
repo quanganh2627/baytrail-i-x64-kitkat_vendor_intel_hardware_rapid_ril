@@ -598,7 +598,7 @@ BOOL CInitializer::CreateChannels()
         if (!g_pRilChannel[i] || !g_pRilChannel[i]->Initialize())
         {
             RIL_LOG_CRITICAL("CInitializer::CreateChannels() : Channel[%d] (0x%X)"
-                    " Init failed\r\n", i, (UINT32)g_pRilChannel[i]);
+                    " Init failed\r\n", i, (intptr_t)g_pRilChannel[i]);
             goto Error;
         }
 

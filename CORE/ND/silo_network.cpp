@@ -929,8 +929,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
                 void** callbackParams = new void*[3];
                 if (callbackParams != NULL)
                 {
-                    callbackParams[0] = (void*) uiPCID;
-                    callbackParams[1] = (void*) uiCID;
+                    callbackParams[0] = (void*)(uintptr_t) uiPCID;
+                    callbackParams[1] = (void*)(uintptr_t) uiCID;
                     callbackParams[2] = (void*) pChannelData;
                     RIL_requestTimedCallback(triggerQueryBearerParams,
                             (void*) callbackParams, 0, 0);
@@ -1164,8 +1164,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             void** callbackParams = new void*[3];
             if (callbackParams != NULL)
             {
-                callbackParams[0] = (void*) pChannelData->GetContextID();
-                callbackParams[1] = (void*) uiCID;
+                callbackParams[0] = (void*)(uintptr_t) pChannelData->GetContextID();
+                callbackParams[1] = (void*)(uintptr_t) uiCID;
                 callbackParams[2] = (void*) pChannelData;
                 RIL_requestTimedCallback(triggerQueryBearerParams,
                         (void*) callbackParams, 0, 0);

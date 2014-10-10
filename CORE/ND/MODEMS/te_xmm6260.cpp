@@ -2005,7 +2005,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookRaw(REQUEST_DATA& rReqData,
 
     memcpy(&nCommand, &(pDataBytes[0]), sizeof(int));
     nCommand = ntohl(nCommand);  //  This is the command.
-    rReqData.pContextData = (void*)nCommand;
+    rReqData.pContextData = (void*)(intptr_t)nCommand;
 
     switch(nCommand)
     {
@@ -2029,7 +2029,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* szRsp = rRspData.szResponse;
-    int nCommand = (int)rRspData.pContextData;
+    int nCommand = (intptr_t)rRspData.pContextData;
 
     //  Populate these below (if applicable)
     void* pData = NULL;
@@ -2452,7 +2452,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    rReqData.pContextData = (void*)command;
+    rReqData.pContextData = (void*)(intptr_t)command;
 Error:
     RIL_LOG_VERBOSE("CTE_XMM6260::CoreHookStrings() - Exit\r\n");
     return res;
@@ -2464,7 +2464,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
-    int command = (int)rRspData.pContextData;
+    int command = (intptr_t)rRspData.pContextData;
 
     if (NULL == pszRsp)
     {
@@ -3436,7 +3436,8 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspDa
 
     RIL_RESULT_CODE res = RRIL_RESULT_OK;
 
-    RIL_PreferredNetworkType networkType = (RIL_PreferredNetworkType)((int)rRspData.pContextData);
+    RIL_PreferredNetworkType networkType =
+            (RIL_PreferredNetworkType)((intptr_t)rRspData.pContextData);
     m_currentNetworkType = networkType;
 
     RIL_LOG_VERBOSE("CTE_XMM6260::ParseSetPreferredNetworkType() - Exit\r\n");
@@ -6367,7 +6368,7 @@ RIL_RESULT_CODE CTE_XMM6260::HandleScreenStateReq(int screenState)
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
     //  Store setting in context.
-    reqData.pContextData = (void*)screenState;
+    reqData.pContextData = (void*)(intptr_t)screenState;
 
     switch (screenState)
     {
