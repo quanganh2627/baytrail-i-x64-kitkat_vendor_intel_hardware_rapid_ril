@@ -773,6 +773,12 @@ public:
     virtual RIL_RESULT_CODE CoreShutdown(REQUEST_DATA& reqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseShutdown(RESPONSE_DATA& rspData);
 
+    // RIL_REQUEST_SIM_AUTHENTICATION
+    virtual RIL_RESULT_CODE CoreSimAuthentication(REQUEST_DATA& reqData, void* pData,
+            UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSimAuthentication(RESPONSE_DATA& rspData);
+    virtual void PostSimAuthentication(POST_CMD_HANDLER_DATA& data);
+
     // RIL_UNSOL_SIGNAL_STRENGTH
     virtual RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData);
 

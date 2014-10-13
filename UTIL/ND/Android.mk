@@ -8,7 +8,8 @@ LOCAL_SRC_FILES:= \
     rillog.cpp \
     extract.cpp \
     util.cpp \
-    repository.cpp
+    repository.cpp \
+    base64.c
 
 LOCAL_SHARED_LIBRARIES := \
     libutils libcutils libmmgrcli

@@ -9812,6 +9812,30 @@ Error:
 }
 
 //
+// RIL_REQUEST_SIM_AUTHENTICATION
+//
+RIL_RESULT_CODE CTEBase::CoreSimAuthentication(REQUEST_DATA& /*reqData*/, void* /*pData*/,
+        UINT32 /*uiDataSize*/)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreSimAuthentication() - Enter / Exit\r\n");
+    // this is modem dependent, to be implemented in te_xmm7260.cpp
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+RIL_RESULT_CODE CTEBase::ParseSimAuthentication(RESPONSE_DATA& /*rspData*/)
+{
+    RIL_LOG_VERBOSE("CTEBase::ParseSimAuthentication() - Enter / Exit\r\n");
+    // this is modem dependent, to be implemented in te_xmm7260.cpp
+    return RIL_E_REQUEST_NOT_SUPPORTED;
+}
+
+void CTEBase::PostSimAuthentication(POST_CMD_HANDLER_DATA& /*data*/)
+{
+    RIL_LOG_VERBOSE("CTEBase::PostSimAuthentication() - Enter / Exit\r\n");
+    // this is modem dependent
+}
+
+//
 // RIL_UNSOL_SIGNAL_STRENGTH
 //
 RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData)

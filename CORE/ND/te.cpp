@@ -363,6 +363,7 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_DELETE_SMS_ON_SIM:
         case RIL_REQUEST_GET_SMSC_ADDRESS:
         case RIL_REQUEST_SET_SMSC_ADDRESS:
+        case RIL_REQUEST_SIM_AUTHENTICATION:
         case RIL_REQUEST_ISIM_AUTHENTICATION:
         case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:
         case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:
@@ -398,6 +399,7 @@ BOOL CTE::IsRequestAllowedInSimNotReady(int requestId)
         case RIL_REQUEST_DELETE_SMS_ON_SIM:
         case RIL_REQUEST_GET_SMSC_ADDRESS:
         case RIL_REQUEST_SET_SMSC_ADDRESS:
+        case RIL_REQUEST_SIM_AUTHENTICATION:
         case RIL_REQUEST_ISIM_AUTHENTICATION:
         case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:
         case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:
@@ -1074,6 +1076,10 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 
             case RIL_REQUEST_ISIM_AUTHENTICATION:
                 eRetVal = RequestISimAuthenticate(hRilToken, pData, datalen);
+                break;
+
+            case RIL_REQUEST_SIM_AUTHENTICATION:
+                eRetVal = RequestSimAuthentication(hRilToken, pData, datalen);
                 break;
 
             case RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU:
@@ -6925,6 +6931,67 @@ void CTE::PostShutdown(POST_CMD_HANDLER_DATA& /* data */)
     }
 
     RIL_LOG_VERBOSE("CTE::PostShutdown() Exit\r\n");
+}
+
+//
+// RIL_REQUEST_SIM_AUTHENTICATION
+//
+RIL_RESULT_CODE CTE::RequestSimAuthentication(RIL_Token rilToken, void* pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestSimAuthentication() - Enter\r\n");
+
+    REQUEST_DATA reqData;
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+
+    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreSimAuthentication(reqData, pData, datalen);
+    if (RRIL_RESULT_OK != res)
+    {
+        RIL_LOG_CRITICAL("CTE::RequestSimAuthentication() - Unable to create AT command data\r\n");
+    }
+    else
+    {
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIM_AUTHENTICATION].uiChannel,
+                rilToken, RIL_REQUEST_SIM_AUTHENTICATION, reqData, &CTE::ParseSimAuthentication,
+                &CTE::PostSimAuthentication);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE::RequestSimAuthentication() - Unable to add command "
+                        "to queue\r\n");
+                res = RIL_E_GENERIC_FAILURE;
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE::RequestSimAuthentication() -"
+                    " Unable to allocate memory for command\r\n");
+            res = RIL_E_GENERIC_FAILURE;
+        }
+    }
+
+    if (res != RRIL_RESULT_OK)
+    {
+        CleanRequestData(reqData);
+    }
+    RIL_LOG_VERBOSE("CTE::RequestSimAuthentication() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE::ParseSimAuthentication(RESPONSE_DATA& rspData)
+{
+    RIL_LOG_VERBOSE("CTE::ParseSimAuthentication() - Enter / Exit\r\n");
+
+    return m_pTEBaseInstance->ParseSimAuthentication(rspData);
+}
+
+void CTE::PostSimAuthentication(POST_CMD_HANDLER_DATA& data)
+{
+    RIL_LOG_VERBOSE("CTE::PostSimAuthentication() - Enter / Exit\r\n");
+    m_pTEBaseInstance->PostSimAuthentication(data);
 }
 
 //

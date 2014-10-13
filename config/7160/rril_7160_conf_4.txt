@@ -62,6 +62,7 @@ Group RequestTimeouts
     SimCloseChannel                    60000
     SimTransmitBasic                   60000
     SimIO                              60000
+    SimAuthentication                  60000
 
 Group InternalRequestTimeouts
     SilentPinEntry                     20000

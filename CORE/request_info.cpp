@@ -291,7 +291,7 @@ const REQ_INFO g_ReqInfoDefault[] =
     // RIL_REQUEST_GET_HARDWARE_CONFIG
     { "GetHardwareConfig", RIL_CHANNEL_RESERVED, 0 },
     // RIL_REQUEST_SIM_AUTHENTICATION
-    { "SimAuthentication", RIL_CHANNEL_RESERVED, 0 },
+    { "SimAuthentication", RIL_CHANNEL_DLC8, 0 },
     // RIL_REQUEST_GET_DC_RT_INFO
     { "GetDcRtInfo", RIL_CHANNEL_RESERVED, 0 },
     // RIL_REQUEST_SET_DC_RT_INFO_RATE

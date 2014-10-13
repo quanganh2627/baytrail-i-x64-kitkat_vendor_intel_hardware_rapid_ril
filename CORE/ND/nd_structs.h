@@ -475,4 +475,16 @@ typedef struct
     char szAdaptiveClockFrequencyInfo[MAX_BUFFER_SIZE];
 } S_ND_ADPCLK_FREQ_INFO, *P_ND_ADPCLK_FREQ_INFO;
 
+// RIL_REQUEST_SIM_AUTHENTICATION authContext values:
+// See P2 parameter from 3GPP 31.102 7.1.2 (EVEN INS)
+const int P2_AUTH_GSM_CONTEXT = 0x80;
+const int P2_AUTH_3G_CONTEXT = 0x81;
+// See P2 parameter from 3GPP 31.103 7.1.2 (EVEN INS)
+const int P2_AUTH_IMS_AKA = 0x81; // Identical to 3G but not the same P2 table
+
+// +XAUTH <Auth_context_type> values
+const int XAUTH_CONTEXT_TYPE_3G = 1;
+const int XAUTH_CONTEXT_TYPE_GSM = 2;
+const int XAUTH_CONTEXT_TYPE_IMS = 6;
+
 #endif

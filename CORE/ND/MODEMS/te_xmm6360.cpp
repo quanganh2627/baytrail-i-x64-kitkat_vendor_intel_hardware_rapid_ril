@@ -36,6 +36,7 @@
 #include "reset.h"
 #include "data_util.h"
 #include "init6360.h"
+#include "base64.h"
 
 
 CTE_XMM6360::CTE_XMM6360(CTE& cte)
@@ -1361,4 +1362,696 @@ const char* CTE_XMM6360::GetEnableFetchingString()
      }
 
     return pszEnableFetching;
+}
+
+//
+// RIL_REQUEST_SIM_AUTHENTICATION
+//
+RIL_RESULT_CODE CTE_XMM6360::CoreSimAuthentication(REQUEST_DATA& reqData,
+        void* pData, UINT32 /*uiDataSize*/)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreSimAuthentication() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+
+    // authentication token length is 128 bits, ASCII representation will require
+    // 32 bytes + null terminated
+    char szAutn[AUTN_LENGTH + 1] = {'\0'};
+    // random challenge token length is 128 bits, ASCII representation will require
+    // 32 bytes + null terminated
+    char szRand[RAND_LENGTH + 1] = {'\0'};
+    RIL_SimAuthentication* pSimAuthArgs = NULL;
+    int sessionId = -1;
+    int authContextType = 0;
+    const int AUTH_BUFFER_LEN = 34;
+    const UINT8 dataBuffer[AUTH_BUFFER_LEN] = { 0 };
+    int dataLen = 0;
+    int randLen = 0;
+    int autnLen = 0;
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSimAuthentication() -"
+                " Passed data pointer was NULL\r\n");
+        goto Error;
+    }
+
+    pSimAuthArgs = (RIL_SimAuthentication*)pData;
+
+    if (P2_AUTH_IMS_AKA == pSimAuthArgs->authContext)
+    {
+        char szAid[MAX_AID_SIZE] = {'\0'};
+        GetSimAppId(RIL_APPTYPE_ISIM, szAid, sizeof(szAid));
+
+        if (RIL_APPSTATE_READY == GetIsimAppState()
+                && NULL != pSimAuthArgs->aid
+                && (0 == strcmp(pSimAuthArgs->aid, szAid)))
+        {
+            RIL_LOG_INFO("CTE_XMM6360::CoreSimAuthentication() -"
+                    " open a logical channel for IMS\r\n");
+
+            sessionId = GetSessionId(RIL_APPTYPE_ISIM);
+            POST_CMD_HANDLER_DATA data;
+            memset(&data, 0, sizeof(data));
+            data.uiChannel = g_pReqInfo[RIL_REQUEST_SIM_IO].uiChannel;
+            data.requestId = RIL_REQUEST_SIM_IO;
+
+            CEvent::Reset(m_pUiccOpenLogicalChannelEvent);
+
+            if (-1 == sessionId && OpenLogicalChannel(data, szAid))
+            {
+                CEvent::Wait(m_pUiccOpenLogicalChannelEvent, WAIT_FOREVER);
+            }
+
+            sessionId = GetSessionId(RIL_APPTYPE_ISIM);
+            if (sessionId < 0)
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::CoreSimAuthentication() -"
+                        " OpenLogicalChannel failed\r\n");
+                goto Error;
+            }
+            authContextType = XAUTH_CONTEXT_TYPE_IMS;
+        }
+    }
+
+    switch (pSimAuthArgs->authContext)
+    {
+        case P2_AUTH_GSM_CONTEXT:
+            sessionId = 0;
+            authContextType = XAUTH_CONTEXT_TYPE_GSM;
+            break;
+        case P2_AUTH_3G_CONTEXT: // = P2_AUTH_IMS_AKA
+            if (XAUTH_CONTEXT_TYPE_IMS != authContextType)
+            {
+                // 3G security context
+                sessionId = 0;
+                authContextType = XAUTH_CONTEXT_TYPE_3G;
+            }
+            break;
+        default:
+            goto Error;
+    }
+
+    // the challenge string authData is encoded in Base64 format, it must be decoded
+    dataLen = util_b64_pton(pSimAuthArgs->authData, (unsigned char*)dataBuffer, AUTH_BUFFER_LEN);
+    if (dataLen < 0 || dataLen > AUTH_BUFFER_LEN)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSimAuthentication() -"
+                " Could not convert from base64 \r\n");
+        goto Error;
+    }
+
+    // read the first byte to get the length
+    randLen = 0xff & dataBuffer[0];
+
+    if ((randLen > RAND_LENGTH/2) || ((1 + randLen) > dataLen))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSimAuthentication() -"
+                " Received length higher than buffer size\r\n");
+        goto Error;
+    }
+    if (!convertByteArrayIntoString(&dataBuffer[1], randLen, szRand))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSimAuthentication() -"
+                " Could not convert input into string\r\n");
+        goto Error;
+    }
+
+    if (P2_AUTH_3G_CONTEXT == pSimAuthArgs->authContext) // == P2_AUTH_IMS_AKA
+    {
+        /*
+         * Either 3G security context or IMS AKA:
+         * Both processed the same way with RAND, AUTN challenge.
+         * Differentiation done by authContextType.
+         */
+        autnLen = 0xff & dataBuffer[1 + randLen];
+        if ((autnLen > AUTN_LENGTH/2) || ((1 + randLen + 1 + autnLen) > dataLen))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSimAuthentication() -"
+                    " Received length higher than buffer size\r\n");
+            goto Error;
+        }
+
+        // 2 = RAND length field(1) + AUTN length field(1)
+        if (!convertByteArrayIntoString(&dataBuffer[randLen + 2], autnLen, szAutn))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::CoreSimAuthentication() -"
+                    " Could not convert input into string\r\n");
+            goto Error;
+        }
+    }
+
+    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+            "AT+XAUTH=%d,%d,\"%s\",\"%s\"\r", sessionId, authContextType, szRand, szAutn))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::CoreSimAuthentication() -"
+                " Cannot create XAUTH command \r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (RRIL_RESULT_OK == res)
+    {
+        int* type = (int*)malloc(sizeof(int));
+        if (type != NULL)
+        {
+            *type = authContextType;
+            reqData.pContextData = type;
+            reqData.cbContextData = sizeof(int);
+        }
+    }
+    RIL_LOG_VERBOSE("CTE_XMM6360::CoreSimAuthentication() - Exit\r\n");
+    return res;
+}
+
+/*
+ * The response is received in separate strings representing response keys
+ * (bytes array presented as hex strings).
+ * The strings will be parsed, and the response is built in a byte buffer containing
+ * the AUTH RESPONSE message as specified in 3GPP 31.102.
+ * Byte buffer is encoded into a Base64 string representation to fill in response parameter
+ * of response structure.
+ */
+RIL_RESULT_CODE CTE_XMM6360::ParseSimAuthentication(RESPONSE_DATA& rspData)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseSimAuthentication() - Enter\r\n");
+
+    const int MAX_SIM_AUTH_PARAMS = 4;
+    const int SUCCESS_3G_AUTH_TAG = 0xDB;
+    const int SYNC_FAILURE_TAG = 0xDC;
+    // <status> values returned by +XAUTH
+    const int STATUS_SUCCESS = 0;
+    const int STATUS_FAIL_SYNC = 1;
+    const int STATUS_FAIL_MAC = 2;
+    const int STATUS_FAIL_SECURITY_CONTEXT = 3;
+    const int MAX_SRES_PARAM_LEN = 8;
+    const int KC_PARAM_LEN = 16;
+    const int MIN_RES_PARAM_LEN = 8;
+    const int MAX_AUTN_PARAM_LEN = 32;
+    const char* pszRsp = rspData.szResponse;
+    const int MAX_DATA_BUFFER_SIZE = 1/*3G AUTH TAG BYTE*/
+            + 1/*RES LEN BYTE*/ + MAX_AUTN_PARAM_LEN/2/*MAX RES LEN*/
+            + 1/*CK LEN BYTE*/ + MAX_AUTN_PARAM_LEN/2/*MAX CK LEN*/
+            + 1/*IK LEN BYTE*/ + MAX_AUTN_PARAM_LEN/2/*MAX IK LEN*/
+            + 1/*Kc LEN BYTE*/ + KC_PARAM_LEN/2/*MAX Kc LEN*/;
+
+    enum SimAuthParams
+    {
+        GSM_KC = 0,
+        RES = 0,
+        GSM_SRES = 1,
+        CK = 1,
+        IK = 2,
+        KC = 3,
+        AUTS = 0
+    };
+
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int respLen = 0;
+    char* pszResult = NULL;
+    int status;
+    int sw1 = 0;
+    int sw2 = 0;
+    char szTemp[MAX_SIM_AUTH_PARAMS][MAX_AUTN_PARAM_LEN + 1] = {'\0'};
+    char szBase64Rsp[2 * MAX_DATA_BUFFER_SIZE] = {'\0'};
+    UINT8 dataBuffer[MAX_DATA_BUFFER_SIZE] = { 0 };
+    size_t paramLen[MAX_SIM_AUTH_PARAMS] = { 0, 0, 0, 0 };
+    int writeMarker = 0;
+    size_t simAuthLen = 0;
+    int authContextType = 0;
+    RIL_SIM_IO_Response* pResponse = NULL;
+
+    if (NULL == pszRsp)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                " Response String pointer is NULL.\r\n");
+        goto Error;
+    }
+
+    /*
+     * +XAUTH: <status>[,<Kc>,<SRES>][<RES/AUTS>,<CK>,<IK>,<kc>][ Ks_ext_NAF]
+     */
+    if (!FindAndSkipString(pszRsp, "+XAUTH: ", pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                "Unable to parse \"+XAUTH: \" prefix.\r\n");
+        goto Error;
+    }
+
+    if (!ExtractInt(pszRsp, status, pszRsp))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                " Error parsing status.\r\n");
+        goto Error;
+    }
+
+    if (rspData.pContextData != NULL && sizeof(int) == rspData.cbContextData)
+    {
+        authContextType = *((int*)rspData.pContextData);
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                " Invalid authContextType\r\n");
+        goto Error;
+    }
+
+    if (STATUS_SUCCESS == status || STATUS_FAIL_SYNC == status)
+    {
+        // Success, need to parse the extra parameters...
+        if (!SkipString(pszRsp, ",", pszRsp))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                    " Error parsing response.\r\n");
+            goto Error;
+        }
+
+        switch (status)
+        {
+            case STATUS_SUCCESS:
+                /*
+                 * GSM context auth success
+                 * +XAUTH: 0,<Kc>,<SRES>
+                 */
+                if (XAUTH_CONTEXT_TYPE_GSM == authContextType)
+                {
+                    /*
+                     * Format of the keys parameters in response is a hex string representing
+                     * the bytes of the key.
+                     */
+                    if (!ExtractQuotedString(pszRsp, szTemp[GSM_KC], MAX_AUTN_PARAM_LEN + 1,
+                            pszRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Error parsing Kc.\r\n");
+                        goto Error;
+                    }
+                    paramLen[GSM_KC] = strlen(szTemp[GSM_KC]);
+                    if (paramLen[GSM_KC] != KC_PARAM_LEN)
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Invalid parameter length.\r\n");
+                        goto Error;
+                    }
+
+                    if (!SkipString(pszRsp, ",", pszRsp)
+                            || (!ExtractQuotedString(pszRsp, szTemp[GSM_SRES],
+                                    MAX_AUTN_PARAM_LEN + 1, pszRsp)))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Error parsing Res.\r\n");
+                        goto Error;
+                    }
+                    paramLen[GSM_SRES] = strlen(szTemp[GSM_SRES]);
+                    if (paramLen[GSM_SRES] != MAX_SRES_PARAM_LEN)
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Invalid parameter length.\r\n");
+                        goto Error;
+                    }
+                }
+                else
+                {
+                    /*
+                     * 3G context auth success
+                     * +XAUTH: 0,<RES>,<CK>,<IK>,<kc>   // kc could be empty/not sent
+                     *
+                     * IMS AKA context auth success
+                     * +XAUTH: 0,<RES>,<CK>,<IK>
+                     *
+                     * Format of the keys parameters in response is a hex string representing
+                     * the bytes of the key.
+                     */
+                    if (!ExtractQuotedString(pszRsp, szTemp[RES], MAX_AUTN_PARAM_LEN + 1, pszRsp))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Error parsing Res.\r\n");
+                        goto Error;
+                    }
+                    paramLen[RES] = strlen(szTemp[RES]);
+                    if (paramLen[RES] < MIN_RES_PARAM_LEN
+                            || paramLen[RES] > MAX_AUTN_PARAM_LEN)
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Invalid parameter length.\r\n");
+                        goto Error;
+                    }
+
+                    /*
+                     * Format of the keys parameters in response is a hex string representing
+                     * the bytes of the key.
+                     */
+                    if (!SkipString(pszRsp, ",", pszRsp)
+                            || (!ExtractQuotedString(pszRsp, szTemp[CK], MAX_AUTN_PARAM_LEN + 1,
+                                    pszRsp)))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Error parsing CK.\r\n");
+                        goto Error;
+                    }
+                    paramLen[CK] = strlen(szTemp[CK]);
+                    if (paramLen[CK] != MAX_AUTN_PARAM_LEN)
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Invalid parameter length.\r\n");
+                        goto Error;
+                    }
+
+                    /*
+                     * Format of the keys parameters in response is a hex string representing
+                     * the bytes of the key.
+                     */
+                    if (!SkipString(pszRsp, ",", pszRsp)
+                            || (!ExtractQuotedString(pszRsp, szTemp[IK], MAX_AUTN_PARAM_LEN + 1,
+                                    pszRsp)))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Error parsing IK.\r\n");
+                        goto Error;
+                    }
+                    paramLen[IK] = strlen(szTemp[IK]);
+                    if (paramLen[IK] != MAX_AUTN_PARAM_LEN)
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Invalid parameter length.\r\n");
+                        goto Error;
+                    }
+
+                    /*
+                     * Format of the keys parameters in response is a hex string representing
+                     * the bytes of the key.
+                     */
+                    if (XAUTH_CONTEXT_TYPE_3G == authContextType
+                            && SkipString(pszRsp, ",", pszRsp))
+                    {
+                        if (ExtractQuotedString(pszRsp, szTemp[KC], MAX_AUTN_PARAM_LEN + 1, pszRsp))
+                        {
+                            paramLen[KC] = strlen(szTemp[KC]);
+                            if (paramLen[KC] != KC_PARAM_LEN)
+                            {
+                                RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                        " Invalid parameter length.\r\n");
+                                goto Error;
+                            }
+                        }
+                        else
+                        {
+                            RIL_LOG_INFO("CTE_XMM6360::ParseSimAuthentication() -"
+                                    " Error parsing or Kc missing.\r\n");
+                        }
+                    }
+                }
+                break;
+            case STATUS_FAIL_SYNC:
+                /*
+                 * Format of the keys parameters in response is a hex string representing
+                 * the bytes of the key.
+                 */
+                if (!ExtractQuotedString(pszRsp, szTemp[AUTS], MAX_AUTN_PARAM_LEN + 1, pszRsp))
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                            " Error parsing AUTS.\r\n");
+                    goto Error;
+                }
+                paramLen[AUTS] = strlen(szTemp[AUTS]);
+                if (paramLen[AUTS] != MAX_AUTN_PARAM_LEN)
+                {
+                    RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                            " Invalid parameter length.\r\n");
+                    goto Error;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    switch (status)
+    {
+        case STATUS_SUCCESS:
+            switch (authContextType)
+            {
+                case XAUTH_CONTEXT_TYPE_GSM:
+                    // output length = byte(SRES length) + SRES array + byte(Kc length) + Kc array
+                    simAuthLen = 1 + paramLen[GSM_SRES]/2 + 1 + paramLen[GSM_KC]/2;
+                    if (simAuthLen > MAX_DATA_BUFFER_SIZE)
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " received size higher than buffer length\r\n");
+                        goto Error;
+                    }
+                    dataBuffer[writeMarker] = paramLen[GSM_SRES]/2;
+                    writeMarker++;
+                    if (!extractByteArrayFromString(szTemp[GSM_SRES], paramLen[GSM_SRES],
+                            &dataBuffer[writeMarker]))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Could not extract byte array from String\r\n");
+                        goto Error;
+                    }
+                    writeMarker += paramLen[GSM_SRES]/2;
+
+                    dataBuffer[writeMarker] = paramLen[GSM_KC]/2;
+                    writeMarker++;
+                    if (!extractByteArrayFromString(szTemp[GSM_KC], paramLen[GSM_KC],
+                            &dataBuffer[writeMarker]))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Could not extract byte array from String\r\n");
+                        goto Error;
+                    }
+                    writeMarker += paramLen[GSM_KC]/2;
+                    sw1 = 0x90;
+                    sw2 = 0x00;
+                    break;
+                case XAUTH_CONTEXT_TYPE_3G:
+                case XAUTH_CONTEXT_TYPE_IMS:
+                    /*
+                     * output length = byte(DB) + byte(RES length) + RES array + byte(CK length)
+                     * + CK array + byte(IK) + IK array + byte(Kc) + Kc array
+                     */
+                    simAuthLen = (paramLen[KC] > 0)
+                            ? 1 + 1 + paramLen[RES]/2 + 1 + paramLen[CK]/2 + 1 + paramLen[IK]/2 + 1
+                                    + paramLen[KC]/2
+                            : 1 + 1 + paramLen[RES]/2 + 1 + paramLen[CK]/2 + 1 + paramLen[IK]/2;
+                    if (simAuthLen > MAX_DATA_BUFFER_SIZE)
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " received size higher than buffer length\r\n");
+                        goto Error;
+                    }
+
+                    dataBuffer[writeMarker] = SUCCESS_3G_AUTH_TAG;
+                    writeMarker++;
+                    dataBuffer[writeMarker] = paramLen[RES]/2;
+                    writeMarker++;
+                    if (!extractByteArrayFromString(szTemp[RES], paramLen[RES],
+                            &dataBuffer[writeMarker]))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Could not extract byte array from String\r\n");
+                        goto Error;
+                    }
+                    writeMarker += paramLen[RES]/2;
+
+                    dataBuffer[writeMarker] = paramLen[CK]/2;
+                    writeMarker++;
+                    if (!extractByteArrayFromString(szTemp[CK], paramLen[CK],
+                            &dataBuffer[writeMarker]))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Could not extract byte array from String\r\n");
+                        goto Error;
+                    }
+                    writeMarker += paramLen[CK]/2;
+
+                    dataBuffer[writeMarker] = paramLen[IK]/2;
+                    writeMarker++;
+                    if (!extractByteArrayFromString(szTemp[IK], paramLen[IK],
+                            &dataBuffer[writeMarker]))
+                    {
+                        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                " Could not extract byte array from String\r\n");
+                        goto Error;
+                    }
+                    writeMarker += paramLen[IK]/2;
+
+                    // applies only for 3G authentication
+                    if (paramLen[KC] > 0)
+                    {
+                        dataBuffer[writeMarker] = paramLen[KC]/2;
+                        writeMarker++;
+                        if (!extractByteArrayFromString(szTemp[KC], paramLen[KC],
+                                &dataBuffer[writeMarker]))
+                        {
+                            RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                                    " Could not extract byte array from String\r\n");
+                            goto Error;
+                        }
+                        writeMarker += paramLen[KC]/2;
+                    }
+
+                    sw1 = 0x90;
+                    sw2 = 0x00;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case STATUS_FAIL_SYNC:
+            // output length = byte(tag DC) + byte(AUTS length) + AUTS array
+            simAuthLen = 1 + 1 + paramLen[AUTS]/2;
+            if (simAuthLen > MAX_DATA_BUFFER_SIZE)
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                        " received size higher than buffer length\r\n");
+                goto Error;
+            }
+            dataBuffer[writeMarker] = SYNC_FAILURE_TAG;
+            writeMarker++;
+            dataBuffer[writeMarker] = paramLen[AUTS]/2;
+            writeMarker++;
+            if (!extractByteArrayFromString(szTemp[AUTS], paramLen[AUTS], &dataBuffer[writeMarker]))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                        " Could not extract byte array from String\r\n");
+                goto Error;
+            }
+            sw1 = 0x98;
+            sw2 = 0x63;
+            break;
+        case STATUS_FAIL_MAC:
+            sw1 = 0x98;
+            sw2 = 0x62;
+            break;
+        case STATUS_FAIL_SECURITY_CONTEXT:
+            sw1 = 0x98;
+            sw2 = 0x64;
+            break;
+        default:
+            sw1 = 0x6F;
+            sw2 = 0x00;
+            break;
+    }
+
+    if (STATUS_SUCCESS == status || STATUS_FAIL_SYNC == status)
+    {
+        // the response is encoded in Base64 format, see 3GPP TS 31.102 7.1.2
+        respLen = util_b64_ntop(dataBuffer, simAuthLen, szBase64Rsp, sizeof(szBase64Rsp));
+
+        if (0 == respLen)
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                    " Could not encode the response in Base64 format.\r\n");
+            goto Error;
+        }
+    }
+
+    pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + respLen + 1);
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                " Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+        goto Error;
+    }
+    memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + respLen + 1);
+
+    pResponse->simResponse = ((char*)pResponse) + sizeof(RIL_SIM_IO_Response);
+    if (!CopyStringNullTerminate(pResponse->simResponse, szBase64Rsp, respLen + 1))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
+                " Could not copy the base64 response.\r\n");
+        goto Error;
+    }
+
+    pResponse->sw1 = sw1;
+    pResponse->sw2 = sw2;
+
+    rspData.pData = pResponse;
+    rspData.uiDataSize = sizeof(RIL_SIM_IO_Response);
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
+    {
+        RIL_LOG_INFO("CTE_XMM6360::ParseSimAuthentication() -"
+                " Could not extract the response end.\r\n");
+    }
+
+    if (RRIL_RESULT_OK != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6360::ParseSimAuthentication() - Exit\r\n");
+    return res;
+}
+
+void CTE_XMM6360::PostSimAuthentication(POST_CMD_HANDLER_DATA& data)
+{
+    if (data.pContextData != NULL && sizeof(int) == data.uiContextDataSize)
+    {
+        if (XAUTH_CONTEXT_TYPE_IMS == *((int*)data.pContextData))
+        {
+            CloseLogicalChannel(RIL_APPTYPE_ISIM);
+        }
+    }
+
+    free(data.pContextData);
+    data.pContextData = NULL;
+    data.uiContextDataSize = 0;
+
+    if (data.pRilToken != NULL)
+    {
+        RIL_onRequestComplete(data.pRilToken, (RIL_Errno) data.uiResultCode,
+                data.pData, data.uiDataSize);
+    }
+}
+
+void CTE_XMM6360::CloseLogicalChannel(const int appType)
+{
+    RIL_LOG_VERBOSE("CTE_XMM6360::CloseLogicalChannel - Enter\r\n");
+
+    REQUEST_DATA rReqData;
+    int sessionId = 0;
+
+    sessionId = GetSessionId(appType);
+    if (sessionId < 0)
+    {
+        return;
+    }
+    else
+    {
+        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+                "AT+CCHC=%d\r", sessionId))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::CloseLogicalChannel -"
+                    " Cannot create CCHC command\r\n");
+            return;
+        }
+
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SIM_IO].uiChannel,
+                NULL, RIL_REQUEST_SIM_IO, rReqData, &CTE::ParseSimCloseChannel);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTE_XMM6360::CloseLogicalChannel -"
+                        " Unable to queue command!\r\n");
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTE_XMM6360::CloseLogicalChannel - "
+                    "Unable to allocate memory for new command!\r\n");
+        }
+    }
+
+    RIL_LOG_VERBOSE("CTE_XMM6360::CloseLogicalChannel - Exit\r\n");
 }

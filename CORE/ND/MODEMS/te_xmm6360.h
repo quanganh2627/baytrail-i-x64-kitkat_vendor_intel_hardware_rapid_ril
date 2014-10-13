@@ -70,6 +70,13 @@ public:
     virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
                                                                    void* pData,
                                                                    UINT32 uiDataSize);
+    // RIL_REQUEST_SIM_AUTHENTICATION
+    virtual RIL_RESULT_CODE CoreSimAuthentication(REQUEST_DATA& reqData, void* pData,
+            UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSimAuthentication(RESPONSE_DATA& rspData);
+    virtual void PostSimAuthentication(POST_CMD_HANDLER_DATA& data);
+
+    virtual void CloseLogicalChannel(const int appType);
 
 protected:
     virtual RIL_RESULT_CODE ParseIpAddress(RESPONSE_DATA& rRspData);

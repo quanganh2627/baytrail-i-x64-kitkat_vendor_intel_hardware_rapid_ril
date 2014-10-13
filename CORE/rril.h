@@ -56,7 +56,6 @@ const int MAX_PDP_TYPE_SIZE = 20;
 const int MAX_MDM_RESOURCE_NAME_SIZE = 20;
 const int MAX_FDTIMER_SIZE = 5;
 const int MODEM_STATE_UNKNOWN = -1;
-const int MAX_PARAM_LENGTH = 256;
 const int MAX_APN_SIZE = 101;
 const int AUTN_LENGTH = 32;
 const int RAND_LENGTH = 32;
