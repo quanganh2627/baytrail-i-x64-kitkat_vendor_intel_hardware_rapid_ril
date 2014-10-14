@@ -3943,8 +3943,9 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo(const char* pszRsp
 
         // The comma should be added at the end of the string if not the last triplet
         snprintf(szCurrentPair, sizeof(szCurrentPair),
-                (bLastTriplet) ? "%lld, %d, %d" : "%lld, %d, %d, ",
-                centFreq, freqSpread, noisePower);
+                "%lld, %d, %d%s",
+                centFreq, freqSpread, noisePower,
+                (bLastTriplet) ? "" : ", ");
 
         // Appending the current pair to the response
         if (!ConcatenateStringNullTerminate(pResponse->szAdaptiveClockFrequencyInfo,
