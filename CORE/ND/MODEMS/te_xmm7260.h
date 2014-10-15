@@ -41,23 +41,23 @@ public:
 
     virtual void HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatusChange);
 
-    // RIL_REQUEST_SETUP_DATA_CALL 27
+    // RIL_REQUEST_SETUP_DATA_CALL
     virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
             void* pData, UINT32 uiDataSize, UINT32& uiCID);
 
-    // RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
+    // RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND
     virtual RIL_RESULT_CODE CoreStkSendEnvelopeCommand(REQUEST_DATA& rReqData,
                                                                   void* pData,
                                                                   UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseStkSendEnvelopeCommand(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
+    // RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE
     virtual RIL_RESULT_CODE CoreStkSendTerminalResponse(REQUEST_DATA& rReqData,
                                                                    void* pData,
                                                                    UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseStkSendTerminalResponse(RESPONSE_DATA& rRspData);
 
-        // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
+        // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING
     virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
                                                                    void* pData,
                                                                    UINT32 uiDataSize);
@@ -65,7 +65,7 @@ public:
     virtual BOOL ParseActivateUsatProfile(const char* szResponse);
     virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+    // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS
     virtual RIL_RESULT_CODE ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData);
 
     // RIL_REQUEST_STK_GET_PROFILE

@@ -220,7 +220,7 @@ BOOL CTE_XMM6260::IsRequestSupported(int requestId)
 }
 
 //
-// RIL_REQUEST_GET_SIM_STATUS 1
+// RIL_REQUEST_GET_SIM_STATUS
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreGetSimStatus(REQUEST_DATA& /*rReqData*/,
                                                           void* /*pData*/,
@@ -279,7 +279,7 @@ Error:
     return res;
 }
 
-// RIL_REQUEST_SETUP_DATA_CALL 27
+// RIL_REQUEST_SETUP_DATA_CALL
 RIL_RESULT_CODE CTE_XMM6260::CoreSetupDataCall(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize,
@@ -1353,7 +1353,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SIM_IO 28
+// RIL_REQUEST_SIM_IO
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreSimIo(REQUEST_DATA & rReqData, void * pData, UINT32 uiDataSize)
 {
@@ -1849,7 +1849,7 @@ Error:
 
 
 //
-// RIL_REQUEST_DEACTIVATE_DATA_CALL 41
+// RIL_REQUEST_DEACTIVATE_DATA_CALL
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
                                                                 void* pData,
@@ -1957,7 +1957,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseDeactivateDataCall(RESPONSE_DATA& /*rRspData*/
 }
 
 //
-// RIL_REQUEST_OEM_HOOK_RAW 59
+// RIL_REQUEST_OEM_HOOK_RAW
 //
 // [out] UINT32 uiRilChannel - Set this value to the RIL channel that the command will be sent on
 //                             e.g. RIL_CHANNEL_DLC2  (as defined in rilchannels.h)
@@ -2041,7 +2041,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookRaw(RESPONSE_DATA & rRspData)
 }
 
 //
-// RIL_REQUEST_OEM_HOOK_STRINGS 60
+// RIL_REQUEST_OEM_HOOK_STRINGS
 //
 // [out] UINT32 uiRilChannel - Set this value to the RIL channel that the command will be sent on
 //                             e.g. RIL_CHANNEL_DLC2  (as defined in rilchannels.h)
@@ -2590,7 +2590,7 @@ Out:
 }
 
 //
-// RIL_REQUEST_SET_BAND_MODE 65
+// RIL_REQUEST_SET_BAND_MODE
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreSetBandMode(REQUEST_DATA& rReqData,
                                                          void* pData,
@@ -2675,7 +2675,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSetBandMode(RESPONSE_DATA & /*rRspData*/)
 
 
 //
-// RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE 66
+// RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreQueryAvailableBandMode(REQUEST_DATA& rReqData,
                                                                     void* /*pData*/,
@@ -2910,7 +2910,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_STK_GET_PROFILE 67
+// RIL_REQUEST_STK_GET_PROFILE
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreStkGetProfile(REQUEST_DATA& rReqData,
                                                            void* /*pData*/,
@@ -3009,7 +3009,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_STK_SET_PROFILE 68
+// RIL_REQUEST_STK_SET_PROFILE
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreStkSetProfile(REQUEST_DATA& rReqData,
                                                            void* pData,
@@ -3060,7 +3060,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSetProfile(RESPONSE_DATA & /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
+// RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreStkSendEnvelopeCommand(REQUEST_DATA& rReqData,
                                                                     void* pData,
@@ -3229,7 +3229,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
+// RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreStkSendTerminalResponse(REQUEST_DATA& rReqData,
                                                                      void* pData,
@@ -3282,7 +3282,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkSendTerminalResponse(RESPONSE_DATA & /*rRsp
 }
 
 //
-// RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM 71
+// RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA& rReqData,
                                                                                void* pData,
@@ -3346,7 +3346,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DA
 }
 
 //
-// RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
+// RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
                                                                      void* pData,
@@ -3466,7 +3466,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSetPreferredNetworkType(RESPONSE_DATA & rRspDa
 }
 
 //
-// RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
+// RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
                                                                      void* /*pData*/,
@@ -3583,7 +3583,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
+// RIL_REQUEST_GET_NEIGHBORING_CELL_IDS
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
                                                                    void* /*pData*/,
@@ -3877,7 +3877,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SET_TTY_MODE 80
+// RIL_REQUEST_SET_TTY_MODE
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreSetTtyMode(REQUEST_DATA& rReqData,
                                                         void* pData,
@@ -3942,7 +3942,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseSetTtyMode(RESPONSE_DATA & /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_QUERY_TTY_MODE 81
+// RIL_REQUEST_QUERY_TTY_MODE
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreQueryTtyMode(REQUEST_DATA& rReqData,
                                                           void* /*pData*/,
@@ -4017,7 +4017,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_REPORT_SMS_MEMORY_STATUS 102
+// RIL_REQUEST_REPORT_SMS_MEMORY_STATUS
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreReportSmsMemoryStatus(REQUEST_DATA& rReqData,
                                                                    void* pData,
@@ -4057,7 +4057,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseReportSmsMemoryStatus(RESPONSE_DATA & /*rRspDa
 
 
 //
-// RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
+// RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
                                                                      void* /*pData*/,
@@ -4125,7 +4125,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+// RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS
 //
 RIL_RESULT_CODE CTE_XMM6260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA & rRspData)
 {
@@ -4292,7 +4292,7 @@ Error:
     return res;
 }
 
-// RIL_REQUEST_SET_INITIAL_ATTACH_APN 111
+// RIL_REQUEST_SET_INITIAL_ATTACH_APN
 RIL_RESULT_CODE CTE_XMM6260::CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
        void* pData, UINT32 uiDataSize)
 {
@@ -7068,7 +7068,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_GET_CELL_INFO_LIST 109
+// RIL_REQUEST_GET_CELL_INFO_LIST
 //
 RIL_RESULT_CODE CTE_XMM6260::CoreGetCellInfoList(REQUEST_DATA& rReqData,
                                                             void* /*pData*/,

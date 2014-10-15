@@ -77,163 +77,163 @@ public:
 
     virtual BOOL IsRequestSupported(int requestId);
 
-    // RIL_REQUEST_GET_SIM_STATUS 1
+    // RIL_REQUEST_GET_SIM_STATUS
     virtual RIL_RESULT_CODE CoreGetSimStatus(REQUEST_DATA& rReqData,
                                                         void* pData,
                                                         UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseGetSimStatus(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_ENTER_SIM_PIN 2
+    // RIL_REQUEST_ENTER_SIM_PIN
     virtual RIL_RESULT_CODE CoreEnterSimPin(REQUEST_DATA& rReqData,
                                                        void* pData,
                                                        UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseEnterSimPin(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_ENTER_SIM_PUK 3
+    // RIL_REQUEST_ENTER_SIM_PUK
     virtual RIL_RESULT_CODE CoreEnterSimPuk(REQUEST_DATA& rReqData,
                                                        void* pData,
                                                        UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseEnterSimPuk(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_ENTER_SIM_PIN2 4
+    // RIL_REQUEST_ENTER_SIM_PIN2
     virtual RIL_RESULT_CODE CoreEnterSimPin2(REQUEST_DATA& rReqData,
                                                         void* pData,
                                                         UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseEnterSimPin2(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_ENTER_SIM_PUK2 5
+    // RIL_REQUEST_ENTER_SIM_PUK2
     virtual RIL_RESULT_CODE CoreEnterSimPuk2(REQUEST_DATA& rReqData,
                                                         void* pData,
                                                         UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseEnterSimPuk2(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CHANGE_SIM_PIN 6
+    // RIL_REQUEST_CHANGE_SIM_PIN
     virtual RIL_RESULT_CODE CoreChangeSimPin(REQUEST_DATA& rReqData,
                                                         void* pData,
                                                         UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseChangeSimPin(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CHANGE_SIM_PIN2 7
+    // RIL_REQUEST_CHANGE_SIM_PIN2
     virtual RIL_RESULT_CODE CoreChangeSimPin2(REQUEST_DATA& rReqData,
                                                          void* pData,
                                                          UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseChangeSimPin2(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION 8
+    // RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION
     virtual RIL_RESULT_CODE CoreEnterNetworkDepersonalization(REQUEST_DATA& rReqData,
                                                                          void* pData,
                                                                          UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseEnterNetworkDepersonalization(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_CURRENT_CALLS 9
+    // RIL_REQUEST_GET_CURRENT_CALLS
     virtual RIL_RESULT_CODE CoreGetCurrentCalls(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseGetCurrentCalls(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DIAL 10
+    // RIL_REQUEST_DIAL
     virtual RIL_RESULT_CODE CoreDial(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDial(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_IMSI 11
+    // RIL_REQUEST_GET_IMSI
     virtual RIL_RESULT_CODE CoreGetImsi(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetImsi(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_HANGUP 12
+    // RIL_REQUEST_HANGUP
     virtual RIL_RESULT_CODE CoreHangup(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseHangup(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND 13
+    // RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND
     virtual RIL_RESULT_CODE CoreHangupWaitingOrBackground(REQUEST_DATA& rReqData,
                                                                      void* pData,
                                                                      UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseHangupWaitingOrBackground(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND 14
+    // RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND
     virtual RIL_RESULT_CODE CoreHangupForegroundResumeBackground(REQUEST_DATA& rReqData,
                                                                             void* pData,
                                                                             UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseHangupForegroundResumeBackground(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE 15
-    // RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE 15
+    // RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE
+    // RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE
     virtual RIL_RESULT_CODE CoreSwitchHoldingAndActive(REQUEST_DATA& rReqData,
                                                                   void* pData,
                                                                   UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSwitchHoldingAndActive(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CONFERENCE 16
+    // RIL_REQUEST_CONFERENCE
     virtual RIL_RESULT_CODE CoreConference(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseConference(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_UDUB 17
+    // RIL_REQUEST_UDUB
     virtual RIL_RESULT_CODE CoreUdub(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseUdub(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_LAST_CALL_FAIL_CAUSE 18
+    // RIL_REQUEST_LAST_CALL_FAIL_CAUSE
     virtual RIL_RESULT_CODE CoreLastCallFailCause(REQUEST_DATA& rReqData,
                                                              void* pData,
                                                              UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseLastCallFailCause(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIGNAL_STRENGTH 19
+    // RIL_REQUEST_SIGNAL_STRENGTH
     virtual RIL_RESULT_CODE CoreSignalStrength(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSignalStrength(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_VOICE_REGISTRATION_STATE 20
+    // RIL_REQUEST_VOICE_REGISTRATION_STATE
     virtual RIL_RESULT_CODE CoreRegistrationState(REQUEST_DATA& rReqData,
                                                              void* pData,
                                                              UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseRegistrationState(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DATA_REGISTRATION_STATE 21
+    // RIL_REQUEST_DATA_REGISTRATION_STATE
     virtual RIL_RESULT_CODE CoreGPRSRegistrationState(REQUEST_DATA& rReqData,
                                                                  void* pData,
                                                                  UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_OPERATOR 22
+    // RIL_REQUEST_OPERATOR
     virtual RIL_RESULT_CODE CoreOperator(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseOperator(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_RADIO_POWER 23
+    // RIL_REQUEST_RADIO_POWER
     virtual RIL_RESULT_CODE CoreRadioPower(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseRadioPower(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DTMF 24
+    // RIL_REQUEST_DTMF
     virtual RIL_RESULT_CODE CoreDtmf(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDtmf(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SEND_SMS 25
+    // RIL_REQUEST_SEND_SMS
     virtual RIL_RESULT_CODE CoreSendSms(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSendSms(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SEND_SMS_EXPECT_MORE 26
+    // RIL_REQUEST_SEND_SMS_EXPECT_MORE
     virtual RIL_RESULT_CODE CoreSendSmsExpectMore(REQUEST_DATA& rReqData,
                                                              void* pData,
                                                              UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSendSmsExpectMore(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SETUP_DATA_CALL 27
+    // RIL_REQUEST_SETUP_DATA_CALL
     virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
                                                          void* pData,
                                                          UINT32 uiDataSize,
@@ -241,175 +241,175 @@ public:
 
     virtual RIL_RESULT_CODE ParseSetupDataCall(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_IO 28
+    // RIL_REQUEST_SIM_IO
     virtual RIL_RESULT_CODE CoreSimIo(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimIo(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SEND_USSD 29
+    // RIL_REQUEST_SEND_USSD
     virtual RIL_RESULT_CODE CoreSendUssd(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSendUssd(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CANCEL_USSD 30
+    // RIL_REQUEST_CANCEL_USSD
     virtual RIL_RESULT_CODE CoreCancelUssd(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCancelUssd(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_CLIR 31
+    // RIL_REQUEST_GET_CLIR
     virtual RIL_RESULT_CODE CoreGetClir(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetClir(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_CLIR 32
+    // RIL_REQUEST_SET_CLIR
     virtual RIL_RESULT_CODE CoreSetClir(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetClir(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_QUERY_CALL_FORWARD_STATUS 33
+    // RIL_REQUEST_QUERY_CALL_FORWARD_STATUS
     virtual RIL_RESULT_CODE CoreQueryCallForwardStatus(REQUEST_DATA& rReqData,
                                                                   void* pData,
                                                                   UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseQueryCallForwardStatus(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_CALL_FORWARD 34
+    // RIL_REQUEST_SET_CALL_FORWARD
     virtual RIL_RESULT_CODE CoreSetCallForward(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSetCallForward(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_QUERY_CALL_WAITING 35
+    // RIL_REQUEST_QUERY_CALL_WAITING
     virtual RIL_RESULT_CODE CoreQueryCallWaiting(REQUEST_DATA& rReqData,
                                                             void* pData,
                                                             UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseQueryCallWaiting(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_CALL_WAITING 36
+    // RIL_REQUEST_SET_CALL_WAITING
     virtual RIL_RESULT_CODE CoreSetCallWaiting(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSetCallWaiting(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SMS_ACKNOWLEDGE 37
+    // RIL_REQUEST_SMS_ACKNOWLEDGE
     virtual RIL_RESULT_CODE CoreSmsAcknowledge(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSmsAcknowledge(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_IMEI 38
+    // RIL_REQUEST_GET_IMEI
     virtual RIL_RESULT_CODE CoreGetImei(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetImei(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_IMEISV 39
+    // RIL_REQUEST_GET_IMEISV
     virtual RIL_RESULT_CODE CoreGetImeisv(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetImeisv(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_ANSWER 40
+    // RIL_REQUEST_ANSWER
     virtual RIL_RESULT_CODE CoreAnswer(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseAnswer(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
+    // RIL_REQUEST_DEACTIVATE_DATA_CALL
     virtual RIL_RESULT_CODE CoreDeactivateDataCall(REQUEST_DATA& rReqData,
                                                               void* pData,
                                                               UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseDeactivateDataCall(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_QUERY_FACILITY_LOCK 42
+    // RIL_REQUEST_QUERY_FACILITY_LOCK
     virtual RIL_RESULT_CODE CoreQueryFacilityLock(REQUEST_DATA& rReqData,
                                                              void* pData,
                                                              UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseQueryFacilityLock(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_FACILITY_LOCK 43
+    // RIL_REQUEST_SET_FACILITY_LOCK
     virtual RIL_RESULT_CODE CoreSetFacilityLock(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSetFacilityLock(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CHANGE_BARRING_PASSWORD 44
+    // RIL_REQUEST_CHANGE_BARRING_PASSWORD
     virtual RIL_RESULT_CODE CoreChangeBarringPassword(REQUEST_DATA& rReqData,
                                                                  void* pData,
                                                                  UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseChangeBarringPassword(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE 45
+    // RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE
     virtual RIL_RESULT_CODE CoreQueryNetworkSelectionMode(REQUEST_DATA& rReqData,
                                                                      void* pData,
                                                                      UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseQueryNetworkSelectionMode(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC 46
+    // RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC
     virtual RIL_RESULT_CODE CoreSetNetworkSelectionAutomatic(REQUEST_DATA& rReqData,
                                                                         void* pData,
                                                                         UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSetNetworkSelectionAutomatic(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL 47
+    // RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL
     virtual RIL_RESULT_CODE CoreSetNetworkSelectionManual(REQUEST_DATA& rReqData,
                                                                      void* pData,
                                                                      UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSetNetworkSelectionManual(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_QUERY_AVAILABLE_NETWORKS 48
+    // RIL_REQUEST_QUERY_AVAILABLE_NETWORKS
     virtual RIL_RESULT_CODE CoreQueryAvailableNetworks(REQUEST_DATA& rReqData,
                                                                   void* pData,
                                                                   UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DTMF_START 49
+    // RIL_REQUEST_DTMF_START
     virtual RIL_RESULT_CODE CoreDtmfStart(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDtmfStart(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DTMF_STOP 50
+    // RIL_REQUEST_DTMF_STOP
     virtual RIL_RESULT_CODE CoreDtmfStop(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDtmfStop(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_BASEBAND_VERSION 51
+    // RIL_REQUEST_BASEBAND_VERSION
     virtual RIL_RESULT_CODE CoreBasebandVersion(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseBasebandVersion(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SEPARATE_CONNECTION 52
+    // RIL_REQUEST_SEPARATE_CONNECTION
     virtual RIL_RESULT_CODE CoreSeparateConnection(REQUEST_DATA& rReqData,
                                                               void* pData,
                                                               UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSeparateConnection(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_MUTE 53
+    // RIL_REQUEST_SET_MUTE
     virtual RIL_RESULT_CODE CoreSetMute(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetMute(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_MUTE 54
+    // RIL_REQUEST_GET_MUTE
     virtual RIL_RESULT_CODE CoreGetMute(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetMute(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_QUERY_CLIP 55
+    // RIL_REQUEST_QUERY_CLIP
     virtual RIL_RESULT_CODE CoreQueryClip(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseQueryClip(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE 56
+    // RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE
     virtual RIL_RESULT_CODE CoreLastDataCallFailCause(REQUEST_DATA& rReqData,
                                                                  void* pData,
                                                                  UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseLastDataCallFailCause(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_RESET_RADIO 58
+    // RIL_REQUEST_RESET_RADIO
     virtual RIL_RESULT_CODE CoreResetRadio(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseResetRadio(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_OEM_HOOK_RAW 59
+    // RIL_REQUEST_OEM_HOOK_RAW
     virtual RIL_RESULT_CODE CoreHookRaw(REQUEST_DATA& rReqData,
                                                    void* pData,
                                                    UINT32 uiDataSize,
@@ -417,7 +417,7 @@ public:
 
     virtual RIL_RESULT_CODE ParseHookRaw(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_OEM_HOOK_STRINGS 60
+    // RIL_REQUEST_OEM_HOOK_STRINGS
     virtual RIL_RESULT_CODE CoreHookStrings(REQUEST_DATA& rReqData,
                                                        void* pData,
                                                        UINT32 uiDataSize,
@@ -425,100 +425,100 @@ public:
 
     virtual RIL_RESULT_CODE ParseHookStrings(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SCREEN_STATE 61
+    // RIL_REQUEST_SCREEN_STATE
     virtual RIL_RESULT_CODE CoreScreenState(REQUEST_DATA& rReqData,
                                                        void* pData,
                                                        UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseScreenState(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION 62
+    // RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION
     virtual RIL_RESULT_CODE CoreSetSuppSvcNotification(REQUEST_DATA& rReqData,
                                                                   void* pData,
                                                                   UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSetSuppSvcNotification(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_WRITE_SMS_TO_SIM 63
+    // RIL_REQUEST_WRITE_SMS_TO_SIM
     virtual RIL_RESULT_CODE CoreWriteSmsToSim(REQUEST_DATA& rReqData,
                                                          void* pData,
                                                          UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseWriteSmsToSim(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DELETE_SMS_ON_SIM 64
+    // RIL_REQUEST_DELETE_SMS_ON_SIM
     virtual RIL_RESULT_CODE CoreDeleteSmsOnSim(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseDeleteSmsOnSim(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_BAND_MODE 65
+    // RIL_REQUEST_SET_BAND_MODE
     virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA& rReqData,
                                                        void* pData,
                                                        UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseSetBandMode(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE 66
+    // RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE
     virtual RIL_RESULT_CODE CoreQueryAvailableBandMode(REQUEST_DATA& rReqData,
                                                                   void* pData,
                                                                   UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseQueryAvailableBandMode(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_STK_GET_PROFILE 67
+    // RIL_REQUEST_STK_GET_PROFILE
     virtual RIL_RESULT_CODE CoreStkGetProfile(REQUEST_DATA& rReqData,
                                                          void* pData,
                                                          UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseStkGetProfile(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_STK_SET_PROFILE 68
+    // RIL_REQUEST_STK_SET_PROFILE
     virtual RIL_RESULT_CODE CoreStkSetProfile(REQUEST_DATA& rReqData,
                                                          void* pData,
                                                          UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseStkSetProfile(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
+    // RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND
     virtual RIL_RESULT_CODE CoreStkSendEnvelopeCommand(REQUEST_DATA& rReqData,
                                                                   void* pData,
                                                                   UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseStkSendEnvelopeCommand(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
+    // RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE
     virtual RIL_RESULT_CODE CoreStkSendTerminalResponse(REQUEST_DATA& rReqData,
                                                                    void* pData,
                                                                    UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseStkSendTerminalResponse(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM 71
+    // RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM
     virtual RIL_RESULT_CODE CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA& rReqData,
                                                                               void* pData,
                                                                               UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_EXPLICIT_CALL_TRANSFER 72
+    // RIL_REQUEST_EXPLICIT_CALL_TRANSFER
     virtual RIL_RESULT_CODE CoreExplicitCallTransfer(REQUEST_DATA& rReqData,
                                                                 void* pData,
                                                                 UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseExplicitCallTransfer(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
+    // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE
     virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
                                                                    void* pData,
                                                                    UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetPreferredNetworkType(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
+    // RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE
     virtual RIL_RESULT_CODE CoreGetPreferredNetworkType(REQUEST_DATA& rReqData,
                                                                    void* pData,
                                                                    UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
+    // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS
     virtual RIL_RESULT_CODE CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
                                                                  void* pData,
                                                                  UINT32 uiDataSize);
@@ -528,185 +528,185 @@ public:
                                                             const char* pszRsp,
                                                             UINT32 uiIndex,
                                                             UINT32 uiMode);
-    // RIL_REQUEST_SET_LOCATION_UPDATES 76
+    // RIL_REQUEST_SET_LOCATION_UPDATES
     virtual RIL_RESULT_CODE CoreSetLocationUpdates(REQUEST_DATA& rReqData,
                                                 void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetLocationUpdates(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77
+    // RIL_REQUEST_CDMA_SET_SUBSCRIPTION
     virtual RIL_RESULT_CODE CoreCdmaSetSubscription(REQUEST_DATA& rReqData,
                                                                void* pData,
                                                                UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaSetSubscription(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE 78
+    // RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE
     virtual RIL_RESULT_CODE CoreCdmaSetRoamingPreference(REQUEST_DATA& rReqData,
                                                                     void* pData,
                                                                     UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaSetRoamingPreference(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE 79
+    // RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE
     virtual RIL_RESULT_CODE CoreCdmaQueryRoamingPreference(REQUEST_DATA& rReqData,
                                                                       void* pData,
                                                                       UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaQueryRoamingPreference(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_TTY_MODE 80
+    // RIL_REQUEST_SET_TTY_MODE
     virtual RIL_RESULT_CODE CoreSetTtyMode(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetTtyMode(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_QUERY_TTY_MODE 81
+    // RIL_REQUEST_QUERY_TTY_MODE
     virtual RIL_RESULT_CODE CoreQueryTtyMode(REQUEST_DATA& rReqData,
                                                         void* pData,
                                                         UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseQueryTtyMode(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE 82
+    // RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE
     virtual RIL_RESULT_CODE CoreCdmaSetPreferredVoicePrivacyMode(REQUEST_DATA& rReqData,
                                                                             void* pData,
                                                                             UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaSetPreferredVoicePrivacyMode(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE 83
+    // RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE
     virtual RIL_RESULT_CODE CoreCdmaQueryPreferredVoicePrivacyMode(REQUEST_DATA& rReqData,
                                                                               void* pData,
                                                                               UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaQueryPreferredVoicePrivacyMode(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_FLASH 84
+    // RIL_REQUEST_CDMA_FLASH
     virtual RIL_RESULT_CODE CoreCdmaFlash(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaFlash(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_BURST_DTMF 85
+    // RIL_REQUEST_CDMA_BURST_DTMF
     virtual RIL_RESULT_CODE CoreCdmaBurstDtmf(REQUEST_DATA& rReqData,
                                                          void* pData,
                                                          UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaBurstDtmf(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY 86
+    // RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY
     virtual RIL_RESULT_CODE CoreCdmaValidateAndWriteAkey(REQUEST_DATA& rReqData,
                                                                     void* pData,
                                                                     UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaValidateAndWriteAkey(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_SEND_SMS 87
+    // RIL_REQUEST_CDMA_SEND_SMS
     virtual RIL_RESULT_CODE CoreCdmaSendSms(REQUEST_DATA& rReqData,
                                                        void* pData,
                                                        UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaSendSms(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE 88
+    // RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE
     virtual RIL_RESULT_CODE CoreCdmaSmsAcknowledge(REQUEST_DATA& rReqData,
                                                               void* pData,
                                                               UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaSmsAcknowledge(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG 89
+    // RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG
     virtual RIL_RESULT_CODE CoreGsmGetBroadcastSmsConfig(REQUEST_DATA& rReqData,
                                                                     void* pData,
                                                                     UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG 90
+    // RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG
     virtual RIL_RESULT_CODE CoreGsmSetBroadcastSmsConfig(REQUEST_DATA& rReqData,
                                                                     void* pData,
                                                                     UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION 91
+    // RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION
     virtual RIL_RESULT_CODE CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                                                      void* pData,
                                                                      UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGsmSmsBroadcastActivation(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG 92
+    // RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG
     virtual RIL_RESULT_CODE CoreCdmaGetBroadcastSmsConfig(REQUEST_DATA& rReqData,
                                                                      void* pData,
                                                                      UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaGetBroadcastSmsConfig(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG 93
+    // RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG
     virtual RIL_RESULT_CODE CoreCdmaSetBroadcastSmsConfig(REQUEST_DATA& rReqData,
                                                                      void* pData,
                                                                      UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaSetBroadcastSmsConfig(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION 94
+    // RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION
     virtual RIL_RESULT_CODE CoreCdmaSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                                                       void* pData,
                                                                       UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaSmsBroadcastActivation(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_SUBSCRIPTION 95
+    // RIL_REQUEST_CDMA_SUBSCRIPTION
     virtual RIL_RESULT_CODE CoreCdmaSubscription(REQUEST_DATA& rReqData,
                                                             void* pData,
                                                             UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaSubscription(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM 96
+    // RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM
     virtual RIL_RESULT_CODE CoreCdmaWriteSmsToRuim(REQUEST_DATA& rReqData,
                                                               void* pData,
                                                               UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaWriteSmsToRuim(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM 97
+    // RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM
     virtual RIL_RESULT_CODE CoreCdmaDeleteSmsOnRuim(REQUEST_DATA& rReqData,
                                                                void* pData,
                                                                UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCdmaDeleteSmsOnRuim(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DEVICE_IDENTITY 98
+    // RIL_REQUEST_DEVICE_IDENTITY
     virtual RIL_RESULT_CODE CoreDeviceIdentity(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDeviceIdentity(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE 99
+    // RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE
     virtual RIL_RESULT_CODE CoreExitEmergencyCallbackMode(REQUEST_DATA& rReqData,
                                                                      void* pData,
                                                                      UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseExitEmergencyCallbackMode(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_SMSC_ADDRESS 100
+    // RIL_REQUEST_GET_SMSC_ADDRESS
     virtual RIL_RESULT_CODE CoreGetSmscAddress(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetSmscAddress(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_SMSC_ADDRESS 101
+    // RIL_REQUEST_SET_SMSC_ADDRESS
     virtual RIL_RESULT_CODE CoreSetSmscAddress(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetSmscAddress(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_REPORT_SMS_MEMORY_STATUS 102
+    // RIL_REQUEST_REPORT_SMS_MEMORY_STATUS
     virtual RIL_RESULT_CODE CoreReportSmsMemoryStatus(REQUEST_DATA& rReqData,
                                                                  void* pData,
                                                                  UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseReportSmsMemoryStatus(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
+    // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING
     virtual RIL_RESULT_CODE CoreReportStkServiceRunning(REQUEST_DATA& rReqData,
                                                                    void* pData,
                                                                    UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseReportStkServiceRunning(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_ISIM_AUTHENTICATE 105
+    // RIL_REQUEST_ISIM_AUTHENTICATE
     virtual RIL_RESULT_CODE CoreISimAuthenticate(REQUEST_DATA& rReqData,
                                                                     void* pData,
                                                                     UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseISimAuthenticate(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU 106
+    // RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU
     virtual RIL_RESULT_CODE CoreAckIncomingGsmSmsWithPdu(REQUEST_DATA& rReqData,
                                                                     void* pData,
                                                                     UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseAckIncomingGsmSmsWithPdu(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+    // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS
     virtual RIL_RESULT_CODE ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_CELL_INFO_LIST 109
+    // RIL_REQUEST_GET_CELL_INFO_LIST
     virtual RIL_RESULT_CODE CoreGetCellInfoList(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize);
@@ -717,7 +717,7 @@ public:
                                                            UINT32 uiIndex,
                                                            UINT32 uiMode);
 
-    // RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE 110
+    // RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE
     RIL_RESULT_CODE CoreSetCellInfoListRate(REQUEST_DATA& rReqData,
                                                                  void* pData,
                                                                  UINT32 uiDataSize);
@@ -727,59 +727,59 @@ public:
 
     void RestartUnsolCellInfoListTimer(int newRate);
 
-    // RIL_REQUEST_SET_INITIAL_ATTACH_APN: // 111
+    // RIL_REQUEST_SET_INITIAL_ATTACH_APN
     virtual RIL_RESULT_CODE CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
                                                                  void* pData,
                                                                  UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetInitialAttachApn(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_IMS_REGISTRATION_STATE: // 112
-    // RIL_REQUEST_IMS_SEND_SMS: // 113
+    // RIL_REQUEST_IMS_REGISTRATION_STATE
+    // RIL_REQUEST_IMS_SEND_SMS
     // TODO
 
-    // RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC 114
+    // RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC
     virtual RIL_RESULT_CODE CoreSimTransmitApduBasic(REQUEST_DATA& rReqData,
                                                             void* pData,
                                                             UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimTransmitApduBasic(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_OPEN_CHANNEL 115
+    // RIL_REQUEST_SIM_OPEN_CHANNEL
     virtual RIL_RESULT_CODE CoreSimOpenChannel(REQUEST_DATA& rReqData,
                                                           void* pData,
                                                           UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimOpenChannel(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_CLOSE_CHANNEL 116
+    // RIL_REQUEST_SIM_CLOSE_CHANNEL
     virtual RIL_RESULT_CODE CoreSimCloseChannel(REQUEST_DATA& rReqData,
                                                            void* pData,
                                                            UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimCloseChannel(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL 117
+    // RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL
     virtual RIL_RESULT_CODE CoreSimTransmitApduChannel(REQUEST_DATA& rReqData,
                                                               void* pData,
                                                               UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData);
 
 #if defined(M2_VT_FEATURE_ENABLED)
-    // RIL_REQUEST_HANGUP_VT 118
+    // RIL_REQUEST_HANGUP_VT
     virtual RIL_RESULT_CODE CoreHangupVT(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseHangupVT(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DIAL_VT 119
+    // RIL_REQUEST_DIAL_VT
     virtual RIL_RESULT_CODE CoreDialVT(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseDialVT(RESPONSE_DATA& rRspData);
 #endif // M2_VT_FEATURE_ENABLED
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    // RIL_REQUEST_GET_SIM_SMS_STORAGE 118 or 120
+    // RIL_REQUEST_GET_SIM_SMS_STORAGE
     virtual RIL_RESULT_CODE CoreGetSimSmsStorage(REQUEST_DATA& rReqData,
                                                             void* pData,
                                                             UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetSimSmsStorage(RESPONSE_DATA& rRspData);
 #endif // M2_GET_SIM_SMS_STORAGE_ENABLED
 
-    // RIL_UNSOL_SIGNAL_STRENGTH  1009
+    // RIL_UNSOL_SIGNAL_STRENGTH
     virtual RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData);
 
     // QUERY SIM SMS STORE STATUS

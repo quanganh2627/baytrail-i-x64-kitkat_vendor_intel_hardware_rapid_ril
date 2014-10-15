@@ -53,52 +53,52 @@ public:
     virtual RIL_RESULT_CODE CreateSetDefaultApnReq(REQUEST_DATA& rReqData,
             const char** pszRequest, const int nNumStrings);
 
-    // RIL_REQUEST_SETUP_DATA_CALL 27
+    // RIL_REQUEST_SETUP_DATA_CALL
     virtual RIL_RESULT_CODE CoreSetupDataCall(REQUEST_DATA& rReqData,
             void* pData, UINT32 uiDataSize, UINT32& uiCID);
 
-    // RIL_REQUEST_SET_BAND_MODE 65
+    // RIL_REQUEST_SET_BAND_MODE
     virtual RIL_RESULT_CODE CoreSetBandMode(REQUEST_DATA& rReqData,
                                                        void* pData,
                                                        UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSetBandMode(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIGNAL_STRENGTH 19
+    // RIL_REQUEST_SIGNAL_STRENGTH
     virtual RIL_RESULT_CODE CoreSignalStrength(REQUEST_DATA& rReqData,
             void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSignalStrength(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DATA_REGISTRATION_STATE 21
+    // RIL_REQUEST_DATA_REGISTRATION_STATE
     virtual RIL_RESULT_CODE ParseGPRSRegistrationState(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_DEACTIVATE_DATA_CALL 41
+    // RIL_REQUEST_DEACTIVATE_DATA_CALL
     virtual RIL_RESULT_CODE CoreDeactivateDataCall(REQUEST_DATA& rReqData,
                                                                 void* pData,
                                                                 UINT32 uiDataSize);
 
-    // RIL_REQUEST_OEM_HOOK_STRINGS 60
+    // RIL_REQUEST_OEM_HOOK_STRINGS
     virtual RIL_RESULT_CODE ParseHookStrings(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
+    // RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE
     virtual RIL_RESULT_CODE CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             void* pData, UINT32 uiDataSize);
 
     virtual RIL_RESULT_CODE ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
+    // RIL_REQUEST_GET_NEIGHBORING_CELL_IDS
     virtual RIL_RESULT_CODE CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
         void* pData, UINT32 uiDataSize);
     virtual  RIL_RESULT_CODE ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData);
 
-    // RIL_UNSOL_SIGNAL_STRENGTH  1009
+    // RIL_UNSOL_SIGNAL_STRENGTH
     virtual RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_ISIM_AUTHETICATE 105
+    // RIL_REQUEST_ISIM_AUTHETICATE
     virtual RIL_RESULT_CODE CoreISimAuthenticate(REQUEST_DATA& rReqData,
              void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseISimAuthenticate(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GET_CELL_INFO_LIST 109
+    // RIL_REQUEST_GET_CELL_INFO_LIST
     virtual RIL_RESULT_CODE CoreGetCellInfoList(REQUEST_DATA& rReqData, void* pData,
             UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol = FALSE);
@@ -143,13 +143,13 @@ public:
     virtual RIL_SignalStrength_v6* ParseXCESQ(const char*& rszPointer, const BOOL bUnsolicited);
 #endif
 
-    // RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG 90
+    // RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG
     virtual RIL_RESULT_CODE CoreGsmSetBroadcastSmsConfig(REQUEST_DATA& rReqData,
                                                                     void* pData,
                                                                     UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION 91
+    // RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION
     virtual RIL_RESULT_CODE CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                                                      void* pData,
                                                                      UINT32 uiDataSize);

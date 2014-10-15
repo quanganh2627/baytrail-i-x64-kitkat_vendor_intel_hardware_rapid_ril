@@ -161,27 +161,27 @@ BOOL CTEBase::IsRequestSupported(int requestId)
 {
     switch (requestId)
     {
-        case RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE: // 77 - CDMA, not supported
-        case RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE: // 78 - CDMA, not supported
-        case RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE: // 79 - CDMA, not supported
-        case RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE: // 82 - CDMA, not supported
-        case RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE: // 83 - CDMA, not supported
-        case RIL_REQUEST_CDMA_FLASH: // 84 - CDMA, not supported
-        case RIL_REQUEST_CDMA_BURST_DTMF: // 85 - CDMA, not supported
-        case RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY: // 86 - CDMA, not supported
-        case RIL_REQUEST_CDMA_SEND_SMS: // 87 - CDMA, not supported
-        case RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE: // 88 - CDMA, not supported
-        case RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG: // 92 - CDMA, not supported
-        case RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG: // 93 - CDMA, not supported
-        case RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION: // 94 - CDMA, not supported
-        case RIL_REQUEST_CDMA_SUBSCRIPTION: // 95 - CDMA, not supported
-        case RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM: // 96 - CDMA, not supported
-        case RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM: // 97 - CDMA, not supported
-        case RIL_REQUEST_DEVICE_IDENTITY: // 98 - CDMA, not supported
-        case RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE: // 99 - CDMA, not supported
-        case RIL_REQUEST_CDMA_GET_SUBSCRIPTION_SOURCE: // 104 - CDMA, not supported
+        case RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE:
+        case RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE:
+        case RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE:
+        case RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE:
+        case RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE:
+        case RIL_REQUEST_CDMA_FLASH:
+        case RIL_REQUEST_CDMA_BURST_DTMF:
+        case RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY:
+        case RIL_REQUEST_CDMA_SEND_SMS:
+        case RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE:
+        case RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG:
+        case RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG:
+        case RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION:
+        case RIL_REQUEST_CDMA_SUBSCRIPTION:
+        case RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM:
+        case RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM:
+        case RIL_REQUEST_DEVICE_IDENTITY:
+        case RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE:
+        case RIL_REQUEST_CDMA_GET_SUBSCRIPTION_SOURCE:
             return FALSE;
-        case RIL_REQUEST_RESET_RADIO: // 58 - not supported
+        case RIL_REQUEST_RESET_RADIO:
             return FALSE;
         default:
             return TRUE;
@@ -241,7 +241,7 @@ const char* CTEBase::GetSignalStrengthReportingStringAlloc()
 }
 
 //
-// RIL_REQUEST_GET_SIM_STATUS 1
+// RIL_REQUEST_GET_SIM_STATUS
 //
 RIL_RESULT_CODE CTEBase::CoreGetSimStatus(REQUEST_DATA& rReqData,
                                                   void* /*pData*/,
@@ -452,7 +452,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_ENTER_SIM_PIN 2
+// RIL_REQUEST_ENTER_SIM_PIN
 //
 RIL_RESULT_CODE CTEBase::CoreEnterSimPin(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -542,7 +542,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_ENTER_SIM_PUK 3
+// RIL_REQUEST_ENTER_SIM_PUK
 //
 RIL_RESULT_CODE CTEBase::CoreEnterSimPuk(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -626,7 +626,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_ENTER_SIM_PIN2 4
+// RIL_REQUEST_ENTER_SIM_PIN2
 //
 RIL_RESULT_CODE CTEBase::CoreEnterSimPin2(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -705,7 +705,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_ENTER_SIM_PUK2 5
+// RIL_REQUEST_ENTER_SIM_PUK2
 //
 RIL_RESULT_CODE CTEBase::CoreEnterSimPuk2(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -785,7 +785,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_CHANGE_SIM_PIN 6
+// RIL_REQUEST_CHANGE_SIM_PIN
 //
 RIL_RESULT_CODE CTEBase::CoreChangeSimPin(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -876,7 +876,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_CHANGE_SIM_PIN2 7
+// RIL_REQUEST_CHANGE_SIM_PIN2
 //
 RIL_RESULT_CODE CTEBase::CoreChangeSimPin2(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -956,7 +956,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION 8
+// RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION
 //
 RIL_RESULT_CODE CTEBase::CoreEnterNetworkDepersonalization(REQUEST_DATA& rReqData,
                                                                       void* pData,
@@ -1039,7 +1039,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_GET_CURRENT_CALLS 9
+// RIL_REQUEST_GET_CURRENT_CALLS
 //
 RIL_RESULT_CODE CTEBase::CoreGetCurrentCalls(REQUEST_DATA& rReqData,
                                                         void* /*pData*/,
@@ -1390,7 +1390,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_DIAL 10
+// RIL_REQUEST_DIAL
 //
 RIL_RESULT_CODE CTEBase::CoreDial(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -1451,7 +1451,7 @@ RIL_RESULT_CODE CTEBase::ParseDial(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_GET_IMSI 11
+// RIL_REQUEST_GET_IMSI
 //
 RIL_RESULT_CODE CTEBase::CoreGetImsi(REQUEST_DATA& rReqData,
                                              void* /*pData*/,
@@ -1519,7 +1519,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_HANGUP 12
+// RIL_REQUEST_HANGUP
 //
 RIL_RESULT_CODE CTEBase::CoreHangup(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -1571,7 +1571,7 @@ RIL_RESULT_CODE CTEBase::ParseHangup(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND 13
+// RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND
 //
 RIL_RESULT_CODE CTEBase::CoreHangupWaitingOrBackground(REQUEST_DATA& rReqData,
                                                                   void* /*pData*/,
@@ -1616,7 +1616,7 @@ RIL_RESULT_CODE CTEBase::ParseHangupWaitingOrBackground(RESPONSE_DATA& /*rRspDat
 }
 
 //
-// RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND 14
+// RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND
 //
 RIL_RESULT_CODE CTEBase::CoreHangupForegroundResumeBackground(REQUEST_DATA& rReqData,
                                                                          void* /*pData*/,
@@ -1645,8 +1645,8 @@ RIL_RESULT_CODE CTEBase::ParseHangupForegroundResumeBackground(RESPONSE_DATA& /*
 }
 
 //
-// RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE 15
-// RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE 15
+// RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE
+// RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE
 //
 RIL_RESULT_CODE CTEBase::CoreSwitchHoldingAndActive(REQUEST_DATA& rReqData,
                                                                void* /*pData*/,
@@ -1710,7 +1710,7 @@ RIL_RESULT_CODE CTEBase::ParseSwitchHoldingAndActive(RESPONSE_DATA& /*rRspData*/
 }
 
 //
-// RIL_REQUEST_CONFERENCE 16
+// RIL_REQUEST_CONFERENCE
 //
 RIL_RESULT_CODE CTEBase::CoreConference(REQUEST_DATA& rReqData,
                                                 void* /*pData*/,
@@ -1746,7 +1746,7 @@ RIL_RESULT_CODE CTEBase::ParseConference(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_UDUB 17
+// RIL_REQUEST_UDUB
 //
 RIL_RESULT_CODE CTEBase::CoreUdub(REQUEST_DATA& rReqData,
                                           void* /*pData*/,
@@ -1791,7 +1791,7 @@ RIL_RESULT_CODE CTEBase::ParseUdub(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_LAST_CALL_FAIL_CAUSE 18
+// RIL_REQUEST_LAST_CALL_FAIL_CAUSE
 //
 RIL_RESULT_CODE CTEBase::CoreLastCallFailCause(REQUEST_DATA& rReqData,
                                                           void* /*pData*/,
@@ -1899,7 +1899,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SIGNAL_STRENGTH 19
+// RIL_REQUEST_SIGNAL_STRENGTH
 //
 RIL_RESULT_CODE CTEBase::CoreSignalStrength(REQUEST_DATA& rReqData,
                                                        void* /*pData*/,
@@ -1943,7 +1943,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_VOICE_REGISTRATION_STATE 20
+// RIL_REQUEST_VOICE_REGISTRATION_STATE
 //
 RIL_RESULT_CODE CTEBase::CoreRegistrationState(REQUEST_DATA& rReqData,
                                                           void* /*pData*/,
@@ -2013,7 +2013,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_DATA_REGISTRATION_STATE 21
+// RIL_REQUEST_DATA_REGISTRATION_STATE
 //
 RIL_RESULT_CODE CTEBase::CoreGPRSRegistrationState(REQUEST_DATA& rReqData,
                                                               void* /*pData*/,
@@ -2082,7 +2082,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_OPERATOR 22
+// RIL_REQUEST_OPERATOR
 //
 RIL_RESULT_CODE CTEBase::CoreOperator(REQUEST_DATA& rReqData,
                                               void* /*pData*/,
@@ -2352,7 +2352,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_RADIO_POWER 23
+// RIL_REQUEST_RADIO_POWER
 //
 RIL_RESULT_CODE CTEBase::CoreRadioPower(REQUEST_DATA& /*rReqData*/,
                                                 void* pData,
@@ -2637,7 +2637,7 @@ RIL_RESULT_CODE CTEBase::ParseRadioPower(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_DTMF 24
+// RIL_REQUEST_DTMF
 //
 RIL_RESULT_CODE CTEBase::CoreDtmf(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -2684,7 +2684,7 @@ RIL_RESULT_CODE CTEBase::ParseDtmf(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_SEND_SMS 25
+// RIL_REQUEST_SEND_SMS
 //
 RIL_RESULT_CODE CTEBase::CoreSendSms(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -2840,7 +2840,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SEND_SMS_EXPECT_MORE 26
+// RIL_REQUEST_SEND_SMS_EXPECT_MORE
 //
 RIL_RESULT_CODE CTEBase::CoreSendSmsExpectMore(REQUEST_DATA& rReqData,
                                                           void* pData,
@@ -2997,7 +2997,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SETUP_DATA_CALL 27
+// RIL_REQUEST_SETUP_DATA_CALL
 //
 RIL_RESULT_CODE CTEBase::CoreSetupDataCall(REQUEST_DATA& /*rReqData*/, void* /*pData*/,
                                             UINT32 /*uiDataSize*/, UINT32& /*uiCID*/)
@@ -3014,7 +3014,7 @@ RIL_RESULT_CODE CTEBase::ParseSetupDataCall(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_SIM_IO 28
+// RIL_REQUEST_SIM_IO
 //
 RIL_RESULT_CODE CTEBase::CoreSimIo(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -3285,7 +3285,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SEND_USSD 29
+// RIL_REQUEST_SEND_USSD
 //
 RIL_RESULT_CODE CTEBase::CoreSendUssd(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -3362,7 +3362,7 @@ RIL_RESULT_CODE CTEBase::ParseSendUssd(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CANCEL_USSD 30
+// RIL_REQUEST_CANCEL_USSD
 //
 RIL_RESULT_CODE CTEBase::CoreCancelUssd(REQUEST_DATA& rReqData,
                                                 void* /*pData*/,
@@ -3391,7 +3391,7 @@ RIL_RESULT_CODE CTEBase::ParseCancelUssd(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_GET_CLIR 31
+// RIL_REQUEST_GET_CLIR
 //
 RIL_RESULT_CODE CTEBase::CoreGetClir(REQUEST_DATA& rReqData, void* /*pData*/, UINT32 /*uiDataSize*/)
 {
@@ -3481,7 +3481,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SET_CLIR 32
+// RIL_REQUEST_SET_CLIR
 //
 RIL_RESULT_CODE CTEBase::CoreSetClir(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -3542,7 +3542,7 @@ RIL_RESULT_CODE CTEBase::ParseSetClir(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_QUERY_CALL_FORWARD_STATUS 33
+// RIL_REQUEST_QUERY_CALL_FORWARD_STATUS
 //
 RIL_RESULT_CODE CTEBase::CoreQueryCallForwardStatus(REQUEST_DATA& rReqData,
                                                                void* pData,
@@ -3770,7 +3770,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SET_CALL_FORWARD 34
+// RIL_REQUEST_SET_CALL_FORWARD
 //
 RIL_RESULT_CODE CTEBase::CoreSetCallForward(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -3925,7 +3925,7 @@ RIL_RESULT_CODE CTEBase::ParseSetCallForward(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_QUERY_CALL_WAITING 35
+// RIL_REQUEST_QUERY_CALL_WAITING
 //
 RIL_RESULT_CODE CTEBase::CoreQueryCallWaiting(REQUEST_DATA& rReqData,
                                                          void* pData,
@@ -4093,7 +4093,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SET_CALL_WAITING 36
+// RIL_REQUEST_SET_CALL_WAITING
 //
 RIL_RESULT_CODE CTEBase::CoreSetCallWaiting(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -4171,7 +4171,7 @@ RIL_RESULT_CODE CTEBase::ParseSetCallWaiting(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SMS_ACKNOWLEDGE 37
+// RIL_REQUEST_SMS_ACKNOWLEDGE
 //
 RIL_RESULT_CODE CTEBase::CoreSmsAcknowledge(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -4274,7 +4274,7 @@ RIL_RESULT_CODE CTEBase::ParseSmsAcknowledge(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_GET_IMEI 38
+// RIL_REQUEST_GET_IMEI
 //
 RIL_RESULT_CODE CTEBase::CoreGetImei(REQUEST_DATA& rReqData, void* /*pData*/, UINT32 /*uiDataSize*/)
 {
@@ -4365,7 +4365,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_GET_IMEISV 39
+// RIL_REQUEST_GET_IMEISV
 //
 RIL_RESULT_CODE CTEBase::CoreGetImeisv(REQUEST_DATA& rReqData,
                                                void* /*pData*/,
@@ -4464,7 +4464,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_ANSWER 40
+// RIL_REQUEST_ANSWER
 //
 RIL_RESULT_CODE CTEBase::CoreAnswer(REQUEST_DATA& rReqData, void* /*pData*/, UINT32 /*uiDataSize*/)
 {
@@ -4493,7 +4493,7 @@ RIL_RESULT_CODE CTEBase::ParseAnswer(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_DEACTIVATE_DATA_CALL 41
+// RIL_REQUEST_DEACTIVATE_DATA_CALL
 //
 RIL_RESULT_CODE CTEBase::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
                                                            void* pData,
@@ -4561,7 +4561,7 @@ RIL_RESULT_CODE CTEBase::ParseDeactivateDataCall(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_QUERY_FACILITY_LOCK 42
+// RIL_REQUEST_QUERY_FACILITY_LOCK
 //
 RIL_RESULT_CODE CTEBase::CoreQueryFacilityLock(REQUEST_DATA& rReqData,
                                                           void* pData,
@@ -4775,7 +4775,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SET_FACILITY_LOCK 43
+// RIL_REQUEST_SET_FACILITY_LOCK
 //
 RIL_RESULT_CODE CTEBase::CoreSetFacilityLock(REQUEST_DATA& rReqData,
                                                         void* pData,
@@ -4994,7 +4994,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_CHANGE_BARRING_PASSWORD 44
+// RIL_REQUEST_CHANGE_BARRING_PASSWORD
 //
 RIL_RESULT_CODE CTEBase::CoreChangeBarringPassword(REQUEST_DATA& rReqData,
                                                               void* pData,
@@ -5068,7 +5068,7 @@ RIL_RESULT_CODE CTEBase::ParseChangeBarringPassword(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE 45
+// RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE
 //
 RIL_RESULT_CODE CTEBase::CoreQueryNetworkSelectionMode(REQUEST_DATA& rReqData,
                                                                   void* /*pData*/,
@@ -5142,7 +5142,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC 46
+// RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC
 //
 RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionAutomatic(REQUEST_DATA& /*rReqData*/,
                                                                      void* /*pData*/,
@@ -5163,7 +5163,7 @@ RIL_RESULT_CODE CTEBase::ParseSetNetworkSelectionAutomatic(RESPONSE_DATA& /*rRsp
 }
 
 //
-// RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL 47
+// RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL
 //
 RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionManual(REQUEST_DATA& /*rReqData*/,
                                                                   void* pData,
@@ -5208,7 +5208,7 @@ RIL_RESULT_CODE CTEBase::ParseSetNetworkSelectionManual(RESPONSE_DATA& /*rRspDat
 }
 
 //
-// RIL_REQUEST_QUERY_AVAILABLE_NETWORKS 48
+// RIL_REQUEST_QUERY_AVAILABLE_NETWORKS
 //
 RIL_RESULT_CODE CTEBase::CoreQueryAvailableNetworks(REQUEST_DATA& rReqData,
                                                                void* /*pData*/,
@@ -5600,7 +5600,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_DTMF_START 49
+// RIL_REQUEST_DTMF_START
 //
 RIL_RESULT_CODE CTEBase::CoreDtmfStart(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -5644,7 +5644,7 @@ RIL_RESULT_CODE CTEBase::ParseDtmfStart(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_DTMF_STOP 50
+// RIL_REQUEST_DTMF_STOP
 //
 RIL_RESULT_CODE CTEBase::CoreDtmfStop(REQUEST_DATA& rReqData,
                                               void* /*pData*/,
@@ -5674,7 +5674,7 @@ RIL_RESULT_CODE CTEBase::ParseDtmfStop(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_BASEBAND_VERSION 51
+// RIL_REQUEST_BASEBAND_VERSION
 //
 RIL_RESULT_CODE CTEBase::CoreBasebandVersion(REQUEST_DATA& rReqData,
                                                         void* /*pData*/,
@@ -5759,7 +5759,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SEPARATE_CONNECTION 52
+// RIL_REQUEST_SEPARATE_CONNECTION
 //
 RIL_RESULT_CODE CTEBase::CoreSeparateConnection(REQUEST_DATA& rReqData,
                                                            void* pData,
@@ -5806,7 +5806,7 @@ RIL_RESULT_CODE CTEBase::ParseSeparateConnection(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_SET_MUTE 53
+// RIL_REQUEST_SET_MUTE
 //
 RIL_RESULT_CODE CTEBase::CoreSetMute(REQUEST_DATA& rReqData, void* pData, UINT32 /*uiDataSize*/)
 {
@@ -5844,7 +5844,7 @@ RIL_RESULT_CODE CTEBase::ParseSetMute(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_GET_MUTE 54
+// RIL_REQUEST_GET_MUTE
 //
 RIL_RESULT_CODE CTEBase::CoreGetMute(REQUEST_DATA& rReqData, void* /*pData*/, UINT32 /*uiDataSize*/)
 {
@@ -5918,7 +5918,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_QUERY_CLIP 55
+// RIL_REQUEST_QUERY_CLIP
 //
 RIL_RESULT_CODE CTEBase::CoreQueryClip(REQUEST_DATA& rReqData,
                                                void* /*pData*/,
@@ -6019,7 +6019,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE 56
+// RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE
 //
 RIL_RESULT_CODE CTEBase::CoreLastDataCallFailCause(REQUEST_DATA& rReqData,
                                                               void* /*pData*/,
@@ -6690,7 +6690,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_RESET_RADIO 58
+// RIL_REQUEST_RESET_RADIO
 //
 RIL_RESULT_CODE CTEBase::CoreResetRadio(REQUEST_DATA& /*rReqData*/,
                                                 void* /*pData*/,
@@ -6714,7 +6714,7 @@ RIL_RESULT_CODE CTEBase::ParseResetRadio(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_OEM_HOOK_RAW 59
+// RIL_REQUEST_OEM_HOOK_RAW
 //
 RIL_RESULT_CODE CTEBase::CoreHookRaw(REQUEST_DATA& /*rReqData*/,
                                                 void* /*pData*/,
@@ -6739,7 +6739,7 @@ RIL_RESULT_CODE CTEBase::ParseHookRaw(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_OEM_HOOK_STRINGS 60
+// RIL_REQUEST_OEM_HOOK_STRINGS
 //
 RIL_RESULT_CODE CTEBase::CoreHookStrings(REQUEST_DATA& /*rReqData*/,
                                                      void* /*pData*/,
@@ -6764,7 +6764,7 @@ RIL_RESULT_CODE CTEBase::ParseHookStrings(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_SCREEN_STATE 61
+// RIL_REQUEST_SCREEN_STATE
 //
 RIL_RESULT_CODE CTEBase::CoreScreenState(REQUEST_DATA& /*rReqData*/,
                                                     void* pData,
@@ -6803,7 +6803,7 @@ RIL_RESULT_CODE CTEBase::ParseScreenState(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION 62
+// RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION
 //
 RIL_RESULT_CODE CTEBase::CoreSetSuppSvcNotification(REQUEST_DATA& rReqData,
                                                                void* pData,
@@ -6849,7 +6849,7 @@ RIL_RESULT_CODE CTEBase::ParseSetSuppSvcNotification(RESPONSE_DATA& /*rRspData*/
 }
 
 //
-// RIL_REQUEST_WRITE_SMS_TO_SIM 63
+// RIL_REQUEST_WRITE_SMS_TO_SIM
 //
 RIL_RESULT_CODE CTEBase::CoreWriteSmsToSim(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -6931,7 +6931,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_DELETE_SMS_ON_SIM 64
+// RIL_REQUEST_DELETE_SMS_ON_SIM
 //
 RIL_RESULT_CODE CTEBase::CoreDeleteSmsOnSim(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -6973,7 +6973,7 @@ RIL_RESULT_CODE CTEBase::ParseDeleteSmsOnSim(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_SET_BAND_MODE 65
+// RIL_REQUEST_SET_BAND_MODE
 //
 RIL_RESULT_CODE CTEBase::CoreSetBandMode(REQUEST_DATA& /*rReqData*/,
                                                  void* /*pData*/,
@@ -7001,7 +7001,7 @@ RIL_RESULT_CODE CTEBase::ParseSetBandMode(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE 66
+// RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE
 //
 RIL_RESULT_CODE CTEBase::CoreQueryAvailableBandMode(REQUEST_DATA& /*rReqData*/,
                                                                void* /*pData*/,
@@ -7028,7 +7028,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryAvailableBandMode(RESPONSE_DATA& /*rRspData*/
 }
 
 //
-// RIL_REQUEST_STK_GET_PROFILE 67
+// RIL_REQUEST_STK_GET_PROFILE
 //
 RIL_RESULT_CODE CTEBase::CoreStkGetProfile(REQUEST_DATA& /*rReqData*/,
                                                    void* /*pData*/,
@@ -7055,7 +7055,7 @@ RIL_RESULT_CODE CTEBase::ParseStkGetProfile(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_STK_SET_PROFILE 68
+// RIL_REQUEST_STK_SET_PROFILE
 //
 RIL_RESULT_CODE CTEBase::CoreStkSetProfile(REQUEST_DATA& /*rReqData*/,
                                                    void* /*pData*/,
@@ -7082,7 +7082,7 @@ RIL_RESULT_CODE CTEBase::ParseStkSetProfile(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
+// RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND
 //
 RIL_RESULT_CODE CTEBase::CoreStkSendEnvelopeCommand(REQUEST_DATA& /*rReqData*/,
                                                                void* /*pData*/,
@@ -7109,7 +7109,7 @@ RIL_RESULT_CODE CTEBase::ParseStkSendEnvelopeCommand(RESPONSE_DATA& /*rRspData*/
 }
 
 //
-// RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
+// RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE
 //
 RIL_RESULT_CODE CTEBase::CoreStkSendTerminalResponse(REQUEST_DATA& /*rReqData*/,
                                                                 void* /*pData*/,
@@ -7136,7 +7136,7 @@ RIL_RESULT_CODE CTEBase::ParseStkSendTerminalResponse(RESPONSE_DATA& /*rRspData*
 }
 
 //
-// RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM 71
+// RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM
 //
 RIL_RESULT_CODE CTEBase::CoreStkHandleCallSetupRequestedFromSim(REQUEST_DATA& /*rReqData*/,
                                                                            void* /*pData*/,
@@ -7163,7 +7163,7 @@ RIL_RESULT_CODE CTEBase::ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DATA& 
 }
 
 //
-// RIL_REQUEST_EXPLICIT_CALL_TRANSFER 72
+// RIL_REQUEST_EXPLICIT_CALL_TRANSFER
 //
 RIL_RESULT_CODE CTEBase::CoreExplicitCallTransfer(REQUEST_DATA& rReqData, void* /*pData*/,
                                                                     UINT32 /*uiDataSize*/)
@@ -7191,7 +7191,7 @@ RIL_RESULT_CODE CTEBase::ParseExplicitCallTransfer(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
+// RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE
 //
 RIL_RESULT_CODE CTEBase::CoreSetPreferredNetworkType(REQUEST_DATA& /*rReqData*/,
                                                                 void* /*pData*/,
@@ -7218,7 +7218,7 @@ RIL_RESULT_CODE CTEBase::ParseSetPreferredNetworkType(RESPONSE_DATA& /*rRspData*
 }
 
 //
-// RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
+// RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE
 //
 RIL_RESULT_CODE CTEBase::CoreGetPreferredNetworkType(REQUEST_DATA& /*rReqData*/,
                                                                 void* /*pData*/,
@@ -7245,7 +7245,7 @@ RIL_RESULT_CODE CTEBase::ParseGetPreferredNetworkType(RESPONSE_DATA& /*rRspData*
 }
 
 //
-// RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
+// RIL_REQUEST_GET_NEIGHBORING_CELL_IDS
 //
 RIL_RESULT_CODE CTEBase::CoreGetNeighboringCellIDs(REQUEST_DATA& /*rReqData*/,
                                                               void* /*pData*/,
@@ -7370,7 +7370,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SET_LOCATION_UPDATES 76
+// RIL_REQUEST_SET_LOCATION_UPDATES
 //
 RIL_RESULT_CODE CTEBase::CoreSetLocationUpdates(REQUEST_DATA& rReqData,
                                                 void* pData, UINT32 /*uiDataSize*/)
@@ -7410,7 +7410,7 @@ RIL_RESULT_CODE CTEBase::ParseSetLocationUpdates(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_CDMA_SET_SUBSCRIPTION 77
+// RIL_REQUEST_CDMA_SET_SUBSCRIPTION
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSetSubscription(REQUEST_DATA& /*rReqData*/,
                                                             void* /*pData*/,
@@ -7434,7 +7434,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSetSubscription(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE 78
+// RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSetRoamingPreference(REQUEST_DATA& /*rReqData*/,
                                                                  void* /*pData*/,
@@ -7458,7 +7458,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSetRoamingPreference(RESPONSE_DATA& /*rRspData
 }
 
 //
-// RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE 79
+// RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaQueryRoamingPreference(REQUEST_DATA& /*rReqData*/,
                                                                    void* /*pData*/,
@@ -7482,7 +7482,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaQueryRoamingPreference(RESPONSE_DATA& /*rRspDa
 }
 
 //
-// RIL_REQUEST_SET_TTY_MODE 80
+// RIL_REQUEST_SET_TTY_MODE
 //
 RIL_RESULT_CODE CTEBase::CoreSetTtyMode(REQUEST_DATA& /*rReqData*/,
                                                 void* /*pData*/,
@@ -7509,7 +7509,7 @@ RIL_RESULT_CODE CTEBase::ParseSetTtyMode(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_QUERY_TTY_MODE 81
+// RIL_REQUEST_QUERY_TTY_MODE
 //
 RIL_RESULT_CODE CTEBase::CoreQueryTtyMode(REQUEST_DATA& /*rReqData*/,
                                                   void* /*pData*/,
@@ -7536,7 +7536,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryTtyMode(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE 82
+// RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSetPreferredVoicePrivacyMode(REQUEST_DATA& /*rReqData*/,
                                                                          void* /*pData*/,
@@ -7559,7 +7559,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSetPreferredVoicePrivacyMode(RESPONSE_DATA& /*
 }
 
 //
-// RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE 83
+// RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaQueryPreferredVoicePrivacyMode(REQUEST_DATA& /*rReqData*/,
                                                                            void* /*pData*/,
@@ -7582,7 +7582,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaQueryPreferredVoicePrivacyMode(RESPONSE_DATA& 
 }
 
 //
-// RIL_REQUEST_CDMA_FLASH 84
+// RIL_REQUEST_CDMA_FLASH
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaFlash(REQUEST_DATA& /*rReqData*/,
                                                void* /*pData*/,
@@ -7605,7 +7605,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaFlash(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_CDMA_BURST_DTMF 85
+// RIL_REQUEST_CDMA_BURST_DTMF
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaBurstDtmf(REQUEST_DATA& /*rReqData*/,
                                                    void* /*pData*/,
@@ -7628,7 +7628,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaBurstDtmf(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY 86
+// RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaValidateAndWriteAkey(REQUEST_DATA& /*rReqData*/,
                                                                  void* /*pData*/,
@@ -7651,7 +7651,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaValidateAndWriteAkey(RESPONSE_DATA& /*rRspData
 }
 
 //
-// RIL_REQUEST_CDMA_SEND_SMS 87
+// RIL_REQUEST_CDMA_SEND_SMS
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSendSms(REQUEST_DATA& /*rReqData*/,
                                                  void* /*pData*/,
@@ -7674,7 +7674,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSendSms(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE 88
+// RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSmsAcknowledge(REQUEST_DATA& /*rReqData*/,
                                                            void* /*pData*/,
@@ -7697,7 +7697,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSmsAcknowledge(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG 89
+// RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG
 //
 RIL_RESULT_CODE CTEBase::CoreGsmGetBroadcastSmsConfig(REQUEST_DATA& rReqData,
                                                                  void* /*pData*/,
@@ -7903,7 +7903,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG 90
+// RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG
 //
 RIL_RESULT_CODE CTEBase::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA& /*rReqData*/,
                                                                  void* pData,
@@ -7963,7 +7963,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA& /*rRspData
 }
 
 //
-// RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION 91
+// RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION
 //
 RIL_RESULT_CODE CTEBase::CoreGsmSmsBroadcastActivation(REQUEST_DATA& rReqData,
                                                                   void* pData,
@@ -8273,7 +8273,7 @@ RIL_RESULT_CODE CTEBase::ParseGsmSmsBroadcastActivation(RESPONSE_DATA& /*rRspDat
 }
 
 //
-// RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG 92
+// RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaGetBroadcastSmsConfig(REQUEST_DATA& /*rReqData*/,
                                                                   void* /*pData*/,
@@ -8296,7 +8296,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaGetBroadcastSmsConfig(RESPONSE_DATA& /*rRspDat
 }
 
 //
-// RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG 93
+// RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSetBroadcastSmsConfig(REQUEST_DATA& /*rReqData*/,
                                                                   void* /*pData*/,
@@ -8319,7 +8319,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSetBroadcastSmsConfig(RESPONSE_DATA& /*rRspDat
 }
 
 //
-// RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION 94
+// RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSmsBroadcastActivation(REQUEST_DATA& /*rReqData*/,
                                                                    void* /*pData*/,
@@ -8342,7 +8342,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSmsBroadcastActivation(RESPONSE_DATA& /*rRspDa
 }
 
 //
-// RIL_REQUEST_CDMA_SUBSCRIPTION 95
+// RIL_REQUEST_CDMA_SUBSCRIPTION
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaSubscription(REQUEST_DATA& /*rReqData*/,
                                                          void* /*pData*/,
@@ -8365,7 +8365,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaSubscription(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM 96
+// RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaWriteSmsToRuim(REQUEST_DATA& /*rReqData*/,
                                                            void* /*pData*/,
@@ -8388,7 +8388,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaWriteSmsToRuim(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM 97
+// RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM
 //
 RIL_RESULT_CODE CTEBase::CoreCdmaDeleteSmsOnRuim(REQUEST_DATA& /*rReqData*/,
                                                             void* /*pData*/,
@@ -8411,7 +8411,7 @@ RIL_RESULT_CODE CTEBase::ParseCdmaDeleteSmsOnRuim(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_DEVICE_IDENTITY 98
+// RIL_REQUEST_DEVICE_IDENTITY
 //
 RIL_RESULT_CODE CTEBase::CoreDeviceIdentity(REQUEST_DATA& /*rReqData*/,
                                                        void* /*pData*/,
@@ -8434,7 +8434,7 @@ RIL_RESULT_CODE CTEBase::ParseDeviceIdentity(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE 99
+// RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE
 //
 RIL_RESULT_CODE CTEBase::CoreExitEmergencyCallbackMode(REQUEST_DATA& /*rReqData*/,
                                                                   void* /*pData*/,
@@ -8457,7 +8457,7 @@ RIL_RESULT_CODE CTEBase::ParseExitEmergencyCallbackMode(RESPONSE_DATA& /*rRspDat
 }
 
 //
-// RIL_REQUEST_GET_SMSC_ADDRESS 100
+// RIL_REQUEST_GET_SMSC_ADDRESS
 //
 RIL_RESULT_CODE CTEBase::CoreGetSmscAddress(REQUEST_DATA& rReqData,
                                                        void* /*pData*/,
@@ -8521,7 +8521,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SET_SMSC_ADDRESS 101
+// RIL_REQUEST_SET_SMSC_ADDRESS
 //
 RIL_RESULT_CODE CTEBase::CoreSetSmscAddress(REQUEST_DATA& rReqData,
                                                        void* pData,
@@ -8584,7 +8584,7 @@ RIL_RESULT_CODE CTEBase::ParseSetSmscAddress(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_REPORT_SMS_MEMORY_STATUS 102
+// RIL_REQUEST_REPORT_SMS_MEMORY_STATUS
 //
 RIL_RESULT_CODE CTEBase::CoreReportSmsMemoryStatus(REQUEST_DATA& /*rReqData*/,
                                                               void* /*pData*/,
@@ -8603,7 +8603,7 @@ RIL_RESULT_CODE CTEBase::ParseReportSmsMemoryStatus(RESPONSE_DATA& /*rRspData*/)
 }
 
 //
-// RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
+// RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING
 //
 RIL_RESULT_CODE CTEBase::CoreReportStkServiceRunning(REQUEST_DATA& /*rReqData*/,
                                                                 void* /*pData*/,
@@ -8622,7 +8622,7 @@ RIL_RESULT_CODE CTEBase::ParseReportStkServiceRunning(RESPONSE_DATA& /*rRspData*
 }
 
 //
-// RIL_REQUEST_ISIM_AUTHENTICATE 105
+// RIL_REQUEST_ISIM_AUTHENTICATE
 //
 RIL_RESULT_CODE CTEBase::CoreISimAuthenticate(REQUEST_DATA& /*rReqData*/,
                                                          void* /*pData*/,
@@ -8643,7 +8643,7 @@ RIL_RESULT_CODE CTEBase::ParseISimAuthenticate(RESPONSE_DATA& /*rRspData*/)
 
 
 //
-// RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU 106
+// RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU
 //
 RIL_RESULT_CODE CTEBase::CoreAckIncomingGsmSmsWithPdu(REQUEST_DATA& rReqData,
                                                                  void* pData,
@@ -8722,7 +8722,7 @@ RIL_RESULT_CODE CTEBase::ParseAckIncomingGsmSmsWithPdu(RESPONSE_DATA& /*rRspData
 }
 
 //
-// RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+// RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS
 //
 RIL_RESULT_CODE CTEBase::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& /*rRspData*/)
 {
@@ -8732,7 +8732,7 @@ RIL_RESULT_CODE CTEBase::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& /*rRspDat
 }
 
 //
-// RIL_REQUEST_GET_CELL_INFO_LIST 109
+// RIL_REQUEST_GET_CELL_INFO_LIST
 //
 RIL_RESULT_CODE CTEBase::CoreGetCellInfoList(REQUEST_DATA& /*rReqData*/,
                                                         void* /*pData*/,
@@ -8885,7 +8885,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE 110
+// RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE
 //
 RIL_RESULT_CODE CTEBase::CoreSetCellInfoListRate(REQUEST_DATA& /*rReqData*/,
                                                             void* pData,
@@ -8963,7 +8963,7 @@ void CTEBase::RestartUnsolCellInfoListTimer(int newRate)
     }
 }
 
-// RIL_REQUEST_SET_INITIAL_ATTACH_APN 111
+// RIL_REQUEST_SET_INITIAL_ATTACH_APN
 RIL_RESULT_CODE CTEBase::CoreSetInitialAttachApn(REQUEST_DATA& /*rReqData*/,
                                                             void* /*pData*/,
                                                             UINT32 /*uiDataSize*/)
@@ -8978,8 +8978,8 @@ RIL_RESULT_CODE CTEBase::ParseSetInitialAttachApn(RESPONSE_DATA& /*rRspData*/)
     return RIL_E_REQUEST_NOT_SUPPORTED;
 }
 
-// RIL_REQUEST_IMS_REGISTRATION_STATE: // 112
-// RIL_REQUEST_IMS_SEND_SMS: // 113
+// RIL_REQUEST_IMS_REGISTRATION_STATE
+// RIL_REQUEST_IMS_SEND_SMS
 // TODO
 
 //
@@ -9218,7 +9218,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SIM_OPEN_CHANNEL 115
+// RIL_REQUEST_SIM_OPEN_CHANNEL
 //
 RIL_RESULT_CODE CTEBase::CoreSimOpenChannel(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -9405,7 +9405,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SIM_CLOSE_CHANNEL 116
+// RIL_REQUEST_SIM_CLOSE_CHANNEL
 //
 RIL_RESULT_CODE CTEBase::CoreSimCloseChannel(REQUEST_DATA& rReqData,
                                                         void* pData,
@@ -9850,7 +9850,7 @@ Error:
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //
-// RIL_REQUEST_HANGUP_VT 118
+// RIL_REQUEST_HANGUP_VT
 //
 RIL_RESULT_CODE CTEBase::CoreHangupVT(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -9909,7 +9909,7 @@ RIL_RESULT_CODE CTEBase::ParseHangupVT(RESPONSE_DATA& rRspData)
 
 
 //
-// RIL_REQUEST_DIAL_VT 119
+// RIL_REQUEST_DIAL_VT
 //
 RIL_RESULT_CODE CTEBase::CoreDialVT(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize)
 {
@@ -9983,7 +9983,7 @@ RIL_RESULT_CODE CTEBase::ParseDialVT(RESPONSE_DATA& rRspData)
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
 //
-// RIL_REQUEST_GET_SIM_SMS_STORAGE 118 or 120
+// RIL_REQUEST_GET_SIM_SMS_STORAGE
 //
 RIL_RESULT_CODE CTEBase::CoreGetSimSmsStorage(REQUEST_DATA& rReqData,
                                                          void* pData,
@@ -10163,7 +10163,7 @@ Error:
 }
 
 //
-// RIL_UNSOL_SIGNAL_STRENGTH  1009
+// RIL_UNSOL_SIGNAL_STRENGTH
 //
 RIL_RESULT_CODE CTEBase::ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData)
 {

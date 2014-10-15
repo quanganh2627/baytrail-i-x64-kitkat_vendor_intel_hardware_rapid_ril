@@ -202,7 +202,7 @@ const char* CTE_XMM7160::GetReadCellInfoString()
 }
 
 //
-// RIL_REQUEST_SETUP_DATA_CALL 27
+// RIL_REQUEST_SETUP_DATA_CALL
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
        void* pData, UINT32 uiDataSize, UINT32& uiCID)
@@ -382,7 +382,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SIGNAL_STRENGTH 19
+// RIL_REQUEST_SIGNAL_STRENGTH
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreSignalStrength(REQUEST_DATA& rReqData,
         void* /*pData*/, UINT32 /*uiDataSize*/)
@@ -435,7 +435,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_DATA_REGISTRATION_STATE 21
+// RIL_REQUEST_DATA_REGISTRATION_STATE
 //
 RIL_RESULT_CODE CTE_XMM7160::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
 {
@@ -506,7 +506,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_DEACTIVATE_DATA_CALL 41
+// RIL_REQUEST_DEACTIVATE_DATA_CALL
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
                                                                 void* pData,
@@ -593,7 +593,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
+// RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
         void* pData, UINT32 uiDataSize)
@@ -856,7 +856,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
+// RIL_REQUEST_GET_NEIGHBORING_CELL_IDS
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreGetNeighboringCellIDs(REQUEST_DATA& rReqData,
         void* /*pData*/, UINT32 /*uiDataSize*/)
@@ -1497,7 +1497,7 @@ BOOL CTE_XMM7160::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
 }
 
 //
-// RIL_REQUEST_SET_BAND_MODE 65
+// RIL_REQUEST_SET_BAND_MODE
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreSetBandMode(REQUEST_DATA& rReqData,
                                                          void* pData,
@@ -1971,7 +1971,7 @@ void CTE_XMM7160::QuerySignalStrength()
 }
 
 //
-// RIL_UNSOL_SIGNAL_STRENGTH  1009
+// RIL_UNSOL_SIGNAL_STRENGTH
 //
 RIL_RESULT_CODE CTE_XMM7160::ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData)
 {
@@ -2012,7 +2012,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_ISIM_AUTHENTICATE 106
+// RIL_REQUEST_ISIM_AUTHENTICATE
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreISimAuthenticate(REQUEST_DATA& rReqData,
                                                                 void* pData,
@@ -2615,7 +2615,7 @@ RIL_RESULT_CODE CTE_XMM7160::FilterSmsCbFromConfig(RIL_GSM_BroadcastSmsConfigInf
 }
 
 //
-// RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG 90
+// RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreGsmSetBroadcastSmsConfig(REQUEST_DATA& /*reqData*/,
                                                                  void* pData,
@@ -2788,7 +2788,7 @@ RIL_RESULT_CODE CTE_XMM7160::ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA& /*rRsp
 }
 
 //
-// RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION 91
+// RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreGsmSmsBroadcastActivation(REQUEST_DATA& reqData,
                                                                   void* pData,
@@ -3187,7 +3187,7 @@ const char* CTE_XMM7160::GetSiloVoiceURCInitString()
 }
 
 //
-// RIL_REQUEST_GET_CELL_INFO_LIST 109
+// RIL_REQUEST_GET_CELL_INFO_LIST
 //
 RIL_RESULT_CODE CTE_XMM7160::CoreGetCellInfoList(REQUEST_DATA& rReqData,
         void* /*pData*/, UINT32 /*uiDataSize*/)

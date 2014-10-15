@@ -74,7 +74,7 @@ void CTE_XMM7260::HandleSimState(const UINT32 uiSIMState, BOOL& bNotifySimStatus
 }
 
 //
-// RIL_REQUEST_SETUP_DATA_CALL 27
+// RIL_REQUEST_SETUP_DATA_CALL
 //
 RIL_RESULT_CODE CTE_XMM7260::CoreSetupDataCall(REQUEST_DATA& rReqData,
        void* pData, UINT32 uiDataSize, UINT32& uiCID)
@@ -244,7 +244,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
+// RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING
 //
 RIL_RESULT_CODE CTE_XMM7260::CoreReportStkServiceRunning(REQUEST_DATA& /*rReqData*/,
                                                            void* /*pData*/,
@@ -375,7 +375,7 @@ RIL_RESULT_CODE CTE_XMM7260::CoreStkSetProfile(REQUEST_DATA& /*rReqData*/,
 }
 
 //
-// RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
+// RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE
 //
 RIL_RESULT_CODE CTE_XMM7260::CoreStkSendTerminalResponse(REQUEST_DATA& rReqData,
                                                                      void* pData,
@@ -427,7 +427,7 @@ RIL_RESULT_CODE CTE_XMM7260::ParseStkSendTerminalResponse(RESPONSE_DATA& /*rspDa
 }
 
 //
-// RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
+// RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND
 //
 RIL_RESULT_CODE CTE_XMM7260::CoreStkSendEnvelopeCommand(REQUEST_DATA& rReqData,
                                                                     void* pData,
@@ -627,7 +627,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+// RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS
 //
 RIL_RESULT_CODE CTE_XMM7260::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rspData)
 {

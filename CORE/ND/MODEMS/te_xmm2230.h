@@ -40,27 +40,27 @@ public:
 
     virtual CInitializer* GetInitializer();
 
-    // RIL_REQUEST_BASEBAND_VERSION 51
+    // RIL_REQUEST_BASEBAND_VERSION
     virtual RIL_RESULT_CODE CoreBasebandVersion(REQUEST_DATA& rReqData,
             void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseBasebandVersion(RESPONSE_DATA& rRspData);
 
-    // RIL_REQUEST_SIM_TRANSMIT_BASIC 114
+    // RIL_REQUEST_SIM_TRANSMIT_BASIC
     virtual RIL_RESULT_CODE CoreSimTransmitBasic(REQUEST_DATA& rReqData,
             void* pData,
             UINT32 uiDataSize);
 
-    // RIL_REQUEST_SIM_OPEN_CHANNEL 115
+    // RIL_REQUEST_SIM_OPEN_CHANNEL
         virtual RIL_RESULT_CODE CoreSimOpenChannel(REQUEST_DATA& rReqData,
             void* pData,
             UINT32 uiDataSize);
 
-    // RIL_REQUEST_SIM_CLOSE_CHANNEL 116
+    // RIL_REQUEST_SIM_CLOSE_CHANNEL
     virtual RIL_RESULT_CODE CoreSimCloseChannel(REQUEST_DATA& rReqData,
             void* pData,
             UINT32 uiDataSize);
 
-    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL 117
+    // RIL_REQUEST_SIM_TRANSMIT_CHANNEL
     virtual RIL_RESULT_CODE CoreSimTransmitChannel(REQUEST_DATA& rReqData,
             void* pData,
             UINT32 uiDataSize);

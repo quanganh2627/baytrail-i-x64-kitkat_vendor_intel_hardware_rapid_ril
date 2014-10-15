@@ -643,298 +643,298 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
     {
         switch (requestId)
         {
-            case RIL_REQUEST_GET_SIM_STATUS:  // 1
+            case RIL_REQUEST_GET_SIM_STATUS:
                 eRetVal = RequestGetSimStatus(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_ENTER_SIM_PIN:  // 2
+            case RIL_REQUEST_ENTER_SIM_PIN:
                 eRetVal = RequestEnterSimPin(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_ENTER_SIM_PUK:  // 3
+            case RIL_REQUEST_ENTER_SIM_PUK:
                 eRetVal = RequestEnterSimPuk(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_ENTER_SIM_PIN2:  // 4
+            case RIL_REQUEST_ENTER_SIM_PIN2:
                 eRetVal = RequestEnterSimPin2(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_ENTER_SIM_PUK2:  // 5
+            case RIL_REQUEST_ENTER_SIM_PUK2:
                 eRetVal = RequestEnterSimPuk2(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_CHANGE_SIM_PIN:  // 6
+            case RIL_REQUEST_CHANGE_SIM_PIN:
                 eRetVal = RequestChangeSimPin(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_CHANGE_SIM_PIN2:  // 7
+            case RIL_REQUEST_CHANGE_SIM_PIN2:
                 eRetVal = RequestChangeSimPin2(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION:  // 8
+            case RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION:
                 eRetVal = RequestEnterNetworkDepersonalization(hRilToken,
                         pData, datalen);
                 break;
 
-            case RIL_REQUEST_GET_CURRENT_CALLS:  // 9
+            case RIL_REQUEST_GET_CURRENT_CALLS:
                 eRetVal = RequestGetCurrentCalls(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_DIAL:  // 10
+            case RIL_REQUEST_DIAL:
                 eRetVal = RequestDial(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_GET_IMSI:  // 11
+            case RIL_REQUEST_GET_IMSI:
                 eRetVal = RequestGetImsi(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_HANGUP:  // 12
+            case RIL_REQUEST_HANGUP:
                 eRetVal = RequestHangup(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND:  // 13
+            case RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND:
                 eRetVal = RequestHangupWaitingOrBackground(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND:  // 14
+            case RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND:
                 eRetVal = RequestHangupForegroundResumeBackground(hRilToken,
                         pData, datalen);
                 break;
 
-            case RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE:  // 15
+            case RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE:
                 eRetVal = RequestSwitchHoldingAndActive(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_CONFERENCE:  // 16
+            case RIL_REQUEST_CONFERENCE:
                 eRetVal = RequestConference(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_UDUB:  // 17
+            case RIL_REQUEST_UDUB:
                 eRetVal = RequestUdub(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_LAST_CALL_FAIL_CAUSE:  // 18
+            case RIL_REQUEST_LAST_CALL_FAIL_CAUSE:
                 eRetVal = RequestLastCallFailCause(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SIGNAL_STRENGTH:  // 19
+            case RIL_REQUEST_SIGNAL_STRENGTH:
                 eRetVal = RequestSignalStrength(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_VOICE_REGISTRATION_STATE:  // 20
+            case RIL_REQUEST_VOICE_REGISTRATION_STATE:
                 eRetVal = RequestRegistrationState(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_DATA_REGISTRATION_STATE:  // 21
+            case RIL_REQUEST_DATA_REGISTRATION_STATE:
                 eRetVal = RequestGPRSRegistrationState(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_OPERATOR:  // 22
+            case RIL_REQUEST_OPERATOR:
                 eRetVal = RequestOperator(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_RADIO_POWER:  // 23
+            case RIL_REQUEST_RADIO_POWER:
                 eRetVal = RequestRadioPower(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_DTMF:  // 24
+            case RIL_REQUEST_DTMF:
                 eRetVal = RequestDtmf(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SEND_SMS:  // 25
+            case RIL_REQUEST_SEND_SMS:
                 eRetVal = RequestSendSms(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SEND_SMS_EXPECT_MORE:  // 26
+            case RIL_REQUEST_SEND_SMS_EXPECT_MORE:
                 eRetVal = RequestSendSmsExpectMore(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SETUP_DATA_CALL:  // 27
+            case RIL_REQUEST_SETUP_DATA_CALL:
                 eRetVal = RequestSetupDataCall(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SIM_IO:  // 28
+            case RIL_REQUEST_SIM_IO:
                 eRetVal = RequestSimIo(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SEND_USSD:  // 29
+            case RIL_REQUEST_SEND_USSD:
                 eRetVal = (RIL_Errno)CTE::GetTE().RequestSendUssd(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_CANCEL_USSD:  // 30
+            case RIL_REQUEST_CANCEL_USSD:
                 eRetVal = (RIL_Errno)CTE::GetTE().RequestCancelUssd(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_GET_CLIR:  // 31
+            case RIL_REQUEST_GET_CLIR:
                 eRetVal = RequestGetClir(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SET_CLIR:  // 32
+            case RIL_REQUEST_SET_CLIR:
                 eRetVal = RequestSetClir(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_QUERY_CALL_FORWARD_STATUS:  // 33
+            case RIL_REQUEST_QUERY_CALL_FORWARD_STATUS:
                 eRetVal = RequestQueryCallForwardStatus(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SET_CALL_FORWARD:  // 34
+            case RIL_REQUEST_SET_CALL_FORWARD:
                 eRetVal = RequestSetCallForward(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_QUERY_CALL_WAITING:  // 35
+            case RIL_REQUEST_QUERY_CALL_WAITING:
                 eRetVal = RequestQueryCallWaiting(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SET_CALL_WAITING:  // 36
+            case RIL_REQUEST_SET_CALL_WAITING:
                 eRetVal = RequestSetCallWaiting(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SMS_ACKNOWLEDGE:  // 37
+            case RIL_REQUEST_SMS_ACKNOWLEDGE:
                 eRetVal = RequestSmsAcknowledge(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_GET_IMEI:  // 38
+            case RIL_REQUEST_GET_IMEI:
                 eRetVal = RequestGetImei(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_GET_IMEISV:  // 39
+            case RIL_REQUEST_GET_IMEISV:
                 eRetVal = RequestGetImeisv(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_ANSWER:  // 40
+            case RIL_REQUEST_ANSWER:
                 eRetVal = RequestAnswer(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_DEACTIVATE_DATA_CALL:  // 41
+            case RIL_REQUEST_DEACTIVATE_DATA_CALL:
                 eRetVal = RequestDeactivateDataCall(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_QUERY_FACILITY_LOCK:  // 42
+            case RIL_REQUEST_QUERY_FACILITY_LOCK:
                 eRetVal = RequestQueryFacilityLock(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SET_FACILITY_LOCK:  // 43
+            case RIL_REQUEST_SET_FACILITY_LOCK:
                 eRetVal = RequestSetFacilityLock(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_CHANGE_BARRING_PASSWORD:  // 44
+            case RIL_REQUEST_CHANGE_BARRING_PASSWORD:
                 eRetVal = RequestChangeBarringPassword(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:  // 45
+            case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:
                 eRetVal = RequestQueryNetworkSelectionMode(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC:  // 46
+            case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC:
                 eRetVal = RequestSetNetworkSelectionAutomatic(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:  // 47
+            case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:
                 eRetVal = RequestSetNetworkSelectionManual(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_QUERY_AVAILABLE_NETWORKS:  // 48
+            case RIL_REQUEST_QUERY_AVAILABLE_NETWORKS:
                 eRetVal = RequestQueryAvailableNetworks(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_DTMF_START:  // 49
+            case RIL_REQUEST_DTMF_START:
                 eRetVal = RequestDtmfStart(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_DTMF_STOP:  // 50
+            case RIL_REQUEST_DTMF_STOP:
                 eRetVal = RequestDtmfStop(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_BASEBAND_VERSION:  // 51
+            case RIL_REQUEST_BASEBAND_VERSION:
                 eRetVal = RequestBasebandVersion(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SEPARATE_CONNECTION:  // 52
+            case RIL_REQUEST_SEPARATE_CONNECTION:
                 eRetVal = RequestSeparateConnection(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SET_MUTE:  // 53
+            case RIL_REQUEST_SET_MUTE:
                 eRetVal = RequestSetMute(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_GET_MUTE:  // 54
+            case RIL_REQUEST_GET_MUTE:
                 eRetVal = RequestGetMute(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_QUERY_CLIP:  // 55
+            case RIL_REQUEST_QUERY_CLIP:
                 eRetVal = RequestQueryClip(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE:  // 56
+            case RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE:
                 eRetVal = RequestLastDataCallFailCause(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_DATA_CALL_LIST:  // 57
+            case RIL_REQUEST_DATA_CALL_LIST:
                 eRetVal = RequestDataCallList(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_RESET_RADIO:  // 58
+            case RIL_REQUEST_RESET_RADIO:
                 eRetVal = RequestResetRadio(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_OEM_HOOK_RAW:  // 59
+            case RIL_REQUEST_OEM_HOOK_RAW:
                 eRetVal = RequestHookRaw(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_OEM_HOOK_STRINGS:  // 60
+            case RIL_REQUEST_OEM_HOOK_STRINGS:
                 eRetVal = RequestHookStrings(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SCREEN_STATE:  // 61
+            case RIL_REQUEST_SCREEN_STATE:
                 eRetVal = RequestScreenState(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION:  // 62
+            case RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION:
                 eRetVal = RequestSetSuppSvcNotification(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_WRITE_SMS_TO_SIM:  // 63
+            case RIL_REQUEST_WRITE_SMS_TO_SIM:
                 eRetVal = RequestWriteSmsToSim(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_DELETE_SMS_ON_SIM:  // 64
+            case RIL_REQUEST_DELETE_SMS_ON_SIM:
                 eRetVal = RequestDeleteSmsOnSim(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SET_BAND_MODE:  // 65
+            case RIL_REQUEST_SET_BAND_MODE:
                 eRetVal = RequestSetBandMode(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE:  // 66
+            case RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE:
                 eRetVal = RequestQueryAvailableBandMode(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_STK_GET_PROFILE:  // 67
+            case RIL_REQUEST_STK_GET_PROFILE:
                 eRetVal = RequestStkGetProfile(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_STK_SET_PROFILE:  // 68
+            case RIL_REQUEST_STK_SET_PROFILE:
                 eRetVal = RequestStkSetProfile(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:  // 69
+            case RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND:
                 eRetVal = RequestStkSendEnvelopeCommand(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:  // 70
+            case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:
                 eRetVal = RequestStkSendTerminalResponse(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM:  // 71
+            case RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM:
                 eRetVal = RequestStkHandleCallSetupRequestedFromSim(hRilToken,
                         pData, datalen);
                 break;
 
-            case RIL_REQUEST_EXPLICIT_CALL_TRANSFER:  // 72
+            case RIL_REQUEST_EXPLICIT_CALL_TRANSFER:
                 eRetVal = RequestExplicitCallTransfer(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:  // 73
+            case RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE:
                 // Delay request if radio state is Off until it is On
                 if (RADIO_STATE_OFF == GetRadioState())
                 {
@@ -946,11 +946,11 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 }
                 break;
 
-            case RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE:  // 74
+            case RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE:
                 eRetVal = RequestGetPreferredNetworkType(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:  // 75
+            case RIL_REQUEST_GET_NEIGHBORING_CELL_IDS:
             {
                 if (IsCellInfoEnabled())
                 {
@@ -963,140 +963,140 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
             }
             break;
 
-            case RIL_REQUEST_SET_LOCATION_UPDATES:  // 76
+            case RIL_REQUEST_SET_LOCATION_UPDATES:
                 eRetVal = (RIL_Errno)CTE::GetTE().RequestSetLocationUpdates(
                         hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE:  // 77 - CDMA, not supported
+            case RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE:  // 78 - CDMA, not supported
+            case RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE:  // 79 - CDMA, not supported
+            case RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_SET_TTY_MODE:  // 80
+            case RIL_REQUEST_SET_TTY_MODE:
                 eRetVal = RequestSetTtyMode(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_QUERY_TTY_MODE:  // 81
+            case RIL_REQUEST_QUERY_TTY_MODE:
                 eRetVal = RequestQueryTtyMode(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE:  // 82 - CDMA, not supported
+            case RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE:  // 83 - CDMA, not supported
+            case RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_FLASH:  // 84 - CDMA, not supported
+            case RIL_REQUEST_CDMA_FLASH:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_BURST_DTMF:  // 85 - CDMA, not supported
+            case RIL_REQUEST_CDMA_BURST_DTMF:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY:  // 86 - CDMA, not supported
+            case RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_SEND_SMS:  // 87 - CDMA, not supported
+            case RIL_REQUEST_CDMA_SEND_SMS:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE:  // 88 - CDMA, not supported
+            case RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG:  // 89
+            case RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG:
                 eRetVal = RequestGsmGetBroadcastSmsConfig(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG:  // 90
+            case RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG:
                 eRetVal = RequestGsmSetBroadcastSmsConfig(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION:  // 91
+            case RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION:
                 eRetVal = RequestGsmSmsBroadcastActivation(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG:  // 92 - CDMA, not supported
+            case RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG:  // 93 - CDMA, not supported
+            case RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION:  // 94 - CDMA, not supported
+            case RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_SUBSCRIPTION:  // 95 - CDMA, not supported
+            case RIL_REQUEST_CDMA_SUBSCRIPTION:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM:  // 96 - CDMA, not supported
+            case RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM:  // 97 - CDMA, not supported
+            case RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_DEVICE_IDENTITY:  // 98 - CDMA, not supported
+            case RIL_REQUEST_DEVICE_IDENTITY:
                 eRetVal = RequestDeviceIdentity(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE:  // 99 - CDMA, not supported
+            case RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE:
                 eRetVal = RequestExitEmergencyCallbackMode(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_GET_SMSC_ADDRESS:  // 100
+            case RIL_REQUEST_GET_SMSC_ADDRESS:
                 eRetVal = RequestGetSmscAddress(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SET_SMSC_ADDRESS:  // 101
+            case RIL_REQUEST_SET_SMSC_ADDRESS:
                 eRetVal = RequestSetSmscAddress(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_REPORT_SMS_MEMORY_STATUS:  // 102
+            case RIL_REQUEST_REPORT_SMS_MEMORY_STATUS:
                 eRetVal = RequestReportSmsMemoryStatus(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:  // 103
+            case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
                 eRetVal = RequestReportStkServiceRunning(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_CDMA_GET_SUBSCRIPTION_SOURCE:  // 104 - CDMA, not supported
+            case RIL_REQUEST_CDMA_GET_SUBSCRIPTION_SOURCE:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_ISIM_AUTHENTICATION:  // 105
+            case RIL_REQUEST_ISIM_AUTHENTICATION:
                 eRetVal = RequestISimAuthenticate(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU:  // 106
+            case RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU:
                 eRetVal = RequestAckIncomingGsmSmsWithPdu(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:  // 107
+            case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
                 eRetVal = RequestStkSendEnvelopeWithStatus(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_VOICE_RADIO_TECH:  // 108
+            case RIL_REQUEST_VOICE_RADIO_TECH:
                 eRetVal = RequestVoiceRadioTech(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_GET_CELL_INFO_LIST:  // 109
+            case RIL_REQUEST_GET_CELL_INFO_LIST:
                 {
                     if (IsCellInfoEnabled())
                     {
@@ -1109,7 +1109,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 }
                 break;
 
-            case RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE:  // 110
+            case RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE:
                 {
                     if (IsCellInfoEnabled())
                     {
@@ -1122,38 +1122,38 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 }
                 break;
 
-            case RIL_REQUEST_SET_INITIAL_ATTACH_APN: // 111
+            case RIL_REQUEST_SET_INITIAL_ATTACH_APN:
                 eRetVal = RequestSetInitialAttachApn(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_IMS_REGISTRATION_STATE: // 112
-            case RIL_REQUEST_IMS_SEND_SMS: // 113
+            case RIL_REQUEST_IMS_REGISTRATION_STATE:
+            case RIL_REQUEST_IMS_SEND_SMS:
                 RIL_onRequestComplete(hRilToken, RIL_E_REQUEST_NOT_SUPPORTED, NULL, 0);
                 break;
 
-            case RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC:  // 114
+            case RIL_REQUEST_SIM_TRANSMIT_APDU_BASIC:
                 eRetVal = RequestSimTransmitApduBasic(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SIM_OPEN_CHANNEL:  // 115
+            case RIL_REQUEST_SIM_OPEN_CHANNEL:
                 eRetVal = RequestSimOpenChannel(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SIM_CLOSE_CHANNEL:  // 116
+            case RIL_REQUEST_SIM_CLOSE_CHANNEL:
                 eRetVal = RequestSimCloseChannel(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL:  // 117
+            case RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL:
                 eRetVal = RequestSimTransmitApduChannel(hRilToken, pData, datalen);
                 break;
 
 #if defined(M2_VT_FEATURE_ENABLED)
 
-            case RIL_REQUEST_HANGUP_VT:  // 118
+            case RIL_REQUEST_HANGUP_VT:
                 eRetVal = RequestHangupVT(hRilToken, pData, datalen);
                 break;
 
-            case RIL_REQUEST_DIAL_VT:  // 119
+            case RIL_REQUEST_DIAL_VT:
                 eRetVal = RequestDialVT(hRilToken, pData, datalen);
                 break;
 
@@ -1161,7 +1161,7 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
 
-            case RIL_REQUEST_GET_SIM_SMS_STORAGE:  // 118 or 120
+            case RIL_REQUEST_GET_SIM_SMS_STORAGE:
                 eRetVal = RequestGetSimSmsStorage(hRilToken, pData, datalen);
                 break;
 
@@ -1239,7 +1239,7 @@ void CTE::SendSetPrefNetTypeRequest()
 }
 
 //
-// RIL_REQUEST_GET_SIM_STATUS 1
+// RIL_REQUEST_GET_SIM_STATUS
 //
 RIL_RESULT_CODE CTE::RequestGetSimStatus(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -1303,7 +1303,7 @@ RIL_RESULT_CODE CTE::ParseGetSimStatus(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_ENTER_SIM_PIN 2
+// RIL_REQUEST_ENTER_SIM_PIN
 //
 RIL_RESULT_CODE CTE::RequestEnterSimPin(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -1355,7 +1355,7 @@ RIL_RESULT_CODE CTE::ParseEnterSimPin(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_ENTER_SIM_PUK 3
+// RIL_REQUEST_ENTER_SIM_PUK
 //
 RIL_RESULT_CODE CTE::RequestEnterSimPuk(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -1407,7 +1407,7 @@ RIL_RESULT_CODE CTE::ParseEnterSimPuk(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_ENTER_SIM_PIN2 4
+// RIL_REQUEST_ENTER_SIM_PIN2
 //
 RIL_RESULT_CODE CTE::RequestEnterSimPin2(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -1460,7 +1460,7 @@ RIL_RESULT_CODE CTE::ParseEnterSimPin2(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_ENTER_SIM_PUK2 5
+// RIL_REQUEST_ENTER_SIM_PUK2
 //
 RIL_RESULT_CODE CTE::RequestEnterSimPuk2(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -1513,7 +1513,7 @@ RIL_RESULT_CODE CTE::ParseEnterSimPuk2(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CHANGE_SIM_PIN 6
+// RIL_REQUEST_CHANGE_SIM_PIN
 //
 RIL_RESULT_CODE CTE::RequestChangeSimPin(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -1567,7 +1567,7 @@ RIL_RESULT_CODE CTE::ParseChangeSimPin(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CHANGE_SIM_PIN2 7
+// RIL_REQUEST_CHANGE_SIM_PIN2
 //
 RIL_RESULT_CODE CTE::RequestChangeSimPin2(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -1621,7 +1621,7 @@ RIL_RESULT_CODE CTE::ParseChangeSimPin2(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION 8
+// RIL_REQUEST_ENTER_NETWORK_DEPERSONALIZATION
 //
 RIL_RESULT_CODE CTE::RequestEnterNetworkDepersonalization(RIL_Token rilToken,
                                                                  void* pData,
@@ -1680,7 +1680,7 @@ RIL_RESULT_CODE CTE::ParseEnterNetworkDepersonalization(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GET_CURRENT_CALLS 9
+// RIL_REQUEST_GET_CURRENT_CALLS
 //
 RIL_RESULT_CODE CTE::RequestGetCurrentCalls(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -1732,7 +1732,7 @@ RIL_RESULT_CODE CTE::ParseGetCurrentCalls(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_DIAL 10
+// RIL_REQUEST_DIAL
 //
 RIL_RESULT_CODE CTE::RequestDial(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -1782,7 +1782,7 @@ RIL_RESULT_CODE CTE::ParseDial(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GET_IMSI 11
+// RIL_REQUEST_GET_IMSI
 //
 RIL_RESULT_CODE CTE::RequestGetImsi(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -1830,7 +1830,7 @@ RIL_RESULT_CODE CTE::ParseGetImsi(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_HANGUP 12
+// RIL_REQUEST_HANGUP
 //
 RIL_RESULT_CODE CTE::RequestHangup(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -1885,7 +1885,7 @@ RIL_RESULT_CODE CTE::ParseHangup(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND 13
+// RIL_REQUEST_HANGUP_WAITING_OR_BACKGROUND
 //
 RIL_RESULT_CODE CTE::RequestHangupWaitingOrBackground(RIL_Token rilToken,
                                                              void* pData,
@@ -1942,7 +1942,7 @@ RIL_RESULT_CODE CTE::ParseHangupWaitingOrBackground(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND 14
+// RIL_REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND
 //
 RIL_RESULT_CODE CTE::RequestHangupForegroundResumeBackground(RIL_Token rilToken,
                                                                     void* pData,
@@ -2004,8 +2004,8 @@ RIL_RESULT_CODE CTE::ParseHangupForegroundResumeBackground(RESPONSE_DATA& rRspDa
 }
 
 //
-// RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE 15
-// RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE 15
+// RIL_REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE
+// RIL_REQUEST_SWITCH_HOLDING_AND_ACTIVE
 //
 RIL_RESULT_CODE CTE::RequestSwitchHoldingAndActive(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2064,7 +2064,7 @@ RIL_RESULT_CODE CTE::ParseSwitchHoldingAndActive(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CONFERENCE 16
+// RIL_REQUEST_CONFERENCE
 //
 RIL_RESULT_CODE CTE::RequestConference(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2120,7 +2120,7 @@ RIL_RESULT_CODE CTE::ParseConference(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_UDUB 17
+// RIL_REQUEST_UDUB
 //
 RIL_RESULT_CODE CTE::RequestUdub(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2169,7 +2169,7 @@ RIL_RESULT_CODE CTE::ParseUdub(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_LAST_CALL_FAIL_CAUSE 18
+// RIL_REQUEST_LAST_CALL_FAIL_CAUSE
 //
 RIL_RESULT_CODE CTE::RequestLastCallFailCause(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2222,7 +2222,7 @@ RIL_RESULT_CODE CTE::ParseLastCallFailCause(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SIGNAL_STRENGTH 19
+// RIL_REQUEST_SIGNAL_STRENGTH
 //
 RIL_RESULT_CODE CTE::RequestSignalStrength(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2272,7 +2272,7 @@ RIL_RESULT_CODE CTE::ParseSignalStrength(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_VOICE_REGISTRATION_STATE 20
+// RIL_REQUEST_VOICE_REGISTRATION_STATE
 //
 RIL_RESULT_CODE CTE::RequestRegistrationState(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2342,7 +2342,7 @@ RIL_RESULT_CODE CTE::ParseRegistrationState(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_DATA_REGISTRATION_STATE 21
+// RIL_REQUEST_DATA_REGISTRATION_STATE
 //
 RIL_RESULT_CODE CTE::RequestGPRSRegistrationState(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2417,7 +2417,7 @@ RIL_RESULT_CODE CTE::ParseGPRSRegistrationState(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_OPERATOR 22
+// RIL_REQUEST_OPERATOR
 //
 RIL_RESULT_CODE CTE::RequestOperator(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2465,7 +2465,7 @@ RIL_RESULT_CODE CTE::ParseOperator(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_RADIO_POWER 23
+// RIL_REQUEST_RADIO_POWER
 //
 RIL_RESULT_CODE CTE::RequestRadioPower(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2597,7 +2597,7 @@ RIL_RESULT_CODE CTE::ParseRadioPower(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_DTMF 24
+// RIL_REQUEST_DTMF
 //
 RIL_RESULT_CODE CTE::RequestDtmf(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2645,7 +2645,7 @@ RIL_RESULT_CODE CTE::ParseDtmf(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SEND_SMS 25
+// RIL_REQUEST_SEND_SMS
 //
 RIL_RESULT_CODE CTE::RequestSendSms(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2694,7 +2694,7 @@ RIL_RESULT_CODE CTE::ParseSendSms(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SEND_SMS_EXPECT_MORE 26
+// RIL_REQUEST_SEND_SMS_EXPECT_MORE
 //
 RIL_RESULT_CODE CTE::RequestSendSmsExpectMore(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2746,7 +2746,7 @@ RIL_RESULT_CODE CTE::ParseSendSmsExpectMore(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SETUP_DATA_CALL 27
+// RIL_REQUEST_SETUP_DATA_CALL
 //
 RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2927,7 +2927,7 @@ RIL_RESULT_CODE CTE::ParseSetupDataCall(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SIM_IO 28
+// RIL_REQUEST_SIM_IO
 //
 RIL_RESULT_CODE CTE::RequestSimIo(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -2980,7 +2980,7 @@ RIL_RESULT_CODE CTE::ParseSimIo(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SEND_USSD 29
+// RIL_REQUEST_SEND_USSD
 //
 RIL_RESULT_CODE CTE::RequestSendUssd(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3028,7 +3028,7 @@ RIL_RESULT_CODE CTE::ParseSendUssd(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CANCEL_USSD 30
+// RIL_REQUEST_CANCEL_USSD
 //
 RIL_RESULT_CODE CTE::RequestCancelUssd(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3076,7 +3076,7 @@ RIL_RESULT_CODE CTE::ParseCancelUssd(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GET_CLIR 31
+// RIL_REQUEST_GET_CLIR
 //
 RIL_RESULT_CODE CTE::RequestGetClir(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3124,7 +3124,7 @@ RIL_RESULT_CODE CTE::ParseGetClir(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_CLIR 32
+// RIL_REQUEST_SET_CLIR
 //
 RIL_RESULT_CODE CTE::RequestSetClir(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3172,7 +3172,7 @@ RIL_RESULT_CODE CTE::ParseSetClir(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_QUERY_CALL_FORWARD_STATUS 33
+// RIL_REQUEST_QUERY_CALL_FORWARD_STATUS
 //
 RIL_RESULT_CODE CTE::RequestQueryCallForwardStatus(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3225,7 +3225,7 @@ RIL_RESULT_CODE CTE::ParseQueryCallForwardStatus(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_CALL_FORWARD 34
+// RIL_REQUEST_SET_CALL_FORWARD
 //
 RIL_RESULT_CODE CTE::RequestSetCallForward(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3275,7 +3275,7 @@ RIL_RESULT_CODE CTE::ParseSetCallForward(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_QUERY_CALL_WAITING 35
+// RIL_REQUEST_QUERY_CALL_WAITING
 //
 RIL_RESULT_CODE CTE::RequestQueryCallWaiting(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3325,7 +3325,7 @@ RIL_RESULT_CODE CTE::ParseQueryCallWaiting(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_CALL_WAITING 36
+// RIL_REQUEST_SET_CALL_WAITING
 //
 RIL_RESULT_CODE CTE::RequestSetCallWaiting(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3375,7 +3375,7 @@ RIL_RESULT_CODE CTE::ParseSetCallWaiting(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SMS_ACKNOWLEDGE 37
+// RIL_REQUEST_SMS_ACKNOWLEDGE
 //
 RIL_RESULT_CODE CTE::RequestSmsAcknowledge(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3425,7 +3425,7 @@ RIL_RESULT_CODE CTE::ParseSmsAcknowledge(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GET_IMEI 38
+// RIL_REQUEST_GET_IMEI
 //
 RIL_RESULT_CODE CTE::RequestGetImei(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3473,7 +3473,7 @@ RIL_RESULT_CODE CTE::ParseGetImei(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GET_IMEISV 39
+// RIL_REQUEST_GET_IMEISV
 //
 RIL_RESULT_CODE CTE::RequestISimAuthenticate(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3525,7 +3525,7 @@ RIL_RESULT_CODE CTE::ParseISimAuthenticate(RESPONSE_DATA& rRspData)
 
 
 //
-// RIL_REQUEST_GET_IMEISV 39
+// RIL_REQUEST_GET_IMEISV
 //
 RIL_RESULT_CODE CTE::RequestGetImeisv(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3574,7 +3574,7 @@ RIL_RESULT_CODE CTE::ParseGetImeisv(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_ANSWER 40
+// RIL_REQUEST_ANSWER
 //
 RIL_RESULT_CODE CTE::RequestAnswer(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3624,7 +3624,7 @@ RIL_RESULT_CODE CTE::ParseAnswer(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_DEACTIVATE_DATA_CALL 41
+// RIL_REQUEST_DEACTIVATE_DATA_CALL
 //
 RIL_RESULT_CODE CTE::RequestDeactivateDataCall(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3700,7 +3700,7 @@ RIL_RESULT_CODE CTE::ParseDeactivateDataCall(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_QUERY_FACILITY_LOCK 42
+// RIL_REQUEST_QUERY_FACILITY_LOCK
 //
 RIL_RESULT_CODE CTE::RequestQueryFacilityLock(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3755,7 +3755,7 @@ RIL_RESULT_CODE CTE::ParseQueryFacilityLock(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_FACILITY_LOCK 43
+// RIL_REQUEST_SET_FACILITY_LOCK
 //
 RIL_RESULT_CODE CTE::RequestSetFacilityLock(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3813,7 +3813,7 @@ RIL_RESULT_CODE CTE::ParseSetFacilityLock(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CHANGE_BARRING_PASSWORD 44
+// RIL_REQUEST_CHANGE_BARRING_PASSWORD
 //
 RIL_RESULT_CODE CTE::RequestChangeBarringPassword(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -3866,7 +3866,7 @@ RIL_RESULT_CODE CTE::ParseChangeBarringPassword(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE 45
+// RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE
 //
 RIL_RESULT_CODE CTE::RequestQueryNetworkSelectionMode(RIL_Token rilToken,
         void* pData, size_t datalen)
@@ -3921,7 +3921,7 @@ RIL_RESULT_CODE CTE::ParseQueryNetworkSelectionMode(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC 46
+// RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC
 //
 RIL_RESULT_CODE CTE::RequestSetNetworkSelectionAutomatic(RIL_Token rilToken,
                                                                 void* pData,
@@ -3971,7 +3971,7 @@ RIL_RESULT_CODE CTE::ParseSetNetworkSelectionAutomatic(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL 47
+// RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL
 //
 RIL_RESULT_CODE CTE::RequestSetNetworkSelectionManual(RIL_Token rilToken,
                                                              void* pData,
@@ -4010,7 +4010,7 @@ RIL_RESULT_CODE CTE::ParseSetNetworkSelectionManual(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_QUERY_AVAILABLE_NETWORKS 48
+// RIL_REQUEST_QUERY_AVAILABLE_NETWORKS
 //
 RIL_RESULT_CODE CTE::RequestQueryAvailableNetworks(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4081,7 +4081,7 @@ RIL_RESULT_CODE CTE::ParseQueryAvailableNetworks(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_DTMF_START 49
+// RIL_REQUEST_DTMF_START
 //
 RIL_RESULT_CODE CTE::RequestDtmfStart(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4136,7 +4136,7 @@ RIL_RESULT_CODE CTE::ParseDtmfStart(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_DTMF_STOP 50
+// RIL_REQUEST_DTMF_STOP
 //
 RIL_RESULT_CODE CTE::RequestDtmfStop(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4190,7 +4190,7 @@ RIL_RESULT_CODE CTE::ParseDtmfStop(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_BASEBAND_VERSION 51
+// RIL_REQUEST_BASEBAND_VERSION
 //
 RIL_RESULT_CODE CTE::RequestBasebandVersion(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4240,7 +4240,7 @@ RIL_RESULT_CODE CTE::ParseBasebandVersion(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SEPARATE_CONNECTION 52
+// RIL_REQUEST_SEPARATE_CONNECTION
 //
 RIL_RESULT_CODE CTE::RequestSeparateConnection(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4299,7 +4299,7 @@ RIL_RESULT_CODE CTE::ParseSeparateConnection(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_MUTE 53
+// RIL_REQUEST_SET_MUTE
 //
 RIL_RESULT_CODE CTE::RequestSetMute(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4348,7 +4348,7 @@ RIL_RESULT_CODE CTE::ParseSetMute(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GET_MUTE 54
+// RIL_REQUEST_GET_MUTE
 //
 RIL_RESULT_CODE CTE::RequestGetMute(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4396,7 +4396,7 @@ RIL_RESULT_CODE CTE::ParseGetMute(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_QUERY_CLIP 55
+// RIL_REQUEST_QUERY_CLIP
 //
 RIL_RESULT_CODE CTE::RequestQueryClip(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4445,7 +4445,7 @@ RIL_RESULT_CODE CTE::ParseQueryClip(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE 56
+// RIL_REQUEST_LAST_DATA_CALL_FAIL_CAUSE
 //
 RIL_RESULT_CODE CTE::RequestLastDataCallFailCause(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4498,7 +4498,7 @@ RIL_RESULT_CODE CTE::ParseLastDataCallFailCause(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_DATA_CALL_LIST 57
+// RIL_REQUEST_DATA_CALL_LIST
 //
 RIL_RESULT_CODE CTE::RequestDataCallList(RIL_Token rilToken, void* /*pData*/, size_t /*datalen*/)
 {
@@ -4535,7 +4535,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_RESET_RADIO 58
+// RIL_REQUEST_RESET_RADIO
 //
 RIL_RESULT_CODE CTE::RequestResetRadio(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4584,7 +4584,7 @@ RIL_RESULT_CODE CTE::ParseResetRadio(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_OEM_HOOK_RAW 59
+// RIL_REQUEST_OEM_HOOK_RAW
 //
 RIL_RESULT_CODE CTE::RequestHookRaw(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4637,7 +4637,7 @@ RIL_RESULT_CODE CTE::ParseHookRaw(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_OEM_HOOK_STRINGS 60
+// RIL_REQUEST_OEM_HOOK_STRINGS
 //
 RIL_RESULT_CODE CTE::RequestHookStrings(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4740,7 +4740,7 @@ RIL_RESULT_CODE CTE::ParseHookStrings(RESPONSE_DATA& rRspData)
 
 
 //
-// RIL_REQUEST_SCREEN_STATE 61
+// RIL_REQUEST_SCREEN_STATE
 //
 RIL_RESULT_CODE CTE::RequestScreenState(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4787,7 +4787,7 @@ RIL_RESULT_CODE CTE::ParseScreenState(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION 62
+// RIL_REQUEST_SET_SUPP_SVC_NOTIFICATION
 //
 RIL_RESULT_CODE CTE::RequestSetSuppSvcNotification(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4840,7 +4840,7 @@ RIL_RESULT_CODE CTE::ParseSetSuppSvcNotification(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_WRITE_SMS_TO_SIM 63
+// RIL_REQUEST_WRITE_SMS_TO_SIM
 //
 RIL_RESULT_CODE CTE::RequestWriteSmsToSim(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4891,7 +4891,7 @@ RIL_RESULT_CODE CTE::ParseWriteSmsToSim(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_DELETE_SMS_ON_SIM 64
+// RIL_REQUEST_DELETE_SMS_ON_SIM
 //
 RIL_RESULT_CODE CTE::RequestDeleteSmsOnSim(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4941,7 +4941,7 @@ RIL_RESULT_CODE CTE::ParseDeleteSmsOnSim(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_BAND_MODE 65
+// RIL_REQUEST_SET_BAND_MODE
 //
 RIL_RESULT_CODE CTE::RequestSetBandMode(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -4990,7 +4990,7 @@ RIL_RESULT_CODE CTE::ParseSetBandMode(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE 66
+// RIL_REQUEST_QUERY_AVAILABLE_BAND_MODE
 //
 RIL_RESULT_CODE CTE::RequestQueryAvailableBandMode(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -5043,7 +5043,7 @@ RIL_RESULT_CODE CTE::ParseQueryAvailableBandMode(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_STK_GET_PROFILE 67
+// RIL_REQUEST_STK_GET_PROFILE
 //
 RIL_RESULT_CODE CTE::RequestStkGetProfile(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -5093,7 +5093,7 @@ RIL_RESULT_CODE CTE::ParseStkGetProfile(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_STK_SET_PROFILE 68
+// RIL_REQUEST_STK_SET_PROFILE
 //
 RIL_RESULT_CODE CTE::RequestStkSetProfile(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -5143,7 +5143,7 @@ RIL_RESULT_CODE CTE::ParseStkSetProfile(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND 69
+// RIL_REQUEST_STK_SEND_ENVELOPE_COMMAND
 //
 RIL_RESULT_CODE CTE::RequestStkSendEnvelopeCommand(RIL_Token rilToken,
                                                           void* pData,
@@ -5197,7 +5197,7 @@ RIL_RESULT_CODE CTE::ParseStkSendEnvelopeCommand(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE 70
+// RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE
 //
 RIL_RESULT_CODE CTE::RequestStkSendTerminalResponse(RIL_Token rilToken,
                                                            void* pData,
@@ -5252,7 +5252,7 @@ RIL_RESULT_CODE CTE::ParseStkSendTerminalResponse(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM 71
+// RIL_REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM
 //
 RIL_RESULT_CODE CTE::RequestStkHandleCallSetupRequestedFromSim(RIL_Token rilToken,
                                                                       void* pData,
@@ -5308,7 +5308,7 @@ RIL_RESULT_CODE CTE::ParseStkHandleCallSetupRequestedFromSim(RESPONSE_DATA& rRsp
 }
 
 //
-// RIL_REQUEST_EXPLICIT_CALL_TRANSFER 72
+// RIL_REQUEST_EXPLICIT_CALL_TRANSFER
 //
 RIL_RESULT_CODE CTE::RequestExplicitCallTransfer(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -5362,7 +5362,7 @@ RIL_RESULT_CODE CTE::ParseExplicitCallTransfer(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE 73
+// RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE
 //
 RIL_RESULT_CODE CTE::RequestSetPreferredNetworkType(RIL_Token rilToken,
                                                            void* pData,
@@ -5422,7 +5422,7 @@ RIL_RESULT_CODE CTE::ParseSetPreferredNetworkType(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE 74
+// RIL_REQUEST_GET_PREFERRED_NETWORK_TYPE
 //
 RIL_RESULT_CODE CTE::RequestGetPreferredNetworkType(RIL_Token rilToken,
                                                            void* pData,
@@ -5477,7 +5477,7 @@ RIL_RESULT_CODE CTE::ParseGetPreferredNetworkType(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GET_NEIGHBORING_CELL_IDS 75
+// RIL_REQUEST_GET_NEIGHBORING_CELL_IDS
 //
 RIL_RESULT_CODE CTE::RequestGetNeighboringCellIDs(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -5530,7 +5530,7 @@ RIL_RESULT_CODE CTE::ParseGetNeighboringCellIDs(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_LOCATION_UPDATES 76
+// RIL_REQUEST_SET_LOCATION_UPDATES
 //
 RIL_RESULT_CODE CTE::RequestSetLocationUpdates(RIL_Token rilToken, void* pData,
         size_t datalen)
@@ -5600,7 +5600,7 @@ RIL_RESULT_CODE CTE::ParseSetLocationUpdates(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE 77
+// RIL_REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE
 //
 RIL_RESULT_CODE CTE::RequestCdmaSetSubscription(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -5653,7 +5653,7 @@ RIL_RESULT_CODE CTE::ParseCdmaSetSubscription(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE 78
+// RIL_REQUEST_CDMA_SET_ROAMING_PREFERENCE
 //
 RIL_RESULT_CODE CTE::RequestCdmaSetRoamingPreference(RIL_Token rilToken,
                                                             void* pData,
@@ -5708,7 +5708,7 @@ RIL_RESULT_CODE CTE::ParseCdmaSetRoamingPreference(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE 79
+// RIL_REQUEST_CDMA_QUERY_ROAMING_PREFERENCE
 //
 RIL_RESULT_CODE CTE::RequestCdmaQueryRoamingPreference(RIL_Token rilToken,
                                                               void* pData,
@@ -5764,7 +5764,7 @@ RIL_RESULT_CODE CTE::ParseCdmaQueryRoamingPreference(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_TTY_MODE 80
+// RIL_REQUEST_SET_TTY_MODE
 //
 RIL_RESULT_CODE CTE::RequestSetTtyMode(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -5812,7 +5812,7 @@ RIL_RESULT_CODE CTE::ParseSetTtyMode(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_QUERY_TTY_MODE 81
+// RIL_REQUEST_QUERY_TTY_MODE
 //
 RIL_RESULT_CODE CTE::RequestQueryTtyMode(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -5862,7 +5862,7 @@ RIL_RESULT_CODE CTE::ParseQueryTtyMode(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE 82
+// RIL_REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE
 //
 RIL_RESULT_CODE CTE::RequestCdmaSetPreferredVoicePrivacyMode(RIL_Token /*rilToken*/,
                                                                     void* /*pData*/,
@@ -5881,7 +5881,7 @@ RIL_RESULT_CODE CTE::ParseCdmaSetPreferredVoicePrivacyMode(RESPONSE_DATA& rRspDa
 }
 
 //
-// RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE 83
+// RIL_REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE
 //
 RIL_RESULT_CODE CTE::RequestCdmaQueryPreferredVoicePrivacyMode(RIL_Token /*rilToken*/,
                                                                       void* /*pData*/,
@@ -5900,7 +5900,7 @@ RIL_RESULT_CODE CTE::ParseCdmaQueryPreferredVoicePrivacyMode(RESPONSE_DATA& rRsp
 }
 
 //
-// RIL_REQUEST_CDMA_FLASH 84
+// RIL_REQUEST_CDMA_FLASH
 //
 RIL_RESULT_CODE CTE::RequestCdmaFlash(RIL_Token /*rilToken*/, void* /*pData*/, size_t /*datalen*/)
 {
@@ -5917,7 +5917,7 @@ RIL_RESULT_CODE CTE::ParseCdmaFlash(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_BURST_DTMF 85
+// RIL_REQUEST_CDMA_BURST_DTMF
 //
 RIL_RESULT_CODE CTE::RequestCdmaBurstDtmf(RIL_Token /*rilToken*/, void* /*pData*/, size_t /*datalen*/)
 {
@@ -5934,7 +5934,7 @@ RIL_RESULT_CODE CTE::ParseCdmaBurstDtmf(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY 86
+// RIL_REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY
 //
 RIL_RESULT_CODE CTE::RequestCdmaValidateAndWriteAkey(RIL_Token /*rilToken*/,
                                                             void* /*pData*/,
@@ -5953,7 +5953,7 @@ RIL_RESULT_CODE CTE::ParseCdmaValidateAndWriteAkey(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_SEND_SMS 87
+// RIL_REQUEST_CDMA_SEND_SMS
 //
 RIL_RESULT_CODE CTE::RequestCdmaSendSms(RIL_Token /*rilToken*/, void* /*pData*/, size_t /*datalen*/)
 {
@@ -5970,7 +5970,7 @@ RIL_RESULT_CODE CTE::ParseCdmaSendSms(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE 88
+// RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE
 //
 RIL_RESULT_CODE CTE::RequestCdmaSmsAcknowledge(RIL_Token /*rilToken*/, void* /*pData*/, size_t /*datalen*/)
 {
@@ -5987,7 +5987,7 @@ RIL_RESULT_CODE CTE::ParseCdmaSmsAcknowledge(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG 89
+// RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG
 //
 RIL_RESULT_CODE CTE::RequestGsmGetBroadcastSmsConfig(RIL_Token rilToken,
                                                             void* pData,
@@ -6042,7 +6042,7 @@ RIL_RESULT_CODE CTE::ParseGsmGetBroadcastSmsConfig(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG 90
+// RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG
 //
 RIL_RESULT_CODE CTE::RequestGsmSetBroadcastSmsConfig(RIL_Token rilToken,
                                                             void* pData,
@@ -6102,7 +6102,7 @@ RIL_RESULT_CODE CTE::ParseGsmSetBroadcastSmsConfig(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION 91
+// RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION
 //
 RIL_RESULT_CODE CTE::RequestGsmSmsBroadcastActivation(RIL_Token rilToken,
                                                              void* pData,
@@ -6158,7 +6158,7 @@ RIL_RESULT_CODE CTE::ParseGsmSmsBroadcastActivation(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG 92
+// RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG
 //
 RIL_RESULT_CODE CTE::RequestCdmaGetBroadcastSmsConfig(RIL_Token /*rilToken*/,
                                                              void* /*pData*/,
@@ -6177,7 +6177,7 @@ RIL_RESULT_CODE CTE::ParseCdmaGetBroadcastSmsConfig(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG 93
+// RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG
 //
 RIL_RESULT_CODE CTE::RequestCdmaSetBroadcastSmsConfig(RIL_Token /*rilToken*/,
                                                              void* /*pData*/,
@@ -6196,7 +6196,7 @@ RIL_RESULT_CODE CTE::ParseCdmaSetBroadcastSmsConfig(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION 94
+// RIL_REQUEST_CDMA_SMS_BROADCAST_ACTIVATION
 //
 RIL_RESULT_CODE CTE::RequestCdmaSmsBroadcastActivation(RIL_Token /*rilToken*/,
                                                               void* /*pData*/,
@@ -6215,7 +6215,7 @@ RIL_RESULT_CODE CTE::ParseCdmaSmsBroadcastActivation(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_SUBSCRIPTION 95
+// RIL_REQUEST_CDMA_SUBSCRIPTION
 //
 RIL_RESULT_CODE CTE::RequestCdmaSubscription(RIL_Token /*rilToken*/,
                                                      void* /*pData*/,
@@ -6234,7 +6234,7 @@ RIL_RESULT_CODE CTE::ParseCdmaSubscription(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM 96
+// RIL_REQUEST_CDMA_WRITE_SMS_TO_RUIM
 //
 RIL_RESULT_CODE CTE::RequestCdmaWriteSmsToRuim(RIL_Token /*rilToken*/,
                                                        void* /*pData*/,
@@ -6253,7 +6253,7 @@ RIL_RESULT_CODE CTE::ParseCdmaWriteSmsToRuim(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM 97
+// RIL_REQUEST_CDMA_DELETE_SMS_ON_RUIM
 //
 RIL_RESULT_CODE CTE::RequestCdmaDeleteSmsOnRuim(RIL_Token /*rilToken*/,
                                                         void* /*pData*/,
@@ -6272,7 +6272,7 @@ RIL_RESULT_CODE CTE::ParseCdmaDeleteSmsOnRuim(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_DEVICE_IDENTITY 98
+// RIL_REQUEST_DEVICE_IDENTITY
 //
 RIL_RESULT_CODE CTE::RequestDeviceIdentity(RIL_Token /*rilToken*/,
                                                    void* /*pData*/,
@@ -6291,7 +6291,7 @@ RIL_RESULT_CODE CTE::ParseDeviceIdentity(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE 99
+// RIL_REQUEST_EXIT_EMERGENCY_CALLBACK_MODE
 //
 RIL_RESULT_CODE CTE::RequestExitEmergencyCallbackMode(RIL_Token /*rilToken*/,
                                                              void* /*pData*/,
@@ -6310,7 +6310,7 @@ RIL_RESULT_CODE CTE::ParseExitEmergencyCallbackMode(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_GET_SMSC_ADDRESS 100
+// RIL_REQUEST_GET_SMSC_ADDRESS
 //
 RIL_RESULT_CODE CTE::RequestGetSmscAddress(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6360,7 +6360,7 @@ RIL_RESULT_CODE CTE::ParseGetSmscAddress(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_SMSC_ADDRESS 101
+// RIL_REQUEST_SET_SMSC_ADDRESS
 //
 RIL_RESULT_CODE CTE::RequestSetSmscAddress(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6411,7 +6411,7 @@ RIL_RESULT_CODE CTE::ParseSetSmscAddress(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_REPORT_SMS_MEMORY_STATUS 102
+// RIL_REQUEST_REPORT_SMS_MEMORY_STATUS
 //
 RIL_RESULT_CODE CTE::RequestReportSmsMemoryStatus(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6464,7 +6464,7 @@ RIL_RESULT_CODE CTE::ParseReportSmsMemoryStatus(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING 103
+// RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING
 //
 RIL_RESULT_CODE CTE::RequestReportStkServiceRunning(RIL_Token rilToken,
                                                            void* pData,
@@ -6529,7 +6529,7 @@ RIL_RESULT_CODE CTE::ParseReportStkServiceRunning(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU 106
+// RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU
 //
 RIL_RESULT_CODE CTE::RequestAckIncomingGsmSmsWithPdu(RIL_Token rilToken,
                                                             void* pData,
@@ -6584,7 +6584,7 @@ RIL_RESULT_CODE CTE::ParseAckIncomingGsmSmsWithPdu(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS 107
+// RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS
 //
 RIL_RESULT_CODE CTE::RequestStkSendEnvelopeWithStatus(RIL_Token rilToken,
                                                              void* pData,
@@ -6639,7 +6639,7 @@ RIL_RESULT_CODE CTE::ParseStkSendEnvelopeWithStatus(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_VOICE_RADIO_TECH 108
+// RIL_REQUEST_VOICE_RADIO_TECH
 //
 RIL_RESULT_CODE CTE::RequestVoiceRadioTech(RIL_Token rilToken, void* /*pData*/, size_t /*datalen*/)
 {
@@ -6670,7 +6670,7 @@ RIL_RESULT_CODE CTE::RequestVoiceRadioTech(RIL_Token rilToken, void* /*pData*/, 
 }
 
 //
-// RIL_REQUEST_GET_CELL_INFO_LIST 109
+// RIL_REQUEST_GET_CELL_INFO_LIST
 //
 RIL_RESULT_CODE CTE::RequestGetCellInfoList(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6737,7 +6737,7 @@ RIL_RESULT_CODE CTE::ParseGetCellInfoList(RESPONSE_DATA& rRspData)
 }
 
 //
-// RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE 110
+// RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE
 //
 RIL_RESULT_CODE CTE::RequestSetCellInfoListRate(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -6968,7 +6968,7 @@ RIL_RESULT_CODE CTE::ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData)
 
 #if defined(M2_VT_FEATURE_ENABLED)
 //
-// RIL_REQUEST_HANGUP_VT 115
+// RIL_REQUEST_HANGUP_VT
 //
 RIL_RESULT_CODE CTE::RequestHangupVT(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -7019,7 +7019,7 @@ RIL_RESULT_CODE CTE::ParseHangupVT(RESPONSE_DATA& rRspData)
 
 
 //
-// RIL_REQUEST_DIAL_VT 116
+// RIL_REQUEST_DIAL_VT
 //
 RIL_RESULT_CODE CTE::RequestDialVT(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -7072,7 +7072,7 @@ RIL_RESULT_CODE CTE::ParseDialVT(RESPONSE_DATA& rRspData)
 
 #if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
 //
-// RIL_REQUEST_GET_SIM_SMS_STORAGE 117
+// RIL_REQUEST_GET_SIM_SMS_STORAGE
 //
 RIL_RESULT_CODE CTE::RequestGetSimSmsStorage(RIL_Token rilToken, void* pData, size_t datalen)
 {
@@ -7125,7 +7125,7 @@ RIL_RESULT_CODE CTE::ParseGetSimSmsStorage(RESPONSE_DATA& rRspData)
 #endif // M2_GET_SIM_SMS_STORAGE_ENABLED
 
 //
-// RIL_UNSOL_SIGNAL_STRENGTH  1009
+// RIL_UNSOL_SIGNAL_STRENGTH
 //
 RIL_RESULT_CODE CTE::ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData)
 {
@@ -10278,7 +10278,7 @@ void CTE::CompleteGetSimStatusRequest(RIL_Token hRilToken)
     RIL_LOG_VERBOSE("CTE::CompleteGetSimStatusRequest() - Exit\r\n");
 }
 
-// RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE 110
+// RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE
 RIL_RESULT_CODE CTE::ParseUnsolCellInfoListRate(RESPONSE_DATA& rRspData)
 {
     RIL_LOG_VERBOSE("CTE::ParseGetCellInfoListRate() - Enter / Exit\r\n");

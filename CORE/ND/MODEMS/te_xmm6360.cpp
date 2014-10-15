@@ -153,7 +153,7 @@ const char* CTE_XMM6360::GetScreenOnString()
             ? "AT+CREG=3;+CGREG=0;+XREG=3;+XCSQ=1\r" : "AT+CREG=3;+CGREG=0;+XREG=3\r";
 }
 
-// RIL_REQUEST_SETUP_DATA_CALL 27
+// RIL_REQUEST_SETUP_DATA_CALL
 RIL_RESULT_CODE CTE_XMM6360::CoreSetupDataCall(REQUEST_DATA& rReqData,
        void* pData, UINT32 uiDataSize, UINT32& uiCID)
 {
@@ -697,7 +697,7 @@ Error:
 }
 
 //
-// RIL_REQUEST_BASEBAND_VERSION 51
+// RIL_REQUEST_BASEBAND_VERSION
 //
 RIL_RESULT_CODE CTE_XMM6360::CoreBasebandVersion(REQUEST_DATA& rReqData,
         void* /*pData*/, UINT32 /*uiDataSize*/)
