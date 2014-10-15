@@ -6021,7 +6021,7 @@ RIL_RESULT_CODE CTE::RequestGsmSmsBroadcastActivation(RIL_Token rilToken,
     int activate = -1;
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (sizeof(int*) != datalen)
+    if (sizeof(int) != datalen)
     {
         RIL_LOG_CRITICAL("CTE::RequestGsmSmsBroadcastActivation() -"
                 " Passed data size mismatch. Found %d bytes\r\n", datalen);

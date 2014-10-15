@@ -3865,7 +3865,7 @@ RIL_RESULT_CODE CTE_XMM6260::CoreSetTtyMode(REQUEST_DATA& rReqData,
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int nTtyMode = 0;
 
-    if (sizeof(int*) != uiDataSize)
+    if (sizeof(int) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CoreSetTtyMode() -"
                 " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
@@ -6122,7 +6122,7 @@ BOOL CTE_XMM6260::CreateQueryIpAndDnsReq(UINT32 uiChannel, RIL_Token rilToken,
     REQUEST_DATA reqData;
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
 
-    if (NULL == pData || sizeof(pDataCallContextData) != uiDataSize)
+    if (NULL == pData || sizeof(*pDataCallContextData) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CreateQueryIpAndDnsReq() - Invalid context data\r\n");
         goto Error;
@@ -6181,7 +6181,7 @@ BOOL CTE_XMM6260::CreateEnterDataStateReq(UINT32 uiChannel, RIL_Token rilToken,
     REQUEST_DATA reqData;
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
 
-    if (NULL == pData || sizeof(pDataCallContextData) != uiDataSize)
+    if (NULL == pData || sizeof(*pDataCallContextData) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::CreateEnterDataStateReq() - Invalid context data\r\n");
         goto Error;

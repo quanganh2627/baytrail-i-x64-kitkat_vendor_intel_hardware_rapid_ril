@@ -523,7 +523,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin(RESPONSE_DATA& rRspData)
     *pnRetries = (int)-1;
 
     rRspData.pData    = (void*) pnRetries;
-    rRspData.uiDataSize   = sizeof(int*);
+    rRspData.uiDataSize   = sizeof(int);
 
     //  Cache PIN1 value
     PCache_Store_PIN(m_szUICCID, m_szPIN);
@@ -613,7 +613,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk(RESPONSE_DATA& rRspData)
     *pnRetries = (int)-1;
 
     rRspData.pData    = (void*) pnRetries;
-    rRspData.uiDataSize   = sizeof(int*);
+    rRspData.uiDataSize   = sizeof(int);
 
     res = RRIL_RESULT_OK;
 
@@ -692,7 +692,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPin2(RESPONSE_DATA& rRspData)
     *pnRetries = (int)-1;
 
     rRspData.pData    = (void*) pnRetries;
-    rRspData.uiDataSize   = sizeof(int*);
+    rRspData.uiDataSize   = sizeof(int);
 
     res = RRIL_RESULT_OK;
 
@@ -772,7 +772,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterSimPuk2(RESPONSE_DATA& rRspData)
     *pnRetries = (int)-1;
 
     rRspData.pData    = (void*) pnRetries;
-    rRspData.uiDataSize   = sizeof(int*);
+    rRspData.uiDataSize   = sizeof(int);
 
     res = RRIL_RESULT_OK;
 
@@ -857,7 +857,7 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin(RESPONSE_DATA& rRspData)
     *pnRetries = (int)-1;
 
     rRspData.pData    = (void*) pnRetries;
-    rRspData.uiDataSize   = sizeof(int*);
+    rRspData.uiDataSize   = sizeof(int);
 
     //  Cache PIN1 value
     PCache_Store_PIN(m_szUICCID, m_szPIN);
@@ -943,7 +943,7 @@ RIL_RESULT_CODE CTEBase::ParseChangeSimPin2(RESPONSE_DATA& rRspData)
     *pnRetries = (int)-1;
 
     rRspData.pData    = (void*) pnRetries;
-    rRspData.uiDataSize   = sizeof(int*);
+    rRspData.uiDataSize   = sizeof(int);
 
     res = RRIL_RESULT_OK;
 
@@ -1026,7 +1026,7 @@ RIL_RESULT_CODE CTEBase::ParseEnterNetworkDepersonalization(RESPONSE_DATA& rRspD
     *pnRetries = (int)-1;
 
     rRspData.pData    = (void*) pnRetries;
-    rRspData.uiDataSize   = sizeof(int*);
+    rRspData.uiDataSize   = sizeof(int);
 
     res = RRIL_RESULT_OK;
 
@@ -1525,7 +1525,7 @@ RIL_RESULT_CODE CTEBase::CoreHangup(REQUEST_DATA& rReqData, void* pData, UINT32 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int* pnLine = NULL;
 
-    if (sizeof(int*) != uiDataSize)
+    if (sizeof(int) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreHangup() - Passed data size mismatch. Found %d bytes\r\n",
                 uiDataSize);
@@ -1873,7 +1873,7 @@ RIL_RESULT_CODE CTEBase::ParseLastCallFailCause(RESPONSE_DATA& rRspData)
     }
 
     rRspData.pData    = (void*) pCause;
-    rRspData.uiDataSize   = sizeof(int*);
+    rRspData.uiDataSize   = sizeof(int);
     RIL_LOG_INFO("CTEBase::ParseLastCallFailCause() - Last call fail cause [%d]\r\n", uiCause);
 
     res = RRIL_RESULT_OK;
@@ -3434,7 +3434,7 @@ RIL_RESULT_CODE CTEBase::ParseGetClir(RESPONSE_DATA& rRspData)
     pCLIRBlob[1] = nValue;
 
     rRspData.pData  = (void*)pCLIRBlob;
-    rRspData.uiDataSize = 2 * sizeof(int*);
+    rRspData.uiDataSize = 2 * sizeof(int);
 
     res = RRIL_RESULT_OK;
 
@@ -3458,7 +3458,7 @@ RIL_RESULT_CODE CTEBase::CoreSetClir(REQUEST_DATA& rReqData, void* pData, UINT32
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int* pnClir = NULL;
 
-    if (sizeof(int*) != uiDataSize)
+    if (sizeof(int) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSetClir() - Passed data size mismatch. Found %d bytes\r\n",
                 uiDataSize);
@@ -3904,7 +3904,7 @@ RIL_RESULT_CODE CTEBase::CoreQueryCallWaiting(REQUEST_DATA& rReqData,
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int* pnInfoClasses = NULL;
 
-    if (sizeof(int*) != uiDataSize)
+    if (sizeof(int) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreQueryCallWaiting() -"
                 " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
@@ -4018,7 +4018,7 @@ Continue:
     if (1 == dwStatus)
     {
         RIL_LOG_INFO("CTEBase::ParseQueryCallWaiting() - INFO: Returning 2 ints\r\n");
-        rRspData.uiDataSize = 2 * sizeof(int*);
+        rRspData.uiDataSize = 2 * sizeof(int);
 
         prgnCallWaiting = (int *)malloc(rRspData.uiDataSize);
         if (!prgnCallWaiting)
@@ -4072,7 +4072,7 @@ RIL_RESULT_CODE CTEBase::CoreSetCallWaiting(REQUEST_DATA& rReqData, void* pData,
     UINT32 nStatus;
     UINT32 nInfoClasses;
 
-    if ((2 * sizeof(int*)) != uiDataSize)
+    if ((2 * sizeof(int)) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSetCallWaiting() -"
                 " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
@@ -4153,7 +4153,7 @@ RIL_RESULT_CODE CTEBase::CoreSmsAcknowledge(REQUEST_DATA& rReqData, void* pData,
     const int MAX_PDU_LENGTH = 3; // only 3 octets needed for DELIVER-REPORT
     char szPdu[8] = {0};
 
-    if ((sizeof(int*) != uiDataSize) && ((2 * sizeof(int*)) != uiDataSize))
+    if ((sizeof(int) != uiDataSize) && ((2 * sizeof(int)) != uiDataSize))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSmsAcknowledge() -"
                 " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
@@ -4730,7 +4730,7 @@ Continue:
     res = RRIL_RESULT_OK;
 
     rRspData.pData   = (void*)pnClass;
-    rRspData.uiDataSize  = sizeof(int*);
+    rRspData.uiDataSize  = sizeof(int);
 
 Error:
     if (RRIL_RESULT_OK != res)
@@ -4924,7 +4924,7 @@ RIL_RESULT_CODE CTEBase::ParseSetFacilityLock(RESPONSE_DATA& rRspData)
     *pnRetries = -1;
 
     rRspData.pData = pnRetries;
-    rRspData.uiDataSize = sizeof(int*);
+    rRspData.uiDataSize = sizeof(int);
 
     if (NULL != rRspData.pContextData
             && rRspData.cbContextData == sizeof(S_SET_FACILITY_LOCK_CONTEXT_DATA))
@@ -5097,7 +5097,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryNetworkSelectionMode(RESPONSE_DATA& rRspData)
     res = RRIL_RESULT_OK;
 
     rRspData.pData   = (void*)pnMode;
-    rRspData.uiDataSize  = sizeof(int*);
+    rRspData.uiDataSize  = sizeof(int);
 
 Error:
     if (RRIL_RESULT_OK != res)
@@ -5871,7 +5871,7 @@ RIL_RESULT_CODE CTEBase::ParseGetMute(RESPONSE_DATA& rRspData)
     }
 
     rRspData.pData = (void*)pMuteVal;
-    rRspData.uiDataSize = sizeof(int*);
+    rRspData.uiDataSize = sizeof(int);
 
     res = RRIL_RESULT_OK;
 
@@ -5972,7 +5972,7 @@ RIL_RESULT_CODE CTEBase::ParseQueryClip(RESPONSE_DATA& rRspData)
     }
 
     rRspData.pData = (void*)pClipVal;
-    rRspData.uiDataSize = sizeof(int*);
+    rRspData.uiDataSize = sizeof(int);
 
     res = RRIL_RESULT_OK;
 
@@ -6033,7 +6033,7 @@ RIL_RESULT_CODE CTEBase::ParseLastDataCallFailCause(RESPONSE_DATA& rRspData)
     *pCause = MapErrorCodeToRilDataFailCause(uiCause);
 
     rRspData.pData    = (void*) pCause;
-    rRspData.uiDataSize   = sizeof(int*);
+    rRspData.uiDataSize   = sizeof(int);
 
     RIL_LOG_INFO("CTEBase::ParseLastDataCallFailCause() - Last call fail cause [%d]\r\n", uiCause);
 
@@ -6781,7 +6781,7 @@ RIL_RESULT_CODE CTEBase::CoreSetSuppSvcNotification(REQUEST_DATA& rReqData,
     RIL_LOG_VERBOSE("CTEBase::CoreSetSuppSvcNotification() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (sizeof(int*) != uiDataSize)
+    if (sizeof(int) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSetSuppSvcNotification() -"
                 " Passed data size mismatch. Found %d bytes\r\n", uiDataSize);
@@ -6886,7 +6886,7 @@ RIL_RESULT_CODE CTEBase::ParseWriteSmsToSim(RESPONSE_DATA& rRspData)
     res = RRIL_RESULT_OK;
 
     rRspData.pData   = (void*)pIndex;
-    rRspData.uiDataSize  = sizeof(int*);
+    rRspData.uiDataSize  = sizeof(int);
 
 Error:
     if (RRIL_RESULT_OK != res)
@@ -6907,7 +6907,7 @@ RIL_RESULT_CODE CTEBase::CoreDeleteSmsOnSim(REQUEST_DATA& rReqData, void* pData,
     RIL_LOG_VERBOSE("CTEBase::CoreDeleteSmsOnSim() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
 
-    if (sizeof(int*) != uiDataSize)
+    if (sizeof(int) != uiDataSize)
     {
         RIL_LOG_CRITICAL("CTEBase::CoreDeleteSmsOnSim() - Passed data size mismatch."
                 " Found %d bytes\r\n", uiDataSize);
@@ -9312,7 +9312,7 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
     *pnChannelId = nChannelId;
 
     rRspData.pData   = (void*)pnChannelId;
-    rRspData.uiDataSize  = sizeof(int*);
+    rRspData.uiDataSize  = sizeof(int);
 
     res = RRIL_RESULT_OK;
 Error:

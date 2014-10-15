@@ -599,7 +599,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    if (uiDataSize != sizeof(RIL_PreferredNetworkType*))
+    if (uiDataSize != sizeof(RIL_PreferredNetworkType))
     {
         RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                 "Invalid data size.\r\n");
