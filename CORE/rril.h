@@ -92,10 +92,6 @@ const UINT32 MAX_AID_SIZE = 33; // Hex string length including null termination
 //////////////////////////////////////////////////////////////////////////////
 // ril.h definitions used to support vanilla aosp
 
-enum RIL_Errno_private {
-    RIL_E_INVALID_PARAMETER = 18,
-};
-
 /* See RIL_REQUEST_SETUP_DATA_CALL */
 enum RIL_DataProfile_private {
     RIL_DATA_PROFILE_IMS = 2,

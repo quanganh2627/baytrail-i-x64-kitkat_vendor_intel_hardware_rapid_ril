@@ -581,10 +581,6 @@ BOOL CChannel::SendCommandPhase2(const UINT32 uiResCode,
     //  Is our request ID in the special list?
     switch (reqID)
     {
-
-        case RIL_REQUEST_SIM_OPEN_CHANNEL:
-        case RIL_REQUEST_SIM_CLOSE_CHANNEL:
-        case RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL:
         case RIL_REQUEST_SEND_USSD:
         case RIL_REQUEST_GET_CLIR:
         case RIL_REQUEST_SET_CLIR:
