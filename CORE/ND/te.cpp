@@ -8820,13 +8820,6 @@ void CTE::PostNtwkPersonalizationCmdHandler(POST_CMD_HANDLER_DATA& rData)
                 rData.uiResultCode = RIL_E_PASSWORD_INCORRECT;
                 break;
 
-#if !defined (M2_PDK_OR_GMIN_BUILD)
-            case CME_ERROR_NETWORK_PUK_REQUIRED:
-                RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - NETWORK PUK required");
-                rData.uiResultCode = RIL_E_NETWORK_PUK_REQUIRED;
-                break;
-#endif
-
             default:
                 RIL_LOG_INFO("CTE::PostNtwkPersonalizationCmdHandler() - Unknown error [%u]",
                                                             rData.uiErrorCode);
