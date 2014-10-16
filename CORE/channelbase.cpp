@@ -701,46 +701,6 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                 goto Done;
             }
         }
-
-#if defined(M2_VT_FEATURE_ENABLED)
-        // for Video Telephony, set the the data path, depending on RIL instance
-        //  If sim id is 0
-        if (!SIMId) // RILD1
-        {
-            if (!CopyStringNullTerminate(szTemp,
-                                         "+XDATACHANNEL=1,0,\"/mux/12\",\"/mux/5\",1",
-                                         sizeof(szTemp)))
-            {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create"
-                        " XDATACHANNEL command\r\n");
-                goto Done;
-            }
-        }
-        else // RILD2
-        {
-            if (!CopyStringNullTerminate(szTemp,
-                                         "+XDATACHANNEL=1,0,\"/mux/24\",\"/mux/5\",1",
-                                         sizeof(szTemp)))
-            {
-                RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() : Cannot create"
-                        " XDATACHANNEL command\r\n");
-                goto Done;
-            }
-        }
-
-        if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, "|"))
-        {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                    " Concat | failed\r\n");
-            goto Done;
-        }
-        if (!ConcatenateStringNullTerminate(szInit, MAX_BUFFER_SIZE, szTemp))
-        {
-            RIL_LOG_CRITICAL("CChannelBase::SendModemConfigurationCommands() :"
-                    " Concat DataPath failed\r\n");
-            goto Done;
-        }
-#endif // M2_VT_FEATURE_ENABLED
     }
 
     if (COM_BASIC_INIT_INDEX == eInitIndex

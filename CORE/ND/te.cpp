@@ -368,9 +368,6 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:
         case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
         case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
-#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-        case RIL_REQUEST_GET_SIM_SMS_STORAGE:
-#endif
             if (RIL_APPSTATE_UNKNOWN != m_pTEBaseInstance->GetSimAppState())
                 bAllowed = TRUE;
             else
@@ -406,9 +403,6 @@ BOOL CTE::IsRequestAllowedInSimNotReady(int requestId)
         case RIL_REQUEST_STK_SEND_TERMINAL_RESPONSE:
         case RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING:
         case RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS:
-#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-        case RIL_REQUEST_GET_SIM_SMS_STORAGE:
-#endif
             bAllowed = FALSE;
             break;
 
@@ -1144,26 +1138,6 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
             case RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL:
                 eRetVal = RequestSimTransmitApduChannel(hRilToken, pData, datalen);
                 break;
-
-#if defined(M2_VT_FEATURE_ENABLED)
-
-            case RIL_REQUEST_HANGUP_VT:
-                eRetVal = RequestHangupVT(hRilToken, pData, datalen);
-                break;
-
-            case RIL_REQUEST_DIAL_VT:
-                eRetVal = RequestDialVT(hRilToken, pData, datalen);
-                break;
-
-#endif // M2_VT_FEATURE_ENABLED
-
-#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-
-            case RIL_REQUEST_GET_SIM_SMS_STORAGE:
-                eRetVal = RequestGetSimSmsStorage(hRilToken, pData, datalen);
-                break;
-
-#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
 
             case RIL_REQUEST_SHUTDOWN:
                 eRetVal = RequestShutdown(hRilToken, pData, datalen);
@@ -6962,164 +6936,6 @@ void CTE::PostShutdown(POST_CMD_HANDLER_DATA& /* data */)
 
     RIL_LOG_VERBOSE("CTE::PostShutdown() Exit\r\n");
 }
-
-#if defined(M2_VT_FEATURE_ENABLED)
-//
-// RIL_REQUEST_HANGUP_VT
-//
-RIL_RESULT_CODE CTE::RequestHangupVT(RIL_Token rilToken, void* pData, size_t datalen)
-{
-    RIL_LOG_VERBOSE("CTE::RequestHangupVT() - Enter\r\n");
-
-    REQUEST_DATA reqData;
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
-
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreHangupVT(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
-    {
-        RIL_LOG_CRITICAL("CTE::RequestHangupVT() - Unable to create AT command data\r\n");
-    }
-    else
-    {
-        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_HANGUP_VT].uiChannel,
-                rilToken, RIL_REQUEST_HANGUP_VT, reqData, &CTE::ParseHangupVT,
-                &CTE::PostHangupCmdHandler);
-
-        if (pCmd)
-        {
-            pCmd->SetHighPriority();
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CTE::RequestHangupVT() - Unable to add command to queue\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE::RequestHangupVT() - Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-        }
-    }
-
-    RIL_LOG_VERBOSE("CTE::RequestHangupVT() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE::ParseHangupVT(RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseHangupVT() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseHangupVT(rRspData);
-}
-
-
-//
-// RIL_REQUEST_DIAL_VT
-//
-RIL_RESULT_CODE CTE::RequestDialVT(RIL_Token rilToken, void* pData, size_t datalen)
-{
-    RIL_LOG_VERBOSE("CTE::RequestDialVT() - Enter\r\n");
-
-    REQUEST_DATA reqData;
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
-
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreDialVT(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
-    {
-        RIL_LOG_CRITICAL("CTE::RequestDialVT() - Unable to create AT command data\r\n");
-    }
-    else
-    {
-        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_DIAL_VT].uiChannel,
-                rilToken, RIL_REQUEST_DIAL_VT, reqData, &CTE::ParseDialVT,
-                &CTE::PostDialCmdHandler);
-
-        if (pCmd)
-        {
-            pCmd->SetHighPriority();
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CTE::RequestDialVT() - Unable to add command to queue\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE::RequestDialVT() - Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-        }
-    }
-
-    RIL_LOG_VERBOSE("CTE::RequestDialVT() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE::ParseDialVT(RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseDialVT() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseDialVT(rRspData);
-}
-#endif // M2_VT_FEATURE_ENABLED
-
-
-#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-//
-// RIL_REQUEST_GET_SIM_SMS_STORAGE
-//
-RIL_RESULT_CODE CTE::RequestGetSimSmsStorage(RIL_Token rilToken, void* pData, size_t datalen)
-{
-    RIL_LOG_VERBOSE("CTE::RequestGetSimSmsStorage() - Enter\r\n");
-
-    REQUEST_DATA reqData;
-    memset(&reqData, 0, sizeof(REQUEST_DATA));
-
-    RIL_RESULT_CODE res = m_pTEBaseInstance->CoreGetSimSmsStorage(reqData, pData, datalen);
-    if (RRIL_RESULT_OK != res)
-    {
-        RIL_LOG_CRITICAL("CTE::RequestGetSimSmsStorage() - Unable to create AT command data\r\n");
-    }
-    else
-    {
-        CCommand* pCmd = new CCommand(
-                g_pReqInfo[RIL_REQUEST_GET_SIM_SMS_STORAGE].uiChannel,
-                rilToken, RIL_REQUEST_GET_SIM_SMS_STORAGE, reqData,
-                &CTE::ParseGetSimSmsStorage);
-
-        if (pCmd)
-        {
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CTE::RequestGetSimSmsStorage() -"
-                        " Unable to add command to queue\r\n");
-                res = RIL_E_GENERIC_FAILURE;
-                delete pCmd;
-                pCmd = NULL;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CTE::RequestGetSimSmsStorage() -"
-                    " Unable to allocate memory for command\r\n");
-            res = RIL_E_GENERIC_FAILURE;
-        }
-    }
-
-    RIL_LOG_VERBOSE("CTE::RequestGetSimSmsStorage() - Exit\r\n");
-    return res;
-}
-
-RIL_RESULT_CODE CTE::ParseGetSimSmsStorage(RESPONSE_DATA& rRspData)
-{
-    RIL_LOG_VERBOSE("CTE::ParseGetSimSmsStorage() - Enter / Exit\r\n");
-
-    return m_pTEBaseInstance->ParseGetSimSmsStorage(rRspData);
-}
-#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
 
 //
 // RIL_UNSOL_SIGNAL_STRENGTH

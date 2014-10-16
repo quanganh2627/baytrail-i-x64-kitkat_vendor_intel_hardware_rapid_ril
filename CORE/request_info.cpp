@@ -300,16 +300,6 @@ const REQ_INFO g_ReqInfoDefault[] =
     { "SetDataProfile", RIL_CHANNEL_RESERVED, 0 },
     // RIL_REQUEST_SHUTDOWN
     { "Shutdown", RIL_CHANNEL_ATCMD, 0 },
-#if defined(M2_VT_FEATURE_ENABLED)
-    // RIL_REQUEST_HANGUP_VT
-    { "HangupVT", RIL_CHANNEL_DLC6, 0 },
-    // RIL_REQUEST_DIAL_VT
-    { "DialVT", RIL_CHANNEL_ATCMD, 0 },
-#endif  // M2_VT_FEATURE_ENABLED
-#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    // RIL_REQUEST_GET_SIM_SMS_STORAGE
-    { "GetSimSmsStorage", RIL_CHANNEL_OEM, 0 }
-#endif
 };
 
 const int REQ_ID_TOTAL = (sizeof(g_ReqInfoDefault) / sizeof(REQ_INFO));

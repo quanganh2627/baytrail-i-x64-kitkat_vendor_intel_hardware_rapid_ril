@@ -765,24 +765,6 @@ public:
     virtual RIL_RESULT_CODE CoreShutdown(REQUEST_DATA& reqData, void* pData, UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseShutdown(RESPONSE_DATA& rspData);
 
-#if defined(M2_VT_FEATURE_ENABLED)
-    // RIL_REQUEST_HANGUP_VT
-    virtual RIL_RESULT_CODE CoreHangupVT(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseHangupVT(RESPONSE_DATA& rRspData);
-
-    // RIL_REQUEST_DIAL_VT
-    virtual RIL_RESULT_CODE CoreDialVT(REQUEST_DATA& rReqData, void* pData, UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseDialVT(RESPONSE_DATA& rRspData);
-#endif // M2_VT_FEATURE_ENABLED
-
-#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    // RIL_REQUEST_GET_SIM_SMS_STORAGE
-    virtual RIL_RESULT_CODE CoreGetSimSmsStorage(REQUEST_DATA& rReqData,
-                                                            void* pData,
-                                                            UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseGetSimSmsStorage(RESPONSE_DATA& rRspData);
-#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
-
     // RIL_UNSOL_SIGNAL_STRENGTH
     virtual RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData);
 

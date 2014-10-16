@@ -68,11 +68,6 @@ Group RequestTimeouts
     SimTransmitBasic                   60000
     SimIO                              60000
 
-    //  Video Telephony API timeouts
-    HangupVT                           80000
-    DialVT                             180000
-
-
 Group InternalRequestTimeouts
     SilentPinEntry                     40000
     QuerySimSmsStoreStatus             60000

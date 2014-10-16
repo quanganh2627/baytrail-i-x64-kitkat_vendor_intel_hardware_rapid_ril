@@ -108,9 +108,6 @@ CSystemManager::CSystemManager()
     m_bIsSystemInitialized(FALSE),
     m_bIsModemResourceAcquired(FALSE),
     m_bIsDeviceDecrypted(FALSE)
-#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
-    ,m_uiLastCallFailedCauseID(0)
-#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 {
     RIL_LOG_INFO("CSystemManager::CSystemManager() - Enter\r\n");
 

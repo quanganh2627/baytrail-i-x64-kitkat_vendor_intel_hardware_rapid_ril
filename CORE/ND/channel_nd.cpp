@@ -578,12 +578,6 @@ BOOL CChannel::SendCommandPhase2(const UINT32 uiResCode,
 {
     BOOL bSendPhase2 = TRUE;
 
-#if defined(M2_VT_FEATURE_ENABLED)
-    //  VT_HANGUP request (since we don't care about a possible error)
-    if (RIL_REQUEST_HANGUP_VT == reqID)
-        return TRUE;
-#endif // M2_VT_FEATURE_ENABLED
-
     //  Is our request ID in the special list?
     switch (reqID)
     {

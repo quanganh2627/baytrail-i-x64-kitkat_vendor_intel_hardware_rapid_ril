@@ -60,10 +60,6 @@ CSilo_Voice::CSilo_Voice(CChannel* pChannel)
         { "NO CTM CALL"   , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNoCTMCall },
         { "WAITING CALL CTM" , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseWaitingCallCTM },
         { "+XUCCI: ", (PFN_ATRSP_PARSE)&CSilo_Voice::ParseXUCCI },
-#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
-        // Handle Call failed cause unsolicited notification here
-        { "+XCEER: " , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseCallFailedCause },
-#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
         { ""              , (PFN_ATRSP_PARSE)&CSilo_Voice::ParseNULL }
     };
 
@@ -185,22 +181,9 @@ BOOL CSilo_Voice::ParseExtRing(CResponse* const pResponse, const char*& rszPoint
     {
         RIL_LOG_INFO("CSilo_Voice::ParseExtRing() : Incoming video telephony call\r\n");
 
-        //  TODO: Send notification for video telephony incoming call
-        //        For now, just do normal ring
-#if defined(M2_VT_FEATURE_ENABLED)
-        pResponse->SetResultCode(RIL_UNSOL_CALL_RING);
-
-        /*
-         * XCALLSTAT received before CRING.
-         * Since the call type is not known via XCALLSTAT URC,
-         * CALL_STATE_CHANGED notification is triggered from here.
-         */
-        notifyChangedCallState(NULL);
-#else
         pResponse->SetIgnoreFlag(TRUE);
 
         triggerHangup(m_uiCallId);
-#endif // M2_VT_FEATURE_ENABLED
     }
     else if (NULL != strstr(szType, "GPRS"))
     {
@@ -337,40 +320,6 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
     }
 
     fRet = TRUE;
-
-#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
-    //  If <stat> = 6 (6 is disconnected), store in CSystemManager.
-    if (6 == uiStat)
-    {
-        RIL_LOG_INFO("CSilo_Voice::ParseXCALLSTAT() : Received disconnect, uiID=[%d]\r\n", uiID);
-        //  Store last disconnected call ID.
-        CSystemManager::GetInstance().SetLastCallFailedCauseID(uiID);
-
-        //  We need to queue AT+XCEER command
-        //  Let RIL framework handle the +XCEER response as a notification.  No parse function needed here.
-        CCommand* pCmd = NULL;
-        pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_LAST_CALL_FAIL_CAUSE].uiChannel,
-                                NULL, RIL_REQUEST_LAST_CALL_FAIL_CAUSE, "AT+XCEER\r");
-        if (pCmd)
-        {
-            if (!CCommand::AddCmdToQueue(pCmd))
-            {
-                RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() - Unable to queue AT+XCEER"
-                        " command!\r\n");
-                delete pCmd;
-                pCmd = NULL;
-                goto Error;
-            }
-        }
-        else
-        {
-            RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() - Unable to allocate memory for new"
-                    " AT+XCEER command!\r\n");
-            goto Error;
-        }
-    }
-
-#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
 Error:
     RIL_LOG_VERBOSE("CSilo_Voice::ParseXCALLSTAT() - Exit\r\n");
@@ -1123,84 +1072,6 @@ Error:
     RIL_LOG_VERBOSE("CSilo_Voice::ParseWaitingCallCTM() - Exit\r\n");
     return fRet;
 }
-
-#if defined (M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
-
-BOOL CSilo_Voice::ParseCallFailedCause(CResponse* const pResponse, const char*& rszPointer)
-{
-    RIL_LOG_VERBOSE("CSilo_Voice::ParseCallFailedCause() - Enter\r\n");
-
-    BOOL fRet = FALSE;
-    int* pFailedCauseData = NULL;
-    UINT32 uiDummy = 0;
-    UINT32 uiCause = 0;
-    UINT32 uiID = 0;
-
-    if (pResponse == NULL)
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : pResponse was NULL\r\n");
-        goto Error;
-    }
-
-    pResponse->SetUnsolicitedFlag(TRUE);
-
-    pFailedCauseData = (int*)malloc(2 * sizeof(int));
-    if (!pFailedCauseData)
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : Could not allocate data\r\n");
-        goto Error;
-    }
-    memset(pFailedCauseData, 0, 2 * sizeof(int));
-
-    //  Extract <report>
-    if (!ExtractUInt32(rszPointer, uiDummy, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : Could not extract <report>\r\n");
-        goto Error;
-    }
-
-    //  Extract <cause>
-    if (!SkipString(rszPointer, ",", rszPointer) ||
-        !ExtractUInt32(rszPointer, uiCause, rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Voice::ParseCallFailedCause() : Could not extract uiCause\r\n");
-        goto Error;
-    }
-
-    //  Now we have ID and cause
-    uiID = CSystemManager::GetInstance().GetLastCallFailedCauseID();
-    RIL_LOG_INFO("CSilo_Voice::ParseCallFailedCause() :"
-            " ***** RECEIVED CALL FAILED CAUSE NOTIFICATION *****\r\n");
-    RIL_LOG_INFO("CSilo_Voice::ParseCallFailedCause() : ID=[%u]  cause=[%u]\r\n", uiID, uiCause);
-    RIL_LOG_INFO("CSilo_Voice::ParseCallFailedCause() : ***** SENDING NOTIFICATION=[%d]"
-            " ******\r\n", RIL_UNSOL_CALL_FAILED_CAUSE);
-
-    pResponse->SetResultCode(RIL_UNSOL_CALL_FAILED_CAUSE);
-
-    //  TODO: Set call id = pData[0]
-    //        Set failed cause = pData[1]
-
-    pFailedCauseData[0] = uiID; // call id
-    pFailedCauseData[1] = uiCause; // failed cause
-
-    if (!pResponse->SetData((void*)pFailedCauseData, 2 * sizeof(int), FALSE))
-    {
-        goto Error;
-    }
-
-    fRet = TRUE;
-
-Error:
-    if (!fRet)
-    {
-        free(pFailedCauseData);
-        pFailedCauseData = NULL;
-    }
-    RIL_LOG_VERBOSE("CSilo_Voice::ParseCallFailedCause() - Exit\r\n");
-    return fRet;
-}
-
-#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
 //
 // Parsing function for

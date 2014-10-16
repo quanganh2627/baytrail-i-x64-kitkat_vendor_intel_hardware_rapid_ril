@@ -125,22 +125,22 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
 
     switch (unsolResponseID)
     {
-        case RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED: // 1000
+        case RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
                     " RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED\r\n");
             break;
 
-        case RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED:  // 1001
+        case RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
                     " RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED\r\n");
             break;
 
-        case RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED:  // 1002
+        case RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
                     " RIL_UNSOL_RESPONSE_VOICE_NETWORK_STATE_CHANGED\r\n");
             break;
 
-        case RIL_UNSOL_RESPONSE_NEW_SMS:  // 1003
+        case RIL_UNSOL_RESPONSE_NEW_SMS:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
                     " RIL_UNSOL_RESPONSE_NEW_SMS\r\n");
             if (pData && dataSize)
@@ -149,7 +149,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT:  // 1004
+        case RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
                     " RIL_UNSOL_RESPONSE_NEW_SMS_STATUS_REPORT\r\n");
             if (pData && dataSize)
@@ -158,7 +158,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_RESPONSE_NEW_SMS_ON_SIM:  // 1005
+        case RIL_UNSOL_RESPONSE_NEW_SMS_ON_SIM:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_NEW_SMS_ON_SIM\r\n");
             if (pData && dataSize)
             {
@@ -166,7 +166,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_ON_USSD:  // 1006
+        case RIL_UNSOL_ON_USSD:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_ON_USSD\r\n");
             if (pData && dataSize)
             {
@@ -176,11 +176,11 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_ON_USSD_REQUEST:  // 1007 - obsolete, use RIL_UNSOL_ON_USSD 1006
+        case RIL_UNSOL_ON_USSD_REQUEST:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_ON_USSD_REQUEST\r\n");
             break;
 
-        case RIL_UNSOL_NITZ_TIME_RECEIVED:  // 1008
+        case RIL_UNSOL_NITZ_TIME_RECEIVED:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_NITZ_TIME_RECEIVED\r\n");
             if (pData && dataSize)
             {
@@ -188,7 +188,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_SIGNAL_STRENGTH:  // 1009
+        case RIL_UNSOL_SIGNAL_STRENGTH:
             RIL_LOG_VERBOSE("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIGNAL_STRENGTH\r\n");
 
 #if defined(M2_PDK_OR_GMIN_BUILD)
@@ -203,7 +203,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
 
             break;
 
-        case RIL_UNSOL_DATA_CALL_LIST_CHANGED:  // 1010
+        case RIL_UNSOL_DATA_CALL_LIST_CHANGED:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_DATA_CALL_LIST_CHANGED\r\n");
             if (pData && dataSize)
             {
@@ -226,7 +226,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_SUPP_SVC_NOTIFICATION:  // 1011
+        case RIL_UNSOL_SUPP_SVC_NOTIFICATION:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SUPP_SVC_NOTIFICATION\r\n");
             if (pData && dataSize)
             {
@@ -241,11 +241,11 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_STK_SESSION_END:  // 1012
+        case RIL_UNSOL_STK_SESSION_END:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_STK_SESSION_END\r\n");
             break;
 
-        case RIL_UNSOL_STK_PROACTIVE_COMMAND:  // 1013
+        case RIL_UNSOL_STK_PROACTIVE_COMMAND:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_STK_PROACTIVE_COMMAND\r\n");
             if (pData && dataSize)
             {
@@ -259,7 +259,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_STK_EVENT_NOTIFY:  // 1014
+        case RIL_UNSOL_STK_EVENT_NOTIFY:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_STK_EVENT_NOTIFY\r\n");
             if (pData && dataSize)
             {
@@ -267,7 +267,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_STK_CALL_SETUP:  // 1015
+        case RIL_UNSOL_STK_CALL_SETUP:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_STK_CALL_SETUP\r\n");
             if (pData && dataSize)
             {
@@ -275,11 +275,11 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_SIM_SMS_STORAGE_FULL:  // 1016
+        case RIL_UNSOL_SIM_SMS_STORAGE_FULL:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIM_SMS_STORAGE_FULL\r\n");
             break;
 
-        case RIL_UNSOL_SIM_REFRESH:  // 1017
+        case RIL_UNSOL_SIM_REFRESH:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_SIM_REFRESH\r\n");
             if (pData && dataSize)
             {
@@ -294,11 +294,11 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_CALL_RING:  // 1018
+        case RIL_UNSOL_CALL_RING:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CALL_RING\r\n");
             break;
 
-        case RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED:  // 1019
+        case RIL_UNSOL_RESPONSE_SIM_STATUS_CHANGED:
             /*
              * If the device is encrypted but not yet decrypted, then modem have been powered
              * on for emergency call. Don't report sim status as this results in emergency call
@@ -316,12 +316,12 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_RESPONSE_CDMA_NEW_SMS:  // 1020 - CDMA, not supported
+        case RIL_UNSOL_RESPONSE_CDMA_NEW_SMS:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_CDMA_NEW_SMS\r\n");
             bSendNotification = false;
             break;
 
-        case RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS:  // 1021
+        case RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESPONSE_NEW_BROADCAST_SMS\r\n");
             if (pData && dataSize)
             {
@@ -329,12 +329,12 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_CDMA_RUIM_SMS_STORAGE_FULL:  // 1022 - CDMA, not supported
+        case RIL_UNSOL_CDMA_RUIM_SMS_STORAGE_FULL:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_RUIM_SMS_STORAGE_FULL\r\n");
             bSendNotification = false;
             break;
 
-        case RIL_UNSOL_RESTRICTED_STATE_CHANGED:  // 1023
+        case RIL_UNSOL_RESTRICTED_STATE_CHANGED:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESTRICTED_STATE_CHANGED\r\n");
             if (pData && dataSize)
             {
@@ -343,27 +343,27 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_ENTER_EMERGENCY_CALLBACK_MODE:  // 1024
+        case RIL_UNSOL_ENTER_EMERGENCY_CALLBACK_MODE:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
                     " RIL_UNSOL_ENTER_EMERGENCY_CALLBACK_MODE\r\n");
             break;
 
-        case RIL_UNSOL_CDMA_CALL_WAITING:  // 1025 - CDMA, not supported
+        case RIL_UNSOL_CDMA_CALL_WAITING:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_CALL_WAITING\r\n");
             bSendNotification = false;
             break;
 
-        case RIL_UNSOL_CDMA_OTA_PROVISION_STATUS:  // 1026 - CDMA, not supported
+        case RIL_UNSOL_CDMA_OTA_PROVISION_STATUS:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_OTA_PROVISION_STATUS\r\n");
             bSendNotification = false;
             break;
 
-        case RIL_UNSOL_CDMA_INFO_REC:  // 1027 - CDMA, not supported
+        case RIL_UNSOL_CDMA_INFO_REC:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_INFO_REC\r\n");
             bSendNotification = false;
             break;
 
-        case RIL_UNSOL_OEM_HOOK_RAW:  // 1028
+        case RIL_UNSOL_OEM_HOOK_RAW:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_OEM_HOOK_RAW\r\n");
             if (pData && dataSize)
             {
@@ -377,7 +377,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_RINGBACK_TONE:  // 1029
+        case RIL_UNSOL_RINGBACK_TONE:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RINGBACK_TONE\r\n");
             if (pData && dataSize)
             {
@@ -386,27 +386,27 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_RESEND_INCALL_MUTE:  // 1030
+        case RIL_UNSOL_RESEND_INCALL_MUTE:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RESEND_INCALL_MUTE\r\n");
             break;
 
-        case RIL_UNSOL_CDMA_SUBSCRIPTION_SOURCE_CHANGED:  // 1031 - not supported
+        case RIL_UNSOL_CDMA_SUBSCRIPTION_SOURCE_CHANGED:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
                     " RIL_UNSOL_CDMA_SUBSCRIPTION_SOURCE_CHANGED\r\n");
             bSendNotification = false;
             break;
 
-        case RIL_UNSOL_CDMA_PRL_CHANGED:  // 1032 - not supported
+        case RIL_UNSOL_CDMA_PRL_CHANGED:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CDMA_PRL_CHANGED\r\n");
             bSendNotification = false;
             break;
 
-        case RIL_UNSOL_EXIT_EMERGENCY_CALLBACK_MODE:  // 1033
+        case RIL_UNSOL_EXIT_EMERGENCY_CALLBACK_MODE:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() -"
                     " RIL_UNSOL_EXIT_EMERGENCY_CALLBACK_MODE\r\n");
             break;
 
-        case RIL_UNSOL_RIL_CONNECTED:  // 1034
+        case RIL_UNSOL_RIL_CONNECTED:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_RIL_CONNECTED\r\n");
             if (pData && dataSize)
             {
@@ -415,7 +415,7 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
 
-        case RIL_UNSOL_CELL_INFO_LIST: //1035
+        case RIL_UNSOL_CELL_INFO_LIST:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CELL_INFO_LIST\r\n");
             if (pData && dataSize)
             {
@@ -424,21 +424,6 @@ void RIL_onUnsolicitedResponse(int unsolResponseID, const void* pData, size_t da
             }
             break;
         //  ************************* END OF REGULAR NOTIFICATIONS *******************************
-
-#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
-
-        case RIL_UNSOL_CALL_FAILED_CAUSE:  // 1035
-            RIL_LOG_INFO("RIL_onUnsolicitedResponse() - RIL_UNSOL_CALL_FAILED_CAUSE\r\n");
-            if (pData && dataSize)
-            {
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - call id=[%d]\r\n", ((int*)pData)[0]);
-                RIL_LOG_INFO("RIL_onUnsolicitedResponse() - failed cause=[%d]\r\n",
-                        ((int*)pData)[1]);
-            }
-            break;
-
-#endif //  M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
-
 
         default:
             RIL_LOG_INFO("RIL_onUnsolicitedResponse() - Ignoring Unknown Notification id=0x%08X,"

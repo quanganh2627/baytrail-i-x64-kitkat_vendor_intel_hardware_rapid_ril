@@ -67,16 +67,6 @@ LOCAL_SRC_FILES:= \
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils libmmgrcli librilutils libtcs
 
-# Activating this macro enables the optional Video Telephony feature
-ifeq ($(strip $(M2_VT_FEATURE_ENABLED)),true)
-LOCAL_CFLAGS += -DM2_VT_FEATURE_ENABLED
-endif
-
-# Activating this macro enables the Call Failed Cause Notification feature
-ifeq ($(strip $(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)),true)
-LOCAL_CFLAGS += -DM2_CALL_FAILED_CAUSE_FEATURE_ENABLED
-endif
-
 # Activating this macro enables PIN retry count feature
 ifeq ($(strip $(M2_PIN_RETRIES_FEATURE_ENABLED)),true)
 LOCAL_CFLAGS += -DM2_PIN_RETRIES_FEATURE_ENABLED
@@ -87,11 +77,6 @@ LOCAL_CFLAGS += -DM2_PDK_OR_GMIN_BUILD
 
 # Activating this macro enables PIN caching (for modem cold reboot)
 LOCAL_CFLAGS += -DM2_PIN_CACHING_FEATURE_ENABLED
-
-# Activating this macro enables the Get SIM SMS Storage feature
-ifeq ($(strip $(M2_GET_SIM_SMS_STORAGE_ENABLED)),true)
-LOCAL_CFLAGS += -DM2_GET_SIM_SMS_STORAGE_ENABLED
-endif
 
 LOCAL_C_INCLUDES :=  \
     $(LOCAL_PATH)/ND  \

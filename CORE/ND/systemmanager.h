@@ -119,11 +119,6 @@ public:
     // Internal Init helper functions
     void ResetSystemState();
 
-#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
-    void SetLastCallFailedCauseID(UINT32 nID) { m_uiLastCallFailedCauseID = nID; }
-    UINT32 GetLastCallFailedCauseID() const { return m_uiLastCallFailedCauseID; }
-#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
-
     int GetCancelWaitPipeFd() { return m_pInitializer->GetCancelWaitPipeFd(); }
 
     // This function will return true if device is not encrypted or decrypted.
@@ -159,10 +154,6 @@ private:
     BOOL m_bIsModemResourceAcquired;
 
     BOOL m_bIsDeviceDecrypted;
-
-#if defined(M2_CALL_FAILED_CAUSE_FEATURE_ENABLED)
-    UINT32 m_uiLastCallFailedCauseID;
-#endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
     CMutex* m_pSpoofCommandsStatusAccessMutex;
     CMutex* m_pTEAccessMutex;

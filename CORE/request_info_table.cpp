@@ -168,10 +168,6 @@ void CRequestInfoTable::GetRequestInfo(int requestID, REQ_INFO& rReqInfo)
                 case RIL_REQUEST_DTMF_START:                // +XVTS
                 case RIL_REQUEST_DTMF_STOP:                 // +XVTS
                 case RIL_REQUEST_DIAL:                      // ATD
-#if defined(M2_VT_FEATURE_ENABLED)
-                case RIL_REQUEST_DIAL_VT:                   // ATD
-                case RIL_REQUEST_HANGUP_VT:                 // ATH
-#endif // M2_VT_FEATURE_ENABLED
                 // non-network cmds requiring response
                 case RIL_REQUEST_DELETE_SMS_ON_SIM:         // +CMGD
                 case RIL_REQUEST_SEND_SMS_EXPECT_MORE:      // +CMMS, +CMGS

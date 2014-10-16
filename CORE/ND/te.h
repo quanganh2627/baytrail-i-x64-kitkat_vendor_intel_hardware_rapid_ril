@@ -607,22 +607,6 @@ public:
     RIL_RESULT_CODE ParseShutdown(RESPONSE_DATA& rspData);
     void PostShutdown(POST_CMD_HANDLER_DATA& data);
 
-#if defined(M2_VT_FEATURE_ENABLED)
-    // RIL_REQUEST_HANGUP_VT
-    RIL_RESULT_CODE RequestHangupVT(RIL_Token rilToken, void* pData, size_t datalen);
-    RIL_RESULT_CODE ParseHangupVT(RESPONSE_DATA& rRspData);
-
-    // RIL_REQUEST_DIAL_VT
-    RIL_RESULT_CODE RequestDialVT(RIL_Token rilToken, void* pData, size_t datalen);
-    RIL_RESULT_CODE ParseDialVT(RESPONSE_DATA& rRspData);
-#endif // M2_VT_FEATURE_ENABLED
-
-#if defined(M2_GET_SIM_SMS_STORAGE_ENABLED)
-    // RIL_REQUEST_GET_SIM_SMS_STORAGE
-    RIL_RESULT_CODE RequestGetSimSmsStorage(RIL_Token rilToken, void* pData, size_t datalen);
-    RIL_RESULT_CODE ParseGetSimSmsStorage(RESPONSE_DATA& rRspData);
-#endif // M2_GET_SIM_SMS_STORAGE_ENABLED
-
     // RIL_UNSOL_SIGNAL_STRENGTH
     RIL_RESULT_CODE ParseUnsolicitedSignalStrength(RESPONSE_DATA& rRspData);
 
