@@ -254,6 +254,14 @@ Group Modem
 //      IMEIs listed below must be separated by spaces.
     ImeiBlackList       000000000000000 004999010640000 // default IMEIs for IMC
 
+// These parameters are used to configure signal strength reporting with at command XCESQRC in
+// bar mapping mode. The first parameter is the number of bars and the following parameters are
+// bar values.
+// XCESQRC values must be aligned with levels defined in
+// /frameworks/base/telephony/java/android/telephony/SignalStrength.java
+    BarMapping2GParameters 4,7,13,22,31
+    BarMapping3GParameters 4,14,20,30,40,4,16,20,24,28
+    BarMappingLteParameters 4,26,36,46,56,0,4,-6,2,9,26
 
 // Log levels
 Group Logging
