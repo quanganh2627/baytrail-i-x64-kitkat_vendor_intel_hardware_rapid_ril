@@ -979,11 +979,6 @@ void CChannel_Data::RemoveInterface(BOOL bKeepInterfaceUp)
         }
     }
 
-    DeleteAddressesString(ADDR_IP);
-    DeleteAddressesString(ADDR_DNS);
-    DeleteAddressesString(ADDR_GATEWAY);
-    DeleteAddressesString(ADDR_PCSCF);
-
     RIL_LOG_INFO("[RIL STATE] PDP CONTEXT DEACTIVATION chnl=%u\r\n", uiRilChannel);
 
 Error:
