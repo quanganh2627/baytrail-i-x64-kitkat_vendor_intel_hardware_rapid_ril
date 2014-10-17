@@ -263,9 +263,7 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
     const char* szDummy = NULL;
     UINT32 uiID = 0;
     UINT32 uiStat = 0;
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-    sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED* pData = NULL;
-#endif
+
     if (pResponse == NULL)
     {
         RIL_LOG_CRITICAL("CSilo_Voice::ParseXCALLSTAT() : pResponse was NULL\r\n");
@@ -332,24 +330,6 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
             CTE::GetTE().SetIncomingCallStatus(0, uiStat);
             // set the flag to clear all pending chld requests
             CTE::GetTE().SetClearPendingCHLDs(TRUE);
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-            pData = (sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED*)malloc(
-                    sizeof(sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED));
-            if (NULL != pData)
-            {
-                memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED));
-
-                pData->command = RIL_OEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED;
-                pData->callId = uiID;
-
-                if (pResponse->SetData((void*)pData, sizeof(sOEM_HOOK_RAW_UNSOL_CALL_DISCONNECTED),
-                        FALSE))
-                {
-                    pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
-                    break;
-                }
-            }
-#endif
             // Fall through
         default:
             pResponse->SetResultCode(RIL_UNSOL_RESPONSE_CALL_STATE_CHANGED);
@@ -393,13 +373,6 @@ BOOL CSilo_Voice::ParseXCALLSTAT(CResponse* const pResponse, const char*& rszPoi
 #endif // M2_CALL_FAILED_CAUSE_FEATURE_ENABLED
 
 Error:
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-    if (!fRet)
-    {
-        free(pData);
-        pData = NULL;
-    }
-#endif
     RIL_LOG_VERBOSE("CSilo_Voice::ParseXCALLSTAT() - Exit\r\n");
     return fRet;
 }
