@@ -7074,7 +7074,7 @@ BOOL CTE::ParseCREG(const char*& rszPointer, const BOOL bUnSolicited,
      * If registration is denied, then map the registration status to emergency call possible(13)
      * based on reject cause.
      */
-    if (E_REGISTRATION_DENIED == status)
+    if (m_bVoiceCapable && E_REGISTRATION_DENIED == status)
     {
         const int REGISTRATION_DENIED_EMERGENCY_CALLS_POSSIBLE = 13;
         switch (rejectCause)

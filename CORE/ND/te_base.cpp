@@ -1975,7 +1975,13 @@ RIL_RESULT_CODE CTEBase::ParseRegistrationState(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    m_cte.StoreRegistrationInfo(&regStatus, E_REGISTRATION_TYPE_CREG);
+    // As CREG: 2 is an intermediate state, don't store the queried registration state in
+    // cache.
+    if (strcmp(regStatus.szStat, UNREGISTERED_SEARCHING))
+    {
+        m_cte.StoreRegistrationInfo(&regStatus, E_REGISTRATION_TYPE_CREG);
+    }
+
     m_cte.CopyCachedRegistrationInfo(pRegStatus, FALSE);
 
     // We cheat with the size here.
