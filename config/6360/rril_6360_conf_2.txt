@@ -180,14 +180,11 @@ Group Modem
 //
 //Note: a 'direct channel' means a direct AP <=> modem connection without going through the GSM
 //      MUX layer
-   ApnTypeDefault    1
-   ApnTypeDUN        1
+   ApnTypeDefault    2
+   ApnTypeDUN        2
    ApnTypeIMS        3
-   ApnTypeMMS        3
    ApnTypeCBS        3
    ApnTypeFOTA       3
-   ApnTypeSUPL       3
-   ApnTypeHIPRI      3
 
 //Total of direct channels reserved for data. The class 1 and class 2 apns
 //should be defined accordingly.

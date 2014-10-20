@@ -33,6 +33,8 @@
 #include "oemhookids.h"
 #include "repository.h"
 #include "hardwareconfig.h"
+#include "rril.h"
+
 //
 //
 CSilo_Network::CSilo_Network(CChannel* pChannel)
@@ -804,13 +806,8 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
         pChannelData = CChannel_Data::GetChnlFromContextID(uiPCID);
         if (NULL == pChannelData)
         {
-#if !defined (M2_PDK_OR_GMIN_BUILD)
-            const int DEFAULT_DATA_PROFILE = (1 << RIL_DATA_PROFILE_DEFAULT);
-#else
-            const int DEFAULT_DATA_PROFILE = 0;
-#endif
             // This is possible for Default PDN
-            pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiPCID, DEFAULT_DATA_PROFILE);
+            pChannelData = CChannel_Data::GetFreeChnlsRilHsi(uiPCID, DATA_PROFILE_DEFAULT);
             if (NULL != pChannelData)
             {
                 pChannelData->SetDataState(E_DATA_STATE_INITING);

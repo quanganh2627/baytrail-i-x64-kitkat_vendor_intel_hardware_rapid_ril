@@ -428,33 +428,17 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
     if (pChannelData != NULL)
     {
         ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
-#if !defined (M2_PDK_OR_GMIN_BUILD)
-        // Get the first profile in the bitfield. they are ordered by priority
-        int profile = rff1(dataProfile);
-        if (profile >= 0 && profile < NUMBER_OF_APN_PROFILE)
-#else
         if (dataProfile >= 0 && dataProfile < NUMBER_OF_APN_PROFILE)
-#endif
         {
             // According to the data profile class try to associate
             // a hsi channel to the RIL channel.
-#if !defined (M2_PDK_OR_GMIN_BUILD)
-            switch (m_dataProfilePathAssignation[profile])
-#else
             switch (m_dataProfilePathAssignation[dataProfile])
-#endif
             {
                 case 1:
                     // For APN of the class 1 a hsi channel is available. Find the first available.
-#if !defined (M2_PDK_OR_GMIN_BUILD)
-                    RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() -"
-                            " data profile class: %d.\r\n",
-                            m_dataProfilePathAssignation[profile]);
-#else
                     RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() -"
                             " data profile class: %d.\r\n",
                             m_dataProfilePathAssignation[dataProfile]);
-#endif
                     hsiChannel = GetFreeHSIChannel(outCID,
                             ipcDataChannelMin, ipcDataChannelMin + m_hsiChannelsReservedForClass1);
                     if (hsiChannel == -1)

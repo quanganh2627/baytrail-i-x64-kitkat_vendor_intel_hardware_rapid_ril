@@ -66,12 +66,7 @@ UINT32 g_uiRilChannelCurMax = 0;
 
 static const RIL_RadioFunctions gs_callbacks =
 {
-#if !defined(M2_PDK_OR_GMIN_BUILD)
-    // Version > 0xffff indicates the ril is implementing an intel modified API
-    0x10000 | RIL_VERSION,
-#else
     RIL_VERSION,
-#endif
     onRequest,
     onGetCurrentRadioState,
     onSupports,

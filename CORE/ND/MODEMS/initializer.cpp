@@ -1155,36 +1155,6 @@ BOOL CInitIPCHSI::InitializeHSI()
         m_dataProfilePathAssignation[4] = apnType;
     }
 
-    if (!repository.Read(g_szGroupModem, g_szApnTypeMMS, apnType))
-    {
-        RIL_LOG_WARNING("CInitIPCHSI::InitializeHSI() : Could not read network apn type"
-                " FOTA from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[5] = apnType;
-    }
-
-    if (!repository.Read(g_szGroupModem, g_szApnTypeSUPL, apnType))
-    {
-        RIL_LOG_WARNING("CInitIPCHSI::InitializeHSI() : Could not read network apn type"
-                " SUPL from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[6] = apnType;
-    }
-
-    if (!repository.Read(g_szGroupModem, g_szApnTypeEmergency, apnType))
-    {
-        RIL_LOG_WARNING("CInitIPCHSI::InitializeHSI() : Could not read network apn type"
-                " Emergency from repository\r\n");
-    }
-    else
-    {
-        m_dataProfilePathAssignation[8] = apnType;
-    }
-
     if (!repository.Read(g_szGroupModem, g_szHsiDataDirect, m_hsiDataDirect))
     {
         RIL_LOG_WARNING("CInitIPCHSI::InitializeHSI() : Could not read network apn type"

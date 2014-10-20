@@ -87,24 +87,21 @@ const int ISIM_APP_INDEX = 1;
 const UINT32 MAX_APP_LABEL_SIZE = 33; // including null termination
 const UINT32 MAX_AID_SIZE = 33; // Hex string length including null termination
 
+///////////////////////////////////////////////////////////////////////////////
+// Value to indicate profile Id in RIL_REQUEST_SETUP_DATA_CALL request.
+// value comes from frameworks/base/telephony/java/com/android/internal/telephony/RILConstants.java
+// Note: This needs to be updated on profile Id changes either in ril.h or in RILConstants.java
+//
+const int DATA_PROFILE_DEFAULT = 0;
+const int DATA_PROFILE_TETHERED = 1;
+const int DATA_PROFILE_IMS = 2;
+const int DATA_PROFILE_FOTA = 3;
+const int DATA_PROFILE_CBS = 4;
+
 #if defined (M2_PDK_OR_GMIN_BUILD)
 
 //////////////////////////////////////////////////////////////////////////////
 // ril.h definitions used to support vanilla aosp
-
-/* See RIL_REQUEST_SETUP_DATA_CALL */
-enum RIL_DataProfile_private {
-    RIL_DATA_PROFILE_IMS = 2,
-    RIL_DATA_PROFILE_FOTA = 3,
-    RIL_DATA_PROFILE_CBS = 4,
-    // the following are intel added values
-    RIL_DATA_PROFILE_MMS = 5,
-    RIL_DATA_PROFILE_SUPL = 6,
-    RIL_DATA_PROFILE_HIPRI = 7,
-    RIL_DATA_PROFILE_XCAP = 8,
-    RIL_DATA_PROFILE_EMERGENCY = 9,
-    RIL_DATA_PROFILE_RCS = 10,
-};
 
 enum RIL_AppState_private {
     RIL_APPSTATE_IMEI = 6  /* If SIM IMEI locked */
@@ -202,15 +199,6 @@ typedef struct {
     RIL_CellInfoWcdma_v2 wcdma;
   } CellInfo;
 } RIL_CellInfo_v2;
-
-typedef struct {
-    char *apn;
-    char *protocol;
-    int authtype;
-    char *username;
-    char *password;
-    int requestPcscf;
-} RIL_InitialAttachApn_Extended;
 
 #endif
 /////////////////////////////////////////////////////////////////////////////
@@ -324,7 +312,6 @@ typedef struct
 {
     char szApn[MAX_APN_SIZE];
     char szPdpType[MAX_PDP_TYPE_SIZE];
-    int requestPcscf;
 } S_INITIAL_ATTACH_APN_PARAMS;
 
 ///////////////////////////////////////////////////////////////////////////////

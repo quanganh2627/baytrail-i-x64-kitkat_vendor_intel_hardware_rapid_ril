@@ -25,12 +25,9 @@ extern UINT32 g_uiRilChannelUpperLimit;
 extern UINT32 g_uiRilChannelCurMax;
 
 // Number of apn profile
-// THIS SHOULD MATCH ril.h RIL_DATA_PROFILE_XXX max value + 1
-#if !defined (M2_PDK_OR_GMIN_BUILD)
-const int NUMBER_OF_APN_PROFILE = 11;
-#else
-const int NUMBER_OF_APN_PROFILE = 9;
-#endif
+// THIS SHOULD MATCH DATA_PROFILE_XXX + 1 in rril.h
+const int NUMBER_OF_APN_PROFILE = 6;
+
 // Number of channels able to carry data.
 const int RIL_MAX_NUM_IPC_CHANNEL = 5;
 

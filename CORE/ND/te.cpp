@@ -2717,8 +2717,6 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     UINT32 uiCID = 0;
     CChannel_Data* pChannelData = NULL;
     int retryTime = -1;
-    char* pszDataProfile = NULL;
-    int dataProfile = -1;
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
@@ -2733,28 +2731,6 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() -"
                 " Invalid data size. Was given %d bytes\r\n", datalen);
         goto Error;
-    }
-
-    pszDataProfile = ((char**)pData)[1];
-    dataProfile = atoi(pszDataProfile);
-
-    // If default is not already opened, Android could request to open the HIPRI connection,
-    // but we must consider it as a default connection request
-#if !defined (M2_PDK_OR_GMIN_BUILD)
-    if (dataProfile & (1 << RIL_DATA_PROFILE_HIPRI))
-#else
-    if (dataProfile == RIL_DATA_PROFILE_HIPRI)
-#endif
-    {
-        RIL_LOG_WARNING("CTE::RequestSetupDataCall() -"
-                " Override HIPRI profile request with DEFAULT");
-#if !defined (M2_PDK_OR_GMIN_BUILD)
-        dataProfile |= (1<<RIL_DATA_PROFILE_DEFAULT);
-#else
-        dataProfile = RIL_DATA_PROFILE_DEFAULT;
-#endif
-        PrintStringNullTerminate(pszDataProfile, sizeof(pszDataProfile),
-                "%d", dataProfile);
     }
 
     if (!IsSetupDataCallAllowed(retryTime))
@@ -2819,6 +2795,13 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
                 break;
         }
     }
+
+    /*
+     * If control reaches here that means new context is going to be established.
+     * So, equate pChannelData to NULL to avoid default pdn data call information being
+     * reset on errors in CoreSetupDataCall.
+     */
+    pChannelData = NULL;
 
     res = m_pTEBaseInstance->CoreSetupDataCall(reqData, pData, datalen, uiCID);
     if (RRIL_RESULT_OK != res)

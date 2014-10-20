@@ -163,24 +163,10 @@ RIL_RESULT_CODE CTE_XMM7260::CoreSetupDataCall(REQUEST_DATA& rReqData,
                 stPdpData.szPDPType);
     }
 
-    if (dataProfile == (1 << RIL_DATA_PROFILE_EMERGENCY))
+    if (DATA_PROFILE_IMS == dataProfile && m_cte.IsIMSApCentric())
     {
-        nReqType = 1; // 1 => PDP context is for emergency bearer services
-        // An emergency PDN will only be used for IMS traffic, so request PCSCF
-        // and set the IMS signaling flag.
         nRequestPcscfFlag = 1;
         nImSignalingFlag = 1;
-    }
-
-    if ((dataProfile & ((1 << RIL_DATA_PROFILE_IMS) | (1 << RIL_DATA_PROFILE_RCS)))
-        && m_cte.IsIMSApCentric())
-    {
-        nRequestPcscfFlag = 1;
-        // Check if this PDN is only used for IMS to set the IM Signaling flag.
-        if ((dataProfile & ~(1<<RIL_DATA_PROFILE_IMS)) == 0)
-        {
-            nImSignalingFlag = 1;
-        }
     }
 
     //

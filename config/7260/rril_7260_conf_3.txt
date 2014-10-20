@@ -185,14 +185,11 @@ Group Modem
 //
 //Note: a 'direct channel' means a direct AP <=> modem connection without going through the GSM
 //      MUX layer
-   ApnTypeDefault    1
+   ApnTypeDefault    2
    ApnTypeDUN        2
    ApnTypeIMS        2
-   ApnTypeMMS        2
    ApnTypeCBS        2
    ApnTypeFOTA       2
-   ApnTypeSUPL       2
-   ApnTypeHIPRI      2
 
 // TE profile used for SATK
    TeProfile         08E09721610F00186900001FE21FFFE6C72B0000070508002100000000180000
