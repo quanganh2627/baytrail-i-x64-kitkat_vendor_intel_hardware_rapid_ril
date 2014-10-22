@@ -1164,7 +1164,7 @@ Error:
 BOOL CTE_XMM7160::GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData)
 {
     UINT32 uiMode = GetXDNSMode(m_InitialAttachApnParams.szPdpType);
-    int requestPcscf = 0;
+    int requestPcscf = m_cte.IsIMSApCentric() ? 1 : 0;
 
     if ('\0' == m_InitialAttachApnParams.szApn[0])
     {
