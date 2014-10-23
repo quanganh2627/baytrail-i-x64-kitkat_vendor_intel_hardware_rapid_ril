@@ -28,6 +28,7 @@
 #include "channel_DLC8.h"
 #include "channel_DLC22.h"
 #include "channel_DLC23.h"
+#include "channel_Sms.h"
 #include "channel_URC.h"
 #include "channel_OEM.h"
 #include "silo_voice.h"
@@ -437,6 +438,10 @@ BOOL CInitializer::IsChannelUndefined(int channel)
             if (!g_szDataPort5)
                 return TRUE;
             break;
+        case RIL_CHANNEL_SMS:
+            if (!g_szSmsPort)
+                return TRUE;
+             break;
         default: return FALSE;
     }
 
@@ -487,6 +492,10 @@ CChannel* CInitializer::CreateChannel(UINT32 eIndex)
             pChannel = new CChannel_OEM(eIndex);
             break;
 
+        case RIL_CHANNEL_SMS:
+            pChannel = new CChannel_Sms(eIndex);
+            break;
+
         default:
             if (eIndex >= RIL_CHANNEL_DATA1) {
                 pChannel = new CChannel_Data(eIndex);
@@ -523,7 +532,8 @@ int CInitializer::GetSiloConfig(UINT32 channel)
     // default silo configurations
     const int DefSiloConfigATCmd = 0x840; // Misc and common silo
     const int DefSiloConfigNetwork = 0x810; // Network and common silo
-    const int DefSiloConfigVoiceAndSms = 0x805; // Voice, SMS and common silo
+    const int DefSiloConfigVoice = 0x801; // Voice and common silo
+    const int DefSiloConfigSms = 0x804; // SMS and common silo
     const int DefSiloConfigSIM = 0x802; // SIM and common silo
     const int DefSiloConfigURC = 0x877; // All silo's except Data and IMS
     const int DefSiloConfigData = 0x808; // Data and common silo
@@ -535,12 +545,12 @@ int CInitializer::GetSiloConfig(UINT32 channel)
     // and default silo configuration if not available in repository
     SILO_CONFIG chanSiloConfig[RIL_CHANNEL_MAX] = {
         {g_szSilosATCmd, DefSiloConfigATCmd}, {g_szSilosDLC2, DefSiloConfigNetwork},
-        {g_szSilosDLC6,  DefSiloConfigVoiceAndSms}, {g_szSilosDLC8, DefSiloConfigSIM},
+        {g_szSilosDLC6,  DefSiloConfigVoice}, {g_szSilosDLC8, DefSiloConfigSIM},
         {g_szSilosURC,   DefSiloConfigURC},  {g_szSilosOEM,  DefSiloConfigCommon},
         {g_szSilosDLC22, DefSiloCopsCommon}, {g_szSilosDLC23, DefSiloCopsRfcoexistence},
+        {g_szSilosSms,   DefSiloConfigSms},  {g_szSilosData, DefSiloConfigData},
         {g_szSilosData,  DefSiloConfigData}, {g_szSilosData, DefSiloConfigData},
-        {g_szSilosData,  DefSiloConfigData}, {g_szSilosData, DefSiloConfigData},
-        {g_szSilosData,  DefSiloConfigData}
+        {g_szSilosData,  DefSiloConfigData}, {g_szSilosData, DefSiloConfigData}
     };
 
     if (channel < g_uiRilChannelCurMax && channel < RIL_CHANNEL_MAX)

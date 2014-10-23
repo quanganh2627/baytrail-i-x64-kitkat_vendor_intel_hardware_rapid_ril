@@ -22,7 +22,7 @@ class CThread;
 extern char* g_szCmdPort;
 // The device path to use for the GPRS attach/detatch, network channel
 extern char* g_szDLC2Port;
-// The device path to use for the SMS, Supplementary services channel
+// The device path to use for the Supplementary services channel
 extern char* g_szDLC6Port;
 // The device path to use for the SIM / SIM Toolkit channel
 extern char* g_szDLC8Port;
@@ -30,6 +30,8 @@ extern char* g_szDLC8Port;
 extern char* g_szDLC22Port;
 // The device path to use for RF coexistence
 extern char* g_szDLC23Port;
+// The device path to use for the SMS channel
+extern char* g_szSmsPort;
 // The device path to use for the notification channel
 extern char* g_szURCPort;
 // The device path to use for the OEM channel

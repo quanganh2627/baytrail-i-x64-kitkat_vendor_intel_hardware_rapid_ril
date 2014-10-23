@@ -259,10 +259,11 @@ Group Logging
 Group ChannelSiloConfiguration
     SilosATCmdChannel       0x840    // Misc and common silo (2)
     SilosDLC2Channel        0x810    // Network and common silo (2)
-    SilosDLC6Channel        0x805    // Voice, SMS and common silo (3).
+    SilosDLC6Channel        0x801    // Voice and common silo (2)
     SilosDLC8Channel        0x802    // SIM and common silo (2)
     SilosDLC22Channel       0x800    // common silo (1)
     SilosDLC23Channel       0x800    // common silo (1)
+    SilosSmsChannel         0x804    // SMS and common silo (2)
     SilosURCChannel         0x8F7    // All silos except data
     SilosOEMChannel         0x800    // common silo only (1)
     SilosDataChannel        0x808    // Data and common silo (2)

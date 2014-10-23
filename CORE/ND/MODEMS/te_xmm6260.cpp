@@ -198,6 +198,10 @@ BOOL CTE_XMM6260::IsRequestSupported(int requestId)
         case RIL_REQUEST_SEND_SMS:
         case RIL_REQUEST_SEND_SMS_EXPECT_MORE:
         case RIL_REQUEST_SMS_ACKNOWLEDGE:
+        case RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU:
+        case RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG:
+        case RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG:
+        case RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION:
             return (m_cte.IsSmsOverCSCapable() || m_cte.IsSmsOverPSCapable());
 
         case RIL_REQUEST_STK_GET_PROFILE:

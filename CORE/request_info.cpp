@@ -91,9 +91,9 @@ const REQ_INFO g_ReqInfoDefault[] =
     // RIL_REQUEST_DTMF
     { "Dtmf", RIL_CHANNEL_DLC6, 0 },
     // RIL_REQUEST_SEND_SMS
-    { "SendSms", RIL_CHANNEL_DLC6, 0 },
+    { "SendSms", RIL_CHANNEL_SMS, 0 },
     // RIL_REQUEST_SEND_SMS_EXPECT_MORE
-    { "SendSmsExpectMore", RIL_CHANNEL_DLC6, 0 },
+    { "SendSmsExpectMore", RIL_CHANNEL_SMS, 0 },
     // RIL_REQUEST_SETUP_DATA_CALL
     { "SetupDefaultPDP", RIL_CHANNEL_DATA1, 0 },
     // RIL_REQUEST_SIM_IO
@@ -115,7 +115,7 @@ const REQ_INFO g_ReqInfoDefault[] =
     // RIL_REQUEST_SET_CALL_WAITING
     { "SetCallWaiting", RIL_CHANNEL_DLC6, 0 },
     // RIL_REQUEST_SMS_ACKNOWLEDGE
-    { "SmsAcknowledge", RIL_CHANNEL_ATCMD, 0 },
+    { "SmsAcknowledge", RIL_CHANNEL_SMS, 0 },
     // RIL_REQUEST_GET_IMEI
     { "GetIMEI", RIL_CHANNEL_DLC8, 0 },
     // RIL_REQUEST_GET_IMEISV
@@ -219,11 +219,11 @@ const REQ_INFO g_ReqInfoDefault[] =
     // RIL_REQUEST_CDMA_SMS_ACKNOWLEDGE
     { "CdmaSmsAcknowledge", RIL_CHANNEL_RESERVED, 0 },
     // RIL_REQUEST_GSM_GET_BROADCAST_SMS_CONFIG
-    { "GetBroadcastSmsConfig", RIL_CHANNEL_DLC6, 0 },
+    { "GetBroadcastSmsConfig", RIL_CHANNEL_SMS, 0 },
     // RIL_REQUEST_GSM_SET_BROADCAST_SMS_CONFIG
-    { "SetBroadcastSmsConfig", RIL_CHANNEL_DLC6, 0 },
+    { "SetBroadcastSmsConfig", RIL_CHANNEL_SMS, 0 },
     // RIL_REQUEST_GSM_SMS_BROADCAST_ACTIVATION
-    { "SmsBroadcastActivation", RIL_CHANNEL_DLC6, 0 },
+    { "SmsBroadcastActivation", RIL_CHANNEL_SMS, 0 },
     // RIL_REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG
     { "CdmaGetBroadcastSmsConfig", RIL_CHANNEL_RESERVED, 0 },
     // RIL_REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG
@@ -245,7 +245,7 @@ const REQ_INFO g_ReqInfoDefault[] =
     // RIL_REQUEST_SET_SMSC_ADDRESS
     { "SetSmscAddress", RIL_CHANNEL_DLC8, 0 },
     // RIL_REQUEST_REPORT_SMS_MEMORY_STATUS
-    { "ReportSmsMemoryStatus", RIL_CHANNEL_DLC6, 0 },
+    { "ReportSmsMemoryStatus", RIL_CHANNEL_DLC8, 0 },
     // RIL_REQUEST_REPORT_STK_SERVICE_IS_RUNNING
     { "ReportStkServiceIsRunning", RIL_CHANNEL_URC, 0 },
     // RIL_REQUEST_CDMA_GET_SUBSCRIPTION_SOURCE
@@ -253,7 +253,7 @@ const REQ_INFO g_ReqInfoDefault[] =
     // RIL_REQUEST_ISIM_AUTHENTICATION
     { "IsimAuthentication", RIL_CHANNEL_DLC8, 0 },
     // RIL_REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU
-    { "AckIncomingSmsWithPdu", RIL_CHANNEL_DLC6, 0 },
+    { "AckIncomingSmsWithPdu", RIL_CHANNEL_SMS, 0 },
     // RIL_REQUEST_STK_SEND_ENVELOPE_WITH_STATUS
     { "StkSendEnvelopeWithStatus", RIL_CHANNEL_DLC8, 0 },
     // RIL_REQUEST_VOICE_RADIO_TECH
