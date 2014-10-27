@@ -110,6 +110,7 @@ void CTEBase::ResetCardStatus(BOOL bForceReset)
     {
         for (int i = 0; i < m_CardStatusCache.num_applications; i++)
         {
+            m_CardStatusCache.applications[i].app_type = RIL_APPTYPE_UNKNOWN;
             m_CardStatusCache.applications[i].app_state = RIL_APPSTATE_UNKNOWN;
             m_CardStatusCache.applications[i].perso_substate = RIL_PERSOSUBSTATE_UNKNOWN;
             m_CardStatusCache.applications[i].aid_ptr = NULL;
