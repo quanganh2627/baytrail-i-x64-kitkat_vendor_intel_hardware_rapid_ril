@@ -4859,12 +4859,11 @@ RIL_RESULT_CODE CTE_XMM6260::GetPcscf(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::GetPcscf() - Enter\r\n");
     CChannel_Data *pChannelData = NULL;
-    char* pszResponse = NULL;
+    P_ND_GET_PCSCF_RESPONSE pResponse = NULL;
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char szPcscfes[MAX_BUFFER_SIZE] = {'\0'};
     UINT32 uiCID = 0;
     size_t responseLen = 0;
-    int err = 0;
 
     if (pszRequest[1] == NULL)
     {
@@ -4894,31 +4893,36 @@ RIL_RESULT_CODE CTE_XMM6260::GetPcscf(REQUEST_DATA& rReqData,
     // fill the PCSCF response: CID + PCSCF addresses
     pChannelData->GetAddressString(szPcscfes, pChannelData->ADDR_PCSCF, sizeof(szPcscfes));
 
-    // cid + space + pcscfes + 0 terminal
-    responseLen = 2 + 1 + strlen(szPcscfes) + 1;
-
-    pszResponse = (char*) malloc(responseLen);
-    if (NULL == pszResponse)
+    pResponse = (P_ND_GET_PCSCF_RESPONSE) malloc(sizeof(S_ND_GET_PCSCF_RESPONSE));
+    if (NULL == pResponse)
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::GetPcscf() - Could not allocate memory for response");
         goto Error;
     }
+    memset(pResponse, 0, sizeof(S_ND_GET_PCSCF_RESPONSE));
 
     //  create the full response
-    err = snprintf(pszResponse, responseLen, "%d %s", uiCID, szPcscfes);
-    if (err < 0 || err >= responseLen)
+    if (!PrintStringNullTerminate(pResponse->szPcscf, sizeof(pResponse->szPcscf),
+            "%d %s", uiCID, szPcscfes))
     {
         RIL_LOG_CRITICAL("CTE_XMM6260::GetPcscf() - Could not create response");
         goto Error;
     }
+    RIL_LOG_INFO("CTE_XMM6260::GetPcscf() - response string: %s", pResponse->szPcscf);
+    pResponse->sResponsePointer.pszPcscf = pResponse->szPcscf;
 
     // Response data are passed in pContextData2 and len in cbContextData2
     // when response is immediate.
-    rReqData.pContextData2 = (void*) pszResponse;
-    rReqData.cbContextData2 = responseLen;
+    rReqData.pContextData2 = (void*)pResponse;
+    rReqData.cbContextData2 = sizeof(S_ND_GET_PCSCF_RESPONSE_PTR);
 
     res = RRIL_RESULT_OK_IMMEDIATE;
 Error:
+    if (RRIL_RESULT_OK_IMMEDIATE != res)
+    {
+        free(pResponse);
+        pResponse = NULL;
+    }
     RIL_LOG_VERBOSE("CTE_XMM6260::GetPcscf() - Exit\r\n");
     return res;
 }

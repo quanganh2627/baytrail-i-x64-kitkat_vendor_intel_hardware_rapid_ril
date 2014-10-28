@@ -312,6 +312,20 @@ typedef struct
 } S_ND_THERMAL_SENSOR_VALUE, *P_ND_THERMAL_SENSOR_VALUE;
 
 //
+// Structs for reporting PCSCF
+//
+typedef struct
+{
+    char* pszPcscf;
+} S_ND_GET_PCSCF_RESPONSE_PTR, *P_ND_GET_PCSCF_RESPONSE_PTR;
+
+typedef struct
+{
+    S_ND_GET_PCSCF_RESPONSE_PTR sResponsePointer;
+    char szPcscf[MAX_BUFFER_SIZE];
+} S_ND_GET_PCSCF_RESPONSE, *P_ND_GET_PCSCF_RESPONSE;
+
+//
 // Structs for OEM diagnostic commands
 //
 typedef struct
