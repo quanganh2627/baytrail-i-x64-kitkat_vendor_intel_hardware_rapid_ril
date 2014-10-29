@@ -306,13 +306,23 @@ typedef struct
 } S_NETWORK_SELECTION_MODE_PARAMS;
 
 ///////////////////////////////////////////////////////////////////////////////
-// Network selection mode parameters
+// Initial attach apn params
 //
 typedef struct
 {
     char szApn[MAX_APN_SIZE];
     char szPdpType[MAX_PDP_TYPE_SIZE];
 } S_INITIAL_ATTACH_APN_PARAMS;
+
+///////////////////////////////////////////////////////////////////////////////
+// Data profile information
+//
+typedef struct
+{
+    int profileId;
+    char szApn[MAX_APN_SIZE];
+} S_DATA_PROFILE_INFO;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Facility Lock Context data

@@ -246,14 +246,14 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     char szIPV4V6[] = "IPV4V6";
-    int nPapChap = 0; // no auth
+    int papChap = 0; // no auth
     PdpData stPdpData;
     S_SETUP_DATA_CALL_CONTEXT_DATA* pDataCallContextData = NULL;
     CChannel_Data* pChannelData = NULL;
     int dataProfile = -1;
-    int nEmergencyFlag = 0; // 1: emergency pdn
-    int nRequestPcscfFlag = 0; // 1: request pcscf address
-    int nImSignalingFlag = 0; // 1: IMS Only APN
+    int emergencyFlag = 0; // 1: emergency pdn
+    int requestPcscfFlag = 0; // 1: request pcscf address
+    int imCnSignallingFlagInd = 0; // 1: IMS Only APN
     UINT32 uiDnsMode = 0;
 
     RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - uiDataSize=[%u]\r\n", uiDataSize);
@@ -286,22 +286,18 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
 
     pDataCallContextData->uiCID = uiCID;
 
-    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szRadioTechnology=[%s]\r\n",
-            stPdpData.szRadioTechnology);
-    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szRILDataProfile=[%s]\r\n",
-            stPdpData.szRILDataProfile);
-    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szApn=[%s]\r\n", stPdpData.szApn);
-    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szUserName=[%s]\r\n",
-            stPdpData.szUserName);
-    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szPassword=[%s]\r\n",
-            stPdpData.szPassword);
-    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - stPdpData.szPAPCHAP=[%s]\r\n",
+    RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - "
+            "stPdpData.szRadioTechnology=[%s], stPdpData.szRILDataProfile=[%s], "
+            "stPdpData.szApn=[%s], stPdpData.szUserName=[%s], stPdpData.szPassword=[%s], "
+            "stPdpData.szPAPCHAP=[%s]\r\n",
+            stPdpData.szRadioTechnology, stPdpData.szRILDataProfile,
+            stPdpData.szApn, stPdpData.szUserName, stPdpData.szPassword,
             stPdpData.szPAPCHAP);
 
     // if user name is empty, always use no authentication
     if (stPdpData.szUserName == NULL || strlen(stPdpData.szUserName) == 0)
     {
-        nPapChap = 0;    // No authentication
+        papChap = 0;    // No authentication
     }
     else
     {
@@ -310,12 +306,12 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
         // Note: due to an issue in the Android/Fw (missing check of the username
         // length), if the authentication is not defined, it's the value 3 (PAP or
         // CHAP) which is sent to RRIL by default.
-        nPapChap = atoi(stPdpData.szPAPCHAP);
-        if (nPapChap == 3)
+        papChap = atoi(stPdpData.szPAPCHAP);
+        if (papChap == 3)
         {
-            nPapChap = 1;    // PAP authentication
+            papChap = 1;    // PAP authentication
 
-            RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - New PAP/CHAP=[%d]\r\n", nPapChap);
+            RIL_LOG_INFO("CTE_XMM7160::CoreSetupDataCall() - New PAP/CHAP=[%d]\r\n", papChap);
         }
     }
 
@@ -326,10 +322,10 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
                 stPdpData.szPDPType);
     }
 
-    if (DATA_PROFILE_IMS == dataProfile && m_cte.IsIMSApCentric())
+    if (ImsEnabledApn(stPdpData.szApn))
     {
-        nRequestPcscfFlag = 1;
-        nImSignalingFlag = 1;
+        requestPcscfFlag = 1;
+        imCnSignallingFlagInd = 1;
     }
 
     //
@@ -353,8 +349,8 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
             "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d,%d,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
-            uiCID, stPdpData.szPDPType, stPdpData.szApn, nEmergencyFlag, nRequestPcscfFlag,
-            nImSignalingFlag, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
+            uiCID, stPdpData.szPDPType, stPdpData.szApn, emergencyFlag, requestPcscfFlag,
+            imCnSignallingFlagInd, uiCID, papChap, stPdpData.szUserName, stPdpData.szPassword,
             uiCID, uiDnsMode))
     {
         RIL_LOG_CRITICAL("CTE_XMM6360::CoreSetupDataCall() -"
@@ -1196,7 +1192,7 @@ Error:
 BOOL CTE_XMM7160::GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData)
 {
     UINT32 uiMode = GetXDNSMode(m_InitialAttachApnParams.szPdpType);
-    int requestPcscf = m_cte.IsIMSApCentric() ? 1 : 0;
+    int requestPcscf = ImsEnabledApn(m_InitialAttachApnParams.szApn) ? 1 : 0;
 
     if ('\0' == m_InitialAttachApnParams.szApn[0])
     {
@@ -3729,4 +3725,21 @@ Error:
 
     RIL_LOG_VERBOSE("CTE_XMM7160::ParseGetAdaptiveClockingFreqInfo() - Exit\r\n");
     return res;
+}
+
+bool CTE_XMM7160::ImsEnabledApn(const char* pszApn)
+{
+    if (m_cte.IsIMSApCentric())
+    {
+        S_DATA_PROFILE_INFO info;
+        for (size_t i = 0; i < m_vDataProfileInfos.size(); i++)
+        {
+            info = m_vDataProfileInfos[i];
+            if (DATA_PROFILE_IMS == info.profileId && !strcmp(info.szApn, pszApn))
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }

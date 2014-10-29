@@ -9600,6 +9600,46 @@ Error:
     return res;
 }
 
+void CTEBase::CoreSetDataProfile(void* pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTEBase::CoreSetDataProfile() - Enter\r\n");
+
+    m_vDataProfileInfos.clear();
+
+    if (datalen <= 0)
+    {
+        RIL_LOG_INFO("CTEBase::CoreSetDataProfile() - Empty DataProfileInfo\r\n");
+        return;
+    }
+
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSetDataProfile() -"
+                " Passed data pointer was NULL\r\n");
+        return;
+    }
+
+    if (0 != (datalen % sizeof(RIL_DataProfileInfo*)))
+    {
+        RIL_LOG_CRITICAL("CTEBase::CoreSetDataProfile() -"
+                " Passed data size mismatch. Found %d bytes\r\n", datalen);
+        return;
+    }
+
+    size_t nInfos = datalen / sizeof(RIL_DataProfileInfo*);
+    RIL_DataProfileInfo** ppDataProfileInfo = (RIL_DataProfileInfo**)pData;
+    for (size_t i = 0; i < nInfos; i++)
+    {
+        S_DATA_PROFILE_INFO info;
+        info.profileId = ppDataProfileInfo[i]->profileId;
+        info.szApn[0] = '\0';
+        CopyStringNullTerminate(info.szApn, ppDataProfileInfo[i]->apn, sizeof(info.szApn));
+        m_vDataProfileInfos.push_back(info);
+    }
+
+    RIL_LOG_VERBOSE("CTEBase::CoreSetDataProfile() - Exit\r\n");
+}
+
 RIL_RESULT_CODE CTEBase::CoreShutdown(REQUEST_DATA& /*reqData*/, void* /*pData*/,
         UINT32 /*uiDataSize*/)
 {

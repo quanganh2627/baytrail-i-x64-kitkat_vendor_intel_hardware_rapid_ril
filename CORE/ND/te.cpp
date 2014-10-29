@@ -1139,6 +1139,10 @@ void CTE::HandleRequest(int requestId, void* pData, size_t datalen, RIL_Token hR
                 eRetVal = RequestSimTransmitApduChannel(hRilToken, pData, datalen);
                 break;
 
+            case RIL_REQUEST_SET_DATA_PROFILE:
+                eRetVal = RequestSetDataProfile(hRilToken, pData, datalen);
+                break;
+
             case RIL_REQUEST_SHUTDOWN:
                 eRetVal = RequestShutdown(hRilToken, pData, datalen);
                 break;
@@ -6862,6 +6866,21 @@ RIL_RESULT_CODE CTE::ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData)
     RIL_LOG_VERBOSE("CTE::ParseSimTransmitApduChannel() - Enter / Exit\r\n");
 
     return m_pTEBaseInstance->ParseSimTransmitApduChannel(rRspData);
+}
+
+//
+// RIL_REQUEST_SET_DATA_PROFILE
+//
+RIL_RESULT_CODE CTE::RequestSetDataProfile(RIL_Token rilToken, void* pData, size_t datalen)
+{
+    RIL_LOG_VERBOSE("CTE::RequestSetDataProfile() - Enter\r\n");
+
+    m_pTEBaseInstance->CoreSetDataProfile(pData, datalen);
+
+    RIL_onRequestComplete(rilToken, RRIL_RESULT_OK, NULL, 0);
+
+    RIL_LOG_VERBOSE("CTE::RequestSetDataProfile() - Exit\r\n");
+    return RRIL_RESULT_OK;
 }
 
 RIL_RESULT_CODE CTE::RequestShutdown(RIL_Token rilToken, void* pData, size_t datalen)

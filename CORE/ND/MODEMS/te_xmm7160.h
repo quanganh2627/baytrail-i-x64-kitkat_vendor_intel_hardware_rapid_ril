@@ -212,6 +212,9 @@ private:
             const UINT32 uiDataSize,
             android::Vector<RIL_GSM_BroadcastSmsConfigInfo>& vBroadcastSmsConfigInfo,
             CCbsInfo::CbmIds* pConfigIds);
+
+    bool ImsEnabledApn(const char* pszApn);
+
     // Dedicated class about Cell Broadcast messages (SMS)
     CCbsInfo m_CbsInfo;
 };

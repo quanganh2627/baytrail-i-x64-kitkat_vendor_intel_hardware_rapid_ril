@@ -57,6 +57,8 @@ protected:
 
     bool m_bNeedGetInfoOnCellChange;
 
+    android::Vector<S_DATA_PROFILE_INFO> m_vDataProfileInfos;
+
     static const char* PDPTYPE_IPV4V6;
     static const char* PDPTYPE_IPV6;
     static const char* PDPTYPE_IP;
@@ -760,6 +762,9 @@ public:
                                                               void* pData,
                                                               UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData);
+
+    // RIL_REQUEST_SET_DATA_PROFILE
+    virtual void CoreSetDataProfile(void* pData, size_t datalen);
 
     // RIL_REQUEST_SHUTDOWN
     virtual RIL_RESULT_CODE CoreShutdown(REQUEST_DATA& reqData, void* pData, UINT32 uiDataSize);
