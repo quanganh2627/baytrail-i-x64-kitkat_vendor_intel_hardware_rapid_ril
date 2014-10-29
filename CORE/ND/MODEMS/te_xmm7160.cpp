@@ -70,6 +70,41 @@ Error:
     return pRet;
 }
 
+char* CTE_XMM7160::GetBasicInitCommands(UINT32 uiChannelType)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::GetBasicInitCommands() - Enter\r\n");
+
+    char szInitCmd[MAX_BUFFER_SIZE] = {'\0'};
+    char* pInitCmd = NULL;
+
+    pInitCmd = CTE_XMM6360::GetBasicInitCommands(uiChannelType);
+    if (NULL == pInitCmd)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::GetBasicInitCommands() - Failed to get the "
+                "basic init cmd string!\r\n");
+        goto Done;
+    }
+
+    // Add 7160-specific init commands to ATCMD channel
+    if (RIL_CHANNEL_ATCMD == uiChannelType)
+    {
+        UINT32 uiModeOfOperation = m_cte.IsVoiceCapable()
+                ? MODE_CS_PS_VOICE_CENTRIC
+                : MODE_CS_PS_DATA_CENTRIC;
+
+        // Set mode of operation for when the modem is LTE camped
+        // Note: no need to check for content of pInitCmd as init string code supports spurious "|"
+        PrintStringNullTerminate(szInitCmd, sizeof(szInitCmd), "%s|+CEMODE=%u",
+                pInitCmd, uiModeOfOperation);
+        free(pInitCmd);
+        pInitCmd = strdup(szInitCmd);
+    }
+
+Done:
+    RIL_LOG_VERBOSE("CTE_XMM7160::GetBasicInitCommands() - Exit\r\n");
+    return pInitCmd;
+}
+
 char* CTE_XMM7160::GetUnlockInitCommands(UINT32 uiChannelType)
 {
     RIL_LOG_VERBOSE("CTE_XMM7160::GetUnlockInitCommands() - Enter\r\n");
@@ -560,9 +595,6 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     RIL_PreferredNetworkType networkType = PREF_NET_TYPE_LTE_GSM_WCDMA; //9
-    UINT32 uiModeOfOperation = m_cte.IsVoiceCapable()
-            ? MODE_CS_PS_VOICE_CENTRIC
-            : MODE_CS_PS_DATA_CENTRIC;
 
     if (NULL == pData)
     {
@@ -639,7 +671,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                     "LTE Only:XACT=2) - Enter\r\n");
             if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                    "AT+XACT=2;+CEMODE=%u\r", uiModeOfOperation))
+                    "AT+XACT=2\r"))
             {
                 RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                         "Can't construct szCmd1 networkType=%d\r\n", networkType);
@@ -656,7 +688,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                     "LTE,GSM,WCDMA:XACT=6,2,1) - Enter\r\n");
             if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                    "AT+XACT=6,2,1;+CEMODE=%u\r", uiModeOfOperation))
+                    "AT+XACT=6,2,1\r"))
             {
                 RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                     "Can't construct szCmd1 networkType=%d\r\n", networkType);
@@ -668,7 +700,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetPreferredNetworkType(REQUEST_DATA& rReqData,
             RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetPreferredNetworkType() - "
                     "LTE,WCDMA:XACT=4,2) - Enter\r\n");
             if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-                    "AT+XACT=4,2;+CEMODE=%u\r", uiModeOfOperation))
+                    "AT+XACT=4,2\r"))
             {
                 RIL_LOG_CRITICAL("CTE_XMM7160::HandleNetworkType() - Can't "
                         "construct szCmd1 networkType=%d\r\n", networkType);

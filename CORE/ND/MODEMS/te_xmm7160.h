@@ -133,6 +133,8 @@ public:
 
     virtual BOOL DataConfigDown(UINT32 uiCID, BOOL bForceCleanup = FALSE);
 
+    virtual char* GetBasicInitCommands(UINT32 uiChannelType);
+
     virtual char* GetUnlockInitCommands(UINT32 uiChannelType);
 
     virtual const char* GetSignalStrengthReportingStringAlloc();
