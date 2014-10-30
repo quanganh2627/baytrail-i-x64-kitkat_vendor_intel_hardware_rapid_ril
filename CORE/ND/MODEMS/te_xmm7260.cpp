@@ -2126,3 +2126,192 @@ const char* CTE_XMM7260::GetSignalStrengthReportingStringAlloc()
 
     return strdup(szSignalStrengthReporting);
 }
+
+/*
+ * Activates or deactivates the registration state and band information reporting
+ * using intent RIL_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_REPORT
+ */
+RIL_RESULT_CODE CTE_XMM7260::CreateSetRegStatusAndBandReport(REQUEST_DATA& reqData,
+        const char** ppszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7260::CreateSetRegStatusAndBandReport() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int reportOn = -1;
+
+    if (uiDataSize < (2 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetRegStatusAndBandReport() :"
+                " received_size < required_size\r\n");
+        goto Error;
+    }
+
+    // Request format received : <commandId>, <data>
+    // The value received for data should be '0' or '1'.
+    if (!ExtractInt(ppszRequest[1], reportOn, ppszRequest[1])
+            || (reportOn < 0 && reportOn > 1))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetRegStatusAndBandReport() :"
+                " invalid data received\r\n");
+        goto Error;
+    }
+
+    m_bCoexRegStatusAndBandIndActivated = (reportOn == 1);
+
+    if (m_bCoexRegStatusAndBandIndActivated)
+    {
+        if (!CopyStringNullTerminate(reqData.szCmd1, "AT+XREG=3;+XREG?\r",
+                sizeof(reqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetRegStatusAndBandReport() -"
+                   " Cannot construct szCmd1.\r\n");
+            goto Error;
+        }
+    }
+    else
+    {
+        res = RRIL_RESULT_OK_IMMEDIATE;
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7260::CreateSetRegStatusAndBandReport() - Exit\r\n");
+    return res;
+}
+
+/*
+ * Activates or deactivates the coexistence intents reporting
+ * - Enable Coex Reporting "AT+XNRTCWS=1”
+ * - Disable Coex Reporting "AT+XNRTCWS=0”
+ */
+RIL_RESULT_CODE CTE_XMM7260::CreateSetCoexReport(REQUEST_DATA& reqData,
+        const char** ppszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7260::CreateSetCoexReport() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int reportOn = -1;
+
+    if (uiDataSize < (2 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetCoexReport() :"
+                " received_size < required_size\r\n");
+        goto Error;
+    }
+
+    // Request format received : <commandId>, <data>
+    // The value received for data should be '0' or '1'.
+    if (!ExtractInt(ppszRequest[1], reportOn, ppszRequest[1])
+            || (reportOn < 0 && reportOn > 1))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetCoexReport() :"
+                " invalid data received\r\n");
+        goto Error;
+    }
+
+    m_bCoexReportActivated = (reportOn == 1);
+
+    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+            "AT+XNRTCWS=%d\r", reportOn))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetCoexReport() -"
+                " Cannot construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7260::CreateSetCoexReport() - Exit\r\n");
+    return res;
+}
+
+/*
+ * Set the Wlan parameters to the modem IDC part.
+ */
+RIL_RESULT_CODE CTE_XMM7260::CreateSetCoexWlanParams(REQUEST_DATA& reqData,
+        const char** ppszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7260::CreateSetCoexWlanParams() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int wlanStatus = -1;
+    int wlanBandwidth = -1;
+
+    if (uiDataSize < (3 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetCoexWlanParams() :"
+                " received_size < required_size\r\n");
+        goto Error;
+    }
+
+    // Request format received : <commandId>, <Wifi status>, <Wlan Bandwidth>
+    // The value received for Wifi status should be '0' or '1'.
+    if (!ExtractInt(ppszRequest[1], wlanStatus, ppszRequest[1])
+            || (wlanStatus < 0 && wlanStatus > 1))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetCoexWlanParams() :"
+                " invalid wlanStatus received\r\n");
+        goto Error;
+    }
+
+    // The value received for Wlan Bandwidth should be : 0/1/2
+    if (!ExtractInt(ppszRequest[2], wlanBandwidth, ppszRequest[2])
+            || (wlanBandwidth < 0 && wlanBandwidth > 2))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetCoexWlanParams() :"
+                " invalid wlanBandwidth received\r\n");
+        goto Error;
+    }
+
+    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+            "AT+XNRTCWS=2,%d,%d\r", wlanStatus, wlanBandwidth))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetCoexWlanParams() -"
+                " Cannot construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7260::CreateSetCoexWlanParams() - Exit\r\n");
+    return res;
+}
+
+/*
+ * Set the Bt parameters to the modem IDC part.
+ */
+RIL_RESULT_CODE CTE_XMM7260::CreateSetCoexBtParams(REQUEST_DATA& reqData,
+        const char** ppszRequest, const UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7260::CreateSetCoexBtParams() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    int btStatus = -1;
+
+    if (uiDataSize < (2 * sizeof(char*)))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetCoexBtParams() :"
+                " received_size < required_size\r\n");
+        goto Error;
+    }
+
+    // Request format received : <commandId>, <data>
+    // The value received for data should be '0' or '1'.
+    if (!ExtractInt(ppszRequest[1], btStatus, ppszRequest[1])
+            || (btStatus < 0 && btStatus > 1))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetCoexBtParams() :"
+                " invalid btStatus received\r\n");
+        goto Error;
+    }
+
+    if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
+            "AT+XNRTCWS=2,,,%d\r", btStatus))
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7260::CreateSetCoexBtParams() -"
+                " Cannot construct szCmd1.\r\n");
+        goto Error;
+    }
+
+    res = RRIL_RESULT_OK;
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7260::CreateSetCoexBtParams() - Exit\r\n");
+    return res;
+}

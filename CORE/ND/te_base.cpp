@@ -53,7 +53,9 @@ CTEBase::CTEBase(CTE& cte)
   m_bRefreshWithUSIMInitOn(FALSE),
   m_pUiccOpenLogicalChannelEvent(NULL),
   m_bRegStatusAndBandIndActivated(false),
-  m_bNeedGetInfoOnCellChange(false)
+  m_bNeedGetInfoOnCellChange(false),
+  m_bCoexRegStatusAndBandIndActivated(false),
+  m_bCoexReportActivated(false)
 {
     CRepository repository;
     strcpy(m_szNetworkInterfaceNamePrefix, "");
@@ -12278,6 +12280,34 @@ RIL_RESULT_CODE CTEBase::CreateGetAdaptiveClockingFreqInfo(REQUEST_DATA& /*reqDa
 
 RIL_RESULT_CODE CTEBase::ParseGetAdaptiveClockingFreqInfo(const char* /*pszRsp*/,
             RESPONSE_DATA& /*rspData*/)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::CreateSetRegStatusAndBandReport(REQUEST_DATA& /*reqData*/,
+            const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::CreateSetCoexReport(REQUEST_DATA& /*reqData*/,
+            const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::CreateSetCoexWlanParams(REQUEST_DATA& /*reqData*/,
+            const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
+{
+    // should be derived in modem specific class
+    return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+RIL_RESULT_CODE CTEBase::CreateSetCoexBtParams(REQUEST_DATA& /*reqData*/,
+            const char** /*ppszRequest*/, const UINT32 /*uiDataSize*/)
 {
     // should be derived in modem specific class
     return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level

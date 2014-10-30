@@ -2408,6 +2408,37 @@ RIL_RESULT_CODE CTE_XMM6260::CoreHookStrings(REQUEST_DATA& rReqData,
             uiRilChannel = RIL_CHANNEL_OEM;
             break;
 
+        case RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_REPORT:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_REPORT");
+            res = m_cte.CreateSetRegStatusAndBandReport(rReqData, (const char**) pszRequest,
+                    uiDataSize);
+            uiRilChannel = RIL_CHANNEL_URC;
+            break;
+
+        case RIL_OEM_HOOK_STRING_SET_COEX_REPORT:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_COEX_REPORT");
+            res = m_cte.CreateSetCoexReport(rReqData, (const char**) pszRequest,
+                    uiDataSize);
+            // Send this command on DLC23 dedicated to RF coexistence
+            uiRilChannel = RIL_CHANNEL_DLC23;
+            break;
+
+        case RIL_OEM_HOOK_STRING_SET_COEX_WLAN_PARAMS:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_COEX_WLAN_PARAMS");
+            res = m_cte.CreateSetCoexWlanParams(rReqData, (const char**) pszRequest,
+                    uiDataSize);
+            // Send this command on DLC23 dedicated to RF coexistence
+            uiRilChannel = RIL_CHANNEL_DLC23;
+            break;
+
+        case RIL_OEM_HOOK_STRING_SET_COEX_BT_PARAMS:
+            RIL_LOG_INFO("Received Commmand: RIL_OEM_HOOK_STRING_SET_COEX_BT_PARAMS");
+            res = m_cte.CreateSetCoexBtParams(rReqData, (const char**) pszRequest,
+                    uiDataSize);
+            // Send this command on DLC23 dedicated to RF coexistence
+            uiRilChannel = RIL_CHANNEL_DLC23;
+            break;
+
         default:
             RIL_LOG_CRITICAL("CTE_XMM6260::CoreHookStrings() -"
                     " ERROR: Received unknown command=[0x%x]\r\n", command);
@@ -2510,6 +2541,9 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
         case RIL_OEM_HOOK_STRING_SIM_RESET:
         case RIL_OEM_HOOK_STRING_SET_DVP_ENABLED:
         case RIL_OEM_HOOK_STRING_ADPCLK_ACTIVATE:
+        case RIL_OEM_HOOK_STRING_SET_COEX_REPORT:
+        case RIL_OEM_HOOK_STRING_SET_COEX_WLAN_PARAMS:
+        case RIL_OEM_HOOK_STRING_SET_COEX_BT_PARAMS:
             // no need for a parse function as this AT command only returns "OK"
             res = RRIL_RESULT_OK;
             break;
@@ -2518,6 +2552,7 @@ RIL_RESULT_CODE CTE_XMM6260::ParseHookStrings(RESPONSE_DATA & rRspData)
             break;
 
         case RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_IND:
+        case RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_REPORT:
             res = ParseRegStatusAndBandInd(pszRsp, rRspData);
             break;
 
@@ -5472,6 +5507,18 @@ RIL_RESULT_CODE CTE_XMM6260::ParseRegStatusAndBandInd(const char* pszRsp,
 
         RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW,
                 (void*)&info, sizeof(sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_IND));
+    }
+
+    if (m_bCoexRegStatusAndBandIndActivated)
+    {
+        sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_REPORT info;
+        info.commandId = RIL_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_REPORT;
+        info.regStatus = m_cte.IsRegistered(regStatus);
+        CopyStringNullTerminate(info.szBand, szBand, sizeof(info.szBand));
+        info.bandLength = strlen(info.szBand);
+
+        RIL_onUnsolicitedResponse(RIL_UNSOL_OEM_HOOK_RAW,
+                &info, sizeof(sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_REPORT));
     }
 
     res = RRIL_RESULT_OK;

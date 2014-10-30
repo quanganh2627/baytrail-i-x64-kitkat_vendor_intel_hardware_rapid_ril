@@ -19,6 +19,7 @@
 #include "silo_rfcoexistence.h"
 #include "extract.h"
 #include "oemhookids.h"
+#include "te.h"
 
 #include <arpa/inet.h>
 
@@ -55,14 +56,18 @@ CSilo_rfcoexistence::~CSilo_rfcoexistence()
 BOOL CSilo_rfcoexistence::ParseXMETRIC(CResponse* const pResponse, const char*& rszPointer)
 {
     // We have to prepend the URC name to its value
-    return ParseCoexURC(pResponse, rszPointer, "+XMETRIC: ");
+    return (CTE::GetTE().IsCoexReportActivated())
+        ? ParseCoexReportURC(pResponse, rszPointer, "+XMETRIC: ")
+        : ParseCoexURC(pResponse, rszPointer, "+XMETRIC: ");
 }
 
 
 BOOL CSilo_rfcoexistence::ParseXNRTCWSI(CResponse* const pResponse, const char*& rszPointer)
 {
     // We have to prepend the URC name to its value
-    return ParseCoexURC(pResponse, rszPointer, "+XNRTCWSI: ");
+    return (CTE::GetTE().IsCoexReportActivated())
+        ? ParseCoexReportURC(pResponse, rszPointer, "+XNRTCWSI: ")
+        : ParseCoexURC(pResponse, rszPointer, "+XNRTCWSI: ");
 }
 
 
@@ -149,4 +154,88 @@ Error:
 
     RIL_LOG_VERBOSE("CSilo_rfcoexistence::ParseCoexURC() - Exit\r\n");
     return fRet;
+}
+
+//
+// No complexity is needed to parse the URC received for Coexistence purpose (+XMETRIC/+XNRTCWS).
+// The goal is just to extract the URC name/value and notify the up-layer (CWS Manager) about it.
+//
+BOOL CSilo_rfcoexistence::ParseCoexReportURC(CResponse* const pResponse, const char*& rszPointer,
+                              const char* pUrcPrefix)
+{
+    RIL_LOG_VERBOSE("CSilo_rfcoexistence::ParseCoexReportURC() - Enter\r\n");
+
+    BOOL bRet = FALSE;
+    // prefix can be "+XMETRIC: " or "+XNRTCWSI: "
+    const int MAX_PREFIX_SIZE = 12;
+    // KW fix, total size of pData->response is COEX_INFO_BUFFER_SIZE
+    // pData->response is made by pUrcPrefix + szExtInfo
+    char szExtInfo[COEX_INFO_BUFFER_SIZE - MAX_PREFIX_SIZE] = {0};
+    sOEM_HOOK_RAW_UNSOL_COEX_REPORT* pData = NULL;
+
+    if (NULL == pResponse)
+    {
+        RIL_LOG_CRITICAL("CSilo_rfcoexistence::ParseCoexReportURC() - pResponse is NULL.\r\n");
+        goto Error;
+    }
+
+    pResponse->SetUnsolicitedFlag(TRUE);
+
+    // Extract the URC string (rszPointer) into szExtInfo, to not modify rszPointer
+    ExtractUnquotedString(rszPointer, '\r', szExtInfo,
+                             (COEX_INFO_BUFFER_SIZE - MAX_PREFIX_SIZE), rszPointer);
+
+    RIL_LOG_VERBOSE("CSilo_rfcoexistence::ParseCoexReportURC()- URC prefix=[%s] URC value=[%s]\r\n",
+            pUrcPrefix, szExtInfo);
+
+    // Creating the response
+    pData = (sOEM_HOOK_RAW_UNSOL_COEX_REPORT*) malloc(sizeof(sOEM_HOOK_RAW_UNSOL_COEX_REPORT));
+    if (NULL == pData)
+    {
+        RIL_LOG_CRITICAL("CSilo_rfcoexistence::ParseCoexReportURC() -"
+                " Could not allocate memory for pData.\r\n");
+        goto Error;
+    }
+
+    memset(pData, 0, sizeof(sOEM_HOOK_RAW_UNSOL_COEX_REPORT));
+
+    // pData.response will contain the final result (URC name + URC value)
+    // Adding the prefix of the URC (+XMETRIC or +XNRTCWS) to pData->response
+    if (!CopyStringNullTerminate(pData->response, pUrcPrefix, MAX_PREFIX_SIZE))
+    {
+        RIL_LOG_CRITICAL("CSilo_rfcoexistence:ParseCoexReportURC - Copy of URC prefix failed\r\n");
+        goto Error;
+    }
+
+    // Adding the value of the URC to pData->response
+    if (!ConcatenateStringNullTerminate(pData->response, sizeof(pData->response), szExtInfo))
+    {
+        RIL_LOG_CRITICAL("CSilo_rfcoexistence::ParseCoexReportURC() : Failed to concat the URC "
+                "prefix to its value!\r\n");
+        goto Error;
+    }
+
+    RIL_LOG_INFO("CSilo_rfcoexistence::ParseCoexReportURC() - Final Response=[%s]\r\n",
+            pData->response);
+
+    pData->commandId = RIL_OEM_HOOK_RAW_UNSOL_COEX_REPORT;
+    pData->responseSize = strlen(pData->response);
+
+    pResponse->SetResultCode(RIL_UNSOL_OEM_HOOK_RAW);
+
+    if (!pResponse->SetData(pData, sizeof(sOEM_HOOK_RAW_UNSOL_COEX_REPORT), FALSE))
+    {
+        goto Error;
+    }
+
+    bRet = TRUE;
+Error:
+    if (!bRet)
+    {
+        free(pData);
+        pData = NULL;
+    }
+
+    RIL_LOG_VERBOSE("CSilo_rfcoexistence::ParseCoexReportURC() - Exit\r\n");
+    return bRet;
 }

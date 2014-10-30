@@ -64,6 +64,9 @@ protected:
     static const char* PDPTYPE_IP;
     static const char* UNREGISTERED_SEARCHING;
 
+    bool m_bCoexRegStatusAndBandIndActivated;
+    bool m_bCoexReportActivated;
+
 public:
     CTEBase(CTE& cte);
     virtual ~CTEBase();
@@ -1014,6 +1017,17 @@ public:
             const char** ppszRequest, const UINT32 uiDataSize);
     virtual RIL_RESULT_CODE ParseGetAdaptiveClockingFreqInfo(const char* pszRsp,
             RESPONSE_DATA& rspData);
+
+    virtual RIL_RESULT_CODE CreateSetRegStatusAndBandReport(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateSetCoexReport(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateSetCoexWlanParams(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateSetCoexBtParams(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+
+    bool IsCoexReportActivated() { return m_bCoexReportActivated; }
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);

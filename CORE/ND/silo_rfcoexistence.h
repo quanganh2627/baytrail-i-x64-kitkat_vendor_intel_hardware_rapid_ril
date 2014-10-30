@@ -39,6 +39,10 @@ protected:
     // Parse the URCs (+XMETRIC, +XNRTCWS) needed for RF Coexistence
     virtual BOOL ParseCoexURC(CResponse* const pResponse, const char*& rszPointer,
                               const char* pUrcPrefix);
+
+    // New parser for RF Coexistence, for new COEX API
+    virtual BOOL ParseCoexReportURC(CResponse* const pResponse, const char*& rszPointer,
+                              const char* pUrcPrefix);
 };
 
 #endif // RRIL_SILO_RFCOEXISTENCE_H

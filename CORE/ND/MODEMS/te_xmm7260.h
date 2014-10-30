@@ -121,6 +121,15 @@ protected:
 
     virtual P_ND_N_CELL_INFO_DATA_V2 ParseXMCI(RESPONSE_DATA& rspData, int& nCellInfos);
 
+    virtual RIL_RESULT_CODE CreateSetRegStatusAndBandReport(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateSetCoexReport(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateSetCoexWlanParams(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE CreateSetCoexBtParams(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+
 private:
 
     RIL_RESULT_CODE ParseEnvelopCommandResponse(const char* pszResponse, char* pszEnvelopResp,

@@ -1245,6 +1245,17 @@ public:
             const char** ppszRequest, const UINT32 uiDataSize);
     RIL_RESULT_CODE ParseGetAdaptiveClockingFreqInfo(const char* pszRsp, RESPONSE_DATA& rspData);
 
+    RIL_RESULT_CODE CreateSetRegStatusAndBandReport(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    RIL_RESULT_CODE CreateSetCoexReport(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    RIL_RESULT_CODE CreateSetCoexWlanParams(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+    RIL_RESULT_CODE CreateSetCoexBtParams(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize);
+
+    bool IsCoexReportActivated();
+
 private:
     UINT32 m_uiModemType;
 

@@ -575,6 +575,89 @@ const int RIL_OEM_HOOK_STRING_ADPCLK_GET_FREQ_INFO = 0x000000C3;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+//
+//  RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_REPORT
+//  Command ID = 0x000000C4
+//
+//  This command activates or deactivates the registration state and band information reporting
+//  using the unsol RIL_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_REPORT
+//
+// "data" - String containing the following value
+//          boolean activate - Values are case sensitive.
+//                  "1" - Activates the registration status and band indication.
+//                  "0" - Deactivates the registration status and band indication.
+//  "response" = current command issuing status
+//                0x00000002 for request failure
+//                0x00000000 for request success
+//                0x00000006 for unsupported request
+//
+//
+const int RIL_OEM_HOOK_STRING_SET_REG_STATUS_AND_BAND_REPORT = 0x000000C4;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_SET_COEX_REPORT
+//  Command ID = 0x000000C5
+//
+//  This command sends AT+XNRTCWS=<data>
+//  Activation request will generate the unsol RIL_OEM_HOOK_RAW_UNSOL_COEX_REPORT.
+//
+// "data" - String containing the following value
+//          boolean activate - Values are case sensitive.
+//                  "1" - Activates the coexistence intents reporting.
+//                  "0" - Deactivates the coexistence intents reporting.
+//  "response" = current command issuing status
+//                0x00000002 for request failure
+//                0x00000000 for request success
+//                0x00000006 for unsupported request
+//
+//
+const int RIL_OEM_HOOK_STRING_SET_COEX_REPORT = 0x000000C5;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_SET_COEX_WLAN_PARAMS
+//  Command ID = 0x000000C6
+//
+//  This command sets the Wlan parameters to the modem IDC part.
+//
+// "data" - String containing the following values separated by a space
+//          boolean wlanStatus - Values are case sensitive.
+//                  "1" - Wifi Enabled.
+//                  "0" - Wifi Disabled.
+//          enum WlanBandwidth - Wlan bandwidth used: 0(20Mhz), 1(40Mhz) or 2(80MHz).
+//  "response" = current command issuing status
+//                0x00000002 for request failure
+//                0x00000000 for request success
+//                0x00000006 for unsupported request
+//
+//
+const int RIL_OEM_HOOK_STRING_SET_COEX_WLAN_PARAMS = 0x000000C6;
+
+///////////////////////////////////////////////////////////////////////////////
+
+//
+//  RIL_OEM_HOOK_STRING_SET_COEX_BT_PARAMS
+//  Command ID = 0x000000C7
+//
+//  This command sets the Bt parameters to the modem IDC part.
+//
+// "data" - String containing the following value
+//          boolean BtStatus - Values are case sensitive.
+//                  "1" - BT Enabled.
+//                  "0" - BT Disabled.
+//  "response" = current command issuing status
+//                0x00000002 for request failure
+//                0x00000000 for request success
+//                0x00000006 for unsupported request
+//
+//
+const int RIL_OEM_HOOK_STRING_SET_COEX_BT_PARAMS = 0x000000C7;
+
+///////////////////////////////////////////////////////////////////////////////
+
 typedef struct TAG_OEM_HOOK_RAW_UNSOL_THERMAL_ALARM_IND
 {
     int nCommand; //  Command ID
@@ -989,6 +1072,41 @@ typedef struct TAG_OEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF
 } sOEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF;
 
 const int RIL_OEM_HOOK_RAW_UNSOL_ADPCLK_FREQ_INFO_NOTIF = 0x000000E6;
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_REPORT
+// Command ID = 0x000000E7
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_REPORT
+//
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_REPORT
+{
+    int commandId;
+    int regStatus;
+    int bandLength;
+    char szBand[MAX_BAND_SIZE];
+} sOEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_REPORT;
+
+const int RIL_OEM_HOOK_RAW_UNSOL_REG_STATUS_AND_BAND_REPORT = 0x000000E7;
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct TAG_OEM_HOOK_RAW_UNSOL_COEX_REPORT
+{
+    int commandId;
+    int responseSize;
+    char response[COEX_INFO_BUFFER_SIZE]; // result string (entire URC content)
+} sOEM_HOOK_RAW_UNSOL_COEX_REPORT;
+
+//
+//  OEM_HOOK_RAW_UNSOL_COEX_REPORT
+//  Command ID = 0x000000E8
+//
+//  "data" is sOEM_HOOK_RAW_UNSOL_COEX_REPORT
+//
+const int RIL_OEM_HOOK_RAW_UNSOL_COEX_REPORT = 0x000000E8;
 
 /***********************************************************************/
 #pragma pack()

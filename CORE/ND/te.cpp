@@ -10710,3 +10710,32 @@ RIL_RESULT_CODE CTE::ParseGetAdaptiveClockingFreqInfo(const char* pszRsp, RESPON
 {
     return m_pTEBaseInstance->ParseGetAdaptiveClockingFreqInfo(pszRsp, rspData);
 }
+
+RIL_RESULT_CODE CTE::CreateSetRegStatusAndBandReport(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize)
+{
+    return m_pTEBaseInstance->CreateSetRegStatusAndBandReport(reqData, ppszRequest, uiDataSize);
+}
+
+RIL_RESULT_CODE CTE::CreateSetCoexReport(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize)
+{
+    return m_pTEBaseInstance->CreateSetCoexReport(reqData, ppszRequest, uiDataSize);
+}
+
+RIL_RESULT_CODE CTE::CreateSetCoexWlanParams(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize)
+{
+    return m_pTEBaseInstance->CreateSetCoexWlanParams(reqData, ppszRequest, uiDataSize);
+}
+
+RIL_RESULT_CODE CTE::CreateSetCoexBtParams(REQUEST_DATA& reqData,
+            const char** ppszRequest, const UINT32 uiDataSize)
+{
+    return m_pTEBaseInstance->CreateSetCoexBtParams(reqData, ppszRequest, uiDataSize);
+}
+
+bool CTE::IsCoexReportActivated()
+{
+    return m_pTEBaseInstance->IsCoexReportActivated();
+}
