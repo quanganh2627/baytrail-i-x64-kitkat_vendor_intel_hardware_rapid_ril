@@ -6544,17 +6544,6 @@ void CTE_XMM6260::QueryPinRetryCount()
 {
     RIL_LOG_VERBOSE("CTE_XMM6260::QueryPinRetryCount() - Enter\r\n");
 
-    /*
-     * If the device is encrypted but not yet decrypted, then modem have been powered
-     * on for emergency call. Don't query sim status as this results in emergency call
-     * getting disconnected due to airplane mode activated by CryptKeeper on configuration
-     * changes.
-     */
-    if (!CSystemManager::GetInstance().IsDeviceDecrypted())
-    {
-        return;
-    }
-
     CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_SIM_STATUS].uiChannel,
             NULL, RIL_REQUEST_GET_SIM_STATUS, "AT+XPINCNT\r", &CTE::ParseSimPinRetryCount);
 

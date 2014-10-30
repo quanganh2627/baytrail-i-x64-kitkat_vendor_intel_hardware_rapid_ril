@@ -1533,17 +1533,6 @@ void CTE_XMM7260::QueryPinRetryCount()
     char szCmd[17] = {'\0'};
     const char* pszRetryCode = "SIM*";
 
-    /*
-     * If the device is encrypted but not yet decrypted, then modem have been powered
-     * on for emergency call. Don't query sim status as this results in emergency call
-     * getting disconnected due to airplane mode activated by CryptKeeper on configuration
-     * changes.
-     */
-    if (!CSystemManager::GetInstance().IsDeviceDecrypted())
-    {
-        return;
-    }
-
     if (!PrintStringNullTerminate(szCmd, sizeof(szCmd), "AT+CPINR=\"%s\"\r", pszRetryCode))
     {
         RIL_LOG_CRITICAL("CTE_XMM7260::QueryPinRetryCount() - Can't construct szCmd.\r\n");

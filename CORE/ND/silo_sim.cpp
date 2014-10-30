@@ -85,21 +85,12 @@ char* CSilo_SIM::GetURCInitString()
         }
     }
 
-    /*
-     * If the device is encrypted but not yet decrypted, then modem have been powered
-     * on for emergency call. Don't enable sim status reporting as this results in
-     * emergency call getting disconnected due to airplane mode activated by CryptKeeper
-     * on configuration changes.
-     */
-    if (CSystemManager::GetInstance().IsDeviceDecrypted())
+    if (!ConcatenateStringNullTerminate(m_szURCInitString,
+            sizeof(m_szURCInitString), "|+XSIMSTATE=1"))
     {
-        if (!ConcatenateStringNullTerminate(m_szURCInitString,
-                sizeof(m_szURCInitString), "|+XSIMSTATE=1"))
-        {
-            RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to copy XSIMSTATE to URC"
-                    " init string!\r\n");
-            return NULL;
-        }
+        RIL_LOG_CRITICAL("CSilo_SIM::GetURCInitString() : Failed to copy XSIMSTATE to URC"
+                " init string!\r\n");
+        return NULL;
     }
 
     const char* pszTmp = CTE::GetTE().GetEnableFetchingString();
