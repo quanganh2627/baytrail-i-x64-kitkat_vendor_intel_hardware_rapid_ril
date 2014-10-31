@@ -8819,7 +8819,7 @@ RIL_RESULT_CODE CTEBase::ParseCellInfoList(RESPONSE_DATA& rRspData, BOOL isUnsol
         {
             int requestedRate = (int)rRspData.pContextData;
             if (m_cte.updateCellInfoCache(pCellData, (INT32)uiIndex)
-                    && -1 != requestedRate && INT_MAX != requestedRate)
+                    && requestedRate > 0 && requestedRate < INT32_MAX)
             {
                 RIL_onUnsolicitedResponse(RIL_UNSOL_CELL_INFO_LIST,
                         (void*)pCellData->aRilCellInfo, (sizeof(RIL_CellInfo) * uiIndex));
@@ -8861,30 +8861,74 @@ RIL_RESULT_CODE CTEBase::CoreSetCellInfoListRate(REQUEST_DATA& /*rReqData*/,
     RIL_LOG_VERBOSE("CTEBase::CoreSetCellInfoListRate() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int previousRate = m_cte.GetCellInfoListRate();
-    int newRate = 60000; // default timer value in milli seconds
 
-    if (pData != NULL)
-    {
-        newRate = ((int*)pData)[0];
-        // Value = 0, report when one of the information changes
-        // Value = INT_MAX, no reports
-        // else rril rate is once in 60 seonds, when the information has changed
-        if (newRate != INT_MAX && newRate > 0)
-        {
-            if (previousRate != newRate)
-            {
-                newRate = (newRate < 60000) ? 60000 : newRate;
-            }
-        }
-
-        RIL_LOG_INFO("CTEBase::CoreSetCellInfoListRate() - "
-                "uiNewRate =%d uiPreviousRate = %d\r\n",
-                 newRate, previousRate);
-    }
-    else
+    if (pData == NULL)
     {
         RIL_LOG_WARNING("CTEBase::CoreGetCellInfoList() - pData[0] is NULL!\r\n");
         return res;
+    }
+
+    int newRate = ((int*)pData)[0];
+    // Value = 0, ril rate has the default value, 5s.
+    // Value = INT32_MAX, no reports
+    // else rril rate is MAX(5s, newRate) when the information has changed
+    if (newRate < 0)
+    {
+        RIL_LOG_WARNING("CTEBase::CoreGetCellInfoList() - newRate is invalid!\r\n");
+        return res;
+    }
+    else if (newRate < INT32_MAX)
+    {
+        if (previousRate != newRate)
+        {
+            newRate = (newRate < 5000) ? 5000 : newRate;
+        }
+    }
+    else
+    {
+        newRate = INT32_MAX;
+    }
+
+    RIL_LOG_INFO("CTEBase::CoreSetCellInfoListRate() - "
+            "uiNewRate =%d uiPreviousRate = %d\r\n",
+             newRate, previousRate);
+
+    // First get the cellinfo information, to report the current values.
+    // Get should be suppressed for rate value = INT32_MAX, no reports
+    if (newRate < INT32_MAX)
+    {
+        REQUEST_DATA rReqData;
+        memset(&rReqData, 0, sizeof(REQUEST_DATA));
+
+        if (!CopyStringNullTerminate(rReqData.szCmd1, m_cte.GetReadCellInfoString(),
+                sizeof(rReqData.szCmd1)))
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreGetCellInfoList() - "
+                    "Unable to create cellinfo command!\r\n");
+            return res;
+        }
+
+        rReqData.pContextData = (void*)newRate;
+
+        CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_GET_CELL_INFO_LIST].uiChannel,
+                NULL, RIL_REQUEST_GET_CELL_INFO_LIST, rReqData,
+                &CTE::ParseUnsolCellInfoListRate, &CTE::PostUnsolCellInfoListRate);
+
+        if (pCmd)
+        {
+            if (!CCommand::AddCmdToQueue(pCmd))
+            {
+                RIL_LOG_CRITICAL("CTEBase::CoreGetCellInfoList() - Unable to queue command!\r\n");
+                delete pCmd;
+                pCmd = NULL;
+            }
+        }
+        else
+        {
+            RIL_LOG_CRITICAL("CTEBase::CoreGetCellInfoList() - "
+                    "Unable to allocate memory for new command!\r\n");
+            return res;
+        }
     }
 
     m_cte.SetCellInfoListRate(newRate);
@@ -8917,8 +8961,8 @@ void CTEBase::RestartUnsolCellInfoListTimer(int newRate)
 {
     RIL_LOG_VERBOSE("CTEBase::RestartUnsolCellInfoListTimer() - Enter\r\n");
 
-    // Start timer to query for CELLINFO  only if the value of >0 and != INT_MAX
-    if (newRate != INT_MAX && newRate > 0)
+    // Start timer to query for CELLINFO  only if the value of >0 and <INT32_MAX
+    if (newRate > 0 && newRate < INT32_MAX)
     {
         if (!m_cte.IsCellInfoTimerRunning())
         {
