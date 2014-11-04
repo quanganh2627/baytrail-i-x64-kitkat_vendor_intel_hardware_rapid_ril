@@ -332,6 +332,8 @@ const int RIL_OEM_HOOK_STRING_SWAP_PS = 0x000000B2;
 // Note: This oem hook should be used only for testing purpose. Any application
 // with specific needs must request for specific OEM hook interface.
 //
+// @deprecated
+//
 const int RIL_OEM_HOOK_STRING_SEND_AT = 0x000000B3;
 
 //
