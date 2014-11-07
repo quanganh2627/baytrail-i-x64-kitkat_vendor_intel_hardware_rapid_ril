@@ -21,8 +21,6 @@ class CTE_XMM7260 : public CTE_XMM7160
 {
 public:
 
-    enum { DEFAULT_PDN_CID = 1 };
-
     CTE_XMM7260(CTE& cte);
     virtual ~CTE_XMM7260();
 

@@ -41,7 +41,6 @@
 CTE_XMM7160::CTE_XMM7160(CTE& cte)
 : CTE_XMM6360(cte)
 {
-    m_cte.SetDefaultPDNCid(DEFAULT_PDN_CID);
     m_bNeedGetInfoOnCellChange = false;
 }
 
@@ -510,6 +509,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
     const LONG REASON_PDP_RESET = 2;
     LONG reason = 0;
     CChannel_Data* pChannelData = NULL;
+    UINT32 uiDefaultPdnCid = m_cte.GetDefaultPDNCid();
 
     if (uiDataSize < (1 * sizeof(char *)))
     {
@@ -565,7 +565,7 @@ RIL_RESULT_CODE CTE_XMM7160::CoreDeactivateDataCall(REQUEST_DATA& rReqData,
         res = RRIL_RESULT_OK_IMMEDIATE;
         DataConfigDown(uiCID, TRUE);
     }
-    else if (reason != REASON_PDP_RESET && m_cte.IsEPSRegistered() && uiCID == DEFAULT_PDN_CID)
+    else if (reason != REASON_PDP_RESET && m_cte.IsEPSRegistered() && uiCID == uiDefaultPdnCid)
     {
         // complete the request without sending the AT command to modem.
         res = RRIL_RESULT_OK_IMMEDIATE;
@@ -1189,14 +1189,14 @@ Error:
     return res;
 }
 
-BOOL CTE_XMM7160::GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData)
+BOOL CTE_XMM7160::GetSetInitialAttachApnReqData(REQUEST_DATA& reqData)
 {
     UINT32 uiMode = GetXDNSMode(m_InitialAttachApnParams.szPdpType);
     int requestPcscf = ImsEnabledApn(m_InitialAttachApnParams.szApn) ? 1 : 0;
 
     if ('\0' == m_InitialAttachApnParams.szApn[0])
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+        if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
                 "AT+CGDCONT=1,\"%s\",,,,,,,%d,%d;+XDNS=1,%u\r",
                 m_InitialAttachApnParams.szPdpType, requestPcscf, requestPcscf, uiMode))
         {
@@ -1206,7 +1206,7 @@ BOOL CTE_XMM7160::GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData)
     }
     else
     {
-        if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
+        if (!PrintStringNullTerminate(reqData.szCmd1, sizeof(reqData.szCmd1),
                 "AT+CGDCONT=1,\"%s\",\"%s\",,,,,,%d,%d;+XDNS=1,%u\r",
                 m_InitialAttachApnParams.szPdpType, m_InitialAttachApnParams.szApn,
                 requestPcscf, requestPcscf, uiMode))
@@ -1452,6 +1452,7 @@ BOOL CTE_XMM7160::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
         return FALSE;
     }
 
+    UINT32 uiDefaultPdnCid = m_cte.GetDefaultPDNCid();
     /*
      * Bring down the interface and bring up the interface again if the data down is for
      * default PDN(EPS registered) and not force cleanup.
@@ -1459,7 +1460,7 @@ BOOL CTE_XMM7160::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
      * This is done to make sure packets are flushed out if the data is deactivated
      * in LTE.
      */
-    BOOL bStopInterface = !m_cte.IsEPSRegistered() || uiCID != DEFAULT_PDN_CID || bForceCleanup;
+    BOOL bStopInterface = !m_cte.IsEPSRegistered() || uiCID != uiDefaultPdnCid || bForceCleanup;
     CMutex* pDataChannelRefCountMutex = m_cte.GetDataChannelRefCountMutex();
     CMutex::Lock(pDataChannelRefCountMutex);
     pChannelData->DecrementRefCount();
@@ -1471,6 +1472,10 @@ BOOL CTE_XMM7160::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
 
     if (bStopInterface)
     {
+        if (uiCID == uiDefaultPdnCid)
+        {
+            m_cte.SetDefaultPDNCid(0);
+        }
         pChannelData->ResetDataCallInfo();
     }
 
@@ -3742,4 +3747,225 @@ bool CTE_XMM7160::ImsEnabledApn(const char* pszApn)
         }
     }
     return false;
+}
+
+// RIL_REQUEST_SET_INITIAL_ATTACH_APN
+RIL_RESULT_CODE CTE_XMM7160::CoreSetInitialAttachApn(REQUEST_DATA& reqData,
+       void* pData, UINT32 uiDataSize)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetInitialAttachApn() - Enter\r\n");
+    RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
+    RIL_InitialAttachApn* pTemp = NULL;
+
+    UINT32 uiMode = 0;
+    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+    char szApn[MAX_APN_SIZE] = {'\0'};
+    bool bInitialAttachApnChanged = false;
+
+    if (pData == NULL)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetInitialAttachApn() - "
+                "pData is NULL \r\n");
+        goto Error;
+    }
+
+    if (sizeof(RIL_InitialAttachApn) != uiDataSize)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetInitialAttachApn() - "
+                "pData size if wrong\r\n");
+        goto Error;
+    }
+
+    if (RIL_APPSTATE_READY != GetSimAppState())
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::CoreSetInitialAttachApn() - SIM not ready\r\n");
+        ResetInitialAttachApn();
+        res = RRIL_RESULT_OK_IMMEDIATE;
+        goto Error;
+    }
+
+    pTemp = (RIL_InitialAttachApn*) pData;
+    if (NULL == pTemp->protocol || pTemp->protocol[0] == '\0')
+    {
+        CopyStringNullTerminate(szPdpType, PDPTYPE_IPV4V6, sizeof(szPdpType));
+    }
+    else
+    {
+        CopyStringNullTerminate(szPdpType, pTemp->protocol, sizeof(szPdpType));
+    }
+
+    if (NULL != pTemp->apn)
+    {
+        CopyStringNullTerminate(szApn, pTemp->apn, sizeof(szApn));
+    }
+
+    /*
+     * Initial attach parameters are considered as changed:
+     *     - If the stored pdp type is not empty and doesn't match with the pdp type provided
+     *       as part of RIL_REQUEST_SET_INITIAL_ATTACH_APN request (or)
+     *     - If the stored apn is not empty and doesn't match with the apn provided as part of
+     *       RIL_REQUEST_SET_INITIAL_ATTACH_APN request.
+     */
+    if ((m_InitialAttachApnParams.szPdpType[0] != '\0'
+            && strcmp(m_InitialAttachApnParams.szPdpType, szPdpType) != 0)
+            || (m_InitialAttachApnParams.szApn[0] != '\0'
+            && strcmp(m_InitialAttachApnParams.szApn, szApn) != 0))
+    {
+        bInitialAttachApnChanged = true;
+    }
+
+    ResetInitialAttachApn();
+
+    CopyStringNullTerminate(m_InitialAttachApnParams.szApn,
+            szApn, sizeof(m_InitialAttachApnParams.szApn));
+    CopyStringNullTerminate(m_InitialAttachApnParams.szPdpType,
+            szPdpType, sizeof(m_InitialAttachApnParams.szPdpType));
+
+    /*
+     * Case 1: Initial attach APN is not yet set.
+     *
+     * If there is no initial attach apn set, device is also not yet registered.
+     * In this case, RIL_REQUEST_SET_INITIAL_ATTACH_APN will result in commands
+     * AT+CGDCONT=<cid>,<PDP_type>[,<APN] and AT+COPS=0 sent to modem.
+     *
+     * Case 2: Initial attach APN is already set. Initial attach APN received again with same or
+     * different initial attach parameters.
+     *
+     * Upon APN change by user or sim refresh, framework will send initial attach apn request,
+     * deactivation for all active connections and then SETUP_DATA_CALL for default type.
+     * As actions will be taken before completing SETUP_DATA_CALL request, ril request
+     * RIL_REQUEST_SET_INITIAL_ATTACH_APN request is completed immediately without sending any
+     * commands to modem that is only if there is no change in initial attach apn parameters.
+     */
+    if (bInitialAttachApnChanged)
+    {
+        res = RRIL_RESULT_OK_IMMEDIATE;
+        goto Error;
+    }
+    else
+    {
+        if (!GetSetInitialAttachApnReqData(reqData))
+        {
+            goto Error;
+        }
+    }
+
+    res = RRIL_RESULT_OK;
+
+Error:
+    RIL_LOG_VERBOSE("CTE_XMM7160::CoreSetInitialAttachApn() - Exit\r\n");
+    return res;
+}
+
+RIL_RESULT_CODE CTE_XMM7160::RestoreSavedNetworkSelectionMode(RIL_Token rilToken, UINT32 uiChannel,
+        PFN_TE_PARSE pParseFcn, PFN_TE_POSTCMDHANDLER pHandlerFcn)
+{
+    RIL_LOG_VERBOSE("CTEBase::RestoreSavedNetworkSelectionMode() - Enter\r\n");
+
+    if (m_cte.IsDataCapable() && m_InitialAttachApnParams.szPdpType[0] == '\0')
+    {
+        /*
+         * Initial attach apn can't be set as android telephony framework hasn't provided
+         * initial attach apn parameters. Network selection mode will be restored once
+         * the initial attach apn is set.
+         */
+        RIL_LOG_INFO("CTEBase::RestoreSavedNetworkSelectionMode() - "
+                "initial attach apn not set\r\n");
+        return RRIL_RESULT_OK_IMMEDIATE;
+    }
+
+    return CTEBase::RestoreSavedNetworkSelectionMode(rilToken, uiChannel, pParseFcn, pHandlerFcn);
+}
+
+void CTE_XMM7160::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::HandleSetupDataCallSuccess() - Enter\r\n");
+
+    CChannel_Data* pChannelData = NULL;
+    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+    char szApn[MAX_APN_SIZE] = {'\0'};
+    UINT32 uiDefaultPdnCid = m_cte.GetDefaultPDNCid();
+
+    m_cte.SetupDataCallOngoing(FALSE);
+
+    pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_CRITICAL("CTE_XMM7160::HandleSetupDataCallSuccess() -"
+                " No Data Channel for CID %u.\r\n", uiCID);
+        goto Complete;
+    }
+
+    pChannelData->GetPdpType(szPdpType, sizeof(szPdpType));
+    pChannelData->GetApn(szApn, sizeof(szApn));
+
+    /*
+     * If established connection is compatible with initial attach apn parameters,
+     * make this connection as default and deactivate the current default PDN if there
+     * are no clients using it.
+     */
+    if (uiDefaultPdnCid != 0 && uiCID != uiDefaultPdnCid
+            && IsApnEqual(m_InitialAttachApnParams.szApn, szApn)
+            && IsPdpTypeCompatible(m_InitialAttachApnParams.szPdpType, szPdpType))
+    {
+        m_cte.SetDefaultPDNCid(uiCID);
+
+        CChannel_Data* pDefaultPdnChannel = CChannel_Data::GetChnlFromContextID(uiDefaultPdnCid);
+        if (pDefaultPdnChannel != NULL && 0 >= pDefaultPdnChannel->GetRefCount())
+        {
+            pDefaultPdnChannel->SetDataState(E_DATA_STATE_DEACTIVATING);
+            RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)(intptr_t)uiDefaultPdnCid,
+                    0, 0);
+        }
+    }
+
+Complete:
+    CTEBase::HandleSetupDataCallSuccess(uiCID, pRilToken);
+    RIL_LOG_VERBOSE("CTE_XMM7160::HandleSetupDataCallSuccess() - Exit\r\n");
+}
+
+void CTE_XMM7160::HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken, UINT32 uiResultCode)
+{
+    RIL_LOG_VERBOSE("CTE_XMM7160::HandleSetupDataCallFailure() - Enter\r\n");
+
+    char szApn[MAX_APN_SIZE] = {'\0'};
+    char szPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+    const UINT32 uiDefaultPDNCid = m_cte.GetDefaultPDNCid();
+    CChannel_Data* pDefaultPdnChannel = (uiDefaultPDNCid != 0)
+            ? CChannel_Data::GetChnlFromContextID(uiDefaultPDNCid)
+            : NULL;
+
+    m_cte.SetupDataCallOngoing(FALSE);
+
+    CChannel_Data* pChannelData = CChannel_Data::GetChnlFromContextID(uiCID);
+    if (NULL == pChannelData)
+    {
+        RIL_LOG_INFO("CTE_XMM7160::HandleSetupDataCallFailure() -"
+                " No data channel for CID: %u\r\n", uiCID);
+        goto Complete;
+    }
+
+    pChannelData->GetApn(szApn, sizeof(szApn));
+    pChannelData->GetPdpType(szPdpType, sizeof(szPdpType));
+
+    /*
+     * When user changes the default or initial attach apn, no action is taken on
+     * RIL_REQUEST_SET_INITIAL_ATTACH_APN but action is taken on subsequent SETUP_DATA_CALL request
+     * If the SETUP_DATA_CALL request fails and if the requested apn, pdptype matches the initial
+     * attach apn, then it is possible that network rejects the SETUP_DATA_CALL request because of
+     * active default PDN. In this case, detach from the network, set initial attach apn and request
+     * for attach.
+     */
+    if (pDefaultPdnChannel != NULL && E_DATA_STATE_ACTIVE == pDefaultPdnChannel->GetDataState()
+            && 0 >= pDefaultPdnChannel->GetRefCount()
+            && IsApnEqual(m_InitialAttachApnParams.szApn, szApn)
+            && IsPdpTypeCompatible(m_InitialAttachApnParams.szPdpType, szPdpType))
+    {
+        RequestDetachOnIAChange();
+    }
+
+Complete:
+    CTEBase::HandleSetupDataCallFailure(uiCID, pRilToken, uiResultCode);
+
+    RIL_LOG_VERBOSE("CTE_XMM7160::HandleSetupDataCallFailure() - Exit\r\n");
 }

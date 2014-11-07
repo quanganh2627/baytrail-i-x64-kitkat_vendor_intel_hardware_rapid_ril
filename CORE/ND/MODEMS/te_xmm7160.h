@@ -25,7 +25,7 @@ class CTE_XMM7160 : public CTE_XMM6360
 {
 public:
 
-    enum { DEFAULT_PDN_CID = 1, OEM_API_VERSION = 2 };
+    enum { OEM_API_VERSION = 2 };
 
     CTE_XMM7160(CTE& cte);
     virtual ~CTE_XMM7160();
@@ -160,8 +160,17 @@ public:
 
     virtual const char* GetSiloVoiceURCInitString();
     virtual const char* GetReadCellInfoString();
-    virtual BOOL GetSetInitialAttachApnReqData(REQUEST_DATA& rReqData);
+    virtual BOOL GetSetInitialAttachApnReqData(REQUEST_DATA& reqData);
 
+    // RIL_REQUEST_SET_INITIAL_ATTACH_APN
+    virtual RIL_RESULT_CODE CoreSetInitialAttachApn(REQUEST_DATA& reqData,
+            void* pData, UINT32 uiDataSize);
+
+    virtual RIL_RESULT_CODE RestoreSavedNetworkSelectionMode(RIL_Token rilToken, UINT32 uiChannel,
+            PFN_TE_PARSE pParseFcn = NULL, PFN_TE_POSTCMDHANDLER pHandlerFcn = NULL);
+
+    void HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken);
+    void HandleSetupDataCallFailure(UINT32 uiCID, void* pRilToken, UINT32 uiResultCode);
 
 protected:
 

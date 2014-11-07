@@ -417,17 +417,88 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
     extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
 
     CChannel_Data* pChannelData = NULL;
-    int hsiChannel = -1;
-    int hsiDirect = FALSE;
-
-    int ipcDataChannelMin = 0;
 
     // First try to get a free RIL channel, then for class 1
     // or class 2 apn, try to get a hsi channel.
     pChannelData = CChannel_Data::GetFreeChnl(outCID);
+    if (NULL == pChannelData)
+    {
+        // Error, all channels full!
+        RIL_LOG_CRITICAL("CChannel_Data::GetFreeChnlsRilHsi() - All channels full!!\r\n");
+        outCID = 0;
+    }
+    else
+    {
+        GetChnlsRilHsi(pChannelData, dataProfile);
+    }
+
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnlsRilHsi() - Exit\r\n");
+    return pChannelData;
+}
+
+//  Used for modems supporting LTE.
+//  Reserves a free RIL channel and a free hsi channel to use for data.
+//  [in] UINT32 uiContextID - Context ID to be associated with CChannel_Data.
+//  return value - CChannel_Data* - If successful, the free data channel, else NULL.
+//  Note: If successful the returned CChannel_Data* will have the new context ID set.
+//        m_hsiDirect will be set to TRUE if the data channel use directly a hsi channel.
+//        m_hsiChannel will contains the free hsi channel to use.
+CChannel_Data* CChannel_Data::ReserveFreeChnlsRilHsi(const UINT32 uiContextID,
+        const int dataProfile)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::ReserveFreeChnlsRilHsi() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+
+    extern CChannel* g_pRilChannel[RIL_CHANNEL_MAX];
+    CChannel_Data* pChannelData = NULL;
+    CChannel_Data* pFirstFreeChannel = NULL;
+
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax && i < RIL_CHANNEL_MAX; i++)
+    {
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
+
+        CChannel_Data* pTemp = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+        if (pTemp && 0 == pTemp->GetContextID())
+        {
+            // Free data channel found
+            pChannelData = pTemp;
+            RIL_LOG_INFO("CChannel_Data::ReserveFreeChnlsRilHsi() - "
+                    "****** Setting chnl=[%d] to CID=[%u] ******\r\n", i, uiContextID);
+            pChannelData->SetContextID(uiContextID);
+            GetChnlsRilHsi(pChannelData, dataProfile);
+            break;
+        }
+    }
+
+    if (NULL == pChannelData)
+    {
+        // Error, all channels full!
+        RIL_LOG_CRITICAL("CChannel_Data::ReserveFreeChnlsRilHsi() - All channels full\r\n");
+    }
+
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::ReserveFreeChnlsRilHsi() - Exit\r\n");
+    return pChannelData;
+}
+
+void CChannel_Data::GetChnlsRilHsi(CChannel_Data* pChannelData, const int dataProfile)
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetChnlsRilHsi() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+
+    int hsiChannel = -1;
+    int hsiDirect = FALSE;
+
     if (pChannelData != NULL)
     {
-        ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
+        int ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
+        const UINT32 uiCID = pChannelData->GetContextID();
         if (dataProfile >= 0 && dataProfile < NUMBER_OF_APN_PROFILE)
         {
             // According to the data profile class try to associate
@@ -436,14 +507,14 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
             {
                 case 1:
                     // For APN of the class 1 a hsi channel is available. Find the first available.
-                    RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() -"
+                    RIL_LOG_INFO("CChannel_Data::GetChnlsRilHsi() -"
                             " data profile class: %d.\r\n",
                             m_dataProfilePathAssignation[dataProfile]);
-                    hsiChannel = GetFreeHSIChannel(outCID,
+                    hsiChannel = GetFreeHSIChannel(uiCID,
                             ipcDataChannelMin, ipcDataChannelMin + m_hsiChannelsReservedForClass1);
                     if (hsiChannel == -1)
                     {
-                        RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() - No hsi channel for"
+                        RIL_LOG_INFO("CChannel_Data::GetChnlsRilHsi() - No hsi channel for"
                                 " a data profile class 1.\r\n");
                         pChannelData->SetContextID(0);
                         pChannelData = NULL;
@@ -455,9 +526,9 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
                 case 2:
                     // For APN of the class 2, check if there is a free hsi channel
                     // that can be used.
-                    RIL_LOG_INFO("CChannel_Data::GetFreeChnlsRilHsi() - data profile "
+                    RIL_LOG_INFO("CChannel_Data::GetChnlsRilHsi() - data profile "
                             "class: %d.\r\n", m_dataProfilePathAssignation[dataProfile]);
-                    hsiChannel = GetFreeHSIChannel(outCID,
+                    hsiChannel = GetFreeHSIChannel(uiCID,
                             ipcDataChannelMin + m_hsiChannelsReservedForClass1,
                             ipcDataChannelMin + m_hsiDataDirect);
                     if (hsiChannel != -1)
@@ -468,7 +539,6 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
 
                 default:
                     break;
-
             }
         }
         pChannelData->m_hsiChannel = hsiChannel;
@@ -477,17 +547,8 @@ CChannel_Data* CChannel_Data::GetFreeChnlsRilHsi(UINT32& outCID, int dataProfile
     }
 
 Error:
-    if (NULL == pChannelData)
-    {
-        // Error, all channels full!
-        RIL_LOG_CRITICAL("CChannel_Data::GetFreeChnlsRilHsi() - All channels full!!\r\n");
-        outCID = 0;
-    }
-
     CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
-
-    RIL_LOG_VERBOSE("CChannel_Data::GetFreeChnlsRilHsi() - Exit\r\n");
-    return pChannelData;
+    RIL_LOG_VERBOSE("CChannel_Data::GetChnlsRilHsi() - Exit\r\n");
 }
 
 int CChannel_Data::GetFreeHSIChannel(UINT32 uiCID, int sIndex, int eIndex)

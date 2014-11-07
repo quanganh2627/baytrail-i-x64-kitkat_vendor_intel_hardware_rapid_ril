@@ -733,10 +733,9 @@ public:
     void RestartUnsolCellInfoListTimer(int newRate);
 
     // RIL_REQUEST_SET_INITIAL_ATTACH_APN
-    virtual RIL_RESULT_CODE CoreSetInitialAttachApn(REQUEST_DATA& rReqData,
-                                                                 void* pData,
-                                                                 UINT32 uiDataSize);
-    virtual RIL_RESULT_CODE ParseSetInitialAttachApn(RESPONSE_DATA& rRspData);
+    virtual RIL_RESULT_CODE CoreSetInitialAttachApn(REQUEST_DATA& reqData,
+            void* pData, UINT32 uiDataSize);
+    virtual RIL_RESULT_CODE ParseSetInitialAttachApn(RESPONSE_DATA& rspData);
 
     // RIL_REQUEST_IMS_REGISTRATION_STATE
     // RIL_REQUEST_IMS_SEND_SMS
@@ -1034,6 +1033,11 @@ public:
             const char** ppszRequest, const UINT32 uiDataSize);
 
     bool IsCoexReportActivated() { return m_bCoexReportActivated; }
+
+    bool IsApnEqual(const char* pszApn1, const char* pszApn2);
+    bool IsPdpTypeCompatible(const char* pszPdpType1, const char* pszPdpType2);
+    void RequestDetachOnIAChange();
+    void RequestAttachOnIAChange(const UINT32 uiChannel, const int requestId);
 
 protected:
     RIL_RESULT_CODE ParseSimPin(const char*& pszRsp);

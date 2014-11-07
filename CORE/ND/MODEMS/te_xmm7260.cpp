@@ -26,7 +26,6 @@ CTE_XMM7260::CTE_XMM7260(CTE& cte)
 : CTE_XMM7160(cte),
   m_usatInitStateMachine(UsatInitStateMachine::GetStateMachine())
 {
-    m_cte.SetDefaultPDNCid(DEFAULT_PDN_CID);
 }
 
 CTE_XMM7260::~CTE_XMM7260()

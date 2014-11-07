@@ -8978,18 +8978,19 @@ void CTEBase::RestartUnsolCellInfoListTimer(int newRate)
 }
 
 // RIL_REQUEST_SET_INITIAL_ATTACH_APN
-RIL_RESULT_CODE CTEBase::CoreSetInitialAttachApn(REQUEST_DATA& /*rReqData*/,
+RIL_RESULT_CODE CTEBase::CoreSetInitialAttachApn(REQUEST_DATA& /*reqData*/,
                                                             void* /*pData*/,
                                                             UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSetInitialAttachApn() - Enter / Exit\r\n");
-    return RIL_E_REQUEST_NOT_SUPPORTED;
+    // No command will be sent to modem but PostCmdHandler will be called if set
+    return RRIL_RESULT_OK;
 }
 
-RIL_RESULT_CODE CTEBase::ParseSetInitialAttachApn(RESPONSE_DATA& /*rRspData*/)
+RIL_RESULT_CODE CTEBase::ParseSetInitialAttachApn(RESPONSE_DATA& /*rspData*/)
 {
     RIL_LOG_VERBOSE("CTEBase::ParseSetInitialAttachApn() - Enter / Exit\r\n");
-    return RIL_E_REQUEST_NOT_SUPPORTED;
+    return RRIL_RESULT_OK;
 }
 
 // RIL_REQUEST_IMS_REGISTRATION_STATE
@@ -11888,18 +11889,6 @@ RIL_RESULT_CODE CTEBase::RestoreSavedNetworkSelectionMode(RIL_Token rilToken, UI
 {
     RIL_LOG_VERBOSE("CTEBase::RestoreSavedNetworkSelectionMode() - Enter\r\n");
 
-    if (m_cte.IsDataCapable() && m_InitialAttachApnParams.szPdpType[0] == '\0')
-    {
-        /*
-         * Initial attach apn can't be set as android telephony framework hasn't provided
-         * initial attach apn parameters. Network selection mode will be restored once
-         * the initial attach apn is set.
-         */
-        RIL_LOG_INFO("CTEBase::RestoreSavedNetworkSelectionMode() - "
-                "initial attach apn not set\r\n");
-        return RRIL_RESULT_OK_IMMEDIATE;
-    }
-
     char szCmd[MAX_BUFFER_SIZE] = {0};
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int requestId = RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC;
@@ -11988,11 +11977,11 @@ RIL_RESULT_CODE CTEBase::SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChanne
 
     GetSetInitialAttachApnReqData(reqData);
 
-    int* state = (int*)malloc(sizeof(int));
-    if (state != NULL)
+    int* pNextState = (int*)malloc(sizeof(int));
+    if (pNextState != NULL)
     {
-        *state = STATE_SET_INITIAL_ATTACH_APN;
-        reqData.pContextData = state;
+        *pNextState = STATE_ATTACH;
+        reqData.pContextData = pNextState;
         reqData.cbContextData = sizeof(int);
     }
 
@@ -12019,13 +12008,6 @@ RIL_RESULT_CODE CTEBase::SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChanne
 
     res = RRIL_RESULT_OK;
 Error:
-    if (res != RRIL_RESULT_OK)
-    {
-        free(reqData.pContextData);
-        reqData.pContextData = NULL;
-        reqData.cbContextData = 0;
-    }
-
     RIL_LOG_VERBOSE("CTEBase::SetInitialAttachApn() - Exit\r\n");
     return res;
 }
@@ -12283,4 +12265,97 @@ RIL_RESULT_CODE CTEBase::CreateSetCoexBtParams(REQUEST_DATA& /*reqData*/,
 {
     // should be derived in modem specific class
     return RIL_E_REQUEST_NOT_SUPPORTED; // only suported at modem level
+}
+
+bool CTEBase::IsPdpTypeCompatible(const char* pszPdpType1, const char* pszPdpType2)
+{
+    if (0 == strcmp(pszPdpType1, PDPTYPE_IPV4V6)
+            || 0 == strcmp(pszPdpType2, PDPTYPE_IPV4V6))
+        return true;
+
+    return (0 == strcmp(pszPdpType1, pszPdpType2));
+}
+
+bool CTEBase::IsApnEqual(const char* pszApn1, const char* pszApn2)
+{
+    bool bRet = false;
+
+    if (pszApn1 != NULL && pszApn2 != NULL)
+    {
+        if (strcasestr(pszApn1, pszApn2) != NULL
+                || strcasestr(pszApn2, pszApn1) != NULL)
+        {
+            bRet = true;
+        }
+    }
+
+    return bRet;
+}
+
+void CTEBase::RequestDetachOnIAChange()
+{
+    REQUEST_DATA reqData;
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+    if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CGATT=0\r", sizeof(reqData.szCmd1)))
+    {
+        return;
+    }
+
+    int* pNextState = (int*)malloc(sizeof(int));
+    if (pNextState != NULL)
+    {
+        *pNextState = STATE_SET_INITIAL_ATTACH_APN;
+        reqData.pContextData = pNextState;
+        reqData.cbContextData = sizeof(int);
+    }
+
+    CCommand* pCmd = new CCommand(g_pReqInfo[RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC].uiChannel,
+            NULL, RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC, reqData, NULL,
+            &CTE::PostSetInitialAttachApnCmdHandler);
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::RequestDetachOnIAChange() -"
+                    " Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::RequestDetachOnIAChange() -"
+                " Unable to allocate memory for command\r\n");
+    }
+}
+
+void CTEBase::RequestAttachOnIAChange(const UINT32 uiChannel, const int requestId)
+{
+    REQUEST_DATA reqData;
+
+    memset(&reqData, 0, sizeof(REQUEST_DATA));
+    if (!CopyStringNullTerminate(reqData.szCmd1, "AT+CGATT=1\r", sizeof(reqData.szCmd1)))
+    {
+        return;
+    }
+
+    CCommand* pCmd = new CCommand(uiChannel,NULL, requestId, reqData);
+    if (pCmd)
+    {
+        pCmd->SetHighPriority();
+        if (!CCommand::AddCmdToQueue(pCmd))
+        {
+            RIL_LOG_CRITICAL("CTEBase::RequestAttachOnIAChange() -"
+                    " Unable to add command to queue\r\n");
+            delete pCmd;
+            pCmd = NULL;
+        }
+    }
+    else
+    {
+        RIL_LOG_CRITICAL("CTEBase::RequestAttachOnIAChange() -"
+                " Unable to allocate memory for command\r\n");
+    }
 }

@@ -2715,6 +2715,7 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     UINT32 uiCID = 0;
     CChannel_Data* pChannelData = NULL;
     int retryTime = -1;
+    const char* pszReqPdpType = NULL;
 
     memset(&reqData, 0, sizeof(REQUEST_DATA));
 
@@ -2729,6 +2730,11 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
         RIL_LOG_CRITICAL("CTE::RequestSetupDataCall() -"
                 " Invalid data size. Was given %d bytes\r\n", datalen);
         goto Error;
+    }
+
+    if (RIL_VERSION >= 6)
+    {
+        pszReqPdpType = ((char**)pData)[6];
     }
 
     if (!IsSetupDataCallAllowed(retryTime))
@@ -2747,12 +2753,15 @@ RIL_RESULT_CODE CTE::RequestSetupDataCall(RIL_Token rilToken, void* pData, size_
     if (NULL != pChannelData)
     {
         int dataState = pChannelData->GetDataState();
-        RIL_LOG_INFO("CTE::RequestSetupDataCall() - dataState: %d\r\n", dataState);
+        char szDefaultPdpType[MAX_PDP_TYPE_SIZE] = {'\0'};
+        pChannelData->GetPdpType(szDefaultPdpType, sizeof(szDefaultPdpType));
 
         switch (dataState)
         {
             case E_DATA_STATE_ACTIVE:
-                if (pChannelData->IsApnEqual(((char**)pData)[2]))
+                if (pChannelData->IsApnEqual(((char**)pData)[2])
+                        && pszReqPdpType != NULL
+                        && m_pTEBaseInstance->IsPdpTypeCompatible(szDefaultPdpType, pszReqPdpType))
                 {
                     CMutex::Lock(m_pDataChannelRefCountMutex);
                     if (pChannelData->IsRoutingEnabled() && pChannelData->GetRefCount() > 0)
@@ -10218,7 +10227,7 @@ void CTE::PostSetInitialAttachApnCmdHandler(POST_CMD_HANDLER_DATA& rData)
 {
     RIL_LOG_VERBOSE("CTE::PostSetInitialAttachApnCmdHandler() - Enter\r\n");
 
-    int state = STATE_SET_INITIAL_ATTACH_APN;
+    int state = STATE_SET_NETWORK_SELECTION_MODE;
     if (rData.pContextData != NULL && rData.uiContextDataSize == sizeof(int))
     {
         state = *((int*)rData.pContextData);
@@ -10229,15 +10238,20 @@ void CTE::PostSetInitialAttachApnCmdHandler(POST_CMD_HANDLER_DATA& rData)
 
     switch (state)
     {
-        case STATE_DEREGISTER:
-            // set initial attach apn after deregistering from network.
+        case STATE_SET_NETWORK_SELECTION_MODE:
+            m_pTEBaseInstance->RestoreSavedNetworkSelectionMode(NULL, rData.uiChannel, NULL,
+                    &CTE::PostSetNetworkSelectionCmdHandler);
+            break;
+        case STATE_SET_INITIAL_ATTACH_APN:
+            // set initial attach apn after PS detach from network.
             m_pTEBaseInstance->SetInitialAttachApn(rData.pRilToken, rData.uiChannel,
                     &CTE::ParseSetInitialAttachApn,
                     &CTE::PostSetInitialAttachApnCmdHandler);
             break;
-         case STATE_SET_INITIAL_ATTACH_APN:
-            m_pTEBaseInstance->RestoreSavedNetworkSelectionMode(NULL, rData.uiChannel, NULL,
-                    &CTE::PostSetNetworkSelectionCmdHandler);
+        case STATE_ATTACH:
+            // This state is reached only if device is PS detached and initial attach
+            // apn is set on APN change.
+            m_pTEBaseInstance->RequestAttachOnIAChange(rData.uiChannel, rData.requestId);
             break;
         default:
             break;
