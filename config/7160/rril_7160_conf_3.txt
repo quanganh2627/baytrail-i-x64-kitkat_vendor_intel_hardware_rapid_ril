@@ -218,7 +218,7 @@ Group Modem
 //                        (for IMC IPV6 AT commands), or set to "0" to keep the current behavior.
 //      "EnableSignalStrengthReporting" - Set to "1" configures the modem to report signal strength
 //                          changes via an URC.
-//    VoiceCapable                0
+    VoiceCapable                0
 //    DataCapable                 0
 //    SmsOverCSCapable            0
 //    SmsOverPSCapable            0
