@@ -838,7 +838,7 @@ BOOL CInitializer::CreateSilos(CChannel* pChannel, int siloConfig)
             // get basic init string from a silo
             pszSiloInitString = (RIL_CHANNEL_URC == uiRilChannel) ? pSilo->GetURCInitString() :
                             pSilo->GetBasicInitString();
-            if (pszSiloInitString)
+            if (pszSiloInitString != NULL && pszSiloInitString[0] != '\0')
             {
                 if (!ConcatenateStringNullTerminate(pszBasicInitString, MAX_BUFFER_SIZE, "|"))
                 {
@@ -860,7 +860,7 @@ BOOL CInitializer::CreateSilos(CChannel* pChannel, int siloConfig)
             // get unlock init string from a silo
             pszSiloInitString = (RIL_CHANNEL_URC == uiRilChannel) ?
                             pSilo->GetURCUnlockInitString() : pSilo->GetUnlockInitString();
-            if (pszSiloInitString)
+            if (pszSiloInitString != NULL && pszSiloInitString[0] != '\0')
             {
                 if (!ConcatenateStringNullTerminate(pszUnlockInitString, MAX_BUFFER_SIZE, "|"))
                 {
