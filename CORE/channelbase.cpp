@@ -828,6 +828,12 @@ BOOL CChannelBase::SendModemConfigurationCommands(eComInitIndex eInitIndex)
                 goto Done;
             }
         }
+        else if (bLastCmd)
+        {
+            // If last command is empty, trigger the complete event here
+            CSystemManager::GetInstance().TriggerInitStringCompleteEvent(m_uiRilChannel,
+                    eInitIndex);
+        }
 
         // If this was the last command, get out now
         if (!pszEnd)
