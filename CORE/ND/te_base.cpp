@@ -9102,13 +9102,13 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitApduBasic(RESPONSE_DATA& rRspData)
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     const char* pszRsp = rRspData.szResponse;
 
-    UINT32  uiSW1 = 0;
-    UINT32  uiSW2 = 0;
-    UINT32  uiLen = 0;
-    char* szResponseString = NULL;
-    UINT32  cbResponseString = 0;
-
+    int length = 0;
+    char* pszResponseString = NULL;
+    int respLen = 0;
     RIL_SIM_IO_Response* pResponse = NULL;
+    size_t payloadSize = 0;
+    size_t responseSize = 0;
+    UINT32 uiResponseStrLen = 0;
 
     if (NULL == rRspData.szResponse)
     {
@@ -9117,7 +9117,7 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitApduBasic(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    // Parse "<prefix>+CSIM: <len>,"<response>"<postfix>"
+    // Parse "<prefix>+CSIM: <length>,"<response>"<postfix>"
     SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
     if (!SkipString(pszRsp, "+CSIM: ", pszRsp))
@@ -9127,92 +9127,70 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitApduBasic(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    if (!ExtractUInt32(pszRsp, uiLen, pszRsp))
+    if (!ExtractInt(pszRsp, length, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
-               " Could not extract uiLen value.\r\n");
+               " Could not extract <length>\r\n");
         goto Error;
     }
 
-
-    // Parse ","
-    if (SkipString(pszRsp, ",", pszRsp))
+    /*
+     * Parse <response>
+     * Response hex string is formatted as:
+     * <payload><sw1><sw2>
+     * with payload is size 2*n chars (n>=0, n is the size in bytes of the APDU payload)
+     * and sw1 and sw2 are 2 chars representing one byte
+     */
+    if (!FindAndSkipString(pszRsp, ",", pszRsp)
+            || !ExtractQuotedStringWithAllocatedMemory(pszRsp, pszResponseString, uiResponseStrLen,
+                    pszRsp))
     {
-        // Parse <response>
-        // NOTE: we take ownership of allocated szResponseString
-        if (!ExtractQuotedStringWithAllocatedMemory(pszRsp, szResponseString,
-                cbResponseString, pszRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
-                    " Could not extract data string.\r\n");
-            goto Error;
-        }
-        else
-        {
-            RIL_LOG_INFO("CTEBase::ParseSimTransmitApduBasic() -"
-                    " Extracted data string: \"%s\" (%u chars)\r\n",
-                    szResponseString, cbResponseString);
-        }
-
-        if (0 != (cbResponseString - 1) % 2)
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() :"
-                    " String was not a multiple of 2.\r\n");
-            goto Error;
-        }
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
+                " Could not extract <response>\r\n");
+        goto Error;
     }
 
-    // Allocate memory for the response struct PLUS a buffer for the response string
-    // The char* in the RIL_SIM_IO_Response will point to the buffer allocated directly
-    // after the RIL_SIM_IO_Response
-    // When the RIL_SIM_IO_Response is deleted, the corresponding response string will be
-    // freed as well.
-    pResponse = (RIL_SIM_IO_Response*)malloc(sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
+    RIL_LOG_INFO("CTEBase::ParseSimTransmitApduBasic() -"
+            " Extracted data string: \"%s\" (%u chars)\r\n",
+            pszResponseString, uiResponseStrLen);
+
+    respLen = strlen(pszResponseString);
+    /*
+     * 4 chars is the minimal size to put SW1 SW2
+     * <length> is the size in char of the string
+     * <length> is double the size in bytes of the response APDU
+     */
+    if (respLen < 4 || respLen != length || length % 2)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() :"
+                " invalid response\r\n");
+        goto Error;
+    }
+
+    // Response payload is the string returned minus the 4 last characters (SW1,SW2).
+    payloadSize = respLen - 4;
+
+    // Response size is size of RIL_SIM_IO_Response + payloadSize + 1 for null character
+    responseSize = sizeof(RIL_SIM_IO_Response) + payloadSize + 1;
+    pResponse = (RIL_SIM_IO_Response*)malloc(responseSize);
     if (NULL == pResponse)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
                  " Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
         goto Error;
     }
-    memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
+    memset(pResponse, 0, responseSize);
 
-    //  Response must be 4 chars or longer - cbResponseString includes NULL character
-    if (cbResponseString < 5)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
-                " response length must be 4 or greater.\r\n");
-        goto Error;
-    }
+    sscanf(&pszResponseString[respLen-4], "%02x%02x", &pResponse->sw1, &pResponse->sw2);
 
-    sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
-
-    pResponse->sw1 = uiSW1;
-    pResponse->sw2 = uiSW2;
-
-    if (NULL == szResponseString)
-    {
-        pResponse->simResponse = NULL;
-    }
-    else
-    {
-        szResponseString[cbResponseString-5] = '\0';
-
-        pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
-        if (!CopyStringNullTerminate(pResponse->simResponse, szResponseString, cbResponseString))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduBasic() -"
-                    " Cannot CopyStringNullTerminate szResponseString\r\n");
-            goto Error;
-        }
-
-        // Ensure NULL termination!
-        pResponse->simResponse[cbResponseString] = '\0';
-    }
+    pResponse->simResponse = ((char*)pResponse) + sizeof(RIL_SIM_IO_Response);
+    strncpy(pResponse->simResponse, pszResponseString, payloadSize);
+    pResponse->simResponse[payloadSize] = '\0';
 
     // Parse "<postfix>"
     SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
 
-    rRspData.pData   = (void*)pResponse;
+    rRspData.pData = pResponse;
     rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
 
     res = RRIL_RESULT_OK;
@@ -9224,8 +9202,8 @@ Error:
         pResponse = NULL;
     }
 
-    delete[] szResponseString;
-    szResponseString = NULL;
+    delete[] pszResponseString;
+    pszResponseString = NULL;
 
     RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitApduBasic() - Exit\r\n");
     return res;
@@ -9275,9 +9253,8 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSimOpenChannel() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char* szRsp = rRspData.szResponse;
-    UINT32 nChannelId = 0;
-    int* pnChannelId = NULL;
+    const char* pszRsp = rRspData.szResponse;
+    int* pSessionId = NULL;
 
     if (NULL == rRspData.szResponse)
     {
@@ -9285,42 +9262,40 @@ RIL_RESULT_CODE CTEBase::ParseSimOpenChannel(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    pnChannelId = (int*)malloc(sizeof(int));
-    if (NULL == pnChannelId)
+    pSessionId = (int*)malloc(sizeof(int));
+    if (NULL == pSessionId)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() -"
-                " Could not allocate memory for an int.\r\n", sizeof(int));
+                " Could not allocate memory for an int.\r\n");
         goto Error;
     }
-    memset(pnChannelId, 0, sizeof(int));
+    memset(pSessionId, 0, sizeof(int));
 
-    // Parse "<prefix><channelId><postfix>"
-    SkipRspStart(szRsp, m_szNewLine, szRsp);
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
-    // The modem repsonse may contain the prefix +CCHO.
-    // However ETSI spec doesn't require it:
-    // so if there is no such string found in the response
-    // we should simply ignore the error and move forward
-    FindAndSkipString(szRsp, "+CCHO: ", szRsp);
+    // As per 3GPP spec, response is <prefix><sessionid><postfix> but as modem sends
+    // <prefix>+CCHO: <sessionid><postfix>" parsing also done for "+CCHO: "
+    FindAndSkipString(pszRsp, "+CCHO: ", pszRsp);
 
-    if (!ExtractUInt32(szRsp, nChannelId, szRsp))
+    if (!ExtractInt(pszRsp, *pSessionId, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimOpenChannel() -"
-                " Could not extract the Channel Id.\r\n");
+                " Could not extract session Id.\r\n");
         goto Error;
     }
 
-    *pnChannelId = nChannelId;
+    // Parse "<postfix>"
+    SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
 
-    rRspData.pData   = (void*)pnChannelId;
-    rRspData.uiDataSize  = sizeof(int);
+    rRspData.pData = pSessionId;
+    rRspData.uiDataSize = sizeof(int);
 
     res = RRIL_RESULT_OK;
 Error:
     if (RRIL_RESULT_OK != res)
     {
-        free(pnChannelId);
-        pnChannelId = NULL;
+        free(pSessionId);
+        pSessionId = NULL;
     }
 
     RIL_LOG_VERBOSE("CTEBase::ParseSimOpenChannel() - Exit\r\n");
@@ -9336,7 +9311,7 @@ RIL_RESULT_CODE CTEBase::CoreSimCloseChannel(REQUEST_DATA& rReqData,
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSimCloseChannel() - Enter\r\n");
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    int nChannelId = 0;
+    int sessionId = 0;
 
     if (NULL == pData)
     {
@@ -9344,10 +9319,10 @@ RIL_RESULT_CODE CTEBase::CoreSimCloseChannel(REQUEST_DATA& rReqData,
         goto Error;
     }
 
-    nChannelId = ((int *)pData)[0];
+    sessionId = ((int *)pData)[0];
 
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
-            "AT+CCHC=%u\r", nChannelId))
+            "AT+CCHC=%d\r", sessionId))
     {
         RIL_LOG_CRITICAL("CTEBase::CoreSimCloseChannel() - Cannot create CCHC command\r\n");
         goto Error;
@@ -9471,15 +9446,14 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData)
     RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitApduChannel() - Enter\r\n");
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
-    const char* szRsp = rRspData.szResponse;
-
-    UINT32  uiSW1 = 0;
-    UINT32  uiSW2 = 0;
-    UINT32  uiLen = 0;
-    char* szResponseString = NULL;
-    UINT32  cbResponseString = 0;
-
+    const char* pszRsp = rRspData.szResponse;
+    int length = 0;
+    char* pszResponseString = NULL;
+    int respLen = 0;
     RIL_SIM_IO_Response* pResponse = NULL;
+    size_t payloadSize = 0;
+    size_t responseSize = 0;
+    UINT32 uiResponseStrLen = 0;
 
     if (NULL == rRspData.szResponse)
     {
@@ -9488,105 +9462,78 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
-    // Parse "<prefix>+CGLA: <len>,<response><postfix>"
-    SkipRspStart(szRsp, m_szNewLine, szRsp);
+    // Parse "<prefix>+CGLA: <length>,<response><postfix>"
+    SkipRspStart(pszRsp, m_szNewLine, pszRsp);
 
-
-    if (!SkipString(szRsp, "+CGLA: ", szRsp))
+    if (!SkipString(pszRsp, "+CGLA: ", pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
-                 " Could not skip over \"+CSIM: \".\r\n");
+                 " Could not skip over \"+CGLA: \".\r\n");
         goto Error;
     }
 
-    if (!ExtractUInt32(szRsp, uiLen, szRsp))
+    if (!ExtractInt(pszRsp, length, pszRsp))
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
-                " Could not extract uiLen value.\r\n");
+                " Could not extract length value.\r\n");
         goto Error;
     }
 
-
-    // Parse ","
-    if (SkipString(szRsp, ",", szRsp))
+    /*
+     * Parse <response>
+     * Response hex string is formatted as:
+     * <payload><sw1><sw2>
+     * with payload is size 2*n chars (n>=0, n is the size in bytes of the APDU payload)
+     * and sw1 and sw2 are 2 chars representing one byte
+     */
+    if (!FindAndSkipString(pszRsp, ",", pszRsp)
+            || !ExtractQuotedStringWithAllocatedMemory(pszRsp, pszResponseString, uiResponseStrLen,
+                    pszRsp))
     {
-        // Parse <response>
-        // NOTE: we take ownership of allocated szResponseString
-        if (!ExtractQuotedStringWithAllocatedMemory(szRsp,
-                szResponseString, cbResponseString, szRsp))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
-                    " Could not extract data string.\r\n");
-            goto Error;
-        }
-        else
-        {
-            RIL_LOG_INFO("CTEBase::ParseSimTransmitApduChannel() -"
-                    " Extracted data string: \"%s\" (%u chars)\r\n",
-                    szResponseString, cbResponseString);
-        }
-
-        if (0 != (cbResponseString - 1) % 2)
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() :"
-                    " String was not a multiple of 2.\r\n");
-            goto Error;
-        }
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
+                " Could not extract <response>\r\n");
+        goto Error;
     }
 
-    // Allocate memory for the response struct PLUS a buffer for the response string
-    // The char* in the RIL_SIM_IO_Response will point to the buffer allocated directly
-    //  after the RIL_SIM_IO_Response. When the RIL_SIM_IO_Response is deleted, the
-    // corresponding response string will be freed as well.
-    pResponse = (RIL_SIM_IO_Response*)malloc(
-            sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
+    RIL_LOG_INFO("CTEBase::ParseSimTransmitApduChannel() -"
+            " Extracted data string: \"%s\" (%u chars)\r\n",
+            pszResponseString, uiResponseStrLen);
+
+    respLen = strlen(pszResponseString);
+    /*
+     * 4 chars is the minimal size to put SW1 SW2
+     * <length> is the size in char of the string
+     * <length> is double the size in bytes of the response APDU
+     */
+    if (respLen < 4 || respLen != length || length % 2)
+    {
+        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() :"
+                " invalid response\r\n");
+        goto Error;
+    }
+
+    // Response size is size of RIL_SIM_IO_Response + payloadSize + 1 for null character
+    responseSize = sizeof(RIL_SIM_IO_Response) + payloadSize + 1;
+    pResponse = (RIL_SIM_IO_Response*)malloc(responseSize);
     if (NULL == pResponse)
     {
         RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
-                " Could not allocate memory for a RIL_SIM_IO_Response struct.\r\n");
+                " Could not allocate memory for a response\r\n");
         goto Error;
     }
-    memset(pResponse, 0, sizeof(RIL_SIM_IO_Response) + cbResponseString + 1);
+    memset(pResponse, 0, responseSize);
 
-    //  Response must be 4 chars or longer - cbResponseString includes NULL character
-    if (cbResponseString < 5)
-    {
-        RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
-                " response length must be 4 or greater.\r\n");
-        goto Error;
-    }
+    sscanf(&pszResponseString[respLen-4], "%02x%02x", &pResponse->sw1, &pResponse->sw2);
 
-    sscanf(&szResponseString[cbResponseString-5], "%02x%02x", &uiSW1, &uiSW2);
-
-    pResponse->sw1 = uiSW1;
-    pResponse->sw2 = uiSW2;
-
-    if (NULL == szResponseString)
-    {
-        pResponse->simResponse = NULL;
-    }
-    else
-    {
-        szResponseString[cbResponseString-5] = '\0';
-
-        pResponse->simResponse = (char*)(((char*)pResponse) + sizeof(RIL_SIM_IO_Response));
-        if (!CopyStringNullTerminate(pResponse->simResponse,
-                szResponseString, cbResponseString))
-        {
-            RIL_LOG_CRITICAL("CTEBase::ParseSimTransmitApduChannel() -"
-                    " Cannot CopyStringNullTerminate szResponseString\r\n");
-            goto Error;
-        }
-
-        // Ensure NULL termination!
-        pResponse->simResponse[cbResponseString] = '\0';
-    }
+    pResponse->simResponse = ((char*)pResponse) + sizeof(RIL_SIM_IO_Response);
+    strncpy(pResponse->simResponse, pszResponseString, payloadSize);
+    pResponse->simResponse[payloadSize] = '\0';
 
     // Parse "<postfix>"
-    SkipRspEnd(szRsp, m_szNewLine, szRsp);
+    SkipRspEnd(pszRsp, m_szNewLine, pszRsp);
 
-    rRspData.pData   = (void*)pResponse;
-    rRspData.uiDataSize  = sizeof(RIL_SIM_IO_Response);
+    rRspData.pData = pResponse;
+    rRspData.uiDataSize = sizeof(RIL_SIM_IO_Response);
 
     res = RRIL_RESULT_OK;
 Error:
@@ -9596,8 +9543,8 @@ Error:
         pResponse = NULL;
     }
 
-    delete[] szResponseString;
-    szResponseString = NULL;
+    delete[] pszResponseString;
+    pszResponseString = NULL;
 
     RIL_LOG_VERBOSE("CTEBase::ParseSimTransmitApduChannel() - Exit\r\n");
     return res;
