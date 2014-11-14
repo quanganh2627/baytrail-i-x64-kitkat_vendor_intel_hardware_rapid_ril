@@ -499,17 +499,18 @@ void CChannel_Data::GetChnlsRilHsi(CChannel_Data* pChannelData, const int dataPr
     {
         int ipcDataChannelMin = pChannelData->GetIpcDataChannelMin();
         const UINT32 uiCID = pChannelData->GetContextID();
-        if (dataProfile >= 0 && dataProfile < NUMBER_OF_APN_PROFILE)
+        int profile = dataProfile & DATA_PROFILE_AOSP_MASK;
+        if (profile >= 0 && profile < NUMBER_OF_APN_PROFILE)
         {
             // According to the data profile class try to associate
             // a hsi channel to the RIL channel.
-            switch (m_dataProfilePathAssignation[dataProfile])
+            switch (m_dataProfilePathAssignation[profile])
             {
                 case 1:
                     // For APN of the class 1 a hsi channel is available. Find the first available.
                     RIL_LOG_INFO("CChannel_Data::GetChnlsRilHsi() -"
                             " data profile class: %d.\r\n",
-                            m_dataProfilePathAssignation[dataProfile]);
+                            m_dataProfilePathAssignation[profile]);
                     hsiChannel = GetFreeHSIChannel(uiCID,
                             ipcDataChannelMin, ipcDataChannelMin + m_hsiChannelsReservedForClass1);
                     if (hsiChannel == -1)
@@ -527,7 +528,7 @@ void CChannel_Data::GetChnlsRilHsi(CChannel_Data* pChannelData, const int dataPr
                     // For APN of the class 2, check if there is a free hsi channel
                     // that can be used.
                     RIL_LOG_INFO("CChannel_Data::GetChnlsRilHsi() - data profile "
-                            "class: %d.\r\n", m_dataProfilePathAssignation[dataProfile]);
+                            "class: %d.\r\n", m_dataProfilePathAssignation[profile]);
                     hsiChannel = GetFreeHSIChannel(uiCID,
                             ipcDataChannelMin + m_hsiChannelsReservedForClass1,
                             ipcDataChannelMin + m_hsiDataDirect);

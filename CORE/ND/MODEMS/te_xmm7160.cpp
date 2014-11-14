@@ -321,12 +321,21 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetupDataCall(REQUEST_DATA& rReqData,
                 stPdpData.szPDPType);
     }
 
-    if (ImsEnabledApn(stPdpData.szApn))
+    if (IsImsEnabledApn(stPdpData.szApn))
     {
         requestPcscfFlag = 1;
         imCnSignallingFlagInd = 1;
     }
-
+    if (IsEImsEnabledApn(stPdpData.szApn))
+    {
+        requestPcscfFlag = 1;
+        imCnSignallingFlagInd = 1;
+        emergencyFlag = 1;
+    }
+    if (IsRcsEnabledApn(stPdpData.szApn))
+    {
+        requestPcscfFlag = 1;
+    }
     //
     //  IP type is passed in dynamically.
     if (NULL == stPdpData.szPDPType)
@@ -1192,7 +1201,7 @@ Error:
 BOOL CTE_XMM7160::GetSetInitialAttachApnReqData(REQUEST_DATA& reqData)
 {
     UINT32 uiMode = GetXDNSMode(m_InitialAttachApnParams.szPdpType);
-    int requestPcscf = ImsEnabledApn(m_InitialAttachApnParams.szApn) ? 1 : 0;
+    int requestPcscf = IsImsEnabledApn(m_InitialAttachApnParams.szApn) ? 1 : 0;
 
     if ('\0' == m_InitialAttachApnParams.szApn[0])
     {
@@ -3732,7 +3741,7 @@ Error:
     return res;
 }
 
-bool CTE_XMM7160::ImsEnabledApn(const char* pszApn)
+bool CTE_XMM7160::IsImsEnabledApn(const char* pszApn)
 {
     if (m_cte.IsIMSApCentric())
     {
@@ -3740,7 +3749,45 @@ bool CTE_XMM7160::ImsEnabledApn(const char* pszApn)
         for (size_t i = 0; i < m_vDataProfileInfos.size(); i++)
         {
             info = m_vDataProfileInfos[i];
-            if (DATA_PROFILE_IMS == info.profileId && !strcmp(info.szApn, pszApn))
+            // DATA_PROFILE_IMS is AOSP constant, not a bit field so we must mask OEM bits
+            if (DATA_PROFILE_IMS == (DATA_PROFILE_AOSP_MASK & info.profileId)
+                    && !strcmp(info.szApn, pszApn))
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool CTE_XMM7160::IsEImsEnabledApn(const char* pszApn)
+{
+    if (m_cte.IsIMSApCentric())
+    {
+        S_DATA_PROFILE_INFO info;
+        for (size_t i = 0; i < m_vDataProfileInfos.size(); i++)
+        {
+            info = m_vDataProfileInfos[i];
+            if (DATA_PROFILE_OEM_EIMS == (DATA_PROFILE_OEM_EIMS & info.profileId)
+                    && !strcmp(info.szApn, pszApn))
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool CTE_XMM7160::IsRcsEnabledApn(const char* pszApn)
+{
+    if (m_cte.IsIMSApCentric())
+    {
+        S_DATA_PROFILE_INFO info;
+        for (size_t i = 0; i < m_vDataProfileInfos.size(); i++)
+        {
+            info = m_vDataProfileInfos[i];
+            if (DATA_PROFILE_OEM_RCS == (DATA_PROFILE_OEM_RCS & info.profileId)
+                    && !strcmp(info.szApn, pszApn))
             {
                 return true;
             }

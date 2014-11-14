@@ -204,6 +204,10 @@ protected:
     int MapToAndroidRsrq(int rsrq);
     int MapToAndroidRssnr(int rssnr);
 
+    bool IsImsEnabledApn(const char* pszApn);
+    bool IsEImsEnabledApn(const char* pszApn);
+    bool IsRcsEnabledApn(const char* pszApn);
+
     virtual RIL_RESULT_CODE CreateSetAdaptiveClockingReq(REQUEST_DATA& reqData,
             const char** ppszRequest, const UINT32 uiDataSize);
     virtual RIL_RESULT_CODE CreateGetAdaptiveClockingFreqInfo(REQUEST_DATA& reqData,
@@ -221,8 +225,6 @@ private:
             const UINT32 uiDataSize,
             android::Vector<RIL_GSM_BroadcastSmsConfigInfo>& vBroadcastSmsConfigInfo,
             CCbsInfo::CbmIds* pConfigIds);
-
-    bool ImsEnabledApn(const char* pszApn);
 
     // Dedicated class about Cell Broadcast messages (SMS)
     CCbsInfo m_CbsInfo;

@@ -89,13 +89,18 @@ const UINT32 MAX_AID_SIZE = 33; // Hex string length including null termination
 ///////////////////////////////////////////////////////////////////////////////
 // Value to indicate profile Id in RIL_REQUEST_SETUP_DATA_CALL request.
 // value comes from frameworks/base/telephony/java/com/android/internal/telephony/RILConstants.java
-// Note: This needs to be updated on profile Id changes either in ril.h or in RILConstants.java
 //
 const int DATA_PROFILE_DEFAULT = 0;
 const int DATA_PROFILE_TETHERED = 1;
 const int DATA_PROFILE_IMS = 2;
 const int DATA_PROFILE_FOTA = 3;
 const int DATA_PROFILE_CBS = 4;
+// Next profiles are OEM ids (above RILConstants.DATA_PROFILE_OEM_BASE = d1000)
+const int DATA_PROFILE_OEM_RCS = 0x400;
+const int DATA_PROFILE_OEM_EIMS = 0x800;
+const int DATA_PROFILE_OEM_XCAP = 0x1000;
+// Constant to mask bits potentially usable by AOSP profiles (<= d1023)
+const int DATA_PROFILE_AOSP_MASK = 0x3FF;
 
 #if !defined (USE_PATCHED_AOSP)
 

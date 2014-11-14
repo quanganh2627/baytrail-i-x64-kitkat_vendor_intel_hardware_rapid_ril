@@ -88,8 +88,9 @@ RIL_RESULT_CODE CTE_XMM7260::CoreSetupDataCall(REQUEST_DATA& rReqData,
     CChannel_Data* pChannelData = NULL;
     int dataProfile = -1;
     int nReqType = 0; // 0 => MT decides if new PDP or handover
-    int nRequestPcscfFlag = 0; // 1: request pcscf address
-    int nImSignalingFlag = 0; // 1: set IM CN Signalling flag
+    int emergencyFlag = 0; // 1: emergency pdn
+    int requestPcscfFlag = 0; // 1: request pcscf address
+    int imCnSignallingFlagInd = 0; // 1: IMS Only APN
     UINT32 uiDnsMode = 0;
 
     RIL_LOG_INFO("CTE_XMM7260::CoreSetupDataCall() - uiDataSize=[%u]\r\n", uiDataSize);
@@ -162,10 +163,21 @@ RIL_RESULT_CODE CTE_XMM7260::CoreSetupDataCall(REQUEST_DATA& rReqData,
                 stPdpData.szPDPType);
     }
 
-    if (DATA_PROFILE_IMS == dataProfile && m_cte.IsIMSApCentric())
+
+    if (IsImsEnabledApn(stPdpData.szApn))
     {
-        nRequestPcscfFlag = 1;
-        nImSignalingFlag = 1;
+        requestPcscfFlag = 1;
+        imCnSignallingFlagInd = 1;
+    }
+    if (IsEImsEnabledApn(stPdpData.szApn))
+    {
+        requestPcscfFlag = 1;
+        imCnSignallingFlagInd = 1;
+        emergencyFlag = 1;
+    }
+    if (IsRcsEnabledApn(stPdpData.szApn))
+    {
+        requestPcscfFlag = 1;
     }
 
     //
@@ -200,8 +212,8 @@ RIL_RESULT_CODE CTE_XMM7260::CoreSetupDataCall(REQUEST_DATA& rReqData,
     uiDnsMode = GetXDNSMode(stPdpData.szPDPType);
     if (!PrintStringNullTerminate(rReqData.szCmd1, sizeof(rReqData.szCmd1),
             "AT+CGDCONT=%d,\"%s\",\"%s\",,0,0,,%d,%d,%d;+XGAUTH=%d,%u,\"%s\",\"%s\";+XDNS=%d,%u\r",
-            uiCID, stPdpData.szPDPType, stPdpData.szApn, nReqType, nRequestPcscfFlag,
-            nImSignalingFlag, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
+            uiCID, stPdpData.szPDPType, stPdpData.szApn, nReqType, requestPcscfFlag,
+            imCnSignallingFlagInd, uiCID, nPapChap, stPdpData.szUserName, stPdpData.szPassword,
             uiCID, uiDnsMode))
     {
         RIL_LOG_CRITICAL("CTE_XMM7260::CoreSetupDataCall() -"
@@ -2180,8 +2192,8 @@ Error:
 
 /*
  * Activates or deactivates the coexistence intents reporting
- * - Enable Coex Reporting "AT+XNRTCWS=1”
- * - Disable Coex Reporting "AT+XNRTCWS=0”
+ * - Enable Coex Reporting "AT+XNRTCWS=1"
+ * - Disable Coex Reporting "AT+XNRTCWS=0"
  */
 RIL_RESULT_CODE CTE_XMM7260::CreateSetCoexReport(REQUEST_DATA& reqData,
         const char** ppszRequest, const UINT32 uiDataSize)
