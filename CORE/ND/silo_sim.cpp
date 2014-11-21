@@ -71,7 +71,7 @@ CSilo_SIM::~CSilo_SIM()
 
 char* CSilo_SIM::GetURCInitString()
 {
-    if (CTE::GetTE().IsVoiceCapable())
+    if (CTE::GetTE().IsVoiceCapable() || CTE::GetTE().IsSmsCapable())
     {
         // SIM silo-related URC channel basic init string
         const char szSimURCInitString[] = "+XLEMA=1";
