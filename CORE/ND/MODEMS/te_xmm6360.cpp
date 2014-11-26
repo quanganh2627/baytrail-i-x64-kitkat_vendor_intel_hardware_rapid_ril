@@ -1974,12 +1974,6 @@ RIL_RESULT_CODE CTE_XMM6360::ParseSimAuthentication(RESPONSE_DATA& rspData)
     res = RRIL_RESULT_OK;
 
 Error:
-    if (!FindAndSkipRspEnd(pszRsp, m_szNewLine, pszRsp))
-    {
-        RIL_LOG_INFO("CTE_XMM6360::ParseSimAuthentication() -"
-                " Could not extract the response end.\r\n");
-    }
-
     if (RRIL_RESULT_OK != res)
     {
         free(pResponse);
