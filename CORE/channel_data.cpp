@@ -232,6 +232,33 @@ bool CChannel_Data::IsDataConnectionActive()
     return false;
 }
 
+UINT32 CChannel_Data::GetFirstActiveDataConnectionCid()
+{
+    RIL_LOG_VERBOSE("CChannel_Data::GetFirstActiveDataConnectionCid() - Enter\r\n");
+
+    CMutex::Lock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+    UINT32 uiContextID = 0;
+
+    for (UINT32 i = RIL_CHANNEL_DATA1; i < g_uiRilChannelCurMax; i++)
+    {
+        if (NULL == g_pRilChannel[i]) // could be NULL if reserved channel
+            continue;
+
+        CChannel_Data* pChannelData = static_cast<CChannel_Data*>(g_pRilChannel[i]);
+        if (pChannelData != NULL
+                && E_DATA_STATE_ACTIVE == pChannelData->GetDataState())
+        {
+            uiContextID = pChannelData->GetContextID();
+            break;
+        }
+    }
+
+    CMutex::Unlock(CSystemManager::GetInstance().GetDataChannelAccessorMutex());
+
+    RIL_LOG_VERBOSE("CChannel_Data::GetFirstActiveDataConnectionCid() - Exit\r\n");
+    return uiContextID;
+}
+
 //
 //  Returns a pointer to the channel linked to the given interface name
 //
@@ -800,7 +827,7 @@ BOOL CChannel_Data::IsApnEqual(const char* pApn)
 
     if (m_szApn[0] == '\0' || NULL == pApn)
     {
-        bRet = FALSE;
+        bRet = TRUE;
     }
     else
     {

@@ -12278,14 +12278,14 @@ bool CTEBase::IsPdpTypeCompatible(const char* pszPdpType1, const char* pszPdpTyp
 
 bool CTEBase::IsApnEqual(const char* pszApn1, const char* pszApn2)
 {
-    bool bRet = false;
+    bool bRet = true;
 
     if (pszApn1 != NULL && pszApn2 != NULL)
     {
-        if (strcasestr(pszApn1, pszApn2) != NULL
-                || strcasestr(pszApn2, pszApn1) != NULL)
+        if (strcasestr(pszApn1, pszApn2) == NULL
+                && strcasestr(pszApn2, pszApn1) == NULL)
         {
-            bRet = true;
+            bRet = false;
         }
     }
 

@@ -86,6 +86,7 @@ public:
     static bool IsDataConnectionActive();
     static CChannel_Data* ReserveFreeChnlsRilHsi(const UINT32 uiContextID, const int dataProfile);
     static void GetChnlsRilHsi(CChannel_Data* pChannelData, const int dataProfile);
+    static UINT32 GetFirstActiveDataConnectionCid();
 
     // used by 6360 and 7160 modems.
     static int GetFreeHSIChannel(UINT32 uiCID, int sindex, int eIndex);

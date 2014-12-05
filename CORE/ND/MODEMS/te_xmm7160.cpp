@@ -1483,7 +1483,7 @@ BOOL CTE_XMM7160::DataConfigDown(UINT32 uiCID, BOOL bForceCleanup)
     {
         if (uiCID == uiDefaultPdnCid)
         {
-            m_cte.SetDefaultPDNCid(0);
+            m_cte.SetDefaultPDNCid(CChannel_Data::GetFirstActiveDataConnectionCid());
         }
         pChannelData->ResetDataCallInfo();
     }
@@ -3951,18 +3951,25 @@ void CTE_XMM7160::HandleSetupDataCallSuccess(UINT32 uiCID, void* pRilToken)
      * make this connection as default and deactivate the current default PDN if there
      * are no clients using it.
      */
-    if (uiDefaultPdnCid != 0 && uiCID != uiDefaultPdnCid
+    if (uiCID != uiDefaultPdnCid
             && IsApnEqual(m_InitialAttachApnParams.szApn, szApn)
             && IsPdpTypeCompatible(m_InitialAttachApnParams.szPdpType, szPdpType))
     {
         m_cte.SetDefaultPDNCid(uiCID);
 
-        CChannel_Data* pDefaultPdnChannel = CChannel_Data::GetChnlFromContextID(uiDefaultPdnCid);
-        if (pDefaultPdnChannel != NULL && 0 >= pDefaultPdnChannel->GetRefCount())
+        if (uiDefaultPdnCid != 0)
         {
-            pDefaultPdnChannel->SetDataState(E_DATA_STATE_DEACTIVATING);
-            RIL_requestTimedCallback(triggerDeactivateDataCall, (void*)(intptr_t)uiDefaultPdnCid,
-                    0, 0);
+            /*
+             * If there is no client using the default PDN, deactivate the old default PDN.
+             */
+            CChannel_Data* pDefaultPdnChannel = CChannel_Data::GetChnlFromContextID(
+                    uiDefaultPdnCid);
+            if (pDefaultPdnChannel != NULL && 0 >= pDefaultPdnChannel->GetRefCount())
+            {
+                pDefaultPdnChannel->SetDataState(E_DATA_STATE_DEACTIVATING);
+                RIL_requestTimedCallback(triggerDeactivateDataCall,
+                        (void*)(intptr_t)uiDefaultPdnCid, 0, 0);
+            }
         }
     }
 
