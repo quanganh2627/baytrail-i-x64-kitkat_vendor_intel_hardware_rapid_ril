@@ -1545,16 +1545,20 @@ RIL_RESULT_CODE CTE_XMM6360::ParseSimAuthentication(RESPONSE_DATA& rspData)
     const int STATUS_FAIL_SYNC = 1;
     const int STATUS_FAIL_MAC = 2;
     const int STATUS_FAIL_SECURITY_CONTEXT = 3;
-    const int MAX_SRES_PARAM_LEN = 8;
-    const int KC_PARAM_LEN = 16;
-    const int MIN_RES_PARAM_LEN = 8;
-    const int MAX_AUTN_PARAM_LEN = 32;
+    const size_t MAX_SRES_PARAM_LEN = 8;
+    const size_t KC_PARAM_LEN = 16;
+    const size_t MIN_RES_PARAM_LEN = 8;
+    const size_t MAX_RES_PARAM_LEN = 32;
+    const size_t CK_PARAM_LEN = 32;
+    const size_t IK_PARAM_LEN = 32;
+    const size_t AUTS_PARAM_LEN = 28;
+    const size_t MAX_AUTN_PARAM_LEN = 32;
     const char* pszRsp = rspData.szResponse;
-    const int MAX_DATA_BUFFER_SIZE = 1/*3G AUTH TAG BYTE*/
-            + 1/*RES LEN BYTE*/ + MAX_AUTN_PARAM_LEN/2/*MAX RES LEN*/
-            + 1/*CK LEN BYTE*/ + MAX_AUTN_PARAM_LEN/2/*MAX CK LEN*/
-            + 1/*IK LEN BYTE*/ + MAX_AUTN_PARAM_LEN/2/*MAX IK LEN*/
-            + 1/*Kc LEN BYTE*/ + KC_PARAM_LEN/2/*MAX Kc LEN*/;
+    const size_t MAX_DATA_BUFFER_SIZE = 1/*3G AUTH TAG BYTE*/
+            + 1/*RES LEN BYTE*/ + MAX_RES_PARAM_LEN/2/*MAX RES LEN*/
+            + 1/*CK LEN BYTE*/ + CK_PARAM_LEN/2/*CK LEN*/
+            + 1/*IK LEN BYTE*/ + IK_PARAM_LEN/2/*IK LEN*/
+            + 1/*Kc LEN BYTE*/ + KC_PARAM_LEN/2/*Kc LEN*/;
 
     enum SimAuthParams
     {
@@ -1576,7 +1580,7 @@ RIL_RESULT_CODE CTE_XMM6360::ParseSimAuthentication(RESPONSE_DATA& rspData)
     char szTemp[MAX_SIM_AUTH_PARAMS][MAX_AUTN_PARAM_LEN + 1] = {'\0'};
     char szBase64Rsp[2 * MAX_DATA_BUFFER_SIZE] = {'\0'};
     UINT8 dataBuffer[MAX_DATA_BUFFER_SIZE] = { 0 };
-    size_t paramLen[MAX_SIM_AUTH_PARAMS] = { 0, 0, 0, 0 };
+    size_t paramLen[MAX_SIM_AUTH_PARAMS] = { 0 };
     int writeMarker = 0;
     size_t simAuthLen = 0;
     int authContextType = 0;
@@ -1691,7 +1695,7 @@ RIL_RESULT_CODE CTE_XMM6360::ParseSimAuthentication(RESPONSE_DATA& rspData)
                     }
                     paramLen[RES] = strlen(szTemp[RES]);
                     if (paramLen[RES] < MIN_RES_PARAM_LEN
-                            || paramLen[RES] > MAX_AUTN_PARAM_LEN)
+                            || paramLen[RES] > MAX_RES_PARAM_LEN)
                     {
                         RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
                                 " Invalid parameter length.\r\n");
@@ -1711,7 +1715,7 @@ RIL_RESULT_CODE CTE_XMM6360::ParseSimAuthentication(RESPONSE_DATA& rspData)
                         goto Error;
                     }
                     paramLen[CK] = strlen(szTemp[CK]);
-                    if (paramLen[CK] != MAX_AUTN_PARAM_LEN)
+                    if (paramLen[CK] != CK_PARAM_LEN)
                     {
                         RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
                                 " Invalid parameter length.\r\n");
@@ -1731,7 +1735,7 @@ RIL_RESULT_CODE CTE_XMM6360::ParseSimAuthentication(RESPONSE_DATA& rspData)
                         goto Error;
                     }
                     paramLen[IK] = strlen(szTemp[IK]);
-                    if (paramLen[IK] != MAX_AUTN_PARAM_LEN)
+                    if (paramLen[IK] != IK_PARAM_LEN)
                     {
                         RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
                                 " Invalid parameter length.\r\n");
@@ -1775,7 +1779,7 @@ RIL_RESULT_CODE CTE_XMM6360::ParseSimAuthentication(RESPONSE_DATA& rspData)
                     goto Error;
                 }
                 paramLen[AUTS] = strlen(szTemp[AUTS]);
-                if (paramLen[AUTS] != MAX_AUTN_PARAM_LEN)
+                if (paramLen[AUTS] != AUTS_PARAM_LEN)
                 {
                     RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
                             " Invalid parameter length.\r\n");
@@ -1939,8 +1943,7 @@ RIL_RESULT_CODE CTE_XMM6360::ParseSimAuthentication(RESPONSE_DATA& rspData)
     {
         // the response is encoded in Base64 format, see 3GPP TS 31.102 7.1.2
         respLen = util_b64_ntop(dataBuffer, simAuthLen, szBase64Rsp, sizeof(szBase64Rsp));
-
-        if (0 == respLen)
+        if (respLen < 0)
         {
             RIL_LOG_CRITICAL("CTE_XMM6360::ParseSimAuthentication() -"
                     " Could not encode the response in Base64 format.\r\n");
