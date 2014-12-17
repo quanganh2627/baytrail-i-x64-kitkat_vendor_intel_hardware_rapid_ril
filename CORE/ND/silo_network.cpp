@@ -812,11 +812,15 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             if (pChannelData != NULL)
             {
                 pChannelData->SetDataState(E_DATA_STATE_INITING);
-                // Reset fail cause
-                pChannelData->SetDataFailCause(PDP_FAIL_NONE);
                 RIL_requestTimedCallback(triggerQueryDefaultPDNContextParams,
                         (void*)pChannelData, 0, 0);
             }
+        }
+
+        if (pChannelData != NULL)
+        {
+            // Reset fail cause
+            pChannelData->SetDataFailCause(PDP_FAIL_NONE);
         }
 
         if (FindAndSkipString(szStrExtract, ",", szStrExtract))
@@ -1082,12 +1086,6 @@ BOOL CSilo_Network::ParseCGEV(CResponse* const pResponse, const char*& rszPointe
             else
             {
                 pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
-                /*
-                 * @TODO: If fail cause is provided as part of NW PDN DEACT,
-                 * map the fail cause to ril cause values and set it.
-                 */
-                pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
-
                 pChannelData->ClearChildsContextID();
 
                 CTE::GetTE().DataConfigDown(uiCID, TRUE);
@@ -1218,12 +1216,6 @@ void CSilo_Network::HandleNwDeact(const char*& szStrExtract)
             return;
         }
         pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
-        /*
-         * @TODO: If fail cause is provided as part of NW DEACT,
-         * map the fail cause to ril cause values and set it.
-         */
-        pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
-
         pChannelData->ClearChildsContextID();
 
         CTE::GetTE().DataConfigDown(uiCID, TRUE);
@@ -1317,7 +1309,6 @@ void CSilo_Network::HandleMEDeactivation(const UINT32 uiCID)
     else if (E_DATA_STATE_DEACTIVATING != pChannelData->GetDataState())
     {
         pChannelData->SetDataState(E_DATA_STATE_DEACTIVATED);
-        pChannelData->SetDataFailCause(PDP_FAIL_ERROR_UNSPECIFIED);
 
         CTE::GetTE().DataConfigDown(uiCID, TRUE);
 
