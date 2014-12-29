@@ -3847,6 +3847,20 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetInitialAttachApn(REQUEST_DATA& reqData,
     }
 
     /*
+     * If the stored pdp type is not empty and if there is no change in initial attach apn
+     * parameters, then complete the request without sending any command to modem.
+     * Note: This is specifically done to make sure initial attach apn is not set and
+     * network selection is not restored again on SIM REFRESH proactive command.
+     */
+    if (m_InitialAttachApnParams.szPdpType[0] != '\0'
+            && (0 == strcmp(m_InitialAttachApnParams.szPdpType, szPdpType))
+            && (0 == strcmp(m_InitialAttachApnParams.szApn, szApn)))
+    {
+        res = RRIL_RESULT_OK_IMMEDIATE;
+        goto Error;
+    }
+
+    /*
      * Initial attach parameters are considered as changed:
      *     - If the stored pdp type is not empty and doesn't match with the pdp type provided
      *       as part of RIL_REQUEST_SET_INITIAL_ATTACH_APN request (or)
@@ -3869,14 +3883,15 @@ RIL_RESULT_CODE CTE_XMM7160::CoreSetInitialAttachApn(REQUEST_DATA& reqData,
             szPdpType, sizeof(m_InitialAttachApnParams.szPdpType));
 
     /*
-     * Case 1: Initial attach APN is not yet set.
+     * Case 1: Initial attach APN is not yet set. RIL_REQUEST_SET_INITIAL_ATTACH_APN received
+     * during boot after sim records are loaded
      *
      * If there is no initial attach apn set, device is also not yet registered.
      * In this case, RIL_REQUEST_SET_INITIAL_ATTACH_APN will result in commands
      * AT+CGDCONT=<cid>,<PDP_type>[,<APN] and AT+COPS=0 sent to modem.
      *
-     * Case 2: Initial attach APN is already set. Initial attach APN received again with same or
-     * different initial attach parameters.
+     * Case 2: Initial attach APN is already set. Initial attach APN received again with different
+     * initial attach parameters.
      *
      * Upon APN change by user or sim refresh, framework will send initial attach apn request,
      * deactivation for all active connections and then SETUP_DATA_CALL for default type.
