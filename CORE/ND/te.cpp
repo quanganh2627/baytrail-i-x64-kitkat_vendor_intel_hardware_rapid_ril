@@ -9170,7 +9170,7 @@ void CTE::PostRadioPower(POST_CMD_HANDLER_DATA& /*rData*/)
         m_pTEBaseInstance->SetInitialAttachApn(NULL,
                 g_pReqInfo[RIL_REQUEST_SET_INITIAL_ATTACH_APN].uiChannel,
                 &CTE::ParseSetInitialAttachApn,
-                &CTE::PostSetInitialAttachApnCmdHandler);
+                &CTE::PostSetInitialAttachApnCmdHandler, STATE_SET_NETWORK_SELECTION_MODE);
     }
 
     RIL_LOG_VERBOSE("CTE::PostRadioPower() Exit\r\n");
@@ -10246,7 +10246,7 @@ void CTE::PostSetInitialAttachApnCmdHandler(POST_CMD_HANDLER_DATA& rData)
             // set initial attach apn after PS detach from network.
             m_pTEBaseInstance->SetInitialAttachApn(rData.pRilToken, rData.uiChannel,
                     &CTE::ParseSetInitialAttachApn,
-                    &CTE::PostSetInitialAttachApnCmdHandler);
+                    &CTE::PostSetInitialAttachApnCmdHandler, STATE_ATTACH);
             break;
         case STATE_ATTACH:
             // This state is reached only if device is PS detached and initial attach

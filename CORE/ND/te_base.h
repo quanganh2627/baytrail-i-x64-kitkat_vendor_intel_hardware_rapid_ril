@@ -1003,8 +1003,8 @@ public:
 
     void ResetNetworkSelectionMode();
 
-    RIL_RESULT_CODE SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel,
-            PFN_TE_PARSE pParseFcn, PFN_TE_POSTCMDHANDLER pHandlerFcn);
+    virtual RIL_RESULT_CODE SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel,
+            PFN_TE_PARSE pParseFcn, PFN_TE_POSTCMDHANDLER pHandlerFcn, int nextState);
     RIL_RESULT_CODE CoreQueryCnap(REQUEST_DATA& rReqData);
     RIL_RESULT_CODE ParseQueryCnap(const char* pszRsp, RESPONSE_DATA& rRspData);
 

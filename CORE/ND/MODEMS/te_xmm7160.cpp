@@ -4038,3 +4038,20 @@ Complete:
 
     RIL_LOG_VERBOSE("CTE_XMM7160::HandleSetupDataCallFailure() - Exit\r\n");
 }
+
+RIL_RESULT_CODE CTE_XMM7160::SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel,
+        PFN_TE_PARSE pParseFcn, PFN_TE_POSTCMDHANDLER pHandlerFcn, int nextState)
+{
+    if (m_InitialAttachApnParams.szPdpType[0] == '\0')
+    {
+        /*
+         * Initial attach apn cannot be set as android telephony framework has not provided
+         * initial attach apn parameters. Network selection mode will be restored once
+         * the initial attach apn is set.
+         */
+        RIL_LOG_INFO("CTE_XMM7160::SetInitialAttachApn() - initial attach apn not set\r\n");
+        return RRIL_RESULT_OK_IMMEDIATE;
+    }
+
+    return CTEBase::SetInitialAttachApn(rilToken, uiChannel, pParseFcn, pHandlerFcn, nextState);
+}

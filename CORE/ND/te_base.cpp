@@ -8980,8 +8980,8 @@ RIL_RESULT_CODE CTEBase::CoreSetInitialAttachApn(REQUEST_DATA& /*reqData*/,
                                                             UINT32 /*uiDataSize*/)
 {
     RIL_LOG_VERBOSE("CTEBase::CoreSetInitialAttachApn() - Enter / Exit\r\n");
-    // No command will be sent to modem but PostCmdHandler will be called if set
-    return RRIL_RESULT_OK;
+    // No action taken but complete as success
+    return RRIL_RESULT_OK_IMMEDIATE;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetInitialAttachApn(RESPONSE_DATA& /*rspData*/)
@@ -11921,21 +11921,9 @@ Error:
 }
 
 RIL_RESULT_CODE CTEBase::SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel,
-        PFN_TE_PARSE pParseFcn, PFN_TE_POSTCMDHANDLER pHandlerFcn)
+        PFN_TE_PARSE pParseFcn, PFN_TE_POSTCMDHANDLER pHandlerFcn, int nextState)
 {
     RIL_LOG_VERBOSE("CTEBase::SetInitialAttachApn() - Enter\r\n");
-
-    if (m_InitialAttachApnParams.szPdpType[0] == '\0')
-    {
-        /*
-         * Initial attach apn cannot be set as android telephony framework has not provided
-         * initial attach apn parameters. Network selection mode will be restored once
-         * the initial attach apn is set.
-         */
-        RIL_LOG_INFO("CTEBase::SetInitialAttachApn() - "
-                "initial attach apn not set\r\n");
-        return RRIL_RESULT_OK_IMMEDIATE;
-    }
 
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     REQUEST_DATA reqData;
@@ -11947,7 +11935,7 @@ RIL_RESULT_CODE CTEBase::SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChanne
     int* pNextState = (int*)malloc(sizeof(int));
     if (pNextState != NULL)
     {
-        *pNextState = STATE_ATTACH;
+        *pNextState = nextState;
         reqData.pContextData = pNextState;
         reqData.cbContextData = sizeof(int);
     }

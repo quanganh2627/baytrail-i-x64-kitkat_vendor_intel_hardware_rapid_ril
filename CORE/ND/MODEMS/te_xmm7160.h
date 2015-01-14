@@ -212,6 +212,10 @@ protected:
             const char** ppszRequest, const UINT32 uiDataSize);
     virtual RIL_RESULT_CODE CreateGetAdaptiveClockingFreqInfo(REQUEST_DATA& reqData,
             const char** ppszRequest, const UINT32 uiDataSize);
+
+    virtual RIL_RESULT_CODE SetInitialAttachApn(RIL_Token rilToken, UINT32 uiChannel,
+            PFN_TE_PARSE pParseFcn, PFN_TE_POSTCMDHANDLER pHandlerFcn, int nextState);
+
 private:
 
     void ConvertCellInfoForVanillaAOSP(P_ND_N_CELL_INFO_DATA_V2 pOldData,
