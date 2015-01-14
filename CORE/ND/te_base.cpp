@@ -9512,6 +9512,9 @@ RIL_RESULT_CODE CTEBase::ParseSimTransmitApduChannel(RESPONSE_DATA& rRspData)
         goto Error;
     }
 
+    // Response payload is the string returned minus the 4 last characters (SW1,SW2).
+    payloadSize = respLen - 4;
+
     // Response size is size of RIL_SIM_IO_Response + payloadSize + 1 for null character
     responseSize = sizeof(RIL_SIM_IO_Response) + payloadSize + 1;
     pResponse = (RIL_SIM_IO_Response*)malloc(responseSize);
