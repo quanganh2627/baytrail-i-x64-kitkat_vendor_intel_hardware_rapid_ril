@@ -45,8 +45,8 @@ CSilo_Network::CSilo_Network(CChannel* pChannel)
     // AT Response Table
     static ATRSPTABLE pATRspTable[] =
     {
-        { "+XCSQ:"      , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCSQ         },
-        { "+XCESQI:"    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCESQI       },
+        { "+XCSQ: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCSQ         },
+        { "+XCESQI: "   , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCESQI       },
         { "+CREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCREG         },
         { "+CGREG: "    , (PFN_ATRSP_PARSE)&CSilo_Network::ParseCGREG        },
         { "+XREG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXREG         },
@@ -55,9 +55,8 @@ CSilo_Network::CSilo_Network(CChannel* pChannel)
         { "+XDATASTAT: ", (PFN_ATRSP_PARSE)&CSilo_Network::ParseXDATASTAT    },
         { "+CTZV: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
         { "+CTZDST: "   , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
-        { "+XNITZINFO"  , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXNITZINFO    },
-        { "+PACSP1"     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseUnrecognized },
-        { "+XCSG"       , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCSG         },
+        { "+XNITZINFO: ", (PFN_ATRSP_PARSE)&CSilo_Network::ParseXNITZINFO    },
+        { "+XCSG: "     , (PFN_ATRSP_PARSE)&CSilo_Network::ParseXCSG         },
         { ""            , (PFN_ATRSP_PARSE)&CSilo_Network::ParseNULL         }
     };
 
@@ -175,13 +174,6 @@ BOOL CSilo_Network::ParseXNITZINFO(CResponse* const pResponse, const char*& rszP
     }
 
     pResponse->SetUnsolicitedFlag(TRUE);
-
-    //  Skip  ":",
-    if (!SkipString(rszPointer,":", rszPointer))
-    {
-        RIL_LOG_CRITICAL("CSilo_Network::ParseXNITZINFO() - Skip :\r\n");
-        goto Error;
-    }
 
     //  Parse the "<fullname>",
     if (!ExtractQuotedStringWithAllocatedMemory(rszPointer, pFullName, uiFullNameLength,
