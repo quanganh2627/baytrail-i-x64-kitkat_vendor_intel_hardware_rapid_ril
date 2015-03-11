@@ -691,8 +691,11 @@ void CSilo_SIM::ParsePduForRefresh(const char* pszPdu)
     }
 
 Error:
-    free(pSimRefreshResp->aid);
-    pSimRefreshResp->aid = NULL;
+    if (pSimRefreshResp)
+    {
+        free(pSimRefreshResp->aid);
+        pSimRefreshResp->aid = NULL;
+    }
 
     free(pSimRefreshResp);
     pSimRefreshResp = NULL;
