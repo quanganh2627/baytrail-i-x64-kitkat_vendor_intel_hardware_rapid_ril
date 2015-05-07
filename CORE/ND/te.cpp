@@ -325,6 +325,8 @@ BOOL CTE::IsRequestAllowedInRadioOff(int requestId)
         case RIL_REQUEST_SET_UNSOL_CELL_INFO_LIST_RATE:
         case RIL_REQUEST_OEM_HOOK_STRINGS:
         case RIL_REQUEST_SHUTDOWN:
+        case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC:
+        case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:
             bAllowed = TRUE;
             break;
 
@@ -559,8 +561,6 @@ RIL_Errno CTE::HandleRequestInRadioOff(int requestId, RIL_Token hRilToken)
         case RIL_REQUEST_OPERATOR:
         case RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE:
         case RIL_REQUEST_OEM_HOOK_STRINGS:
-        case RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC:
-        case RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL:
             eRetVal = RIL_E_RADIO_NOT_AVAILABLE;
             break;
 

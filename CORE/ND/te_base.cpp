@@ -5124,7 +5124,8 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionAutomatic(REQUEST_DATA& /*rReqDa
     m_NetworkSelectionModeParams.mode = E_NETWORK_SELECTION_MODE_AUTOMATIC;
 
     RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionAutomatic() - Exit\r\n");
-    return RRIL_RESULT_OK;
+    return (E_MMGR_EVENT_MODEM_UP == m_cte.GetLastModemEvent())
+            ? RRIL_RESULT_OK : RRIL_RESULT_OK_IMMEDIATE;
 }
 
 RIL_RESULT_CODE CTEBase::ParseSetNetworkSelectionAutomatic(RESPONSE_DATA& /*rRspData*/)
@@ -5165,7 +5166,8 @@ RIL_RESULT_CODE CTEBase::CoreSetNetworkSelectionManual(REQUEST_DATA& /*rReqData*
     CopyStringNullTerminate(m_NetworkSelectionModeParams.szOperatorNumeric,
             pszNumeric, sizeof(m_NetworkSelectionModeParams.szOperatorNumeric));
 
-    res = RRIL_RESULT_OK;
+    res = (E_MMGR_EVENT_MODEM_UP == m_cte.GetLastModemEvent())
+            ? RRIL_RESULT_OK : RRIL_RESULT_OK_IMMEDIATE;
 
 Error:
     RIL_LOG_VERBOSE("CTEBase::CoreSetNetworkSelectionManual() - Exit\r\n");
@@ -11865,6 +11867,12 @@ RIL_RESULT_CODE CTEBase::RestoreSavedNetworkSelectionMode(RIL_Token rilToken, UI
     RIL_RESULT_CODE res = RRIL_RESULT_ERROR;
     int requestId = RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC;
     CCommand* pCmd = NULL;
+
+    if (GetRadioState() != RADIO_STATE_ON)
+    {
+        RIL_LOG_INFO("CTEBase::RestoreSavedNetworkSelectionMode() - Radio not on\r\n");
+        goto Error;
+    }
 
     if (m_NetworkSelectionModeParams.mode == E_NETWORK_SELECTION_MODE_AUTOMATIC)
     {
